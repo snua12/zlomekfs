@@ -410,7 +410,9 @@ read_config_file (const char *file)
 
   /* Default values.  */
   set_str (&kernel_file_name, "/dev/zfs");
+  set_str (&node_config, "/etc/zfs");
 
+  /* Read the config file.  */
   f = fopen (file, "rt");
   if (!f)
     {
@@ -529,7 +531,12 @@ read_config_file (const char *file)
 		  || strncasecmp (key, "localconfig", 12) == 0
 		  || strncasecmp (key, "localconfiguration", 19) == 0
 		  || strncasecmp (key, "clusterconfig", 14) == 0
-		  || strncasecmp (key, "clusterconfiguration", 21) == 0)
+		  || strncasecmp (key, "clusterconfiguration", 21) == 0
+		  || strncasecmp (key, "defaultuser", 12) == 0
+		  || strncasecmp (key, "defaultuid", 11) == 0
+		  || strncasecmp (key, "defaultgroup", 13) == 0
+		  || strncasecmp (key, "defaultgid", 11) == 0
+		  || strncasecmp (key, "metadatatreedepth", 18) == 0)
 		{
 		  message (-1, stderr, "Option '%s' requires a value.\n", key);
 		}
