@@ -1606,12 +1606,41 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
   return true;
 }
 
+/* Delete file handle mapping MAP on volume VOL.  */
+
+static bool
+delete_fh_mapping (volume vol, fh_mapping *map)
+{
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!hashfile_opened_p (vol->fh_mapping))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
+      if (fd < 0)
+	return false;
+    }
+
+  if (!hfile_delete (vol->fh_mapping, map))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+  return true;
+}
+
 /* Get file handle mapping for master file handle MASTER_FH on volume VOL
    and store it to MAP.  */
 
 bool
 get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
 {
+  metadata meta;
+
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -1656,6 +1685,38 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
 #endif
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+
+  if (map->slot_status == VALID_SLOT)
+    {
+      /* Check whether the local file handle is still valid.  */
+      if (!hashfile_opened_p (vol->metadata))
+	{
+	  int fd;
+
+	  fd = open_hash_file (vol, METADATA_TYPE_METADATA);
+	  if (fd < 0)
+	    return false;
+	}
+
+      meta.dev = map->local_fh.dev;
+      meta.ino = map->local_fh.ino;
+      if (!hfile_lookup (vol->metadata, &meta))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+	  return false;
+	}
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+
+      /* If local file is not valid delete the mapping.  */
+      if (meta.slot_status != VALID_SLOT
+	  || meta.gen != map->local_fh.gen)
+	{
+	  if (!delete_fh_mapping (vol, map))
+	    return false;
+	  map->slot_status = DELETED_SLOT;
+	}
+    }
+
   return true;
 }
 
@@ -1842,6 +1903,7 @@ bool
 delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 		 uint32_t parent_dev, uint32_t parent_ino, string *name)
 {
+  fh_mapping map;
   metadata meta;
   zfs_fh fh;
   string path;
@@ -1929,6 +1991,8 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
       memset (meta.name, 0, METADATA_NAME_SIZE);
     }
 
+  map.master_fh = meta.master_fh;
+
   meta.flags = 0;
   meta.gen++;
   meta.local_version++;
@@ -1944,6 +2008,8 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 
+  if (!zfs_fh_undefined (map.master_fh))
+    return delete_fh_mapping (vol, &map);
   return true;
 }
 
