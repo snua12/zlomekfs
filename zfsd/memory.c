@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "memory.h"
 #include "log.h"
 
@@ -105,5 +106,46 @@ xmemdup(const void *src, size_t n)
       abort();
     }
   memcpy(r, src, n);
+  return r;
+}
+
+char *
+xstrconcat(int n, ...)
+{
+  va_list va;
+  int i, len;
+  char *r, *s, *d;
+  int l[n];
+
+  /* Compute the final length.  */
+  len = 0;
+  va_start(va, n);
+  for (i = 0; i < n; i++)
+    {
+      s = va_arg(va, char *);
+      l[i] = strlen(s);
+      len += l[i];
+    }
+  va_end(va);
+
+  r = malloc (len + 1);
+  if (!r)
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
+
+  /* Concatenate the strings.  */
+  d = r;
+  va_start(va, n);
+  for (i = 0; i < n; i++)
+    {
+      s = va_arg(va, char *);
+      memcpy(d, s, l[i]);
+      d += l[i];
+    }
+  *d = 0;
+  va_end(va);
+
   return r;
 }

@@ -31,5 +31,6 @@ extern void *xrealloc(void *ptr, size_t size);
 extern char *xstrdup(const char *s);
 extern char *xstrndup(const char *s, size_t n);
 extern void *xmemdup(const void *src, size_t n);
+extern char *xstrconcat(int n, ...);
 
 #endif
