@@ -149,9 +149,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 	{
 	  zfsd_mutex_unlock (&pvd->vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
-	  /* We have not updated the mountpoint root
-	     so we are performing the operation on virtual directory.  */
-	  return EROFS;
+	  return r;
 	}
       zfsd_mutex_unlock (&pvd->mutex);
     }
