@@ -175,6 +175,7 @@ struct internal_fh_def
 /* Internal file handle flags.  */
 #define IFH_UPDATE	1
 #define IFH_REINTEGRATE	2
+#define IFH_METADATA	4
 
 /* Information about locked file handle.  */
 typedef struct lock_info_def

@@ -55,6 +55,17 @@
 #define REINTEGRATE_P(DENTRY)						\
   ((DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version)
 
+/* Are metadata (mode, UID and GID) different in META and ATTR?  */
+#define METADATA_ATTR_CHANGE_P(META, ATTR)				\
+  ((ATTR).mode != GET_MODETYPE_MODE ((META).modetype)			\
+   || (ATTR).uid != (META).uid						\
+   || (ATTR).gid != (META).gid)
+
+/* Have local or remote metadata (mode, UID and GID) changed?  */
+#define METADATA_CHANGE_P(DENTRY, ATTR)					\
+  (METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, (DENTRY)->fh->attr)	\
+   || METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, ATTR))
+
 /* Queue of file handles.  */
 extern queue update_queue;
 
