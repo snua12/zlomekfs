@@ -30,7 +30,7 @@
 extern int verbose;
 
 /* Print message to F if LEVEL > VERBOSE.  */
-extern void message (int level, FILE *f, char *format, ...);
+extern void message (int level, FILE *f, char *format, ...) ATTRIBUTE_PRINTF_3;
 
 /* Report an internal error.  */
 void verbose_abort (const char *file, int line);

@@ -24,12 +24,12 @@
 #include "system.h"
 #include <stddef.h>
 
-extern void *xcalloc (size_t nmemb, size_t size);
-extern void *xmalloc (size_t size);
-extern void *xrealloc (void *ptr, size_t size);
-extern char *xstrdup (const char *s);
-extern char *xstrndup (const char *s, size_t n);
-extern void *xmemdup (const void *src, size_t n);
-extern char *xstrconcat (int n, ...);
+extern void *xcalloc (size_t nmemb, size_t size) ATTRIBUTE_MALLOC;
+extern void *xmalloc (size_t size) ATTRIBUTE_MALLOC;
+extern void *xrealloc (void *ptr, size_t size) ATTRIBUTE_MALLOC;
+extern char *xstrdup (const char *s) ATTRIBUTE_MALLOC;
+extern char *xstrndup (const char *s, size_t n) ATTRIBUTE_MALLOC;
+extern void *xmemdup (const void *src, size_t n) ATTRIBUTE_MALLOC;
+extern char *xstrconcat (int n, ...) ATTRIBUTE_MALLOC;
 
 #endif
