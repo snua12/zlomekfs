@@ -833,12 +833,14 @@ dentry_lookup_name (volume vol, internal_dentry parent, string *name)
     dentry = vol->root_dentry;
 
   if (dentry)
-    acquire_dentry (dentry);
+    {
+      acquire_dentry (dentry);
 
 #ifdef ENABLE_CHECKING
-  if (dentry->parent != parent)
-    abort ();
+      if (dentry->parent != parent)
+	abort ();
 #endif
+    }
 
   return dentry;
 }
