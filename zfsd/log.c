@@ -51,7 +51,7 @@ internal_error (char *format, ...)
   va_list va;
 
   va_start (va, format);
-  fprintf (stderr, "\nInternal error");
+  fprintf (stderr, "\nInternal error: ");
   vfprintf (stderr, format, va);
   fprintf (stderr, "\n");
   va_end (va);
@@ -63,12 +63,12 @@ internal_error (char *format, ...)
 void
 verbose_abort (const char *file, int line)
 {
-  internal_error (" at %s:%d: Aborted", file, line);
+  internal_error ("Aborted, at %s:%d", file, line);
 }
 
 /* Report the signal caught.  */
 void
 fatal_sighandler (int signum)
 {
-  internal_error (": %s", strsignal (signum));
+  internal_error ("%s", strsignal (signum));
 }
