@@ -69,7 +69,7 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 
 	error = zfsd_write(&args);
 	if (error > 0) {
-		*off += error;
+		*off = args.offset + error;
 		inode->i_mtime = CURRENT_TIME;
 		if (*off > i_size_read(inode)) {
 			i_size_write(inode, *off);
