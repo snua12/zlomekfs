@@ -2032,6 +2032,70 @@ create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
   return conflict;
 }
 
+/* If there is a dentry in place for file FH in conflict directrory CONFLICT
+   on volume VOL delete it and return NULL.
+   If FH is already there return its dentry.  */
+
+static internal_dentry
+make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
+			    bool exists, zfs_fh *fh)
+{
+  zfs_fh tmp_fh;
+  internal_dentry dentry;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*conflictp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!GET_CONFLICT ((*conflictp)->fh->local_fh))
+    abort ();
+  if ((*conflictp)->fh->attr.type != FT_DIR)
+    abort ();
+  if ((*conflictp)->fh->level == LEVEL_UNLOCKED
+      && (*conflictp)->parent->fh->level == LEVEL_UNLOCKED)
+    abort ();
+  if (GET_CONFLICT (*fh))
+    abort ();
+  if (exists && (*volp)->id != fh->vid)
+    abort ();
+#endif
+
+  for (i = 0; i < VARRAY_USED ((*conflictp)->fh->subdentries); i++)
+    {
+      dentry = VARRAY_ACCESS ((*conflictp)->fh->subdentries, i,
+			      internal_dentry);
+      zfsd_mutex_lock (&dentry->fh->mutex);
+
+#ifdef ENABLE_CHECKING
+      if (GET_CONFLICT (dentry->fh->local_fh))
+	abort ();
+#endif
+      if (GET_SID (dentry->fh->local_fh) == GET_SID (*fh))
+	{
+	  if (!exists || !ZFS_FH_EQ (dentry->fh->local_fh, *fh))
+	    {
+	      tmp_fh = (*conflictp)->fh->local_fh;
+	      release_dentry (*conflictp);
+	      zfsd_mutex_unlock (&(*volp)->mutex);
+
+	      internal_dentry_destroy (dentry, true);
+
+	      *volp = volume_lookup (tmp_fh.vid);
+	      *conflictp = dentry_lookup (&tmp_fh);
+
+	      return NULL;
+	    }
+	  else
+	    return dentry;
+	}
+      else
+	release_dentry (dentry);
+    }
+
+  return NULL;
+}
+
 /* Add a dentry to conflict dir CONFLICT on volume VOL.
    If EXISTS is true the file really exists so create a dentry with file handle
    FH, attributes ATTR and metadata META; otherwise create a virtual symlink
@@ -2043,70 +2107,30 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 {
   zfs_fh tmp_fh;
   internal_dentry dentry;
-  unsigned int i;
   node nod;
   char *name;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!GET_CONFLICT (conflict->fh->local_fh))
-    abort ();
-  if (conflict->fh->attr.type != FT_DIR)
-    abort ();
-  if (conflict->fh->level == LEVEL_UNLOCKED
-      && conflict->parent->fh->level == LEVEL_UNLOCKED)
-    abort ();
-  if (GET_CONFLICT (*fh))
-    abort ();
-  if (exists && vol->id != fh->vid)
-    abort ();
-#endif
 
-  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+  dentry = make_space_in_conflict_dir (&vol, &conflict, exists, fh);
+  if (dentry)
     {
-      dentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
-      zfsd_mutex_lock (&dentry->fh->mutex);
-
-#ifdef ENABLE_CHECKING
-      if (GET_CONFLICT (dentry->fh->local_fh))
-	abort ();
-#endif
-      if (GET_SID (dentry->fh->local_fh) == GET_SID (*fh))
-	{
-	  if (!exists || !ZFS_FH_EQ (dentry->fh->local_fh, *fh))
-	    {
-	      tmp_fh = conflict->fh->local_fh;
-	      release_dentry (conflict);
-	      zfsd_mutex_unlock (&vol->mutex);
-
-	      internal_dentry_destroy (dentry, true);
-	      dentry = NULL;
-
-	      vol = volume_lookup (tmp_fh.vid);
-	      conflict = dentry_lookup (&tmp_fh);
-
-#ifdef ENABLE_CHECKING
-	      if (!vol)
-		abort ();
-	      if (!conflict)
-		abort ();
-#endif
-
-	      break;
-	    }
-	  else
-	    {
-	      set_attr_version (attr, &dentry->fh->meta);
-	      dentry->fh->attr = *attr;
-	      release_dentry (dentry);
-	      return dentry;
-	    }
-	}
-      else
-	release_dentry (dentry);
+      set_attr_version (attr, &dentry->fh->meta);
+      dentry->fh->attr = *attr;
+      release_dentry (dentry);
+      return dentry;
     }
+#ifdef ENABLE_CHECKING
+  else
+    {
+      if (!vol)
+	abort ();
+      if (!conflict)
+	abort ();
+    }
+#endif
 
   nod = vol->master;
   zfsd_mutex_lock (&node_mutex);
