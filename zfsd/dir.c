@@ -1122,7 +1122,8 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   return r;
 }
 
-/* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
+/* Lookup path PATH from directory DIR and store the dir_op_res of the last
+   component to RES.  Skip conflict directories.  */
 
 int32_t
 zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
@@ -1148,6 +1149,13 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
       r = zfs_lookup (res, &res->file, &str);
       if (r != ZFS_OK)
 	return r;
+
+      if (CONFLICT_DIR_P (res->file))
+	{
+	  r = zfs_lookup (res, &res->file, &this_node->name);
+	  if (r != ZFS_OK)
+	    return r;
+	}
     }
 
   return ZFS_OK;
