@@ -166,12 +166,16 @@ walk_dir (zfs_fh *dir, char *path)
       int cookie = 0;
       dir_list list;
       unsigned int i;
+      direction dddd;
+      uint32_t rid;
 
       message (1, stderr, "%s\n", path);
       dc_create (&dc, ZFS_MAX_REQUEST_LEN);
 
       do {
 	start_encoding (&dc);
+	encode_direction (&dc, DIR_REPLY);
+	encode_request_id (&dc, 1234567890);
 	r = zfs_readdir (&dc, &cap, cookie, ZFS_MAXDATA);
 	finish_encoding (&dc);
 	if (r != ZFS_OK)
@@ -181,8 +185,10 @@ walk_dir (zfs_fh *dir, char *path)
 	    return r;
 	  }
 	start_decoding (&dc);
-	decode_status (&dc, &r);
-	if (!decode_dir_list (&dc, &list))
+	if (!decode_direction (&dc, &dddd)
+	    || !decode_request_id (&dc, &rid)
+	    || !decode_status (&dc, &r)
+	    || !decode_dir_list (&dc, &list))
 	  {
 	    zfs_close (&cap);
 	    dc_destroy (&dc);

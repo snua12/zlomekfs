@@ -547,8 +547,12 @@ read_remote_dir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   if (r == ZFS_OK)
     {
       if (t->dc.max_length > dc->cur_length)
-	memcpy (dc->current, t->dc.current + dc->cur_length,
-		t->dc.max_length - dc->cur_length);
+	{
+	  memcpy (dc->current, t->dc.current,
+		  t->dc.max_length - t->dc.cur_length);
+	  dc->current += t->dc.max_length - t->dc.cur_length;
+	  dc->cur_length += t->dc.max_length - t->dc.cur_length;
+	}
       else
 	r = ZFS_INVALID_REPLY;
     }
