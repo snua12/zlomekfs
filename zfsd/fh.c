@@ -251,7 +251,13 @@ cleanup_unused_dentries ()
 			 while CLEANUP_DENTRY_MUTEX was unlocked.  */
 		      if (dentry->fh->attr.type == FT_DIR
 			  && VARRAY_USED (dentry->fh->subdentries) > 0)
-			continue;
+			{
+#ifdef ENABLE_CHECKING
+			  if (dentry->heap_node)
+			    abort ();
+#endif
+			  continue;
+			}
 
 		      /* We may have looked DENTRY up again
 			 so we may have updated LAST_USE
