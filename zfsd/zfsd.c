@@ -32,6 +32,8 @@
 #include "fh.h"
 #include "log.h"
 #include "memory.h"
+#include "node.h"
+#include "volume.h"
 #include "client.h"
 #include "server.h"
 #include "zfsd.h"
@@ -212,6 +214,7 @@ void
 initialize_data_structures ()
 {
   initialize_fh_c ();
+  initialize_node_c ();
 }
 
 /* Destroy data structures.  */
@@ -219,6 +222,7 @@ initialize_data_structures ()
 void
 cleanup_data_structures ()
 {
+  cleanup_node_c ();
   cleanup_fh_c ();
 }
 

@@ -25,16 +25,46 @@
 #include "memory.h"
 #include "node.h"
 
-/* Create node structure and fill it with information.  */
+/* Hash table of nodes.  */
+static htab_t node_htab;
+
+/* Hash function for node N.  */
+#define NODE_HASH(N) ((N)->id)
+
+/* Hash function for node X.  */
+
+static hash_t
+node_hash (const void *x)
+{
+  return NODE_HASH ((node) x);
+}
+
+/* Compare a node X with ID *Y.  */
+
+static int
+node_eq (const void *x, const void *y)
+{
+  node n = (node) x;
+  unsigned int id = *(unsigned int *) y;
+
+  return n->id == id;
+}
+
+/* Create new node with ID and NAME and insert it to hash table.  */
+
 node
-node_create (char *name)
+node_create (unsigned int id, char *name)
 {
   node nod;
   struct hostent *he;
+  void **slot;
 
   nod = (node) xmalloc (sizeof (node));
+  nod->id = 0;
   nod->name = xstrdup (name);
   nod->flags = 0;
+  nod->status = CONNECTION_NONE;
+  nod->clnt = NULL;
 
   he = gethostbyname (name);
   if (he)
@@ -46,5 +76,30 @@ node_create (char *name)
 	}
     }
 
+#ifdef ENABLE_CHECKING
+  slot = htab_find_slot (node_htab, &nod->id, NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+
+  slot = htab_find_slot (node_htab, &nod->id, INSERT);
+  *slot = nod;
+
   return nod;
+}
+
+/* Initialize data structures in NODE.C.  */
+
+void
+initialize_node_c ()
+{
+  node_htab = htab_create (50, node_hash, node_eq, NULL);
+}
+
+/* Destroy data structures in NODE.C.  */
+
+void
+cleanup_node_c ()
+{
+  htab_destroy (node_htab);
 }

@@ -24,6 +24,7 @@
 #include "system.h"
 #include <netdb.h>
 #include <rpc/rpc.h>
+#include "hashtab.h"
 
 /* Connection status.  */
 typedef enum connection_status_def
@@ -52,6 +53,8 @@ typedef struct node_def
 #define NODE_ADDR_RESOLVED	4	/* the address of node is resolved  */
 
 /* Function prototypes.  */
-extern node node_create (char *name);
+extern node node_create (unsigned int id, char *name);
+extern void initialize_node_c ();
+extern void cleanup_node_c ();
 
 #endif
