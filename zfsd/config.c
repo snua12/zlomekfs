@@ -346,8 +346,7 @@ init_this_node (void)
   zfsd_mutex_unlock (&node_mutex);
 }
 
-/** \fn static bool read_local_volume_info (string *path)
-    \brief Read local info about volumes.
+/** \brief Read local info about volumes.
     \param path Path where local configuration is stored.
     \param reread True if we are rereading the local volume info.  */
 
@@ -448,8 +447,7 @@ read_local_volume_info (string *path, bool reread)
   return true;
 }
 
-/** \fn static bool reread_local_volume_info (string *path)
-    \brief Reread local info about volumes.
+/** \brief Reread local info about volumes.
     \param path Path where local configuration is stored.  */
 
 static bool 

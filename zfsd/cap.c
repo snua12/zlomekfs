@@ -47,8 +47,7 @@ static alloc_pool cap_pool;
 /* Mutex for cap_pool.  */
 static pthread_mutex_t cap_mutex;
 
-/** \fn static bool internal_cap_compute_verify (internal_cap cap)
-    \brief Compute the verification for the capability and return true on
+/** \brief Compute the verification for the capability and return true on
     success.
     \param cap Capability which the verification should be computed for.  */
 

@@ -160,8 +160,7 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
     }
 }
 
-/** \fn static void hup_sighandler (ATTRIBUTE_UNUSED int signum)
-    \brief Signal handler for SIGHUP.
+/** \brief Signal handler for SIGHUP.
     \param signum Number of the received signal.  */
 
 static void
