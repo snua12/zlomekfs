@@ -346,7 +346,8 @@ typedef struct reintegrate_add_args_def
 
 typedef struct reintegrate_del_args_def
 {
-  zfs_fh fh;
+  zfs_fh dir;
+  filename name;
   char destroy_p;
 } reintegrate_del_args;
 
