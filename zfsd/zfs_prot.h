@@ -43,6 +43,7 @@
 #define ZFS_COULD_NOT_AUTH	-7	/* Could not authenticate with node.  */
 #define ZFS_INVALID_AUTH_LEVEL	-8	/* Remote node has not authenticated
 					   enough yet.  */
+#define ZFS_EXITING		-9	/* zfsd is exiting */
 
 typedef enum direction_def
 {
