@@ -506,6 +506,7 @@ flush_interval_tree_1 (interval_tree tree, char *path)
   zfsd_mutex_lock (&metadata_mutex);
   zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
   init_interval_fd (tree);
+  zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
   zfsd_mutex_unlock (&metadata_mutex);
 
   free (new_path);
@@ -984,15 +985,12 @@ load_interval_trees (volume vol, internal_fh fh)
     }
   if (!init_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED))
     {
-      zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
       close_interval_file (fh->updated);
       interval_tree_destroy (fh->updated);
       fh->updated = NULL;
       return false;
     }
 
-  zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
-  zfsd_mutex_unlock (&metadata_fd_data[fh->modified->fd].mutex);
   return true;
 }
 
