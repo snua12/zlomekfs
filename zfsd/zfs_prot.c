@@ -73,6 +73,17 @@ zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
   encode_status (dc, ZFS_OK);
 }
 
+/* data_buffer zfs_proc_ping (data_buffer); */
+
+void
+zfs_proc_ping_server (data_buffer *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
+		      ATTRIBUTE_UNUSED bool map_id)
+{
+  encode_status (dc, ZFS_OK);
+  encode_data_buffer (dc, args);
+}
+
 /* zfs_fh zfs_proc_root (void); */
 
 void
@@ -566,17 +577,6 @@ zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
     encode_md5sum_res (dc, &md5);
 }
 
-/* data_buffer zfs_proc_ping (data_buffer); */
-
-void
-zfs_proc_ping_server (data_buffer *args, DC *dc,
-		      ATTRIBUTE_UNUSED void *data,
-		      ATTRIBUTE_UNUSED bool map_id)
-{
-  encode_status (dc, ZFS_OK);
-  encode_data_buffer (dc, args);
-}
-
 /* file_info_res zfs_proc_file_info (zfs_fh); */
 
 void
@@ -594,6 +594,27 @@ zfs_proc_file_info_server (zfs_fh *args, DC *dc,
       encode_zfs_path (dc, &res.path);
       free (res.path.str);
     }
+}
+
+/* void reread_config (reread_config_args);  */
+
+void
+zfs_proc_reread_config_server (reread_config_args *args,
+			       ATTRIBUTE_UNUSED DC *dc,
+			       ATTRIBUTE_UNUSED void *data,
+			       ATTRIBUTE_UNUSED bool map_id)
+{
+  string relative_path;
+  thread *t;
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+#ifdef ENABLE_CHECKING
+  if (t == NULL)
+    abort ();
+#endif
+
+  xstringdup (&relative_path, &args->path);
+  add_reread_config_request (&relative_path, t->from_sid);
 }
 
 /* void reintegrate (reintegrate_args); */
@@ -647,27 +668,6 @@ zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
 
   r = zfs_reintegrate_set (&args->fh, args->version);
   encode_status (dc, r);
-}
-
-/* void reread_config (reread_config_args);  */
-
-void
-zfs_proc_reread_config_server (reread_config_args *args,
-			       ATTRIBUTE_UNUSED DC *dc,
-			       ATTRIBUTE_UNUSED void *data,
-			       ATTRIBUTE_UNUSED bool map_id)
-{
-  string relative_path;
-  thread *t;
-
-  t = (thread *) pthread_getspecific (thread_data_key);
-#ifdef ENABLE_CHECKING
-  if (t == NULL)
-    abort ();
-#endif
-
-  xstringdup (&relative_path, &args->path);
-  add_reread_config_request (&relative_path, t->from_sid);
 }
 
 /* Call remote FUNCTION with ARGS using data structures in thread T

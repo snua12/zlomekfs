@@ -32,75 +32,71 @@
 # ifndef __KERNEL__
 DEFINE_ZFS_PROC (0, NULL, null, void,
 		 AUTHENTICATION_NONE, DIR_REQUEST)
+DEFINE_ZFS_PROC (1, PING, ping, data_buffer,
+		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
 # endif
-DEFINE_ZFS_PROC (1, ROOT, root, void,
+DEFINE_ZFS_PROC (2, ROOT, root, void,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # ifndef __KERNEL__
-DEFINE_ZFS_PROC (2, VOLUME_ROOT, volume_root, volume_root_args,
+DEFINE_ZFS_PROC (3, VOLUME_ROOT, volume_root, volume_root_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # endif
-DEFINE_ZFS_PROC (3, GETATTR, getattr, zfs_fh,
+DEFINE_ZFS_PROC (4, GETATTR, getattr, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (4, SETATTR, setattr, setattr_args,
+DEFINE_ZFS_PROC (5, SETATTR, setattr, setattr_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (5, LOOKUP, lookup, dir_op_args,
+DEFINE_ZFS_PROC (7, LOOKUP, lookup, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (6, CREATE, create, create_args,
+DEFINE_ZFS_PROC (7, CREATE, create, create_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (7, OPEN, open, open_args,
+DEFINE_ZFS_PROC (8, OPEN, open, open_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (8, CLOSE, close, zfs_cap,
+DEFINE_ZFS_PROC (9, CLOSE, close, zfs_cap,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (9, READDIR, readdir, read_dir_args,
+DEFINE_ZFS_PROC (10, READDIR, readdir, read_dir_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (10, MKDIR, mkdir, mkdir_args,
+DEFINE_ZFS_PROC (11, MKDIR, mkdir, mkdir_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (11, RMDIR, rmdir, dir_op_args,
+DEFINE_ZFS_PROC (12, RMDIR, rmdir, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (12, RENAME, rename, rename_args,
+DEFINE_ZFS_PROC (13, RENAME, rename, rename_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (13, LINK, link, link_args,
+DEFINE_ZFS_PROC (14, LINK, link, link_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (14, UNLINK, unlink, dir_op_args,
+DEFINE_ZFS_PROC (15, UNLINK, unlink, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (15, READ, read, read_args,
+DEFINE_ZFS_PROC (16, READ, read, read_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (16, WRITE, write, write_args,
+DEFINE_ZFS_PROC (17, WRITE, write, write_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (17, READLINK, readlink, zfs_fh,
+DEFINE_ZFS_PROC (18, READLINK, readlink, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (18, SYMLINK, symlink, symlink_args,
+DEFINE_ZFS_PROC (19, SYMLINK, symlink, symlink_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (19, MKNOD, mknod, mknod_args,
+DEFINE_ZFS_PROC (20, MKNOD, mknod, mknod_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # ifndef __KERNEL__
-DEFINE_ZFS_PROC (20, AUTH_STAGE1, auth_stage1, auth_stage1_args,
+DEFINE_ZFS_PROC (21, AUTH_STAGE1, auth_stage1, auth_stage1_args,
 		 AUTHENTICATION_NONE, DIR_REQUEST)
-DEFINE_ZFS_PROC (21, AUTH_STAGE2, auth_stage2, auth_stage2_args,
+DEFINE_ZFS_PROC (22, AUTH_STAGE2, auth_stage2, auth_stage2_args,
 		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
-DEFINE_ZFS_PROC (22, MD5SUM, md5sum, md5sum_args,
+DEFINE_ZFS_PROC (23, MD5SUM, md5sum, md5sum_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (23, PING, ping, data_buffer,
-		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
 DEFINE_ZFS_PROC (24, FILE_INFO, file_info, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (25, REINTEGRATE_ADD, reintegrate_add, reintegrate_add_args,
+DEFINE_ZFS_PROC (25, REREAD_CONFIG, reread_config, reread_config_args,
+		 AUTHENTICATION_FINISHED, DIR_ONEWAY)
+DEFINE_ZFS_PROC (26, REINTEGRATE, reintegrate, reintegrate_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (26, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
+DEFINE_ZFS_PROC (27, REINTEGRATE_ADD, reintegrate_add, reintegrate_add_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (27, REINTEGRATE_SET, reintegrate_set, reintegrate_set_args,
+DEFINE_ZFS_PROC (28, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (29, REINTEGRATE_SET, reintegrate_set, reintegrate_set_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # endif
 #endif
 #if defined (ZFS_CALL_KERNEL)
-DEFINE_ZFS_PROC (28, INVALIDATE, invalidate, invalidate_args,
+DEFINE_ZFS_PROC (30, INVALIDATE, invalidate, invalidate_args,
 		 AUTHENTICATION_NONE, DIR_ONEWAY)
-#endif
-#if defined (ZFS_CALL_SERVER) || defined (ZFS_CALL_CLIENT)
-# ifndef __KERNEL__
-DEFINE_ZFS_PROC (29, REREAD_CONFIG, reread_config, reread_config_args,
-		 AUTHENTICATION_FINISHED, DIR_ONEWAY)
-DEFINE_ZFS_PROC (30, REINTEGRATE, reintegrate, reintegrate_args,
-		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-# endif
 #endif
