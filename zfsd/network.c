@@ -168,6 +168,16 @@ update_node_fd (node nod, int fd, unsigned int generation, bool active)
     abort ();
 #endif
 
+  if (nod->fd >= 0)
+    {
+      bool valid;
+      zfsd_mutex_lock (&fd_data_a[nod->fd].mutex);
+      valid = (nod->generation == fd_data_a[nod->fd].generation);
+      zfsd_mutex_unlock (&fd_data_a[nod->fd].mutex);
+      if (!valid)
+	nod->fd = -1;
+    }
+
   if (nod->fd < 0 || nod->fd == fd)
     {
       nod->fd = fd;
