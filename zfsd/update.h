@@ -36,19 +36,19 @@
 #define ZFS_MODIFIED_BLOCK_SIZE 1024
 
 /** Check whether we should update a generic file.
-    Update a directroy if the remote version have changed since the last time
-    we updated the directory.
-    Update a regular file if local file was not modified and remote file was
-    modified since we updated it last time
-    OR the file has not been completelly updated yet.
-    \param DENTRY The dentry to be checked.
+    Update the generic file if it has not been completelly updated yet,
+    otherwise update a directory if the remote version has changed since
+    the last time we updated the directory 
+    or update a regular file if local file was not modified and remote file was
+    modified since we updated it last time.
+    \param DENTRY The dentry of the file to be checked.
     \param ATTR The remote attributes of the file. */
 #define UPDATE_P(DENTRY, ATTR)						\
-  ((DENTRY)->fh->attr.type == FT_DIR					\
-   ? (ATTR).version > (DENTRY)->fh->meta.master_version			\
-   : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version	\
-       && (ATTR).version > (DENTRY)->fh->meta.master_version)		\
-      || !((DENTRY)->fh->meta.flags & METADATA_COMPLETE)))
+  (!((DENTRY)->fh->meta.flags & METADATA_COMPLETE)			   \
+   || ((DENTRY)->fh->attr.type == FT_DIR				   \
+       ? (ATTR).version > (DENTRY)->fh->meta.master_version		   \
+       : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version \
+	   && (ATTR).version > (DENTRY)->fh->meta.master_version))))
 
 /* Reintegrate the file DENTRY
    if local file was modified since we reintegrated it last time.

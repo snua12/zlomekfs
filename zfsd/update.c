@@ -2117,7 +2117,8 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
-  if (dir->fh->meta.master_version == attr->version)
+  if (dir->fh->meta.master_version == attr->version
+      && (dir->fh->meta.flags & METADATA_COMPLETE))
     {
       /* This happens when we have reintegrated a directory
 	 and no other node has changed the directory.  */
