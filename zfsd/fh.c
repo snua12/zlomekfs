@@ -1183,7 +1183,6 @@ internal_dentry_link (internal_fh fh, volume vol,
 {
   internal_dentry dentry, old;
   void **slot;
-  char *path;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1235,17 +1234,22 @@ internal_dentry_link (internal_fh fh, volume vol,
       *slot = dentry;
     }
 
-  /* Add the path to the hardlink list.  */
-  if (!dentry->fh->hardlinks)
+  if (vol->local_path)
     {
-      dentry->fh->hardlinks = string_list_create (4, &dentry->fh->mutex);
-      path = build_relative_path (old);
+      char *path;
+
+      /* Add the path to the hardlink list.  */
+      if (!dentry->fh->hardlinks)
+	{
+	  dentry->fh->hardlinks = string_list_create (4, &dentry->fh->mutex);
+	  path = build_relative_path (old);
+	  string_list_insert (dentry->fh->hardlinks, path, false);
+	}
+      path = build_relative_path_name (parent, name);
       string_list_insert (dentry->fh->hardlinks, path, false);
+      if (!flush_hardlinks (vol, dentry->fh))
+	vol->delete_p = true;
     }
-  path = build_relative_path_name (parent, name);
-  string_list_insert (dentry->fh->hardlinks, path, false);
-  if (!flush_hardlinks (vol, dentry->fh))
-    vol->delete_p = true;
 
   return dentry;
 }
