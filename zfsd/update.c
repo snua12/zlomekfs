@@ -488,15 +488,16 @@ reintegrate_file_blocks (zfs_cap *cap)
       count = (INTERVAL_END (node) - INTERVAL_START (node) < ZFS_MAXDATA
 	       ? INTERVAL_END (node) - INTERVAL_START (node) : ZFS_MAXDATA);
 
-      r = full_local_read_dentry (&count, buf, cap, dentry, offset, count);
+      r = full_local_read_dentry (&count, buf, cap, dentry, vol, offset,
+				  count);
       zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	break;
 
       if (count > 0)
 	{
-	  r = full_remote_write_dentry (&count, buf, cap, icap, dentry, offset,
-					count);
+	  r = full_remote_write_dentry (&count, buf, cap, icap, dentry, vol,
+					offset, count);
 	  if (r != ZFS_OK)
 	    break;
 	}

@@ -2419,14 +2419,14 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 }
 
 /* Read as many bytes as possible of block of local file DENTRY with capability
-   CAP starting at OFFSET which is COUNT bytes long, store the data to BUFFER
-   and the number of bytes read to RCOUNT.  */
+   CAP on volume VOL starting at OFFSET which is COUNT bytes long, store the
+   data to BUFFER and the number of bytes read to RCOUNT.  */
 
 int32_t
 full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
-			internal_dentry dentry, uint64_t offset, uint32_t count)
+			internal_dentry dentry, volume vol, uint64_t offset,
+			uint32_t count)
 {
-  volume vol;
   internal_cap icap;
   uint32_t n_read;
   uint32_t total;
@@ -2434,6 +2434,7 @@ full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   for (total = 0; total < count; total += n_read)
@@ -2549,21 +2550,21 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 }
 
 /* Write as many bytes as possible from BUFFER of length COUNT to remote file
-   DENTRY with capability CAP and ICAP starting at OFFSET.
+   DENTRY with capability CAP and ICAP on volume VOL starting at OFFSET.
    Store the number of bytes read to RCOUNT.  */
 
 int32_t
 full_remote_write_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			  internal_cap icap, internal_dentry dentry,
-			  uint64_t offset, uint32_t count)
+			  volume vol, uint64_t offset, uint32_t count)
 {
-  volume vol;
   write_args args;
   write_res res;
   uint32_t total;
   int32_t r, r2;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   for (total = 0; total < count; total += res.written)
