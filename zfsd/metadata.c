@@ -122,6 +122,8 @@ metadata_decode (void *x)
   m->master_fh.gen = le_to_u32 (m->master_fh.gen);
   m->local_version = le_to_u64 (m->local_version);
   m->master_version = le_to_u64 (m->master_version);
+  m->parent_dev = le_to_u32 (m->parent_dev);
+  m->parent_ino = le_to_u32 (m->parent_ino);
 }
 
 /* Encode element X of the hash file.  */
@@ -142,6 +144,8 @@ metadata_encode (void *x)
   m->master_fh.gen = u32_to_le (m->master_fh.gen);
   m->local_version = u64_to_le (m->local_version);
   m->master_version = u64_to_le (m->master_version);
+  m->parent_dev = u32_to_le (m->parent_dev);
+  m->parent_ino = u32_to_le (m->parent_ino);
 }
 
 #endif
@@ -1304,6 +1308,9 @@ init_metadata_for_created_volume_root (volume vol)
       meta.local_version = 1;
       meta.master_version = 1;
       zfs_fh_undefine (meta.master_fh);
+      meta.parent_dev = (uint32_t) -1;
+      meta.parent_ino = (uint32_t) -1;
+      memset (meta.name, 0, METADATA_NAME_SIZE);
 
       if (!hfile_insert (vol->metadata, &meta))
 	{
@@ -1367,6 +1374,9 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
       meta->local_version = 1;
       meta->master_version = 0;
       zfs_fh_undefine (meta->master_fh);
+      meta->parent_dev = (uint32_t) -1;
+      meta->parent_ino = (uint32_t) -1;
+      memset (meta->name, 0, METADATA_NAME_SIZE);
 
       if (!hfile_insert (vol->metadata, meta))
 	{
@@ -1692,6 +1702,9 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
       meta.local_version = 1;
       meta.master_version = 0;
       zfs_fh_undefine (meta.master_fh);
+      meta.parent_dev = (uint32_t) -1;
+      meta.parent_ino = (uint32_t) -1;
+      memset (meta.name, 0, METADATA_NAME_SIZE);
     }
 
   meta.flags = 0;

@@ -47,6 +47,10 @@ typedef enum metadata_type_def
   METADATA_TYPE_HARDLINKS
 } metadata_type;
 
+/* The size of char array for file name stored in hash table.
+   Longer names are stored in separate files together with hardlinks.  */
+#define METADATA_NAME_SIZE 36
+
 /* Metadata for file.  */
 typedef struct metadata_def
 {
@@ -58,6 +62,9 @@ typedef struct metadata_def
   zfs_fh master_fh;		/* master file handle */
   uint64_t local_version;	/* local version (is it needed?) */
   uint64_t master_version;	/* version on server/version got from server */
+  uint32_t parent_dev;		/* device of the parent of the file */
+  uint32_t parent_ino;		/* inode of the parent of the file */
+  char name[METADATA_NAME_SIZE];/* file name */
 } metadata;
 
 /* File handle mapping.  */
