@@ -308,7 +308,7 @@ local_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   r = local_getattr (&res->attr, path, vol);
   free (path);
   if (r != ZFS_OK)
-    return errno;
+    return r;
 
   res->file.sid = dir->local_fh.sid;
   res->file.vid = dir->local_fh.vid;
