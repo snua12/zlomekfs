@@ -1308,6 +1308,9 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
     abort ();
 #endif
 
+  if (cap->flags != O_RDONLY)
+    return EBADF;
+
 zfs_readdir_retry:
 
   if (VIRTUAL_FH_P (cap->fh))
@@ -1575,6 +1578,9 @@ zfs_read (uint32_t *rcount, void *buffer,
   if (VIRTUAL_FH_P (cap->fh))
     return EISDIR;
 
+  if (cap->flags != O_RDONLY && cap->flags != O_RDWR)
+    return EBADF;
+
 zfs_read_retry:
 
   r = find_capability (cap, &icap, &vol, &dentry, NULL);
@@ -1793,6 +1799,9 @@ zfs_write (write_res *res, write_args *args)
 
   if (VIRTUAL_FH_P (args->cap.fh))
     return EISDIR;
+
+  if (cap->flags != O_WRONLY && cap->flags != O_RDWR)
+    return EBADF;
 
 zfs_write_retry:
 
