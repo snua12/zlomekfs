@@ -4171,7 +4171,10 @@ local_invalidate (internal_dentry dentry, bool volume_root_p)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   if (!mounted)
-    return ZFS_COULD_NOT_CONNECT;
+    {
+      release_dentry (dentry);
+      return ZFS_COULD_NOT_CONNECT;
+    }
 
   args.fh = dentry->fh->local_fh;
   release_dentry (dentry);
