@@ -32,20 +32,42 @@
 #define align_four(x) (((x+3) >> 2) << 2)
 #define align_eight(x) (((x+7) >> 3) << 3)
 
+/* The internal allocation object.  */
+typedef struct allocation_object_def
+{
 #ifdef ENABLE_CHECKING
+  /* The ID of alloc pool which the object was allocated from.  */
+  ALLOC_POOL_ID_TYPE id;
+#endif
+
+  union
+    {
+      /* The data of the object.  */
+      char data[1];
+
+      /* Because we want any type of data to be well aligned after the ID,
+	 the following elements are here.  They are never accessed so
+	 the allocated object may be even smaller than this structure.  */
+      char *align_p;
+      double align_d;
+      uint64_t align_i;
+#ifdef HAVE_LONG_DOUBLE
+      long double align_ld;
+#endif
+    } u;
+} allocation_object;
+
+/* Convert a pointer to allocation_object from a pointer to user data.  */
+#define ALLOCATION_OBJECT_PTR_FROM_USER_PTR(X)				\
+   ((allocation_object *) (((char *) (X))				\
+			   - offsetof (allocation_object, u.data)))
+
+/* Convert a pointer to user data from a pointer to allocation_object.  */
+#define USER_PTR_FROM_ALLOCATION_OBJECT_PTR(X)				\
+   ((void *) (((allocation_object *) (X))->u.data))
 
 /* Last used ID.  */
 static ALLOC_POOL_ID_TYPE last_id;
-
-/* The size of ID, aligned to be a multiple of eight.  */
-#define ID_SIZE (align_eight (sizeof (ALLOC_POOL_ID_TYPE)))
-
-#else
-
-/* We do not use IDs when checking is disabled.  */
-#define ID_SIZE 0
-
-#endif
 
 /* Create a pool of things of size SIZE, with NUM in each block we
    allocate.  */
@@ -67,8 +89,8 @@ create_alloc_pool (const char *name, size_t size, size_t num)
   size = align_four (size);
 
 #ifdef ENABLE_CHECKING
-  /* Add the size of ID aligned to a multiple of 8.  */
-  size += ID_SIZE;
+  /* Add the aligned size of ID.  */
+  size += offsetof (allocation_object, u.data);
 #endif
 
   /* Um, we can't really allocate 0 elements per block.  */
@@ -163,9 +185,9 @@ pool_alloc (alloc_pool pool)
 	{
 #ifdef ENABLE_CHECKING
 	  /* Mark the element to be free.  */
-	  *((ALLOC_POOL_ID_TYPE *) block) = 0;
+	  *((allocation_object *) block)->id = 0;
 #endif
-	  header = (alloc_pool_list) (block + ID_SIZE);
+	  header = (alloc_pool_list) USER_PTR_FROM_ALLOCATION_OBJECT_PTR (block);
 	  header->next = pool->free_list;
 	  pool->free_list = header;
 	}
@@ -183,7 +205,7 @@ pool_alloc (alloc_pool pool)
 
 #ifdef ENABLE_CHECKING
   /* Set the ID for element.  */
-  *((ALLOC_POOL_ID_TYPE *) (((char *) header) - ID_SIZE)) = pool->id;
+  ALLOCATION_OBJECT_PTR_FROM_USER_PTR (header)->id = pool->id;
 #endif
 
   return ((void *) header);
@@ -200,11 +222,11 @@ pool_free (alloc_pool pool, void *ptr)
     abort ();
 
   /* Check whether the PTR was allocated from POOL.  */
-  if (pool->id != *((ALLOC_POOL_ID_TYPE *) (((char *) ptr) - ID_SIZE)))
+  if (pool->id != ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr)->id)
     abort ();
 
   /* Mark the element to be free.  */
-  *((ALLOC_POOL_ID_TYPE *) (((char *) ptr) - ID_SIZE)) = 0;
+  ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr)->id = 0;
 #endif
 
   header = (alloc_pool_list) ptr;
