@@ -99,6 +99,11 @@ init_fd_data (int fd)
   CHECK_MUTEX_LOCKED (&active_mutex);
   CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
+#ifdef ENABLE_CHECKING
+  if (network_fd_data[fd].sid != 0)
+    abort ();
+#endif
+
   /* Set the network file descriptor's data.  */
   active[nactive] = &network_fd_data[fd];
   nactive++;
