@@ -406,6 +406,8 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
     {
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
+      if (journal && journal->mutex)
+	zfsd_mutex_unlock (journal->mutex);
       RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
     }
 
@@ -426,6 +428,15 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 		  || (vol->master != this_node
 		      && zfs_fh_undefined (meta->master_fh))))
 	    {
+	      if (journal)
+		{
+		  if (!write_journal (vol, &fh, journal))
+		    MARK_VOLUME_DELETE (vol);
+
+		  if (journal->mutex)
+		    zfsd_mutex_unlock (journal->mutex);
+		}
+
 	      RETURN_INT (move_to_shadow_base (vol, &fh, path, name, parent_fh,
 					       journal != NULL)
 			  ? ZFS_OK : ZFS_METADATA_ERROR);
@@ -454,6 +465,8 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
     {
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
+      if (journal && journal->mutex)
+	zfsd_mutex_unlock (journal->mutex);
       RETURN_INT (r);
     }
 
@@ -489,7 +502,11 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 	    inc_local_version_fh (parent_fh);
 	}
       else
-	zfsd_mutex_unlock (&vol->mutex);
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  if (journal && journal->mutex)
+	    zfsd_mutex_unlock (journal->mutex);
+	}
 
       if (destroy_dentry)
 	{
