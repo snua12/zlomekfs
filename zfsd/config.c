@@ -688,7 +688,10 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 
   r = zfs_open (&cap, fh, O_RDONLY);
   if (r != ZFS_OK)
-    return false;
+    {
+      message (0, stderr, "%s: open(): %s", file_name, zfs_strerror (r));
+      return false;
+    }
 
   line_num = 1;
   index = 0;
@@ -698,7 +701,10 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
       res.data.buf = buf + index;
       r = zfs_read (&res, &cap, offset, ZFS_MAXDATA - index, true);
       if (r != ZFS_OK)
-	return false;
+	{
+	  message (0, stderr, "%s: read(): %s", file_name, zfs_strerror (r));
+	  return false;
+	}
 
       if (res.data.len == 0)
 	break;
@@ -740,7 +746,10 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 finish:
   r = zfs_close (&cap);
   if (r != ZFS_OK)
-    return false;
+    {
+      message (0, stderr, "%s: close(): %s", file_name, zfs_strerror (r));
+      return false;
+    }
 
   return true;
 
@@ -2085,7 +2094,10 @@ config_reader (void *data)
 
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
-    goto out;
+    {
+      message (0, stderr, "volume_root(): %s", zfs_strerror (r));
+      goto out;
+    }
 
   if (!read_node_list (&config_dir_res.file))
     goto out;
@@ -2096,7 +2108,10 @@ config_reader (void *data)
   /* Config directory may have changed so lookup it again.  */
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
-    goto out;
+    {
+      message (0, stderr, "volume_root(): %s", zfs_strerror (r));
+      goto out;
+    }
 
   if (!read_user_list (&config_dir_res.file))
     goto out;
