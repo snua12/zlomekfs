@@ -1257,7 +1257,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       zfsd_mutex_unlock (&pvd->mutex);
       if (vol)
 	{
-	  r = get_volume_root_dentry (vol, &idir, true);
+	  r = get_volume_root_dentry (vol, &idir, false);
 	  if (r != ZFS_OK)
 	    return r;
 #ifdef ENABLE_CHECKING
@@ -1308,7 +1308,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  zfsd_mutex_unlock (&fh_mutex);
 	  return ZFS_OK;
 	}
+    }
 
+  if (idir)
+    {
       if (CONFLICT_DIR_P (idir->fh->local_fh))
 	{
 	  internal_dentry dentry;
