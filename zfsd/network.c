@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <errno.h>
 #include <time.h>
@@ -99,6 +100,20 @@ init_fd_data (int fd)
   CHECK_MUTEX_LOCKED (&active_mutex);
   CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
+#ifdef ENABLE_CHECKING
+  if (network_fd_data[fd].conn != CONNECTION_NONE
+      && network_fd_data[fd].conn != CONNECTION_CONNECTING)
+    abort ();
+  if (network_fd_data[fd].conn == CONNECTION_NONE
+      && network_fd_data[fd].sid != 0)
+    abort ();
+  if (network_fd_data[fd].conn == CONNECTION_CONNECTING
+      && network_fd_data[fd].sid == 0)
+    abort ();
+  if (network_fd_data[fd].auth != AUTHENTICATION_NONE)
+    abort ();
+#endif
+
   /* Set the network file descriptor's data.  */
   active[nactive] = &network_fd_data[fd];
   nactive++;
@@ -138,23 +153,43 @@ add_fd_to_active (int fd)
   zfsd_mutex_unlock (&active_mutex);
 }
 
-/* Update file descriptor of node NOD to be FD with generation GENERATION.  */
+/* Update file descriptor of node NOD to be FD with generation GENERATION.
+   ACTIVE is true when this node is creating the connection.  */
 
 void
-update_node_fd (node nod, int fd, unsigned int generation)
+update_node_fd (node nod, int fd, unsigned int generation, bool active)
 {
   CHECK_MUTEX_LOCKED (&nod->mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
+#ifdef ENABLE_CHECKING
+  if (fd < 0)
+    abort ();
+#endif
 
-  if (nod->fd >= 0 && nod->fd != fd)
+  if (nod->fd < 0 || nod->fd == fd)
     {
-      zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
-      if (nod->generation == network_fd_data[nod->fd].generation)
-	network_fd_data[nod->fd].flags = NETWORK_FD_CLOSE;
-      zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
+      nod->fd = fd;
+      nod->generation = generation;
     }
-
-  nod->fd = fd;
-  nod->generation = generation;
+  else
+    {
+      if ((active && nod->id < this_node->id)
+	  || (!active && nod->id > this_node->id))
+	{
+	  /* The new connection is in allowed direction.  */
+	  zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
+	  if (nod->generation == network_fd_data[nod->fd].generation)
+	    network_fd_data[nod->fd].flags = NETWORK_FD_CLOSE;
+	  zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
+	  nod->fd = fd;
+	  nod->generation = generation;
+	}
+      else
+	{
+	  /* The new connection is in forbidden direction.  */
+	  close_network_fd (fd);
+	}
+    }
 }
 
 /* Close file descriptor FD and update its network_fd_data.  */
@@ -171,8 +206,10 @@ close_network_fd (int fd)
   message (2, stderr, "Closing FD %d\n", fd);
   close (fd);
   network_fd_data[fd].generation++;
+  network_fd_data[fd].conn = CONNECTION_NONE;
   network_fd_data[fd].auth = AUTHENTICATION_NONE;
   network_fd_data[fd].sid = 0;
+  zfsd_cond_broadcast (&network_fd_data[fd].cond);
 }
 
 /* Close an active file descriptor on index I in ACTIVE.  */
@@ -269,6 +306,8 @@ node_connect (node nod)
 	    if (a->ai_socktype == SOCK_STREAM
 		&& a->ai_protocol == IPPROTO_TCP)
 	      {
+		int flags;
+
 		s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (s < 0)
 		  {
@@ -276,11 +315,33 @@ node_connect (node nod)
 		    break;
 		  }
 
+		flags = fcntl (s, F_GETFL);
+		if (flags == -1)
+		  {
+		    message (-1, stderr, "fcntl(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+		if (fcntl (s, F_SETFL, flags | O_NONBLOCK) == -1)
+		  {
+		    message (-1, stderr, "fcntl(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+
 		/* Connect the network socket to ZFS_PORT.  */
 		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) < 0)
+		if (connect (s, a->ai_addr, a->ai_addrlen) < 0
+		    && errno != EINPROGRESS)
 		  {
 		    message (-1, stderr, "connect(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+
+		if (fcntl (s, F_SETFL, flags) == -1)
+		  {
+		    message (-1, stderr, "fcntl(): %s\n", strerror (errno));
 		    close (s);
 		    break;
 		  }
@@ -293,6 +354,8 @@ node_connect (node nod)
 	    if (a->ai_socktype == SOCK_STREAM
 		&& a->ai_protocol == IPPROTO_TCP)
 	      {
+		int flags;
+
 		s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 		if (s < 0)
 		  {
@@ -300,12 +363,34 @@ node_connect (node nod)
 		    break;
 		  }
 
+		flags = fcntl (s, F_GETFL);
+		if (flags == -1)
+		  {
+		    message (-1, stderr, "fcntl(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+		if (fcntl (s, F_SETFL, flags | O_NONBLOCK) == -1)
+		  {
+		    message (-1, stderr, "fcntl(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+
 		/* Connect the network socket to ZFS_PORT.  */
 		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
 		  = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) < 0)
+		if (connect (s, a->ai_addr, a->ai_addrlen) < 0
+		    && errno != EINPROGRESS)
 		  {
 		    message (-1, stderr, "connect(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+
+		if (fcntl (s, F_SETFL, flags) == -1)
+		  {
+		    message (-1, stderr, "fcntl(): %s\n", strerror (errno));
 		    close (s);
 		    break;
 		  }
@@ -322,64 +407,190 @@ node_connect (node nod)
 
 node_connected:
   freeaddrinfo (addr);
+  network_fd_data[s].conn = CONNECTION_CONNECTING;
   network_fd_data[s].auth = AUTHENTICATION_NONE;
-  network_fd_data[s].conn = CONNECTION_FAST; /* FIXME */
   network_fd_data[s].sid = nod->id;
-  message (2, stderr, "FD %d connected to %s\n", s, nod->name);
+  zfsd_cond_broadcast (&network_fd_data[s].cond);
   return s;
 }
 
 /* Authenticate connection with node NOD using data of thread T.
    On success leave NETWORK_FD_DATA[NOD->FD].MUTEX lcoked.  */
 
-static bool
-node_authenticate (thread *t, node nod)
+static int
+node_authenticate (thread *t, node nod, authentication_status auth)
 {
   auth_stage1_args args1;
   auth_stage2_args args2;
   int32_t r;
+  uint32_t sid;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
   CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
+#ifdef ENABLE_CHECKING
+  if (network_fd_data[nod->fd].conn == CONNECTION_NONE)
+    abort ();
+#endif
 
-  memset (&args1, 0, sizeof (args1));
-  memset (&args2, 0, sizeof (args2));
+  sid = nod->id;
+  fd = nod->fd;
+  zfsd_mutex_unlock (&nod->mutex);
+  t->retval = ZFS_COULD_NOT_CONNECT;
 
-  /* FIXME: really do authentication; currently the functions are empty.  */
-  args1.node = node_name;
-  r = zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd);
-  if (r != ZFS_OK)
-    goto node_authenticate_error;
+again:
+  zfsd_mutex_unlock (&network_fd_data[fd].mutex);
+
+  nod = node_lookup (sid);
+  if (!nod)
+    return -1;
+
   if (!node_has_valid_fd (nod))
-    goto node_authenticate_error;
+    {
+      zfsd_mutex_unlock (&nod->mutex);
+      return -1;
+    }
+  fd = nod->fd;
+  zfsd_mutex_unlock (&nod->mutex);
+  nod = NULL;
+    
+  switch (network_fd_data[fd].conn)
+    {
+      case CONNECTION_NONE:
+	abort ();
 
-  CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
-  network_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
-  if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd_data (&t->dc_reply, &network_fd_data[nod->fd]);
+      case CONNECTION_CONNECTING:
+	while (network_fd_data[fd].conn == CONNECTION_CONNECTING)
+	  {
+	    zfsd_cond_wait (&network_fd_data[fd].cond,
+			    &network_fd_data[fd].mutex);
+	  }
+	t->retval = ZFS_COULD_NOT_CONNECT;
+	goto again;
 
-  r = zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd);
-  if (r != ZFS_OK)
-    goto node_authenticate_error;
-  if (!node_has_valid_fd (nod))
-    goto node_authenticate_error;
+      case CONNECTION_SLOW:
+      case CONNECTION_FAST:
+	return fd;
 
-  CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
-  network_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
-  if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd_data (&t->dc_reply, &network_fd_data[nod->fd]);
-  return true;
+      case CONNECTION_PASSIVE:
+	while (network_fd_data[fd].conn == CONNECTION_PASSIVE)
+	  {
+	    zfsd_cond_wait (&network_fd_data[fd].cond,
+			    &network_fd_data[fd].mutex);
+	  }
+	t->retval = ZFS_COULD_NOT_AUTH;
+	goto again;
+
+      case CONNECTION_ACTIVE:
+	if (network_fd_data[fd].auth >= auth)
+	  return fd;
+	break;
+    }
+
+  switch (network_fd_data[fd].auth)
+    {
+      case AUTHENTICATION_NONE:
+	network_fd_data[fd].auth = AUTHENTICATION_Q1;
+	memset (&args1, 0, sizeof (args1));
+	/* FIXME: really do authentication */
+	args1.node = node_name;
+	r = zfs_proc_auth_stage1_client_1 (t, &args1, fd);
+	if (r != ZFS_OK)
+	  goto node_authenticate_error;
+
+	nod = node_lookup (sid);
+	if (!nod)
+	  {
+	    r = ZFS_CONNECTION_CLOSED;
+	    goto node_authenticate_error;
+	  }
+	if (!node_has_valid_fd (nod))
+	  {
+	    r = ZFS_CONNECTION_CLOSED;
+	    goto node_authenticate_error;
+	  }
+	fd = nod->fd;
+
+	/* FIXME: really do authentication */
+
+	zfsd_mutex_unlock (&nod->mutex);
+	network_fd_data[fd].auth = AUTHENTICATION_STAGE_1;
+	if (r >= ZFS_ERROR_HAS_DC_REPLY)
+	  recycle_dc_to_fd_data (&t->dc_reply, &network_fd_data[fd]);
+	zfsd_cond_broadcast (&network_fd_data[fd].cond);
+
+	goto again;
+
+      case AUTHENTICATION_Q1:
+	while (network_fd_data[fd].auth == AUTHENTICATION_Q1)
+	  {
+	    zfsd_cond_wait (&network_fd_data[fd].cond,
+			    &network_fd_data[fd].mutex);
+	  }
+	t->retval = ZFS_COULD_NOT_AUTH;
+	goto again;
+
+      case AUTHENTICATION_STAGE_1:
+	network_fd_data[fd].auth = AUTHENTICATION_Q3;
+	memset (&args2, 0, sizeof (args2));
+	/* FIXME: really do authentication */
+	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd);
+	if (r != ZFS_OK)
+	  goto node_authenticate_error;
+
+	nod = node_lookup (sid);
+	if (!nod)
+	  {
+	    r = ZFS_CONNECTION_CLOSED;
+	    goto node_authenticate_error;
+	  }
+	if (!node_has_valid_fd (nod))
+	  {
+	    r = ZFS_CONNECTION_CLOSED;
+	    goto node_authenticate_error;
+	  }
+	fd = nod->fd;
+
+	/* FIXME: really do authentication */
+
+	zfsd_mutex_unlock (&nod->mutex);
+	network_fd_data[fd].auth = AUTHENTICATION_FINISHED;
+	if (r >= ZFS_ERROR_HAS_DC_REPLY)
+	  recycle_dc_to_fd_data (&t->dc_reply, &network_fd_data[fd]);
+	zfsd_cond_broadcast (&network_fd_data[fd].cond);
+
+	goto again;
+
+      case AUTHENTICATION_Q3:
+	while (network_fd_data[fd].auth == AUTHENTICATION_Q3)
+	  {
+	    zfsd_cond_wait (&network_fd_data[fd].cond,
+			    &network_fd_data[fd].mutex);
+	  }
+	t->retval = ZFS_COULD_NOT_AUTH;
+	goto again;
+
+      case AUTHENTICATION_FINISHED:
+	return fd;
+    }
+
+  return fd;
 
 node_authenticate_error:
+  t->retval = r;
   message (2, stderr, "not auth\n");
-  network_fd_data[nod->fd].auth = AUTHENTICATION_NONE;
-  network_fd_data[nod->fd].conn = CONNECTION_NONE;
-  zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
+  zfsd_mutex_lock (&network_fd_data[fd].mutex);
+  network_fd_data[fd].auth = AUTHENTICATION_NONE;
+  network_fd_data[fd].conn = CONNECTION_NONE;
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd_data (&t->dc_reply, &network_fd_data[nod->fd]);
-  close_network_fd (nod->fd);
-  zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
-  nod->fd = -1;
+    recycle_dc_to_fd_data (&t->dc_reply, &network_fd_data[fd]);
+  close_network_fd (fd);
+  zfsd_mutex_unlock (&network_fd_data[fd].mutex);
+  if (nod)
+    {
+      nod->fd = -1;
+      zfsd_mutex_unlock (&nod->mutex);
+    }
   return false;
 }
 
@@ -387,7 +598,7 @@ node_authenticate_error:
    Return open file descriptor and leave its NETWORK_FD_DATA locked.  */
 
 int
-node_connect_and_authenticate (thread *t, node nod)
+node_connect_and_authenticate (thread *t, node nod, authentication_status auth)
 {
   int fd;
 
@@ -402,6 +613,7 @@ node_connect_and_authenticate (thread *t, node nod)
       if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
 	{
 	  t->retval = ZFS_COULD_NOT_CONNECT;
+	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
       nod->last_connect = now;
@@ -410,19 +622,14 @@ node_connect_and_authenticate (thread *t, node nod)
       if (fd < 0)
 	{
 	  t->retval = ZFS_COULD_NOT_CONNECT;
+	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
       add_fd_to_active (fd);
-      update_node_fd (nod, fd, network_fd_data[fd].generation);
-
-      if (!node_authenticate (t, nod))
-	{
-	  t->retval = ZFS_COULD_NOT_AUTH;
-	  return -1;
-	}
+      update_node_fd (nod, fd, network_fd_data[fd].generation, true);
     }
-  else
-    fd = nod->fd;
+
+  fd = node_authenticate (t, nod, auth);
 
   return fd;
 }
@@ -843,8 +1050,13 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	      pool_free (active[i]->waiting4reply_pool, data);
 	    }
 
+#ifdef ENABLE_CHECKING
+	  if (active[i]->conn == CONNECTION_NONE)
+	    abort ();
+#endif
 	  pfd[i].fd = active[i]->fd;
-	  pfd[i].events = CAN_READ;
+	  pfd[i].events = (active[i]->conn == CONNECTION_CONNECTING
+			   ? CAN_WRITE : CAN_READ);
 	  zfsd_mutex_unlock (&active[i]->mutex);
 	}
       if (accept_connections)
@@ -902,6 +1114,39 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	      zfsd_mutex_lock (&fd_data->mutex);
 	      close_active_fd (i);
 	      zfsd_mutex_unlock (&fd_data->mutex);
+	    }
+	  else if (fd_data->conn == CONNECTION_CONNECTING)
+	    {
+	      int e;
+	      socklen_t l = sizeof (e);
+
+	      if (getsockopt (pfd[i].fd, SOL_SOCKET, SO_ERROR, &e, &l) < 0)
+		{
+		  message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
+			   strerror (errno));
+		  zfsd_mutex_lock (&fd_data->mutex);
+		  close_active_fd (i);
+		  zfsd_mutex_unlock (&fd_data->mutex);
+		}
+#ifdef ENABLE_CHECKING
+	      else if (l != sizeof (e))
+		abort ();
+#endif
+	      else if (e != 0)
+		{
+		  message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
+			   strerror (e));
+		  zfsd_mutex_lock (&fd_data->mutex);
+		  close_active_fd (i);
+		  zfsd_mutex_unlock (&fd_data->mutex);
+		}
+	      
+	      zfsd_mutex_lock (&fd_data->mutex);
+	      fd_data->conn = CONNECTION_ACTIVE;
+	      zfsd_cond_broadcast (&fd_data->cond);
+	      zfsd_mutex_unlock (&fd_data->mutex);
+/*	      message (2, stderr, "FD %d connected to %s\n", pfd[i].fd,
+		       nod->name);*/
 	    }
 	  else if (pfd[i].revents & CAN_READ)
 	    {
@@ -1062,6 +1307,8 @@ retry_accept:
 		  message (2, stderr, "accepted FD %d\n", s);
 		  zfsd_mutex_lock (&network_fd_data[s].mutex);
 		  init_fd_data (s);
+		  network_fd_data[s].conn = CONNECTION_PASSIVE;
+		  zfsd_cond_broadcast (&network_fd_data[s].cond);
 		  zfsd_mutex_unlock (&network_fd_data[s].mutex);
 		}
 	    }
@@ -1100,6 +1347,7 @@ init_network_fd_data ()
   for (i = 0; i < max_nfd; i++)
     {
       zfsd_mutex_init (&network_fd_data[i].mutex);
+      zfsd_cond_init (&network_fd_data[i].cond);
       network_fd_data[i].fd = -1;
     }
 
@@ -1128,7 +1376,10 @@ destroy_network_fd_data ()
   zfsd_mutex_destroy (&active_mutex);
 
   for (i = 0; i < max_nfd; i++)
-    zfsd_mutex_destroy (&network_fd_data[i].mutex);
+    {
+      zfsd_mutex_destroy (&network_fd_data[i].mutex);
+      zfsd_cond_destroy (&network_fd_data[i].cond);
+    }
 
   free (active);
   free (network_fd_data);

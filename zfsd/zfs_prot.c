@@ -523,7 +523,8 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
     {
       /* FIXME: do the key authorization */
       fd_data->sid = nod->id;
-      fd_data->auth = AUTHENTICATION_IN_PROGRESS;
+      fd_data->auth = AUTHENTICATION_STAGE_1;
+      zfsd_cond_broadcast (&fd_data->cond);
       encode_status (dc, ZFS_OK);
       zfsd_mutex_unlock (&nod->mutex);
     }
@@ -561,8 +562,9 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
       if (authenticated)
 	{
 	  fd_data->auth = AUTHENTICATION_FINISHED;
+	  zfsd_cond_broadcast (&fd_data->cond);
 	  encode_status (dc, ZFS_OK);
-	  update_node_fd (nod, fd_data->fd, fd_data->generation);
+	  update_node_fd (nod, fd_data->fd, fd_data->generation, false);
 	}
       zfsd_mutex_unlock (&nod->mutex);
     }
@@ -682,8 +684,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 {									\
   CHECK_MUTEX_LOCKED (&nod->mutex);					\
 									\
-  *fd = node_connect_and_authenticate (t, nod);				\
-  zfsd_mutex_unlock (&nod->mutex);					\
+  *fd = node_connect_and_authenticate (t, nod, AUTH);			\
   if (*fd < 0)								\
     {									\
       if (t->retval >= ZFS_ERROR_HAS_DC_REPLY)				\

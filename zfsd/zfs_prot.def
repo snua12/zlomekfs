@@ -70,7 +70,7 @@ DEFINE_ZFS_PROC (19, MKNOD, mknod, mknod_args,
 DEFINE_ZFS_PROC (20, AUTH_STAGE1, auth_stage1, auth_stage1_args,
 		 AUTHENTICATION_NONE)
 DEFINE_ZFS_PROC (21, AUTH_STAGE2, auth_stage2, auth_stage2_args,
-		 AUTHENTICATION_IN_PROGRESS)
+		 AUTHENTICATION_STAGE_1)
 DEFINE_ZFS_PROC (22, MD5SUM, md5sum, md5sum_args,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (23, HARDLINKS, hardlinks, hardlinks_args,

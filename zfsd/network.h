@@ -38,6 +38,9 @@
 typedef enum connection_status_def
 {
   CONNECTION_NONE = 0,
+  CONNECTION_CONNECTING,
+  CONNECTION_ACTIVE,
+  CONNECTION_PASSIVE,
   CONNECTION_SLOW,
   CONNECTION_FAST
 } connection_status;
@@ -46,7 +49,9 @@ typedef enum connection_status_def
 typedef enum authentication_status_def
 {
   AUTHENTICATION_NONE = 0,
-  AUTHENTICATION_IN_PROGRESS,
+  AUTHENTICATION_Q1,
+  AUTHENTICATION_STAGE_1,
+  AUTHENTICATION_Q3,
   AUTHENTICATION_FINISHED
 } authentication_status;
 
@@ -54,6 +59,8 @@ typedef enum authentication_status_def
 typedef struct network_fd_data_def
 {
   pthread_mutex_t mutex;
+  pthread_cond_t cond;
+
   htab_t waiting4reply;		/* table of waiting4reply_data */
   alloc_pool waiting4reply_pool;/* pool of waiting4reply_data */
   fibheap waiting4reply_heap;	/* heap for waiting4reply_data */
@@ -83,10 +90,12 @@ extern network_fd_data_t *network_fd_data;
 
 struct thread_def;
 
-extern void update_node_fd (node nod, int fd, unsigned int generation);
+extern void update_node_fd (node nod, int fd, unsigned int generation,
+			    bool active);
 extern void close_network_fd (int fd);
 extern bool node_has_valid_fd (node nod);
-extern int node_connect_and_authenticate (thread *t, node nod);
+extern int node_connect_and_authenticate (thread *t, node nod,
+					  authentication_status auth);
 extern void recycle_dc_to_fd_data (DC *dc, network_fd_data_t *fd_data);
 extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);
