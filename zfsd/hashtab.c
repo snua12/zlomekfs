@@ -169,6 +169,13 @@ htab_create (unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f,
 {
   htab_t htab;
 
+#ifdef ENABLE_CHECKING
+  if (!hash_f)
+    abort ();
+  if (!eq_f)
+    abort ();
+#endif
+
   htab = (htab_t) xmalloc (sizeof (struct htab_def));
   size = get_higher_prime (size);
   htab->table = (void **) xcalloc (size, sizeof (void *));
