@@ -42,6 +42,9 @@ extern "C"
 #define ZFS_INVALID_REQUEST	-2	/* Request was not well encoded. */
 #define ZFS_INVALID_REPLY	-3	/* Reply was not well encoded. */
 #define ZFS_UNKNOWN_FUNCTION	-4	/* Unknown function in request.  */
+#define ZFS_CONNECTION_CLOSED	-5	/* Connection closed while waiting for
+					   reply.  */
+#define ZFS_COULD_NOT_CONNECT	-6	/* Could not connect to node.  */
 
 typedef enum direction_def
 {
