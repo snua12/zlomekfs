@@ -661,12 +661,9 @@ zfs_open_retry:
     }
   else if (vol->master != this_node)
     {
-      r = remote_open (cap, icap, flags & ~O_ACCMODE, dentry, vol);
+      r = remote_open (&icap->master_cap, icap, flags & ~O_ACCMODE, dentry, vol);
       if (r == ZFS_OK)
-	{
-	  memcpy (icap->master_cap.verify, cap->verify, ZFS_VERIFY_LEN);
-	  memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
-	}
+	*cap = icap->local_cap;
     }
   else
     abort ();
@@ -944,6 +941,12 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
 	{
 	  de = (struct dirent *) &buf[pos];
 	  data->cookie = de->d_off;
+
+	  /* Hide ".zfs" in the root of the volume.  */
+	  if (!dentry->parent
+	      && strncmp (de->d_name, ".zfs", 5) == 0)
+	    continue;
+
 	  if (vd)
 	    {
 	      virtual_dir svd;
@@ -953,11 +956,6 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
 		  && (de->d_name[1] == 0
 		      || (de->d_name[1] == '.'
 			  && de->d_name[2] == 0)))
-		continue;
-
-	      /* Hide ".zfs" in the root of the volume.  */
-	      if (!dentry->parent
-		  && strncmp (de->d_name, ".zfs", 5) == 0)
 		continue;
 
 	      /* Hide files which have the same name like some virtual
