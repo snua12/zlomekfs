@@ -25,5 +25,6 @@
 extern pthread_t main_thread;
 
 extern void terminate (void);
+extern void usage (void);
 
 #endif

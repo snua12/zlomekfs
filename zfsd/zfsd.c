@@ -64,7 +64,6 @@ static char *config_file;
 static void exit_sighandler (int signum);
 static void fatal_sigaction (int signum, siginfo_t *info, void *data);
 static void init_sig_handlers (void);
-static void usage (int exitcode) ATTRIBUTE_NORETURN;
 static void version (int exitcode) ATTRIBUTE_NORETURN;
 static void process_arguments (int argc, char **argv);
 static void die (void) ATTRIBUTE_NORETURN;
@@ -246,10 +245,10 @@ disable_sig_handlers (void)
   zfsd_mutex_destroy (&running_mutex);
 }
 
-/* Display the usage and arguments, exit the program with exit code EXITCODE.  */
+/* Display the usage and arguments.  */
 
-static void
-usage (int exitcode)
+void
+usage (void)
 {
   printf ("Usage: zfsd [OPTION]...\n\n");
   printf ("  -f, --config=FILE  Specifies the name of the configuration file.\n");
@@ -259,8 +258,6 @@ usage (int exitcode)
   printf ("                     Multiple -q increases quietness.\n");
   printf ("      --help         Display this help and exit.\n");
   printf ("      --version      Output version information and exit.\n");
-
-  exit (exitcode);
 }
 
 /* Display the version, exit the program with exit code EXITCODE.  */
@@ -318,7 +315,8 @@ process_arguments (int argc, char **argv)
 	    break;
 
 	  case OPTION_HELP:
-	    usage (EXIT_SUCCESS);
+	    usage ();
+	    exit (EXIT_SUCCESS);
 	    break;
 
 	  case OPTION_VERSION:
@@ -326,13 +324,17 @@ process_arguments (int argc, char **argv)
 	    break;
 
 	  default:
-	    usage (EXIT_FAILURE);
+	    usage ();
+	    exit (EXIT_FAILURE);
 	    break;
 	}
     }
 
   if (optind < argc)
-    usage (EXIT_FAILURE);
+    {
+      usage ();
+      exit (EXIT_FAILURE);
+    }
 }
 
 /* Write a message and exit.  */
