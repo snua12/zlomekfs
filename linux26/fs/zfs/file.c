@@ -162,7 +162,7 @@ static int zfs_readpage(struct file *file, struct page *page)
 	} else if (error == -ESTALE)
 		ZFS_I(file->f_dentry->d_inode)->flags |= NEED_REVALIDATE;
 
-	kunmap((void *) kaddr);
+	kunmap(page);
 
 out:
 	unlock_page(page);
