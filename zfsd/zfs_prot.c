@@ -725,6 +725,12 @@ zfs_strerror (int32_t errnum)
       case ZFS_STALE:
 	return "Stale ZFS file handle";
 
+      case ZFS_METADATA_ERROR:
+	return "Metadata error";
+
+      case ZFS_UPDATE_FAILED:
+	return "Update failed";
+
       case ZFS_INVALID_REPLY:
 	return "Invalid reply";
 
