@@ -178,7 +178,7 @@ zfs_extended_lookup (zfs_fh *fh, zfs_fh *dir, char *path)
     }
 
   *fh = tmp;
-  return 0;
+  return ZFS_OK;
 }
 
 /* Return the local path of file for file handle FH on volume VOL.  */
@@ -257,7 +257,7 @@ local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
   fh->dev = st.st_dev;
   fh->ino = st.st_ino;
 
-  return 0;
+  return ZFS_OK;
 }
 
 static int
@@ -323,7 +323,7 @@ zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
       ifh = fh_lookup_name (vol, idir, name);
       if (!ifh)
 	ifh = internal_fh_create (fh, fh, idir, vol, name);
-      return 0;
+      return ZFS_OK;
     }
   else	/* if (idir == NULL) */
     {
@@ -331,7 +331,7 @@ zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
       if (vd)
 	{
 	  *fh = vd->fh;
-	  return 0;
+	  return ZFS_OK;
 	}
       else
 	abort ();
@@ -387,7 +387,7 @@ int
 zfs_open (zfs_fh *fh)
 {
 
-  return 0;
+  return ZFS_OK;
 }
 
 int
@@ -408,23 +408,23 @@ zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
     {
       /* FIXME: finish */
     }
-  return 0;
+  return ZFS_OK;
 }
 
 int
 zfs_getattr (fattr *fa, zfs_fh *fh)
 {
-  return 0;
+  return ZFS_OK;
 }
 
 int
 zfs_setattr (fattr *fa, zfs_fh *fh, unsigned int valid, sattr *sa)
 {
-  return 0;
+  return ZFS_OK;
 }
 
 int
 zfs_close (zfs_fh *fh)
 {
-  return 0;
+  return ZFS_OK;
 }
