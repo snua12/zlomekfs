@@ -1577,6 +1577,15 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
       if (open_interval_file (vol, fh, type) < 0)
 	return false;
     }
+  else
+    {
+      if (lseek (tree->fd, 0, SEEK_END) == (off_t) -1)
+	{
+	  message (1, stderr, "lseek: %s\n", strerror (errno));
+	  zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
+	  return false;
+	}
+    }
 
   i.start = u64_to_le (start);
   i.end = u64_to_le (end);
@@ -3135,6 +3144,15 @@ add_journal_entry (volume vol, journal_t journal, zfs_fh *fh, zfs_fh *local_fh,
     {
       if (open_journal_file (vol, journal, fh) < 0)
 	return false;
+    }
+  else
+    {
+      if (lseek (journal->fd, 0, SEEK_END) == (off_t) -1)
+	{
+	  message (1, stderr, "lseek: %s\n", strerror (errno));
+	  zfsd_mutex_unlock (&metadata_fd_data[journal->fd].mutex);
+	  return false;
+	}
     }
 
 #ifdef ENABLE_CHECKING
