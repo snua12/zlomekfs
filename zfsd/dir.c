@@ -839,7 +839,7 @@ static int
 remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 	      volume vol)
 {
-  open_name_args args;
+  mkdir_args args;
   thread *t;
   int32_t r;
 

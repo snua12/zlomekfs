@@ -194,10 +194,10 @@ zfs_proc_readdir_server (read_dir_args *args, thread *t)
   zfs_readdir (dc, &args->cap, args->cookie, args->count);
 }
 
-/* dir_op_res zfs_proc_mkdir (open_name_args); */
+/* dir_op_res zfs_proc_mkdir (mkdir_args); */
 
 void
-zfs_proc_mkdir_server (open_name_args *args, thread *t)
+zfs_proc_mkdir_server (mkdir_args *args, thread *t)
 {
   DC *dc = &t->dc;
   dir_op_res res;

@@ -171,6 +171,7 @@ typedef struct dir_op_res_def
 typedef struct open_name_args_def
 {
   dir_op_args where;
+  unsigned int flags;
   sattr attr;
 } open_name_args;
 
@@ -205,6 +206,12 @@ typedef struct read_dir_res_def
 {
   dir_list reply;
 } read_dir_res;
+
+typedef struct mkdir_args_def
+{
+  dir_op_args where;
+  sattr attr;
+} mkdir_args;
 
 typedef struct rename_args_def
 {
@@ -281,7 +288,7 @@ typedef union call_args_def
   open_fh_args open_by_fh;
   zfs_cap close;
   read_dir_args readdir;
-  open_name_args mkdir;
+  mkdir_args mkdir;
   dir_op_args rmdir;
   rename_args rename;
   link_args link;

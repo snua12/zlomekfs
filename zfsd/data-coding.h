@@ -223,6 +223,8 @@ extern bool decode_dir_entry (DC *dc, dir_entry *entry);
 extern bool encode_dir_entry (DC *dc, dir_entry *entry);
 extern bool decode_dir_list (DC *dc, dir_list *list);
 extern bool encode_dir_list (DC *dc, dir_list *list);
+extern bool decode_mkdir_args (DC *dc, mkdir_args *args);
+extern bool encode_mkdir_args (DC *dc, mkdir_args *args);
 extern bool decode_rename_args (DC *dc, rename_args *args);
 extern bool encode_rename_args (DC *dc, rename_args *args);
 extern bool decode_link_args (DC *dc, link_args *args);

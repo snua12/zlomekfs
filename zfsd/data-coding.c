@@ -557,6 +557,7 @@ bool
 decode_open_name_args (DC *dc, open_name_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
+	  && decode_uint32_t (dc, &args->flags)
 	  && decode_sattr (dc, &args->attr));
 }
 
@@ -564,6 +565,7 @@ bool
 encode_open_name_args (DC *dc, open_name_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
+	  && encode_uint32_t (dc, args->flags)
 	  && encode_sattr (dc, &args->attr));
 }
 
@@ -625,6 +627,20 @@ encode_dir_list (DC *dc, dir_list *list)
 {
   return (encode_uint32_t (dc, list->n)
 	  && encode_char (dc, list->eof));
+}
+
+bool
+decode_mkdir_args (DC *dc, mkdir_args *args)
+{
+  return (decode_dir_op_args (dc, &args->where)
+	  && decode_sattr (dc, &args->attr));
+}
+
+bool
+encode_mkdir_args (DC *dc, mkdir_args *args)
+{
+  return (encode_dir_op_args (dc, &args->where)
+	  && encode_sattr (dc, &args->attr));
 }
 
 bool
