@@ -531,7 +531,6 @@ bool
 decode_open_name_args (DC *dc, open_name_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
-	  && decode_uint32_t (dc, &args->mode)
 	  && decode_sattr (dc, &args->attr));
 }
 
@@ -539,7 +538,6 @@ bool
 encode_open_name_args (DC *dc, open_name_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
-	  && encode_uint32_t (dc, args->mode)
 	  && encode_sattr (dc, &args->attr));
 }
 

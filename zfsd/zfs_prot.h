@@ -168,7 +168,6 @@ typedef struct dir_op_res_def
 typedef struct open_name_args_def
 {
   dir_op_args where;
-  unsigned int mode;
   sattr attr;
 } open_name_args;
 
