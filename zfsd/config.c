@@ -760,6 +760,7 @@ typedef struct volume_hierarchy_data_def
   uint32_t depth;
   string *name;
   string *mountpoint;
+  char *master_name;
 } volume_hierarchy_data;
 
 /* Process line LINE number LINE_NUM of volume hierarchy file FILE_NAME
@@ -832,7 +833,21 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 		  if (vol->slaves)
 		    htab_empty (vol->slaves);
 		}
-	      volume_set_common_info (vol, d->name, d->mountpoint, nod);
+
+	      /* Do not set the common info of the config volume because
+		 the file is still open and changing the volume master
+		 from this_node to another one would cause zfs_close think
+		 that it has to save the interval files.  */
+	      if (d->vid != VOLUME_ID_CONFIG)
+		volume_set_common_info (vol, d->name, d->mountpoint, nod);
+	      else
+		{
+		  if (master_name)
+		    d->master_name = xstrdup (master_name);
+		  else
+		    d->master_name = NULL;
+		}
+
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&volume_mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
@@ -941,6 +956,9 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
   volume_hierarchy_data data;
   dir_op_res file_res;
   char *file_name, *master_name;
+  string str;
+  volume vol;
+  node nod;
   int32_t r;
 
   r = zfs_extended_lookup (&file_res, volume_hierarchy_dir, name->str);
@@ -957,6 +975,35 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
   process_file_by_lines (&file_res.file, file_name,
 			 process_line_volume_hierarchy, &data);
   free (file_name);
+
+  /* Setting the common info of config volume was postponed so set it now.  */
+  if (vid == VOLUME_ID_CONFIG)
+    {
+      if (data.master_name)
+	{
+	  str.str = data.master_name;
+	  str.len = strlen (data.master_name);
+	  nod = node_lookup_name (&str);
+	  if (nod)
+	    zfsd_mutex_unlock (&nod->mutex);
+	  free (data.master_name);
+	}
+      else
+	nod = this_node;
+
+      zfsd_mutex_lock (&fh_mutex);
+      zfsd_mutex_lock (&volume_mutex);
+      vol = volume_lookup_nolock (vid);
+#ifdef ENABLE_CHECKING
+      if (!vol)
+	abort ();
+#endif
+      volume_set_common_info (vol, name, mountpoint, nod);
+
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&volume_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
 
   /* Set the common volume info for nodes which were not listed in volume
      hierarchy.  */
