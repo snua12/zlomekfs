@@ -54,8 +54,8 @@ extern int max_network_sockets;
 /* Maximal number of file descriptors for local files.  */
 extern int max_local_fds;
 
-/* Maximal number of file descriptors for files containing intervals.  */
-extern int max_interval_fds;
+/* Maximal number of file descriptors for files containing metadata.  */
+extern int max_metadata_fds;
 
 extern void init_constants ();
 

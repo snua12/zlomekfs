@@ -31,8 +31,8 @@ int max_network_sockets;
 /* Maximal number of file descriptors for local files.  */
 int max_local_fds;
 
-/* Maximal number of file descriptors for files containing intervals.  */
-int max_interval_fds;
+/* Maximal number of file descriptors for files containing metadata.  */
+int max_metadata_fds;
 
 /* Initialize the constants */
 
@@ -42,5 +42,5 @@ init_constants ()
   max_nfd = getdtablesize ();
   max_network_sockets = max_nfd / 4;
   max_local_fds = max_nfd / 4;
-  max_interval_fds = max_nfd / 4;
+  max_metadata_fds = max_nfd / 4;
 }
