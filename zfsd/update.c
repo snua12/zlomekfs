@@ -1747,6 +1747,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
 #endif
   remote = conflict_remote_dentry (conflict);
   release_dentry (conflict);
+  zfsd_mutex_unlock (&fh_mutex);
 
   remote->fh->attr.version = version;
   r = remote_reintegrate_set (remote, version, NULL, vol);
@@ -1858,6 +1859,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
 #endif
   remote = conflict_remote_dentry (conflict);
   release_dentry (conflict);
+  zfsd_mutex_unlock (&fh_mutex);
 
   remote->fh->attr.version = version;
   r = remote_reintegrate_set (remote, version, NULL, vol);
