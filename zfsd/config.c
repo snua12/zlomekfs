@@ -1690,10 +1690,10 @@ reread_config_file (string *relative_path)
   string name;
   char *str = relative_path->str;
 
-  if (strncmp (str, "/config/", 8) != 0)
+  if (*str != '/')
     goto out_true;
+  str++;
 
-  str += 8;
   if (strncmp (str, "node_list", 10) == 0)
     {
       if (!reread_node_list ())
