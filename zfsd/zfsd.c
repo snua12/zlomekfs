@@ -32,6 +32,7 @@
 #include "memory.h"
 #include "config.h"
 #include "fh.h"
+#include "cap.h"
 #include "dir.h"
 #include "file.h"
 #include "log.h"
@@ -317,6 +318,7 @@ initialize_data_structures ()
     return false;
 
   initialize_fh_c ();
+  initialize_cap_c ();
   initialize_node_c ();
   initialize_volume_c ();
   initialize_zfs_prot_c ();
@@ -336,6 +338,7 @@ cleanup_data_structures ()
   cleanup_zfs_prot_c ();
   cleanup_volume_c ();
   cleanup_node_c ();
+  cleanup_cap_c ();
   cleanup_fh_c ();
   cleanup_random_c ();
 
