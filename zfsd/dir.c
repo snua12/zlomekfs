@@ -23,9 +23,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <errno.h>
 #include "fh.h"
 #include "dir.h"
+#include "log.h"
+#include "memory.h"
+#include "varray.h"
+#include "volume.h"
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
@@ -57,17 +62,177 @@ zfs_extended_lookup (svc_fh *fh, svc_fh *dir, char *path)
   return 0;
 }
 
+/* Return the local path of file for file handle FH on volume VOL.  */
+
+static char *
+build_local_path (volume vol, internal_fh fh)
+{
+  internal_fh tmp;
+  unsigned int n;
+  varray v;
+
+  /* Count the number of strings which will be concatenated.  */
+  n = 1;
+  for (tmp = fh; tmp->parent; tmp = tmp->parent)
+    n += 2;
+
+  varray_create (&v, sizeof (char *), n);
+  VARRAY_USED (v) = n;
+  for (tmp = fh; tmp->parent; tmp = tmp->parent)
+    {
+      n--;
+      VARRAY_ACCESS (v, n, char *) = tmp->name;
+      n--;
+      VARRAY_ACCESS (v, n, char *) = "/";
+    }
+  VARRAY_ACCESS (v, 0, char *) = vol->local_path;
+
+  return xstrconcat_varray (&v);
+}
+
+/* Return the local path of file NAME in directory FH on volume VOL.  */
+
+static char *
+build_local_path_name (volume vol, internal_fh fh, const char *name)
+{
+  internal_fh tmp;
+  unsigned int n;
+  varray v;
+
+  /* Count the number of strings which will be concatenated.  */
+  n = 3;
+  for (tmp = fh; tmp->parent; tmp = tmp->parent)
+    n += 2;
+
+  varray_create (&v, sizeof (char *), n);
+  VARRAY_USED (v) = n;
+  n--;
+  VARRAY_ACCESS (v, n, char *) = (char *) name;
+  n--;
+  VARRAY_ACCESS (v, n, char *) = "/";
+  for (tmp = fh; tmp->parent; tmp = tmp->parent)
+    {
+      n--;
+      VARRAY_ACCESS (v, n, char *) = tmp->name;
+      n--;
+      VARRAY_ACCESS (v, n, char *) = "/";
+    }
+  VARRAY_ACCESS (v, 0, char *) = vol->local_path;
+
+  return xstrconcat_varray (&v);
+}
+
+static int
+local_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
+	      unsigned int *dev, unsigned int *ino)
+{
+  struct stat st;
+  char *path;
+
+  path = build_local_path_name (vol, dir, name);
+  if (lstat (path, &st) != 0)
+    return errno;
+
+  fh->sid = dir->client_fh.sid;
+  fh->vid = dir->client_fh.vid;
+  fh->dev = st.st_dev;
+  fh->ino = st.st_ino;
+
+  return 0;
+}
+
+static int
+remote_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
+	       unsigned int *dev, unsigned int *ino)
+{
+  return ESTALE;
+}
+
+static void
+update_root (volume vol, internal_fh *ifh)
+{
+  svc_fh new_root = {vol->master->id, vol->id, 1, 1};
+
+  /* FIXME: */
+  if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
+    {
+      /* get local root svc_fh */
+    }
+  else
+    {
+      /* get remote root svc_fh */
+    }
+
+  if (!SVC_FH_EQ (vol->root_fh, new_root))
+    {
+      htab_empty (vol->fh_htab_name);
+      htab_empty (vol->fh_htab);
+
+      vol->root_fh = new_root;
+      *ifh = internal_fh_create (/*FIXME*/&vol->root_fh, &vol->root_fh, NULL,
+				 vol, "");
+    }
+}
+
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
 int
 zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name)
 {
-  internal_fh idir;
-  internal_fh ifh;
+  volume vol;
+  internal_fh idir, ifh;
+  virtual_dir vd, pvd;
+
+  /* Lookup the DIR.  */
+  if (!fh_lookup (dir, &vol, &idir, &pvd))
+    return ESTALE;
+
+  /* FIXME: update_directory - pokud to je mountpoint, zepta se na root_fh a
+     pripadne zaktualizuje, upravi idir*/
+  if (pvd && pvd->vol)
+    update_root (pvd->vol, &idir);
+
+  if (idir)
+    {
+      unsigned int dev;
+      unsigned int ino;
+      int r;
+
+      if (vol->flags & VOLUME_LOCAL)
+	r = local_lookup (fh, idir, name, vol, &dev, &ino);
+      else
+	r = remote_lookup (fh, idir, name, vol, &dev, &ino);
+      if (r)
+	return r;
+
+      /* FIXME: update hash tables of fh. */
+      ifh = fh_lookup_name (vol, idir, name);
+      if (!ifh)
+	ifh = internal_fh_create (fh, fh, idir, vol, name);
+      return 0;
+    }
+  else	/* if (idir == NULL) */
+    {
+      vd = vd_lookup_name (pvd, name);
+      if (vd)
+	{
+	  *fh = vd->fh;
+	  return 0;
+	}
+      else
+	abort ();
+    }
+
+#if 0
 
   /* Lookup the DIR.  */
   idir = (internal_fh) fh_lookup (dir);
   if (!idir)
+    return ESTALE;
+
+  if (VIRTUAL_FH_P (idir->client_fh) && !idir->vd->active && idir->vd->real_fh)
+    idir = idir->vd->real_fh;
+  else
     return ESTALE;
 
   /* Lookup the NAME in DIR.  */
@@ -77,23 +242,75 @@ zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name)
       *fh = ifh->client_fh;
       return 0;
     }
-  
+
+  vol = volume_lookup (idir->client_fh.vid);
+  if (vol->flags & VOLUME_COPY)
+    {
+      /* update directory */
+    }
+
+  if (vol->flags & VOLUME_LOCAL)
+    r = local_lookup (idir, fh, vol, &dev, &ino);
+  else
+    r = remote_lookup (idir, fh, vol, &dev, &ino);
+
+  if (r)
+    return r;
+
+
+
   if (!ifh)
     {
       if (VIRTUAL_FH_P (idir->client_fh))
 	{
 	}
     }
+#endif
+  return ESTALE;
+}
 
-
-
-
-
+int
+zfs_open (svc_fh *fh)
+{
 
   return 0;
 }
 
-#if 0
 int
-zfs_readdir (svc_fh *dir, 
-#endif
+zfs_open_by_name (svc_fh *fh, svc_fh *dir, const char *name, int flags,
+		  struct sattr *attr)
+{
+  int r;
+
+  if (!(flags & O_CREAT))
+    {
+      r = zfs_lookup (fh, dir, name);
+      if (r)
+	return r;
+
+      return zfs_open (fh);
+    }
+  else
+    {
+      /* FIXME: finish */
+    }
+  return 0;
+}
+
+int
+zfs_getattr (struct fattr *fa, svc_fh *fh)
+{
+  return 0;
+}
+
+int
+zfs_setattr (struct fattr *fa, svc_fh *fh, unsigned int valid, struct sattr *sa)
+{
+  return 0;
+}
+
+int
+zfs_close (svc_fh *fh)
+{
+  return 0;
+}
