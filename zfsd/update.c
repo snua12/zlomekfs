@@ -526,6 +526,19 @@ retry_remote_lookup:
   release_dentry (dentry);
   r = update_file_blocks (false, NULL, NULL, 0, &cap, &blocks);
 
+  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (!save_interval_trees (vol, dentry->fh))
+    {
+      vol->delete_p = true;
+      r = ZFS_METADATA_ERROR;
+    }
+  goto out;
+
 out2:
   r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
