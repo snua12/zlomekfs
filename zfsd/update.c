@@ -427,6 +427,108 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   return ZFS_OK;
 }
 
+/* Reintegrate modified blocks of local file CAP to remote file.  */
+
+int32_t
+reintegrate_file_blocks (zfs_cap *cap)
+{
+  volume vol;
+  internal_cap icap;
+  internal_dentry dentry;
+  interval_tree_node node;
+  uint64_t offset;
+  uint32_t count;
+  int32_t r, r2;
+
+  TRACE ("");
+
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    abort ();
+#endif
+
+  if (zfs_fh_undefined (icap->master_cap.fh)
+      || zfs_cap_undefined (icap->master_cap))
+    {
+      zfs_cap master_cap;
+
+      r = remote_open (&master_cap, icap, cap->flags, dentry, vol);
+      if (r != ZFS_OK)
+	return r;
+
+      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      icap->master_cap = master_cap;
+    }
+
+  for (offset = 0; offset < dentry->fh->attr.size; )
+    {
+      char buf[ZFS_MAXDATA];
+
+      CHECK_MUTEX_LOCKED (&vol->mutex);
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+      node = interval_tree_lookup (dentry->fh->modified, offset);
+      if (!node)
+	break;
+
+      if (INTERVAL_START (node) > offset)
+	offset = INTERVAL_START (node);
+
+      count = (INTERVAL_END (node) - INTERVAL_START (node) < ZFS_MAXDATA
+	       ? INTERVAL_END (node) - INTERVAL_START (node) : ZFS_MAXDATA);
+
+      r = full_local_read_dentry (&count, buf, cap, dentry, offset, count);
+      if (r != ZFS_OK)
+	break;
+
+      if (count > 0)
+	{
+	  r = full_remote_write_dentry (&count, buf, cap, icap, dentry, offset,
+					count);
+	  if (r != ZFS_OK)
+	    break;
+	}
+
+      if (count > 0)
+	{
+	  interval_tree_delete (dentry->fh->modified, offset, offset + count);
+	  offset += count;
+	}
+      else
+	break;
+    }
+
+  if (dentry->fh->modified->deleted)
+    {
+      if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_MODIFIED))
+	MARK_VOLUME_DELETE (vol);
+    }
+
+  if (!(dentry->fh->meta.flags & METADATA_MODIFIED))
+    {
+      dentry->fh->flags &= ~IFH_REINTEGRATE;
+
+      r = remote_close (icap, dentry, vol);
+      if (r != ZFS_OK)
+	return r;
+    }
+  else
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+
+  return ZFS_OK;
+}
+
 /* Update file with file handle FH.  */
 
 int32_t
