@@ -37,7 +37,7 @@ OBJECTS = alloc-pool.o client.o config.o constant.o crc32.o \
           log.o memory.o node.o queue.o server.o \
           splay-tree.o thread.o varray.o volume.o zfsd.o
 
-RPC_OBJECTS = zfs_prot_clnt.o zfs_prot_svc.o zfs_prot_server.o zfs_prot_xdr.o
+RPC_OBJECTS = #zfs_prot_clnt.o zfs_prot_svc.o zfs_prot_server.o zfs_prot_xdr.o
 
 .c.o:
 	$(COMPILE) -c $<
@@ -55,7 +55,7 @@ $(PACKAGE): $(OBJECTS) $(RPC_OBJECTS)
 
 # RPC code
 zfs_prot.h: zfs_prot.x
-	rpcgen -h zfs_prot.x > zfs_prot.h
+	#rpcgen -h zfs_prot.x > zfs_prot.h
 zfs_prot_clnt.c: zfs_prot.x zfs_prot.h
 	rpcgen -l zfs_prot.x > $@
 zfs_prot_svc.c: zfs_prot.x zfs_prot.h
