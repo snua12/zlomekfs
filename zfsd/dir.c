@@ -2870,6 +2870,21 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
+  if (NON_EXIST_FH_P (*fh))
+    {
+      node nod;
+
+      nod = node_lookup (fh->sid);
+      if (!nod)
+	return ESTALE;
+
+      res->path.len = strlen (nod->name);
+      res->path.str = (char *) xmemdup (nod->name, res->path.len);
+      zfsd_mutex_unlock (&nod->mutex);
+
+      return ZFS_OK;
+    }
+
   r = validate_operation_on_zfs_fh (fh, true);
   if (r != ZFS_OK)
     return r;
