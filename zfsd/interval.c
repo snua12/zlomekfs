@@ -36,9 +36,18 @@
 #include "splay-tree.h"
 #include "util.h"
 #include "data-coding.h"
+#include "varray.h"
 
 /* Number of intervals being read/written using 1 syscall.  */
 #define INTERVAL_COUNT 1024
+
+/* Return the maximum of X and Y.  */
+#undef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
+/* Return the minimum of X and Y.  */
+#undef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 /* Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
 
@@ -341,6 +350,68 @@ interval_tree_write (interval_tree tree, int fd)
     }
 
   return r;
+}
+
+/* Add the intersections of interval [START, END) with interval tree TREE
+   to varray DEST.  */
+
+static void
+interval_tree_intersection_1 (interval_tree tree, uint64_t start, uint64_t end,
+			      varray *dest)
+{
+  interval_tree_node node;
+
+  node = splay_tree_lookup (tree->splay, start);
+  if (!node)
+    node = splay_tree_predecessor (tree->splay, start);
+  if (!node)
+    node = splay_tree_successor (tree->splay, start);
+
+  for (; node && INTERVAL_START (node) < end;
+       start = INTERVAL_END (node),
+       node = splay_tree_successor (tree->splay, INTERVAL_START (node)))
+    {
+      interval *x;
+
+      VARRAY_EMPTY_PUSH (*dest, interval);
+      x = &VARRAY_TOP (*dest, interval);
+      x->start = MAX (start, INTERVAL_START (node));
+      x->end = MIN (end, INTERVAL_END (node));
+    }
+}
+
+/* Store the intersection of interval [START, END) with interval tree TREE
+   to varray DEST.  */
+
+void
+interval_tree_intersection (interval_tree tree, uint64_t start, uint64_t end,
+			    varray *dest)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  varray_create (dest, sizeof (interval), 4);
+  interval_tree_intersection_1 (tree, start, end, dest);
+}
+
+/* Store the intersection of intervals in varray SRC with interval tree TREE
+   to varray DEST.  */
+
+void
+interval_tree_intersection_varray (interval_tree tree, varray src,
+				   varray *dest)
+{
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  varray_create (dest, sizeof (interval), 16);
+  for (i = 0; i < VARRAY_USED (src); i++)
+    {
+      interval x;
+
+      x = VARRAY_ACCESS (src, i, interval);
+      interval_tree_intersection_1 (tree, x.start, x.end, dest);
+    }
 }
 
 /* Print the interval in NODE to file DATA.  */

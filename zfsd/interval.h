@@ -26,6 +26,7 @@
 #include "pthread.h"
 #include "log.h"
 #include "splay-tree.h"
+#include "varray.h"
 
 /* The interval tree.  */
 typedef struct interval_tree_def
@@ -78,6 +79,10 @@ extern interval_tree_node interval_tree_successor (interval_tree tree,
 						   uint64_t key);
 extern bool interval_tree_read (interval_tree tree, int fd, uint64_t n);
 extern bool interval_tree_write (interval_tree tree, int fd);
+extern void interval_tree_intersection (interval_tree tree, uint64_t start,
+					uint64_t end, varray *dest);
+extern void interval_tree_intersection_varray (interval_tree tree, varray src,
+					       varray *dest);
 extern void print_interval_tree (FILE *f, interval_tree tree);
 extern void debug_interval_tree (interval_tree tree);
 
