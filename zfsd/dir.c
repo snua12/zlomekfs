@@ -4669,6 +4669,12 @@ local_reintegrate_del_fh (zfs_fh *fh)
       return ZFS_METADATA_ERROR;
     }
 
+  if (meta.slot_status != VALID_SLOT)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_OK;
+    }
+
   if (!(meta.flags & METADATA_SHADOW))
     {
       zfsd_mutex_unlock (&vol->mutex);
