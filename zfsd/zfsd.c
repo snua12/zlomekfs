@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "config.h"
+#include "log.h"
 
 /* Name of the configuration file.  */
 static char *config_file = "/etc/zfs/config";
@@ -60,6 +61,8 @@ int
 main(int argc, char **argv)
 {
   init_sig_handlers();
+
+  verbose = 2;
 
   if (!read_config(config_file))
     return EXIT_FAILURE;
