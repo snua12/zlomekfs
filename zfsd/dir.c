@@ -975,7 +975,7 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
   string str;
   int32_t r;
 
-  res->file = (*path == '/') ? root_fh : *dir;
+  res->file = *dir;
   while (*path)
     {
       while (*path == '/')
