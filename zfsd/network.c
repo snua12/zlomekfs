@@ -161,7 +161,7 @@ static network_fd_data_t **active;
 /* Number of active file descriptors.  */
 static int nactive;
 
-/* Mutex for accessing active and nactive.  */
+/* Mutex protecting access to ACTIVE and NACTIVE.  */
 static pthread_mutex_t active_mutex;
 
 /* Hash function for request ID.  */
@@ -193,12 +193,12 @@ waiting4reply_eq (const void *xx, const void *yy)
 static void
 init_fd_data (int fd)
 {
-  CHECK_MUTEX_LOCKED (&active_mutex);
-  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
 #endif
+  CHECK_MUTEX_LOCKED (&active_mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
   /* Set the network file descriptor's data.  */
   active[nactive] = &network_fd_data[fd];
@@ -229,11 +229,11 @@ init_fd_data (int fd)
 void
 close_network_fd (int fd)
 {
-  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
 #endif
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
   message (2, stderr, "Closing FD %d\n", fd);
   close (fd);
