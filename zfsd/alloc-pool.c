@@ -211,7 +211,7 @@ pool_alloc (alloc_pool pool)
   ALLOCATION_OBJECT_PTR_FROM_USER_PTR (header)->id = pool->id;
 #endif
 
-  message (3, stderr, "A %p %p\n", (void *) pool, (void *) header);
+  message (3, stderr, "POOL ALLOC %p %p\n", (void *) pool, (void *) header);
 
   return ((void *) header);
 }
@@ -222,7 +222,7 @@ pool_free (alloc_pool pool, void *ptr)
 {
   alloc_pool_list header;
 
-  message (3, stderr, "F %p %p\n", (void *) pool, ptr);
+  message (3, stderr, "POOL FREE  %p %p\n", (void *) pool, ptr);
 
 #ifdef ENABLE_CHECKING
   if (!ptr)
