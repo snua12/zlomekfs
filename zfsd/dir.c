@@ -3350,13 +3350,134 @@ zfs_reintegrate_add (reintegrate_add_args *args)
   return ZFS_OK;
 }
 
-/* If ARGS->DESTROY delete file ARGS->FH and its subtree,
+/* If DESTROY_P delete local file DENTRY and its subtree,
+   otherwise move it to shadow.  */
+
+int32_t
+local_reintegrate_del (volume vol, internal_dentry dentry, bool destroy_p)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (destroy_p
+      || metadata_n_hardlinks (vol, &dentry->fh->local_fh) > 1)
+    {
+      if (!delete_tree (dentry, vol))
+	return ZFS_UPDATE_FAILED;
+    }
+  else
+    {
+      if (!move_to_shadow (vol, dentry))
+	return ZFS_UPDATE_FAILED;
+    }
+
+  return ZFS_OK;
+}
+
+/* If DESTROY_P delete remote file NAME and its subtree from directory DIR,
+   otherwise move it to shadow.  */
+
+int32_t
+remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
+			bool destroy_p)
+{
+  reintegrate_del_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
+    abort ();
+#endif
+
+  args.dir = dir->fh->meta.master_fh;
+  args.name = *name;
+  args.destroy_p = destroy_p;
+
+  release_dentry (dir);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reintegrate_del_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
+/* If ARGS->DESTROY delete file NAME and its subtree from directory ARGS->DIR,
    otherwise move it to shadow.  */
 
 int32_t
 zfs_reintegrate_del (reintegrate_del_args *args)
 {
-  return ZFS_OK;
+  dir_op_res res;
+  volume vol;
+  internal_dentry idir, dentry;
+  int32_t r, r2;
+
+  if (VIRTUAL_FH_P (args->dir))
+    return EINVAL;
+
+  r = validate_operation_on_zfs_fh (&args->dir, true);
+  if (r != ZFS_OK)
+    return r;
+
+  r = zfs_lookup (&res, &args->dir, &args->name);
+  if (r != ZFS_OK)
+    return r;
+
+  r = zfs_fh_lookup_nolock (&args->dir, &vol, &idir, NULL, true);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vol->local_path)
+    {
+      dentry = dentry_lookup_name (idir, args->name.str);
+      if (!dentry)
+	{
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ESTALE;
+	}
+
+      r = local_reintegrate_del (vol, dentry, args->destroy_p);
+    }
+  else if (vol->master != this_node)
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_reintegrate_del (vol, idir, &args->name, args->destroy_p);
+
+      r2 = zfs_fh_lookup_nolock (&args->dir, &vol, &idir, NULL, true);
+      if (r2 == ZFS_OK)
+	{
+	  dentry = dentry_lookup_name (idir, args->name.str);
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+
+	  if (dentry)
+	    internal_dentry_destroy (dentry, true);
+
+	  zfsd_mutex_unlock (&fh_mutex);
+	}
+    }
+  else
+    abort ();
+
+  return r;
 }
 
 /* Refresh master file handles on path to DENTRY on volume VOL.
