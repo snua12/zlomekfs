@@ -41,7 +41,7 @@
 #define NODE_CONNECT_VISCOSITY 15
 
 /* The timeout for connection attempt in seconds.  */
-#define NODE_CONNECT_TIMEOUT 3
+#define NODE_CONNECT_TIMEOUT 2
 
 /* The maximal number of microseconds of the measuring of connection speed
    to decide that the connection is fast.  */
