@@ -364,7 +364,8 @@ decode_string (DC *dc, string *str, uint32_t max_len)
 
 #ifdef __KERNEL__
   str->str = (char *) kmalloc (str->len + 1, GFP_KERNEL);
-  return false;
+  if (!str->str)
+	  return false;
 #else
   str->str = (char *) xmalloc (str->len + 1);
 #endif
