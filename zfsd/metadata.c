@@ -510,26 +510,35 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
   return fd;
 }
 
-/* Open and initialize file descriptor for hash file HFILE with list
-   of file handles and metadata.  */
+/* Open and initialize file descriptor for hash file HFILE of type TYPE.  */
 
 static int
-open_metadata_file (volume vol)
+open_hash_file (volume vol, metadata_type type)
 {
+  hfile_t hfile;
   int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  fd = open_metadata (vol->metadata->file_name, O_RDWR | O_CREAT,
-		      S_IRUSR | S_IWUSR);
+  switch (type)
+    {
+      case METADATA_TYPE_METADATA:
+	hfile = vol->metadata;
+	break;
+
+      default:
+	abort ();
+    }
+
+  fd = open_metadata (hfile->file_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
   if (fd < 0)
     return fd;
 
-  vol->metadata->fd = fd;
+  hfile->fd = fd;
 
   zfsd_mutex_lock (&metadata_mutex);
   zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
-  init_hashfile_fd (vol->metadata);
+  init_hashfile_fd (hfile);
   zfsd_mutex_unlock (&metadata_mutex);
 
   return fd;
@@ -755,7 +764,7 @@ init_volume_metadata (volume vol)
     }
   free (path);
 
-  fd = open_metadata_file (vol);
+  fd = open_hash_file (vol, METADATA_TYPE_METADATA);
   if (fd < 0)
     {
       close_volume_metadata (vol);
@@ -1099,7 +1108,7 @@ init_metadata_for_created_volume_root (volume vol)
     {
       int fd;
 
-      fd = open_metadata_file (vol);
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
       if (fd < 0)
 	return false;
     }
@@ -1148,7 +1157,7 @@ init_metadata (volume vol, internal_fh fh)
     {
       int fd;
 
-      fd = open_metadata_file (vol);
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
       if (fd < 0)
 	return false;
     }
@@ -1192,7 +1201,7 @@ flush_metadata (volume vol, internal_fh fh)
     {
       int fd;
 
-      fd = open_metadata_file (vol);
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
       if (fd < 0)
 	return false;
     }
@@ -1343,7 +1352,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
     {
       int fd;
 
-      fd = open_metadata_file (vol);
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
       if (fd < 0)
 	return false;
     }
