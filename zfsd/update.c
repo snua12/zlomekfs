@@ -91,6 +91,8 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
   internal_dentry dentry;
   int32_t r;
 
+  TRACE ("");
+
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r != ZFS_OK)
@@ -1252,6 +1254,7 @@ set_metadata_attr (volume vol, metadata *meta, zfs_fh *fh, fattr *attr)
 {
   internal_dentry dentry;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -2065,6 +2068,7 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
   fh_mapping map;
   zfs_fh dir_fh;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
