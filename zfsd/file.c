@@ -2266,8 +2266,8 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
       MD5Init (&context);
       for (total = 0; total < args->length[i]; total += count)
 	{
-	  r = zfs_read (&count, buf, &args->cap, args->offset[i],
-			args->length[i], false);
+	  r = zfs_read (&count, buf, &args->cap, args->offset[i] + total,
+			args->length[i] - total, false);
 	  if (r != ZFS_OK)
 	    return r;
 
