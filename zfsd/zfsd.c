@@ -69,7 +69,7 @@ static void die () ATTRIBUTE_NORETURN;
 static void
 exit_sighandler (int signum)
 {
-  running = 0;
+  running = false;
 
   pthread_kill (main_server_thread, SIGUSR1);
 }
@@ -495,14 +495,13 @@ main (int argc, char **argv)
       test_zfs (&main_thread_data);
 #else
       if (!read_cluster_config ())
-	{
-	  server_cleanup ();
-	  die ();
-	}
+	exit_sighandler (0);
 #endif
 
       pthread_join (main_server_thread, NULL);
     }
+  else
+    running = false;
 #endif
 
   client_cleanup ();

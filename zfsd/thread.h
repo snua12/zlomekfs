@@ -31,7 +31,7 @@
 #include "zfs_prot.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-extern volatile int running;
+extern volatile bool running;
 
 /* Key for server thread specific data.  */
 extern pthread_key_t server_thread_key;

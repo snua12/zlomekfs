@@ -30,7 +30,7 @@
 #include "thread.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-volatile int running = 1;
+volatile bool running = true;
 
 /* Key for server thread specific data.  */
 pthread_key_t server_thread_key;
@@ -74,6 +74,12 @@ thread_pool_destroy (thread_pool *pool)
   while (pool->empty.nelem < pool->size)
     destroy_idle_thread (pool);
 
+  zfsd_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->idle.mutex);
+
+  /* Some thread may have these mutexes locked, wait for it to unlock them.  */
+  zfsd_mutex_lock (&pool->idle.mutex);
+  zfsd_mutex_lock (&pool->empty.mutex);
   zfsd_mutex_unlock (&pool->empty.mutex);
   zfsd_mutex_unlock (&pool->idle.mutex);
 
