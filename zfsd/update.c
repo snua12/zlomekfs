@@ -1172,6 +1172,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   int32_t r, r2;
   read_link_res link_to;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -1188,6 +1189,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 	abort ();
 
       case FT_DIR:
+	zfsd_mutex_unlock (&fh_mutex);
 	r = remote_mkdir (res, dir, name, &sa, vol);
 	break;
 
@@ -1196,7 +1198,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 	if (r != ZFS_OK)
 	  return r;
 
-	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+	r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -1210,6 +1212,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
       case FT_CHR:
       case FT_SOCK:
       case FT_FIFO:
+	zfsd_mutex_unlock (&fh_mutex);
 	r = remote_mknod (res, dir, name, &sa, attr->type, attr->rdev, vol);
 	break;
     }
@@ -1570,7 +1573,6 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		  {
 		    if (zfs_fh_undefined (entry->master_fh))
 		      {
-			zfsd_mutex_unlock (&fh_mutex);
 			r = create_remote_fh (&res, dentry, &entry->name, vol,
 					      fh, &local_res.attr);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,

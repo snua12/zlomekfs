@@ -2806,12 +2806,14 @@ local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
   char buf[ZFS_MAXDATA + 1];
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   r = readlink (path, buf, ZFS_MAXDATA);
   free (path);
   if (r < 0)
