@@ -1984,17 +1984,14 @@ create_conflict (volume vol, internal_dentry dir, string *name,
   internal_dentry conflict, dentry;
   node nod;
 
-  TRACE ("");
-#ifdef ENABLE_CHECKING
-  /* Two directories can't be in conflict, neither the volume root can.  */
-  if (!dir)
-    abort ();
-#endif
-
 again:
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dir)
+    CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#endif
 
   dentry = dentry_lookup_name (vol, dir, name);
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
@@ -2004,6 +2001,10 @@ again:
     {
       if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh))
 	{
+#ifdef ENABLE_CHECKING
+	  if (!dir)
+	    abort ();
+#endif
 	  tmp_fh = dir->fh->local_fh;
 	  release_dentry (dir);
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -2048,6 +2049,8 @@ again:
 
   conflict = internal_dentry_create (&tmp_fh, &undefined_fh, vol, dir,
 				     name, &tmp_attr, NULL, LEVEL_UNLOCKED);
+/*  if (!dir)
+    vol->root_dentry = conflict;*/
 
   if (dentry)
     {
@@ -2062,23 +2065,42 @@ again:
 
       internal_dentry_add_to_dir (conflict, dentry);
 
+      if (dir)
+	{
 #ifdef ENABLE_CHECKING
-      if (dir->fh->level == LEVEL_UNLOCKED
-	  && dentry->fh->level == LEVEL_UNLOCKED)
-	abort ();
+	  if (dir->fh->level == LEVEL_UNLOCKED
+	      && dentry->fh->level == LEVEL_UNLOCKED)
+	    abort ();
 #endif
 
-      /* Invalidate DENTRY.  */
-      tmp_fh = dir->fh->local_fh;
-      release_dentry (dir);
+	  /* Invalidate DENTRY.  */
+	  tmp_fh = dir->fh->local_fh;
+	  release_dentry (dir);
+	}
+#ifdef ENABLE_CHECKING
+      else
+	{
+	  if (dentry->fh->level == LEVEL_UNLOCKED)
+	    abort ();
+	}
+#endif
+
       release_dentry (conflict);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
       local_invalidate (dentry);
 
-      /* This succeeds because DIR or its child was locked
-	 so it can't have been deleted meanwhile.  */
-      zfs_fh_lookup_nolock (&tmp_fh, &vol, &dir, NULL, false);
+      if (dir)
+	{
+	  /* This succeeds because DIR or its child was locked
+	     so it can't have been deleted meanwhile.  */
+	  zfs_fh_lookup_nolock (&tmp_fh, &vol, &dir, NULL, false);
+	}
+      else
+	{
+	  zfsd_mutex_lock (&fh_mutex);
+	  vol = volume_lookup (tmp_fh.vid);
+	}
       goto again;
     }
 
