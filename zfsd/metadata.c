@@ -1878,6 +1878,47 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   return flush_metadata (vol, &fh->meta);
 }
 
+/* Delete master fh and fh mapping for newly created file on volume VOL.  */
+
+bool
+delete_master_fh_of_created_file (volume vol, metadata *meta)
+{
+  fh_mapping map;
+
+  if (zfs_fh_undefined (meta->master_fh))
+    return true;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!hashfile_opened_p (vol->fh_mapping))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
+      if (fd < 0)
+	return false;
+    }
+
+  map.master_fh.dev = meta->master_fh.dev;
+  map.master_fh.ino = meta->master_fh.ino;
+  if (!hfile_delete (vol->fh_mapping, &map))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+      return false;
+    }
+  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+
+  meta->flags = 0;
+  meta->gen++;
+  meta->local_version++;
+  if (!vol->is_copy)
+    meta->master_version = meta->local_version;
+  zfs_fh_undefine (meta->master_fh);
+
+  return flush_metadata (vol, meta);
+}
+
 /* Increase the local version for file FH on volume VOL.
    Return false on file error.  */
 

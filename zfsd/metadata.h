@@ -128,6 +128,7 @@ extern bool set_metadata (volume vol, internal_fh fh, uint32_t flags,
 extern bool set_metadata_flags (volume vol, internal_fh fh, uint32_t flags);
 extern bool set_metadata_master_fh (volume vol, internal_fh fh,
 				    zfs_fh *master_fh);
+extern bool delete_master_fh_of_created_file (volume vol, metadata *meta);
 extern bool inc_local_version (volume vol, internal_fh fh);
 extern bool delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 			     uint32_t parent_dev, uint32_t parent_ino,
