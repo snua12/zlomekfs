@@ -360,7 +360,7 @@ kernel_dispatch (fd_data_t *fd_data)
 	kernel_pool.threads[index].t.from_sid = this_node->id;
 	  /* FIXME: race condition? */
 	kernel_pool.threads[index].t.u.kernel.dc = dc;
-	network_pool.threads[index].t.u.network.fd_data = fd_data;
+	kernel_pool.threads[index].t.u.kernel.fd_data = fd_data;
 
 	/* Let the thread run.  */
 	semaphore_up (&kernel_pool.threads[index].t.sem, 1);
