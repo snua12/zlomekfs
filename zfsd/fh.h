@@ -79,8 +79,8 @@ typedef struct volume_def *volume;
 		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
 /* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
-   on volume VOL.  */
-#define DESTROY_DENTRY(VOL, DIR, NAME, DIR_FH)				\
+   on volume VOL.  Delete PATH from hardlinks.  */
+#define DESTROY_DENTRY(VOL, DIR, NAME, DIR_FH, PATH)			\
   do {									\
     internal_dentry dentry;						\
 									\
@@ -90,6 +90,8 @@ typedef struct volume_def *volume;
     dentry = dentry_lookup_name ((DIR), (NAME));			\
     if (dentry)								\
       {									\
+	if ((PATH) && dentry->fh->hardlinks)				\
+	  string_list_delete (dentry->fh->hardlinks, (PATH));		\
 	release_dentry ((DIR));						\
 	zfsd_mutex_unlock (&(VOL)->mutex);				\
 									\

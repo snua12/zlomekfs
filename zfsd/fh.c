@@ -42,6 +42,7 @@
 #include "metadata.h"
 #include "zfs_prot.h"
 #include "user-group.h"
+#include "dir.h"
 
 /* File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
@@ -923,6 +924,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->ndentries = 0;
   fh->updated = NULL;
   fh->modified = NULL;
+  fh->hardlinks = NULL;
   fh->level = LEVEL_UNLOCKED;
   fh->users = 0;
   fh->owner = 0;
@@ -998,6 +1000,9 @@ internal_fh_destroy_stage1 (internal_fh fh)
 
   if (fh->attr.type == FT_DIR)
     varray_destroy (&fh->subdentries);
+
+  if (fh->hardlinks)
+    string_list_destroy (fh->hardlinks);
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -1144,8 +1149,9 @@ internal_dentry
 internal_dentry_link (internal_fh fh, volume vol,
 		      internal_dentry parent, char *name)
 {
-  internal_dentry dentry;
+  internal_dentry dentry, old;
   void **slot;
+  char *path;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1175,8 +1181,7 @@ internal_dentry_link (internal_fh fh, volume vol,
 				   INTERNAL_DENTRY_HASH (dentry), INSERT);
   if (*slot)
     {
-      internal_dentry old = (internal_dentry) *slot;
-
+      old = (internal_dentry) *slot;
       dentry->next = old->next;
       dentry->prev = old;
       old->next->prev = dentry;
@@ -1197,6 +1202,18 @@ internal_dentry_link (internal_fh fh, volume vol,
 #endif
       *slot = dentry;
     }
+
+  /* Add the path to the hardlink list.  */
+  if (!dentry->fh->hardlinks)
+    {
+      dentry->fh->hardlinks = string_list_create (4, &dentry->fh->mutex);
+      path = build_relative_path (old);
+      string_list_insert (dentry->fh->hardlinks, path, false);
+    }
+  path = build_relative_path_name (parent, name);
+  string_list_insert (dentry->fh->hardlinks, path, false);
+  if (!flush_hardlinks (vol, dentry->fh))
+    vol->flags |= VOLUME_DELETE;
 
   return dentry;
 }

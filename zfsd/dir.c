@@ -278,7 +278,8 @@ recursive_unlink (char *path, uint32_t vid)
   vol = volume_lookup (vid);
   if (vol)
     {
-      if (!delete_metadata (vol, st.st_dev, st.st_ino))
+      if (!delete_metadata (vol, st.st_dev, st.st_ino,
+			    local_path_to_relative_path (vol, path)))
 	vol->flags |= VOLUME_DELETE;
       zfsd_mutex_unlock (&vol->mutex);
     }
@@ -1573,11 +1574,11 @@ zfs_rmdir_retry:
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      DESTROY_DENTRY (vol, idir, name->str, tmp_fh);
+      DESTROY_DENTRY (vol, idir, name->str, tmp_fh, NULL);
 
       if (vol->local_path)
 	{
-	  if (!delete_metadata (vol, st.st_dev, st.st_ino))
+	  if (!delete_metadata (vol, st.st_dev, st.st_ino, NULL))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
@@ -1600,10 +1601,12 @@ zfs_rmdir_retry:
 }
 
 /* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
-   in directory TO_DIR on volume VOL.  */
+   in directory TO_DIR on volume VOL.
+   Store the stat structure of NAME to ST and path to PATHP.  */
 
 static int32_t
-local_rename (internal_dentry from_dir, string *from_name,
+local_rename (struct stat *st, char **pathp,
+	      internal_dentry from_dir, string *from_name,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
   char *path1, *path2;
@@ -1620,11 +1623,30 @@ local_rename (internal_dentry from_dir, string *from_name,
     release_dentry (to_dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  r = rename (path1, path2);
-  free (path1);
-  free (path2);
+
+  r = lstat (path2, st);
   if (r != 0)
-    return errno;
+    {
+      /* PATH2 does not exist.  */
+      r = rename (path1, path2);
+      free (path1);
+      free (path2);
+      if (r != 0)
+	return errno;
+      *pathp = NULL;
+    }
+  else
+    {
+      /* PATH2 exists.  */
+      r = rename (path1, path2);
+      free (path1);
+      if (r != 0)
+	{
+	  free (path2);
+	  return errno;
+	}
+      *pathp = path2;
+    }
 
   return ZFS_OK;
 }
@@ -1689,6 +1711,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   volume vol;
   internal_dentry from_dentry, to_dentry;
   virtual_dir vd;
+  struct stat st;
+  char *path;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
   int retry = 0;
@@ -1797,7 +1821,8 @@ zfs_rename_retry:
       UPDATE_FH_IF_NEEDED_2 (vol, to_dentry, from_dentry, tmp_to, tmp_from);
       if (tmp_from.ino != tmp_to.ino)
 	UPDATE_FH_IF_NEEDED_2 (vol, from_dentry, to_dentry, tmp_from, tmp_to);
-      r = local_rename (from_dentry, from_name, to_dentry, to_name, vol);
+      r = local_rename (&st, &path, from_dentry, from_name, to_dentry,
+			to_name, vol);
     }
   else if (vol->master != this_node)
     {
@@ -1816,8 +1841,10 @@ zfs_rename_retry:
   if (r == ZFS_OK)
     {
       internal_dentry dentry;
+      char *relative_path;
 
-      DESTROY_DENTRY (vol, to_dentry, to_name->str, tmp_to);
+      relative_path = local_path_to_relative_path (vol, path);
+      DESTROY_DENTRY (vol, to_dentry, to_name->str, tmp_to, relative_path);
 
       if (tmp_from.ino != tmp_to.ino)
 	{
@@ -1841,6 +1868,11 @@ zfs_rename_retry:
 
       if (vol->local_path)
 	{
+	  if (relative_path)
+	    {
+	      if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
+		vol->flags |= VOLUME_DELETE;
+	    }
 	  if (!inc_local_version (vol, from_dentry->fh))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!inc_local_version (vol, to_dentry->fh))
@@ -2078,7 +2110,7 @@ zfs_link_retry:
 
   if (r == ZFS_OK)
     {
-      DESTROY_DENTRY (vol, dir_dentry, name->str, tmp_dir);
+      DESTROY_DENTRY (vol, dir_dentry, name->str, tmp_dir, NULL);
 
       if (tmp_from.ino != tmp_dir.ino)
 	{
@@ -2132,11 +2164,12 @@ zfs_link_retry:
   return r;
 }
 
-/* Delete local file NAME from directory DIR on volume VOL,
-   store the stat structure of NAME to ST.  */
+/* Delete local file NAME from directory DIR on volume VOL.
+   Store the stat structure of NAME to ST and path to PATHP.  */
 
 static int32_t
-local_unlink (struct stat *st, internal_dentry dir, string *name, volume vol)
+local_unlink (struct stat *st, char **pathp,
+	      internal_dentry dir, string *name, volume vol)
 {
   char *path;
   int32_t r;
@@ -2148,6 +2181,7 @@ local_unlink (struct stat *st, internal_dentry dir, string *name, volume vol)
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
   r = lstat (path, st);
   if (r != 0)
     {
@@ -2155,10 +2189,14 @@ local_unlink (struct stat *st, internal_dentry dir, string *name, volume vol)
       return errno;
     }
   r = unlink (path);
-  free (path);
+  
   if (r != 0)
-    return errno;
+    {
+      free (path);
+      return errno;
+    }
 
+  *pathp = path;
   return ZFS_OK;
 }
 
@@ -2212,6 +2250,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
+  char *path;
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
@@ -2254,7 +2293,7 @@ zfs_unlink_retry:
   if (vol->local_path)
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_unlink (&st, idir, name, vol);
+      r = local_unlink (&st, &path, idir, name, vol);
     }
   else if (vol->master != this_node)
     {
@@ -2273,11 +2312,18 @@ zfs_unlink_retry:
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      DESTROY_DENTRY (vol, idir, name->str, tmp_fh);
+      char *relative_path;
+
+      relative_path = local_path_to_relative_path (vol, path);
+      DESTROY_DENTRY (vol, idir, name->str, tmp_fh, relative_path);
 
       if (vol->local_path)
 	{
-	  if (!delete_metadata (vol, st.st_dev, st.st_ino))
+#ifdef ENABLE_CHECKING
+	  if (relative_path == NULL)
+	    abort ();
+#endif
+	  if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
