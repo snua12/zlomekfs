@@ -2255,7 +2255,8 @@ config_reader (void *data)
 
   /* Free remaining requests.  */
   while (get_reread_config_request (&relative_path, &from_sid))
-    free (relative_path.str);
+    if (relative_path.str != NULL)
+      free (relative_path.str);
 
 dying:
   set_thread_state (t, THREAD_DEAD);
