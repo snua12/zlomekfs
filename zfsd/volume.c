@@ -105,9 +105,11 @@ volume_create (uint32_t id)
 
   vol = (volume) xmalloc (sizeof (struct volume_def));
   vol->id = id;
-  vol->name = NULL;
   vol->master = NULL;
-  vol->mountpoint = NULL;
+  vol->name.str = NULL;
+  vol->name.len = 0;
+  vol->mountpoint.str = NULL;
+  vol->mountpoint.len = 0;
   vol->delete_p = false;
   vol->n_locked_fhs = 0;
   vol->local_path.str = NULL;
@@ -173,8 +175,8 @@ volume_destroy (volume vol)
 
   if (vol->local_path.str)
     free (vol->local_path.str);
-  free (vol->mountpoint);
-  free (vol->name);
+  free (vol->mountpoint.str);
+  free (vol->name.str);
   free (vol);
 }
 
@@ -223,13 +225,13 @@ volume_delete (volume vol)
 /* Set the information common for all volume types.  */
 
 void
-volume_set_common_info (volume vol, const char *name, const char *mountpoint,
+volume_set_common_info (volume vol, string *name, string *mountpoint,
 			node master)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  set_str (&vol->name, name);
-  set_str (&vol->mountpoint, mountpoint);
+  set_string (&vol->name, name);
+  set_string (&vol->mountpoint, mountpoint);
   vol->master = master;
   vol->is_copy = (vol->master != this_node);
   virtual_mountpoint_create (vol);
@@ -238,7 +240,7 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
 /* Set the information for a volume with local copy.  */
 
 bool
-volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
+volume_set_local_info (volume vol, string *local_path, uint64_t size_limit)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -253,7 +255,7 @@ volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
 void
 print_volume (FILE *f, volume vol)
 {
-  fprintf (f, "%u %s %s\n", vol->id, vol->name, vol->mountpoint);
+  fprintf (f, "%u %s %s\n", vol->id, vol->name.str, vol->mountpoint.str);
 }
 
 /* Print the information about all volumes to file F.  */

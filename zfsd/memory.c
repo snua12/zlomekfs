@@ -278,19 +278,19 @@ set_str (char **destp, const char *src)
 /* Set a copy of SRC to DST.  */
 
 void
-set_string (string *dst, const char *src)
+set_string (string *dst, string *src)
 {
   if (dst->str)
     free (dst->str);
 
-  dst->len = strlen (src);
+  dst->len = src->len;
   dst->str = (char *) malloc (dst->len + 1);
   if (!dst->str)
     {
       message (-1, stderr, "Not enough memory.\n");
       abort ();
     }
-  memcpy (dst->str, src, dst->len + 1);
+  memcpy (dst->str, src->str, dst->len + 1);
 }
 
 /* Append STR of length LEN to SRC and store it to DST.  */

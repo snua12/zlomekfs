@@ -2936,7 +2936,7 @@ virtual_mountpoint_create (volume vol)
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  mountpoint = xstrdup (vol->mountpoint);
+  mountpoint = (char *) xmemdup (vol->mountpoint.str, vol->mountpoint.len + 1);
   varray_create (&subpath, sizeof (string), 8);
 
   /* Split the path.  */
@@ -3046,7 +3046,7 @@ print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
 
   fprintf (f, "'%s'", vd->name.str);
   if (vd->vol)
-    fprintf (f, "; VOLUME = '%s'", vd->vol->name);
+    fprintf (f, "; VOLUME = '%s'", vd->vol->name.str);
   fputc ('\n', f);
 
   for (i = 0; i < VARRAY_USED (vd->subdirs); i++)

@@ -42,9 +42,9 @@ struct volume_def
 
   pthread_mutex_t mutex;
   uint32_t id;			/* ID of the volume */
-  char *name;			/* name of the volume */
   node master;			/* master node for the volume */
-  char *mountpoint;		/* "mountpoint" for the volume on cluster fs */
+  string name;			/* name of the volume */
+  string mountpoint;		/* "mountpoint" for the volume on cluster fs */
 
   bool delete_p;		/* Shall the volume be deleted? */
   bool is_copy;			/* Is the volume a copy of remote volume?  */
@@ -76,9 +76,9 @@ extern pthread_mutex_t volume_mutex;
 extern volume volume_lookup (uint32_t id);
 extern volume volume_create (uint32_t id);
 extern void volume_delete (volume vol);
-extern void volume_set_common_info (volume vol, const char *name,
-				    const char *mountpoint, node master);
-extern bool volume_set_local_info (volume vol, const char *local_path,
+extern void volume_set_common_info (volume vol, string *name,
+				    string *mountpoint, node master);
+extern bool volume_set_local_info (volume vol, string *local_path,
 				   uint64_t size_limit);
 extern void initialize_volume_c (void);
 extern void cleanup_volume_c (void);
