@@ -137,15 +137,14 @@ volume_destroy (volume vol)
 {
   void **slot;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (vol->root_dentry)
     {
-      zfsd_mutex_lock (&fh_mutex);
       zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
       internal_dentry_destroy (vol->root_dentry, false);
-      zfsd_mutex_unlock (&fh_mutex);
     }
 
   virtual_mountpoint_destroy (vol);
@@ -310,6 +309,7 @@ cleanup_volume_c ()
 {
   void **slot;
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot,
     {
@@ -321,4 +321,5 @@ cleanup_volume_c ()
   htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_destroy (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 }
