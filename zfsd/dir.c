@@ -286,8 +286,9 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
       if (move_to_shadow_p)
 	{
 	  if (metadata_n_hardlinks (vol, &fh, meta) == 1
-	      && (zfs_fh_undefined (meta->master_fh)
-		  || (meta->flags & METADATA_MODIFIED)))
+	      && ((meta->flags & METADATA_MODIFIED)
+		  || (vol->master != this_node
+		      && zfs_fh_undefined (meta->master_fh))))
 	    {
 	      return (move_to_shadow_base (vol, &fh, path, name, parent_fh,
 					   journal != NULL)
@@ -387,7 +388,8 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
   if (move_to_shadow_p)
     {
       vol = volume_lookup (fh->vid);
-      if (vol && zfs_fh_undefined (meta->master_fh))
+      if (vol && vol->master != this_node
+	  && zfs_fh_undefined (meta->master_fh))
 	{
 	  string name;
 
