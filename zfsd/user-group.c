@@ -47,6 +47,14 @@ static htab_t map_gid_to_node;
 /* Mutex protecting hash tables users_*, groups_*, map_*.  */
 pthread_mutex_t users_groups_mutex;
 
+/* ID of default ZFS user/group.  */
+#define DEFAULT_ZFS_UID ((uint32_t) -2)
+#define DEFAULT_ZFS_GID ((uint32_t) -2)
+
+/* ID of default node user/group.  */
+uint32_t default_node_uid = (uint32_t) -1;
+uint32_t default_node_gid = (uint32_t) -1;
+
 /* Hash functions for user and group ID.  */
 #define USER_ID_HASH(ID) (ID)
 #define GROUP_ID_HASH(ID) (ID)

@@ -45,6 +45,7 @@ extern char *cluster_config;
 extern pthread_rwlock_t lock_config;
 
 extern void set_node_name ();
+extern void set_default_uid_gid ();
 extern bool read_config_file (const char *file);
 extern bool read_cluster_config ();
 

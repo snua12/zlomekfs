@@ -51,6 +51,7 @@ fake_config ()
   volume vol;
 
   set_node_name ();
+  set_default_uid_gid ();
   set_string (&kernel_file_name, "/home/joe/kernel");
 
   zfsd_mutex_lock (&node_mutex);

@@ -19,17 +19,21 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pwd.h>
+#include <grp.h>
 #include <sys/utsname.h>
 #include "pthread.h"
 #include "config.h"
 #include "log.h"
 #include "memory.h"
+#include "user-group.h"
 
 #ifdef BUFSIZ
 #define LINE_SIZE BUFSIZ
@@ -256,6 +260,46 @@ set_node_name ()
   message (1, stderr, "Autodetected node name: '%s'\n", node_name);
 }
 
+/* Set default node UID to UID of user NAME.  Return true on success.  */
+
+static bool
+set_default_uid (char *name)
+{
+  struct passwd *pwd;
+
+  pwd = getpwnam (name);
+  if (!pwd)
+    return false;
+
+  default_node_uid = pwd->pw_uid;
+  return true;
+}
+
+/* Set default node GID to GID of group NAME.  Return true on success.  */
+
+static bool
+set_default_gid (char *name)
+{
+  struct group *grp;
+
+  grp = getgrnam (name);
+  if (!grp)
+    return false;
+
+  default_node_gid = grp->gr_gid;
+  return true;
+}
+
+/* Set default local user/group.  */
+
+void
+set_default_uid_gid ()
+{
+  set_default_uid ("nobody");
+  if (!set_default_gid ("nogroup"))
+    set_default_gid ("nobody");
+}
+
 static bool
 read_private_key (const char *filename)
 {
@@ -364,6 +408,9 @@ read_config_file (const char *file)
   /* Get the name of local node.  */
   set_node_name ();
 
+  /* Set default local user/group.  */
+  set_default_uid_gid ();
+
   f = fopen (file, "rt");
   if (!f)
     {
@@ -415,6 +462,38 @@ read_config_file (const char *file)
 		  set_string_with_length (&cluster_config, value, value_len);
 		  message (1, stderr, "ClusterConfig = '%s'\n", value);
 		}
+	      else if (strncasecmp (key, "defaultuser", 12) == 0)
+		{
+		  if (!set_default_uid (value))
+		    {
+		      message (0, stderr, "Unknown (local) user: %s\n",
+			       value);
+		    }
+		}
+	      else if (strncasecmp (key, "defaultuid", 11) == 0)
+		{
+		  if (sscanf ("%" PRIu32, &default_node_uid) != 1)
+		    {
+		      message (0, stderr, "Not an unsigned number: %s\n",
+			       value);
+		    }
+		}
+	      else if (strncasecmp (key, "defaultgroup", 13) == 0)
+		{
+		  if (!set_default_gid (value))
+		    {
+		      message (0, stderr, "Unknown (local) group: %s\n",
+			       value);
+		    }
+		}
+	      else if (strncasecmp (key, "defaultgid", 11) == 0)
+		{
+		  if (sscanf ("%" PRIu32, &default_node_gid) != 1)
+		    {
+		      message (0, stderr, "Not an unsigned number: %s\n",
+			       value);
+		    }
+		}
 	      else
 		{
 		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
@@ -453,6 +532,20 @@ read_config_file (const char *file)
     {
       message (-1, stderr,
 	       "Node name was not autodetected nor defined in configuration file.\n");
+      return false;
+    }
+
+  if (default_node_uid == (uint32_t) -1)
+    {
+      message (-1, stderr,
+	       "DefaultUser or DefaultUID was not specified,\n  'nobody' could not be used either.\n");
+      return false;
+    }
+
+  if (default_node_gid == (uint32_t) -1)
+    {
+      message (-1, stderr,
+	       "DefaultGroup or DefaultGID was not specified,\n  'nogroup' or 'nobody' could not be used either.\n");
       return false;
     }
 
