@@ -1192,8 +1192,6 @@ internal_fh_destroy_stage1 (internal_fh fh)
 #ifdef ENABLE_CHECKING
   if (fh->ndentries != 0)
     abort ();
-  if (fh->interval_tree_users != 0)
-    abort ();
 #endif
 
   message (4, stderr, "FH %p DESTROY, by %lu\n", (void *) fh,
