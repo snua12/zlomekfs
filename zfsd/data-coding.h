@@ -173,6 +173,9 @@ extern bool encode_uint64_t (DC *dc, uint64_t val);
 #define decode_function(DC, L) decode_uint32_t ((DC), (L))
 #define encode_function(DC, L) encode_uint32_t ((DC), (L))
 
+#define decode_zfs_time(DC, T) decode_uint32_t ((DC), (T))
+#define encode_zfs_time(DC, T) encode_uint32_t ((DC), *(T))
+
 extern bool decode_data_buffer (DC *dc, data_buffer *data);
 extern bool encode_data_buffer (DC *dc, data_buffer *data);
 extern bool decode_fixed_buffer (DC *dc, void *buf, int len);
@@ -187,8 +190,6 @@ extern bool decode_ftype (DC *dc, ftype *type);
 extern bool encode_ftype (DC *dc, ftype type);
 extern bool decode_zfs_fh (DC *dc, zfs_fh *fh);
 extern bool encode_zfs_fh (DC *dc, zfs_fh *fh);
-extern bool decode_zfs_time (DC *dc, zfs_time *time);
-extern bool encode_zfs_time (DC *dc, zfs_time *time);
 extern bool decode_fattr (DC *dc, fattr *attr);
 extern bool encode_fattr (DC *dc, fattr *attr);
 extern bool decode_sattr (DC *dc, sattr *attr);

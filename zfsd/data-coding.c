@@ -354,21 +354,6 @@ encode_zfs_fh (DC *dc, zfs_fh *fh)
 }
 
 bool
-decode_zfs_time (DC *dc, zfs_time *time)
-{
-  return (decode_uint32_t (dc, &time->sec)
-	  && decode_uint32_t (dc, &time->usec));
-
-}
-
-bool
-encode_zfs_time (DC *dc, zfs_time *time)
-{
-  return (encode_uint32_t (dc, time->sec)
-	  && encode_uint32_t (dc, time->usec));
-}
-
-bool
 decode_fattr (DC *dc, fattr *attr)
 {
   return (decode_ftype (dc, &attr->type)

@@ -85,11 +85,7 @@ typedef struct zfs_fh_def
   unsigned int ino;		/* ... and inode number of the file.  */
 } zfs_fh;
 
-typedef struct zfs_time_def
-{
-  unsigned int sec;
-  unsigned int usec;
-} zfs_time;
+typedef unsigned int zfs_time;
 
 typedef struct fattr_def
 {
