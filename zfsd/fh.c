@@ -1896,7 +1896,7 @@ again:
     internal_dentry_add_to_dir (parent, subdentry);
   else
     vol->root_dentry = subdentry;
-    
+
   internal_dentry_destroy (dentry, false);
 }
 
