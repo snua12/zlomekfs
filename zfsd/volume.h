@@ -51,8 +51,15 @@ typedef struct volume_def
 /* Is the volume active (i.e. accessible)?  */
 #define VOLUME_ACTIVE_P(V) ((V)->master->status != CONNECTION_NONE)
 
+/* Value of size limit indicating that the volume is not limited.  */
+#define VOLUME_NO_LIMIT 0
+
 /* Function prototypes.  */
 extern volume volume_create (unsigned id);
+extern void volume_set_common_info (volume vol, const char *name,
+				    const char *mountpoint, node master);
+extern void volume_set_local_info (volume vol, const char *local_path,
+				   uint64_t size_limit);
 extern void initialize_volume_c ();
 extern void cleanup_volume_c ();
 

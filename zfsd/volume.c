@@ -21,6 +21,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <stdlib.h>
+#include "fh.h"
 #include "memory.h"
 #include "volume.h"
 
@@ -64,7 +65,7 @@ volume_create (unsigned id)
   vol->mountpoint = NULL;
   vol->flags = 0;
   vol->local_path = NULL;
-  vol->size_limit = UINT64_MAX;
+  vol->size_limit = VOLUME_NO_LIMIT;
 
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot (volume_htab, &vol->id, NO_INSERT);
@@ -89,6 +90,7 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
   vol->master = master;
   if (!(master->flags & NODE_LOCAL))
     vol->flags |= VOLUME_COPY;
+  virtual_mountpoint_create (vol);
 }
 
 /* Set the information for a volume with local copy.  */
