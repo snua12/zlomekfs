@@ -30,6 +30,7 @@
 /* Volume description.  */
 struct volume_def
 {
+  pthread_mutex_t mutex;
   unsigned int id;		/* ID of the volume */
   char *name;			/* name of the volume */
   node master;			/* master node for the volume */
@@ -42,7 +43,6 @@ struct volume_def
   zfs_fh local_root_fh;		/* file handle of local root.  */
   zfs_fh master_root_fh;	/* file handle of root on master node.  */
   virtual_dir root_vd;		/* virtual directory for the mountpoint */
-  pthread_mutex_t fh_mutex;	/* mutex for accessing table of file handles */
   htab_t fh_htab;		/* hash table of used file handles,
 				   searched by local_fh */
   htab_t fh_htab_name;		/* hash table of used file handles,

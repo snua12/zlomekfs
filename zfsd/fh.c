@@ -156,9 +156,9 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 	  return false;
 	}
 
-      zfsd_mutex_lock (&vol->fh_mutex);
+      zfsd_mutex_lock (&vol->mutex);
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
-      zfsd_mutex_unlock (&vol->fh_mutex);
+      zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&volume_mutex);
       if (!ifh)
 	return false;
@@ -201,9 +201,9 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
   tmp_fh.parent = parent;
   tmp_fh.name = (char *) name;
 
-  zfsd_mutex_lock (&vol->fh_mutex);
+  zfsd_mutex_lock (&vol->mutex);
   fh = (internal_fh) htab_find (vol->fh_htab_name, &tmp_fh);
-  zfsd_mutex_unlock (&vol->fh_mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   return fh;
 }
 
@@ -234,7 +234,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
       VARRAY_PUSH (parent->dentries, fh, internal_fh);
     }
 
-  zfsd_mutex_lock (&vol->fh_mutex);
+  zfsd_mutex_lock (&vol->mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -256,7 +256,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
       *slot = fh;
     }
 
-  zfsd_mutex_unlock (&vol->fh_mutex);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return fh;
 }
@@ -288,7 +288,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
       top->dentry_index = fh->dentry_index;
     }
 
-  zfsd_mutex_lock (&vol->fh_mutex);
+  zfsd_mutex_lock (&vol->mutex);
   if (fh->parent)
     {
       slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
@@ -306,7 +306,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
     abort ();
 #endif
   htab_clear_slot (vol->fh_htab, slot);
-  zfsd_mutex_unlock (&vol->fh_mutex);
+  zfsd_mutex_unlock (&vol->mutex);
 
   free (fh->name);
   zfsd_mutex_lock (&fh_pool_mutex);
