@@ -1804,7 +1804,9 @@ zfs_read (uint32_t *rcount, void *buffer,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      if (vol->master != this_node && dentry->fh->attr.type == FT_REG && update)
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	r = local_read (rcount, buffer, dentry, offset, count, vol);
+      else if (dentry->fh->attr.type == FT_REG && update)
 	{
 	  varray blocks;
 	  uint64_t start;
@@ -1863,7 +1865,7 @@ zfs_read (uint32_t *rcount, void *buffer,
 
 	  varray_destroy (&blocks);
 	}
-      else if (vol->master != this_node)
+      else
 	{
 	  switch (dentry->fh->attr.type)
 	    {
@@ -1889,8 +1891,6 @@ zfs_read (uint32_t *rcount, void *buffer,
 		abort ();
 	    }
 	}
-      else
-	r = local_read (rcount, buffer, dentry, offset, count, vol);
     }
   else if (vol->master != this_node)
     {
@@ -2047,7 +2047,9 @@ zfs_write (write_res *res, write_args *args)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      if (vol->master != this_node)
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	r = local_write (res, dentry, args->offset, &args->data, vol);
+      else
 	{
 	  switch (dentry->fh->attr.type)
 	    {
@@ -2072,8 +2074,6 @@ zfs_write (write_res *res, write_args *args)
 		abort ();
 	    }
 	}
-      else
-	r = local_write (res, dentry, args->offset, &args->data, vol);
     }
   else if (vol->master != this_node)
     {
@@ -2091,7 +2091,8 @@ zfs_write (write_res *res, write_args *args)
 
   if (r == ZFS_OK)
     {
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && dentry->fh->attr.type == FT_REG)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+	  && dentry->fh->attr.type == FT_REG)
 	{
 	  if (!set_metadata_flags (vol, dentry->fh,
 				   dentry->fh->meta.flags | METADATA_MODIFIED))
@@ -2100,7 +2101,7 @@ zfs_write (write_res *res, write_args *args)
 	    }
 	  else
 	    {
-	      if (vol->master != this_node)
+	      if (!zfs_fh_undefined (dentry->fh->meta.master_fh))
 		{
 		  uint64_t start, end;
 		  varray blocks;
