@@ -270,6 +270,8 @@ local_create (create_res *res, int *fdp, internal_fh dir, string *name,
   res->file.ino = res->attr.ino;
   res->cap.fh = res->file;
   res->cap.flags = flags & O_ACCMODE;
+  /* FIXME: generate real verify; temporarily clear it to make valgrind happy */
+  memset (res->cap.verify, 0, sizeof (res->cap.verify));
 
   return ZFS_OK;
 }

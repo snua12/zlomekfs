@@ -114,6 +114,9 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
   cap->master_cap.fh = fh->master_fh;
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
+  /* FIXME: generate real verify; temporarily clear it to make valgrind happy */
+  memset (cap->local_cap.verify, 0, sizeof (cap->local_cap.verify));
+  memset (cap->master_cap.verify, 0, sizeof (cap->master_cap.verify));
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;
