@@ -23,6 +23,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include "constant.h"
+#include "semaphore.h"
 #include "client.h"
 #include "log.h"
 #include "memory.h"
@@ -100,7 +101,7 @@ client_worker (void *data)
   while (1)
     {
       /* Wait until client_dispatch wakes us up.  */
-      pthread_mutex_lock (&t->mutex);
+      semaphore_down (&t->sem, 1);
 
 #ifdef ENABLE_CHECKING
       if (t->state == THREAD_DEAD)

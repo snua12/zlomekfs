@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include "constant.h"
+#include "semaphore.h"
 #include "memory.h"
 #include "log.h"
 #include "queue.h"
@@ -99,8 +100,15 @@ create_idle_thread (thread_pool *pool, thread_start start,
     abort ();
 #endif
 
-  pthread_mutex_init (&t->mutex, NULL);
-  pthread_mutex_lock (&t->mutex);
+  r = semaphore_init (&t->sem, 0);
+  if (r != 0)
+    {
+      t->state = THREAD_DEAD;
+      queue_put (&pool->empty, index);
+      message (-1, stderr, "semapgore_init() failed\n");
+      return r;
+    }
+
   t->state = THREAD_IDLE;
   r = pthread_create (&t->thread_id, NULL, start, t);
   if (r == 0)
@@ -113,8 +121,7 @@ create_idle_thread (thread_pool *pool, thread_start start,
     }
   else
     {
-      pthread_mutex_unlock (&t->mutex);
-      pthread_mutex_destroy (&t->mutex);
+      semaphore_destroy (&t->sem);
       t->state = THREAD_DEAD;
       queue_put (&pool->empty, index);
       message (-1, stderr, "pthread_create() failed\n");
@@ -141,14 +148,11 @@ destroy_idle_thread (thread_pool *pool)
 #endif
 
   t->state = THREAD_DYING;
-  pthread_mutex_unlock (&t->mutex);
+  semaphore_up (&t->sem, 1);
   r = pthread_join (t->thread_id, NULL);
   if (r == 0)
     {
-      /* Thread left the mutex locked.  */
-      pthread_mutex_unlock (&t->mutex);
-      pthread_mutex_destroy (&t->mutex);
-
+      semaphore_destroy (&t->sem);
       t->state = THREAD_DEAD;
       queue_put (&pool->empty, index);
     }

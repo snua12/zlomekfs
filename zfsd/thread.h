@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <rpc/rpc.h>
 #include "queue.h"
+#include "semaphore.h"
 #include "server.h"
 #include "zfs_prot.h"
 
@@ -63,8 +64,8 @@ typedef struct thread_def
   /* The ID of the thread which is set by pthread_create.  */
   pthread_t thread_id;
 
-  /* Mutex used to stop an idle thread.  */
-  pthread_mutex_t mutex;
+  /* Semaphore used to stop an idle thread.  */
+  semaphore sem;
 
   /* Additional data for each subtype.  */
   union {

@@ -24,6 +24,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include "constant.h"
+#include "semaphore.h"
 #include "server.h"
 #include "log.h"
 #include "malloc.h"
@@ -262,7 +263,7 @@ close_active_fd (int i)
       waiting4reply_data *data = *(waiting4reply_data **) slot;
 
       data->t->u.server.retval = ZFS_CONNECTION_CLOSED;
-      pthread_mutex_unlock (&data->t->mutex);
+      semaphore_up (&data->t->sem, 1);
     });
   htab_destroy (server_fd_data[fd].waiting4reply);
   free_alloc_pool (server_fd_data[fd].waiting4reply_pool);
@@ -365,7 +366,7 @@ send_request (thread *t, uint32_t request_id, int fd)
   pthread_mutex_unlock (&server_fd_data[fd].mutex);
 
   /* Wait for reply.  */
-  pthread_mutex_lock (&t->mutex);
+  semaphore_down (&t->sem, 1);
   
   /* Decode return value.  */
   if (!decode_status (&td->dc, &td->retval))
@@ -433,7 +434,7 @@ server_worker (void *data)
   while (1)
     {
       /* Wait until server_dispatch wakes us up.  */
-      pthread_mutex_lock (&t->mutex);
+      semaphore_down (&t->sem, 1);
 
 #ifdef ENABLE_CHECKING
       if (t->state == THREAD_DEAD)
@@ -592,7 +593,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    pthread_mutex_unlock (&fd_data->mutex);
 
 	    /* Let the thread run again.  */
-	    pthread_mutex_unlock (&t->mutex);
+	    semaphore_up (&t->sem, 1);
 	  }
 	break;
 
@@ -616,7 +617,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	server_pool.threads[index].t.u.server.generation = generation;
 
 	/* Let the thread run.  */
-	pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
+	semaphore_up (&server_pool.threads[index].t.sem, 1);
 
 	pthread_mutex_unlock (&server_pool.idle.mutex);
 	break;
@@ -1098,7 +1099,7 @@ server_cleanup ()
 	  waiting4reply_data *data = *(waiting4reply_data **) slot;
 
 	  data->t->u.server.retval = ZFS_EXITING;
-	  pthread_mutex_unlock (&data->t->mutex);
+	  semaphore_up (&data->t->sem, 1);
 	});
       pthread_mutex_unlock (&fd_data->mutex);
     }

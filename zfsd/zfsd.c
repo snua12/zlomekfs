@@ -27,6 +27,8 @@
 #include <sys/mman.h>
 #include <signal.h>
 #include <ucontext.h>
+#include <pthread.h>
+#include "semaphore.h"
 #include "memory.h"
 #include "config.h"
 #include "fh.h"
@@ -303,8 +305,7 @@ initialize_data_structures ()
     return false;
   
   /* Initialize main thread data.  */
-  pthread_mutex_init (&main_thread_data.mutex, NULL);
-  pthread_mutex_lock (&main_thread_data.mutex);
+  semaphore_init (&main_thread_data.sem, 0);
   server_worker_init (&main_thread_data);
   pthread_setspecific (server_thread_key, &main_thread_data);
 
@@ -323,8 +324,7 @@ cleanup_data_structures ()
 {
   /* Destroy main thread data.  */
   server_worker_cleanup (&main_thread_data);
-  pthread_mutex_unlock (&main_thread_data.mutex);
-  pthread_mutex_destroy (&main_thread_data.mutex);
+  semaphore_destroy (&main_thread_data.sem);
 
   /* Destroy data structures in other modules.  */
   cleanup_zfs_prot_c ();
