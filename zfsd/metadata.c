@@ -1439,6 +1439,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
       meta.gen = 1;
       meta.local_version = 1;
       meta.master_version = 0;
+      zfs_fh_undefine (meta.master_fh);
     }
 
   meta.flags = 0;
