@@ -194,8 +194,6 @@ internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
       CHECK_MUTEX_LOCKED (&vd->mutex);
     }
 
-  internal_dentry_unlock (vol, dentry);
-
   if (vd)
     {
       vd->users--;
@@ -210,6 +208,8 @@ internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
       else
 	zfsd_mutex_unlock (&vd->mutex);
     }
+
+  internal_dentry_unlock (vol, dentry);
 }
 
 /* Create a new capability for file handle fh with open flags FLAGS.  */
