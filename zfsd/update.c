@@ -1830,7 +1830,7 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
    set attributes according to ATTR.  */
 
 static int32_t
-update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
+update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
   internal_dentry conflict;
@@ -2157,7 +2157,7 @@ out:
    Use RES for lookups.  */
 
 static int32_t
-reintegrate_deleted_fh (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
+reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
 {
   file_info_res info;
   zfs_fh file_fh;
@@ -2222,7 +2222,7 @@ reintegrate_deleted_fh (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
 	      free (info.path.str);
 	    else
 	      {
-		r = reintegrate_deleted_fh (res, vid, entry);
+		r = reintegrate_deleted_dir (res, vid, entry);
 		if (r != ZFS_OK)
 		  goto out;
 	      }
@@ -2317,7 +2317,7 @@ out:
    Update version of remote directrory in ATTR.  */
 
 static int32_t
-reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
+reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
   internal_dentry conflict;
@@ -2561,7 +2561,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
 	    if (!local_exists)
 	      {
-		r2 = reintegrate_deleted_fh (&local_res, fh->vid, entry);
+		r2 = reintegrate_deleted_dir (&local_res, fh->vid, entry);
 		if (r2 != ZFS_OK)
 		  goto out;
 	      }
@@ -2774,7 +2774,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	if (r != ZFS_OK)
 	  RETURN_INT (r);
 
-	r = reintegrate_fh (vol, dentry, fh, attr);
+	r = reintegrate_dir (vol, dentry, fh, attr);
 	if (r != ZFS_OK)
 	  RETURN_INT (r);
 
@@ -2782,7 +2782,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	if (r != ZFS_OK)
 	  RETURN_INT (r);
 
-	r = update_fh (vol, dentry, fh, attr);
+	r = update_dir (vol, dentry, fh, attr);
 	break;
 
       case FT_LNK:
