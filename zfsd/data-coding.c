@@ -1040,11 +1040,11 @@ encode_md5sum_res (DC *dc, md5sum_res *res)
 bool
 decode_file_info_res (DC *dc, file_info_res *res)
 {
-  return encode_zfs_path (dc, &res->path);
+  return decode_zfs_path (dc, &res->path);
 }
 
 bool
 encode_file_info_res (DC *dc, file_info_res *res)
 {
-  return decode_zfs_path (dc, &res->path);
+  return encode_zfs_path (dc, &res->path);
 }
