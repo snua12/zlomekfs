@@ -25,7 +25,13 @@
 /* Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
 
-/* Print message.  */
+/* Print message to F if LEVEL > VERBOSE.  */
 extern void message(int level, FILE *f, char *format, ...);
+
+/* Report an internal error.  */
+void verbose_abort(const char *file, int line);
+
+/* Report the signal caught.  */
+void fatal_sighandler(int signum);
 
 #endif

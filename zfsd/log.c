@@ -19,12 +19,19 @@
    or download it from http://www.gnu.org/licenses/gpl.html
    */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
 #include "log.h"
 
 /* Level of verbosity.  Higher number means more messages.  */
 int verbose;
+
+/* Local function prototypes.  */
+static void internal_error(char *format, ...);
 
 /* Print message to F if LEVEL > VERBOSE.  */
 void
@@ -39,4 +46,33 @@ message(int level, FILE *f, char *format, ...)
   vfprintf(f, format, va);
   fflush(f);
   va_end(va);
+}
+
+/* Print the internal error message and exit.  */
+static void
+internal_error(char *format, ...)
+{
+  va_list va;
+
+  va_start(va, format);
+  fprintf(stderr, "\nInternal error");
+  vfprintf(stderr, format, va);
+  fprintf(stderr, ".\n");
+  va_end(va);
+
+  exit (EXIT_FAILURE);
+}
+
+/* Report an internal error.  */
+void
+verbose_abort(const char *file, int line)
+{
+  internal_error(" at %s:%d: Aborted", file, line);
+}
+
+/* Report the signal caught.  */
+void
+fatal_sighandler(int signum)
+{
+  internal_error(": Caught %s", strsignal(signum));
 }
