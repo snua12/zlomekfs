@@ -1369,11 +1369,18 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   if (dentry->fh->level == LEVEL_EXCLUSIVE
       && dentry->fh->owner == pthread_self ())
     {
+      volume vol;
+
 #ifdef ENABLE_CHECKING
       if (dentry->fh->users != 1)
 	abort ();
 #endif
-      dentry->fh->users = 0;
+
+      vol = volume_lookup (tmp_fh.vid);
+      vol->n_locked_fhs--;
+      zfsd_mutex_unlock (&vol->mutex);
+
+      dentry->fh->users--;
       dentry->fh->level = LEVEL_UNLOCKED;
       dentry->fh->owner = 0;
     }
