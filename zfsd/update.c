@@ -432,10 +432,7 @@ int32_t
 update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 {
   md5sum_args args;
-  volume vol;
-  internal_cap icap;
-  internal_dentry dentry;
-  int32_t r, r2;
+  int32_t r;
   unsigned int i, index;
 
   TRACE ("");
