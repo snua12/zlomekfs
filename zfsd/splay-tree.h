@@ -105,5 +105,7 @@ extern splay_tree_node splay_tree_successor (splay_tree, splay_tree_key);
 extern splay_tree_node splay_tree_max (splay_tree);
 extern splay_tree_node splay_tree_min (splay_tree);
 extern int splay_tree_foreach (splay_tree, splay_tree_foreach_fn, void *);
+extern void print_splay_tree (FILE *f, splay_tree tree);
+extern void debug_splay_tree (splay_tree tree);
 
 #endif /* _SPLAY_TREE_H */

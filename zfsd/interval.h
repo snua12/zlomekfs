@@ -44,5 +44,7 @@ extern void interval_tree_insert (interval_tree tree,
 				  uint64_t start, uint64_t end);
 extern void interval_tree_delete (interval_tree tree,
 				  uint64_t start, uint64_t end);
+extern void print_interval_tree (FILE *f, interval_tree tree);
+extern void debug_interval_tree (interval_tree tree);
 
 #endif

@@ -462,3 +462,33 @@ splay_tree_foreach (sp, fn, data)
 
   return 0;
 }
+
+/* Print the key and value in NODE to file DATA.  */
+static int
+print_splay_tree_node (splay_tree_node node, void *data)
+{
+  FILE *f = data;
+
+  fprintf (f, "[");
+  fprintf (f, "%" PRIu64, node->key);
+  fprintf (f, "] = ");
+  fprintf (f, "%" PRIu64, node->value);
+  fprintf (f, "\n");
+  return 0;
+}
+
+/* Print the contents of interval tree TREE to file F.  */
+
+void
+print_splay_tree (FILE *f, splay_tree tree)
+{
+  splay_tree_foreach (tree, print_splay_tree_node, f);
+}
+
+/* Print the contents of interval tree TREE to STDERR.  */
+
+void
+debug_splay_tree (splay_tree tree)
+{
+  print_splay_tree (stderr, tree);
+}

@@ -317,3 +317,33 @@ interval_tree_shrink (interval_tree tree)
   free (d.diff);
   free (d.pos);
 }
+
+/* Print the interval in NODE to file DATA.  */
+static int
+print_interval_tree_node (splay_tree_node node, void *data)
+{
+  FILE *f = data;
+
+  fprintf (f, "[");
+  fprintf (f, "%" PRIu64, node->key);
+  fprintf (f, ",");
+  fprintf (f, "%" PRIu64, node->value);
+  fprintf (f, ")\n");
+  return 0;
+}
+
+/* Print the contents of interval tree TREE to file F.  */
+
+void
+print_interval_tree (FILE *f, interval_tree tree)
+{
+  splay_tree_foreach (tree->splay, print_interval_tree_node, f);
+}
+
+/* Print the contents of interval tree TREE to STDERR.  */
+
+void
+debug_interval_tree (interval_tree tree)
+{
+  print_interval_tree (stderr, tree);
+}
