@@ -676,7 +676,7 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
       return ZFS_OK;
     }
 
-  if (GET_CONFLICT (dentry->fh->local_fh))
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       /* We are opening a conflict directory.  */
       release_dentry (dentry);
@@ -812,7 +812,7 @@ zfs_close (zfs_cap *cap)
       return ZFS_OK;
     }
 
-  if (GET_CONFLICT (dentry->fh->local_fh))
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       /* We are closing a conflict directory.  */
       put_capability (icap, dentry->fh, vd);
@@ -1506,7 +1506,7 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   data.written = 0;
   data.count = (count > ZFS_MAXDATA) ? ZFS_MAXDATA : count;
 
-  if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+  if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       r = read_conflict_dir (list, dentry, cookie, &data, vol, filldir);
       release_dentry (dentry);

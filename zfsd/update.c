@@ -1188,7 +1188,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   if (parent)
     {
       zfsd_mutex_lock (&dir->parent->fh->mutex);
-      if (GET_CONFLICT (parent->fh->local_fh))
+      if (CONFLICT_DIR_P (parent->fh->local_fh))
 	parent = parent->parent;
       zfsd_mutex_unlock (&dir->parent->fh->mutex);
     }
@@ -1212,7 +1212,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	abort ();
 #endif
       zfsd_mutex_lock (&dir->parent->fh->mutex);
-      if (GET_CONFLICT (dir->parent->fh->local_fh))
+      if (CONFLICT_DIR_P (dir->parent->fh->local_fh))
 	{
 #ifdef ENABLE_CHECKING
 	  if (!dir->parent->parent)

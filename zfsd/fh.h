@@ -55,6 +55,10 @@ typedef struct volume_def *volume;
 #define NON_EXIST_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL		\
 			    && (FH).sid != NODE_NONE)
 
+/* Is FH a conflict directroy?  */
+#define CONFLICT_DIR_P(FH) ((FH).sid == NODE_NONE			\
+			    && (FH).vid != VOLUME_ID_VIRTUAL)
+
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
 			     ? memset (&(FH), -1, sizeof (zfs_fh))	\
@@ -70,16 +74,8 @@ typedef struct volume_def *volume;
 #define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino			\
 			     && (FH1).dev == (FH2).dev			\
 			     && (FH1).vid == (FH2).vid			\
-			     && GET_SID (FH1) == GET_SID (FH2)		\
-			     && GET_CONFLICT (FH1) == GET_CONFLICT (FH2)\
+			     && (FH1).sid == (FH2).sid			\
 			     && (FH1).gen == (FH2).gen)
-
-/* Return true if bases of file handles FH1 and FH2 are the same.  */
-#define ZFS_FH_BASE_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
-				  && (FH1).dev == (FH2).dev		\
-				  && (FH1).vid == (FH2).vid		\
-				  && GET_SID (FH1) == GET_SID (FH2)	\
-				  && (FH1).gen == (FH2).gen)
 
 /* Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
@@ -92,8 +88,7 @@ typedef struct volume_def *volume;
 
 /* True if file handle FH has a local path.  */
 #define INTERNAL_FH_HAS_LOCAL_PATH(FH)					\
-  (GET_SID ((FH)->local_fh) == this_node->id				\
-   && GET_CONFLICT ((FH)->local_fh) == 0				\
+  ((FH)->local_fh.sid == this_node->id					\
    && (FH)->local_fh.vid != VOLUME_ID_VIRTUAL)
 
 /* "Lock" level of the file handle or virtual directory.  */

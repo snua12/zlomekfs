@@ -64,14 +64,14 @@ build_local_path (volume vol, internal_dentry dentry)
   /* Count the number of strings which will be concatenated.  */
   n = 1;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    if (!GET_CONFLICT (tmp->fh->local_fh))
+    if (!CONFLICT_DIR_P (tmp->fh->local_fh))
       n += 2;
 
   varray_create (&v, sizeof (char *), n);
   VARRAY_USED (v) = n;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
-      if (GET_CONFLICT (tmp->fh->local_fh))
+      if (CONFLICT_DIR_P (tmp->fh->local_fh))
 	n += 2;
 
       n--;
@@ -108,7 +108,7 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
   /* Count the number of strings which will be concatenated.  */
   n = 3;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    if (!GET_CONFLICT (tmp->fh->local_fh))
+    if (!CONFLICT_DIR_P (tmp->fh->local_fh))
       n += 2;
 
   varray_create (&v, sizeof (char *), n);
@@ -119,7 +119,7 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
   VARRAY_ACCESS (v, n, char *) = "/";
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
-      if (GET_CONFLICT (tmp->fh->local_fh))
+      if (CONFLICT_DIR_P (tmp->fh->local_fh))
 	n += 2;
 
       n--;
@@ -151,14 +151,14 @@ build_relative_path (internal_dentry dentry)
   /* Count the number of strings which will be concatenated.  */
   n = 0;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    if (!GET_CONFLICT (tmp->fh->local_fh))
+    if (!CONFLICT_DIR_P (tmp->fh->local_fh))
       n += 2;
 
   varray_create (&v, sizeof (char *), n);
   VARRAY_USED (v) = n;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
-      if (GET_CONFLICT (tmp->fh->local_fh))
+      if (CONFLICT_DIR_P (tmp->fh->local_fh))
 	n += 2;
 
       n--;
@@ -189,7 +189,7 @@ build_relative_path_name (internal_dentry dentry, char *name)
   /* Count the number of strings which will be concatenated.  */
   n = 2;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    if (!GET_CONFLICT (tmp->fh->local_fh))
+    if (!CONFLICT_DIR_P (tmp->fh->local_fh))
       n += 2;
 
   varray_create (&v, sizeof (char *), n);
@@ -200,7 +200,7 @@ build_relative_path_name (internal_dentry dentry, char *name)
   VARRAY_ACCESS (v, n, char *) = "/";
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
-      if (GET_CONFLICT (tmp->fh->local_fh))
+      if (CONFLICT_DIR_P (tmp->fh->local_fh))
 	n += 2;
 
       n--;
@@ -469,13 +469,12 @@ validate_operation_on_zfs_fh (zfs_fh *fh, bool deny_conflict,
   if (!request_from_this_node ())
     {
 #ifdef ENABLE_CHECKING
-      if (GET_CONFLICT (*fh))
+      if (CONFLICT_DIR_P (*fh))
 	abort ();
 #endif
-      SET_CONFLICT (*fh, 0);
     }
 
-  if (deny_conflict && GET_CONFLICT (*fh))
+  if (deny_conflict && CONFLICT_DIR_P (*fh))
     return EINVAL;
 
   return ZFS_OK;
@@ -828,7 +827,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 	}
     }
 
-  if (GET_CONFLICT (dentry->fh->local_fh)
+  if (CONFLICT_DIR_P (dentry->fh->local_fh)
       || NON_EXIST_FH_P (dentry->fh->local_fh))
     {
       *fa = dentry->fh->attr;
@@ -1354,7 +1353,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  return ZFS_OK;
 	}
 
-      if (GET_CONFLICT (idir->fh->local_fh))
+      if (CONFLICT_DIR_P (idir->fh->local_fh))
 	{
 	  internal_dentry dentry;
 
@@ -3473,7 +3472,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
-  if (GET_CONFLICT (*fh))
+  if (CONFLICT_DIR_P (*fh))
     return EINVAL;
 
   vol = volume_lookup (fh->vid);

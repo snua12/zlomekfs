@@ -50,6 +50,8 @@ struct volume_def
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
 
+  uint32_t last_conflict_ino;	/* the inode number of conflict dir
+				   assigned for the last time */
   internal_dentry root_dentry;	/* dentry of root on underlying FS.  */
   virtual_dir root_vd;		/* virtual directory for the mountpoint */
   hfile_t metadata;		/* hash file with metadata */

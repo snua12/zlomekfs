@@ -112,6 +112,7 @@ volume_create (uint32_t id)
   vol->n_locked_fhs = 0;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
+  vol->last_conflict_ino = 0;
   vol->root_dentry = NULL;
   vol->root_vd = NULL;
   vol->metadata = NULL;

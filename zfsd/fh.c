@@ -118,7 +118,7 @@ pthread_mutex_t cleanup_dentry_thread_in_syscall;
 static fibheapkey_t
 dentry_key (internal_dentry dentry)
 {
-  if (GET_CONFLICT (dentry->fh->local_fh))
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       internal_dentry tmp;
       unsigned int i;
@@ -148,7 +148,7 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
   if (!dentry->parent)
     return false;
 
-  if (GET_CONFLICT (dentry->fh->local_fh))
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       internal_dentry tmp;
       unsigned int i;
@@ -181,7 +181,7 @@ dentry_update_cleanup_node (internal_dentry dentry)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
-  if (dentry->parent && GET_CONFLICT (dentry->parent->fh->local_fh))
+  if (dentry->parent && CONFLICT_DIR_P (dentry->parent->fh->local_fh))
     dentry = dentry->parent;
 
   dentry->last_use = time (NULL);
@@ -1353,8 +1353,25 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
   /* Find the internal file handle in hash table, create it if it does not
      exist.  */
-  slot = htab_find_slot_with_hash (fh_htab, local_fh,
-				   ZFS_FH_HASH (local_fh), INSERT);
+  if (CONFLICT_DIR_P (*local_fh))
+    {
+      do
+	{
+	  vol->last_conflict_ino++;
+	  if (vol->last_conflict_ino == 0)
+	    vol->last_conflict_ino++;
+
+	  local_fh->ino = vol->last_conflict_ino;
+	  slot = htab_find_slot_with_hash (fh_htab, local_fh,
+					   ZFS_FH_HASH (local_fh), INSERT);
+	}
+      while (*slot);
+    }
+  else
+    {
+      slot = htab_find_slot_with_hash (fh_htab, local_fh,
+				       ZFS_FH_HASH (local_fh), INSERT);
+    }
   if (!*slot)
     {
       fh = internal_fh_create (local_fh, master_fh, attr, meta, vol, level);
@@ -1435,7 +1452,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   if (dir)
     {
       dentry = dentry_lookup_name (dir, name);
-      if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+      if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
 	{
 	  internal_dentry sdentry;
 
@@ -1453,7 +1470,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	{
 	  zfsd_mutex_lock (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
-	  if (GET_CONFLICT (dentry->fh->local_fh))
+	  if (CONFLICT_DIR_P (dentry->fh->local_fh))
 	    abort ();
 #endif
 	}
@@ -1838,101 +1855,6 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   pool_free (dentry_pool, dentry);
 }
 
-/* Change local file handle of conflict directory CONFLICT to NEW_FH.  */
-
-void
-change_conflict_fh (internal_dentry conflict, zfs_fh *new_fh)
-{
-  unsigned int i;
-  void **slot;
-
-  CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (conflict->parent)
-    CHECK_MUTEX_LOCKED (&conflict->parent->fh->mutex);
-  if (!GET_CONFLICT (conflict->fh->local_fh))
-    abort ();
-  if (conflict->fh->attr.type != FT_DIR)
-    abort ();
-  if (new_fh->sid != this_node->id)
-    abort ();
-#endif
-
-  if (ZFS_FH_BASE_EQ (conflict->fh->local_fh, *new_fh))
-    return;
-
-  /* Delete CONFLICT from FH_HTAB and DENTRY_HTAB.  */
-  slot = htab_find_slot_with_hash (fh_htab, &conflict->fh->local_fh,
-				   ZFS_FH_HASH (&conflict->fh->local_fh),
-				   NO_INSERT);
-#ifdef ENABLE_CHECKING
-  if (!slot)
-    abort ();
-#endif
-  htab_clear_slot (fh_htab, slot);
-
-  slot = htab_find_slot_with_hash (dentry_htab, &conflict->fh->local_fh,
-				   ZFS_FH_HASH (&conflict->fh->local_fh),
-				   NO_INSERT);
-#ifdef ENABLE_CHECKING
-  if (!slot)
-    abort ();
-#endif
-  htab_clear_slot (dentry_htab, slot);
-
-  /* Delete CONFLICT's subdentries from FH_HTAB_NAME.  */
-  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
-    {
-      internal_dentry sdentry;
-
-      sdentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
-      slot = htab_find_slot (dentry_htab_name, sdentry, NO_INSERT);
-#ifdef ENABLE_CHECKING
-      if (!slot)
-	abort ();
-#endif
-      htab_clear_slot (dentry_htab_name, slot);
-    }
-
-  /* Change the file handle.  */
-  conflict->fh->local_fh = *new_fh;
-  SET_CONFLICT (conflict->fh->local_fh, 1);
-
-  /* Insert CONFLICT to FH_HTAB and DENTRY_HTAB.  */
-  slot = htab_find_slot_with_hash (fh_htab, &conflict->fh->local_fh,
-				   ZFS_FH_HASH (&conflict->fh->local_fh),
-				   INSERT);
-#ifdef ENABLE_CHECKING
-  if (*slot)
-    abort ();
-#endif
-  *slot = conflict->fh;
-
-  slot = htab_find_slot_with_hash (dentry_htab, &conflict->fh->local_fh,
-				   ZFS_FH_HASH (&conflict->fh->local_fh),
-				   INSERT);
-#ifdef ENABLE_CHECKING
-  if (*slot)
-    abort ();
-#endif
-  *slot = conflict;
-
-  /* Insert CONFLICT's subdentries from FH_HTAB_NAME.  */
-  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
-    {
-      internal_dentry sdentry;
-
-      sdentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
-      slot = htab_find_slot (dentry_htab_name, sdentry, INSERT);
-#ifdef ENABLE_CHECKING
-      if (*slot)
-	abort ();
-#endif
-      *slot = sdentry;
-    }
-}
-
 /* Create conflict directory for local file handle LOCAL_FH with attributes
    according to ATTR and name NAME in directory DIR on volume VOL.
    If such conflict directory already exists update the local file handle
@@ -1957,13 +1879,8 @@ create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   dentry = dentry_lookup_name (dir, name);
-  if (dentry && GET_CONFLICT (dentry->fh->local_fh))
-    {
-      if (GET_SID (*local_fh) == this_node->id)
-	change_conflict_fh (dentry, local_fh);
-
-      return dentry;
-    }
+  if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
+    return dentry;
 
 #ifdef ENABLE_CHECKING
   if (dir->fh->level == LEVEL_UNLOCKED)
@@ -1990,8 +1907,11 @@ create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
 	internal_dentry_del_from_dir (dentry);
     }
 
-  tmp_fh = *local_fh;
-  SET_CONFLICT (tmp_fh, 1);
+  tmp_fh.sid = NODE_NONE;
+  tmp_fh.vid = vol->id;
+  tmp_fh.dev = VIRTUAL_DEVICE;
+  tmp_fh.ino = vol->last_conflict_ino;
+  tmp_fh.gen = 1;
   tmp_attr.dev = tmp_fh.dev;
   tmp_attr.ino = tmp_fh.ino;
   tmp_attr.version = 0;
@@ -2014,7 +1934,7 @@ create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
   if (dentry)
     {
       free (dentry->name);
-      nod = node_lookup (GET_SID (*local_fh));
+      nod = node_lookup (local_fh->sid);
 #ifdef ENABLE_CHECKING
       if (!nod)
 	abort ();
@@ -2045,14 +1965,14 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*conflictp)->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!GET_CONFLICT ((*conflictp)->fh->local_fh))
+  if (!CONFLICT_DIR_P ((*conflictp)->fh->local_fh))
     abort ();
   if ((*conflictp)->fh->attr.type != FT_DIR)
     abort ();
   if ((*conflictp)->fh->level == LEVEL_UNLOCKED
       && (*conflictp)->parent->fh->level == LEVEL_UNLOCKED)
     abort ();
-  if (GET_CONFLICT (*fh))
+  if (CONFLICT_DIR_P (*fh))
     abort ();
   if (exists && (*volp)->id != fh->vid)
     abort ();
@@ -2065,10 +1985,10 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
       zfsd_mutex_lock (&dentry->fh->mutex);
 
 #ifdef ENABLE_CHECKING
-      if (GET_CONFLICT (dentry->fh->local_fh))
+      if (CONFLICT_DIR_P (dentry->fh->local_fh))
 	abort ();
 #endif
-      if (GET_SID (dentry->fh->local_fh) == GET_SID (*fh))
+      if (dentry->fh->local_fh.sid == fh->sid)
 	{
 	  if (!exists || !ZFS_FH_EQ (dentry->fh->local_fh, *fh))
 	    {
@@ -2207,7 +2127,7 @@ internal_dentry_cancel_conflict (internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (GET_CONFLICT (dentry->fh->local_fh) == 0)
+  if (CONFLICT_DIR_P (dentry->fh->local_fh) == 0)
     abort ();
 #endif
 
@@ -2217,7 +2137,7 @@ again:
   for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
     {
       subdentry = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
-      if (GET_SID (subdentry->fh->local_fh) != this_node->id)
+      if (subdentry->fh->local_fh.sid != this_node->id)
 	{
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
