@@ -37,6 +37,7 @@ extern int update_volume_root (volume vol, internal_fh *ifh);
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
 extern int local_getattr (fattr *attr, char *path, volume vol);
 extern int zfs_getattr (fattr *fa, zfs_fh *fh);
+extern int local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol);
 extern int zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
 extern int zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);

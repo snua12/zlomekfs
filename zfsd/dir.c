@@ -450,7 +450,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 /* Set attributes of local file PATH on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
-static int
+int
 local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 {
   if (sa->mode != (unsigned int) -1)
@@ -819,6 +819,7 @@ local_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
       return errno;
     }
 
+  attr->mode = (unsigned int) -1;
   r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)
@@ -934,7 +935,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
     {
       internal_fh ifh;
 
-      /* Update internal file handles in htab.  */
+      /* Update internal file handle in htab.  */
       ifh = fh_lookup_name (vol, idir, name->str);
       if (ifh)
 	{
