@@ -295,6 +295,7 @@ typedef struct md5sum_args_def
 typedef struct md5sum_res_def
 {
   uint32_t count;
+  uint32_t padding0;	/* workaround GDB bug */
   uint64_t offset[ZFS_MAX_MD5_CHUNKS];
   uint32_t length[ZFS_MAX_MD5_CHUNKS];
   unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][MD5_SIZE];
