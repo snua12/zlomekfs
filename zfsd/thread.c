@@ -28,7 +28,7 @@
 #include "thread.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-int running = 1;
+volatile int running = 1;
 
 /* Initialize POOL to be a thread pool of MAX_THREADS threads with
    MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
