@@ -51,14 +51,14 @@ static struct inode *zfs_alloc_inode(struct super_block *sb)
 	if (!ei)
 		return NULL;
 
-	TRACE("zfs: alloc_inode: %x\n", &ei->vfs_inode);
+	TRACE("zfs: alloc_inode: %p\n", &ei->vfs_inode);
 
 	return &ei->vfs_inode;
 }
 
 static void zfs_destroy_inode(struct inode *inode)
 {
-	TRACE("zfs: destroy_inode: %x\n", inode);
+	TRACE("zfs: destroy_inode: %p\n", inode);
 
 	kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
 }

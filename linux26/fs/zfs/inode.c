@@ -83,7 +83,7 @@ static struct inode *zfs_iget(struct super_block *sb, fattr *attr)
 	if (inode)
 		zfs_fill_inode(inode, attr);
 
-	TRACE("zfs: iget: %x\n", inode);
+	TRACE("zfs: iget: %p\n", inode);
 
 	return inode;
 }
