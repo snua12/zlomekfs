@@ -439,9 +439,10 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
   unsigned int i, index;
 
   TRACE ("");
-
+#ifdef ENABLE_CHECKING
   if (VARRAY_USED (*blocks) == 0)
-    RETURN_INT (ZFS_OK);
+    abort ();
+#endif
 
   args.count = 0;
   args.ignore_changes = conflict_p;
@@ -836,9 +837,14 @@ update_file (zfs_fh *fh)
       zfsd_mutex_unlock (&fh_mutex);
       get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
       release_dentry (dentry);
-      r = update_file_blocks (&cap, &blocks,
-			      (what & (IFH_UPDATE | IFH_REINTEGRATE))
-			      == (IFH_UPDATE | IFH_REINTEGRATE));
+      if (VARRAY_USED (blocks) > 0)
+	{
+	  r = update_file_blocks (&cap, &blocks,
+				  (what & (IFH_UPDATE | IFH_REINTEGRATE))
+				  == (IFH_UPDATE | IFH_REINTEGRATE));
+	}
+      else
+	r = ZFS_OK;
       varray_destroy (&blocks);
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
