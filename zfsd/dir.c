@@ -803,7 +803,8 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   else
     abort ();
 
-  return ESTALE;
+  /* Never reached.  */
+  return ENOENT;
 }
 
 /* Create directory NAME in local directory DIR on volume VOL, set owner,
