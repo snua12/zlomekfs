@@ -42,6 +42,7 @@
 #include "volume.h"
 #include "metadata.h"
 #include "network.h"
+#include "md5.h"
 
 /* int getdents(unsigned int fd, struct dirent *dirp, unsigned int count); */
 _syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
@@ -1351,13 +1352,116 @@ zfs_write_retry:
 }
 
 /* Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
-   length ARGS->LENGTH[i] and store them (together with the information about
-   ranges) to RES.  */
+   length ARGS->LENGTH[i] of local file ARGS->CAP and store them (together
+   with the information about ranges) to RES.  */
 
 int32_t
-zfs_md5sum (md5sum_res *res, md5sum_args *args)
+local_md5sum (md5sum_res *res, md5sum_args *args)
 {
-  return ZFS_UNKNOWN_FUNCTION;
+  uint32_t i;
+  MD5Context context;
+  unsigned char buf[ZFS_MAXDATA];
+  int32_t r;
+  uint32_t total;
+  uint32_t count;
+
+  res->count = 0;
+  for (i = 0; i < args->count; i++)
+    {
+      MD5Init (&context);
+      for (total = 0; total < args->length[i]; total += count)
+	{
+	  r = zfs_read (&count, buf, &args->cap, args->offset[i],
+			args->length[i]);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  if (count == 0)
+	    break;
+
+	  MD5Update (&context, buf, count);
+	}
+
+      if (total > 0)
+	{
+	  res->offset[res->count] = args->offset[i];
+	  res->length[res->count] = total;
+	  MD5Final (res->md5sum[res->count], &context);
+	  res->count++;
+	}
+    }
+
+  return ZFS_OK;
+}
+
+/* Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
+   length ARGS->LENGTH[i] of remote file ARGS->CAP and store them (together
+   with the information about ranges) to RES.  */
+
+int32_t
+remote_md5sum (md5sum_res *res, md5sum_args *args)
+{
+  volume vol;
+  node nod;
+  internal_cap icap;
+  internal_dentry dentry;
+  int retry = 0;
+  zfs_fh fh;
+  thread *t;
+  int32_t r;
+  int fd;
+
+remote_md5sum_retry:
+
+  r = find_capability (&args->cap, &icap, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  if (dentry->fh->attr.type != FT_REG)
+    {
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&icap->mutex);
+      return EINVAL;
+    }
+
+  nod = vol->master;
+  fh = args->cap.fh;
+  args->cap = icap->master_cap;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_unlock (&icap->mutex);
+  zfsd_mutex_unlock (&dentry->fh->mutex);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_md5sum_client (t, args, nod, &fd);
+  
+  if (r == ZFS_OK)
+    {
+      if (!decode_md5sum_res (&t->dc_reply, res)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (&t->dc_reply, fd);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (&fh);
+      if (r == ZFS_OK)
+	goto remote_md5sum_retry;
+    }
+
+  return r;
 }
 
 /* Initialize data structures in FILE.C.  */

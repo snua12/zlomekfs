@@ -54,7 +54,8 @@ extern int32_t zfs_readdir (DC *dc, zfs_cap *cap, int32_t cookie,
 extern int32_t zfs_read (uint32_t *rcount, void *buffer,
 			 zfs_cap *cap, uint64_t offset, uint32_t count);
 extern int32_t zfs_write (write_res *res, write_args *args);
-extern int32_t zfs_md5sum (md5sum_res *res, md5sum_args *args);
+extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
+extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);
 extern void initialize_file_c ();
 extern void cleanup_file_c ();
 

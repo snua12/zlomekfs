@@ -538,7 +538,7 @@ zfs_proc_md5sum_server (md5sum_args *args, thread *t,
   int32_t r;
   md5sum_res md5;
 
-  r = zfs_md5sum (&md5, args);
+  r = local_md5sum (&md5, args);
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_md5sum_res (dc, &md5);
