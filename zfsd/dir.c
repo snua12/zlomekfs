@@ -2256,11 +2256,12 @@ out:
 
 /* Rename local file FROM_PATH to TO_PATH on volume VOL.
    Store the metadata of original file TO_PATH to META_OLD
-   and the metadata of the new file TO_PATH to META_NEW.  */
+   and the metadata of the new file TO_PATH to META_NEW.
+   If SHADOW is true the file will be in shadow.  */
 
 static int32_t
 local_rename_base (metadata *meta_old, metadata *meta_new, bool same_dir,
-		   string *from_path, string *to_path, volume vol)
+		   string *from_path, string *to_path, volume vol, bool shadow)
 {
   struct stat from_parent_st, to_parent_st;
   struct stat st_old, st_new;
@@ -2369,7 +2370,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new, bool same_dir,
   if (!metadata_hardlink_replace (vol, &fh, meta_new, from_parent_st.st_dev,
 				  from_parent_st.st_ino, &from_name,
 				  to_parent_st.st_dev, to_parent_st.st_ino,
-				  &to_name, false))
+				  &to_name, shadow))
     MARK_VOLUME_DELETE (vol);
 
   zfsd_mutex_unlock (&vol->mutex);
@@ -2389,6 +2390,7 @@ local_rename (metadata *meta_old, metadata *meta_new,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
   string from_path, to_path;
+  bool shadow;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
@@ -2398,13 +2400,14 @@ local_rename (metadata *meta_old, metadata *meta_new,
 
   build_local_path_name (&from_path, vol, from_dir, from_name);
   build_local_path_name (&to_path, vol, to_dir, to_name);
+  shadow = (to_dir->fh->meta.flags & METADATA_SHADOW_TREE) != 0;
   release_dentry (from_dir);
   if (to_dir->fh != from_dir->fh)
     release_dentry (to_dir);
   zfsd_mutex_unlock (&fh_mutex);
 
   return local_rename_base (meta_old, meta_new, from_dir == to_dir,
-			    &from_path, &to_path, vol);
+			    &from_path, &to_path, vol, shadow);
 }
 
 /* Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME
@@ -4452,7 +4455,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
     }
 
   r = local_rename_base (&meta_old, &meta_new, false, &shadow_path, &path,
-			 vol);
+			 vol, false);
   if (r != ZFS_OK)
     return false;
 
@@ -4505,7 +4508,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
     }
 
   r = local_rename_base (&meta_old, &meta_new, false, &path, &shadow_path,
-			 vol);
+			 vol, true);
   if (r != ZFS_OK)
     return false;
 
