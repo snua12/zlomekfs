@@ -114,10 +114,17 @@ struct virtual_dir_def
 typedef struct internal_fh_def *internal_fh;
 typedef struct virtual_dir_def *virtual_dir;
 
+/* File handle of ZFS root.  */
+extern svc_fh root_fh;
+
 extern internal_fh fh_lookup (svc_fh *fh);
+extern internal_fh fh_lookup_name (internal_fh parent, const char *name);
 extern internal_fh internal_fh_create (svc_fh *client_fh, svc_fh *server_fh,
 				       internal_fh parent, const char *name);
 extern void internal_fh_destroy (internal_fh fh);
+extern void print_fh_htab (FILE *f, htab_t htab);
+extern void debug_fh_htab (htab_t htab);
+
 extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);
 extern void virtual_dir_destroy (virtual_dir vd);
 extern virtual_dir virtual_root_create ();
@@ -125,6 +132,7 @@ extern void virtual_root_destroy (virtual_dir root);
 extern virtual_dir virtual_mountpoint_create (volume vol);
 extern void print_virtual_tree (FILE *f);
 extern void debug_virtual_tree ();
+
 extern void initialize_fh_c ();
 extern void cleanup_fh_c ();
 

@@ -35,8 +35,6 @@ svc_fh root_fh = {SERVER_ANY, VOLUME_ID_NONE, VIRTUAL_DEVICE, ROOT_INODE};
 /* The virtual directory root.  */
 virtual_dir root;
 
-/* Last used virtual inode number.  */
-
 /* Allocation pool for file handles.  */
 static alloc_pool fh_pool;
 
@@ -117,6 +115,19 @@ fh_lookup (svc_fh *fh)
   hash_t hash = SVC_FH_HASH (fh);
  
   return (internal_fh) htab_find_with_hash (fh_htab, fh, hash);
+}
+
+/* Find the internal file handle for file NAME in directory PARENT.  */
+
+internal_fh
+fh_lookup_name (internal_fh parent, const char *name)
+{
+  struct internal_fh_def ifh;
+
+  ifh.name = (char *) name;
+  ifh.parent = parent;
+ 
+  return (internal_fh) htab_find (fh_htab_name, &ifh);
 }
 
 /* Create a new internal file handle and store it to hash tables.  */
@@ -214,6 +225,34 @@ internal_fh_destroy (internal_fh fh)
       htab_clear_slot (fh_htab, slot);
       pool_free (fh_pool, fh);
     }
+}
+
+/* Print the contents of hash table HTAB to file F.  */
+
+void
+print_fh_htab (FILE *f, htab_t htab)
+{
+  void **slot;
+
+  FOR_EACH_SLOT (htab, slot)
+    {
+      internal_fh fh = (internal_fh) *slot;
+
+      fprintf (f, "[%u,%u,%u,%u] ", fh->client_fh.sid, fh->client_fh.vid,
+	       fh->client_fh.dev, fh->client_fh.ino);
+      fprintf (f, "[%u,%u,%u,%u] ", fh->server_fh.sid, fh->server_fh.vid,
+	       fh->server_fh.dev, fh->server_fh.ino);
+      fprintf (f, "'%s'", fh->name);
+      fprintf (f, "\n");
+    }
+}
+
+/* Print the contents of hash table of filehandles HTAB to STDERR.  */
+
+void
+debug_fh_htab (htab_t htab)
+{
+  print_fh_htab (stderr, htab);
 }
 
 /* Hash function for virtual_dir X.  */
@@ -398,6 +437,7 @@ virtual_root_create ()
 {
   virtual_dir root;
   internal_fh fh;
+  void **slot;
 
   fh = (internal_fh) pool_alloc (fh_pool);
   root = (virtual_dir) pool_alloc (virtual_dir_pool);
@@ -417,6 +457,12 @@ virtual_root_create ()
   root->active = 1;
   root->total = 1;
   root->vol = NULL;
+
+  /* Insert the root into hash tables.  */
+  slot = htab_find_slot (fh_htab, fh, INSERT);
+  *slot = fh;
+  slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, INSERT);
+  *slot = root;
 
   return root;
 }
@@ -512,9 +558,9 @@ print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
   for (i = 0; i < indent; i++)
     fputc (' ', f);
     
-  fputs (vd->virtual_fh->name, f);
+  fprintf (f, "'%s'", vd->virtual_fh->name);
   if (vd->vol)
-    fprintf (f, "; VOLUME = %s", vd->vol->name);
+    fprintf (f, "; VOLUME = '%s'", vd->vol->name);
   fputc ('\n', f);
 
   for (i = 0; i < VARRAY_USED (vd->subdirs); i++)
