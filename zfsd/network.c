@@ -568,7 +568,7 @@ server_worker (void *data)
 
       /* We were requested to die.  */
       if (t->state == THREAD_DYING)
-	return data;
+	break;
 
       if (!decode_request_id (&td->dc, &request_id))
 	{
@@ -1173,20 +1173,45 @@ server_init_fd_data ()
   return 1;
 }
 
+/* Destroy information about network file descriptors.  */
+
+void
+server_destroy_fd_data ()
+{
+  int i, n;
+
+  /* Close connected sockets.  */
+  pthread_mutex_lock (&active_mutex);
+  for (i = nactive - 1; i >= 0; i--)
+    {
+      server_fd_data_t *fd_data = active[i];
+      pthread_mutex_lock (&fd_data->mutex);
+      close_active_fd (i);
+      pthread_mutex_unlock (&fd_data->mutex);
+    }
+  pthread_mutex_unlock (&active_mutex);
+  pthread_mutex_destroy (&active_mutex);
+
+  n = getdtablesize ();
+  for (i = 0; i < n; i++)
+    pthread_mutex_destroy (&server_fd_data[i].mutex);
+
+  free (active);
+  free (server_fd_data);
+}
+
 #endif
 
-/* Terminate server threads.  */
+/* Terminate server threads and destroy data structures.  */
 
-int
+void
 server_cleanup ()
 {
   /* TODO: for each thread waiting for reply do:
      set retval to indicate we are exiting
      unlock the thread	*/
 
-  pthread_kill (&server_regulator_data.thread_id, SIGUSR1);
+  pthread_kill (server_regulator_data.thread_id, SIGUSR1);
   thread_pool_destroy (&server_pool);
-
-  message (2, stderr, "Idle server threads were terminated\n");
-  return 0;
+  server_destroy_fd_data ();
 }
