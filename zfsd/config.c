@@ -28,15 +28,22 @@
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
+#include <signal.h>
 #include <sys/utsname.h>
 #include "pthread.h"
 #include "config.h"
 #include "constant.h"
 #include "log.h"
 #include "memory.h"
+#include "semaphore.h"
 #include "node.h"
+#include "volume.h"
 #include "metadata.h"
 #include "user-group.h"
+#include "thread.h"
+#include "dir.h"
+#include "file.h"
+#include "network.h"
 
 #ifdef BUFSIZ
 #define LINE_SIZE BUFSIZ
@@ -390,7 +397,7 @@ read_local_cluster_config (string *path)
 	      else if (id == 0 || id == (uint32_t) -1)
 		{
 		  message (0, stderr,
-			   "%s:%d: Volume ID must not be 0 or %" PRIu32,
+			   "%s:%d: Volume ID must not be 0 or %" PRIu32 "\n",
 			   file, line_num, (uint32_t) -1);
 		}
 	      else if (parts[1].str[0] != '/')
@@ -431,7 +438,7 @@ read_local_cluster_config (string *path)
 
 /* Initialize data structures which are needed for reading configuration.  */
 
-bool
+static bool
 init_config (void)
 {
   volume vol;
@@ -459,9 +466,186 @@ out:
   return false;
 }
 
+/* Read list of nodes from CONFIG_DIR/node_list.  */
+
+static bool
+read_node_list (zfs_fh *config_dir)
+{
+  char buf[ZFS_MAXDATA];
+  unsigned int index, i, line_num;
+  uint32_t count;
+  uint64_t offset;
+  dir_op_res node_list_res;
+  zfs_cap cap;
+  int32_t r;
+  node nod;
+
+  r = zfs_extended_lookup (&node_list_res, config_dir, "node_list");
+  if (r != ZFS_OK)
+    return false;
+
+  r = zfs_open (&cap, &node_list_res.file, O_RDONLY);
+  if (r != ZFS_OK)
+    return false;
+
+  line_num = 1;
+  index = 0;
+  offset = 0;
+  for (;;)
+    {
+      r = zfs_read (&count, buf + index, &cap, offset, ZFS_MAXDATA - index,
+		    true);
+      if (r != ZFS_OK)
+	return false;
+
+      if (count == 0)
+	break;
+
+      offset += count;
+      count += index;
+      for (index = 0; index < count; index = i + 1)
+	{
+	  for (i = index; i < count; i++)
+	    if (buf[i] == '\n')
+	      {
+		string parts[2];
+		uint32_t sid;
+
+		buf[i] = 0;
+		if (split_and_trim (buf + index, 2, parts) == 2)
+		  {
+		    if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
+		      {
+			message (0, stderr,
+				 "config/node_list:%u: Wrong format of line\n",
+				 line_num);
+		      }
+		    else if (sid == 0 || sid == (uint32_t) -1)
+		      {
+			message (0, stderr,
+				 "config/node_list:%u: Node ID must not "
+				 "be 0 or %" PRIu32 "\n", line_num,
+				 (uint32_t) -1);
+		      }
+		    else
+		      {
+			nod = try_create_node (sid, &parts[1]);
+			if (nod)
+			  zfsd_mutex_unlock (&nod->mutex);
+		      }
+		  }
+		else
+		  {
+		    message (0, stderr,
+			     "config/node_list:%u: Wrong format of line\n",
+			     line_num);
+		  }
+		
+		line_num++;
+		break;
+	      }
+	  if (i == count)
+	    break;
+	}
+
+      if (index == 0 && i == ZFS_MAXDATA)
+	{
+	  message (0, stderr,
+		   "config/node_list:%u: Line too long\n", line_num);
+	  goto out;
+	}
+      if (index > 0)
+	{
+	  memmove (buf, buf + index, count - index);
+	  index = count - index;
+	}
+      else
+	{
+	  /* The read block does not contain new line.  */
+	  index = count;
+	}
+    }
+
+  r = zfs_close (&cap);
+  if (r != ZFS_OK)
+    return false;
+
+  return true;
+
+out:
+  zfs_close (&cap);
+  return false;
+}
+
+/* Has the config reader already terminated?  */
+static volatile bool config_reader_terminated;
+
+/* Thread for reading a configuration.  */
+
+static void *
+config_reader (void *data)
+{
+  lock_info li[MAX_LOCKED_FILE_HANDLES];
+  dir_op_res config_dir_res;
+  int32_t r;
+
+  thread_disable_signals ();
+  pthread_setspecific (thread_data_key, data);
+  pthread_setspecific (thread_name_key, "Config reader");
+  set_lock_info (li);
+
+  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  if (r != ZFS_OK)
+    goto out;
+
+  if (!read_node_list (&config_dir_res.file))
+    goto out;
+
+  config_reader_terminated = true;
+  pthread_kill (main_thread, SIGUSR1);
+  return NULL;
+
+out:
+  config_reader_terminated = true;
+  pthread_kill (main_thread, SIGUSR1);
+  return (void *) 1;
+}
+
+/* Read global configuration of the cluster from config volume.  */
+
 static bool
 read_global_cluster_config (void)
 {
+  pthread_t config_reader_id;
+  thread config_reader_data;
+
+  semaphore_init (&config_reader_data.sem, 0);
+  network_worker_init (&config_reader_data);
+  config_reader_data.from_sid = this_node->id;
+
+  config_reader_terminated = false;
+  if (pthread_create (&config_reader_id, NULL, config_reader,
+		      &config_reader_data))
+    {
+      message (-1, stderr, "pthread_create() failed\n");
+      config_reader_id = 0;
+      config_reader_terminated = true;
+      return false;
+    }
+  else
+    {
+      void *retval;
+
+      /* Workaround valgrind bug (PR/77369),  */
+      while (!config_reader_terminated)
+	{
+	  /* Sleep gets interrupted by the signal.  */
+	  sleep (1000000);
+	}
+      pthread_join (config_reader_id, &retval);
+
+      return retval == NULL;
+    }
 
   return true;
 }
