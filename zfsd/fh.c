@@ -2788,7 +2788,11 @@ cancel_conflict (volume vol, internal_dentry conflict)
       acquire_dentry (parent);
       internal_dentry_del_from_dir (conflict);
       if (dentry)
-	internal_dentry_add_to_dir (parent, dentry);
+	{
+	  free (dentry->name.str);
+	  xstringdup (&dentry->name, &conflict->name);
+	  internal_dentry_add_to_dir (parent, dentry);
+	}
       release_dentry (parent);
     }
   else
