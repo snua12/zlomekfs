@@ -34,6 +34,7 @@
 #include "log.h"
 #include "string-list.h"
 #include "hardlink-list.h"
+#include "journal.h"
 #include "config.h"
 #include "thread.h"
 #include "kernel.h"
@@ -353,6 +354,7 @@ initialize_data_structures (void)
   initialize_hardlink_list_c ();
   initialize_string_list_c ();
   initialize_metadata_c ();
+  initialize_journal_c ();
   initialize_fh_c ();
   initialize_file_c ();
   initialize_cap_c ();
@@ -376,6 +378,7 @@ cleanup_data_structures (void)
   cleanup_cap_c ();
   cleanup_file_c ();
   cleanup_fh_c ();
+  cleanup_journal_c ();
   cleanup_metadata_c ();
   cleanup_string_list_c ();
   cleanup_hardlink_list_c ();
