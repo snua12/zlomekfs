@@ -347,7 +347,7 @@ add_fd_to_active (int fd)
 static void
 send_reply (thread *t)
 {
-  network_thread_data *td = &t->u.server;
+  network_thread_data *td = &t->u.network;
 
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&td->fd_data->mutex);
@@ -401,7 +401,7 @@ static void *
 network_worker (void *data)
 {
   thread *t = (thread *) data;
-  network_thread_data *td = &t->u.server;
+  network_thread_data *td = &t->u.network;
   network_fd_data_t *fd_data;
   uint32_t request_id;
   uint32_t fn;
@@ -592,9 +592,9 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	  abort ();
 #endif
 	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
-	network_pool.threads[index].t.u.server.fd_data = fd_data;
+	network_pool.threads[index].t.u.network.fd_data = fd_data;
 	network_pool.threads[index].t.dc = *dc;
-	network_pool.threads[index].t.u.server.generation = generation;
+	network_pool.threads[index].t.u.network.generation = generation;
 
 	/* Let the thread run.  */
 	semaphore_up (&network_pool.threads[index].t.sem, 1);

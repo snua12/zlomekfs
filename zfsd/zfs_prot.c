@@ -310,7 +310,7 @@ void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
 {
   DC *dc = &t->dc;
-  network_fd_data_t *fd_data = t->u.server.fd_data;
+  network_fd_data_t *fd_data = t->u.network.fd_data;
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
@@ -331,7 +331,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
       zfsd_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
       zfsd_mutex_lock (&fd_data->mutex);
-      if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
+      if (fd_data->fd >= 0 && fd_data->generation == t->u.network.generation)
 	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);
@@ -345,7 +345,7 @@ void
 zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 {
   DC *dc = &t->dc;
-  network_fd_data_t *fd_data = t->u.server.fd_data;
+  network_fd_data_t *fd_data = t->u.network.fd_data;
   node nod;
   bool authenticated = false;
 
@@ -371,7 +371,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
       zfsd_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
       zfsd_mutex_lock (&fd_data->mutex);
-      if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
+      if (fd_data->fd >= 0 && fd_data->generation == t->u.network.generation)
 	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);

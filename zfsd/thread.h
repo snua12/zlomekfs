@@ -27,7 +27,7 @@
 #include "pthread.h"
 #include "queue.h"
 #include "semaphore.h"
-#include "network.h"
+#include "data-coding.h"
 #include "zfs_prot.h"
 
 /* Key for thread specific data.  */
@@ -44,6 +44,21 @@ typedef enum thread_state_def
   THREAD_IDLE,		/* thread is idle */
   THREAD_BUSY		/* thread is working */
 } thread_state;
+
+/* Additional data for a network thread.  */
+struct network_fd_data_def;
+typedef struct network_thread_data_def
+{
+#ifdef RPC
+  /* Parameters passed to zfs_program_1 */
+  struct svc_req *rqstp;
+  SVCXPRT *transp;
+#else
+  struct network_fd_data_def *fd_data; /* passed from main network thread */
+  unsigned int generation;    /* generation of file descriptor */
+  unsigned int index;         /* index of FD in array "active" */
+#endif
+} network_thread_data;
 
 /* Additional data for a client thread.  */
 typedef struct client_thread_data_def
@@ -77,9 +92,9 @@ typedef struct thread_def
 
   /* Additional data for each subtype.  */
   union {
-    network_thread_data server;
-    client_thread_data client;
+    network_thread_data network;
 #if 0
+    client_thread_data client;
     update_thread_data update;
 #endif
   } u;

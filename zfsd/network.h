@@ -69,20 +69,6 @@ typedef struct network_fd_data_def
 
 #define NETWORK_FD_CLOSE 1
 
-/* Additional data for a network thread.  */
-typedef struct network_thread_data_def
-{
-#ifdef RPC
-  /* Parameters passed to zfs_program_1 */
-  struct svc_req *rqstp;
-  SVCXPRT *transp;
-#else
-  network_fd_data_t *fd_data;	/* passed from main network thread */
-  unsigned int generation;	/* generation of file descriptor */
-  unsigned int index;		/* index of FD in array "active" */
-#endif
-} network_thread_data;
-
 #ifndef RPC
 
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
