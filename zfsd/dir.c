@@ -4779,7 +4779,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
 	  file_name_from_path (&old_name, &old_path);
 	  old_name.str[-1] = 0;
-	  r = refresh_local_path (&old_fh, vol, &old_path);
+	  r = refresh_local_path_vid (&old_fh, vid, &old_path);
 
 	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
