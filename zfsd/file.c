@@ -1142,7 +1142,6 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 		return false;
 	      }
 	    zfsd_mutex_unlock (&svd->mutex);
-
 	  }
 	if (i >= VARRAY_USED (vd->subdirs))
 	  list->eof = 1;
@@ -1157,8 +1156,9 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
    function FILLDIR.  */
 
 static int32_t
-read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
-		   readdir_data *data, volume vol, filldir_f filldir)
+read_conflict_dir (dir_list *list, internal_dentry idir, virtual_dir vd,
+		   int32_t cookie, readdir_data *data, volume vol,
+		   filldir_f filldir)
 {
   uint32_t ino;
   unsigned int i;
@@ -1168,6 +1168,15 @@ read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
 
+  if (vd)
+    {
+      if (!read_virtual_dir (list, vd, cookie, data, filldir))
+	return (list->n == 0) ? EINVAL : ZFS_OK;
+      if (cookie < 2)
+	cookie = 2;
+    }
+
+  list->eof = 0;
   if (cookie < 0)
     cookie = 0;
 
@@ -1208,6 +1217,19 @@ read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
 
 	    dentry = VARRAY_ACCESS (idir->fh->subdentries, i, internal_dentry);
 	    zfsd_mutex_lock (&dentry->fh->mutex);
+
+	    if (vd)
+	      {
+		virtual_dir svd;
+		svd = vd_lookup_name (vd, &dentry->name);
+		if (svd)
+		  {
+		    zfsd_mutex_unlock (&svd->mutex);
+		    zfsd_mutex_unlock (&dentry->fh->mutex);
+		    continue;
+		  }
+	      }
+
 	    cookie++;
 	    if (!(*filldir) (dentry->fh->local_fh.ino, cookie,
 			     dentry->name.str, dentry->name.len, list, data))
@@ -1216,7 +1238,6 @@ read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
 		return false;
 	      }
 	    zfsd_mutex_unlock (&dentry->fh->mutex);
-
 	  }
 	if (i >= VARRAY_USED (idir->fh->subdentries))
 	  list->eof = 1;
@@ -1572,10 +1593,15 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
 
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     {
-      if (!read_conflict_dir (list, dentry, cookie, &data, vol, filldir))
+      if (!read_conflict_dir (list, dentry, vd, cookie, &data, vol, filldir))
 	r = (list->n == 0) ? EINVAL : ZFS_OK;
       else
 	r = ZFS_OK;
+      if (vd)
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	}
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
