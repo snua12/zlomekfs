@@ -79,6 +79,69 @@ dc_destroy (DC *dc)
 #endif
 }
 
+#ifdef __KERNEL__
+#include <asm/semaphore.h>
+
+struct
+{
+  struct semaphore lock;
+  DC *dc[MAX_FREE_DCS];
+  int ndc;
+} dcs;
+
+/* Return a new data coding buffer;
+   use an unused one or create a new one.  */
+
+DC *
+dc_get (void)
+{
+  DC *dc;
+
+  down (&dcs.lock);
+  if (dcs.ndc)
+    {
+      dc = dcs.dc[--dcs.ndc];
+      up (&dcs.lock);
+      return dc;
+    }
+  else
+    {
+      up (&dcs.lock);
+      return dc_create();
+    }
+}
+
+/* Put back the data coding buffer DC;
+   make it unused or free it.  */
+
+void
+dc_put(DC *dc, int always_destroy)
+{
+  down (&dcs.lock);
+  if (always_destroy || (dcs.ndc == MAX_FREE_DCS))
+    {
+      up (&dcs.lock);
+      dc_destroy(dc);
+    }
+  else
+    {
+      dcs.dc[dcs.ndc++] = dc;
+      up (&dcs.lock);
+    }
+}
+
+/* Free all unused data coding buffers. */
+
+void
+dc_destroy_all ()
+{
+  down (&dcs.lock);
+  while (dcs.ndc)
+	  dc_destroy (dcs.dc[--dcs.ndc]);
+  up (&dcs.lock);
+}
+#endif
+
 #ifndef __KERNEL__
 /* Print DC to file F.  */
 

@@ -26,6 +26,13 @@
 #ifdef __KERNEL__
 # include <linux/types.h>
 typedef unsigned long		uintptr_t;
+# if defined(__LITTLE_ENDIAN)
+#  define BYTE_ORDER LITTLE_ENDIAN
+# elif defined(__BIG_ENDIAN)
+#  define BYTE_ORDER BIG_ENDIAN
+# elif defined(__PDP_ENDIAN)
+#  define BYTE_ORDER PDP_ENDIAN
+# endif
 #else
 # include <inttypes.h>
 # include <netinet/in.h>
@@ -153,6 +160,11 @@ typedef struct data_coding_def
 extern void dc_init (DC *dc);
 extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
+#ifdef __KERNEL__
+extern DC *dc_get(void);
+extern void dc_put(DC *dc, int always_destroy);
+extern void dc_destroy_all(void);
+#endif
 #ifndef __KERNEL__
 extern void print_dc (DC *dc, FILE *f);
 extern void debug_dc (DC *dc);
