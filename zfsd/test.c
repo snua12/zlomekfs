@@ -55,6 +55,7 @@ fake_config (void)
   volume vol;
 
   set_node_name ();
+  xstringdup (&node_name, &node_host_name);
   set_default_uid_gid ();
   set_str (&kernel_file_name, "/dev/zfs");
 
