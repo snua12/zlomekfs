@@ -1309,35 +1309,52 @@ zfs_read_retry:
 	  if (complete)
 	    {
 	      r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
-	    }
-	  else
-	    {
-	      if (covered)
-		{
-		  zfsd_mutex_unlock (&vol->mutex);
-		}
-	      else
-		{
-		  r = local_read (rcount, buffer, icap, dentry, offset, count,
-				  vol);
-		}
 	      zfsd_mutex_unlock (&dentry->fh->mutex);
+	      zfsd_mutex_unlock (&icap->mutex);
+	    }
+	  else if (covered)
+	    {
+	      zfsd_mutex_unlock (&dentry->fh->mutex);
+	      zfsd_mutex_unlock (&vol->mutex);
 
 	      r = update_file_blocks (true, rcount, buffer, offset,
 				      icap, &blocks);
+	    }
+	  else
+	    {
+	      r = local_read (rcount, buffer, icap, dentry, offset, count,
+			      vol);
+	      if (r == ZFS_OK)
+		{
+		  zfsd_mutex_unlock (&dentry->fh->mutex);
+
+		  r = update_file_blocks (true, rcount, buffer, offset,
+					  icap, &blocks);
+		}
+	      else
+		{
+		  zfsd_mutex_unlock (&icap->mutex);
+		  zfsd_mutex_unlock (&dentry->fh->mutex);
+		}
 	    }
 
 	  varray_destroy (&blocks);
 	}
       else
-	r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+	{
+	  r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  zfsd_mutex_unlock (&icap->mutex);
+	}
     }
   else if (vol->master != this_node)
-    r = remote_read (rcount, buffer, icap, offset, count, vol);
+    {
+      r = remote_read (rcount, buffer, icap, offset, count, vol);
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+      zfsd_mutex_unlock (&icap->mutex);
+    }
   else
     abort ();
-  zfsd_mutex_unlock (&dentry->fh->mutex);
-  zfsd_mutex_unlock (&icap->mutex);
 
   if (r == ESTALE && retry < 1)
     {
