@@ -421,6 +421,7 @@ bool
 hfile_lookup (hfile_t hfile, void *x)
 {
   uint64_t offset;
+  uint32_t status;
 
   if (hfile->encode_f)
     (*hfile->encode_f) (x);
@@ -433,9 +434,15 @@ hfile_lookup (hfile_t hfile, void *x)
       return false;
     }
 
-  memcpy (x, hfile->element, hfile->element_size);
-  if (hfile->decode_f)
-    (*hfile->decode_f) (x);
+  status = le_to_u32 (*(uint32_t *) hfile->element);
+  if (status == VALID_SLOT)
+    {
+      memcpy (x, hfile->element, hfile->element_size);
+      if (hfile->decode_f)
+	(*hfile->decode_f) (x);
+    }
+  else
+    *(uint32_t *) x = status;
 
   return true;
 }
