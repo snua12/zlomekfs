@@ -742,7 +742,6 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 		vol = volume_create (d->vid);
 	      else
 		{
-		  vol->marked = false;
 		  if (vol->slaves)
 		    htab_empty (vol->slaves);
 		}
@@ -753,7 +752,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 
 	      /* Continue reading the file because we need to read the list
 		 of nodes whose master is local node.  */
-	      if (vol->slaves)
+	      if (vol->slaves && !vol->marked)
 		return 0;
 	    }
 
