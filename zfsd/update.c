@@ -1354,6 +1354,15 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 {
   int32_t r;
 
+  if (dentry->fh->attr.type != attr->type)
+    {
+      /* This can't happen.  If it happens something is wierd,
+	 either someone wants to destabilize us
+	 or some metadata was not updated.  */
+      abort ();	/* FIXME: delete the abort () after testing */
+      return ZFS_UPDATE_FAILED;
+    }
+
   if (how & IFH_REINTEGRATE)
     {
       r = reintegrate_fh (vol, dentry, fh, attr);
