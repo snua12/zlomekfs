@@ -1143,17 +1143,44 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	}
 
       vd = vd_lookup_name (pvd, name->str);
-      zfsd_mutex_unlock (&vd_mutex);
       if (vd)
 	{
-	  res->file = vd->fh;
-	  res->attr = vd->attr;
 	  if (vol)
 	    zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
-	  zfsd_mutex_unlock (&vd->mutex);
+
+	  res->file = vd->fh;
+	  res->attr = vd->attr;
+
+	  if (vd->vol)
+	    {
+	      vol = vd->vol;
+	      zfsd_mutex_lock (&volume_mutex);
+	      zfsd_mutex_lock (&vol->mutex);
+	      zfsd_mutex_unlock (&volume_mutex);
+	      zfsd_mutex_unlock (&vd->mutex);
+	      zfsd_mutex_unlock (&vd_mutex);
+
+	      r = get_volume_root_dentry (vol, &idir, true);
+	      if (r != ZFS_OK)
+		{
+		  /* If there was an error return the attributes
+		     of virtual file.  */
+		  return ZFS_OK;
+		}
+
+	      res->attr = idir->fh->attr;
+	      release_dentry (idir);
+	      zfsd_mutex_unlock (&vol->mutex);
+	    }
+	  else
+	    {
+	      zfsd_mutex_unlock (&vd_mutex);
+	      zfsd_mutex_unlock (&vd->mutex);
+	    }
 	  return ZFS_OK;
 	}
+      zfsd_mutex_unlock (&vd_mutex);
 
       /* !vd */
       zfsd_mutex_unlock (&pvd->mutex);
