@@ -655,8 +655,8 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
     }
 
   new_path = xstrconcat (2, path, ".new");
-  fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT,
-		      S_IRUSR | S_IWUSR);
+  fd = open_fh_metadata (new_path, vol, &fh->local_fh, type,
+			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
 
   if (fd < 0)
     {
