@@ -3004,11 +3004,13 @@ virtual_mountpoint_destroy (volume vol)
 {
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (vol->root_vd)
     {
       zfsd_mutex_lock (&vol->root_vd->mutex);
       virtual_dir_destroy (vol->root_vd);
+      vol->root_vd = NULL;
     }
 }
 
