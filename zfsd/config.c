@@ -444,11 +444,13 @@ init_config (void)
   volume vol;
   node nod;
 
+  zfsd_mutex_lock (&vd_mutex);
   vol = volume_lookup (VOLUME_ID_CONFIG);
   if (!vol)
     {
       message (0, stderr, "Config volume (ID == %" PRIu32 " does not exist.\n",
 	       VOLUME_ID_CONFIG);
+      zfsd_mutex_unlock (&vd_mutex);
       goto out;
     }
 
@@ -456,8 +458,10 @@ init_config (void)
   nod = node_create (this_node_id, &node_name);
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  volume_set_common_info_wrapper (vol, "config", "/config", nod);
 
+  volume_set_common_info_wrapper (vol, "config", "/config", nod);
+  
+  zfsd_mutex_unlock (&vd_mutex);
   zfsd_mutex_unlock (&vol->mutex);
   return true;
 
@@ -684,6 +688,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 
   if (nod)
     {
+      zfsd_mutex_lock (&vd_mutex);
       vol = volume_lookup (vid);
       if (!vol)
 	{
@@ -693,6 +698,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 	}
       volume_set_common_info (vol, name, mountpoint, nod);
       zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&vd_mutex);
     }
 
   while (VARRAY_USED (hierarchy) > 0)
