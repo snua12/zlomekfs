@@ -1443,7 +1443,6 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		  int e;
 		  socklen_t l = sizeof (e);
 
-		  printf ("foo\n");
 		  if (getsockopt (pfd[i].fd, SOL_SOCKET, SO_ERROR, &e, &l) < 0)
 		    {
 		      message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
