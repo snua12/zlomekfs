@@ -152,10 +152,11 @@ capability_open (internal_cap cap, unsigned int flags, internal_fh fh,
 }
 
 /* Create local file NAME in directory DIR with open flags FLAGS,
-   set file attributes according to ATTR.  */
+   set file attributes according to ATTR.  Store the newly opened file
+   descriptor to FDP.  */
 
 int
-local_create (create_res *res, internal_fh dir, string *name,
+local_create (create_res *res, int *fdp, internal_fh dir, string *name,
 	      unsigned int flags, sattr *attr, volume vol)
 {
   char *path;
@@ -171,12 +172,16 @@ local_create (create_res *res, internal_fh dir, string *name,
       free (path);
       return errno;
     }
+  *fdp = r;
 
   attr->mode = (unsigned int) -1;
   r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)
-    return r;
+    {
+      close (*fdp);
+      return r;
+    }
 
   res->file.sid = dir->local_fh.sid;
   res->file.vid = dir->local_fh.vid;
@@ -238,6 +243,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   internal_fh idir;
   virtual_dir pvd;
   int r;
+  int fd;
 
   /* When O_CREAT is NOT set the function zfs_open is called.
      Force O_CREAT to be set here.  */
@@ -269,7 +275,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   attr->mtime = (zfs_time) -1;
 
   if (vol->local_path)
-    r = local_create (res, idir, name, flags, attr, vol);
+    r = local_create (res, &fd, idir, name, flags, attr, vol);
   else if (vol->master != this_node)
     r = remote_create (res, idir, name, flags, attr, vol);
   else
@@ -296,6 +302,12 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       zfsd_mutex_lock (&cap_mutex);
       icap = get_capability_no_fh_lookup (&res->cap, ifh);
       zfsd_mutex_unlock (&cap_mutex);
+
+      if (vol->local_path)
+	{
+	  local_close (icap);
+	  icap->fd = fd;
+	}
 
       zfsd_mutex_unlock (&ifh->mutex);
       zfsd_mutex_unlock (&icap->mutex);
