@@ -286,7 +286,8 @@ node_has_valid_fd (node nod)
     return false;
 
   zfsd_mutex_lock (&fd_data_a[nod->fd].mutex);
-  if (nod->generation != fd_data_a[nod->fd].generation)
+  if (nod->generation != fd_data_a[nod->fd].generation
+      || fd_data_a[nod->fd].close)
     {
       zfsd_mutex_unlock (&fd_data_a[nod->fd].mutex);
       return false;
