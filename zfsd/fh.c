@@ -962,6 +962,9 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->generation = 0;
   fh->flags = 0;
 
+  message (4, stderr, "FH %p CREATED, by %lu\n", (void *) fh,
+	   (unsigned long) pthread_self ());
+
   if (fh->attr.type == FT_DIR)
     varray_create (&fh->subdentries, sizeof (internal_dentry), 16);
 
@@ -1026,6 +1029,9 @@ internal_fh_destroy_stage1 (internal_fh fh)
     abort ();
 #endif
 
+  message (4, stderr, "FH %p DESTROY, by %lu\n", (void *) fh,
+	   (unsigned long) pthread_self ());
+
   /* Destroy capabilities associated with file handle.  */
   for (cap = fh->cap; cap; cap = next)
     {
@@ -1057,6 +1063,9 @@ internal_fh_destroy_stage2 (internal_fh fh)
 {
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  message (4, stderr, "FH %p DESTROYED, by %lu\n", (void *) fh,
+	   (unsigned long) pthread_self ());
 
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
