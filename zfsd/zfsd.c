@@ -21,16 +21,46 @@
 
 #include "system.h"
 #include <unistd.h>
+#include <signal.h>
 #include "config.h"
 
 /* Name of the configuration file.  */
 static char *config_file = "/etc/zfs/config";
+
+/* Initialize signal handlers.  */
+static void
+init_sig_handlers()
+{
+  struct sigaction sig;
+
+  /* Set the signal handler for fatal errors.  */
+  sigfillset(&sig.sa_mask);
+  sig.sa_handler = fatal_sighandler;
+  sig.sa_flags = 0;
+  sigaction(SIGILL, &sig, NULL);
+  sigaction(SIGBUS, &sig, NULL);
+  sigaction(SIGFPE, &sig, NULL);
+  sigaction(SIGTRAP, &sig, NULL);	/* ??? */
+  sigaction(SIGSEGV, &sig, NULL);
+  sigaction(SIGXCPU, &sig, NULL);
+  sigaction(SIGXFSZ, &sig, NULL);
+  sigaction(SIGSEGV, &sig, NULL);
+  sigaction(SIGSYS, &sig, NULL);
+
+  /* Ignore SIGPIPE.  */
+  sigemptyset(&sig.sa_mask);
+  sig.sa_handler = SIG_IGN;
+  sig.sa_flags = SA_RESTART;
+  sigaction(SIGPIPE, &sig, NULL);
+}
 
 /* Entry point of ZFS daemon.  */
 
 int
 main(int argc, char **argv)
 {
+  init_sig_handlers();
+
   if (!read_config(config_file))
     return EXIT_FAILURE;
 
