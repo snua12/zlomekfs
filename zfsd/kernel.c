@@ -323,7 +323,6 @@ kernel_dispatch (fd_data_t *fd_data)
 	    data = *(waiting4reply_data **) slot;
 	    t = data->t;
 	    t->dc_reply = dc;
-	    t->from_sid = fd_data->sid;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
 	    pool_free (fd_data->waiting4reply_pool, data);
