@@ -191,8 +191,7 @@ zfs_proc_readdir_server (read_dir_args *args, thread *t)
 {
   DC *dc = &t->dc;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  zfs_readdir (dc, &args->dir, args->cookie, args->count);
 }
 
 /* dir_op_res zfs_proc_mkdir (open_name_args); */

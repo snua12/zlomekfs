@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include "pthread.h"
 #include "test.h"
+#include "constant.h"
 #include "memory.h"
 #include "log.h"
 #include "config.h"
@@ -148,6 +149,90 @@ test_interval ()
   debug_interval_tree (t);
 }
 
+/* Print contents of directory DIR (using PATH as a prefix)
+   and walk through subdirectories.  */
+
+static int
+walk_dir (zfs_fh *dir, char *path)
+{
+  zfs_cap cap;
+  dir_op_res res;
+  DC dc;
+  int32_t r;
+
+  r = zfs_open_by_fh (&cap, dir, O_RDONLY);
+  if (r == ZFS_OK)
+    {
+      int cookie = 0;
+      dir_list list;
+      unsigned int i;
+
+      message (1, stderr, "%s\n", path);
+      dc_create (&dc, ZFS_MAX_REQUEST_LEN);
+
+      do {
+	start_encoding (&dc);
+	r = zfs_readdir (&dc, &cap, cookie, ZFS_MAXDATA);
+	finish_encoding (&dc);
+	if (r != ZFS_OK)
+	  {
+	    zfs_close (&cap);
+	    dc_destroy (&dc);
+	    return r;
+	  }
+	start_decoding (&dc);
+	decode_status (&dc, &r);
+	if (!decode_dir_list (&dc, &list))
+	  {
+	    zfs_close (&cap);
+	    dc_destroy (&dc);
+	    return ZFS_INVALID_REPLY;
+	  }
+
+	for (i = 0; i < list.n; i++)
+	  {
+	    dir_entry entry;
+
+	    if (!decode_dir_entry (&dc, &entry))
+	      {
+		zfs_close (&cap);
+		dc_destroy (&dc);
+		return ZFS_INVALID_REPLY;
+	      }
+
+	    cookie = entry.cookie;
+	    if (entry.name.str[0] == '.'
+		&& (entry.name.str[1] == 0
+		    || (entry.name.str[1] == '.'
+			&& entry.name.str[2] == 0)))
+	      continue;
+
+	    r = zfs_lookup (&res, dir, &entry.name);
+	    if (r != ZFS_OK)
+	      {
+		free (entry.name.str);
+		continue;
+	      }
+	    if (res.attr.type == FT_DIR)
+	      {
+		char *new_path;
+
+		new_path = xstrconcat (3, path, entry.name.str, "/");
+		r = walk_dir (&res.file, new_path);
+		free (new_path);
+	      }
+	    else
+	      message (1, stderr, "%s%s\n", path, entry.name.str);
+	    free (entry.name.str);
+	  }
+      } while (list.eof == 0);
+      zfs_close (&cap);
+      dc_destroy (&dc);
+    }
+
+  return r;
+}
+
 /* Test functions accessing ZFS.  */
 
 void
@@ -213,5 +298,10 @@ test_zfs (thread *t)
 	  message (2, stderr, "TEST %d\n", ++test);
 	  printf ("%d\n", zfs_close (&cap));
 	}
+
+      message (1, stderr, "Walking through directory structure:\n");
+      walk_dir (&root_fh, "/");
     }
+
+  message (2, stderr, "TESTS FINISHED\n");
 }

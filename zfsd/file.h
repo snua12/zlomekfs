@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <time.h>
 #include "pthread.h"
+#include "data-coding.h"
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"
@@ -43,6 +44,7 @@ typedef struct internal_fd_data_def
 
 extern int zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags);
 extern int zfs_close (zfs_cap *cap);
+extern int zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count);
 extern void initialize_file_c ();
 extern void cleanup_file_c ();
 

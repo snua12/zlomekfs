@@ -19,20 +19,28 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <unistd.h>
+#include <inttypes.h>
+#include <linux/types.h>
+#include <linux/dirent.h>
+#include <linux/unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
 #include <time.h>
 #include "pthread.h"
 #include "constant.h"
 #include "memory.h"
+#include "data-coding.h"
 #include "fh.h"
 #include "file.h"
 #include "dir.h"
 #include "cap.h"
 #include "volume.h"
+
+/* int getdents(unsigned int fd, struct dirent *dirp, unsigned int count); */
+_syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
 
 /* The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
@@ -302,6 +310,8 @@ zfs_close (zfs_cap *cap)
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
+  else
+    zfsd_mutex_unlock (&ifh->mutex);
   if (vd)
     zfsd_mutex_unlock (&vd->mutex);
 
@@ -312,8 +322,333 @@ zfs_close (zfs_cap *cap)
 
   put_capability (icap);
   zfsd_mutex_unlock (&cap_mutex);
-  zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+  return r;
+}
+
+/* Data for supplementary functions for readdir.  */
+
+typedef struct readdir_data_def
+{
+  unsigned int written;
+  unsigned int count;
+  int cookie;
+  dir_list list;
+} readdir_data;
+
+/* Add one directory entry to DC.  */
+
+static bool
+filldir (DC *dc, unsigned int ino, char *name, unsigned int name_len,
+	 readdir_data *data)
+{
+  char *old_pos = dc->current;
+  unsigned int old_len = dc->cur_length;
+  dir_entry entry;
+
+#ifdef ENABLE_CHECKING
+  if (name[0] == 0)
+    abort ();
+#endif
+
+  entry.ino = ino;
+  entry.cookie = data->cookie;
+  entry.name.str = name;
+  entry.name.len = name_len;
+
+  /* Try to encode ENTRY to DC.  */
+  if (!encode_dir_entry (dc, &entry)
+      || data->written + dc->cur_length - old_len > data->count)
+    {
+      /* There is not enough space in DC to encode ENTRY.  */
+      dc->current = old_pos;
+      dc->cur_length = old_len;
+      return false;
+    }
+  else
+    {
+      data->list.n++;
+      data->written += dc->cur_length - old_len;
+    }
+  return true;
+}
+
+/* Read COUNT bytes from virtual directory CAP starting at position COOKIE.  */
+
+static bool
+read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
+{
+  unsigned int ino;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&vd->mutex);
+#ifdef ENABLE_CHECKING
+  if (data->cookie > 0)
+    abort ();
+#endif
+
+  switch (data->cookie)
+    {
+      case 0:
+	data->cookie--;
+	if (!filldir (dc, vd->fh.ino, ".", 1, data))
+	  return false;
+	/* Fallthru.  */
+
+      case -1:
+	if (vd->parent)
+	  {
+	    zfsd_mutex_lock (&vd->parent->mutex);
+	    ino = vd->parent->fh.ino;
+	    zfsd_mutex_unlock (&vd->parent->mutex);
+	  }
+	else
+	  ino = vd->fh.ino;
+
+	data->cookie--;
+	if (!filldir (dc, vd->fh.ino, "..", 2, data))
+	  return false;
+	/* Fallthru.  */
+
+      default:
+	for (i = -data->cookie - 2; i < VARRAY_USED (vd->subdirs); i++)
+	  {
+	    virtual_dir svd;
+
+	    svd = VARRAY_ACCESS (vd->subdirs, i, virtual_dir);
+	    zfsd_mutex_lock (&svd->mutex);
+	    data->cookie--;
+	    if (!filldir (dc, svd->fh.ino, svd->name, strlen (svd->name),
+			  data))
+	      {
+		zfsd_mutex_unlock (&svd->mutex);
+		return false;
+	      }
+	    zfsd_mutex_unlock (&svd->mutex);
+	    
+	  }
+	if (i == VARRAY_USED (vd->subdirs))
+	  data->list.eof = 1;
+	break;
+    }
+
+  return true;
+}
+
+/* Read COUNT bytes from local directory CAP starting at position COOKIE.  */
+
+static int
+read_local_dir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
+		readdir_data *data, volume vol)
+{
+  char buf[ZFS_MAXDATA];
+  int r, pos;
+  struct dirent *de;
+
+  if (vd)
+    {
+      if (!read_virtual_dir (dc, vd, data))
+	{
+	  return (data->list.n == 0) ? EINVAL : ZFS_OK;
+	}
+      if (data->cookie < 0)
+	data->cookie = 0;
+    }
+
+  if (fh)
+    {
+      if (!capability_opened_p (cap))
+	{
+	  r = capability_open (cap, 0, fh, vol);
+	  if (r != ZFS_OK)
+	    return r;
+	}
+
+      r = lseek (cap->fd, data->cookie, SEEK_SET);
+      if (r < 0)
+	{
+	  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+	  return errno;
+	}
+
+      r = getdents (cap->fd, (struct dirent *) buf,
+		    data->count - data->written);
+      if (r <= 0)
+	{
+	  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+
+	  /* Comment from glibc: On some systems getdents fails with ENOENT when
+	     open directory has been rmdir'd already.  POSIX.1 requires that we
+	     treat this condition like normal EOF.  */
+	  if (r < 0 && errno == ENOENT)
+	    r = 0;
+	  
+	  if (r == 0)
+	    {
+	      data->list.eof = 1;
+	      return ZFS_OK;
+	    }
+
+	  /* EINVAL means that (DATA.COUNT - DATA.WRITTEN) was too low.  */
+	  return (errno == EINVAL) ? ZFS_OK : errno;
+	}
+
+      for (pos = 0; pos < r; pos += de->d_reclen)
+	{
+	  de = (struct dirent *) &buf[pos];
+	  data->cookie = de->d_off;
+	  if (vd)
+	    {
+	      virtual_dir svd;
+
+	      if (de->d_name[0] == '.'
+		  && (de->d_name[1] == 0
+		      || (de->d_name[1] == '.'
+			  && de->d_name[2] == 0)))
+		continue;
+
+	      svd = vd_lookup_name (vd, de->d_name);
+	      if (svd)
+		{
+		  zfsd_mutex_unlock (&svd->mutex);
+		  continue;
+		}
+	    }
+	  if (!filldir (dc, de->d_ino, de->d_name, strlen (de->d_name), data))
+	    break;
+	}
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+    }
+
+  return ZFS_OK;
+}
+
+/* Read COUNT bytes from remote directory CAP starting at position COOKIE.  */
+
+static int
+read_remote_dir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
+{
+  read_dir_args args;
+  thread *t;
+  int32_t r;
+
+  /* FIXME: if we can;t connect but we are in virtual directory, list the
+     virtual directory. */
+  args.dir = cap->master_cap;
+  args.cookie = data->cookie;
+  args.count = data->count;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_readdir_client (t, &args, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      if (t->dc.max_length > dc->cur_length)
+	memcpy (dc->current, t->dc.current + dc->cur_length,
+		t->dc.max_length - dc->cur_length);
+      else
+	r = ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Read COUNT bytes from directory CAP starting at position COOKIE.  */
+
+int
+zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
+{
+  volume vol;
+  internal_cap icap;
+  internal_fh ifh;
+  virtual_dir vd;
+  readdir_data data;
+  int r;
+  char *status_pos, *cur_pos;
+  int status_len, cur_len;
+
+  zfsd_mutex_lock (&cap_mutex);
+  zfsd_mutex_lock (&volume_mutex);
+  if (VIRTUAL_FH_P (cap->fh))
+    zfsd_mutex_lock (&vd_mutex);
+  r = find_capability_nolock (cap, &icap, &vol, &ifh, &vd);
+  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&cap_mutex);
+  if (r == ZFS_OK)
+    {
+      if (ifh && ifh->attr.type != FT_DIR)
+	{
+	  if (vd)
+	    zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&ifh->mutex);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&icap->mutex);
+	  r = ENOTDIR;
+	}
+    }
+  if (r != ZFS_OK)
+    {
+      if (VIRTUAL_FH_P (cap->fh))
+	zfsd_mutex_unlock (&vd_mutex);
+      encode_status (dc, r);
+      return r;
+    }
+
+  data.written = 0;
+  data.count = (count > ZFS_MAXDATA) ? ZFS_MAXDATA : count;
+  data.cookie = cookie;
+  data.list.n = 0;
+  data.list.eof = 0;
+
+  status_pos = dc->current;
+  status_len = dc->cur_length;
+  encode_status (dc, ZFS_OK);
+
+  if (!vol || vol->local_path)
+    {
+      encode_dir_list (dc, &data.list);
+      r = read_local_dir (dc, icap, ifh, vd, &data, vol);
+      if (vd)
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	}
+      if (ifh)
+	zfsd_mutex_unlock (&ifh->mutex);
+      if (vol)
+	zfsd_mutex_unlock (&vol->mutex);
+    }
+  else if (vol->master != this_node)
+    {
+      r = read_remote_dir (dc, icap, &data, vol);
+      zfsd_mutex_unlock (&ifh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+  else
+    abort ();
+  zfsd_mutex_unlock (&icap->mutex);
+
+  cur_pos = dc->current;
+  cur_len = dc->cur_length;
+  dc->current = status_pos;
+  dc->cur_length = status_len;
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      if (!vol || vol->local_path)
+	encode_dir_list (dc, &data.list);
+      dc->current = cur_pos;
+      dc->cur_length = cur_len;
+    }
+
   return r;
 }
 
