@@ -371,14 +371,27 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     }
 
   if (!icap)
-    return EBADF;
+    {
+      r = EBADF;
+      goto out;
+    }
 
   r = verify_capability (cap, icap);
   if (r != ZFS_OK)
-    return r;
+    goto out;
 
   *icapp = icap;
   return ZFS_OK;
+
+out:
+  if (*dentry)
+    release_dentry (*dentry);
+  if (vd && *vd)
+    zfsd_mutex_unlock (&(*vd)->mutex);
+  if (*vol)
+    zfsd_mutex_unlock (&(*vol)->mutex);
+
+  return r;
 }
 
 /* Decrease the number of users of capability CAP associated with
