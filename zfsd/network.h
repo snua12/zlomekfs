@@ -24,6 +24,7 @@
 #include "system.h"
 #include <time.h>
 #include "constant.h"
+#include "data-coding.h"
 
 /* Data for a server socket.  */
 typedef struct server_fd_data_def
@@ -31,13 +32,9 @@ typedef struct server_fd_data_def
   int fd;			/* file descriptor of the socket */
   unsigned int read;		/* number of bytes already read */
 
-  /* Unused data buffers for the file descriptor.  */
-  struct
-    {
-      char *original;		/* pointer to data returned by malloc */
-      char *aligned;		/* PTR aligned to a multiple of 16 */
-    } buffer[MAX_FREE_BUFFERS_PER_SERVER_FD];
-  int nbuffer;
+  /* Unused data coding buffers for the file descriptor.  */
+  DC dc[MAX_FREE_BUFFERS_PER_SERVER_FD];
+  int ndc;
 
   unsigned int length;		/* the length of the request */
   time_t last_use;		/* time of last use of the socket */

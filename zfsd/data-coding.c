@@ -27,43 +27,67 @@
 #include "memory.h"
 #include "zfs_prot.h"
 
+/* Allocate a new data coding buffer of size SIZE and fill information
+   about it in DC.  */
+
+void
+dc_create (DC *dc, int size)
+{
+  dc->unaligned = (char *) xmalloc (size + 15); 
+  dc->start = (char *) ALIGN_PTR_16 (dc->unaligned);
+  dc->size = size;
+#ifdef ENABLE_CHECKING
+  if (size < 0)
+    abort ();
+#endif
+}
+
+/* Free the data coding buffer DC.  */
+
+void
+dc_destroy (DC *dc)
+{
+  free (dc->unaligned);
+}
+
 /* Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
 
 void
-start_encoding (DC *dc, void *ptr, int max_length)
+start_encoding (DC *dc)
 {
-#ifdef ENABLE_CHECKING
-  if (ptr != ALIGN_PTR_16 (ptr))
-    abort ();
-#endif
-
-  dc->original = (char *) ptr;
-  dc->current = (char *) ptr;
-  dc->max_length = max_length;
+  dc->current = dc->start;
   dc->cur_length = 0;
-  encode_uint32_t (dc, 0);
+  dc->max_length = dc->size;
 }
 
-/* Update the size of block in DC.  */
+/* Update the size of block in DC.  Return the length of encoded buffer.  */
 
 int
 finish_encoding (DC *dc)
 {
-  *(uint32_t *) dc->original = u32_to_le ((uint32_t) dc->cur_length);
+  *(uint32_t *) dc->start = u32_to_le ((uint32_t) dc->cur_length);
 
   return dc->cur_length;
 }
 
-/* Initialize DC to start decoding of PTR.  */
+/* Initialize DC to start decoding of PTR.  Return true on success.  */
 
-void
-start_decoding (DC *dc, void *ptr)
+int
+start_decoding (DC *dc)
 {
-  dc->original = (char *) ptr;
-  dc->current = (char *) ptr;
+  dc->current = dc->start;
   dc->max_length = 4;
   dc->cur_length = 0;
   decode_int32_t (dc, (int32_t *) &dc->max_length);
+  return dc->max_length <= dc->size;
+}
+
+/* Return true if all data has been read from encoded buffer.  */
+
+int
+finish_decoding (DC *dc)
+{
+  return dc->cur_length == dc->max_length;
 }
 
 /* Decode a value of type T and size S from DC and store it to *RET.

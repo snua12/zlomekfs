@@ -169,9 +169,9 @@ close_active_fd (int i)
   active[i]->generation++;
   active[i] = active[nactive];
   nactive--;
-  for (j = 0; j < server_fd_data[fd].nbuffer; j++)
-    free (server_fd_data[fd].buffer[j].original);
-  server_fd_data[fd].nbuffer = 0;
+  for (j = 0; j < server_fd_data[fd].ndc; j++)
+    dc_destroy (&server_fd_data[fd].dc[j]);
+  server_fd_data[fd].ndc = 0;
   server_fd_data[fd].fd = -1;
 }
 
@@ -231,17 +231,16 @@ server_worker (void *data)
 	}
       if (running)
 	{
-	  if (d->nbuffer < MAX_FREE_BUFFERS_PER_SERVER_FD)
+	  if (d->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)
 	    {
 	      /* Add the buffer to the queue.  */
-	      d->buffer[d->nbuffer].original = td->original;
-	      d->buffer[d->nbuffer].aligned = td->aligned;
-	      d->nbuffer++;
+	      d->dc[d->ndc] = td->dc;
+	      d->ndc++;
 	    }
 	  else
 	    {
 	      /* Free the buffer.  */
-	      free (td->original);
+	      dc_destroy (&td->dc);
 	    }
 	}
       else
@@ -280,8 +279,7 @@ server_worker (void *data)
    It also regulates the number of server threads.  */
 
 static int
-server_dispatch (server_fd_data_t *fd_data, char *request,
-		 unsigned int generation)
+server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 {
   size_t index;
 
@@ -298,9 +296,7 @@ server_dispatch (server_fd_data_t *fd_data, char *request,
 #endif
   server_pool.threads[index].t.state = THREAD_BUSY;
   server_pool.threads[index].t.u.server.fd_data = fd_data;
-  server_pool.threads[index].t.u.server.original = request;
-  server_pool.threads[index].t.u.server.aligned
-    = (char *) ALIGN_PTR_16 (request);
+  server_pool.threads[index].t.u.server.dc = *dc;
   server_pool.threads[index].t.u.server.generation = generation;
   pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
 
@@ -439,6 +435,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	  /* Close idle file descriptors and free their memory.  */
 	  for (i = 0; i < nactive; i++)
 	    {
+	      /* FIXME */
 	    }
 	  return NULL;
 	}
@@ -475,17 +472,13 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		  ssize_t r;
 
 		  pthread_mutex_lock (&d->mutex);
-		  if (d->nbuffer == 0)
+		  if (d->ndc == 0)
 		    {
-		      char *p;
-
-		      p = (char *) xmalloc (ZFS_MAX_REQUEST_LEN);
-		      d->buffer[0].original = p;
-		      d->buffer[0].aligned = (char *) ALIGN_PTR_16 (p);
-		      d->nbuffer++;
+		      dc_create (&d->dc[0], ZFS_MAX_REQUEST_LEN);
+		      d->ndc++;
 		    }
 		  pthread_mutex_unlock (&d->mutex);
-		  r = read (d->fd, d->buffer[0].aligned + d->read, 4 - d->read);
+		  r = read (d->fd, d->dc[0].start + d->read, 4 - d->read);
 		  if (r < 0)
 		    {
 		      pthread_mutex_lock (&active[i]->mutex);
@@ -496,11 +489,11 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		    d->read += r;
 
 		  if (d->read == 4)
-		    d->length = GET_UINT (d->buffer[0].aligned);
+		    d->length = GET_UINT (d->dc[0].start);
 		}
 	      else
 		{
-		  r = read (d->fd, d->buffer[0].aligned + d->read,
+		  r = read (d->fd, d->dc[0].start + d->read,
 			    d->length - 4);
 		  if (r < 0)
 		    {
@@ -515,19 +508,19 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		      if (d->read == d->length)
 			{
 			  unsigned int generation;
-			  char *ptr;
+			  DC *dc;
 
 			  pthread_mutex_lock (&d->mutex);
 			  generation = d->generation;
-			  ptr = d->buffer[0].original;
+			  dc = &d->dc[0];
 			  d->busy++;
-			  d->nbuffer--;
-			  if (d->nbuffer > 0)
-			    d->buffer[0] = d->buffer[d->nbuffer];
+			  d->ndc--;
+			  if (d->ndc > 0)
+			    d->dc[0] = d->dc[d->ndc];
 			  pthread_mutex_unlock (&d->mutex);
 
 			  /* We have read complete request so dispatch it.  */
-			  server_dispatch (d, ptr, generation);
+			  server_dispatch (d, dc, generation);
 			}
 		    }
 		}
@@ -599,15 +592,10 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		  /* Set the server's data.  */
 		  active[nactive]->fd = s;
 		  active[nactive]->read = 0;
-		  if (active[nactive]->nbuffer == 0)
+		  if (active[nactive]->ndc == 0)
 		    {
-		      char *p;
-
-		      p = (char *) xmalloc (ZFS_MAX_REQUEST_LEN);
-		      active[nactive]->buffer[0].original = p;
-		      active[nactive]->buffer[0].aligned
-			= (char *) ALIGN_PTR_16 (p);
-		      active[nactive]->nbuffer++;
+		      dc_create (&active[nactive]->dc[0], ZFS_MAX_REQUEST_LEN);
+		      active[nactive]->ndc++;
 		    }
 		  active[nactive]->last_use = now;
 		  active[nactive]->generation++;

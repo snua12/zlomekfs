@@ -26,14 +26,14 @@
 #include <netinet/in.h>
 #include "zfs_prot.h"
 
-/* Align a number to be a multiple of 2 ,4, 8, 16.  */
+/* Align a number to be a multiple of 2, 4, 8, 16.  */
 #define ALIGN_1(N) (N)
 #define ALIGN_2(N) (((N) + 1) & ~1)
 #define ALIGN_4(N) (((N) + 3) & ~3)
 #define ALIGN_8(N) (((N) + 7) & ~7)
 #define ALIGN_16(N) (((N) + 15) & ~15)
 
-/* Align a pointer to be a multiple of 2 ,4, 8, 16.  */
+/* Align a pointer to be a multiple of 2, 4, 8, 16.  */
 #define ALIGN_PTR_1(P) ((void *) ALIGN_1 ((uintptr_t) (P)))
 #define ALIGN_PTR_2(P) ((void *) ALIGN_2 ((uintptr_t) (P)))
 #define ALIGN_PTR_4(P) ((void *) ALIGN_4 ((uintptr_t) (P)))
@@ -130,15 +130,20 @@
 
 typedef struct data_coding_def
 {
-  char *original;
+  char *unaligned;
+  char *start;
   char *current;
   int max_length;
   int cur_length;
+  int size;
 } DC;
 
-extern void start_encoding (DC *dc, void *ptr, int max_length);
+extern void dc_create (DC *dc, int size);
+extern void dc_destroy (DC *dc);
+extern void start_encoding (DC *dc);
 extern int finish_encoding (DC *dc);
-extern void start_decoding (void *ptr);
+extern int start_decoding (DC *dc);
+extern int finish_decoding (DC *dc);
 
 extern int decode_char (DC *dc, char *ret);
 extern int decode_int16_t (DC *dc, int16_t *ret);

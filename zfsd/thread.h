@@ -27,6 +27,7 @@
 #include <rpc/rpc.h>
 #include "queue.h"
 #include "server.h"
+#include "zfs_prot.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 extern int running;
@@ -53,8 +54,7 @@ typedef struct server_thread_data_def
 #else
   call_args args;		/* Union for decoded call arguments.  */
   server_fd_data_t *fd_data;	/* passed from main server thread */
-  char *original;		/* malloc()d pointer to request */
-  char *aligned;		/* aligned pointer to request */
+  DC dc;			/* data coding buffer */
   char *reply;			/* buffer for reply */
   unsigned int generation;	/* generation of file descriptor */
 #endif
