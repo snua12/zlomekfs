@@ -2655,8 +2655,8 @@ read_journal (volume vol, internal_fh fh)
 
       if (oper < JOURNAL_OPERATION_LAST_AND_UNUSED)
 	{
-	  journal_insert (fh->journal, &local_fh, &master_fh, name, oper,
-			  false);
+	  journal_insert (fh->journal, &local_fh, &master_fh, name,
+			  (journal_operation_t) oper, false);
 	}
     }
 
