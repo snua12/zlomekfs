@@ -24,7 +24,6 @@
 #include "system.h"
 #include <inttypes.h>
 #include <netinet/in.h>
-#include "zfs_prot.h"
 
 /* Align a number to be a multiple of 2, 4, 8, 16.  */
 #define ALIGN_1(N) (N)
@@ -138,6 +137,8 @@ typedef struct data_coding_def
   unsigned int size;
 } DC;
 
+#include "zfs_prot.h"
+
 extern void dc_create (DC *dc, unsigned int size);
 extern void dc_destroy (DC *dc);
 extern void start_encoding (DC *dc);
@@ -161,10 +162,21 @@ extern int encode_uint32_t (DC *dc, uint32_t val);
 extern int encode_int64_t (DC *dc, int64_t val);
 extern int encode_uint64_t (DC *dc, uint64_t val);
 
+#define decode_length(DC, L) decode_uint32_t ((DC), (L))
+#define encode_length(DC, L) encode_uint32_t ((DC), (L))
+#define decode_request_id(DC, L) decode_uint32_t ((DC), (L))
+#define encode_request_id(DC, L) encode_uint32_t ((DC), (L))
+#define decode_status(DC, L) decode_int32_t ((DC), (L))
+#define encode_status(DC, L) encode_int32_t ((DC), (L))
+#define decode_function(DC, L) decode_uint32_t ((DC), (L))
+#define encode_function(DC, L) encode_uint32_t ((DC), (L))
+
 extern int decode_data_buffer (DC *dc, data_buffer *data);
 extern int encode_data_buffer (DC *dc, data_buffer *data);
 extern int decode_string (DC *dc, string *str, uint32_t max_len);
 extern int encode_string (DC *dc, string *str);
+extern int decode_void (DC *dc, void *v);
+extern int encode_void (DC *dc, void *v);
 extern int decode_direction (DC *dc, direction *dir);
 extern int encode_direction (DC *dc, direction dir);
 extern int decode_ftype (DC *dc, ftype *type);
@@ -181,6 +193,8 @@ extern int decode_filename (DC *dc, string *str);
 extern int encode_filename (DC *dc, string *str);
 extern int decode_zfs_path (DC *dc, string *str);
 extern int encode_zfs_path (DC *dc, string *str);
+extern int decode_volume_root_args (DC *dc, volume_root_args *args);
+extern int encode_volume_root_args (DC *dc, volume_root_args *args);
 extern int decode_sattr_args (DC *dc, sattr_args *args);
 extern int encode_sattr_args (DC *dc, sattr_args *args);
 extern int decode_dir_op_args (DC *dc, dir_op_args *args);

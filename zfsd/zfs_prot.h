@@ -38,13 +38,14 @@ extern "C"
 #define ZFS_OK			0
 #define ZFS_REQUEST_TOO_LONG	-1	/* Request was too long.  */
 #define ZFS_INVALID_REQUEST	-2	/* Request was not well encoded. */
-#define ZFS_UNKNOWN_FUNCTION	-3	/* Unknown function in request.  */
-  
+#define ZFS_INVALID_REPLY	-3	/* Reply was not well encoded. */
+#define ZFS_UNKNOWN_FUNCTION	-4	/* Unknown function in request.  */
+
 typedef enum direction_def
 {
   DIR_REQUEST,
   DIR_REPLY,
-  DIR_MAX_AND_UNUSED
+  DIR_LAST_AND_UNUSED
 } direction;
 
 typedef struct data_buffer_def
@@ -69,7 +70,7 @@ typedef enum ftype_def
   FT_CHR,
   FT_SOCK,
   FT_FIFO,
-  FT_MAX_AND_UNUSED
+  FT_LAST_AND_UNUSED
 } ftype;
 
 typedef struct zfs_fh_def
@@ -121,6 +122,11 @@ typedef struct sattr_def
 typedef string filename;
 
 typedef string zfs_path;
+
+typedef struct volume_root_args_def
+{
+  unsigned int vid;
+} volume_root_args;
 
 typedef struct sattr_args_def
 {
@@ -235,7 +241,9 @@ typedef struct mknod_args_def
 
 typedef union call_args_def
 {
-  unsigned int volume_root_args;
+  char null;
+  char root;
+  volume_root_args volume_root;
   zfs_fh getattr;
   sattr_args setattr;
   dir_op_args lookup;
@@ -246,11 +254,33 @@ typedef union call_args_def
   open_name_args mkdir;
   dir_op_args rmdir;
   rename_args rename;
+  link_args link;
+  dir_op_args unlink;
+  read_args read;
   write_args write;
   zfs_fh readlink;
   symlink_args symlink;
   mknod_args mknod;
 } call_args;
+
+#include "data-coding.h"
+
+/* Function numbers.  */
+enum function_number_def
+{
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
+  ZFS_PROC_##NAME = NUMBER,
+#include "zfs_prot.def"
+  ZFS_PROC_LAST_AND_UNUSED
+};
+#undef DEFINE_ZFS_PROC
+
+/* Function headers.  */
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
+  extern int zfs_proc_##FUNCTION##_client (ARGS_TYPE *args, DC *dc);	\
+  extern int zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
 
 #ifdef __cplusplus
 }

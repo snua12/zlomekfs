@@ -195,6 +195,19 @@ server_worker_cleanup (void *data)
   free (t->u.server.reply);
 }
 
+/* Send error reply with error status STATUS.  */
+
+static void
+send_error_reply (server_thread_data *td, uint32_t request_id, int status)
+{
+  start_encoding (&td->dc);
+  encode_direction (&td->dc, DIR_REPLY);
+  encode_request_id (&td->dc, request_id);
+  encode_status (&td->dc, status);
+  finish_encoding (&td->dc);
+  /* TODO: send reply.  */
+}
+
 /* The main function of the server thread.  */
 
 static void *
@@ -204,6 +217,7 @@ server_worker (void *data)
   server_thread_data *td = &t->u.server;
   server_fd_data_t *d;
   uint32_t request_id;
+  uint32_t fn;
 
   pthread_cleanup_push (server_worker_cleanup, data);
   pthread_setspecific (server_thread_data_key, data);
@@ -222,19 +236,60 @@ server_worker (void *data)
       if (t->state == THREAD_DYING)
 	return data;
 
-      d = td->fd_data;
+      if (!decode_uint32_t (&td->dc, &request_id))
+	goto out;
 
-      decode_uint32_t (&td->dc, &request_id);
+      if (td->dc.max_length > td->dc.size)
+	{
+	  send_error_reply (td, request_id, ZFS_REQUEST_TOO_LONG);
+	  goto out;
+	}
 
-      /* FIXME: process the request */
+      if (!decode_function (&td->dc, &fn))
+	{
+	  send_error_reply (td, request_id, ZFS_INVALID_REQUEST);
+	  goto out;
+	}
+
+      if (fn >= ZFS_PROC_LAST_AND_UNUSED)
+	{
+	  send_error_reply (td, request_id, ZFS_UNKNOWN_FUNCTION);
+	  goto out;
+	}
+
+      switch (fn)
+	{
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
+	  case ZFS_PROC_##NAME:						\
+	    if (!decode_##ARGS_TYPE (&td->dc, &td->args.FUNCTION)	\
+		|| !finish_decoding (&td->dc))				\
+	      {								\
+		send_error_reply (td, request_id, ZFS_INVALID_REQUEST);	\
+		goto out;						\
+	      }								\
+	    zfs_proc_##FUNCTION##_server (&td->args.FUNCTION, &td->dc);	\
+	    /* TODO: send reply.  */					\
+	    break;
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+		
+	  default:
+	    send_error_reply (td, request_id, ZFS_UNKNOWN_FUNCTION);
+	    goto out;
+	}
+
+      /* TODO: process the request */
       /* 1. decode request */
       /* 2. call appropriate routine */
       /* 3. encode reply */
+      d = td->fd_data;
       pthread_mutex_lock (&d->mutex);
       if (d->fd >= 0 && d->generation == td->generation)
 	{
 	  /* 4. send a reply */
 	}
+
+out:
       if (running)
 	{
 	  if (d->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)

@@ -58,6 +58,7 @@ start_encoding (DC *dc)
   dc->current = dc->buffer;
   dc->cur_length = 0;
   dc->max_length = dc->size;
+  encode_uint32_t (dc, 0);
 }
 
 /* Update the size of block in DC.  Return the length of encoded buffer.  */
@@ -243,6 +244,16 @@ encode_string (DC *dc, string *str)
   return 1;
 }
 
+int decode_void (DC *dc, void *v)
+{
+  return 1;
+}
+
+int encode_void (DC *dc, void *v)
+{
+  return 1;
+}
+
 int
 decode_direction (DC *dc, direction *dir)
 {
@@ -252,7 +263,7 @@ decode_direction (DC *dc, direction *dir)
   r = decode_uchar (dc, &dir_val);
   if (r)
     {
-      if (dir_val >= DIR_MAX_AND_UNUSED)
+      if (dir_val >= DIR_LAST_AND_UNUSED)
 	r = 0;
       else
 	*dir = (direction) dir_val;
@@ -276,7 +287,7 @@ decode_ftype (DC *dc, ftype *type)
   r = decode_uchar (dc, &type_val);
   if (r)
     {
-      if (type_val >= FT_MAX_AND_UNUSED)
+      if (type_val >= FT_LAST_AND_UNUSED)
 	r = 0;
       else
 	*type = (ftype) type_val;
@@ -414,6 +425,18 @@ int
 encode_zfs_path (DC *dc, string *str)
 {
   return encode_string (dc, str);
+}
+
+int
+decode_volume_root_args (DC *dc, volume_root_args *args)
+{
+  return decode_uint32_t (dc, &args->vid);
+}
+
+int
+encode_volume_root_args (DC *dc, volume_root_args *args)
+{
+  return encode_uint32_t (dc, args->vid);
 }
 
 int
