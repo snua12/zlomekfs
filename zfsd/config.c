@@ -2180,8 +2180,6 @@ config_reader (void *data)
 
       while (get_reread_config_request (&relative_path, &from_sid))
 	{
-	  terminate ();
-	  break;
 	  if (relative_path.str == NULL)
 	    {
 	      /* The daemon received SIGHUP, reread the local volume info.  */
