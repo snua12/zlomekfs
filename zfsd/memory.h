@@ -27,5 +27,8 @@
 extern void *xcalloc(size_t nmemb, size_t size);
 extern void *xmalloc(size_t size);
 extern void *xrealloc(void *ptr, size_t size);
+extern char *xstrdup(const char *s);
+extern char *xstrndup(const char *s, size_t n);
+extern void *xmemdup(const void *src, size_t n);
 
 #endif

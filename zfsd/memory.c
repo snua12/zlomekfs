@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "memory.h"
 #include "log.h"
 
@@ -29,7 +30,10 @@ xcalloc(size_t nmemb, size_t size)
 {
   void *r = calloc(nmemb, size);
   if (!r)
-    message(-1, stderr, "Not enough memory.\n");
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
   return r;
 }
 
@@ -38,7 +42,10 @@ xmalloc(size_t size)
 {
   void *r = malloc(size);
   if (!r)
-    message(-1, stderr, "Not enough memory.\n");
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
   return r;
 }
 
@@ -47,6 +54,46 @@ xrealloc(void *ptr, size_t size)
 {
   void *r = realloc(ptr, size);
   if (!r)
-    message(-1, stderr, "Not enough memory.\n");
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
+  return r;
+}
+
+char *
+xstrdup(const char *s)
+{
+  char *r = strdup(s);
+  if (!r)
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
+  return r;
+}
+
+char *
+xstrndup(const char *s, size_t n)
+{
+  char *r = strndup(s, n);
+  if (!r)
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
+  return r;
+}
+
+void *
+xmemdup(const void *src, size_t n)
+{
+  void *r = malloc(n);
+  if (!r)
+    {
+      message(-1, stderr, "Not enough memory.\n");
+      abort();
+    }
+  memcpy(r, s, n);
   return r;
 }
