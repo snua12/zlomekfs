@@ -575,7 +575,7 @@ void
 test_zfs ()
 {
   if (get_running ()
-      && strcmp (node_name, "orion") == 0)
+      && strcmp (node_name.str, "orion") == 0)
     {
       pthread_t id;
 

@@ -25,15 +25,13 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include "pthread.h"
+#include "memory.h"
 
 /* File used to communicate with kernel.  */
 extern char *kernel_file_name;
 
 /* The host name of local node.  */
-extern char *node_name;
-
-/* Length of host name of local node.  */
-extern unsigned int node_name_len;
+extern string node_name;
 
 /* Depth of directory tree for saving metadata about files.  */
 extern unsigned int metadata_tree_depth;

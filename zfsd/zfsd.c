@@ -342,7 +342,7 @@ cleanup_data_structures ()
   cleanup_metadata_c ();
   cleanup_random_c ();
 
-  free (node_name);
+  free (node_name.str);
   free (kernel_file_name);
 }
 

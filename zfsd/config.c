@@ -46,10 +46,7 @@
 char *kernel_file_name;
 
 /* The host name of local node.  */
-char *node_name;
-
-/* Length of host name of local node.  */
-unsigned int node_name_len;
+string node_name;
 
 /* Depth of directory tree for saving metadata about files.  */
 unsigned int metadata_tree_depth = 1;
@@ -259,9 +256,9 @@ set_node_name ()
   if (uname (&un) != 0)
     return;
 
-  node_name_len = strlen (un.nodename);
-  set_string_with_length (&node_name, un.nodename, node_name_len);
-  message (1, stderr, "Autodetected node name: '%s'\n", node_name);
+  node_name.len = strlen (un.nodename);
+  set_string_with_length (&node_name.str, un.nodename, node_name.len);
+  message (1, stderr, "Autodetected node name: '%s'\n", node_name.str);
 }
 
 /* Set default node UID to UID of user NAME.  Return true on success.  */
@@ -442,7 +439,8 @@ read_config_file (const char *file)
 
 	      if (strncasecmp (key, "nodename", 9) == 0)
 		{
-		  set_string_with_length (&node_name, value, value_len);
+		  node_name.len = value_len;
+		  set_string_with_length (&node_name.str, value, value_len);
 		  message (1, stderr, "NodeName = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "privatekey", 11) == 0)
@@ -547,7 +545,7 @@ read_config_file (const char *file)
     }
   fclose (f);
 
-  if (!node_name || !*node_name)
+  if (node_name.len == 0)
     {
       message (-1, stderr,
 	       "Node name was not autodetected nor defined in configuration file.\n");

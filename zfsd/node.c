@@ -156,7 +156,7 @@ node_create (uint32_t id, char *name)
   nod->map_gid_to_zfs = NULL;
 
   /* Are we creating a structure describing local node?  */
-  if (strcmp (name, node_name) == 0)
+  if (strcmp (name, node_name.str) == 0)
     {
       this_node = nod;
       nod->map_uid_to_node = htab_create (5, map_id_to_node_hash,
@@ -373,8 +373,7 @@ node_authenticate (thread *t, node nod)
   memset (&args2, 0, sizeof (args2));
 
   /* FIXME: really do authentication; currently the functions are empty.  */
-  args1.node.len = node_name_len;
-  args1.node.str = node_name;
+  args1.node = node_name;
   r = zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd);
   if (r != ZFS_OK)
     goto node_authenticate_error;
