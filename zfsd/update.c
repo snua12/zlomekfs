@@ -1717,7 +1717,8 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    abort ();
 #endif
 
-	  r = local_reintegrate_del (vol, dir, &entry->name, r != ZFS_OK, fh);
+	  r = local_reintegrate_del (vol, &local_res.file, dir, &entry->name,
+				     r != ZFS_OK, fh);
 	}
       else
 	{
@@ -2056,8 +2057,8 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		    if (r == ZFS_OK)
 		      free (info.path.str);
 
-		    r = remote_reintegrate_del (vol, dir, &entry->name,
-						r != ZFS_OK);
+		    r = remote_reintegrate_del (vol, &entry->master_fh, dir,
+						&entry->name, r != ZFS_OK);
 		    r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		    if (r2 != ZFS_OK)

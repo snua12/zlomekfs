@@ -1158,7 +1158,8 @@ encode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
 bool
 decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 {
-  return (decode_zfs_fh (dc, &args->dir)
+  return (decode_zfs_fh (dc, &args->fh)
+	  && decode_zfs_fh (dc, &args->dir)
 	  && decode_filename (dc, &args->name)
 	  && decode_char (dc, &args->destroy_p));
 }
@@ -1166,7 +1167,8 @@ decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 bool
 encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 {
-  return (encode_zfs_fh (dc, &args->dir)
+  return (encode_zfs_fh (dc, &args->fh)
+	  && encode_zfs_fh (dc, &args->dir)
 	  && encode_filename (dc, &args->name)
 	  && encode_char (dc, args->destroy_p));
 }

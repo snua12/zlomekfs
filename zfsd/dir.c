@@ -4282,12 +4282,51 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   return r;
 }
 
+/* Delete local file FH from shadow.  */
+
+static int32_t
+local_reintegrate_del_fh (zfs_fh *fh)
+{
+  volume vol;
+  metadata meta;
+  string shadow_path;
+  uint32_t vid;
+  int32_t r;
+
+  vol = volume_lookup (fh->vid);
+  if (!vol)
+    return ESTALE;
+
+  meta.modetype = GET_MODETYPE (0, FT_BAD);
+  if (!lookup_metadata (vol, fh, &meta, false))
+    {
+      MARK_VOLUME_DELETE (vol);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_METADATA_ERROR;
+    }
+
+  if (!(meta.flags & METADATA_SHADOW))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_OK;
+    }
+
+  vid = vol->id;
+  get_shadow_path (&shadow_path, vol, fh, false);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  r = recursive_unlink (&shadow_path, vid, true);
+  free (shadow_path.str);
+
+  return r;
+}
+
 /* If DESTROY_P delete local file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
 int32_t
-local_reintegrate_del (volume vol, internal_dentry dir, string *name,
-		       bool destroy_p, zfs_fh *dir_fh)
+local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
+		       string *name, bool destroy_p, zfs_fh *dir_fh)
 {
   metadata meta;
   dir_op_res res;
@@ -4303,8 +4342,15 @@ local_reintegrate_del (volume vol, internal_dentry dir, string *name,
 #endif
 
   r = local_lookup (&res, dir, name, vol, &meta);
-  if (r == ENOENT || r == EINVAL)
-    return ZFS_OK;
+
+  /* The file has different file handle so the original NAME with FH
+     must have been deleted or moved to shadow.  */
+  if (r == ZFS_OK && !ZFS_FH_EQ (res.file, *fh))
+    return destroy_p ? local_reintegrate_del_fh (fh) : ZFS_OK;
+  /* Similarly if it does not exist.  */
+  if (r == ENOENT || r == ESTALE)
+    return destroy_p ? local_reintegrate_del_fh (fh) : ZFS_OK;
+
   if (r != ZFS_OK)
     return r;
 
@@ -4329,12 +4375,56 @@ local_reintegrate_del (volume vol, internal_dentry dir, string *name,
   return ZFS_OK;
 }
 
+/* Delete remote file FH from shadow.  */
+
+static int32_t
+remote_reintegrate_del_fh (zfs_fh *fh)
+{
+  reintegrate_del_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  volume vol;
+  node nod;
+
+  TRACE ("");
+
+  vol = volume_lookup (fh->vid);
+  if (!vol)
+    return ENOENT;
+
+  args.fh = *fh;
+  args.dir = undefined_fh;
+  args.name.str = "";
+  args.name.len = 0;
+  args.destroy_p = true;
+  nod = vol->master;
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reintegrate_del_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
 /* If DESTROY_P delete remote file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
 int32_t
-remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
-			bool destroy_p)
+remote_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
+			string *name, bool destroy_p)
 {
   reintegrate_del_args args;
   thread *t;
@@ -4350,6 +4440,7 @@ remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
     abort ();
 #endif
 
+  args.fh = *fh;
   args.dir = dir->fh->meta.master_fh;
   args.name = *name;
   args.destroy_p = destroy_p;
@@ -4378,7 +4469,7 @@ remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
    otherwise move it to shadow.  */
 
 int32_t
-zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
+zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
 {
   volume vol;
   internal_dentry idir;
@@ -4387,6 +4478,9 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
 
   TRACE ("");
 
+  if (!REGULAR_FH_P (*fh))
+    return EINVAL;
+
   if (!REGULAR_FH_P (*dir))
     return EINVAL;
 
@@ -4394,6 +4488,14 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   if (r == ZFS_STALE)
     {
       r = refresh_fh (dir);
+      if (destroy_p && (r == ENOENT || r == ESTALE))
+	{
+	  /* The directory DIR does not exist but the FH may be in shadow.  */
+	  if (fh->sid == this_node->id)
+	    return local_reintegrate_del_fh (fh);
+	  else
+	    return remote_reintegrate_del_fh (fh);
+	}
       if (r != ZFS_OK)
 	return r;
       r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
@@ -4407,12 +4509,12 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      r = local_reintegrate_del (vol, idir, name, destroy_p, &tmp_fh);
+      r = local_reintegrate_del (vol, fh, idir, name, destroy_p, &tmp_fh);
     }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      r = remote_reintegrate_del (vol, idir, name, destroy_p);
+      r = remote_reintegrate_del (vol, fh, idir, name, destroy_p);
     }
   else
     abort ();
