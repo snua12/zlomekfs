@@ -124,10 +124,10 @@ groups_name_eq (const void *x, const void *y)
   return strcmp (((group_t) x)->name, (const char *) y);
 }
 
-/* Create an user with ID and NAME with default group GID.  */
+/* Create an user with ID and NAME.  */
 
 user_t
-user_create (uint32_t id, char *name, uint32_t gid)
+user_create (uint32_t id, char *name)
 {
   user_t u;
   void **slot1;
@@ -166,40 +166,11 @@ user_create (uint32_t id, char *name, uint32_t gid)
 
   u = (user_t) xmalloc (sizeof (*u));
   u->id = id;
-  u->gid = gid;
   u->name = xstrdup (name);
-  u->groups = htab_create (5, groups_id_hash, groups_id_eq, NULL, NULL);
   *slot1 = u;
   *slot2 = u;
 
   return u;
-}
-
-/* For each user, add default group to user's list of groups.  */
-
-void
-set_default_groups (void)
-{
-  void **slot;
-  void **slot2;
-
-  CHECK_MUTEX_LOCKED (&users_groups_mutex);
-
-  HTAB_FOR_EACH_SLOT (users_id, slot)
-    {
-      user_t u = (user_t) slot;
-      group_t g;
-
-      g = (group_t) htab_find_with_hash (groups_id, &u->gid,
-					 GROUP_ID_HASH (u->gid));
-      if (!g)
-      continue;
-
-      slot2 = htab_find_slot_with_hash (u->groups, &u->gid,
-					GROUP_ID_HASH (u->gid), INSERT);
-      if (!*slot2)
-	*slot2 = g;
-    }
 }
 
 /* Destroy user U.  */
@@ -227,7 +198,6 @@ user_destroy (user_t u)
 #endif
   htab_clear_slot (users_name, slot);
 
-  htab_destroy (u->groups);
   free (u->name);
   free (u);
 }
@@ -235,7 +205,7 @@ user_destroy (user_t u)
 /* Create a group with ID and NAME, its list of users is USER_LIST.  */
 
 group_t
-group_create (uint32_t id, char *name, char *user_list)
+group_create (uint32_t id, char *name)
 {
   group_t g;
   void **slot1;
@@ -277,60 +247,6 @@ group_create (uint32_t id, char *name, char *user_list)
   g->name = xstrdup (name);
   *slot1 = g;
   *slot2 = g;
-
-  /* Add the group to user's list, for each user in groups list.  */
-  if (user_list && *user_list)
-    {
-      char *name;
-
-      while (*user_list)
-	{
-	  while (*user_list == ',')
-	    user_list++;
-
-	  name = user_list;
-	  while ((*user_list >= 'A' && *user_list <= 'Z')
-		 || (*user_list >= 'a' && *user_list <= 'z')
-		 || (*user_list >= '0' && *user_list <= '9')
-		 || *user_list == '_' || *user_list == '-')
-	    user_list++;
-
-	  if (*user_list == ',' || *user_list == 0)
-	    {
-	      user_t u;
-
-	      if (*user_list == ',')
-		*user_list++ = 0;
-
-	      u = (user_t) htab_find_with_hash (users_name, name,
-						USER_NAME_HASH (name));
-	      if (!u)
-		{
-		  message (1, stderr, "Unknown user: %s\n", name);
-		}
-	      else
-		{
-		  void **slot;
-
-		  slot = htab_find_slot_with_hash (u->groups, &id,
-						   GROUP_ID_HASH (id),
-						   INSERT);
-		  if (!*slot)
-		    *slot = g;
-		}
-	    }
-	  else
-	    {
-	      while (*user_list != ',' && *user_list != 0)
-		user_list++;
-	      if (*user_list == ',')
-		*user_list++ = 0;
-
-	      message (1, stderr, "User name contains illegal chars: %s\n",
-		       name);
-	    }
-	}
-    }
 
   return g;
 }

@@ -30,9 +30,7 @@
 typedef struct user_def
 {
   uint32_t id;			/* user ID */
-  uint32_t gid;			/* group ID of default group */
   char *name;			/* name of the user */
-  htab_t groups;		/* list of groups user is in */
 } *user_t;
 
 /* Description of ZFS group.  */
@@ -61,10 +59,9 @@ extern uint32_t default_node_gid;
 /* Hash functions for user/group ID mapping.  */
 #define MAP_ID_HASH(UID) (UID)
 
-extern user_t user_create (uint32_t id, char *name, uint32_t gid);
-extern void set_default_groups (void);
+extern user_t user_create (uint32_t id, char *name);
 extern void user_destroy (user_t u);
-extern group_t group_create (uint32_t id, char *name, char *user_list);
+extern group_t group_create (uint32_t id, char *name);
 extern void group_destroy (group_t g);
 
 extern hash_t map_id_to_node_hash (const void *x);
