@@ -2116,6 +2116,7 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	      r = update_file_blocks (&tmp_cap, &blocks, modified);
 	      if (r == ZFS_OK)
 		{
+out_update:
 		  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
 					       NULL, false);
 #ifdef ENABLE_CHECKING
@@ -2127,7 +2128,6 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 		}
 	    }
 
-out_update:
 	  varray_destroy (&blocks);
 	}
       else
