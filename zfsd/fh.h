@@ -96,6 +96,9 @@ struct internal_fh_def
   /* File attributes.  */
   fattr attr;
 
+  /* Contained directory entries (of type 'struct internal_dentry_def *').  */
+  varray subdentries;
+
   /* Number Directory entries associated with this file handle.  */
   unsigned int ndentries;
 };
@@ -118,9 +121,6 @@ struct internal_dentry_def
   /* Pointers to next and previous dentry with the same file handle,
      making a cyclic double linked chain.  */
   internal_dentry next, prev;
-
-  /* Contained directory entries (of type 'struct internal_dentry_def *').  */
-  varray dentries;
 
   /* Index of this dentry in parent's list of directory entries.  */
   unsigned int dentry_index;

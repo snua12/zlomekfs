@@ -235,7 +235,7 @@ cleanup_unused_dentries ()
 		      /* We may have added a dentry to it
 			 while CLEANUP_DENTRY_MUTEX was unlocked.  */
 		      if (dentry->fh->attr.type == FT_DIR
-			  && VARRAY_USED (dentry->dentries) > 0)
+			  && VARRAY_USED (dentry->fh->subdentries) > 0)
 			continue;
 
 		      /* We may have looked DENTRY up again
@@ -518,6 +518,9 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->attr = *attr;
   fh->ndentries = 0;
 
+  if (fh->attr.type == FT_DIR)
+    varray_create (&fh->subdentries, sizeof (internal_dentry), 16);
+
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
 
@@ -546,6 +549,9 @@ internal_fh_destroy (internal_fh fh, volume vol)
   if (fh->ndentries != 0)
     abort ();
 #endif
+
+  if (fh->attr.type == FT_DIR)
+    varray_destroy (&fh->subdentries);
 
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -635,14 +641,11 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->fh = fh;
   fh->ndentries++;
 
-  if (fh->attr.type == FT_DIR)
-    varray_create (&dentry->dentries, sizeof (dentry), 16);
-
   if (parent)
     {
       cleanup_dentry_insert_node (dentry);
-      dentry->dentry_index = VARRAY_USED (parent->dentries);
-      VARRAY_PUSH (parent->dentries, dentry, internal_dentry);
+      dentry->dentry_index = VARRAY_USED (parent->fh->subdentries);
+      VARRAY_PUSH (parent->fh->subdentries, dentry, internal_dentry);
       cleanup_dentry_delete_node (parent);
     }
 
@@ -699,14 +702,11 @@ internal_dentry_link (internal_fh fh, volume vol,
   dentry->last_use = time (NULL);
   dentry->heap_node = NULL;
 
-  if (fh->attr.type == FT_DIR)
-    varray_create (&dentry->dentries, sizeof (dentry), 16);
-
   if (parent)
     {
       cleanup_dentry_insert_node (dentry);
-      dentry->dentry_index = VARRAY_USED (parent->dentries);
-      VARRAY_PUSH (parent->dentries, dentry, internal_dentry);
+      dentry->dentry_index = VARRAY_USED (parent->fh->subdentries);
+      VARRAY_PUSH (parent->fh->subdentries, dentry, internal_dentry);
       cleanup_dentry_delete_node (parent);
     }
 
@@ -752,17 +752,15 @@ internal_dentry_destroy (internal_dentry dentry, volume vol)
       int i;
 
       /* Destroy subtree first.  */
-      for (i = VARRAY_USED (dentry->dentries) - 1; i >= 0; i--)
+      for (i = VARRAY_USED (dentry->fh->subdentries) - 1; i >= 0; i--)
 	{
 	  internal_dentry sdentry;
 
-	  sdentry = VARRAY_ACCESS (dentry->dentries, (unsigned int) i,
+	  sdentry = VARRAY_ACCESS (dentry->fh->subdentries, (unsigned int) i,
 				   internal_dentry);
 	  zfsd_mutex_lock (&sdentry->fh->mutex);
 	  internal_dentry_destroy (sdentry, vol);
 	}
-
-      varray_destroy (&dentry->dentries);
     }
 
   /* At this point, DENTRY is always a leaf.  */
@@ -773,10 +771,10 @@ internal_dentry_destroy (internal_dentry dentry, volume vol)
       CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
 
       /* Remove DENTRY from parent's directory entries.  */
-      top = VARRAY_TOP (dentry->parent->dentries, internal_dentry);
-      VARRAY_ACCESS (dentry->parent->dentries, dentry->dentry_index,
+      top = VARRAY_TOP (dentry->parent->fh->subdentries, internal_dentry);
+      VARRAY_ACCESS (dentry->parent->fh->subdentries, dentry->dentry_index,
 		     internal_dentry) = top;
-      VARRAY_POP (dentry->parent->dentries);
+      VARRAY_POP (dentry->parent->fh->subdentries);
       top->dentry_index = dentry->dentry_index;
 
       /* Delete from table searched by parent + name.  */
@@ -787,9 +785,10 @@ internal_dentry_destroy (internal_dentry dentry, volume vol)
 #endif
       htab_clear_slot (vol->dentry_htab_name, slot);
 
-      if (dentry->parent->parent		/* PARENT is not root */
-	  && VARRAY_USED (dentry->parent->dentries) == 0) /* and is a leaf */
+      if (dentry->parent->parent
+	  && VARRAY_USED (dentry->parent->fh->subdentries) == 0)
 	{
+	  /* PARENT is not root and is a leaf.  */
 	  cleanup_dentry_insert_node (dentry->parent);
 	}
     }
