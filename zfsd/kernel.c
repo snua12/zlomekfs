@@ -94,7 +94,7 @@ send_error_reply (thread *t, uint32_t request_id, int32_t status)
 
 /* Initialize kernel thread T.  */
 
-void
+static void
 kernel_worker_init (thread *t)
 {
   dc_create (&t->dc_call, ZFS_MAX_REQUEST_LEN);
@@ -102,7 +102,7 @@ kernel_worker_init (thread *t)
 
 /* Cleanup kernel thread DATA.  */
 
-void
+static void
 kernel_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
