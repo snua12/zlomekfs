@@ -1768,6 +1768,8 @@ zfs_write_retry:
 		  if (!append_interval (vol, dentry->fh,
 					INTERVAL_TREE_MODIFIED, start, end))
 		    vol->flags |= VOLUME_DELETE;
+
+		  varray_destroy (&blocks);
 		}
 	    }
 	}
