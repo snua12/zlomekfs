@@ -736,6 +736,73 @@ internal_dentry_link (internal_fh fh, volume vol,
   return dentry;
 }
 
+/* Move internal dentry DENTRY to be a subdentry of DIR with name NAME
+   on volume VOL.  Return true on success.  */
+
+bool
+internal_dentry_move (internal_dentry dentry, volume vol,
+		      internal_dentry dir, char *name)
+{
+  void **slot;
+  internal_dentry tmp;
+  internal_dentry top;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!dentry->parent)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
+
+  /* Check whether we are not moving DENTRY to its subtree.  */
+  for (tmp = dir; tmp; tmp = tmp->parent)
+    if (tmp == dentry)
+      return false;
+
+  /* Delete DENTRY from parent's directory entries.  */
+  top = VARRAY_TOP (dentry->parent->fh->subdentries, internal_dentry);
+  VARRAY_ACCESS (dentry->parent->fh->subdentries, dentry->dentry_index,
+		 internal_dentry) = top;
+  VARRAY_POP (dentry->parent->fh->subdentries);
+  top->dentry_index = dentry->dentry_index;
+
+  /* Delete from table searched by parent + name.  */
+  slot = htab_find_slot (vol->dentry_htab_name, dentry, NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (vol->dentry_htab_name, slot);
+
+  if (dentry->parent->parent
+      && VARRAY_USED (dentry->parent->fh->subdentries) == 0)
+    {
+      /* PARENT is not root and is a leaf.  */
+      cleanup_dentry_insert_node (dentry->parent);
+    }
+
+  free (dentry->name);
+  dentry->name = xstrdup (name);
+  dentry->parent = dir;
+
+  /* Insert DENTRY to DIR.  */
+  dentry->dentry_index = VARRAY_USED (dir->fh->subdentries);
+  VARRAY_PUSH (dir->fh->subdentries, dentry, internal_dentry);
+  cleanup_dentry_delete_node (dir);
+
+  /* Insert to table searched by parent + name.  */
+  slot = htab_find_slot (vol->dentry_htab_name, dentry, INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
+  *slot = dentry;
+
+  return true;
+}
+
 /* Destroy internal dentry DENTRY on volume VOL.  */
 
 void

@@ -1309,21 +1309,26 @@ zfs_rename_retry:
     {
       internal_dentry dentry;
 
-      /* Delete internal file handle in htab because it is outdated.  */
-      /* FIXME? move the internal_fh to another directory? */
-      dentry = dentry_lookup_name (vol, dentry1, from_name->str);
-      if (dentry)
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  internal_dentry_destroy (dentry, vol);
-	}
+      /* Delete the dentry which is in the place where we are moving to.  */
       dentry = dentry_lookup_name (vol, dentry2, to_name->str);
       if (dentry)
 	{
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 	  internal_dentry_destroy (dentry, vol);
+	}
+
+      /* Move the dentry.  */
+      dentry = dentry_lookup_name (vol, dentry1, from_name->str);
+      if (!dentry)
+	r = ENOENT;
+      else
+	{
+	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+	  if (!internal_dentry_move (dentry, vol, dentry2, to_name->str))
+	    r = EINVAL;
+	  zfsd_mutex_unlock (&dentry->fh->mutex);
 	}
     }
 
