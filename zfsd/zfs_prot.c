@@ -524,6 +524,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
   if (nod)
     {
       /* FIXME: do the key authorization */
+      nod->fd = fd_data->fd;
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
       zfsd_cond_broadcast (&fd_data->cond);
