@@ -376,6 +376,9 @@ read_local_cluster_config (string *path)
   else
     {
       message (0, stderr, "%s:1: Wrong format of line\n", file);
+      free (file);
+      fclose (f);
+      return false;
     }
   free (file);
   fclose (f);
