@@ -1779,6 +1779,162 @@ zfs_write_retry:
   return r;
 }
 
+/* Read complete contents of local directory FH and store it to ENTRIES.  */
+
+int32_t
+full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
+{
+  int32_t r;
+  zfs_cap cap;
+  internal_dentry dentry;
+  internal_cap icap;
+  volume vol;
+  dir_list list;
+
+#ifdef ENABLE_CHECKING
+  if (VIRTUAL_FH_P (*fh))
+    abort ();
+#endif
+
+  cap.fh = *fh;
+  cap.flags = O_RDONLY;
+
+  /* Open directory.  */
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  r = local_open (&cap, icap, O_RDONLY, dentry, vol);
+  if (r != ZFS_OK)
+    {
+      put_capability (icap, dentry->fh, NULL);
+      release_dentry (dentry);
+      return r;
+    }
+  release_dentry (dentry);
+
+  /* Read directory.  */
+  entries->htab = htab_create (32, filldir_htab_hash,
+			       filldir_htab_eq, filldir_htab_del, NULL);
+  entries->last_cookie = 0;
+
+  do
+    {
+      r = find_capability (&cap, &icap, &vol, &dentry, NULL);
+      if (r != ZFS_OK)
+	return r;
+
+      list.n = 0;
+      list.eof = false;
+      list.buffer = entries;
+      r = local_readdir (&list, icap, dentry, NULL, entries->last_cookie,
+			 NULL, vol, &filldir_htab);
+      zfsd_mutex_unlock (&vol->mutex);
+      if (r != ZFS_OK)
+	{
+	  local_close (icap);
+	  put_capability (icap, dentry->fh, NULL);
+	  release_dentry (dentry);
+	  return r;
+	}
+      release_dentry (dentry);
+    }
+  while (list.eof == 0);
+
+  /* Close directory.  */
+  r = find_capability (&cap, &icap, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  zfsd_mutex_unlock (&vol->mutex);
+  r = local_close (icap);
+  put_capability (icap, dentry->fh, NULL);
+  release_dentry (dentry);
+  return r;
+}
+
+/* Read complete contents of remote directory FH and store it to ENTRIES.  */
+
+int32_t
+full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
+{
+  int32_t r;
+  zfs_cap cap;
+  internal_dentry dentry;
+  internal_cap icap;
+  volume vol;
+  dir_list list;
+  readdir_data data;
+
+#ifdef ENABLE_CHECKING
+  if (VIRTUAL_FH_P (*fh))
+    abort ();
+#endif
+
+  cap.fh = *fh;
+  cap.flags = O_RDONLY;
+
+  /* Open directory.  */
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+  memcpy (cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
+
+  r = remote_open (&icap->master_cap, icap, O_RDONLY, dentry, vol);
+  if (r != ZFS_OK)
+    {
+      put_capability (icap, dentry->fh, NULL);
+      release_dentry (dentry);
+      return r;
+    }
+  release_dentry (dentry);
+
+  /* Read directory.  */
+  entries->htab = htab_create (32, filldir_htab_hash,
+			       filldir_htab_eq, filldir_htab_del, NULL);
+  entries->last_cookie = 0;
+
+  do
+    {
+      r = find_capability (&cap, &icap, &vol, &dentry, NULL);
+      if (r != ZFS_OK)
+	return r;
+
+      list.n = 0;
+      list.eof = false;
+      list.buffer = entries;
+      data.written = 0;
+      data.count = ZFS_MAXDATA;
+      r = remote_readdir (&list, icap, entries->last_cookie,
+			  &data, vol, &filldir_htab);
+      release_dentry (dentry);
+      if (r != ZFS_OK)
+	{
+	  int32_t r2;
+
+	  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+	  if (r2 != ZFS_OK)
+	    return r2;
+
+	  remote_close (icap, vol);
+	  put_capability (icap, dentry->fh, NULL);
+	  release_dentry (dentry);
+	  return r;
+	}
+    }
+  while (list.eof == 0);
+
+  /* Close directory.  */
+  r = find_capability (&cap, &icap, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  r = remote_close (icap, vol);
+  put_capability (icap, dentry->fh, NULL);
+  release_dentry (dentry);
+  return r;
+}
+
 /* Read as many bytes as possible of block of local file CAP starting at OFFSET
    which is COUNT bytes long, store the data to BUFFER and the number of bytes
    read to RCOUNT.  */

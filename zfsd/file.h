@@ -104,6 +104,8 @@ extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			 uint64_t offset, uint32_t count, bool update);
 extern int32_t zfs_write (write_res *res, write_args *args);
 
+extern int32_t full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries);
+extern int32_t full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries);
 extern int32_t full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				uint64_t offset, uint32_t count);
 extern int32_t full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
