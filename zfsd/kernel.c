@@ -456,10 +456,10 @@ bool
 kernel_start (void)
 {
   /* Open connection with kernel.  */
-  kernel_fd = open (kernel_file_name, O_RDWR);
+  kernel_fd = open (kernel_file_name.str, O_RDWR);
   if (kernel_fd < 0)
     {
-      message (-1, stderr, "%s: open(): %s\n", kernel_file_name,
+      message (-1, stderr, "%s: open(): %s\n", kernel_file_name.str,
 	       strerror (errno));
       return false;
     }

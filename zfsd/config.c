@@ -45,13 +45,13 @@
 #endif
 
 /* File used to communicate with kernel.  */
-char *kernel_file_name;
+string kernel_file_name;
 
 /* Directory with node configuration. */
-char *node_config;
+string node_config;
 
 /* File with private key.  */
-static char *private_key;
+static string private_key;
 
 /* Process one line of configuration file.  Return the length of value.  */
 
@@ -255,7 +255,7 @@ set_node_name (void)
     return;
 
   node_name.len = strlen (un.nodename);
-  set_str_with_length (&node_name.str, un.nodename, node_name.len);
+  set_string_with_length (&node_name, un.nodename, node_name.len);
   message (1, stderr, "Autodetected node name: '%s'\n", node_name.str);
 }
 
@@ -300,20 +300,20 @@ set_default_uid_gid (void)
 }
 
 static bool
-read_private_key (ATTRIBUTE_UNUSED const char *filename)
+read_private_key (ATTRIBUTE_UNUSED string *filename)
 {
 
   return true;
 }
 
 static bool
-read_local_cluster_config (const char *path)
+read_local_cluster_config (string *path)
 {
   char *volumes;
   FILE *f;
   int line_num;
 
-  if (path == NULL || *path == 0)
+  if (path->str == 0)
     {
       message (0, stderr,
 	       "The directory with configuration of local node is not specified"
@@ -322,7 +322,7 @@ read_local_cluster_config (const char *path)
     }
   message (2, stderr, "Reading configuration of local node\n");
 
-  volumes = xstrconcat (2, path, "/volume_info");
+  volumes = xstrconcat (2, path->str, "/volume_info");
   f = fopen (volumes, "rt");
   if (!f)
     {
@@ -483,12 +483,12 @@ read_config_file (const char *file)
 	      if (strncasecmp (key, "nodename", 9) == 0)
 		{
 		  node_name.len = value_len;
-		  set_str_with_length (&node_name.str, value, value_len);
+		  set_string_with_length (&node_name, value, value_len);
 		  message (1, stderr, "NodeName = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "privatekey", 11) == 0)
 		{
-		  set_str_with_length (&private_key, value, value_len);
+		  set_string_with_length (&private_key, value, value_len);
 		  message (1, stderr, "PrivateKey = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "nodeconfig", 11) == 0
@@ -496,7 +496,7 @@ read_config_file (const char *file)
 		       || strncasecmp (key, "localconfig", 12) == 0
 		       || strncasecmp (key, "localconfiguration", 19) == 0)
 		{
-		  set_str_with_length (&node_config, value, value_len);
+		  set_string_with_length (&node_config, value, value_len);
 		  message (1, stderr, "NodeConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)
@@ -606,9 +606,9 @@ read_config_file (const char *file)
       return false;
     }
 
-  if (!private_key)
-    private_key = xstrconcat (3, node_config, "/", node_name);
-  if (!read_private_key (private_key))
+  if (!private_key.str)
+    append_file_name (&private_key, &node_config, node_name.str, node_name.len);
+  if (!read_private_key (&private_key))
     return false;
   return true;
 }
@@ -620,7 +620,7 @@ read_cluster_config (void)
 {
   invalidate_config ();
 
-  if (!read_local_cluster_config (node_config))
+  if (!read_local_cluster_config (&node_config))
     return false;
 
   if (!read_global_cluster_config ())

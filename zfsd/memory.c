@@ -256,23 +256,12 @@ xstringconcat_varray (string *dst, varray *va)
   *d = 0;
 }
 
-/* Set *DESTP to a new string SRC whose length is LENGTH.  */
+/* Set a copy of SRC to DST.  */
 
 void
-set_str_with_length (char **destp, const char *src, int len)
+set_str (string *dst, const char *src)
 {
-  if (*destp)
-    free (*destp);
-
-  *destp = (char *) xmemdup (src, len + 1);
-}
-
-/* Set *DESTP to a new string SRC.  */
-
-void
-set_str (char **destp, const char *src)
-{
-  set_str_with_length (destp, src, strlen (src));
+  set_string_with_length (dst, src, strlen (src));
 }
 
 /* Set a copy of SRC to DST.  */
