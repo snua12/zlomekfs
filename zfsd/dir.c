@@ -1606,6 +1606,7 @@ local_readlink (read_link_res *res, internal_fh fh, volume vol)
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   path = build_local_path (vol, fh);
+  zfsd_mutex_unlock (&vol->mutex);
   r = readlink (path, buf, ZFS_MAXDATA);
   free (path);
   if (r < 0)
@@ -1626,6 +1627,7 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
@@ -1633,9 +1635,10 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_readlink_client (t, &fh->master_fh, vol->master, &fd);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_readlink_client (t, &fh->master_fh, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -1683,7 +1686,6 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
     abort ();
 
   zfsd_mutex_unlock (&ifh->mutex);
-  zfsd_mutex_unlock (&vol->mutex);
 
   return r;
 }

@@ -175,6 +175,7 @@ remote_close (internal_cap cap, volume vol)
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
@@ -182,9 +183,10 @@ remote_close (internal_cap cap, volume vol)
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_close_client (t, &cap->master_cap, vol->master, &fd);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_close_client (t, &cap->master_cap, nod, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -417,6 +419,7 @@ local_open (zfs_cap *cap, internal_cap icap, unsigned int flags,
   int r;
 
   r = capability_open (icap, flags, fh, vol);
+  zfsd_mutex_unlock (&vol->mutex);
   if (r != ZFS_OK)
     return r;
 
@@ -435,15 +438,17 @@ remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   args.file = icap->master_cap.fh;
   args.flags = icap->master_cap.flags | flags;
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_open_client (t, &args, vol->master, &fd);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_open_client (t, &args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -508,7 +513,6 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
 
   zfsd_mutex_unlock (&icap->mutex);
   zfsd_mutex_unlock (&ifh->mutex);
-  zfsd_mutex_unlock (&vol->mutex);
   return r;
 }
 
@@ -554,18 +558,23 @@ zfs_close (zfs_cap *cap)
   if (icap->busy == 1)
     {
       if (vol->local_path)
-	r = local_close (icap);
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  r = local_close (icap);
+	}
       else if (vol->master != this_node)
 	r = remote_close (icap, vol);
       else
 	abort ();
     }
   else
-    r = ZFS_OK;
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      r = ZFS_OK;
+    }
 
   put_capability (icap);
   zfsd_mutex_unlock (&cap_mutex);
-  zfsd_mutex_unlock (&vol->mutex);
   return r;
 }
 
@@ -775,6 +784,7 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   args.cap = cap->master_cap;
   args.cookie = data->cookie;
@@ -782,9 +792,10 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_readdir_client (t, &args, vol->master, &fd);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_readdir_client (t, &args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -822,6 +833,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   int r;
   char *status_pos, *cur_pos;
   int status_len, cur_len;
+  bool local;
 
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -866,6 +878,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
 
   if (!ifh || vol->local_path)
     {
+      local = true;
       encode_dir_list (dc, &data.list);
       r = local_readdir (dc, icap, ifh, vd, &data, vol);
       if (vd)
@@ -880,6 +893,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
     }
   else if (vol->master != this_node)
     {
+      local = false;
       r = remote_readdir (dc, icap, &data, vol);
       if (vd)
 	{
@@ -888,7 +902,6 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
 	}
       if (ifh)
 	zfsd_mutex_unlock (&ifh->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
     }
   else
     abort ();
@@ -901,7 +914,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   encode_status (dc, r);
   if (r == ZFS_OK)
     {
-      if (!ifh || vol->local_path)
+      if (local)
 	encode_dir_list (dc, &data.list);
       dc->current = cur_pos;
       dc->cur_length = cur_len;
@@ -925,8 +938,12 @@ local_read (DC *dc, internal_cap cap, internal_fh fh, uint64_t offset,
     {
       r = capability_open (cap, 0, fh, vol);
       if (r != ZFS_OK)
-	return r;
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return r;
+	}
     }
+  zfsd_mutex_unlock (&vol->mutex);
 
   r = lseek (cap->fd, offset, SEEK_SET);
   if (r < 0)
@@ -962,6 +979,7 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   args.cap = cap->master_cap;
   args.offset = offset;
@@ -969,9 +987,10 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_read_client (t, &args, vol->master, &fd);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_read_client (t, &args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -1040,7 +1059,6 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
   else
     abort ();
   zfsd_mutex_unlock (&ifh->mutex);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&icap->mutex);
 
   return r;
@@ -1059,8 +1077,12 @@ local_write (write_res *res, internal_cap cap, internal_fh fh, uint64_t offset,
     {
       r = capability_open (cap, 0, fh, vol);
       if (r != ZFS_OK)
-	return r;
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return r;
+	}
     }
+  zfsd_mutex_unlock (&vol->mutex);
 
   r = lseek (cap->fd, offset, SEEK_SET);
   if (r < 0)
@@ -1089,14 +1111,16 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   args->cap = cap->master_cap;
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_write_client (t, args, vol->master, &fd);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = zfs_proc_write_client (t, args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -1149,7 +1173,6 @@ zfs_write (write_res *res, write_args *args)
   else
     abort ();
   zfsd_mutex_unlock (&ifh->mutex);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&icap->mutex);
 
   return r;
