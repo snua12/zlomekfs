@@ -219,7 +219,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   int32_t r;
   unsigned int i, j;
   uint64_t version;
-  bool changed;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -255,7 +254,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
     abort ();
 #endif
 
-  if (!conflict_p && dentry->fh->meta.master_version != remote_md5.version)
+  if (dentry->fh->attr.version == dentry->fh->meta.master_version
+      && dentry->fh->meta.master_version != remote_md5.version)
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -339,7 +339,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 		     < remote_md5.offset[i]))
 	    j++;
 
-	  changed = false;
 	  if ((VARRAY_ACCESS (*blocks, j, interval).start
 	       <= remote_md5.offset[i])
 	      && (remote_md5.offset[i] + remote_md5.length[i]
@@ -352,8 +351,11 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 				    conflict_p ? NULL : &version);
 	      if (r == ZFS_CHANGED)
 		{
-		  changed = true;
 		  r = update_file_clear_updated_tree (&cap->fh, version);
+		  if (r != ZFS_OK)
+		    RETURN_INT (r);
+
+		  RETURN_INT (ZFS_CHANGED);
 		}
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
@@ -372,8 +374,11 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 				    conflict_p ? NULL : &version);
 	      if (r == ZFS_CHANGED)
 		{
-		  changed = true;
-		  r = ZFS_OK;
+		  r = update_file_clear_updated_tree (&cap->fh, version);
+		  if (r != ZFS_OK)
+		    RETURN_INT (r);
+
+		  RETURN_INT (ZFS_CHANGED);
 		}
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
@@ -430,9 +435,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
-
-	  if (changed)
-	    return ZFS_CHANGED;
 	}
     }
   *index = j;
