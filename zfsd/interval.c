@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 #include "pthread.h"
@@ -41,13 +39,6 @@
 
 /* Number of intervals being read/written using 1 syscall.  */
 #define INTERVAL_COUNT 1024
-
-/* Structure of an interval used by interval_tree_read/interval_tree_write.  */
-typedef struct interval_def
-{
-  uint64_t start;	/* start of interval */
-  uint64_t end;		/* end of interval */
-} interval;
 
 /* Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
 
@@ -245,33 +236,19 @@ interval_tree_successor (interval_tree tree, uint64_t key)
   return splay_tree_successor (tree->splay, key);
 }
 
-/* Read the contents of interval tree TREE from file descriptor FD.
+/* Read N intervals of interval tree TREE from file descriptor FD.
    Position in FD should be at the beginning.  */
 
 bool
-interval_tree_read (interval_tree tree, int fd)
+interval_tree_read (interval_tree tree, int fd, uint64_t n)
 {
-  struct stat st;
   interval intervals[INTERVAL_COUNT];
-  uint64_t n;
   int i, block;
   bool r;
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
-  if (fstat (fd, &st) < 0)
-    {
-      message (2, stderr, "fstat: %s\n", strerror (errno));
-      return false;
-    }
-
-  if (st.st_size % sizeof (interval) != 0)
-    {
-      message (2, stderr, "Interval list is not aligned\n");
-      return false;
-    }
-
-  for (n = st.st_size / sizeof (interval); n > 0; n -= block)
+  for (; n > 0; n -= block)
     {
       block = n > INTERVAL_COUNT ? INTERVAL_COUNT : n;
 
