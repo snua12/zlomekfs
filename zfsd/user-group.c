@@ -610,6 +610,7 @@ group_mapping_create (string *zfs_group, string *node_group, node nod)
   map = (id_mapping) xmalloc (sizeof (*map));
   map->zfs_id = g->id;
   map->node_id = grp->gr_gid;
+  map->marked = false;
 
   if (!*slot1)
     *slot1 = map;
