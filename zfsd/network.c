@@ -620,7 +620,7 @@ create_network_threads ()
 
   zfsd_mutex_lock (&network_pool.idle.mutex);
   zfsd_mutex_lock (&network_pool.empty.mutex);
-  for (i = 0; i < /* FIXME: */ 10; i++)
+  for (i = 0; i < /* FIXME: */ 5; i++)
     {
       create_idle_thread (&network_pool, network_worker, network_worker_init);
     }

@@ -293,7 +293,7 @@ create_client_threads ()
 
   zfsd_mutex_lock (&client_pool.idle.mutex);
   zfsd_mutex_lock (&client_pool.empty.mutex);
-  for (i = 0; i < /* FIXME: */ 10; i++)
+  for (i = 0; i < /* FIXME: */ 5; i++)
     {
       create_idle_thread (&client_pool, client_worker, client_worker_init);
     }
