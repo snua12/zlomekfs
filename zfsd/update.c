@@ -1128,7 +1128,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	      if (r != ZFS_OK)
 		goto out;
 
-	      if (ZFS_FH_EQ (local_res.file, remote_res.file))
+	      if (ZFS_FH_EQ (meta.master_fh, remote_res.file))
 		{
 		  bool same;
 
