@@ -157,10 +157,13 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 	if (!inode)
 		return 1;
 
-	if ((ZFS_I(inode)->flags & NEED_REVALIDATE) || time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
-		fattr attr;
-
+	if (ZFS_I(inode)->flags & NEED_REVALIDATE) {
 		ZFS_I(inode)->flags &= ~NEED_REVALIDATE;
+		return 0;
+	}
+
+	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
+		fattr attr;
 
 		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh))
 			return 0;
