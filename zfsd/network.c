@@ -453,15 +453,18 @@ out:
 /* Function which gets a request and passes it to some network thread.
    It also regulates the number of network threads.  */
 
-static void
-network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
+static bool
+network_dispatch (network_fd_data_t *fd_data)
 {
+  DC *dc = &fd_data->dc[0];
   size_t index;
   direction dir;
-  uint32_t from_sid;
+
+  CHECK_MUTEX_LOCKED (&fd_data->mutex);
 
   if (verbose >= 3)
     print_dc (dc, stderr);
+
 #ifdef ENABLE_CHECKING
   if (dc->cur_length != sizeof (uint32_t))
     abort ();
@@ -470,7 +473,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
   if (!decode_direction (dc, &dir))
     {
       /* Invalid direction or packet too short, FIXME: log it.  */
-      return;
+      return false;
     }
 
   switch (dir)
@@ -488,22 +491,19 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    if (!decode_request_id (dc, &request_id))
 	      {
 		/* TODO: log too short packet.  */
-		break;
+		return false;
 	      }
 	    message (2, stderr, "REPLY: ID=%u\n", request_id);
-	    zfsd_mutex_lock (&fd_data->mutex);
 	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
 					     &request_id,
 					     WAITING4REPLY_HASH (request_id),
 					     NO_INSERT);
 	    if (!slot)
 	      {
-		recycle_dc_to_fd_data (dc, fd_data);
-		zfsd_mutex_unlock (&fd_data->mutex);
 		/* TODO: log request was not found.  */
 		message (1, stderr, "Request ID %d has not been found.\n",
 			 request_id);
-		break;
+		return false;
 	      }
 
 	    data = *(waiting4reply_data **) slot;
@@ -513,7 +513,6 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
 	    pool_free (fd_data->waiting4reply_pool, data);
-	    zfsd_mutex_unlock (&fd_data->mutex);
 
 	    /* Let the thread run again.  */
 	    semaphore_up (&t->sem, 1);
@@ -522,10 +521,6 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
       case DIR_REQUEST:
 	/* Dispatch request.  */
-	zfsd_mutex_lock (&fd_data->mutex);
-	from_sid = fd_data->sid;
-	zfsd_mutex_unlock (&fd_data->mutex);
-
 	zfsd_mutex_lock (&network_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
@@ -539,10 +534,11 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	  abort ();
 #endif
 	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
-	network_pool.threads[index].t.from_sid = from_sid;
+	network_pool.threads[index].t.from_sid = fd_data->sid;
 	network_pool.threads[index].t.u.network.dc = *dc;
 	network_pool.threads[index].t.u.network.fd_data = fd_data;
-	network_pool.threads[index].t.u.network.generation = generation;
+	network_pool.threads[index].t.u.network.generation
+	  = fd_data->generation;
 
 	/* Let the thread run.  */
 	semaphore_up (&network_pool.threads[index].t.sem, 1);
@@ -555,6 +551,8 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	   function. It is here to make compiler happy.  */
 	abort ();
     }
+
+  return true;
 }
 
 /* Main function of the main (i.e. listening) network thread.  */
@@ -722,21 +720,17 @@ network_main (ATTRIBUTE_UNUSED void *data)
 			{
 			  if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
 			    {
-			      unsigned int generation;
-			      DC *dc;
-
-			      zfsd_mutex_lock (&fd_data->mutex);
-			      generation = fd_data->generation;
-			      dc = &fd_data->dc[0];
-			      fd_data->read = 0;
-			      fd_data->busy++;
-			      fd_data->ndc--;
-			      if (fd_data->ndc > 0)
-				fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-			      zfsd_mutex_unlock (&fd_data->mutex);
-
 			      /* We have read complete request, dispatch it.  */
-			      network_dispatch (fd_data, dc, generation);
+			      zfsd_mutex_lock (&fd_data->mutex);
+			      fd_data->read = 0;
+			      if (network_dispatch (fd_data))
+				{
+				  fd_data->busy++;
+				  fd_data->ndc--;
+				  if (fd_data->ndc > 0)
+				    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
+				}
+			      zfsd_mutex_unlock (&fd_data->mutex);
 			    }
 			  else
 			    {

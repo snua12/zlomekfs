@@ -227,14 +227,18 @@ out:
 /* Function which gets a request and passes it to some kernel thread.
    It also regulates the number of kernel threads.  */
 
-static void
-kernel_dispatch (DC *dc)
+static bool
+kernel_dispatch ()
 {
+  DC *dc = &kernel_data.dc[0];
   size_t index;
   direction dir;
 
+  CHECK_MUTEX_LOCKED (&kernel_data.mutex);
+
   if (verbose >= 3)
     print_dc (dc, stderr);
+
 #ifdef ENABLE_CHECKING
   if (dc->cur_length != sizeof (uint32_t))
     abort ();
@@ -243,7 +247,7 @@ kernel_dispatch (DC *dc)
   if (!decode_direction (dc, &dir))
     {
       /* Invalid direction or packet too short, FIXME: log it.  */
-      return;
+      return false;
     }
 
   switch (dir)
@@ -279,6 +283,8 @@ kernel_dispatch (DC *dc)
 	   function. It is here to make compiler happy.  */
 	abort ();
     }
+
+  return true;
 }
 
 /* Main function of the main (i.e. listening) kernel thread.  */
@@ -371,19 +377,17 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 		{
 		  if (kernel_data.dc[0].max_length <= kernel_data.dc[0].size)
 		    {
-		      DC *dc;
-
-		      zfsd_mutex_lock (&kernel_data.mutex);
-		      dc = &kernel_data.dc[0];
-		      kernel_data.read = 0;
-		      kernel_data.busy++;
-		      kernel_data.ndc--;
-		      if (kernel_data.ndc > 0)
-			kernel_data.dc[0] = kernel_data.dc[kernel_data.ndc];
-		      zfsd_mutex_unlock (&kernel_data.mutex);
-
 		      /* We have read complete request, dispatch it.  */
-		      kernel_dispatch (dc);
+		      zfsd_mutex_lock (&kernel_data.mutex);
+		      kernel_data.read = 0;
+		      if (kernel_dispatch ())
+			{
+			  kernel_data.busy++;
+			  kernel_data.ndc--;
+			  if (kernel_data.ndc > 0)
+			    kernel_data.dc[0] = kernel_data.dc[kernel_data.ndc];
+			}
+		      zfsd_mutex_unlock (&kernel_data.mutex);
 		    }
 		  else
 		    {
