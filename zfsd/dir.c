@@ -123,6 +123,7 @@ recursive_unlink (const char *path, volume vol)
 {
   internal_dentry dentry;
   zfs_fh fh;
+  bool r;
   struct stat st;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -133,7 +134,10 @@ recursive_unlink (const char *path, volume vol)
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     {
       if (unlink (path) != 0)
-	return errno == ENOENT;
+	{
+	  r = errno == ENOENT;
+	  goto out;
+	}
     }
   else
     {
@@ -142,22 +146,36 @@ recursive_unlink (const char *path, volume vol)
 
       d = opendir (path);
       if (!d)
-	return errno == ENOENT;
+	{
+	  r = errno == ENOENT;
+	  goto out;
+	}
 
       while ((de = readdir (d)) != NULL)
 	{
 	  char *new_path;
 
 	  new_path = xstrconcat (3, path, "/", de->d_name);
-	  recursive_unlink (new_path, vol);
+	  r = recursive_unlink (new_path, vol);
 	  free (new_path);
+	  if (!r)
+	    {
+	      closedir (d);
+	      return false;
+	    }
 	}
       closedir (d);
 
       if (rmdir (path) != 0)
-	return errno == ENOENT;
+	{
+	  r = errno == ENOENT;
+	  goto out;
+	}
     }
 
+  r = true;
+
+out:
   /* Destroy dentry associated with the file.  */
   fh.sid = this_node->id;
   fh.vid = vol->id;
@@ -171,7 +189,7 @@ recursive_unlink (const char *path, volume vol)
       internal_dentry_destroy (dentry, vol);
     }
 
-  return true;
+  return r;
 }
 
 /* Check whether we can perform file system change operation on NAME in
