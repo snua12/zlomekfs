@@ -1155,7 +1155,7 @@ local_read (uint32_t *rcount, void *buffer, internal_cap cap,
    on volume VOL.
    Store data to BUFFER and count to RCOUNT.  */
 
-static int32_t
+int32_t
 remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 	     uint64_t offset, uint32_t count, volume vol)
 {
@@ -1254,7 +1254,7 @@ zfs_read_retry:
 /* Write DATA to offset OFFSET of local file with capability CAP
    and file handle FH on volume VOL.  */
 
-static int32_t
+int32_t
 local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 	     uint64_t offset, data_buffer *data, volume vol)
 {
