@@ -158,6 +158,8 @@ int main (int argc, char **argv)
 	printf (" modified");
       if (meta.flags & METADATA_SHADOW)
 	printf (" shadow");
+      if (meta.flags & METADATA_SHADOW_TREE)
+	printf (" shadow_tree");
       printf ("\n");
 
       printf (" Generation: %" PRIu32 "\n", meta.gen);
