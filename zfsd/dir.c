@@ -758,8 +758,6 @@ zfs_getattr_retry:
     }
 
   internal_dentry_unlock (vol, dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -953,8 +951,6 @@ zfs_setattr_retry:
     }
 
   internal_dentry_unlock (vol, dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1272,8 +1268,6 @@ zfs_lookup_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1473,8 +1467,6 @@ zfs_mkdir_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1645,8 +1637,6 @@ zfs_rmdir_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1946,29 +1936,21 @@ zfs_rename_retry:
 	  if (!inc_local_version (vol, to_dentry->fh))
 	    vol->delete_p = true;
 	}
-    }
-  else
-    {
-      if (tmp_from.ino != tmp_to.ino)
-	{
-	  from_dentry = dentry_lookup (&tmp_from);
-#ifdef ENABLE_CHECKING
-	  if (!from_dentry)
-	    abort ();
-#endif
-	}
-      else
-	from_dentry = to_dentry;
+      
+      if (to_dentry != from_dentry)
+	release_dentry (from_dentry);
     }
 
   if (path)
     free (path);
 
   internal_dentry_unlock (vol, to_dentry);
-  if (to_dentry != from_dentry)
-    internal_dentry_unlock (vol, from_dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
+  if (tmp_from.ino != tmp_to.ino)
+    {
+      r2 = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, false);
+      if (r2 == ZFS_OK)
+	internal_dentry_unlock (vol, from_dentry);
+    }
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2210,26 +2192,18 @@ zfs_link_retry:
 	  if (!inc_local_version (vol, dir_dentry->fh))
 	    vol->delete_p = true;
 	}
-    }
-  else
-    {
-      if (tmp_from.ino != tmp_dir.ino)
-	{
-	  from_dentry = dentry_lookup (&tmp_from);
-#ifdef ENABLE_CHECKING
-	  if (!from_dentry)
-	    abort ();
-#endif
-	}
-      else
-	from_dentry = dir_dentry;
+
+      if (dir_dentry != from_dentry)
+	release_dentry (from_dentry);
     }
 
   internal_dentry_unlock (vol, dir_dentry);
-  if (dir_dentry != from_dentry)
-    internal_dentry_unlock (vol, from_dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
+  if (tmp_from.ino != tmp_dir.ino)
+    {
+      r2 = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, false);
+      if (r2 == ZFS_OK)
+	internal_dentry_unlock (vol, from_dentry);
+    }
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2419,8 +2393,6 @@ zfs_unlink_retry:
     free (path);
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2599,8 +2571,6 @@ zfs_readlink_retry:
 #endif
 
   internal_dentry_unlock (vol, dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2803,8 +2773,6 @@ zfs_symlink_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -3010,8 +2978,6 @@ zfs_mknod_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -3265,8 +3231,6 @@ zfs_hardlinks_retry:
 #endif
 
   internal_dentry_unlock (vol, dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {

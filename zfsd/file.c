@@ -534,8 +534,6 @@ zfs_create_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -764,10 +762,6 @@ zfs_open_retry:
     }
 
   internal_cap_unlock (vol, dentry, vd);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
-  if (VIRTUAL_FH_P (tmp_cap.fh))
-    zfsd_mutex_unlock (&vd_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -887,10 +881,6 @@ zfs_close_retry:
     put_capability (icap, dentry->fh, vd);
 
   internal_cap_unlock (vol, dentry, vd);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
-  if (VIRTUAL_FH_P (tmp_cap.fh))
-    zfsd_mutex_unlock (&vd_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1582,10 +1572,6 @@ zfs_readdir_retry:
 #endif
 
       internal_cap_unlock (vol, dentry, vd);
-      zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_unlock (&fh_mutex);
-      if (VIRTUAL_FH_P (tmp_cap.fh))
-	zfsd_mutex_unlock (&vd_mutex);
     }
 
   if (r == ZFS_STALE && retry < 1)
@@ -1889,8 +1875,6 @@ zfs_read_retry:
 #endif
 
   internal_cap_unlock (vol, dentry, NULL);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2137,8 +2121,6 @@ zfs_write_retry:
     }
 
   internal_cap_unlock (vol, dentry, NULL);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {

@@ -537,8 +537,6 @@ out2:
 out:
   put_capability (icap, dentry->fh, NULL);
   internal_cap_unlock (vol, dentry, NULL);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
   return r;
 }
 

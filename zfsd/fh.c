@@ -979,8 +979,9 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
 	   (void *) dentry->fh, (unsigned long) pthread_self (),
 	   __FILE__, __LINE__);
 
-  dentry->fh->users--;
   vol->n_locked_fhs--;
+  zfsd_mutex_unlock (&vol->mutex);
+  dentry->fh->users--;
   clear_owned (dentry->fh);
   if (dentry->fh->users == 0)
     {
@@ -997,6 +998,7 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
     }
   else
     release_dentry (dentry);
+  zfsd_mutex_unlock (&fh_mutex);
 }
 
 /* Lock 2 dentries on volume *VOLP, lock *DENTRY1P to level LEVEL1 and
@@ -1056,9 +1058,6 @@ out1:
 #endif
 
 	  internal_dentry_unlock (*volp, *dentry1p);
-	  zfsd_mutex_unlock (&(*volp)->mutex);
-	  zfsd_mutex_unlock (&fh_mutex);
-
 	  return r;
 	}
 
@@ -1093,9 +1092,6 @@ out2:
 #endif
 
 	  internal_dentry_unlock (*volp, *dentry2p);
-	  zfsd_mutex_unlock (&(*volp)->mutex);
-	  zfsd_mutex_unlock (&fh_mutex);
-
 	  return r;
 	}
 
