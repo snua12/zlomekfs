@@ -48,7 +48,7 @@
 #include "pthread.h"
 #include "alloc-pool.h"
 
-typedef uint64_t fibheapkey_t;
+typedef uint32_t fibheapkey_t;
 #define FIBHEAPKEY_MIN 0
 #define FIBHEAPKEY_MAX ((fibheapkey_t) -1)
 
