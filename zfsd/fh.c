@@ -2010,6 +2010,10 @@ internal_dentry_destroy_subdentries (internal_dentry dentry, zfs_fh *tmp_fh,
       internal_dentry_destroy (subdentry, false, invalidate);
 
       tmp1 = dentry_lookup (tmp_fh);
+      /* DENTRY could not be found, it is already deleted.  */
+      if (tmp1 == NULL)
+	RETURN_BOOL (false);
+
       tmp2 = tmp1;
       do
 	{
@@ -2091,6 +2095,8 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
 #ifdef ENABLE_CHECKING
 	  tmp1 = dentry_lookup (&tmp_fh);
 	  tmp2 = tmp1;
+	  if (tmp1 == NULL)
+	    abort ();
 	  do
 	    {
 	      if (tmp2 == dentry)
