@@ -60,6 +60,8 @@ extern interval_tree_node interval_tree_predecessor (interval_tree tree,
 						     uint64_t key);
 extern interval_tree_node interval_tree_successor (interval_tree tree,
 						   uint64_t key);
+extern bool interval_tree_read (interval_tree tree, int fd);
+extern bool interval_tree_write (interval_tree tree, int fd);
 extern void print_interval_tree (FILE *f, interval_tree tree);
 extern void debug_interval_tree (interval_tree tree);
 
