@@ -186,9 +186,9 @@ typedef struct read_dir_args_def
 
 typedef struct dir_entry_def
 {
-  zfs_fh fh;
-  filename name;
+  unsigned int ino;
   unsigned int cookie;
+  filename name;
 } dir_entry;
 
 typedef struct dir_list_def

@@ -574,17 +574,17 @@ encode_read_dir_args (DC *dc, read_dir_args *args)
 bool
 decode_dir_entry (DC *dc, dir_entry *entry)
 {
-  return (decode_zfs_fh (dc, &entry->fh)
-	  && decode_filename (dc, &entry->name)
-	  && decode_uint32_t (dc, &entry->cookie));
+  return (decode_uint32_t (dc, &entry->ino)
+	  && decode_uint32_t (dc, &entry->cookie)
+	  && decode_filename (dc, &entry->name));
 }
 
 bool
 encode_dir_entry (DC *dc, dir_entry *entry)
 {
-  return (encode_zfs_fh (dc, &entry->fh)
-	  && encode_filename (dc, &entry->name)
-	  && encode_int32_t (dc, entry->cookie));
+  return (encode_uint32_t (dc, entry->ino)
+	  && encode_uint32_t (dc, entry->cookie)
+	  && encode_filename (dc, &entry->name));
 }
 
 bool
