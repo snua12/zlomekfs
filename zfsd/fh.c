@@ -673,111 +673,6 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
   return ZFS_OK;
 }
 
-/* Return dentry for file NAME in directory DIR on volume VOL.
-   If it does not exist create it.  Update its local file handle to
-   LOCAL_FH, master file handle to MASTER_FH and attributes to ATTR.  */
-
-internal_dentry
-get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
-	    volume vol, internal_dentry dir, char *name, fattr *attr)
-{
-  internal_dentry dentry;
-
-  CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
-  if (dir)
-    dentry = dentry_lookup_name (dir, name);
-  else
-    {
-      dentry = vol->root_dentry;
-      if (dentry && GET_CONFLICT (dentry->fh->local_fh))
-	{
-	  internal_dentry tmp;
-	  unsigned int i;
-
-	  for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
-	    {
-	      tmp = VARRAY_ACCESS (dentry->fh->subdentries, 0, internal_dentry);
-	      if (INTERNAL_FH_HAS_LOCAL_PATH (tmp->fh))
-		{
-		  dir = dentry;
-		  dentry = tmp;
-		  break;
-		}
-	    }
-	}
-      if (dentry)
-	zfsd_mutex_lock (&dentry->fh->mutex);
-    }
-
-  if (dentry)
-    {
-      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-      if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh)
-	  || (!ZFS_FH_EQ (dentry->fh->meta.master_fh, *master_fh)
-	      && !zfs_fh_undefined (dentry->fh->meta.master_fh)
-	      && !zfs_fh_undefined (*master_fh)))
-	{
-	  uint32_t vid;
-	  zfs_fh tmp;
-	  unsigned int level;
-
-	  if (dir)
-	    {
-#ifdef ENABLE_CHECKING
-	      if (dir->fh->level == LEVEL_UNLOCKED
-		  && dentry->fh->level == LEVEL_UNLOCKED)
-		abort ();
-#endif
-	      tmp = dir->fh->local_fh;
-	      release_dentry (dir);
-	    }
-	  else
-	    vid = vol->id;
-	  zfsd_mutex_unlock (&vol->mutex);
-
-	  level = get_level (dentry->fh);
-	  internal_dentry_destroy (dentry, true);
-
-	  if (dir)
-	    {
-	      int32_t r;
-
-	      zfsd_mutex_unlock (&fh_mutex);
-	      r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-	      if (r != ZFS_OK)
-		abort ();
-#endif
-	    }
-	  else
-	    {
-	      vol = volume_lookup (vid);
-	    }
-	  dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
-					   attr, level);
-	}
-      else
-	{
-	  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-	    set_master_fh (vol, dentry->fh, master_fh);
-
-	  set_attr_version (attr, &dentry->fh->meta);
-	  dentry->fh->attr = *attr;
-	}
-    }
-  else
-    dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
-				     attr, LEVEL_UNLOCKED);
-
-  if (!dir)
-    vol->root_dentry = dentry;
-
-  return dentry;
-}
-
 /* Update time of last use of DENTRY and unlock it.  */
 
 void
@@ -1405,7 +1300,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
    MASTER_FH with attributes ATTR and store it to hash tables.
    Lock the newly created file handle to level LEVEL.  */
 
-internal_dentry
+static internal_dentry
 internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 			internal_dentry parent, char *name, fattr *attr,
 			unsigned int level)
@@ -1474,6 +1369,111 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	}
     }
   *slot = dentry;
+
+  return dentry;
+}
+
+/* Return dentry for file NAME in directory DIR on volume VOL.
+   If it does not exist create it.  Update its local file handle to
+   LOCAL_FH, master file handle to MASTER_FH and attributes to ATTR.  */
+
+internal_dentry
+get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
+	    volume vol, internal_dentry dir, char *name, fattr *attr)
+{
+  internal_dentry dentry;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (dir)
+    dentry = dentry_lookup_name (dir, name);
+  else
+    {
+      dentry = vol->root_dentry;
+      if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+	{
+	  internal_dentry tmp;
+	  unsigned int i;
+
+	  for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
+	    {
+	      tmp = VARRAY_ACCESS (dentry->fh->subdentries, 0, internal_dentry);
+	      if (INTERNAL_FH_HAS_LOCAL_PATH (tmp->fh))
+		{
+		  dir = dentry;
+		  dentry = tmp;
+		  break;
+		}
+	    }
+	}
+      if (dentry)
+	zfsd_mutex_lock (&dentry->fh->mutex);
+    }
+
+  if (dentry)
+    {
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+      if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh)
+	  || (!ZFS_FH_EQ (dentry->fh->meta.master_fh, *master_fh)
+	      && !zfs_fh_undefined (dentry->fh->meta.master_fh)
+	      && !zfs_fh_undefined (*master_fh)))
+	{
+	  uint32_t vid;
+	  zfs_fh tmp;
+	  unsigned int level;
+
+	  if (dir)
+	    {
+#ifdef ENABLE_CHECKING
+	      if (dir->fh->level == LEVEL_UNLOCKED
+		  && dentry->fh->level == LEVEL_UNLOCKED)
+		abort ();
+#endif
+	      tmp = dir->fh->local_fh;
+	      release_dentry (dir);
+	    }
+	  else
+	    vid = vol->id;
+	  zfsd_mutex_unlock (&vol->mutex);
+
+	  level = get_level (dentry->fh);
+	  internal_dentry_destroy (dentry, true);
+
+	  if (dir)
+	    {
+	      int32_t r;
+
+	      zfsd_mutex_unlock (&fh_mutex);
+	      r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r != ZFS_OK)
+		abort ();
+#endif
+	    }
+	  else
+	    {
+	      vol = volume_lookup (vid);
+	    }
+	  dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
+					   attr, level);
+	}
+      else
+	{
+	  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	    set_master_fh (vol, dentry->fh, master_fh);
+
+	  set_attr_version (attr, &dentry->fh->meta);
+	  dentry->fh->attr = *attr;
+	}
+    }
+  else
+    dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
+				     attr, LEVEL_UNLOCKED);
+
+  if (!dir)
+    vol->root_dentry = dentry;
 
   return dentry;
 }

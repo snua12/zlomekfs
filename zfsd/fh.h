@@ -322,11 +322,6 @@ extern bool set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh);
 extern void print_fh_htab (FILE *f);
 extern void debug_fh_htab (void);
 
-extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
-					       zfs_fh *master_fh, volume vol,
-					       internal_dentry parent,
-					       char *name, fattr *attr,
-					       unsigned int level);
 extern internal_dentry internal_dentry_link (internal_fh fh, volume vol,
 					     internal_dentry parent,
 					     char *name);
