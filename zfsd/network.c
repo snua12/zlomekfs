@@ -776,6 +776,7 @@ again:
 
 	memset (&args2, 0, sizeof (args2));
 	/* FIXME: really do authentication */
+	args2.speed = fd_data_a[fd].speed;
 	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd);
 	if (r != ZFS_OK)
 	  goto node_authenticate_error;
