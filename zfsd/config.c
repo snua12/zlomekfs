@@ -310,9 +310,10 @@ set_default_uid_gid (void)
 }
 
 static bool
-read_private_key (ATTRIBUTE_UNUSED string *filename)
+read_private_key (string *filename)
 {
 
+  free (filename->str);
   return true;
 }
 
@@ -1476,4 +1477,14 @@ read_cluster_config (void)
     return false;
 
   return true;
+}
+
+/* Destroy data structures in CONFIG.C.  */
+
+void
+cleanup_config_c (void)
+{
+  free (node_name.str);
+  free (kernel_file_name.str);
+  free (node_config.str);
 }

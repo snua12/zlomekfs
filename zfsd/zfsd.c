@@ -380,9 +380,7 @@ cleanup_data_structures (void)
   cleanup_metadata_c ();
   cleanup_hardlink_list_c ();
   cleanup_random_c ();
-
-  free (node_name.str);
-  free (kernel_file_name.str);
+  cleanup_config_c ();
 
   pthread_key_delete (thread_data_key);
   pthread_key_delete (thread_name_key);
