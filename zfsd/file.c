@@ -2594,7 +2594,7 @@ remote_md5sum_retry:
 /* Initialize data structures in FILE.C.  */
 
 void
-initialize_file_c ()
+initialize_file_c (void)
 {
   int i;
 
@@ -2618,7 +2618,7 @@ initialize_file_c ()
 /* Destroy data structures in CAP.C.  */
 
 void
-cleanup_file_c ()
+cleanup_file_c (void)
 {
   while (fibheap_size (opened) > 0)
     {

@@ -92,6 +92,6 @@ extern bool save_interval_trees (volume vol, internal_fh fh);
 extern bool init_hardlinks (volume vol, internal_fh fh);
 extern bool flush_hardlinks (volume vol, internal_fh fh);
 
-extern void initialize_metadata_c ();
-extern void cleanup_metadata_c ();
+extern void initialize_metadata_c (void);
+extern void cleanup_metadata_c (void);
 #endif

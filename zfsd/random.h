@@ -27,7 +27,7 @@ extern int fd_random;
 /* File descriptor for /dev/urandom.  */
 extern int fd_urandom;
 
-extern bool initialize_random_c ();
-extern void cleanup_random_c ();
+extern bool initialize_random_c (void);
+extern void cleanup_random_c (void);
 
 #endif

@@ -1410,7 +1410,7 @@ update_main (ATTRIBUTE_UNUSED void *data)
 /* Start the main update thread.  */
 
 bool
-update_start ()
+update_start (void)
 {
   queue_create (&update_queue, sizeof (zfs_fh), 250);
 
@@ -1428,7 +1428,7 @@ update_start ()
 /* Terminate update threads and destroy data structures.  */
 
 void
-update_cleanup ()
+update_cleanup (void)
 {
   thread_pool_destroy (&update_pool);
   zfsd_mutex_lock (&update_queue.mutex);

@@ -228,7 +228,7 @@ cleanup_unused_dentries_compare (const void *p1, const void *p2)
    seconds.  */
 
 static void
-cleanup_unused_dentries ()
+cleanup_unused_dentries (void)
 {
   fibheapkey_t threshold;
   internal_dentry dentry;
@@ -1332,7 +1332,7 @@ print_fh_htab (FILE *f)
 /* Print the contents of hash table of filehandles HTAB to STDERR.  */
 
 void
-debug_fh_htab ()
+debug_fh_htab (void)
 {
   print_fh_htab (stderr);
 }
@@ -2129,7 +2129,7 @@ virtual_dir_destroy (virtual_dir vd)
 /* Create the virtual root directory.  */
 
 virtual_dir
-virtual_root_create ()
+virtual_root_create (void)
 {
   virtual_dir root;
   void **slot;
@@ -2331,7 +2331,7 @@ print_virtual_tree (FILE *f)
 /* Print the virtual tree to STDERR.  */
 
 void
-debug_virtual_tree ()
+debug_virtual_tree (void)
 {
   print_virtual_tree (stderr);
 }
@@ -2339,7 +2339,7 @@ debug_virtual_tree ()
 /* Initialize data structures in FH.C.  */
 
 void
-initialize_fh_c ()
+initialize_fh_c (void)
 {
   zfs_fh_undefine (undefined_fh);
 
@@ -2382,7 +2382,7 @@ initialize_fh_c ()
 /* Destroy data structures in FH.C.  */
 
 void
-cleanup_fh_c ()
+cleanup_fh_c (void)
 {
   virtual_root_destroy (root);
 

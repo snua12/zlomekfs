@@ -31,8 +31,8 @@ extern thread_pool kernel_pool;
 /* File descriptor of file communicating with kernel.  */
 extern int kernel_fd;
 
-extern void close_kernel_fd ();
-extern bool kernel_start ();
-extern void kernel_cleanup ();
+extern void close_kernel_fd (void);
+extern bool kernel_start (void);
+extern void kernel_cleanup (void);
 
 #endif

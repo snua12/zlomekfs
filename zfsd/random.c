@@ -34,7 +34,7 @@ int fd_urandom = -1;
 /* Initialize random bytes.  */
 
 bool
-initialize_random_c ()
+initialize_random_c (void)
 {
   fd_random = open ("/dev/random", O_RDONLY);
   if (fd_random < 0)
@@ -50,7 +50,7 @@ initialize_random_c ()
 /* Close files opened in init_random_c.  */
 
 void
-cleanup_random_c ()
+cleanup_random_c (void)
 {
   if (fd_random >= 0)
     close (fd_random);

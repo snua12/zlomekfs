@@ -37,7 +37,7 @@ int max_metadata_fds;
 /* Initialize the constants */
 
 void
-init_constants ()
+init_constants (void)
 {
   max_nfd = getdtablesize ();
   max_network_sockets = max_nfd / 4;

@@ -274,7 +274,7 @@ debug_volume (volume vol)
 /* Print the information about all volumes to STDERR.  */
 
 void
-debug_volumes ()
+debug_volumes (void)
 {
   print_volumes (stderr);
 }
@@ -282,7 +282,7 @@ debug_volumes ()
 /* Initialize data structures in VOLUME.C.  */
 
 void
-initialize_volume_c ()
+initialize_volume_c (void)
 {
   zfsd_mutex_init (&volume_mutex);
   volume_htab = htab_create (200, volume_hash, volume_eq, NULL, &volume_mutex);
@@ -291,7 +291,7 @@ initialize_volume_c ()
 /* Destroy data structures in VOLUME.C.  */
 
 void
-cleanup_volume_c ()
+cleanup_volume_c (void)
 {
   void **slot;
 

@@ -110,17 +110,17 @@ extern bool node_has_valid_fd (node nod);
 extern bool volume_master_connected (volume vol);
 extern int node_connect_and_authenticate (thread *t, node nod,
 					  authentication_status auth);
-extern bool request_from_this_node ();
+extern bool request_from_this_node (void);
 extern void recycle_dc_to_fd_data (DC *dc, fd_data_t *fd_data);
 extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);
 extern void network_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
-extern void fd_data_init ();
-extern void fd_data_shutdown ();
-extern void fd_data_destroy ();
-extern bool network_start ();
-extern void network_cleanup ();
+extern void fd_data_init (void);
+extern void fd_data_shutdown (void);
+extern void fd_data_destroy (void);
+extern bool network_start (void);
+extern void network_cleanup (void);
 
 #endif

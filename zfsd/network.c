@@ -788,7 +788,7 @@ node_connect_and_authenticate (thread *t, node nod, authentication_status auth)
 /* Return true if current request came from this node.  */
 
 bool
-request_from_this_node ()
+request_from_this_node (void)
 {
   thread *t;
 
@@ -1508,7 +1508,7 @@ retry_accept:
 /* Initialize information about file descriptors.  */
 
 void
-fd_data_init ()
+fd_data_init (void)
 {
   int i;
 
@@ -1528,7 +1528,7 @@ fd_data_init ()
 /* Wake threads waiting for reply on file descriptors.  */
 
 void
-fd_data_shutdown ()
+fd_data_shutdown (void)
 {
   int i;
 
@@ -1556,7 +1556,7 @@ fd_data_shutdown ()
 /* Destroy information about file descriptors.  */
 
 void
-fd_data_destroy ()
+fd_data_destroy (void)
 {
   int i;
 
@@ -1587,7 +1587,7 @@ fd_data_destroy ()
 /* Create a listening socket and start the main network thread.  */
 
 bool
-network_start ()
+network_start (void)
 {
   socklen_t socket_options;
   struct sockaddr_in sa;
@@ -1645,7 +1645,7 @@ network_start ()
 /* Terminate network threads and destroy data structures.  */
 
 void
-network_cleanup ()
+network_cleanup (void)
 {
   thread_pool_destroy (&network_pool);
 }

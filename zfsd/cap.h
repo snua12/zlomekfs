@@ -79,7 +79,7 @@ extern int32_t find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 extern int32_t put_capability (internal_cap cap, internal_fh fh,
 			       virtual_dir vd);
 
-extern void initialize_cap_c ();
-extern void cleanup_cap_c ();
+extern void initialize_cap_c (void);
+extern void cleanup_cap_c (void);
 
 #endif

@@ -779,7 +779,7 @@ uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
 /* Initialize data structures needed by this module.  */
 
 void
-initialize_zfs_prot_c ()
+initialize_zfs_prot_c (void)
 {
   int i;
 
@@ -795,7 +795,7 @@ initialize_zfs_prot_c ()
 /* Cleanup data structures needed by this module.  */
 
 void
-cleanup_zfs_prot_c ()
+cleanup_zfs_prot_c (void)
 {
   zfsd_mutex_destroy (&request_id_mutex);
 

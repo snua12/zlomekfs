@@ -73,7 +73,7 @@ static void die () ATTRIBUTE_NORETURN;
 /* Make zfsd to terminate.  */
 
 static void
-terminate ()
+terminate (void)
 {
   sigset_t mask, old_mask;
 
@@ -160,7 +160,7 @@ dummy_sighandler (ATTRIBUTE_UNUSED int signum)
 /* Initialize signal handlers.  */
 
 static void
-init_sig_handlers ()
+init_sig_handlers (void)
 {
   struct sigaction sig;
 
@@ -208,7 +208,7 @@ init_sig_handlers ()
 /* Set default sighandlers.  */
 
 static void
-disable_sig_handlers ()
+disable_sig_handlers (void)
 {
   struct sigaction sig;
 
@@ -329,7 +329,7 @@ process_arguments (int argc, char **argv)
 /* Write a message and exit.  */
 
 static void
-die ()
+die (void)
 {
   message (-2, stderr, "ZFSD could not be started.\n");
   exit (EXIT_FAILURE);
@@ -338,7 +338,7 @@ die ()
 /* Initialize various data structures needed by ZFSD.  */
 
 bool
-initialize_data_structures ()
+initialize_data_structures (void)
 {
   if (pthread_key_create (&thread_data_key, NULL))
     return false;
@@ -364,7 +364,7 @@ initialize_data_structures ()
 /* Destroy data structures.  */
 
 void
-cleanup_data_structures ()
+cleanup_data_structures (void)
 {
   /* Destroy data structures in other modules.  */
   cleanup_user_group_c ();
@@ -386,7 +386,7 @@ cleanup_data_structures ()
 }
 
 static void
-daemon_mode ()
+daemon_mode (void)
 {
 }
 

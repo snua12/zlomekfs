@@ -57,6 +57,6 @@ extern int max_local_fds;
 /* Maximal number of file descriptors for files containing metadata.  */
 extern int max_metadata_fds;
 
-extern void init_constants ();
+extern void init_constants (void);
 
 #endif

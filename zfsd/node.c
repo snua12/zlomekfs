@@ -241,7 +241,7 @@ node_destroy (node nod)
 /* Initialize data structures in NODE.C.  */
 
 void
-initialize_node_c ()
+initialize_node_c (void)
 {
   zfsd_mutex_init (&node_mutex);
   node_htab = htab_create (50, node_hash, node_eq, NULL, &node_mutex);
@@ -252,7 +252,7 @@ initialize_node_c ()
 /* Destroy data structures in NODE.C.  */
 
 void
-cleanup_node_c ()
+cleanup_node_c (void)
 {
   void **slot;
 

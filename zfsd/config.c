@@ -245,7 +245,7 @@ split_and_trim (char *line, int n, char **parts)
 
 /* Get the name of local node.  */
 void
-set_node_name ()
+set_node_name (void)
 {
   struct utsname un;
 
@@ -290,7 +290,7 @@ set_default_gid (char *name)
 /* Set default local user/group.  */
 
 void
-set_default_uid_gid ()
+set_default_uid_gid (void)
 {
   set_default_uid ("nobody");
   if (!set_default_gid ("nogroup"))
@@ -367,7 +367,7 @@ read_global_cluster_config (const char *path)
 /* Invalidate configuration.  */
 
 static void
-invalidate_config ()
+invalidate_config (void)
 {
 
 }
@@ -376,7 +376,7 @@ invalidate_config ()
    something which can't be fixed.  */
 
 static bool
-fix_config ()
+fix_config (void)
 {
 
   return true;
@@ -385,7 +385,7 @@ fix_config ()
 /* Initialize data structures which are needed for reading configuration.  */
 
 bool
-init_config ()
+init_config (void)
 {
 
   return true;
@@ -575,7 +575,7 @@ read_config_file (const char *file)
 /* Read configuration of the cluster - nodes, volumes, ... */
 
 bool
-read_cluster_config ()
+read_cluster_config (void)
 {
   invalidate_config ();
 

@@ -154,7 +154,7 @@ typedef struct waiting4reply_data_def
   fibnode node;
 } waiting4reply_data;
 
-extern bool get_running ();
+extern bool get_running (void);
 extern bool thread_pool_terminate_p (thread_pool *pool);
 extern void thread_terminate_blocking_syscall (volatile pthread_t *thid,
 					       pthread_mutex_t *mutex);
@@ -171,7 +171,7 @@ extern void thread_pool_terminate (thread_pool *pool);
 extern void thread_pool_destroy (thread_pool *pool);
 extern int create_idle_thread (thread_pool *pool);
 extern int destroy_idle_thread (thread_pool *pool);
-extern void thread_disable_signals ();
+extern void thread_disable_signals (void);
 extern void thread_pool_regulate (thread_pool *pool);
 
 #endif

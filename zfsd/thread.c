@@ -48,7 +48,7 @@ pthread_key_t thread_name_key;
 /* Get value of RUNNING flag.  */
 
 bool
-get_running ()
+get_running (void)
 {
   bool value;
 
@@ -396,7 +396,7 @@ destroy_idle_thread (thread_pool *pool)
 /* Disable receiving signals by calling thread.  */
 
 void
-thread_disable_signals ()
+thread_disable_signals (void)
 {
   sigset_t mask;
 

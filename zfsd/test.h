@@ -23,7 +23,7 @@
 
 #include "system.h"
 
-extern void fake_config ();
-extern void test_zfs ();
+extern void fake_config (void);
+extern void test_zfs (void);
 
 #endif

@@ -46,7 +46,7 @@ static thread testing_thread_data;
 /* Testing configuration until configuration reading is programmed.  */
 
 void
-fake_config ()
+fake_config (void)
 {
   node nod;
   volume vol;
@@ -185,7 +185,7 @@ fake_config ()
 
 #include "splay-tree.h"
 static void
-test_splay ()
+test_splay (void)
 {
   splay_tree st;
   int i;
@@ -201,7 +201,7 @@ test_splay ()
 
 #include "interval.h"
 static void
-test_interval ()
+test_interval (void)
 {
   interval_tree t;
 
@@ -634,7 +634,7 @@ out:
 /* Create a thread which tests ZFS.  */
 
 void
-test_zfs ()
+test_zfs (void)
 {
   if (get_running ()
       && strcmp (node_name.str, "orion") == 0)

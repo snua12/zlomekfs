@@ -1691,7 +1691,7 @@ flush_hardlinks (volume vol, internal_fh fh)
 /* Initialize data structures in METADATA.C.  */
 
 void
-initialize_metadata_c ()
+initialize_metadata_c (void)
 {
   int i;
 
@@ -1711,7 +1711,7 @@ initialize_metadata_c ()
 /* Destroy data structures in METADATA.C.  */
 
 void
-cleanup_metadata_c ()
+cleanup_metadata_c (void)
 {
   while (fibheap_size (metadata_heap) > 0)
     {

@@ -212,7 +212,7 @@ string_list_element (string_list sl, unsigned int index)
 /* Initialize data structures in STRING-LIST.C.  */
 
 void
-initialize_string_list_c ()
+initialize_string_list_c (void)
 {
   zfsd_mutex_init (&string_list_mutex);
   string_list_pool = create_alloc_pool ("string_list_pool",
@@ -223,7 +223,7 @@ initialize_string_list_c ()
 /* Destroy data structures in STRING-LIST.C.  */
 
 void
-cleanup_string_list_c ()
+cleanup_string_list_c (void)
 {
   zfsd_mutex_lock (&string_list_mutex);
 #ifdef ENABLE_CHECKING

@@ -204,7 +204,7 @@ extern bool update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh,
 extern int32_t update_fh (internal_dentry dentry, volume vol, zfs_fh *fh,
 			  fattr *attr);
 
-extern bool update_start ();
-extern void update_cleanup ();
+extern bool update_start (void);
+extern void update_cleanup (void);
 
 #endif

@@ -178,7 +178,7 @@ user_create (uint32_t id, char *name, uint32_t gid)
 /* For each user, add default group to user's list of groups.  */
 
 void
-set_default_groups ()
+set_default_groups (void)
 {
   void **slot;
   void **slot2;
@@ -518,7 +518,7 @@ user_mapping_destroy (id_mapping map, node nod)
 /* For each ZFS user try to create mapping "user" <-> "user".  */
 
 void
-set_default_user_mapping ()
+set_default_user_mapping (void)
 {
   void **slot;
 
@@ -697,7 +697,7 @@ group_mapping_destroy (id_mapping map, node nod)
 /* For each ZFS group try to create mapping "group" <-> "group".  */
 
 void
-set_default_group_mapping ()
+set_default_group_mapping (void)
 {
   void **slot;
 
@@ -877,7 +877,7 @@ map_gid_node2zfs (uint32_t gid)
 /* Initialize data structures in USER-GROUP.C.  */
 
 void
-initialize_user_group_c ()
+initialize_user_group_c (void)
 {
   zfsd_mutex_init (&users_groups_mutex);
 
@@ -905,7 +905,7 @@ initialize_user_group_c ()
 /* Destroy data structures in USER-GROUP.C.  */
 
 void
-cleanup_user_group_c ()
+cleanup_user_group_c (void)
 {
   void **slot;
 

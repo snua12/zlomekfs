@@ -73,7 +73,7 @@ extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);
 extern bool volume_set_local_info (volume vol, const char *local_path,
 				   uint64_t size_limit);
-extern void initialize_volume_c ();
-extern void cleanup_volume_c ();
+extern void initialize_volume_c (void);
+extern void cleanup_volume_c (void);
 
 #endif

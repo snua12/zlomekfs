@@ -62,7 +62,7 @@ extern uint32_t default_node_gid;
 #define MAP_ID_HASH(UID) (UID)
 
 extern user_t user_create (uint32_t id, char *name, uint32_t gid);
-extern void set_default_groups ();
+extern void set_default_groups (void);
 extern void user_destroy (user_t u);
 extern group_t group_create (uint32_t id, char *name, char *user_list);
 extern void group_destroy (group_t g);
@@ -73,18 +73,18 @@ extern int map_id_to_node_eq (const void *x, const void *y);
 extern int map_id_to_zfs_eq (const void *x, const void *y);
 extern id_mapping user_mapping_create (char *zfs_user, char *node_user,
 				       node nod);
-extern void set_default_user_mapping ();
+extern void set_default_user_mapping (void);
 extern void user_mapping_destroy_all (node nod);
 extern id_mapping group_mapping_create (char *zfs_group, char *node_group,
 					node nod);
-extern void set_default_group_mapping ();
+extern void set_default_group_mapping (void);
 extern void group_mapping_destroy_all (node nod);
 extern uint32_t map_uid_zfs2node (uint32_t uid);
 extern uint32_t map_uid_node2zfs (uint32_t uid);
 extern uint32_t map_gid_zfs2node (uint32_t gid);
 extern uint32_t map_gid_node2zfs (uint32_t gid);
 
-extern void initialize_user_group_c ();
-extern void cleanup_user_group_c ();
+extern void initialize_user_group_c (void);
+extern void cleanup_user_group_c (void);
 
 #endif

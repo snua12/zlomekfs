@@ -320,7 +320,7 @@ extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
 				      zfs_fh *tmp_fh1, zfs_fh *tmp_fh2);
 extern bool set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh);
 extern void print_fh_htab (FILE *f);
-extern void debug_fh_htab ();
+extern void debug_fh_htab (void);
 
 extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
 					       zfs_fh *master_fh, volume vol,
@@ -341,15 +341,15 @@ extern void internal_dentry_cancel_conflict (internal_dentry dentry,
 
 extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);
 extern void virtual_dir_destroy (virtual_dir vd);
-extern virtual_dir virtual_root_create ();
+extern virtual_dir virtual_root_create (void);
 extern void virtual_root_destroy (virtual_dir root);
 extern virtual_dir virtual_mountpoint_create (volume vol);
 extern void virtual_mountpoint_destroy (volume vol);
 extern void virtual_dir_set_fattr (virtual_dir vd);
 extern void print_virtual_tree (FILE *f);
-extern void debug_virtual_tree ();
+extern void debug_virtual_tree (void);
 
-extern void initialize_fh_c ();
-extern void cleanup_fh_c ();
+extern void initialize_fh_c (void);
+extern void cleanup_fh_c (void);
 
 #endif

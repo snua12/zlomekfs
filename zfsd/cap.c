@@ -581,7 +581,7 @@ put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 /* Initialize data structures in CAP.C.  */
 
 void
-initialize_cap_c ()
+initialize_cap_c (void)
 {
   zfsd_mutex_init (&cap_mutex);
   cap_pool = create_alloc_pool ("cap_pool", sizeof (struct internal_cap_def),
@@ -591,7 +591,7 @@ initialize_cap_c ()
 /* Destroy data structures in CAP.C.  */
 
 void
-cleanup_cap_c ()
+cleanup_cap_c (void)
 {
   zfsd_mutex_lock (&cap_mutex);
 #ifdef ENABLE_CHECKING

@@ -55,7 +55,7 @@ int kernel_fd = -1;
 /* Initialize data for kernel file descriptor.  */
 
 static void
-init_fd_data ()
+init_fd_data (void)
 {
 #ifdef ENABLE_CHECKING
   if (kernel_fd < 0)
@@ -86,7 +86,7 @@ init_fd_data ()
 /* Close kernel file and destroy data structures used by it.  */
 
 void
-close_kernel_fd ()
+close_kernel_fd (void)
 {
   int j;
 
@@ -488,7 +488,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 /* Create a listening socket and start the main kernel thread.  */
 
 bool
-kernel_start ()
+kernel_start (void)
 {
   /* Open connection with kernel.  */
   kernel_fd = open (kernel_file_name, O_RDWR);
@@ -514,7 +514,7 @@ kernel_start ()
 /* Terminate kernel threads and destroy data structures.  */
 
 void
-kernel_cleanup ()
+kernel_cleanup (void)
 {
   thread_pool_destroy (&kernel_pool);
 }
