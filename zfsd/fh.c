@@ -57,7 +57,7 @@ static htab_t vd_htab;
 static htab_t vd_htab_name;
 
 /* Mutex for virtual directories.  */
-static pthread_mutex_t vd_mutex;
+pthread_mutex_t vd_mutex;
 
 /* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
@@ -135,9 +135,17 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
     {
       virtual_dir vd;
 
+      zfsd_mutex_lock (&volume_mutex);
       zfsd_mutex_lock (&vd_mutex);
       vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, hash);
+      if (vd)
+	{
+	  zfsd_mutex_lock (&vd->mutex);
+	  if (vd->vol)
+	    zfsd_mutex_lock (&vd->vol->mutex);
+	}
       zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&volume_mutex);
       if (!vd)
 	return false;
 
@@ -165,10 +173,13 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 	}
 
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
-      /* FIXME: Temporarily unlock it here.  */
-      zfsd_mutex_unlock (&vol->mutex);
-      if (!ifh)
-	return false;
+      if (ifh)
+	zfsd_mutex_lock (&ifh->mutex);
+      else
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return false;
+	}
 
       *volp = vol;
       *ifhp = ifh;
@@ -188,11 +199,14 @@ vd_lookup_name (virtual_dir parent, const char *name)
   virtual_dir vd;
   struct virtual_dir_def tmp_vd;
 
+  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&parent->mutex);
+
   tmp_vd.parent = parent;
   tmp_vd.name = (char *) name;
-  zfsd_mutex_lock (&vd_mutex);
   vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
-  zfsd_mutex_unlock (&vd_mutex);
+  if (vd)
+    zfsd_mutex_lock (&vd->mutex);
 
   return vd;
 }
@@ -207,10 +221,13 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
   internal_fh fh;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&parent->mutex);
 
   tmp_fh.parent = parent;
   tmp_fh.name = (char *) name;
   fh = (internal_fh) htab_find (vol->fh_htab_name, &tmp_fh);
+  if (fh)
+    zfsd_mutex_lock (&fh->mutex);
   return fh;
 }
 
@@ -222,6 +239,10 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
 {
   internal_fh fh;
   void **slot;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  if (parent)
+    CHECK_MUTEX_LOCKED (&parent->mutex);
 
   /* Create a new internal file handle.  */
   zfsd_mutex_lock (&fh_pool_mutex);
@@ -240,6 +261,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
       fh->dentry_index = VARRAY_USED (parent->dentries);
       VARRAY_PUSH (parent->dentries, fh, internal_fh);
     }
+  zfsd_mutex_init (&fh->mutex);
+  zfsd_mutex_lock (&fh->mutex);
 
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
@@ -274,6 +297,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
   internal_fh top;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (fh->attr.type == FT_DIR)
     {
@@ -284,24 +308,26 @@ internal_fh_destroy (internal_fh fh, volume vol)
       varray_destroy (&fh->dentries);
     }
 
-  /* Remove FH from parent's directory entries.  */
   if (fh->parent)
     {
+      zfsd_mutex_lock (&fh->parent->mutex);
+
+      /* Remove FH from parent's directory entries.  */
       top = VARRAY_TOP (fh->parent->dentries, internal_fh);
       VARRAY_ACCESS (fh->parent->dentries, fh->dentry_index, internal_fh)
 	= top;
       VARRAY_POP (fh->parent->dentries);
       top->dentry_index = fh->dentry_index;
-    }
 
-  if (fh->parent)
-    {
+      /* Delete from table searched by parent + name.  */
       slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
 #ifdef ENABLE_CHECKING
       if (!slot)
 	abort ();
 #endif
       htab_clear_slot (vol->fh_htab_name, slot);
+
+      zfsd_mutex_unlock (&fh->parent->mutex);
     }
 
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
@@ -312,6 +338,8 @@ internal_fh_destroy (internal_fh fh, volume vol)
 #endif
   htab_clear_slot (vol->fh_htab, slot);
 
+  zfsd_mutex_unlock (&fh->mutex);
+  zfsd_mutex_destroy (&fh->mutex);
   free (fh->name);
   zfsd_mutex_lock (&fh_pool_mutex);
   pool_free (fh_pool, fh);
@@ -423,6 +451,9 @@ virtual_dir_create (virtual_dir parent, const char *name)
   static unsigned int last_virtual_ino;
   void **slot;
 
+  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&parent->mutex);
+
   last_virtual_ino++;
   if (last_virtual_ino == 0)
     last_virtual_ino++;
@@ -474,11 +505,15 @@ virtual_dir_destroy (virtual_dir vd)
   virtual_dir parent;
   void **slot;
 
+  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&vd->mutex);
+
   /* Check the path to root.  */
-  zfsd_mutex_lock (&vd_mutex);
   for (; vd; vd = parent)
     {
       parent = vd->parent;
+      if (parent)
+	zfsd_mutex_lock (&parent->mutex);
       vd->n_mountpoints--;
       if (vd->n_mountpoints == 0)
 	{
@@ -514,10 +549,13 @@ virtual_dir_destroy (virtual_dir vd)
 #endif
 	  htab_clear_slot (vd_htab, slot);
 	  free (vd->name);
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_destroy (&vd->mutex);
 	  pool_free (vd_pool, vd);
 	}
+      else
+	zfsd_mutex_unlock (&vd->mutex);
     }
-  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Create the virtual root directory.  */
@@ -615,6 +653,7 @@ virtual_mountpoint_create (volume vol)
       struct virtual_dir_def tmp_vd;
 
       parent = vd;
+      zfsd_mutex_lock (&parent->mutex);
       s = VARRAY_ACCESS (subpath, i, char *);
 
       tmp_vd.parent = parent;
@@ -626,6 +665,7 @@ virtual_mountpoint_create (volume vol)
       if (!VIRTUAL_FH_P (vd->fh))
 	abort ();
 #endif
+      zfsd_mutex_unlock (&parent->mutex);
     }
   varray_destroy (&subpath);
   vd->vol = vol;
@@ -633,12 +673,27 @@ virtual_mountpoint_create (volume vol)
 
   /* Increase the count of volumes in subtree.  */
   for (tmp = vd; tmp; tmp = tmp->parent)
-    tmp->n_mountpoints++;
+    {
+      zfsd_mutex_lock (&tmp->mutex);
+      tmp->n_mountpoints++;
+      zfsd_mutex_unlock (&tmp->mutex);
+    }
   zfsd_mutex_unlock (&vd_mutex);
 
   free (mountpoint);
 
   return vd;
+}
+
+/* Destroy the virtual mountpoint of volume VOL.  */
+
+void
+virtual_mountpoint_destroy (volume vol)
+{
+  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&vol->root_vd->mutex);
+  virtual_dir_destroy (vol->root_vd);
+  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Set the file attributes of virtual directory VD.  */

@@ -46,6 +46,9 @@ build_local_path (volume vol, internal_fh fh)
   varray v;
   char *r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
   /* Count the number of strings which will be concatenated.  */
   n = 1;
   for (tmp = fh; tmp->parent; tmp = tmp->parent)
@@ -77,6 +80,9 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
   unsigned int n;
   varray v;
   char *r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
 
   /* Count the number of strings which will be concatenated.  */
   n = 3;
@@ -110,6 +116,8 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
 static int
 get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 {
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   /* The volume (or its copy) is located on this node.  */
   if (vol->local_path)
     {
@@ -138,6 +146,8 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 {
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   /* The volume is completelly remote or we have a copy of the volume.
      Call the remote function only when we need the file handle.  */
   if (vol->master != this_node)
@@ -147,7 +157,9 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 
       t = (thread *) pthread_getspecific (thread_data_key);
       args.vid = vol->id;
-      zfsd_mutex_lock (&vol->master->mutex);	/* FIXME: temporary */
+      zfsd_mutex_lock (&node_mutex);
+      zfsd_mutex_lock (&vol->master->mutex);
+      zfsd_mutex_unlock (&node_mutex);
       r = zfs_proc_volume_root_client (t, &args, vol->master);
       if (r == ZFS_OK)
 	{
@@ -175,6 +187,8 @@ static int
 get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
 {
   int32_t r = ZFS_OK;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (vol->master == this_node)
     {
@@ -261,9 +275,11 @@ update_volume_root (volume vol, internal_fh *ifh)
       vol->root_fh = internal_fh_create (&local_fh, &master_fh, NULL,
 					 vol, "", &attr);
     }
-  *ifh = vol->root_fh;
+  else
+    zfsd_mutex_lock (&vol->root_fh->mutex);
 
-  return r;
+  *ifh = vol->root_fh;
+  return ZFS_OK;
 }
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
@@ -304,6 +320,9 @@ local_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   char *path;
   int r;
 
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   path = build_local_path_name (vol, dir, name->str);
   r = local_getattr (&res->attr, path, vol);
   free (path);
@@ -328,11 +347,16 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   thread *t;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   args.dir = dir->master_fh;
   args.name = *name;
   t = (thread *) pthread_getspecific (thread_data_key);
 
+  zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
   r = zfs_proc_lookup_client (t, &args, vol->master);
   if (r == ZFS_OK)
     {
@@ -365,26 +389,43 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   if (pvd)
     {
+      CHECK_MUTEX_LOCKED (&pvd->mutex);
+      if (vol)
+	CHECK_MUTEX_LOCKED (&vol->mutex);
+
+      zfsd_mutex_lock (&vd_mutex);
       vd = vd_lookup_name (pvd, name->str);
+      zfsd_mutex_unlock (&vd_mutex);
       if (vd)
 	{
 	  res->file = vd->fh;
 	  res->attr = vd->attr;
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  zfsd_mutex_unlock (&vd->mutex);
 	  return ZFS_OK;
 	}
 
-      if (pvd->vol)
+      /* !vd */
+      if (vol)
 	{
 	  int r;
 
-	  zfsd_mutex_lock (&pvd->vol->mutex);	/* FIXME: temporary */
-	  r = update_volume_root (pvd->vol, &idir);
-	  zfsd_mutex_unlock (&pvd->vol->mutex);	/* FIXME: temporary */
+	  r = update_volume_root (vol, &idir);
 	  if (r != ZFS_OK)
-	    return r;
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&pvd->mutex);
+	      return r;
+	    }
+	  zfsd_mutex_unlock (&pvd->mutex);
 	}
       else
-	return ENOENT;
+	{
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  return ENOENT;
+	}
     }
 
   /* TODO: update directory */
@@ -393,11 +434,18 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
     {
       int r;
 
+      CHECK_MUTEX_LOCKED (&idir->mutex);
+      CHECK_MUTEX_LOCKED (&vol->mutex);
+
       if (vol->local_path)
 	{
 	  r = local_lookup (res, idir, name, vol);
 	  if (r != ZFS_OK)
-	    return r;
+	    {
+	      zfsd_mutex_unlock (&idir->mutex);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
 
 	  if (vol->master == this_node)
 	    master_res.file = res->file;
@@ -405,14 +453,22 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	    {
 	      r = remote_lookup (&master_res, idir, name, vol);
 	      if (r != ZFS_OK)
-		return r;
+		{
+		  zfsd_mutex_unlock (&idir->mutex);
+		  zfsd_mutex_unlock (&vol->mutex);
+		  return r;
+		}
 	    }
 	}
       else if (vol->master != this_node)
 	{
 	  r = remote_lookup (res, idir, name, vol);
 	  if (r != ZFS_OK)
-	    return r;
+	    {
+	      zfsd_mutex_unlock (&idir->mutex);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
 
 	  master_res.file = res->file;
 	}
@@ -420,10 +476,11 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	abort ();
 
       /* Update internal file handles in htab.  */
-      zfsd_mutex_lock (&vol->mutex);	/* FIXME: temporary */
       ifh = fh_lookup_name (vol, idir, name->str);
       if (ifh)
 	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
 	  if (!ZFS_FH_EQ (ifh->local_fh, res->file)
 	      || !ZFS_FH_EQ (ifh->master_fh, master_res.file))
 	    {
@@ -435,8 +492,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       else
 	ifh = internal_fh_create (&res->file, &master_res.file, idir, vol,
 				  name->str, &res->attr);
-      zfsd_mutex_unlock (&vol->mutex);	/* FIXME: temporary */
 
+      zfsd_mutex_unlock (&ifh->mutex);
+      zfsd_mutex_unlock (&idir->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
       return ZFS_OK;
     }
   else
@@ -452,6 +511,9 @@ local_rmdir (internal_fh dir, string *name, volume vol)
 {
   char *path;
   int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
   r = rmdir (path);
@@ -471,11 +533,16 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
   thread *t;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
   args.dir = dir->master_fh;
   args.name = *name;
   t = (thread *) pthread_getspecific (thread_data_key);
 
+  zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
   r = zfs_proc_rmdir_client (t, &args, vol->master);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
@@ -516,12 +583,13 @@ zfs_rmdir (zfs_fh *dir, string *name)
     {
       internal_fh ifh;
 
-      zfsd_mutex_lock (&vol->mutex);	/* FIXME: temporary */
       ifh = fh_lookup_name (vol, idir, name->str);
       if (ifh)
 	internal_fh_destroy (ifh, vol);
-      zfsd_mutex_unlock (&vol->mutex);	/* FIXME: temporary */
     }
+
+  zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return r;
 }

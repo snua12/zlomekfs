@@ -32,6 +32,8 @@
 void
 fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
 {
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   switch (st->st_mode & S_IFMT)
     {
       case S_IFSOCK:
@@ -84,7 +86,6 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
   attr->atime = st->st_atime;
   attr->mtime = st->st_mtime;
   attr->ctime = st->st_ctime;
-
 }
 
 /* Get attributes of local file PATH on volume VOL and store them to ATTR.  */
@@ -94,6 +95,8 @@ local_getattr (fattr *attr, char *path, volume vol)
 {
   struct stat st;
   int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   r = lstat (path, &st);
   if (r != 0)
@@ -119,21 +122,31 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   /* TODO: Update file and fattr.  */
 
   if (vd)
-    *fa = vd->attr;
+    {
+      *fa = vd->attr;
+      zfsd_mutex_unlock (&vd->mutex);
+    }
   else /* if (ifh) */
-    *fa = ifh->attr;
+    {
+      *fa = ifh->attr;
+      zfsd_mutex_unlock (&ifh->mutex);
+    }
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
 
-/* Set attributes of local file fh according to SA, reget attributes
-   (use volume VOL) and store them to FA.  */
+/* Set attributes of local file fh on volume VOL according to SA,
+   reget attributes and store them to FA.  */
 
 static int
 local_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
 {
   char *path;
   int r;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path (vol, fh);
   if (sa->mode != (unsigned int) -1)
@@ -173,28 +186,27 @@ local_setattr_error:
   return errno;
 }
 
-/* Set attributes of remote file fh according to SA, reget attributes
-   and store them to FA.  */
+/* Set attributes of remote file fh on volume VOL according to SA,
+   reget attributes and store them to FA.  */
 
 static int
-remote_setattr (fattr *fa, internal_fh fh, sattr *sa)
+remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
 {
   sattr_args args;
   thread *t;
-  node nod;
   int32_t r;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   args.file = fh->master_fh;
   args.attr = *sa;
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_lookup (fh->master_fh.sid);
+  zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  if (!nod)
-    return ENOENT;
-
-  r = zfs_proc_setattr_client (t, &args, nod);
+  r = zfs_proc_setattr_client (t, &args, vol->master);
   if (r == ZFS_OK)
     {
       if (!decode_fattr (&t->dc, fa)
@@ -231,13 +243,16 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   if (vol->local_path)
     r = local_setattr (fa, ifh, sa, vol);
   else if (vol->master != this_node)
-    r = remote_setattr (fa, ifh, sa);
+    r = remote_setattr (fa, ifh, sa, vol);
   else
     abort ();
 
   /* Update cached file attributes.  */
   if (r == ZFS_OK)
     ifh->attr = *fa;
+
+  zfsd_mutex_unlock (&ifh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return r;
 }

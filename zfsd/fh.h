@@ -65,9 +65,6 @@ typedef struct volume_def *volume;
   (crc32_update (crc32_string ((FH)->name),				\
 		 &(FH)->parent->local_fh, sizeof (zfs_fh)))
 
-/* Destroy the virtual mountpoint of volume VOL.  */
-#define virtual_mountpoint_destroy(VOL) (virtual_dir_destroy ((VOL)->root_vd))
-
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct virtual_dir_def *virtual_dir;
@@ -77,6 +74,8 @@ typedef struct virtual_dir_def *virtual_dir;
 /* Internal information about file handle.  */
 struct internal_fh_def
 {
+  pthread_mutex_t mutex;
+
   /* File handle for client, key for hash table.  */
   zfs_fh local_fh;
 
@@ -102,6 +101,8 @@ struct internal_fh_def
 /* Structure of a virtual directory (element of mount tree).  */
 struct virtual_dir_def
 {
+  pthread_mutex_t mutex;
+
   /* Handle of this node.  */
   zfs_fh fh;
 
@@ -133,6 +134,9 @@ extern zfs_fh root_fh;
 /* Mutex for fh_pool.  */
 extern pthread_mutex_t fh_pool_mutex;
 
+/* Mutex for virtual directories.  */
+extern pthread_mutex_t vd_mutex;
+
 extern hash_t internal_fh_hash (const void *x);
 extern hash_t internal_fh_hash_name (const void *x);
 extern int internal_fh_eq (const void *xx, const void *yy);
@@ -155,6 +159,7 @@ extern void virtual_dir_destroy (virtual_dir vd);
 extern virtual_dir virtual_root_create ();
 extern void virtual_root_destroy (virtual_dir root);
 extern virtual_dir virtual_mountpoint_create (volume vol);
+extern void virtual_mountpoint_destroy (volume vol);
 extern void virtual_dir_set_fattr (virtual_dir vd);
 extern void print_virtual_tree (FILE *f);
 extern void debug_virtual_tree ();

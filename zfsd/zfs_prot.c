@@ -88,6 +88,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
 	{
 	  encode_zfs_fh (dc, &ifh->local_fh);
 	  encode_fattr (dc, &ifh->attr);
+	  zfsd_mutex_unlock (&ifh->mutex);
 	}
     }
 }
