@@ -85,11 +85,12 @@ hardlink_list_destroy (hardlink_list hl)
 }
 
 /* Insert hardlink [PARENT_DEV, PARENT_INO, NAME] to hardlink list HL.
+   If COPY is true make a copy of the NAME.
    Return true if it was really inserted.  */
 
 bool
 hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
-		      uint32_t parent_ino, char *name)
+		      uint32_t parent_ino, char *name, bool copy)
 {
   hardlink_list_entry *entry;
   void **slot;
@@ -108,10 +109,17 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
   if (*slot)
     {
       VARRAY_POP (hl->array);
+      if (!copy)
+	{
+	  /* If we shall not copy NAME the NAME is dynamically allocated
+	     and caller does not free it so we have to free it now.  */
+	  free (name);
+	}
       return false;
     }
 
-  entry->name = xstrdup (name);
+  if (copy)
+    entry->name = xstrdup (name);
   *slot = entry;
 
   return true;

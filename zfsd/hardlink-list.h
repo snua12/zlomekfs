@@ -67,7 +67,7 @@ extern hardlink_list hardlink_list_create (unsigned int nelem,
 					   pthread_mutex_t *mutex);
 extern void hardlink_list_destroy (hardlink_list hl);
 extern bool hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
-				  uint32_t parent_ino, char *name);
+				  uint32_t parent_ino, char *name, bool copy);
 extern bool hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, char *name);
 extern bool hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
