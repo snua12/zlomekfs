@@ -84,7 +84,14 @@ close_local_fd (int fd)
     abort ();
 #endif
 
+  message (2, stderr, "Closing FD %d\n", fd);
   zfsd_mutex_lock (&internal_fd_data[fd].mutex);
+#ifdef ENABLE_CHECKING
+  if (internal_fd_data[fd].fd < 0)
+    abort ();
+  if (!internal_fd_data[fd].heap_node)
+    abort ();
+#endif
   internal_fd_data[fd].fd = -1;
   internal_fd_data[fd].generation++;
   close (fd);
@@ -143,8 +150,9 @@ capability_opened_p (internal_cap cap)
       return false;
     }
 
-  fibheap_replace_key (opened, internal_fd_data[cap->fd].heap_node,
-		       (fibheapkey_t) time (NULL));
+  internal_fd_data[cap->fd].heap_node
+    = fibheap_replace_key (opened, internal_fd_data[cap->fd].heap_node,
+			   (fibheapkey_t) time (NULL));
   zfsd_mutex_unlock (&opened_mutex);
   return true;
 }
@@ -1208,7 +1216,11 @@ cleanup_file_c ()
       internal_fd_data_t *fd_data;
 
       zfsd_mutex_lock (&opened_mutex);
-      fd_data = (internal_fd_data_t *) fibheap_extract_min (opened);
+      fd_data = (internal_fd_data_t *) fibheap_min (opened);
+#ifdef ENABLE_CHECKING
+      if (!fd_data && fibheap_size (opened) > 0)
+	abort ();
+#endif
       if (fd_data && fd_data->fd >= 0)
 	close_local_fd (fd_data->fd);
       zfsd_mutex_unlock (&opened_mutex);

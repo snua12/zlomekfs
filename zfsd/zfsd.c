@@ -311,8 +311,8 @@ initialize_data_structures ()
     return false;
 
   initialize_fh_c ();
-  initialize_cap_c ();
   initialize_file_c ();
+  initialize_cap_c ();
   initialize_node_c ();
   initialize_volume_c ();
   initialize_zfs_prot_c ();
@@ -328,8 +328,8 @@ cleanup_data_structures ()
   cleanup_zfs_prot_c ();
   cleanup_volume_c ();
   cleanup_node_c ();
-  cleanup_file_c ();
   cleanup_cap_c ();
+  cleanup_file_c ();
   cleanup_fh_c ();
   cleanup_random_c ();
 
