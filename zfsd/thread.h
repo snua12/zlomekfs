@@ -78,7 +78,6 @@ typedef union padded_thread_def
 
 /* Definition of thread pool.  */
 typedef struct thread_pool_def {
-  size_t nthreads;		/* total number of threads */
   size_t min_spare_threads;	/* minimal number of spare threads */
   size_t max_spare_threads;	/* maximal number of spare threads */
   size_t size;			/* total number of slots for threads */
@@ -87,7 +86,12 @@ typedef struct thread_pool_def {
   queue empty;			/* queue of empty thread slots */
 } thread_pool;
 
+/* Routine for starting threads of particular type.  */
+typedef int (*thread_start) ();
+
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
 				size_t max_spare_threads);
+extern void thread_pool_regulate (thread_pool *pool, thread_start start);
+
 #endif

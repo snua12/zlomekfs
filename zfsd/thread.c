@@ -21,6 +21,7 @@
 #include "system.h"
 #include <stddef.h>
 #include "memory.h"
+#include "log.h"
 #include "queue.h"
 #include "thread.h"
 
@@ -33,7 +34,6 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 {
   size_t i;
 
-  pool->nthreads = 0;
   pool->min_spare_threads = min_spare_threads;
   pool->max_spare_threads = max_spare_threads;
   pool->size = max_threads;
@@ -47,5 +47,55 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
       pool->threads[i].t.state = THREAD_DEAD;
       pool->threads[i].t.index = i;
       queue_put (&pool->empty, i);
+    }
+}
+
+/* Kill/create threads when there are too many or not enough idle threads.
+   It expects SERVER_POOL.IDLE.MUTEX to be locked.  */
+
+void
+thread_pool_regulate (thread_pool *pool, thread_start start)
+{
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
+    abort ();
+#endif
+
+  if (pool->idle.nelem > pool->max_spare_threads)
+    {
+      /* Let some threads to die.  */
+      pthread_mutex_lock (&pool->empty.mutex);
+      while (pool->idle.nelem > pool->max_spare_threads)
+	{
+	  size_t index = queue_get (&pool->idle);
+	  pool->threads[index].t.state = THREAD_DYING;
+	  pthread_mutex_unlock (&pool->threads[index].t.mutex);
+	  if (pthread_join (pool->threads[index].t.thread_id, NULL) == 0)
+	    {
+	      /* Thread left the mutex locked.  */
+	      pthread_mutex_unlock (&pool->threads[index].t.mutex);
+	      pthread_mutex_destroy (&pool->threads[index].t.mutex);
+
+	      pool->threads[index].t.state = THREAD_DEAD;
+	      queue_put (&pool->empty, index);
+	    }
+	  else
+	    {
+	      message (-1, stderr, "pthread_join() failed\n");
+	    }
+	}
+      pthread_mutex_unlock (&pool->empty.mutex);
+    }
+  else if (pool->idle.nelem < pool->max_spare_threads
+	   && pool->idle.nelem < pool->idle.size)
+    {
+      /* Create new threads.  */
+      pthread_mutex_lock (&pool->empty.mutex);
+      while (pool->idle.nelem < pool->max_spare_threads
+	     && pool->idle.nelem < pool->idle.size)
+	{
+	  (*start) ();
+	}
+      pthread_mutex_unlock (&pool->empty.mutex);
     }
 }
