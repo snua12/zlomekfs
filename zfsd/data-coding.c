@@ -546,9 +546,17 @@ encode_dir_op_res (DC *dc, dir_op_res *res)
 bool
 decode_create_args (DC *dc, create_args *args)
 {
-  return (decode_dir_op_args (dc, &args->where)
-	  && decode_uint32_t (dc, &args->flags)
-	  && decode_sattr (dc, &args->attr));
+  if (!decode_dir_op_args (dc, &args->where))
+    return false;
+
+  if (!(decode_uint32_t (dc, &args->flags)
+	&& decode_sattr (dc, &args->attr)))
+    {
+      free (args->where.name.str);
+      return false;
+    }
+
+  return true;
 }
 
 bool
@@ -638,8 +646,16 @@ encode_dir_list (DC *dc, dir_list *list)
 bool
 decode_mkdir_args (DC *dc, mkdir_args *args)
 {
-  return (decode_dir_op_args (dc, &args->where)
-	  && decode_sattr (dc, &args->attr));
+  if (!decode_dir_op_args (dc, &args->where))
+    return false;
+
+  if (!decode_sattr (dc, &args->attr))
+    {
+      free (args->where.name.str);
+      return false;
+    }
+
+  return true;
 }
 
 bool
@@ -652,8 +668,16 @@ encode_mkdir_args (DC *dc, mkdir_args *args)
 bool
 decode_rename_args (DC *dc, rename_args *args)
 {
-  return (decode_dir_op_args (dc, &args->from)
-	  && decode_dir_op_args (dc, &args->to));
+  if (!decode_dir_op_args (dc, &args->from))
+    return false;
+
+  if (!decode_dir_op_args (dc, &args->to))
+    {
+      free (args->from.name.str);
+      return false;
+    }
+
+  return true;
 }
 
 bool
@@ -736,9 +760,23 @@ encode_read_link_res (DC *dc, read_link_res *res)
 bool
 decode_symlink_args (DC *dc, symlink_args *args)
 {
-  return (decode_dir_op_args (dc, &args->from)
-	  && decode_zfs_path (dc, &args->to)
-	  && decode_sattr (dc, &args->attr));
+  if (!decode_dir_op_args (dc, &args->from))
+    return false;
+
+  if (!decode_zfs_path (dc, &args->to))
+    {
+      free (args->from.name.str);
+      return false;
+    }
+
+  if (!decode_sattr (dc, &args->attr))
+    {
+      free (args->from.name.str);
+      free (args->to.str);
+      return false;
+    }
+
+  return true;
 }
 
 bool
@@ -752,10 +790,18 @@ encode_symlink_args (DC *dc, symlink_args *args)
 bool
 decode_mknod_args (DC *dc, mknod_args *args)
 {
-  return (decode_dir_op_args (dc, &args->where)
-	  && decode_sattr (dc, &args->attr)
-	  && decode_ftype (dc, &args->type)
-	  && decode_uint32_t (dc, &args->rdev));
+  if (!decode_dir_op_args (dc, &args->where))
+    return false;
+
+  if (!(decode_sattr (dc, &args->attr)
+	&& decode_ftype (dc, &args->type)
+	&& decode_uint32_t (dc, &args->rdev)))
+    {
+      free (args->where.name.str);
+      return false;
+    }
+
+  return true;
 }
 
 bool
