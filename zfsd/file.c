@@ -2226,18 +2226,6 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
       if (r != ZFS_OK)
 	return r;
 
-      r2 = zfs_fh_lookup (&cap->fh, NULL, &dentry, NULL);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-#endif
-
-      total += res.written;
-      if (res.written > 0)
-	interval_tree_insert (dentry->fh->updated, offset, offset + total);
-
-      release_dentry (dentry);
-
       if (res.written == 0)
 	break;
     }
