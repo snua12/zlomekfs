@@ -5000,7 +5000,6 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 {
   string path;
   string shadow_path, shadow_name;
-  zfs_fh shadow_fh;
   metadata meta_old, meta_new;
   internal_dentry shadow_dir;
   uint32_t vid;
@@ -5051,21 +5050,15 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  file_name_from_path (&shadow_name, &shadow_path);
-  shadow_name.str[-1] = 0;
-  r = refresh_local_path_vid (&shadow_fh, vid, &shadow_path);
-
   r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
 #endif
 
-  if (r == ZFS_OK)
-    shadow_dir = dentry_lookup (&shadow_fh);
-  else
-    shadow_dir = NULL;
-
+  file_name_from_path (&shadow_name, &shadow_path);
+  shadow_name.str[-1] = 0;
+  shadow_dir = dentry_lookup_local_path (vol, &shadow_path);
   if (shadow_dir)
     {
       internal_dentry_move (&dir, name, &shadow_dir, &shadow_name, &vol,
@@ -5181,10 +5174,6 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      return r;
 	    }
 
-	  file_name_from_path (&old_name, &old_path);
-	  old_name.str[-1] = 0;
-	  r = refresh_local_path_vid (&old_fh, vid, &old_path);
-
 	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
@@ -5193,13 +5182,12 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
 	  delete_dentry (&vol, &dir, name, dir_fh);
 
-	  if (r == ZFS_OK)
-	    old_dentry = dentry_lookup (&old_fh);
-	  else
-	    old_dentry = NULL;
-
+	  file_name_from_path (&old_name, &old_path);
+	  old_name.str[-1] = 0;
+	  old_dentry = dentry_lookup_local_path (vol, &old_path);
 	  if (old_dentry)
 	    {
+	      old_fh = old_dentry->fh->local_fh;
 	      internal_dentry_move (&old_dentry, &old_name, &dir, name,
 				    &vol, &old_fh, dir_fh);
 	    }
