@@ -1337,7 +1337,13 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
   while (!thread_pool_terminate_p (&network_pool))
     {
-      fibheapkey_t threshold = (fibheapkey_t) time (NULL) - REQUEST_TIMEOUT;
+      fibheapkey_t threshold;
+      
+      threshold = (fibheapkey_t) time (NULL);
+      if (threshold <= REQUEST_TIMEOUT)
+	threshold = 0;
+      else
+	threshold -= REQUEST_TIMEOUT;
 
       zfsd_mutex_lock (&active_mutex);
       for (i = 0; i < nactive; i++)

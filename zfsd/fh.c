@@ -264,7 +264,12 @@ cleanup_unused_dentries (void)
   zfs_fh fh[1024];
   int i, n;
 
-  threshold = (fibheapkey_t) time (NULL) - MAX_INTERNAL_DENTRY_UNUSED_TIME;
+  threshold = (fibheapkey_t) time (NULL);
+  if (threshold <= MAX_INTERNAL_DENTRY_UNUSED_TIME)
+    threshold = 0;
+  else
+    threshold -= MAX_INTERNAL_DENTRY_UNUSED_TIME;
+
   do
     {
       zfsd_mutex_lock (&cleanup_dentry_mutex);
