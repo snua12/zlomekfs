@@ -2653,15 +2653,14 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       /* If the journal is empty set the local and remote version.  */
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_getattr (attr, dir, vol);
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
 #endif
       if (r != ZFS_OK)
-	goto out;
+	goto out2;
 
-      zfsd_mutex_unlock (&fh_mutex);
       if (!lookup_metadata (vol, &dir->fh->local_fh, &dir->fh->meta, true))
 	{
 	  MARK_VOLUME_DELETE (vol);
