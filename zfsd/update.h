@@ -26,6 +26,7 @@
 #include "pthread.h"
 #include "varray.h"
 #include "queue.h"
+#include "thread.h"
 #include "fh.h"
 #include "cap.h"
 #include "metadata.h"
