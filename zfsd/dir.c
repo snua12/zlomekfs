@@ -3288,6 +3288,9 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
+  if (GET_CONFLICT (*fh))
+    return EINVAL;
+
   vol = volume_lookup (fh->vid);
   if (!vol)
     return ENOENT;
