@@ -881,6 +881,16 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
       RETURN_INT (ZFS_OK);
     }
 
+  if (dentry->fh->attr.type == FT_LNK)
+    {
+      put_capability (icap, dentry->fh, vd);
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      if (vd)
+	zfsd_mutex_unlock (&vd->mutex);
+      RETURN_INT (ELOOP);
+    }
+
   r = internal_cap_lock (dentry->fh->attr.type == FT_DIR
 			 ? LEVEL_EXCLUSIVE : LEVEL_SHARED,
 			 &icap, &vol, &dentry, &vd, &tmp_cap);
