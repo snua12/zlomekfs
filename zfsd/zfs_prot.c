@@ -266,7 +266,7 @@ zfs_proc_unlink_server (dir_op_args *args, thread *t)
   DC *dc = &t->dc;
   int32_t r;
 
-  r = zfs_rmdir (&args->dir, &args->name);
+  r = zfs_unlink (&args->dir, &args->name);
   encode_status (dc, r);
   free (args->name.str);
 }
