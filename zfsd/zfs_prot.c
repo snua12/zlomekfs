@@ -112,7 +112,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t, bool map_id)
 	    {
 	      encode_fattr (dc, &dentry->fh->attr);
 	    }
-	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  release_dentry (dentry);
 	}
     }
 }

@@ -261,7 +261,7 @@ cleanup_unused_dentries ()
 			  /* Reinsert the file handle to heap.  */
 			  zfsd_mutex_lock (&dentry->fh->mutex);
 			  cleanup_dentry_insert_node (dentry);
-			  zfsd_mutex_unlock (&dentry->fh->mutex);
+			  release_dentry (dentry);
 			  continue;
 			}
 
@@ -274,7 +274,7 @@ cleanup_unused_dentries ()
 		      internal_dentry_destroy (dentry, vol);
 
 		      if (parent)
-			zfsd_mutex_unlock (&parent->fh->mutex);
+			release_dentry (parent);
 		    }
 		  zfsd_mutex_unlock (&vol->mutex);
 		}
@@ -465,6 +465,17 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
     }
 
   return ZFS_OK;
+}
+
+/* Update time of last use of DENTRY and unlock it.  */
+
+void
+release_dentry (internal_dentry dentry)
+{
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  cleanup_dentry_update_node (dentry);
+  zfsd_mutex_unlock (&dentry->fh->mutex);
 }
 
 /* Return the virtual directory for NAME in virtual directory PARENT.  */
@@ -918,7 +929,7 @@ internal_dentry_destroy (internal_dentry dentry, volume vol)
       dentry->next->prev = dentry->prev;
       dentry->prev->next = dentry->next;
       *slot = dentry->next;
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
     }
 
   free (dentry->name);

@@ -215,6 +215,7 @@ extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
 extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
 				     internal_dentry *dentryp,
 				     virtual_dir *vdp);
+extern void release_dentry (internal_dentry dentry);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
 					   const char *name);

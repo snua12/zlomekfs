@@ -283,7 +283,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
 
   if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
-      zfsd_mutex_unlock (&(*dentry)->fh->mutex);
+      release_dentry (*dentry);
       if (*vd)
 	zfsd_mutex_unlock (&(*vd)->mutex);
       if (*vol)

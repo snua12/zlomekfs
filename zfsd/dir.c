@@ -586,7 +586,7 @@ zfs_getattr_retry:
   if (r == ZFS_OK)
     dentry->fh->attr = *fa;
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -735,7 +735,7 @@ zfs_setattr_retry:
   if (r == ZFS_OK)
     dentry->fh->attr = *fa;
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -920,7 +920,7 @@ zfs_lookup_retry:
 
   if (idir->fh->attr.type != FT_DIR)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
@@ -928,7 +928,7 @@ zfs_lookup_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -983,10 +983,10 @@ zfs_lookup_retry:
       else
 	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
 					 idir, name->str, &res->attr);
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1120,7 +1120,7 @@ zfs_mkdir_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -1168,10 +1168,10 @@ zfs_mkdir_retry:
 			     dentry->fh->meta.local_version + 1, 0))
 	    vol->flags |= VOLUME_DELETE;
 	}
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1292,7 +1292,7 @@ zfs_rmdir_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -1323,7 +1323,7 @@ zfs_rmdir_retry:
 	}
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1442,7 +1442,7 @@ zfs_rename_retry:
   /* Temporarily unlock IFH1, we are still holding VOL->MUTEX so we are
      allowed to lock it again.  */
   if (dentry1)
-    zfsd_mutex_unlock (&dentry1->fh->mutex);
+    release_dentry (dentry1);
   /* Similarly, we are holding VD_MUTEX so unlock VD1->MUTEX.  */
   if (vd1)
     zfsd_mutex_unlock (&vd1->mutex);
@@ -1494,7 +1494,7 @@ zfs_rename_retry:
 	  zfsd_mutex_unlock (&vd_mutex);
 	  return r;
 	}
-      zfsd_mutex_unlock (&dentry2->fh->mutex);
+      release_dentry (dentry2);
     }
   if (vd1)
     {
@@ -1505,7 +1505,7 @@ zfs_rename_retry:
 	  zfsd_mutex_unlock (&vd_mutex);
 	  return r;
 	}
-      zfsd_mutex_unlock (&dentry1->fh->mutex);
+      release_dentry (dentry1);
     }
   zfsd_mutex_unlock (&vd_mutex);
 
@@ -1523,8 +1523,8 @@ zfs_rename_retry:
 
   if (dentry1->fh->master_fh.dev != dentry2->fh->master_fh.dev)
     {
-      zfsd_mutex_unlock (&dentry1->fh->mutex);
-      zfsd_mutex_unlock (&dentry2->fh->mutex);
+      release_dentry (dentry1);
+      release_dentry (dentry2);
       zfsd_mutex_unlock (&vol->mutex);
       return EXDEV;
     }
@@ -1566,7 +1566,7 @@ zfs_rename_retry:
 
 	  if (!internal_dentry_move (dentry, vol, dentry2, to_name->str))
 	    r = EINVAL;
-	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  release_dentry (dentry);
 	}
 
       if (vol->local_path)
@@ -1578,9 +1578,9 @@ zfs_rename_retry:
 	}
     }
 
-  zfsd_mutex_unlock (&dentry1->fh->mutex);
+  release_dentry (dentry1);
   if (dentry1 != dentry2)
-    zfsd_mutex_unlock (&dentry2->fh->mutex);
+    release_dentry (dentry2);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1697,7 +1697,7 @@ zfs_link_retry:
   /* Temporarily unlock IFH1, we are still holding VOL->MUTEX so we are
      allowed to lock it again.  */
   if (dentry1)
-    zfsd_mutex_unlock (&dentry1->fh->mutex);
+    release_dentry (dentry1);
   /* We do not need VD1 to be locked anymore.  */
   if (vd1)
     zfsd_mutex_unlock (&vd1->mutex);
@@ -1783,17 +1783,17 @@ zfs_link_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!dentry2->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&dentry1->fh->mutex);
+      release_dentry (dentry1);
       if (dentry1 != dentry2)
-	zfsd_mutex_unlock (&dentry2->fh->mutex);
+	release_dentry (dentry2);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
 
   if (dentry1->fh->master_fh.dev != dentry2->fh->master_fh.dev)
     {
-      zfsd_mutex_unlock (&dentry1->fh->mutex);
-      zfsd_mutex_unlock (&dentry2->fh->mutex);
+      release_dentry (dentry1);
+      release_dentry (dentry2);
       zfsd_mutex_unlock (&vol->mutex);
       return EXDEV;
     }
@@ -1834,9 +1834,9 @@ zfs_link_retry:
 	}
     }
 
-  zfsd_mutex_unlock (&dentry1->fh->mutex);
+  release_dentry (dentry1);
   if (dentry1 != dentry2)
-    zfsd_mutex_unlock (&dentry2->fh->mutex);
+    release_dentry (dentry2);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1959,7 +1959,7 @@ zfs_unlink_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -1990,7 +1990,7 @@ zfs_unlink_retry:
 	}
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -2103,7 +2103,7 @@ zfs_readlink_retry:
   else
     abort ();
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2238,7 +2238,7 @@ zfs_symlink_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -2287,10 +2287,10 @@ zfs_symlink_retry:
 			     dentry->fh->meta.local_version + 1, 0))
 	    vol->flags |= VOLUME_DELETE;
 	}
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -2430,7 +2430,7 @@ zfs_mknod_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -2478,10 +2478,10 @@ zfs_mknod_retry:
 			     dentry->fh->meta.local_version + 1, 0))
 	    vol->flags |= VOLUME_DELETE;
 	}
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -2518,7 +2518,7 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, char *name, volume vol)
       if (r == ZFS_OK)
 	r = remote_lookup (res, dir->fh, &s, vol);
     }
-  zfsd_mutex_unlock (&dir->fh->mutex);
+  release_dentry (dir);
 
   return r;
 }
@@ -2542,7 +2542,7 @@ refresh_path (zfs_fh *fh)
 
   r = refresh_path_1 (&res, dentry->parent, dentry->name, vol);
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
   return r;
@@ -2571,7 +2571,7 @@ refresh_master_fh (internal_dentry dentry, volume vol)
 	  r = refresh_master_fh (dentry->parent, vol);
 	  if (r != ZFS_OK)
 	    {
-	      zfsd_mutex_unlock (&dentry->parent->fh->mutex);
+	      release_dentry (dentry->parent);
 	      return r;
 	    }
 
@@ -2587,7 +2587,7 @@ retry_lookup:
 		goto retry_lookup;
 	    }
 	  
-	  zfsd_mutex_unlock (&dentry->parent->fh->mutex);
+	  release_dentry (dentry->parent);
 	  if (r != ZFS_OK)
 	    return r;
 

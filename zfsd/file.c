@@ -407,7 +407,7 @@ zfs_create_retry:
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      zfsd_mutex_unlock (&idir->fh->mutex);
+      release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
@@ -501,11 +501,11 @@ zfs_create_retry:
 	  memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
 	}
 
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&icap->mutex);
     }
 
-  zfsd_mutex_unlock (&idir->fh->mutex);
+  release_dentry (idir);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -685,7 +685,7 @@ zfs_open_retry:
     abort ();
 
   zfsd_mutex_unlock (&icap->mutex);
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -763,7 +763,7 @@ zfs_close_retry:
     }
 
   put_capability (icap, dentry);
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&cap_mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1266,7 +1266,7 @@ zfs_readdir_retry:
 	      zfsd_mutex_unlock (&vd->mutex);
 	      zfsd_mutex_unlock (&vd_mutex);
 	    }
-	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&icap->mutex);
 	  return ENOTDIR;
@@ -1291,7 +1291,7 @@ zfs_readdir_retry:
 	  zfsd_mutex_unlock (&vd_mutex);
 	}
       if (dentry)
-	zfsd_mutex_unlock (&dentry->fh->mutex);
+	release_dentry (dentry);
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
     }
@@ -1304,7 +1304,7 @@ zfs_readdir_retry:
 	  zfsd_mutex_unlock (&vd_mutex);
 	}
       if (dentry)
-	zfsd_mutex_unlock (&dentry->fh->mutex);
+	release_dentry (dentry);
     }
   else
     abort ();
@@ -1501,7 +1501,7 @@ zfs_read_retry:
 
   if (dentry->fh->attr.type == FT_DIR)
     {
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&icap->mutex);
       return EISDIR;
@@ -1546,12 +1546,12 @@ zfs_read_retry:
 	  if (complete)
 	    {
 	      r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
-	      zfsd_mutex_unlock (&dentry->fh->mutex);
+	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&icap->mutex);
 	    }
 	  else if (covered)
 	    {
-	      zfsd_mutex_unlock (&dentry->fh->mutex);
+	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 
 	      r = update_file_blocks (true, rcount, buffer, offset,
@@ -1563,7 +1563,7 @@ zfs_read_retry:
 			      vol);
 	      if (r == ZFS_OK)
 		{
-		  zfsd_mutex_unlock (&dentry->fh->mutex);
+		  release_dentry (dentry);
 
 		  r = update_file_blocks (true, rcount, buffer, offset,
 					  icap, &blocks);
@@ -1571,7 +1571,7 @@ zfs_read_retry:
 	      else
 		{
 		  zfsd_mutex_unlock (&icap->mutex);
-		  zfsd_mutex_unlock (&dentry->fh->mutex);
+		  release_dentry (dentry);
 		}
 	    }
 
@@ -1580,14 +1580,14 @@ zfs_read_retry:
       else
 	{
 	  r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
-	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&icap->mutex);
 	}
     }
   else if (vol->master != this_node)
     {
       r = remote_read (rcount, buffer, icap, offset, count, vol);
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&icap->mutex);
     }
   else
@@ -1778,7 +1778,7 @@ zfs_write_retry:
 	}
     }
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&icap->mutex);
 
   if (r == ZFS_STALE && retry < 1)
@@ -1821,7 +1821,7 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
       r = local_read (&n_read, (char *) buffer + total, icap, dentry,
 		      offset + total, count - total, vol);
       zfsd_mutex_unlock (&icap->mutex);
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       if (r != ZFS_OK)
 	return r;
 
@@ -1862,7 +1862,7 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
       r = remote_read (&n_read, (char *) buffer + total, icap,
 		       offset + total, count - total, vol);
       zfsd_mutex_unlock (&icap->mutex);
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       if (r != ZFS_OK)
 	return r;
 
@@ -1906,7 +1906,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
       zfsd_mutex_unlock (&icap->mutex);
       if (r != ZFS_OK)
 	{
-	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  release_dentry (dentry);
 	  return r;
 	}
 
@@ -1914,7 +1914,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
       if (res.written > 0)
 	interval_tree_insert (dentry->fh->updated, offset, offset + total);
 
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
 
       if (res.written == 0)
 	break;
@@ -1999,7 +1999,7 @@ remote_md5sum_retry:
 
   if (dentry->fh->attr.type != FT_REG)
     {
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&icap->mutex);
       return EINVAL;
@@ -2011,7 +2011,7 @@ remote_md5sum_retry:
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_unlock (&icap->mutex);
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);

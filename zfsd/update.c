@@ -147,7 +147,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 				local_md5.offset[i] + local_md5.length[i]);
 	}
     }
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
 
   /* Update different blocks.  */
   for (i = 0, j = 0; i < remote_md5.count; i++)
@@ -250,7 +250,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	      interval_tree_insert (dentry->fh->updated, remote_md5.offset[i],
 				    (remote_md5.offset[i]
 				     + remote_md5.length[i]));
-	      zfsd_mutex_unlock (&dentry->fh->mutex);
+	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	    }
 	}
@@ -384,14 +384,14 @@ schedule_update_regular_file (internal_dentry dentry, volume vol)
   r = refresh_master_fh (dentry, vol);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return r;
     }
 
   /* TODO: schedule update of file.  */
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   return ZFS_OK;
 }
@@ -407,14 +407,14 @@ update_directory (internal_dentry dentry, volume vol, bool schedule)
   r = refresh_master_fh (dentry, vol);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return r;
     }
 
   /* TODO: update the directory.  */
 
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   return ZFS_OK;
 }
@@ -431,7 +431,7 @@ delete_tree (internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   path = build_local_path (vol, dentry);
-  zfsd_mutex_unlock (&dentry->fh->mutex);
+  release_dentry (dentry);
   r = recursive_unlink (path, vol);
   zfsd_mutex_unlock (&vol->mutex);
   free (path);
@@ -464,7 +464,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
   r = remote_getattr (&attr, dentry, vol);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&dentry->fh->mutex);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return r;
     }
@@ -480,7 +480,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
       case FT_BAD:
 	if (!delete_tree (dentry, vol))
 	  {
-	    zfsd_mutex_unlock (&dentry->fh->mutex);
+	    release_dentry (dentry);
 	    zfsd_mutex_unlock (&vol->mutex);
 	    return ZFS_UPDATE_FAILED;
 	  }
@@ -497,7 +497,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    xmkstring (&name, dentry->name);
 	    if (!delete_tree (dentry, vol))
 	      {
-		zfsd_mutex_unlock (&dentry->fh->mutex);
+		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
 		free (name.str);
 		return ZFS_UPDATE_FAILED;
@@ -519,7 +519,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 		dentry = internal_dentry_create (&res.file, &undefined_fh, vol,
 						 dir, name.str, &res.attr);
 	      }
-	    zfsd_mutex_unlock (&dir->fh->mutex);
+	    release_dentry (dir);
 	    free (name.str);
 	    if (r != ZFS_OK)
 	      {
@@ -539,7 +539,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    r = local_setattr (&dentry->fh->attr, dentry, &sa, vol);
 	    if (r != ZFS_OK)
 	      {
-		zfsd_mutex_unlock (&dentry->fh->mutex);
+		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
 		return r;
 	      }
@@ -563,7 +563,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    xmkstring (&name, dentry->name);
 	    if (!delete_tree (dentry, vol))
 	      {
-		zfsd_mutex_unlock (&dentry->fh->mutex);
+		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
 		free (name.str);
 		return ZFS_UPDATE_FAILED;
@@ -581,7 +581,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    if (r == ZFS_OK)
 	      dentry = internal_dentry_create (&res.file, &undefined_fh, vol,
 					       dir, name.str, &res.attr);
-	    zfsd_mutex_unlock (&dir->fh->mutex);
+	    release_dentry (dir);
 	    free (name.str);
 	    if (r != ZFS_OK)
 	      {
@@ -601,7 +601,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    r = local_setattr (&dentry->fh->attr, dentry, &sa, vol);
 	    if (r != ZFS_OK)
 	      {
-		zfsd_mutex_unlock (&dentry->fh->mutex);
+		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
 		return r;
 	      }
@@ -611,7 +611,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
       case FT_LNK:
 	fh = dentry->fh->local_fh;
 	r = remote_readlink (&link_to, dentry->fh, vol);
-	zfsd_mutex_unlock (&dentry->fh->mutex);
+	release_dentry (dentry);
 	if (r != ZFS_OK)
 	  return r;
 
@@ -623,7 +623,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	xmkstring (&name, dentry->name);
 	if (!delete_tree (dentry, vol))
 	  {
-	    zfsd_mutex_unlock (&dentry->fh->mutex);
+	    release_dentry (dentry);
 	    zfsd_mutex_unlock (&vol->mutex);
 	    free (name.str);
 	    return ZFS_UPDATE_FAILED;
@@ -638,7 +638,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 
 	zfsd_mutex_lock (&dir->fh->mutex);
 	r = local_symlink (&dir_res, dir, &name, &link_to.path, &sa, vol);
-	zfsd_mutex_unlock (&dir->fh->mutex);
+	release_dentry (dir);
 	zfsd_mutex_unlock (&vol->mutex);
 	free (name.str);
 	return r;
@@ -651,7 +651,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	xmkstring (&name, dentry->name);
 	if (!delete_tree (dentry, vol))
 	  {
-	    zfsd_mutex_unlock (&dentry->fh->mutex);
+	    release_dentry (dentry);
 	    zfsd_mutex_unlock (&vol->mutex);
 	    free (name.str);
 	    return ZFS_UPDATE_FAILED;
@@ -666,7 +666,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 
 	zfsd_mutex_lock (&dir->fh->mutex);
 	r = local_mknod (&dir_res, dir, &name, &sa, attr.type, attr.rdev, vol);
-	zfsd_mutex_unlock (&dir->fh->mutex);
+	release_dentry (dir);
 	zfsd_mutex_unlock (&vol->mutex);
 	free (name.str);
 	return r;
