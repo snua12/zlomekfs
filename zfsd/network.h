@@ -99,7 +99,7 @@ extern void update_node_fd (node nod, int fd, unsigned int generation,
 extern void wake_all_threads (fd_data_t *fd_data, int32_t retval);
 extern void close_network_fd (int fd);
 extern bool node_has_valid_fd (node nod);
-extern bool node_connected (uint32_t sid, int *generation);
+extern bool node_connected (uint32_t sid, unsigned int *generation);
 extern connection_speed volume_master_connected (volume vol);
 extern int node_connect_and_authenticate (thread *t, node nod,
 					  authentication_status auth);

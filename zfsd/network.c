@@ -318,7 +318,7 @@ node_has_valid_fd (node nod)
    to GENERATION.  Otherwise return false.  */
 
 bool
-node_connected (uint32_t sid, int *generation)
+node_connected (uint32_t sid, unsigned int *generation)
 {
   node nod;
 
