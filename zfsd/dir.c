@@ -559,11 +559,15 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 		  && de->d_name[2] == 0)))
 	continue;
 
+      len = strlen (de->d_name);
+      append_file_name (&new_path, path, de->d_name, len);
+
       vol = volume_lookup (fh->vid);
-      if (lstat (path->str, &st) != 0)
+      if (lstat (new_path.str, &st) != 0)
 	{
 	  if (vol)
 	    zfsd_mutex_unlock (&vol->mutex);
+	  free (new_path.str);
 	  continue;
 	}
 
@@ -586,15 +590,13 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 	      zfsd_mutex_unlock (&vol->mutex);
 	    }
 
-	  len = strlen (de->d_name);
-	  append_file_name (&new_path, path, de->d_name, len);
 	  r = recursive_unlink_contents (meta, &new_path, fh, &sub_fh,
 					 destroy_dentry, journal_p,
 					 inc_version_p, move_to_shadow_p);
-	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    {
 	      closedir (d);
+	      free (new_path.str);
 	      RETURN_INT (r);
 	    }
 	}
@@ -603,6 +605,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 	  if (vol)
 	    zfsd_mutex_unlock (&vol->mutex);
 	}
+      free (new_path.str);
     }
   closedir (d);
 
