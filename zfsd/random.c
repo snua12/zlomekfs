@@ -21,8 +21,10 @@
 #include "system.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "random.h"
 
 /* File descriptor for /dev/random.  */
@@ -36,6 +38,8 @@ int fd_urandom = -1;
 bool
 initialize_random_c (void)
 {
+  struct timeval t;
+
   fd_random = open ("/dev/random", O_RDONLY);
   if (fd_random < 0)
     return false;
@@ -44,6 +48,10 @@ initialize_random_c (void)
   if (fd_urandom < 0)
     return false;
 
+  if (gettimeofday (&t, NULL) != 0)
+    return false;
+
+  srandom (t.tv_sec * 0x9876 + t.tv_usec * 0x1234 + getpid () * 0xabcd);
   return true;
 }
 
