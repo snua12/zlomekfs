@@ -1289,12 +1289,14 @@ static void *
 update_worker (void *data)
 {
   thread *t = (thread *) data;
+  lock_info li[MAX_LOCKED_FILE_HANDLES];
 
   thread_disable_signals ();
 
   pthread_cleanup_push (update_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
   pthread_setspecific (thread_name_key, "Network worker thread");
+  set_lock_info (li);
 
   while (1)
     {

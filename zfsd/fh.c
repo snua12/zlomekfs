@@ -71,6 +71,9 @@ htab_t dentry_htab_name;
 /* Mutes for file handles and dentries.  */
 pthread_mutex_t fh_mutex;
 
+/* Key for array of locked file handles.  */
+static pthread_key_t lock_info_key;
+
 /* Allocation pool for virtual directories ("mountpoints").  */
 static alloc_pool vd_pool;
 
@@ -343,6 +346,150 @@ internal_fh_eq (const void *xx, const void *yy)
 	  && x->vid == y->vid && x->sid == y->sid);
 }
 
+/* Set array of lock info for current thread to LI. */
+
+void
+set_lock_info (lock_info *li)
+{
+  int i;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_setspecific (lock_info_key, li))
+    abort ();
+#else
+  pthread_setspecific (lock_info_key, li);
+#endif
+
+  for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
+    {
+      li[i].fh = NULL;
+      li[i].level = LEVEL_UNLOCKED;
+    }
+}
+
+/* Add file handle FH locked to level LEVEL to list of file handles
+   owned by current thread.  */
+
+void
+set_owned (internal_fh fh, unsigned int level)
+{
+  lock_info *li;
+  int i;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  li = (lock_info *) pthread_getspecific (lock_info_key);
+#ifdef ENABLE_CHECKING
+  if (level != LEVEL_SHARED && level != LEVEL_EXCLUSIVE)
+    abort ();
+  if (!li)
+    abort ();
+#endif
+
+  for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
+    {
+      if (li[i].fh == NULL)
+	{
+#ifdef ENABLE_CHECKING
+	  if (li[i].level != LEVEL_UNLOCKED)
+	    abort ();
+#endif
+	  li[i].fh = fh;
+	  li[i].level = level;
+	  return;
+	}
+    }
+
+#ifdef ENABLE_CHECKING
+    abort ();
+#endif
+}
+
+/* Remove file handle FH from list of file handles owned by current thread.  */
+
+static void
+clear_owned (internal_fh fh)
+{
+  lock_info *li;
+  int i;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  li = (lock_info *) pthread_getspecific (lock_info_key);
+#ifdef ENABLE_CHECKING
+  if (!li)
+    abort ();
+#endif
+
+  for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
+    {
+      if (li[i].fh == fh)
+	{
+#ifdef ENABLE_CHECKING
+	  if (li[i].level != LEVEL_SHARED && li[i].level != LEVEL_EXCLUSIVE)
+	    abort ();
+#endif
+	  li[i].fh = NULL;
+	  li[i].level = LEVEL_UNLOCKED;
+	  return;
+	}
+    }
+
+#ifdef ENABLE_CHECKING
+  abort ();
+#endif
+}
+
+/* Return true if file handle FH is owned by current thread.  */
+
+static bool
+is_owned (internal_fh fh)
+{
+  lock_info *li;
+  int i;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  li = (lock_info *) pthread_getspecific (lock_info_key);
+#ifdef ENABLE_CHECKING
+  if (!li)
+    abort ();
+#endif
+
+  for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
+    {
+      if (li[i].fh == fh)
+	return true;
+    }
+
+  return false;
+}
+
+/* Return the level which file handle is locked by current thread.  */
+
+static unsigned int
+get_level (internal_fh fh)
+{
+  lock_info *li;
+  int i;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  li = (lock_info *) pthread_getspecific (lock_info_key);
+#ifdef ENABLE_CHECKING
+  if (!li)
+    abort ();
+#endif
+
+  for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
+    {
+      if (li[i].fh == fh)
+	return li[i].level;
+    }
+
+  return LEVEL_UNLOCKED;
+}
+
 /* Compare an internal file handle XX with client's file handle YY.  */
 
 static int
@@ -531,6 +678,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	{
 	  uint32_t vid;
 	  zfs_fh tmp;
+	  unsigned int level;
 
 	  if (dir)
 	    {
@@ -546,6 +694,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	    vid = vol->id;
 	  zfsd_mutex_unlock (&vol->mutex);
 
+	  level = get_level (dentry->fh);
 	  internal_dentry_destroy (dentry, true);
 
 	  if (dir)
@@ -564,7 +713,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	      vol = volume_lookup (vid);
 	    }
 	  dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
-					   attr);
+					   attr, level);
 	}
       else
 	{
@@ -577,7 +726,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
     }
   else
     dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
-				     attr);
+				     attr, LEVEL_UNLOCKED);
 
   if (!dir)
     vol->root_dentry = dentry;
@@ -750,12 +899,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
   (*volp)->n_locked_fhs++;
-  if (level == LEVEL_EXCLUSIVE)
-    (*dentryp)->fh->owner = pthread_self ();
-#ifdef ENABLE_CHECKING
-  else if ((*dentryp)->fh->owner)
-    abort ();
-#endif
+  set_owned ((*dentryp)->fh, level);
 
   if (!wait_for_locked)
     {
@@ -785,8 +929,6 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
     abort ();
   if (dentry->fh->users == 0)
     abort ();
-  if (dentry->fh->level != LEVEL_EXCLUSIVE && dentry->fh->owner)
-    abort ();
 #endif
 
   message (4, stderr, "FH %p UNLOCK, by %lu at %s:%d\n",
@@ -795,10 +937,10 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
 
   dentry->fh->users--;
   vol->n_locked_fhs--;
+  clear_owned (dentry->fh);
   if (dentry->fh->users == 0)
     {
       dentry->fh->level = LEVEL_UNLOCKED;
-      dentry->fh->owner = 0;
       if (dentry->deleted)
 	{
 	  internal_dentry_destroy (dentry, true);
@@ -934,11 +1076,13 @@ out2:
   return ZFS_OK;
 }
 
-/* Create a new internal file handle and store it to hash tables.  */
+/* Create a new internal file handle on volume VOL with local file handle
+   LOCAL_FH, remote file handle MASTER_FH, attributes ATTR, lock it to level
+   LEVEL and store it to hash tables.  */
 
 static internal_fh
 internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
-		    volume vol)
+		    volume vol, unsigned int level)
 {
   internal_fh fh;
   void **slot;
@@ -955,9 +1099,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->modified = NULL;
   fh->interval_tree_users = 0;
   fh->hardlinks = NULL;
-  fh->level = LEVEL_UNLOCKED;
+  fh->level = level;
   fh->users = 0;
-  fh->owner = 0;
   fh->fd = -1;
   fh->generation = 0;
   fh->flags = 0;
@@ -970,6 +1113,17 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
+
+  if (level != LEVEL_UNLOCKED)
+    {
+#ifdef ENABLE_CHECKING
+      if (level != LEVEL_SHARED && level != LEVEL_EXCLUSIVE)
+	abort ();
+#endif
+      fh->users++;
+      vol->n_locked_fhs++;
+      set_owned (fh, level);
+    }
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), INSERT);
@@ -1103,11 +1257,13 @@ debug_fh_htab ()
 
 /* Create a new internal dentry NAME in directory PARENT on volume VOL and
    internal file handle for local file handle LOCAL_FH and master file handle
-   MASTER_FH with attributes ATTR and store it to hash tables.  */
+   MASTER_FH with attributes ATTR and store it to hash tables.
+   Lock the newly created file handle to level LEVEL.  */
 
 internal_dentry
 internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
-			internal_dentry parent, char *name, fattr *attr)
+			internal_dentry parent, char *name, fattr *attr,
+			unsigned int level)
 {
   internal_dentry dentry;
   internal_fh fh;
@@ -1133,7 +1289,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 				   ZFS_FH_HASH (local_fh), INSERT);
   if (!*slot)
     {
-      fh = internal_fh_create (local_fh, master_fh, attr, vol);
+      fh = internal_fh_create (local_fh, master_fh, attr, vol, level);
     }
   else
     {
@@ -1388,24 +1544,19 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
     abort ();
 #endif
 
-  /* If we are holding the exclusive lock unlock it first.  */
-  if (dentry->fh->level == LEVEL_EXCLUSIVE
-      && dentry->fh->owner == pthread_self ())
+  /* If we are holding the lock unlock it first.  */
+  if (is_owned (dentry->fh))
     {
       volume vol;
-
-#ifdef ENABLE_CHECKING
-      if (dentry->fh->users != 1)
-	abort ();
-#endif
 
       vol = volume_lookup (tmp_fh.vid);
       vol->n_locked_fhs--;
       zfsd_mutex_unlock (&vol->mutex);
 
       dentry->fh->users--;
-      dentry->fh->level = LEVEL_UNLOCKED;
-      dentry->fh->owner = 0;
+      clear_owned (dentry->fh);
+      if (dentry->fh->users == 0)
+	dentry->fh->level = LEVEL_UNLOCKED;
     }
 
   if (dentry->fh->level != LEVEL_UNLOCKED)
@@ -1970,6 +2121,7 @@ initialize_fh_c ()
 
   /* Data structures for file handles and dentries.  */
   zfsd_mutex_init (&fh_mutex);
+  pthread_key_create (&lock_info_key, NULL);
   fh_pool = create_alloc_pool ("fh_pool", sizeof (struct internal_fh_def),
 			       1023, &fh_mutex);
   dentry_pool = create_alloc_pool ("dentry_pool",
@@ -2029,6 +2181,7 @@ cleanup_fh_c ()
   free_alloc_pool (dentry_pool);
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_destroy (&fh_mutex);
+  pthread_key_delete (lock_info_key);
 
   /* Data structures for virtual directories.  */
   zfsd_mutex_lock (&vd_mutex);

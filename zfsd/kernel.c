@@ -43,6 +43,7 @@
 #include "thread.h"
 #include "zfs_prot.h"
 #include "config.h"
+#include "fh.h"
 
 /* Data for a kernel socket.  */
 typedef struct kernel_fd_data_def
@@ -117,6 +118,7 @@ static void *
 kernel_worker (void *data)
 {
   thread *t = (thread *) data;
+  lock_info li[MAX_LOCKED_FILE_HANDLES];
   uint32_t request_id;
   uint32_t fn;
 
@@ -125,6 +127,7 @@ kernel_worker (void *data)
   pthread_cleanup_push (kernel_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
   pthread_setspecific (thread_name_key, "Kernel worker thread");
+  set_lock_info (li);
 
   while (1)
     {

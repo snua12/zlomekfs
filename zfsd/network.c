@@ -45,6 +45,7 @@
 #include "volume.h"
 #include "hashtab.h"
 #include "alloc-pool.h"
+#include "fh.h"
 
 /* Pool of network threads.  */
 thread_pool network_pool;
@@ -791,6 +792,7 @@ network_worker (void *data)
 {
   thread *t = (thread *) data;
   network_thread_data *td = &t->u.network;
+  lock_info li[MAX_LOCKED_FILE_HANDLES];
   uint32_t request_id;
   uint32_t fn;
 
@@ -799,6 +801,7 @@ network_worker (void *data)
   pthread_cleanup_push (network_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
   pthread_setspecific (thread_name_key, "Network worker thread");
+  set_lock_info (li);
 
   while (1)
     {

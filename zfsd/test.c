@@ -331,10 +331,12 @@ do_tests (void *data)
   string path = {4, "path"};
   string pip = {4, "pipe"};
   data_buffer ping = {5, "abcde", "abcde" }, ping_res;
+  lock_info li[MAX_LOCKED_FILE_HANDLES];
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
   pthread_setspecific (thread_name_key, "Testing thread");
+  set_lock_info (li);
 
   if (0)
     {

@@ -395,6 +395,7 @@ daemon_mode ()
 int
 main (int argc, char **argv)
 {
+  lock_info li[MAX_LOCKED_FILE_HANDLES];
   bool kernel_started = false;
   bool network_started = false;
   bool update_started = false;
@@ -406,6 +407,7 @@ main (int argc, char **argv)
 
   if (!initialize_data_structures ())
     die ();
+  set_lock_info (li);
 
 #ifdef TEST
   fake_config ();

@@ -151,6 +151,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
   (*volp)->n_locked_fhs++;
+  set_owned ((*dentryp)->fh, level);
   if (vdp && *vdp)
     {
       (*vdp)->busy = true;

@@ -43,6 +43,9 @@ typedef struct volume_def *volume;
 				   directories */
 #define ROOT_INODE 0		/* Inode number of the root dir of ZFS */
 
+/* Maximal number of file handles locked by one thread.  */
+#define MAX_LOCKED_FILE_HANDLES 2
+
 /* Is the FH virtual?  */
 #define VIRTUAL_FH_P(FH) ((FH).vid == VIRTUAL_DEVICE)
 
@@ -167,9 +170,6 @@ struct internal_fh_def
   /* Number of current users of the file handle.  */
   unsigned int users;
 
-  /* Owner of the file handle if level == LEVEL_EXCLUSIVE.  */
-  pthread_t owner;
-
   /* Open file descriptor.  */
   int fd;
 
@@ -183,6 +183,13 @@ struct internal_fh_def
 /* Internal file handle flags.  */
 #define IFH_UPDATE	1
 #define IFH_REINTEGRATE	2
+
+/* Information about locked file handle.  */
+typedef struct lock_info_def
+{
+  internal_fh fh;
+  unsigned int level;
+} lock_info;
 
 /* Internal directory entry.  */
 struct internal_dentry_def
@@ -287,6 +294,8 @@ extern pthread_t cleanup_dentry_thread;
 /* This mutex is locked when cleanup dentry thread is in sleep.  */
 extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
+extern void set_lock_info (lock_info *li);
+extern void set_owned (internal_fh fh, unsigned int level);
 extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
 			      internal_dentry *dentryp, virtual_dir *vdp,
 			      bool delete_volume_p);
@@ -312,8 +321,8 @@ extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
 extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
 					       zfs_fh *master_fh, volume vol,
 					       internal_dentry parent,
-					       char *name,
-					       fattr *attr);
+					       char *name, fattr *attr,
+					       unsigned int level);
 extern internal_dentry internal_dentry_link (internal_fh fh, volume vol,
 					     internal_dentry parent,
 					     char *name);
