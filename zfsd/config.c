@@ -692,7 +692,7 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
   r = zfs_open (&cap, fh, O_RDONLY);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "%s: open(): %s", file_name, zfs_strerror (r));
+      message (0, stderr, "%s: open(): %s\n", file_name, zfs_strerror (r));
       return false;
     }
 
@@ -705,7 +705,7 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
       r = zfs_read (&res, &cap, offset, ZFS_MAXDATA - index, true);
       if (r != ZFS_OK)
 	{
-	  message (0, stderr, "%s: read(): %s", file_name, zfs_strerror (r));
+	  message (0, stderr, "%s: read(): %s\n", file_name, zfs_strerror (r));
 	  return false;
 	}
 
@@ -750,7 +750,7 @@ finish:
   r = zfs_close (&cap);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "%s: close(): %s", file_name, zfs_strerror (r));
+      message (0, stderr, "%s: close(): %s\n", file_name, zfs_strerror (r));
       return false;
     }
 
