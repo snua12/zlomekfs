@@ -24,12 +24,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <dirent.h>
 #include <errno.h>
 #include <pthread.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <sys/utsname.h>
 #include "config.h"
 #include "log.h"
@@ -52,48 +49,6 @@ char *cluster_config;
 
 /* File with private key.  */
 static char *private_key;
-
-/* Create node structure and fill it with information.  */
-node
-node_create(char *name)
-{
-  node nod;
-  struct hostent *he;
- 
-  nod = (node) xmalloc(sizeof(node));
-  nod->name = xstrdup(name);
-  nod->flags = 0;
-  
-  he = gethostbyname(name);
-  if (he)
-    {
-      if (he->h_addrtype == AF_INET && he->h_length == sizeof(nod->addr))
-	{
-	  nod->flags |= NODE_ADDR_RESOLVED;
-	  memcpy(&nod->addr, he->h_addr_list[0], sizeof(nod->addr));
-	}
-    }
-
-  return nod;
-}
-
-/* Create volume structure and fill it with information.  */
-volume
-volume_create(unsigned id)
-{
-  volume vol;
-
-  vol = (volume) xmalloc(sizeof(volume));
-  vol->id = id;
-  vol->name = NULL;
-  vol->master = NULL;
-  vol->mountpoint = NULL;
-  vol->flags = 0;
-  vol->localpath = NULL;
-  vol->size_limit = UINT64_MAX;
-
-  return vol;
-}
 
 static void
 set_string(char **destp, const char *src, int len)

@@ -1,4 +1,4 @@
-/* Configuration.
+/* Volume functions.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -19,26 +19,26 @@
    or download it from http://www.gnu.org/licenses/gpl.html
    */
 
-#ifndef _CONFIG_H
-#define _CONFIG_H
-
 #include "system.h"
-#include <stdio.h>
-#include <netinet/in.h>
-#include <pthread.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "memory.h"
+#include "volume.h"
 
-/* The host name of local node.  */
-extern char *node_name;
+/* Create volume structure and fill it with information.  */
+volume
+volume_create(unsigned id)
+{
+  volume vol;
 
-/* Directory with node configuration.  */
-extern char *node_config;
+  vol = (volume) xmalloc(sizeof(volume));
+  vol->id = id;
+  vol->name = NULL;
+  vol->master = NULL;
+  vol->mountpoint = NULL;
+  vol->flags = 0;
+  vol->localpath = NULL;
+  vol->size_limit = UINT64_MAX;
 
-/* Direcotry with cluster configuration.  */
-extern char *cluster_config;
-
-/* RW-lock for access to configuration.  */
-extern pthread_rwlock_t lock_config;
-
-extern int read_config(const char *file);
-
-#endif 
+  return vol;
+}

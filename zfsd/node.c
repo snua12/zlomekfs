@@ -1,4 +1,4 @@
-/* Configuration.
+/* Node functions.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -19,26 +19,33 @@
    or download it from http://www.gnu.org/licenses/gpl.html
    */
 
-#ifndef _CONFIG_H
-#define _CONFIG_H
-
 #include "system.h"
-#include <stdio.h>
+#include <string.h>
+#include <netdb.h>
 #include <netinet/in.h>
-#include <pthread.h>
+#include "memory.h"
+#include "node.h"
 
-/* The host name of local node.  */
-extern char *node_name;
+/* Create node structure and fill it with information.  */
+node
+node_create(char *name)
+{
+  node nod;
+  struct hostent *he;
+ 
+  nod = (node) xmalloc(sizeof(node));
+  nod->name = xstrdup(name);
+  nod->flags = 0;
+  
+  he = gethostbyname(name);
+  if (he)
+    {
+      if (he->h_addrtype == AF_INET && he->h_length == sizeof(nod->addr))
+	{
+	  nod->flags |= NODE_ADDR_RESOLVED;
+	  memcpy(&nod->addr, he->h_addr_list[0], sizeof(nod->addr));
+	}
+    }
 
-/* Directory with node configuration.  */
-extern char *node_config;
-
-/* Direcotry with cluster configuration.  */
-extern char *cluster_config;
-
-/* RW-lock for access to configuration.  */
-extern pthread_rwlock_t lock_config;
-
-extern int read_config(const char *file);
-
-#endif 
+  return nod;
+}
