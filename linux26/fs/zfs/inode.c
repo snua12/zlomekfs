@@ -155,8 +155,11 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 		return 0;
 
 	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
-		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh))
+		/* The dentry is too old, so revalidate it. */
+		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh)) {
+			make_bad_inode(dentry->d_inode);
 			return 0;
+		}
 
 		zfs_attr_to_iattr(inode, &attr);
 		dentry->d_time = jiffies;
@@ -269,6 +272,7 @@ static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry 
 	error = zfsd_link(&args);
 	if (error) {
 		if (error == -ESTALE) {
+			/* We do not know which one (dir or inode) is bad, so invalidate both. */
 			make_bad_inode(dir);
 			make_bad_inode(inode);
 		}

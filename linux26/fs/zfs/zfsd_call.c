@@ -35,6 +35,9 @@
 #include "zfs_prot.h"
 
 
+/*
+   Send the request and wait for the reply.
+ */
 int send_request(struct request *req) {
 	DECLARE_WAITQUEUE(wait, current);
 	long timeout_left;
@@ -51,6 +54,7 @@ int send_request(struct request *req) {
 
 	TRACE("%u: sending %u bytes", req->id, req->length);
 
+	/* Add the request to the queue of pending requests. */
 	down(&channel.req_pending_lock);
 	list_add_tail(&req->item, &channel.req_pending);
 	up(&channel.req_pending_lock);
@@ -73,6 +77,7 @@ int send_request(struct request *req) {
 
 	down(&req->lock);
 
+	/* If some error (interrupt or timeout) occurs, remove the request from appropriate queue. */
 	switch (req->state) {
 		case REQ_PENDING:
 			down(&channel.req_pending_lock);
@@ -502,6 +507,7 @@ int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t
 			if (error)
 				break;
 
+			/* Store the cookie to be able to continue list dir. */
 			*COOKIE(file->private_data) = entry.cookie;
 			file->f_pos++;
 			entries++;

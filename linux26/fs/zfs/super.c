@@ -131,18 +131,22 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 	sb->s_op = &zfs_super_operations;
 	sb->s_magic = ZFS_SUPER_MAGIC;
 
+	/* Get root file handle. */
 	error = zfsd_root(&root_fh);
 	if (error)
 		return error;
 
+	/* Get root inode attributes. */
 	error = zfsd_getattr(&root_attr, &root_fh);
 	if (error)
 		return error;
 
+	/* Make root inode. */
 	root_inode = zfs_iget(sb, &root_fh, &root_attr);
 	if (!root_inode)
 		return -ENOMEM;
 
+	/* Create root dentry. */
 	sb->s_root = d_alloc_root(root_inode);
 	if (!sb->s_root)
 		return -ENOMEM;
@@ -169,12 +173,14 @@ static int __init zfs_init(void)
 
 	INFO("INIT");
 
+	/* Register communication device. */
 	error = register_chrdev(ZFS_CHARDEV_MAJOR, "zfs", &zfs_chardev_file_operations);
 	if (error) {
 		ERROR("unable to register chardev major %d!", ZFS_CHARDEV_MAJOR);
 		return error;
 	}
 
+	/* Initialize inode cache. */
 	error = zfs_init_inodecache();
 	if (error) {
 		unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
@@ -182,6 +188,7 @@ static int __init zfs_init(void)
 		return error;
 	}
 
+	/* Register ZFS file system. */
 	error = register_filesystem(&zfs_type);
 	if (error) {
 		zfs_destroy_inodecache();

@@ -54,6 +54,7 @@ NEXT_REQUEST:
 		return -EIO;
 	}
 
+	/* Remove the first request from the queue of pending requests. */
 	down(&channel.req_pending_lock);
 	req = list_entry(channel.req_pending.next, struct request, item);
 	if (down_trylock(&req->lock)) {
@@ -72,6 +73,11 @@ NEXT_REQUEST:
 	if (copy_to_user(buf, req->dc->buffer, req->length))
 		error = -EFAULT;
 
+	/* Put the data coding buffer (DC), we do not need it any more. */
+	dc_put(req->dc);
+	req->dc = NULL;
+
+	/* Add the request to the queue of processing requests. We need this to be able to compare id of the request with id of the reply later. */
 	down(&channel.req_processing_lock);
 	list_add_tail(&req->item, &channel.req_processing[INDEX(req->id)]);
 	up(&channel.req_processing_lock);
@@ -101,6 +107,7 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 		return -EINVAL;
 	}
 
+	/* Get a new DC for the reply. */
 	dc = dc_get();
 	if (!dc)
 		return -ENOMEM;
@@ -114,9 +121,9 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 		return -EINVAL;
 
 	if (dir == DIR_REQUEST) {
-		/* TODO: Zfsd wants something, we must reply with the same id. */
+		/* TODO: ZFSd wants something, we must send a reply with the same id. */
 	} else {
-		/* Find the request this reply belongs to. */
+		/* Find the request the reply belongs to. */
 		down(&channel.req_processing_lock);
 		list_for_each(item, &channel.req_processing[INDEX(id)]) {
 			req = list_entry(item, struct request, item);
@@ -125,15 +132,16 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 			if (id == req->id) {
 				TRACE("%u: request corresponding to reply id %u found", current->pid, id);
 
+				/* Remove the request from the queue of processing requests. */
 				list_del(item);
 				up(&channel.req_processing_lock);
 
 				req->state = REQ_DEQUEUED;
 
-				dc_put(req->dc);
+				/* Store the DC of the reply. */
 				req->dc = dc;
 
-				/* Wake up the thread which is waiting for this reply. */
+				/* Wake up the thread which is waiting for the reply. */
 				wake_up(&req->waitq);
 
 				up(&req->lock);
@@ -147,6 +155,7 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 		WARN("%u: no request corresponding to reply id %u found", current->pid, id);
 	}
 
+	/* Put the DC, the reply has been dropped. */
 	dc_put(dc);
 
 	return nbytes;
@@ -216,6 +225,7 @@ static int zfs_chardev_release(struct inode *inode, struct file *file)
 
 	up(&channel.lock);
 
+	/* Free all allocated DCs. */
 	dc_destroy_all();
 
 	return 0;

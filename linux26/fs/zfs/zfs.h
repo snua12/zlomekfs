@@ -47,24 +47,33 @@
 #define ZFS_SUPER_MAGIC *((uint32_t *)"zfs")
 #define ZFS_CHARDEV_MAJOR 251
 
+/* Timeout in seconds for request. */
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 
+/* Maximum age of dentry in seconds after that revalidation is requered. */
 #define ZFS_DENTRY_MAXAGE 10
 
 #define CAP(p) ((zfs_cap *)p)
 #define COOKIE(p) ((int32_t *)&((zfs_cap *)p)[1])
 
+/* Hash function which returns (not neccessary unique) inode number. */
 #define ROTATE_LEFT(x, nbites) ((x << nbites) | (x >> (32 - nbites)))
 #define HASH(fh) (ROTATE_LEFT(fh->sid, 22) ^ ROTATE_LEFT(fh->dev, 12) ^ fh->ino)
 
+/* ZFS inode. */
 #define ZFS_I(inode) ((struct zfs_inode_info *)inode)
 struct zfs_inode_info {
 	struct inode vfs_inode;
 	zfs_fh fh;
 };
 
+/* Size of hash table of processing requests. */
 #define REQ_PROCESSING_TABSIZE 32
+
+/* Hash function which returns index of queue in the hash table. */
 #define INDEX(key) (key % REQ_PROCESSING_TABSIZE)
+
+/* Communication channel between this kernel module and ZFSd. */
 extern struct channel {
 	struct semaphore lock;
 	volatile int connected;
@@ -73,33 +82,32 @@ extern struct channel {
 	uint32_t request_id;
 
 	struct semaphore req_pending_count;
-					/* count of requests in the req_pending
-					   queue */
+		/* count of requests in the req_pending queue */
 	struct semaphore req_pending_lock;
-	struct list_head req_pending;	/* queue of requests which have been
-					   prepared but not sent to zfsd yet */
+	struct list_head req_pending;
+		/* queue of requests which have been prepared
+		   but not sent to zfsd yet */
 
 	struct semaphore req_processing_lock;
 	struct list_head req_processing[REQ_PROCESSING_TABSIZE];
-					/* hashtable of requests which have
-					   been sent to zfsd but corresponding
-					   response has not been received */
+		/* hashtable of requests which have been sent to ZFSd
+		   but corresponding reply has not been received yet */
 } channel;
 
 enum request_state {REQ_PENDING, REQ_PROCESSING, REQ_DEQUEUED};
 
+/* Request to ZFSd. */
 struct request {
 	struct semaphore lock;
 	enum request_state state;
-	unsigned int id;		/* unique request id */
-	DC *dc;				/* the message */
-	unsigned int length;		/* length of request body (dc.buffer) */
-	struct list_head item;		/* item in req_pending
-					   or req_processing[] list */
-	wait_queue_head_t waitq;	/* wait queue of kernel threads (actualy
-					   only current thread) which have
-					   prepared this request for zfsd but
-					   not received corresponding reply */
+	unsigned int id;	/* unique request id */
+	DC *dc;			/* the message */
+	unsigned int length;	/* length of request body (dc.buffer) */
+	struct list_head item;	/* item in req_pending
+				   or req_processing[] list */
+	wait_queue_head_t waitq;
+		/* wait queue of kernel threads (actualy only current thread)
+		   which have prepared the request but not received the reply */
 };
 
 #endif

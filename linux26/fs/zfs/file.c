@@ -91,6 +91,7 @@ int zfs_open(struct inode *inode, struct file *file)
 	TRACE("'%s'", dentry->d_name.name);
 
 	if ((file->f_flags & O_CREAT) && dentry->d_fsdata) {
+		/* We already have CAP for the file (zfs_create() has found it out). */
 		file->private_data = dentry->d_fsdata;
 		dentry->d_fsdata = NULL;
 	} else {
@@ -148,6 +149,7 @@ static int zfs_readpage(struct file *file, struct page *page)
 	error = zfsd_readpage(kaddr, &args);
 	if (error > 0) {
 		if (error < PAGE_CACHE_SIZE)
+			/* Zero the rest of the page. */
 			memset(kaddr + error, 0, PAGE_CACHE_SIZE - error);
 
 		SetPageUptodate(page);
