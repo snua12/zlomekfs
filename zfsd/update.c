@@ -268,8 +268,10 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 
 	  /* Add the interval to UPDATED.  */
 	  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
 	  if (r != ZFS_OK)
-	    return r;
+	    abort ();
+#endif
 
 	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
 				remote_md5.offset[i],
