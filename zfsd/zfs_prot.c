@@ -808,6 +808,9 @@ cleanup_zfs_prot_c (void)
 
 static int zfs_error(int error)
 {
+	if (error > 0)
+		return -error;
+
 	switch (error) {
 		case ZFS_OK:
 			return 0;
