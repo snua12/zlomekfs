@@ -43,6 +43,16 @@ typedef struct string_list_def
   pthread_mutex_t *mutex;
 } *string_list;
 
+/* Entry of a string list.  */
+typedef struct string_list_entry_def
+{
+  /* Index of this struct in the varray.  */
+  unsigned int index;
+
+  /* String.  */
+  char *str;
+} *string_list_entry;
+
 extern string_list string_list_create (unsigned int nelem,
 				       pthread_mutex_t *mutex);
 extern void string_list_destroy (string_list sl);
@@ -50,7 +60,8 @@ extern bool string_list_insert (string_list sl, char *str, bool copy);
 extern bool string_list_member (string_list sl, char *str);
 extern bool string_list_delete (string_list sl, char *str);
 extern unsigned int string_list_size (string_list sl);
-extern char *string_list_element (string_list sl, unsigned int index);
+extern string_list_entry string_list_element (string_list sl,
+					      unsigned int index);
 
 extern void initialize_string_list_c (void);
 extern void cleanup_string_list_c (void);

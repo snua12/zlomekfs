@@ -27,16 +27,6 @@
 #include "log.h"
 #include "alloc-pool.h"
 
-/* Entry of a string list.  */
-typedef struct string_list_entry_def
-{
-  /* Index of this struct in the varray.  */
-  unsigned int index;
-
-  /* String.  */
-  char *str;
-} *string_list_entry;
-
 /* Alloc pool of string_list_entry.  */
 static alloc_pool string_list_pool;
 
@@ -201,7 +191,7 @@ string_list_size (string_list sl)
 
 /* Get element of the string list SL at index INDEX.  */
 
-char *
+string_list_entry
 string_list_element (string_list sl, unsigned int index)
 {
   CHECK_MUTEX_LOCKED (sl->mutex);
