@@ -1725,6 +1725,83 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   pool_free (dentry_pool, dentry);
 }
 
+/* Create conflict subtree for DENTRY.  */
+
+void
+internal_dentry_create_conflict (internal_dentry dentry, volume vol,
+				 fattr *remote_attr)
+{
+  zfs_fh conflict_fh;
+  fattr conflict_attr;
+  char *swp;
+  internal_dentry parent, conflict, remote;
+  node nod;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    abort ();
+#endif
+
+  parent = dentry->parent;
+  if (parent)
+    {
+      zfsd_mutex_lock (&parent->fh->mutex);
+      internal_dentry_del_from_dir (dentry);
+      zfsd_mutex_unlock (&parent->fh->mutex);
+    }
+
+  conflict_attr.dev = dentry->fh->local_fh.dev;
+  conflict_attr.ino = dentry->fh->local_fh.ino;
+  conflict_attr.version = 0;
+  conflict_attr.type = FT_DIR;
+  conflict_attr.mode = S_IRWXU | S_IRWXG | S_IRWXO;
+  conflict_attr.nlink = 4;
+  conflict_attr.uid = dentry->fh->attr.uid;
+  conflict_attr.gid = dentry->fh->attr.gid;
+  conflict_attr.rdev = 0;
+  conflict_attr.size = 0;
+  conflict_attr.blocks = 0;
+  conflict_attr.blksize = 4096;
+  conflict_attr.atime = time (NULL);
+  conflict_attr.ctime = conflict_attr.atime;
+  conflict_attr.mtime = conflict_attr.atime;
+  conflict_fh = dentry->fh->local_fh;
+  SET_CONFLICT (conflict_fh, 1);
+
+  conflict = internal_dentry_create (&conflict_fh, &undefined_fh, vol,
+				     NULL, this_node->name, &conflict_attr,
+				     LEVEL_UNLOCKED);
+  swp = conflict->name;
+  conflict->name = dentry->name;
+  dentry->name = swp;
+
+  internal_dentry_add_to_dir (conflict, dentry);
+  if (parent)
+    {
+      zfsd_mutex_lock (&parent->fh->mutex);
+      internal_dentry_add_to_dir (parent, conflict);
+      zfsd_mutex_unlock (&parent->fh->mutex);
+    }
+  else
+    vol->root_dentry = conflict;
+
+  nod = node_lookup (GET_SID (dentry->fh->meta.master_fh));
+#ifdef ENABLE_CHECKING
+  /* Node can't be deleted because it is the master of the volume.  */
+  if (!nod)
+    abort ();
+#endif
+
+  remote = internal_dentry_create (&dentry->fh->meta.master_fh,
+				   &dentry->fh->meta.master_fh, vol, conflict,
+				   nod->name, remote_attr, LEVEL_UNLOCKED);
+  zfsd_mutex_unlock (&nod->mutex);
+  zfsd_mutex_unlock (&conflict->fh->mutex);
+  zfsd_mutex_unlock (&remote->fh->mutex);
+}
+
 /* Hash function for virtual_dir X, computed from FH.  */
 
 static hash_t

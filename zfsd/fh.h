@@ -333,6 +333,8 @@ extern bool internal_dentry_move (internal_dentry dentry, volume vol,
 				  internal_dentry dir, char *name);
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
+extern void internal_dentry_create_conflict (internal_dentry dentry,
+					     volume vol, fattr *remote_attr);
 
 extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);
 extern void virtual_dir_destroy (virtual_dir vd);
