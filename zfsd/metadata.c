@@ -1629,7 +1629,6 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
   if (!hfile_lookup (vol->fh_mapping, map))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
-      close_volume_metadata (vol);
       return false;
     }
 
@@ -1641,7 +1640,6 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
       if (!hfile_delete (vol->fh_mapping, map))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
       map->slot_status = DELETED_SLOT;
@@ -1786,7 +1784,6 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
       if (!hfile_insert (vol->fh_mapping, &map, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
     }
@@ -1798,7 +1795,6 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
       if (!hfile_delete (vol->fh_mapping, &map))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
 
@@ -1811,7 +1807,6 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 	  if (!hfile_insert (vol->fh_mapping, &map, false))
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
-	      close_volume_metadata (vol);
 	      return false;
 	    }
 	}
@@ -1917,7 +1912,6 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   if (!hfile_lookup (vol->metadata, &meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
       return false;
     }
   if (meta.slot_status != VALID_SLOT)
@@ -1945,7 +1939,6 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   if (!hfile_insert (vol->metadata, &meta, false))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
       return false;
     }
 
