@@ -1179,6 +1179,16 @@ zfs_mkdir_retry:
 	}
       dentry = internal_dentry_create (&res->file, &master_res.file, vol,
 				       idir, name->str, &res->attr);
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, idir->fh,
+				   idir->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
+			     dentry->fh->meta.local_version + 1, 0))
+	    vol->flags |= VOLUME_DELETE;
+	}
       zfsd_mutex_unlock (&dentry->fh->mutex);
     }
 
@@ -1323,6 +1333,13 @@ zfs_rmdir_retry:
       dentry = dentry_lookup_name (vol, idir, name->str);
       if (dentry)
 	internal_dentry_destroy (dentry, vol);
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, idir->fh,
+				   idir->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	}
     }
 
   zfsd_mutex_unlock (&idir->fh->mutex);
@@ -1562,6 +1579,18 @@ zfs_rename_retry:
 	  if (!internal_dentry_move (dentry, vol, dentry2, to_name->str))
 	    r = EINVAL;
 	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	}
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, dentry1->fh,
+				   dentry1->fh->meta.flags
+				   | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	  if (!set_metadata_flags (vol, dentry2->fh,
+				   dentry2->fh->meta.flags
+				   | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
 	}
     }
 
@@ -1807,6 +1836,14 @@ zfs_link_retry:
       dentry = internal_dentry_link (dentry1->fh, vol, dentry2, name->str);
       /* DENTRY->FH->MUTEX is already locked
 	 because DENTRY->FH == DENTRY1->FH.  */
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, dentry2->fh,
+				   dentry2->fh->meta.flags
+				   | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	}
     }
 
   zfsd_mutex_unlock (&dentry1->fh->mutex);
@@ -1954,6 +1991,13 @@ zfs_unlink_retry:
       dentry = dentry_lookup_name (vol, idir, name->str);
       if (dentry)
 	internal_dentry_destroy (dentry, vol);
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, idir->fh,
+				   idir->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	}
     }
 
   zfsd_mutex_unlock (&idir->fh->mutex);
@@ -2243,6 +2287,16 @@ zfs_symlink_retry:
 	}
       dentry = internal_dentry_create (&res->file, &master_res.file, vol,
 				       idir, name->str, &res->attr);
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, idir->fh,
+				   idir->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
+			     dentry->fh->meta.local_version + 1, 0))
+	    vol->flags |= VOLUME_DELETE;
+	}
       zfsd_mutex_unlock (&dentry->fh->mutex);
     }
 
@@ -2424,6 +2478,16 @@ zfs_mknod_retry:
 	}
       dentry = internal_dentry_create (&res->file, &master_res.file, vol,
 				       idir, name->str, &res->attr);
+
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, idir->fh,
+				   idir->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
+			     dentry->fh->meta.local_version + 1, 0))
+	    vol->flags |= VOLUME_DELETE;
+	}
       zfsd_mutex_unlock (&dentry->fh->mutex);
     }
 

@@ -442,6 +442,13 @@ zfs_create_retry:
 	  zfs_fh_undefine (icap->master_cap.fh);
 	  zfs_cap_undefine (icap->master_cap);
 
+	  if (!set_metadata_flags (vol, idir->fh,
+				   idir->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
+			     dentry->fh->meta.local_version + 1, 0))
+	    vol->flags |= VOLUME_DELETE;
+
 	  if (vol->master != this_node)
 	    {
 	      if (load_interval_trees (vol, dentry->fh))
@@ -1570,6 +1577,17 @@ zfs_write_retry:
     r = remote_write (res, icap, args, vol);
   else
     abort ();
+
+  if (r == ZFS_OK)
+    {
+      if (vol->local_path)
+	{
+	  if (!set_metadata_flags (vol, dentry->fh,
+				   dentry->fh->meta.flags | METADATA_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	}
+    }
+
   zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&icap->mutex);
 
