@@ -19,12 +19,12 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include "data-coding.h"
 #include <stdlib.h>
 #include <signal.h>
 #include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
+#include "data-coding.h"
 #include "network.h"
 #include "log.h"
 #include "util.h"
@@ -723,32 +723,13 @@ network_main (void * ATTRIBUTE_UNUSED data)
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, network_main exiting\n", strerror (errno));
-	  goto network_main_out;
+	  break;
 	}
 
       if (!running)
 	{
 	  message (2, stderr, "Terminating\n");
-
-network_main_out:
-	  close (main_socket);
-	  accept_connections = 0;
-
-	  /* Close idle file descriptors and free their memory.  */
-	  zfsd_mutex_lock (&active_mutex);
-	  for (i = nactive - 1; i >= 0; i--)
-	    {
-	      network_fd_data_t *fd_data = active[i];
-
-	      zfsd_mutex_lock (&fd_data->mutex);
-	      if (fd_data->busy == 0)
-		close_active_fd (i);
-	      zfsd_mutex_unlock (&fd_data->mutex);
-	    }
-	  zfsd_mutex_unlock (&active_mutex);
-	  free (pfd);
-	  message (2, stderr, "Terminating...\n");
-	  return NULL;
+	  break;
 	}
 
       if (r <= 0)
@@ -937,7 +918,22 @@ retry_accept:
       zfsd_mutex_unlock (&active_mutex);
     }
 
+  close (main_socket);
+
+  /* Close idle file descriptors and free their memory.  */
+  zfsd_mutex_lock (&active_mutex);
+  for (i = nactive - 1; i >= 0; i--)
+    {
+      network_fd_data_t *fd_data = active[i];
+
+      zfsd_mutex_lock (&fd_data->mutex);
+      if (fd_data->busy == 0)
+	close_active_fd (i);
+      zfsd_mutex_unlock (&fd_data->mutex);
+    }
+  zfsd_mutex_unlock (&active_mutex);
   free (pfd);
+  message (2, stderr, "Terminating...\n");
   return NULL;
 }
 
