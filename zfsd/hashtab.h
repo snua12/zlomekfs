@@ -87,11 +87,63 @@ extern void **htab_find_slot_with_hash (htab_t htab, const void *elem,
 /* Value for deleted hash table entry.  */
 #define DELETED_ENTRY ((void *) 1)
 
+#ifdef ENABLE_CHECKING
+
+/* Check the contents of SLOT is on correct position in HTAB.  */
+#define HTAB_CHECK_SLOT(HTAB, SLOT)				\
+  if (1)							\
+    {								\
+      hash_t hash_ = (*(HTAB)->hash_f) (*(SLOT));		\
+      unsigned int size_ = (HTAB)->size;			\
+      unsigned int index_ = hash_ % size_;			\
+      unsigned int step_ = 1 + hash_ % (size_ - 2);		\
+								\
+      while (&(HTAB)->table[index_] != (SLOT))			\
+	{							\
+	  if ((HTAB)->table[index_] == EMPTY_ENTRY		\
+	      || (HTAB)->table[index_] == *(SLOT))		\
+	    abort ();						\
+								\
+	  index_ += step_;					\
+	  if (index_ >= size_)					\
+	    index_ -= size_;					\
+	}							\
+    }
+
+#else
+
+#define HTAB_CHECK_SLOT(HTAB, SLOT)
+
+#endif
+
 /* Loop through all valid SLOTs of hash table HTAB.  */
-#define FOR_EACH_SLOT(HTAB,SLOT)				\
+#define HTAB_FOR_EACH_SLOT(HTAB, SLOT, CODE)			\
   for ((SLOT) = (HTAB)->table;					\
        (SLOT) < (HTAB)->table + (HTAB)->size;			\
        (SLOT)++)						\
-    if (*(SLOT) != EMPTY_ENTRY && *(SLOT) != DELETED_ENTRY)
+    {								\
+      if (*(SLOT) != EMPTY_ENTRY && *(SLOT) != DELETED_ENTRY)	\
+	{							\
+	  HTAB_CHECK_SLOT ((HTAB), (SLOT));			\
+	  CODE;							\
+	}							\
+    }
+
+#ifdef ENABLE_CHECKING
+
+/* Check the table HTAB.  */
+#define HTAB_CHECK(HTAB)					\
+  if (1)							\
+    {								\
+      void **slot_;						\
+								\
+      HTAB_FOR_EACH_SLOT ((HTAB), slot_, {} );			\
+    }
+
+#else
+
+#define HTAB_CHECK(HTAB)
+
+#endif
 
 #endif

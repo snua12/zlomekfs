@@ -252,7 +252,7 @@ print_fh_htab (FILE *f, htab_t htab)
 {
   void **slot;
 
-  FOR_EACH_SLOT (htab, slot)
+  HTAB_FOR_EACH_SLOT (htab, slot,
     {
       internal_fh fh = (internal_fh) *slot;
 
@@ -262,7 +262,7 @@ print_fh_htab (FILE *f, htab_t htab)
 	       fh->server_fh.dev, fh->server_fh.ino);
       fprintf (f, "'%s'", fh->name);
       fprintf (f, "\n");
-    }
+    });
 }
 
 /* Print the contents of hash table of filehandles HTAB to STDERR.  */

@@ -167,10 +167,7 @@ print_volumes (FILE *f)
 {
   void **slot;
 
-  FOR_EACH_SLOT (volume_htab, slot)
-    {
-      print_volume (f, (volume) *slot);
-    }
+  HTAB_FOR_EACH_SLOT (volume_htab, slot, print_volume (f, (volume) *slot));
 }
 
 /* Print the information about volume VOL to STDERR.  */
@@ -204,10 +201,7 @@ cleanup_volume_c ()
 {
   void **slot;
 
-  FOR_EACH_SLOT (volume_htab, slot)
-    {
-      volume_destroy ((volume) *slot);
-    }
+  HTAB_FOR_EACH_SLOT (volume_htab, slot, volume_destroy ((volume) *slot));
 
   htab_destroy (volume_htab);
 }
