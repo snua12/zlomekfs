@@ -675,7 +675,7 @@ read_node_list (zfs_fh *config_dir)
   if (r != ZFS_OK)
     return false;
 
-  return process_file_by_lines (&node_list_res.file, "config/node_list",
+  return process_file_by_lines (&node_list_res.file, "config:/node_list",
 				process_line_node, NULL);
 }
 
@@ -880,7 +880,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
   data.name = name;
   data.mountpoint = mountpoint;
 
-  file_name = xstrconcat (2, "config/volume/", name->str);
+  file_name = xstrconcat (2, "config:/volume/", name->str);
   process_file_by_lines (&file_res.file, file_name,
 			 process_line_volume_hierarchy, &data);
   free (file_name);
@@ -1055,7 +1055,7 @@ read_volume_list (zfs_fh *config_dir)
     return false;
 
   saved_vid = 0;
-  if (!process_file_by_lines (&volume_list_res.file, "config/volume_list",
+  if (!process_file_by_lines (&volume_list_res.file, "config:/volume_list",
 			      process_line_volume,
 			      &volume_hierarchy_res.file))
     return false;
@@ -1084,7 +1084,7 @@ read_volume_list (zfs_fh *config_dir)
     {
 no_config:
       message (0, stderr,
-	       "config/volume_list: Config volume does not exist\n");
+	       "config:/volume_list: Config volume does not exist\n");
       return false;
     }
 
@@ -1146,7 +1146,7 @@ read_user_list (zfs_fh *config_dir)
   if (r != ZFS_OK)
     return false;
 
-  return process_file_by_lines (&user_list_res.file, "config/user_list",
+  return process_file_by_lines (&user_list_res.file, "config:/user_list",
 				process_line_user, NULL);
 }
 
@@ -1205,7 +1205,7 @@ read_group_list (zfs_fh *config_dir)
   if (r != ZFS_OK)
     return false;
 
-  return process_file_by_lines (&group_list_res.file, "config/group_list",
+  return process_file_by_lines (&group_list_res.file, "config:/group_list",
 				process_line_group, NULL);
 }
 
@@ -1300,7 +1300,7 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
       return true;
     }
 
-  file_name = xstrconcat (2, "config/user/", node_name.str);
+  file_name = xstrconcat (2, "config:/user/", node_name.str);
   ret = process_file_by_lines (&user_mapping_res.file, file_name,
 			       process_line_user_mapping, &sid);
   free (file_name);
@@ -1400,7 +1400,7 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
       return true;
     }
 
-  file_name = xstrconcat (2, "config/group/", node_name.str);
+  file_name = xstrconcat (2, "config:/group/", node_name.str);
   ret = process_file_by_lines (&group_mapping_res.file, file_name,
 			       process_line_group_mapping, &sid);
   free (file_name);
