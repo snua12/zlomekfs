@@ -27,11 +27,12 @@
 #include <strings.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pthread.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/utsname.h>
-#include "zfs_prot.h"
 #include "config.h"
+#include "log.h"
 #include "memory.h"
 
 #ifdef BUFSIZ
@@ -102,13 +103,6 @@ set_string(char **destp, const char *src, int len)
   *destp = xmemdup(src, len + 1);
 }
 
-enum automata_states {
-  STATE_NORMAL,			/* outside quotes and not after backslash */
-  STATE_QUOTED,			/* inside quotes and not after backslash  */
-  STATE_BACKSLASH,		/* outside quotes and after backslash */
-  STATE_QUOTED_BACKSLASH	/* inside quotes and after backslash */
-};
-
 /* Process one line of configuration file.  Return the length of value.  */
 
 static int
@@ -116,7 +110,12 @@ process_line(const char *file, const int line_num, char *line, char **key,
 	     char **value)
 {
   char *dest;
-  enum automata_states state;
+  enum automata_states {
+    STATE_NORMAL,		/* outside quotes and not after backslash */
+    STATE_QUOTED,		/* inside quotes and not after backslash  */
+    STATE_BACKSLASH,		/* outside quotes and after backslash */
+    STATE_QUOTED_BACKSLASH	/* inside quotes and after backslash */
+  } state;
 
   /* Skip white spaces.  */
   while (*line == ' ' || *line == '\t')
@@ -236,6 +235,61 @@ process_line(const char *file, const int line_num, char *line, char **key,
   return dest - *value;
 }
 
+/* Split the line by ':', trim the resulting parts, fill up to N parts
+   to PARTS and return the total number of parts.  */
+
+static int
+split_and_trim(char *line, int n, char **parts)
+{
+  int i;
+  char *start, *colon;
+
+  i = 0;
+  while (1)
+    {
+      /* Skip white spaces.  */
+      while (*line == ' ' || *line == '\t')
+	line++;
+
+      /* Remember the beginning of a part. */
+      start = line;
+      if (i < n)
+	parts[i] = start;
+
+      /* Find the end of a part.  */
+      while (*line != 0 && *line != '\n' && *line != ':')
+	line++;
+      colon = line;
+
+      if (i < n)
+	{
+	  /* Delete white spaces at the end of a part.  */
+	  while (line > start
+		 && (*line == ' ' || *line == '\t'))
+	    {
+	      *line = 0;
+	      line--;
+	    }
+	}
+
+      i++;
+
+      if (*colon == ':')
+	{
+	  *colon = 0;
+	  line = colon + 1;
+	}
+      else
+	{
+	  /* We are at the end of line.  */
+	  *colon = 0;
+	  break;
+	}
+    }
+
+  return i;
+}
+
 /* Get the name of local node.  */
 static void
 get_node_name()
@@ -263,6 +317,7 @@ read_local_config(const char *path)
 {
   char *volumes;
   FILE *f;
+  int line_num;
 
   if (path == NULL || *path == 0)
     {
@@ -270,6 +325,7 @@ read_local_config(const char *path)
 	      "The directory with configuration of local node is not specified in configuration file.\n");
       return 0;
     }
+  message(2, stderr, "Reading configuration of local node\n");
 
   volumes = xstrconcat(2, path, "/volumes");
   f = fopen(volumes, "rt");
@@ -277,10 +333,29 @@ read_local_config(const char *path)
     {
       message(-1, stderr, "%s: %s\n", volumes, strerror(errno));
       free(volumes);
-      return 0;
     }
   else
     {
+      line_num = 0;
+      while (!feof(f))
+	{
+	  char *parts[3];
+	  char line[LINE_SIZE + 1];
+
+	  if (!fgets(line, sizeof(line), f))
+	    break;
+
+	  line_num++;
+	  if (split_and_trim(line, 3, parts) == 3)
+	    {
+	      
+	    }
+	  else
+	    {
+	      message(0, stderr, "%s:%d: Wrong format of line\n", volumes,
+		      line_num);
+	    }
+	}
       fclose(f);
     }
 
@@ -294,11 +369,28 @@ read_cluster_config(const char *path)
   return 1;
 }
 
+/* Invalidate configuration.  */
+
+static void
+invalidate_config()
+{
+
+}
+
 /* Verify configuration, fix what can be fixed. Return false if there remains
    something which can't be fixed.  */
 
 static int
-verify_config()
+fix_config()
+{
+
+  return 1;
+}
+
+/* Initialize data structures which are needed for reading configuration.  */
+
+int
+init_config()
 {
 
   return 1;
@@ -321,7 +413,7 @@ read_config(const char *file)
   f = fopen(file, "rt");
   if (!f)
     {
-      message(-1, stderr, "Can't open config file '%s'\n", file);
+      message(-1, stderr, "%s: %s\n", file, strerror(errno));
       return 0;
     }
 
@@ -371,7 +463,7 @@ read_config(const char *file)
 		}
 	      else
 		{
-		  message(0, stderr, "%s:%d:Unknown option: '%s'\n",
+		  message(0, stderr, "%s:%d: Unknown option: '%s'\n",
 			  file, line_num, key);
 		  return 0;
 		}
@@ -380,7 +472,7 @@ read_config(const char *file)
 	    {
 	      /* Configuration options which may have no value.  */
 	        {
-		  message(0, stderr, "%s:%d:Unknown option: '%s'\n",
+		  message(0, stderr, "%s:%d: Unknown option: '%s'\n",
 			  file, line_num, key);
 		  return 0;
 		}
@@ -392,6 +484,8 @@ read_config(const char *file)
   if (!read_private_key(private_key))
     return 0;
 
+  invalidate_config();
+  
   if (!read_local_config(node_config))
     return 0;
 
@@ -400,7 +494,7 @@ read_config(const char *file)
   if (!read_cluster_config(cluster_config))
     return 0;
 
-  if (!verify_config())
+  if (!fix_config())
     return 0;
 
   return 1;
