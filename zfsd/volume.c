@@ -133,7 +133,7 @@ volume_create (uint32_t id)
 /* Destroy volume VOL and free memory associated with it.
    This function expects volume_mutex to be locked.  */
 
-void
+static void
 volume_destroy (volume vol)
 {
   void **slot;
