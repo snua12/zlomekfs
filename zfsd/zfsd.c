@@ -21,6 +21,7 @@
 
 #include "system.h"
 #include <unistd.h>
+#include <getopt.h>
 #include <signal.h>
 #include "config.h"
 #include "log.h"
@@ -56,14 +57,84 @@ init_sig_handlers()
   sigaction(SIGPIPE, &sig, NULL);
 }
 
+/* Display the usage and arguments, exit the program with exit code EXITCODE.  */
+
+static void
+usage(int exitcode)
+{
+  printf("Usage: zfsd [OPTION]...\n\n");
+  printf("  -v, --verbose  Verbose; display verbose debugging messages.\n");
+  printf("                 Multiple -v increases verbosity.\n");
+  printf("  -q, --quiet    Quiet; display less messages.\n");
+  printf("                 Multiple -q increases quietness.\n");
+  printf("      --help     display this help and exit\n");
+  printf("      --version  output version information and exit\n");
+
+  exit(exitcode);
+}
+
+/* Display the version, exit the program with exit code EXITCODE.  */
+
+static void
+version(int exitcode)
+{
+  printf("zfsd 0.1.0\n");
+  printf("Copyright (C) 2003 Josef Zlomek\n");
+  printf("This is free software; see the source for copying conditions.  There is NO\n");
+  printf("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
+
+  exit(exitcode);
+}
+
+/* For long options that have no equivalent short option, use a non-character
+   as a pseudo short option, starting with CHAR_MAX + 1.  */
+enum long_option
+{
+  OPTION_HELP = CHAR_MAX + 1,
+  OPTION_VERSION
+};
+
+static struct option const long_options[] =
+{
+    {"verbose", no_argument, 0, 'v'},
+    {"quiet", no_argument, 0, 'q'},
+    {"help", no_argument, 0, OPTION_HELP},
+    {"version", no_argument, 0, OPTION_VERSION},
+    {NULL, 0, NULL, 0}
+};
+
 /* Process command line arguments.  */
 
-static int
+static void
 process_arguments(int argc, char **argv)
 {
-  verbose = 2;
+  int c;
 
-  return 1;
+  while ((c = getopt_long(argc, argv, "qv", long_options, NULL)) != -1)
+    {
+      switch (c)
+	{
+	  case 'v':
+	    verbose++;
+	    break;
+
+	  case 'q':
+	    verbose--;
+	    break;
+
+	  case OPTION_HELP:
+	    usage(EXIT_SUCCESS);
+	    break;
+
+	  case OPTION_VERSION:
+	    version(EXIT_SUCCESS);
+	    break;
+
+	  default:
+	    usage(EXIT_FAILURE);
+	    break;
+	}
+    }
 }
 
 /* Entry point of ZFS daemon.  */
@@ -73,8 +144,7 @@ main(int argc, char **argv)
 {
   init_sig_handlers();
 
-  if (!process_arguments(argc, argv))
-    return EXIT_FAILURE;
+  process_arguments(argc, argv);
 
   if (!read_config(config_file))
     return EXIT_FAILURE;
