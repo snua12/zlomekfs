@@ -118,6 +118,40 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
   return r;
 }
 
+/* Return path relative to volume root of file DENTRY.  */
+
+char *
+build_relative_path (internal_dentry dentry)
+{
+  internal_dentry tmp;
+  unsigned int n;
+  varray v;
+  char *r;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  /* Count the number of strings which will be concatenated.  */
+  n = 0;
+  for (tmp = dentry; tmp->parent; tmp = tmp->parent)
+    n += 2;
+
+  varray_create (&v, sizeof (char *), n);
+  VARRAY_USED (v) = n;
+  for (tmp = dentry; tmp->parent; tmp = tmp->parent)
+    {
+      n--;
+      VARRAY_ACCESS (v, n, char *) = tmp->name;
+      n--;
+      VARRAY_ACCESS (v, n, char *) = "/";
+    }
+
+  r = xstrconcat_varray (&v);
+  varray_destroy (&v);
+
+  return r;
+}
+
 /* Return path relative to volume root of file NAME in directory DENTRY.  */
 
 char *
