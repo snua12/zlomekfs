@@ -1381,7 +1381,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		      {
 			r = zfs_file_info (&info, &entry->master_fh);
 			free (info.path.str);
-			r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
+						   false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
 			  abort ();
@@ -1390,13 +1391,26 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			if (r == ZFS_OK)
 			  {
 			    /* TODO: link/rename remote file */
+			    zfsd_mutex_unlock (&fh_mutex);
 			  }
 			else if (r == ENOENT)
 			  {
-			    /* TODO: delete local file */
+			    /* The file does not exists on master.
+			       This can happen when we linked/renamed a file
+			       while master has deleted it.
+			       In this situation, delete the local file.  */
+			    if (!delete_tree_name (dentry, entry->name.str,
+						   vol))
+			      goto out;
+
+			    if (!journal_delete_entry (dentry->fh->journal,
+						       entry))
+			      abort ();
+			    flush_journal = true;
 			  }
 			else
 			  {
+			    zfsd_mutex_unlock (&fh_mutex);
 			    message (0, stderr,
 				     "Reintegrate file info error: %d\n", r);
 			    goto out;
