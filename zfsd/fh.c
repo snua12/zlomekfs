@@ -2973,6 +2973,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
 #endif
   *slot = vd;
 
+  local_invalidate_fh (&parent->fh);
   RETURN_PTR (vd);
 }
 
@@ -3014,7 +3015,6 @@ virtual_dir_destroy (virtual_dir vd)
 	{
 	  virtual_dir top;
 
-
 	  /* Destroy capability associated with virtual directroy.  */
 	  if (vd->cap)
 	    {
@@ -3051,6 +3051,8 @@ virtual_dir_destroy (virtual_dir vd)
 	    abort ();
 #endif
 	  htab_clear_slot (vd_htab, slot);
+
+	  local_invalidate_fh (&vd->fh);
 	  free (vd->name.str);
 	  zfsd_mutex_unlock (&vd->mutex);
 	  zfsd_mutex_destroy (&vd->mutex);
