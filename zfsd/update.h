@@ -43,7 +43,7 @@
     modified since we updated it last time.
     \param DENTRY The dentry of the file to be checked.
     \param ATTR The remote attributes of the file. */
-#define UPDATE_P(DENTRY, ATTR)						\
+#define UPDATE_P(DENTRY, ATTR)						   \
   (!((DENTRY)->fh->meta.flags & METADATA_COMPLETE)			   \
    || ((DENTRY)->fh->attr.type == FT_DIR				   \
        ? (ATTR).version > (DENTRY)->fh->meta.master_version		   \
