@@ -1780,6 +1780,21 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
 
   remote->fh->attr.version += version_inc;
   r = remote_reintegrate_ver (remote, version_inc, NULL, vol);
+
+  /* Schedule the update of the file.  */
+  r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+  local = conflict_local_dentry (conflict);
+  release_dentry (conflict);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  schedule_update_or_reintegration (vol, local);
+  release_dentry (local);
+  zfsd_mutex_unlock (&vol->mutex);
+
   RETURN_INT (r);
 
 out_save:
@@ -1898,6 +1913,21 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
 
   remote->fh->attr.version += version_inc;
   r = remote_reintegrate_ver (remote, version_inc, NULL, vol);
+
+  /* Schedule the reintegration of the file.  */
+  r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+  local = conflict_local_dentry (conflict);
+  release_dentry (conflict);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  schedule_update_or_reintegration (vol, local);
+  release_dentry (local);
+  zfsd_mutex_unlock (&vol->mutex);
+
   RETURN_INT (r);
 
 out_save:
