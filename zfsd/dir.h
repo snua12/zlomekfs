@@ -99,8 +99,7 @@ extern int32_t remote_mknod (dir_op_res *res, internal_dentry dir, string *name,
 extern int32_t zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name,
 			  sattr *attr, ftype type, uint32_t rdev);
 extern int32_t local_file_info (file_info_res *res, zfs_fh *fh, volume vol);
-extern int32_t remote_file_info (file_info_res *res, internal_dentry dentry,
-				 volume vol);
+extern int32_t remote_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t zfs_file_info (file_info_res *res, zfs_fh *fh);
 extern int32_t local_reintegrate_add (volume vol, internal_dentry dir,
 				      string *name, zfs_fh *fh);

@@ -3412,34 +3412,29 @@ local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
   return ZFS_OK;
 }
 
-/* Check whether remote file for DENTRY on volume VOL exists.  */
+/* Check whether remote file for FH on volume VOL exists.  */
 
 int32_t
-remote_file_info (file_info_res *res, internal_dentry dentry, volume vol)
+remote_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 {
-  zfs_fh args;
   thread *t;
   int32_t r;
   int fd;
   node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+  if (zfs_fh_undefined (*fh))
     abort ();
 #endif
 
-  args = dentry->fh->meta.master_fh;
-
-  release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
 
   t = (thread *) pthread_getspecific (thread_data_key);
-  r = zfs_proc_file_info_client (t, &args, nod, &fd);
+  r = zfs_proc_file_info_client (t, fh, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -3467,6 +3462,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
 {
   volume vol;
   internal_dentry dentry;
+  zfs_fh tmp_fh;
   int32_t r;
 
   if (!REGULAR_FH_P (*fh))
@@ -3489,7 +3485,9 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
       if (r != ZFS_OK)
 	return r;
 
-      r = remote_file_info (res, dentry, vol);
+      tmp_fh = dentry->fh->meta.master_fh;
+      release_dentry (dentry);
+      r = remote_file_info (res, &tmp_fh, vol);
     }
 
   return r;
