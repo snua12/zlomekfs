@@ -731,6 +731,8 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
       /* We are opening a conflict directory.  */
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
+      if (vd)
+	zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
 
