@@ -822,6 +822,8 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	    && INTERVAL_START (tree->splay->root) == 0
 	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
 	  {
+	    interval_tree_destroy (tree);
+	    *treep = NULL;
 	    fh->meta.flags |= METADATA_COMPLETE;
 	    if (unlink (path) < 0)
 	      {
@@ -839,6 +841,8 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
       case INTERVAL_TREE_MODIFIED:
 	if (tree->size == 0)
 	  {
+	    interval_tree_destroy (tree);
+	    *treep = NULL;
 	    fh->meta.flags &= ~METADATA_MODIFIED;
 	    if (unlink (path) < 0)
 	      {
