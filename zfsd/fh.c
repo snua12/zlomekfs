@@ -2263,6 +2263,11 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 	}
       else
 	{
+	  /* This should never happen because initially we do not create
+	     non-existing remote dentry.  Then, user can manipulate the type
+	     of local dentry only, or completelly delete the remote dentry.  */
+	  abort ();
+
 	  name = &nod->name;
 	  tmp_fh.sid = nod->id;
 	  tmp_fh.ino = this_node->id;
