@@ -958,6 +958,6 @@ decode_hardlinks_res (DC *dc, hardlinks_res *res)
 bool
 encode_hardlinks_res (DC *dc, hardlinks_res *res)
 {
-  encode_uint32_t (dc, res->start);
-  encode_uint32_t (dc, res->n);
+  return (encode_uint32_t (dc, res->start)
+	  && encode_uint32_t (dc, res->n));
 }
