@@ -115,6 +115,8 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
   cap->busy = 1;
+  cap->fd = -1;
+  cap->generation = 0;
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
@@ -158,6 +160,8 @@ internal_cap_create_vd (virtual_dir vd, unsigned int flags)
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
   cap->busy = 1;
+  cap->fd = -1;
+  cap->generation = 0;
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
