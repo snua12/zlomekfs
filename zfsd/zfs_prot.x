@@ -77,6 +77,7 @@ struct fattr
 /* File attributes that can be set.  */
 struct sattr
 {
+  uint64_t size;	/* file size in bytes */
   unsigned mode;	/* protection mode */
   unsigned uid;		/* owner user id */
   unsigned gid;		/* owner group id */
@@ -134,9 +135,10 @@ program ZFS_PROGRAM {
     ZFSPROC_GETATTR(zfs_fh) = 1;
 
     /* ??? ZFSPROC_OPEN(???) = 2;*/
+    /* ??? ZFSPROC_OPEN_BY_FD(???) = 2;*/
 
     readres
-    NFSPROC_READ(readargs) = 3;
+    ZFSPROC_READ(readargs) = 3;
 
     /* ??? ZFSPROC_WRITE(???) = 4;*/
     /* ??? ZFSPROC_CLOSE(???) = 5;*/ 
@@ -150,7 +152,26 @@ program ZFS_PROGRAM {
     /* ??? ZFSPROC_MKDIR(???) = 7;*/
     /* ??? ZFSPROC_RMDIR(???) = 7;*/
     /* ??? ZFSPROC_READDIR(???) = 7;*/
+    /* ??? ZFSPROC_MKNOD(???) = 7;*/
     /* ??? ZFSPROC_STATVOLUME???(???) = 7;*/
+#if 0
+CODA:
+	"vget        ",   /* 22 */
+	"signal      ",   /* 23 */
+	"replace     ",   /* 24 */
+	"flush       ",   /* 25 */
+	"purgeuser   ",   /* 26 */
+	"zapfile     ",   /* 27 */
+	"zapdir      ",   /* 28 */
+	"-           ",   /* 29 */
+	"purgefid    ",   /* 30 */
+	"open_by_path",   /* 31 */
+	"resolve     ",   /* 32 */
+	"reintegrate ",   /* 33 */
+	"statfs      ",   /* 34 */
+	"store       ",   /* 35 */
+	"release     "    /* 36 */
+#endif
 
   } = 1;
 } = 0x335a4653;
