@@ -1875,6 +1875,26 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   int32_t r, r2;
   int retry = 0;
 
+  /* Lookup FROM.  */
+  if (VIRTUAL_FH_P (*from))
+    return EPERM;
+
+  r = zfs_fh_lookup (from, &vol, &from_dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  if (from_dentry->fh->attr.type == FT_DIR)
+    {
+      /* Can't link a directory.  */
+      release_dentry (from_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
+    }
+
+  tmp_from = from_dentry->fh->local_fh;
+  release_dentry (from_dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
@@ -1906,40 +1926,6 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
   tmp_dir = dir_dentry->fh->local_fh;
   release_dentry (dir_dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-
-  /* Lookup FROM.  */
-  if (VIRTUAL_FH_P (*from))
-    zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (from, &vol, &from_dentry, &vd);
-  if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*from))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
-
-  if (vd)
-    {
-      zfsd_mutex_unlock (&vd_mutex);
-      if (vol)
-	{
-	  zfsd_mutex_unlock (&vd->mutex);
-	  r = get_volume_root_dentry (vol, &from_dentry, true);
-	  if (r != ZFS_OK)
-	    return r;
-	}
-      else
-	{
-	  zfsd_mutex_unlock (&vd->mutex);
-	  return EROFS;
-	}
-    }
-  else
-    zfsd_mutex_unlock (&fh_mutex);
-
-  tmp_from = from_dentry->fh->local_fh;
-  release_dentry (from_dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
   /* FROM and DIR must be on same device.  */
