@@ -1101,7 +1101,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
 
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
