@@ -174,7 +174,7 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
   set_string (&vol->name, name);
   set_string (&vol->mountpoint, mountpoint);
   vol->master = master;
-  if (master != this_node)
+  if (vol->local_path && vol->master != this_node)
     vol->flags |= VOLUME_COPY;
   virtual_mountpoint_create (vol);
 }
