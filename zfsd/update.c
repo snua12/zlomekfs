@@ -329,15 +329,9 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
-#endif
-
-  /* FIXME: call this function only if we have a valid master file handle.  */
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-    {
-      release_dentry (dentry);
-      zfsd_mutex_unlock (&vol->mutex);
-      return ENOENT;
-    }
+    abort ();
+#endif
 
   if (zfs_fh_undefined (icap->master_cap.fh)
       || zfs_cap_undefined (icap->master_cap))
@@ -446,13 +440,10 @@ update_file (zfs_fh *fh)
   if (r != ZFS_OK)
     return r;
 
-  /* FIXME: call this function only if we have a valid master file handle.  */
+#ifdef ENABLE_CHECKING
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-    {
-      release_dentry (dentry);
-      zfsd_mutex_unlock (&vol->mutex);
-      return ENOENT;
-    }
+    abort ();
+#endif
 
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     {
@@ -755,7 +746,6 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
-  /* FIXME: call this function only if we have a valid master file handle.  */
   if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
     return 0;
 
