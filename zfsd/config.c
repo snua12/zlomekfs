@@ -1269,7 +1269,19 @@ read_global_cluster_config (void)
 static void
 invalidate_config (void)
 {
-
+  mark_all_nodes ();
+  mark_all_volumes ();
+  mark_all_users ();
+  mark_all_groups ();
+  mark_user_mapping (NULL);
+  mark_group_mapping (NULL);
+  if (this_node)
+    {
+      zfsd_mutex_lock (&this_node->mutex);
+      mark_user_mapping (this_node);
+      mark_group_mapping (this_node);
+      zfsd_mutex_unlock (&this_node->mutex);
+    }
 }
 
 /* Verify configuration, fix what can be fixed. Return false if there remains
