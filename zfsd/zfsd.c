@@ -26,10 +26,18 @@
 #include "config.h"
 #include "log.h"
 #include "memory.h"
+#include "server.h"
 #include "zfsd.h"
 
 /* Name of the configuration file.  */
 char *config_file = "/etc/zfs/config";
+
+/* Local function prototypes.  */
+static void init_sig_handlers ();
+static void usage (int exitcode) ATTRIBUTE_NORETURN;
+static void version (int exitcode) ATTRIBUTE_NORETURN;
+static void process_arguments (int argc, char **argv);
+static void die () ATTRIBUTE_NORETURN;
 
 /* Initialize signal handlers.  */
 
@@ -182,6 +190,15 @@ test_interval ()
   debug_interval_tree (t);
 }
 
+/* Write a message and exit.  */
+
+static void
+die ()
+{
+  message (-2, stderr, "ZFSD could not be started.\n");
+  exit (EXIT_FAILURE);
+}
+
 /* Entry point of ZFS daemon.  */
 
 int
@@ -195,7 +212,15 @@ main (int argc, char **argv)
   test_splay ();
   
   if (!read_config (config_file))
-    return EXIT_FAILURE;
+    die ();
 
-  return EXIT_SUCCESS;
+
+
+  
+  create_server_pool ();
+
+  /* register_server never returns (unless error occurs).  */
+  register_server ();
+
+  return EXIT_FAILURE;
 }
