@@ -1301,6 +1301,7 @@ internal_dentry_add_to_dir (internal_dentry parent, internal_dentry dentry)
     abort ();
 #endif
   CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&parent->fh->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 #ifdef ENABLE_CHECKING
@@ -1334,6 +1335,8 @@ internal_dentry_del_from_dir (internal_dentry dentry)
 
   if (!dentry->parent)
     return;
+
+  CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
 
   top = VARRAY_TOP (dentry->parent->fh->subdentries, internal_dentry);
   VARRAY_ACCESS (dentry->parent->fh->subdentries, dentry->dentry_index,
