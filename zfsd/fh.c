@@ -1182,6 +1182,10 @@ internal_dentry_link (internal_fh fh, volume vol,
       old->next->prev = dentry;
       old->next = dentry;
     }
+#ifdef ENABLE_CHECKING
+  else
+    abort ();
+#endif
   *slot = dentry;
 
   if (parent)
