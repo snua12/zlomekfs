@@ -1331,8 +1331,19 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
 bool
 load_interval_trees (volume vol, internal_fh fh)
 {
+  unsigned int nopened;
+
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  nopened = internal_fh_nopened (fh);
+  if (nopened > 1)
+    return true;
+
+#ifdef ENABLE_CHECKING
+  if (nopened == 0)
+    abort ();
+#endif
 
   if (!init_interval_tree (vol, fh, METADATA_TYPE_UPDATED))
     {
@@ -1355,10 +1366,20 @@ load_interval_trees (volume vol, internal_fh fh)
 bool
 save_interval_trees (volume vol, internal_fh fh)
 {
+  unsigned int nopened;
   bool r = true;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  nopened = internal_fh_nopened (fh);
+  if (nopened > 1)
+    return true;
+
+#ifdef ENABLE_CHECKING
+  if (nopened == 0)
+    abort ();
+#endif
 
   if (fh->updated)
     r &= free_interval_tree (vol, fh, METADATA_TYPE_UPDATED);
