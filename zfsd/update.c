@@ -1444,10 +1444,12 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 }
 
 /* Synchronize file DENTRY with file handle FH on volume VOL
-   with the remote file with attributes ATTR.  */
+   with the remote file with attributes ATTR.
+   WHAT are the flags saying what needs to be done.  */
 
 static int32_t
-synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
+synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
+		  int what)
 {
   internal_dentry parent, conflict, other;
   bool local_changed, remote_changed;
@@ -1481,8 +1483,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 
   if (dentry->fh->attr.type == FT_REG)
     {
-      if ((dentry->fh->attr.version == dentry->fh->meta.master_version
-	   || attr->version == dentry->fh->meta.master_version)
+      if ((what & (IFH_UPDATE | IFH_REINTEGRATE)) != 0
 	  && volume_master_connected (vol) == CONNECTION_SPEED_FAST)
 	{
 	  /* Schedule update or reintegration of regular file.  */
@@ -2836,13 +2837,13 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	abort ();
 
       case FT_REG:
-	r = synchronize_file (vol, dentry, fh, attr);
+	r = synchronize_file (vol, dentry, fh, attr, how);
 	break;
 
       case FT_DIR:
 	if (how & IFH_METADATA)
 	  {
-	    r = synchronize_file (vol, dentry, fh, attr);
+	    r = synchronize_file (vol, dentry, fh, attr, how);
 	    if (r != ZFS_OK)
 	      RETURN_INT (r);
 
@@ -2880,7 +2881,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
       case FT_CHR:
       case FT_SOCK:
       case FT_FIFO:
-	r = synchronize_file (vol, dentry, fh, attr);
+	r = synchronize_file (vol, dentry, fh, attr, how);
 	break;
     }
 
