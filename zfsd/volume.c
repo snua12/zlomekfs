@@ -212,8 +212,22 @@ volume_destroy (volume vol)
 
   if (vol->root_dentry)
     {
-      zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-      internal_dentry_destroy (vol->root_dentry, false, false, true);
+      uint32_t vid;
+      internal_dentry dentry;
+
+      vid = vol->id;
+      dentry = vol->root_dentry;
+      zfsd_mutex_lock (&dentry->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&volume_mutex);
+      internal_dentry_destroy (dentry, true, false, true);
+      zfsd_mutex_lock (&volume_mutex);
+      vol = volume_lookup_nolock (vid);
+      if (!vol)
+	{
+	  /* The volume is already destroyed.  */
+	  return;
+	}
     }
 
   virtual_mountpoint_destroy (vol);
