@@ -514,7 +514,7 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
   for (i = 0; i < 3; i++)
     {
       gettimeofday (&t0, NULL);
-      *r = zfs_proc_ping_client_1 (t, &ping_args, fd);
+      *r = zfs_proc_ping_client_1 (t, &ping_args, fd, false);
       gettimeofday (&t1, NULL);
       if (*r != ZFS_OK)
 	{
@@ -663,7 +663,7 @@ again:
 	memset (&args1, 0, sizeof (args1));
 	/* FIXME: really do authentication */
 	args1.node = node_name;
-	r = zfs_proc_auth_stage1_client_1 (t, &args1, fd);
+	r = zfs_proc_auth_stage1_client_1 (t, &args1, fd, false);
 	if (r != ZFS_OK)
 	  goto node_authenticate_error;
 
@@ -733,7 +733,7 @@ again:
 
 	memset (&args2, 0, sizeof (args2));
 	/* FIXME: really do authentication */
-	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd);
+	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd, false);
 	if (r != ZFS_OK)
 	  goto node_authenticate_error;
 
@@ -893,6 +893,34 @@ recycle_dc_to_fd (DC *dc, int fd)
       recycle_dc_to_fd_data (dc, &fd_data_a[fd]);
       zfsd_mutex_unlock (&fd_data_a[fd].mutex);
     }
+}
+
+/* Send one-way request with request id REQUEST_ID using data in thread T
+   to connected socket FD.  */
+
+void
+send_oneway_request (thread *t, int fd)
+{
+  CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
+
+  if (thread_pool_terminate_p (&network_pool))
+    {
+      t->retval = ZFS_EXITING;
+      zfsd_mutex_unlock (&fd_data_a[fd].mutex);
+      return;
+    }
+
+  t->retval = ZFS_OK;
+
+  /* Send the request.  */
+  fd_data_a[fd].last_use = time (NULL);
+  if (!full_write (fd, t->dc_call->buffer, t->dc_call->cur_length))
+    {
+      t->retval = ZFS_CONNECTION_CLOSED;
+      zfsd_mutex_unlock (&fd_data_a[fd].mutex);
+      return;
+    }
+  zfsd_mutex_unlock (&fd_data_a[fd].mutex);
 }
 
 /* Helper function for sending request.  Send request with request id REQUEST_ID

@@ -108,6 +108,7 @@ extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);
 extern void network_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd);
+extern void send_oneway_request (struct thread_def *t, int fd);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
 extern void fd_data_init (void);
 extern void fd_data_shutdown (void);
