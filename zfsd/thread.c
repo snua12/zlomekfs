@@ -103,7 +103,7 @@ thread_pool_destroy (thread_pool *pool)
 }
 
 /* Create a new idle thread in thread pool POOL and start a routine START in it.
-   This function expects SERVER_POLL.EMPTY.MUTEX and SERVER_POOL.IDLE.MUTEX
+   This function expects NETWORK_POOL.EMPTY.MUTEX and NETWORK_POOL.IDLE.MUTEX
    to be locked.  */
 
 int
@@ -148,7 +148,7 @@ create_idle_thread (thread_pool *pool, thread_start start,
 }
 
 /* Destroy an idle thread in thread pool POOL.  This function expects
-   SERVER_POLL.EMPTY.MUTEX and SERVER_POOL.IDLE.MUTEX to be locked.  */
+   NETWORK_POOL.EMPTY.MUTEX and NETWORK_POOL.IDLE.MUTEX to be locked.  */
 
 int
 destroy_idle_thread (thread_pool *pool)
@@ -178,7 +178,7 @@ destroy_idle_thread (thread_pool *pool)
 }
 
 /* Kill/create threads when there are too many or not enough idle threads.
-   It expects SERVER_POOL.IDLE.MUTEX to be locked.  */
+   It expects NETWORK_POOL.IDLE.MUTEX to be locked.  */
 
 void
 thread_pool_regulate (thread_pool *pool, thread_start start,

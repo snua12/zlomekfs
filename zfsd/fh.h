@@ -44,7 +44,7 @@ typedef struct volume_def *volume;
 #define VIRTUAL_ROOT_P(FH) ((FH).ino == ROOT_INODE		\
 			    && (FH).dev == VIRTUAL_DEVICE	\
 			    && (FH).vid == VOLUME_ID_NONE	\
-			    && (FH).sid == SERVER_ANY)
+			    && (FH).sid == NODE_ANY)
 
 /* Hash function for zfs_fh FH.  */
 #define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))

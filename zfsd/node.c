@@ -225,7 +225,7 @@ node_update_fd (node nod, int fd, unsigned int generation)
     {
       zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
       if (nod->generation == network_fd_data[nod->fd].generation)
-	network_fd_data[nod->fd].flags = SERVER_FD_CLOSE;
+	network_fd_data[nod->fd].flags = NETWORK_FD_CLOSE;
       zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
     }
 
@@ -233,7 +233,7 @@ node_update_fd (node nod, int fd, unsigned int generation)
   nod->generation = generation;
 }
 
-/* If node NOD is connected return true and lock SERVER_FD_DATA[NOD->FD].MUTEX.
+/* If node NOD is connected return true and lock NETWORK_FD_DATA[NOD->FD].MUTEX.
    This function expects NOD->MUTEX to be locked.  */
 
 bool
@@ -332,7 +332,7 @@ node_connected:
 }
 
 /* Authenticate connection with node NOD using data of thread T.
-   On success leave SERVER_FD_DATA[NOD->FD].MUTEX lcoked.  */
+   On success leave NETWORK_FD_DATA[NOD->FD].MUTEX lcoked.  */
 
 static bool
 node_authenticate (thread *t, node nod)
@@ -378,7 +378,7 @@ node_authenticate_error:
 }
 
 /* Check whether node NOD is connected and authenticated. If not do so.
-   Return open file descriptor and leave its SERVER_FD_DATA locked.  */
+   Return open file descriptor and leave its NETWORK_FD_DATA locked.  */
 
 int
 node_connect_and_authenticate (thread *t, node nod)

@@ -43,6 +43,10 @@ typedef struct node_def
 #endif
 } *node;
 
+/* Predefined node IDs.  */
+#define NODE_ANY 0		/* ID for non-existing node, used as SID
+				   in file handle of virtual directory.  */
+
 /* Node flags.  */
 #define NODE_DELETE		1	/* the node should be deleted from
 					   memory datastructures  */

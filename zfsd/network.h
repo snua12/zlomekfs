@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef NETWORK_H
+#define NETWORK_H
 
 #include "system.h"
 #include <time.h>
@@ -55,7 +55,7 @@ typedef struct network_fd_data_def
   unsigned int read;		/* number of bytes already read */
 
   /* Unused data coding buffers for the file descriptor.  */
-  DC dc[MAX_FREE_BUFFERS_PER_SERVER_FD];
+  DC dc[MAX_FREE_BUFFERS_PER_ACTIVE_FD];
   int ndc;
 
   time_t last_use;		/* time of last use of the socket */
@@ -64,10 +64,10 @@ typedef struct network_fd_data_def
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
   unsigned int busy;		/* number of threads using file descriptor */
-  unsigned int flags;		/* See SERVER_FD_* below */
+  unsigned int flags;		/* See NETWORK_FD_* below */
 } network_fd_data_t;
 
-#define SERVER_FD_CLOSE 1
+#define NETWORK_FD_CLOSE 1
 
 /* Additional data for a network thread.  */
 typedef struct network_thread_data_def
@@ -82,8 +82,6 @@ typedef struct network_thread_data_def
   unsigned int index;		/* index of FD in array "active" */
 #endif
 } network_thread_data;
-
-#define SERVER_ANY 0
 
 #ifndef RPC
 

@@ -36,7 +36,7 @@
 #include "zfs_prot.h"
 
 /* File handle of ZFS root.  */
-zfs_fh root_fh = {SERVER_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
+zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
 
 /* The virtual directory root.  */
 static virtual_dir root;
@@ -436,7 +436,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
     last_virtual_ino++;
 
   vd = (virtual_dir) pool_alloc (vd_pool);
-  vd->fh.sid = SERVER_ANY;
+  vd->fh.sid = NODE_ANY;
   vd->fh.vid = VOLUME_ID_VIRTUAL;
   vd->fh.dev = VIRTUAL_DEVICE;
   vd->fh.ino = last_virtual_ino;
