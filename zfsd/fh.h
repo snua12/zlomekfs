@@ -75,6 +75,11 @@ typedef struct volume_def *volume;
   (crc32_update (crc32_string ((D)->name),				\
 		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
+/* True if file handle FH needs metadata.  */
+#define INTERNAL_FH_NEEDS_METADATA(FH)					\
+  (GET_SID ((FH)->local_fh) == this_node->id				\
+   && GET_CONFLICT ((FH)->local_fh) == 0)
+
 /* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
    on volume VOL.  Delete PATH from hardlinks.  */
 #define DESTROY_DENTRY(VOL, DIR, NAME, DIR_FH, PATH)			\
