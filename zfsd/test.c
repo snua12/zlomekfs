@@ -502,9 +502,9 @@ do_tests (void *data)
 
       if (r == ZFS_OK)
 	{
-	  write_args writea;
+	  write_args writea; writea.data.buf = writea.data.real_buffer;
 	  write_res writer;
-	  data_buffer data;
+	  data_buffer data; data.buf = data.real_buffer;
 
 	  writea.cap = cap;
 	  writea.offset = 0;
@@ -553,7 +553,7 @@ do_tests (void *data)
   while (0);
 
   message (2, stderr, "TESTS FINISHED\n");
-  return data;
+  return NULL;
 }
 
 /* Create a thread which tests ZFS.  */

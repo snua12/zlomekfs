@@ -195,7 +195,7 @@ decode_data_buffer (DC *dc, data_buffer *data)
   if (dc->cur_length > dc->max_length)
     return false;
 
-  memcpy (data->buf, dc->current, data->len);
+  data->buf = dc->current;
   dc->current += data->len;
 
   return true;

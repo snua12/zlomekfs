@@ -67,7 +67,8 @@ typedef enum direction_def
 typedef struct data_buffer_def
 {
   uint32_t len;
-  char buf[ZFS_MAXDATA];
+  char *buf;
+  char real_buffer[ZFS_MAXDATA];
 } data_buffer;
 
 typedef struct string_def
