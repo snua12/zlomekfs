@@ -4717,8 +4717,9 @@ int32_t
 zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
 {
   volume vol;
-  internal_dentry idir, dentry;
-  int32_t r;
+  internal_dentry idir;
+  int32_t r, r2;
+  zfs_fh tmp_fh;
 
   TRACE ("");
 
@@ -4754,6 +4755,10 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
       return EINVAL;
     }
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     r = local_reintegrate_add (vol, idir, name, fh);
   else if (vol->master != this_node)
@@ -4764,21 +4769,18 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   else
     abort ();
 
-  zfsd_mutex_lock (&fh_mutex);
-  idir = dentry_lookup (dir);
-  if (idir)
+  r2 = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (r == ZFS_OK)
     {
-      dentry = dentry_lookup_name (NULL, idir, name);
-      release_dentry (idir);
-      if (dentry)
-	internal_dentry_destroy (dentry, true, true);
+      delete_dentry (&vol, &idir, name, &tmp_fh);
     }
-  dentry = dentry_lookup (fh);
-  if (dentry)
-    internal_dentry_destroy (dentry, true, true);
-  zfsd_mutex_unlock (&fh_mutex);
-  if (!dentry)
-    local_invalidate_fh (fh);
+
+  internal_dentry_unlock (vol, idir);
 
   return r;
 }
