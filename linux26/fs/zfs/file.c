@@ -63,7 +63,7 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 	TRACE("'%s': %lld", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
-	args.offset = *off;
+	args.offset = (file->f_flags & O_APPEND) ? i_size_read(inode) : *off;
 	args.data.len = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
 	args.data.buf = buf;
 
@@ -71,8 +71,8 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 	if (error > 0) {
 		*off += error;
 		inode->i_mtime = CURRENT_TIME;
-		if (*off > inode->i_size) {
-			inode->i_size = *off;
+		if (*off > i_size_read(inode)) {
+			i_size_write(inode, *off);
 			inode->i_ctime = CURRENT_TIME;
 		}
 	} else if (error == -ESTALE)
