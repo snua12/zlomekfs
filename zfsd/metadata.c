@@ -727,52 +727,47 @@ init_volume_metadata (volume vol)
 	       strerror (errno));
       zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
       close_volume_metadata (vol);
-      vol->metadata->fd = -1;
       return false;
     }
 
-  if ((st.st_mode & S_IFMT) != S_IFREG)
+  if (!hfile_init (vol->metadata, &st))
     {
-      message (2, stderr, "%s: Not a regular file\n",
-	       vol->metadata->file_name);
-      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
-      close_volume_metadata (vol);
-      return false;
-    }
+      if ((st.st_mode & S_IFMT) != S_IFREG)
+	{
+	  message (2, stderr, "%s: Not a regular file\n",
+		   vol->metadata->file_name);
+	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
+      else if ((uint64_t) st.st_size < (uint64_t) sizeof (header))
+	{
+	  header.n_elements = 0;
+	  header.n_deleted = 0;
+	  if (!full_write (fd, &header, sizeof (header)))
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	      close_volume_metadata (vol);
+	      unlink (vol->metadata->file_name);
+	      return false;
+	    }
 
-  if ((uint64_t) st.st_size < (uint64_t) sizeof (header))
-    {
-      header.n_elements = 0;
-      header.n_deleted = 0;
-      if (!full_write (fd, &header, sizeof (header)))
-	{
-	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
-	  close_volume_metadata (vol);
-	  unlink (vol->metadata->file_name);
-	  return false;
+	  if (ftruncate (fd, ((uint64_t) vol->metadata->size
+			      * sizeof (metadata)
+			      + sizeof (header))) < 0)
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	      close_volume_metadata (vol);
+	      unlink (vol->metadata->file_name);
+	      return false;
+	    }
 	}
-
-      if (ftruncate (fd, ((uint64_t) vol->metadata->size * sizeof (metadata)
-			  + sizeof (header))) < 0)
-	{
-	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
-	  close_volume_metadata (vol);
-	  unlink (vol->metadata->file_name);
-	  return false;
-	}
-    }
-  else
-    {
-      if (!full_read (fd, &header, sizeof (header)))
+      else
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
 	  close_volume_metadata (vol);
 	  return false;
 	}
-      vol->metadata->n_elements = le_to_u32 (header.n_elements);
-      vol->metadata->n_deleted = le_to_u32 (header.n_deleted);
-      vol->metadata->size = (((uint64_t) st.st_size - sizeof (header))
-			     / sizeof (metadata));
     }
 
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
