@@ -72,6 +72,36 @@
       }									\
   } while (0)
 
+/* Update directory DENTRY on volume VOL if needed.
+   Leave DENTRY and VOL unlocked.  */
+#define UPDATE_DIR_IF_NEEDED_AND_UNLOCK(VOL, DENTRY)			\
+  do {									\
+    fattr remote_attr;							\
+									\
+    if ((VOL)->master != this_node)					\
+      {									\
+	if (update_p ((DENTRY), (VOL), &remote_attr))			\
+	  {								\
+	    CHECK_MUTEX_LOCKED (&(DENTRY)->fh->mutex);			\
+	    CHECK_MUTEX_LOCKED (&(VOL)->mutex);				\
+									\
+	    r = update_directory ((DENTRY), (VOL), &remote_attr);	\
+	    if (r != ZFS_OK)						\
+	      return r;							\
+	  }								\
+	else								\
+	  {								\
+	    zfsd_mutex_unlock (&(DENTRY)->fh->mutex);			\
+	      zfsd_mutex_unlock (&(VOL)->mutex);			\
+	  }								\
+      }									\
+    else								\
+      {									\
+	zfsd_mutex_unlock (&(DENTRY)->fh->mutex);			\
+	zfsd_mutex_unlock (&(VOL)->mutex);				\
+      }									\
+  } while (0)
+
 extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 				     uint64_t end, varray *blocks);
 extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,

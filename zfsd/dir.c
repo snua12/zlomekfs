@@ -1452,8 +1452,78 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   volume vol;
   internal_dentry dentry1, dentry2;
   virtual_dir vd1, vd2;
+  zfs_fh fh;
   int32_t r;
   int retry = 0;
+
+  /* Update FROM_DIR.  */
+  r = zfs_fh_lookup (from_dir, &vol, &dentry1, &vd1);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vd1)
+    {
+      if (vol)
+	{
+	  r = get_volume_root_dentry (vol, &dentry1);
+	  zfsd_mutex_unlock (&vd1->mutex);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&vd1->mutex);
+	  return EROFS;
+	}
+    }
+  fh = dentry1->fh->local_fh;
+
+  if (vol->local_path)
+    {
+      UPDATE_DIR_IF_NEEDED_AND_UNLOCK (vol, dentry1);
+    }
+  else
+    {
+      zfsd_mutex_unlock (&dentry1->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+
+  /* Update TO_DIR.  */
+  r = zfs_fh_lookup (to_dir, &vol, &dentry2, &vd2);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vd2)
+    {
+      if (vol)
+	{
+	  r = get_volume_root_dentry (vol, &dentry2);
+	  zfsd_mutex_unlock (&vd2->mutex);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&vd2->mutex);
+	  return EROFS;
+	}
+    }
+
+  if (vol->local_path && !ZFS_FH_EQ (fh, dentry2->fh->local_fh))
+    {
+      UPDATE_DIR_IF_NEEDED_AND_UNLOCK (vol, dentry2);
+    }
+  else
+    {
+      zfsd_mutex_unlock (&dentry2->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
 
 zfs_rename_retry:
 
@@ -1566,14 +1636,7 @@ zfs_rename_retry:
     }
 
   if (vol->local_path)
-    {
-      /* FIXME: fix locking  */
-#if 0
-      UPDATE_DIR_IF_NEEDED (vol, dentry1);
-      UPDATE_DIR_IF_NEEDED (vol, dentry2);
-#endif
-      r = local_rename (dentry1, from_name, dentry2, to_name, vol);
-    }
+    r = local_rename (dentry1, from_name, dentry2, to_name, vol);
   else if (vol->master != this_node)
     r = remote_rename (dentry1->fh, from_name, dentry2->fh, to_name, vol);
   else
@@ -1709,6 +1772,40 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   int32_t r;
   int retry = 0;
 
+  /* Update DIR.  */
+  r = zfs_fh_lookup (dir, &vol, &dentry2, &vd2);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vd2)
+    {
+      if (vol)
+	{
+	  r = get_volume_root_dentry (vol, &dentry2);
+	  zfsd_mutex_unlock (&vd2->mutex);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&vd2->mutex);
+	  return EROFS;
+	}
+    }
+
+  if (vol->local_path)
+    {
+      UPDATE_DIR_IF_NEEDED_AND_UNLOCK (vol, dentry2);
+    }
+  else
+    {
+      zfsd_mutex_unlock (&dentry2->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+
 zfs_link_retry:
 
   /* Lookup FROM.  */
@@ -1835,13 +1932,7 @@ zfs_link_retry:
     }
 
   if (vol->local_path)
-    {
-      /* FIXME: fix locking  */
-#if 0
-      UPDATE_DIR_IF_NEEDED (vol, dentry2);
-#endif
-      r = local_link (dentry1, dentry2, name, vol);
-    }
+    r = local_link (dentry1, dentry2, name, vol);
   else if (vol->master != this_node)
     r = remote_link (dentry1->fh, dentry2->fh, name, vol);
   else
