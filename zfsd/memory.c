@@ -257,7 +257,7 @@ xstringconcat_varray (string *dst, varray *va)
 /* Set *DESTP to a new string SRC whose length is LENGTH.  */
 
 void
-set_string_with_length (char **destp, const char *src, int len)
+set_str_with_length (char **destp, const char *src, int len)
 {
   if (*destp)
     free (*destp);
@@ -268,7 +268,7 @@ set_string_with_length (char **destp, const char *src, int len)
 /* Set *DESTP to a new string SRC.  */
 
 void
-set_string (char **destp, const char *src)
+set_str (char **destp, const char *src)
 {
-  set_string_with_length (destp, src, strlen (src));
+  set_str_with_length (destp, src, strlen (src));
 }

@@ -253,7 +253,7 @@ set_node_name (void)
     return;
 
   node_name.len = strlen (un.nodename);
-  set_string_with_length (&node_name.str, un.nodename, node_name.len);
+  set_str_with_length (&node_name.str, un.nodename, node_name.len);
   message (1, stderr, "Autodetected node name: '%s'\n", node_name.str);
 }
 
@@ -409,7 +409,7 @@ read_config_file (const char *file)
   set_default_uid_gid ();
 
   /* Default values.  */
-  set_string (&kernel_file_name, "/dev/zfs");
+  set_str (&kernel_file_name, "/dev/zfs");
 
   f = fopen (file, "rt");
   if (!f)
@@ -439,12 +439,12 @@ read_config_file (const char *file)
 	      if (strncasecmp (key, "nodename", 9) == 0)
 		{
 		  node_name.len = value_len;
-		  set_string_with_length (&node_name.str, value, value_len);
+		  set_str_with_length (&node_name.str, value, value_len);
 		  message (1, stderr, "NodeName = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "privatekey", 11) == 0)
 		{
-		  set_string_with_length (&private_key, value, value_len);
+		  set_str_with_length (&private_key, value, value_len);
 		  message (1, stderr, "PrivateKey = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "nodeconfig", 11) == 0
@@ -452,7 +452,7 @@ read_config_file (const char *file)
 		       || strncasecmp (key, "localconfig", 12) == 0
 		       || strncasecmp (key, "localconfiguration", 19) == 0)
 		{
-		  set_string_with_length (&node_config, value, value_len);
+		  set_str_with_length (&node_config, value, value_len);
 		  message (1, stderr, "NodeConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "clusterconfig", 14) == 0
@@ -460,7 +460,7 @@ read_config_file (const char *file)
 		{
 		  /* TODO: FIXME: cluster configuration is always in the same
 		     ZFS directory so the parameter should not be needed.  */
-		  set_string_with_length (&cluster_config, value, value_len);
+		  set_str_with_length (&cluster_config, value, value_len);
 		  message (1, stderr, "ClusterConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)

@@ -227,8 +227,8 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  set_string (&vol->name, name);
-  set_string (&vol->mountpoint, mountpoint);
+  set_str (&vol->name, name);
+  set_str (&vol->mountpoint, mountpoint);
   vol->master = master;
   vol->is_copy = (vol->master != this_node);
   virtual_mountpoint_create (vol);
@@ -241,7 +241,7 @@ volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  set_string (&vol->local_path, local_path);
+  set_str (&vol->local_path, local_path);
   vol->size_limit = size_limit;
 
   return init_volume_metadata (vol);
