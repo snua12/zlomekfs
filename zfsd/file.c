@@ -2552,7 +2552,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
 int32_t
 full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
-		 uint64_t offset, uint32_t count)
+		 uint64_t offset, uint32_t count, uint64_t *version)
 {
   read_res res;
   volume vol;
@@ -2576,6 +2576,15 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 	    && vol->master != this_node))
 	abort ();
 #endif
+
+      if (version && *version != dentry->fh->attr.version)
+	{
+	  *version = dentry->fh->attr.version;
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  RETURN_INT (ZFS_CHANGED);
+	}
 
       res.data.buf = (char *) buffer + total;
       r = local_read (&res, dentry, offset + total, count - total, vol);
@@ -2688,7 +2697,7 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
 int32_t
 full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
-		  uint64_t offset, uint32_t count)
+		  uint64_t offset, uint32_t count, uint64_t *version)
 {
   volume vol;
   internal_cap icap;
@@ -2713,6 +2722,15 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 	    && vol->master != this_node))
 	abort ();
 #endif
+
+      if (version && *version != dentry->fh->attr.version)
+	{
+	  *version = dentry->fh->attr.version;
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  RETURN_INT (ZFS_CHANGED);
+	}
 
       data.len = count - total;
       data.buf = (char *) buffer + total;

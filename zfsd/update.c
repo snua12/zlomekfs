@@ -218,7 +218,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   md5sum_res remote_md5;
   int32_t r;
   unsigned int i, j;
-  uint64_t version;
+  uint64_t local_version, remote_version;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -313,11 +313,13 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	    MARK_VOLUME_DELETE (vol);
 	}
     }
+  local_version = dentry->fh->attr.version;
+  remote_version = remote_md5.version;
+
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
   /* Update different blocks.  */
-  version = remote_md5.version;
   for (i = 0, j = *index; i < remote_md5.count; i++)
     {
       if (remote_md5.length[i] > ZFS_MAXDATA
@@ -348,10 +350,10 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	      r = full_remote_read (&remote_md5.length[i], buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i],
-				    conflict_p ? NULL : &version);
+				    conflict_p ? NULL : &remote_version);
 	      if (r == ZFS_CHANGED)
 		{
-		  r = update_file_clear_updated_tree (&cap->fh, version);
+		  r = update_file_clear_updated_tree (&cap->fh, remote_version);
 		  if (r != ZFS_OK)
 		    RETURN_INT (r);
 
@@ -360,8 +362,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 
-	      r = full_local_write (&count, buf, cap,
-				    remote_md5.offset[i], remote_md5.length[i]);
+	      r = full_local_write (&count, buf, cap, remote_md5.offset[i],
+				    remote_md5.length[i], &local_version);
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 	    }
@@ -371,10 +373,10 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	      r = full_remote_read (&remote_md5.length[i], buf2, cap,
 				    remote_md5.offset[i], remote_md5.length[i],
-				    conflict_p ? NULL : &version);
+				    conflict_p ? NULL : &remote_version);
 	      if (r == ZFS_CHANGED)
 		{
-		  r = update_file_clear_updated_tree (&cap->fh, version);
+		  r = update_file_clear_updated_tree (&cap->fh, remote_version);
 		  if (r != ZFS_OK)
 		    RETURN_INT (r);
 
@@ -383,8 +385,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 
-	      r = full_local_read (&count, buf, cap,
-				   remote_md5.offset[i], remote_md5.length[i]);
+	      r = full_local_read (&count, buf, cap, remote_md5.offset[i],
+				   remote_md5.length[i], &local_version);
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 
@@ -415,8 +417,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 		}
 
 	      /* Write updated buffer BUF.  */
-	      r = full_local_write (&count, buf, cap,
-				    remote_md5.offset[i], remote_md5.length[i]);
+	      r = full_local_write (&count, buf, cap, remote_md5.offset[i],
+				    remote_md5.length[i], &local_version);
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 	    }
