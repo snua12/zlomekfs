@@ -2547,10 +2547,16 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
 		    meta.master_fh = res.file;
 		    meta.master_version = res.attr.version;
-		    if (meta.local_version < meta.master_version
-			|| (meta.local_version == meta.master_version
-			    && (meta.flags & METADATA_MODIFIED)))
-		      meta.local_version = meta.master_version + 1;
+		    if (meta.flags & METADATA_MODIFIED)
+		      {
+			if (meta.local_version <= meta.master_version)
+			  meta.local_version = meta.master_version + 1;
+		      }
+		    else
+		      {
+			if (meta.local_version < meta.master_version)
+			  meta.local_version = meta.master_version;
+		      }
 
 		    success = flush_metadata (vol, &meta);
 
