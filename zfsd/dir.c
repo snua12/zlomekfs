@@ -2211,6 +2211,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
 	  zfs_fh fh;
+	  metadata meta;
 
 	  if (path.str)
 	    {
@@ -2238,7 +2239,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 	  fh.dev = st_new.st_dev;
 	  fh.ino = st_new.st_ino;
-	  if (!metadata_hardlink_replace (vol, &fh,
+	  if (!metadata_hardlink_replace (vol, &fh, &meta,
 					  from_dentry->fh->local_fh.dev,
 					  from_dentry->fh->local_fh.ino,
 					  from_name,
@@ -2549,7 +2550,9 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
 	{
-	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh,
+	  metadata meta;
+
+	  if (!metadata_hardlink_insert (vol, &meta, &from_dentry->fh->local_fh,
 					 dir_dentry->fh->local_fh.dev,
 					 dir_dentry->fh->local_fh.ino, name))
 	    vol->delete_p = true;
@@ -3704,7 +3707,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      return ESTALE;
 	    }
 
-	  if (!metadata_hardlink_replace (vol, fh, old_parent_st.st_dev,
+	  if (!metadata_hardlink_replace (vol, fh, &meta, old_parent_st.st_dev,
 					  old_parent_st.st_ino, &old_name,
 					  new_parent_dev, new_parent_ino,
 					  &new_name))
@@ -3736,7 +3739,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      return ENOENT;
 	    }
 
-	  if (!metadata_hardlink_insert (vol, fh, new_parent_dev,
+	  if (!metadata_hardlink_insert (vol, fh, &meta, new_parent_dev,
 					 new_parent_ino, &new_name))
 	    {
 	      vol->delete_p = true;

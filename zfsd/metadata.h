@@ -142,17 +142,18 @@ extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
 extern bool init_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
 			    hardlink_list hl);
-extern bool metadata_hardlink_insert (volume vol, zfs_fh *fh,
+extern bool metadata_hardlink_insert (volume vol, zfs_fh *fh, metadata *meta,
 				      uint32_t parent_dev, uint32_t parent_ino,
 				      string *name);
-extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh,
+extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
 				       uint32_t old_parent_dev,
 				       uint32_t old_parent_ino,
 				       string *old_name,
 				       uint32_t new_parent_dev,
 				       uint32_t new_parent_ino,
 				       string *new_name);
-extern bool metadata_hardlink_set_shadow (volume vol, zfs_fh *fh);
+extern bool metadata_hardlink_set_shadow (volume vol, zfs_fh *fh,
+					  metadata *meta);
 extern unsigned int metadata_n_hardlinks (volume vol, zfs_fh *fh,
 					  metadata *meta);
 extern void get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh);

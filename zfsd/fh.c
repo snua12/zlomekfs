@@ -1439,7 +1439,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
 	{
-	  if (!metadata_hardlink_insert (vol, &fh->local_fh,
+	  if (!metadata_hardlink_insert (vol, &fh->local_fh, meta,
 					 parent->fh->local_fh.dev,
 					 parent->fh->local_fh.ino, name))
 	    {

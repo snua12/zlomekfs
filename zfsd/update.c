@@ -855,6 +855,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   uint32_t new_parent_dev;
   uint32_t new_parent_ino;
   int32_t r;
+  metadata meta;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -893,8 +894,8 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
       return false;
     }
 
-  if (!metadata_hardlink_replace (vol, fh, 0, 0, &empty_string, new_parent_dev,
-				  new_parent_ino, name))
+  if (!metadata_hardlink_replace (vol, fh, &meta, 0, 0, &empty_string,
+				  new_parent_dev, new_parent_ino, name))
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
@@ -917,6 +918,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   string shadow_path;
   uint32_t vid;
   int32_t r;
+  metadata meta;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -953,7 +955,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
       return false;
     }
 
-  if (!metadata_hardlink_set_shadow (vol, fh))
+  if (!metadata_hardlink_set_shadow (vol, fh, &meta))
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
