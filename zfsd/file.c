@@ -115,74 +115,15 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   if (!fh_lookup (fh, &vol, &ifh, &vd))
     return ESTALE;
 
+  /* TODO: Update file and fattr.  */
+
   if (vd)
     {
       *fa = vd->attr;
     }
   else /* if (ifh) */
     {
-      char *path;
-      struct stat st;
-      int r;
-
-      path = build_local_path (vol, ifh);
-      r = lstat (path, &st);
-      free (path);
-      if (r != 0)
-	return errno;
-
-      switch (st.st_mode & S_IFMT)
-	{
-	  case S_IFSOCK:
-	    fa->type = FT_SOCK;
-	    break;
-
-	  case S_IFLNK:
-	    fa->type = FT_LNK;
-	    break;
-
-	  case S_IFREG:
-	    fa->type = FT_REG;
-	    break;
-
-	  case S_IFBLK:
-	    fa->type = FT_BLK;
-	    break;
-
-	  case S_IFDIR:
-	    fa->type = FT_DIR;
-	    break;
-
-	  case S_IFCHR:
-	    fa->type = FT_CHR;
-	    break;
-
-	  case S_IFIFO:
-	    fa->type = FT_FIFO;
-	    break;
-
-	  default:
-	    fa->type = FT_BAD;
-	    break;
-	}
-
-      fa->mode = st.st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
-      fa->nlink = st.st_nlink;
-      fa->uid = st.st_uid;  /* FIXME: translate UID */
-      fa->gid = st.st_gid;  /* FIXME: translate GID */
-      fa->rdev = st.st_rdev;
-      fa->size = st.st_size;
-      fa->blocks = st.st_blocks;
-      fa->blksize = st.st_blksize;
-      fa->generation = 0;	/* FIXME? how? */
-      fa->fversion = 0;		/* FIXME */
-      fa->sid = ifh->local_fh.sid;
-      fa->vid = ifh->local_fh.vid;
-      fa->dev = ifh->local_fh.dev;
-      fa->ino = ifh->local_fh.ino;
-      fa->atime = st.st_atime;
-      fa->mtime = st.st_mtime;
-      fa->ctime = st.st_ctime;
+      *fa = ifh->attr;
     }
 
   return ZFS_OK;
