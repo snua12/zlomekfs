@@ -2362,7 +2362,7 @@ write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
 /* Read hardlinks for file handle FH on volume VOL to hardlink list HL
    and the metadata to META.  */
 
-static bool
+bool
 read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 {
   string name;

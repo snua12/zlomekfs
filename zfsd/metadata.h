@@ -159,6 +159,8 @@ extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
 extern bool init_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
 			    hardlink_list hl);
+extern bool read_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
+			    hardlink_list hl);
 extern bool metadata_hardlink_insert (volume vol, zfs_fh *fh, metadata *meta,
 				      uint32_t parent_dev, uint32_t parent_ino,
 				      string *name);
