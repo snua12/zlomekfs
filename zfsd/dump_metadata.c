@@ -24,8 +24,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include "pthread.h"
+#include "constant.h"
+#include "memory.h"
 #include "hashfile.h"
 #include "metadata.h"
+#include "hardlink-list.h"
+#include "journal.h"
+#include "volume.h"
 
 static void
 print_modetype (uint32_t mode)
@@ -90,31 +96,39 @@ print_modetype (uint32_t mode)
 
 int main (int argc, char **argv)
 {
-  hfile_t hfile;
   int i;
   struct stat st;
   metadata meta;
+  zfs_fh fh;
+  volume vol;
+  hardlink_list hl;
+  journal_t journal;
 
   if (argc < 3)
     {
-      fprintf (stderr, "Usage: dump_metadata METADATA_FILE LOCAL_FILE...\n");
+      fprintf (stderr, "Usage: dump_metadata VOLUME_ROOT LOCAL_FILE...\n");
       return 1;
     }
 
-  hfile = hfile_create (sizeof (metadata), offsetof (metadata, parent_dev),
-			256, metadata_hash, metadata_eq,
-			metadata_decode, metadata_encode, argv[1], NULL);
-  hfile->fd = open (hfile->file_name, O_RDONLY);
-  if (hfile->fd < 0)
+  vol = (volume) xmalloc (sizeof (struct volume_def));
+  xmkstring (&vol->local_path, argv[1]);
+  zfsd_mutex_init (&vol->mutex);
+  zfsd_mutex_lock (&vol->mutex);
+
+  init_constants ();
+  initialize_metadata_c ();
+  initialize_hardlink_list_c ();
+  initialize_journal_c ();
+
+  if (!init_volume_metadata (vol))
     {
-      perror (argv[1]);
+      fprintf (stderr, "%s: Could not initialize metadata\n",
+	       vol->local_path.str);
       return 1;
     }
-  if (!hfile_init (hfile, &st))
-    {
-      fprintf (stderr, "%s: Can't initialize hash file\n", argv[1]);
-      return 1;
-    }
+
+  hl = hardlink_list_create (32, NULL);
+  journal = journal_create (32, NULL);
 
   for (i = 2; i < argc; i++)
     {
@@ -124,9 +138,9 @@ int main (int argc, char **argv)
 	  continue;
 	}
 
-      meta.dev = st.st_dev;
-      meta.ino = st.st_ino;
-      if (!hfile_lookup (hfile, &meta))
+      fh.dev = meta.dev = st.st_dev;
+      fh.ino = meta.ino = st.st_ino;
+      if (!hfile_lookup (vol->metadata, &meta))
 	{
 	  fprintf (stderr, "%s: Can't find in hash file\n", argv[i]);
 	  continue;
@@ -153,7 +167,36 @@ int main (int argc, char **argv)
       printf (" Master FH: [%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32
 	      ",%" PRIu32 "]\n", meta.master_fh.sid, meta.master_fh.vid,
 	      meta.master_fh.dev, meta.master_fh.ino, meta.master_fh.gen);
+
+      read_hardlinks (vol, &fh, &meta, hl);
+      if (hl->first)
+	{
+	  printf (" Hardlinks:\n");
+	  print_hardlink_list (stdout, hl);
+	  hardlink_list_empty (hl);
+	}
+
+      read_journal (vol, &fh, journal);
+      if (journal->first)
+	{
+	  printf (" Journal:\n");
+	  print_journal (stdout, journal);
+	  journal_empty (journal);
+	}
     }
+
+  hardlink_list_destroy (hl);
+  journal_destroy (journal);
+  close_volume_metadata (vol);
+
+  cleanup_journal_c ();
+  cleanup_hardlink_list_c ();
+  cleanup_metadata_c ();
+
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_destroy (&vol->mutex);
+  free (vol->local_path.str);
+  free (vol);
 
   return 0;
 }
