@@ -1985,7 +1985,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	  zfsd_mutex_unlock (&fh_mutex);
 	  r = ENOENT;
 	}
-      else if (dentry->fh->attr.mode != FT_DIR)
+      else if (dentry->fh->attr.type != FT_DIR)
 	{
 	  release_dentry (dentry);
 	  release_dentry (idir);
@@ -3212,7 +3212,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	  zfsd_mutex_unlock (&fh_mutex);
 	  r = ENOENT;
 	}
-      else if (dentry->fh->attr.mode == FT_DIR)
+      else if (dentry->fh->attr.type == FT_DIR)
 	{
 	  release_dentry (dentry);
 	  release_dentry (idir);
