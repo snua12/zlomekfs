@@ -2001,11 +2001,6 @@ again:
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     return dentry;
 
-#ifdef ENABLE_CHECKING
-  if (dir->fh->level == LEVEL_UNLOCKED)
-    abort ();
-#endif
-
   if (dentry)
     {
       if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh))
@@ -2017,6 +2012,11 @@ again:
 	  internal_dentry_destroy (dentry, true);
 	  dentry = NULL;
 	  zfsd_mutex_unlock (&fh_mutex);
+
+#ifdef ENABLE_CHECKING
+	  if (dir->fh->level == LEVEL_UNLOCKED)
+	    abort ();
+#endif
 
 	  /* This succeeds because DIR was locked so it can't have been
 	     deleted meanwhile.  */
@@ -2063,6 +2063,12 @@ again:
 
       internal_dentry_add_to_dir (conflict, dentry);
 
+#ifdef ENABLE_CHECKING
+      if (dir->fh->level == LEVEL_UNLOCKED
+	  && dentry->fh->level == LEVEL_UNLOCKED)
+	abort ();
+#endif
+
       /* Invalidate DENTRY.  */
       tmp_fh = dir->fh->local_fh;
       release_dentry (dir);
@@ -2071,8 +2077,8 @@ again:
       zfsd_mutex_unlock (&fh_mutex);
       local_invalidate (dentry);
 
-      /* This succeeds because DIR was locked so it can't have been
-	 deleted meanwhile.  */
+      /* This succeeds because DIR or its child was locked
+	 so it can't have been deleted meanwhile.  */
       zfs_fh_lookup_nolock (&tmp_fh, &vol, &dir, NULL, false);
       goto again;
     }
