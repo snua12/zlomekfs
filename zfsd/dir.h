@@ -100,7 +100,15 @@ extern int32_t local_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t remote_file_info (file_info_res *res, internal_dentry dentry,
 				 volume vol);
 extern int32_t zfs_file_info (file_info_res *res, zfs_fh *fh);
+extern int32_t local_reintegrate_add (volume vol, internal_dentry dir,
+				      string *name, zfs_fh *fh);
+extern int32_t remote_reintegrate_add (volume vol, internal_dentry dir,
+				       string *name, zfs_fh *fh);
 extern int32_t zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name);
+extern int32_t local_reintegrate_del (volume vol, internal_dentry dentry,
+				      bool destroy_p);
+extern int32_t remote_reintegrate_del (volume vol, internal_dentry dir,
+				       string *name, bool destroy_p);
 extern int32_t zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p);
 extern int32_t refresh_master_fh (zfs_fh *fh);
 extern int32_t refresh_fh (zfs_fh *fh);
