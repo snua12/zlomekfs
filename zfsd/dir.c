@@ -1531,8 +1531,11 @@ zfs_rename_retry:
 
   if (vol->local_path)
     {
+      /* FIXME: fix locking  */
+#if 0
       UPDATE_DIR_IF_NEEDED (vol, dentry1);
       UPDATE_DIR_IF_NEEDED (vol, dentry2);
+#endif
       r = local_rename (dentry1, from_name, dentry2, to_name, vol);
     }
   else if (vol->master != this_node)
@@ -1797,7 +1800,10 @@ zfs_link_retry:
 
   if (vol->local_path)
     {
+      /* FIXME: fix locking  */
+#if 0
       UPDATE_DIR_IF_NEEDED (vol, dentry2);
+#endif
       r = local_link (dentry1, dentry2, name, vol);
     }
   else if (vol->master != this_node)
