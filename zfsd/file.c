@@ -1110,7 +1110,7 @@ zfs_readdir_retry:
    and file handle FH on volume VOL.
    Store data to BUFFER and count to RCOUNT.  */
 
-int32_t
+static int32_t
 local_read (uint32_t *rcount, void *buffer, internal_cap cap,
 	    internal_dentry dentry, uint64_t offset, uint32_t count, volume vol)
 {
@@ -1155,7 +1155,7 @@ local_read (uint32_t *rcount, void *buffer, internal_cap cap,
    on volume VOL.
    Store data to BUFFER and count to RCOUNT.  */
 
-int32_t
+static int32_t
 remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 	     uint64_t offset, uint32_t count, volume vol)
 {
@@ -1255,7 +1255,7 @@ zfs_read_retry:
 /* Write DATA to offset OFFSET of local file with capability CAP
    and file handle FH on volume VOL.  */
 
-int32_t
+static int32_t
 local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 	     uint64_t offset, data_buffer *data, volume vol)
 {
@@ -1297,7 +1297,7 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 
 /* Write to remote file with capability CAP on volume VOL.  */
 
-int32_t
+static int32_t
 remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 {
   thread *t;
@@ -1382,6 +1382,138 @@ zfs_write_retry:
     }
 
   return r;
+}
+
+/* Read as many bytes as possible of block of local file CAP starting at OFFSET
+   which is COUNT bytes long, store the data to BUFFER and the number of bytes
+   read to RCOUNT.  */
+
+int32_t
+full_local_read (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
+		 uint32_t count)
+{
+  volume vol;
+  internal_cap icap;
+  internal_dentry dentry;
+  uint32_t n_read;
+  uint32_t total;
+  uint32_t r;
+
+  for (total = 0; total < count; total += n_read)
+    {
+      r = find_capability (cap, &icap, &vol, &dentry, NULL);
+      if (r != ZFS_OK)
+	return r;
+
+#ifdef ENABLE_CHECKING
+      if (!(vol->local_path && vol->master != this_node))
+	abort ();
+#endif
+
+      r = local_read (&n_read, (char *) buffer + total, icap, dentry,
+		      offset + total, count - total, vol);
+      zfsd_mutex_unlock (&icap->mutex);
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+      if (r != ZFS_OK)
+	return r;
+
+      if (n_read == 0)
+	break;
+    }
+
+  *rcount = total;
+  return ZFS_OK;
+}
+
+/* Read as many bytes as possible of block of remote file CAP starting at OFFSET
+   which is COUNT bytes long, store the data to BUFFER and the number of bytes
+   read to RCOUNT.  */
+
+int32_t
+full_remote_read (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
+		  uint32_t count)
+{
+  volume vol;
+  internal_cap icap;
+  internal_dentry dentry;
+  uint32_t n_read;
+  uint32_t total;
+  uint32_t r;
+
+  for (total = 0; total < count; total += n_read)
+    {
+      r = find_capability (cap, &icap, &vol, &dentry, NULL);
+      if (r != ZFS_OK)
+	return r;
+
+#ifdef ENABLE_CHECKING
+      if (!(vol->local_path && vol->master != this_node))
+	abort ();
+#endif
+
+      r = remote_read (&n_read, (char *) buffer + total, icap,
+		       offset + total, count - total, vol);
+      zfsd_mutex_unlock (&icap->mutex);
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+      if (r != ZFS_OK)
+	return r;
+
+      if (n_read == 0)
+	break;
+    }
+
+  *rcount = total;
+  return ZFS_OK;
+}
+
+/* Write as many bytes as possible from BUFFER of length COUNT to local file
+   CAP starting at OFFSET.  Store the number of bytes read to RCOUNT.  */
+
+int32_t
+full_local_write (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
+		 uint32_t count)
+{
+  volume vol;
+  internal_cap icap;
+  internal_dentry dentry;
+  data_buffer data;
+  write_res res;
+  uint32_t total;
+  uint32_t r;
+
+  for (total = 0; total < count;)
+    {
+      r = find_capability (cap, &icap, &vol, &dentry, NULL);
+      if (r != ZFS_OK)
+	return r;
+
+#ifdef ENABLE_CHECKING
+      if (!(vol->local_path && vol->master != this_node))
+	abort ();
+#endif
+
+      data.len = count - total;
+      data.buf = (char *) buffer + total;
+      r = local_write (&res, icap, dentry, offset + total, &data, vol);
+      zfsd_mutex_unlock (&icap->mutex);
+      if (r != ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&dentry->fh->mutex);
+	  return r;
+	}
+
+      total += res.written;
+      if (res.written > 0)
+	interval_tree_insert (dentry->fh->updated, offset, offset + total);
+
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+
+      if (res.written == 0)
+	break;
+    }
+
+  *rcount = total;
+  return ZFS_OK;
 }
 
 /* Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with

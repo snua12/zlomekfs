@@ -51,19 +51,16 @@ extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
 extern int32_t zfs_close (zfs_cap *cap);
 extern int32_t zfs_readdir (DC *dc, zfs_cap *cap, int32_t cookie,
 			    uint32_t count);
-extern int32_t local_read (uint32_t *rcount, void *buffer, internal_cap cap,
-			   internal_dentry dentry, uint64_t offset,
-			   uint32_t count, volume vol);
-extern int32_t remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
-			    uint64_t offset, uint32_t count, volume vol);
 extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			 uint64_t offset, uint32_t count, bool update);
-extern int32_t local_write (write_res *res, internal_cap cap,
-			    internal_dentry dentry, uint64_t offset,
-			    data_buffer *data, volume vol);
-extern int32_t remote_write (write_res *res, internal_cap cap,
-			     write_args *args, volume vol);
 extern int32_t zfs_write (write_res *res, write_args *args);
+
+extern int32_t full_local_read (int32_t *rcount, void *buffer, zfs_cap *cap,
+				uint64_t offset, uint32_t count);
+extern int32_t full_remote_read (int32_t *rcount, void *buffer, zfs_cap *cap,
+				 uint64_t offset, uint32_t count);
+extern int32_t full_local_write (int32_t *rcount, void *buffer, zfs_cap *cap,
+				 uint64_t offset, uint32_t count);
 extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
 extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);
 extern void initialize_file_c ();
