@@ -680,9 +680,11 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
       for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
 	if (i != metadata_tree_depth)
 	  {
-	    char *old_path = build_interval_path (vol, &fh->local_fh,
-						  purpose, i);
+	    char *old_path;
+	    
+	    old_path = build_interval_path (vol, &fh->local_fh, purpose, i);
 	    rename (old_path, path);
+	    free (old_path);
 	  }
 
       fd = open (path, O_RDONLY);
