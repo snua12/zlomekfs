@@ -33,7 +33,7 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 
 PACKAGE = zfsd
 OBJECTS = alloc-pool.o cap.o config.o constant.o crc32.o data-coding.o \
-	  dir.o fibheap.o file.o fh.o hashfile.o hashtab.o interval.o \
+	  dir.o fh.o fibheap.o file.o hashfile.o hashtab.o interval.o \
 	  kernel.o log.o md5.o memory.o metadata.o network.o node.o \
 	  queue.o random.o semaphore.o splay-tree.o test.o thread.o \
 	  update.o user-group.o util.o varray.o volume.o zfsd.o zfs_prot.o
