@@ -31,6 +31,7 @@
 #include <sys/utsname.h>
 #include "pthread.h"
 #include "config.h"
+#include "constant.h"
 #include "log.h"
 #include "memory.h"
 #include "user-group.h"
@@ -506,8 +507,8 @@ read_config_file (const char *file)
 		    }
 		  else
 		    {
-		      if (metadata_tree_depth > 6)
-			metadata_tree_depth = 6;
+		      if (metadata_tree_depth > MAX_METADATA_TREE_DEPTH)
+			metadata_tree_depth = MAX_METADATA_TREE_DEPTH;
 		      message (1, stderr, "MetadataTreeDepth = %u\n",
 			       metadata_tree_depth);
 		    }

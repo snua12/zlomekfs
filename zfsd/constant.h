@@ -37,6 +37,9 @@
 /* Maximal length of request / reply.  */
 #define ZFS_MAX_REQUEST_LEN 8888
 
+/* Maximal value for MetadataTreeDepth.  */
+#define MAX_METADATA_TREE_DEPTH 6
+
 /* The event groups for poll().  */
 #define CAN_READ (POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND)
 #define CAN_WRITE (POLLOUT | POLLWRNORM | POLLWRBAND)
