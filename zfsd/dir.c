@@ -334,7 +334,7 @@ zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
 	  return ZFS_OK;
 	}
       else
-	abort ();
+	return ENOENT;
     }
 
 #if 0
