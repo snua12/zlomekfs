@@ -40,6 +40,7 @@
 #include "network.h"
 #include "zfs_prot.h"
 #include "user-group.h"
+#include "update.h"
 
 /* Return the local path of file for dentry DENTRY on volume VOL.  */
 
@@ -930,13 +931,31 @@ zfs_lookup_retry:
       return EACCES;
     }
 
-  /* TODO: update directory */
-
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (vol->local_path)
     {
+      if (vol->master != this_node)
+	{
+	  if (update_p (idir, vol))
+	    {
+	      zfs_fh fh;
+
+	      CHECK_MUTEX_LOCKED (&idir->fh->mutex);
+	      CHECK_MUTEX_LOCKED (&vol->mutex);
+
+	      fh = idir->fh->local_fh;
+	      r = update_file (idir, vol, false);
+	      if (r != ZFS_OK)
+		return r;
+
+	      r = zfs_fh_lookup (&fh, &vol, &idir, NULL);
+	      if (r != ZFS_OK)
+		return r;
+	    }
+	}
+
       r = local_lookup (res, idir, name, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
