@@ -907,7 +907,7 @@ server_main_out:
 	    {
 	      int s;
 	      struct sockaddr_in ca;
-	      socklen_t ca_len;
+	      socklen_t ca_len = sizeof (ca);
 
 retry_accept:
 	      s = accept (main_socket, (struct sockaddr *) &ca, &ca_len);
