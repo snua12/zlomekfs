@@ -31,6 +31,6 @@ extern char *build_local_path_name (volume vol, internal_fh fh,
 				    const char *name);
 extern int update_volume_root (volume vol, internal_fh *ifh);
 extern int zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
-extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name);
+extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 
 #endif

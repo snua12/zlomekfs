@@ -131,7 +131,7 @@ zfs_proc_lookup_server (dir_op_args *args, thread *t)
   dir_op_res res;
   int32_t r;
 
-  r = zfs_lookup (&res, &args->dir, args->name.str);
+  r = zfs_lookup (&res, &args->dir, &args->name);
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_dir_op_res (dc, &res);

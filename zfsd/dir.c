@@ -104,7 +104,8 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
   return r;
 }
 
-/* Store the local file handle of root of volume VOL to LOCAL_FH.  */
+/* Store the local file handle of root of volume VOL to LOCAL_FH
+   and its attributes to ATTR.  */
 
 static int
 get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
@@ -129,7 +130,8 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
   return ZFS_OK;
 }
 
-/* Store the remote file handle of root of volume VOL to REMOTE_FH.  */
+/* Store the remote file handle of root of volume VOL to REMOTE_FH
+   and its attributes to ATTR.  */
 
 static int
 get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
@@ -264,28 +266,27 @@ update_volume_root (volume vol, internal_fh *ifh)
 int
 zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
 {
-  dir_op_res tmp;
-  char *s;
+  string str;
   int r;
 
-  tmp.file = (*path == '/') ? root_fh : *dir;
+  res->file = (*path == '/') ? root_fh : *dir;
   while (*path)
     {
       while (*path == '/')
 	path++;
 
-      s = path;
+      str.str = path;
       while (*path != 0 && *path != '/')
 	path++;
       if (*path == '/')
 	*path++ = 0;
+      str.len = strlen (str.str);
 
-      r = zfs_lookup (&tmp, &tmp.file, s);
+      r = zfs_lookup (res, &res->file, &str);
       if (r)
 	return r;
     }
 
-  *res = tmp;
   return ZFS_OK;
 }
 
@@ -293,12 +294,12 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
    and store it to FH.  */
 
 static int
-local_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
+local_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
 {
   char *path;
   int r;
 
-  path = build_local_path_name (vol, dir, name);
+  path = build_local_path_name (vol, dir, name->str);
   r = local_getattr (&res->attr, path, vol);
   free (path);
   if (r != ZFS_OK)
@@ -316,26 +317,19 @@ local_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
    and store it to FH.  */
 
 static int
-remote_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
+remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
 {
   dir_op_args args;
   thread *t;
-  node nod;
   int32_t r;
 
   args.dir = dir->master_fh;
-  args.name.str = (char *) name;
-  args.name.len = strlen (name);
+  args.name = *name;
   t = (thread *) pthread_getspecific (server_thread_key);
 
-  zfsd_mutex_lock (&node_mutex);
-  nod = node_lookup (dir->master_fh.sid);
-  zfsd_mutex_unlock (&node_mutex);
-  if (!nod)
-    return ENOENT;
-
-  r = zfs_proc_lookup_client (t, &args, nod);
-  zfsd_mutex_unlock (&nod->mutex);
+//  zfsd_mutex_lock (&vol->master->mutex);
+  r = zfs_proc_lookup_client (t, &args, vol->master);
+//  zfsd_mutex_unlock (&vol->master->mutex);
   if (r == ZFS_OK)
     {
       if (!decode_dir_op_res (&t->u.server.dc, res)
@@ -349,7 +343,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
 int
-zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
+zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 {
   volume vol;
   internal_fh idir, ifh;
@@ -362,7 +356,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
 
   if (pvd)
     {
-      vd = vd_lookup_name (pvd, name);
+      vd = vd_lookup_name (pvd, name->str);
       if (vd)
 	{
 	  res->file = vd->fh;
@@ -418,7 +412,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
 
       /* Update internal file handles in htab.  */
       zfsd_mutex_lock (&vol->mutex);	/* FIXME: temporary */
-      ifh = fh_lookup_name (vol, idir, name);
+      ifh = fh_lookup_name (vol, idir, name->str);
       if (ifh)
 	{
 	  if (!ZFS_FH_EQ (ifh->local_fh, res->file)
@@ -426,12 +420,12 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
 	    {
 	      internal_fh_destroy (ifh, vol);
 	      ifh = internal_fh_create (&res->file, &master_res.file, idir,
-					vol, name, &res->attr);
+					vol, name->str, &res->attr);
 	    }
 	}
       else
 	ifh = internal_fh_create (&res->file, &master_res.file, idir, vol,
-				  name, &res->attr);
+				  name->str, &res->attr);
       zfsd_mutex_unlock (&vol->mutex);	/* FIXME: temporary */
 
       return ZFS_OK;
