@@ -194,6 +194,14 @@ user_create (uint32_t id, string *name)
   return u;
 }
 
+/* Lookup user by ID.  */
+
+static user_t
+user_lookup (uint32_t id)
+{
+  return (user_t) htab_find_with_hash (users_id, &id, USER_ID_HASH (id));
+}
+
 /* Destroy user U.  */
 
 void
@@ -283,6 +291,14 @@ group_create (uint32_t id, string *name)
   *slot2 = g;
 
   return g;
+}
+
+/* Lookup group by ID.  */
+
+static group_t
+group_lookup (uint32_t id)
+{
+  return (group_t) htab_find_with_hash (groups_id, &id, GROUP_ID_HASH (id));
 }
 
 /* Destroy group G.  */
