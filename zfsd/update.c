@@ -1436,7 +1436,15 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		  {
 		    if (ZFS_FH_EQ (res.file, entry->master_fh))
 		      {
+			zfs_fh file_fh;
+
+			file_fh.dev = entry->dev;
+			file_fh.ino = entry->ino;
+			file_fh.gen = entry->gen;
+			r = local_file_info (&info, &file_fh, vol);
+
 			/* TODO: delete remote file.  */
+			/* TODO: if r == ZFS_OK move remote file to shadow */
 		      }
 		    else
 		      {
