@@ -1671,7 +1671,7 @@ zfs_read_retry:
 	      zfsd_mutex_unlock (&fh_mutex);
 
 	      r = update_file_blocks (true, rcount, buffer, offset,
-				      icap, &blocks);
+				      &tmp_cap, &blocks);
 	    }
 	  else
 	    {
@@ -1679,7 +1679,7 @@ zfs_read_retry:
 	      if (r == ZFS_OK)
 		{
 		  r = update_file_blocks (true, rcount, buffer, offset,
-					  icap, &blocks);
+					  &tmp_cap, &blocks);
 		}
 	    }
 
@@ -2144,7 +2144,6 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
       r = local_read (&n_read, (char *) buffer + total, dentry,
 		      offset + total, count - total, vol);
-      release_dentry (dentry);
       if (r != ZFS_OK)
 	return r;
 
@@ -2184,7 +2183,6 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
       r = remote_read (&n_read, (char *) buffer + total, icap, dentry,
 		       offset + total, count - total, vol);
-      release_dentry (dentry);
       if (r != ZFS_OK)
 	return r;
 
@@ -2213,7 +2211,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
   for (total = 0; total < count;)
     {
-      r = find_capability (cap, &icap, &vol, &dentry, NULL);
+      r = find_capability_nolock (cap, &icap, &vol, &dentry, NULL);
       if (r != ZFS_OK)
 	return r;
 
@@ -2226,10 +2224,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
       data.buf = (char *) buffer + total;
       r = local_write (&res, dentry, offset + total, &data, vol);
       if (r != ZFS_OK)
-	{
-	  release_dentry (dentry);
-	  return r;
-	}
+	return r;
 
       total += res.written;
       if (res.written > 0)
