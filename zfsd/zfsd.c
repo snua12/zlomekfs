@@ -37,14 +37,17 @@
 #include "client.h"
 #include "server.h"
 #include "zfsd.h"
+#include "constant.h"
 
-#define TEST
 #ifdef TEST
 #include "dir.h"
 #endif
 
 /* Name of the configuration file.  */
 char *config_file = "/etc/zfs/config";
+
+/* Data for main thread.  */
+thread main_thread_data;
 
 /* Local function prototypes.  */
 static void exit_sighandler (int signum);
@@ -284,12 +287,22 @@ die ()
 
 /* Initialize various data structures needed by ZFSD.  */
 
-void
+bool
 initialize_data_structures ()
 {
+  if (pthread_key_create (&server_thread_key, NULL))
+    return false;
+  
+  /* Initialize main thread data.  */
+  pthread_mutex_init (&main_thread_data.mutex, NULL);
+  server_worker_init (&main_thread_data);
+  pthread_setspecific (server_thread_key, &main_thread_data);
+
+  /* Initialize data structures in other modules.  */
   initialize_fh_c ();
   initialize_node_c ();
   initialize_volume_c ();
+  initialize_zfs_prot_c ();
 }
 
 /* Destroy data structures.  */
@@ -297,6 +310,12 @@ initialize_data_structures ()
 void
 cleanup_data_structures ()
 {
+  /* Destroy main thread data.  */
+  server_worker_cleanup (&main_thread);
+  pthread_mutex_destroy (&main_thread.mutex);
+
+  /* Destroy data structures in other modules.  */
+  cleanup_zfs_prot_c ();
   cleanup_volume_c ();
   cleanup_node_c ();
   cleanup_fh_c ();
@@ -354,19 +373,24 @@ fake_config ()
 }
 
 /* Test functions accessing ZFS.  */
+
 void
-test_zfs ()
+test_zfs (thread *t)
 {
   zfs_fh fh;
 
-  printf ("%d\n",
-	  zfs_extended_lookup (&fh, &root_fh,
-			       xstrdup ("/volume1/subdir/file")));
-  printf ("%d\n",
-	  zfs_extended_lookup (&fh, &root_fh,
-			       xstrdup ("/volume1/volume3/subdir/file")));
+  if (strcmp (node_name, "orion") == 0)
+    {
+      zfs_proc_null_client (t, NULL, node_lookup (2));
+      zfs_proc_root_client (t, NULL, node_lookup (2));
+      printf ("%d\n",
+	      zfs_extended_lookup (&fh, &root_fh,
+				   xstrdup ("/volume1/subdir/file")));
+      printf ("%d\n",
+	      zfs_extended_lookup (&fh, &root_fh,
+				   xstrdup ("/volume1/volume3/subdir/file")));
+    }
 }
-
 #endif
 
 static void
@@ -379,6 +403,7 @@ daemon_mode ()
 int
 main (int argc, char **argv)
 {
+  init_constants ();
   init_sig_handlers ();
 
   process_arguments (argc, argv);
@@ -388,7 +413,8 @@ main (int argc, char **argv)
   test_splay ();
 #endif
   
-  initialize_data_structures ();
+  if (!initialize_data_structures ())
+    die ();
   
 #ifdef TEST
   fake_config ();
@@ -444,11 +470,9 @@ main (int argc, char **argv)
       server_cleanup ();
       die ();
     }
-    
 #endif
 
   pthread_join (main_server_thread, NULL);
-
 #endif
 
   /* FIXME: kill threads.  */
