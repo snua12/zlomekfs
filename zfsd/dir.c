@@ -1226,7 +1226,7 @@ zfs_volume_root (dir_op_res *res, uint32_t vid)
 
 /*! Get attributes of local file PATH and store them to ATTR.  */
 
-int32_t
+static int32_t
 local_getattr_path (fattr *attr, string *path)
 {
   struct stat st;

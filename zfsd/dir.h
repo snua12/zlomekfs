@@ -59,7 +59,6 @@ extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 				       bool unlock_fh_mutex);
 extern int32_t zfs_volume_root (dir_op_res *res, uint32_t vid);
-extern int32_t local_getattr_path (fattr *attr, string *path);
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t remote_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
