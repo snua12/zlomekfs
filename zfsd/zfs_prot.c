@@ -754,12 +754,23 @@ zfs_strerror (int32_t errnum)
   return "UNKNOWN error code";
 }
 
+/* Call statistics.  */
+uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
+
 /* Initialize data structures needed by this module.  */
 
 void
 initialize_zfs_prot_c ()
 {
+  int i;
+
   zfsd_mutex_init (&request_id_mutex);
+
+  for (i = 0; i < ZFS_PROC_LAST_AND_UNUSED; i++)
+    {
+      call_statistics[CALL_FROM_KERNEL][i] = 0;
+      call_statistics[CALL_FROM_NETWORK][i] = 0;
+    }
 }
 
 /* Cleanup data structures needed by this module.  */
@@ -768,4 +779,17 @@ void
 cleanup_zfs_prot_c ()
 {
   zfsd_mutex_destroy (&request_id_mutex);
+
+#ifdef ENABLE_STATISTICS
+  printf ("Call statistics:\n");
+  printf ("%-12s%15s%15s\n", "Function", "From kernel", "From network");
+
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+  printf ("%-12s%15" PRIu64 "%15" PRIu64 "\n", #FUNCTION,		\
+	  call_statistics[CALL_FROM_KERNEL][NUMBER],			\
+	  call_statistics[CALL_FROM_NETWORK][NUMBER]);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+
+#endif
 }

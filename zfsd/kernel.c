@@ -173,6 +173,7 @@ kernel_worker (void *data)
 		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	\
 		goto out;						\
 	      }								\
+	    call_statistics[CALL_FROM_KERNEL][NUMBER]++;		\
 	    start_encoding (&t->u.kernel.dc);				\
 	    encode_direction (&t->u.kernel.dc, DIR_REPLY);		\
 	    encode_request_id (&t->u.kernel.dc, request_id);		\
