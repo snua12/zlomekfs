@@ -282,7 +282,7 @@ recursive_unlink (char *path, uint32_t vid)
     {
       if (!delete_metadata (vol, st.st_dev, st.st_ino,
 			    local_path_to_relative_path (vol, path)))
-	vol->flags |= VOLUME_DELETE;
+	vol->delete_p = true;
       zfsd_mutex_unlock (&vol->mutex);
     }
 
@@ -552,7 +552,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
 
   vid = vol->id;
 
-  if (vol->flags & VOLUME_DELETE)
+  if (vol->delete_p)
     {
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_lock (&fh_mutex);
@@ -1416,10 +1416,10 @@ zfs_mkdir_retry:
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
       release_dentry (dentry);
     }
@@ -1586,9 +1586,9 @@ zfs_rmdir_retry:
       if (vol->local_path)
 	{
 	  if (!delete_metadata (vol, st.st_dev, st.st_ino, NULL))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
     }
 
@@ -1879,12 +1879,12 @@ zfs_rename_retry:
 	  if (relative_path)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
-		vol->flags |= VOLUME_DELETE;
+		vol->delete_p = true;
 	    }
 	  if (!inc_local_version (vol, from_dentry->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, to_dentry->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
     }
   else
@@ -2140,7 +2140,7 @@ zfs_link_retry:
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, dir_dentry->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
     }
   else
@@ -2337,9 +2337,9 @@ zfs_unlink_retry:
 	    abort ();
 #endif
 	  if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
     }
 
@@ -2714,10 +2714,10 @@ zfs_symlink_retry:
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
       release_dentry (dentry);
     }
@@ -2917,10 +2917,10 @@ zfs_mknod_retry:
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
       release_dentry (dentry);
     }

@@ -479,10 +479,10 @@ zfs_create_retry:
 	  zfs_cap_undefine (icap->master_cap);
 
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 
 	  if (vol->master != this_node)
 	    {
@@ -501,7 +501,7 @@ zfs_create_retry:
 		}
 	      else
 		{
-		  vol->flags |= VOLUME_DELETE;
+		  vol->delete_p = true;
 		  r = ZFS_METADATA_ERROR;
 		  local_close (dentry->fh);
 		  close (fd);
@@ -681,7 +681,7 @@ zfs_open_retry:
 	    }
 	  else
 	    {
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 	      r = ZFS_METADATA_ERROR;
 	    }
 	}
@@ -718,7 +718,7 @@ zfs_open_retry:
 	  if (dentry->fh->attr.type == FT_REG
 	      && !save_interval_trees (vol, dentry->fh))
 	    {
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 	      r = ZFS_METADATA_ERROR;
 	    }
 	}
@@ -792,7 +792,7 @@ zfs_close_retry:
 	    {
 	      if (dentry->fh->attr.type == FT_REG
 		  && !save_interval_trees (vol, dentry->fh))
-		vol->flags |= VOLUME_DELETE;
+		vol->delete_p = true;
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
 	  r = local_close (dentry->fh);
@@ -1870,7 +1870,7 @@ zfs_write_retry:
 	  if (!set_metadata_flags (vol, dentry->fh,
 				   dentry->fh->meta.flags | METADATA_MODIFIED))
 	    {
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 	    }
 	  else
 	    {
@@ -1907,10 +1907,10 @@ zfs_write_retry:
 
 		  if (!append_interval (vol, dentry->fh,
 					METADATA_TYPE_UPDATED, start, end))
-		    vol->flags |= VOLUME_DELETE;
+		    vol->delete_p = true;
 		  if (!append_interval (vol, dentry->fh,
 					METADATA_TYPE_MODIFIED, start, end))
-		    vol->flags |= VOLUME_DELETE;
+		    vol->delete_p = true;
 
 		  varray_destroy (&blocks);
 		}

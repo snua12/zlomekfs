@@ -562,12 +562,12 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags | METADATA_COMPLETE))
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 
 	    if (unlink (path) < 0 && errno != ENOENT)
 	      {
 		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		vol->flags |= VOLUME_DELETE;
+		vol->delete_p = true;
 	      }
 	    return true;
 	  }
@@ -575,7 +575,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags & ~METADATA_COMPLETE))
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 	  }
 	break;
 
@@ -584,12 +584,12 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags & ~METADATA_MODIFIED))
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 
 	    if (unlink (path) < 0 && errno != ENOENT)
 	      {
 		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		vol->flags |= VOLUME_DELETE;
+		vol->delete_p = true;
 	      }
 	    return true;
 	  }
@@ -597,7 +597,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags | METADATA_MODIFIED))
-	      vol->flags |= VOLUME_DELETE;
+	      vol->delete_p = true;
 	  }
 	break;
 
@@ -803,7 +803,7 @@ close_volume_metadata (volume vol)
   vol->metadata->fd = -1;
   hfile_destroy (vol->metadata);
   vol->metadata = NULL;
-  vol->flags |= VOLUME_DELETE;
+  vol->delete_p = true;
 }
 
 /* Close file for interval tree TREE.  */

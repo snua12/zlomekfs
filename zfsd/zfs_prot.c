@@ -85,7 +85,7 @@ zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
     {
       encode_status (dc, ENOENT);
     }
-  else if (vol->flags & VOLUME_DELETE)
+  else if (vol->delete_p)
     {
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_lock (&fh_mutex);

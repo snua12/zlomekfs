@@ -42,7 +42,8 @@ struct volume_def
   char *name;			/* name of the volume */
   node master;			/* master node for the volume */
   char *mountpoint;		/* "mountpoint" for the volume on cluster fs */
-  int flags;			/* see VOLUME_* below */
+
+  bool delete_p;		/* Shall the volume be deleted? */
 
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
@@ -55,11 +56,6 @@ struct volume_def
 /* Predefined volume IDs.  */
 #define VOLUME_ID_VIRTUAL 0	/* ID of the non-existing 'root' volume */
 #define VOLUME_ID_CONFIG  1	/* ID of 'config' volume */
-
-/* Volume flags.  */
-#define VOLUME_DELETE	1	/* the volume should be deleted from memory
-				   datastructures  */
-#define VOLUME_COPY	4	/* this is a copy of a volume */
 
 /* Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0

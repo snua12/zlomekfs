@@ -148,7 +148,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
       if (flush || dentry->fh->updated->deleted)
 	{
 	  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
 
       if (local_md5.count > remote_md5.count)
@@ -179,7 +179,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
 				local_md5.offset[i],
 				local_md5.offset[i] + local_md5.length[i]))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 	}
     }
   release_dentry (dentry);
@@ -288,7 +288,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
 				remote_md5.offset[i],
 				remote_md5.offset[i] + count))
-	    vol->flags |= VOLUME_DELETE;
+	    vol->delete_p = true;
 
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -304,7 +304,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 #endif
 
       if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_MODIFIED))
-	vol->flags |= VOLUME_DELETE;
+	vol->delete_p = true;
 
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -514,7 +514,7 @@ retry_remote_lookup:
 
   if (!load_interval_trees (vol, dentry->fh))
     {
-      vol->flags |= VOLUME_DELETE;
+      vol->delete_p = true;
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       r = ZFS_METADATA_ERROR;
@@ -868,7 +868,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
       release_dentry (dentry);
       if (!ok)
 	{
-	  vol->flags |= VOLUME_DELETE;
+	  vol->delete_p = true;
 	  r = ZFS_METADATA_ERROR;
 	}
       zfsd_mutex_unlock (&vol->mutex);
@@ -1019,7 +1019,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       release_dentry (dentry);
       if (!ok)
 	{
-	  vol->flags |= VOLUME_DELETE;
+	  vol->delete_p = true;
 	  r = ZFS_METADATA_ERROR;
 	}
       zfsd_mutex_unlock (&vol->mutex);
@@ -1255,9 +1255,8 @@ out:
 
   if (!set_metadata (vol, dir->fh, r == ZFS_OK ? METADATA_COMPLETE : 0,
 		     attr->version, attr->version))
-    {
-      vol->flags |= VOLUME_DELETE;
-    }
+    vol->delete_p = true;
+
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   htab_destroy (local_entries.htab);

@@ -108,7 +108,7 @@ volume_create (uint32_t id)
   vol->name = NULL;
   vol->master = NULL;
   vol->mountpoint = NULL;
-  vol->flags = 0;
+  vol->delete_p = false;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
   vol->root_dentry = NULL;
@@ -218,8 +218,6 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
   set_string (&vol->name, name);
   set_string (&vol->mountpoint, mountpoint);
   vol->master = master;
-  if (vol->local_path && vol->master != this_node)
-    vol->flags |= VOLUME_COPY;
   virtual_mountpoint_create (vol);
 }
 

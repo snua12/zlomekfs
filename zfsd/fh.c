@@ -443,7 +443,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	      zfsd_mutex_unlock (&fh_mutex);
 	      return ENOENT;
 	    }
-	  if (vol->flags & VOLUME_DELETE)
+	  if (vol->delete_p)
 	    {
 	      volume_delete (vol);
 	      zfsd_mutex_unlock (&fh_mutex);
@@ -959,7 +959,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
     {
       if (!init_metadata (vol, fh))
 	{
-	  vol->flags |= VOLUME_DELETE;
+	  vol->delete_p = true;
 	  memset (&fh->meta, 0, sizeof (fh->meta));
 	}
       else
@@ -1223,7 +1223,7 @@ internal_dentry_link (internal_fh fh, volume vol,
   path = build_relative_path_name (parent, name);
   string_list_insert (dentry->fh->hardlinks, path, false);
   if (!flush_hardlinks (vol, dentry->fh))
-    vol->flags |= VOLUME_DELETE;
+    vol->delete_p = true;
 
   return dentry;
 }

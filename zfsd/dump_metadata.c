@@ -30,7 +30,6 @@
 int main (int argc, char **argv)
 {
   hfile_t hfile;
-  hashfile_header header;
   int i;
   struct stat st;
   metadata meta;
