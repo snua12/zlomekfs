@@ -1105,13 +1105,12 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     }
 
   r = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r != ZFS_OK)
-    return r;
-#endif
-  zfsd_mutex_unlock (&vol->mutex);
-  internal_dentry_destroy (dir, false);
-  zfsd_mutex_unlock (&fh_mutex);
+  if (r == ZFS_OK)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      internal_dentry_destroy (dir, false);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
 
   vol = volume_lookup (vid);
   if (!vol)
