@@ -21,13 +21,16 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "system.h"
+#include <stdio.h>
+
 #define abort() verbose_abort(__FILE__, __LINE__)
 
 /* Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
 
 /* Print message to F if LEVEL > VERBOSE.  */
-extern void message (int level, FILE * f, char *format, ...);
+extern void message (int level, FILE *f, char *format, ...);
 
 /* Report an internal error.  */
 void verbose_abort (const char *file, int line);
