@@ -156,8 +156,7 @@ volume_destroy (volume vol)
 
   virtual_mountpoint_destroy (vol);
 
-  if (vol->metadata)
-    close_volume_metadata (vol);
+  close_volume_metadata (vol);
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);

@@ -858,9 +858,12 @@ close_volume_metadata (volume vol)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  close_hash_file (vol->metadata);
-  hfile_destroy (vol->metadata);
-  vol->metadata = NULL;
+  if (vol->metadata)
+    {
+      close_hash_file (vol->metadata);
+      hfile_destroy (vol->metadata);
+      vol->metadata = NULL;
+    }
   vol->delete_p = true;
 }
 
