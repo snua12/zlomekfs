@@ -511,7 +511,17 @@ retry_remote_lookup:
     {
       vol->delete_p = true;
       r = ZFS_METADATA_ERROR;
+      goto out;
     }
+
+  /* If the file was not completelly updated add it to queue again.  */
+  if (r == ZFS_OK && dentry->fh->flags & IFH_UPDATE)
+    {
+      zfsd_mutex_lock (&update_queue.mutex);
+      queue_put (&update_queue, &dentry->fh->local_fh);
+      zfsd_mutex_unlock (&update_queue.mutex);
+    }
+
   goto out;
 
 out2:
