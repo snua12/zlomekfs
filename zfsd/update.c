@@ -674,8 +674,15 @@ update_file (zfs_fh *fh)
       goto out;
     }
   release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  if (volume_master_connected (vol) != CONNECTION_SPEED_FAST)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      r = ZFS_OK;
+      goto out2;
+    }
+  zfsd_mutex_unlock (&vol->mutex);
 
   switch (what & (IFH_UPDATE | IFH_REINTEGRATE))
     {
@@ -1473,8 +1480,9 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 
   if (dentry->fh->attr.type == FT_REG)
     {
-      if (dentry->fh->attr.version == dentry->fh->meta.master_version
+      if ((dentry->fh->attr.version == dentry->fh->meta.master_version
 	  || attr->version == dentry->fh->meta.master_version)
+	  && volume_master_connected (vol) == CONNECTION_SPEED_FAST)
 	{
 	  /* Schedule update or reintegration of regular file.  */
 
