@@ -75,7 +75,7 @@ fake_config ()
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (2, "sabbath");
+  nod = node_create (2, "find");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&volume_mutex);
