@@ -1384,7 +1384,7 @@ retry_accept:
 /* Initialize information about network file descriptors.  */
 
 static void
-init_network_fd_data ()
+fd_data_init ()
 {
   int i;
 
@@ -1403,10 +1403,42 @@ init_network_fd_data ()
 					   * sizeof (network_fd_data_t));
 }
 
+/* Wake threads waiting for reply on file descriptors.  */
+
+static void
+fd_data_shutdown ()
+{
+  int i;
+
+  /* Tell each thread waiting for reply that we are exiting.  */
+  zfsd_mutex_lock (&active_mutex);
+  i = nactive - 1;
+  zfsd_mutex_unlock (&active_mutex);
+  for (; i >= 0; i--)
+    {
+      network_fd_data_t *fd_data = active[i];
+      void **slot;
+
+      zfsd_mutex_lock (&fd_data->mutex);
+      HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot,
+	{
+	  waiting4reply_data *data = *(waiting4reply_data **) slot;
+
+	  data->t->retval = ZFS_EXITING;
+	  htab_clear_slot (fd_data->waiting4reply, slot);
+	  fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
+	  pool_free (fd_data->waiting4reply_pool, data);
+	  semaphore_up (&data->t->sem, 1);
+	});
+      zfsd_mutex_unlock (&fd_data->mutex);
+    }
+
+}
+
 /* Destroy information about network file descriptors.  */
 
 static void
-destroy_network_fd_data ()
+fd_data_destroy ()
 {
   int i;
 
@@ -1477,13 +1509,13 @@ network_start ()
       return false;
     }
 
-  init_network_fd_data ();
+  fd_data_init ();
 
   if (!thread_pool_create (&network_pool, 256, 4, 16, network_main,
 			   network_worker, network_worker_init))
     {
       close (main_socket);
-      destroy_network_fd_data ();
+      fd_data_destroy ();
       return false;
     }
 
@@ -1495,31 +1527,7 @@ network_start ()
 void
 network_cleanup ()
 {
-  int i;
-
-  /* Tell each thread waiting for reply that we are exiting.  */
-  zfsd_mutex_lock (&active_mutex);
-  i = nactive - 1;
-  zfsd_mutex_unlock (&active_mutex);
-  for (; i >= 0; i--)
-    {
-      network_fd_data_t *fd_data = active[i];
-      void **slot;
-
-      zfsd_mutex_lock (&fd_data->mutex);
-      HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot,
-	{
-	  waiting4reply_data *data = *(waiting4reply_data **) slot;
-
-	  data->t->retval = ZFS_EXITING;
-	  htab_clear_slot (fd_data->waiting4reply, slot);
-	  fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
-	  pool_free (fd_data->waiting4reply_pool, data);
-	  semaphore_up (&data->t->sem, 1);
-	});
-      zfsd_mutex_unlock (&fd_data->mutex);
-    }
-
+  fd_data_shutdown ();
   thread_pool_destroy (&network_pool);
-  destroy_network_fd_data ();
+  fd_data_destroy ();
 }
