@@ -1024,15 +1024,27 @@ static int32_t
 local_rmdir (internal_dentry dir, string *name, volume vol)
 {
   char *path;
+  struct stat st;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
+  r = lstat (path, &st);
+  if (r != 0)
+    {
+      free (path);
+      return errno;
+    }
   r = rmdir (path);
   free (path);
-  if (r != 0)
+  if (r == 0)
+    {
+      if (!delete_metadata (vol, st.st_dev, st.st_ino))
+	vol->flags |= VOLUME_DELETE;
+    }
+  else
     return errno;
 
   return ZFS_OK;
@@ -1627,15 +1639,27 @@ static int32_t
 local_unlink (internal_dentry dir, string *name, volume vol)
 {
   char *path;
+  struct stat st;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
+  r = lstat (path, &st);
+  if (r != 0)
+    {
+      free (path);
+      return errno;
+    }
   r = unlink (path);
   free (path);
-  if (r != 0)
+  if (r == 0)
+    {
+      if (!delete_metadata (vol, st.st_dev, st.st_ino))
+	vol->flags |= VOLUME_DELETE;
+    }
+  else
     return errno;
 
   return ZFS_OK;
