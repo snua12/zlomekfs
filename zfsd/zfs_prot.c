@@ -587,43 +587,6 @@ zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
     encode_md5sum_res (dc, &md5);
 }
 
-/* hardlinks_res zfs_proc_hardlinks (hardlinks_args); */
-
-void
-zfs_proc_hardlinks_server (hardlinks_args *args, DC *dc,
-			   ATTRIBUTE_UNUSED void *data,
-			   ATTRIBUTE_UNUSED bool map_id)
-{
-  int32_t r;
-  char *old_pos, *cur_pos;
-  unsigned int old_len, cur_len;
-  hardlinks_res res;
-
-  res.start = args->start;
-  res.n = 0;
-  res.buffer = dc;
-
-  old_pos = dc->cur_pos;
-  old_len = dc->cur_length;
-  encode_status (dc, ZFS_OK);
-  encode_hardlinks_res (dc, &res);
-
-  r = zfs_hardlinks (&res, &args->fh, args->start, &fill_hardlink_encode);
-
-  cur_pos = dc->cur_pos;
-  cur_len = dc->cur_length;
-  dc->cur_pos = old_pos;
-  dc->cur_length = old_len;
-
-  encode_status (dc, r);
-  if (r == ZFS_OK)
-    {
-      encode_hardlinks_res (dc, &res);
-      dc->cur_pos = cur_pos;
-      dc->cur_length = cur_len;
-    }
-}
-
 /* data_buffer zfs_proc_ping (data_buffer); */
 
 void
