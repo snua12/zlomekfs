@@ -318,9 +318,9 @@ node_connect (node nod)
 	}
     }
 
+  freeaddrinfo (addr);
   message (-1, stderr, "Could not connect to %s\n", nod->name);
   close (s);
-  freeaddrinfo (addr);
   return -1;
 
 node_connected:
