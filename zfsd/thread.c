@@ -105,7 +105,7 @@ create_idle_thread (thread_pool *pool, thread_start start,
     {
       t->state = THREAD_DEAD;
       queue_put (&pool->empty, index);
-      message (-1, stderr, "semapgore_init() failed\n");
+      message (-1, stderr, "semaphore_init() failed\n");
       return r;
     }
 
@@ -176,28 +176,26 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
     abort ();
 #endif
 
-  if (pool->idle.nelem > pool->max_spare_threads)
+  pthread_mutex_lock (&pool->idle.mutex);
+  pthread_mutex_lock (&pool->empty.mutex);
+
+  /* Let some threads to die.  */
+  while (pool->idle.nelem > pool->max_spare_threads)
     {
-      /* Let some threads to die.  */
-      pthread_mutex_lock (&pool->empty.mutex);
-      while (pool->idle.nelem > pool->max_spare_threads)
-	{
-	  destroy_idle_thread (pool);
-	}
-      pthread_mutex_unlock (&pool->empty.mutex);
+      message (2, stderr, "Regulating: destroying idle thread\n");
+      destroy_idle_thread (pool);
     }
-  else if (pool->idle.nelem < pool->max_spare_threads
-	   && pool->idle.nelem < pool->idle.size)
+
+  /* Create new threads.  */
+  while (pool->idle.nelem < pool->min_spare_threads
+	 && pool->idle.nelem < pool->idle.size)
     {
-      /* Create new threads.  */
-      pthread_mutex_lock (&pool->empty.mutex);
-      while (pool->idle.nelem < pool->max_spare_threads
-	     && pool->idle.nelem < pool->idle.size)
-	{
-	  create_idle_thread (pool, start, init);
-	}
-      pthread_mutex_unlock (&pool->empty.mutex);
+      message (2, stderr, "Regulating: creating idle thread\n");
+      create_idle_thread (pool, start, init);
     }
+
+  pthread_mutex_unlock (&pool->empty.mutex);
+  pthread_mutex_unlock (&pool->idle.mutex);
 }
 
 /* Main function of thread regulating the thread pool. DATA is the structure
