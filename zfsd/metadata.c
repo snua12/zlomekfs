@@ -1467,6 +1467,74 @@ set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
   return flush_metadata (vol, fh);
 }
 
+/* Set master_fh to MASTER_FH in metadata for file handle FH on volume VOL
+   and update reverse file handle mapping.  */
+
+bool
+set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
+{
+  fh_mapping map;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (ZFS_FH_EQ (fh->meta.master_fh, *master_fh))
+    return true;
+
+  if (!hashfile_opened_p (vol->fh_mapping))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
+      if (fd < 0)
+	return false;
+    }
+
+  if (fh->meta.master_fh.dev == master_fh->dev
+      && fh->meta.master_fh.ino == master_fh->ino)
+    {
+      map.slot_status = VALID_SLOT;
+      map.master_fh = *master_fh;
+      map.local_fh = fh->local_fh;
+      if (!hfile_insert (vol->fh_mapping, &map))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
+    }
+  else
+    {
+      /* Delete original reverse file handle mapping.  */
+      map.master_fh.dev = fh->meta.master_fh.dev;
+      map.master_fh.ino = fh->meta.master_fh.ino;
+      if (!hfile_delete (vol->fh_mapping, &map))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
+
+      /* Set new reverse file handle mapping.  */
+      if (!zfs_fh_undefined (*master_fh))
+	{
+	  map.slot_status = VALID_SLOT;
+	  map.master_fh = *master_fh;
+	  map.local_fh = fh->local_fh;
+	  if (!hfile_insert (vol->fh_mapping, &map))
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+	      close_volume_metadata (vol);
+	      return false;
+	    }
+	}
+    }
+  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+
+  fh->meta.master_fh = *master_fh;
+  return flush_metadata (vol, fh);
+}
+
 /* Increase the local version for file FH on volume VOL.
    Return false on file error.  */
 

@@ -1031,18 +1031,13 @@ set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
-    {
-      if (!ZFS_FH_EQ (fh->meta.master_fh, *master_fh)
-	  && !zfs_fh_undefined (*master_fh))
-	{
-	  fh->meta.master_fh = *master_fh;
-	  return flush_metadata (vol, fh);
-	}
-    }
-  else if (!zfs_fh_undefined (*master_fh))
-    fh->meta.master_fh = *master_fh;
+  if (zfs_fh_undefined (*master_fh))
+    return true;
 
+  if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
+    return set_metadata_master_fh (vol, fh, master_fh);
+
+  fh->meta.master_fh = *master_fh;
   return true;
 }
 
