@@ -57,8 +57,6 @@
       {									\
 	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
 	  {								\
-	    zfsd_mutex_unlock (&fh_mutex);				\
-									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
@@ -97,8 +95,6 @@
 									\
 	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
 	  {								\
-	    zfsd_mutex_unlock (&fh_mutex);				\
-									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
@@ -163,8 +159,6 @@
 	tmp_fh = (DENTRY)->fh->local_fh;				\
 	if (update_p (&(DENTRY), &(VOL), &tmp_fh, &remote_attr))	\
 	  {								\
-	    zfsd_mutex_unlock (&fh_mutex);				\
-									\
 	    r = update_fh ((DENTRY), (VOL), &tmp_fh, &remote_attr);	\
 									\
 	    if (VIRTUAL_FH_P ((CAP).fh))				\

@@ -1042,6 +1042,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   dir_entry *entry;
   void **slot, **slot2;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -1051,6 +1052,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
+  zfsd_mutex_unlock (&fh_mutex);
   if (dir->parent)
     {
       zfs_fh parent_fh;
