@@ -133,12 +133,12 @@ client_worker (void *data)
       semaphore_down (&t->sem, 1);
 
 #ifdef ENABLE_CHECKING
-      if (t->state == THREAD_DEAD)
+      if (get_thread_state (t) == THREAD_DEAD)
 	abort ();
 #endif
 
       /* We were requested to die.  */
-      if (t->state == THREAD_DYING)
+      if (get_thread_state (t) == THREAD_DYING)
 	break;
 
       if (!decode_request_id (&t->dc, &request_id))
@@ -205,15 +205,15 @@ out:
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
       zfsd_mutex_lock (&client_pool.idle.mutex);
-      if (t->state == THREAD_BUSY)
+      if (get_thread_state (t) == THREAD_BUSY)
 	{
 	  queue_put (&client_pool.idle, t->index);
-	  t->state = THREAD_IDLE;
+	  set_thread_state (t, THREAD_IDLE);
 	}
       else
 	{
 #ifdef ENABLE_CHECKING
-	  if (t->state != THREAD_DYING)
+	  if (get_thread_state (t) != THREAD_DYING)
 	    abort ();
 #endif
 	  zfsd_mutex_unlock (&client_pool.idle.mutex);
@@ -255,10 +255,10 @@ client_dispatch (DC *dc)
 	/* Select an idle thread and forward the request to it.  */
 	index = queue_get (&client_pool.idle);
 #ifdef ENABLE_CHECKING
-	if (client_pool.threads[index].t.state == THREAD_BUSY)
+	if (get_thread_state (&client_pool.threads[index].t) == THREAD_BUSY)
 	  abort ();
 #endif
-	client_pool.threads[index].t.state = THREAD_BUSY;
+	set_thread_state (&client_pool.threads[index].t, THREAD_BUSY);
 	client_pool.threads[index].t.dc = *dc;
 
 	/* Let the thread run.  */

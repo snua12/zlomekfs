@@ -49,6 +49,30 @@ volatile bool running = true;
 /* Key for thread specific data.  */
 pthread_key_t thread_data_key;
 
+/* Get state of thread T.  */
+
+thread_state
+get_thread_state (thread *t)
+{
+  thread_state res;
+  
+  zfsd_mutex_lock (&t->mutex);
+  res = t->state;
+  zfsd_mutex_unlock (&t->mutex);
+
+  return res;
+}
+
+/* Set state of thread T.  */
+
+void
+set_thread_state (thread *t, thread_state state)
+{
+  zfsd_mutex_lock (&t->mutex);
+  t->state = state;
+  zfsd_mutex_unlock (&t->mutex);
+}
+
 /* Initialize POOL to be a thread pool of MAX_THREADS threads with
    MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
 
@@ -69,7 +93,8 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   zfsd_mutex_lock (&pool->empty.mutex);
   for (i = 0; i < max_threads; i++)
     {
-      pool->threads[i].t.state = THREAD_DEAD;
+      zfsd_mutex_init (&pool->threads[i].t.mutex);
+      set_thread_state (&pool->threads[i].t, THREAD_DEAD);
       pool->threads[i].t.index = i;
       queue_put (&pool->empty, i);
     }
@@ -82,6 +107,8 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 void
 thread_pool_destroy (thread_pool *pool)
 {
+  size_t i;
+
   zfsd_mutex_lock (&pool->idle.mutex);
   zfsd_mutex_lock (&pool->empty.mutex);
 
@@ -97,6 +124,10 @@ thread_pool_destroy (thread_pool *pool)
   zfsd_mutex_unlock (&pool->empty.mutex);
   zfsd_mutex_unlock (&pool->idle.mutex);
 
+  for (i = 0; i < pool->size; i++)
+    {
+      zfsd_mutex_destroy (&pool->threads[i].t.mutex);
+    }
   free (pool->unaligned_array);
   queue_destroy (&pool->empty);
   queue_destroy (&pool->idle);
@@ -160,13 +191,13 @@ destroy_idle_thread (thread_pool *pool)
   CHECK_MUTEX_LOCKED (&pool->idle.mutex);
   CHECK_MUTEX_LOCKED (&pool->empty.mutex);
 
-  t->state = THREAD_DYING;
+  set_thread_state (t, THREAD_DYING);
   semaphore_up (&t->sem, 1);
   r = pthread_join (t->thread_id, NULL);
   if (r == 0)
     {
       semaphore_destroy (&t->sem);
-      t->state = THREAD_DEAD;
+      set_thread_state (t, THREAD_DEAD);
       queue_put (&pool->empty, index);
     }
   else

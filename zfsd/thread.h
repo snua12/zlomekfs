@@ -55,6 +55,9 @@ typedef struct client_thread_data_def
 /* Definition of thread's variables.  */
 typedef struct thread_def
 {
+  /* Mutex protecting the state of thread.  */
+  pthread_mutex_t mutex;
+
   /* State of the thread.  */
   thread_state state;
 
@@ -123,6 +126,8 @@ typedef struct thread_pool_regulator_data_def
   thread_initialize init;	/* initialization routine */
 } thread_pool_regulator_data;
 
+extern thread_state get_thread_state (thread *t);
+extern void set_thread_state (thread *t, thread_state state);
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
 				size_t max_spare_threads);

@@ -411,12 +411,12 @@ network_worker (void *data)
       semaphore_down (&t->sem, 1);
 
 #ifdef ENABLE_CHECKING
-      if (t->state == THREAD_DEAD)
+      if (get_thread_state (t) == THREAD_DEAD)
 	abort ();
 #endif
 
       /* We were requested to die.  */
-      if (t->state == THREAD_DYING)
+      if (get_thread_state (t) == THREAD_DYING)
 	break;
 
       if (!decode_request_id (&t->dc, &request_id))
@@ -490,15 +490,15 @@ out:
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
       zfsd_mutex_lock (&network_pool.idle.mutex);
-      if (t->state == THREAD_BUSY)
+      if (get_thread_state (t) == THREAD_BUSY)
 	{
 	  queue_put (&network_pool.idle, t->index);
-	  t->state = THREAD_IDLE;
+	  set_thread_state (t, THREAD_IDLE);
 	}
       else
 	{
 #ifdef ENABLE_CHECKING
-	  if (t->state != THREAD_DYING)
+	  if (get_thread_state (t) != THREAD_DYING)
 	    abort ();
 #endif
 	  zfsd_mutex_unlock (&network_pool.idle.mutex);
@@ -582,10 +582,10 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	/* Select an idle thread and forward the request to it.  */
 	index = queue_get (&network_pool.idle);
 #ifdef ENABLE_CHECKING
-	if (network_pool.threads[index].t.state == THREAD_BUSY)
+	if (get_thread_state (&network_pool.threads[index].t) == THREAD_BUSY)
 	  abort ();
 #endif
-	network_pool.threads[index].t.state = THREAD_BUSY;
+	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
 	network_pool.threads[index].t.u.server.fd_data = fd_data;
 	network_pool.threads[index].t.dc = *dc;
 	network_pool.threads[index].t.u.server.generation = generation;
@@ -1052,7 +1052,10 @@ network_cleanup ()
   int i;
 
   /* Tell each thread waiting for reply that we are exiting.  */
-  for (i = nactive - 1; i >= 0; i--)
+  zfsd_mutex_lock (&active_mutex);
+  i = nactive - 1;
+  zfsd_mutex_unlock (&active_mutex);
+  for (; i >= 0; i--)
     {
       network_fd_data_t *fd_data = active[i];
       void **slot;
