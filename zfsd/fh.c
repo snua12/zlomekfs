@@ -1406,36 +1406,32 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (dir)
-    dentry = dentry_lookup_name (dir, name);
+    {
+      dentry = dentry_lookup_name (dir, name);
+      if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+	{
+	  internal_dentry sdentry;
+
+	  sdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh, attr,
+					      meta);
+	  release_dentry (dentry);
+	  zfsd_mutex_lock (&sdentry->fh->mutex);
+	  return sdentry;
+	}
+    }
   else
     {
       dentry = vol->root_dentry;
       if (dentry)
-	zfsd_mutex_lock (&dentry->fh->mutex);
-    }
-
-  if (dentry && GET_CONFLICT (dentry->fh->local_fh))
-    {
-      internal_dentry tmp;
-      unsigned int i;
-
-      for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
 	{
-	  tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
-	  if (GET_SID (tmp->fh->local_fh) == GET_SID (*local_fh))
-	    {
-	      release_dentry (dir);
-	      zfsd_mutex_lock (&tmp->fh->mutex);
-	      dir = dentry;
-	      dentry = tmp;
-	      name = tmp->name;
-	      goto do_get_dentry;
-	    }
+	  zfsd_mutex_lock (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+	  if (GET_CONFLICT (dentry->fh->local_fh))
+	    abort ();
+#endif
 	}
-      abort ();
     }
 
-do_get_dentry:
   if (dentry)
     {
       CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1499,8 +1495,6 @@ do_get_dentry:
 
   if (!dir)
     vol->root_dentry = dentry;
-
-  /* TODO: possibly cancel conflict.  */
 
   return dentry;
 }
@@ -1812,55 +1806,168 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   pool_free (dentry_pool, dentry);
 }
 
-/* Create conflict subtree for DENTRY.  */
+/* Change local file handle of conflict directory CONFLICT to NEW_FH.  */
 
 void
-internal_dentry_create_conflict (internal_dentry dentry, volume vol,
-				 fattr *remote_attr, int flags)
+change_conflict_fh (internal_dentry conflict, zfs_fh *new_fh)
+{
+  unsigned int i;
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+  if (conflict->parent)
+    CHECK_MUTEX_LOCKED (&conflict->parent->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!GET_CONFLICT (conflict->fh->local_fh))
+    abort ();
+  if (conflict->fh->attr.type != FT_DIR)
+    abort ();
+  if (new_fh->sid != this_node->id)
+    abort ();
+#endif
+
+  if (ZFS_FH_BASE_EQ (conflict->fh->local_fh, *new_fh))
+    return;
+
+  /* Delete CONFLICT from FH_HTAB and DENTRY_HTAB.  */
+  slot = htab_find_slot_with_hash (fh_htab, &conflict->fh->local_fh,
+				   ZFS_FH_HASH (&conflict->fh->local_fh),
+				   NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (fh_htab, slot);
+
+  slot = htab_find_slot_with_hash (dentry_htab, &conflict->fh->local_fh,
+				   ZFS_FH_HASH (&conflict->fh->local_fh),
+				   NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (dentry_htab, slot);
+
+  /* Delete CONFLICT's subdentries from FH_HTAB_NAME.  */
+  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+    {
+      internal_dentry sdentry;
+
+      sdentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
+      slot = htab_find_slot (dentry_htab_name, sdentry, NO_INSERT);
+#ifdef ENABLE_CHECKING
+      if (!slot)
+	abort ();
+#endif
+      htab_clear_slot (dentry_htab_name, slot);
+    }
+
+  /* Change the file handle.  */
+  conflict->fh->local_fh = *new_fh;
+  SET_CONFLICT (conflict->fh->local_fh, 1);
+
+  /* Insert CONFLICT to FH_HTAB and DENTRY_HTAB.  */
+  slot = htab_find_slot_with_hash (fh_htab, &conflict->fh->local_fh,
+				   ZFS_FH_HASH (&conflict->fh->local_fh),
+				   INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
+  *slot = conflict->fh;
+
+  slot = htab_find_slot_with_hash (dentry_htab, &conflict->fh->local_fh,
+				   ZFS_FH_HASH (&conflict->fh->local_fh),
+				   INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
+  *slot = conflict;
+
+  /* Insert CONFLICT's subdentries from FH_HTAB_NAME.  */
+  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+    {
+      internal_dentry sdentry;
+
+      sdentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
+      slot = htab_find_slot (dentry_htab_name, sdentry, INSERT);
+#ifdef ENABLE_CHECKING
+      if (*slot)
+	abort ();
+#endif
+      *slot = sdentry;
+    }
+}
+
+/* Create conflict directory for local file handle LOCAL_FH with attributes
+   according to ATTR and name NAME in directory DIR on volume VOL.
+   If such conflict directory already exists update the local file handle
+   and attributes and return it.  */
+
+internal_dentry
+create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
+		 fattr *attr)
 {
   zfs_fh tmp_fh;
   fattr tmp_attr;
-  char *name;
-  internal_dentry parent, conflict, dentry2;
+  internal_dentry conflict, dentry;
   node nod;
 
-  CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-  if (dentry->parent)
-    CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!vol->master)
+  /* Two directories can't be in conflict, neither the volume root can.  */
+  if (!dir)
     abort ();
-  if (flags != CONFLICT_LOCAL_EXISTS
-      && flags != CONFLICT_REMOTE_EXISTS
-      && flags != CONFLICT_BOTH_EXIST)
+#endif
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  dentry = dentry_lookup_name (dir, name);
+  if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+    {
+      if (GET_SID (*local_fh) == this_node->id)
+	change_conflict_fh (dentry, local_fh);
+
+      return dentry;
+    }
+
+#ifdef ENABLE_CHECKING
+  if (dir->fh->level == LEVEL_UNLOCKED)
     abort ();
-  if (flags & CONFLICT_LOCAL_EXISTS)
-    {
-      if (dentry->fh->local_fh.sid != this_node->id)
-	abort ();
-    }
-  else
-    {
-      if (dentry->fh->local_fh.sid == this_node->id)
-	abort ();
-    }
 #endif
 
-  /* Delete DENTRY from PARENT.  */
-  parent = dentry->parent;
-  if (parent)
-    internal_dentry_del_from_dir (dentry);
+  if (dentry)
+    {
+      if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh))
+	{
+	  tmp_fh = dir->fh->local_fh;
+	  release_dentry (dir);
+	  zfsd_mutex_unlock (&vol->mutex);
 
-  /* Create conflict directory and add it to directroy tree.  */
-  tmp_attr.dev = dentry->fh->local_fh.dev;
-  tmp_attr.ino = dentry->fh->local_fh.ino;
+	  internal_dentry_destroy (dentry, true);
+	  dentry = NULL;
+	  zfsd_mutex_unlock (&fh_mutex);
+
+	  /* This succeeds because DIR was locked so it can't have been
+	     deleted meanwhile.  */
+	  zfs_fh_lookup_nolock (&tmp_fh, &vol, &dir, NULL, false);
+	}
+      else
+	internal_dentry_del_from_dir (dentry);
+    }
+
+  tmp_fh = *local_fh;
+  SET_CONFLICT (tmp_fh, 1);
+  tmp_attr.dev = tmp_fh.dev;
+  tmp_attr.ino = tmp_fh.ino;
   tmp_attr.version = 0;
   tmp_attr.type = FT_DIR;
   tmp_attr.mode = S_IRWXU | S_IRWXG | S_IRWXO;
   tmp_attr.nlink = 4;
-  tmp_attr.uid = dentry->fh->attr.uid;
-  tmp_attr.gid = dentry->fh->attr.gid;
+  tmp_attr.uid = attr->uid;
+  tmp_attr.gid = attr->gid;
   tmp_attr.rdev = 0;
   tmp_attr.size = 0;
   tmp_attr.blocks = 0;
@@ -1868,49 +1975,138 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
   tmp_attr.atime = time (NULL);
   tmp_attr.ctime = tmp_attr.atime;
   tmp_attr.mtime = tmp_attr.atime;
-  tmp_fh = dentry->fh->local_fh;
-  SET_CONFLICT (tmp_fh, 1);
 
-  conflict = internal_dentry_create (&tmp_fh, &undefined_fh, vol, NULL,
-				     dentry->name, &tmp_attr, NULL,
-				     LEVEL_UNLOCKED);
-  if (parent)
-    internal_dentry_add_to_dir (parent, conflict);
-  else
-    vol->root_dentry = conflict;
+  conflict = internal_dentry_create (&tmp_fh, &undefined_fh, vol, dir,
+				     name, &tmp_attr, NULL, LEVEL_UNLOCKED);
 
-  /* Create second dentry.  */
-  free (dentry->name);
+  if (dentry)
+    {
+      free (dentry->name);
+      nod = node_lookup (GET_SID (*local_fh));
+#ifdef ENABLE_CHECKING
+      if (!nod)
+	abort ();
+#endif
+      dentry->name = xstrdup (nod->name);
+      zfsd_mutex_unlock (&nod->mutex);
+
+      internal_dentry_add_to_dir (conflict, dentry);
+      release_dentry (dentry);
+    }
+
+  return conflict;
+}
+
+/* Add a dentry to conflict dir CONFLICT on volume VOL.
+   If EXISTS is true the file really exists so create a dentry with file handle
+   FH, attributes ATTR and metadata META; otherwise create a virtual symlink
+   representing non-existing file.  */
+
+internal_dentry
+add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
+			  zfs_fh *fh, fattr *attr, metadata *meta)
+{
+  zfs_fh tmp_fh;
+  internal_dentry dentry;
+  unsigned int i;
+  node nod;
+  char *name;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!GET_CONFLICT (conflict->fh->local_fh))
+    abort ();
+  if (conflict->fh->attr.type != FT_DIR)
+    abort ();
+  if (conflict->fh->level == LEVEL_UNLOCKED
+      && conflict->parent->fh->level == LEVEL_UNLOCKED)
+    abort ();
+  if (GET_CONFLICT (*fh))
+    abort ();
+  if (vol->id != fh->vid)
+    abort ();
+#endif
+
+  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+    {
+      dentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
+      zfsd_mutex_lock (&dentry->fh->mutex);
+
+#ifdef ENABLE_CHECKING
+      if (GET_CONFLICT (dentry->fh->local_fh))
+	abort ();
+#endif
+      if (GET_SID (dentry->fh->local_fh) == GET_SID (*fh))
+	{
+	  if (!ZFS_FH_EQ (dentry->fh->local_fh, *fh))
+	    {
+	      tmp_fh = conflict->fh->local_fh;
+	      release_dentry (conflict);
+	      zfsd_mutex_unlock (&vol->mutex);
+
+	      internal_dentry_destroy (dentry, true);
+	      dentry = NULL;
+
+	      vol = volume_lookup (tmp_fh.vid);
+	      conflict = dentry_lookup (&tmp_fh);
+	      zfsd_mutex_unlock (&fh_mutex);
+
+#ifdef ENABLE_CHECKING
+	      if (!vol)
+		abort ();
+	      if (!conflict)
+		abort ();
+#endif
+
+	      break;
+	    }
+	  else
+	    {
+	      set_attr_version (attr, &dentry->fh->meta);
+	      dentry->fh->attr = *attr;
+	      release_dentry (dentry);
+	      return dentry;
+	    }
+	}
+      else
+	release_dentry (dentry);
+    }
+
   nod = vol->master;
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
 
-  if ((flags & CONFLICT_BOTH_EXIST) == CONFLICT_BOTH_EXIST)
+  if (exists)
     {
-#ifdef ENABLE_CHECKING
-      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-	abort ();
-#endif
-      dentry->name = xstrdup (this_node->name);
+      zfs_fh *master_fh;
 
-      dentry2 = internal_dentry_create (&dentry->fh->meta.master_fh,
-					&dentry->fh->meta.master_fh, vol,
-					conflict, nod->name,
-					remote_attr, NULL, LEVEL_UNLOCKED);
+      if (fh->sid == this_node->id)
+	{
+	  name = this_node->name;
+	  master_fh = &undefined_fh;
+	}
+      else
+	{
+	  name = nod->name;
+	  master_fh = fh;
+	}
+
+      dentry = internal_dentry_create (fh, master_fh, vol, conflict, name,
+				       attr, meta, LEVEL_UNLOCKED);
     }
   else
     {
-      if (flags & CONFLICT_REMOTE_EXISTS)
+      if (fh->sid == this_node->id)
 	{
-	  dentry->name = xstrdup (nod->name);
 	  name = this_node->name;
 	  tmp_fh.sid = this_node->id;
 	  tmp_fh.ino = nod->id;
 	}
       else
 	{
-	  dentry->name = xstrdup (this_node->name);
 	  name = nod->name;
 	  tmp_fh.sid = nod->id;
 	  tmp_fh.ino = this_node->id;
@@ -1918,30 +2114,28 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
       tmp_fh.vid = VOLUME_ID_VIRTUAL;
       tmp_fh.dev = VIRTUAL_DEVICE;
       tmp_fh.gen = 1;
-      tmp_attr.dev = tmp_fh.dev;
-      tmp_attr.ino = tmp_fh.ino;
-      tmp_attr.version = 0;
-      tmp_attr.type = FT_LNK;
-      tmp_attr.mode = S_IRWXU | S_IRWXG | S_IRWXO;
-      tmp_attr.nlink = 1;
-      tmp_attr.uid = dentry->fh->attr.uid;
-      tmp_attr.gid = dentry->fh->attr.gid;
-      tmp_attr.rdev = 0;
-      tmp_attr.size = strlen (name);
-      tmp_attr.blocks = 0;
-      tmp_attr.blksize = 4096;
-      tmp_attr.atime = time (NULL);
-      tmp_attr.ctime = tmp_attr.atime;
-      tmp_attr.mtime = tmp_attr.atime;
-      dentry2 = internal_dentry_create (&tmp_fh, &undefined_fh, vol, conflict,
-					name, &tmp_attr, NULL, LEVEL_UNLOCKED);
+      attr->dev = tmp_fh.dev;
+      attr->ino = tmp_fh.ino;
+      attr->version = 0;
+      attr->type = FT_LNK;
+      attr->mode = S_IRWXU | S_IRWXG | S_IRWXO;
+      attr->nlink = 1;
+      attr->uid = attr->uid;
+      attr->gid = attr->gid;
+      attr->rdev = 0;
+      attr->size = strlen (name);
+      attr->blocks = 0;
+      attr->blksize = 4096;
+      attr->atime = time (NULL);
+      attr->ctime = attr->atime;
+      attr->mtime = attr->atime;
+      dentry = internal_dentry_create (&tmp_fh, &undefined_fh, vol, conflict,
+				       name, attr, NULL, LEVEL_UNLOCKED);
     }
 
-  internal_dentry_add_to_dir (conflict, dentry);
-
   zfsd_mutex_unlock (&nod->mutex);
-  zfsd_mutex_unlock (&conflict->fh->mutex);
-  zfsd_mutex_unlock (&dentry2->fh->mutex);
+  release_dentry (dentry);
+  return dentry;
 }
 
 /* Delete conflict subtree for conflict dentry DENTRY.  */

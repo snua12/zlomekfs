@@ -74,6 +74,13 @@ typedef struct volume_def *volume;
 			     && GET_CONFLICT (FH1) == GET_CONFLICT (FH2)\
 			     && (FH1).gen == (FH2).gen)
 
+/* Return true if bases of file handles FH1 and FH2 are the same.  */
+#define ZFS_FH_BASE_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
+				  && (FH1).dev == (FH2).dev		\
+				  && (FH1).vid == (FH2).vid		\
+				  && GET_SID (FH1) == GET_SID (FH2)	\
+				  && (FH1).gen == (FH2).gen)
+
 /* Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
   (ZFS_FH_HASH (&(D)->fh->local_fh))
@@ -316,9 +323,13 @@ extern bool internal_dentry_move (internal_dentry dentry, volume vol,
 				  internal_dentry dir, char *name);
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
-extern void internal_dentry_create_conflict (internal_dentry dentry,
-					     volume vol, fattr *remote_attr,
-					     int flags);
+extern internal_dentry create_conflict (volume vol, internal_dentry dir,
+					char *name, zfs_fh *local_fh,
+					fattr *attr);
+extern internal_dentry add_file_to_conflict_dir (volume vol,
+						 internal_dentry conflict,
+						 bool exists, zfs_fh *fh,
+						 fattr *attr, metadata *meta);
 extern void internal_dentry_cancel_conflict (internal_dentry dentry,
 					     volume vol);
 
