@@ -30,10 +30,10 @@
 
 #ifdef ENABLE_CHECKING
 /* Print which function we are in with additional information.  */
-#define TRACE(format, ...) message (4, stderr,				      \
-				    "TRACE %s() by %lu: " format "\n",	      \
-				    __func__, (unsigned long) pthread_self (),\
-				    ## __VA_ARGS__)
+#define TRACE(format, ...) message (4, stderr,				       \
+				    "TRACE %s() by %lu at %s:%d: " format "\n",\
+				    __func__, (unsigned long) pthread_self (), \
+				    __FILE__, __LINE__, ## __VA_ARGS__)
 #else
 #define TRACE(...)
 #endif
