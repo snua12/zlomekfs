@@ -791,7 +791,7 @@ read_volume_list (zfs_fh *config_dir)
     return false;
 
   saved_vid = 0;
-  if (!process_file_by_lines (&volume_list_res.file, "config/volume",
+  if (!process_file_by_lines (&volume_list_res.file, "config/volume_list",
 			      process_line_volume,
 			      &volume_hierarchy_res.file))
     return false;
