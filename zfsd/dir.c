@@ -3494,3 +3494,25 @@ retry_lookup:
 
   return ZFS_OK;
 }
+
+/* Refresh file handle FH.  */
+
+int32_t
+refresh_fh (zfs_fh *fh)
+{
+  file_info_res info;
+  dir_op_res res;
+  int32_t r;
+
+  if (VIRTUAL_FH_P (*fh))
+    return ESTALE;
+
+  r = zfs_file_info (&info, fh);
+  if (r != ZFS_OK)
+    return r;
+
+  r = zfs_extended_lookup (&res, &root_fh, info.path.str);
+  free (info.path.str);
+
+  return r;
+}
