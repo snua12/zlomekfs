@@ -508,13 +508,14 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 int32_t
 reintegrate_file_blocks (zfs_cap *cap)
 {
+  fattr remote_attr;
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
   interval_tree_node node;
   uint64_t offset;
   uint32_t count;
-  int32_t r, r2;
+  int32_t r, r2, r3;
   uint64_t version_increase;
   uint64_t diff;
   metadata *meta;
@@ -584,6 +585,37 @@ reintegrate_file_blocks (zfs_cap *cap)
 
   zfsd_mutex_unlock (&fh_mutex);
 
+  /* Change the size of the remote file if it differs from the size of the
+     local file.  */
+  r3 = remote_getattr (&remote_attr, dentry, vol);
+
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (r3 == ZFS_OK)
+    {
+      if (dentry->fh->attr.size != remote_attr.size)
+	{
+	  sattr sa;
+
+	  memset (&sa, -1, sizeof (sa));
+	  sa.size = dentry->fh->attr.size;
+	  r3 = remote_setattr (&remote_attr, dentry, &sa, vol);
+	  if (r3 == ZFS_OK)
+	    version_increase++;
+
+	  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
+    }
+
+  /* Update the versions.  */
   meta = &dentry->fh->meta;
   diff = meta->local_version - (meta->master_version + version_increase);
   if (diff > 0
