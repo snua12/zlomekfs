@@ -198,6 +198,25 @@ struct mknod_args_def {
 };
 typedef struct mknod_args_def mknod_args;
 
+typedef union call_args_def
+{
+  unsigned int volume_root_args;
+  zfs_fh getattr;
+  sattr_args setattr;
+  dir_op_args lookup;
+  open_name_args open_by_name;
+  zfs_fh open_by_fd;
+  zfs_fh close;
+  read_dir_args readdir;
+  open_name_args mkdir;
+  dir_op_args rmdir;
+  rename_args rename;
+  write_args write;
+  zfs_fh readlink;
+  symlink_args symlink;
+  mknod_args mknod;
+} call_args;
+
 #ifdef __cplusplus
 }
 #endif
