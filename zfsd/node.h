@@ -25,6 +25,14 @@
 #include <netdb.h>
 #include <rpc/rpc.h>
 
+/* Connection status.  */
+typedef enum connection_status_def
+{
+  CONNECTION_NONE = 0,
+  CONNECTION_SLOW,
+  CONNECTION_FAST
+} connection_status;
+
 /* Node description.  */
 typedef struct node_def
 {
@@ -33,6 +41,7 @@ typedef struct node_def
   struct sockaddr_in addr;	/* address */
 				/* public key */
   int flags;			/* see NODE_* below */
+  connection_status status;	/* Connection status */
   CLIENT *clnt;			/* RPC client */
 } *node;
 
