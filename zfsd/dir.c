@@ -1557,7 +1557,7 @@ zfs_rename_retry:
   if (dentry1 != dentry2)
     zfsd_mutex_lock (&dentry2->fh->mutex);
 
-  if (dentry1->fh->master_fh.dev != dentry2->fh->master_fh.dev)
+  if (dentry1->fh->local_fh.dev != dentry2->fh->local_fh.dev)
     {
       release_dentry (dentry1);
       release_dentry (dentry2);
@@ -1826,7 +1826,7 @@ zfs_link_retry:
       return EACCES;
     }
 
-  if (dentry1->fh->master_fh.dev != dentry2->fh->master_fh.dev)
+  if (dentry1->fh->local_fh.dev != dentry2->fh->local_fh.dev)
     {
       release_dentry (dentry1);
       release_dentry (dentry2);
