@@ -2140,9 +2140,6 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
       meta->local_version = 1;
       meta->master_version = vol->is_copy ? 0 : 1;
       zfs_fh_undefine (meta->master_fh);
-      meta->parent_dev = (uint32_t) -1;
-      meta->parent_ino = (uint32_t) -1;
-      memset (meta->name, 0, METADATA_NAME_SIZE);
     }
 
   map.master_fh = meta->master_fh;
@@ -2154,6 +2151,9 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
     meta->master_version = meta->local_version;
   zfs_fh_undefine (meta->master_fh);
   meta->modetype = GET_MODETYPE (0, FT_BAD);
+  meta->parent_dev = (uint32_t) -1;
+  meta->parent_ino = (uint32_t) -1;
+  memset (meta->name, 0, METADATA_NAME_SIZE);
 
   if (!hfile_insert (vol->metadata, meta, false))
     {
