@@ -3698,27 +3698,46 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   return r;
 }
 
-/* If DESTROY_P delete local file DENTRY and its subtree,
+/* If DESTROY_P delete local file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
 int32_t
-local_reintegrate_del (volume vol, internal_dentry dentry, bool destroy_p)
+local_reintegrate_del (volume vol, internal_dentry dir, string *name,
+		       bool destroy_p, zfs_fh *dir_fh)
 {
   metadata meta;
+  dir_op_res res;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dir->fh->level == LEVEL_UNLOCKED)
+    abort ();
+#endif
+
+  r = local_lookup (&res, dir, name, vol, &meta);
+  if (r == ENOENT || r == EINVAL)
+    return ZFS_OK;
+  if (r != ZFS_OK)
+    return r;
+
+  r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r != ZFS_OK)
+    abort ();
+#endif
 
   if (destroy_p
-      || metadata_n_hardlinks (vol, &dentry->fh->local_fh, &meta) > 1)
+      || metadata_n_hardlinks (vol, &res.file, &meta) > 1)
     {
-      if (!delete_tree (dentry, vol))
+      if (!delete_tree_name (dir, name, vol))
 	return ZFS_UPDATE_FAILED;
     }
   else
     {
-      if (!move_to_shadow (vol, dentry))
+      if (!move_to_shadow (vol, &res.file, dir, name))
 	return ZFS_UPDATE_FAILED;
     }
 
@@ -3775,55 +3794,53 @@ remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
 int32_t
 zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
 {
-  dir_op_res res;
   volume vol;
-  internal_dentry idir, dentry;
+  internal_dentry idir;
   int32_t r, r2;
+  zfs_fh tmp_fh;
 
   if (!REGULAR_FH_P (*dir))
     return EINVAL;
 
-  r = zfs_lookup (&res, dir, name);
+  r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
+    }
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
     return r;
 
   if (vol->local_path.str)
     {
-      dentry = dentry_lookup_name (idir, name);
-      release_dentry (idir);
-      if (!dentry)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&fh_mutex);
-	  return ESTALE;
-	}
-
-      r = local_reintegrate_del (vol, dentry, destroy_p);
+      r = local_reintegrate_del (vol, idir, name, destroy_p, &tmp_fh);
     }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_reintegrate_del (vol, idir, name, destroy_p);
-
-      r2 = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
-      if (r2 == ZFS_OK)
-	{
-	  dentry = dentry_lookup_name (idir, name);
-	  release_dentry (idir);
-	  zfsd_mutex_unlock (&vol->mutex);
-
-	  if (dentry)
-	    internal_dentry_destroy (dentry, true);
-
-	  zfsd_mutex_unlock (&fh_mutex);
-	}
     }
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (r == ZFS_OK)
+    {
+      delete_dentry (&vol, &idir, name, &tmp_fh);
+    }
+
+  internal_dentry_unlock (vol, idir);
 
   return r;
 }

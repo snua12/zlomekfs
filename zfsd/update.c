@@ -714,23 +714,21 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 /* Move file DENTRY on volume VOL to shadow.  */
 
 bool
-move_to_shadow (volume vol, internal_dentry dentry)
+move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 {
-  zfs_fh fh;
   string path;
   string shadow_path;
   uint32_t vid;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  build_local_path (&path, vol, dentry);
-  fh = dentry->fh->local_fh;
+  build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
-  release_dentry (dentry);
+  release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
-  get_shadow_path (&shadow_path, vol, &fh, true);
+  get_shadow_path (&shadow_path, vol, fh, true);
   zfsd_mutex_unlock (&vol->mutex);
 
   if (!recursive_unlink (&shadow_path, vid, true))
@@ -755,7 +753,7 @@ move_to_shadow (volume vol, internal_dentry dentry)
       return false;
     }
 
-  if (!metadata_hardlink_set_shadow (vol, &fh))
+  if (!metadata_hardlink_set_shadow (vol, fh))
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
