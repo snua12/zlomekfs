@@ -22,14 +22,18 @@
 #include <string.h>
 #include <pthread.h>
 #include "config.h"
+#include "crc32.h"
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"
 #include "node.h"
 #include "zfs_prot.h"
 
-/* Hash table of nodes.  */
+/* Hash table of nodes, searched by ID.  */
 static htab_t node_htab;
+
+/* Hash table of nodes, searched by NAME.  */
+static htab_t node_htab_name;
 
 /* Mutex for table of nodes.  */
 pthread_mutex_t node_mutex;
@@ -38,17 +42,31 @@ pthread_mutex_t node_mutex;
 node this_node;
 
 /* Hash function for node ID.  */
-#define NODE_HASH_ID(ID) (ID)
+#define HASH_NODE_ID(ID) (ID)
 
-/* Hash function for node N.  */
-#define NODE_HASH(N) ((N)->id)
+/* Hash function for node NODE, computed from ID.  */
+#define NODE_HASH(NODE) ((NODE)->id)
 
-/* Hash function for node X.  */
+/* Hash function for node name.  */
+#define HASH_NODE_NAME(NAME) crc32_string (NAME)
+
+/* Hash function for node NODE, computed from its name.  */
+#define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
+
+/* Hash function for node X, computed from ID.  */
 
 static hash_t
 node_hash (const void *x)
 {
   return NODE_HASH ((node) x);
+}
+
+/* Hash function for node X, computed from node name.  */
+
+static hash_t
+node_hash_name (const void *x)
+{
+  return NODE_HASH_NAME ((node) x);
 }
 
 /* Compare a node X with ID *Y.  */
@@ -62,10 +80,32 @@ node_eq (const void *x, const void *y)
   return n->id == id;
 }
 
+/* Compare a name of node X with string Y.  */
+
+static int
+node_eq_name (const void *x, const void *y)
+{
+  node n = (node) x;
+  char *s = (char *) y;
+
+  return (strcmp (n->name, s) == 0);
+}
+
+/* Return the node with id ID.  */
+
 node
 node_lookup (unsigned int id)
 {
-  return (node) htab_find_with_hash (node_htab, &id, NODE_HASH_ID (id));
+  return (node) htab_find_with_hash (node_htab, &id, HASH_NODE_ID (id));
+}
+
+/* Return the node whose name is NAME.  */
+
+node
+node_lookup (char *name)
+{
+  return (node) htab_find_with_hash (node_htab_name, name,
+				     HASH_NODE_NAME (name));
 }
 
 /* Create new node with ID and NAME and insert it to hash table.  */
@@ -104,9 +144,18 @@ node_create (unsigned int id, char *name)
   if (slot)
     abort ();
 #endif
-
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   INSERT);
+  *slot = nod;
+
+#ifdef ENABLE_CHECKING
+  slot = htab_find_slot_with_hash (node_htab_name, nod->name,
+				   NODE_HASH_NAME (nod), NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+  slot = htab_find_slot_with_hash (node_htab_name, nod->name,
+				   NODE_HASH_NAME (nod), INSERT);
   *slot = nod;
   pthread_mutex_unlock (&node_mutex);
 
@@ -134,6 +183,14 @@ node_destroy (node nod)
 #endif
   htab_clear_slot (node_htab, slot);
 
+  slot = htab_find_slot_with_hash (node_htab_name, nod->name,
+				   NODE_HASH_NAME (nod), NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (node_htab_name, slot);
+
   free (nod->name);
   free (nod);
 }
@@ -145,6 +202,8 @@ initialize_node_c ()
 {
   pthread_mutex_init (&node_mutex, NULL);
   node_htab = htab_create (50, node_hash, node_eq, NULL, &node_mutex);
+  node_htab_name = htab_create (50, node_hash_name, node_eq_name, NULL,
+				&node_mutex);
 }
 
 /* Destroy data structures in NODE.C.  */
@@ -157,6 +216,7 @@ cleanup_node_c ()
   pthread_mutex_lock (&node_mutex);
   HTAB_FOR_EACH_SLOT (node_htab, slot, node_destroy ((node) *slot));
   htab_destroy (node_htab);
+  htab_destroy (node_htab_name);
   pthread_mutex_unlock (&node_mutex);
   pthread_mutex_destroy (&node_mutex);
 }
