@@ -50,4 +50,3 @@ struct file_operations zfs_dir_operations = {
 	.open           = zfs_open,
 	.release        = zfs_release,
 };
-

@@ -1,6 +1,6 @@
 /*
    Chardev operations - communication channel between this kernel
-   module and zfsd.
+   module and ZFSd.
    Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
 
    This file is part of ZFS.
@@ -246,4 +246,3 @@ struct file_operations zfs_chardev_file_operations = {
 	.open		= zfs_chardev_open,
 	.release	= zfs_chardev_release,
 };
-

@@ -509,4 +509,3 @@ static struct inode_operations zfs_symlink_inode_operations = {
 	.follow_link    = zfs_follow_link,
 	.setattr        = zfs_setattr,
 };
-

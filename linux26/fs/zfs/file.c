@@ -131,4 +131,3 @@ struct file_operations zfs_file_operations = {
 	.open           = zfs_open,
 	.release        = zfs_release,
 };
-

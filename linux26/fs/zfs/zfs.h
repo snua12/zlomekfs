@@ -39,15 +39,13 @@
 #define INFO(x...) printk(KERN_INFO x)
 
 #ifdef DEBUG
-#define TRACE(x...) printk(KERN_INFO x)
+# define TRACE(x...) printk(KERN_INFO x)
 #else
-#define TRACE(...)
+# define TRACE(...)
 #endif
 
-#define ZFS_MAGIC *((uint32_t *)"zfs")
+#define ZFS_SUPER_MAGIC *((uint32_t *)"zfs")
 #define ZFS_CHARDEV_MAJOR 251
-//#define ZFS_BLOCKSIZE 4096
-//#define ZFS_BLOCKSIZEBITS 12
 
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 

@@ -608,4 +608,3 @@ int zfsd_write(write_args *args)
 
 	return error;
 }
-

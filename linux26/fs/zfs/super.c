@@ -24,6 +24,7 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/fs.h>
+#include <linux/statfs.h>
 #include <linux/slab.h>
 #include <linux/errno.h>
 #include <asm/semaphore.h>
@@ -90,10 +91,19 @@ static void zfs_destroy_inodecache(void)
 		INFO("zfs_inode_cache: not all structures were freed\n");
 }
 
+static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
+{
+	buf->f_type = ZFS_SUPER_MAGIC;
+	buf->f_bsize = ZFS_MAXDATA;
+	buf->f_namelen = ZFS_MAXNAMELEN;
+
+	return 0;
+}
+
 static struct super_operations zfs_super_operations = {
 	.alloc_inode    = zfs_alloc_inode,
 	.destroy_inode  = zfs_destroy_inode,
-	.statfs		= simple_statfs,
+	.statfs		= zfs_statfs,
 };
 
 extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
@@ -112,10 +122,8 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 		return -EIO;
 	}
 
-//	sb->s_blocksize = ZFS_BLOCKSIZE;
-//	sb->s_blocksize_bits = ZFS_BLOCKSIZEBITS;
 	sb->s_op = &zfs_super_operations;
-	sb->s_magic = ZFS_MAGIC;
+	sb->s_magic = ZFS_SUPER_MAGIC;
 
 	error = zfsd_root(&root_fh);
 	if (error)
@@ -188,4 +196,3 @@ static void __exit zfs_exit(void)
 
 module_init(zfs_init);
 module_exit(zfs_exit);
-
