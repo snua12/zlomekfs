@@ -132,9 +132,6 @@ retry_open:
 	goto retry_open;
     }
 
-  if (fd < 0)
-    return errno;
-
   return fd;
 }
 
