@@ -200,9 +200,11 @@ void
 zfs_proc_rmdir_server (dir_op_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_rmdir (&args->dir, &args->name);
+  encode_status (dc, r);
+  free (args->name.str);
 }
 
 /* void zfs_proc_rename (rename_args); */
