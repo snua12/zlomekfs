@@ -21,6 +21,8 @@
 #include "system.h"
 #include <stdio.h>
 #include <stddef.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -93,4 +95,65 @@ full_write (int fd, void *buf, size_t len)
     }
 
   return true;
+}
+
+/* Create a full path PATH with access rights MODE (similarly as "mkdir -p path"
+   does).  Return true if PATH exists at the end of this function.  */
+
+bool
+full_mkdir (char *path, unsigned int mode)
+{
+  struct stat st;
+  char *last;
+  char *end;
+
+  if (lstat (path, &st) == 0)
+    {
+      return (st.st_mode & S_IFMT) == S_IFDIR;
+    }
+  else
+    {
+      if (mkdir (path, mode) == 0)
+	return true;
+
+      if (errno != ENOENT)
+	return false;
+
+      for (last = path; *last; last++)
+	;
+      last--;
+
+      /* Find the first component of PATH which can be created.  */
+      while (1)
+	{
+	  for (end = last; end != path && *end != '/'; end--)
+	    ;
+	  if (end == path)
+	    return false;
+
+	  *end = 0;
+
+	  if (mkdir (path, mode) == 0)
+	    break;
+
+	  if (errno != ENOENT)
+	    return false;
+	}
+
+      /* Create the rest of components.  */
+      while (1)
+	{
+	  *end = '/';
+
+	  if (mkdir (path, mode) != 0)
+	    return false;
+
+	  for (end++; end < last && *end; end++)
+	    ;
+	  if (end >= last)
+	    return true;
+	}
+    }
+
+  return false;
 }
