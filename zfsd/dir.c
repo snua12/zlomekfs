@@ -1158,3 +1158,144 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   return r;
 }
+
+/* Create local special file NAME of type TYPE in directory DIR,
+   set the attributes according to ATTR.
+   If device is being created RDEV is its number.  */
+
+static int
+local_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
+	     unsigned int rdev, volume vol)
+{
+  char *path;
+  int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  path = build_local_path_name (vol, dir, name->str);
+  r = mknod (path, attr->mode | ftype2mode[type], rdev);
+  if (r != 0)
+    {
+      free (path);
+      return errno;
+    }
+
+  r = local_setattr_path (NULL, path, attr, vol);
+  free (path);
+  if (r != ZFS_OK)
+    return r;
+
+  return ZFS_OK;
+}
+
+/* Create remote special file NAME of type TYPE in directory DIR,
+   set the attributes according to ATTR.
+   If device is being created RDEV is its number.  */
+
+static int
+remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
+	      unsigned int rdev, volume vol)
+{
+  mknod_args args;
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  args.where.dir = dir->master_fh;
+  args.where.name = *name;
+  args.attr = *attr;
+  args.type = type;
+  args.rdev = rdev;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_mknod_client (t, &args, vol->master);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Create special file NAME of type TYPE in directory DIR,
+   set the attributes according to ATTR.
+   If device is being created RDEV is its number.  */
+
+int
+zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
+	   unsigned int rdev)
+{
+  volume vol;
+  internal_fh idir;
+  virtual_dir pvd;
+  int r = ZFS_OK;
+
+  /* Lookup the file.  */
+  zfsd_mutex_lock (&volume_mutex);
+  if (VIRTUAL_FH_P (*dir))
+    zfsd_mutex_lock (&vd_mutex);
+  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+    {
+      zfsd_mutex_unlock (&volume_mutex);
+      if (VIRTUAL_FH_P (*dir))
+	zfsd_mutex_unlock (&vd_mutex);
+      return ESTALE;
+    }
+  zfsd_mutex_unlock (&volume_mutex);
+
+  if (pvd)
+    {
+      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      zfsd_mutex_unlock (&vd_mutex);
+      if (r != ZFS_OK)
+	return r;
+    }
+
+  attr->size = (uint64_t) -1;
+  attr->atime = (zfs_time) -1;
+  attr->mtime = (zfs_time) -1;
+
+  if (vol->local_path)
+    {
+      r = local_mknod (idir, name, attr, type, rdev, vol);
+      if (r == ZFS_OK)
+	{
+	  if (vol->master != this_node)
+	    r = remote_mknod (idir, name, attr, type, rdev, vol);
+	}
+    }
+  else if (vol->master != this_node)
+    {
+      r = remote_mknod (idir, name, attr, type, rdev, vol);
+    }
+  else
+    abort ();
+
+  if (r == ZFS_OK)
+    {
+      internal_fh ifh;
+
+      /* Delete internal file handle in htab because it is outdated.  */
+      ifh = fh_lookup_name (vol, idir, name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  internal_fh_destroy (ifh, vol);
+	}
+      zfsd_mutex_unlock (&ifh->mutex);
+    }
+
+  zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  return r;
+}

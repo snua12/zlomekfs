@@ -309,9 +309,13 @@ void
 zfs_proc_mknod_server (mknod_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_mknod (&args->where.dir, &args->where.name, &args->attr, args->type,
+		 args->rdev);
+  encode_status (dc, r);
+
+  free (args->where.name.str);
 }
 
 /* ? zfs_proc_auth_stage1 (auth_stage1_args); */

@@ -43,5 +43,7 @@ extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 extern int zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr);
 extern int zfs_rmdir (zfs_fh *dir, string *name);
 extern int zfs_unlink (zfs_fh *dir, string *name);
+extern int zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
+		      unsigned int rdev);
 
 #endif
