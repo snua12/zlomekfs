@@ -1826,6 +1826,8 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  if (dentry->parent)
+    CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (!vol->master)
     abort ();
@@ -1848,11 +1850,7 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
   /* Delete DENTRY from PARENT.  */
   parent = dentry->parent;
   if (parent)
-    {
-      zfsd_mutex_lock (&parent->fh->mutex);
-      internal_dentry_del_from_dir (dentry);
-      zfsd_mutex_unlock (&parent->fh->mutex);
-    }
+    internal_dentry_del_from_dir (dentry);
 
   /* Create conflict directory and add it to directroy tree.  */
   tmp_attr.dev = dentry->fh->local_fh.dev;
@@ -1877,11 +1875,7 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
 				     dentry->name, &tmp_attr, NULL,
 				     LEVEL_UNLOCKED);
   if (parent)
-    {
-      zfsd_mutex_lock (&parent->fh->mutex);
-      internal_dentry_add_to_dir (parent, conflict);
-      zfsd_mutex_unlock (&parent->fh->mutex);
-    }
+    internal_dentry_add_to_dir (parent, conflict);
   else
     vol->root_dentry = conflict;
 
@@ -1944,7 +1938,6 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
     }
 
   internal_dentry_add_to_dir (conflict, dentry);
-  internal_dentry_add_to_dir (conflict, dentry2);
 
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&conflict->fh->mutex);
