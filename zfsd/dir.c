@@ -1630,9 +1630,13 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_path (&t->dc_reply, &res->path)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_zfs_path (&t->dc_reply, &res->path))
 	r = ZFS_INVALID_REPLY;
+      else if (!finish_decoding (&t->dc_reply))
+	{
+	  free (res->path.str);
+	  r = ZFS_INVALID_REPLY;
+	}
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {

@@ -464,6 +464,8 @@ do_tests (void *data)
       message (1, stderr, "TEST READLINK\n");
       r = zfs_readlink (&readlinkr, &res2.file);
       message (1, stderr, "  %s\n", zfs_strerror (r));
+      if (r == ZFS_OK)
+	free (readlinkr.path.str);
 
       if (!get_running ())
 	break;
@@ -541,6 +543,7 @@ do_tests (void *data)
 	  decode_request_id (&dc, &request_id);
 	  decode_status (&dc, &status);
 	  decode_data_buffer (&dc, &data);
+	  dc_destroy (&dc);
 	  if (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0)
 	    message (1, stderr, "FAILURE\n");
 

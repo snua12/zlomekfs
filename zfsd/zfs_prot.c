@@ -161,6 +161,7 @@ zfs_proc_create_server (create_args *args, thread *t)
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_create_res (dc, &res);
+  free (args->where.name.str);
 }
 
 /* zfs_cap zfs_proc_open (open_args); */
@@ -308,7 +309,10 @@ zfs_proc_readlink_server (zfs_fh *args, thread *t)
   r = zfs_readlink (&res, args);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    encode_read_link_res (dc, &res);
+    {
+      encode_read_link_res (dc, &res);
+      free (res.path.str);
+    }
 }
 
 /* void zfs_proc_symlink (symlink_args); */
