@@ -1380,6 +1380,64 @@ reread_volume_list (void)
   return true;
 }
 
+/* Reread list of users.  */
+
+static bool
+reread_user_list (void)
+{
+  dir_op_res config_dir_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  if (r != ZFS_OK)
+    return false;
+
+  mark_all_users ();
+
+  if (!read_user_list (&config_dir_res.file))
+    return false;
+
+  if (this_node)
+    {
+      zfsd_mutex_lock (&this_node->mutex);
+      destroy_invalid_user_mapping (this_node);
+      zfsd_mutex_unlock (&this_node->mutex);
+    }
+  destroy_invalid_user_mapping (NULL);
+  destroy_invalid_users ();
+
+  return true;
+}
+
+/* Reread list of groups.  */
+
+static bool
+reread_group_list (void)
+{
+  dir_op_res config_dir_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  if (r != ZFS_OK)
+    return false;
+
+  mark_all_groups ();
+
+  if (!read_group_list (&config_dir_res.file))
+    return false;
+
+  if (this_node)
+    {
+      zfsd_mutex_lock (&this_node->mutex);
+      destroy_invalid_group_mapping (this_node);
+      zfsd_mutex_unlock (&this_node->mutex);
+    }
+  destroy_invalid_group_mapping (NULL);
+  destroy_invalid_groups ();
+
+  return true;
+}
+
 /* Reread configuration file RELATIVE_PATH.  */ 
 
 static bool
@@ -1419,6 +1477,8 @@ reread_config_file (string *relative_path)
 	}
       else if (strncmp (str, "_list", 6) == 0)
 	{
+	  if (!reread_user_list ())
+	    goto out;
 	}
     }
   else if (strncmp (str, "group", 5) == 0)
@@ -1430,6 +1490,8 @@ reread_config_file (string *relative_path)
 	}
       else if (strncmp (str, "_list", 6) == 0)
 	{
+	  if (!reread_group_list ())
+	    goto out;
 	}
     }
 
