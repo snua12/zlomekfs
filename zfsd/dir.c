@@ -536,6 +536,146 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   return ESTALE;
 }
 
+static int
+local_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
+	     volume vol)
+{
+  char *path;
+  int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  path = build_local_path_name (vol, dir, name->str);
+  r = mkdir (path, attr->mode);
+  if (r != 0)
+    {
+      free (path);
+      return errno;
+    }
+
+  r = local_getattr (&res->attr, path, vol);
+  free (path);
+  if (r != ZFS_OK)
+    return r;
+
+  res->file.sid = dir->local_fh.sid;
+  res->file.vid = dir->local_fh.vid;
+  res->file.dev = res->attr.dev;
+  res->file.ino = res->attr.ino;
+
+  return ZFS_OK;
+}
+
+static int
+remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
+	      volume vol)
+{
+  open_name_args args;
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  args.where.dir = dir->master_fh;
+  args.where.name = *name;
+  args.attr = *attr;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_mkdir_client (t, &args, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      if (!decode_dir_op_res (&t->dc, res)
+	  || !finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Create directory NAME in directory DIR, set owner, group and permitions
+   according to ATTR.  */
+
+int
+zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
+{
+  volume vol;
+  internal_fh idir;
+  virtual_dir pvd;
+  dir_op_res master_res;
+  int r = ZFS_OK;
+
+  /* Lookup the file.  */
+  if (!fh_lookup (dir, &vol, &idir, &pvd))
+    return ESTALE;
+
+  if (pvd)
+    {
+      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      if (r != ZFS_OK)
+	return r;
+    }
+
+  attr->size = (uint64_t) -1;
+  attr->atime = (zfs_time) -1;
+  attr->mtime = (zfs_time) -1;
+
+  if (vol->local_path)
+    {
+      r = local_mkdir (res, idir, name, attr, vol);
+      if (r == ZFS_OK)
+	{
+	  if (vol->master == this_node)
+	    master_res.file = res->file;
+	  else
+	    r = remote_mkdir (&master_res, idir, name, attr, vol);
+	}
+    }
+  else if (vol->master != this_node)
+    {
+      r = remote_mkdir (res, idir, name, attr, vol);
+      if (r == ZFS_OK)
+	master_res.file = res->file;
+    }
+  else
+    abort ();
+
+  if (r == ZFS_OK)
+    {
+      internal_fh ifh;
+
+      /* Update internal file handles in htab.  */
+      ifh = fh_lookup_name (vol, idir, name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  internal_fh_destroy (ifh, vol);
+	  ifh = internal_fh_create (&res->file, &master_res.file, idir,
+				    vol, name->str, &res->attr);
+	}
+      else
+	ifh = internal_fh_create (&res->file, &master_res.file, idir,
+				  vol, name->str, &res->attr);
+      zfsd_mutex_unlock (&ifh->mutex);
+    }
+
+  zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  return r;
+}
+
 /* Remove local directory NAME from directory DIR on volume VOL.  */
 
 static int
@@ -620,11 +760,13 @@ zfs_rmdir (zfs_fh *dir, string *name)
       internal_fh ifh;
 
       ifh = fh_lookup_name (vol, idir, name->str);
+      zfsd_mutex_unlock (&idir->mutex);
       if (ifh)
 	internal_fh_destroy (ifh, vol);
     }
+  else
+    zfsd_mutex_unlock (&idir->mutex);
 
-  zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
   return r;

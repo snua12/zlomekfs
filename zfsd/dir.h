@@ -36,6 +36,7 @@ extern int validate_operation_on_virtual_directory (virtual_dir pvd,
 extern int update_volume_root (volume vol, internal_fh *ifh);
 extern int zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
+extern int zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr);
 extern int zfs_rmdir (zfs_fh *dir, string *name);
 
 #endif

@@ -190,9 +190,15 @@ void
 zfs_proc_mkdir_server (open_name_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  dir_op_res res;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_mkdir (&res, &args->where.dir, &args->where.name, &args->attr);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_dir_op_res (dc, &res);
+
+  free (args->where.name.str);
 }
 
 /* void zfs_proc_rmdir (dir_op_args); */

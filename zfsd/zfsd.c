@@ -451,8 +451,10 @@ void
 test_zfs (thread *t)
 {
   dir_op_res res;
+  dir_op_res res2;
   int test = 0;
   string rmdir_name = {3, "dir"};
+  sattr attr = {0755, 0, 0, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
 
   if (strcmp (node_name, "orion") == 0)
     {
@@ -487,9 +489,10 @@ test_zfs (thread *t)
       free (str);
 
       message (2, stderr, "TEST %d\n", ++test);
-      str = xstrdup ("/volume1/volume3/subdir/dir");
+      printf ("%d\n", zfs_mkdir (&res2, &res.file, &rmdir_name, &attr));
+
+      message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n", zfs_rmdir (&res.file, &rmdir_name));
-      free (str);
     }
 }
 #endif
