@@ -2471,8 +2471,9 @@ remote_rename (internal_dentry from_dir, string *from_name,
 }
 
 /* Add the journal dentries for the move of file FROM_NAME in FROM_DIR
-   to TO_NAME in TO_DIR.  META_OLD is the metadata of overwritten file,
-   METADATA_NEW is the metadata of the moved file.  */
+   to TO_NAME in TO_DIR and increase versions of dirs.
+   META_OLD is the metadata of overwritten file, METADATA_NEW is the metadata
+   of the moved file.  */
 
 static void
 zfs_rename_journal (internal_dentry from_dir, string *from_name,
@@ -2902,26 +2903,19 @@ remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol
   return r;
 }
 
-/* Add a new dentry for dentry FROM to NAME in DIR on volume VOL.  Add a record
-   accoring to metadata META to journal and increase version of DIR.  */
+/* Add a journal entry for a new dentry NAME in DIR on volume VOL
+   accoring to metadata META and increase version of DIR.  */
 
 static void
-zfs_link_finish (internal_dentry from, internal_dentry dir, string *name,
-		 volume vol, metadata *meta)
+zfs_link_journal (internal_dentry dir, string *name, volume vol,
+		  metadata *meta)
 {
   TRACE ("");
 #ifdef ENABLE_CHECKING
-  if (!dir)
-    abort ();
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  if (from)
-    CHECK_MUTEX_LOCKED (&from->fh->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #endif
-
-  if (from)
-    internal_dentry_link (from, vol, dir, name);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dir->fh))
     {
@@ -3120,7 +3114,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       else
 	from_dentry = dir_dentry;
 
-      zfs_link_finish (from_dentry, dir_dentry, name, vol, &meta);
+      internal_dentry_link (from_dentry, vol, dir_dentry, name);
+      zfs_link_journal (dir_dentry, name, vol, &meta);
 
       if (dir_dentry != from_dentry)
 	release_dentry (from_dentry);
@@ -4842,14 +4837,17 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      delete_dentry (&vol, &dir, name, dir_fh);
 
 	      if (r == ZFS_OK)
-		old_dentry = dentry_lookup (&old_fh);
-	      else
-		old_dentry = NULL;
+		{
+		  old_dentry = dentry_lookup (&old_fh);
+		  if (old_dentry)
+		    {
+		      internal_dentry_link (old_dentry, vol, dir, name);
+		      release_dentry (old_dentry);
+		    }
+		}
 
-	      zfs_link_finish (old_dentry, dir, name, vol, &meta);
+	      zfs_link_journal (dir, name, vol, &meta);
 
-	      if (old_dentry)
-		release_dentry (old_dentry);
 	      release_dentry (dir);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
