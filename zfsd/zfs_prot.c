@@ -680,7 +680,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   uint32_t req_id;							\
 									\
-  CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);			\
+  CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);				\
 									\
   zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
