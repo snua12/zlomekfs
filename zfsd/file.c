@@ -1795,7 +1795,7 @@ zfs_read (uint32_t *rcount, void *buffer,
   zfs_cap tmp_cap;
   int32_t r, r2;
 
-  TRACE ("");
+  TRACE ("offset = %" PRIu64 " count = %" PRIu32, offset, count);
 
   if (count > ZFS_MAXDATA)
     return EINVAL;
