@@ -22,9 +22,11 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
+#include <stdio.h>
 #include "data-coding.h"
 #include "log.h"
 #include "memory.h"
+#include "util.h"
 #include "zfs_prot.h"
 
 /* Allocate a new data coding buffer of size SIZE and fill information
@@ -48,6 +50,26 @@ void
 dc_destroy (DC *dc)
 {
   free (dc->unaligned);
+}
+
+/* Print DC to file F.  */
+
+void
+print_dc (DC *dc, FILE *f)
+{
+  fprintf (f, "Cur.length = %d\n", dc->cur_length);
+  fprintf (f, "Max.length = %d\n", dc->max_length);
+  fprintf (f, "Size       = %d\n", dc->size);
+  fprintf (f, "Data: ");
+  print_hex_buffer (dc->buffer, dc->cur_length, f);
+}
+
+/* Print DC to STDERR.  */
+
+void
+debug_dc (DC *dc)
+{
+  print_dc (dc, stderr);
 }
 
 /* Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */

@@ -24,6 +24,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <netinet/in.h>
+#include <stdio.h>
 
 /* Align a number to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_1(N) (N)
@@ -143,6 +144,8 @@ typedef struct data_coding_def
 
 extern void dc_create (DC *dc, unsigned int size);
 extern void dc_destroy (DC *dc);
+extern void print_dc (DC *dc, FILE *f);
+extern void debug_dc (DC *dc);
 extern void start_encoding (DC *dc);
 extern int finish_encoding (DC *dc);
 extern bool start_decoding (DC *dc);
