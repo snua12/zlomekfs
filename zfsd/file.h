@@ -111,10 +111,17 @@ extern int32_t full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries);
 extern int32_t full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries);
 extern int32_t full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				uint64_t offset, uint32_t count);
+extern int32_t full_local_read_dentry (uint32_t *rcount, void *buffer,
+				       zfs_cap *cap, internal_dentry dentry,
+				       uint64_t offset, uint32_t count);
 extern int32_t full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				 uint64_t offset, uint32_t count);
 extern int32_t full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				 uint64_t offset, uint32_t count);
+extern int32_t full_remote_write_dentry (uint32_t *rcount, void *buffer,
+					 zfs_cap *cap, internal_cap icap,
+					 internal_dentry dentry,
+					 uint64_t offset, uint32_t count);
 extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
 extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);
 extern void initialize_file_c (void);

@@ -2435,6 +2435,48 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
   return ZFS_OK;
 }
 
+/* Read as many bytes as possible of block of local file DENTRY with capability
+   CAP starting at OFFSET which is COUNT bytes long, store the data to BUFFER
+   and the number of bytes read to RCOUNT.  */
+
+int32_t
+full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
+			internal_dentry dentry, uint64_t offset, uint32_t count)
+{
+  volume vol;
+  internal_cap icap;
+  uint32_t n_read;
+  uint32_t total;
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  for (total = 0; total < count; total += n_read)
+    {
+      r = local_read (&n_read, (char *) buffer + total, dentry,
+		      offset + total, count - total, vol);
+
+      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+	    && vol->master != this_node))
+	abort ();
+#endif
+
+      if (r != ZFS_OK)
+	return r;
+
+      if (n_read == 0)
+	break;
+    }
+
+  *rcount = total;
+  return ZFS_OK;
+}
+
 /* Read as many bytes as possible of block of remote file CAP starting at OFFSET
    which is COUNT bytes long, store the data to BUFFER and the number of bytes
    read to RCOUNT.  */
@@ -2511,6 +2553,51 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
       data.len = count - total;
       data.buf = (char *) buffer + total;
       r = local_write (&res, dentry, offset + total, &data, vol);
+      if (r != ZFS_OK)
+	return r;
+
+      if (res.written == 0)
+	break;
+    }
+
+  *rcount = total;
+  return ZFS_OK;
+}
+
+/* Write as many bytes as possible from BUFFER of length COUNT to remote file
+   DENTRY with capability CAP and ICAP starting at OFFSET.
+   Store the number of bytes read to RCOUNT.  */
+
+int32_t
+full_remote_write_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
+			  internal_cap icap, internal_dentry dentry,
+			  uint64_t offset, uint32_t count)
+{
+  volume vol;
+  write_args args;
+  write_res res;
+  uint32_t total;
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  for (total = 0; total < count; total += res.written)
+    {
+      args.offset = offset + total;
+      args.data.len = count - total;
+      args.data.buf = (char *) buffer + total;
+      r = remote_write (&res, icap, dentry, &args, vol);
+
+      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+	    && vol->master != this_node))
+	abort ();
+#endif
+
       if (r != ZFS_OK)
 	return r;
 
