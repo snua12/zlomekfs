@@ -41,7 +41,7 @@
 static uint32_t
 hfile_read_slot_status (hfile_t hfile, uint64_t offset)
 {
-  if (lseek (hfile->fd, offset, SEEK_SET) != offset)
+  if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     return (uint32_t) -1;
 
   if (!full_read (hfile->fd, hfile->element, sizeof (uint32_t)))
@@ -55,7 +55,7 @@ hfile_read_slot_status (hfile_t hfile, uint64_t offset)
 static uint32_t
 hfile_read_element (hfile_t hfile, uint64_t offset)
 {
-  if (lseek (hfile->fd, offset, SEEK_SET) != offset)
+  if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     return (uint32_t) -1;
 
   if (!full_read (hfile->fd, hfile->element, hfile->element_size))
@@ -261,7 +261,7 @@ hfile_expand (hfile_t hfile)
   if (!full_write (hfile->fd, &header, sizeof (header)))
     goto hfile_expand_error_with_fd;
 
-  if (lseek (old_fd, sizeof (hashfile_header), SEEK_SET)
+  if ((uint64_t) lseek (old_fd, sizeof (hashfile_header), SEEK_SET)
       != sizeof (hashfile_header))
     goto hfile_expand_error_with_fd;
 
@@ -291,7 +291,7 @@ hfile_expand (hfile_t hfile)
 	      if (offset == 0)
 		goto hfile_expand_error_with_fd;
 
-	      if (lseek (hfile->fd, offset, SEEK_SET) != offset)
+	      if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
 		goto hfile_expand_error_with_fd;
 
 	      if (hfile->encode_f)
@@ -432,13 +432,13 @@ hfile_insert (hfile_t hfile, void *x)
 
   *(uint32_t *) hfile->element = VALID_SLOT;
 
-  if (lseek (hfile->fd, offset, SEEK_SET) != offset)
+  if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_insert_error;
 
   if (!full_write (hfile->fd, x, hfile->size))
     goto hfile_insert_error;
 
-  if (lseek (hfile->fd, 0, SEEK_SET) != 0)
+  if ((uint64_t) lseek (hfile->fd, 0, SEEK_SET) != 0)
     goto hfile_insert_error;
 
   header.n_elements = u32_to_le (hfile->n_elements);
@@ -480,13 +480,13 @@ hfile_delete (hfile_t hfile, void *x)
   *(uint32_t *) hfile->element = DELETED_SLOT;
   hfile->n_deleted++;
 
-  if (lseek (hfile->fd, offset, SEEK_SET) != offset)
+  if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_delete_error;
 
   if (!full_write (hfile->fd, x, sizeof (uint32_t)))
     goto hfile_delete_error;
 
-  if (lseek (hfile->fd, 0, SEEK_SET) != 0)
+  if ((uint64_t) lseek (hfile->fd, 0, SEEK_SET) != 0)
     goto hfile_delete_error;
 
   header.n_elements = u32_to_le (hfile->n_elements);
