@@ -791,6 +791,10 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
       while (VARRAY_USED (d->hierarchy) < i)
 	VARRAY_PUSH (d->hierarchy, NULL, char *);
 
+      /* Do not add local node to list of slaves.  */
+      if (strcmp (line + i, this_node->name.str) == 0)
+	return 0;
+
       name = xstrdup (line + i);
       VARRAY_PUSH (d->hierarchy, name, char *);
 
