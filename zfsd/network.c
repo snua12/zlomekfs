@@ -715,6 +715,9 @@ again:
 	nod = node_lookup_name (&res1.node);
 	if (!nod)
 	  {
+	    message (0, stderr, "There is the node '%s' on network address"
+		     " of the node whose ID = %" PRIu32 "\n",
+		     res1.node.str, sid);
 	    r = ZFS_CONNECTION_CLOSED;
 	    goto node_authenticate_error;
 	  }
@@ -726,6 +729,9 @@ again:
 	  }
 	if (nod->id != sid)
 	  {
+	    message (0, stderr, "There is the node '%s' on network address"
+		     " of the node whose ID = %" PRIu32 "\n",
+		     res1.node.str, sid);
 	    r = ZFS_COULD_NOT_AUTH;
 	    goto node_authenticate_error;
 	  }
