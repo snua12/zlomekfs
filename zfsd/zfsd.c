@@ -458,17 +458,17 @@ main (int argc, char **argv)
       wait_for_thread_to_die (&update_pool.regulator_thread, NULL);
       update_cleanup ();
     }
-  if (kernel_started)
-    {
-      wait_for_thread_to_die (&kernel_pool.main_thread, NULL);
-      wait_for_thread_to_die (&kernel_pool.regulator_thread, NULL);
-      kernel_cleanup ();
-    }
   if (network_started)
     {
       wait_for_thread_to_die (&network_pool.main_thread, NULL);
       wait_for_thread_to_die (&network_pool.regulator_thread, NULL);
       network_cleanup ();
+    }
+  if (kernel_started)
+    {
+      wait_for_thread_to_die (&kernel_pool.main_thread, NULL);
+      wait_for_thread_to_die (&kernel_pool.regulator_thread, NULL);
+      kernel_cleanup ();
     }
 
   cleanup_data_structures ();
