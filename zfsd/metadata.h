@@ -76,8 +76,15 @@ typedef struct fh_mapping_def
 
 extern hashval_t metadata_hash (const void *x);
 extern int metadata_eq (const void *x, const void *y);
+
+#if BYTE_ORDER != LITTLE_ENDIAN
 extern void metadata_decode (void *x);
 extern void metadata_encode (void *x);
+#else
+#define metadata_decode NULL
+#define metadata_encode NULL
+#endif
+
 extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);

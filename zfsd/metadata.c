@@ -102,6 +102,8 @@ metadata_eq (const void *x, const void *y)
   return (m1->dev == m2->dev && m1->ino == m2->ino);
 }
 
+#if BYTE_ORDER != LITTLE_ENDIAN
+
 /* Decode element X of the hash file.  */
 
 void
@@ -142,6 +144,8 @@ metadata_encode (void *x)
   m->master_version = u64_to_le (m->master_version);
 }
 
+#endif
+
 /* Hash function for fh_mapping X.  */
 
 static hashval_t
@@ -161,6 +165,8 @@ fh_mapping_eq (const void *x, const void *y)
   return (m1->master_fh.dev == m2->master_fh.dev
 	  && m1->master_fh.ino == m2->master_fh.ino);
 }
+
+#if BYTE_ORDER != LITTLE_ENDIAN
 
 /* Decode element X of the hash file.  */
 
@@ -199,6 +205,11 @@ fh_mapping_encode (void *x)
   m->local_fh.ino = le_to_u32 (m->local_fh.ino);
   m->local_fh.gen = le_to_u32 (m->local_fh.gen);
 }
+
+#else
+#define fh_mapping_decode NULL
+#define fh_mapping_encode NULL
+#endif
 
 /* Build path to file with global metadata of type TYPE for volume VOL.  */
 
