@@ -73,9 +73,11 @@ extern int map_id_to_node_eq (const void *x, const void *y);
 extern int map_id_to_zfs_eq (const void *x, const void *y);
 extern id_mapping user_mapping_create (char *zfs_user, char *node_user,
 				       node nod);
+extern void set_default_user_mapping ();
 extern void user_mapping_destroy_all (node nod);
 extern id_mapping group_mapping_create (char *zfs_group, char *node_group,
 					node nod);
+extern void set_default_group_mapping ();
 extern void group_mapping_destroy_all (node nod);
 extern uint32_t map_uid_zfs2node (uint32_t uid);
 extern uint32_t map_uid_node2zfs (uint32_t uid);

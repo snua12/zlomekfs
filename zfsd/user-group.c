@@ -515,6 +515,23 @@ user_mapping_destroy (id_mapping map, node nod)
   free (map);
 }
 
+/* For each ZFS user try to create mapping "user" <-> "user".  */
+
+void
+set_default_user_mapping ()
+{
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&users_groups_mutex);
+
+  HTAB_FOR_EACH_SLOT (users_id, slot,
+    {
+      user_t u = (user_t) slot;
+
+      user_mapping_create (u->name, u->name, NULL);
+    });
+}
+
 /* Destroy all user mappings between ZFS and node NOD.
    If NOD is NULL destroy default mapping.  */
 
@@ -675,6 +692,23 @@ group_mapping_destroy (id_mapping map, node nod)
     htab_clear_slot (map_to_zfs, slot);
 
   free (map);
+}
+
+/* For each ZFS group try to create mapping "group" <-> "group".  */
+
+void
+set_default_group_mapping ()
+{
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&users_groups_mutex);
+
+  HTAB_FOR_EACH_SLOT (groups_id, slot,
+    {
+      group_t g = (group_t) slot;
+
+      group_mapping_create (g->name, g->name, NULL);
+    });
 }
 
 /* Destroy all group mappings between ZFS and node NOD.
