@@ -30,14 +30,14 @@
 typedef struct user_def
 {
   uint32_t id;			/* user ID */
-  char *name;			/* name of the user */
+  string name;			/* name of the user */
 } *user_t;
 
 /* Description of ZFS group.  */
 typedef struct group_def
 {
   uint32_t id;			/* group ID */
-  char *name;			/* name of the group */
+  string name;			/* name of the group */
 } *group_t;
 
 /* Structure describing mapping between ZFS user/group ID
@@ -59,20 +59,20 @@ extern uint32_t default_node_gid;
 /* Hash functions for user/group ID mapping.  */
 #define MAP_ID_HASH(UID) (UID)
 
-extern user_t user_create (uint32_t id, char *name);
+extern user_t user_create (uint32_t id, string *name);
 extern void user_destroy (user_t u);
-extern group_t group_create (uint32_t id, char *name);
+extern group_t group_create (uint32_t id, string *name);
 extern void group_destroy (group_t g);
 
 extern hash_t map_id_to_node_hash (const void *x);
 extern hash_t map_id_to_zfs_hash (const void *x);
 extern int map_id_to_node_eq (const void *x, const void *y);
 extern int map_id_to_zfs_eq (const void *x, const void *y);
-extern id_mapping user_mapping_create (char *zfs_user, char *node_user,
+extern id_mapping user_mapping_create (string *zfs_user, string *node_user,
 				       node nod);
 extern void set_default_user_mapping (void);
 extern void user_mapping_destroy_all (node nod);
-extern id_mapping group_mapping_create (char *zfs_group, char *node_group,
+extern id_mapping group_mapping_create (string *zfs_group, string *node_group,
 					node nod);
 extern void set_default_group_mapping (void);
 extern void group_mapping_destroy_all (node nod);

@@ -57,8 +57,8 @@ uint32_t default_node_gid = (uint32_t) -1;
 #define GROUP_ID_HASH(ID) (ID)
 
 /* Hash functions for user and group NAME.  */
-#define USER_NAME_HASH(NAME) (crc32_string (NAME))
-#define GROUP_NAME_HASH(NAME) (crc32_string (NAME))
+#define USER_NAME_HASH(NAME) (crc32_buffer ((NAME).str, (NAME).len))
+#define GROUP_NAME_HASH(NAME) (crc32_buffer ((NAME).str, (NAME).len))
 
 /* Hash function for user X, computed from ID.  */
 
@@ -89,7 +89,11 @@ users_id_eq (const void *x, const void *y)
 static int
 users_name_eq (const void *x, const void *y)
 {
-  return strcmp (((user_t) x)->name, (const char *) y);
+  user_t u = (user_t) x;
+  string *s = (string *) y;
+
+  return (u->name.len == s->len
+	  && strcmp (u->name.str, s->str) == 0);
 }
 
 /* Hash function for group X, computed from ID.  */
@@ -121,13 +125,17 @@ groups_id_eq (const void *x, const void *y)
 static int
 groups_name_eq (const void *x, const void *y)
 {
-  return strcmp (((group_t) x)->name, (const char *) y);
+  group_t g = (group_t) x;
+  string *s = (string *) y;
+
+  return (g->name.len == s->len
+	  && strcmp (g->name.str, s->str) == 0);
 }
 
 /* Create an user with ID and NAME.  */
 
 user_t
-user_create (uint32_t id, char *name)
+user_create (uint32_t id, string *name)
 {
   user_t u;
   void **slot1;
@@ -143,12 +151,12 @@ user_create (uint32_t id, char *name)
       message (1, stderr, "Duplicate user ID: %" PRIu32 "\n", id);
       return NULL;
     }
-  slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (name),
+  slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (*name),
 				    NO_INSERT);
   if (slot2)
     {
       /* NAME is already there.  */
-      message (1, stderr, "Duplicate user name: %s\n", name);
+      message (1, stderr, "Duplicate user name: %s\n", name->str);
       return NULL;
     }
 
@@ -157,7 +165,7 @@ user_create (uint32_t id, char *name)
   if (!slot1)
     abort ();
 #endif
-  slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (name),
+  slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (*name),
 				    INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot2)
@@ -166,7 +174,7 @@ user_create (uint32_t id, char *name)
 
   u = (user_t) xmalloc (sizeof (*u));
   u->id = id;
-  u->name = xstrdup (name);
+  xstringdup (&u->name, name);
   *slot1 = u;
   *slot2 = u;
 
@@ -190,7 +198,7 @@ user_destroy (user_t u)
 #endif
   htab_clear_slot (users_id, slot);
 
-  slot = htab_find_slot_with_hash (users_name, u->name,
+  slot = htab_find_slot_with_hash (users_name, &u->name,
 				   USER_NAME_HASH (u->name), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
@@ -198,14 +206,14 @@ user_destroy (user_t u)
 #endif
   htab_clear_slot (users_name, slot);
 
-  free (u->name);
+  free (u->name.str);
   free (u);
 }
 
 /* Create a group with ID and NAME, its list of users is USER_LIST.  */
 
 group_t
-group_create (uint32_t id, char *name)
+group_create (uint32_t id, string *name)
 {
   group_t g;
   void **slot1;
@@ -221,12 +229,12 @@ group_create (uint32_t id, char *name)
       message (1, stderr, "Duplicate group ID: %" PRIu32 "\n", id);
       return NULL;
     }
-  slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (name),
+  slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (*name),
 				    NO_INSERT);
   if (slot2)
     {
       /* NAME is already there.  */
-      message (1, stderr, "Duplicate group name: %s\n", name);
+      message (1, stderr, "Duplicate group name: %s\n", name->str);
       return NULL;
     }
 
@@ -235,7 +243,7 @@ group_create (uint32_t id, char *name)
   if (!slot1)
     abort ();
 #endif
-  slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (name),
+  slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (*name),
 				    INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot2)
@@ -244,7 +252,7 @@ group_create (uint32_t id, char *name)
 
   g = (group_t) xmalloc (sizeof (*g));
   g->id = id;
-  g->name = xstrdup (name);
+  xstringdup (&g->name, name);
   *slot1 = g;
   *slot2 = g;
 
@@ -268,7 +276,7 @@ group_destroy (group_t g)
 #endif
   htab_clear_slot (groups_id, slot);
 
-  slot = htab_find_slot_with_hash (groups_name, g->name,
+  slot = htab_find_slot_with_hash (groups_name, &g->name,
 				   GROUP_NAME_HASH (g->name), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
@@ -276,7 +284,7 @@ group_destroy (group_t g)
 #endif
   htab_clear_slot (groups_name, slot);
 
-  free (g->name);
+  free (g->name.str);
   free (g);
 }
 
@@ -316,7 +324,7 @@ map_id_to_zfs_eq (const void *x, const void *y)
    for node NOD. If NOD is NULL add it to default mapping.  */
 
 id_mapping
-user_mapping_create (char *zfs_user, char *node_user, node nod)
+user_mapping_create (string *zfs_user, string *node_user, node nod)
 {
   user_t u;
   struct passwd *pwd;
@@ -329,21 +337,21 @@ user_mapping_create (char *zfs_user, char *node_user, node nod)
   CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
   u = (user_t) htab_find_with_hash (users_name, zfs_user,
-				    USER_NAME_HASH (zfs_user));
+				    USER_NAME_HASH (*zfs_user));
   if (!u)
     {
       message (1, stderr,
 	       "ZFS user '%s' for mapping '%s'<->'%s' does not exist\n",
-	       zfs_user, zfs_user, node_user);
+	       zfs_user->str, zfs_user->str, node_user->str);
       return NULL;
     }
 
-  pwd = getpwnam (node_user);
+  pwd = getpwnam (node_user->str);
   if (!pwd)
     {
       message (1, stderr,
 	       "Node user '%s' for mapping '%s'<->'%s' does not exist\n",
-	       node_user, zfs_user, node_user);
+	       node_user->str, zfs_user->str, node_user->str);
       return NULL;
     }
 
@@ -444,7 +452,7 @@ set_default_user_mapping (void)
     {
       user_t u = (user_t) slot;
 
-      user_mapping_create (u->name, u->name, NULL);
+      user_mapping_create (&u->name, &u->name, NULL);
     }
 }
 
@@ -495,7 +503,7 @@ user_mapping_destroy_all (node nod)
    for node NOD. If NOD is NULL add it to default mapping.  */
 
 id_mapping
-group_mapping_create (char *zfs_group, char *node_group, node nod)
+group_mapping_create (string *zfs_group, string *node_group, node nod)
 {
   group_t g;
   struct group *grp;
@@ -508,21 +516,21 @@ group_mapping_create (char *zfs_group, char *node_group, node nod)
   CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
   g = (group_t) htab_find_with_hash (groups_name, zfs_group,
-				     GROUP_NAME_HASH (zfs_group));
+				     GROUP_NAME_HASH (*zfs_group));
   if (!g)
     {
       message (1, stderr,
 	       "ZFS group '%s' for mapping '%s'<->'%s' does not exist\n",
-	       zfs_group, zfs_group, node_group);
+	       zfs_group->str, zfs_group->str, node_group->str);
       return NULL;
     }
 
-  grp = getgrnam (node_group);
+  grp = getgrnam (node_group->str);
   if (!grp)
     {
       message (1, stderr,
 	       "Node group '%s' for mapping '%s'<->'%s' does not exist\n",
-	       node_group, zfs_group, node_group);
+	       node_group->str, zfs_group->str, node_group->str);
       return NULL;
     }
 
@@ -623,7 +631,7 @@ set_default_group_mapping (void)
     {
       group_t g = (group_t) slot;
 
-      group_mapping_create (g->name, g->name, NULL);
+      group_mapping_create (&g->name, &g->name, NULL);
     }
 }
 
