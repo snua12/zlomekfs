@@ -80,10 +80,10 @@ typedef enum ftype_def
 
 typedef struct zfs_fh_def
 {
-  unsigned int sid;
-  unsigned int vid;
-  unsigned int dev;
-  unsigned int ino;
+  unsigned int sid;		/* Server ID.  */
+  unsigned int vid;		/* Volume ID.  */
+  unsigned int dev;		/* Device ... */
+  unsigned int ino;		/* ... and inode number of the file.  */
 } zfs_fh;
 
 typedef struct zfs_time_def

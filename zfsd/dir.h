@@ -21,10 +21,12 @@
 #ifndef DIR_H
 #define DIR_H
 
+#include "system.h"
 #include "fh.h"
+#include "zfs_prot.h"
 
-extern int zfs_extended_lookup (svc_fh *fh, svc_fh *dir, char *path);
-extern int zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name);
+extern int zfs_extended_lookup (zfs_fh *fh, zfs_fh *dir, char *path);
+extern int zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name);
 
 
 

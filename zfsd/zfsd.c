@@ -357,7 +357,7 @@ fake_config ()
 void
 test_zfs ()
 {
-  svc_fh fh;
+  zfs_fh fh;
 
   printf ("%d\n",
 	  zfs_extended_lookup (&fh, &root_fh,

@@ -138,11 +138,11 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
   /* FIXME: */
   if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
     {
-      /* get local root svc_fh */
+      /* get local root zfs_fh */
     }
   else
     {
-      /* get remote root svc_fh */
+      /* get remote root zfs_fh */
     }
 }
 

@@ -31,7 +31,7 @@
 #include "varray.h"
 
 /* File handle of ZFS root.  */
-svc_fh root_fh = {SERVER_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
+zfs_fh root_fh = {SERVER_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
 
 /* The virtual directory root.  */
 static virtual_dir root;
@@ -50,12 +50,12 @@ static htab_t virtual_dir_htab_name;
 
 /* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
-  (crc32_buffer (&(VD)->fh, sizeof (svc_fh)))
+  (crc32_buffer (&(VD)->fh, sizeof (zfs_fh)))
 
 /* Hash function for virtual_dir VD, computed from (parent->fh, name).  */
 #define VIRTUAL_DIR_HASH_NAME(VD)					\
   (crc32_update (crc32_string ((VD)->name),				\
-		 &(VD)->parent->fh, sizeof (svc_fh)))
+		 &(VD)->parent->fh, sizeof (zfs_fh)))
 
 /* Hash function for internal file handle X, computed from client_fh.  */
 
@@ -78,8 +78,8 @@ internal_fh_hash_name (const void *x)
 int
 internal_fh_eq (const void *xx, const void *yy)
 {
-  svc_fh *x = &((internal_fh) xx)->client_fh;
-  svc_fh *y = (svc_fh *) yy;
+  zfs_fh *x = &((internal_fh) xx)->client_fh;
+  zfs_fh *y = (zfs_fh *) yy;
 
   return (x->ino == y->ino && x->dev == y->dev
 	  && x->vid == y->vid && x->sid == y->sid);
@@ -106,13 +106,13 @@ internal_fh_del (void *x)
   pool_free (fh_pool, x);
 }
 
-/* Find the internal file handle or virtual directory for svc_fh FH
+/* Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *IFHP and VDP according to it.  */
 
 int
-fh_lookup (svc_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
+fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
-  hash_t hash = SVC_FH_HASH (fh);
+  hash_t hash = ZFS_FH_HASH (fh);
  
   if (fh->vid == VOLUME_ID_VIRTUAL)
     {
@@ -183,7 +183,7 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
 /* Create a new internal file handle and store it to hash tables.  */
 
 internal_fh
-internal_fh_create (svc_fh *client_fh, svc_fh *server_fh, internal_fh parent,
+internal_fh_create (zfs_fh *client_fh, zfs_fh *server_fh, internal_fh parent,
 		    volume vol, const char *name)
 {
   internal_fh fh;
@@ -312,8 +312,8 @@ virtual_dir_hash_name (const void *x)
 static int
 virtual_dir_eq (const void *xx, const void *yy)
 {
-  svc_fh *x = &((virtual_dir) xx)->fh;
-  svc_fh *y = (svc_fh *) yy;
+  zfs_fh *x = &((virtual_dir) xx)->fh;
+  zfs_fh *y = (zfs_fh *) yy;
 
 #ifdef ENABLE_CHECKING
   if (!VIRTUAL_FH_P (*x))

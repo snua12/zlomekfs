@@ -36,9 +36,9 @@
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
 int
-zfs_extended_lookup (svc_fh *fh, svc_fh *dir, char *path)
+zfs_extended_lookup (zfs_fh *fh, zfs_fh *dir, char *path)
 {
-  svc_fh tmp;
+  zfs_fh tmp;
   char *s;
   int r;
 
@@ -124,7 +124,7 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
 }
 
 static int
-local_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
+local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
 	      unsigned int *dev, unsigned int *ino)
 {
   struct stat st;
@@ -143,7 +143,7 @@ local_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
 }
 
 static int
-remote_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
+remote_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
 	       unsigned int *dev, unsigned int *ino)
 {
   return ESTALE;
@@ -152,7 +152,7 @@ remote_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
 static void
 update_root (volume vol, internal_fh *ifh)
 {
-  svc_fh new_root;
+  zfs_fh new_root;
 
   new_root.sid = vol->master->id;
   new_root.vid = vol->id;
@@ -162,14 +162,14 @@ update_root (volume vol, internal_fh *ifh)
   /* FIXME: */
   if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
     {
-      /* get local root svc_fh */
+      /* get local root zfs_fh */
     }
   else
     {
-      /* get remote root svc_fh */
+      /* get remote root zfs_fh */
     }
 
-  if (!SVC_FH_EQ (vol->root_fh, new_root))
+  if (!ZFS_FH_EQ (vol->root_fh, new_root))
     {
       htab_empty (vol->fh_htab_name);
       htab_empty (vol->fh_htab);
@@ -183,7 +183,7 @@ update_root (volume vol, internal_fh *ifh)
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
 int
-zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name)
+zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
 {
   volume vol;
   internal_fh idir, ifh;
@@ -276,14 +276,14 @@ zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name)
 }
 
 int
-zfs_open (svc_fh *fh)
+zfs_open (zfs_fh *fh)
 {
 
   return 0;
 }
 
 int
-zfs_open_by_name (svc_fh *fh, svc_fh *dir, const char *name, int flags,
+zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
 		  sattr *attr)
 {
   int r;
@@ -304,19 +304,19 @@ zfs_open_by_name (svc_fh *fh, svc_fh *dir, const char *name, int flags,
 }
 
 int
-zfs_getattr (fattr *fa, svc_fh *fh)
+zfs_getattr (fattr *fa, zfs_fh *fh)
 {
   return 0;
 }
 
 int
-zfs_setattr (fattr *fa, svc_fh *fh, unsigned int valid, sattr *sa)
+zfs_setattr (fattr *fa, zfs_fh *fh, unsigned int valid, sattr *sa)
 {
   return 0;
 }
 
 int
-zfs_close (svc_fh *fh)
+zfs_close (zfs_fh *fh)
 {
   return 0;
 }

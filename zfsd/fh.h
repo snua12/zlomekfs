@@ -30,6 +30,7 @@ typedef struct volume_def *volume;
 #include "crc32.h"
 #include "hashtab.h"
 #include "varray.h"
+#include "zfs_prot.h"
 
 #define VIRTUAL_DEVICE 0	/* Device number of device with virtual
 				   directories */
@@ -44,11 +45,11 @@ typedef struct volume_def *volume;
 			    && (FH).vid == VOLUME_ID_NONE	\
 			    && (FH).sid == SERVER_ANY)
 
-/* Hash function for svc_fh FH.  */
-#define SVC_FH_HASH(FH) (crc32_buffer ((FH), sizeof (svc_fh)))
+/* Hash function for zfs_fh FH.  */
+#define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))
 
-/* Compare two svc_fh FH1 and FH2.  */
-#define SVC_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
+/* Compare two zfs_fh FH1 and FH2.  */
+#define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
 			     && (FH1).dev == (FH2).dev		\
 			     && (FH1).vid == (FH2).vid		\
 			     && (FH1).sid == (FH2).sid)
@@ -56,32 +57,15 @@ typedef struct volume_def *volume;
 
 /* Hash function for internal_fh FH, computed from client_fh.  */
 #define INTERNAL_FH_HASH(FH)						\
-  (crc32_buffer (&(FH)->client_fh, sizeof (svc_fh)))
+  (crc32_buffer (&(FH)->client_fh, sizeof (zfs_fh)))
 
 /* Hash function for internal_fh FH, computed from parent_fh and name.  */
 #define INTERNAL_FH_HASH_NAME(FH)					\
   (crc32_update (crc32_string ((FH)->name),				\
-		 &(FH)->parent->client_fh, sizeof (svc_fh)))
+		 &(FH)->parent->client_fh, sizeof (zfs_fh)))
 
 /* Destroy the virtual mountpoint of volume VOL.  */
 #define virtual_mountpoint_destroy(VOL) (virtual_dir_destroy ((VOL)->root_vd))
-
-/* Structure of the file handle being sent between daemon and kernel
-   and between daemons.  */
-typedef struct svc_fh_def
-{
-  /* Server ID.  */
-  unsigned int sid;
-
-  /* Volume ID.  */
-  unsigned int vid;
-
-  /* Device ... */
-  unsigned int dev;
-
-  /* ... and inode number of the file.  */
-  unsigned int ino;
-} svc_fh;
 
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
@@ -93,10 +77,10 @@ typedef struct virtual_dir_def *virtual_dir;
 struct internal_fh_def
 {
   /* File handle for client, key for hash table.  */
-  svc_fh client_fh;
+  zfs_fh client_fh;
 
   /* File handle for server.  */
-  svc_fh server_fh;
+  zfs_fh server_fh;
 
   /* Pointer to file handle of the parent directory.  */
   internal_fh parent;
@@ -118,7 +102,7 @@ struct internal_fh_def
 struct virtual_dir_def
 {
   /* Handle of this node.  */
-  svc_fh fh;
+  zfs_fh fh;
 
   /* Pointer to parent virtual directory.  */
   virtual_dir parent;
@@ -144,7 +128,7 @@ struct virtual_dir_def
 };
 
 /* File handle of ZFS root.  */
-extern svc_fh root_fh;
+extern zfs_fh root_fh;
 
 /* Allocation pool for file handles.  */
 extern alloc_pool fh_pool;
@@ -154,12 +138,12 @@ extern hash_t internal_fh_hash_name (const void *x);
 extern int internal_fh_eq (const void *xx, const void *yy);
 extern int internal_fh_eq_name (const void *xx, const void *yy);
 extern void internal_fh_del (void *x);
-extern int fh_lookup (svc_fh *fh, volume *volp, internal_fh *ifhp,
+extern int fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 		      virtual_dir *vdp);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_fh fh_lookup_name (volume vol, internal_fh parent,
 				   const char *name);
-extern internal_fh internal_fh_create (svc_fh *client_fh, svc_fh *server_fh,
+extern internal_fh internal_fh_create (zfs_fh *client_fh, zfs_fh *server_fh,
 				       internal_fh parent, volume vol,
 				       const char *name);
 extern void internal_fh_destroy (internal_fh fh, volume vol);
