@@ -1287,38 +1287,48 @@ differ:
   RETURN_INT (ZFS_OK);
 }
 
-/* Set mode, UID and GID in metadata META for file FH on volume VOL
-   according to ATTR.  */
+/** \fn static void set_metadata_attr (metadata *meta, zfs_fh *fh, fattr *attr)
+    \brief Set mode, UID and GID in metadata according to attributes.
+    \param meta Metadata which should be updated.
+    \param fh File handle of the file.
+    \param attr Attributes of the file.  */
 
 static void
-set_metadata_attr (volume vol, metadata *meta, zfs_fh *fh, fattr *attr)
+set_metadata_attr (metadata *meta, zfs_fh *fh, fattr *attr)
 {
+  volume vol;
   internal_dentry dentry;
+  int32_t r2;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  dentry = dentry_lookup (fh);
-  if (dentry)
-    *meta = dentry->fh->meta;
-
-  meta->flags = METADATA_COMPLETE;
-  meta->modetype = GET_MODETYPE (attr->mode, attr->type);
-  meta->uid = attr->uid;
-  meta->gid = attr->gid;
+  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+  if (r2 == ZFS_OK)
+    {
+      dentry->fh->meta.modetype = GET_MODETYPE (attr->mode, attr->type);
+      dentry->fh->meta.uid = attr->uid;
+      dentry->fh->meta.gid = attr->gid;
+      *meta = dentry->fh->meta;
+    }
+  else
+    {
+      vol = volume_lookup (fh->vid);
+#ifdef ENABLE_CHECKING
+      if (!vol)
+	abort ();
+#endif
+      dentry = NULL;
+      meta->modetype = GET_MODETYPE (attr->mode, attr->type);
+      meta->uid = attr->uid;
+      meta->gid = attr->gid;
+    }
 
   if (!flush_metadata (vol, meta))
     MARK_VOLUME_DELETE (vol);
 
   if (dentry)
-    {
-      dentry->fh->meta.flags = meta->flags;
-      dentry->fh->meta.modetype = meta->modetype;
-      dentry->fh->meta.uid = meta->uid;
-      dentry->fh->meta.gid = meta->gid;
-      release_dentry (dentry);
-    }
+    release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 }
 
 /* Synchronize attributes of local file LOCAL_FH with attributes LOCAL_ATTR
@@ -2350,8 +2360,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	      if (local_changed
 		  && METADATA_ATTR_EQ_P (local_res.attr, remote_res.attr))
 		{
-		  set_metadata_attr (vol, &meta, &local_res.file,
-				     &local_res.attr);
+		  set_metadata_attr (&meta, &local_res.file, &local_res.attr);
 		  local_changed = false;
 		}
 	      remote_changed = METADATA_ATTR_CHANGE_P (meta, remote_res.attr);
