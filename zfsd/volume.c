@@ -30,24 +30,41 @@
 #include "network.h"
 #include "metadata.h"
 
-/* Hash table of volumes.  */
+/* Hash table of volumes, searched by ID.  */
 static htab_t volume_htab;
+
+/* Hash table of volumes, searched by NAME.  */
+static htab_t volume_htab_name;
 
 /* Mutex for table of volumes.  */
 pthread_mutex_t volume_mutex;
 
 /* Hash function for volume ID ID.  */
-#define VOLUME_HASH_ID(ID) (ID)
+#define HASH_VOLUME_ID(ID) (ID)
 
 /* Hash function for volume N.  */
 #define VOLUME_HASH(V) ((V)->id)
 
-/* Hash function for volume X.  */
+/* Hash function for volume name NAME.  */
+#define HASH_VOLUME_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
+
+/* Hash function for volume V.  */
+#define VOLUME_HASH_NAME(V) HASH_VOLUME_NAME ((V)->name)
+
+/* Hash function for volume X, conputed from ID.  */
 
 static hash_t
 volume_hash (const void *x)
 {
   return VOLUME_HASH ((volume) x);
+}
+
+/* Hash function for volume X, conputed from volume name.  */
+
+static hash_t
+volume_hash_name (const void *x)
+{
+  return VOLUME_HASH_NAME ((volume) x);
 }
 
 /* Compare a volume X with ID *Y.  */
@@ -61,6 +78,18 @@ volume_eq (const void *x, const void *y)
   return vol->id == id;
 }
 
+/* Compare a volume X with string Y.  */
+
+static int
+volume_eq_name (const void *x, const void *y)
+{
+  volume vol = (volume) x;
+  string *s = (string *) y;
+
+  return (vol->name.len == s->len
+	  && strcmp (vol->name.str, s->str) == 0);
+}
+
 /* Return the volume with volume ID == ID.  */
 
 volume
@@ -69,7 +98,7 @@ volume_lookup (uint32_t id)
   volume vol;
 
   zfsd_mutex_lock (&volume_mutex);
-  vol = (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
+  vol = (volume) htab_find_with_hash (volume_htab, &id, HASH_VOLUME_ID (id));
   if (vol)
     zfsd_mutex_lock (&vol->mutex);
   zfsd_mutex_unlock (&volume_mutex);
@@ -86,7 +115,7 @@ volume_lookup_nolock (uint32_t id)
 
   CHECK_MUTEX_LOCKED (&volume_mutex);
 
-  vol = (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
+  vol = (volume) htab_find_with_hash (volume_htab, &id, HASH_VOLUME_ID (id));
   if (vol)
     zfsd_mutex_lock (&vol->mutex);
 
@@ -246,7 +275,43 @@ volume_set_common_info (volume vol, string *name, string *mountpoint,
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  set_string (&vol->name, name);
+  if (vol->name.len != name->len
+      || vol->name.str == NULL
+      || strcmp (vol->name.str, name->str) != 0)
+    {
+      void **slot;
+
+      if (vol->name.str)
+	{
+	  slot = htab_find_slot_with_hash (volume_htab_name, &vol->name,
+					   HASH_VOLUME_NAME (vol->name),
+					   NO_INSERT);
+#ifdef ENABLE_CHECKING
+	  if (!slot)
+	    abort ();
+#endif
+	  htab_clear_slot (volume_htab_name, slot);
+
+	  free (vol->name.str);
+	  vol->name.str = NULL;
+	  vol->name.len = 0;
+	}
+
+      slot = htab_find_slot_with_hash (volume_htab_name, name,
+				       HASH_VOLUME_NAME (*name), INSERT);
+      if (*slot)
+	{
+	  vol->marked = true;
+	  message (0, stderr, "Volume with name = %s already exists\n",
+		   name->str);
+	  return;
+	}
+      *slot = vol;
+
+      set_string (&vol->name, name);
+    }
+
+  vol->marked = false;
   vol->master = master;
   vol->is_copy = (vol->master != this_node);
   if (vol->mountpoint.len != mountpoint->len
@@ -438,6 +503,8 @@ initialize_volume_c (void)
 {
   zfsd_mutex_init (&volume_mutex);
   volume_htab = htab_create (200, volume_hash, volume_eq, NULL, &volume_mutex);
+  volume_htab_name = htab_create (200, volume_hash_name, volume_eq_name, NULL,
+				  &volume_mutex);
 }
 
 /* Destroy data structures in VOLUME.C.  */
@@ -448,6 +515,7 @@ cleanup_volume_c (void)
   destroy_all_volumes ();
   zfsd_mutex_lock (&volume_mutex);
   htab_destroy (volume_htab);
+  htab_destroy (volume_htab_name);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_destroy (&volume_mutex);
 }
