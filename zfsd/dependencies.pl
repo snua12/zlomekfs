@@ -11,7 +11,9 @@ open (FO, ">Makefile.dep");
 foreach $f (sort <*.h>)
 {
   @dep = &headers ($f);
-  print FO uc $f, " = $f @dep\n";
+  my $var = uc $f;
+  $var =~ s/[.-]/_/g;
+  print FO $var, " = $f @dep\n";
 }
 
 print FO "\n";
