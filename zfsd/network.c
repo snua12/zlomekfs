@@ -275,7 +275,7 @@ close_active_fd (int i)
 /* Put DC back to file descriptor data FD_DATA.  */
 
 void
-recycle_dc_to_network_fd (DC *dc, network_fd_data_t *fd_data)
+recycle_dc_to_fd_data (DC *dc, network_fd_data_t *fd_data)
 {
   CHECK_MUTEX_LOCKED (&fd_data->mutex);
 
@@ -295,39 +295,15 @@ recycle_dc_to_network_fd (DC *dc, network_fd_data_t *fd_data)
 /* Put DC back to data for socket connected to master of volume VOL.  */
 
 void
-recycle_dc_to_volume_master (DC *dc, volume vol)
+recycle_dc_to_fd (DC *dc, int fd)
 {
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
-  zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
-  zfsd_mutex_unlock (&node_mutex);
-  if (vol->master->fd < 0)
+  if (fd < 0)
     dc_destroy (dc);
   else
     {
-      zfsd_mutex_lock (&network_fd_data[vol->master->fd].mutex);
-      recycle_dc_to_network_fd (dc, &network_fd_data[vol->master->fd]);
-      zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
-    }
-
-  zfsd_mutex_unlock (&vol->master->mutex);
-}
-
-/* Put DC back to data for socket connected to node NOD.  */
-
-void
-recycle_dc_to_node (DC *dc, node nod)
-{
-  CHECK_MUTEX_LOCKED (&nod->mutex);
-
-  if (nod->fd < 0)
-    dc_destroy (dc);
-  else
-    {
-      zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
-      recycle_dc_to_network_fd (dc, &network_fd_data[nod->fd]);
-      zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
+      zfsd_mutex_lock (&network_fd_data[fd].mutex);
+      recycle_dc_to_fd_data (dc, &network_fd_data[fd]);
+      zfsd_mutex_unlock (&network_fd_data[fd].mutex);
     }
 }
 
@@ -537,7 +513,7 @@ network_worker (void *data)
 out:
       zfsd_mutex_lock (&td->fd_data->mutex);
       td->fd_data->busy--;
-      recycle_dc_to_network_fd (&t->dc, td->fd_data);
+      recycle_dc_to_fd_data (&t->dc, td->fd_data);
       zfsd_mutex_unlock (&td->fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
@@ -604,7 +580,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 					     NO_INSERT);
 	    if (!slot)
 	      {
-		recycle_dc_to_network_fd (dc, fd_data);
+		recycle_dc_to_fd_data (dc, fd_data);
 		zfsd_mutex_unlock (&fd_data->mutex);
 		/* TODO: log request was not found.  */
 		message (1, stderr, "Request ID %d has not been found.\n",

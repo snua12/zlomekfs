@@ -204,13 +204,14 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
     {
       volume_root_args args;
       thread *t;
+      int fd;
 
       t = (thread *) pthread_getspecific (thread_data_key);
       args.vid = vol->id;
       zfsd_mutex_lock (&node_mutex);
       zfsd_mutex_lock (&vol->master->mutex);
       zfsd_mutex_unlock (&node_mutex);
-      r = zfs_proc_volume_root_client (t, &args, vol->master);
+      r = zfs_proc_volume_root_client (t, &args, vol->master, &fd);
       if (r == ZFS_OK)
 	{
 	  if (!decode_zfs_fh (&t->dc_reply, remote_fh)
@@ -225,7 +226,7 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 	}
 
       if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	recycle_dc_to_volume_master (&t->dc_reply, vol);
+	recycle_dc_to_fd (&t->dc_reply, fd);
     }
   else
     abort ();
@@ -518,6 +519,7 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
   sattr_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -529,7 +531,7 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_setattr_client (t, &args, vol->master);
+  r = zfs_proc_setattr_client (t, &args, vol->master, &fd);
   if (r == ZFS_OK)
     {
       if (!decode_fattr (&t->dc_reply, fa)
@@ -543,7 +545,7 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -647,6 +649,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   dir_op_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&dir->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -658,7 +661,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_lookup_client (t, &args, vol->master);
+  r = zfs_proc_lookup_client (t, &args, vol->master, &fd);
   if (r == ZFS_OK)
     {
       if (!decode_dir_op_res (&t->dc_reply, res)
@@ -672,7 +675,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -852,6 +855,7 @@ remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
   mkdir_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
@@ -864,7 +868,7 @@ remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_mkdir_client (t, &args, vol->master);
+  r = zfs_proc_mkdir_client (t, &args, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -879,7 +883,7 @@ remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -995,6 +999,7 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
   dir_op_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
@@ -1006,7 +1011,7 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_rmdir_client (t, &args, vol->master);
+  r = zfs_proc_rmdir_client (t, &args, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1015,7 +1020,7 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1109,6 +1114,7 @@ remote_rename (internal_fh from_dir, string *from_name,
   rename_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&from_dir->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->mutex);
@@ -1123,7 +1129,7 @@ remote_rename (internal_fh from_dir, string *from_name,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_rename_client (t, &args, vol->master);
+  r = zfs_proc_rename_client (t, &args, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1132,7 +1138,7 @@ remote_rename (internal_fh from_dir, string *from_name,
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1328,6 +1334,7 @@ remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
   link_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&from->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
@@ -1341,7 +1348,7 @@ remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_link_client (t, &args, vol->master);
+  r = zfs_proc_link_client (t, &args, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1350,7 +1357,7 @@ remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1506,6 +1513,7 @@ remote_unlink (internal_fh dir, string *name, volume vol)
   dir_op_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
@@ -1517,7 +1525,7 @@ remote_unlink (internal_fh dir, string *name, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_unlink_client (t, &args, vol->master);
+  r = zfs_proc_unlink_client (t, &args, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1526,7 +1534,7 @@ remote_unlink (internal_fh dir, string *name, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1617,6 +1625,7 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
 {
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
@@ -1626,7 +1635,7 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_readlink_client (t, &fh->master_fh, vol->master);
+  r = zfs_proc_readlink_client (t, &fh->master_fh, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -1645,7 +1654,7 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1718,6 +1727,7 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
   symlink_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
@@ -1731,7 +1741,7 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_symlink_client (t, &args, vol->master);
+  r = zfs_proc_symlink_client (t, &args, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1740,7 +1750,7 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1846,6 +1856,7 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
   mknod_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
@@ -1860,7 +1871,7 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_mknod_client (t, &args, vol->master);
+  r = zfs_proc_mknod_client (t, &args, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1869,7 +1880,7 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 

@@ -331,7 +331,8 @@ struct node_def;
 					    struct thread_def *t);	\
   extern int zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
 					   ARGS *args,			\
-					   struct node_def *nod);	\
+					   struct node_def *nod,	\
+					   int *fd);			\
   extern int zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
 					     ARGS *args, int fd);
 #include "zfs_prot.def"

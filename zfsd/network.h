@@ -91,9 +91,8 @@ extern network_fd_data_t *network_fd_data;
 struct thread_def;
 
 extern void close_network_fd (int fd);
-extern void recycle_dc_to_network_fd (DC *dc, network_fd_data_t *fd_data);
-extern void recycle_dc_to_volume_master (DC *dc, volume vol);
-extern void recycle_dc_to_node (DC *dc, node nod);
+extern void recycle_dc_to_fd_data (DC *dc, network_fd_data_t *fd_data);
+extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);
 extern void network_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd);

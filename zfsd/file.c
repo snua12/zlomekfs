@@ -174,6 +174,7 @@ remote_close (internal_cap cap, volume vol)
 {
   thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
@@ -183,7 +184,7 @@ remote_close (internal_cap cap, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_close_client (t, &cap->master_cap, vol->master);
+  r = zfs_proc_close_client (t, &cap->master_cap, vol->master, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -192,7 +193,7 @@ remote_close (internal_cap cap, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -283,6 +284,7 @@ remote_create (create_res *res, internal_fh dir, string *name,
   create_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   args.where.dir = dir->master_fh;
   args.where.name = *name;
@@ -293,7 +295,7 @@ remote_create (create_res *res, internal_fh dir, string *name,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_create_client (t, &args, vol->master);
+  r = zfs_proc_create_client (t, &args, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -308,7 +310,7 @@ remote_create (create_res *res, internal_fh dir, string *name,
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -430,6 +432,7 @@ remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
   open_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   args.file = icap->master_cap.fh;
   args.flags = icap->master_cap.flags | flags;
@@ -438,14 +441,14 @@ remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_open_client (t, &args, vol->master);
+  r = zfs_proc_open_client (t, &args, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
       if (!decode_zfs_cap (&t->dc_reply, cap)
 	  || !finish_decoding (&t->dc_reply))
 	{
-	  recycle_dc_to_volume_master (&t->dc_reply, vol);
+	  recycle_dc_to_fd (&t->dc_reply, fd);
 	  return ZFS_INVALID_REPLY;
 	}
 
@@ -458,7 +461,7 @@ remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -769,6 +772,7 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   read_dir_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   args.cap = cap->master_cap;
   args.cookie = data->cookie;
@@ -778,7 +782,7 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_readdir_client (t, &args, vol->master);
+  r = zfs_proc_readdir_client (t, &args, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -799,7 +803,7 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -955,6 +959,7 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   read_args args;
   thread *t;
   int32_t r;
+  int fd;
 
   args.cap = cap->master_cap;
   args.offset = offset;
@@ -964,7 +969,7 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_read_client (t, &args, vol->master);
+  r = zfs_proc_read_client (t, &args, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -984,7 +989,7 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
     encode_status (dc, r);
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
@@ -1081,6 +1086,7 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 {
   thread *t;
   int32_t r;
+  int fd;
 
   args->cap = cap->master_cap;
   t = (thread *) pthread_getspecific (thread_data_key);
@@ -1088,7 +1094,7 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_write_client (t, args, vol->master);
+  r = zfs_proc_write_client (t, args, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -1103,7 +1109,7 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_volume_master (&t->dc_reply, vol);
+    recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
