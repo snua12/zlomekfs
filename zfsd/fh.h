@@ -118,7 +118,11 @@ extern internal_fh fh_lookup (svc_fh *fh);
 extern internal_fh internal_fh_create (svc_fh *client_fh, svc_fh *server_fh,
 				       internal_fh parent, const char *name);
 extern void internal_fh_destroy (internal_fh fh);
+extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);
 extern void virtual_dir_destroy (virtual_dir vd);
+extern virtual_dir virtual_root_create ();
+extern void virtual_root_destroy (virtual_dir root);
+extern virtual_dir virtual_mountpoint_create (volume vol);
 extern void initialize_fh_c ();
 extern void cleanup_fh_c ();
 
