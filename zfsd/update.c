@@ -1501,7 +1501,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
       if (want_conflict)
 	{
 	  string name;
-	  
+
 	  xstringdup (&name, &dentry->name);
 	  release_dentry (dentry);
 	  conflict = create_conflict (vol, parent, &name, fh,
