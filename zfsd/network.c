@@ -216,11 +216,12 @@ close_active_fd (int i)
   free_alloc_pool (network_fd_data[fd].waiting4reply_pool);
 }
 
-/* If node NOD is connected return true and lock NETWORK_FD_DATA[NOD->FD].MUTEX.
+/* Return true if there is a valid file descriptor attached to node NOD
+   and lock NETWORK_FD_DATA[NOD->FD].MUTEX.
    This function expects NOD->MUTEX to be locked.  */
 
 bool
-node_connected_p (node nod)
+node_has_valid_fd (node nod)
 {
   CHECK_MUTEX_LOCKED (&nod->mutex);
 
@@ -354,7 +355,7 @@ node_authenticate (thread *t, node nod)
   r = zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd);
   if (r != ZFS_OK)
     goto node_authenticate_error;
-  if (!node_connected_p (nod))
+  if (!node_has_valid_fd (nod))
     goto node_authenticate_error;
 
   CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
@@ -365,7 +366,7 @@ node_authenticate (thread *t, node nod)
   r = zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd);
   if (r != ZFS_OK)
     goto node_authenticate_error;
-  if (!node_connected_p (nod))
+  if (!node_has_valid_fd (nod))
     goto node_authenticate_error;
 
   CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
@@ -397,7 +398,7 @@ node_connect_and_authenticate (thread *t, node nod)
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
 
-  if (!node_connected_p (nod))
+  if (!node_has_valid_fd (nod))
     {
       time_t now;
 

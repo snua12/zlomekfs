@@ -263,7 +263,7 @@ volume_active_p (volume vol)
     return true;
 
   zfsd_mutex_lock (&vol->master->mutex);
-  connected = node_connected_p (vol->master);
+  connected = node_has_valid_fd (vol->master);
   active = connected && (network_fd_data[vol->master->fd].auth
 			 == AUTHENTICATION_FINISHED);
   if (connected)
