@@ -136,7 +136,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 
       local_md5.count = remote_md5.count;
 
-      r = zfs_fh_lookup (&cap->fh, NULL, &dentry, NULL);
+      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
 	abort ();
@@ -144,7 +144,6 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
     }
   else
     {
-      zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
     }
 
@@ -165,11 +164,14 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	{
 	  interval_tree_delete (dentry->fh->modified, local_md5.offset[i],
 				local_md5.offset[i] + local_md5.length[i]);
-	  interval_tree_insert (dentry->fh->updated, local_md5.offset[i],
-				local_md5.offset[i] + local_md5.length[i]);
+	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
+				local_md5.offset[i],
+				local_md5.offset[i] + local_md5.length[i]))
+	    vol->flags |= VOLUME_DELETE;
 	}
     }
   release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
   /* Update different blocks.  */
   for (i = 0, j = 0; i < remote_md5.count; i++)
@@ -269,9 +271,11 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	      if (r != ZFS_OK)
 		return r;
 
-	      interval_tree_insert (dentry->fh->updated, remote_md5.offset[i],
-				    (remote_md5.offset[i]
-				     + remote_md5.length[i]));
+	      if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
+				    remote_md5.offset[i],
+				    remote_md5.offset[i] + count))
+		vol->flags |= VOLUME_DELETE;
+
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	    }
