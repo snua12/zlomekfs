@@ -22,7 +22,8 @@ CC = g++
 LD = $(CC)
 DEFS = 
 CFLAGS = -g -Wall -pedantic
-LDFLAGS = -lpthread
+LDFLAGS =
+LIBS = -lpthread
 COMPILE = $(CC) $(DEFS) $(CFLAGS)
 LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 
@@ -33,6 +34,7 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 PACKAGE = zfsd
 OBJECTS = alloc-pool.o config.o dir.o file.o fh.o hashtab.o interval.o \
           log.o memory.o node.o queue.o splay-tree.o thread.o volume.o zfsd.o
+RPC_OBJECTS = zfs_prot_svc.o zfs_prot_server.o zfs_prot_xdr.o
 
 .c.o:
 	$(COMPILE) -c $<
@@ -43,13 +45,21 @@ clean:
 	-rm -f $(PACKAGE) *.o core *.core
 	-rm -f Makefile.zfs_prot zfs_prot.h zfs_prot_*
 
-$(PACKAGE): $(OBJECTS)
-	$(LINK) $(OBJECTS) $(LIBS)
+$(PACKAGE): $(OBJECTS) $(RPC_OBJECTS)
+	$(LINK) $(OBJECTS) $(RPC_OBJECTS) $(LIBS)
 
 # RPC code
 zfs_prot.h: zfs_prot.x
-# temporarily generate everything what can be generated
-	rpcgen -a zfs_prot.x
+	rpcgen -h zfs_prot.x -o zfs_prot.h
+zfs_prot_svc.c: zfs_prot.x zfs_prot.h
+	rpcgen -m zfs_prot.x -o $@
+zfs_prot_server.c: zfs_prot.x zfs_prot.h
+	rpcgen -Ss zfs_prot.x -o $@
+zfs_prot_xdr.c: zfs_prot.x zfs_prot.h
+	rpcgen -c zfs_prot.x -o $@
+zfs_prot_svc.o: zfs_prot_svc.c
+zfs_prot_server.o: zfs_prot_server.c
+zfs_prot_xdr.o: zfs_prot_xdr.c
   
 # Dependencies:
 alloc-pool.o: alloc-pool.c alloc-pool.h system.h log.h memory.h
