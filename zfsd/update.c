@@ -1956,6 +1956,7 @@ update_worker (void *data)
   pthread_setspecific (thread_data_key, data);
   pthread_setspecific (thread_name_key, "Network worker thread");
   set_lock_info (li);
+  t->from_sid = this_node->id;
 
   while (1)
     {
