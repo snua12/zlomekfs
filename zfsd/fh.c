@@ -117,6 +117,20 @@ pthread_mutex_t cleanup_dentry_thread_in_syscall;
 static fibheapkey_t
 dentry_key (internal_dentry dentry)
 {
+  if (GET_CONFLICT (dentry->fh->local_fh))
+    {
+      internal_dentry tmp;
+      unsigned int i;
+
+      for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
+	{
+	  tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
+	  if ((tmp->fh->cap || tmp->fh->level != LEVEL_UNLOCKED)
+	      && tmp->next == tmp)
+	    return FIBHEAPKEY_MAX;
+	}
+    }
+
   if ((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
        && dentry->next == dentry)
     return FIBHEAPKEY_MAX;
@@ -129,19 +143,32 @@ dentry_key (internal_dentry dentry)
 static bool
 dentry_should_have_cleanup_node (internal_dentry dentry)
 {
-  /* Root dentry can't be cleaned up.  */
+  /* Root dentry can't be deleted.  */
   if (!dentry->parent)
     return false;
 
-  /* Dentry which is not a directory should be cleaned up.  */
-  if (dentry->fh->attr.type != FT_DIR)
-    return true;
+  if (GET_CONFLICT (dentry->fh->local_fh))
+    {
+      internal_dentry tmp;
+      unsigned int i;
 
-  /* Empty directory dentry should be cleaned up.  */
-  if (VARRAY_USED (dentry->fh->subdentries) == 0)
-    return true;
+      for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
+	{
+	  tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
+	  if (tmp->fh->attr.type == FT_DIR
+	      && VARRAY_USED (tmp->fh->subdentries) != 0)
+	    return false;
+	}
 
-  return false;
+      return true;
+    }
+
+  /* Directory dentry which has some subdentries can't be deleted.  */
+  if (dentry->fh->attr.type == FT_DIR
+      && VARRAY_USED (dentry->fh->subdentries) != 0)
+    return false;
+
+  return true;
 }
 
 /* Update the cleanup node of dentry DENTRY.  */
@@ -152,6 +179,9 @@ dentry_update_cleanup_node (internal_dentry dentry)
 #ifdef ENABLE_CHECKING
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
+
+  if (dentry->parent && GET_CONFLICT (dentry->parent->fh->local_fh))
+    dentry = dentry->parent;
 
   dentry->last_use = time (NULL);
   zfsd_mutex_lock (&cleanup_dentry_mutex);
