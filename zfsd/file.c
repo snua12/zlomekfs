@@ -41,6 +41,7 @@
 #include "fh.h"
 #include "file.h"
 #include "dir.h"
+#include "config.h"
 #include "cap.h"
 #include "volume.h"
 #include "metadata.h"
@@ -939,6 +940,11 @@ zfs_close (zfs_cap *cap)
   if (r2 != ZFS_OK)
     abort ();
 #endif
+
+  /* Reread config file.  */
+  if (cap->fh.vid == VOLUME_ID_CONFIG
+      && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
+    add_reread_config_request_dentry (dentry);
 
   if (r == ZFS_OK)
     put_capability (icap, dentry->fh, vd);
