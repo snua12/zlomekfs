@@ -229,6 +229,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
 
   if (*ifh && (*ifh)->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
+      zfsd_mutex_unlock (&(*ifh)->mutex);
       if (*vd)
 	zfsd_mutex_unlock (&(*vd)->mutex);
       if (*vol)
@@ -287,7 +288,7 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
       return ESTALE;
     }
 
-  if (*vd && *vol)
+  if (vd && *vd && *vol)
     update_volume_root (*vol, ifh);
 
   *icapp = icap;

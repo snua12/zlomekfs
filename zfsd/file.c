@@ -905,7 +905,9 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
       return EISDIR;
     }
 
+  zfsd_mutex_lock (&cap_mutex);
   r = find_capability (cap, &icap, &vol, &ifh, NULL);
+  zfsd_mutex_unlock (&cap_mutex);
   if (r != ZFS_OK)
     {
       encode_status (dc, r);
@@ -987,7 +989,7 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (decode_write_res (&t->dc_reply, res)
+      if (!decode_write_res (&t->dc_reply, res)
 	  || !finish_decoding (&t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
@@ -1018,7 +1020,9 @@ zfs_write (write_res *res, write_args *args)
   if (VIRTUAL_FH_P (args->cap.fh))
     return EISDIR;
 
+  zfsd_mutex_lock (&cap_mutex);
   r = find_capability (&args->cap, &icap, &vol, &ifh, NULL);
+  zfsd_mutex_unlock (&cap_mutex);
   if (r != ZFS_OK)
     return r;
 
