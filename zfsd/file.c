@@ -192,7 +192,11 @@ capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
     abort ();
 #endif
 
-  if (capability_opened_p (cap))
+  /* Some flags were specified so close the capability first.  */
+  if (flags)
+    local_close (cap);
+
+  else if (capability_opened_p (cap))
     return ZFS_OK;
 
   path = build_local_path (vol, dentry);
@@ -645,6 +649,7 @@ zfs_open_retry:
   if (vd)
     zfsd_mutex_unlock (&vd->mutex);
 
+  flags &= ~O_ACCMODE;
   if (vol->local_path)
     {
       UPDATE_CAP_IF_NEEDED (icap, vol, dentry, vd, tmp_cap);
@@ -658,7 +663,7 @@ zfs_open_retry:
 	  if (dentry->fh->attr.type != FT_REG
 	      || load_interval_trees (vol, dentry->fh))
 	    {
-	      r = local_open (icap, flags & ~O_ACCMODE, dentry, vol);
+	      r = local_open (icap, flags, dentry, vol);
 	    }
 	  else
 	    {
@@ -667,11 +672,11 @@ zfs_open_retry:
 	    }
 	}
       else
-	r = local_open (icap, flags & ~O_ACCMODE, dentry, vol);
+	r = local_open (icap, flags, dentry, vol);
     }
   else if (vol->master != this_node)
     {
-      r = remote_open (&remote_cap, icap, flags & ~O_ACCMODE, dentry, vol);
+      r = remote_open (&remote_cap, icap, flags, dentry, vol);
     }
   else
     abort ();
