@@ -114,7 +114,7 @@ internal_fh_eq_name (const void *xx, const void *yy)
    and set *VOLP, *IFHP and VDP according to it.  */
 
 bool
-fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
+zfs_zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
   bool res;
 
@@ -122,7 +122,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
   if (VIRTUAL_FH_P (*fh))
     zfsd_mutex_lock (&vd_mutex);
 
-  res = fh_lookup_nolock (fh, volp, ifhp, vdp);
+  res = zfs_fh_lookup_nolock (fh, volp, ifhp, vdp);
 
   zfsd_mutex_unlock (&volume_mutex);
   if (VIRTUAL_FH_P (*fh))
@@ -136,7 +136,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
    This function is similar to FH_LOOKUP but the big locks must be locked.  */
 
 bool
-fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
+zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 		  virtual_dir *vdp)
 {
   hash_t hash = ZFS_FH_HASH (fh);

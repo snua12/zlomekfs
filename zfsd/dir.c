@@ -430,7 +430,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   virtual_dir vd;
 
   /* Lookup FH.  */
-  if (!fh_lookup (fh, &vol, &ifh, &vd))
+  if (!zfs_fh_lookup (fh, &vol, &ifh, &vd))
     return ESTALE;
 
   /* TODO: Update file and fattr.  */
@@ -560,7 +560,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
     return EROFS;
 
   /* Lookup FH.  */
-  if (!fh_lookup (fh, &vol, &ifh, NULL))
+  if (!zfs_fh_lookup (fh, &vol, &ifh, NULL))
     return ESTALE;
 
   if (vol->local_path)
@@ -687,7 +687,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
@@ -893,7 +893,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
@@ -1026,7 +1026,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
@@ -1143,7 +1143,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   /* Lookup FROM_DIR.  */
   zfsd_mutex_lock (&volume_mutex);
   zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (from_dir, &vol1, &ifh1, &vd1))
+  if (!zfs_fh_lookup_nolock (from_dir, &vol1, &ifh1, &vd1))
     {
       zfsd_mutex_unlock (&volume_mutex);
       zfsd_mutex_unlock (&vd_mutex);
@@ -1163,7 +1163,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       zfsd_mutex_unlock (&vol1->mutex);
 
       /* Lookup TO_DIR.  */
-      if (!fh_lookup_nolock (to_dir, &vol2, &ifh2, &vd2))
+      if (!zfs_fh_lookup_nolock (to_dir, &vol2, &ifh2, &vd2))
 	{
 	  r = ESTALE;
 	  goto zfs_rename_error_unlock_volume;
@@ -1360,7 +1360,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   /* Lookup FROM.  */
   zfsd_mutex_lock (&volume_mutex);
   zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (from, &vol1, &ifh1, &vd1))
+  if (!zfs_fh_lookup_nolock (from, &vol1, &ifh1, &vd1))
     {
       zfsd_mutex_unlock (&volume_mutex);
       zfsd_mutex_unlock (&vd_mutex);
@@ -1376,7 +1376,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   zfsd_mutex_unlock (&vol1->mutex);
 
   /* Lookup DIR.  */
-  if (!fh_lookup_nolock (dir, &vol2, &ifh2, &vd2))
+  if (!zfs_fh_lookup_nolock (dir, &vol2, &ifh2, &vd2))
     {
       r = ESTALE;
       goto zfs_link_error_unlock_volume;
@@ -1537,7 +1537,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
@@ -1650,7 +1650,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
     return EINVAL;
 
   /* Lookup FH.  */
-  if (!fh_lookup (fh, &vol, &ifh, NULL))
+  if (!zfs_fh_lookup (fh, &vol, &ifh, NULL))
     return ESTALE;
 
   if (vol->local_path)
@@ -1746,7 +1746,7 @@ zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
@@ -1880,7 +1880,7 @@ zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))

@@ -220,7 +220,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (VIRTUAL_FH_P (cap->fh) && cap->flags != O_RDONLY)
     return EISDIR;
 
-  if (!fh_lookup (&cap->fh, vol, ifh, vd))
+  if (!zfs_fh_lookup (&cap->fh, vol, ifh, vd))
     return ESTALE;
 
   if (*vd && *vol)
@@ -252,7 +252,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
    handle FH.  */
 
 internal_cap
-get_capability_no_fh_lookup (zfs_cap *cap, internal_fh fh)
+get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_fh fh)
 {
   internal_cap icap;
 
@@ -281,7 +281,7 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
   if (!icap)
     return EBADF;
 
-  if (!fh_lookup (&cap->fh, vol, ifh, vd))
+  if (!zfs_fh_lookup (&cap->fh, vol, ifh, vd))
     {
       zfsd_mutex_unlock (&icap->mutex);
       return ESTALE;
@@ -312,7 +312,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   if (!icap)
     return EBADF;
 
-  if (!fh_lookup_nolock (&cap->fh, vol, ifh, vd))
+  if (!zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd))
     {
       zfsd_mutex_unlock (&icap->mutex);
       return ESTALE;

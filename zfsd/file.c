@@ -253,7 +253,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
@@ -300,7 +300,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	ifh = internal_fh_create (&res->file, &res->file, idir,
 				  vol, name->str, &res->attr);
       zfsd_mutex_lock (&cap_mutex);
-      icap = get_capability_no_fh_lookup (&res->cap, ifh);
+      icap = get_capability_no_zfs_fh_lookup (&res->cap, ifh);
       zfsd_mutex_unlock (&cap_mutex);
 
       if (vol->local_path)
