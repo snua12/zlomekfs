@@ -52,7 +52,7 @@ pthread_mutex_t fh_pool_mutex;
 static alloc_pool vd_pool;
 
 /* Hash table of virtual directories, searched by fh.  */
-static htab_t vd_htab;
+htab_t vd_htab;
 
 /* Hash table of virtual directories, searched by (parent->fh, name).  */
 static htab_t vd_htab_name;
@@ -62,7 +62,7 @@ pthread_mutex_t vd_mutex;
 
 /* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
-  (crc32_buffer (&(VD)->fh, sizeof (zfs_fh)))
+  (ZFS_FH_HASH (&(VD)->fh))
 
 /* Hash function for virtual_dir VD, computed from (parent->fh, name).  */
 #define VIRTUAL_DIR_HASH_NAME(VD)					\
@@ -222,8 +222,8 @@ vd_lookup_name (virtual_dir parent, const char *name)
   return vd;
 }
 
-/* Return the internal file handle or virtual directory for NAME in directory
-   PARENT on volume VOL.  */
+/* Return the internal file handle for NAME in directory PARENT
+   on volume VOL.  */
 
 internal_fh
 fh_lookup_name (volume vol, internal_fh parent, const char *name)
@@ -242,7 +242,7 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
       zfsd_mutex_lock (&fh->mutex);
       fh->last_use = time (NULL);
     }
-      
+
   return fh;
 }
 

@@ -59,13 +59,21 @@ typedef struct volume_def *volume;
 
 /* Hash function for internal_fh FH, computed from local_fh.  */
 #define INTERNAL_FH_HASH(FH)						\
-  (crc32_buffer (&(FH)->local_fh, sizeof (zfs_fh)))
+  (ZFS_FH_HASH (&(FH)->local_fh))
 
 /* Hash function for internal_fh FH, computed from parent_fh and name.  */
 #define INTERNAL_FH_HASH_NAME(FH)					\
   (crc32_update (crc32_string ((FH)->name),				\
 		 &(FH)->parent->local_fh, sizeof (zfs_fh)))
 
+/* Return internal file handle for ZFS file handle FH on volume VOL.  */
+#define fh_lookup(VOL, FH)						\
+  ((internal_fh) htab_find_with_hash ((VOL)->fh_htab, (FH), ZFS_FH_HASH (FH)))
+  
+/* Return internal file handle for ZFS file handle FH on volume VOL.  */
+#define vd_lookup(FH)							\
+  ((virtual_dir) htab_find_with_hash (vd_htab, (FH), ZFS_FH_HASH (FH)))
+  
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct virtual_dir_def *virtual_dir;
@@ -137,6 +145,9 @@ extern zfs_fh root_fh;
 
 /* Mutex for fh_pool.  */
 extern pthread_mutex_t fh_pool_mutex;
+
+/* Hash table of virtual directories, searched by fh.  */
+extern htab_t vd_htab;
 
 /* Mutex for virtual directories.  */
 extern pthread_mutex_t vd_mutex;
