@@ -4156,7 +4156,7 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
 /* Invalidate dentry DENTRY in kernel dentry cache.  */
 
 int32_t
-local_invalidate (internal_dentry dentry)
+local_invalidate (internal_dentry dentry, bool volume_root_p)
 {
   invalidate_args args;
   thread *t;
@@ -4166,6 +4166,22 @@ local_invalidate (internal_dentry dentry)
 
   args.fh = dentry->fh->local_fh;
   release_dentry (dentry);
+
+  if (volume_root_p)
+    {
+      volume vol;
+
+      zfsd_mutex_lock (&vd_mutex);
+      vol = volume_lookup (args.fh.vid);
+      if (vol)
+	{
+	  zfsd_mutex_lock (&vol->root_vd->mutex);
+	  args.fh = vol->root_vd->fh;
+	  zfsd_mutex_unlock (&vol->root_vd->mutex);
+	  zfsd_mutex_unlock (&vol->mutex);
+	}
+      zfsd_mutex_unlock (&vd_mutex);
+    }
 
   t = (thread *) pthread_getspecific (thread_data_key);
   if (t == NULL)

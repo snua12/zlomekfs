@@ -1964,7 +1964,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       zfsd_mutex_unlock (&fh_mutex);
-      local_invalidate (dentry);
+      local_invalidate (dentry, dentry->parent == NULL);
     }
   else
     {
@@ -2104,7 +2104,7 @@ again:
       release_dentry (conflict);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
-      local_invalidate (dentry);
+      local_invalidate (dentry, dir == NULL);
 
       if (dir)
 	{

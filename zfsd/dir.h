@@ -117,7 +117,7 @@ extern int32_t local_reintegrate_set (internal_dentry dentry, uint64_t version,
 extern int32_t remote_reintegrate_set (internal_dentry dentry, uint64_t version,
 				       zfs_fh *fh, volume vol);
 extern int32_t zfs_reintegrate_set (zfs_fh *fh, uint64_t version);
-extern int32_t local_invalidate (internal_dentry dentry);
+extern int32_t local_invalidate (internal_dentry dentry, bool volume_root_p);
 extern int32_t refresh_fh (zfs_fh *fh);
 
 #endif
