@@ -135,6 +135,9 @@ struct internal_fh_def
   /* File handle for client, key for hash table.  */
   zfs_fh local_fh;
 
+  /* Number of directory entries associated with this file handle.  */
+  unsigned int ndentries;
+
   /* File attributes.  */
   fattr attr;
 
@@ -147,20 +150,17 @@ struct internal_fh_def
   /* Chain of capabilities associated with this file handle.  */
   internal_cap cap;
 
-  /* Number of directory entries associated with this file handle.  */
-  unsigned int ndentries;
-
   /* Updated intervals.  */
   interval_tree updated;
 
   /* Modified intervals.  */
   interval_tree modified;
 
-  /* Number of users of interval trees.  */
-  unsigned int interval_tree_users;
-
   /* Journal for a directory.  */
   journal_t journal;
+
+  /* Number of users of interval trees.  */
+  unsigned int interval_tree_users;
 
   /* "Lock" level of the file handle.  */
   unsigned int level;
