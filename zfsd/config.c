@@ -66,6 +66,9 @@ static string local_config;
 /* File with private key.  */
 static string private_key;
 
+/* Node which the local node should fetch the global configuration from.  */
+char *config_node;
+
 /* Element of list of requests for config reread.  */
 typedef struct reread_config_request_def *reread_config_request;
 struct reread_config_request_def
@@ -520,19 +523,88 @@ init_config_volume (void)
     {
       message (0, stderr, "Config volume (ID == %" PRIu32 " does not exist.\n",
 	       VOLUME_ID_CONFIG);
-      zfsd_mutex_unlock (&volume_mutex);
-      zfsd_mutex_unlock (&fh_mutex);
       goto out;
     }
 
-  volume_set_common_info_wrapper (vol, "config", "/config", this_node);
+  if (config_node)
+    {
+      string parts[3];
+      uint32_t sid;
+      node nod;
+      string path;
 
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
-  zfsd_mutex_unlock (&fh_mutex);
+      if (split_and_trim (config_node, 3, parts) == 3)
+	{
+	  if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
+	    {
+	      message (0, stderr, "Wrong format of node option\n");
+	      goto out_usage;
+	    }
+	  else if (sid == 0 || sid == (uint32_t) -1)
+	    {
+	      message (0, stderr, "Node ID must not be 0 or %" PRIu32 "\n",
+		       (uint32_t) -1);
+	      goto out_usage;
+	    }
+	  else if (parts[1].len == 0)
+	    {
+	      message (0, stderr, "Node name must not be empty\n");
+	      goto out_usage;
+	    }
+	  else if (parts[2].len == 0)
+	    {
+	      message (0, stderr, "Node host name must not be empty\n");
+	      goto out_usage;
+	    }
+	  else
+	    {
+	      /* Create the node and set it as master of config volume.  */
+	      zfsd_mutex_lock (&node_mutex);
+	      nod = node_create (sid, &parts[1], &parts[2]);
+	      zfsd_mutex_unlock (&nod->mutex);
+	      zfsd_mutex_unlock (&node_mutex);
+
+	      volume_set_common_info_wrapper (vol, "config", "/config", nod);
+	      xstringdup (&path, &vol->local_path);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&volume_mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
+
+	      /* Recreate the directory where config volume is cached.  */
+	      recursive_unlink (&path, VOLUME_ID_CONFIG, false, false, false);
+	      vol = volume_lookup (VOLUME_ID_CONFIG);
+#ifdef ENABLE_CHECKING
+	      if (!vol)
+		abort ();
+#endif
+	      volume_set_local_info (vol, &path, vol->size_limit);
+	      zfsd_mutex_unlock (&vol->mutex);
+
+	      free (config_node);
+	      config_node = NULL;
+	    }
+	}
+      else
+	{
+	  message (0, stderr, "Wrong format of node option\n");
+	  goto out_usage;
+	}
+    }
+  else
+    {
+      volume_set_common_info_wrapper (vol, "config", "/config", this_node);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&volume_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
   return true;
 
+out_usage:
+  usage();
+
 out:
+  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   destroy_all_volumes ();
   return false;
 }
@@ -645,7 +717,7 @@ process_line_node (char *line, char *file_name, unsigned int line_num,
 	}
       else if (parts[2].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Host name must not be empty\n",
+	  message (0, stderr, "%s:%u: Node host name must not be empty\n",
 		   file_name, line_num);
 	}
       else
