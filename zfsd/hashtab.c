@@ -21,6 +21,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html
    */
 
+#include "system.h"
 #include <stdio.h>
 #include "hashtab.h"
 #include "memory.h"

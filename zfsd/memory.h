@@ -22,6 +22,7 @@
 #ifndef _MEMORY_H
 #define _MEMORY_H
 
+#include "system.h"
 #include <stdlib.h>
 
 extern void *xcalloc(size_t nmemb, size_t size);

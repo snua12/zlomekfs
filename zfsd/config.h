@@ -22,6 +22,7 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
+#include "system.h"
 #include <stdio.h>
 #include <netinet/in.h>
 #include "zfs_prot.h"
