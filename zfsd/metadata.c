@@ -1940,6 +1940,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   meta.local_version++;
   if (!vol->is_copy)
     meta.master_version = meta.local_version;
+  zfs_fh_undefine (meta.master_fh);
 
   if (!hfile_insert (vol->metadata, &meta, false))
     {
