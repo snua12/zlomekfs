@@ -149,7 +149,9 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 	{
 	  zfsd_mutex_unlock (&pvd->vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
-	  return r;
+	  /* We have not updated the mountpoint root
+	     so we are performing the operation on virtual directory.  */
+	  return EROFS;
 	}
       zfsd_mutex_unlock (&pvd->mutex);
     }
@@ -182,6 +184,8 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
   else
     abort ();
 
+  if (attr->type != FT_DIR)
+    return ENOTDIR;
   return ZFS_OK;
 }
 
@@ -224,6 +228,8 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
   else
     abort ();
 
+  if (r == ZFS_OK && attr->type != FT_DIR)
+    return ENOTDIR;
   return r;
 }
 
