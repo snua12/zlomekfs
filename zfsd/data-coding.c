@@ -38,10 +38,6 @@ dc_create (DC *dc, unsigned int size)
   dc->unaligned = (char *) xmalloc (size + 15);
   dc->buffer = (char *) ALIGN_PTR_16 (dc->unaligned);
   dc->size = size;
-#ifdef ENABLE_CHECKING
-  if (size < 0)
-    abort ();
-#endif
 }
 
 /* Free the data coding buffer DC.  */
