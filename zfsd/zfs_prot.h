@@ -294,11 +294,13 @@ struct node_def;
 
 /* Function headers.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+  extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
+					    struct thread_def *t);	\
   extern int zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
 					   ARGS *args,			\
 					   struct node_def *nod);	\
-  extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
-					    struct thread_def *t);
+  extern int zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
+					     ARGS *args, int fd);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
