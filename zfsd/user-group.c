@@ -126,6 +126,7 @@ user_create (uint32_t id, char *name, uint32_t gid)
   if (slot1)
     {
       /* ID is already there.  */
+      message (1, stderr, "Duplicate user ID: %" PRIu32 "\n", id);
       return NULL;
     }
   slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (name),
@@ -133,6 +134,7 @@ user_create (uint32_t id, char *name, uint32_t gid)
   if (slot2)
     {
       /* NAME is already there.  */
+      message (1, stderr, "Duplicate user name: %s\n", name);
       return NULL;
     }
 
@@ -232,6 +234,7 @@ group_create (uint32_t id, char *name, char *user_list)
   if (slot1)
     {
       /* ID is already there.  */
+      message (1, stderr, "Duplicate group ID: %" PRIu32 "\n", id);
       return NULL;
     }
   slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (name),
@@ -239,6 +242,7 @@ group_create (uint32_t id, char *name, char *user_list)
   if (slot2)
     {
       /* NAME is already there.  */
+      message (1, stderr, "Duplicate group name: %s\n", name);
       return NULL;
     }
 
