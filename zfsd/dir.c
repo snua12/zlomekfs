@@ -4055,8 +4055,10 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
 
   if (fh->sid == this_node->id)
     r = local_reintegrate_set (fh, version, dentry, vol);
-  else
+  else if (vol->master != this_node)
     r = remote_reintegrate_set (fh, version, dentry, vol);
+  else
+    abort ();
 
   return r;
 }
