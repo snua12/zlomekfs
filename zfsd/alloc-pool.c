@@ -216,7 +216,8 @@ pool_alloc (alloc_pool pool)
   ALLOCATION_OBJECT_PTR_FROM_USER_PTR (header)->id = pool->id;
 #endif
 
-  message (4, stderr, "POOL ALLOC %p %p\n", (void *) pool, (void *) header);
+  message (4, stderr, "POOL ALLOC %s %p %p\n", pool->name, (void *) pool,
+	   (void *) header);
 
   return ((void *) header);
 }
