@@ -2207,7 +2207,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
   data_buffer data;
   write_res res;
   uint32_t total;
-  uint32_t r;
+  uint32_t r, r2;
 
   for (total = 0; total < count;)
     {
@@ -2225,6 +2225,12 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
       r = local_write (&res, dentry, offset + total, &data, vol);
       if (r != ZFS_OK)
 	return r;
+
+      r2 = zfs_fh_lookup (&cap->fh, NULL, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
 
       total += res.written;
       if (res.written > 0)
