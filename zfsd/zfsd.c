@@ -29,6 +29,7 @@
 static char *config_file = "/etc/zfs/config";
 
 /* Initialize signal handlers.  */
+
 static void
 init_sig_handlers()
 {
@@ -55,6 +56,16 @@ init_sig_handlers()
   sigaction(SIGPIPE, &sig, NULL);
 }
 
+/* Process command line arguments.  */
+
+static int
+process_arguments(int argc, char **argv)
+{
+  verbose = 2;
+
+  return 1;
+}
+
 /* Entry point of ZFS daemon.  */
 
 int
@@ -62,7 +73,8 @@ main(int argc, char **argv)
 {
   init_sig_handlers();
 
-  verbose = 2;
+  if (!process_arguments(argc, argv))
+    return EXIT_FAILURE;
 
   if (!read_config(config_file))
     return EXIT_FAILURE;
