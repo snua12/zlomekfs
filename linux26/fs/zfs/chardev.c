@@ -192,6 +192,7 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 										if (inode) {
 											TRACE("%u: %p invalidated", current->pid, inode);
 											ZFS_I(inode)->flags |= NEED_REVALIDATE;
+											iput(inode);
 										} else
 											TRACE("%u: no inode invalidated", current->pid);
 									}
