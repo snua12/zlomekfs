@@ -3201,7 +3201,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	  case 5:
 	    /* Resolved conflict: set local metadata.  */
 	    dentry = conflict_local_dentry (idir);
-	    other = conflict_remote_dentry (idir);
+	    other = conflict_other_dentry (idir, dentry);
 #ifdef ENABLE_CHECKING
 	    if (!dentry)
 	      abort ();
