@@ -128,16 +128,19 @@ dc_get (void)
 void
 dc_put (DC *_dc)
 {
-  down (&dc_lock);
-  if (!channel.connected || (ndc == MAX_FREE_DCS))
+  if (_dc)
     {
-      up (&dc_lock);
-      dc_destroy(_dc);
-    }
-  else
-    {
-      dc[ndc++] = _dc;
-      up (&dc_lock);
+      down (&dc_lock);
+      if (!channel.connected || (ndc == MAX_FREE_DCS))
+	{
+	  up (&dc_lock);
+	  dc_destroy(_dc);
+	}
+      else
+	{
+	  dc[ndc++] = _dc;
+	  up (&dc_lock);
+	}
     }
 }
 
