@@ -30,6 +30,7 @@
 #include "alloc-pool.h"
 #include "hashtab.h"
 #include "fh.h"
+#include "dir.h"
 #include "log.h"
 #include "random.h"
 #include "util.h"
@@ -182,8 +183,8 @@ internal_cap_destroy (internal_cap cap)
   CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
 
-  slot = htab_find_slot_with_hash (cap_htab, cap, INTERNAL_CAP_HASH (cap),
-				   NO_INSERT);
+  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
+				   INTERNAL_CAP_HASH (cap), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();
@@ -192,7 +193,7 @@ internal_cap_destroy (internal_cap cap)
   htab_clear_slot (cap_htab, slot);
   zfsd_mutex_unlock (&cap->mutex);
   zfsd_mutex_destroy (&cap->mutex);
-  pool_free (cap_pool, *slot);
+  pool_free (cap_pool, cap);
 }
 
 /* Get an internal capability CAP and store it to ICAPP. Store capability's
@@ -218,7 +219,25 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (!fh_lookup (&cap->fh, vol, ifh, vd))
     return ESTALE;
 
-  if (vd && cap->flags != O_RDONLY)
+  if (vd)
+    {
+      if (vol)
+	{
+	  int r;
+
+	  r = update_volume_root (*vol, ifh);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&(*vol)->mutex);
+	      zfsd_mutex_unlock (&(*vd)->mutex);
+	      return r;
+	    }
+	  zfsd_mutex_unlock (&(*vd)->mutex);
+	  *vd = NULL;
+	}
+    }
+  
+  if (*vd && cap->flags != O_RDONLY)
     {
       zfsd_mutex_unlock (&(*vol)->mutex);
       zfsd_mutex_unlock (&(*vd)->mutex);
