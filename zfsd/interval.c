@@ -325,7 +325,7 @@ interval_tree_write_1 (interval_tree_node node, int fd,
 	return r;
     }
 
-  return r;
+  return true;
 }
 
 /* Write the contents of interval tree TREE to file descriptor FD.
