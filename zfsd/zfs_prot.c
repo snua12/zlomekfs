@@ -354,8 +354,28 @@ zfs_proc_read_server (read_args *args, thread *t,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
   DC *dc = &t->dc;
+  int32_t r;
+  char *old_pos = dc->current;
+  unsigned int old_len = dc->cur_length;
+  uint32_t count;
+  char *buffer;
 
-  zfs_read (dc, &args->cap, args->offset, args->count);
+  old_pos = dc->current;
+  old_len = dc->cur_length;
+  encode_status (dc, ZFS_OK);
+  encode_uint32_t (dc, 0);
+  buffer = dc->current;
+  dc->current = old_pos;
+  dc->cur_length = old_len;
+
+  r = zfs_read (&count, buffer, &args->cap, args->offset, args->count);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      encode_uint32_t (dc, count);
+      dc->current += count;
+      dc->cur_length += count;
+    }
 }
 
 /* write_res zfs_proc_write (write_args); */

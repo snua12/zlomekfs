@@ -504,11 +504,7 @@ do_tests (void *data)
 	{
 	  write_args writea;
 	  write_res writer;
-	  uint32_t request_id;
-	  direction dir;
-	  int32_t status;
 	  data_buffer data;
-	  DC dc;
 
 	  writea.cap = cap;
 	  writea.offset = 0;
@@ -523,20 +519,9 @@ do_tests (void *data)
 	  if (!get_running ())
 	    break;
 
-	  dc_create (&dc, ZFS_MAX_REQUEST_LEN);
-	  start_encoding (&dc);
-	  encode_direction (&dc, DIR_REPLY);
-	  encode_request_id (&dc, 0);
 	  message (1, stderr, "TEST READ\n");
-	  r = zfs_read (&dc, &cap, 0, 4);
+	  r = zfs_read (&data.len, data.buf, &cap, 0, 4);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
-	  finish_encoding (&dc);
-	  start_decoding (&dc);
-	  decode_direction (&dc, &dir);
-	  decode_request_id (&dc, &request_id);
-	  decode_status (&dc, &status);
-	  decode_data_buffer (&dc, &data);
-	  dc_destroy (&dc);
 	  if (r == ZFS_OK
 	      && (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0))
 	    message (1, stderr, "FAILURE\n");

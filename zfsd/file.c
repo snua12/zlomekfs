@@ -1075,13 +1075,12 @@ zfs_readdir_retry:
 
 /* Read COUNT bytes from offset OFFSET of local file with capability CAP
    and file handle FH on volume VOL.
-   Store data to DC.  */
+   Store data to BUFFER and count to RCOUNT.  */
 
 static int32_t
-local_read (DC *dc, internal_cap cap, internal_dentry dentry, uint64_t offset,
-	    uint32_t count, volume vol)
+local_read (uint32_t *rcount, void *buffer, internal_cap cap,
+	    internal_dentry dentry, uint64_t offset, uint32_t count, volume vol)
 {
-  data_buffer buf;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1106,16 +1105,14 @@ local_read (DC *dc, internal_cap cap, internal_dentry dentry, uint64_t offset,
       return errno;
     }
 
-  r = read (cap->fd, buf.buf, count);
+  r = read (cap->fd, buffer, count);
   if (r < 0)
     {
       zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
       return errno;
     }
 
-  buf.len = r;
-  encode_status (dc, ZFS_OK);
-  encode_data_buffer (dc, &buf);
+  *rcount = r;
 
   zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
   return ZFS_OK;
@@ -1123,11 +1120,11 @@ local_read (DC *dc, internal_cap cap, internal_dentry dentry, uint64_t offset,
 
 /* Read COUNT bytes from offset OFFSET of remote file with capability CAP
    on volume VOL.
-   Store data to DC.  */
+   Store data to BUFFER and count to RCOUNT.  */
 
 static int32_t
-remote_read (DC *dc, internal_cap cap, uint64_t offset,
-	     uint32_t count, volume vol)
+remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
+	     uint64_t offset, uint32_t count, volume vol)
 {
   read_args args;
   thread *t;
@@ -1151,11 +1148,11 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
 
   if (r == ZFS_OK)
     {
-      encode_status (dc, ZFS_OK);
-      memcpy (dc->current, t->dc_reply.current,
-	      t->dc_reply.max_length - t->dc_reply.cur_length);
-      dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
-      dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
+      if (!decode_uint32_t (&t->dc_reply, rcount)
+	  || t->dc_reply.cur_length + *rcount != t->dc_reply.max_length)
+	r = ZFS_INVALID_REPLY;
+      else
+	memcpy (buffer, t->dc_reply.current, *rcount);
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1163,18 +1160,17 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
 	r = ZFS_INVALID_REPLY;
     }
 
-  if (r != ZFS_OK)
-    encode_status (dc, r);
-
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
 }
 
-/* Read COUNT bytes from file CAP at offset OFFSET.  */
+/* Read COUNT bytes from file CAP at offset OFFSET, sotre the count of bytes
+   read to RCOUNT and the data to BUFFER.  */
 
 int32_t
-zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, uint32_t count)
+zfs_read (uint32_t *rcount, void *buffer,
+	  zfs_cap *cap, uint64_t offset, uint32_t count)
 {
   volume vol;
   internal_cap icap;
@@ -1183,39 +1179,29 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, uint32_t count)
   int retry = 0;
 
   if (count > ZFS_MAXDATA)
-    {
-      encode_status (dc, EINVAL);
-      return EINVAL;
-    }
+    return EINVAL;
 
   if (VIRTUAL_FH_P (cap->fh))
-    {
-      encode_status (dc, EISDIR);
-      return EISDIR;
-    }
+    return EISDIR;
 
 zfs_read_retry:
 
   r = find_capability (cap, &icap, &vol, &dentry, NULL);
   if (r != ZFS_OK)
-    {
-      encode_status (dc, r);
-      return r;
-    }
+    return r;
 
   if (dentry->fh->attr.type == FT_DIR)
     {
       zfsd_mutex_unlock (&dentry->fh->mutex);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&icap->mutex);
-      encode_status (dc, EISDIR);
       return EISDIR;
     }
 
   if (vol->local_path)
-    r = local_read (dc, icap, dentry, offset, count, vol);
+    r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
   else if (vol->master != this_node)
-    r = remote_read (dc, icap, offset, count, vol);
+    r = remote_read (rcount, buffer, icap, offset, count, vol);
   else
     abort ();
   zfsd_mutex_unlock (&dentry->fh->mutex);
