@@ -778,151 +778,39 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   return true;
 }
 
-/* Update generic file DENTRY on volume VOL with name NAME, with local file
-   handle LOCAL_FH, remote file handle REMOTE_FH and remote attributes
-   REMOTE_ATTR.  DIR_FH is a file handle of the directory.
-   Store updated local file handle to LOCAL_FH.  */
+/* If the local file NAME in directory DIR_FH is the same as remote file
+   REMOTE_FH set SAME to true and return ZFS_OK.
+   Otherwise delete NAME and its subtree from directory DIR_FH and set SAME
+   to false.
+   Use local attributes LOCAL_ATTR and remote attributes REMOTE_ATTR for
+   comparing the files.  */
 
 static int32_t
-update_local_fh (internal_dentry dentry, string *name, volume vol,
-		 zfs_fh *dir_fh, zfs_fh *local_fh, zfs_fh *remote_fh,
-		 fattr *remote_attr)
+file_is_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
+		  zfs_fh *remote_fh, fattr *remote_attr, bool *same)
 {
   internal_dentry dir;
-  fattr *local_attr;
-  sattr sa;
-  metadata meta;
+  volume vol;
   int32_t r, r2;
-  read_link_res link_to;
-  create_res cr_res;
-  dir_op_res res;
+  read_link_res local_link, remote_link;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (remote_attr->type != FT_DIR && !dentry->parent)
-    abort ();
-#endif
 
-  local_attr = &res.attr;
-  switch (remote_attr->type)
+  if (local_attr->type != remote_attr->type)
+    goto differ;
+
+  switch (local_attr->type)
     {
       default:
 	abort ();
 
-      case FT_BAD:
-	if (delete_tree (dentry, vol) != ZFS_OK)
-	  return ZFS_UPDATE_FAILED;
-	r = ZFS_OK;
-	break;
-
       case FT_REG:
-	if (remote_attr->type != dentry->fh->attr.type)
-	  {
-	    int fd;
-
-	    if (delete_tree (dentry, vol) != ZFS_OK)
-	      return ZFS_UPDATE_FAILED;
-
-	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-	    if (r2 != ZFS_OK)
-	      abort ();
-#endif
-
-	    sa.mode = remote_attr->mode;
-	    sa.uid = remote_attr->uid;
-	    sa.gid = remote_attr->gid;
-	    sa.size = (uint64_t) -1;
-	    sa.atime = (zfs_time) -1;
-	    sa.mtime = (zfs_time) -1;
-
-	    r = local_create (&cr_res, &fd, dir, name,
-			      O_CREAT | O_WRONLY | O_TRUNC, &sa, vol, &meta);
-	    if (r == ZFS_OK)
-	      {
-		close (fd);
-		*local_fh = cr_res.file;
-		local_attr = &cr_res.attr;
-	      }
-	  }
-	else
-	  {
-	    sa.mode = remote_attr->mode;
-	    sa.uid = remote_attr->uid;
-	    sa.gid = remote_attr->gid;
-	    sa.size = (uint64_t) -1;
-	    sa.atime = (zfs_time) -1;
-	    sa.mtime = (zfs_time) -1;
-
-	    r = local_setattr (local_attr, dentry, &sa, vol);
-	    if (r == ZFS_OK)
-	      meta = dentry->fh->meta;
-	  }
-	break;
-
       case FT_DIR:
-	if (remote_attr->type != dentry->fh->attr.type)
-	  {
-
-#ifdef ENABLE_CHECKING
-	    if (!dentry->parent)
-	      abort ();
-#endif
-
-	    if (delete_tree (dentry, vol) != ZFS_OK)
-	      return ZFS_UPDATE_FAILED;
-
-	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-	    if (r2 != ZFS_OK)
-	      abort ();
-#endif
-
-	    sa.mode = remote_attr->mode;
-	    sa.uid = remote_attr->uid;
-	    sa.gid = remote_attr->gid;
-	    sa.size = (uint64_t) -1;
-	    sa.atime = (zfs_time) -1;
-	    sa.mtime = (zfs_time) -1;
-
-	    r = local_mkdir (&res, dir, name, &sa, vol, &meta);
-	    if (r == ZFS_OK)
-	      {
-		*local_fh = res.file;
-	      }
-	  }
-	else
-	  {
-	    sa.mode = remote_attr->mode;
-	    sa.uid = remote_attr->uid;
-	    sa.gid = remote_attr->gid;
-	    sa.size = (uint64_t) -1;
-	    sa.atime = (zfs_time) -1;
-	    sa.mtime = (zfs_time) -1;
-
-	    r = local_setattr (local_attr, dentry, &sa, vol);
-	    if (r == ZFS_OK)
-	      meta = dentry->fh->meta;
-	  }
 	break;
 
       case FT_LNK:
-	zfsd_mutex_unlock (&fh_mutex);
-	r = remote_readlink (&link_to, dentry, vol);
-	if (r != ZFS_OK)
-	  return r;
-
-	r2 = zfs_fh_lookup_nolock (local_fh, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-	if (r2 != ZFS_OK)
-	  abort ();
-#endif
-
-	if (delete_tree (dentry, vol) != ZFS_OK)
-	  return ZFS_UPDATE_FAILED;
+	if (local_attr->size != remote_attr->size)
+	  goto differ;
 
 	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -930,91 +818,54 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	  abort ();
 #endif
 
-	sa.mode = (uint32_t) -1;
-	sa.uid = remote_attr->uid;
-	sa.gid = remote_attr->gid;
-	sa.size = (uint64_t) -1;
-	sa.atime = (zfs_time) -1;
-	sa.mtime = (zfs_time) -1;
+	r = local_readlink_name (&local_link, dir, name, vol);
+	if (r != ZFS_OK)
+	  goto differ;
 
-	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
-	if (r == ZFS_OK)
-	  {
-	    *local_fh = res.file;
-	  }
+	vol = volume_lookup (dir_fh->vid);
+#ifdef ENABLE_CHECKING
+	if (!vol)
+	  abort ();
+#endif
+
+	r = remote_readlink_zfs_fh (&remote_link, remote_fh, vol);
+	if (r != ZFS_OK)
+	  goto differ;
+
+	if (local_link.path.len != remote_link.path.len
+	    || memcmp (local_link.path.str, remote_link.path.str,
+		       local_link.path.len) != 0)
+	  goto differ;
+
 	break;
 
       case FT_BLK:
       case FT_CHR:
+	if (local_attr->rdev != remote_attr->rdev)
+	  goto differ;
+	break;
+
       case FT_SOCK:
       case FT_FIFO:
-	if (delete_tree (dentry, vol) != ZFS_OK)
-	  return ZFS_UPDATE_FAILED;
-
-	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-	if (r2 != ZFS_OK)
-	  abort ();
-#endif
-
-	sa.mode = remote_attr->mode;
-	sa.uid = remote_attr->uid;
-	sa.gid = remote_attr->gid;
-	sa.size = (uint64_t) -1;
-	sa.atime = (zfs_time) -1;
-	sa.mtime = (zfs_time) -1;
-
-	r = local_mknod (&res, dir, name, &sa, remote_attr->type,
-			 remote_attr->rdev, vol, &meta);
-	if (r == ZFS_OK)
-	  {
-	    *local_fh = res.file;
-	  }
 	break;
     }
 
-  if (r == ZFS_OK)
-    {
-      uint32_t flags;
-      bool ok;
+  *same = true;
+  return ZFS_OK;
 
-      if (dir_fh)
-	{
-	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
-	    abort ();
-	}
-      else
-	{
-	  dir = NULL;
-	  zfsd_mutex_lock (&fh_mutex);
-	}
+differ:
+  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
-      dentry = get_dentry (local_fh, remote_fh, vol, dir, name,
-			   local_attr, &meta);
-      if (dir)
-	release_dentry (dir);
-      zfsd_mutex_unlock (&fh_mutex);
+  r = delete_tree_name (dir, name, vol);
+  if (r != ZFS_OK)
+    return r;
 
-      if (dentry->fh->attr.type == FT_REG)
-	flags = dentry->fh->meta.flags & METADATA_MODIFIED;
-      else if (dentry->fh->attr.type == FT_DIR)
-	flags = 0;
-      else
-	flags = METADATA_COMPLETE;
-
-      ok = set_metadata (vol, dentry->fh, flags,
-			 remote_attr->version, remote_attr->version);
-      release_dentry (dentry);
-      if (!ok)
-	{
-	  vol->delete_p = true;
-	  r = ZFS_METADATA_ERROR;
-	}
-      zfsd_mutex_unlock (&vol->mutex);
-    }
-
-  return r;
+  *same = false;
+  return ZFS_OK;
 }
 
 /* Create local generic file NAME in directory DIR on volume VOL with remote
@@ -1211,259 +1062,225 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 static int32_t
 update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
-  int32_t r, r2;
-  internal_dentry dentry, parent;
-  filldir_htab_entries local_entries, remote_entries;
-  dir_op_res local_res, remote_res;
-  metadata meta;
-  dir_entry *entry;
-  void **slot, **slot2;
-
-  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dir->fh) && vol->master != this_node))
     abort ();
-  if (attr->type != dir->fh->attr.type && !dir->parent)
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  parent = dir->parent;
-  if (parent)
+  if (dir->fh->attr.type == FT_DIR)
     {
-      zfsd_mutex_lock (&dir->parent->fh->mutex);
-      if (CONFLICT_DIR_P (parent->fh->local_fh))
-	parent = parent->parent;
-      zfsd_mutex_unlock (&dir->parent->fh->mutex);
-    }
-
-  zfsd_mutex_unlock (&fh_mutex);
-
-  if (parent)
-    {
-      zfs_fh parent_fh;
-      string name;
-      zfs_fh remote_fh;
+      int32_t r, r2;
+      filldir_htab_entries local_entries, remote_entries;
+      dir_op_res local_res, remote_res;
+      metadata meta;
+      dir_entry *entry;
+      void **slot, **slot2;
+      file_info_res info;
+      fh_mapping map;
 
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
 
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-      if (!dir->parent)
-	abort ();
-#endif
-      zfsd_mutex_lock (&dir->parent->fh->mutex);
-      if (CONFLICT_DIR_P (dir->parent->fh->local_fh))
-	{
-#ifdef ENABLE_CHECKING
-	  if (!dir->parent->parent)
-	    abort ();
-#endif
-	  zfsd_mutex_lock (&dir->parent->parent->fh->mutex);
-	  parent_fh = dir->parent->parent->fh->local_fh;
-	  zfsd_mutex_unlock (&dir->parent->parent->fh->mutex);
-	}
-      else
-	parent_fh = dir->parent->fh->local_fh;
-      zfsd_mutex_unlock (&dir->parent->fh->mutex);
-
-      xstringdup (&name, &dir->name);
-      remote_fh = dir->fh->meta.master_fh;
-
-      r = update_local_fh (dir, &name, vol, &parent_fh,
-			   fh, &remote_fh, attr);
-      free (name.str);
+      r = full_local_readdir (fh, &local_entries);
       if (r != ZFS_OK)
 	return r;
-    }
-  else
-    {
-      sattr sa;
 
-#ifdef ENABLE_CHECKING
-      if (attr->type != FT_DIR)
-	abort ();
-#endif
-
-      sa.mode = attr->mode;
-      sa.uid = attr->uid;
-      sa.gid = attr->gid;
-      sa.size = (uint64_t) -1;
-      sa.atime = (zfs_time) -1;
-      sa.mtime = (zfs_time) -1;
-
-      release_dentry (dir);
-      zfsd_mutex_unlock (&vol->mutex);
-
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-#endif
-
-      r = local_setattr (&dir->fh->attr, dir, &sa, vol);
+      r = full_remote_readdir (fh, &remote_entries);
       if (r != ZFS_OK)
-	return r;
-    }
-
-  if (attr->type == FT_REG)
-    {
-      /* Schedule update of regular file.  */
-
-      zfsd_mutex_lock (&running_mutex);
-      if (update_pool.main_thread == 0)
 	{
-	  /* Update threads are not running.  */
-	  zfsd_mutex_unlock (&running_mutex);
-	  return ZFS_OK;
+	  htab_destroy (local_entries.htab);
+	  return r;
 	}
-      zfsd_mutex_unlock (&running_mutex);
 
-      r2 = zfs_fh_lookup (fh, NULL, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-#endif
-
-      if (dentry->fh->flags)
+      HTAB_FOR_EACH_SLOT (local_entries.htab, slot,
 	{
-	  dentry->fh->flags |= IFH_UPDATE;
-	}
-      else
-	{
-	  dentry->fh->flags |= IFH_UPDATE;
-	  zfsd_mutex_lock (&update_queue.mutex);
-	  queue_put (&update_queue, &dentry->fh->local_fh);
-	  zfsd_mutex_unlock (&update_queue.mutex);
-	}
-      release_dentry (dentry);
-    }
-
-  if (attr->type != FT_DIR)
-    return ZFS_OK;
-
-  r = full_local_readdir (fh, &local_entries);
-  if (r != ZFS_OK)
-    return r;
-
-  r = full_remote_readdir (fh, &remote_entries);
-  if (r != ZFS_OK)
-    {
-      htab_destroy (local_entries.htab);
-      return r;
-    }
-
-  HTAB_FOR_EACH_SLOT (local_entries.htab, slot,
-    {
-      entry = (dir_entry *) *slot;
-      slot2 = htab_find_slot (remote_entries.htab, entry, NO_INSERT);
-      if (slot2)
-	{
-	  /* Update file.  */
+	  entry = (dir_entry *) *slot;
 
 	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
 	  r = local_lookup (&local_res, dir, &entry->name, vol, &meta);
+	  if (r == ENOENT)
+	    {
+	      /* The local file was moved or deleted while updating other
+		 entries.  */
+	      htab_clear_slot (local_entries.htab, slot);
+	      continue;
+	    }
 	  if (r != ZFS_OK)
 	    goto out;
+
+	  slot2 = htab_find_slot (remote_entries.htab, entry, NO_INSERT);
+	  if (slot2)
+	    {
+	      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
+	      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+		abort ();
+
+	      r = remote_lookup (&remote_res, dir, &entry->name, vol);
+	      if (r != ZFS_OK)
+		goto out;
+
+	      if (ZFS_FH_EQ (local_res.file, remote_res.file))
+		{
+		  bool same;
+
+		  r = file_is_the_same (fh, &entry->name, &local_res.attr,
+					&remote_res.file, &remote_res.attr,
+					&same);
+		  if (r != ZFS_OK)
+		    goto out;
+
+		  if (same)
+		    {
+		      htab_clear_slot (local_entries.htab, slot);
+		      htab_clear_slot (remote_entries.htab, slot2);
+		      continue;
+		    }
+		}
+	    }
+
+	  if (!zfs_fh_undefined (meta.master_fh))
+	    {
+	      vol = volume_lookup (fh->vid);
+	      if (ENABLE_CHECKING_VALUE && !vol)
+		abort ();
+
+	      r = remote_file_info (&info, &meta.master_fh, vol);
+	      if (r == ZFS_OK)
+		free (info.path.str);
+
+	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+	      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+		abort ();
+
+	      r = local_reintegrate_del (vol, dir, &entry->name, r != ZFS_OK,
+					 fh);
+	    }
+	  else
+	    {
+	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+	      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+		abort ();
+
+	      r = delete_tree_name (dir, &entry->name, vol);
+	      if (r != ZFS_OK)
+		goto out;
+	    }
+
+	  htab_clear_slot (local_entries.htab, slot);
+	});
+
+      HTAB_FOR_EACH_SLOT (remote_entries.htab, slot,
+	{
+	  entry = (dir_entry *) *slot;
 
 	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
 	  r = remote_lookup (&remote_res, dir, &entry->name, vol);
+	  if (r == ENOENT || r == ESTALE)
+	    {
+	      htab_clear_slot (remote_entries.htab, slot);
+	      continue;
+	    }
 	  if (r != ZFS_OK)
 	    goto out;
+
+	  vol = volume_lookup (fh->vid);
+	  if (ENABLE_CHECKING_VALUE && !vol)
+	    abort ();
+
+	  if (!get_fh_mapping_for_master_fh (vol, &remote_res.file, &map))
+	    {
+	      vol->delete_p = true;
+	      zfsd_mutex_unlock (&vol->mutex);
+	      goto out;
+	    }
+	  zfsd_mutex_unlock (&vol->mutex);
 
 	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
-	  dentry = get_dentry (&local_res.file, &remote_res.file, vol,
-			       dir, &entry->name, &local_res.attr, &meta);
-	  release_dentry (dir);
-
-	  if (UPDATE_P (dentry, remote_res.attr))
+	  if (map.slot_status == VALID_SLOT)
 	    {
-	      r = update_local_fh (dentry, &entry->name, vol, fh,
-				   &local_res.file, &remote_res.file,
-				   &remote_res.attr);
+	      r = local_reintegrate_add (vol, dir, &entry->name,
+					 &map.local_fh);
 	      if (r != ZFS_OK)
 		goto out;
 	    }
 	  else
 	    {
-	      release_dentry (dentry);
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&fh_mutex);
+	      r = create_local_fh (dir, &entry->name, vol, fh,
+				   &remote_res.file, &remote_res.attr);
+	      if (r != ZFS_OK)
+		goto out;
 	    }
 
-	  htab_clear_slot (remote_entries.htab, slot2);
+	  htab_clear_slot (remote_entries.htab, slot);
+	});
+
+      r = ZFS_OK;
+out:
+      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      if (!set_metadata (vol, dir->fh, r == ZFS_OK ? METADATA_COMPLETE : 0,
+			 attr->version, attr->version))
+	vol->delete_p = true;
+
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      htab_destroy (local_entries.htab);
+      htab_destroy (remote_entries.htab);
+      return r;
+    }
+  else if (dir->fh->attr.type == FT_REG)
+    {
+      /* Schedule update of regular file.  */
+
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+
+      zfsd_mutex_lock (&running_mutex);
+      if (update_pool.main_thread == 0)
+	{
+	  /* Update threads are not running.  */
+	  zfsd_mutex_unlock (&running_mutex);
+	  release_dentry (dir);
+	  return ZFS_OK;
+	}
+      zfsd_mutex_unlock (&running_mutex);
+
+      if (dir->fh->flags)
+	{
+	  dir->fh->flags |= IFH_UPDATE;
 	}
       else
 	{
-	  /* Delete file.  */
-	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
-	    abort ();
-
-	  if (delete_tree_name (dir, &entry->name, vol) != ZFS_OK)
-	    goto out;
+	  dir->fh->flags |= IFH_UPDATE;
+	  zfsd_mutex_lock (&update_queue.mutex);
+	  queue_put (&update_queue, &dir->fh->local_fh);
+	  zfsd_mutex_unlock (&update_queue.mutex);
 	}
-      htab_clear_slot (local_entries.htab, slot);
-    });
 
-  HTAB_FOR_EACH_SLOT (remote_entries.htab, slot,
-    {
-      /* Create file.  */
+      release_dentry (dir);
+      return ZFS_OK;
+    }
 
-      entry = (dir_entry *) *slot;
-
-      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
-      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
-	abort ();
-
-      r = remote_lookup (&remote_res, dir, &entry->name, vol);
-      if (r != ZFS_OK)
-	goto out;
-
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
-	abort ();
-
-      r = create_local_fh (dir, &entry->name, vol, fh,
-			   &remote_res.file, &remote_res.attr);
-      if (r != ZFS_OK)
-	goto out;
-
-      htab_clear_slot (remote_entries.htab, slot);
-    });
-
-  r = ZFS_OK;
-
-out:
-  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  if (!set_metadata (vol, dir->fh, r == ZFS_OK ? METADATA_COMPLETE : 0,
-		     attr->version, attr->version))
-    vol->delete_p = true;
-
-  release_dentry (dir);
-  zfsd_mutex_unlock (&vol->mutex);
-  htab_destroy (local_entries.htab);
-  htab_destroy (remote_entries.htab);
-  return r;
+  return ZFS_OK;
 }
 
 /* Update generic file DENTRY on volume VOL with file handle FH according
