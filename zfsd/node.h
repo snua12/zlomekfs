@@ -24,6 +24,7 @@
 #include "system.h"
 #include <netdb.h>
 #include <rpc/rpc.h>
+#include <pthread.h>
 
 /* Connection status.  */
 typedef enum connection_status_def
@@ -44,21 +45,27 @@ typedef enum authentication_status_def
 /* Node description.  */
 typedef struct node_def
 {
+  pthread_mutex_t mutex;
   unsigned int id;		/* ID of the node */
   char *name;			/* name of the node */
-  struct sockaddr_in addr;	/* address */
 				/* public key */
   int flags;			/* see NODE_* below */
   connection_status conn;	/* connection status */
   authentication_status auth;	/* authentication status */
+  int fd;			/* file descriptor */
+  unsigned int generation;	/* generation of open file descriptor */
+#ifdef RPC
   CLIENT *clnt;			/* RPC client */
+#endif
 } *node;
 
 /* Node flags.  */
 #define NODE_DELETE		1	/* the node should be deleted from
 					   memory datastructures  */
 #define NODE_LOCAL		2	/* the node is local node */
-#define NODE_ADDR_RESOLVED	4	/* the address of node is resolved  */
+
+/* Description of local node.  */
+extern node this_node;
 
 /* Function prototypes.  */
 extern node node_lookup (unsigned int id);

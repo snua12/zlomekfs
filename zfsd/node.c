@@ -20,14 +20,18 @@
 
 #include "system.h"
 #include <string.h>
-#include <netdb.h>
-#include <netinet/in.h>
+#include "config.h"
 #include "hashtab.h"
+#include "log.h"
 #include "memory.h"
 #include "node.h"
+#include "zfs_prot.h"
 
 /* Hash table of nodes.  */
 static htab_t node_htab;
+
+/* Description of local node.  */
+node this_node;
 
 /* Hash function for node ID.  */
 #define NODE_HASH_ID(ID) (ID)
@@ -66,7 +70,6 @@ node
 node_create (unsigned int id, char *name)
 {
   node nod;
-  struct hostent *he;
   void **slot;
 
   nod = (node) xmalloc (sizeof (struct node_def));
@@ -75,17 +78,19 @@ node_create (unsigned int id, char *name)
   nod->flags = 0;
   nod->conn = CONNECTION_NONE;
   nod->auth = AUTHENTICATION_NONE;
+#ifdef RPC
   nod->clnt = NULL;
+#endif
+  nod->fd = -1;
+  nod->generation = 0;
 
-  he = gethostbyname (name);
-  if (he)
+  /* Are we creating a structure describing local node?  */
+  if (strcmp (name, node_name) == 0)
     {
-      if (he->h_addrtype == AF_INET
-	  && he->h_length == sizeof (nod->addr.sin_addr))
-	{
-	  nod->flags |= NODE_ADDR_RESOLVED;
-	  memcpy (&nod->addr.sin_addr, he->h_addr_list[0], he->h_length);
-	}
+      this_node = nod;
+      nod->flags |= NODE_LOCAL;
+      nod->conn = CONNECTION_FAST;
+      nod->auth = AUTHENTICATION_DONE;
     }
 
 #ifdef ENABLE_CHECKING
