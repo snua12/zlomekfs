@@ -46,9 +46,8 @@
 
 #define RETURN_PTR(RETVAL)						\
   do {									\
-    void *_r = (RETVAL);							\
-    TRACE ("return %p", _r);						\
-    return _r;								\
+    TRACE ("return %p", (void *) (RETVAL));				\
+    return (RETVAL);							\
   } while (0)
 
 #define RETURN_BOOL(RETVAL)						\
