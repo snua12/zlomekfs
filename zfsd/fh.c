@@ -1013,7 +1013,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
 
 #ifdef ENABLE_CHECKING
   /* internal_dentry_lock2 should be used only by zfs_link and zfs_rename
-     thus the files should be on the same deevice.  */
+     thus the files should be on the same device.  */
   if (tmp_fh1->sid != tmp_fh2->sid
       || tmp_fh1->vid != tmp_fh2->vid
       || tmp_fh1->dev != tmp_fh2->dev)
