@@ -44,6 +44,7 @@ struct volume_def
   char *mountpoint;		/* "mountpoint" for the volume on cluster fs */
 
   bool delete_p;		/* Shall the volume be deleted? */
+  unsigned int n_locked_fhs;	/* number of locked file handles */
 
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */

@@ -746,7 +746,7 @@ zfs_getattr_retry:
       dentry->fh->attr = *fa;
     }
 
-  internal_dentry_unlock (dentry);
+  internal_dentry_unlock (vol, dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -937,7 +937,7 @@ zfs_setattr_retry:
       dentry->fh->attr = *fa;
     }
 
-  internal_dentry_unlock (dentry);
+  internal_dentry_unlock (vol, dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -1227,7 +1227,7 @@ zfs_lookup_retry:
       release_dentry (dentry);
     }
 
-  internal_dentry_unlock (idir);
+  internal_dentry_unlock (vol, idir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -1424,7 +1424,7 @@ zfs_mkdir_retry:
       release_dentry (dentry);
     }
 
-  internal_dentry_unlock (idir);
+  internal_dentry_unlock (vol, idir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -1592,7 +1592,7 @@ zfs_rmdir_retry:
 	}
     }
 
-  internal_dentry_unlock (idir);
+  internal_dentry_unlock (vol, idir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -1904,9 +1904,9 @@ zfs_rename_retry:
   if (path)
     free (path);
 
-  internal_dentry_unlock (to_dentry);
+  internal_dentry_unlock (vol, to_dentry);
   if (to_dentry != from_dentry)
-    internal_dentry_unlock (from_dentry);
+    internal_dentry_unlock (vol, from_dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -2157,9 +2157,9 @@ zfs_link_retry:
 	from_dentry = dir_dentry;
     }
 
-  internal_dentry_unlock (dir_dentry);
+  internal_dentry_unlock (vol, dir_dentry);
   if (dir_dentry != from_dentry)
-    internal_dentry_unlock (from_dentry);
+    internal_dentry_unlock (vol, from_dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -2346,7 +2346,7 @@ zfs_unlink_retry:
   if (path)
     free (path);
 
-  internal_dentry_unlock (idir);
+  internal_dentry_unlock (vol, idir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -2522,7 +2522,7 @@ zfs_readlink_retry:
     abort ();
 #endif
 
-  internal_dentry_unlock (dentry);
+  internal_dentry_unlock (vol, dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -2722,7 +2722,7 @@ zfs_symlink_retry:
       release_dentry (dentry);
     }
 
-  internal_dentry_unlock (idir);
+  internal_dentry_unlock (vol, idir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -2925,7 +2925,7 @@ zfs_mknod_retry:
       release_dentry (dentry);
     }
 
-  internal_dentry_unlock (idir);
+  internal_dentry_unlock (vol, idir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -3176,7 +3176,7 @@ zfs_hardlinks_retry:
     abort ();
 #endif
 
-  internal_dentry_unlock (dentry);
+  internal_dentry_unlock (vol, dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 

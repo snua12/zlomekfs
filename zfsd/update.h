@@ -66,7 +66,7 @@
 									\
 	    if (r != ZFS_OK)						\
 	      {								\
-		internal_dentry_unlock ((DENTRY));			\
+		internal_dentry_unlock ((VOL), (DENTRY));		\
 		zfsd_mutex_unlock (&(VOL)->mutex);			\
 		zfsd_mutex_unlock (&fh_mutex);				\
 		return r;						\
@@ -107,7 +107,7 @@
 									\
 	    if (r != ZFS_OK)						\
 	      {								\
-		internal_dentry_unlock ((DENTRY));			\
+		internal_dentry_unlock ((VOL), (DENTRY));		\
 		zfsd_mutex_unlock (&(VOL)->mutex);			\
 		zfsd_mutex_unlock (&fh_mutex);				\
 		return r;						\
@@ -118,7 +118,7 @@
 		(DENTRY2) = dentry_lookup (&(FH2));			\
 		if (!(DENTRY2))						\
 		  {							\
-		    internal_dentry_unlock ((DENTRY));			\
+		    internal_dentry_unlock ((VOL), (DENTRY));		\
 		    zfsd_mutex_unlock (&(VOL)->mutex);			\
 		    zfsd_mutex_unlock (&fh_mutex);			\
 		    return ZFS_STALE;					\

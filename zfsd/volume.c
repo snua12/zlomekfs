@@ -109,6 +109,7 @@ volume_create (uint32_t id)
   vol->master = NULL;
   vol->mountpoint = NULL;
   vol->delete_p = false;
+  vol->n_locked_fhs = 0;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
   vol->root_dentry = NULL;
@@ -141,6 +142,11 @@ volume_destroy (volume vol)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
+#ifdef ENABLE_CHECKING
+  if (vol->n_locked_fhs > 0)
+    abort ();
+#endif
 
   if (vol->root_dentry)
     {
@@ -181,6 +187,11 @@ volume_delete (volume vol)
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
+#ifdef ENABLE_CHECKING
+  if (vol->n_locked_fhs > 0)
+    abort ();
+#endif
 
   /* Destroy dentries on volume.  */
   if (vol->root_dentry)

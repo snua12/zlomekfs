@@ -734,6 +734,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
+  (*volp)->n_locked_fhs++;
   if (level == LEVEL_EXCLUSIVE)
     (*dentryp)->fh->owner = pthread_self ();
 #ifdef ENABLE_CHECKING
@@ -759,9 +760,10 @@ internal_dentry_lock (unsigned int level, volume *volp,
 /* Unlock dentry DENTRY.  */
 
 void
-internal_dentry_unlock (internal_dentry dentry)
+internal_dentry_unlock (volume vol, internal_dentry dentry)
 {
   CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (dentry->fh->level == LEVEL_UNLOCKED)
@@ -777,6 +779,7 @@ internal_dentry_unlock (internal_dentry dentry)
 	   __FILE__, __LINE__);
 
   dentry->fh->users--;
+  vol->n_locked_fhs--;
   if (dentry->fh->users == 0)
     {
       dentry->fh->level = LEVEL_UNLOCKED;
@@ -851,7 +854,7 @@ out1:
 	    abort ();
 #endif
 
-	  internal_dentry_unlock (*dentry1p);
+	  internal_dentry_unlock (*volp, *dentry1p);
 	  zfsd_mutex_unlock (&(*volp)->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
 
@@ -888,7 +891,7 @@ out2:
 	    abort ();
 #endif
 
-	  internal_dentry_unlock (*dentry2p);
+	  internal_dentry_unlock (*volp, *dentry2p);
 	  zfsd_mutex_unlock (&(*volp)->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
 

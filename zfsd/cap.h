@@ -61,7 +61,8 @@ struct internal_cap_def
 extern int32_t internal_cap_lock (unsigned int level, internal_cap *icapp,
 				  volume *volp, internal_dentry *dentryp,
 				  virtual_dir *vdp, zfs_cap *tmp_cap);
-extern void internal_cap_unlock (internal_dentry dentry, virtual_dir vd);
+extern void internal_cap_unlock (volume vol, internal_dentry dentry,
+				 virtual_dir vd);
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int32_t get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			       internal_dentry *dentry, virtual_dir *vd,

@@ -150,6 +150,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
+  (*volp)->n_locked_fhs++;
   if (vdp && *vdp)
     {
       (*vdp)->busy = true;
@@ -181,9 +182,10 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 /* Unlock dentry DENTRY and virtual directory VD.  */
 
 void
-internal_cap_unlock (internal_dentry dentry, virtual_dir vd)
+internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
 {
   CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   if (vd)
     {
@@ -191,7 +193,7 @@ internal_cap_unlock (internal_dentry dentry, virtual_dir vd)
       CHECK_MUTEX_LOCKED (&vd->mutex);
     }
 
-  internal_dentry_unlock (dentry);
+  internal_dentry_unlock (vol, dentry);
 
   if (vd)
     {

@@ -305,7 +305,7 @@ extern internal_dentry dentry_lookup_name (internal_dentry parent,
 					   const char *name);
 extern int32_t internal_dentry_lock (unsigned int level, volume *volp,
 				     internal_dentry *dentryp, zfs_fh *tmp_fh);
-extern void internal_dentry_unlock (internal_dentry dentry);
+extern void internal_dentry_unlock (volume vol, internal_dentry dentry);
 extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
 				      volume *volp, internal_dentry *dentry1p,
 				      internal_dentry *dentry2p,
