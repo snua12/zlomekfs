@@ -5074,13 +5074,13 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   if (!REGULAR_FH_P (*dir))
     return EINVAL;
 
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
+  r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
   if (r == ZFS_STALE)
     {
       r = refresh_fh (dir);
       if (r != ZFS_OK)
 	return r;
-      r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
+      r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
     }
   if (r != ZFS_OK)
     return r;
