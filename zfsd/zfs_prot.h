@@ -358,10 +358,11 @@ enum function_number_def
 struct thread_def;
 struct node_def;
 
+#include "data-coding.h"
 /* Function headers.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
-					    struct thread_def *t,	\
+					    DC *dc, void *data,		\
 					    bool map_id);		\
   extern int32_t zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
 					       ARGS *args,		\

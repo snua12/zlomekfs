@@ -1,5 +1,5 @@
 /* Functions for managing thread pools.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -53,16 +53,18 @@ typedef enum thread_state_def
 struct network_fd_data_def;
 typedef struct network_thread_data_def
 {
-  struct network_fd_data_def *fd_data; /* passed from main network thread */
-  unsigned int generation;    /* generation of file descriptor */
-  unsigned int index;         /* index of FD in array "active" */
+  DC dc;				/* buffer for request to this node */
+  call_args args;			/* union for decoded call arguments */
+  struct network_fd_data_def *fd_data;	/* passed from main network thread */
+  unsigned int generation;		/* generation of file descriptor */
+  unsigned int index;			/* index of FD in array "active" */
 } network_thread_data;
 
 /* Additional data for a kernel thread.  */
 typedef struct kernel_thread_data_def
 {
-  /* Buffer for data.  */
-  char *buffer;
+  DC dc;				/* buffer for request to this node */
+  call_args args;			/* union for decoded call arguments */
 } kernel_thread_data;
 
 /* Definition of thread's variables.  */
@@ -83,17 +85,15 @@ typedef struct thread_def
   /* Semaphore used to stop an idle thread.  */
   semaphore sem;
 
-  DC dc;			/* buffer for request to this node */
   DC dc_call;			/* buffer for request for remote node */
   DC dc_reply;			/* buffer for reply from remote node */
-  call_args args;		/* union for decoded call arguments.  */
   int32_t retval;		/* return value for request.  */
 
   /* Additional data for each subtype.  */
   union {
     network_thread_data network;
-#if 0
     kernel_thread_data kernel;
+#if 0
     update_thread_data update;
 #endif
   } u;

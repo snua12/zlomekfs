@@ -52,22 +52,20 @@ static pthread_mutex_t request_id_mutex;
 /* void zfs_proc_null (void) */
 
 void
-zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, thread *t,
+zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
-
   encode_status (dc, ZFS_OK);
 }
 
 /* zfs_fh zfs_proc_root (void); */
 
 void
-zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, thread *t,
+zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
-
   encode_status (dc, ZFS_OK);
   encode_zfs_fh (dc, &root_fh);
 }
@@ -75,9 +73,9 @@ zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, thread *t,
 /* dir_op_res zfs_proc_volume_root (volume_root_args); */
 
 void
-zfs_proc_volume_root_server (volume_root_args *args, thread *t, bool map_id)
+zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
+			     ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   volume vol;
   internal_dentry dentry;
@@ -128,9 +126,9 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t, bool map_id)
 /* fattr zfs_proc_getattr (zfs_fh); */
 
 void
-zfs_proc_getattr_server (zfs_fh *args, thread *t, bool map_id)
+zfs_proc_getattr_server (zfs_fh *args, DC *dc,
+			 ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   fattr fa;
 
@@ -150,9 +148,9 @@ zfs_proc_getattr_server (zfs_fh *args, thread *t, bool map_id)
 /* fattr zfs_proc_setattr (sattr_args); */
 
 void
-zfs_proc_setattr_server (sattr_args *args, thread *t, bool map_id)
+zfs_proc_setattr_server (sattr_args *args, DC *dc,
+			 ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   fattr fa;
 
@@ -177,10 +175,10 @@ zfs_proc_setattr_server (sattr_args *args, thread *t, bool map_id)
 /* dir_op_res zfs_proc_lookup (dir_op_args); */
 
 void
-zfs_proc_lookup_server (dir_op_args *args, thread *t,
+zfs_proc_lookup_server (dir_op_args *args, DC *dc,
+			ATTRIBUTE_UNUSED void *data,
 			ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   dir_op_res res;
   int32_t r;
 
@@ -202,9 +200,9 @@ zfs_proc_lookup_server (dir_op_args *args, thread *t,
 /* zfs_cap zfs_proc_create (create_args); */
 
 void
-zfs_proc_create_server (create_args *args, thread *t, bool map_id)
+zfs_proc_create_server (create_args *args, DC *dc,
+			ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   create_res res;
   int32_t r;
 
@@ -231,10 +229,10 @@ zfs_proc_create_server (create_args *args, thread *t, bool map_id)
 /* zfs_cap zfs_proc_open (open_args); */
 
 void
-zfs_proc_open_server (open_args *args, thread *t,
+zfs_proc_open_server (open_args *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   zfs_cap res;
   int32_t r;
 
@@ -247,10 +245,10 @@ zfs_proc_open_server (open_args *args, thread *t,
 /* void zfs_proc_close (zfs_cap); */
 
 void
-zfs_proc_close_server (zfs_cap *args, thread *t,
+zfs_proc_close_server (zfs_cap *args, DC *dc,
+		       ATTRIBUTE_UNUSED void *data,
 		       ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
 
   r = zfs_close (args);
@@ -260,10 +258,10 @@ zfs_proc_close_server (zfs_cap *args, thread *t,
 /* read_dir_res zfs_proc_readdir (read_dir_args); */
 
 void
-zfs_proc_readdir_server (read_dir_args *args, thread *t,
+zfs_proc_readdir_server (read_dir_args *args, DC *dc,
+			 ATTRIBUTE_UNUSED void *data,
 			 ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   char *old_pos, *cur_pos;
   unsigned int old_len, cur_len;
@@ -298,9 +296,9 @@ zfs_proc_readdir_server (read_dir_args *args, thread *t,
 /* dir_op_res zfs_proc_mkdir (mkdir_args); */
 
 void
-zfs_proc_mkdir_server (mkdir_args *args, thread *t, bool map_id)
+zfs_proc_mkdir_server (mkdir_args *args, DC *dc,
+		       ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   dir_op_res res;
   int32_t r;
 
@@ -327,10 +325,10 @@ zfs_proc_mkdir_server (mkdir_args *args, thread *t, bool map_id)
 /* void zfs_proc_rmdir (dir_op_args); */
 
 void
-zfs_proc_rmdir_server (dir_op_args *args, thread *t,
+zfs_proc_rmdir_server (dir_op_args *args, DC *dc,
+		       ATTRIBUTE_UNUSED void *data,
 		       ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
 
   r = zfs_rmdir (&args->dir, &args->name);
@@ -341,10 +339,10 @@ zfs_proc_rmdir_server (dir_op_args *args, thread *t,
 /* void zfs_proc_rename (rename_args); */
 
 void
-zfs_proc_rename_server (rename_args *args, thread *t,
+zfs_proc_rename_server (rename_args *args, DC *dc,
+			ATTRIBUTE_UNUSED void *data,
 			ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
 
   r = zfs_rename (&args->from.dir, &args->from.name,
@@ -357,10 +355,10 @@ zfs_proc_rename_server (rename_args *args, thread *t,
 /* void zfs_proc_link (link_args); */
 
 void
-zfs_proc_link_server (link_args *args, thread *t,
+zfs_proc_link_server (link_args *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
 
   r = zfs_link (&args->from, &args->to.dir, &args->to.name);
@@ -371,10 +369,10 @@ zfs_proc_link_server (link_args *args, thread *t,
 /* void zfs_proc_unlink (dir_op_args); */
 
 void
-zfs_proc_unlink_server (dir_op_args *args, thread *t,
+zfs_proc_unlink_server (dir_op_args *args, DC *dc,
+			ATTRIBUTE_UNUSED void *data,
 			ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
 
   r = zfs_unlink (&args->dir, &args->name);
@@ -385,10 +383,10 @@ zfs_proc_unlink_server (dir_op_args *args, thread *t,
 /* data_buffer zfs_proc_read (read_args); */
 
 void
-zfs_proc_read_server (read_args *args, thread *t,
+zfs_proc_read_server (read_args *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   char *old_pos;
   unsigned int old_len;
@@ -416,10 +414,10 @@ zfs_proc_read_server (read_args *args, thread *t,
 /* write_res zfs_proc_write (write_args); */
 
 void
-zfs_proc_write_server (write_args *args, thread *t,
+zfs_proc_write_server (write_args *args, DC *dc,
+		       ATTRIBUTE_UNUSED void *data,
 		       ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   write_res res;
   int32_t r;
 
@@ -432,10 +430,10 @@ zfs_proc_write_server (write_args *args, thread *t,
 /* read_link_res zfs_proc_readlink (zfs_fh); */
 
 void
-zfs_proc_readlink_server (zfs_fh *args, thread *t,
+zfs_proc_readlink_server (zfs_fh *args, DC *dc,
+			  ATTRIBUTE_UNUSED void *data,
 			  ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   read_link_res res;
 
@@ -451,9 +449,9 @@ zfs_proc_readlink_server (zfs_fh *args, thread *t,
 /* dir_op_res zfs_proc_symlink (symlink_args); */
 
 void
-zfs_proc_symlink_server (symlink_args *args, thread *t, bool map_id)
+zfs_proc_symlink_server (symlink_args *args, DC *dc,
+			 ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   dir_op_res res;
   int32_t r;
 
@@ -482,9 +480,9 @@ zfs_proc_symlink_server (symlink_args *args, thread *t, bool map_id)
 /* dir_op_res zfs_proc_mknod (mknod_args); */
 
 void
-zfs_proc_mknod_server (mknod_args *args, thread *t, bool map_id)
+zfs_proc_mknod_server (mknod_args *args, DC *dc,
+		       ATTRIBUTE_UNUSED void *data, bool map_id)
 {
-  DC *dc = &t->dc;
   dir_op_res res;
   int32_t r;
 
@@ -512,11 +510,11 @@ zfs_proc_mknod_server (mknod_args *args, thread *t, bool map_id)
 /* ? zfs_proc_auth_stage1 (auth_stage1_args); */
 
 void
-zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t,
+zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
 			     ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
-  network_fd_data_t *fd_data = t->u.network.fd_data;
+  network_thread_data *t_data = (network_thread_data *) data;
+  network_fd_data_t *fd_data = t_data->fd_data;
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
@@ -537,7 +535,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t,
       zfsd_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
       zfsd_mutex_lock (&fd_data->mutex);
-      if (fd_data->fd >= 0 && fd_data->generation == t->u.network.generation)
+      if (fd_data->fd >= 0 && fd_data->generation == t_data->generation)
 	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);
@@ -548,11 +546,11 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t,
 /* ? zfs_proc_auth_stage2 (auth_stage2_args); */
 
 void
-zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t,
+zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
 			     ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
-  network_fd_data_t *fd_data = t->u.network.fd_data;
+  network_thread_data *t_data = (network_thread_data *) data;
+  network_fd_data_t *fd_data = t_data->fd_data;
   node nod;
   bool authenticated = false;
 
@@ -578,7 +576,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t,
       zfsd_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
       zfsd_mutex_lock (&fd_data->mutex);
-      if (fd_data->fd >= 0 && fd_data->generation == t->u.network.generation)
+      if (fd_data->fd >= 0 && fd_data->generation == t_data->generation)
 	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);
@@ -587,10 +585,10 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t,
 /* md5sum_res zfs_proc_md5sum (md5sum_args); */
 
 void
-zfs_proc_md5sum_server (md5sum_args *args, thread *t,
+zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
+			ATTRIBUTE_UNUSED void *data,
 			ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   md5sum_res md5;
 
@@ -603,10 +601,10 @@ zfs_proc_md5sum_server (md5sum_args *args, thread *t,
 /* hardlinks_res zfs_proc_hardlinks (hardlinks_args); */
 
 void
-zfs_proc_hardlinks_server (hardlinks_args *args, thread *t,
+zfs_proc_hardlinks_server (hardlinks_args *args, DC *dc,
+			   ATTRIBUTE_UNUSED void *data,
 			   ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
   int32_t r;
   char *old_pos, *cur_pos;
   unsigned int old_len, cur_len;
@@ -640,11 +638,10 @@ zfs_proc_hardlinks_server (hardlinks_args *args, thread *t,
 /* data_buffer zfs_proc_ping (data_buffer); */
 
 void
-zfs_proc_ping_server (data_buffer *args, thread *t,
+zfs_proc_ping_server (data_buffer *args, DC *dc,
+		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
-  DC *dc = &t->dc;
-
   encode_status (dc, ZFS_OK);
   encode_data_buffer (dc, args);
 }

@@ -1,5 +1,5 @@
 /* Functions for threads communicating with kernel.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -83,7 +83,8 @@ send_reply (thread *t)
 {
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&kernel_data.mutex);
-  if (!full_write (kernel_file, t->dc.buffer, t->dc.cur_length))
+  if (!full_write (kernel_file, t->u.kernel.dc.buffer,
+		   t->u.kernel.dc.cur_length))
     {
     }
   zfsd_mutex_unlock (&kernel_data.mutex);
@@ -94,11 +95,11 @@ send_reply (thread *t)
 static void
 send_error_reply (thread *t, uint32_t request_id, int32_t status)
 {
-  start_encoding (&t->dc);
-  encode_direction (&t->dc, DIR_REPLY);
-  encode_request_id (&t->dc, request_id);
-  encode_status (&t->dc, status);
-  finish_encoding (&t->dc);
+  start_encoding (&t->u.kernel.dc);
+  encode_direction (&t->u.kernel.dc, DIR_REPLY);
+  encode_request_id (&t->u.kernel.dc, request_id);
+  encode_status (&t->u.kernel.dc, status);
+  finish_encoding (&t->u.kernel.dc);
   send_reply (t);
 }
 
@@ -148,19 +149,19 @@ kernel_worker (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-      if (!decode_request_id (&t->dc, &request_id))
+      if (!decode_request_id (&t->u.kernel.dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
 	  goto out;
 	}
 
-      if (t->dc.max_length > t->dc.size)
+      if (t->u.kernel.dc.max_length > t->u.kernel.dc.size)
 	{
 	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
-      if (!decode_function (&t->dc, &fn))
+      if (!decode_function (&t->u.kernel.dc, &fn))
 	{
 	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
@@ -169,20 +170,23 @@ kernel_worker (void *data)
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
 	{
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		      \
-	  case ZFS_PROC_##NAME:						      \
-	    if (!decode_##ARGS (&t->dc, &t->args.FUNCTION)		      \
-		|| !finish_decoding (&t->dc))				      \
-	      {								      \
-		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	      \
-		goto out;						      \
-	      }								      \
-	    start_encoding (&t->dc);					      \
-	    encode_direction (&t->dc, DIR_REPLY);			      \
-	    encode_request_id (&t->dc, request_id);			      \
-	    zfs_proc_##FUNCTION##_server (&t->args.FUNCTION, t, true);	      \
-	    finish_encoding (&t->dc);					      \
-	    send_reply (t);						      \
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+	  case ZFS_PROC_##NAME:						\
+	    if (!decode_##ARGS (&t->u.kernel.dc,			\
+				&t->u.kernel.args.FUNCTION)		\
+		|| !finish_decoding (&t->u.kernel.dc))			\
+	      {								\
+		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	\
+		goto out;						\
+	      }								\
+	    start_encoding (&t->u.kernel.dc);				\
+	    encode_direction (&t->u.kernel.dc, DIR_REPLY);		\
+	    encode_request_id (&t->u.kernel.dc, request_id);		\
+	    zfs_proc_##FUNCTION##_server (&t->u.kernel.args.FUNCTION,	\
+					  &t->u.kernel.dc,		\
+					  &t->u.kernel, true);		\
+	    finish_encoding (&t->u.kernel.dc);				\
+	    send_reply (t);						\
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -197,13 +201,13 @@ out:
       if (kernel_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
 	{
 	  /* Add the buffer to the queue.  */
-	  kernel_data.dc[kernel_data.ndc] = t->dc;
+	  kernel_data.dc[kernel_data.ndc] = t->u.kernel.dc;
 	  kernel_data.ndc++;
 	}
       else
 	{
 	  /* Free the buffer.  */
-	  dc_destroy (&t->dc);
+	  dc_destroy (&t->u.kernel.dc);
 	}
       zfsd_mutex_unlock (&kernel_data.mutex);
 
@@ -263,7 +267,7 @@ kernel_dispatch (DC *dc)
 	  abort ();
 #endif
 	set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
-	kernel_pool.threads[index].t.dc = *dc;
+	kernel_pool.threads[index].t.u.kernel.dc = *dc;
 
 	/* Let the thread run.  */
 	semaphore_up (&kernel_pool.threads[index].t.sem, 1);

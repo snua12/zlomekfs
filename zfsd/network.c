@@ -306,7 +306,8 @@ send_reply (thread *t)
   if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
     {
       td->fd_data->last_use = time (NULL);
-      if (!full_write (td->fd_data->fd, t->dc.buffer, t->dc.cur_length))
+      if (!full_write (td->fd_data->fd, t->u.network.dc.buffer,
+		       t->u.network.dc.cur_length))
 	{
 	}
     }
@@ -318,11 +319,11 @@ send_reply (thread *t)
 static void
 send_error_reply (thread *t, uint32_t request_id, int32_t status)
 {
-  start_encoding (&t->dc);
-  encode_direction (&t->dc, DIR_REPLY);
-  encode_request_id (&t->dc, request_id);
-  encode_status (&t->dc, status);
-  finish_encoding (&t->dc);
+  start_encoding (&t->u.network.dc);
+  encode_direction (&t->u.network.dc, DIR_REPLY);
+  encode_request_id (&t->u.network.dc, request_id);
+  encode_status (&t->u.network.dc, status);
+  finish_encoding (&t->u.network.dc);
   send_reply (t);
 }
 
@@ -373,19 +374,19 @@ network_worker (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-      if (!decode_request_id (&t->dc, &request_id))
+      if (!decode_request_id (&t->u.network.dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
 	  goto out;
 	}
 
-      if (t->dc.max_length > t->dc.size)
+      if (t->u.network.dc.max_length > t->u.network.dc.size)
 	{
 	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
-      if (!decode_function (&t->dc, &fn))
+      if (!decode_function (&t->u.network.dc, &fn))
 	{
 	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
@@ -394,25 +395,29 @@ network_worker (void *data)
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
 	{
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		      \
-	  case ZFS_PROC_##NAME:						      \
-	    if (td->fd_data->auth < AUTH)					      \
-	      {								      \
-		send_error_reply (t, request_id, ZFS_INVALID_AUTH_LEVEL);     \
-		goto out;						      \
-	      }								      \
-	    if (!decode_##ARGS (&t->dc, &t->args.FUNCTION)		      \
-		|| !finish_decoding (&t->dc))				      \
-	      {								      \
-		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	      \
-		goto out;						      \
-	      }								      \
-	    start_encoding (&t->dc);					      \
-	    encode_direction (&t->dc, DIR_REPLY);			      \
-	    encode_request_id (&t->dc, request_id);			      \
-	    zfs_proc_##FUNCTION##_server (&t->args.FUNCTION, t, false);	      \
-	    finish_encoding (&t->dc);					      \
-	    send_reply (t);						      \
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+	  case ZFS_PROC_##NAME:						\
+	    if (td->fd_data->auth < AUTH)				\
+	      {								\
+		send_error_reply (t, request_id,			\
+				  ZFS_INVALID_AUTH_LEVEL);		\
+		goto out;						\
+	      }								\
+	    if (!decode_##ARGS (&t->u.network.dc,			\
+				&t->u.network.args.FUNCTION)		\
+		|| !finish_decoding (&t->u.network.dc))			\
+	      {								\
+		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	\
+		goto out;						\
+	      }								\
+	    start_encoding (&t->u.network.dc);				\
+	    encode_direction (&t->u.network.dc, DIR_REPLY);		\
+	    encode_request_id (&t->u.network.dc, request_id);		\
+	    zfs_proc_##FUNCTION##_server (&t->u.network.args.FUNCTION,	\
+					  &t->u.network.dc,		\
+					  &t->u.network, false);	\
+	    finish_encoding (&t->u.network.dc);				\
+	    send_reply (t);						\
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -425,7 +430,7 @@ network_worker (void *data)
 out:
       zfsd_mutex_lock (&td->fd_data->mutex);
       td->fd_data->busy--;
-      recycle_dc_to_fd_data (&t->dc, td->fd_data);
+      recycle_dc_to_fd_data (&t->u.network.dc, td->fd_data);
       zfsd_mutex_unlock (&td->fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
@@ -528,8 +533,8 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	  abort ();
 #endif
 	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
+	network_pool.threads[index].t.u.network.dc = *dc;
 	network_pool.threads[index].t.u.network.fd_data = fd_data;
-	network_pool.threads[index].t.dc = *dc;
 	network_pool.threads[index].t.u.network.generation = generation;
 
 	/* Let the thread run.  */
