@@ -108,7 +108,8 @@ typedef struct fh_mapping_def
 
 #define METADATA_COMPLETE	1	/* file is complete */
 #define METADATA_MODIFIED	2	/* file is modified */
-#define METADATA_SHADOW		4	/* file is not in directory tree */
+#define METADATA_SHADOW		4	/* file is in shadow */
+#define METADATA_SHADOW_TREE	8	/* dir is a part of shadow tree */
 
 #include "volume.h"
 #include "fh.h"
@@ -171,8 +172,9 @@ extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
 				       uint32_t new_parent_dev,
 				       uint32_t new_parent_ino,
 				       string *new_name);
-extern bool metadata_hardlink_set_shadow (volume vol, zfs_fh *fh,
-					  metadata *meta);
+extern bool metadata_hardlink_set (volume vol, zfs_fh *fh, metadata *meta,
+				   uint32_t parent_dev, uint32_t parent_ino,
+				   string *name);
 extern unsigned int metadata_n_hardlinks (volume vol, zfs_fh *fh,
 					  metadata *meta);
 extern void get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh);
@@ -183,7 +185,8 @@ extern bool add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 			       journal_operation_t oper);
 extern bool add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
 				  string *name, journal_operation_t oper);
-extern void get_shadow_path (string *path, volume vol, zfs_fh *fh, bool create);
+extern bool create_shadow_path (string *path, volume vol, zfs_fh *fh,
+				string *name);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);

@@ -4676,8 +4676,11 @@ local_reintegrate_del_fh (zfs_fh *fh)
     }
 
   vid = vol->id;
-  get_shadow_path (&shadow_path, vol, fh, false);
+  get_local_path_from_metadata (&shadow_path, vol, fh);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (shadow_path.str == NULL)
+    return ZFS_METADATA_ERROR;
 
   r = recursive_unlink (&shadow_path, vid, true, true);
   free (shadow_path.str);

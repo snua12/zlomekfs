@@ -1012,8 +1012,14 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   new_parent_ino = dir->fh->local_fh.ino;
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
-  get_shadow_path (&shadow_path, vol, fh, false);
+  get_local_path_from_metadata (&shadow_path, vol, fh);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (shadow_path.str == NULL)
+    {
+      free (path.str);
+      return ZFS_METADATA_ERROR;
+    }
 
   r = recursive_unlink (&path, vid, false, true);
   if (r != ZFS_OK)
@@ -1038,8 +1044,8 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  if (!metadata_hardlink_replace (vol, fh, meta, 0, 0, &empty_string,
-				  new_parent_dev, new_parent_ino, name))
+  if (!metadata_hardlink_set (vol, fh, meta, new_parent_dev, new_parent_ino,
+			      name))
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
@@ -1060,8 +1066,10 @@ bool
 move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 		metadata *meta)
 {
+  struct stat parent_st;
   string path;
   string shadow_path;
+  string file_name;
   uint32_t vid;
   int32_t r;
 
@@ -1074,7 +1082,12 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   vid = vol->id;
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
-  get_shadow_path (&shadow_path, vol, fh, true);
+  if (!create_shadow_path (&shadow_path, vol, fh, name))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path.str);
+      return false;
+    }
   zfsd_mutex_unlock (&vol->mutex);
 
   r = recursive_unlink (&shadow_path, vid, true, true);
@@ -1109,7 +1122,19 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  if (!metadata_hardlink_set_shadow (vol, fh, meta))
+  file_name_from_path (&file_name, &shadow_path);
+  file_name.str[-1] = 0;
+  if (lstat (shadow_path.str[0] ? shadow_path.str : "/", &parent_st) != 0)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+  file_name.str[-1] = '/';
+
+  if (!metadata_hardlink_set (vol, fh, meta, parent_st.st_dev,
+			      parent_st.st_ino, &file_name))
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
@@ -2054,6 +2079,13 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   HTAB_FOR_EACH_SLOT (local_entries.htab, slot)
     {
       entry = (dir_entry *) *slot;
+
+      if (LOCAL_VOLUME_ROOT_P (dir)
+	  && strcmp (entry->name, ".shadow") == 0)
+	{
+	  htab_clear_slot (local_entries.htab, slot);
+	  continue;
+	}
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING

@@ -73,7 +73,9 @@ typedef struct volume_def *volume;
 /* Is file NAME in directory DIR a special dir?  */
 #define SPECIAL_DIR_P(DIR, NAME)					\
   (LOCAL_VOLUME_ROOT_P (DIR)						\
-   && strcmp ((NAME), ".zfs") == 0)
+   && (strcmp ((NAME), ".zfs") == 0					\
+       || (strcmp ((NAME), ".shadow") == 0				\
+	   && !request_from_this_node ())))
 
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\

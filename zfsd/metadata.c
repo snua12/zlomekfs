@@ -314,11 +314,6 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
 	VARRAY_ACCESS (v, 4, string).len = 8;
 	break;
 
-      case METADATA_TYPE_SHADOW:
-	VARRAY_ACCESS (v, 4, string).str = ".shadow";
-	VARRAY_ACCESS (v, 4, string).len = 7;
-	break;
-
       default:
 	abort ();
     }
@@ -327,12 +322,70 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
   varray_destroy (&v);
 }
 
+/* Build path PATH to shadow file for file FH with name FILE_NAME
+   on volume VOL.  */
+
+static void
+build_shadow_metadata_path (string *path, volume vol, zfs_fh *fh,
+			    string *file_name)
+{
+#if METADATA_NAME_SIZE < 20
+#error METADATA_NAME_SIZE must be at least 20
+#endif
+  char name[METADATA_NAME_SIZE];
+  char tree[2 * MAX_METADATA_TREE_DEPTH + 1];
+  varray v;
+  unsigned int i;
+  unsigned int len;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (vol->local_path.str == NULL)
+    abort ();
+#endif
+
+  len = (file_name->len <= METADATA_NAME_SIZE - (2 * 8 + 2)
+	 ? file_name->len : METADATA_NAME_SIZE - (2 * 8 + 2));
+  memcpy (name, file_name->str, len);
+  name[len++] = '.';
+  sprintf (name + len, "%08X%08X", fh->dev, fh->ino);
+  len += 16;
+#ifdef ENABLE_CHECKING
+  if (name[len] != 0)
+    abort ();
+#endif
+
+  for (i = 0; i < metadata_tree_depth; i++)
+    {
+      tree[2 * i] = name[15 - i];
+      tree[2 * i + 1] = '/';
+    }
+  tree[2 * metadata_tree_depth] = 0;
+
+  varray_create (&v, sizeof (string), 4);
+  VARRAY_USED (v) = 4;
+  VARRAY_ACCESS (v, 0, string) = vol->local_path;
+  VARRAY_ACCESS (v, 1, string).str = "/.shadow/";
+  VARRAY_ACCESS (v, 1, string).len = 9;
+  VARRAY_ACCESS (v, 2, string).str = tree;
+  VARRAY_ACCESS (v, 2, string).len = 2 * metadata_tree_depth;
+  VARRAY_ACCESS (v, 3, string).str = name;
+  VARRAY_ACCESS (v, 3, string).len = len;
+
+  xstringconcat_varray (path, &v);
+  varray_destroy (&v);
+}
+
 /* Create a full path to file FILE with access rights MODE.
-   Return true if path exists at the end of this function.  */
+   Return true if path exists at the end of this function.
+   If VOL is not NULL we are creating a shadow tree on volume VOL
+   so insert metadata for new directories.  */
 
 static bool
-create_path_for_file (string *file, unsigned int mode)
+create_path_for_file (string *file, unsigned int mode, volume vol)
 {
+  struct stat parent_st;
   struct stat st;
   char *last;
   char *end;
@@ -341,6 +394,8 @@ create_path_for_file (string *file, unsigned int mode)
 #ifdef ENABLE_CHECKING
   if (file->len == 0)
     abort ();
+  if (vol)
+    CHECK_MUTEX_LOCKED (&vol->mutex);
 #endif
 
   for (last = file->str + file->len - 1; last != file->str && *last != '/';
@@ -354,9 +409,9 @@ create_path_for_file (string *file, unsigned int mode)
   /* Find the first existing directory.  */
   for (end = last;;)
     {
-      if (lstat (file->str, &st) == 0)
+      if (lstat (file->str, &parent_st) == 0)
 	{
-	  if ((st.st_mode & S_IFMT) != S_IFDIR)
+	  if ((parent_st.st_mode & S_IFMT) != S_IFDIR)
 	    return false;
 
 	  break;
@@ -379,6 +434,41 @@ create_path_for_file (string *file, unsigned int mode)
 
 	  if (mkdir (file->str, mode) != 0)
 	    return false;
+
+	  if (vol)
+	    {
+	      hardlink_list hl;
+	      metadata meta;
+	      string name;
+	      zfs_fh fh;
+
+	      if (lstat (file->str, &st) != 0
+		  || (st.st_mode & S_IFMT) != S_IFDIR)
+		return false;
+
+	      fh.dev = st.st_dev;
+	      fh.ino = st.st_ino;
+	      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					    zfs_mode_to_ftype (st.st_mode));
+	      meta.uid = map_uid_node2zfs (st.st_uid);
+	      meta.gid = map_gid_node2zfs (st.st_gid);
+	      if (!lookup_metadata (vol, &fh, &meta, true))
+		{
+		  MARK_VOLUME_DELETE (vol);
+		  return false;
+		}
+	      meta.flags = METADATA_SHADOW_TREE;
+	      
+	      name.str = end + 1;
+	      name.len = strlen (end + 1);
+	      hl = hardlink_list_create (1, NULL);
+	      hardlink_list_insert (hl, parent_st.st_dev, parent_st.st_ino,
+				    &name, true);
+	      if (!write_hardlinks (vol, &fh, &meta, hl))
+		return false;
+
+	      parent_st = st;
+	    }
 
 	  for (end++; end < last && *end; end++)
 	    ;
@@ -661,7 +751,7 @@ open_fh_metadata (string *path, volume vol, zfs_fh *fh, metadata_type type,
 
       if ((flags & O_ACCMODE) != O_RDONLY)
 	{
-	  if (!create_path_for_file (path, S_IRWXU))
+	  if (!create_path_for_file (path, S_IRWXU, NULL))
 	    {
 	      if (errno == ENOENT)
 		errno = 0;
@@ -697,7 +787,7 @@ open_fh_metadata (string *path, volume vol, zfs_fh *fh, metadata_type type,
 		  {
 		    if (!created)
 		      {
-			if (!create_path_for_file (path, S_IRWXU))
+			if (!create_path_for_file (path, S_IRWXU, NULL))
 			  {
 			    if (errno == ENOENT)
 			      errno = 0;
@@ -1054,7 +1144,7 @@ init_volume_metadata (volume vol)
 				metadata_encode, path.str, &vol->mutex);
   insert_volume_root = (lstat (vol->local_path.str, &st) < 0);
 
-  if (!create_path_for_file (&path, S_IRWXU))
+  if (!create_path_for_file (&path, S_IRWXU, NULL))
     {
       free (path.str);
       close_volume_metadata (vol);
@@ -2542,11 +2632,6 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 	}
 
       entry = hl->first;
-      if (entry->name.len == 0)
-	meta->flags |= METADATA_SHADOW;
-      else
-	meta->flags &= ~METADATA_SHADOW;
-
       meta->parent_dev = entry->parent_dev;
       meta->parent_ino = entry->parent_ino;
       memcpy (meta->name, entry->name.str, entry->name.len);
@@ -2640,15 +2725,16 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
    specifying that the file is in shadow.  */
 
 bool
-metadata_hardlink_set_shadow (volume vol, zfs_fh *fh, metadata *meta)
+metadata_hardlink_set (volume vol, zfs_fh *fh, metadata *meta,
+		       uint32_t parent_dev, uint32_t parent_ino, string *name)
 {
   hardlink_list hl;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  hl = hardlink_list_create (2, NULL);
-  hardlink_list_insert (hl, 0, 0, &empty_string, true);
+  hl = hardlink_list_create (1, NULL);
+  hardlink_list_insert (hl, parent_dev, parent_ino, name, true);
 
   return write_hardlinks (vol, fh, meta, hl);
 }
@@ -2728,24 +2814,6 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
       xstringdup (path, &vol->local_path);
       return;
     }
-
-  /* Check for shadow file.  */
-  if (meta.parent_dev == 0
-      && meta.parent_ino == 0
-      && meta.name[0] == 0)
-    {
-#ifdef ENABLE_CHECKING
-      if ((meta.flags & METADATA_SHADOW) == 0)
-	abort ();
-#endif
-      hardlink_list_destroy (hl);
-      get_shadow_path (path, vol, fh, false);
-      return;
-    }
-#ifdef ENABLE_CHECKING
-  if ((meta.flags & METADATA_SHADOW) != 0)
-    abort ();
-#endif
 
   path->str = NULL;
   path->len = 0;
@@ -3108,63 +3176,25 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
   return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
 }
 
-/* Return path to shadow file FH on volume VOL.
-   If CREATE is true we are going to "create" a shadow file.  */
+/* Build and create path PATH to shadow file for file FH with name NAME
+   on volume VOL.  */
 
-void
-get_shadow_path (string *path, volume vol, zfs_fh *fh, bool create)
+bool
+create_shadow_path (string *path, volume vol, zfs_fh *fh, string *name)
 {
-  unsigned int i;
-  struct stat st;
-
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  build_fh_metadata_path (path, vol, fh, METADATA_TYPE_SHADOW,
-			  metadata_tree_depth);
-  if (create)
+  build_shadow_metadata_path (path, vol, fh, name);
+  if (!create_path_for_file (path, S_IRWXU, vol))
     {
-      if (!create_path_for_file (path, S_IRWXU))
-	{
-	  if (errno == ENOENT)
-	    errno = 0;
-	}
+      free (path->str);
+      path->str = NULL;
+      path->len = 0;
+      return false;
     }
-  else
-    {
-      if (lstat (path->str, &st) != 0)
-	{
-	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
-	    if (i != metadata_tree_depth)
-	      {
-		string old_path;
 
-		build_fh_metadata_path (&old_path, vol, fh,
-					METADATA_TYPE_SHADOW, i);
-		if (stat (old_path.str, &st) == 0)
-		  {
-		    if (!create)
-		      {
-			if (!create_path_for_file (path, S_IRWXU))
-			  {
-			    if (errno == ENOENT)
-			      errno = 0;
-			    free (old_path.str);
-			    return;
-			  }
-			create = true;
-		      }
-
-		    if (rename (old_path.str, path->str) == 0)
-		      {
-			free (old_path.str);
-			return;
-		      }
-		  }
-		free (old_path.str);
-	      }
-	}
-    }
+  return true;
 }
 
 /* Initialize data structures in METADATA.C.  */
