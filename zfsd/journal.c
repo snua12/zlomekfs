@@ -118,7 +118,7 @@ journal_destroy (journal_t journal)
   free (journal);
 }
 
-/** \brief Insert a journal entry and return true if the journal has changed.
+/*! Insert a journal entry and return true if the journal has changed.
     \param journal Journal into which the entry will be inserted.
     \param oper The type of operation of the journal entry.
     \param local_fh Local file handle of the corresponding file.
@@ -203,7 +203,7 @@ journal_insert (journal_t journal, journal_operation_t oper,
   return true;
 }
 
-/** \brief Return true if the journal entry is a member of the journal.
+/*! Return true if the journal entry is a member of the journal.
     \param journal Journal in which the entry should be looked up.
     \param oper The type of operation of the journal entry.
     \param name The name of file of the journal entry.  */
@@ -221,7 +221,7 @@ journal_member (journal_t journal, journal_operation_t oper, string *name)
 	  != NULL);
 }
 
-/** \brief Delete the journal entry.l entry is a member of the journal.
+/*! Delete the journal entry.l entry is a member of the journal.
     \param journal Journal from which the entry should be deleted.
     \param oper The type of operation of the journal entry.
     \param name The name of file of the journal entry.  */

@@ -364,7 +364,7 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
   volume_set_common_info (vol, &name_str, &mountpoint_str, master);
 }
 
-/** \brief Set the information for a volume with local copy.
+/*! Set the information for a volume with local copy.
     \param volp Volume.
     \param local_path Local path to the volume.
     \param size_limit Size limit for the volume.  */
@@ -410,7 +410,7 @@ volume_set_local_info (volume *volp, string *local_path, uint64_t size_limit)
   return init_volume_metadata (vol);
 }
 
-/** \brief Set the information for a volume with local copy.
+/*! Set the information for a volume with local copy.
     \param volp Volume.
     \param local_path Local path to the volume.
     \param size_limit Size limit for the volume.  */
@@ -482,7 +482,7 @@ mark_all_volumes (void)
   zfsd_mutex_unlock (&volume_mutex);
 }
 
-/** \brief Delete all dentries of marked volume and clear local path.
+/*! Delete all dentries of marked volume and clear local path.
     \param vol Volume on which the dentries will be deleted.  */
 
 static void
@@ -520,7 +520,7 @@ delete_dentries_of_marked_volume (volume vol)
   zfsd_mutex_unlock (&vol->mutex);
 }
 
-/** \brief Delete all dentries of marked volume.
+/*! Delete all dentries of marked volume.
     \param vol Volume on which the dentries will be deleted.  */
 
 void

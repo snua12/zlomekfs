@@ -35,7 +35,7 @@
 #define ZFS_UPDATED_BLOCK_SIZE ZFS_MAXDATA
 #define ZFS_MODIFIED_BLOCK_SIZE 1024
 
-/** Check whether we should update a generic file.
+/*! Check whether we should update a generic file.
     Update the generic file if it has not been completelly updated yet,
     otherwise update a directory if the remote version has changed since
     the last time we updated the directory 
@@ -50,7 +50,7 @@
        : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version \
 	   && (ATTR).version > (DENTRY)->fh->meta.master_version))))
 
-/** Check whether we should reintegrate a generic file.
+/*! Check whether we should reintegrate a generic file.
     Reintegrate a directory if the local version has changed since the last
     time we reintegrated the directory or it was not completely reintegrated.
     Reintegrate a regular file if remote file was not modified and local file

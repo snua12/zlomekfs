@@ -817,7 +817,7 @@ dentry_lookup (zfs_fh *fh)
   RETURN_PTR (dentry);
 }
 
-/** \brief Lookup the internal dentry by name but do not lock it.
+/*! Lookup the internal dentry by name but do not lock it.
     \param vol Volume whose root is returned if parent == NULL.
     \param parent Directory in which the dentry is being looked up.
     \param name Name of the dentry.  */
@@ -853,7 +853,7 @@ dentry_lookup_name_nolock (volume vol, internal_dentry parent, string *name)
   RETURN_PTR (dentry);
 }
 
-/** \brief Lookup the internal dentry by name and lock it.
+/*! Lookup the internal dentry by name and lock it.
     \param vol Volume whose root is returned if parent == NULL.
     \param parent Directory in which the dentry is being looked up.
     \param name Name of the dentry.  */
@@ -2059,7 +2059,7 @@ internal_dentry_destroy_subdentries (internal_dentry dentry, zfs_fh *tmp_fh,
   RETURN_BOOL (true);
 }
 
-/** \brief Destroy internal dentry.
+/*! Destroy internal dentry.
     \param dentry Dentry which shall be destroyed.
     \param clear_volume_root Flag whether the volume root shall be cleared.
     \param invalidate Flag whether the dentry shall be invalidated.

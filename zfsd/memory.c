@@ -27,12 +27,12 @@
 #include "memory.h"
 #include "varray.h"
 
-/** \var string empty_string
-    \brief Empty string.  */
+/*! \var string empty_string
+    Empty string.  */
 string empty_string = { 0, "" };
 
-/** \var string invalid_string
-    \brief Invalid string.  */
+/*! \var string invalid_string
+    Invalid string.  */
 string invalid_string = { 0, NULL };
 
 /* Similar to CALLOC but always returns valid pointer.  */

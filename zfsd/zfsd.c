@@ -160,7 +160,7 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
     }
 }
 
-/** \brief Signal handler for SIGHUP.
+/*! Signal handler for SIGHUP.
     \param signum Number of the received signal.  */
 
 static void
