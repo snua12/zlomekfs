@@ -152,6 +152,9 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
   if (!dentry->parent)
     return false;
 
+  if (dentry->deleted)
+    return false;
+
   if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       internal_dentry tmp;
