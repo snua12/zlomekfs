@@ -58,7 +58,7 @@ hfile_read_element (hfile_t hfile, uint64_t offset)
   if (lseek (hfile->fd, offset, SEEK_SET) < 0)
     return (uint32_t) -1;
 
-  if (!full_read (hfile->fd, hfile->element, hfile->element_size));
+  if (!full_read (hfile->fd, hfile->element, hfile->element_size))
     return (uint32_t) -1;
 
   return le_to_u32 (*(uint32_t *) hfile->element);
@@ -302,7 +302,7 @@ hfile_expand (hfile_t hfile)
 	}
     }
 
-  if (rename (new_path, hfile->file_name < 0))
+  if (rename (new_path, hfile->file_name) < 0)
     goto hfile_expand_error_with_fd;
 
 #ifdef ENABLE_CHECKING
