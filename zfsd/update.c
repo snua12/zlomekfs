@@ -2416,6 +2416,15 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 						  &local_res.file, &res.attr,
 						  NULL);
 			release_dentry (conflict);
+			release_dentry (dir);
+			zfsd_mutex_unlock (&vol->mutex);
+
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
 		      }
 		    else
 		      {
