@@ -292,9 +292,13 @@ safe_write (int fd, char *buf, size_t len)
     {
       w = write (fd, buf + written, len - written);
       if (w <= 0)
-	return false;
+	{
+	  message (2, stderr, "sending data FAILED\n");
+	  return false;
+	}
     }
 
+  message (2, stderr, "sending data SUCCEDED\n");
   return true;
 }
 
