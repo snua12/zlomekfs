@@ -1390,12 +1390,14 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	  pfd[i].fd = active[i]->fd;
 	  pfd[i].events = (active[i]->conn == CONNECTION_CONNECTING
 			   ? CAN_WRITE : CAN_READ);
+	  pfd[i].revents = 0;
 	  zfsd_mutex_unlock (&active[i]->mutex);
 	}
       if (accept_connections)
 	{
 	  pfd[nactive].fd = main_socket;
 	  pfd[nactive].events = CAN_READ;
+	  pfd[nactive].revents = 0;
 	}
       n = nactive;
 
