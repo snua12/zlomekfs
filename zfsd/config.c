@@ -1807,6 +1807,8 @@ add_reread_config_request (string *relative_path, uint32_t from_sid)
   reread_config_last = node;
 
   zfsd_mutex_unlock (&reread_config_mutex);
+
+  semaphore_up (&config_reader_data.sem, 1);
 }
 
 /* Get a request to reread config from queue and store the relative path of
