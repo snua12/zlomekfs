@@ -36,6 +36,9 @@ extern char *node_config;
 /* Direcotry with cluster configuration. */
 extern char *cluster_config;
 
+/* Cipher type.  */
+typedef enum auth cipher;
+
 /* Node description.  */
 typedef struct node_def
 {
@@ -68,7 +71,8 @@ typedef struct volume_def
 
 extern node node_create(char *name, cipher key_type, int pubkey_len,
 			char *pubkey);
-extern volume volume_create(char *name, node master, char *location, data_end);
+extern volume volume_create(char *name, node master, char *location,
+			    int data_end);
 
 
 #endif 

@@ -138,7 +138,7 @@ htab_expand(htab_t htab)
 
   /* Get next prime number from table.  */
   new_size = get_higher_prime (htab->size + 1);
-  new_table = (void **) xcalloc(new_size * sizeof(void *));
+  new_table = (void **) xcalloc(new_size, sizeof(void *));
   if (!new_table)
     return 0;
   htab->table = new_table;
@@ -155,9 +155,8 @@ htab_expand(htab_t htab)
 	slot = htab_find_empty_slot(htab, (*htab->hash_f)(old_table[i]));
 	*slot = old_table[i];
       }
-    }
   
-  delete(old_table);
+  free(old_table);
   return 1;
 }
 
@@ -174,7 +173,7 @@ htab_create(unsigned int size, htab_hash hash, htab_hash hash_f, htab_eq eq_f)
   if (!htab)
     return NULL;
 
-  htab->table = (void **) xcalloc(size * sizeof(void *));
+  htab->table = (void **) xcalloc(size, sizeof(void *));
   if (!htab->table)
     {
       free(htab);
@@ -259,13 +258,13 @@ htab_find_slot_with_hash(htab_t htab, const void *elem,
 
       if (htab->table[index] == EMPTY_ENTRY)
 	goto empty_entry;
-      if (hash->table[index] == DELETED_ENTRY)
+      if (htab->table[index] == DELETED_ENTRY)
 	{
 	  if (!first_deleted_slot)
 	    first_deleted_slot = &htab->table[index];
 	}
       else if ((*htab->eq_f)(htab->table[index], elem))
-	return &htab->entries[index];
+	return &htab->table[index];
     }
   
 empty_entry:
