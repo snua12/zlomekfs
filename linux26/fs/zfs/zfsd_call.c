@@ -1,6 +1,7 @@
 /*
    Functions to call ZFSd.
    Copyright (C) 2004 Martin Zlomek
+   Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -544,7 +545,7 @@ int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t
 int zfsd_read(char __user *buf, read_args *args)
 {
 	DC *dc;
-	uint32_t nbytes;
+	read_res res;
 	int error;
 
 	TRACE("reading %u bytes", args->count);
@@ -555,19 +556,15 @@ int zfsd_read(char __user *buf, read_args *args)
 
 	error = zfs_proc_read_zfsd(&dc, args);
 	if (!error) {
-		if (!decode_uint32_t(dc, &nbytes)
-		    || (nbytes > args->count))
+		if (!decode_read_res(dc, &res)
+		    || (res.data.len > args->count)
+		    || !finish_decoding(dc))
 			error = -EPROTO;
 		else {
-			dc->cur_length += nbytes;
-			if (!finish_decoding(dc))
-				error = -EPROTO;
-			else {
-				if (copy_to_user(buf, dc->cur_pos, nbytes))
-					error = -EFAULT;
-				else
-					error = nbytes;
-			}
+			if (copy_to_user(buf, res.data.buf, res.data.len))
+				error = -EFAULT;
+			else
+				error = res.data.len;
 		}
 	}
 
