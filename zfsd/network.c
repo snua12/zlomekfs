@@ -762,11 +762,14 @@ again:
   return fd;
 
 node_authenticate_error:
-  t->retval = r;
   message (2, stderr, "not auth\n");
   zfsd_mutex_lock (&fd_data_a[fd].mutex);
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[fd]);
+    {
+      recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[fd]);
+      r = ZFS_COULD_NOT_AUTH;
+    }
+  t->retval = r;
   if (fd_data_a[fd].generation == t->u.network.generation)
     close_network_fd (fd);
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
@@ -775,7 +778,7 @@ node_authenticate_error:
       nod->fd = -1;
       zfsd_mutex_unlock (&nod->mutex);
     }
-  return false;
+  return -1;
 }
 
 /* Check whether node NOD is connected and authenticated. If not do so.
