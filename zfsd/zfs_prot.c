@@ -152,9 +152,14 @@ void
 zfs_proc_create_server (create_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  create_res res;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_create (&res, &args->where.dir, &args->where.name, args->flags,
+		  &args->attr);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_create_res (dc, &res);
 }
 
 /* zfs_cap zfs_proc_open (open_args); */

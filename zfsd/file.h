@@ -42,6 +42,8 @@ typedef struct internal_fd_data_def
   int busy;			/* number of threads using file descriptor */
 } internal_fd_data_t;
 
+extern int zfs_create (create_res *res, zfs_fh *dir, string *name,
+		       unsigned int flags, sattr *attr);
 extern int zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags);
 extern int zfs_close (zfs_cap *cap);
 extern int zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count);

@@ -151,6 +151,157 @@ capability_open (internal_cap cap, unsigned int flags, internal_fh fh,
   return errno;
 }
 
+/* Create local file NAME in directory DIR with open flags FLAGS,
+   set file attributes according to ATTR.  */
+
+int
+local_create (create_res *res, internal_fh dir, string *name,
+	      unsigned int flags, sattr *attr, volume vol)
+{
+  char *path;
+  int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  path = build_local_path_name (vol, dir, name->str);
+  r = open (path, flags, attr->mode);
+  if (r != 0)
+    {
+      free (path);
+      return errno;
+    }
+
+  attr->mode = (unsigned int) -1;
+  r = local_setattr_path (&res->attr, path, attr, vol);
+  free (path);
+  if (r != ZFS_OK)
+    return r;
+
+  res->file.sid = dir->local_fh.sid;
+  res->file.vid = dir->local_fh.vid;
+  res->file.dev = res->attr.dev;
+  res->file.ino = res->attr.ino;
+  res->cap.fh = res->file;
+  res->cap.flags = flags & O_ACCMODE;
+
+  return ZFS_OK;
+}
+
+/* Create remote file NAME in directory DIR with open flags FLAGS,
+   set file attributes according to ATTR.  */
+
+int
+remote_create (create_res *res, internal_fh dir, string *name,
+	      unsigned int flags, sattr *attr, volume vol)
+{
+  create_args args;
+  thread *t;
+  int32_t r;
+
+  args.where.dir = dir->master_fh;
+  args.where.name = *name;
+  args.flags = flags;
+  args.attr = *attr;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_create_client (t, &args, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      if (!decode_create_res (&t->dc_reply, res)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_volume_master (&t->dc_reply, vol);
+  return r;
+}
+
+/* Create file NAME in directory DIR with open flags FLAGS,
+   set file attributes according to ATTR.  */
+
+int
+zfs_create (create_res *res, zfs_fh *dir, string *name,
+	    unsigned int flags, sattr *attr)
+{
+  volume vol;
+  internal_fh idir;
+  virtual_dir pvd;
+  int r;
+
+  /* When O_CREAT is NOT set the function zfs_open is called.
+     Force O_CREAT to be set here.  */
+  flags |= O_CREAT;
+
+  /* Lookup DIR.  */
+  zfsd_mutex_lock (&volume_mutex);
+  if (VIRTUAL_FH_P (*dir))
+    zfsd_mutex_lock (&vd_mutex);
+  if (!fh_lookup_nolock (dir, &vol, &idir, &pvd))
+    {
+      zfsd_mutex_unlock (&volume_mutex);
+      if (VIRTUAL_FH_P (*dir))
+	zfsd_mutex_unlock (&vd_mutex);
+      return ESTALE;
+    }
+  zfsd_mutex_unlock (&volume_mutex);
+
+  if (pvd)
+    {
+      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      zfsd_mutex_unlock (&vd_mutex);
+      if (r != ZFS_OK)
+	return r;
+    }
+
+  attr->size = (uint64_t) -1;
+  attr->atime = (zfs_time) -1;
+  attr->mtime = (zfs_time) -1;
+
+  if (vol->local_path)
+    r = local_create (res, idir, name, flags, attr, vol);
+  else if (vol->master != this_node)
+    r = remote_create (res, idir, name, flags, attr, vol);
+  else
+    abort ();
+
+  if (r == ZFS_OK)
+    {
+      internal_cap icap;
+      internal_fh ifh;
+
+      /* Update internal file handle and capability.  */
+      ifh = fh_lookup_name (vol, idir, name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  internal_fh_destroy (ifh, vol);
+	  ifh = internal_fh_create (&res->file, &res->file, idir,
+				    vol, name->str, &res->attr);
+	}
+      else
+	ifh = internal_fh_create (&res->file, &res->file, idir,
+				  vol, name->str, &res->attr);
+      get_capability_no_fh_lookup (&res->cap, ifh);
+
+      zfsd_mutex_unlock (&ifh->mutex);
+      zfsd_mutex_unlock (&icap->mutex);
+    }
+
+  return r;
+}
+
 /* Open local file for capability ICAP (whose internal file handle is FH)
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 

@@ -242,6 +242,23 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   return ZFS_OK;
 }
 
+/* Return an internal capability for ZFS capability CAP and internal file
+   handle FH.  */
+
+internal_cap
+get_capability_no_fh_lookup (zfs_cap *cap, internal_fh fh)
+{
+  internal_cap icap;
+
+  icap = internal_cap_lookup (cap);
+  if (icap)
+    icap->busy++;
+  else
+    icap = internal_cap_create_fh (fh, cap->flags);
+
+  return icap;
+}
+
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal file handle IFH and virtual directory to VD.
    Create a new internal capability if it does not exist.  */

@@ -58,6 +58,7 @@ extern pthread_mutex_t cap_mutex;
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			   internal_fh *ifh, virtual_dir *vd);
+extern internal_cap get_capability_no_fh_lookup (zfs_cap *cap, internal_fh fh);
 extern int find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			    internal_fh *ifh, virtual_dir *vd);
 extern int find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
