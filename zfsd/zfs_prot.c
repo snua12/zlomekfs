@@ -26,7 +26,9 @@
 #include "thread.h"
 #include "server.h"
 #include "node.h"
+#include "dir.h"
 
+#if 0
 /* FIXME: These are some temporary dummy functions to make linker happy.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
 int									\
@@ -37,6 +39,139 @@ zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc)			\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#endif
+
+int
+zfs_proc_null_server (void *args, DC *dc)
+{
+  return ZFS_OK;
+}
+
+int
+zfs_proc_root_server (void *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_volume_root_server (volume_root_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_getattr_server (zfs_fh *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_setattr_server (sattr_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_lookup_server (dir_op_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_open_by_name_server (open_name_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_open_by_fd_server (zfs_fh *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_close_server (zfs_fh *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_readdir_server (read_dir_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_mkdir_server (open_name_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_rmdir_server (dir_op_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_rename_server (rename_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_link_server (link_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_unlink_server (dir_op_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_read_server (read_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_write_server (write_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_readlink_server (zfs_fh *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_symlink_server (symlink_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_mknod_server (mknod_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
+int
+zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
 int									\
