@@ -973,7 +973,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 
       /* All records in hierarchy upto current node must be NULL so that
 	 local node would be master of current node.  */
-      for (i = d->depth; i < VARRAY_USED (d->hierarchy) - 1; i++)
+      for (i = d->depth; i < VARRAY_USED (d->hierarchy) - 2; i++)
 	if (VARRAY_ACCESS (d->hierarchy, i, char *) != NULL)
 	  {
 	    /* The current node is not direct descendant of local node
