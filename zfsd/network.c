@@ -218,12 +218,13 @@ wake_all_threads (fd_data_t *fd_data, int32_t retval)
   HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot)
     {
       waiting4reply_data *data = *(waiting4reply_data **) slot;
+      thread *t = data->t;
 
-      data->t->retval = retval;
+      t->retval = retval;
       htab_clear_slot (fd_data->waiting4reply, slot);
       fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
       pool_free (fd_data->waiting4reply_pool, data);
-      semaphore_up (&data->t->sem, 1);
+      semaphore_up (&t->sem, 1);
     }
 }
 
