@@ -1193,7 +1193,16 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       r = validate_operation_on_virtual_directory (vd1, from_name, &ifh1);
       if (r != ZFS_OK)
-	goto zfs_rename_error_unlock_vd;
+	{
+	  if (vd2 == vd1)
+	    {
+	      vd2 = NULL;
+	      vol2 = NULL;
+	    }
+	  vd1 = NULL;
+	  vol1 = NULL;
+	  goto zfs_rename_error_unlock_vd;
+	}
       zfsd_mutex_unlock (&vd1->mutex);
       vd1 = NULL;
     }
@@ -1203,7 +1212,11 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	{
 	  r = validate_operation_on_virtual_directory (vd2, to_name, &ifh2);
 	  if (r != ZFS_OK)
-	    goto zfs_rename_error_unlock_vd;
+	    {
+	      vd2 = NULL;
+	      vol2 = NULL;
+	      goto zfs_rename_error_unlock_vd;
+	    }
 	  zfsd_mutex_unlock (&vd2->mutex);
 	}
       else
