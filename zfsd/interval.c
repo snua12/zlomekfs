@@ -300,9 +300,9 @@ interval_tree_write_1 (interval_tree_node node, int fd,
   data->intervals[data->n].start = u64_to_le (INTERVAL_START (node));
   data->intervals[data->n].end = u64_to_le (INTERVAL_END (node));
   data->n++;
-  if (data->n)
+  if (data->n == INTERVAL_COUNT)
     {
-      r = full_write (fd, data->intervals, data->n * sizeof (interval));
+      r = full_write (fd, data->intervals, INTERVAL_COUNT * sizeof (interval));
       if (!r)
 	return r;
       data->n = 0;
