@@ -187,8 +187,10 @@ bool
 volume_active_p (volume vol)
 {
   bool active;
+  bool connected;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
 #ifdef ENABLE_CHECKING
   /* TODO: some checks? */
 #endif
@@ -197,10 +199,11 @@ volume_active_p (volume vol)
     return true;
 
   zfsd_mutex_lock (&vol->master->mutex);
-  active
-    = (node_connected_p (vol->master)
-       && (network_fd_data[vol->master->fd].auth == AUTHENTICATION_FINISHED));
-  zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
+  connected = node_connected_p (vol->master);
+  active = connected && (network_fd_data[vol->master->fd].auth
+			 == AUTHENTICATION_FINISHED);
+  if (connected)
+    zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
   zfsd_mutex_unlock (&vol->master->mutex);
 
   return active;
