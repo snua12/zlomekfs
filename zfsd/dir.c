@@ -2074,7 +2074,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
 zfs_link_retry:
   /* Lookup dentries.  */
-  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, false);
+  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
