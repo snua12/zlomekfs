@@ -1147,22 +1147,22 @@ config_reader (void *data)
     goto out;
 
   r = zfs_extended_lookup (&user_dir_res, &config_dir_res.file, "user");
-  if (r != ZFS_OK)
-    goto out;
-
-  if (!read_user_mapping (&user_dir_res.file, 0))
-    goto out;
-  if (!read_user_mapping (&user_dir_res.file, this_node->id))
-    goto out;
+  if (r == ZFS_OK)
+    {
+      if (!read_user_mapping (&user_dir_res.file, 0))
+	goto out;
+      if (!read_user_mapping (&user_dir_res.file, this_node->id))
+	goto out;
+    }
 
   r = zfs_extended_lookup (&group_dir_res, &config_dir_res.file, "group");
-  if (r != ZFS_OK)
-    goto out;
-
-  if (!read_group_mapping (&group_dir_res.file, 0))
-    goto out;
-  if (!read_group_mapping (&group_dir_res.file, this_node->id))
-    goto out;
+  if (r == ZFS_OK)
+    {
+      if (!read_group_mapping (&group_dir_res.file, 0))
+	goto out;
+      if (!read_group_mapping (&group_dir_res.file, this_node->id))
+	goto out;
+    }
 
   /* Reread the updated configuration about nodes and volumes.  */
   vol = volume_lookup (VOLUME_ID_CONFIG);
