@@ -37,19 +37,13 @@ extern char *node_config;
 /* Direcotry with cluster configuration. */
 extern char *cluster_config;
 
-/* Cipher type.  */
-typedef enum auth cipher;
-
 /* Node description.  */
 typedef struct node_def
 {
   char *name;			/* name of the node */
   struct sockaddr_in addr;	/* address */
-  cipher key_type;		/* cipher method */ 
-  int pubkey_len;		/* length of public key */
-  char *pubkey;			/* public key */
+  				/* public key */
   int flags;			/* see NODE_* below */
-  char data[1];			/* name, pubkey, etc. */
 } *node;
 #define NODE_LOCAL		1	/* the node is local node */
 #define NODE_ADDR_RESOLVED	2	/* the address of node is resolved  */
@@ -70,10 +64,6 @@ typedef struct volume_def
 #define VOLUME_LOCAL	1	/* this volume is located on local node */
 #define VOLUME_COPY	2	/* this is a copy of a volume */
 
-extern node node_create(char *name, cipher key_type, int pubkey_len,
-			char *pubkey);
-extern volume volume_create(char *name, node master, char *location,
-			    int data_end);
-
+extern int read_config(const char *file);
 
 #endif 

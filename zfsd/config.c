@@ -19,15 +19,19 @@
    or download it from http://www.gnu.org/licenses/gpl.html
    */
 
+#include "system.h"
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <dirent.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/utsname.h>
 #include "zfs_prot.h"
 #include "config.h"
+#include "memory.h"
 
 #ifdef BUFSIZ
 #define LINE_SIZE BUFSIZ
@@ -49,31 +53,13 @@ static char *private_key;
 
 /* Create node structure and fill it with information.  */
 node
-node_create(char *name, cipher key_type, int pubkey_len, char *pubkey)
+node_create(char *name)
 {
-  int name_len, size;
   node nod;
   struct hostent *he;
-  int data_end = 0;
  
-  name_len = strlen(name);
-  size = sizeof(struct node_def) + name_len + pubkey_len;
-  nod = (node) malloc(size);
-  if (!nod)
-    return NULL;
-
-  nod->name = &nod->data[data_end];
-  memcpy(nod->name, name, name_len + 1);
-  data_end += name_len + 1;
-  
-  nod->key_type = key_type;
-  nod->pubkey_len = pubkey_len;
-  nod->pubkey = &nod->data[data_end];
-  if (pubkey_len)
-    {
-      memcpy(nod->pubkey, pubkey, pubkey_len);
-      data_end += pubkey_len;
-    }
+  nod = (node) xmalloc(sizeof(node));
+  nod->name = xstrdup(name);
   nod->flags = 0;
   
   he = gethostbyname(name);
@@ -90,53 +76,34 @@ node_create(char *name, cipher key_type, int pubkey_len, char *pubkey)
 
 /* Create volume structure and fill it with information.  */
 volume
-volume_create(char *name, node master, char *location, int data_end)
+volume_create(char *name, node master, char *location)
 {
-  int name_len, loc_len, lpath_len, size;
   volume vol;
 
-  name_len = strlen(name);
-  loc_len = strlen(location);
-  size = sizeof(struct volume_def) + data_end + name_len + loc_len;
-  vol = (volume) malloc(size);
-  if (!vol)
-    return NULL;
-
+  vol = (volume) xmalloc(sizeof(volume));
+  vol->name = xstrdup(name);
   vol->master = master;
+  vol->location = xstrdup(location);
   vol->flags = 0;
-  
-  vol->name = &vol->data[data_end];
-  memcpy(vol->name, name, name_len + 1);
-  data_end += name_len + 1;
-
-  vol->location = &vol->data[data_end];
-  memcpy(vol->location, location, loc_len + 1);
-  data_end += loc_len + 1;
 }
 
 int
-volume_set_local(int lpath_len, char *localpath)
+volume_set_local(volume vol, int lpath_len, char *localpath)
 {
 }
 
 int
-volume_set_copy(int lpath_len, char *localpath)
+volume_set_copy(volume vol, int lpath_len, char *localpath)
 {
 }
 
-static int
-set_string(char **destp, char *src, int len)
+static void
+set_string(char **destp, const char *src, int len)
 {
   if (*destp)
     free(*destp);
 
-  *destp = malloc(len + 1);
-  if (!destp)
-    return 0;
-
-  memcpy(*destp, src, len + 1);
-
-  return 1;
+  *destp = xmemdup(src, len + 1);
 }
 
 enum automata_states {
@@ -149,7 +116,8 @@ enum automata_states {
 /* Process one line of configuration file.  Return the length of value.  */
 
 static int
-process_line(char *file, int line_num, char *line, char **key, char **value)
+process_line(const char *file, const int line_num, char *line, char **key,
+	     char **value)
 {
   char *dest;
   enum automata_states state;
@@ -266,49 +234,81 @@ process_line(char *file, int line_num, char *line, char **key, char **value)
 }
 
 /* Get the name of local node.  */
-static int
+static void
 get_node_name()
 {
   struct utsname un;
   int len;
-  int r;
 
   if (uname(&un) != 0)
     return;
 
   len = strlen(un.nodename);
-  r = set_string(&node_name, un.nodename, len);
-  if (r)
-    message(1, stderr, "Autodetected node name: ``%s''\n", node_name);
-  return r;
+  set_string(&node_name, un.nodename, len);
+  message(1, stderr, "Autodetected node name: ``%s''\n", node_name);
 }
 
-
-
-static void
-read_private_key(char *filename)
+static int
+read_private_key(const char *filename)
 {
 }
 
-void
-read_local_config(char *path)
+static int
+read_local_config(const char *path)
+{
+  char *volumes_path;
+  DIR *dir;
+  FILE *f;
+
+  if (path == NULL || *path == 0)
+    {
+      message(1, stderr,
+	      "The directory with node configuration is not specified in configuration file.\n");
+      return 0;
+    }
+
+  volumes_path = xstrconcat(2, path, "/volumes/");
+  dir = opendir(volumes_path);
+  if (!dir)
+    {
+      free(volumes_path);
+      message(1, stderr,
+	      "The directory with node configuration is not specified in configuration file.\n");
+
+      return 0;
+    }
+
+
+  closedir(dir);
+  return 1;
+}
+
+static int
+read_cluster_config(const char *path)
 {
 
 }
 
-void
-read_cluster_config(char *path)
+/* Verify configuration, fix what can be fixed. Return false if there remains
+   something which can't be fixed.  */
+
+static int
+verify_config()
 {
+
+  return 1;
 }
+
+/* Read configuration from FILE and using this information read configuration
+   of node and cluster.  Return true on success.  */
 
 int
-read_config(char *file)
+read_config(const char *file)
 {
   FILE *f;
   char line[LINE_SIZE + 1];
   char *key, *value;
   int line_num;
-  int r = 1; 
 
   /* Get the name of local node.  */
   get_node_name();
@@ -316,11 +316,11 @@ read_config(char *file)
   f = fopen(file, "rt");
   if (!f)
     {
-      message(-1, stderr, "Can't open config file %s.\n", file);
+      message(-1, stderr, "Can't open config file ``%s''.\n", file);
       return 0;
     }
 
-  message(2, stderr, "Reading configuration file %s.\n", file);
+  message(2, stderr, "Reading configuration file ``%s''.\n", file);
   line_num = 0;
   while (!feof(f))
     {
@@ -340,25 +340,25 @@ read_config(char *file)
 
 	      if (strncasecmp(key, "nodename", 9) == 0)
 		{
-		  if (!set_string(&node_name, value, value_len))
-		    return 0;
+		  set_string(&node_name, value, value_len);
 		}
 	      else if (strncasecmp(key, "privatekey", 11) == 0)
 		{
-		  if (!set_string(&private_key, value, value_len))
-		    return 0;
+		  set_string(&private_key, value, value_len);
 		}
 	      else if (strncasecmp(key, "nodeconfig", 11) == 0
-		       || strncasecmp(key, "nodeconfiguration", 18) == 0)
+		       || strncasecmp(key, "nodeconfiguration", 18) == 0
+		       || strncasecmp(key, "localconfig", 12) == 0
+		       || strncasecmp(key, "localconfiguration", 19) == 0)
 		{
-		  if (!set_string(&node_config, value, value_len))
-		    return 0;
+		  set_string(&node_config, value, value_len);
 		}
 	      else if (strncasecmp(key, "clusterconfig", 14) == 0
 		       || strncasecmp(key, "clusterconfiguration", 21) == 0)
 		{
-		  if (!set_string(&cluster_config, value, value_len))
-		    return 0;
+		  /* TODO: FIXME: cluster configuration is always in the same
+		     ZFS directory so the parameter should not be needed.  */
+		  set_string(&cluster_config, value, value_len);
 		}
 	      else
 		{
@@ -379,8 +379,20 @@ read_config(char *file)
 	}
     }
   fclose(f);
-  if (r == 0)
+
+  if (!read_private_key(private_key))
     return 0;
 
+  if (!read_local_config(node_config))
+    return 0;
 
+  /* TODO: FIXME: cluster configuration is always in the same
+     ZFS directory so the parameter should not be needed.  */
+  if (!read_cluster_config(cluster_config))
+    return 0;
+
+  if (!verify_config())
+    return 0;
+
+  return 1;
 }
