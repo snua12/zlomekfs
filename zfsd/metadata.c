@@ -1650,7 +1650,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 
   if (meta->slot_status == VALID_SLOT
       && GET_MODETYPE_TYPE (modetype) != GET_MODETYPE_TYPE (meta->modetype)
-      && GET_MODETYPE_TYPE (meta->modetype) != FT_BAD)
+      && GET_MODETYPE_TYPE (modetype) != FT_BAD)
     {
       meta->modetype = modetype;
       meta->uid = uid;

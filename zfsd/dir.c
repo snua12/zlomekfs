@@ -290,6 +290,7 @@ out:
       fh.dev = st.st_dev;
       fh.ino = st.st_ino;
       /* Get FH.GEN.  */
+      meta.modetype = GET_MODETYPE (0, FT_BAD);
       if (!lookup_metadata (vol, &fh, &meta, false))
 	vol->delete_p = true;
 
