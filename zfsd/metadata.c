@@ -446,7 +446,7 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   fd = open_metadata (path, flags, mode);
-  if (fd < 0)
+  if (fd < 0 && ((flags & O_ACCMODE) != O_RDONLY))
     {
       if (errno != ENOENT)
 	return -1;
