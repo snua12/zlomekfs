@@ -32,7 +32,7 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 
 PACKAGE = zfsd
 OBJECTS = alloc-pool.o config.o dir.o file.o fh.o hashtab.o interval.o \
-          log.o memory.o node.o splay-tree.o volume.o zfsd.o
+          log.o memory.o node.o queue.o splay-tree.o volume.o zfsd.o
 
 .c.o:
 	$(COMPILE) -c $<
@@ -61,6 +61,7 @@ interval.o: interval.c interval.h system.h log.h memory.h splay-tree.h
 log.o: log.c log.h system.h
 memory.o: memory.c memory.h system.h log.h
 node.o: node.c node.h system.h memory.h
+queue.o: queue.c queue.h system.h log.h memory.h
 splay-tree.o: splay-tree.c splay-tree.h system.h alloc-pool.h log.h memory.h
 volume.o: volume.c volume.h system.h memory.h
 zfsd.o: zfsd.c zfsd.h system.h config.h log.h memory.h
