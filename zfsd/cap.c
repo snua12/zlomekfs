@@ -139,6 +139,7 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
   void **slot;
 
   CHECK_MUTEX_LOCKED (&cap_mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in get_capability().  */
   if (fh->attr.type == FT_DIR && flags != O_RDONLY)
@@ -159,6 +160,7 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;
+  fh->ncap++;
   internal_cap_compute_verify (cap);
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
@@ -225,12 +227,19 @@ internal_cap_create_vd (virtual_dir vd, unsigned int flags)
 /* Destroy capability CAP.  */
 
 static void
-internal_cap_destroy (internal_cap cap)
+internal_cap_destroy (internal_cap cap, internal_fh fh)
 {
   void **slot;
 
   CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
+
+  if (fh)
+    {
+      CHECK_MUTEX_LOCKED (&fh->mutex);
+
+      fh->ncap--;
+    }
 
   if (cap->fd >= 0)
     local_close (cap);
@@ -373,7 +382,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   r = zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd);
   if (r != ZFS_OK)
     {
-      internal_cap_destroy (icap);
+      internal_cap_destroy (icap, NULL);
       return r;
     }
 
@@ -388,14 +397,14 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
    when the number of users becomes 0.  */
 
 int
-put_capability (internal_cap cap)
+put_capability (internal_cap cap, internal_fh fh)
 {
   CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
 
   cap->busy--;
   if (cap->busy == 0)
-    internal_cap_destroy (cap);
+    internal_cap_destroy (cap, fh);
   else
     zfsd_mutex_unlock (&cap->mutex);
 
@@ -427,7 +436,7 @@ cleanup_cap_c ()
       internal_cap cap = (internal_cap) *slot;
 
       zfsd_mutex_lock (&cap->mutex);
-      internal_cap_destroy (cap);
+      internal_cap_destroy (cap, NULL);
     });
   htab_destroy (cap_htab);
 

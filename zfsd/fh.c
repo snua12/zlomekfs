@@ -263,6 +263,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
   fh->parent = parent;
   fh->name = xstrdup (name);
   fh->attr = *attr;
+  fh->ncap = 0;
   fh->last_use = time (NULL);
 
   if (fh->attr.type == FT_DIR)
