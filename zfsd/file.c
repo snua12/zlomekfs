@@ -51,7 +51,7 @@ internal_fd_data_t *internal_fd_data;
 /* Array of opened file descriptors.  */
 static fibheap opened;
 
-/* Mutex protecting access to OPENED and NOPENED.  */
+/* Mutex protecting access to OPENED.  */
 static pthread_mutex_t opened_mutex;
 
 /* Initialize data for file descriptor of capability CAP.  */
