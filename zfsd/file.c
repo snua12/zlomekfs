@@ -90,8 +90,6 @@ close_local_fd (int fd)
 #ifdef ENABLE_CHECKING
   if (internal_fd_data[fd].fd < 0)
     abort ();
-  if (!internal_fd_data[fd].heap_node)
-    abort ();
 #endif
   internal_fd_data[fd].fd = -1;
   internal_fd_data[fd].generation++;
