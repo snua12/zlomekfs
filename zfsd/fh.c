@@ -265,7 +265,8 @@ cleanup_unused_dentries ()
 		 or there are capabilities associated with
 		 the file handle and this is its only dentry.  */
 	      if ((fibheapkey_t) dentry->last_use >= threshold
-		  || (dentry->fh->cap && dentry->next == dentry))
+		  || ((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
+		      && dentry->next == dentry))
 		{
 		  /* Reinsert the file handle to heap.  */
 		  cleanup_dentry_insert_node (dentry);
