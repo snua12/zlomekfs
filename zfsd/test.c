@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 #include "pthread.h"
 #include "test.h"
 #include "constant.h"
@@ -46,7 +47,7 @@ fake_config ()
   volume vol;
 
   get_node_name ();
-  set_string (&kernel_file_name, "/.zfs/kernel");
+  set_string (&kernel_file_name, "/home/joe/kernel");
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (1, "orion");
@@ -180,6 +181,10 @@ walk_dir (zfs_fh *dir, char *path)
 	finish_encoding (&dc);
 	if (r != ZFS_OK)
 	  {
+	    if (r > 0)
+	      message (0, stderr, "readdir(): %d (%s)\n", r, strerror (r));
+	    else
+	      message (0, stderr, "readdir(): %d\n", r);
 	    zfs_close (&cap);
 	    dc_destroy (&dc);
 	    return r;
@@ -216,6 +221,10 @@ walk_dir (zfs_fh *dir, char *path)
 	    r = zfs_lookup (&res, dir, &entry.name);
 	    if (r != ZFS_OK)
 	      {
+		if (r > 0)
+		  message (0, stderr, "lookup(): %d (%s)\n", r, strerror (r));
+		else
+		  message (0, stderr, "lookup(): %d\n", r);
 		free (entry.name.str);
 		continue;
 	      }
@@ -234,6 +243,13 @@ walk_dir (zfs_fh *dir, char *path)
       } while (list.eof == 0);
       zfs_close (&cap);
       dc_destroy (&dc);
+    }
+  else
+    {
+      if (r > 0)
+	message (0, stderr, "open(): %d (%s)\n", r, strerror (r));
+      else
+	message (0, stderr, "open(): %d\n", r);
     }
 
   return r;
