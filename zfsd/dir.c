@@ -4524,6 +4524,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 		       zfs_fh *fh)
 {
   metadata meta;
+  metadata meta_old, meta_new;
   int32_t r;
   unsigned int n;
 
@@ -4550,12 +4551,11 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
   else
     {
       string old_path, new_path;
-      string old_name, new_name;
+      string new_name;
       fattr attr;
       uint32_t vid;
       uint32_t new_parent_dev;
       uint32_t new_parent_ino;
-      struct stat old_parent_st;
 
       build_local_path_name (&new_path, vol, dir, name);
       vid = vol->id;
@@ -4591,23 +4591,6 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
       file_name_from_path (&new_name, &new_path);
       if (attr.type == FT_DIR)
 	{
-	  file_name_from_path (&old_name, &old_path);
-	  old_name.str[-1] = 0;
-	  if (lstat (old_path.str[0] ? old_path.str : "/", &old_parent_st) != 0)
-	    {
-	      free (old_path.str);
-	      free (new_path.str);
-	      return errno;
-	    }
-	  old_name.str[-1] = '/';
-
-	  if (rename (old_path.str, new_path.str) != 0)
-	    {
-	      free (old_path.str);
-	      free (new_path.str);
-	      return errno;
-	    }
-
 	  vol = volume_lookup (vid);
 	  if (!vol)
 	    {
@@ -4616,20 +4599,10 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      return ESTALE;
 	    }
 
-	  if (!metadata_hardlink_replace (vol, fh, &meta, old_parent_st.st_dev,
-					  old_parent_st.st_ino, &old_name,
-					  new_parent_dev, new_parent_ino,
-					  &new_name, false))
-	    {
-	      MARK_VOLUME_DELETE (vol);
-	      zfsd_mutex_unlock (&vol->mutex);
-	      free (old_path.str);
-	      free (new_path.str);
-	      return ZFS_UPDATE_FAILED;
-	    }
-	  zfsd_mutex_unlock (&vol->mutex);
-	  free (old_path.str);
-	  free (new_path.str);
+	  r = local_rename_base (&meta_old, &meta_new, &old_path, &new_path,
+				 vol, false);
+	  if (r != ZFS_OK)
+	    return r;
 	}
       else
 	{
