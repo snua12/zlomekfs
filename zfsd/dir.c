@@ -3284,6 +3284,10 @@ refresh_path_1 (dir_op_res *res, internal_dentry dentry, string *entry,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (GET_CONFLICT (dentry->fh->local_fh))
+    abort ();
+#endif
 
   fh = dentry->fh->local_fh;
   r = remote_lookup (res, dentry, entry, vol);
