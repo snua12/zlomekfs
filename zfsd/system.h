@@ -66,6 +66,16 @@
 #define ENABLE_CHECKING_VALUE false
 #endif
 
+/* Define valgrind macros.  */
+#ifdef ENABLE_VALGRIND_CHECKING
+#include <valgrind/memcheck.h>
+#else
+#define VALGRIND_MAKE_NOACCESS(x,y)
+#define VALGRIND_MAKE_WRITABLE(x,y)
+#define VALGRIND_MAKE_READABLE(x,y)
+#define VALGRIND_DISCARD(x)
+#endif
+
 /* Definitions of some GCC attributes.  */
 #ifdef __GNUC__
 
