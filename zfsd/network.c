@@ -585,8 +585,13 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
       zfsd_mutex_unlock (&nod->mutex);
 
       if (t1.tv_sec < t0.tv_sec
-	  || (t1.tv_sec < t0.tv_sec))
-	i--;
+	  || (t1.tv_sec == t0.tv_sec
+	      && t1.tv_usec < t0.tv_usec))
+	{
+	  /* Timestamp of receiving the reply is lower that timestamp of
+	     sending the request so ignore this attempt.  */
+	  i--;
+	}
       else
 	{
 	  if (t1.tv_sec - t0.tv_sec > 1 + CONNECTION_SPEED_FAST_LIMIT / 1000000)
