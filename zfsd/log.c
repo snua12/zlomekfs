@@ -65,10 +65,3 @@ verbose_abort (const char *file, int line)
 {
   internal_error ("Aborted, at %s:%d", file, line);
 }
-
-/* Report the signal caught.  */
-void
-fatal_sighandler (int signum)
-{
-  internal_error ("%s", strsignal (signum));
-}

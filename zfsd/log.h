@@ -39,7 +39,4 @@ extern void internal_error (char *format, ...) ATTRIBUTE_NORETURN;
 /* Report an "Aborted" internal error.  */
 extern void verbose_abort (const char *file, int line) ATTRIBUTE_NORETURN;
 
-/* Report the signal caught.  */
-extern void fatal_sighandler (int signum) ATTRIBUTE_NORETURN;
-
 #endif
