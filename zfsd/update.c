@@ -99,6 +99,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
   args->cap = *cap;
   r = remote_md5sum (&remote_md5, args);
+  if (r == ZFS_CHANGED)
+    RETURN_INT (ZFS_OK);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -107,6 +109,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
   args->cap = *cap;
   r = local_md5sum (&local_md5, args);
+  if (r == ZFS_CHANGED)
+    RETURN_INT (ZFS_OK);
   if (r != ZFS_OK)
     RETURN_INT (r);
 

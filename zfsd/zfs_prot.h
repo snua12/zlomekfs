@@ -54,6 +54,8 @@
 					   expected by function.  */
 #define ZFS_STALE		-20	/* zfs_fh could not be found.  */
 #define ZFS_BUSY		-21	/* file handle is being reintegrated */
+#define ZFS_CHANGED		-22	/* The file has changed while doing
+					   operation.  */
 #define ZFS_METADATA_ERROR	-50	/* Error when accessing file containing
 					   metadata.  */
 #define ZFS_UPDATE_FAILED	-51	/* Error while updating a file.  */
@@ -331,6 +333,7 @@ typedef struct md5sum_res_def
   uint32_t count;
   uint32_t padding0;	/* workaround GDB bug */
   uint64_t size;
+  uint64_t version;
   uint64_t offset[ZFS_MAX_MD5_CHUNKS];
   uint32_t length[ZFS_MAX_MD5_CHUNKS];
   unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][MD5_SIZE];

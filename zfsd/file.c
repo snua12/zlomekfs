@@ -2787,6 +2787,7 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
 
   res->count = 0;
   res->size = dentry->fh->attr.size;
+  res->version = dentry->fh->attr.version;
   release_dentry (dentry);
 
   rres.data.buf = (char *) buf;
@@ -2799,6 +2800,8 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
 			args->length[i] - total, false);
 	  if (r != ZFS_OK)
 	    RETURN_INT (r);
+	  if (rres.version != res->version)
+	    RETURN_INT (ZFS_CHANGED);
 
 	  if (rres.data.len == 0)
 	    break;
