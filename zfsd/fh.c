@@ -1809,21 +1809,36 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
 
 void
 internal_dentry_create_conflict (internal_dentry dentry, volume vol,
-				 fattr *remote_attr)
+				 fattr *remote_attr, int flags)
 {
-  zfs_fh conflict_fh;
-  fattr conflict_attr;
-  char *swp;
-  internal_dentry parent, conflict, remote;
+  zfs_fh tmp_fh;
+  fattr tmp_attr;
+  char *name;
+  internal_dentry parent, conflict, dentry2;
   node nod;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+  if (!vol->master)
     abort ();
+  if (flags != CONFLICT_LOCAL_EXISTS
+      && flags != CONFLICT_REMOTE_EXISTS
+      && flags != CONFLICT_BOTH_EXIST)
+    abort ();
+  if (flags & CONFLICT_LOCAL_EXISTS)
+    {
+      if (dentry->fh->local_fh.sid != this_node->id)
+	abort ();
+    }
+  else
+    {
+      if (dentry->fh->local_fh.sid == this_node->id)
+	abort ();
+    }
 #endif
 
+  /* Delete DENTRY from PARENT.  */
   parent = dentry->parent;
   if (parent)
     {
@@ -1832,32 +1847,28 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
       zfsd_mutex_unlock (&parent->fh->mutex);
     }
 
-  conflict_attr.dev = dentry->fh->local_fh.dev;
-  conflict_attr.ino = dentry->fh->local_fh.ino;
-  conflict_attr.version = 0;
-  conflict_attr.type = FT_DIR;
-  conflict_attr.mode = S_IRWXU | S_IRWXG | S_IRWXO;
-  conflict_attr.nlink = 4;
-  conflict_attr.uid = dentry->fh->attr.uid;
-  conflict_attr.gid = dentry->fh->attr.gid;
-  conflict_attr.rdev = 0;
-  conflict_attr.size = 0;
-  conflict_attr.blocks = 0;
-  conflict_attr.blksize = 4096;
-  conflict_attr.atime = time (NULL);
-  conflict_attr.ctime = conflict_attr.atime;
-  conflict_attr.mtime = conflict_attr.atime;
-  conflict_fh = dentry->fh->local_fh;
-  SET_CONFLICT (conflict_fh, 1);
+  /* Create conflict directory and add it to directroy tree.  */
+  tmp_attr.dev = dentry->fh->local_fh.dev;
+  tmp_attr.ino = dentry->fh->local_fh.ino;
+  tmp_attr.version = 0;
+  tmp_attr.type = FT_DIR;
+  tmp_attr.mode = S_IRWXU | S_IRWXG | S_IRWXO;
+  tmp_attr.nlink = 4;
+  tmp_attr.uid = dentry->fh->attr.uid;
+  tmp_attr.gid = dentry->fh->attr.gid;
+  tmp_attr.rdev = 0;
+  tmp_attr.size = 0;
+  tmp_attr.blocks = 0;
+  tmp_attr.blksize = 4096;
+  tmp_attr.atime = time (NULL);
+  tmp_attr.ctime = tmp_attr.atime;
+  tmp_attr.mtime = tmp_attr.atime;
+  tmp_fh = dentry->fh->local_fh;
+  SET_CONFLICT (tmp_fh, 1);
 
-  conflict = internal_dentry_create (&conflict_fh, &undefined_fh, vol,
-				     NULL, this_node->name, &conflict_attr,
-				     NULL, LEVEL_UNLOCKED);
-  swp = conflict->name;
-  conflict->name = dentry->name;
-  dentry->name = swp;
-
-  internal_dentry_add_to_dir (conflict, dentry);
+  conflict = internal_dentry_create (&tmp_fh, &undefined_fh, vol, NULL,
+				     dentry->name, &tmp_attr, NULL,
+				     LEVEL_UNLOCKED);
   if (parent)
     {
       zfsd_mutex_lock (&parent->fh->mutex);
@@ -1867,20 +1878,70 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
   else
     vol->root_dentry = conflict;
 
-  nod = node_lookup (GET_SID (dentry->fh->meta.master_fh));
-#ifdef ENABLE_CHECKING
-  /* Node can't be deleted because it is the master of the volume.  */
-  if (!nod)
-    abort ();
-#endif
+  /* Create second dentry.  */
+  free (dentry->name);
+  nod = vol->master;
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
 
-  remote = internal_dentry_create (&dentry->fh->meta.master_fh,
-				   &dentry->fh->meta.master_fh, vol, conflict,
-				   nod->name, remote_attr, NULL,
-				   LEVEL_UNLOCKED);
+  if ((flags & CONFLICT_BOTH_EXIST) == CONFLICT_BOTH_EXIST)
+    {
+#ifdef ENABLE_CHECKING
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	abort ();
+#endif
+      dentry->name = xstrdup (this_node->name);
+
+      dentry2 = internal_dentry_create (&dentry->fh->meta.master_fh,
+					&dentry->fh->meta.master_fh, vol,
+					conflict, nod->name,
+					remote_attr, NULL, LEVEL_UNLOCKED);
+    }
+  else
+    {
+      if (flags & CONFLICT_REMOTE_EXISTS)
+	{
+	  dentry->name = xstrdup (nod->name);
+	  tmp_fh.sid = nod->id;
+	  name = xstrconcat (2, this_node->name, ".not_exist");
+	}
+      else
+	{
+	  dentry->name = xstrdup (this_node->name);
+	  tmp_fh.sid = this_node->id;
+	  name = xstrconcat (2, nod->name, ".not_exist");
+	}
+      tmp_fh.vid = VOLUME_ID_VIRTUAL;
+      tmp_fh.dev = tmp_fh.sid;
+      tmp_fh.ino = tmp_fh.sid;
+      tmp_fh.gen = 1;
+      tmp_attr.dev = tmp_fh.dev;
+      tmp_attr.ino = tmp_fh.ino;
+      tmp_attr.version = 0;
+      tmp_attr.type = FT_LNK;
+      tmp_attr.mode = S_IRWXU | S_IRWXG | S_IRWXO;
+      tmp_attr.nlink = 1;
+      tmp_attr.uid = dentry->fh->attr.uid;
+      tmp_attr.gid = dentry->fh->attr.gid;
+      tmp_attr.rdev = 0;
+      tmp_attr.size = strlen (name);
+      tmp_attr.blocks = 0;
+      tmp_attr.blksize = 4096;
+      tmp_attr.atime = time (NULL);
+      tmp_attr.ctime = tmp_attr.atime;
+      tmp_attr.mtime = tmp_attr.atime;
+      dentry2 = internal_dentry_create (&tmp_fh, &undefined_fh, vol, conflict,
+					name, &tmp_attr, NULL, LEVEL_UNLOCKED);
+      free (name);
+    }
+
+  internal_dentry_add_to_dir (conflict, dentry);
+  internal_dentry_add_to_dir (conflict, dentry2);
+
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&conflict->fh->mutex);
-  zfsd_mutex_unlock (&remote->fh->mutex);
+  zfsd_mutex_unlock (&dentry2->fh->mutex);
 }
 
 /* Delete conflict subtree for conflict dentry DENTRY.  */

@@ -47,7 +47,13 @@ typedef struct volume_def *volume;
 #define MAX_LOCKED_FILE_HANDLES 2
 
 /* Is the FH virtual?  */
-#define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL)
+#define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL			\
+			  && (FH).sid == NODE_NONE)
+
+/* Is FH a file handle of non-existing file represented as a symlink
+   to existing file in case of exist-non_exist conflict?  */
+#define NON_EXIST_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL		\
+			    && (FH).sid != NODE_NONE)
 
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
@@ -86,6 +92,11 @@ typedef struct volume_def *volume;
 #define LEVEL_UNLOCKED	0
 #define LEVEL_SHARED	1
 #define LEVEL_EXCLUSIVE	2
+
+/* Flags for internal_dentry_create_conflict.  */
+#define CONFLICT_LOCAL_EXISTS	1
+#define CONFLICT_REMOTE_EXISTS	2
+#define CONFLICT_BOTH_EXIST	(CONFLICT_LOCAL_EXISTS | CONFLICT_REMOTE_EXISTS)
 
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
@@ -305,7 +316,8 @@ extern bool internal_dentry_move (internal_dentry dentry, volume vol,
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
 extern void internal_dentry_create_conflict (internal_dentry dentry,
-					     volume vol, fattr *remote_attr);
+					     volume vol, fattr *remote_attr,
+					     int flags);
 extern void internal_dentry_cancel_conflict (internal_dentry dentry,
 					     volume vol);
 
