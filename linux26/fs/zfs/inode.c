@@ -225,7 +225,7 @@ static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry 
 	link_args args;
 	int error;
 
-	TRACE("zfs: link: '%s' -> '%s'\n", src_dentry->d_name.name, dst_dentry->d_name.name);
+	TRACE("zfs: link: '%s' -> '%s'\n", dst_dentry->d_name.name, src_dentry->d_name.name);
 
 	args.from = ZFS_I(inode)->fh;
 	args.to.dir = ZFS_I(dir)->fh;
@@ -377,9 +377,30 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 	return 0;
 }
 
-static int zfs_rename (struct inode *old_dir, struct dentry *old_dentry, struct inode *new_dir, struct dentry *new_dentry)
+static int zfs_rename(struct inode *old_dir, struct dentry *old_dentry, struct inode *new_dir, struct dentry *new_dentry)
 {
-	TRACE("zfs: rename\n");
+	rename_args args;
+	int error;
+
+	TRACE("zfs: rename: '%s' -> '%s'\n", old_dentry->d_name.name, new_dentry->d_name.name);
+
+	args.from.dir = ZFS_I(old_dir)->fh;
+	args.from.name.str = (char *)old_dentry->d_name.name;
+	args.from.name.len = old_dentry->d_name.len;
+	args.to.dir = ZFS_I(new_dir)->fh;
+	args.to.name.str = (char *)new_dentry->d_name.name;
+	args.to.name.len = new_dentry->d_name.len;
+
+	error = zfsd_rename(&args);
+	if (error)
+		return error;
+
+	if (S_ISDIR(old_dentry->d_inode->i_mode)) {
+		old_dir->i_nlink--;
+		new_dir->i_nlink++;
+	}
+	old_dir->i_mtime = old_dir->i_ctime = CURRENT_TIME;
+	new_dir->i_mtime = new_dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }

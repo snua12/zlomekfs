@@ -354,6 +354,30 @@ int zfsd_mknod(dir_op_res *res, mknod_args *args)
 	return error;
 }
 
+int zfsd_rename(rename_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_rename\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_rename_zfsd(&dc, args);
+
+	if (!error
+	    && !finish_decoding(dc))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_rename: %d\n", error);
+
+	return error;
+}
+
 int zfsd_open(zfs_cap *cap, open_args *args)
 {
 	DC *dc;
