@@ -26,6 +26,7 @@
 #include <string.h>
 #include <strings.h>
 #include <dirent.h>
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/utsname.h>
@@ -71,6 +72,7 @@ node_create(char *name)
 	  memcpy(&nod->addr, he->h_addr_list[0], sizeof(nod->addr));
 	}
     }
+
   return nod;
 }
 
@@ -87,16 +89,8 @@ volume_create(char *name)
   vol->flags = 0;
   vol->localpath = NULL;
   vol->size_limit = UINT64_MAX;
-}
 
-int
-volume_set_local(volume vol, int lpath_len, char *localpath)
-{
-}
-
-int
-volume_set_copy(volume vol, int lpath_len, char *localpath)
-{
+  return vol;
 }
 
 static void
@@ -128,7 +122,7 @@ process_line(const char *file, const int line_num, char *line, char **key,
   while (*line == ' ' || *line == '\t')
     line++;
 
-  if (*line == '#')
+  if (*line == 0 || *line == '#' || *line == '\n')
     {
       /* There was no key nor value.  */
       *line = 0;
@@ -139,13 +133,14 @@ process_line(const char *file, const int line_num, char *line, char **key,
   
   *key = line;
   /* Skip the key.  */
-  while (*line != 0 && *line != '#' && *line != ' ' && *line != '\t')
+  while (*line != 0 && *line != '#' && *line != '\n'
+	 && *line != ' ' && *line != '\t')
     line++;
 
-  if (*line == '#' || *line == 0)
+  if (*line == 0 || *line == '#' || *line == '\n')
     {
       *line = 0;
-      message(0, stderr, "%s:%d:Option ``%s'' has no value.\n",
+      message(0, stderr, "%s:%d: Option '%s' has no value\n",
 	      file, line_num, *key);
       return 0;
     }
@@ -181,6 +176,7 @@ process_line(const char *file, const int line_num, char *line, char **key,
 		case ' ':
 		case '\t':
 		case '#':
+		case '\n':
 		  *line = 0;
 		  break;
 
@@ -201,6 +197,11 @@ process_line(const char *file, const int line_num, char *line, char **key,
 		case '\\':
 		  line++;
 		  state = STATE_QUOTED_BACKSLASH;
+		  break;
+
+		case '\n':
+		case 0:
+		  *line = 0;
 		  break;
 
 		default:
@@ -228,7 +229,7 @@ process_line(const char *file, const int line_num, char *line, char **key,
 
   if (*value == dest)
     {
-      message(0, stderr, "%s:%d:Option ``%s'' has no value.\n",
+      message(0, stderr, "%s:%d: Option '%s' has no value\n",
 	      file, line_num, *key);
       return 0;
     }
@@ -247,41 +248,42 @@ get_node_name()
 
   len = strlen(un.nodename);
   set_string(&node_name, un.nodename, len);
-  message(1, stderr, "Autodetected node name: ``%s''\n", node_name);
+  message(1, stderr, "Autodetected node name: '%s'\n", node_name);
 }
 
 static int
 read_private_key(const char *filename)
 {
+
+  return 1;
 }
 
 static int
 read_local_config(const char *path)
 {
-  char *volumes_path;
-  DIR *dir;
+  char *volumes;
   FILE *f;
 
   if (path == NULL || *path == 0)
     {
-      message(1, stderr,
-	      "The directory with node configuration is not specified in configuration file.\n");
+      message(0, stderr,
+	      "The directory with configuration of local node is not specified in configuration file.\n");
       return 0;
     }
 
-  volumes_path = xstrconcat(2, path, "/volumes/");
-  dir = opendir(volumes_path);
-  if (!dir)
+  volumes = xstrconcat(2, path, "/volumes");
+  f = fopen(volumes, "rt");
+  if (!f)
     {
-      free(volumes_path);
-      message(1, stderr,
-	      "The directory with node configuration is not specified in configuration file.\n");
-
+      message(-1, stderr, "%s: %s\n", volumes, strerror(errno));
+      free(volumes);
       return 0;
     }
+  else
+    {
+      fclose(f);
+    }
 
-
-  closedir(dir);
   return 1;
 }
 
@@ -289,6 +291,7 @@ static int
 read_cluster_config(const char *path)
 {
 
+  return 1;
 }
 
 /* Verify configuration, fix what can be fixed. Return false if there remains
@@ -318,11 +321,11 @@ read_config(const char *file)
   f = fopen(file, "rt");
   if (!f)
     {
-      message(-1, stderr, "Can't open config file ``%s''.\n", file);
+      message(-1, stderr, "Can't open config file '%s'\n", file);
       return 0;
     }
 
-  message(2, stderr, "Reading configuration file ``%s''.\n", file);
+  message(2, stderr, "Reading configuration file '%s'\n", file);
   line_num = 0;
   while (!feof(f))
     {
@@ -343,10 +346,12 @@ read_config(const char *file)
 	      if (strncasecmp(key, "nodename", 9) == 0)
 		{
 		  set_string(&node_name, value, value_len);
+		  message(1, stderr, "NodeName = '%s'\n", value);
 		}
 	      else if (strncasecmp(key, "privatekey", 11) == 0)
 		{
 		  set_string(&private_key, value, value_len);
+		  message(1, stderr, "PrivateKey = '%s'\n", value);
 		}
 	      else if (strncasecmp(key, "nodeconfig", 11) == 0
 		       || strncasecmp(key, "nodeconfiguration", 18) == 0
@@ -354,6 +359,7 @@ read_config(const char *file)
 		       || strncasecmp(key, "localconfiguration", 19) == 0)
 		{
 		  set_string(&node_config, value, value_len);
+		  message(1, stderr, "NodeConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp(key, "clusterconfig", 14) == 0
 		       || strncasecmp(key, "clusterconfiguration", 21) == 0)
@@ -361,10 +367,11 @@ read_config(const char *file)
 		  /* TODO: FIXME: cluster configuration is always in the same
 		     ZFS directory so the parameter should not be needed.  */
 		  set_string(&cluster_config, value, value_len);
+		  message(1, stderr, "ClusterConfig = '%s'\n", value);
 		}
 	      else
 		{
-		  message(0, stderr, "%s:%d:Unknown option: ``%s''.\n",
+		  message(0, stderr, "%s:%d:Unknown option: '%s'\n",
 			  file, line_num, key);
 		  return 0;
 		}
@@ -373,7 +380,7 @@ read_config(const char *file)
 	    {
 	      /* Configuration options which may have no value.  */
 	        {
-		  message(0, stderr, "%s:%d:Unknown option: ``%s''.\n",
+		  message(0, stderr, "%s:%d:Unknown option: '%s'\n",
 			  file, line_num, key);
 		  return 0;
 		}
