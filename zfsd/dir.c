@@ -3354,13 +3354,257 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   return r;
 }
 
+/* Name the local file handle FH as NAME in directory DIR on volume VOL
+   by moving the file or linking it.  */
+
+int32_t
+local_reintegrate_add (volume vol, internal_dentry dir, string *name,
+		       zfs_fh *fh)
+{
+  metadata meta;
+  int32_t r;
+  unsigned int n;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  n = metadata_n_hardlinks (vol, fh, &meta);
+  if (n == 0)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      return ENOENT;
+    }
+
+  if (meta.flags & METADATA_SHADOW)
+    {
+      if (!move_from_shadow (vol, fh, dir, name))
+	return ZFS_UPDATE_FAILED;
+    }
+  else
+    {
+      char *old_path, *old_name;
+      char *new_path, *new_name;
+      fattr attr;
+      uint32_t vid;
+      uint32_t new_parent_dev;
+      uint32_t new_parent_ino;
+      struct stat old_parent_st;
+
+      new_path = build_local_path_name (vol, dir, name->str);
+      vid = vol->id;
+      new_parent_dev = dir->fh->local_fh.dev;
+      new_parent_ino = dir->fh->local_fh.ino;
+      release_dentry (dir);
+      zfsd_mutex_unlock (&fh_mutex);
+
+      old_path = get_local_path_from_metadata (vol, fh);
+      zfsd_mutex_unlock (&vol->mutex);
+      if (!old_path)
+	{
+	  free (new_path);
+	  return ENOENT;
+	}
+
+      if (!recursive_unlink (new_path, vid, false))
+	{
+	  free (old_path);
+	  free (new_path);
+	  return ZFS_UPDATE_FAILED;
+	}
+
+      r = local_getattr_path (&attr, old_path);
+      if (r != ZFS_OK)
+	{
+	  free (old_path);
+	  free (new_path);
+	  return r;
+	}
+
+      new_name = file_name_from_path (new_path);
+      if (attr.type == FT_DIR)
+	{
+	  old_name = file_name_from_path (old_path);
+	  old_name[-1] = 0;
+	  if (lstat (old_path[0] ? old_path : "/", &old_parent_st) != 0)
+	    {
+	      free (old_path);
+	      free (new_path);
+	      return errno;
+	    }
+	  old_name[-1] = '/';
+
+	  if (rename (old_path, new_path) != 0)
+	    {
+	      free (old_path);
+	      free (new_path);
+	      return errno;
+	    }
+
+	  vol = volume_lookup (vid);
+	  if (!vol)
+	    {
+	      free (old_path);
+	      free (new_path);
+	      return ENOENT;
+	    }
+
+	  if (!metadata_hardlink_replace (vol, fh, old_parent_st.st_dev,
+					  old_parent_st.st_ino, old_name,
+					  new_parent_dev, new_parent_ino,
+					  new_name))
+	    {
+	      vol->delete_p = true;
+	      zfsd_mutex_unlock (&vol->mutex);
+	      free (old_path);
+	      free (new_path);
+	      return ZFS_UPDATE_FAILED;
+	    }
+	  zfsd_mutex_unlock (&vol->mutex);
+	  free (old_path);
+	  free (new_path);
+	}
+      else
+	{
+	  if (link (old_path, new_path) != 0)
+	    {
+	      free (old_path);
+	      free (new_path);
+	      return errno;
+	    }
+
+	  vol = volume_lookup (vid);
+	  if (!vol)
+	    {
+	      free (old_path);
+	      free (new_path);
+	      return ENOENT;
+	    }
+
+	  if (!metadata_hardlink_insert (vol, fh, new_parent_dev,
+					 new_parent_ino, new_name))
+	    {
+	      vol->delete_p = true;
+	      zfsd_mutex_unlock (&vol->mutex);
+	      free (old_path);
+	      free (new_path);
+	      return ZFS_UPDATE_FAILED;
+	    }
+	  zfsd_mutex_unlock (&vol->mutex);
+	  free (old_path);
+	  free (new_path);
+	}
+    }
+
+  return ZFS_OK;
+}
+
+/* Name the remote file handle FH as NAME in directory DIR on volume VOL
+   by moving the file or linking it.  */
+
+int32_t
+remote_reintegrate_add (volume vol, internal_dentry dir, string *name,
+			zfs_fh *fh)
+{
+  reintegrate_add_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
+    abort ();
+#endif
+
+  args.fh = *fh;
+  args.dir = dir->fh->meta.master_fh;
+  args.name = *name;
+
+  release_dentry (dir);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reintegrate_add_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
 /* Name the file handle FH as NAME in directory DIR
    by moving the file or linking it.  */
 
 int32_t
 zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
 {
-  return ZFS_OK;
+  volume vol;
+  internal_dentry idir, dentry;
+  int32_t r;
+
+  if (VIRTUAL_FH_P (*fh))
+    return EINVAL;
+
+  if (VIRTUAL_FH_P (*dir))
+    return EINVAL;
+
+  r = validate_operation_on_zfs_fh (fh, true);
+  if (r != ZFS_OK)
+    return r;
+
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
+
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
+    }
+  if (r != ZFS_OK)
+    return r;
+
+  if (vol->local_path)
+    r = local_reintegrate_add (vol, idir, name, fh);
+  else if (vol->master != this_node)
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_reintegrate_add (vol, idir, name, fh);
+    }
+  else
+    abort ();
+
+  zfsd_mutex_lock (&fh_mutex);
+  idir = dentry_lookup (dir);
+  if (idir)
+    {
+      dentry = dentry_lookup_name (idir, name->str);
+      release_dentry (idir);
+      if (dentry)
+	internal_dentry_destroy (dentry, true);
+    }
+  dentry = dentry_lookup (fh);
+  if (dentry)
+    internal_dentry_destroy (dentry, true);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  return r;
 }
 
 /* If DESTROY_P delete local file DENTRY and its subtree,
