@@ -478,19 +478,16 @@ network_worker (void *data)
 out:
       zfsd_mutex_lock (&fd_data->mutex);
       fd_data->busy--;
-      if (get_running ())
+      if (get_running () && fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
 	{
-	  if (fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
-	    {
-	      /* Add the buffer to the queue.  */
-	      fd_data->dc[fd_data->ndc] = t->dc;
-	      fd_data->ndc++;
-	    }
-	  else
-	    {
-	      /* Free the buffer.  */
-	      dc_destroy (&t->dc);
-	    }
+	  /* Add the buffer to the queue.  */
+	  fd_data->dc[fd_data->ndc] = t->dc;
+	  fd_data->ndc++;
+	}
+      else
+	{
+	  /* Free the buffer.  */
+	  dc_destroy (&t->dc);
 	}
       zfsd_mutex_unlock (&fd_data->mutex);
 
