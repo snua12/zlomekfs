@@ -429,7 +429,8 @@ client_start ()
   kernel_file = open (kernel_file_name, O_RDWR);
   if (kernel_file < 0)
     {
-      message (-1, stderr, "open(): %s\n", strerror (errno));
+      message (-1, stderr, "%s: open(): %s\n", kernel_file_name,
+	       strerror (errno));
       return false;
     }
 
