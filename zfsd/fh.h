@@ -315,6 +315,8 @@ extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
 extern bool set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh);
 extern void print_fh_htab (FILE *f);
 extern void debug_fh_htab (void);
+extern void print_subdentries (FILE *f, internal_fh fh);
+extern void debug_subdentries (internal_fh fh);
 
 extern internal_dentry internal_dentry_link (internal_fh fh, volume vol,
 					     internal_dentry parent,

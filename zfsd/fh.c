@@ -1229,6 +1229,36 @@ debug_fh_htab (void)
   print_fh_htab (stderr);
 }
 
+/* Print subdentries of file handle FH to file F.  */
+
+void
+print_subdentries (FILE *f, internal_fh fh)
+{
+  unsigned int i;
+  internal_dentry dentry;
+
+  if (fh->attr.type != FT_DIR)
+    return;
+
+  for (i = 0; i < VARRAY_USED (fh->subdentries); i++)
+    {
+      dentry = VARRAY_ACCESS (fh->subdentries, i, internal_dentry);
+
+      fprintf (f, "%s [%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32
+	       "]\n", dentry->name, dentry->fh->local_fh.sid,
+	       dentry->fh->local_fh.vid, dentry->fh->local_fh.dev,
+	       dentry->fh->local_fh.ino, dentry->fh->local_fh.gen);
+    }
+}
+
+/* Print subdentries of file handle FH to STDERR.  */
+
+void
+debug_subdentries (internal_fh fh)
+{
+  print_subdentries (stderr, fh);
+}
+
 /* Add DENTRY to list of dentries of PARENT.  */
 
 static void
