@@ -24,6 +24,7 @@
 
 #include "system.h"
 #include <stdlib.h>
+#include <string.h>
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"
@@ -197,6 +198,7 @@ void
 htab_destroy (htab_t htab)
 {
   unsigned int i;
+
   if (htab->del_f)
     {
       for (i = 0; i < htab->size; i++)
@@ -205,6 +207,23 @@ htab_destroy (htab_t htab)
     }
   free (htab->table);
   free (htab);
+}
+
+/* Clear all elements of hash table HTAB.  */
+
+void
+htab_empty (htab_t htab)
+{
+  unsigned int i;
+
+  if (htab->del_f)
+    {
+      for (i = 0; i < htab->size; i++)
+	if (htab->table[i] != EMPTY_ENTRY && htab->table[i] != DELETED_ENTRY)
+	  (*htab->del_f) (htab->table[i]);
+    }
+
+  memset (htab->table, 0, htab->size * sizeof (void *));
 }
 
 /* Clear the slot SLOT of the hash table HTAB.  If the cleanup function is
