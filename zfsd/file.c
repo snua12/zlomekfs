@@ -422,8 +422,7 @@ zfs_create_retry:
 
       if (vol->local_path)
 	{
-	  if (!(vol->flags & VOLUME_DELETE)
-	      && load_interval_trees (vol, dentry->fh))
+	  if (load_interval_trees (vol, dentry->fh))
 	    {
 	      local_close (icap);
 	      icap->fd = fd;
@@ -576,8 +575,7 @@ zfs_open_retry:
   if (vol->local_path)
     {
       if (dentry->fh->attr.type != FT_REG
-	  || (!(vol->flags & VOLUME_DELETE)
-	      && load_interval_trees (vol, dentry->fh)))
+	  || load_interval_trees (vol, dentry->fh))
 	{
 	  r = local_open (cap, icap, flags & ~O_ACCMODE, dentry, vol);
 	  if (r == ZFS_OK)
@@ -668,7 +666,8 @@ zfs_close_retry:
     {
       if (vol->local_path)
 	{
-	  if (!save_interval_trees (vol, dentry->fh))
+	  if (dentry->fh->attr.type == FT_REG
+	      && !save_interval_trees (vol, dentry->fh))
 	    vol->flags |= VOLUME_DELETE;
 	  zfsd_mutex_unlock (&vol->mutex);
 	  r = local_close (icap);
