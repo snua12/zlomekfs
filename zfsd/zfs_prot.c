@@ -829,7 +829,8 @@ int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 	encode_direction(*dc, DIR_REQUEST);			\
 	encode_request_id(*dc, req.id);				\
 	encode_function(*dc, NUMBER);				\
-	encode_##ARGS(*dc, args);				\
+	if (!encode_##ARGS(*dc, args))				\
+		return zfs_error(ZFS_REQUEST_TOO_LONG);		\
 	req.length = finish_encoding(*dc);			\
 								\
 	error = send_request(&req);				\

@@ -78,7 +78,11 @@ typedef enum direction_def
 typedef struct data_buffer_def
 {
   uint32_t len;
+#ifdef __KERNEL__
+  const char __user *buf;
+#else
   char *buf;
+#endif
 } data_buffer;
 
 typedef enum ftype_def

@@ -25,6 +25,7 @@
 # include <linux/string.h>
 # include <linux/slab.h>
 # include <linux/vmalloc.h>
+# include <asm/uaccess.h>
 # include "zfs.h"
 #else
 # include <unistd.h>
@@ -318,8 +319,15 @@ encode_data_buffer (DC *dc, data_buffer *data)
       return false;
     }
 
+#ifdef __KERNEL__
+  if (copy_from_user(dc->cur_pos, data->buf, data->len)) {
+    dc->cur_pos = NULL;
+    return false;
+  }
+#else
   if (dc->cur_pos != data->buf)
     memcpy (dc->cur_pos, data->buf, data->len);
+#endif
   dc->cur_pos += data->len;
 
   return true;
