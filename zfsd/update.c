@@ -1765,7 +1765,8 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
     {
       /* Remote file exists.  */
 
-      return local_reintegrate_del_base (&res->file, name, false, dir_fh);
+      return local_reintegrate_del_base (&res->file, name, false, dir_fh,
+					 true);
     }
   else if (r == ENOENT || r == ESTALE)
     {
@@ -1798,6 +1799,7 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
 				zfs_fh *remote_fh)
 {
   fh_mapping map;
+  zfs_fh dir_fh;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1814,8 +1816,9 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
       return ZFS_METADATA_ERROR;
     }
 
+  dir_fh = dir->fh->local_fh;
   return remote_reintegrate_del (vol, remote_fh, dir, name,
-				 map.slot_status != VALID_SLOT);
+				 map.slot_status != VALID_SLOT, &dir_fh);
 }
 
 /* Update the directory DIR on volume VOL with file handle FH,
@@ -2025,7 +2028,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 #endif
 
 	  r = local_reintegrate_del (vol, &local_res.file, dir, &entry->name,
-				     r != ZFS_OK, fh);
+				     r != ZFS_OK, fh, false);
 	}
       else if (meta.flags & METADATA_MODIFIED)
 	{
@@ -2422,7 +2425,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		      {
 			r = remote_reintegrate_del (vol, &entry->master_fh,
 						    dir, &entry->name,
-						    r != ZFS_OK);
+						    r != ZFS_OK, fh);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
 						   false);
 #ifdef ENABLE_CHECKING

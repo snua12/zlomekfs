@@ -4646,13 +4646,16 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
    on volume VOL to shadow.  */
 
 static bool
-move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
+move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
+		zfs_fh *dir_fh, bool journal)
 {
   string path;
-  string shadow_path;
+  string shadow_path, shadow_name;
+  zfs_fh shadow_fh;
   metadata meta_old, meta_new;
+  internal_dentry shadow_dir;
   uint32_t vid;
-  int32_t r;
+  int32_t r, r2;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -4688,11 +4691,47 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
     }
 
   r = local_rename_base (&meta_old, &meta_new, &path, &shadow_path, vol, true);
+  if (r != ZFS_OK)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  file_name_from_path (&shadow_name, &shadow_path);
+  shadow_name.str[-1] = 0;
+  r = refresh_local_path_vid (&shadow_fh, vid, &shadow_path);
+
+  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (r == ZFS_OK)
+    shadow_dir = dentry_lookup (&shadow_fh);
+  else
+    shadow_dir = NULL;
+
+  if (shadow_dir)
+    {
+      internal_dentry_move (&dir, name, &shadow_dir, &shadow_name, &vol,
+			    dir_fh, NULL);
+    }
+  if (journal)
+    {
+      zfs_rename_journal (dir, name, shadow_dir, &shadow_name, vol,
+			  &meta_old, &meta_new);
+    }
+
+  if (shadow_dir)
+    release_dentry (shadow_dir);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
   free (path.str);
   free (shadow_path.str);
-  if (r != ZFS_OK)
-    return false;
-
   return true;
 }
 
@@ -5043,11 +5082,12 @@ local_reintegrate_del_fh (zfs_fh *fh)
 }
 
 /* If DESTROY_P delete local file NAME with file handle FH and its subtree
-   from directory DIR_FH, otherwise move it to shadow.  */
+   from directory DIR_FH, otherwise move it to shadow.
+   Add a record to journal if JOURNAL.  */
 
 int32_t
 local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
-			    zfs_fh *dir_fh)
+			    zfs_fh *dir_fh, bool journal)
 {
   volume vol;
   internal_dentry dir;
@@ -5069,19 +5109,21 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
     }
   else
     {
-      if (!move_to_shadow (vol, fh, dir, name))
+      if (!move_to_shadow (vol, fh, dir, name, dir_fh, journal))
 	return ZFS_UPDATE_FAILED;
     }
 
   return ZFS_OK;
 }
 
-/* If DESTROY_P delete local file NAME and its subtree from directory DIR,
-   otherwise move it to shadow.  */
+/* If DESTROY_P delete local file NAME and its subtree from directory DIR
+   with file handle DIR_FH on volume VOL, otherwise move it to shadow.
+   Add a record to journal if JOURNAL.  */
 
 int32_t
 local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
-		       string *name, bool destroy_p, zfs_fh *dir_fh)
+		       string *name, bool destroy_p, zfs_fh *dir_fh,
+		       bool journal)
 {
   dir_op_res res;
   metadata meta;
@@ -5109,7 +5151,8 @@ local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   if (r != ZFS_OK)
     return r;
 
-  return local_reintegrate_del_base (&res.file, name, destroy_p, dir_fh);
+  return local_reintegrate_del_base (&res.file, name, destroy_p, dir_fh,
+				     journal);
 }
 
 /* Delete remote file FH from shadow.  */
@@ -5118,6 +5161,7 @@ static int32_t
 remote_reintegrate_del_fh (zfs_fh *fh)
 {
   reintegrate_del_args args;
+  internal_dentry dentry;
   thread *t;
   int32_t r;
   int fd;
@@ -5153,19 +5197,27 @@ remote_reintegrate_del_fh (zfs_fh *fh)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
+
+  /* Delete the dentry for FH.  */
+  zfsd_mutex_lock (&fh_mutex);
+  dentry = dentry_lookup (fh);
+  if (dentry)
+    internal_dentry_destroy (dentry, true, true);
+  zfsd_mutex_unlock (&fh_mutex);
+
   return r;
 }
 
-/* If DESTROY_P delete remote file NAME and its subtree from directory DIR,
-   otherwise move it to shadow.  */
+/* If DESTROY_P delete remote file NAME and its subtree from directory DIR
+   with file handle DIR_FH, otherwise move it to shadow.  */
 
 int32_t
 remote_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
-			string *name, bool destroy_p)
+			string *name, bool destroy_p, zfs_fh *dir_fh)
 {
   reintegrate_del_args args;
   thread *t;
-  int32_t r;
+  int32_t r, r2;
   int fd;
   node nod = vol->master;
 
@@ -5199,6 +5251,19 @@ remote_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
+
+  /* Delete the dentry for NAME in DIR.  */
+  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  delete_dentry (&vol, &dir, name, dir_fh);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
   return r;
 }
 
@@ -5261,12 +5326,13 @@ zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      r = local_reintegrate_del (vol, fh, idir, name, destroy_p, &tmp_fh);
+      r = local_reintegrate_del (vol, fh, idir, name, destroy_p, &tmp_fh,
+				 true);
     }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      r = remote_reintegrate_del (vol, fh, idir, name, destroy_p);
+      r = remote_reintegrate_del (vol, fh, idir, name, destroy_p, &tmp_fh);
     }
   else
     abort ();
