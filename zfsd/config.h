@@ -64,7 +64,8 @@ typedef struct volume_def
   uint64_t size_limit;
 } *volume;
 
-#define VOLUME_ID_CONFIG 1	/* ID of 'config' volume */
+#define VOLUME_ID_NONE    0	/* ID of the non-existing 'root' volume */
+#define VOLUME_ID_CONFIG  1	/* ID of 'config' volume */
 
 #define VOLUME_DELETE	1	/* the volume should be deleted from memory
 				   datastructures  */
