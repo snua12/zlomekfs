@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,6 +32,7 @@
 #include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"
+#include "fibheap.h"
 #include "log.h"
 #include "memory.h"
 #include "network.h"
@@ -61,6 +63,19 @@ static htab_t vd_htab_name;
 /* Mutex for virtual directories.  */
 pthread_mutex_t vd_mutex;
 
+/* Heap holding internal file handles will be automatically freed
+   when unused for a long time.  */
+fibheap cleanup_fh_heap;
+
+/* Mutex protecting CLEANUP_FH_*.  */
+pthread_mutex_t cleanup_fh_mutex;
+
+/* Thread ID of thread freeing file handles unused for a long time.  */
+pthread_t cleanup_fh_thread;
+
+/* This mutex is locked when cleanup fh thread is in sleep.  */
+pthread_mutex_t cleanup_fh_thread_in_syscall;
+
 /* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
   (ZFS_FH_HASH (&(VD)->fh))
@@ -69,6 +84,216 @@ pthread_mutex_t vd_mutex;
 #define VIRTUAL_DIR_HASH_NAME(VD)					\
   (crc32_update (crc32_string ((VD)->name),				\
 		 &(VD)->parent->fh, sizeof (zfs_fh)))
+
+/* Add ZFS_FH of internal file handle IFH with key IFH->LAST_USE
+   to heap CLEANUP_FH_HEAP.  */
+
+static void
+cleanup_fh_insert_node (internal_fh ifh)
+{
+#ifdef ENABLE_CHECKING
+  CHECK_MUTEX_LOCKED (&ifh->mutex);
+#endif
+
+  zfsd_mutex_lock (&cleanup_fh_mutex);
+  if (!ifh->heap_node)
+    {
+      fibheapkey_t key;
+
+      key = ifh->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) ifh->last_use;
+      ifh->heap_node = fibheap_insert (cleanup_fh_heap, key, ifh);
+    }
+  zfsd_mutex_unlock (&cleanup_fh_mutex);
+}
+
+/* Replace key of node IFH->HEAP_NODE to IFH->LAST_USE.  */
+
+static void
+cleanup_fh_update_node (internal_fh ifh)
+{
+#ifdef ENABLE_CHECKING
+  CHECK_MUTEX_LOCKED (&ifh->mutex);
+#endif
+
+  zfsd_mutex_lock (&cleanup_fh_mutex);
+  if (ifh->heap_node)
+    {
+      fibheapkey_t key;
+
+      key = ifh->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) ifh->last_use;
+      fibheap_replace_key (cleanup_fh_heap, ifh->heap_node, key);
+    }
+  zfsd_mutex_unlock (&cleanup_fh_mutex);
+}
+
+/* Delete IFH->HEAP_NODE from CLEANUP_FH_HEAP and set it to NULL.  */
+
+static void
+cleanup_fh_delete_node (internal_fh ifh)
+{
+#ifdef ENABLE_CHECKING
+  CHECK_MUTEX_LOCKED (&ifh->mutex);
+#endif
+
+  zfsd_mutex_lock (&cleanup_fh_mutex);
+  if (ifh->heap_node)
+    {
+      fibheap_delete_node (cleanup_fh_heap, ifh->heap_node);
+      ifh->heap_node = NULL;
+    }
+  zfsd_mutex_unlock (&cleanup_fh_mutex);
+}
+
+/* Compare the volume IDs of ZFS_FHs P1 and P2.  */
+
+static int
+cleanup_unused_fhs_compare (const void *p1, const void *p2)
+{
+  const zfs_fh *fh1 = (const zfs_fh *) p1;
+  const zfs_fh *fh2 = (const zfs_fh *) p2;
+
+  if (fh1->vid == fh2->vid)
+    return 0;
+  else if (fh1->vid < fh2->vid)
+    return -1;
+  return 1;
+}
+
+/* Free internal file handles unused for at least MAX_INTERNAL_FH_UNUSED_TIME
+   seconds.  */
+
+static void
+cleanup_unused_fhs ()
+{
+  fibheapkey_t threshold;
+  internal_fh ifh;
+  zfs_fh fh[1024];
+  int i, j, n;
+
+  threshold = (fibheapkey_t) time (NULL) - MAX_INTERNAL_FH_UNUSED_TIME;
+  do
+    {
+      zfsd_mutex_lock (&cleanup_fh_mutex);
+      for (n = 0; n < 1024; n++)
+	{
+	  if (cleanup_fh_heap->nodes == 0)
+	    break;
+
+	  ifh = (internal_fh) fibheap_min (cleanup_fh_heap);
+#ifdef ENABLE_CHECKING
+	  if (!ifh)
+	    abort ();
+#endif
+	  if (fibheap_min_key (cleanup_fh_heap) >= threshold)
+	    break;
+
+	  fibheap_extract_min (cleanup_fh_heap);
+
+	  /* We have to clear IFH->HEAP_NODE while the CLEANUP_FH_MUTEX is
+	     still locked. Moreover we have to copy the ZFS_FH because
+	     the internal file handle may be freed as soon as we unlock
+	     CLEANUP_FH_MUTEX.  Later we have to lookup the internal file
+	     handle and do nothing if it already does not exist.  */
+	  ifh->heap_node = NULL;
+	  fh[n] = ifh->local_fh;
+	}
+      zfsd_mutex_unlock (&cleanup_fh_mutex);
+      if (n)
+	{
+	  message (3, stderr, "Freeing %d nodes\n", n);
+	  qsort (fh, n, sizeof (zfs_fh), cleanup_unused_fhs_compare);
+
+	  zfsd_mutex_lock (&volume_mutex);
+	  for (i = 0; i < n; i = j)
+	    {
+	      volume vol;
+	      unsigned int vid;
+	      
+	      vid = fh[i].vid;
+	      vol = volume_lookup (vid);
+	      if (vol)
+		{
+		  for (j = i; j < n && fh[j].vid == vid; j++)
+		    {
+		      internal_fh parent;
+
+		      ifh = fh_lookup (vol, &fh[j]);
+		      if (!ifh)
+			continue;
+
+		      /* We may have added a dentry to it
+			 while CLEANUP_FH_MUTEX was unlocked.  */
+		      if (ifh->attr.type == FT_DIR
+			  && VARRAY_USED (ifh->dentries) > 0)
+			continue;
+
+		      /* We may have looked IFH up again
+			 so we may have updated LAST_USE
+			 or there are capabilities associated with
+			 the file handle.  */
+		      if ((fibheapkey_t) ifh->last_use >= threshold
+			  || ifh->ncap > 0)
+			{
+			  /* Reinsert the file handle to heap.  */
+			  zfsd_mutex_lock (&ifh->mutex);
+			  cleanup_fh_insert_node (ifh);
+			  zfsd_mutex_unlock (&ifh->mutex);
+			  continue;
+			}
+
+		      parent = ifh->parent;
+
+		      if (parent)
+			zfsd_mutex_lock (&parent->mutex);
+
+		      zfsd_mutex_lock (&ifh->mutex);
+		      internal_fh_destroy (ifh, vol);
+
+		      if (parent)
+			zfsd_mutex_unlock (&parent->mutex);
+		    }
+		  zfsd_mutex_unlock (&vol->mutex);
+		}
+	      else
+		{
+		  /* Skip the file handles from the same volume.  */
+		  for (j = i; j < n && fh[j].vid == vid; j++)
+		    ;
+		}
+	    }
+	  zfsd_mutex_unlock (&volume_mutex);
+	}
+    }
+  while (n > 0);
+}
+
+/* Main function of thread freeing file handles unused for a long time.  */
+
+void *
+cleanup_fh_thread_main (void *)
+{
+  thread_disable_signals ();
+
+  while (get_running ())
+    {
+      zfsd_mutex_lock (&cleanup_fh_thread_in_syscall);
+      if (get_running ())
+	sleep (1);
+      zfsd_mutex_unlock (&cleanup_fh_thread_in_syscall);
+      if (!get_running ())
+	break;
+
+      cleanup_unused_fhs ();
+    }
+
+  /* Disable signaling this thread. */
+  zfsd_mutex_lock (&running_mutex);
+  cleanup_fh_thread = 0;
+  zfsd_mutex_unlock (&running_mutex);
+
+  zfsd_mutex_destroy (&cleanup_fh_thread_in_syscall);
+  return NULL;
+}
 
 /* Hash function for internal file handle X, computed from local_fh.  */
 
@@ -187,6 +412,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 
       zfsd_mutex_lock (&ifh->mutex);
       ifh->last_use = time (NULL);
+      cleanup_fh_update_node (ifh);
 
       *volp = vol;
       *ifhp = ifh;
@@ -236,6 +462,7 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
     {
       zfsd_mutex_lock (&fh->mutex);
       fh->last_use = time (NULL);
+      cleanup_fh_update_node (fh);
     }
 
   return fh;
@@ -265,16 +492,21 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
   fh->attr = *attr;
   fh->ncap = 0;
   fh->last_use = time (NULL);
+  fh->heap_node = NULL;
 
   if (fh->attr.type == FT_DIR)
     varray_create (&fh->dentries, sizeof (internal_fh), 16);
-  if (parent)
-    {
-      fh->dentry_index = VARRAY_USED (parent->dentries);
-      VARRAY_PUSH (parent->dentries, fh, internal_fh);
-    }
+
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
+
+  if (parent)
+    {
+      cleanup_fh_insert_node (fh);
+      fh->dentry_index = VARRAY_USED (parent->dentries);
+      VARRAY_PUSH (parent->dentries, fh, internal_fh);
+      cleanup_fh_delete_node (parent);
+    }
 
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
@@ -328,6 +560,9 @@ internal_fh_destroy (internal_fh fh, volume vol)
       varray_destroy (&fh->dentries);
     }
 
+  /* At this point, FH is always a leaf.  */
+  cleanup_fh_delete_node (fh);
+
   if (fh->parent)
     {
       CHECK_MUTEX_LOCKED (&fh->parent->mutex);
@@ -346,6 +581,12 @@ internal_fh_destroy (internal_fh fh, volume vol)
 	abort ();
 #endif
       htab_clear_slot (vol->fh_htab_name, slot);
+
+      if (fh->parent->parent				/* PARENT is not root */
+	  && VARRAY_USED (fh->parent->dentries) == 0)	/* and is a leaf */
+	{
+	  cleanup_fh_insert_node (fh->parent);
+	}
     }
 
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
@@ -796,6 +1037,14 @@ initialize_fh_c ()
   vd_htab_name = htab_create (100, virtual_dir_hash_name, virtual_dir_eq_name,
 			      NULL, &vd_mutex);
 
+  /* Data structures for cleanup of file handles.  */
+  zfsd_mutex_init (&cleanup_fh_mutex);
+  cleanup_fh_heap = fibheap_new (1020, &cleanup_fh_mutex);
+  if (pthread_create (&cleanup_fh_thread, NULL, cleanup_fh_thread_main, NULL))
+    {
+      message (-1, stderr, "pthread_create() failed\n");
+    }
+
   root = virtual_root_create ();
 }
 
@@ -829,4 +1078,9 @@ cleanup_fh_c ()
   free_alloc_pool (vd_pool);
   zfsd_mutex_unlock (&vd_mutex);
   zfsd_mutex_destroy (&vd_mutex);
+
+  /* Data structures for cleanup of file handles.  */
+  zfsd_mutex_lock (&cleanup_fh_mutex);
+  zfsd_mutex_unlock (&cleanup_fh_mutex);
+  zfsd_mutex_destroy (&cleanup_fh_mutex);
 }

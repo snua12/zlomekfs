@@ -558,10 +558,13 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   volume vol;
   internal_fh ifh;
   int r;
+  int retry = 0;
 
   /* Virtual directory tree is read only for users.  */
   if (VIRTUAL_FH_P (*fh))
     return EROFS;
+
+zfs_setattr_retry:
 
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &ifh, NULL);
@@ -581,6 +584,14 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (fh);
+      if (r == ZFS_OK)
+	goto zfs_setattr_retry;
+    }
 
   return r;
 }
@@ -689,6 +700,9 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   virtual_dir pvd;
   dir_op_res master_res;
   int r;
+  int retry = 0;
+
+zfs_lookup_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -799,6 +813,14 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_lookup_retry;
+    }
+
   return r;
 }
 
@@ -890,6 +912,9 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   virtual_dir pvd;
   dir_op_res master_res;
   int r;
+  int retry = 0;
+
+zfs_mkdir_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -960,6 +985,14 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_mkdir_retry;
+    }
+
   return r;
 }
 
@@ -1025,6 +1058,9 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_fh idir;
   virtual_dir pvd;
   int r;
+  int retry = 0;
+
+zfs_rmdir_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -1067,6 +1103,14 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
   zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_rmdir_retry;
+    }
 
   return r;
 }
@@ -1145,6 +1189,9 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   internal_fh ifh1, ifh2;
   virtual_dir vd1, vd2;
   int r;
+  int retry = 0;
+
+zfs_rename_retry:
 
   /* Lookup FROM_DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -1280,6 +1327,16 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     zfsd_mutex_unlock (&ifh2->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (from_dir);
+      if (r == ZFS_OK)
+	r = refresh_path (to_dir);
+      if (r == ZFS_OK)
+	goto zfs_rename_retry;
+    }
+
   return r;
 }
 
@@ -1352,6 +1409,9 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   internal_fh ifh1, ifh2;
   virtual_dir vd1, vd2;
   int r;
+  int retry = 0;
+
+zfs_link_retry:
 
   /* Lookup FROM.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -1492,6 +1552,16 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     zfsd_mutex_unlock (&ifh2->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (from);
+      if (r == ZFS_OK)
+	r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_link_retry;
+    }
+
   return r;
 }
 
@@ -1557,6 +1627,9 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_fh idir;
   virtual_dir pvd;
   int r;
+  int retry = 0;
+
+zfs_unlink_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -1599,6 +1672,14 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_unlink_retry;
+    }
 
   return r;
 }
@@ -1679,9 +1760,12 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   volume vol;
   internal_fh ifh;
   int r;
+  int retry = 0;
 
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
+
+zfs_readlink_retry:
 
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &ifh, NULL);
@@ -1696,6 +1780,14 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
     abort ();
 
   zfsd_mutex_unlock (&ifh->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (fh);
+      if (r == ZFS_OK)
+	goto zfs_readlink_retry;
+    }
 
   return r;
 }
@@ -1776,6 +1868,9 @@ zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
   internal_fh idir;
   virtual_dir pvd;
   int r;
+  int retry;
+
+zfs_symlink_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -1823,6 +1918,14 @@ zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
 
   zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_symlink_retry;
+    }
 
   return r;
 }
@@ -1908,6 +2011,9 @@ zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
   internal_fh idir;
   virtual_dir pvd;
   int r;
+  int retry;
+
+zfs_mknod_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -1966,6 +2072,67 @@ zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
     }
 
   zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_mknod_retry;
+    }
+
+  return r;
+}
+
+/* Recursively refresh path to DIR on volume VOL and lookup NAME.
+   Store result of REMOTE_LOOKUP to RES (unused).  */
+
+static int
+refresh_path_1 (dir_op_res *res, internal_fh dir, char *name, volume vol)
+{
+  int r;
+  string s;
+
+  if (dir == NULL)
+    return ENOENT;
+
+  s.str = name;
+  s.len = strlen (name);
+
+  zfsd_mutex_lock (&dir->mutex);
+  r = remote_lookup (res, dir, &s, vol);
+  if (r == ESTALE)
+    {
+      r = refresh_path_1 (res, dir->parent, dir->name, vol);
+      if (r == ZFS_OK)
+	r = remote_lookup (res, dir, &s, vol);
+    }
+  zfsd_mutex_unlock (&dir->mutex);
+
+  return r;
+}
+
+/* Refresh file handles on path to ZFS_FH FH.  */
+
+int
+refresh_path (zfs_fh *fh)
+{
+  dir_op_res res;
+  internal_fh ifh;
+  volume vol;
+  int r;
+
+  if (VIRTUAL_FH_P (*fh))
+    return EINVAL;
+
+  r = zfs_fh_lookup (fh, &vol, &ifh, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  r = refresh_path_1 (&res, ifh->parent, ifh->name, vol);
+
+  zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
   return r;

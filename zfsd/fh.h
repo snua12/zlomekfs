@@ -32,6 +32,7 @@ typedef struct volume_def *volume;
 #include "crc32.h"
 #include "hashtab.h"
 #include "varray.h"
+#include "fibheap.h"
 #include "zfs_prot.h"
 
 #define VIRTUAL_DEVICE 0	/* Device number of device with virtual
@@ -55,7 +56,6 @@ typedef struct volume_def *volume;
 			     && (FH1).dev == (FH2).dev		\
 			     && (FH1).vid == (FH2).vid		\
 			     && (FH1).sid == (FH2).sid)
-
 
 /* Hash function for internal_fh FH, computed from local_fh.  */
 #define INTERNAL_FH_HASH(FH)						\
@@ -111,6 +111,9 @@ struct internal_fh_def
 
   /* Last use of this FH.  */
   time_t last_use;
+
+  /* Heap node whose data is this structure.  */
+  fibnode heap_node;
 };
 
 /* Structure of a virtual directory (element of mount tree).  */
@@ -154,6 +157,12 @@ extern htab_t vd_htab;
 
 /* Mutex for virtual directories.  */
 extern pthread_mutex_t vd_mutex;
+
+/* Thread ID of thread freeing file handles unused for a long time.  */
+extern pthread_t cleanup_fh_thread;
+
+/* This mutex is locked when cleanup fh thread is in sleep.  */
+extern pthread_mutex_t cleanup_fh_thread_in_syscall;
 
 extern hash_t internal_fh_hash (const void *x);
 extern hash_t internal_fh_hash_name (const void *x);

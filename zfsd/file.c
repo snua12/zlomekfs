@@ -337,10 +337,13 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   virtual_dir pvd;
   int r;
   int fd;
+  int retry = 0;
 
   /* When O_CREAT is NOT set the function zfs_open is called.
      Force O_CREAT to be set here.  */
   flags |= O_CREAT;
+
+zfs_create_retry:
 
   /* Lookup DIR.  */
   zfsd_mutex_lock (&volume_mutex);
@@ -419,6 +422,15 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 
   zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (dir);
+      if (r == ZFS_OK)
+	goto zfs_create_retry;
+    }
+
   return r;
 }
 
@@ -495,10 +507,13 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
   internal_fh ifh;
   virtual_dir vd;
   int r;
+  int retry = 0;
 
   /* When O_CREAT is set the function zfs_create is called.
      The flag is superfluous here.  */
   flags &= ~O_CREAT;
+
+zfs_open_retry:
 
   cap->fh = *fh;
   cap->flags = flags & O_ACCMODE;
@@ -537,6 +552,15 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
 
   zfsd_mutex_unlock (&icap->mutex);
   zfsd_mutex_unlock (&ifh->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (fh);
+      if (r == ZFS_OK)
+	goto zfs_open_retry;
+    }
+
   return r;
 }
 
@@ -550,6 +574,9 @@ zfs_close (zfs_cap *cap)
   internal_fh ifh;
   virtual_dir vd;
   int r;
+  int retry = 0;
+
+zfs_close_retry:
 
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -599,6 +626,15 @@ zfs_close (zfs_cap *cap)
 
   put_capability (icap, ifh);
   zfsd_mutex_unlock (&cap_mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (&cap->fh);
+      if (r == ZFS_OK)
+	goto zfs_close_retry;
+    }
+
   return r;
 }
 
@@ -858,6 +894,9 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   char *status_pos, *cur_pos;
   int status_len, cur_len;
   bool local;
+  int retry = 0;
+
+zfs_readdir_retry:
 
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -935,6 +974,15 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   cur_len = dc->cur_length;
   dc->current = status_pos;
   dc->cur_length = status_len;
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (&cap->fh);
+      if (r == ZFS_OK)
+	goto zfs_readdir_retry;
+    }
+
   encode_status (dc, r);
   if (r == ZFS_OK)
     {
@@ -1047,6 +1095,7 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
   internal_cap icap;
   internal_fh ifh;
   int r;
+  int retry = 0;
 
   if (count > ZFS_MAXDATA)
     {
@@ -1059,6 +1108,8 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
       encode_status (dc, EISDIR);
       return EISDIR;
     }
+
+zfs_read_retry:
 
   r = find_capability (cap, &icap, &vol, &ifh, NULL);
   if (r != ZFS_OK)
@@ -1084,6 +1135,14 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
     abort ();
   zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&icap->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (&cap->fh);
+      if (r == ZFS_OK)
+	goto zfs_read_retry;
+    }
 
   return r;
 }
@@ -1172,12 +1231,15 @@ zfs_write (write_res *res, write_args *args)
   internal_cap icap;
   internal_fh ifh;
   int r;
+  int retry = 0;
 
   if (args->data.len > ZFS_MAXDATA)
     return EINVAL;
 
   if (VIRTUAL_FH_P (args->cap.fh))
     return EISDIR;
+
+zfs_write_retry:
 
   r = find_capability (&args->cap, &icap, &vol, &ifh, NULL);
   if (r != ZFS_OK)
@@ -1198,6 +1260,14 @@ zfs_write (write_res *res, write_args *args)
     abort ();
   zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&icap->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (&args->cap.fh);
+      if (r == ZFS_OK)
+	goto zfs_write_retry;
+    }
 
   return r;
 }

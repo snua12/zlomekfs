@@ -51,5 +51,6 @@ extern int zfs_readlink (read_link_res *res, zfs_fh *fh);
 extern int zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr);
 extern int zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
 		      unsigned int rdev);
+extern int refresh_path (zfs_fh *fh);
 
 #endif
