@@ -72,14 +72,15 @@ typedef struct journal_def
   /* First and last node of the doubly-linked chain.  */
   journal_entry first;
   journal_entry last;
-} *journal;
+} *journal_t;
 
-extern journal journal_create (unsigned int nelem, pthread_mutex_t *mutex);
-extern void journal_destroy (journal j);
-extern bool journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh,
-			    char *name, journal_operation_t oper, bool copy);
-extern bool journal_member (journal j, zfs_fh *local_fh, char *name);
-extern bool journal_delete (journal j, zfs_fh *local_fh, char *name);
+extern journal_t journal_create (unsigned int nelem, pthread_mutex_t *mutex);
+extern void journal_destroy (journal_t journal);
+extern bool journal_insert (journal_t journal, zfs_fh *local_fh,
+			    zfs_fh *master_fh, char *name,
+			    journal_operation_t oper, bool copy);
+extern bool journal_member (journal_t journal, zfs_fh *local_fh, char *name);
+extern bool journal_delete (journal_t journal, zfs_fh *local_fh, char *name);
 
 extern void initialize_journal_c (void);
 extern void cleanup_journal_c (void);

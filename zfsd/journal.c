@@ -58,31 +58,31 @@ journal_eq (const void *x, const void *y)
 
 /* Create a new journal with initial NELEM elements.  */
 
-journal
+journal_t
 journal_create (unsigned int nelem, pthread_mutex_t *mutex)
 {
-  journal j;
+  journal_t journal;
 
-  j = (journal) xmalloc (sizeof (struct journal_def));
-  j->htab = htab_create (nelem, journal_hash, journal_eq, NULL, NULL);
-  j->mutex = mutex;
-  j->first = NULL;
-  j->last = NULL;
+  journal = (journal_t) xmalloc (sizeof (struct journal_def));
+  journal->htab = htab_create (nelem, journal_hash, journal_eq, NULL, NULL);
+  journal->mutex = mutex;
+  journal->first = NULL;
+  journal->last = NULL;
 
-  return j;
+  return journal;
 }
 
-/* Destroy journal J.  */
+/* Destroy journal JOURNAL.  */
 
 void
-journal_destroy (journal j)
+journal_destroy (journal_t journal)
 {
   journal_entry entry, next;
 
-  CHECK_MUTEX_LOCKED (j->mutex);
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
   zfsd_mutex_lock (&journal_mutex);
-  for (entry = j->first; entry; entry = next)
+  for (entry = journal->first; entry; entry = next)
     {
       next = entry->next;
       free (entry->name.str);
@@ -90,22 +90,22 @@ journal_destroy (journal j)
     }
   zfsd_mutex_unlock (&journal_mutex);
 
-  htab_destroy (j->htab);
-  free (j);
+  htab_destroy (journal->htab);
+  free (journal);
 }
 
 /* Insert a journal entry with key [LOCAL_FH, NAME], master file handle
-   MASTER_FH and operation OPER to journal J.
+   MASTER_FH and operation OPER to journal JOURNAL.
    Return true if the journal has changed.  */
 
 bool
-journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh, char *name,
-		journal_operation_t oper, bool copy)
+journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
+		char *name, journal_operation_t oper, bool copy)
 {
   journal_entry entry;
   void **slot;
 
-  CHECK_MUTEX_LOCKED (j->mutex);
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
   zfsd_mutex_lock (&journal_mutex);
   entry = (journal_entry) pool_alloc (journal_pool);
@@ -116,7 +116,7 @@ journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh, char *name,
   entry->name.str = name;
   entry->name.len = strlen (name);
 
-  slot = htab_find_slot_with_hash (j->htab, entry, JOURNAL_HASH (entry),
+  slot = htab_find_slot_with_hash (journal->htab, entry, JOURNAL_HASH (entry),
 				   INSERT);
   if (*slot)
     {
@@ -130,18 +130,18 @@ journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh, char *name,
 	  if (old->next)
 	    old->next->prev = old->prev;
 	  else
-	    j->last = old->prev;
+	    journal->last = old->prev;
 	  if (old->prev)
 	    old->prev->next = old->next;
 	  else
-	    j->first = old->next;
+	    journal->first = old->next;
 
 	  free (old->name.str);
 	  zfsd_mutex_lock (&journal_mutex);
 	  pool_free (journal_pool, old);
 	  pool_free (journal_pool, entry);
 	  zfsd_mutex_unlock (&journal_mutex);
-	  htab_clear_slot (j->htab, slot);
+	  htab_clear_slot (journal->htab, slot);
 
 	  if (!copy)
 	    {
@@ -160,11 +160,11 @@ journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh, char *name,
 	  if (old->next)
 	    old->next->prev = old->prev;
 	  else
-	    j->last = old->prev;
+	    journal->last = old->prev;
 	  if (old->prev)
 	    old->prev->next = old->next;
 	  else
-	    j->first = old->next;
+	    journal->first = old->next;
 
 	  free (old->name.str);
 	  zfsd_mutex_lock (&journal_mutex);
@@ -180,50 +180,50 @@ journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh, char *name,
 
   *slot = entry;
   entry->next = NULL;
-  entry->prev = j->last;
-  j->last = entry;
-  if (j->first == NULL)
-    j->first = entry;
+  entry->prev = journal->last;
+  journal->last = entry;
+  if (journal->first == NULL)
+    journal->first = entry;
   return true;
 }
 
 /* Return true if a journal entry with key [LOCAL_FH, NAME] is a member
-   of journal J.  */
+   of journal JOURNAL.  */
 
 bool
-journal_member (journal j, zfs_fh *local_fh, char *name)
+journal_member (journal_t journal, zfs_fh *local_fh, char *name)
 {
   struct journal_entry_def entry;
 
-  CHECK_MUTEX_LOCKED (j->mutex);
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
   entry.dev = local_fh->dev;
   entry.ino = local_fh->ino;
   entry.gen = local_fh->gen;
   entry.name.str = name;
   entry.name.len = strlen (name);
-  return (htab_find_with_hash (j->htab, &entry, JOURNAL_HASH (&entry))
+  return (htab_find_with_hash (journal->htab, &entry, JOURNAL_HASH (&entry))
 	  != NULL);
 }
 
-/* Delete a journal entry with key [LOCAL_FH, NAME] from journal J.
+/* Delete a journal entry with key [LOCAL_FH, NAME] from journal JOURNAL.
    Return true if it was really deleted.  */
 
 bool
-journal_delete (journal j, zfs_fh *local_fh, char *name)
+journal_delete (journal_t journal, zfs_fh *local_fh, char *name)
 {
   struct journal_entry_def entry;
   journal_entry del;
   void **slot;
 
-  CHECK_MUTEX_LOCKED (j->mutex);
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
   entry.dev = local_fh->dev;
   entry.ino = local_fh->ino;
   entry.gen = local_fh->gen;
   entry.name.str = name;
   entry.name.len = strlen (name);
-  slot = htab_find_slot_with_hash (j->htab, &entry, JOURNAL_HASH (&entry),
+  slot = htab_find_slot_with_hash (journal->htab, &entry, JOURNAL_HASH (&entry),
 				   NO_INSERT);
   if (!slot)
     return false;
@@ -232,17 +232,17 @@ journal_delete (journal j, zfs_fh *local_fh, char *name)
   if (del->next)
     del->next->prev = del->prev;
   else
-    j->last = del->prev;
+    journal->last = del->prev;
   if (del->prev)
     del->prev->next = del->next;
   else
-    j->first = del->next;
+    journal->first = del->next;
 
   free (del->name.str);
   zfsd_mutex_lock (&journal_mutex);
   pool_free (journal_pool, del);
   zfsd_mutex_unlock (&journal_mutex);
-  htab_clear_slot (j->htab, slot);
+  htab_clear_slot (journal->htab, slot);
 
   return true;
 }
