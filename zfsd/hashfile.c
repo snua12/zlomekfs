@@ -340,7 +340,7 @@ hfile_t
 hfile_create (unsigned int element_size, unsigned int size,
 	      hfile_hash hash_f, hfile_eq eq_f,
 	      hfile_decode decode_f, hfile_encode encode_f,
-	      pthread_mutex_t *mutex)
+	      const char *file_name, pthread_mutex_t *mutex)
 {
   hfile_t hfile;
 
@@ -366,6 +366,7 @@ hfile_create (unsigned int element_size, unsigned int size,
   hfile->eq_f = eq_f;
   hfile->decode_f = decode_f;
   hfile->encode_f = encode_f;
+  hfile->file_name = xstrdup (file_name);
   hfile->fd = -1;
   hfile->generation = 0;
 
@@ -388,6 +389,7 @@ hfile_destroy (hfile_t hfile)
   if (hfile->fd >= 0)
     close (hfile->fd);
 
+  free (hfile->file_name);
   free (hfile->element);
   free (hfile);
 }
