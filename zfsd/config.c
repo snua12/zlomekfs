@@ -428,15 +428,36 @@ read_config (const char *file)
 	  else
 	    {
 	      /* Configuration options which may have no value.  */
-	      {
-		message (0, stderr, "%s:%d: Unknown option: '%s'\n",
-			 file, line_num, key);
-		return 0;
-	      }
+	      
+	      /* Configuration options which require a value.  */
+	      if (strncasecmp (key, "nodename", 9) == 0
+		  || strncasecmp (key, "privatekey", 11) == 0
+		  || strncasecmp (key, "nodeconfig", 11) == 0
+		  || strncasecmp (key, "nodeconfiguration", 18) == 0
+		  || strncasecmp (key, "localconfig", 12) == 0
+		  || strncasecmp (key, "localconfiguration", 19) == 0
+		  || strncasecmp (key, "clusterconfig", 14) == 0
+		  || strncasecmp (key, "clusterconfiguration", 21) == 0)
+		{
+		  message (-1, stderr, "Option '%s' requires a value.\n", key);
+		}
+	      else
+		{
+		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
+			   file, line_num, key);
+		  return 0;
+		}
 	    }
 	}
     }
   fclose (f);
+
+  if (!nodename || !*nodename)
+    {
+      message (-1, stderr,
+	       "Node name was not autodetected nor defined in configuration file.\n");
+      return 0;
+    }
 
   if (!private_key)
     private_key = xstrconcat (3, node_config, "/", node_name);
