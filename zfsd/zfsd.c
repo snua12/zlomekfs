@@ -475,6 +475,7 @@ main (int argc, char **argv)
   free (config_file);
 #endif
 
+#ifdef DEBUG
   printf ("sizeof (pthread_mutex_t) = %u\n", sizeof (pthread_mutex_t));
   printf ("sizeof (pthread_cond_t) = %u\n", sizeof (pthread_cond_t));
   printf ("sizeof (thread) = %u\n", sizeof (thread));
@@ -487,6 +488,7 @@ main (int argc, char **argv)
   printf ("sizeof (varray) = %u\n", sizeof (varray));
   printf ("sizeof (metadata) = %u\n", sizeof (metadata));
   printf ("sizeof (fh_mapping) = %u\n", sizeof (fh_mapping));
+#endif
 
 #if 0
   /* Temporarily disable because it needs root privileges.  */
