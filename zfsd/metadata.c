@@ -1088,7 +1088,7 @@ init_volume_metadata (volume vol)
 	  close_volume_metadata (vol);
 	  return false;
 	}
-      else if ((uint64_t) st.st_size < (uint64_t) sizeof (header))
+      else if ((uint64_t) st.st_size < sizeof (metadata))
 	{
 	  header.n_elements = 0;
 	  header.n_deleted = 0;
@@ -1102,7 +1102,7 @@ init_volume_metadata (volume vol)
 
 	  if (ftruncate (fd, ((uint64_t) vol->metadata->size
 			      * sizeof (metadata)
-			      + sizeof (header))) < 0)
+			      + sizeof (metadata))) < 0)
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
 	      unlink (vol->metadata->file_name);
@@ -1162,7 +1162,7 @@ init_volume_metadata (volume vol)
 	  close_volume_metadata (vol);
 	  return false;
 	}
-      else if ((uint64_t) st.st_size < (uint64_t) sizeof (header))
+      else if ((uint64_t) st.st_size < sizeof (fh_mapping))
 	{
 	  header.n_elements = 0;
 	  header.n_deleted = 0;
@@ -1176,7 +1176,7 @@ init_volume_metadata (volume vol)
 
 	  if (ftruncate (fd, ((uint64_t) vol->fh_mapping->size
 			      * sizeof (fh_mapping)
-			      + sizeof (header))) < 0)
+			      + sizeof (fh_mapping))) < 0)
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
 	      unlink (vol->fh_mapping->file_name);

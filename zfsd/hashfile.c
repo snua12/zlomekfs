@@ -335,7 +335,7 @@ hfile_create (unsigned int element_size, unsigned int base_size,
   hfile_t hfile;
 
 #ifdef ENABLE_CHECKING
-  if (element_size <= sizeof (uint32_t))
+  if (element_size < sizeof (hashfile_header))
     abort ();
   if (element_size > HFILE_BUFFER_SIZE)
     abort ();
@@ -384,7 +384,7 @@ hfile_init (hfile_t hfile, struct stat *st)
   if ((st->st_mode & S_IFMT) != S_IFREG)
     return false;
 
-  if ((uint64_t) st->st_size < (uint64_t) sizeof (header))
+  if ((uint64_t) st->st_size < (uint64_t) hfile->element_size)
     return false;
 
   if (!full_read (hfile->fd, &header, sizeof (header)))
@@ -392,7 +392,7 @@ hfile_init (hfile_t hfile, struct stat *st)
 
   hfile->n_elements = le_to_u32 (header.n_elements);
   hfile->n_deleted = le_to_u32 (header.n_deleted);
-  hfile->size = (((uint64_t) st->st_size - sizeof (header))
+  hfile->size = (((uint64_t) st->st_size - hfile->element_size)
 		 / hfile->element_size);
 
   return true;
