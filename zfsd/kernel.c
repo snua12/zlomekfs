@@ -36,6 +36,7 @@
 #include "alloc-pool.h"
 #include "data-coding.h"
 #include "kernel.h"
+#include "network.h"
 #include "log.h"
 #include "node.h"
 #include "util.h"
@@ -45,27 +46,64 @@
 #include "config.h"
 #include "fh.h"
 
-/* Data for a kernel socket.  */
-typedef struct kernel_fd_data_def
-{
-  pthread_mutex_t mutex;
-  int fd;			/* file descriptor of the socket */
-  unsigned int read;		/* number of bytes already read */
-  unsigned int busy;		/* number of threads using file descriptor */
-
-  /* Unused data coding buffers for the file descriptor.  */
-  DC dc[MAX_FREE_BUFFERS_PER_ACTIVE_FD];
-  int ndc;
-} kernel_fd_data_t;
-
 /* Pool of kernel threads (threads communicating with kernel).  */
 thread_pool kernel_pool;
 
 /* File descriptor of file communicating with kernel.  */
-static int kernel_fd;
+int kernel_fd = -1;
 
-/* Data for kernel file descriptor.  */
-kernel_fd_data_t kernel_data;
+/* Initialize data for kernel file descriptor.  */
+
+static void
+init_fd_data ()
+{
+#ifdef ENABLE_CHECKING
+  if (kernel_fd < 0)
+    abort ();
+#endif
+
+  zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
+  fd_data_a[kernel_fd].fd = kernel_fd;
+  fd_data_a[kernel_fd].read = 0;
+  fd_data_a[kernel_fd].busy = 0;
+  if (fd_data_a[kernel_fd].ndc == 0)
+    {
+      dc_create (&fd_data_a[kernel_fd].dc[0], ZFS_MAX_REQUEST_LEN);
+      fd_data_a[kernel_fd].ndc++;
+    }
+
+  fd_data_a[kernel_fd].waiting4reply_pool
+    = create_alloc_pool ("waiting4reply_data",
+			 sizeof (waiting4reply_data), 30,
+			 &fd_data_a[kernel_fd].mutex);
+  fd_data_a[kernel_fd].waiting4reply_heap
+    = fibheap_new (30, &fd_data_a[kernel_fd].mutex);
+  fd_data_a[kernel_fd].waiting4reply
+    = htab_create (30, waiting4reply_hash, waiting4reply_eq,
+		   NULL, &fd_data_a[kernel_fd].mutex);
+}
+
+/* Close kernel file and destroy data structures used by it.  */
+
+void
+close_kernel_fd ()
+{
+  int j;
+
+  if (kernel_fd < 0)
+    return;
+
+  close (kernel_fd);
+  wake_all_threads (&fd_data_a[kernel_fd], ZFS_CONNECTION_CLOSED);
+  for (j = 0; j < fd_data_a[kernel_fd].ndc; j++)
+    dc_destroy (&fd_data_a[kernel_fd].dc[j]);
+
+  htab_destroy (fd_data_a[kernel_fd].waiting4reply);
+  fibheap_delete (fd_data_a[kernel_fd].waiting4reply_heap);
+  free_alloc_pool (fd_data_a[kernel_fd].waiting4reply_pool);
+
+  kernel_fd = -1;
+}
 
 /* Send a reply.  */
 
@@ -73,12 +111,12 @@ static void
 send_reply (thread *t)
 {
   message (2, stderr, "sending reply\n");
-  zfsd_mutex_lock (&kernel_data.mutex);
+  zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
   if (!full_write (kernel_fd, t->u.kernel.dc.buffer,
 		   t->u.kernel.dc.cur_length))
     {
     }
-  zfsd_mutex_unlock (&kernel_data.mutex);
+  zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 }
 
 /* Send error reply with error status STATUS.  */
@@ -192,19 +230,10 @@ kernel_worker (void *data)
 	}
 
 out:
-      zfsd_mutex_lock (&kernel_data.mutex);
-      if (kernel_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
-	{
-	  /* Add the buffer to the queue.  */
-	  kernel_data.dc[kernel_data.ndc] = t->u.kernel.dc;
-	  kernel_data.ndc++;
-	}
-      else
-	{
-	  /* Free the buffer.  */
-	  dc_destroy (&t->u.kernel.dc);
-	}
-      zfsd_mutex_unlock (&kernel_data.mutex);
+      zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
+      fd_data_a[kernel_fd].busy--;
+      recycle_dc_to_fd_data (&t->u.kernel.dc, &fd_data_a[kernel_fd]);
+      zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
       zfsd_mutex_lock (&kernel_pool.idle.mutex);
@@ -236,11 +265,11 @@ out:
 static bool
 kernel_dispatch ()
 {
-  DC *dc = &kernel_data.dc[0];
+  DC *dc = &fd_data_a[kernel_fd].dc[0];
   size_t index;
   direction dir;
 
-  CHECK_MUTEX_LOCKED (&kernel_data.mutex);
+  CHECK_MUTEX_LOCKED (&fd_data_a[kernel_fd].mutex);
 
   if (verbose >= 3)
     print_dc (dc, stderr);
@@ -337,70 +366,72 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
       if (pfd.revents & CAN_READ)
 	{
-	  if (kernel_data.read < 4)
-	    {
-	      zfsd_mutex_lock (&kernel_data.mutex);
-	      if (kernel_data.ndc == 0)
-		{
-		  dc_create (&kernel_data.dc[0], ZFS_MAX_REQUEST_LEN);
-		  kernel_data.ndc++;
-		}
-	      zfsd_mutex_unlock (&kernel_data.mutex);
+	  fd_data_t *fd_data = &fd_data_a[kernel_fd];
 
-	      r = read (kernel_data.fd, kernel_data.dc[0].buffer + kernel_data.read,
-			4 - kernel_data.read);
+	  if (fd_data->read < 4)
+	    {
+	      zfsd_mutex_lock (&fd_data->mutex);
+	      if (fd_data->ndc == 0)
+		{
+		  dc_create (&fd_data->dc[0], ZFS_MAX_REQUEST_LEN);
+		  fd_data->ndc++;
+		}
+	      zfsd_mutex_unlock (&fd_data->mutex);
+
+	      r = read (fd_data->fd, fd_data->dc[0].buffer + fd_data->read,
+			4 - fd_data->read);
 	      if (r <= 0)
 		break;
 
-	      kernel_data.read += r;
-	      if (kernel_data.read == 4)
+	      fd_data->read += r;
+	      if (fd_data->read == 4)
 		{
-		  start_decoding (&kernel_data.dc[0]);
+		  start_decoding (&fd_data->dc[0]);
 		}
 	    }
 	  else
 	    {
-	      if (kernel_data.dc[0].max_length <= kernel_data.dc[0].size)
+	      if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
 		{
-		  r = read (kernel_data.fd,
-			    kernel_data.dc[0].buffer + kernel_data.read,
-			    kernel_data.dc[0].max_length - kernel_data.read);
+		  r = read (fd_data->fd,
+			    fd_data->dc[0].buffer + fd_data->read,
+			    fd_data->dc[0].max_length - fd_data->read);
 		}
 	      else
 		{
 		  int l;
 
-		  l = kernel_data.dc[0].max_length - kernel_data.read;
+		  l = fd_data->dc[0].max_length - fd_data->read;
 		  if (l > ZFS_MAXDATA)
 		    l = ZFS_MAXDATA;
-		  r = read (kernel_data.fd, dummy, l);
+		  r = read (fd_data->fd, dummy, l);
 		}
 
 	      if (r <= 0)
 		break;
 
-	      kernel_data.read += r;
-	      if (kernel_data.dc[0].max_length == kernel_data.read)
+	      fd_data->read += r;
+	      if (fd_data->dc[0].max_length == fd_data->read)
 		{
-		  if (kernel_data.dc[0].max_length <= kernel_data.dc[0].size)
+		  if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
 		    {
 		      /* We have read complete request, dispatch it.  */
-		      zfsd_mutex_lock (&kernel_data.mutex);
-		      kernel_data.read = 0;
+		      zfsd_mutex_lock (&fd_data->mutex);
+		      fd_data->read = 0;
 		      if (kernel_dispatch ())
 			{
-			  kernel_data.busy++;
-			  kernel_data.ndc--;
-			  if (kernel_data.ndc > 0)
-			    kernel_data.dc[0] = kernel_data.dc[kernel_data.ndc];
+			  fd_data->busy++;
+			  fd_data->ndc--;
+			  if (fd_data->ndc > 0)
+			    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
 			}
-		      zfsd_mutex_unlock (&kernel_data.mutex);
+		      zfsd_mutex_unlock (&fd_data->mutex);
 		    }
 		  else
 		    {
 		      message (2, stderr, "Packet too long: %u\n",
-			       kernel_data.read);
-		      kernel_data.read = 0;
+			       fd_data->read);
+		      fd_data->read = 0;
 		    }
 		}
 	    }
@@ -426,13 +457,12 @@ kernel_start ()
       return false;
     }
 
-  zfsd_mutex_init (&kernel_data.mutex);
+  init_fd_data ();
 
   if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_main,
 			   kernel_worker, kernel_worker_init))
     {
-      close (kernel_fd);
-      zfsd_mutex_destroy (&kernel_data.mutex);
+      close_kernel_fd ();
       return false;
     }
 
@@ -445,5 +475,4 @@ void
 kernel_cleanup ()
 {
   thread_pool_destroy (&kernel_pool);
-  zfsd_mutex_destroy (&kernel_data.mutex);
 }

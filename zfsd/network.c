@@ -36,6 +36,7 @@
 #include "semaphore.h"
 #include "data-coding.h"
 #include "network.h"
+#include "kernel.h"
 #include "log.h"
 #include "util.h"
 #include "malloc.h"
@@ -70,7 +71,7 @@ static pthread_mutex_t active_mutex;
 
 /* Hash function for waiting4reply_data.  */
 
-static hash_t
+hash_t
 waiting4reply_hash (const void *xx)
 {
   const waiting4reply_data *x = (waiting4reply_data *) xx;
@@ -80,7 +81,7 @@ waiting4reply_hash (const void *xx)
 
 /* Return true when waiting4reply_data XX is data for request ID *YY.  */
 
-static int
+int
 waiting4reply_eq (const void *xx, const void *yy)
 {
   const waiting4reply_data *x = (waiting4reply_data *) xx;
@@ -196,7 +197,7 @@ update_node_fd (node nod, int fd, unsigned int generation, bool active)
 /* Wake all threads waiting for reply on file descriptor with fd_data FD_DATA
    and set return value to RETVAL.  */
 
-static void
+void
 wake_all_threads (fd_data_t *fd_data, int32_t retval)
 {
   void **slot;
@@ -1436,6 +1437,13 @@ fd_data_shutdown ()
       wake_all_threads (fd_data, ZFS_EXITING);
       zfsd_mutex_unlock (&fd_data->mutex);
     }
+
+  if (kernel_fd >= 0)
+    {
+      zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
+      wake_all_threads (fd_data_a, ZFS_EXITING);
+      zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
+    }
 }
 
 /* Destroy information about file descriptors.  */
@@ -1456,6 +1464,8 @@ fd_data_destroy ()
     }
   zfsd_mutex_unlock (&active_mutex);
   zfsd_mutex_destroy (&active_mutex);
+
+  close_kernel_fd ();
 
   for (i = 0; i < max_nfd; i++)
     {

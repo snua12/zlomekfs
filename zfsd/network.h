@@ -91,8 +91,11 @@ extern fd_data_t *fd_data_a;
 
 struct thread_def;
 
+extern hash_t waiting4reply_hash (const void *xx);
+extern int waiting4reply_eq (const void *xx, const void *yy);
 extern void update_node_fd (node nod, int fd, unsigned int generation,
 			    bool active);
+extern void wake_all_threads (fd_data_t *fd_data, int32_t retval);
 extern void close_network_fd (int fd);
 extern bool node_has_valid_fd (node nod);
 extern bool volume_master_connected (volume vol);
