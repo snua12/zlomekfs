@@ -618,6 +618,7 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -807,6 +808,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -988,6 +990,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -1249,6 +1252,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -1444,6 +1448,7 @@ local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -1617,6 +1622,7 @@ local_rename (struct stat *st, char **pathp,
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
 
   path1 = build_local_path_name (vol, from_dir, from_name->str);
   path2 = build_local_path_name (vol, to_dir, to_name->str);
@@ -1929,6 +1935,7 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&from->fh->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
 
   path1 = build_local_path (vol, from);
   path2 = build_local_path_name (vol, dir, name->str);
@@ -2179,6 +2186,7 @@ local_unlink (struct stat *st, char **pathp,
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -2362,6 +2370,7 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   char buf[ZFS_MAXDATA + 1];
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 
@@ -2538,6 +2547,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -2738,6 +2748,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   char *path;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
