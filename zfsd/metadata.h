@@ -30,9 +30,22 @@
 #include "hardlink-list.h"
 #include "journal.h"
 
+#if (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX) > 0xffffff
+#error access mode flags are too big
+#endif
+
 /* Get mode from MODE from struct stat.  */
 #define GET_MODE(MODE) ((MODE) & (S_IRWXU | S_IRWXG | S_IRWXO		\
 				  | S_ISUID | S_ISGID | S_ISVTX))
+
+/* Compute a combination of MODE and TYPE.  */
+#define GET_MODETYPE(MODE, TYPE) (GET_MODE (MODE) | ((TYPE) << 24))
+
+/* Get mode from MODETYPE.  */
+#define GET_MODETYPE_MODE(MODETYPE) ((MODETYPE) & UINT32_C (0xffffff))
+
+/* Get type from MODETYPE.  */
+#define GET_MODETYPE_TYPE(MODETYPE) ((MODETYPE) >> 24)
 
 /* Depth of directory tree for saving metadata about files.  */
 extern unsigned int metadata_tree_depth;
@@ -77,7 +90,7 @@ typedef struct metadata_def
   zfs_fh master_fh;		/* master file handle */
   uint64_t local_version;	/* local version (is it needed?) */
   uint64_t master_version;	/* version on server/version got from server */
-  uint32_t mode;		/* original access rights */
+  uint32_t modetype;		/* original access rights and file type */
   uint32_t uid;			/* original owner */
   uint32_t gid;			/* original group */
   uint32_t parent_dev;		/* device of the parent of the file */

@@ -1784,7 +1784,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 
 	  zfsd_mutex_unlock (&fh_mutex);
 	  if (!lookup_metadata (vol, &dentry->fh->local_fh, &dentry->fh->meta,
-				false))
+				true))
 	    {
 	      vol->delete_p = true;
 	      goto out2;
@@ -1794,9 +1794,6 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 	    version = dentry->fh->meta.local_version;
 	  else
 	    version = res.attr.version;
-
-	  if (dentry->fh->meta.slot_status != VALID_SLOT)
-	    goto out2;
 
 	  dentry->fh->meta.flags &= ~METADATA_COMPLETE;
 	  dentry->fh->meta.local_version = version;

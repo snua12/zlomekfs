@@ -360,14 +360,15 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     abort ();
 #endif
 
-  meta->mode = res->attr.mode;
+  meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
   else if (!existed)
     {
-      if (!delete_metadata_of_created_file (vol, &res->file, meta))
+      if (!zfs_fh_undefined (meta->master_fh)
+	  && !delete_metadata_of_created_file (vol, &res->file, meta))
 	vol->delete_p = true;
     }
   zfsd_mutex_unlock (&vol->mutex);

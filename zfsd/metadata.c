@@ -1547,7 +1547,8 @@ init_metadata_for_created_volume_root (volume vol)
       meta.local_version = 1;
       meta.master_version = 1;
       zfs_fh_undefine (meta.master_fh);
-      meta.mode = GET_MODE (st.st_mode);
+      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				    zfs_mode_to_ftype (st.st_mode));
       meta.uid = map_uid_node2zfs (st.st_uid);
       meta.gid = map_gid_node2zfs (st.st_gid);
       meta.parent_dev = (uint32_t) -1;
@@ -1572,6 +1573,10 @@ init_metadata_for_created_volume_root (volume vol)
 bool
 lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 {
+  uint32_t modetype = meta->modetype;
+  uint32_t uid = meta->uid;
+  uint32_t gid = meta->gid;
+
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -1598,7 +1603,26 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
       return false;
     }
 
-  if (insert && meta->slot_status != VALID_SLOT)
+  if (meta->slot_status == VALID_SLOT
+      && GET_MODETYPE_TYPE (meta->modetype) == FT_BAD)
+    {
+      /* Preserve MODETYPE, UID and GID.  */
+      meta->modetype = modetype;
+      meta->uid = uid;
+      meta->gid = gid;
+
+      if (insert)
+	{
+	  meta->flags = METADATA_COMPLETE;
+	  zfs_fh_undefine (meta->master_fh);
+	  if (!hfile_insert (vol->metadata, meta, false))
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+	      return false;
+	    }
+	}
+    }
+  else if (insert && meta->slot_status != VALID_SLOT)
     {
       meta->slot_status = VALID_SLOT;
       meta->flags = METADATA_COMPLETE;
@@ -1608,6 +1632,9 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
       meta->local_version = 1;
       meta->master_version = vol->is_copy ? 0 : 1;
       zfs_fh_undefine (meta->master_fh);
+      meta->modetype = modetype;
+      meta->uid = uid;
+      meta->gid = gid;
       meta->parent_dev = (uint32_t) -1;
       meta->parent_ino = (uint32_t) -1;
       memset (meta->name, 0, METADATA_NAME_SIZE);
@@ -1619,9 +1646,18 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 	}
     }
   fh->gen = meta->gen;
-
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-  return true;
+
+  if (meta->slot_status == VALID_SLOT
+      && GET_MODETYPE_TYPE (modetype) != GET_MODETYPE_TYPE (meta->modetype)
+      && GET_MODETYPE_TYPE (meta->modetype) != FT_BAD)
+    {
+      meta->modetype = modetype;
+      meta->uid = uid;
+      meta->gid = gid;
+      return delete_metadata_of_created_file (vol, fh, meta);
+    }
+   return true;
 }
 
 /* Get metadata for file handle FH on volume VOL.
@@ -1923,31 +1959,30 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
   string path;
   int i;
 
-  /* If META->MASTER_FH is undefined the metadata was correctly deleted.  */
-  if (zfs_fh_undefined (meta->master_fh))
-    return true;
-
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  /* Delete the file handle mapping.  */
-  if (!hashfile_opened_p (vol->fh_mapping))
+  if (!zfs_fh_undefined (meta->master_fh))
     {
-      int fd;
+      /* Delete the file handle mapping.  */
+      if (!hashfile_opened_p (vol->fh_mapping))
+	{
+	  int fd;
 
-      fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
-      if (fd < 0)
-	return false;
-    }
+	  fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
+	  if (fd < 0)
+	    return false;
+	}
 
-  map.master_fh.dev = meta->master_fh.dev;
-  map.master_fh.ino = meta->master_fh.ino;
-  if (!hfile_delete (vol->fh_mapping, &map))
-    {
+      map.master_fh.dev = meta->master_fh.dev;
+      map.master_fh.ino = meta->master_fh.ino;
+      if (!hfile_delete (vol->fh_mapping, &map))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+	  return false;
+	}
       zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
-      return false;
     }
-  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
 
   /* Delete interval files, hardlink list and journal.  */
   delete_hardlinks_file (vol, fh);
@@ -2118,6 +2153,7 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
   if (!vol->is_copy)
     meta->master_version = meta->local_version;
   zfs_fh_undefine (meta->master_fh);
+  meta->modetype = GET_MODETYPE (0, FT_BAD);
 
   if (!hfile_insert (vol->metadata, meta, false))
     {
@@ -2338,6 +2374,9 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
     return false;
 
   if (meta->slot_status != VALID_SLOT)
+    return true;
+
+  if (GET_MODETYPE_TYPE (meta->modetype) == FT_BAD)
     return true;
 
   if (meta->name[0] != 0
@@ -2656,6 +2695,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
 
   /* Get hardlink list.  */
   hl = hardlink_list_create (2, NULL);
+  meta.modetype = GET_MODETYPE (0, FT_BAD);
   if (!read_hardlinks (vol, fh, &meta, hl))
     {
       vol->delete_p = true;
@@ -2665,7 +2705,8 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
       return;
     }
 
-  if (meta.slot_status != VALID_SLOT)
+  if (meta.slot_status != VALID_SLOT
+      || GET_MODETYPE_TYPE (meta.modetype) == FT_BAD)
     {
       hardlink_list_destroy (hl);
       path->str = NULL;
@@ -3043,7 +3084,8 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
 
   local_fh.dev = st->st_dev;
   local_fh.ino = st->st_ino;
-  meta.mode = GET_MODE (st->st_mode);
+  meta.modetype = GET_MODETYPE (GET_MODE (st->st_mode),
+				zfs_mode_to_ftype (st->st_mode));
   meta.uid = map_uid_node2zfs (st->st_uid);
   meta.gid = map_gid_node2zfs (st->st_gid);
   if (!lookup_metadata (vol, &local_fh, &meta, true))

@@ -28,9 +28,44 @@
 #include "metadata.h"
 
 static void
-print_mode (uint32_t mode)
+print_modetype (uint32_t mode)
 {
   printf (" Mode: ");
+  switch (GET_MODETYPE_TYPE (mode))
+    {
+      case FT_BAD:
+	printf ("x");
+	break;
+
+      case FT_REG:
+	printf ("-");
+	break;
+
+      case FT_DIR:
+	printf ("d");
+	break;
+
+      case FT_LNK:
+	printf ("l");
+	break;
+
+      case FT_BLK:
+	printf ("b");
+	break;
+
+      case FT_CHR:
+	printf ("c");
+	break;
+
+      case FT_SOCK:
+	printf ("s");
+	break;
+
+      case FT_FIFO:
+	printf ("p");
+	break;
+    }
+
   printf (mode & S_IRUSR ? "r" : "-");
   printf (mode & S_IWUSR ? "w" : "-");
   printf (mode & S_ISUID
@@ -107,7 +142,7 @@ int main (int argc, char **argv)
       printf (" Master version: %" PRIu64 "\n", meta.master_version);
       printf (" UID: %" PRIu32 "\n", meta.uid);
       printf (" GID: %" PRIu32 "\n", meta.gid);
-      print_mode (meta.mode);
+      print_modetype (meta.modetype);
       printf (" Master FH: [%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32
 	      ",%" PRIu32 "]\n", meta.master_fh.sid, meta.master_fh.vid,
 	      meta.master_fh.dev, meta.master_fh.ino, meta.master_fh.gen);

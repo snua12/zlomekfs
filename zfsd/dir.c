@@ -295,7 +295,8 @@ out:
 
       if (r == ZFS_OK)
 	{
-	  meta.mode = GET_MODE (st.st_mode);
+	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					zfs_mode_to_ftype (st.st_mode));
 	  meta.uid = map_uid_node2zfs (st.st_uid);
 	  meta.gid = map_gid_node2zfs (st.st_gid);
 	  if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
@@ -480,7 +481,8 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
 
   local_fh->dev = st.st_dev;
   local_fh->ino = st.st_ino;
-  meta->mode = GET_MODE (st.st_mode);
+  meta->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				 zfs_mode_to_ftype (st.st_mode));
   meta->uid = map_uid_node2zfs (st.st_uid);
   meta->gid = map_gid_node2zfs (st.st_gid);
   get_metadata (volume_lookup (local_fh->vid), local_fh, meta);
@@ -1071,7 +1073,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
-  meta->mode = res->attr.mode;
+  meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);
@@ -1429,12 +1431,13 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     abort ();
 #endif
 
-  meta->mode = res->attr.mode;
+  meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
-  else if (!delete_metadata_of_created_file (vol, &res->file, meta))
+  else if (!zfs_fh_undefined (meta->master_fh)
+	   && !delete_metadata_of_created_file (vol, &res->file, meta))
     vol->delete_p = true;
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -1812,7 +1815,8 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	  filename.str[-1] = 0;
 	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	    {
-	      meta.mode = GET_MODE (st.st_mode);
+	      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					    zfs_mode_to_ftype (st.st_mode));
 	      meta.uid = map_uid_node2zfs (st.st_uid);
 	      meta.gid = map_gid_node2zfs (st.st_gid);
 	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
@@ -2211,7 +2215,9 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	      filename.str[-1] = 0;
 	      if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 		{
-		  meta.mode = GET_MODE (st_old.st_mode);
+		  meta.modetype
+		    = GET_MODETYPE (GET_MODE (st_old.st_mode),
+				    zfs_mode_to_ftype (st_old.st_mode));
 		  meta.uid = map_uid_node2zfs (st_old.st_uid);
 		  meta.gid = map_gid_node2zfs (st_old.st_gid);
 		  if (!delete_metadata (vol, &meta, st_old.st_dev,
@@ -2224,7 +2230,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 	  fh.dev = st_new.st_dev;
 	  fh.ino = st_new.st_ino;
-	  meta.mode = GET_MODE (st_new.st_mode);
+	  meta.modetype = GET_MODETYPE (GET_MODE (st_new.st_mode),
+					zfs_mode_to_ftype (st_new.st_mode));
 	  meta.uid = map_uid_node2zfs (st_new.st_uid);
 	  meta.gid = map_gid_node2zfs (st_new.st_gid);
 	  if (!metadata_hardlink_replace (vol, &fh, &meta,
@@ -2541,7 +2548,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	{
 	  metadata meta;
 
-	  meta.mode = GET_MODE (st.st_mode);
+	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					zfs_mode_to_ftype (st.st_mode));
 	  meta.uid = map_uid_node2zfs (st.st_uid);
 	  meta.gid = map_gid_node2zfs (st.st_gid);
 	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh, &meta,
@@ -2775,7 +2783,8 @@ zfs_unlink (zfs_fh *dir, string *name)
 	  filename.str[-1] = 0;
 	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	    {
-	      meta.mode = GET_MODE (st.st_mode);
+	      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					    zfs_mode_to_ftype (st.st_mode));
 	      meta.uid = map_uid_node2zfs (st.st_uid);
 	      meta.gid = map_gid_node2zfs (st.st_gid);
 	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
@@ -3077,12 +3086,13 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
     abort ();
 #endif
 
-  meta->mode = res->attr.mode;
+  meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
-  else if (!delete_metadata_of_created_file (vol, &res->file, meta))
+  else if (!zfs_fh_undefined (meta->master_fh)
+	   && !delete_metadata_of_created_file (vol, &res->file, meta))
     vol->delete_p = true;
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -3314,12 +3324,13 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     abort ();
 #endif
 
-  meta->mode = res->attr.mode;
+  meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
-  else if (!delete_metadata_of_created_file (vol, &res->file, meta))
+  else if (!zfs_fh_undefined (meta->master_fh)
+	   && !delete_metadata_of_created_file (vol, &res->file, meta))
     vol->delete_p = true;
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -3626,6 +3637,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  meta.modetype = GET_MODETYPE (0, FT_BAD);
   n = metadata_n_hardlinks (vol, fh, &meta);
   if (n == 0)
     {
