@@ -360,6 +360,9 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     abort ();
 #endif
 
+  meta->mode = res->attr.mode;
+  meta->uid = res->attr.uid;
+  meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
   else if (!existed)

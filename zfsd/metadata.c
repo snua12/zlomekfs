@@ -45,6 +45,7 @@
 #include "data-coding.h"
 #include "hashfile.h"
 #include "zfs_prot.h"
+#include "user-group.h"
 
 /* Depth of directory tree for saving metadata about files.  */
 unsigned int metadata_tree_depth = 1;
@@ -123,6 +124,9 @@ metadata_decode (void *x)
   m->master_fh.gen = le_to_u32 (m->master_fh.gen);
   m->local_version = le_to_u64 (m->local_version);
   m->master_version = le_to_u64 (m->master_version);
+  m->mode = le_to_u32 (m->mode);
+  m->uid = le_to_u32 (m->uid);
+  m->gid = le_to_u32 (m->gid);
   m->parent_dev = le_to_u32 (m->parent_dev);
   m->parent_ino = le_to_u32 (m->parent_ino);
 }
@@ -145,6 +149,9 @@ metadata_encode (void *x)
   m->master_fh.gen = u32_to_le (m->master_fh.gen);
   m->local_version = u64_to_le (m->local_version);
   m->master_version = u64_to_le (m->master_version);
+  m->mode = u32_to_le (m->mode);
+  m->uid = u32_to_le (m->uid);
+  m->gid = u32_to_le (m->gid);
   m->parent_dev = u32_to_le (m->parent_dev);
   m->parent_ino = u32_to_le (m->parent_ino);
 }
@@ -1505,6 +1512,9 @@ init_metadata_for_created_volume_root (volume vol)
       meta.local_version = 1;
       meta.master_version = 1;
       zfs_fh_undefine (meta.master_fh);
+      meta.mode = GET_MODE (st.st_mode);
+      meta.uid = map_uid_node2zfs (st.st_uid);
+      meta.gid = map_gid_node2zfs (st.st_gid);
       meta.parent_dev = (uint32_t) -1;
       meta.parent_ino = (uint32_t) -1;
       memset (meta.name, 0, METADATA_NAME_SIZE);
@@ -1943,7 +1953,7 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
 	return false;
     }
 
-  if (!hfile_insert (vol->metadata, &meta, false))
+  if (!hfile_insert (vol->metadata, meta, false))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       return false;
@@ -2384,7 +2394,7 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 	  meta->parent_ino = (uint32_t) -1;
 	  memset (meta->name, 0, METADATA_NAME_SIZE);
 
-	  if (!hfile_insert (vol->metadata, &meta, false))
+	  if (!hfile_insert (vol->metadata, meta, false))
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	      return false;
@@ -2414,7 +2424,7 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
       meta->parent_ino = (uint32_t) -1;
       memset (meta->name, 0, METADATA_NAME_SIZE);
 
-      if (!hfile_insert (vol->metadata, &meta, false))
+      if (!hfile_insert (vol->metadata, meta, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  return false;
@@ -2439,7 +2449,7 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 
       meta->dev = fh->dev;
       meta->ino = fh->ino;
-      if (!hfile_lookup (vol->metadata, &meta))
+      if (!hfile_lookup (vol->metadata, meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  hardlink_list_destroy (hl);
@@ -2471,7 +2481,7 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 
       hardlink_list_destroy (hl);
 
-      if (!hfile_insert (vol->metadata, &meta, false))
+      if (!hfile_insert (vol->metadata, meta, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  return false;
@@ -2998,6 +3008,9 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
 
   local_fh.dev = st->st_dev;
   local_fh.ino = st->st_ino;
+  meta.mode = GET_MODE (st->st_mode);
+  meta.uid = map_uid_node2zfs (st->st_uid);
+  meta.gid = map_gid_node2zfs (st->st_gid);
   if (!lookup_metadata (vol, &local_fh, &meta, true))
     return false;
 
