@@ -40,6 +40,7 @@
 #include "dir.h"
 #include "cap.h"
 #include "volume.h"
+#include "metadata.h"
 #include "network.h"
 
 /* int getdents(unsigned int fd, struct dirent *dirp, unsigned int count); */
@@ -424,15 +425,26 @@ zfs_create_retry:
 
       if (vol->local_path)
 	{
-	  local_close (icap);
-	  icap->fd = fd;
-	  memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
+	  if (!(vol->flags & VOLUME_DELETE)
+	      && load_interval_trees (vol, dentry->fh))
+	    {
+	      local_close (icap);
+	      icap->fd = fd;
+	      memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
 
-	  zfsd_mutex_lock (&opened_mutex);
-	  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
-	  init_cap_fd_data (icap);
-	  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
-	  zfsd_mutex_unlock (&opened_mutex);
+	      zfsd_mutex_lock (&opened_mutex);
+	      zfsd_mutex_lock (&internal_fd_data[fd].mutex);
+	      init_cap_fd_data (icap);
+	      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+	      zfsd_mutex_unlock (&opened_mutex);
+	    }
+	  else
+	    {
+	      vol->flags |= VOLUME_DELETE;
+	      r = ZFS_METADATA_ERROR;
+	      local_close (icap);
+	      close (fd);
+	    }
 	}
       else if (vol->master != this_node)
 	{
@@ -566,9 +578,28 @@ zfs_open_retry:
 
   if (vol->local_path)
     {
-      r = local_open (cap, icap, flags & ~O_ACCMODE, dentry, vol);
-      if (r == ZFS_OK)
-	memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
+      if (dentry->fh->attr.type != FT_REG
+	  || (!(vol->flags & VOLUME_DELETE)
+	      && load_interval_trees (vol, dentry->fh)))
+	{
+	  r = local_open (cap, icap, flags & ~O_ACCMODE, dentry, vol);
+	  if (r == ZFS_OK)
+	    memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
+	  else
+	    {
+	      if (dentry->fh->attr.type == FT_REG
+		  && !save_interval_trees (vol, dentry->fh))
+		{
+		  vol->flags |= VOLUME_DELETE;
+		  r = ZFS_METADATA_ERROR;
+		}
+	    }
+	}
+      else
+	{
+	  vol->flags |= VOLUME_DELETE;
+	  r = ZFS_METADATA_ERROR;
+	}
     }
   else if (vol->master != this_node)
     {
@@ -640,6 +671,8 @@ zfs_close_retry:
     {
       if (vol->local_path)
 	{
+	  if (!save_interval_trees (vol, dentry->fh))
+	    vol->flags |= VOLUME_DELETE;
 	  zfsd_mutex_unlock (&vol->mutex);
 	  r = local_close (icap);
 	}
