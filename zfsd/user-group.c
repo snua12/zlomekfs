@@ -145,14 +145,26 @@ user_create (uint32_t id, string *name)
 
   slot1 = htab_find_slot_with_hash (users_id, &id, USER_ID_HASH (id),
 				    NO_INSERT);
+  slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (*name),
+				    NO_INSERT);
+  if (slot1 && slot2 && *slot1 == *slot2)
+    {
+      u = *slot1;
+      if (!u->marked)
+	{
+	  message (1, stderr, "Duplicate user ID and name: %" PRIu32 " %s\n",
+		   id, name->str);
+	  return NULL;
+	}
+      u->marked = false;
+      return u;
+    }
   if (slot1)
     {
       /* ID is already there.  */
       message (1, stderr, "Duplicate user ID: %" PRIu32 "\n", id);
       return NULL;
     }
-  slot2 = htab_find_slot_with_hash (users_name, name, USER_NAME_HASH (*name),
-				    NO_INSERT);
   if (slot2)
     {
       /* NAME is already there.  */
@@ -224,14 +236,26 @@ group_create (uint32_t id, string *name)
 
   slot1 = htab_find_slot_with_hash (groups_id, &id, GROUP_ID_HASH (id),
 				    NO_INSERT);
+  slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (*name),
+				    NO_INSERT);
+  if (slot1 && slot2 && *slot1 == *slot2)
+    {
+      g = *slot1;
+      if (!g->marked)
+	{
+	  message (1, stderr, "Duplicate group ID and name: %" PRIu32 " %s\n",
+		   id, name->str);
+	  return NULL;
+	}
+      g->marked = false;
+      return g;
+    }
   if (slot1)
     {
       /* ID is already there.  */
       message (1, stderr, "Duplicate group ID: %" PRIu32 "\n", id);
       return NULL;
     }
-  slot2 = htab_find_slot_with_hash (groups_name, name, GROUP_NAME_HASH (*name),
-				    NO_INSERT);
   if (slot2)
     {
       /* NAME is already there.  */
@@ -340,7 +364,7 @@ user_mapping_create (string *zfs_user, string *node_user, node nod)
 
   u = (user_t) htab_find_with_hash (users_name, zfs_user,
 				    USER_NAME_HASH (*zfs_user));
-  if (!u)
+  if (!u || u->marked)
     {
       message (1, stderr,
 	       "ZFS user '%s' for mapping '%s'<->'%s' does not exist\n",
@@ -520,7 +544,7 @@ group_mapping_create (string *zfs_group, string *node_group, node nod)
 
   g = (group_t) htab_find_with_hash (groups_name, zfs_group,
 				     GROUP_NAME_HASH (*zfs_group));
-  if (!g)
+  if (!g || g->marked)
     {
       message (1, stderr,
 	       "ZFS group '%s' for mapping '%s'<->'%s' does not exist\n",
