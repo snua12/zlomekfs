@@ -2109,7 +2109,9 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
       delete_hardlinks_file (vol, fh);
     }
   else
-    abort ();
+    {
+      delete_hardlinks_file (vol, fh);
+    }
 
   return true;
 }
@@ -2258,6 +2260,131 @@ metadata_hardlink_delete (volume vol, internal_fh fh, uint32_t parent_dev,
     return flush_hardlinks (vol, fh);
 
   return true;
+}
+
+/* Return a local path for file handle FH on volume VOL.  */
+
+char *
+get_local_path_from_metadata (volume vol, zfs_fh *fh)
+{
+  metadata meta;
+  hardlink_list hl;
+  char *parent_path;
+  char *path;
+  unsigned int i;
+  struct stat st;
+  bool flush;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  /* Get metadata.  */
+  if (!hashfile_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
+      if (fd < 0)
+	{
+	  vol->delete_p = true;
+	  return NULL;
+	}
+    }
+
+  meta.dev = fh->dev;
+  meta.ino = fh->ino;
+  if (!hfile_lookup (vol->metadata, &meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      vol->delete_p = true;
+      return NULL;
+    }
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+
+  /* Get hardlink list.  */
+  hl = hardlink_list_create (2, NULL);
+  if (!init_hardlinks (vol, fh, &meta, hl))
+    {
+      vol->delete_p = true;
+      hardlink_list_destroy (hl);
+      return NULL;
+    }
+
+  /* Check for volume root.  */
+  if (meta.parent_dev == (uint32_t) -1
+      && meta.parent_ino == (uint32_t) -1
+      && meta.name[0] == 0
+      && hardlink_list_size (hl) == 0)
+    {
+      hardlink_list_destroy (hl);
+      return xstrdup (vol->local_path);
+    }
+
+  path = NULL;
+  flush = false;
+  for (i = hardlink_list_size (hl); i > 0; i--)
+    {
+      hardlink_list_entry entry;
+      zfs_fh parent_fh;
+
+      entry = hardlink_list_element (hl, i - 1);
+      parent_fh.dev = entry->parent_dev;
+      parent_fh.ino = entry->parent_ino;
+      parent_path = get_local_path_from_metadata (vol, &parent_fh);
+      if (parent_path == NULL)
+	{
+	  flush |= hardlink_list_delete (hl, entry->parent_dev,
+					 entry->parent_ino, entry->name);
+	}
+      else
+	{
+	  if (lstat (path, &st) != 0
+	      || st.st_dev != fh->dev
+	      || st.st_ino != fh->ino)
+	    {
+	      free (parent_path);
+	      flush |= hardlink_list_delete (hl, entry->parent_dev,
+					     entry->parent_ino, entry->name);
+	    }
+	  else
+	    {
+	      path = xstrconcat (3, parent_path, "/", entry->name);
+	      free (parent_path);
+	      break;
+	    }
+	}
+    }
+
+  if (flush)
+    {
+      char *file;
+
+      file = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS,
+				     metadata_tree_depth);
+      if (!flush_hardlinks_zfs_fh (vol, fh, hl, file))
+	{
+	  vol->delete_p = true;
+	  hardlink_list_destroy (hl);
+	  if (path)
+	    free (path);
+	  return NULL;
+	}
+    }
+
+  if (hardlink_list_size (hl) == 0)
+    {
+      hardlink_list_destroy (hl);
+#ifdef ENABLE_CHECKING
+      if (path)
+	abort ();
+#endif
+
+      if (!delete_metadata (vol, fh->dev, fh->ino, 0, 0, NULL))
+	vol->delete_p = true;
+
+      return NULL;
+    }
+
+  return path;
 }
 
 /* Initialize data structures in METADATA.C.  */

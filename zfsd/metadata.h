@@ -132,6 +132,7 @@ extern bool metadata_hardlink_replace (volume vol, internal_fh fh,
 extern bool metadata_hardlink_delete (volume vol, internal_fh fh,
 				      uint32_t parent_dev, uint32_t parent_ino,
 				      char *name);
+extern char *get_local_path_from_metadata (volume vol, zfs_fh *fh);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);
