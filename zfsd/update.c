@@ -1724,6 +1724,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	{
 	  vol->delete_p = true;
 	  zfsd_mutex_unlock (&vol->mutex);
+	  r = ZFS_METADATA_ERROR;
 	  goto out;
 	}
       zfsd_mutex_unlock (&vol->mutex);
