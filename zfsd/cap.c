@@ -230,9 +230,9 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
       return NULL;
     }
   cap->local_cap.fh = fh->local_fh;
-  cap->master_cap.fh = fh->master_fh;
   cap->local_cap.flags = flags;
-  cap->master_cap.flags = flags;
+  zfs_fh_undefine (cap->master_cap.fh);
+  zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
   internal_cap_compute_verify (cap);
   cap->next = fh->cap;
