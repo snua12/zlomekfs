@@ -90,5 +90,6 @@ internal_error (char *format, ...)
 void
 verbose_abort (const char *file, int line)
 {
-  internal_error ("Aborted, at %s:%d", file, line);
+  internal_error ("Aborted by %lu, at %s:%d", (unsigned long) pthread_self (),
+		  file, line);
 }
