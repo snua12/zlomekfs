@@ -728,19 +728,35 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 {
   volume vol;
   internal_dentry dentry;
+  virtual_dir vd;
   int32_t r;
   int retry = 0;
-
-  /* Virtual directory tree is read only for users.  */
-  if (VIRTUAL_FH_P (*fh))
-    return EROFS;
 
 zfs_setattr_retry:
 
   /* Lookup FH.  */
-  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup (fh, &vol, &dentry, &vd);
   if (r != ZFS_OK)
     return r;
+
+  if (!dentry)
+    {
+      if (vol)
+	{
+	  r = get_volume_root_dentry (vol, &dentry);
+	  zfsd_mutex_unlock (&vd->mutex);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  return EROFS;
+	}
+    }
 
   if (vol->local_path)
     r = local_setattr (fa, dentry, sa, vol);
