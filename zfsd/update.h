@@ -224,6 +224,7 @@ extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks);
 extern int update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 		     fattr *attr);
+extern bool delete_tree (internal_dentry dentry, volume vol);
 extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
 		       fattr *attr, int how);
 

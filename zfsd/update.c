@@ -588,7 +588,7 @@ out:
 
 /* Delete file in place of file DENTRY on volume VOL.  */
 
-static bool
+bool
 delete_tree (internal_dentry dentry, volume vol)
 {
   char *path, *slash;
