@@ -81,6 +81,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 		      uint64_t offset, md5sum_args *args, zfs_cap *cap,
 		      varray *blocks)
 {
+  bool deleted = false;
   volume vol;
   internal_dentry dentry;
   md5sum_res local_md5;
@@ -139,7 +140,9 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 
       local_md5.size = remote_md5.size;
       interval_tree_delete (dentry->fh->updated, local_md5.size, UINT64_MAX);
+      deleted |= dentry->fh->updated->deleted;
       interval_tree_delete (dentry->fh->modified, local_md5.size, UINT64_MAX);
+      deleted |= dentry->fh->modified->deleted;
 
       if (local_md5.count > remote_md5.count)
 	local_md5.count = remote_md5.count;
@@ -164,6 +167,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	{
 	  interval_tree_delete (dentry->fh->modified, local_md5.offset[i],
 				local_md5.offset[i] + local_md5.length[i]);
+	  deleted |= dentry->fh->modified->deleted;
 	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
 				local_md5.offset[i],
 				local_md5.offset[i] + local_md5.length[i]))
@@ -281,6 +285,31 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
+    }
+
+  if (deleted)
+    {
+      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+      if (r != ZFS_OK)
+	abort ();
+#endif
+
+      if (dentry->fh->updated->deleted)
+	{
+	  dentry->fh->updated->deleted = false;
+	  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
+	    vol->flags |= VOLUME_DELETE;
+	}
+      if (dentry->fh->modified->deleted)
+	{
+	  dentry->fh->modified->deleted = false;
+	  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_MODIFIED))
+	    vol->flags |= VOLUME_DELETE;
+	}
+
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
     }
 
   if (use_buffer)
