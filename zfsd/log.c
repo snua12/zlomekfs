@@ -28,7 +28,7 @@
 #include "log.h"
 
 /* Level of verbosity.  Higher number means more messages.  */
-int verbose;
+int verbose = 2;
 
 /* Local function prototypes.  */
 static void internal_error(char *format, ...);
