@@ -289,7 +289,6 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     }
   *fdp = r;
 
-  attr->mode = (uint32_t) -1;
   r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)

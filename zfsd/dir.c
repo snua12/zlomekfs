@@ -974,7 +974,6 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
       return errno;
     }
 
-  attr->mode = (uint32_t) -1;
   r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)
