@@ -2,7 +2,7 @@
    Copyright (C) 1997, 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
-   Some modifications:
+   Some modifications for ZFS:
    Copyright (C) 2003 Josef Zlomek (josef.zlomek@email.cz).
 
    This file is part of ZFS.

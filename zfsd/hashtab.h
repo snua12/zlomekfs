@@ -2,7 +2,7 @@
    Copyright (C) 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
    Contributed by Vladimir Makarov (vmakarov@cygnus.com).
 
-   Some modifications
+   Some modifications for ZFS:
    Copyright (C) 2003 Josef Zlomek (josef.zlomek@email.cz).
 
    This file is part of ZFS.
