@@ -305,6 +305,7 @@ hfile_expand (hfile_t hfile)
   if (rename (new_path, hfile->file_name) < 0)
     goto hfile_expand_error_with_fd;
 
+  /* We have to preserve the file descriptor originally used.  */
 #ifdef ENABLE_CHECKING
   if (dup2 (hfile->fd, old_fd) < 0)
     abort ();
