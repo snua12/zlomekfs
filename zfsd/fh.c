@@ -433,7 +433,7 @@ set_owned (internal_fh fh, unsigned int level)
   lock_info *li;
   int i;
 
-  TRACE ("");
+  TRACE ("%p %u", (void *) fh, level);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -471,7 +471,7 @@ clear_owned (internal_fh fh)
   lock_info *li;
   int i;
 
-  TRACE ("");
+  TRACE ("%p", (void *) fh);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -507,7 +507,7 @@ is_owned (internal_fh fh)
   lock_info *li;
   int i;
 
-  TRACE ("");
+  TRACE ("%p", (void *) fh);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -533,7 +533,7 @@ get_level (internal_fh fh)
   lock_info *li;
   int i;
 
-  TRACE ("");
+  TRACE ("%p", (void *) fh);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
