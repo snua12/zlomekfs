@@ -72,7 +72,6 @@ hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
 {
   unsigned int size;
   unsigned int index;
-  unsigned int step;
   uint64_t offset;
   uint32_t status;
 
@@ -98,10 +97,9 @@ hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
     abort ();
 #endif
 
-  step = 1 + hash % (size - 2);
   for (;;)
     {
-      index += step;
+      index++;
       if (index >= size)
 	index -= size;
 
@@ -129,7 +127,6 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 {
   unsigned int size;
   unsigned int index;
-  unsigned int step;
   uint64_t offset;
   uint64_t first_deleted_slot;
   uint32_t status;
@@ -164,10 +161,9 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 	return offset;
     }
 
-  step = 1 + hash % (size - 2);
   for (;;)
     {
-      index += step;
+      index++;
       if (index >= size)
 	index -= size;
 
