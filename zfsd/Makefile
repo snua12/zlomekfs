@@ -31,7 +31,7 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 .PHONY: all install uninstall clean distclean
 
 PACKAGE = zfsd
-OBJECTS = config.o hashtab.o log.o memory.o zfsd.o
+OBJECTS = config.o dir.o file.o fh.o hashtab.o log.o memory.o zfsd.o
 
 .c.o:
 	$(COMPILE) -c $<
@@ -51,6 +51,9 @@ clean:
 
 # Dependencies:
 config.o: config.c config.h system.h log.h memory.h
+dir.o: dir.c dir.h system.h fh.h hashtab.h
+fh.o: fh.c fh.h system.h
+file.o: file.c file.h system.h fh.h
 hashtab.o: hashtab.c hashtab.h system.h log.h memory.h
 log.o: log.c log.h system.h
 memory.o: memory.c memory.h system.h log.h
