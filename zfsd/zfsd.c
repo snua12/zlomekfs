@@ -378,6 +378,8 @@ cleanup_data_structures ()
 
   free (node_name.str);
   free (kernel_file_name);
+
+  pthread_key_delete (thread_data_key);
 }
 
 static void
