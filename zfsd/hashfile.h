@@ -32,10 +32,10 @@
 /* Type of hash value.  */
 typedef unsigned int hashval_t;
 
-/* Compute hash of an element.  */
+/* Compute hash of an encoded element.  */
 typedef hashval_t (*hfile_hash) (const void *x);
 
-/* Compare the hash file element with possible element.  */
+/* Compare the encoded hash file element with possible element.  */
 typedef int (*hfile_eq) (const void *x, const void *y);
 
 /* Decode element of the hash file.  */

@@ -154,9 +154,6 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
       if (status != VALID_SLOT)
 	abort ();
 #endif
-      if (hfile->decode_f)
-	(*hfile->decode_f) (hfile->element);
-
       if ((*hfile->eq_f) (hfile->element, elem))
 	return offset;
     }
@@ -185,9 +182,6 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 	  if (status != VALID_SLOT)
 	    abort ();
 #endif
-	  if (hfile->decode_f)
-	    (*hfile->decode_f) (hfile->element);
-
 	  if ((*hfile->eq_f) (hfile->element, elem))
 	    return offset;
 	}
@@ -281,9 +275,6 @@ hfile_expand (hfile_t hfile)
 	  status = le_to_u32 (*(uint32_t *) element);
 	  if (status == VALID_SLOT)
 	    {
-	      if (hfile->decode_f)
-		(*hfile->decode_f) (element);
-
 	      offset = hfile_find_empty_slot (hfile,
 					      (*hfile->hash_f) (element));
 	      if (offset == 0)
@@ -291,9 +282,6 @@ hfile_expand (hfile_t hfile)
 
 	      if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
 		goto hfile_expand_error_with_fd;
-
-	      if (hfile->encode_f)
-		(*hfile->encode_f) (element);
 
 	      if (!full_write (hfile->fd, element, hfile->element_size))
 		goto hfile_expand_error_with_fd;
@@ -428,11 +416,21 @@ hfile_lookup (hfile_t hfile, void *x)
 {
   uint64_t offset;
 
+  if (hfile->encode_f)
+    (*hfile->encode_f) (x);
+
   offset = hfile_find_slot (hfile, x, (*hfile->hash_f) (x), false);
   if (!offset)
-    return false;
+    {
+      if (hfile->decode_f)
+	(*hfile->decode_f) (x);
+      return false;
+    }
 
   memcpy (x, hfile->element, hfile->element_size);
+  if (hfile->decode_f)
+    (*hfile->decode_f) (x);
+
   return true;
 }
 
@@ -448,11 +446,18 @@ hfile_insert (hfile_t hfile, void *x)
   if (!hfile_expand (hfile))
     return false;
 
+  if (hfile->encode_f)
+    (*hfile->encode_f) (x);
+
   offset = hfile_find_slot (hfile, x, (*hfile->hash_f) (x), true);
   if (!offset)
-    return false;
+    {
+      if (hfile->decode_f)
+	(*hfile->decode_f) (x);
+      return false;
+    }
 
-  *(uint32_t *) x = VALID_SLOT;
+  *(uint32_t *) x = u32_to_le (VALID_SLOT);
 
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_insert_error;
@@ -468,6 +473,9 @@ hfile_insert (hfile_t hfile, void *x)
   if (!full_write (hfile->fd, &header, sizeof (header)))
     goto hfile_insert_error;
 
+  if (hfile->decode_f)
+    (*hfile->decode_f) (x);
+
   return true;
 
 hfile_insert_error:
@@ -475,6 +483,9 @@ hfile_insert_error:
     hfile->n_deleted++;
   else
     hfile->n_elements--;
+
+  if (hfile->decode_f)
+    (*hfile->decode_f) (x);
 
   return false;
 }
@@ -491,16 +502,27 @@ hfile_delete (hfile_t hfile, void *x)
   if (!hfile_expand (hfile))
     return false;
 
+  if (hfile->encode_f)
+    (*hfile->encode_f) (x);
+
   offset = hfile_find_slot (hfile, x, (*hfile->hash_f) (x), false);
   if (!offset)
-    return false;
+    {
+      if (hfile->decode_f)
+	(*hfile->decode_f) (x);
+      return false;
+    }
 
   status = le_to_u32 (*(uint32_t *) hfile->element);
   if (status != VALID_SLOT)
-    return true;
+    {
+      if (hfile->decode_f)
+	(*hfile->decode_f) (x);
+      return true;
+    }
 
   memset (hfile->element, 0, hfile->element_size);
-  *(uint32_t *) hfile->element = DELETED_SLOT;
+  *(uint32_t *) hfile->element = u32_to_le (DELETED_SLOT);
   hfile->n_deleted++;
 
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
@@ -517,10 +539,16 @@ hfile_delete (hfile_t hfile, void *x)
   if (!full_write (hfile->fd, &header, sizeof (header)))
     goto hfile_delete_error;
 
+  if (hfile->decode_f)
+    (*hfile->decode_f) (x);
+
   return true;
 
 hfile_delete_error:
   hfile->n_deleted--;
+
+  if (hfile->decode_f)
+    (*hfile->decode_f) (x);
 
   return false;
 }
