@@ -1164,8 +1164,7 @@ zfs_mkdir_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, idir->fh,
-				   idir->fh->meta.flags | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
@@ -1321,8 +1320,7 @@ zfs_rmdir_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, idir->fh,
-				   idir->fh->meta.flags | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
@@ -1572,13 +1570,9 @@ zfs_rename_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, dentry1->fh,
-				   dentry1->fh->meta.flags
-				   | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, dentry1->fh))
 	    vol->flags |= VOLUME_DELETE;
-	  if (!set_metadata_flags (vol, dentry2->fh,
-				   dentry2->fh->meta.flags
-				   | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, dentry2->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
@@ -1831,9 +1825,7 @@ zfs_link_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, dentry2->fh,
-				   dentry2->fh->meta.flags
-				   | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, dentry2->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
@@ -1989,8 +1981,7 @@ zfs_unlink_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, idir->fh,
-				   idir->fh->meta.flags | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
@@ -2286,8 +2277,7 @@ zfs_symlink_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, idir->fh,
-				   idir->fh->meta.flags | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
@@ -2478,8 +2468,7 @@ zfs_mknod_retry:
 
       if (vol->local_path)
 	{
-	  if (!set_metadata_flags (vol, idir->fh,
-				   idir->fh->meta.flags | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))

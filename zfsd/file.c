@@ -445,8 +445,7 @@ zfs_create_retry:
 	  zfs_fh_undefine (icap->master_cap.fh);
 	  zfs_cap_undefine (icap->master_cap);
 
-	  if (!set_metadata_flags (vol, idir->fh,
-				   idir->fh->meta.flags | METADATA_MODIFIED))
+	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
 			     dentry->fh->meta.local_version + 1, 0))
