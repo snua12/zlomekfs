@@ -63,7 +63,10 @@ typedef struct server_fd_data_def
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
   int busy;			/* number of threads using file descriptor */
+  int flags;			/* See SERVER_FD_* below */
 } server_fd_data_t;
+
+#define SERVER_FD_CLOSE 1
 
 /* Additional data for a server thread.  */
 typedef struct server_thread_data_def

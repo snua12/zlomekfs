@@ -209,6 +209,7 @@ init_fd_data (int fd)
   server_fd_data[fd].last_use = time (NULL);
   server_fd_data[fd].generation++;
   server_fd_data[fd].busy = 0;
+  server_fd_data[fd].flags = 0;
 
   server_fd_data[fd].waiting4reply_pool
     = create_alloc_pool ("waiting4reply_data",
@@ -267,24 +268,6 @@ close_active_fd (int i)
     });
   htab_destroy (server_fd_data[fd].waiting4reply);
   free_alloc_pool (server_fd_data[fd].waiting4reply_pool);
-}
-
-/* Initialize server thread T.  */
-
-void
-server_worker_init (thread *t)
-{
-  dc_create (&t->u.server.dc_call, ZFS_MAX_REQUEST_LEN);
-}
-
-/* Cleanup server thread DATA.  */
-
-void
-server_worker_cleanup (void *data)
-{
-  thread *t = (thread *) data;
-
-  dc_destroy (&t->u.server.dc_call);
 }
 
 /* Safely write LEN bytes to file descriptor FD data from buffer BUF.  */
@@ -416,6 +399,24 @@ send_error_reply (server_thread_data *td, uint32_t request_id, int status)
   encode_status (&td->dc, status);
   finish_encoding (&td->dc);
   send_reply (td);
+}
+
+/* Initialize server thread T.  */
+
+void
+server_worker_init (thread *t)
+{
+  dc_create (&t->u.server.dc_call, ZFS_MAX_REQUEST_LEN);
+}
+
+/* Cleanup server thread DATA.  */
+
+void
+server_worker_cleanup (void *data)
+{
+  thread *t = (thread *) data;
+
+  dc_destroy (&t->u.server.dc_call);
 }
 
 /* The main function of the server thread.  */
@@ -793,7 +794,10 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	  server_fd_data_t *fd_data = &server_fd_data[pfd[i].fd];
 
 	  message (2, stderr, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
-	  if (pfd[i].revents & CANNOT_RW)
+	  if ((pfd[i].revents & CANNOT_RW)
+	      || ((fd_data->flags & SERVER_FD_CLOSE)
+		  && fd_data->busy == 0
+		  && fd_data->read == 0))
 	    {
 	      pthread_mutex_lock (&fd_data->mutex);
 	      close_active_fd (i);
