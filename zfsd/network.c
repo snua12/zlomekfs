@@ -1492,19 +1492,9 @@ retry_accept:
       zfsd_mutex_unlock (&active_mutex);
     }
 
-  close (main_socket);
+  if (accept_connections)
+    close (main_socket);
 
-  /* Close idle file descriptors and free their memory.  */
-  zfsd_mutex_lock (&active_mutex);
-  for (i = nactive - 1; i >= 0; i--)
-    {
-      fd_data_t *fd_data = active[i];
-
-      zfsd_mutex_lock (&fd_data->mutex);
-      close_active_fd (i);
-      zfsd_mutex_unlock (&fd_data->mutex);
-    }
-  zfsd_mutex_unlock (&active_mutex);
   free (pfd);
   message (2, stderr, "Terminating...\n");
   return NULL;

@@ -436,7 +436,6 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       zfsd_mutex_unlock (&fd_data->mutex);
     }
 
-  close (kernel_fd);
   message (2, stderr, "Terminating...\n");
   return NULL;
 }
