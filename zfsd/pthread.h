@@ -145,6 +145,9 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 /* Check whether the mutex M is locked.  */
 #define CHECK_MUTEX_LOCKED(M)						\
   do {									\
+    message (4, stderr, "MUTEX %p TRYLOCK, by %lu at %s:%d\n",		\
+	     (void *) M,						\
+	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((M) && pthread_mutex_trylock (M) == 0)				\
       abort ();								\
   } while (0)
