@@ -71,6 +71,7 @@ typedef splay_tree_node interval_tree_node;
 extern interval_tree interval_tree_create (unsigned int preferred_size,
 					   pthread_mutex_t *mutex);
 extern void interval_tree_destroy (interval_tree tree);
+extern void interval_tree_empty (interval_tree tree);
 extern interval_tree_node interval_tree_insert (interval_tree tree,
 						uint64_t start, uint64_t end);
 extern void interval_tree_delete (interval_tree tree,

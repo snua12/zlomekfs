@@ -78,6 +78,19 @@ interval_tree_destroy (interval_tree tree)
   free (tree);
 }
 
+/* Empty the interval tree TREE.  */
+
+void
+interval_tree_empty (interval_tree tree)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  if (tree->splay->root)
+    tree->deleted = true;
+  tree->size = 0;
+  splay_tree_empty (tree->splay);
+}
+
 /* Insert the interval [START, END) into TREE.  */
 
 interval_tree_node
