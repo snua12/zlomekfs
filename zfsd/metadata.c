@@ -1878,10 +1878,11 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   return flush_metadata (vol, &fh->meta);
 }
 
-/* Delete master fh and fh mapping for newly created file on volume VOL.  */
+/* Delete master fh and fh mapping for newly created file FH with metadata META
+   on volume VOL.  */
 
 bool
-delete_master_fh_of_created_file (volume vol, metadata *meta)
+delete_master_fh_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
 {
   fh_mapping map;
 
@@ -1915,6 +1916,7 @@ delete_master_fh_of_created_file (volume vol, metadata *meta)
   if (!vol->is_copy)
     meta->master_version = meta->local_version;
   zfs_fh_undefine (meta->master_fh);
+  fh->gen = meta->gen;
 
   return flush_metadata (vol, meta);
 }

@@ -1452,7 +1452,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
-  else if (!delete_master_fh_of_created_file (vol, meta))
+  else if (!delete_master_fh_of_created_file (vol, &res->file, meta))
     vol->delete_p = true;
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -3079,7 +3079,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
-  else if (!delete_master_fh_of_created_file (vol, meta))
+  else if (!delete_master_fh_of_created_file (vol, &res->file, meta))
     vol->delete_p = true;
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -3316,7 +3316,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   if (!lookup_metadata (vol, &res->file, meta, true))
     vol->delete_p = true;
-  else if (!delete_master_fh_of_created_file (vol, meta))
+  else if (!delete_master_fh_of_created_file (vol, &res->file, meta))
     vol->delete_p = true;
   zfsd_mutex_unlock (&vol->mutex);
 
