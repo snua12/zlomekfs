@@ -2589,7 +2589,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 			zfsd_mutex_unlock (&fh_mutex);
 			r = remote_reintegrate_del (vol, &entry->master_fh,
 						    dir, &entry->name,
-						    r != ZFS_OK, fh);
+						    !local_exists, fh);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
 						   false);
 #ifdef ENABLE_CHECKING
