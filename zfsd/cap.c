@@ -69,6 +69,8 @@ internal_cap_compute_verify (internal_cap cap)
       fprintf (stderr, "Created verify ");
       print_hex_buffer (cap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
     }
+
+  RETURN_VOID;
 }
 
 /* Verify capability CAP by comparing with ICAP.  */
@@ -79,7 +81,7 @@ verify_capability (zfs_cap *cap, internal_cap icap)
   TRACE ("");
 
   if (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0)
-    return ZFS_OK;
+    RETURN_INT (ZFS_OK);
 
   if (verbose >= 3)
     {
@@ -89,7 +91,7 @@ verify_capability (zfs_cap *cap, internal_cap icap)
       print_hex_buffer (icap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
     }
 
-  return EBADF;
+  RETURN_INT (EBADF);
 }
 
 /* Lock dentry *DENTRYP on volume *VOLP with capability *ICAPP and virtual
@@ -140,7 +142,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 
       r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, true);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
 
   message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n",
@@ -171,7 +173,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 #endif
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Unlock dentry DENTRY and virtual directory VD.  */
@@ -230,7 +232,7 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
       zfsd_mutex_lock (&cap_mutex);
       pool_free (cap_pool, cap);
       zfsd_mutex_unlock (&cap_mutex);
-      return NULL;
+      RETURN_PTR (NULL);
     }
   cap->local_cap.fh = fh->local_fh;
   cap->local_cap.flags = flags;
@@ -243,7 +245,7 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
   cap->next = fh->cap;
   fh->cap = cap;
 
-  return cap;
+  RETURN_PTR (cap);
 }
 
 /* Create a new capability for virtual directory VD with open flags FLAGS.  */
@@ -270,7 +272,7 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
       zfsd_mutex_lock (&cap_mutex);
       pool_free (cap_pool, cap);
       zfsd_mutex_unlock (&cap_mutex);
-      return NULL;
+      RETURN_PTR (NULL);
     }
   cap->local_cap.fh = vd->fh;
   cap->local_cap.flags = flags;
@@ -283,7 +285,7 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   cap->next = NULL;
   vd->cap = cap;
 
-  return cap;
+  RETURN_PTR (cap);
 }
 
 /* Destroy capability CAP associated with internal file handle FH or
@@ -398,11 +400,11 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 #endif
 
   if (NON_EXIST_FH_P (cap->fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   if ((VIRTUAL_FH_P (cap->fh) || CONFLICT_DIR_P (cap->fh))
       && cap->flags != O_RDONLY)
-    return EISDIR;
+    RETURN_INT (EISDIR);
 
   r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
   if (r == ZFS_STALE)
@@ -413,11 +415,11 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 #endif
       r = refresh_fh (&cap->fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
@@ -435,7 +437,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 	  zfsd_mutex_unlock (&(*vd)->mutex);
 	  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 
 	  if (unlock_fh_mutex)
 	    zfsd_mutex_unlock (&fh_mutex);
@@ -448,7 +450,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
       if (*vd)
 	zfsd_mutex_unlock (&(*vd)->mutex);
       zfsd_mutex_unlock (&(*vol)->mutex);
-      return EISDIR;
+      RETURN_INT (EISDIR);
     }
 
   if (vd && *vd)
@@ -475,7 +477,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 
   *icapp = icap;
   memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Return an internal capability for ZFS capability CAP and internal dentry
@@ -502,7 +504,7 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry,
   /* Set elements of CAP except VERIFY, VERIFY will be set in zfs_create.  */
   cap->fh = icap->local_cap.fh;
   cap->flags = icap->local_cap.flags;
-  return icap;
+  RETURN_PTR (icap);
 }
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
@@ -524,7 +526,7 @@ find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
   if (r == ZFS_OK)
     zfsd_mutex_unlock (&fh_mutex);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
@@ -553,11 +555,11 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 #endif
       r = refresh_fh (&cap->fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (vd && *vd && *vol)
     {
@@ -570,7 +572,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 	  zfsd_mutex_unlock (&(*vd)->mutex);
 	  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 	}
     }
 
@@ -596,7 +598,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     goto out;
 
   *icapp = icap;
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 
 out:
   if (*dentry)
@@ -607,7 +609,7 @@ out:
   if (*vol)
     zfsd_mutex_unlock (&(*vol)->mutex);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Decrease the number of users of capability CAP associated with
@@ -632,7 +634,7 @@ put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 	internal_cap_destroy (cap, fh, vd);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Initialize data structures in CAP.C.  */

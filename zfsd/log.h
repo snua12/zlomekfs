@@ -29,13 +29,49 @@
 #define abort() verbose_abort(__FILE__, __LINE__)
 
 #ifdef ENABLE_CHECKING
+
 /* Print which function we are in with additional information.  */
 #define TRACE(format, ...) message (4, stderr,				       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
+
+/* Print the function name and return value.  */
+#define RETURN_INT(RETVAL)						\
+  do {									\
+    int32_t r = (int32_t) (RETVAL);					\
+    TRACE ("return %" PRIi32, r);					\
+    return r;								\
+  } while (0)
+
+#define RETURN_PTR(RETVAL)						\
+  do {									\
+    void *r = (RETVAL);							\
+    TRACE ("return %p", r);						\
+    return r;								\
+  } while (0)
+
+#define RETURN_BOOL(RETVAL)						\
+  do {									\
+    bool r = (RETVAL);							\
+    TRACE ("return %d", r);						\
+    return r;								\
+  } while (0)
+
+#define RETURN_VOID							\
+  do {									\
+    TRACE ("return");							\
+    return;								\
+  } while (0)
+
 #else
+
 #define TRACE(...)
+#define RETURN_INT(RETVAL) return (RETVAL)
+#define RETURN_PTR(RETVAL) return (RETVAL)
+#define RETURN_BOOL(RETVAL) return (RETVAL)
+#define RETURN_VOID return
+
 #endif
 
 /* Level of verbosity.  Higher number means more messages.  */

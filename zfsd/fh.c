@@ -150,10 +150,10 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
 
   /* Root dentry can't be deleted.  */
   if (!dentry->parent)
-    return false;
+    RETURN_BOOL (false);
 
   if (dentry->deleted)
-    return false;
+    RETURN_BOOL (false);
 
   if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
@@ -165,18 +165,18 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
 	  tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
 	  if (tmp->fh->attr.type == FT_DIR
 	      && VARRAY_USED (tmp->fh->subdentries) != 0)
-	    return false;
+	    RETURN_BOOL (false);
 	}
 
-      return true;
+      RETURN_BOOL (true);
     }
 
   /* Directory dentry which has some subdentries can't be deleted.  */
   if (dentry->fh->attr.type == FT_DIR
       && VARRAY_USED (dentry->fh->subdentries) != 0)
-    return false;
+    RETURN_BOOL (false);
 
-  return true;
+  RETURN_BOOL (true);
 }
 
 /* Update the cleanup node of dentry DENTRY.  */
@@ -438,12 +438,12 @@ set_owned (internal_fh fh, unsigned int level)
 #endif
 	  li[i].fh = fh;
 	  li[i].level = level;
-	  return;
+	  RETURN_VOID;
 	}
     }
 
 #ifdef ENABLE_CHECKING
-    abort ();
+  abort ();
 #endif
 }
 
@@ -474,7 +474,7 @@ clear_owned (internal_fh fh)
 #endif
 	  li[i].fh = NULL;
 	  li[i].level = LEVEL_UNLOCKED;
-	  return;
+	  RETURN_VOID;
 	}
     }
 
@@ -503,10 +503,10 @@ is_owned (internal_fh fh)
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
       if (li[i].fh == fh)
-	return true;
+	RETURN_BOOL (true);
     }
 
-  return false;
+  RETURN_BOOL (false);
 }
 
 /* Return the level which file handle is locked by current thread.  */
@@ -529,10 +529,10 @@ get_level (internal_fh fh)
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
       if (li[i].fh == fh)
-	return li[i].level;
+	RETURN_INT (li[i].level);
     }
 
-  return LEVEL_UNLOCKED;
+  RETURN_INT (LEVEL_UNLOCKED);
 }
 
 /* Compare an internal file handle XX with client's file handle YY.  */
@@ -580,7 +580,7 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
   if (r == ZFS_OK)
     zfsd_mutex_unlock (&fh_mutex);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
@@ -611,7 +611,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
       if (!vd)
 	{
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ENOENT;
+	  RETURN_INT (ENOENT);
 	}
 
       zfsd_mutex_lock (&vd->mutex);
@@ -643,7 +643,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	  if (!vol)
 	    {
 	      zfsd_mutex_unlock (&fh_mutex);
-	      return ENOENT;
+	      RETURN_INT (ENOENT);
 	    }
 	  if (delete_volume_p && vol->delete_p)
 	    {
@@ -652,7 +652,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	      else
 		zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
-	      return ENOENT;
+	      RETURN_INT (ENOENT);
 	    }
 #ifdef ENABLE_CHECKING
 	  if (!delete_volume_p && vol->n_locked_fhs == 0)
@@ -663,7 +663,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	    {
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
-	      return ESTALE;
+	      RETURN_INT (ESTALE);
 	    }
 	}
 
@@ -672,7 +672,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_STALE;
+	  RETURN_INT (ZFS_STALE);
 	}
 
       acquire_dentry (dentry);
@@ -689,7 +689,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	*vdp = NULL;
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Lock DENTRY and update time of last use.  */
@@ -739,7 +739,7 @@ vd_lookup (zfs_fh *fh)
 #endif
     }
 
-  return vd;
+  RETURN_PTR (vd);
 }
 
 /* Return the virtual directory for NAME in virtual directory PARENT.  */
@@ -767,7 +767,7 @@ vd_lookup_name (virtual_dir parent, string *name)
 #endif
     }
 
-  return vd;
+  RETURN_PTR (vd);
 }
 
 /* Return the internal dentry for file handle FH.  */
@@ -790,7 +790,7 @@ dentry_lookup (zfs_fh *fh)
   if (dentry)
     acquire_dentry (dentry);
 
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Return the internal dentry for NAME in directory PARENT
@@ -833,7 +833,7 @@ dentry_lookup_name (volume vol, internal_dentry parent, string *name)
 #endif
     }
 
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Return the internal dentry for PATH from directory START
@@ -861,7 +861,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
     {
       start = vol->root_dentry;
       if (!start)
-	return NULL;
+	RETURN_PTR (NULL);
 
       acquire_dentry (start);
     }
@@ -872,7 +872,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
       release_dentry (start);
 
       if (!dentry)
-	return NULL;
+	RETURN_PTR (NULL);
 
       start = dentry;
     }
@@ -894,7 +894,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
       release_dentry (start);
 
       if (!dentry)
-	return NULL;
+	RETURN_PTR (NULL);
 
       start = dentry;
       if (CONFLICT_DIR_P (start->fh->local_fh))
@@ -903,13 +903,13 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
 	  release_dentry (start);
 
 	  if (!dentry)
-	    return NULL;
+	    RETURN_PTR (NULL);
 
 	  start = dentry;
 	}
     }
 
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Return the internal dentry for LOCAL_PATH on volume VOL.  */
@@ -928,7 +928,7 @@ dentry_lookup_local_path (volume vol, string *local_path)
   dentry = dentry_lookup_path (vol, NULL, &relative_path);
 
   free (relative_path.str);
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Lock dentry *DENTRYP on volume *VOLP to level LEVEL.
@@ -975,7 +975,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 
       r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL, true);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
 
   message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n",
@@ -999,7 +999,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 #endif
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Unlock dentry DENTRY.  */
@@ -1043,6 +1043,8 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
   else
     release_dentry (dentry);
   zfsd_mutex_unlock (&fh_mutex);
+
+  RETURN_VOID;
 }
 
 /* Lock 2 dentries on volume *VOLP, lock *DENTRY1P to level LEVEL1 and
@@ -1070,10 +1072,10 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
       r = internal_dentry_lock ((level1 > level2 ? level1 : level2),
 				volp, dentry1p, tmp_fh1);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       *dentry2p = *dentry1p;
-      return ZFS_OK;
+      RETURN_INT (ZFS_OK);
     }
 
   if (tmp_fh1->ino < tmp_fh2->ino)
@@ -1082,7 +1084,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
 
       r = internal_dentry_lock (level1, volp, dentry1p, tmp_fh1);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       release_dentry (*dentry1p);
       zfsd_mutex_unlock (&(*volp)->mutex);
@@ -1103,7 +1105,7 @@ out1:
 #endif
 
 	  internal_dentry_unlock (*volp, *dentry1p);
-	  return r;
+	  RETURN_INT (r);
 	}
 
       release_dentry (*dentry2p);
@@ -1116,7 +1118,7 @@ out1:
 
       r = internal_dentry_lock (level2, volp, dentry2p, tmp_fh2);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       release_dentry (*dentry2p);
       zfsd_mutex_unlock (&(*volp)->mutex);
@@ -1137,7 +1139,7 @@ out2:
 #endif
 
 	  internal_dentry_unlock (*volp, *dentry2p);
-	  return r;
+	  RETURN_INT (r);
 	}
 
       release_dentry (*dentry1p);
@@ -1158,7 +1160,7 @@ out2:
     abort ();
 #endif
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Set master file handle of file handle FH on volume VOL to MASTER_FH.  */
@@ -1171,13 +1173,13 @@ set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (zfs_fh_undefined (*master_fh))
-    return true;
+    RETURN_BOOL (true);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
-    return set_metadata_master_fh (vol, fh, master_fh);
+    RETURN_BOOL (set_metadata_master_fh (vol, fh, master_fh));
 
   fh->meta.master_fh = *master_fh;
-  return true;
+  RETURN_BOOL (true);
 }
 
 /* Clear metadata in file handle FH.  */
@@ -1190,6 +1192,7 @@ clear_meta (internal_fh fh)
 
   memset (&fh->meta, 0, offsetof (metadata, master_fh));
   zfs_fh_undefine (fh->meta.master_fh);
+  RETURN_VOID;
 }
 
 /* Create a new internal file handle on volume VOL with local file handle
@@ -1281,7 +1284,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
       clear_meta (fh);
     }
 
-  return fh;
+  RETURN_PTR (fh);
 }
 
 /* Destroy almost everything of the internal file handle FH
@@ -1329,6 +1332,8 @@ internal_fh_destroy_stage1 (internal_fh fh)
     abort ();
 #endif
   htab_clear_slot (fh_htab, slot);
+
+  RETURN_VOID;
 }
 
 /* Destroy the rest of the internal file handle FH, i.e. the mutex
@@ -1347,6 +1352,8 @@ internal_fh_destroy_stage2 (internal_fh fh)
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
   pool_free (fh_pool, fh);
+
+  RETURN_VOID;
 }
 
 /* Print the contents of hash table HTAB to file F.  */
@@ -1456,7 +1463,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   if (!dentry->parent)
-    return;
+    RETURN_VOID;
 
   CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
 
@@ -1475,6 +1482,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
 
   dentry_update_cleanup_node (dentry->parent);
   dentry->parent = NULL;
+  RETURN_VOID;
 }
 
 /* Create a new internal dentry NAME in directory PARENT on volume VOL and
@@ -1584,7 +1592,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
     }
   *slot = dentry;
 
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Return dentry for file NAME in directory DIR on volume VOL.
@@ -1634,7 +1642,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	      release_dentry (dentry);
 	      /* We did not unlock fh_mutex so SUBDENTRY is still valid.  */
 	      acquire_dentry (subdentry);
-	      return subdentry;
+	      RETURN_PTR (subdentry);
 	    }
 	  zfsd_mutex_unlock (&fh_mutex);
 	}
@@ -1730,7 +1738,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
     dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
 				     attr, meta, LEVEL_UNLOCKED);
 
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
@@ -1854,7 +1862,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
 #endif
   *slot = dentry;
 
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Move internal dentry for file FROM_NAME in *FROM_DIRP to be a subdentry
@@ -1879,7 +1887,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 
   dentry = dentry_lookup_name (NULL, *from_dirp, from_name);
   if (!dentry)
-    return;
+    RETURN_VOID;
 
 #ifdef ENABLE_CHECKING
   /* Check whether we are not moving DENTRY to its subtree.  */
@@ -1936,6 +1944,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
       internal_dentry_add_to_dir (*to_dirp, dentry);
       local_invalidate (dentry, dentry->parent == NULL);
     }
+  RETURN_VOID;
 }
 
 /* Destroy internal dentry DENTRY.  Clear vol->root_dentry if
@@ -1979,7 +1988,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
 
 	  /* DENTRY could not be found, it is already deleted.  */
 	  if (tmp2 != dentry)
-	    return;
+	    RETURN_VOID;
 	}
     }
 
@@ -2047,7 +2056,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
     {
       /* There already is a thread which tries to delete DENTRY.  */
       zfsd_mutex_unlock (&dentry->fh->mutex);
-      return;
+      RETURN_VOID;
     }
 
   /* Mark DENTRY as deleted and wake up other threads trying to delete it.  */
@@ -2130,6 +2139,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
 
   free (dentry->name.str);
   pool_free (dentry_pool, dentry);
+  RETURN_VOID;
 }
 
 /* Create conflict directory for local file handle LOCAL_FH with attributes
@@ -2157,7 +2167,7 @@ again:
 
   dentry = dentry_lookup_name (vol, dir, name);
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
-    return dentry;
+    RETURN_PTR (dentry);
 
   if (dentry)
     {
@@ -2264,7 +2274,7 @@ again:
       goto again;
     }
 
-  return conflict;
+  RETURN_PTR (conflict);
 }
 
 /* If there is a dentry in place for file FH in conflict directrory CONFLICT
@@ -2317,16 +2327,16 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
 	      *volp = volume_lookup (tmp_fh.vid);
 	      *conflictp = dentry_lookup (&tmp_fh);
 
-	      return NULL;
+	      RETURN_PTR (NULL);
 	    }
 	  else
-	    return dentry;
+	    RETURN_PTR (dentry);
 	}
       else
 	release_dentry (dentry);
     }
 
-  return NULL;
+  RETURN_PTR (NULL);
 }
 
 /* Add a dentry to conflict dir CONFLICT on volume VOL.
@@ -2355,7 +2365,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 	set_attr_version (attr, &dentry->fh->meta);
       dentry->fh->attr = *attr;
       release_dentry (dentry);
-      return dentry;
+      RETURN_PTR (dentry);
     }
 #ifdef ENABLE_CHECKING
   else
@@ -2428,7 +2438,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 
   zfsd_mutex_unlock (&nod->mutex);
   release_dentry (dentry);
-  return dentry;
+  RETURN_PTR (dentry);
 }
 
 /* Try resolve CONFLICT on volume VOL, return true if it was resolved.  */
@@ -2449,7 +2459,7 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
       case 0:
 	zfsd_mutex_unlock (&vol->mutex);
 	internal_dentry_destroy (conflict, true, true);
-	return true;
+	RETURN_BOOL (true);
 
       case 1:
 	dentry = VARRAY_ACCESS (conflict->fh->subdentries, 0, internal_dentry);
@@ -2501,7 +2511,7 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 	else
 	  abort ();
 #endif
-	return true;
+	RETURN_BOOL (true);
 
       case 2:
 	dentry = VARRAY_ACCESS (conflict->fh->subdentries, 0, internal_dentry);
@@ -2572,13 +2582,13 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
 		internal_dentry_destroy (conflict, false, true);
-		return true;
+		RETURN_BOOL (true);
 	      }
 	    else
 	      {
 		release_dentry (dentry);
 		release_dentry (dentry2);
-		return false;
+		RETURN_BOOL (false);
 	      }
 	  }
 	if (NON_EXIST_FH_P (dentry->fh->local_fh)
@@ -2588,7 +2598,7 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 	    release_dentry (dentry2);
 	    zfsd_mutex_unlock (&vol->mutex);
 	    internal_dentry_destroy (conflict, true, true);
-	    return true;
+	    RETURN_BOOL (true);
 	  }
 	release_dentry (dentry);
 	release_dentry (dentry2);
@@ -2598,7 +2608,7 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 	abort ();
     }
 
-  return false;
+  RETURN_BOOL (false);
 }
 
 /* Return the local dentry in conflict dir CONFLICT.  */
@@ -2609,6 +2619,7 @@ conflict_local_dentry (internal_dentry conflict)
   internal_dentry dentry;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2621,11 +2632,11 @@ conflict_local_dentry (internal_dentry conflict)
       dentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
       acquire_dentry (dentry);
       if (dentry->fh->local_fh.sid == this_node->id)
-	return dentry;
+	RETURN_PTR (dentry);
       release_dentry (dentry);
     }
 
-  return NULL;
+  RETURN_PTR (NULL);
 }
 
 /* Return the remote dentry in conflict dir CONFLICT.  */
@@ -2636,6 +2647,7 @@ conflict_remote_dentry (internal_dentry conflict)
   internal_dentry dentry;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2648,11 +2660,11 @@ conflict_remote_dentry (internal_dentry conflict)
       dentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
       acquire_dentry (dentry);
       if (dentry->fh->local_fh.sid != this_node->id)
-	return dentry;
+	RETURN_PTR (dentry);
       release_dentry (dentry);
     }
 
-  return NULL;
+  RETURN_PTR (NULL);
 }
 
 /* Return the other dentry in cronflict dir CONFLICT than DENTRY.  */
@@ -2663,6 +2675,7 @@ conflict_other_dentry (internal_dentry conflict, internal_dentry dentry)
   internal_dentry other;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2676,11 +2689,11 @@ conflict_other_dentry (internal_dentry conflict, internal_dentry dentry)
       if (other != dentry)
 	{
 	  acquire_dentry (other);
-	  return other;
+	  RETURN_PTR (other);
 	}
     }
 
-  return NULL;
+  RETURN_PTR (NULL);
 }
 
 /* Cancel the CONFLICT on volume VOL.  */
@@ -2690,6 +2703,7 @@ cancel_conflict (volume vol, internal_dentry conflict)
 {
   internal_dentry dentry, parent;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
@@ -2718,6 +2732,8 @@ cancel_conflict (volume vol, internal_dentry conflict)
 
   internal_dentry_destroy (conflict, false, true);
   zfsd_mutex_unlock (&fh_mutex);
+
+  RETURN_VOID;
 }
 
 /* Hash function for virtual_dir X, computed from FH.  */
@@ -2847,7 +2863,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
 #endif
   *slot = vd;
 
-  return vd;
+  RETURN_PTR (vd);
 }
 
 /* Delete a virtual directory VD from all hash tables and free it.  */
@@ -2871,7 +2887,7 @@ virtual_dir_destroy (virtual_dir vd)
 	{
 	  vd->deleted++;
 	  zfsd_mutex_unlock (&vd->mutex);
-	  return;
+	  RETURN_VOID;
 	}
 
       parent = vd->parent;
@@ -2933,6 +2949,8 @@ virtual_dir_destroy (virtual_dir vd)
       else
 	zfsd_mutex_unlock (&vd->mutex);
     }
+
+  RETURN_VOID;
 }
 
 /* Create the virtual root directory.  */
@@ -2968,7 +2986,7 @@ virtual_root_create (void)
   *slot = root;
   zfsd_mutex_unlock (&fh_mutex);
 
-  return root;
+  RETURN_PTR (root);
 }
 
 /* Destroy virtual root directory.  */
@@ -3008,6 +3026,8 @@ virtual_root_destroy (virtual_dir root)
   zfsd_mutex_destroy (&root->mutex);
   pool_free (vd_pool, root);
   zfsd_mutex_unlock (&fh_mutex);
+
+  RETURN_VOID;
 }
 
 /* Create the virtual mountpoint for volume VOL.  */
@@ -3080,7 +3100,7 @@ virtual_mountpoint_create (volume vol)
 
   free (mountpoint);
 
-  return vd;
+  RETURN_PTR (vd);
 }
 
 /* Destroy the virtual mountpoint of volume VOL.  */

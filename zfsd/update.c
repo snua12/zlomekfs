@@ -99,15 +99,15 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   args->cap = *cap;
   r = remote_md5sum (&remote_md5, args);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (remote_md5.count == 0)
-    return ZFS_OK;
+    RETURN_INT (ZFS_OK);
 
   args->cap = *cap;
   r = local_md5sum (&local_md5, args);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = zfs_fh_lookup_nolock (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -132,7 +132,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
       r = local_setattr (&fa, dentry, &sa, vol);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -172,7 +172,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	  abort (); /* FIXME: do not abort, return error only */
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return ZFS_UPDATE_FAILED;
+	  RETURN_INT (ZFS_UPDATE_FAILED);
 	}
 
       if (local_md5.length[i] == remote_md5.length[i]
@@ -197,7 +197,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	  || remote_md5.offset[i] + remote_md5.length[i] > remote_md5.size)
 	{
 	  abort (); /* FIXME: do not abort, return error only */
-	  return ZFS_UPDATE_FAILED;
+	  RETURN_INT (ZFS_UPDATE_FAILED);
 	}
 
       if (i >= local_md5.count
@@ -223,12 +223,12 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	      r = full_remote_read (&remote_md5.length[i], buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
-		return r;
+		RETURN_INT (r);
 
 	      r = full_local_write (&count, buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
-		return r;
+		RETURN_INT (r);
 	    }
 	  else
 	    {
@@ -237,12 +237,12 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	      r = full_remote_read (&remote_md5.length[i], buf2, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
-		return r;
+		RETURN_INT (r);
 
 	      r = full_local_read (&count, buf, cap,
 				   remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
-		return r;
+		RETURN_INT (r);
 
 	      /* Copy the part which was not written from local file
 		 because local file was truncated meanwhile.  */
@@ -274,7 +274,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	      r = full_local_write (&count, buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
-		return r;
+		RETURN_INT (r);
 	    }
 
 	  /* Add the interval to UPDATED.  */
@@ -310,7 +310,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Update BLOCKS of local file CAP from remote file.  */
@@ -328,7 +328,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   TRACE ("");
 
   if (VARRAY_USED (*blocks) == 0)
-    return ZFS_OK;
+    RETURN_INT (ZFS_OK);
 
   args.count = 0;
   index = 0;
@@ -355,7 +355,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 		{
 		  r = update_file_blocks_1 (&args, cap, blocks, &index);
 		  if (r != ZFS_OK)
-		    return r;
+		    RETURN_INT (r);
 		  args.count = 0;
 		}
 	      args.offset[args.count] = x.start;
@@ -372,7 +372,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
     {
       r = update_file_blocks_1 (&args, cap, blocks, &index);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
 
   r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
@@ -387,7 +387,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Reintegrate modified blocks of local file CAP to remote file.  */
@@ -466,7 +466,7 @@ reintegrate_file_blocks (zfs_cap *cap)
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Update file with file handle FH.  */
@@ -490,11 +490,11 @@ update_file (zfs_fh *fh)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
 #ifdef ENABLE_CHECKING
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
@@ -505,7 +505,7 @@ update_file (zfs_fh *fh)
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_UPDATE_FAILED;
+      RETURN_INT (ZFS_UPDATE_FAILED);
     }
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -517,7 +517,7 @@ update_file (zfs_fh *fh)
 	printf ("%d\n", dentry->fh->flags);
 	abort ();
 	release_dentry (dentry);
-	return ZFS_OK;
+	RETURN_INT (ZFS_OK);
 
       case IFH_UPDATE:
 	cap.flags = O_RDONLY;
@@ -535,11 +535,11 @@ update_file (zfs_fh *fh)
   cap.fh = *fh;
   r = get_capability (&cap, &icap, &vol, &dentry, NULL, true, true);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, NULL, &cap);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (dentry->fh->attr.type != FT_REG)
     {
@@ -657,7 +657,7 @@ out:
     cond_remote_close (&cap, icap, &dentry, &vol);
   put_capability (icap, dentry->fh, NULL);
   internal_cap_unlock (vol, dentry, NULL);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Update generic file DENTRY with file handle FH on volume VOL if needed.  */
@@ -683,17 +683,17 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh)
 
 	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 	  if (r2 != ZFS_OK)
-	    return r2;
+	    RETURN_INT (r2);
 
 	  if (r != ZFS_OK)
 	    {
 	      internal_dentry_unlock (*volp, *dentryp);
-	      return r;
+	      RETURN_INT (r);
 	    }
 	}
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Update generic file DENTRY on volume VOL if needed.
@@ -707,6 +707,8 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
   int32_t r, r2;
   fattr remote_attr;
   int how;
+
+  TRACE ("");
 
   r = ZFS_OK;
   if ((*volp)->master != this_node)
@@ -735,7 +737,7 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 		  if (r == ZFS_OK)
 		    internal_dentry_unlock (*volp, *dentryp);
 		}
-	      return r2;
+	      RETURN_INT (r2);
 	    }
 
 	  if (r != ZFS_OK)
@@ -747,7 +749,7 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 		  if (r2 == ZFS_OK)
 		    internal_dentry_unlock (*volp, *dentry2p);
 		}
-	      return r;
+	      RETURN_INT (r);
 	    }
 
 	  if (fh2->ino != fh->ino)
@@ -756,7 +758,7 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 	      if (!*dentry2p)
 		{
 		  internal_dentry_unlock (*volp, *dentryp);
-		  return ZFS_STALE;
+		  RETURN_INT (ZFS_STALE);
 		}
 	    }
 	  else
@@ -787,7 +789,7 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 	}
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Update generic file DENTRY on volume VOL associated with capability ICAP
@@ -803,6 +805,8 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
   zfs_fh tmp_fh;
   int how;
 
+  TRACE ("");
+
   r = ZFS_OK;
   if ((*volp)->master != this_node)
     {
@@ -814,12 +818,12 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
 
 	  r2 = find_capability_nolock (cap, icapp, volp, dentryp, vdp, false);
 	  if (r2 != ZFS_OK)
-	    return r2;
+	    RETURN_INT (r2);
 
 	  if (r != ZFS_OK)
 	    {
 	      internal_cap_unlock (*volp, *dentryp, *vdp);
-	      return r;
+	      RETURN_INT (r);
 	    }
 
 	  if (*vdp)
@@ -831,7 +835,7 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
 	}
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Return true if file *DENTRYP on volume *VOLP with file handle FH should
@@ -851,7 +855,7 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
 #endif
 
   if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
-    return 0;
+    RETURN_INT (0);
 
   release_dentry (*dentryp);
   zfsd_mutex_unlock (&(*volp)->mutex);
@@ -874,11 +878,11 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
 #endif
 
   if ((*dentryp)->fh->attr.type != attr->type)
-    return 0;
+    RETURN_INT (0);
 
-  return (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
-	  + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE
-	  + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
+  RETURN_INT (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
+	      + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE
+	      + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
 
 out:
   r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
@@ -887,7 +891,7 @@ out:
     abort ();
 #endif
 
-  return 0;
+  RETURN_INT (0);
 }
 
 /* Delete file in place of file DENTRY on volume VOL.
@@ -916,7 +920,7 @@ delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
 			move_to_shadow_p);
   free (path.str);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Delete file NAME in directory DIR on volume VOL.
@@ -945,7 +949,7 @@ delete_tree_name (internal_dentry dir, string *name, volume vol,
 			move_to_shadow_p);
   free (path.str);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* If the local file NAME in directory DIR_FH is the same as remote file
@@ -1030,11 +1034,11 @@ files_are_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
     }
 
   *same = true;
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 
 differ:
   *same = false;
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Set mode, UID and GID in metadata META for file FH on volume VOL
@@ -1119,7 +1123,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
     }
 
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
   if (r == ZFS_OK)
@@ -1154,7 +1158,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
       zfsd_mutex_unlock (&(*volp)->mutex);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Create local generic file NAME in directory DIR on volume VOL with remote
@@ -1223,7 +1227,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 
 	r = remote_readlink_zfs_fh (&link_to, remote_fh, vol);
 	if (r != ZFS_OK)
-	  return r;
+	  RETURN_INT (r);
 
 	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1281,7 +1285,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create remote generic file NAME in directory DIR on volume VOL according
@@ -1321,7 +1325,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
       case FT_LNK:
 	r = local_readlink_name (&link_to, dir, name, vol);
 	if (r != ZFS_OK)
-	  return r;
+	  RETURN_INT (r);
 
 	r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1346,7 +1350,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 	break;
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Synchronize file DENTRY with file handle FH on volume VOL
@@ -1397,7 +1401,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
       r = synchronize_attributes (&vol, &dentry, fh, attr, local_changed,
 				  remote_changed);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
 
   if (dentry->fh->attr.type == FT_REG)
@@ -1487,7 +1491,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
       zfsd_mutex_unlock (&fh_mutex);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Discard changes to local file LOCAL which is in conflict with REMOTE
@@ -1526,7 +1530,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
       release_dentry (remote);
       r = local_setattr (&fa, local, &sa, vol);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1578,7 +1582,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
   /* Update local and remote version.  */
   r = local_reintegrate_set (local, version, vol);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1591,7 +1595,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
 
   remote->fh->attr.version = version;
   r = remote_reintegrate_set (remote, version, NULL, vol);
-  return r;
+  RETURN_INT (r);
 
 out_save:
   save_interval_trees (vol, local->fh);
@@ -1599,7 +1603,7 @@ out_save:
 out:
   release_dentry (local);
   zfsd_mutex_unlock (&vol->mutex);
-  return ZFS_METADATA_ERROR;
+  RETURN_INT (ZFS_METADATA_ERROR);
 }
 
 /* Discard changes to local file LOCAL which is in conflict with REMOTE
@@ -1639,7 +1643,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_setattr (&fa, local, &sa, vol);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1690,7 +1694,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
   /* Update local and remote version.  */
   r = local_reintegrate_set (local, version + 1, vol);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1703,7 +1707,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
 
   remote->fh->attr.version = version;
   r = remote_reintegrate_set (remote, version, NULL, vol);
-  return r;
+  RETURN_INT (r);
 
 out_save:
   save_interval_trees (vol, local->fh);
@@ -1711,7 +1715,7 @@ out_save:
 out:
   release_dentry (local);
   zfsd_mutex_unlock (&vol->mutex);
-  return ZFS_METADATA_ERROR;
+  RETURN_INT (ZFS_METADATA_ERROR);
 }
 
 /* Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
@@ -1734,10 +1738,10 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
 
   r = local_lookup (res, dir, name, vol, &meta);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (!ZFS_FH_EQ (res->file, *local_fh))
-    return ENOENT;
+    RETURN_INT (ENOENT);
 
   if (!zfs_fh_undefined (*remote_fh))
     {
@@ -1757,8 +1761,8 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
     {
       /* Remote file exists.  */
 
-      return local_reintegrate_del_base (&res->file, name, false, dir_fh,
-					 true);
+      RETURN_INT (local_reintegrate_del_base (&res->file, name, false, dir_fh,
+					      true));
     }
   else if (r == ENOENT || r == ESTALE)
     {
@@ -1771,8 +1775,8 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
 #endif
 
       if (delete_tree_name (dir, name, vol, false, true, true) != ZFS_OK)
-	return ZFS_UPDATE_FAILED;
-      return ZFS_OK;
+	RETURN_INT (ZFS_UPDATE_FAILED);
+      RETURN_INT (ZFS_OK);
     }
   else
     {
@@ -1780,7 +1784,7 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
 	       "Resolve: file info error: %d (%s)\n", r, zfs_strerror (r));
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Resolve conflict by deleting remote file NAME with file handle REMOTE_FH
@@ -1805,12 +1809,12 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
       MARK_VOLUME_DELETE (vol);
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_METADATA_ERROR;
+      RETURN_INT (ZFS_METADATA_ERROR);
     }
 
   dir_fh = dir->fh->local_fh;
-  return remote_reintegrate_del (vol, remote_fh, dir, name,
-				 map.slot_status != VALID_SLOT, &dir_fh);
+  RETURN_INT (remote_reintegrate_del (vol, remote_fh, dir, name,
+				      map.slot_status != VALID_SLOT, &dir_fh));
 }
 
 /* Update the directory DIR on volume VOL with file handle FH,
@@ -1851,13 +1855,13 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
   r = full_local_readdir (fh, &local_entries);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = full_remote_readdir (fh, &remote_entries);
   if (r != ZFS_OK)
     {
       htab_destroy (local_entries.htab);
-      return r;
+      RETURN_INT (r);
     }
 
   HTAB_FOR_EACH_SLOT (local_entries.htab, slot)
@@ -2137,7 +2141,7 @@ out:
   zfsd_mutex_unlock (&vol->mutex);
   htab_destroy (local_entries.htab);
   htab_destroy (remote_entries.htab);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Reintegrate journal of deleted directory DIR_ENTRY on volume VID.
@@ -2174,7 +2178,7 @@ reintegrate_deleted_fh (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
       journal_destroy (journal);
       MARK_VOLUME_DELETE (vol);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_OK;
+      RETURN_INT (ZFS_OK);
     }
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -2297,7 +2301,7 @@ out:
     }
 
   journal_destroy (journal);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Reintegrate journal for directory DIR on volume VOL with file handle FH.
@@ -2697,7 +2701,7 @@ out2:
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Reintegrate or update generic file DENTRY on volume VOL with file handle FH
@@ -2731,19 +2735,19 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
       case FT_DIR:
 	r = synchronize_file (vol, dentry, fh, attr, how);
 	if (r != ZFS_OK)
-	  return r;
+	  RETURN_INT (r);
 
 	r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 	if (r != ZFS_OK)
-	  return r;
+	  RETURN_INT (r);
 
 	r = reintegrate_fh (vol, dentry, fh, attr);
 	if (r != ZFS_OK)
-	  return r;
+	  RETURN_INT (r);
 
 	r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 	if (r != ZFS_OK)
-	  return r;
+	  RETURN_INT (r);
 
 	r = update_fh (vol, dentry, fh, attr);
 	break;
@@ -2757,7 +2761,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	break;
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Initialize update thread T.  */

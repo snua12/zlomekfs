@@ -185,7 +185,7 @@ local_path_to_relative_path (string *dst, volume vol, string *path)
     {
       dst->str = NULL;
       dst->len = 0;
-      return;
+      RETURN_VOID;
     }
 
 #ifdef ENABLE_CHECKING
@@ -197,6 +197,7 @@ local_path_to_relative_path (string *dst, volume vol, string *path)
 
   dst->len = path->len - vol->local_path.len;
   dst->str = (char *) xmemdup (path->str + vol->local_path.len, dst->len + 1);
+  RETURN_VOID;
 }
 
 /* Return short file name from the path PATH.  */
@@ -215,6 +216,7 @@ file_name_from_path (string *dst, string *path)
   dst->str++;
 
   dst->len = path->str + path->len - dst->str;
+  RETURN_VOID;
 }
 
 /* Check whether parent of file PATH exists and return ESTALE if it does not
@@ -236,11 +238,11 @@ parent_exists (string *path, struct stat *st)
   if (r != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Delete the generic file NAME with path PATH on volume VOL.
@@ -270,7 +272,7 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
     {
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
-      return (errno == ENOENT ? ZFS_OK : errno);
+      RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
     }
 
   if (vol)
@@ -290,9 +292,9 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 		  || (vol->master != this_node
 		      && zfs_fh_undefined (meta->master_fh))))
 	    {
-	      return (move_to_shadow_base (vol, &fh, path, name, parent_fh,
-					   journal != NULL)
-		      ? ZFS_OK : ZFS_METADATA_ERROR);
+	      RETURN_INT (move_to_shadow_base (vol, &fh, path, name, parent_fh,
+					       journal != NULL)
+			  ? ZFS_OK : ZFS_METADATA_ERROR);
 	    }
 	}
       else
@@ -318,7 +320,7 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
     {
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
-      return r;
+      RETURN_INT (r);
     }
 
   if (vol)
@@ -360,7 +362,7 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 	}
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Delete the contents of directory PATH with file handle FH and parent
@@ -396,9 +398,9 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 	      string name;
 
 	      file_name_from_path (&name, path);
-	      return (move_to_shadow_base (vol, fh, path, &name, parent_fh,
-					   journal_p)
-		      ? ZFS_OK : ZFS_METADATA_ERROR);
+	      RETURN_INT (move_to_shadow_base (vol, fh, path, &name, parent_fh,
+					       journal_p)
+			  ? ZFS_OK : ZFS_METADATA_ERROR);
 	    }
 
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -408,7 +410,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
   /* Delete contents of subdirectories.  */
   d = opendir (path->str);
   if (!d)
-    return (errno == ENOENT ? ZFS_OK : errno);
+    RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
 
   while ((de = readdir (d)) != NULL)
     {
@@ -458,7 +460,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 	  if (r != ZFS_OK)
 	    {
 	      closedir (d);
-	      return r;
+	      RETURN_INT (r);
 	    }
 	}
       else
@@ -472,7 +474,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
   /* Delete the contents of current directory.  */
   d = opendir (path->str);
   if (!d)
-    return (errno == ENOENT ? ZFS_OK : errno);
+    RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
 
   r = ZFS_OK;
   vol = NULL;
@@ -550,7 +552,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 	}
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Recursively delete generic file NAME with path PATH in directory PARENT_FH
@@ -578,7 +580,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
     {
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
-      return (errno == ENOENT ? ZFS_OK : errno);
+      RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
     }
 
   if ((st.st_mode & S_IFMT) == S_IFDIR)
@@ -604,7 +606,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
 				     destroy_dentry, journal_p,
 				     move_to_shadow_p);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     {
@@ -663,7 +665,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
 	}
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Recursivelly unlink the file PATH on volume with ID == VID.
@@ -694,7 +696,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
     {
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
-      return (errno == ENOENT ? ZFS_OK : errno);
+      RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
     }
   filename.str[-1] = '/';
 
@@ -719,8 +721,9 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  return recursive_unlink_start (&meta, path, &filename, &fh,
-				 destroy_dentry, journal_p, move_to_shadow_p);
+  RETURN_INT (recursive_unlink_start (&meta, path, &filename, &fh,
+				      destroy_dentry, journal_p,
+				      move_to_shadow_p));
 }
 
 /* Check whether we can perform file system change operation on NAME in
@@ -754,13 +757,13 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
       zfsd_mutex_unlock (&pvd->mutex);
       zfsd_mutex_unlock (&vd->mutex);
       zfsd_mutex_unlock (&fh_mutex);
-      return EROFS;
+      RETURN_INT (EROFS);
     }
   else if (!pvd->vol)
     {
       zfsd_mutex_unlock (&pvd->mutex);
       zfsd_mutex_unlock (&fh_mutex);
-      return EROFS;
+      RETURN_INT (EROFS);
     }
   else
     {
@@ -771,18 +774,18 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
       zfsd_mutex_unlock (&fh_mutex);
       r = get_volume_root_dentry (vol, dir, true);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       r = validate_operation_on_volume_root (*dir, conflict_error);
       if (r != ZFS_OK)
 	{
 	  release_dentry (*dir);
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return r;
+	  RETURN_INT (r);
 	}
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Check whether we can perform operation on ZFS file handle FH.
@@ -799,19 +802,19 @@ validate_operation_on_zfs_fh (zfs_fh *fh, uint32_t conflict_error,
   if (!request_from_this_node ())
     {
       if (CONFLICT_DIR_P (*fh))
-	return EINVAL;
+	RETURN_INT (EINVAL);
       if (NON_EXIST_FH_P (*fh))
-	return EINVAL;
+	RETURN_INT (EINVAL);
     }
   else
     {
       if (CONFLICT_DIR_P (*fh))
-	return conflict_error;
+	RETURN_INT (conflict_error);
       if (NON_EXIST_FH_P (*fh))
-	return non_exist_error;
+	RETURN_INT (non_exist_error);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Check whether we can perform operation on volume root DENTRY.
@@ -834,10 +837,10 @@ validate_operation_on_volume_root (internal_dentry dentry,
       if (!request_from_this_node ())
 	abort ();
 #endif
-      return conflict_error;
+      RETURN_INT (conflict_error);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
@@ -885,12 +888,12 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
   if (stat (path, &st) != 0)
     {
       free (path);
-      return errno;
+      RETURN_INT (errno);
     }
   free (path);
 
   if ((st.st_mode & S_IFMT) != S_IFDIR)
-    return ENOTDIR;
+    RETURN_INT (ENOTDIR);
 
   local_fh->dev = st.st_dev;
   local_fh->ino = st.st_ino;
@@ -902,7 +905,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
   get_metadata (volume_lookup (local_fh->vid), local_fh, meta);
   fattr_from_struct_stat (attr, &st);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Store the remote file handle of root of volume VOL to REMOTE_FH
@@ -947,8 +950,8 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
     recycle_dc_to_fd (t->dc_reply, fd);
 
   if (r == ZFS_OK && attr->type != FT_DIR)
-    return ENOTDIR;
-  return r;
+    RETURN_INT (ENOTDIR);
+  RETURN_INT (r);
 }
 
 /* Update root of volume VOL, create an internal file handle for it and store
@@ -978,7 +981,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
       if (vol)
 	volume_delete (vol);
       zfsd_mutex_unlock (&fh_mutex);
-      return ENOENT;
+      RETURN_INT (ENOENT);
     }
 
   if (vol->local_path.str)
@@ -995,7 +998,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 	      vol = volume_lookup (vid);
 	      zfsd_mutex_unlock (&fh_mutex);
 	      if (!vol)
-		return ENOENT;
+		RETURN_INT (ENOENT);
 
 	      get_volume_root_remote (vol, &master_fh, &remote_attr);
 	    }
@@ -1011,14 +1014,14 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
     abort ();
 
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   zfsd_mutex_lock (&fh_mutex);
   vol = volume_lookup (vid);
   if (!vol)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      return ENOENT;
+      RETURN_INT (ENOENT);
     }
 
   dentry = get_dentry (&local_fh, &master_fh, vol, NULL, &empty_string, &attr,
@@ -1042,7 +1045,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
     }
 
   *dentryp = dentry;
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Return file handle and attributes of root of volume VID.  */
@@ -1054,9 +1057,11 @@ zfs_volume_root (dir_op_res *res, uint32_t vid)
   volume vol;
   internal_dentry dentry;
 
+  TRACE ("%" PRIu32, vid);
+
   vol = volume_lookup (vid);
   if (!vol)
-    return ENOENT;
+    RETURN_INT (ENOENT);
 
   if (vol->delete_p)
     {
@@ -1066,19 +1071,19 @@ zfs_volume_root (dir_op_res *res, uint32_t vid)
       if (vol)
 	volume_delete (vol);
       zfsd_mutex_unlock (&fh_mutex);
-      return ENOENT;
+      RETURN_INT (ENOENT);
     }
 
   r = get_volume_root_dentry (vol, &dentry, true);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   zfsd_mutex_unlock (&vol->mutex);
   res->file = dentry->fh->local_fh;
   res->attr = dentry->fh->attr;
   release_dentry (dentry);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Get attributes of local file PATH and store them to ATTR.  */
@@ -1093,10 +1098,10 @@ local_getattr_path (fattr *attr, string *path)
 
   r = lstat (path->str, &st);
   if (r != 0)
-    return errno;
+    RETURN_INT (errno);
 
   fattr_from_struct_stat (attr, &st);
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Get attributes of local file DENTRY on volume VOL
@@ -1121,9 +1126,9 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   free (path.str);
 
   if (r == ENOENT || r == ENOTDIR)
-    return ESTALE;
+    RETURN_INT (ESTALE);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Get attributes of remote file DENTRY on volume VOL
@@ -1171,7 +1176,7 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Get attributes for file with handle FH and store them to FA.  */
@@ -1189,7 +1194,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   r = validate_operation_on_zfs_fh (fh, ZFS_OK, ZFS_OK);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
@@ -1197,11 +1202,11 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (vd)
     {
@@ -1210,21 +1215,21 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 	  zfsd_mutex_unlock (&vd->mutex);
 	  r = get_volume_root_dentry (vol, &dentry, true);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 
 	  r = validate_operation_on_volume_root (dentry, ZFS_OK);
 	  if (r != ZFS_OK)
 	    {
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
+	      RETURN_INT (r);
 	    }
 	}
       else
 	{
 	  *fa = vd->attr;
 	  zfsd_mutex_unlock (&vd->mutex);
-	  return ZFS_OK;
+	  RETURN_INT (ZFS_OK);
 	}
     }
 
@@ -1234,18 +1239,18 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
       *fa = dentry->fh->attr;
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_OK;
+      RETURN_INT (ZFS_OK);
     }
 
   r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       r = update_fh_if_needed (&vol, &dentry, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_getattr (fa, dentry, vol);
     }
   else if (vol->master != this_node)
@@ -1272,7 +1277,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   internal_dentry_unlock (vol, dentry);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Set attributes of local file PATH according to SA,
@@ -1286,14 +1291,14 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
   if (sa->size != (uint64_t) -1)
     {
       if (truncate (path->str, sa->size) != 0)
-	return errno;
+	RETURN_INT (errno);
     }
 
   if (sa->mode != (uint32_t) -1)
     {
       sa->mode = GET_MODE (sa->mode);
       if (chmod (path->str, sa->mode) != 0)
-	return errno;
+	RETURN_INT (errno);
     }
 
   /* FIXME: delete the getuid () test*/
@@ -1302,7 +1307,7 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
     {
       if (lchown (path->str, map_uid_zfs2node (sa->uid),
 		  map_gid_zfs2node (sa->gid)) != 0)
-	return errno;
+	RETURN_INT (errno);
     }
 
   if (sa->atime != (zfs_time) -1 || sa->mtime != (zfs_time) -1)
@@ -1312,10 +1317,10 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
       t.actime = sa->atime;
       t.modtime = sa->mtime;
       if (utime (path->str, &t) != 0)
-	return errno;
+	RETURN_INT (errno);
     }
 
-  return local_getattr_path (fa, path);
+  RETURN_INT (local_getattr_path (fa, path));
 }
 
 /* Set attributes of local file DENTRY on volume VOL according to SA,
@@ -1340,9 +1345,9 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   free (path.str);
 
   if (r == ENOENT || r == ENOTDIR)
-    return ESTALE;
+    RETURN_INT (ESTALE);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Set attributes of remote file DENTRY on volume VOL according to SA,
@@ -1391,7 +1396,7 @@ remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Set attributes of file with handle FH according to SA, reget attributes
@@ -1410,7 +1415,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   r = validate_operation_on_zfs_fh (fh, EROFS, EROFS);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
@@ -1418,11 +1423,11 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (vd)
     {
@@ -1431,26 +1436,26 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	  zfsd_mutex_unlock (&vd->mutex);
 	  r = get_volume_root_dentry (vol, &dentry, true);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 
 	  r = validate_operation_on_volume_root (dentry, EROFS);
 	  if (r != ZFS_OK)
 	    {
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
+	      RETURN_INT (r);
 	    }
 	}
       else
 	{
 	  zfsd_mutex_unlock (&vd->mutex);
-	  return EROFS;
+	  RETURN_INT (EROFS);
 	}
     }
 
   r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (sa->mode != (uint32_t) -1)
     sa->mode = GET_MODE (sa->mode);
@@ -1459,7 +1464,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
     {
       r = update_fh_if_needed (&vol, &dentry, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_setattr (fa, dentry, sa, vol);
     }
   else if (vol->master != this_node)
@@ -1541,7 +1546,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   internal_dentry_unlock (vol, dentry);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Lookup path PATH from directory DIR and store the dir_op_res of the last
@@ -1570,17 +1575,17 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
 
       r = zfs_lookup (res, &res->file, &str);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       if (CONFLICT_DIR_P (res->file))
 	{
 	  r = zfs_lookup (res, &res->file, &this_node->name);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 	}
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Lookup local file NAME in directory DIR on volume VOL and store
@@ -1611,13 +1616,13 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   if (r != ZFS_OK)
     {
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   r = local_getattr_path (&res->attr, &path);
   free (path.str);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
@@ -1627,7 +1632,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   meta->gid = res->attr.gid;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Lookup remote file NAME in directory DIR on volume VOL and store
@@ -1676,7 +1681,7 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Lookup remote file NAME in directory DIR on volume VOL and store
@@ -1723,7 +1728,7 @@ remote_lookup_zfs_fh (dir_op_res *res, zfs_fh *dir, string *name, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Lookup file NAME in directory DIR and store its file handle and attributes
@@ -1744,7 +1749,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup DIR.  */
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
@@ -1756,11 +1761,11 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (pvd)
     {
@@ -1780,7 +1785,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	    zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_OK;
+	  RETURN_INT (ZFS_OK);
 	}
       else if (strcmp (name->str, "..") == 0)
 	{
@@ -1791,7 +1796,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	    zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_OK;
+	  RETURN_INT (ZFS_OK);
 	}
 
       vd = vd_lookup_name (pvd, name);
@@ -1818,7 +1823,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 		{
 		  /* If there was an error return the attributes
 		     of virtual file.  */
-		  return ZFS_OK;
+		  RETURN_INT (ZFS_OK);
 		}
 
 	      r = validate_operation_on_volume_root (idir, ZFS_OK);
@@ -1826,7 +1831,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 		{
 		  release_dentry (idir);
 		  zfsd_mutex_unlock (&vol->mutex);
-		  return r;
+		  RETURN_INT (r);
 		}
 
 	      res->attr = idir->fh->attr;
@@ -1838,7 +1843,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	      zfsd_mutex_unlock (&fh_mutex);
 	      zfsd_mutex_unlock (&vd->mutex);
 	    }
-	  return ZFS_OK;
+	  RETURN_INT (ZFS_OK);
 	}
       zfsd_mutex_unlock (&fh_mutex);
 
@@ -1848,7 +1853,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	{
 	  r = get_volume_root_dentry (vol, &idir, false);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 #ifdef ENABLE_CHECKING
 	  if (idir->fh->attr.type != FT_DIR)
 	    abort ();
@@ -1859,11 +1864,11 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	    {
 	      release_dentry (idir);
 	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
+	      RETURN_INT (r);
 	    }
 	}
       else
-	return ENOENT;
+	RETURN_INT (ENOENT);
     }
   else
     {
@@ -1872,7 +1877,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  release_dentry (idir);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ENOTDIR;
+	  RETURN_INT (ENOTDIR);
 	}
 
       if (strcmp (name->str, ".") == 0)
@@ -1882,7 +1887,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  release_dentry (idir);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_OK;
+	  RETURN_INT (ZFS_OK);
 	}
       else if (strcmp (name->str, "..") == 0)
 	{
@@ -1903,7 +1908,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_OK;
+	  RETURN_INT (ZFS_OK);
 	}
     }
 
@@ -1923,7 +1928,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  release_dentry (idir);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return dentry ? ZFS_OK : ENOENT;
+	  RETURN_INT (dentry ? ZFS_OK : ENOENT);
 	}
 
       zfsd_mutex_unlock (&fh_mutex);
@@ -1934,7 +1939,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
@@ -1942,13 +1947,13 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_lookup (res, idir, name, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -1991,7 +1996,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   internal_dentry_unlock (vol, idir);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create directory NAME in local directory DIR on volume VOL, set owner,
@@ -2023,8 +2028,8 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     {
       free (path.str);
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
   r = local_setattr_path (&res->attr, &path, attr);
@@ -2032,7 +2037,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     {
       rmdir (path.str);
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   free (path.str);
@@ -2056,7 +2061,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     MARK_VOLUME_DELETE (vol);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Create directory NAME in remote directory DIR on volume VOL, set owner,
@@ -2107,7 +2112,7 @@ remote_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create directory NAME in directory DIR, set owner, group and permitions
@@ -2128,7 +2133,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup DIR.  */
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
@@ -2140,17 +2145,17 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -2159,7 +2164,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -2167,14 +2172,14 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   attr->mode = GET_MODE (attr->mode);
@@ -2184,13 +2189,13 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_mkdir (res, idir, name, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -2237,7 +2242,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 
   internal_dentry_unlock (vol, idir);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Remove local directory NAME from directory DIR on volume VOL,
@@ -2267,7 +2272,7 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   r = lstat (path.str, &st);
@@ -2275,7 +2280,7 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
-      return errno;
+      RETURN_INT (errno);
     }
   r = rmdir (path.str);
 
@@ -2283,7 +2288,7 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
-      return errno;
+      RETURN_INT (errno);
     }
 
   /* Lookup the metadata of deleted file.  */
@@ -2309,7 +2314,7 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
 
   zfsd_mutex_unlock (&vol->mutex);
   free (path.str);
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Remove remote directory NAME from directory DIR on volume VOL.  */
@@ -2351,7 +2356,7 @@ remote_rmdir (internal_dentry dir, string *name, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Remove directory NAME from directory DIR.  */
@@ -2378,7 +2383,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
   r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup DIR.  */
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
@@ -2390,17 +2395,17 @@ zfs_rmdir (zfs_fh *dir, string *name)
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -2409,7 +2414,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -2417,12 +2422,12 @@ zfs_rmdir (zfs_fh *dir, string *name)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (CONFLICT_DIR_P (idir->fh->local_fh))
     {
@@ -2542,7 +2547,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
       what_to_do = 1;
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_rmdir (&meta, idir, name, vol);
     }
   else if (vol->master != this_node)
@@ -2699,7 +2704,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_dentry_unlock (vol, idir);
 
 out:
-  return r;
+  RETURN_INT (r);
 }
 
 /* Rename local file FROM_PATH to TO_PATH on volume VOL.
@@ -2718,6 +2723,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   string from_name, to_name;
   int32_t r;
 
+  TRACE ("%s %s", from_path->str, to_path->str);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   file_name_from_path (&from_name, from_path);
@@ -2727,7 +2733,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   if (r != ZFS_OK)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      return r;
+      RETURN_INT (r);
     }
   if (from_path->len - from_name.len != to_path->len - to_name.len
       || (memcmp (from_path->str, to_path->str, to_path->len - to_name.len)
@@ -2737,7 +2743,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       if (r != ZFS_OK)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return r;
+	  RETURN_INT (r);
 	}
     }
   else
@@ -2750,7 +2756,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   if (r != 0)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      return errno;
+      RETURN_INT (errno);
     }
 
   r = lstat (to_path->str, &st_old);
@@ -2761,7 +2767,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return errno;
+	  RETURN_INT (errno);
 	}
 
       meta_old->slot_status = EMPTY_SLOT;
@@ -2773,7 +2779,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return errno;
+	  RETURN_INT (errno);
 	}
 
       /* Lookup the metadata of overwritten file.  */
@@ -2814,7 +2820,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
     MARK_VOLUME_DELETE (vol);
 
   zfsd_mutex_unlock (&vol->mutex);
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
@@ -2850,7 +2856,7 @@ local_rename (metadata *meta_old, metadata *meta_new,
 
   free (from_path.str);
   free (to_path.str);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME
@@ -2901,7 +2907,7 @@ remote_rename (internal_dentry from_dir, string *from_name,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Add the journal dentries for the move of file FROM_NAME in FROM_DIR
@@ -2961,6 +2967,8 @@ zfs_rename_journal (internal_dentry from_dir, string *from_name,
       if (!inc_local_version (vol, to_dir->fh))
 	MARK_VOLUME_DELETE (vol);
     }
+
+  RETURN_VOID;
 }
 
 /* Rename file FROM_NAME in directory FROM_DIR to file TO_NAME
@@ -2981,11 +2989,11 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
   r = validate_operation_on_zfs_fh (from_dir, EROFS, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = validate_operation_on_zfs_fh (to_dir, EROFS, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup TO_DIR.  */
   r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
@@ -2997,18 +3005,18 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 #endif
       r = refresh_fh (to_dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (vd)
     {
       r = validate_operation_on_virtual_directory (vd, to_name, &to_dentry,
 						   EROFS);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -3017,7 +3025,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       release_dentry (to_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -3025,14 +3033,14 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       release_dentry (to_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   if (to_dentry->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (to_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   tmp_to = to_dentry->fh->local_fh;
@@ -3049,18 +3057,18 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 #endif
       r = refresh_fh (from_dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (vd)
     {
       r = validate_operation_on_virtual_directory (vd, from_name, &from_dentry,
 						   EROFS);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -3069,7 +3077,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       release_dentry (from_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -3077,7 +3085,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       release_dentry (from_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   tmp_from = from_dentry->fh->local_fh;
@@ -3088,12 +3096,12 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   if (tmp_from.dev != tmp_to.dev
       || tmp_from.vid != tmp_to.vid
       || tmp_from.sid != tmp_to.sid)
-    return EXDEV;
+    RETURN_INT (EXDEV);
 
   /* Lookup dentries.  */
   r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (tmp_from.ino != tmp_to.ino)
     {
@@ -3103,7 +3111,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	  release_dentry (from_dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ESTALE;
+	  RETURN_INT (ESTALE);
 	}
     }
   else
@@ -3122,7 +3130,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	    release_dentry (to_dentry);
 	    zfsd_mutex_unlock (&vol->mutex);
 	    zfsd_mutex_unlock (&fh_mutex);
-	    return EINVAL;
+	    RETURN_INT (EINVAL);
 	  }
       if (from_dentry->parent == to_dentry
 	  && strcmp (from_dentry->name.str, to_name->str) == 0)
@@ -3131,7 +3139,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	  release_dentry (to_dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ENOTEMPTY;
+	  RETURN_INT (ENOTEMPTY);
 	}
     }
 
@@ -3140,20 +3148,20 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   r = internal_dentry_lock2 (LEVEL_EXCLUSIVE, LEVEL_EXCLUSIVE, &vol,
 			     &from_dentry, &to_dentry, &tmp_from, &tmp_to);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       r = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
 				 &tmp_to, &tmp_from);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       if (tmp_from.ino != tmp_to.ino)
 	{
 	  r = update_fh_if_needed_2 (&vol, &from_dentry, &to_dentry,
 				     &tmp_from, &tmp_to);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 	}
       r = local_rename (&meta_old, &meta_new, from_dentry, from_name,
 			to_dentry, to_name, vol);
@@ -3204,7 +3212,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	internal_dentry_unlock (vol, from_dentry);
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Link local file FROM_PATH with file handle FH to TO_PATH.
@@ -3219,21 +3227,23 @@ local_link_base (metadata *meta, string *from_path, string *to_path,
   volume vol;
   int32_t r;
 
+  TRACE ("%s %s", from_path->str, to_path->str);
+
   r = parent_exists (to_path, &to_parent_st);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = link (from_path->str, to_path->str);
   if (r != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
   vol = volume_lookup (fh->vid);
   if (!vol)
-    return ESTALE;
+    RETURN_INT (ESTALE);
 
   file_name_from_path (&to_name, to_path);
   if (!metadata_hardlink_insert (vol, fh, meta, to_parent_st.st_dev,
@@ -3241,7 +3251,7 @@ local_link_base (metadata *meta, string *from_path, string *to_path,
     MARK_VOLUME_DELETE (vol);
 
   zfsd_mutex_unlock (&vol->mutex);
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Link local file FROM with file handle FH to be a file with NAME
@@ -3275,8 +3285,8 @@ local_link (metadata *meta, internal_dentry from, internal_dentry dir,
       free (from_path.str);
       free (to_path.str);
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
   meta->flags = METADATA_COMPLETE;
@@ -3288,7 +3298,7 @@ local_link (metadata *meta, internal_dentry from, internal_dentry dir,
 
   free (from_path.str);
   free (to_path.str);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Link remote file FROM to be a file with NAME in directory DIR
@@ -3337,7 +3347,7 @@ remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Add a journal entry for a new dentry NAME in DIR on volume VOL
@@ -3383,15 +3393,15 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   TRACE ("");
 
   if (VIRTUAL_FH_P (*from))
-    return EROFS;
+    RETURN_INT (EROFS);
 
   r = validate_operation_on_zfs_fh (from, EROFS, EROFS);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup FROM.  */
   r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
@@ -3399,25 +3409,25 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     {
       r = refresh_fh (from);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (from_dentry->fh->attr.type == FT_DIR)
     {
       /* Can't link a directory.  */
       release_dentry (from_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   if (from_dentry->fh->meta.flags & (METADATA_SHADOW_TREE | METADATA_SHADOW))
     {
       release_dentry (from_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   tmp_from = from_dentry->fh->local_fh;
@@ -3434,18 +3444,18 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (vd)
     {
       r = validate_operation_on_virtual_directory (vd, name, &dir_dentry,
 						   EROFS);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -3454,7 +3464,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     {
       release_dentry (dir_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -3462,14 +3472,14 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     {
       release_dentry (dir_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   if (dir_dentry->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (dir_dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   tmp_dir = dir_dentry->fh->local_fh;
@@ -3480,12 +3490,12 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   if (tmp_from.dev != tmp_dir.dev
       || tmp_from.vid != tmp_dir.vid
       || tmp_from.sid != tmp_dir.sid)
-    return EXDEV;
+    RETURN_INT (EXDEV);
 
   /* Lookup dentries.  */
   r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (tmp_from.ino != tmp_dir.ino)
     {
@@ -3495,7 +3505,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	  release_dentry (from_dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_STALE;
+	  RETURN_INT (ZFS_STALE);
 	}
     }
   else
@@ -3506,20 +3516,20 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   r = internal_dentry_lock2 (LEVEL_EXCLUSIVE, LEVEL_EXCLUSIVE, &vol,
 			     &from_dentry, &dir_dentry, &tmp_from, &tmp_dir);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       r = update_fh_if_needed_2 (&vol, &dir_dentry, &from_dentry,
 				 &tmp_dir, &tmp_from);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       if (tmp_from.ino != tmp_dir.ino)
 	{
 	  r = update_fh_if_needed_2 (&vol, &from_dentry, &dir_dentry,
 				     &tmp_from, &tmp_dir);
 	  if (r != ZFS_OK)
-	    return r;
+	    RETURN_INT (r);
 	}
       r = local_link (&meta, from_dentry, dir_dentry, name, vol, &tmp_from);
     }
@@ -3567,7 +3577,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	internal_dentry_unlock (vol, from_dentry);
     }
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Delete local file NAME from directory DIR on volume VOL.
@@ -3597,7 +3607,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   r = lstat (path.str, &st);
@@ -3605,7 +3615,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
-      return errno;
+      RETURN_INT (errno);
     }
   r = unlink (path.str);
 
@@ -3613,7 +3623,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     {
       zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
-      return errno;
+      RETURN_INT (errno);
     }
 
   /* Lookup the metadata of deleted dir.  */
@@ -3639,7 +3649,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
 
   zfsd_mutex_unlock (&vol->mutex);
   free (path.str);
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Delete remote file NAME from directory DIR on volume VOL.  */
@@ -3681,7 +3691,7 @@ remote_unlink (internal_dentry dir, string *name, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Remove directory NAME from directory DIR.  */
@@ -3708,7 +3718,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup DIR.  */
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
@@ -3720,17 +3730,17 @@ zfs_unlink (zfs_fh *dir, string *name)
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -3739,7 +3749,7 @@ zfs_unlink (zfs_fh *dir, string *name)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -3747,12 +3757,12 @@ zfs_unlink (zfs_fh *dir, string *name)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (CONFLICT_DIR_P (idir->fh->local_fh))
     {
@@ -3957,7 +3967,7 @@ zfs_unlink (zfs_fh *dir, string *name)
       what_to_do = 1;
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_unlink (&meta, idir, name, vol);
     }
   else if (vol->master != this_node)
@@ -4134,7 +4144,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry_unlock (vol, idir);
 
 out:
-  return r;
+  RETURN_INT (r);
 }
 
 /* Read local symlink FILE on volume VOL.  */
@@ -4160,15 +4170,15 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   if (r < 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
   buf[r] = 0;
   res->path.str = (char *) xmemdup (buf, r + 1);
   res->path.len = r;
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Read local symlink NAME in directroy DIR on volume VOL.  */
@@ -4195,15 +4205,15 @@ local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
   if (r < 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
   buf[r] = 0;
   res->path.str = (char *) xmemdup (buf, r + 1);
   res->path.len = r;
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Read remote symlink FILE on volume VOL.  */
@@ -4252,7 +4262,7 @@ remote_readlink (read_link_res *res, internal_dentry file, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Read remote symlink FH on volume VOL.  */
@@ -4292,7 +4302,7 @@ remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Read symlink FH.  */
@@ -4308,7 +4318,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   TRACE ("");
 
   if (VIRTUAL_FH_P (*fh) || CONFLICT_DIR_P (*fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   if (NON_EXIST_FH_P (*fh))
     {
@@ -4316,12 +4326,12 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
 
       nod = node_lookup (fh->ino);
       if (!nod)
-	return ESTALE;
+	RETURN_INT (ESTALE);
 
       xstringdup (&res->path, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
 
-      return ZFS_OK;
+      RETURN_INT (ZFS_OK);
     }
 
   /* Lookup FH.  */
@@ -4330,15 +4340,15 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     r = local_readlink (res, dentry, vol);
@@ -4358,7 +4368,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
 
   internal_dentry_unlock (vol, dentry);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create local symlink NAME in directory DIR on volume VOL pointing to TO,
@@ -4389,14 +4399,14 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   if (r != ZFS_OK)
     {
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   r = symlink (to->str, path.str);
   if (r != 0)
     {
       free (path.str);
-      return errno;
+      RETURN_INT (errno);
     }
 
   r = local_setattr_path (&res->attr, &path, attr);
@@ -4404,7 +4414,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
     {
       unlink (path.str);
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   free (path.str);
@@ -4428,7 +4438,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
     MARK_VOLUME_DELETE (vol);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Create remote symlink NAME in directory DIR on volume VOL pointing to TO,
@@ -4480,7 +4490,7 @@ remote_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create symlink NAME in directory DIR pointing to TO,
@@ -4502,7 +4512,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup DIR.  */
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
@@ -4514,17 +4524,17 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -4533,7 +4543,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -4541,14 +4551,14 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   attr->mode = (uint32_t) -1;
@@ -4558,13 +4568,13 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_symlink (res, idir, name, to, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -4611,7 +4621,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 
   internal_dentry_unlock (vol, idir);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create local special file NAME of type TYPE in directory DIR,
@@ -4644,8 +4654,8 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     {
       free (path.str);
       if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
+	RETURN_INT (ESTALE);
+      RETURN_INT (errno);
     }
 
   r = local_setattr_path (&res->attr, &path, attr);
@@ -4653,7 +4663,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     {
       unlink (path.str);
       free (path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   free (path.str);
@@ -4677,7 +4687,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     MARK_VOLUME_DELETE (vol);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Create remote special file NAME of type TYPE in directory DIR,
@@ -4731,7 +4741,7 @@ remote_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Create special file NAME of type TYPE in directory DIR,
@@ -4754,7 +4764,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Lookup DIR.  */
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
@@ -4766,17 +4776,17 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 #endif
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
     }
   else
     zfsd_mutex_unlock (&fh_mutex);
@@ -4785,7 +4795,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      RETURN_INT (ENOTDIR);
     }
 
   /* Hide special dirs in the root of the volume.  */
@@ -4793,14 +4803,14 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EACCES;
+      RETURN_INT (EACCES);
     }
 
   if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EPERM;
+      RETURN_INT (EPERM);
     }
 
   attr->mode = GET_MODE (attr->mode);
@@ -4810,13 +4820,13 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = local_mknod (res, idir, name, attr, type, rdev, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -4863,7 +4873,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 
   internal_dentry_unlock (vol, idir);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Check whether local file FH on volume VOL exists.  */
@@ -4882,12 +4892,12 @@ local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 
   get_local_path_from_metadata (&path, vol, fh);
   if (!path.str)
-    return ESTALE;
+    RETURN_INT (ESTALE);
 
   local_path_to_relative_path (&res->path, vol, &path);
   free (path.str);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Check whether remote file for FH on volume VOL exists.  */
@@ -4931,7 +4941,7 @@ remote_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Check whether local file FH exists.  */
@@ -4947,11 +4957,11 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   vol = volume_lookup (fh->vid);
   if (!vol)
-    return ESTALE;
+    RETURN_INT (ESTALE);
 
   if (fh->sid == this_node->id)
     {
@@ -4964,7 +4974,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
 
       r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
 
       tmp_fh = dentry->fh->meta.master_fh;
       release_dentry (dentry);
@@ -4973,7 +4983,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   else
     abort ();
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
@@ -5008,7 +5018,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   if (shadow_path.str == NULL)
     {
       free (path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   r = recursive_unlink (&path, vid, true, journal, true);
@@ -5016,7 +5026,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     {
       free (path.str);
       free (shadow_path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   vol = volume_lookup (vid);
@@ -5024,7 +5034,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     {
       free (path.str);
       free (shadow_path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   r = local_rename_base (&meta_old, &meta_new, &shadow_path, &path,
@@ -5033,7 +5043,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     {
       free (shadow_path.str);
       free (path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
@@ -5079,7 +5089,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 
   free (shadow_path.str);
   free (path.str);
-  return true;
+  RETURN_BOOL (true);
 }
 
 /* Move file NAME with file handle FH and path PATH from directory DIR_FH
@@ -5095,12 +5105,13 @@ move_to_shadow_base (volume vol, zfs_fh *fh, string *path, string *name,
   uint32_t vid;
   int32_t r, r2;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!create_shadow_path (&shadow_path, vol, fh, name))
     {
       zfsd_mutex_unlock (&vol->mutex);
-      return false;
+      RETURN_BOOL (false);
     }
   vid = vol->id;
   zfsd_mutex_unlock (&vol->mutex);
@@ -5109,21 +5120,21 @@ move_to_shadow_base (volume vol, zfs_fh *fh, string *path, string *name,
   if (r != ZFS_OK)
     {
       free (shadow_path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   vol = volume_lookup (vid);
   if (!vol)
     {
       free (shadow_path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   r = local_rename_base (&meta_old, &meta_new, path, &shadow_path, vol, true);
   if (r != ZFS_OK)
     {
       free (shadow_path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
@@ -5151,7 +5162,7 @@ move_to_shadow_base (volume vol, zfs_fh *fh, string *path, string *name,
     }
 
   free (shadow_path.str);
-  return true;
+  RETURN_BOOL (true);
 }
 
 /* Move file NAME with file handle FH in directory DIR
@@ -5179,11 +5190,11 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   if (!move_to_shadow_base (vol, fh, &path, name, dir_fh, journal))
     {
       free (path.str);
-      return false;
+      RETURN_BOOL (false);
     }
 
   free (path.str);
-  return true;
+  RETURN_BOOL (true);
 }
 
 /* Name the local file handle FH as NAME in directory DIR with file handle
@@ -5214,13 +5225,13 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
-      return ENOENT;
+      RETURN_INT (ENOENT);
     }
 
   if (meta.flags & METADATA_SHADOW)
     {
       if (!move_from_shadow (vol, fh, dir, name, dir_fh, journal))
-	return ZFS_UPDATE_FAILED;
+	RETURN_INT (ZFS_UPDATE_FAILED);
     }
   else
     {
@@ -5241,7 +5252,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
       if (!old_path.str)
 	{
 	  free (new_path.str);
-	  return ENOENT;
+	  RETURN_INT (ENOENT);
 	}
 
       r = recursive_unlink (&new_path, vid, true, journal, true);
@@ -5249,7 +5260,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	{
 	  free (old_path.str);
 	  free (new_path.str);
-	  return ZFS_UPDATE_FAILED;
+	  RETURN_INT (ZFS_UPDATE_FAILED);
 	}
 
       r = local_getattr_path (&attr, &old_path);
@@ -5257,7 +5268,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	{
 	  free (old_path.str);
 	  free (new_path.str);
-	  return r;
+	  RETURN_INT (r);
 	}
 
       if (attr.type == FT_DIR)
@@ -5267,7 +5278,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	    {
 	      free (old_path.str);
 	      free (new_path.str);
-	      return ESTALE;
+	      RETURN_INT (ESTALE);
 	    }
 
 	  r = local_rename_base (&meta_old, &meta_new, &old_path, &new_path,
@@ -5276,7 +5287,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	    {
 	      free (old_path.str);
 	      free (new_path.str);
-	      return r;
+	      RETURN_INT (r);
 	    }
 
 	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
@@ -5318,7 +5329,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	    {
 	      free (old_path.str);
 	      free (new_path.str);
-	      return r;
+	      RETURN_INT (r);
 	    }
 
 	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
@@ -5348,7 +5359,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	}
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Name the remote file handle FH as NAME in directory DIR on volume VOL
@@ -5406,7 +5417,7 @@ remote_reintegrate_add (volume vol, internal_dentry dir, string *name,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Name the file handle FH as NAME in directory DIR
@@ -5423,40 +5434,40 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   if (!REGULAR_FH_P (*dir))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
   if (r == ZFS_STALE)
     {
       r = refresh_fh (dir);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EINVAL;
+      RETURN_INT (EINVAL);
     }
 
   if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EINVAL;
+      RETURN_INT (EINVAL);
     }
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     r = local_reintegrate_add (vol, idir, name, fh, &tmp_fh, true);
@@ -5476,7 +5487,7 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
 
   internal_dentry_unlock (vol, idir);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Delete local file FH from shadow.  */
@@ -5490,28 +5501,30 @@ local_reintegrate_del_fh (zfs_fh *fh)
   uint32_t vid;
   int32_t r;
 
+  TRACE ("");
+
   vol = volume_lookup (fh->vid);
   if (!vol)
-    return ESTALE;
+    RETURN_INT (ESTALE);
 
   meta.modetype = GET_MODETYPE (0, FT_BAD);
   if (!lookup_metadata (vol, fh, &meta, false))
     {
       MARK_VOLUME_DELETE (vol);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_METADATA_ERROR;
+      RETURN_INT (ZFS_METADATA_ERROR);
     }
 
   if (meta.slot_status != VALID_SLOT)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_OK;
+      RETURN_INT (ZFS_OK);
     }
 
   if (!(meta.flags & METADATA_SHADOW))
     {
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_OK;
+      RETURN_INT (ZFS_OK);
     }
 
   vid = vol->id;
@@ -5519,12 +5532,12 @@ local_reintegrate_del_fh (zfs_fh *fh)
   zfsd_mutex_unlock (&vol->mutex);
 
   if (shadow_path.str == NULL)
-    return ZFS_METADATA_ERROR;
+    RETURN_INT (ZFS_METADATA_ERROR);
 
   r = recursive_unlink (&shadow_path, vid, true, true, false);
   free (shadow_path.str);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* If DESTROY_P delete local file NAME with file handle FH and its subtree
@@ -5540,6 +5553,8 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
   metadata meta;
   int32_t r, r2;
 
+  TRACE ("");
+
   r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
@@ -5551,7 +5566,7 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
       || metadata_n_hardlinks (vol, fh, &meta) > 1)
     {
       if (delete_tree_name (dir, name, vol, true, journal, true) != ZFS_OK)
-	return ZFS_UPDATE_FAILED;
+	RETURN_INT (ZFS_UPDATE_FAILED);
     }
   else
     {
@@ -5587,14 +5602,14 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
 	      release_dentry (dir);
 	      zfsd_mutex_unlock (&vol->mutex);
 
-	      return ZFS_OK;
+	      RETURN_INT (ZFS_OK);
 	    }
 	}
       if (!move_to_shadow (vol, fh, dir, name, dir_fh, journal))
-	return ZFS_UPDATE_FAILED;
+	RETURN_INT (ZFS_UPDATE_FAILED);
     }
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* If DESTROY_P delete local file NAME and its subtree from directory DIR
@@ -5624,16 +5639,16 @@ local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   /* The file has different file handle so the original NAME with FH
      must have been deleted or moved to shadow.  */
   if (r == ZFS_OK && !ZFS_FH_EQ (res.file, *fh))
-    return destroy_p ? local_reintegrate_del_fh (fh) : ZFS_OK;
+    RETURN_INT (destroy_p ? local_reintegrate_del_fh (fh) : ZFS_OK);
   /* Similarly if it does not exist.  */
   if (r == ENOENT || r == ESTALE)
-    return destroy_p ? local_reintegrate_del_fh (fh) : ZFS_OK;
+    RETURN_INT (destroy_p ? local_reintegrate_del_fh (fh) : ZFS_OK);
 
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
-  return local_reintegrate_del_base (&res.file, name, destroy_p, dir_fh,
-				     journal);
+  RETURN_INT (local_reintegrate_del_base (&res.file, name, destroy_p, dir_fh,
+					  journal));
 }
 
 /* Delete remote file FH from shadow.  */
@@ -5653,7 +5668,7 @@ remote_reintegrate_del_fh (zfs_fh *fh)
 
   vol = volume_lookup (fh->vid);
   if (!vol)
-    return ENOENT;
+    RETURN_INT (ENOENT);
 
   args.fh = *fh;
   args.dir = undefined_fh;
@@ -5686,7 +5701,7 @@ remote_reintegrate_del_fh (zfs_fh *fh)
     internal_dentry_destroy (dentry, true, true);
   zfsd_mutex_unlock (&fh_mutex);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* If DESTROY_P delete remote file NAME and its subtree from directory DIR
@@ -5745,7 +5760,7 @@ remote_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* If DESTROY_P delete remote file NAME and its subtree from directory DIR,
@@ -5789,7 +5804,7 @@ remote_reintegrate_del_zfs_fh (volume vol, zfs_fh *fh, zfs_fh *dir,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* If DESTROY_P delete file NAME and its subtree from directory DIR,
@@ -5806,10 +5821,10 @@ zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
   TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   if (!REGULAR_FH_P (*dir))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
   if (r == ZFS_STALE)
@@ -5819,35 +5834,35 @@ zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
 	{
 	  /* The directory DIR does not exist but the FH may be in shadow.  */
 	  if (fh->sid == this_node->id)
-	    return local_reintegrate_del_fh (fh);
+	    RETURN_INT (local_reintegrate_del_fh (fh));
 	  else
-	    return remote_reintegrate_del_fh (fh);
+	    RETURN_INT (remote_reintegrate_del_fh (fh));
 	}
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (dir, &vol, &idir, NULL, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EINVAL;
+      RETURN_INT (EINVAL);
     }
 
   if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
-      return EINVAL;
+      RETURN_INT (EINVAL);
     }
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
@@ -5875,7 +5890,7 @@ zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
 
   internal_dentry_unlock (vol, idir);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Set version of local file DENTRY on volume VOL to VERSION.  */
@@ -5898,12 +5913,12 @@ local_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
       MARK_VOLUME_DELETE (vol);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_METADATA_ERROR;
+      RETURN_INT (ZFS_METADATA_ERROR);
     }
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  return ZFS_OK;
+  RETURN_INT (ZFS_OK);
 }
 
 /* Set version of remote file handle FH with dentry DENTRY on volume VOL
@@ -5956,7 +5971,7 @@ remote_reintegrate_set (internal_dentry dentry, uint64_t version, zfs_fh *fh,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-  return r;
+  RETURN_INT (r);
 }
 
 /* Set version of file handle FH to VERSION.  */
@@ -5971,18 +5986,18 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
   TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r == ZFS_STALE)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
-	return r;
+	RETURN_INT (r);
       r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
     }
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     r = local_reintegrate_set (dentry, version, vol);
@@ -5991,7 +6006,7 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
   else
     abort ();
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Invalidate file handle DENTRY in kernel dentry cache.  */
@@ -6003,18 +6018,20 @@ local_invalidate_fh (zfs_fh *fh)
   thread *t;
   int32_t r;
 
+  TRACE ("");
+
   if (!mounted)
-    return ZFS_COULD_NOT_CONNECT;
+    RETURN_INT (ZFS_COULD_NOT_CONNECT);
 
   args.fh = *fh;
 
   t = (thread *) pthread_getspecific (thread_data_key);
   if (t == NULL)
-    return ESRCH;
+    RETURN_INT (ESRCH);
 
   r = zfs_proc_invalidate_kernel (t, &args);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Invalidate dentry DENTRY in kernel dentry cache.  */
@@ -6026,12 +6043,13 @@ local_invalidate (internal_dentry dentry, bool volume_root_p)
   thread *t;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   if (!mounted)
     {
       release_dentry (dentry);
-      return ZFS_COULD_NOT_CONNECT;
+      RETURN_INT (ZFS_COULD_NOT_CONNECT);
     }
 
   args.fh = dentry->fh->local_fh;
@@ -6055,11 +6073,11 @@ local_invalidate (internal_dentry dentry, bool volume_root_p)
 
   t = (thread *) pthread_getspecific (thread_data_key);
   if (t == NULL)
-    return ESRCH;
+    RETURN_INT (ESRCH);
 
   r = zfs_proc_invalidate_kernel (t, &args);
 
-  return r;
+  RETURN_INT (r);
 }
 
 /* Refresh file handle FH.  */
@@ -6077,24 +6095,24 @@ refresh_fh (zfs_fh *fh)
   TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
-    return EINVAL;
+    RETURN_INT (EINVAL);
 
   r = zfs_file_info (&info, fh);
   if (r != ZFS_OK)
-    return r;
+    RETURN_INT (r);
 
   vol = volume_lookup (fh->vid);
   if (!vol)
     {
       free (info.path.str);
-      return ESTALE;
+      RETURN_INT (ESTALE);
     }
 
   r = get_volume_root_dentry (vol, &dentry, true);
   if (r != ZFS_OK)
     {
       free (info.path.str);
-      return r;
+      RETURN_INT (r);
     }
 
   volume_root_fh = dentry->fh->local_fh;
@@ -6104,5 +6122,5 @@ refresh_fh (zfs_fh *fh)
   r = zfs_extended_lookup (&res, &volume_root_fh, info.path.str);
   free (info.path.str);
 
-  return r;
+  RETURN_INT (r);
 }
