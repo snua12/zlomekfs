@@ -2491,6 +2491,16 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	abort ();
 #endif
 
+      if (journal_member (dir->fh->journal, JOURNAL_OPERATION_DEL,
+			  &entry->name))
+	{
+	  /* Ignore the dentry in delete-modify conflict.  */
+	  release_dentry (dir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  htab_clear_slot (remote_entries.htab, slot);
+	  continue;
+	}
+
       r = remote_lookup (&remote_res, dir, &entry->name, vol);
       if (r == ENOENT || r == ESTALE)
 	{
