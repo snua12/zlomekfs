@@ -334,6 +334,8 @@ extern bool decode_md5sum_res (DC *dc, md5sum_res *res);
 extern bool encode_md5sum_res (DC *dc, md5sum_res *res);
 extern bool decode_file_info_res (DC *dc, file_info_res *res);
 extern bool encode_file_info_res (DC *dc, file_info_res *res);
+extern bool decode_reintegrate_args (DC *dc, reintegrate_args *args);
+extern bool encode_reintegrate_args (DC *dc, reintegrate_args *args);
 extern bool decode_reintegrate_add_args (DC *dc, reintegrate_add_args *args);
 extern bool encode_reintegrate_add_args (DC *dc, reintegrate_add_args *args);
 extern bool decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args);

@@ -601,6 +601,19 @@ zfs_proc_file_info_server (zfs_fh *args, DC *dc,
     }
 }
 
+/* void reintegrate (reintegrate_args); */
+
+void
+zfs_proc_reintegrate_server (reintegrate_args *args, DC *dc,
+			     ATTRIBUTE_UNUSED void *data,
+			     ATTRIBUTE_UNUSED bool map_id)
+{
+  int32_t r;
+
+  r = zfs_reintegrate (&args->fh, args->status);
+  encode_status (dc, r);
+}
+
 /* void reintegrate_add (reintegrate_add_args);  */
 
 void

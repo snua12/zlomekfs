@@ -1225,6 +1225,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->fd = -1;
   fh->generation = 0;
   fh->flags = 0;
+  fh->reintegrating_sid = 0;
+  fh->reintegrating_generation = 0;
 
   message (4, stderr, "FH %p CREATED, by %lu\n", (void *) fh,
 	   (unsigned long) pthread_self ());

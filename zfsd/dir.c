@@ -5186,6 +5186,139 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   RETURN_BOOL (true);
 }
 
+/* Acquire (STATUS != 0) or release (STATUS == 0) the privilege to reintegrate
+   local file DENTRY.  */
+
+static int32_t
+local_reintegrate (internal_dentry dentry, char status)
+{
+  thread *t;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  if (status)
+    {
+      if (dentry->fh->reintegrating_sid)
+	{
+	  unsigned int generation;
+
+	  if (node_connected (dentry->fh->reintegrating_sid, &generation)
+	      && generation == dentry->fh->reintegrating_generation)
+	    {
+	      release_dentry (dentry);
+	      RETURN_INT (ZFS_BUSY);
+	    }
+	}
+
+      t = (thread *) pthread_getspecific (thread_data_key);
+#ifdef ENABLE_CHECKING
+      if (t == NULL)
+	abort ();
+#endif
+
+      dentry->fh->reintegrating_sid = t->from_sid;
+      dentry->fh->reintegrating_generation = t->u.network.generation;
+    }
+  else
+    {
+      t = (thread *) pthread_getspecific (thread_data_key);
+#ifdef ENABLE_CHECKING
+      if (t == NULL)
+	abort ();
+#endif
+
+      if (dentry->fh->reintegrating_sid != t->from_sid)
+	{
+	  release_dentry (dentry);
+	  RETURN_INT (EINVAL);
+	}
+
+      dentry->fh->reintegrating_sid = 0;
+    }
+
+  release_dentry (dentry);
+  RETURN_INT (ZFS_OK);
+}
+
+/* Acquire (STATUS != 0) or release (STATUS == 0) the privilege to reintegrate
+   remote file DENTRY on volume VOL.  */
+
+static int32_t
+remote_reintegrate (internal_dentry dentry, char status, volume vol)
+{
+  reintegrate_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  args.fh = dentry->fh->meta.master_fh;
+  args.status = status;
+
+  release_dentry (dentry);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reintegrate_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  RETURN_INT (r);
+}
+
+/* Acquire (STATUS != 0) or release (STATUS == 0) the privilege to reintegrate
+   file FH.  */
+
+int32_t
+zfs_reintegrate (zfs_fh *fh, char status)
+{
+  volume vol;
+  internal_dentry dentry;
+  int32_t r;
+
+  TRACE ("");
+
+  if (!REGULAR_FH_P (*fh))
+    RETURN_INT (EINVAL);
+
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (fh);
+      if (r != ZFS_OK)
+	RETURN_INT (r);
+      r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+    }
+  if (r != ZFS_OK)
+    RETURN_INT (r);
+
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      r = local_reintegrate (dentry, status);
+    }
+  else if (vol->master != this_node)
+    r = remote_reintegrate (dentry, status, vol);
+  else
+    abort ();
+
+  RETURN_INT (r);
+}
+
 /* Name the local file handle FH as NAME in directory DIR with file handle
    DIR_FH on volume VOL by moving the file or linking it.  */
 

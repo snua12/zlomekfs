@@ -1140,6 +1140,20 @@ encode_file_info_res (DC *dc, file_info_res *res)
 }
 
 bool
+decode_reintegrate_args (DC *dc, reintegrate_args *args)
+{
+  return (decode_zfs_fh (dc, &args->fh)
+	  && decode_char (dc, &args->status));
+}
+
+bool
+encode_reintegrate_args (DC *dc, reintegrate_args *args)
+{
+  return (encode_zfs_fh (dc, &args->fh)
+	  && encode_char (dc, args->status));
+}
+
+bool
 decode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
 {
   return (decode_zfs_fh (dc, &args->fh)

@@ -190,6 +190,12 @@ struct internal_fh_def
 
   /* Flags, see IFH_* below.  */
   unsigned int flags;
+
+  /* Node which is reintegrating this file.  */
+  uint32_t reintegrating_sid;
+
+  /* Generation of socket to node which is reintegrating this file.  */
+  unsigned int reintegrating_generation;
 };
 
 /* Internal file handle flags.  */

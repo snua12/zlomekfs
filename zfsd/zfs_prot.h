@@ -53,6 +53,7 @@
 #define ZFS_INVALID_DIRECTION	-5	/* Different direction to direction
 					   expected by function.  */
 #define ZFS_STALE		-20	/* zfs_fh could not be found.  */
+#define ZFS_BUSY		-21	/* file handle is being reintegrated */
 #define ZFS_METADATA_ERROR	-50	/* Error when accessing file containing
 					   metadata.  */
 #define ZFS_UPDATE_FAILED	-51	/* Error while updating a file.  */
@@ -334,6 +335,12 @@ typedef struct file_info_res_def
   zfs_path path;
 } file_info_res;
 
+typedef struct reintegrate_args_def
+{
+  zfs_fh fh;
+  char status;
+} reintegrate_args;
+
 typedef struct reintegrate_add_args_def
 {
   zfs_fh fh;
@@ -397,6 +404,7 @@ typedef union call_args_def
   reintegrate_set_args reintegrate_set;
   invalidate_args invalidate;
   reread_config_args reread_config;
+  reintegrate_args reintegrate;
 } call_args;
 
 /* Mapping file type -> file mode.  */
