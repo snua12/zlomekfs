@@ -44,6 +44,9 @@
 #include "user-group.h"
 #include "update.h"
 
+static bool move_to_shadow_base (volume vol, zfs_fh *fh, string *path,
+				 string *name, zfs_fh *dir_fh, bool journal);
+
 /* Return the local path of file for dentry DENTRY on volume VOL.  */
 
 void
@@ -5032,19 +5035,86 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   return true;
 }
 
+/* Move file NAME with file handle FH and path PATH from directory DIR_FH
+   on volume VOL to shadow.  Add journal entries if JOURNAL.  */
+
+static bool
+move_to_shadow_base (volume vol, zfs_fh *fh, string *path, string *name,
+		     zfs_fh *dir_fh, bool journal)
+{
+  string shadow_path, shadow_name;
+  metadata meta_old, meta_new;
+  internal_dentry dir, shadow_dir;
+  uint32_t vid;
+  int32_t r, r2;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!create_shadow_path (&shadow_path, vol, fh, name))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      return false;
+    }
+  vid = vol->id;
+  zfsd_mutex_unlock (&vol->mutex);
+
+  r = recursive_unlink (&shadow_path, vid, true, journal, false);
+  if (r != ZFS_OK)
+    {
+      free (shadow_path.str);
+      return false;
+    }
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    {
+      free (shadow_path.str);
+      return false;
+    }
+
+  r = local_rename_base (&meta_old, &meta_new, path, &shadow_path, vol, true);
+  if (r != ZFS_OK)
+    {
+      free (shadow_path.str);
+      return false;
+    }
+
+  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+  if (r2 == ZFS_OK)
+    {
+      file_name_from_path (&shadow_name, &shadow_path);
+      shadow_name.str[-1] = 0;
+      shadow_dir = dentry_lookup_local_path (vol, &shadow_path);
+      if (shadow_dir)
+	{
+	  internal_dentry_move (&dir, name, &shadow_dir, &shadow_name, &vol,
+				dir_fh, NULL);
+	}
+      if (journal)
+	{
+	  zfs_rename_journal (dir, name, shadow_dir, &shadow_name, vol,
+			      &meta_old, &meta_new);
+	}
+
+      if (shadow_dir)
+	release_dentry (shadow_dir);
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+
+  free (shadow_path.str);
+  return true;
+}
+
 /* Move file NAME with file handle FH in directory DIR
-   on volume VOL to shadow.  */
+   on volume VOL to shadow.  Add journal entries if JOURNAL.  */
 
 static bool
 move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 		zfs_fh *dir_fh, bool journal)
 {
   string path;
-  string shadow_path, shadow_name;
-  metadata meta_old, meta_new;
-  internal_dentry shadow_dir;
-  uint32_t vid;
-  int32_t r, r2;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -5056,69 +5126,16 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 #endif
 
   build_local_path_name (&path, vol, dir, name);
-  vid = vol->id;
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
-  if (!create_shadow_path (&shadow_path, vol, fh, name))
+
+  if (!move_to_shadow_base (vol, fh, &path, name, dir_fh, journal))
     {
-      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return false;
     }
-  zfsd_mutex_unlock (&vol->mutex);
-
-  r = recursive_unlink (&shadow_path, vid, true, journal, false);
-  if (r != ZFS_OK)
-    {
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-
-  vol = volume_lookup (vid);
-  if (!vol)
-    {
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-
-  r = local_rename_base (&meta_old, &meta_new, &path, &shadow_path, vol, true);
-  if (r != ZFS_OK)
-    {
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-
-  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  file_name_from_path (&shadow_name, &shadow_path);
-  shadow_name.str[-1] = 0;
-  shadow_dir = dentry_lookup_local_path (vol, &shadow_path);
-  if (shadow_dir)
-    {
-      internal_dentry_move (&dir, name, &shadow_dir, &shadow_name, &vol,
-			    dir_fh, NULL);
-    }
-  if (journal)
-    {
-      zfs_rename_journal (dir, name, shadow_dir, &shadow_name, vol,
-			  &meta_old, &meta_new);
-    }
-
-  if (shadow_dir)
-    release_dentry (shadow_dir);
-  release_dentry (dir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   free (path.str);
-  free (shadow_path.str);
   return true;
 }
 
