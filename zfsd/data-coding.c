@@ -202,6 +202,37 @@ encode_data_buffer (DC *dc, data_buffer *data)
 }
 
 bool
+decode_fixed_buffer (DC *dc, void *buf, int len)
+{
+  dc->cur_length += len;
+  if (dc->cur_length > dc->max_length)
+    return false;
+
+  memcpy (buf, dc->current, len);
+  dc->current += len;
+
+  return true;
+}
+
+bool
+encode_fixed_buffer (DC *dc, void *buf, int len)
+{
+  int prev = dc->cur_length;
+
+  dc->cur_length += len;
+  if (dc->cur_length > dc->max_length)
+    {
+      dc->cur_length = prev;
+      return false;
+    }
+
+  memcpy (dc->current, buf, len);
+  dc->current += len;
+
+  return true;
+}
+
+bool
 decode_string (DC *dc, string *str, uint32_t max_len)
 {
   if (!decode_uint32_t (dc, &str->len))
@@ -425,6 +456,18 @@ decode_zfs_path (DC *dc, string *str)
 
 bool
 encode_zfs_path (DC *dc, string *str)
+{
+  return encode_string (dc, str);
+}
+
+bool
+decode_nodename (DC *dc, string *str)
+{
+  return decode_string (dc, str, ZFS_MAXNODELEN);
+}
+
+bool
+encode_nodename (DC *dc, string *str)
 {
   return encode_string (dc, str);
 }
@@ -683,4 +726,30 @@ encode_mknod_args (DC *dc, mknod_args *args)
   return (encode_dir_op_args (dc, &args->where)
 	  && encode_sattr (dc, &args->attributes)
 	  && encode_uint32_t (dc, args->rdev));
+}
+
+bool
+decode_auth_stage1_args (DC *dc, auth_stage1_args *args)
+{
+  return (decode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN)
+	  && decode_nodename (dc, &args->node));
+}
+
+bool
+encode_auth_stage1_args (DC *dc, auth_stage1_args *args)
+{
+  return (encode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN)
+	  && encode_nodename (dc, &args->node));
+}
+
+bool
+decode_auth_stage2_args (DC *dc, auth_stage2_args *args)
+{
+  return decode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN);
+}
+
+bool
+encode_auth_stage2_args (DC *dc, auth_stage2_args *args)
+{
+  return encode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN);
 }

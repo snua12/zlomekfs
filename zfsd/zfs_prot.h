@@ -33,6 +33,8 @@ extern "C"
 #define ZFS_MAXDATA 8192
 #define ZFS_MAXPATHLEN 1023
 #define ZFS_MAXNAMELEN 255
+#define ZFS_MAXNODELEN 256
+#define ZFS_AUTH_LEN 16
 
 /* Error codes.  */
 #define ZFS_OK			0
@@ -122,6 +124,8 @@ typedef struct sattr_def
 typedef string filename;
 
 typedef string zfs_path;
+
+typedef string nodename;
 
 typedef struct volume_root_args_def
 {
@@ -239,6 +243,18 @@ typedef struct mknod_args_def
   unsigned int rdev;
 } mknod_args;
 
+typedef struct auth_stage1_args_def
+{
+  char auth[ZFS_AUTH_LEN];
+  nodename node;
+  /* int speed; */
+} auth_stage1_args;
+
+typedef struct auth_stage2_args_def
+{
+  char auth[ZFS_AUTH_LEN];
+} auth_stage2_args;
+
 typedef union call_args_def
 {
   char null;
@@ -261,6 +277,8 @@ typedef union call_args_def
   zfs_fh readlink;
   symlink_args symlink;
   mknod_args mknod;
+  auth_stage1_args auth_stage1;
+  auth_stage2_args auth_stage2;
 } call_args;
 
 #include "data-coding.h"

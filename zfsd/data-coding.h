@@ -175,6 +175,8 @@ extern bool encode_uint64_t (DC *dc, uint64_t val);
 
 extern bool decode_data_buffer (DC *dc, data_buffer *data);
 extern bool encode_data_buffer (DC *dc, data_buffer *data);
+extern bool decode_fixed_buffer (DC *dc, void *buf, int len);
+extern bool encode_fixed_buffer (DC *dc, void *buf, int len);
 extern bool decode_string (DC *dc, string *str, uint32_t max_len);
 extern bool encode_string (DC *dc, string *str);
 extern bool decode_void (DC *dc, void *v);
@@ -195,6 +197,8 @@ extern bool decode_filename (DC *dc, string *str);
 extern bool encode_filename (DC *dc, string *str);
 extern bool decode_zfs_path (DC *dc, string *str);
 extern bool encode_zfs_path (DC *dc, string *str);
+extern bool decode_nodename (DC *dc, string *str);
+extern bool encode_nodename (DC *dc, string *str);
 extern bool decode_volume_root_args (DC *dc, volume_root_args *args);
 extern bool encode_volume_root_args (DC *dc, volume_root_args *args);
 extern bool decode_sattr_args (DC *dc, sattr_args *args);
@@ -231,5 +235,9 @@ extern bool decode_symlink_args (DC *dc, symlink_args *args);
 extern bool encode_symlink_args (DC *dc, symlink_args *args);
 extern bool decode_mknod_args (DC *dc, mknod_args *args);
 extern bool encode_mknod_args (DC *dc, mknod_args *args);
+extern bool decode_auth_stage1_args (DC *dc, auth_stage1_args *args);
+extern bool encode_auth_stage1_args (DC *dc, auth_stage1_args *args);
+extern bool decode_auth_stage2_args (DC *dc, auth_stage2_args *args);
+extern bool encode_auth_stage2_args (DC *dc, auth_stage2_args *args);
 
 #endif
