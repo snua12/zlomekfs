@@ -1451,7 +1451,7 @@ out:
    to attributes ATTR.  */
 
 static int32_t
-reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
+reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 {
   int32_t r, r2;
   bool b;
@@ -1461,8 +1461,6 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
-    abort ();
-  if (attr->type != dentry->fh->attr.type && !dentry->parent)
     abort ();
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
@@ -1795,6 +1793,11 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 
   if (dentry->fh->attr.type != attr->type)
     {
+#ifdef ENABLE_CHECKING
+      if (!dentry->parent)
+	abort ();
+#endif
+
       /* This can't happen.  If it happens something is wierd,
 	 either someone wants to destabilize us
 	 or some metadata was not updated.  */
@@ -1804,7 +1807,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 
   if (how & IFH_REINTEGRATE)
     {
-      r = reintegrate_fh (vol, dentry, fh, attr);
+      r = reintegrate_fh (vol, dentry, fh);
       if (r != ZFS_OK)
 	return r;
 
