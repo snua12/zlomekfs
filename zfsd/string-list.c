@@ -129,8 +129,8 @@ string_list_insert (string_list sl, char *str, bool copy)
     entry->str = xstrdup (str);
   else
     entry->str = str;
-  VARRAY_PUSH (sl->array, entry, string_list_entry);
 
+  VARRAY_PUSH (sl->array, entry, string_list_entry);
   *slot = entry;
 }
 
