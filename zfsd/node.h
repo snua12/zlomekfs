@@ -63,7 +63,6 @@ typedef struct node_def
 /* Node flags.  */
 #define NODE_DELETE		1	/* the node should be deleted from
 					   memory datastructures  */
-#define NODE_LOCAL		2	/* the node is local node */
 
 /* Mutex for table of nodes.  */
 extern pthread_mutex_t node_mutex;

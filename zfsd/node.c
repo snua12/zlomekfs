@@ -134,7 +134,6 @@ node_create (unsigned int id, char *name)
   if (strcmp (name, node_name) == 0)
     {
       this_node = nod;
-      nod->flags |= NODE_LOCAL;
       nod->conn = CONNECTION_FAST;
       nod->auth = AUTHENTICATION_FINISHED;
     }
