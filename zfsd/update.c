@@ -1036,7 +1036,7 @@ int32_t
 update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
-  internal_dentry dentry;
+  internal_dentry dentry, parent;
   filldir_htab_entries local_entries, remote_entries;
   dir_op_res local_res, remote_res;
   dir_entry *entry;
@@ -1052,8 +1052,18 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
+  parent = dir->parent;
+  if (parent)
+    {
+      zfsd_mutex_lock (&dir->parent->fh->mutex);
+      if (GET_CONFLICT (parent->fh->local_fh))
+	parent = parent->parent;
+      zfsd_mutex_unlock (&dir->parent->fh->mutex);
+    }
+
   zfsd_mutex_unlock (&fh_mutex);
-  if (dir->parent)
+
+  if (parent)
     {
       zfs_fh parent_fh;
       string name;
@@ -1070,7 +1080,18 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	abort ();
 #endif
       zfsd_mutex_lock (&dir->parent->fh->mutex);
-      parent_fh = dir->parent->fh->local_fh;
+      if (GET_CONFLICT (dir->parent->fh->local_fh))
+	{
+#ifdef ENABLE_CHECKING
+	  if (!dir->parent->parent)
+	    abort ();
+#endif
+	  zfsd_mutex_lock (&dir->parent->parent->fh->mutex);
+	  parent_fh = dir->parent->parent->fh->local_fh;
+	  zfsd_mutex_unlock (&dir->parent->parent->fh->mutex);
+	}
+      else
+	parent_fh = dir->parent->fh->local_fh;
       zfsd_mutex_unlock (&dir->parent->fh->mutex);
 
       xmkstring (&name, dir->name);
