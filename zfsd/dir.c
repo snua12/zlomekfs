@@ -635,9 +635,7 @@ local_setattr_path (fattr *fa, char *path, sattr *sa)
 	return errno;
     }
 
-  if (fa)
-    return local_getattr_path (fa, path);
-  return ZFS_OK;
+  return local_getattr_path (fa, path);
 }
 
 /* Set attributes of local file DENTRY on volume VOL according to SA,
