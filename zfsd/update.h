@@ -225,6 +225,7 @@ extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks);
 extern int update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 		     fattr *attr);
 extern bool delete_tree (internal_dentry dentry, volume vol);
+extern bool delete_tree_name (internal_dentry dir, char *name, volume vol);
 extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
 		       fattr *attr, int how);
 

@@ -628,7 +628,7 @@ delete_tree (internal_dentry dentry, volume vol)
 
 /* Delete file NAME in directory DIR on volume VOL.  */
 
-static bool
+bool
 delete_tree_name (internal_dentry dir, char *name, volume vol)
 {
   char *path, *slash;
