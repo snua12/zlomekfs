@@ -310,7 +310,7 @@ append_string (string *dst, string *src, const char *str, unsigned int len)
   memcpy (dst->str + src->len, str, len + 1);
 }
 
-/* Append "/" and NAME of length LEN to PATH and store it to DST.  */ 
+/* Append "/" and NAME of length LEN to PATH and store it to DST.  */
 
 void
 append_file_name (string *dst, string *path, const char *name, unsigned int len)

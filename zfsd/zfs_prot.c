@@ -860,7 +860,7 @@ static int zfs_error(int error)
 		case ZFS_REPLY_TOO_LONG:
 		case ZFS_INVALID_REPLY:
 			return -EPROTO;
-		case ZFS_UNKNOWN_FUNCTION:			
+		case ZFS_UNKNOWN_FUNCTION:
 			return -EOPNOTSUPP;
 		case ZFS_COULD_NOT_CONNECT:
 		case ZFS_COULD_NOT_AUTH:
