@@ -30,12 +30,15 @@ semaphore_init (semaphore *sem, unsigned int n)
   int r;
 
   r = pthread_mutex_init (&sem->mutex, NULL);
-  if (!r)
+  if (r != 0)
     return r;
 
   r = pthread_cond_init (&sem->cond, NULL);
-  if (!r)
-    return r;
+  if (r != 0)
+    {
+      pthread_mutex_destroy (&sem->mutex);
+      return r;
+    }
 
   sem->value = n;
   return 0;
@@ -49,7 +52,7 @@ semaphore_destroy (semaphore *sem)
   int r;
 
   r = pthread_cond_destroy (&sem->cond);
-  if (!r)
+  if (r != 0)
     return r;
 
   r = pthread_mutex_destroy (&sem->mutex);
