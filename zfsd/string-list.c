@@ -119,7 +119,15 @@ string_list_insert (string_list sl, char *str, bool copy)
   slot = htab_find_slot_with_hash (sl->htab, str, STRING_LIST_HASH (str),
 				   INSERT);
   if (*slot)
-    return false;
+    {
+      if (!copy)
+	{
+	  /* If we shall not copy string the string is dynamically allocated
+	     and caller does not free it so we have to free it now.  */
+	  free (str);
+	}
+      return false;
+    }
 
   zfsd_mutex_lock (&string_list_mutex);
   entry = (string_list_entry) pool_alloc (string_list_pool);
