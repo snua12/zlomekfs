@@ -25,7 +25,6 @@
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
-#include <linux/pagemap.h>
 #include <linux/errno.h>
 #include <asm/semaphore.h>
 
@@ -113,10 +112,10 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 		return -EIO;
 	}
 
-	sb->s_blocksize = PAGE_CACHE_SIZE;
-	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
-	sb->s_magic = ZFS_MAGIC;
+	sb->s_blocksize = 8192;
+	sb->s_blocksize_bits = 13;
 	sb->s_op = &zfs_super_operations;
+	sb->s_magic = ZFS_MAGIC;
 
 	error = zfsd_root(&root_fh);
 	if (error)
@@ -146,7 +145,7 @@ static struct file_system_type zfs_type = {
 	.owner		= THIS_MODULE,
 	.name		= "zfs",
 	.get_sb		= zfs_get_sb,
-	.kill_sb	= kill_litter_super,
+	.kill_sb	= kill_anon_super,
 	.fs_flags	= 0,
 };
 
