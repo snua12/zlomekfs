@@ -2552,7 +2552,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	{
 	  metadata meta;
 
-	  if (!metadata_hardlink_insert (vol, &meta, &from_dentry->fh->local_fh,
+	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh, &meta,
 					 dir_dentry->fh->local_fh.dev,
 					 dir_dentry->fh->local_fh.ino, name))
 	    vol->delete_p = true;
