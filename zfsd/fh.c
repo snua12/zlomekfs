@@ -2070,7 +2070,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 #endif
       if (GET_SID (dentry->fh->local_fh) == GET_SID (*fh))
 	{
-	  if (!ZFS_FH_EQ (dentry->fh->local_fh, *fh))
+	  if (!exists || !ZFS_FH_EQ (dentry->fh->local_fh, *fh))
 	    {
 	      tmp_fh = conflict->fh->local_fh;
 	      release_dentry (conflict);
