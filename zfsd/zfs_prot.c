@@ -308,8 +308,11 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
 
   if (!nod)
     {
+      pthread_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
-      close_server_fd (fd_data->fd);
+      pthread_mutex_lock (&fd_data->mutex);
+      if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
+	close_server_fd (fd_data->fd);
     }
   pthread_mutex_unlock (&fd_data->mutex);
 
@@ -351,7 +354,8 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
       pthread_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
       pthread_mutex_lock (&fd_data->mutex);
-      close_server_fd (fd_data->fd);
+      if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
+	close_server_fd (fd_data->fd);
     }
   pthread_mutex_unlock (&fd_data->mutex);
 }
