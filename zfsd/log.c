@@ -81,13 +81,9 @@ internal_error (char *format, ...)
     }
 #endif
 
-  if (pthread_self () == main_thread)
-    exit (EXIT_FAILURE);
-  else
-    {
-      pthread_kill (main_thread, SIGTERM);
-      pthread_exit (NULL);
-    }
+  /* Exit because in case of failure the state of data structures may be
+     inconsistent.  */
+  exit (EXIT_FAILURE);
 }
 
 /* Report an "Aborted" internal error.  */
