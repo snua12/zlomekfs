@@ -77,6 +77,8 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   interval_tree_complement (fh->updated, start, end, &tmp);
   interval_tree_complement_varray (fh->modified, &tmp, blocks);
   varray_destroy (&tmp);
+
+  RETURN_VOID;
 }
 
 /** \fn int32_t update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)

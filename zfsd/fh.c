@@ -721,6 +721,8 @@ acquire_dentry (internal_dentry dentry)
     abort ();
 #endif
   dentry_update_cleanup_node (dentry);
+
+  RETURN_VOID;
 }
 
 /* Update time of last use of DENTRY and unlock it.  */
@@ -733,6 +735,8 @@ release_dentry (internal_dentry dentry)
 
   dentry_update_cleanup_node (dentry);
   zfsd_mutex_unlock (&dentry->fh->mutex);
+
+  RETURN_VOID;
 }
 
 /* Return virtual directory for file handle FH.  */
