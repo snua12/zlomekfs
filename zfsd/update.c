@@ -1072,7 +1072,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       zfsd_mutex_unlock (&dentry->parent->fh->mutex);
 
       xmkstring (&name, dentry->name);
-      remote_fh = dentry->fh->master_fh;
+      remote_fh = dentry->fh->meta.master_fh;
 
       r = update_local_fh (dir, &name, vol, &parent_fh,
 			   fh, &remote_fh, attr);

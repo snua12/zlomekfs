@@ -647,11 +647,11 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->master_fh))
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
 #endif
 
-  args = dentry->fh->master_fh;
+  args = dentry->fh->meta.master_fh;
 
   release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
@@ -837,11 +837,11 @@ remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->master_fh))
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.file = dentry->fh->master_fh;
+  args.file = dentry->fh->meta.master_fh;
   args.attr = *sa;
 
   release_dentry (dentry);
@@ -1027,11 +1027,11 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.dir = dir->fh->master_fh;
+  args.dir = dir->fh->meta.master_fh;
   args.name = *name;
 
   release_dentry (dir);
@@ -1297,11 +1297,11 @@ remote_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.where.dir = dir->fh->master_fh;
+  args.where.dir = dir->fh->meta.master_fh;
   args.where.name = *name;
   args.attr = *attr;
 
@@ -1484,11 +1484,11 @@ remote_rmdir (internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.dir = dir->fh->master_fh;
+  args.dir = dir->fh->meta.master_fh;
   args.name = *name;
 
   release_dentry (dir);
@@ -1676,15 +1676,15 @@ remote_rename (internal_dentry from_dir, string *from_name,
   CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (from_dir->fh->master_fh))
+  if (zfs_fh_undefined (from_dir->fh->meta.master_fh))
     abort ();
-  if (zfs_fh_undefined (to_dir->fh->master_fh))
+  if (zfs_fh_undefined (to_dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.from.dir = from_dir->fh->master_fh;
+  args.from.dir = from_dir->fh->meta.master_fh;
   args.from.name = *from_name;
-  args.to.dir = to_dir->fh->master_fh;
+  args.to.dir = to_dir->fh->meta.master_fh;
   args.to.name = *to_name;
 
   release_dentry (from_dir);
@@ -1969,14 +1969,14 @@ remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (from->fh->master_fh))
+  if (zfs_fh_undefined (from->fh->meta.master_fh))
     abort ();
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.from = from->fh->master_fh;
-  args.to.dir = dir->fh->master_fh;
+  args.from = from->fh->meta.master_fh;
+  args.to.dir = dir->fh->meta.master_fh;
   args.to.name = *name;
 
   release_dentry (from);
@@ -2227,11 +2227,11 @@ remote_unlink (internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.dir = dir->fh->master_fh;
+  args.dir = dir->fh->meta.master_fh;
   args.name = *name;
 
   release_dentry (dir);
@@ -2404,11 +2404,11 @@ remote_readlink (read_link_res *res, internal_dentry file, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (file->fh->master_fh))
+  if (zfs_fh_undefined (file->fh->meta.master_fh))
     abort ();
 #endif
 
-  args = file->fh->master_fh;
+  args = file->fh->meta.master_fh;
 
   release_dentry (file);
   zfsd_mutex_lock (&node_mutex);
@@ -2592,11 +2592,11 @@ remote_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.from.dir = dir->fh->master_fh;
+  args.from.dir = dir->fh->meta.master_fh;
   args.from.name = *name;
   args.to = *to;
   args.attr = *attr;
@@ -2794,11 +2794,11 @@ remote_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.where.dir = dir->fh->master_fh;
+  args.where.dir = dir->fh->meta.master_fh;
   args.where.name = *name;
   args.attr = *attr;
   args.type = type;
@@ -3044,11 +3044,11 @@ remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->master_fh))
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.fh = dentry->fh->master_fh;
+  args.fh = dentry->fh->meta.master_fh;
   args.start = start;
 
   release_dentry (dentry);
@@ -3303,7 +3303,7 @@ refresh_master_fh (zfs_fh *fh)
 #endif
 
   /* Refresh remote path to DENTRY.  */
-  if (zfs_fh_undefined (dentry->fh->master_fh))
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     {
       if (dentry->parent)
 	{
@@ -3356,7 +3356,7 @@ retry_lookup:
 	    abort ();
 #endif
 
-	  dentry->fh->master_fh = res.file;
+	  dentry->fh->meta.master_fh = res.file;
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
@@ -3378,7 +3378,7 @@ retry_lookup:
 	    abort ();
 #endif
 
-	  dentry->fh->master_fh = tmp_fh;
+	  dentry->fh->meta.master_fh = tmp_fh;
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}

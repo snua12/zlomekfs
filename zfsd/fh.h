@@ -134,9 +134,6 @@ struct internal_fh_def
   /* File handle for client, key for hash table.  */
   zfs_fh local_fh;
 
-  /* File handle for server.  */
-  zfs_fh master_fh;
-
   /* File attributes.  */
   fattr attr;
 

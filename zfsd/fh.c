@@ -482,7 +482,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
       if (dentry->deleted)
 	abort ();
       if (volp && vol->local_path && vol->master == this_node
-	  && !zfs_fh_undefined (dentry->fh->master_fh))
+	  && !zfs_fh_undefined (dentry->fh->meta.master_fh))
 	abort ();
 #endif
 
@@ -525,8 +525,8 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
       CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
       if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh)
-	  || (!ZFS_FH_EQ (dentry->fh->master_fh, *master_fh)
-	      && !zfs_fh_undefined (dentry->fh->master_fh)
+	  || (!ZFS_FH_EQ (dentry->fh->meta.master_fh, *master_fh)
+	      && !zfs_fh_undefined (dentry->fh->meta.master_fh)
 	      && !zfs_fh_undefined (*master_fh)))
 	{
 	  uint32_t vid;
@@ -568,8 +568,8 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	}
       else
 	{
-	  if (zfs_fh_undefined (dentry->fh->master_fh))
-	    dentry->fh->master_fh = *master_fh;
+	  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	    dentry->fh->meta.master_fh = *master_fh;
 
 	  set_attr_version (attr, &dentry->fh->meta);
 	  dentry->fh->attr = *attr;
@@ -948,7 +948,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   fh = (internal_fh) pool_alloc (fh_pool);
   fh->local_fh = *local_fh;
-  fh->master_fh = *master_fh;
+  fh->meta.master_fh = *master_fh;
   fh->attr = *attr;
   fh->cap = NULL;
   fh->ndentries = 0;
@@ -1074,8 +1074,9 @@ print_fh_htab (FILE *f)
 
       fprintf (f, "[%u,%u,%u,%u] ", fh->local_fh.sid, fh->local_fh.vid,
 	       fh->local_fh.dev, fh->local_fh.ino);
-      fprintf (f, "[%u,%u,%u,%u] ", fh->master_fh.sid, fh->master_fh.vid,
-	       fh->master_fh.dev, fh->master_fh.ino);
+      fprintf (f, "[%u,%u,%u,%u] ", fh->meta.master_fh.sid,
+	       fh->meta.master_fh.vid, fh->meta.master_fh.dev,
+	       fh->meta.master_fh.ino);
       fprintf (f, "L%d ", fh->level);
       fprintf (f, "\n");
     });

@@ -53,6 +53,7 @@ typedef struct metadata_def
   uint32_t ino;			/* inode of the file */
   uint64_t local_version;	/* local version (is it needed?) */
   uint64_t master_version;	/* version on server/version got from server */
+  zfs_fh master_fh;		/* master file handle */
 } metadata;
 
 #define METADATA_COMPLETE	1	/* file is complete */

@@ -345,11 +345,11 @@ remote_create (create_res *res, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->fh->master_fh))
+  if (zfs_fh_undefined (dir->fh->meta.master_fh))
     abort ();
 #endif
 
-  args.where.dir = dir->fh->master_fh;
+  args.where.dir = dir->fh->meta.master_fh;
   args.where.name = *name;
   args.flags = flags;
   args.attr = *attr;
@@ -579,12 +579,12 @@ remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->master_fh))
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
 #endif
 
   /* Initialize capability.  */
-  icap->master_cap.fh = dentry->fh->master_fh;
+  icap->master_cap.fh = dentry->fh->meta.master_fh;
   icap->master_cap.flags = icap->local_cap.flags;
 
   args.file = icap->master_cap.fh;
