@@ -240,16 +240,17 @@ parent_exists (string *path, struct stat *st)
   return ZFS_OK;
 }
 
-/* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
+/* Recursively unlink the file NAME with path PATH on volume with ID == VID.
+   Use META and META2 for reading and deleting metadata.  */
 
 static int32_t
-recursive_unlink_1 (string *path, string *name, uint32_t vid,
-		    struct stat *parent_st, bool destroy_dentry)
+recursive_unlink_1 (metadata *meta, metadata *meta2, string *path,
+		    string *name, uint32_t vid, struct stat *parent_st,
+		    bool destroy_dentry)
 {
   volume vol;
   internal_dentry dentry;
   zfs_fh fh;
-  metadata meta;
   int32_t r;
   struct stat st;
 
@@ -295,7 +296,8 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
 	  append_file_name (&new_path, path, de->d_name, len);
 	  new_name.str = new_path.str + new_path.len - len;
 	  new_name.len = len;
-	  r = recursive_unlink_1 (&new_path, &new_name, vid, &st, true);
+	  r = recursive_unlink_1 (meta, meta2, &new_path, &new_name, vid, &st,
+				  true);
 	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    {
@@ -327,19 +329,19 @@ out:
       fh.dev = st.st_dev;
       fh.ino = st.st_ino;
       /* Get FH.GEN.  */
-      meta.modetype = GET_MODETYPE (0, FT_BAD);
-      if (!lookup_metadata (vol, &fh, &meta, false))
+      meta->modetype = GET_MODETYPE (0, FT_BAD);
+      if (!lookup_metadata (vol, &fh, meta, false))
 	MARK_VOLUME_DELETE (vol);
 
       if (r == ZFS_OK)
 	{
 	  /* Delete metadata.  */
-	  meta.flags = 0;
-	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					zfs_mode_to_ftype (st.st_mode));
-	  meta.uid = map_uid_node2zfs (st.st_uid);
-	  meta.gid = map_gid_node2zfs (st.st_gid);
-	  if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
+	  meta2->flags = 0;
+	  meta2->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					  zfs_mode_to_ftype (st.st_mode));
+	  meta2->uid = map_uid_node2zfs (st.st_uid);
+	  meta2->gid = map_gid_node2zfs (st.st_gid);
+	  if (!delete_metadata (vol, meta2, st.st_dev, st.st_ino,
 				parent_st->st_dev, parent_st->st_ino, name))
 	    MARK_VOLUME_DELETE (vol);
 	}
@@ -366,6 +368,7 @@ out:
 int32_t
 recursive_unlink (string *path, uint32_t vid, bool destroy_dentry)
 {
+  metadata meta, meta2;
   string filename;
   struct stat parent_st;
 
@@ -381,7 +384,8 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry)
     return (errno == ENOENT ? ZFS_OK : errno);
   filename.str[-1] = '/';
 
-  return recursive_unlink_1 (path, &filename, vid, &parent_st, destroy_dentry);
+  return recursive_unlink_1 (&meta, &meta2, path, &filename, vid, &parent_st,
+			     destroy_dentry);
 }
 
 /* Check whether we can perform file system change operation on NAME in
