@@ -358,11 +358,11 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 }
 
 /* Check whether we can perform operation on ZFS file handle FH.
-   If MODIFY is true we are performing an operation changing state of file
-   system.  */
+   If DENY_CONFLICT is true return error when we are trying to do the operation
+   on conflict file handle.  */
 
 int32_t
-validate_operation_on_zfs_fh (zfs_fh *fh, bool modify)
+validate_operation_on_zfs_fh (zfs_fh *fh, bool deny_conflict)
 {
   if (!request_from_this_node ())
     {
@@ -373,7 +373,7 @@ validate_operation_on_zfs_fh (zfs_fh *fh, bool modify)
       SET_CONFLICT (*fh, 0);
     }
 
-  if (modify && GET_CONFLICT (*fh))
+  if (deny_conflict && GET_CONFLICT (*fh))
     return EINVAL;
 
   return ZFS_OK;
@@ -2517,7 +2517,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
-  r = validate_operation_on_zfs_fh (fh, false);
+  r = validate_operation_on_zfs_fh (fh, true);
   if (r != ZFS_OK)
     return r;
 

@@ -1669,7 +1669,7 @@ zfs_read (uint32_t *rcount, void *buffer,
   if (cap->flags != O_RDONLY && cap->flags != O_RDWR)
     return EBADF;
 
-  r = validate_operation_on_zfs_fh (&cap->fh, false);
+  r = validate_operation_on_zfs_fh (&cap->fh, true);
   if (r != ZFS_OK)
     return r;
 
