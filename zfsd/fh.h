@@ -157,6 +157,9 @@ struct internal_fh_def
   /* Modified intervals.  */
   interval_tree modified;
 
+  /* Number of users of interval trees.  */
+  unsigned int interval_tree_users;
+
   /* List of hardlinks.  */
   string_list hardlinks;
 
@@ -319,7 +322,6 @@ extern bool internal_dentry_move (internal_dentry dentry, volume vol,
 				  internal_dentry dir, char *name);
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
-extern unsigned int internal_fh_nopened (internal_fh fh);
 extern void print_fh_htab (FILE *f, htab_t htab);
 extern void debug_fh_htab (htab_t htab);
 

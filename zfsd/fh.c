@@ -1034,21 +1034,6 @@ internal_fh_destroy_stage2 (internal_fh fh)
   pool_free (fh_pool, fh);
 }
 
-/* Return the number how many times is file handle FH opened.  */
-
-unsigned int
-internal_fh_nopened (internal_fh fh)
-{
-  unsigned int r = 0;
-  internal_cap cap;
-
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-  for (cap = fh->cap; cap; cap = cap->next)
-    r += cap->busy;
-
-  return r;
-}
-
 /* Print the contents of hash table HTAB to file F.  */
 
 void

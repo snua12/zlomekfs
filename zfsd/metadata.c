@@ -1331,26 +1331,21 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
 bool
 load_interval_trees (volume vol, internal_fh fh)
 {
-  unsigned int nopened;
-
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  nopened = internal_fh_nopened (fh);
-  if (nopened > 1)
+  fh->interval_tree_users++;
+  if (fh->interval_tree_users > 1)
     return true;
-
-#ifdef ENABLE_CHECKING
-  if (nopened == 0)
-    abort ();
-#endif
 
   if (!init_interval_tree (vol, fh, METADATA_TYPE_UPDATED))
     {
+      fh->interval_tree_users--;
       return false;
     }
   if (!init_interval_tree (vol, fh, METADATA_TYPE_MODIFIED))
     {
+      fh->interval_tree_users--;
       close_interval_file (fh->updated);
       interval_tree_destroy (fh->updated);
       fh->updated = NULL;
@@ -1366,25 +1361,29 @@ load_interval_trees (volume vol, internal_fh fh)
 bool
 save_interval_trees (volume vol, internal_fh fh)
 {
-  unsigned int nopened;
-  bool r = true;
+  bool r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  nopened = internal_fh_nopened (fh);
-  if (nopened > 1)
-    return true;
-
 #ifdef ENABLE_CHECKING
-  if (nopened == 0)
+  if (fh->interval_tree_users == 0)
     abort ();
 #endif
 
-  if (fh->updated)
-    r &= free_interval_tree (vol, fh, METADATA_TYPE_UPDATED);
-  if (fh->modified)
-    r &= free_interval_tree (vol, fh, METADATA_TYPE_MODIFIED);
+  fh->interval_tree_users--;
+  if (fh->interval_tree_users > 0)
+    return true;
+
+#ifdef ENABLE_CHECKING
+  if (!fh->updated)
+    abort ();
+  if (!fh->modified)
+    abort ();
+#endif
+
+  r = free_interval_tree (vol, fh, METADATA_TYPE_UPDATED);
+  r &= free_interval_tree (vol, fh, METADATA_TYPE_MODIFIED);
 
   return r;
 }
