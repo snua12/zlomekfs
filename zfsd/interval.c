@@ -159,6 +159,29 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
   return node;
 }
 
+/* Return interval containing VALUE or first next interval after VALUE.  */
+
+interval_tree_node
+interval_tree_lookup (interval_tree tree, uint64_t value)
+{
+  interval_tree_node node;
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  /* Return the interval starting with VALUE if it exist.  */
+  node = splay_tree_lookup (tree->splay, value);
+  if (node)
+    return node;
+
+  /* Return the interval containing VALUE if it exist.  */
+  node = splay_tree_predecessor (tree->splay, value);
+  if (node && INTERVAL_END (node) > value)
+    return node;
+
+  /* Return the first interval after VALUE.  */
+  return splay_tree_successor (tree->splay, value);
+}
+
 /* Delete the interval [START, END) from TREE.  */
 
 void

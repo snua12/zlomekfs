@@ -74,6 +74,8 @@ extern void interval_tree_destroy (interval_tree tree);
 extern void interval_tree_empty (interval_tree tree);
 extern interval_tree_node interval_tree_insert (interval_tree tree,
 						uint64_t start, uint64_t end);
+extern interval_tree_node interval_tree_lookup (interval_tree tree,
+						uint64_t value);
 extern void interval_tree_delete (interval_tree tree,
 				  uint64_t start, uint64_t end);
 extern void interval_tree_add (interval_tree tree1, interval_tree tree2);
