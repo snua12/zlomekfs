@@ -3924,7 +3924,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       else
 	from_dentry = dir_dentry;
 
-      internal_dentry_link (from_dentry, vol, dir_dentry, name);
+      internal_dentry_link (from_dentry, dir_dentry, name);
       zfs_link_journal (dir_dentry, name, vol, &meta);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
@@ -6025,7 +6025,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  old_dentry = dentry_lookup (fh);
 	  if (old_dentry)
 	    {
-	      internal_dentry_link (old_dentry, vol, dir, name);
+	      internal_dentry_link (old_dentry, dir, name);
 	      release_dentry (old_dentry);
 	    }
 

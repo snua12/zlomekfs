@@ -361,7 +361,7 @@ extern void debug_fh_htab (void);
 extern void print_subdentries (FILE *f, internal_dentry dentry);
 extern void debug_subdentries (internal_dentry dentry);
 
-extern internal_dentry internal_dentry_link (internal_dentry orig, volume vol,
+extern internal_dentry internal_dentry_link (internal_dentry orig,
 					     internal_dentry parent,
 					     string *name);
 extern void internal_dentry_move (internal_dentry *from_dirp, string *from_name,

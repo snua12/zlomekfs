@@ -1873,7 +1873,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
    file DENTRY.  */
 
 internal_dentry
-internal_dentry_link (internal_dentry orig, volume vol,
+internal_dentry_link (internal_dentry orig,
 		      internal_dentry parent, string *name)
 {
   internal_dentry dentry, old;
@@ -1885,7 +1885,6 @@ internal_dentry_link (internal_dentry orig, volume vol,
     abort ();
 #endif
   CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&orig->fh->mutex);
   CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
