@@ -277,8 +277,13 @@ node_connect (node nod)
 
 		/* Connect the network socket to ZFS_PORT.  */
 		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
-		  goto node_connected;
+		if (connect (s, a->ai_addr, a->ai_addrlen) < 0)
+		  {
+		    close (s);
+		    break;
+		  }
+
+		goto node_connected;
 	      }
 	    break;
 
@@ -296,17 +301,21 @@ node_connect (node nod)
 		/* Connect the network socket to ZFS_PORT.  */
 		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
 		  = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
-		  goto node_connected;
+		if (connect (s, a->ai_addr, a->ai_addrlen) < 0)
+		  {
+		    message (-1, stderr, "connect(): %s\n", strerror (errno));
+		    close (s);
+		    break;
+		  }
+
+		goto node_connected;
 	      }
 	    break;
 	}
     }
 
   freeaddrinfo (addr);
-  message (-1, stderr, "Could not connect to %s: %s\n", nod->name,
-	   strerror (errno));
-  close (s);
+  message (-1, stderr, "Could not connect to %s\n", nod->name);
   return -1;
 
 node_connected:
