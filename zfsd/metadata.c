@@ -1461,7 +1461,7 @@ init_hardlinks (volume vol, internal_fh fh)
    Return false on file error.  */
 
 bool
-write_hardlinks (volume vol, internal_fh fh)
+flush_hardlinks (volume vol, internal_fh fh)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
