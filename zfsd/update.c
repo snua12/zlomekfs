@@ -1650,15 +1650,24 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 
 		if (r == ZFS_OK)
 		  {
-		    conflict = create_conflict (vol, dentry, &entry->name,
-						&local_res.file,
-						&local_res.attr);
-		    add_file_to_conflict_dir (vol, conflict, true,
-					      &local_res.file,
-					      &local_res.attr, &meta);
-		    add_file_to_conflict_dir (vol, conflict, true,
-					      &res.file, &res.attr, NULL);
-		    release_dentry (conflict);
+		    if (!ZFS_FH_EQ (meta.master_fh, res.file))
+		      {
+			conflict = create_conflict (vol, dentry, &entry->name,
+						    &local_res.file,
+						    &local_res.attr);
+			add_file_to_conflict_dir (vol, conflict, true,
+						  &local_res.file,
+						  &local_res.attr, &meta);
+			add_file_to_conflict_dir (vol, conflict, true,
+						  &res.file, &res.attr, NULL);
+			release_dentry (conflict);
+		      }
+		    else
+		      {
+			if (!journal_delete_entry (dentry->fh->journal, entry))
+			  abort ();
+			flush_journal = true;
+		      }
 		  }
 		else if (r == ENOENT || r == ESTALE)
 		  {
