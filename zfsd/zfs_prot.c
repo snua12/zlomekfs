@@ -21,18 +21,21 @@
 #include "system.h"
 #include <pthread.h>
 #include <inttypes.h>
+#include <errno.h>
 #include "zfs_prot.h"
 #include "data-coding.h"
 #include "thread.h"
 #include "server.h"
 #include "node.h"
 #include "dir.h"
+#include "volume.h"
 
 /* void zfs_proc_null (void) */
 
 void
 zfs_proc_null_server (void *args, DC *dc)
 {
+  encode_status (dc, ZFS_OK);
 }
 
 /* zfs_fh zfs_proc_root (void); */
@@ -40,6 +43,8 @@ zfs_proc_null_server (void *args, DC *dc)
 void
 zfs_proc_root_server (void *args, DC *dc)
 {
+  encode_status (dc, ZFS_OK);
+  encode_zfs_fh (dc, &root_fh);
 }
 
 /* zfs_fh zfs_proc_volume_root (volume_root_args); */
@@ -47,6 +52,19 @@ zfs_proc_root_server (void *args, DC *dc)
 void
 zfs_proc_volume_root_server (volume_root_args *args, DC *dc)
 {
+  int32_t r;
+  volume vol;
+  zfs_fh fh;
+
+  vol = volume_lookup (args->vid);
+  if (!vol)
+    r = ENOENT;
+  else
+    r = get_volume_root (vol, &fh, NULL);
+
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_zfs_fh (dc, &fh);
 }
 
 /* attr_res zfs_proc_getattr (zfs_fh); */
@@ -54,6 +72,8 @@ zfs_proc_volume_root_server (volume_root_args *args, DC *dc)
 void
 zfs_proc_getattr_server (zfs_fh *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* attr_res zfs_proc_setattr (sattr_args); */
@@ -61,6 +81,8 @@ zfs_proc_getattr_server (zfs_fh *args, DC *dc)
 void
 zfs_proc_setattr_server (sattr_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* dir_op_res zfs_proc_lookup (dir_op_args); */
@@ -68,6 +90,8 @@ zfs_proc_setattr_server (sattr_args *args, DC *dc)
 void
 zfs_proc_lookup_server (dir_op_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* open_res zfs_proc_open_by_name (open_name_args); */
@@ -75,6 +99,8 @@ zfs_proc_lookup_server (dir_op_args *args, DC *dc)
 void
 zfs_proc_open_by_name_server (open_name_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* open_res zfs_proc_open_by_fd (zfs_fh); */
@@ -82,6 +108,8 @@ zfs_proc_open_by_name_server (open_name_args *args, DC *dc)
 void
 zfs_proc_open_by_fd_server (zfs_fh *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_close (zfs_fh); */
@@ -89,6 +117,8 @@ zfs_proc_open_by_fd_server (zfs_fh *args, DC *dc)
 void
 zfs_proc_close_server (zfs_fh *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* read_dir_res zfs_proc_readdir (read_dir_args); */
@@ -96,6 +126,8 @@ zfs_proc_close_server (zfs_fh *args, DC *dc)
 void
 zfs_proc_readdir_server (read_dir_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* dir_op_res zfs_proc_mkdir (open_name_args); */
@@ -103,6 +135,8 @@ zfs_proc_readdir_server (read_dir_args *args, DC *dc)
 void
 zfs_proc_mkdir_server (open_name_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_rmdir (dir_op_args); */
@@ -110,6 +144,8 @@ zfs_proc_mkdir_server (open_name_args *args, DC *dc)
 void
 zfs_proc_rmdir_server (dir_op_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_rename (rename_args); */
@@ -117,6 +153,8 @@ zfs_proc_rmdir_server (dir_op_args *args, DC *dc)
 void
 zfs_proc_rename_server (rename_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_link (link_args); */
@@ -124,6 +162,8 @@ zfs_proc_rename_server (rename_args *args, DC *dc)
 void
 zfs_proc_link_server (link_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_unlink (dir_op_args); */
@@ -131,6 +171,8 @@ zfs_proc_link_server (link_args *args, DC *dc)
 void
 zfs_proc_unlink_server (dir_op_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* read_res zfs_proc_read (read_args); */
@@ -138,6 +180,8 @@ zfs_proc_unlink_server (dir_op_args *args, DC *dc)
 void
 zfs_proc_read_server (read_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* write_res zfs_proc_write (write_args); */
@@ -145,6 +189,8 @@ zfs_proc_read_server (read_args *args, DC *dc)
 void
 zfs_proc_write_server (write_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* read_link_res zfs_proc_readlink (zfs_fh); */
@@ -152,6 +198,8 @@ zfs_proc_write_server (write_args *args, DC *dc)
 void
 zfs_proc_readlink_server (zfs_fh *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_symlink (symlink_args); */
@@ -159,6 +207,8 @@ zfs_proc_readlink_server (zfs_fh *args, DC *dc)
 void
 zfs_proc_symlink_server (symlink_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* int zfs_proc_mknod (mknod_args); */
@@ -166,6 +216,8 @@ zfs_proc_symlink_server (symlink_args *args, DC *dc)
 void
 zfs_proc_mknod_server (mknod_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
 /* ? zfs_proc_auth_stage1 (auth_stage1_args); */
@@ -173,6 +225,8 @@ zfs_proc_mknod_server (mknod_args *args, DC *dc)
 void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_OK);
 }
 
 /* ? zfs_proc_auth_stage2 (auth_stage2_args); */
@@ -180,6 +234,8 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc)
 void
 zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc)
 {
+  /* TODO: write the function */
+  encode_status (dc, ZFS_OK);
 }
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
