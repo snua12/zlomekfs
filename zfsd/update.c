@@ -1481,7 +1481,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		  {
 		    /* TODO: create conflict */
 		  }
-		else if (r == ENOENT)
+		else if (r == ENOENT || r == ESTALE)
 		  {
 		    if (zfs_fh_undefined (entry->master_fh))
 		      {
@@ -1553,7 +1553,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 				flush_journal = true;
 			      }
 			  }
-			else if (r == ENOENT)
+			else if (r == ENOENT || r == ESTALE)
 			  {
 			    /* The file does not exists on master.
 			       This can happen when we linked/renamed a file
@@ -1632,7 +1632,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			/* TODO: create conflict */
 		      }
 		  }
-		else if (r == ENOENT)
+		else if (r == ENOENT || r == ESTALE)
 		  {
 		    /* Nothing to do.  */
 
