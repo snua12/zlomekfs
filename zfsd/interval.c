@@ -41,7 +41,7 @@ interval_tree_create (unsigned preferred_size)
 {
   interval_tree t;
 
-  t = xmalloc (sizeof (struct interval_tree_def));
+  t = (interval_tree) xmalloc (sizeof (struct interval_tree_def));
   t->splay = splay_tree_create (preferred_size, NULL);
   t->preferred_size = preferred_size;
   t->size = 0;
@@ -217,7 +217,7 @@ typedef struct interval_tree_shrink_data_def
 static int
 interval_tree_shrink_foreach (splay_tree_node node, void *data)
 {
-  interval_tree_shrink_data *d = data;
+  interval_tree_shrink_data *d = (interval_tree_shrink_data *) data;
 
   d->node[d->index] = node;
   d->pos[d->index] = d->index;
@@ -276,7 +276,7 @@ interval_tree_shrink_find_k (interval_tree_shrink_data *x, int k, int a, int b)
 static void
 interval_tree_shrink (interval_tree tree)
 {
-  int i, n;
+  unsigned int i, n;
   interval_tree_shrink_data d;
   uint64_t threshold;
 
@@ -286,9 +286,9 @@ interval_tree_shrink (interval_tree tree)
   /* Find out the size of "holes" between intervals.  */
   d.last_end = 0;
   d.index = 0;
-  d.node = xmalloc (tree->size * sizeof (splay_tree_node));
-  d.diff = xmalloc (tree->size * sizeof (uint64_t));
-  d.pos = xmalloc (tree->size * sizeof (int));
+  d.node = (splay_tree_node *) xmalloc (tree->size * sizeof (splay_tree_node));
+  d.diff = (uint64_t *) xmalloc (tree->size * sizeof (uint64_t));
+  d.pos = (int *) xmalloc (tree->size * sizeof (int));
   splay_tree_foreach (tree->splay, interval_tree_shrink_foreach, &d);
 
   /* N is the number of nodes that will be deleted.  */
@@ -322,7 +322,7 @@ interval_tree_shrink (interval_tree tree)
 static int
 print_interval_tree_node (splay_tree_node node, void *data)
 {
-  FILE *f = data;
+  FILE *f = (FILE *) data;
 
   fprintf (f, "[");
   fprintf (f, "%" PRIu64, node->key);

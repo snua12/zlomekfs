@@ -82,14 +82,14 @@ xstrdup (const char *s)
 char *
 xstrndup (const char *s, size_t n)
 {
-  int len;
+  size_t len;
   char *r;
 
   len = strlen (s);
   if (len > n)
     len = n;
 
-  r = malloc (len + 1);
+  r = (char *) malloc (len + 1);
   if (!r)
     {
       message (-1, stderr, "Not enough memory.\n");
@@ -119,7 +119,8 @@ char *
 xstrconcat (int n, ...)
 {
   va_list va;
-  int i, len;
+  int i;
+  size_t len;
   char *r, *s, *d;
   int l[n];
 
@@ -134,7 +135,7 @@ xstrconcat (int n, ...)
     }
   va_end (va);
 
-  r = malloc (len + 1);
+  r = (char *) malloc (len + 1);
   if (!r)
     {
       message (-1, stderr, "Not enough memory.\n");

@@ -21,8 +21,19 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
+#ifndef ENABLE_CHECKING
 #define ENABLE_CHECKING
+#endif
+
+#ifdef __cplusplus
+#define __STDC_FORMAT_MACROS
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
 
 /* Definitions of some GCC attributes.  */
 #ifdef __GNUC__

@@ -55,7 +55,7 @@ set_string (char **destp, const char *src, int len)
   if (*destp)
     free (*destp);
 
-  *destp = xmemdup (src, len + 1);
+  *destp = (char *) xmemdup (src, len + 1);
 }
 
 /* Process one line of configuration file.  Return the length of value.  */

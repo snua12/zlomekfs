@@ -46,9 +46,7 @@ static int splay_tree_foreach_helper (splay_tree, splay_tree_node,
 /* Deallocate NODE (a member of SP), and all its sub-trees.  */
 
 static void 
-splay_tree_destroy_helper (sp, node)
-     splay_tree sp;
-     splay_tree_node node;
+splay_tree_destroy_helper (splay_tree sp, splay_tree_node node)
 {
   if (node->left)
     splay_tree_destroy_helper (sp, node->left);
@@ -65,12 +63,9 @@ splay_tree_destroy_helper (sp, node)
    and grandparent, respectively, of NODE.  */
 
 static splay_tree_node
-splay_tree_splay_helper (sp, key, node, parent, grandparent)
-     splay_tree sp;
-     splay_tree_key key;
-     splay_tree_node *node;
-     splay_tree_node *parent;
-     splay_tree_node *grandparent;
+splay_tree_splay_helper (splay_tree sp, splay_tree_key key,
+			 splay_tree_node *node, splay_tree_node *parent,
+			 splay_tree_node *grandparent)
 {
   splay_tree_node *next;
   splay_tree_node n;
@@ -173,9 +168,7 @@ splay_tree_splay_helper (sp, key, node, parent, grandparent)
 /* Splay SP around KEY.  */
 
 static void
-splay_tree_splay (sp, key)
-     splay_tree sp;
-     splay_tree_key key;
+splay_tree_splay (splay_tree sp, splay_tree_key key)
 {
   if (sp->root == 0)
     return;
@@ -190,11 +183,8 @@ splay_tree_splay (sp, key)
    value is returned.  Otherwise, this function returns 0.  */
 
 static int
-splay_tree_foreach_helper (sp, node, fn, data)
-     splay_tree sp;
-     splay_tree_node node;
-     splay_tree_foreach_fn fn;
-     void* data;
+splay_tree_foreach_helper (splay_tree sp, splay_tree_node node,
+			   splay_tree_foreach_fn fn, void *data)
 {
   int val;
 
@@ -234,8 +224,7 @@ splay_tree_create (unsigned preferred_size,
 /* Deallocate SP.  */
 
 void 
-splay_tree_destroy (sp)
-     splay_tree sp;
+splay_tree_destroy (splay_tree sp)
 {
   if (sp->root)
     splay_tree_destroy_helper (sp, sp->root);
@@ -248,10 +237,7 @@ splay_tree_destroy (sp)
    with the new value.  Returns the new node.  */
 
 splay_tree_node
-splay_tree_insert (sp, key, value)
-     splay_tree sp;
-     splay_tree_key key;
-     splay_tree_value value;
+splay_tree_insert (splay_tree sp, splay_tree_key key, splay_tree_value value)
 {
   splay_tree_splay (sp, key);
 
@@ -296,9 +282,7 @@ splay_tree_insert (sp, key, value)
 /* Delete KEY from SP.  It is not an error if it did not exist.  */
 
 void
-splay_tree_delete (sp, key)
-     splay_tree sp;
-     splay_tree_key key;
+splay_tree_delete (splay_tree sp, splay_tree_key key)
 {
   splay_tree_splay (sp, key);
 
@@ -338,9 +322,7 @@ splay_tree_delete (sp, key)
    otherwise.  */
 
 splay_tree_node
-splay_tree_lookup (sp, key)
-     splay_tree sp;
-     splay_tree_key key;
+splay_tree_lookup (splay_tree sp, splay_tree_key key)
 {
   splay_tree_splay (sp, key);
 
@@ -353,8 +335,7 @@ splay_tree_lookup (sp, key)
 /* Return the node in SP with the greatest key.  */
 
 splay_tree_node
-splay_tree_max (sp)
-     splay_tree sp;
+splay_tree_max (splay_tree sp)
 {
   splay_tree_node n = sp->root;
 
@@ -370,8 +351,7 @@ splay_tree_max (sp)
 /* Return the node in SP with the smallest key.  */
 
 splay_tree_node
-splay_tree_min (sp)
-     splay_tree sp;
+splay_tree_min (splay_tree sp)
 {
   splay_tree_node n = sp->root;
 
@@ -388,9 +368,7 @@ splay_tree_min (sp)
    predecessor.  KEY need not be present in the tree.  */
 
 splay_tree_node
-splay_tree_predecessor (sp, key)
-     splay_tree sp;
-     splay_tree_key key;
+splay_tree_predecessor (splay_tree sp, splay_tree_key key)
 {
   splay_tree_node node;
 
@@ -419,9 +397,7 @@ splay_tree_predecessor (sp, key)
    successor.  KEY need not be present in the tree.  */
 
 splay_tree_node
-splay_tree_successor (sp, key)
-     splay_tree sp;
-     splay_tree_key key;
+splay_tree_successor (splay_tree sp, splay_tree_key key)
 {
   splay_tree_node node;
 
@@ -452,10 +428,7 @@ splay_tree_successor (sp, key)
    Otherwise, this function returns 0.  */
 
 int
-splay_tree_foreach (sp, fn, data)
-     splay_tree sp;
-     splay_tree_foreach_fn fn;
-     void *data;
+splay_tree_foreach (splay_tree sp, splay_tree_foreach_fn fn, void *data)
 {
   if (sp->root)
     return splay_tree_foreach_helper (sp, sp->root, fn, data);
@@ -467,7 +440,7 @@ splay_tree_foreach (sp, fn, data)
 static int
 print_splay_tree_node (splay_tree_node node, void *data)
 {
-  FILE *f = data;
+  FILE *f = (FILE *) data;
 
   fprintf (f, "[");
   fprintf (f, "%" PRIu64, node->key);
