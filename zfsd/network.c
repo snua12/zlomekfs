@@ -741,7 +741,6 @@ server_start ()
 {
   socklen_t socket_options;
   struct sockaddr_in sa;
-  int i, n;
 
   /* Create a server socket.  */
   main_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -780,17 +779,6 @@ server_start ()
       return 0;
     }
 
-  n = getdtablesize ();
-  server_fd_data = (server_fd_data_t *) xcalloc (n, sizeof (server_fd_data_t));
-  for (i = 0; i < n; i++)
-    if (pthread_mutex_init (&server_fd_data[i].mutex, NULL))
-      {
-	message (-1, stderr, "pthread_mutex_init() failed\n");
-	free (server_fd_data);
-	close (main_socket);
-	return 0;
-      }
-
   /* Create the main server thread.  */
   if (pthread_create (&main_server_thread, NULL, server_main, NULL))
     {
@@ -801,6 +789,25 @@ server_start ()
     }
 
   return 1;
+}
+
+/* Initialize information about network file descriptors.  */
+
+int
+server_init_fd_data ()
+{
+  int i, n;
+
+  n = getdtablesize ();
+  server_fd_data = (server_fd_data_t *) xcalloc (n, sizeof (server_fd_data_t));
+  for (i = 0; i < n; i++)
+    if (pthread_mutex_init (&server_fd_data[i].mutex, NULL))
+      {
+	message (-1, stderr, "pthread_mutex_init() failed\n");
+	free (server_fd_data);
+	close (main_socket);
+	return 0;
+      }
 }
 
 #endif

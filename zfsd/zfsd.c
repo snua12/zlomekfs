@@ -397,6 +397,10 @@ main (int argc, char **argv)
   /* Remember the thread ID of this thread.  */
   main_thread = pthread_self ();
 
+  /* Initialize information about network file descriptors.  */
+  if (!server_init_fd_data ())
+    die ();
+
   /* Make the connection with kernel.  */
   if (!initialize_client ())
     die ();

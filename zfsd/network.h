@@ -58,6 +58,7 @@ extern int create_server_threads ();
 extern void register_server ();
 #else
 extern int server_start ();
+extern int server_init_fd_data ();
 #endif
 extern int server_cleanup ();
 
