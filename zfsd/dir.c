@@ -1950,7 +1950,7 @@ zfs_unlink_retry:
 
 /* Read local symlink FILE on volume VOL.  */
 
-static int32_t
+int32_t
 local_readlink (read_link_res *res, internal_dentry file, volume vol)
 {
   char *path;
@@ -1976,7 +1976,7 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
 
 /* Read remote symlink FH on volume VOL.  */
 
-static int32_t
+int32_t
 remote_readlink (read_link_res *res, internal_fh fh, volume vol)
 {
   thread *t;
@@ -2063,7 +2063,7 @@ zfs_readlink_retry:
 /* Create local symlink NAME in directory DIR on volume VOL pointing to TO,
    set its attributes according to ATTR.  */
 
-static int32_t
+int32_t
 local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
 	       volume vol)
 {
@@ -2092,7 +2092,7 @@ local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
 /* Create remote symlink NAME in directory DIR on volume VOL pointing to TO,
    set its attributes according to ATTR.  */
 
-static int32_t
+int32_t
 remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
 		volume vol)
 {
