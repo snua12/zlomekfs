@@ -6565,7 +6565,11 @@ refresh_fh (zfs_fh *fh)
   TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
-    RETURN_INT (EINVAL);
+    {
+      /* When the user wants to access a special file handle which does not
+	 exist, it probably has existed but has been already deleted.  */
+      RETURN_INT (ESTALE);
+    }
 
   r = zfs_file_info (&info, fh);
   if (r != ZFS_OK)
