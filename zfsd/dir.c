@@ -1815,13 +1815,15 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 }
 
 /* Remove local directory NAME from directory DIR on volume VOL,
-   store the stat structure of NAME to ST and path to PATHP.  */
+   store the metadata of the directory to META.  */
 
 static int32_t
-local_rmdir (struct stat *st, string *pathp,
-	     internal_dentry dir, string *name, volume vol)
+local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
 {
   struct stat parent_st;
+  struct stat st;
+  zfs_fh fh;
+  metadata tmp_meta;
   string path;
   int32_t r;
 
@@ -1832,19 +1834,20 @@ local_rmdir (struct stat *st, string *pathp,
 
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
   r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return r;
     }
 
-  r = lstat (path.str, st);
+  r = lstat (path.str, &st);
   if (r != 0)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return errno;
     }
@@ -1852,11 +1855,34 @@ local_rmdir (struct stat *st, string *pathp,
 
   if (r != 0)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return errno;
     }
 
-  *pathp = path;
+  /* Lookup the metadata of deleted file.  */
+  fh.dev = st.st_dev;
+  fh.ino = st.st_ino;
+  meta->flags = METADATA_COMPLETE;
+  meta->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				 zfs_mode_to_ftype (st.st_mode));
+  meta->uid = map_uid_node2zfs (st.st_uid);
+  meta->gid = map_gid_node2zfs (st.st_gid);
+  if (!lookup_metadata (vol, &fh, meta, true))
+    MARK_VOLUME_DELETE (vol);
+
+  /* Delete the metadata.  */
+  tmp_meta.flags = 0;
+  tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				    zfs_mode_to_ftype (st.st_mode));
+  tmp_meta.uid = map_uid_node2zfs (st.st_uid);
+  tmp_meta.gid = map_gid_node2zfs (st.st_gid);
+  if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
+			parent_st.st_dev, parent_st.st_ino, name))
+    MARK_VOLUME_DELETE (vol);
+
+  zfsd_mutex_unlock (&vol->mutex);
+  free (path.str);
   return ZFS_OK;
 }
 
@@ -1911,10 +1937,9 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_dentry dentry, parent, other;
   internal_dentry idir;
   virtual_dir pvd;
-  struct stat st;
+  metadata meta;
   fattr fa;
   sattr sa;
-  string path;
   zfs_fh tmp_fh;
   zfs_fh local_fh;
   zfs_fh remote_fh;
@@ -1966,8 +1991,6 @@ zfs_rmdir (zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
-  path.str = NULL;
-  path.len = 0;
   if (CONFLICT_DIR_P (idir->fh->local_fh))
     {
       dentry = dentry_lookup_name (NULL, idir, name);
@@ -2087,7 +2110,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
 	return r;
-      r = local_rmdir (&st, &path, idir, name, vol);
+      r = local_rmdir (&meta, idir, name, vol);
     }
   else if (vol->master != this_node)
     {
@@ -2107,10 +2130,6 @@ zfs_rmdir (zfs_fh *dir, string *name)
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      string filename;
-      struct stat parent_st;
-      metadata meta;
-
       switch (what_to_do)
 	{
 	  default:
@@ -2124,31 +2143,10 @@ zfs_rmdir (zfs_fh *dir, string *name)
 		&& !SPECIAL_DIR_P (idir, name->str, true)
 		&& !(idir->fh->meta.flags & METADATA_SHADOW_TREE))
 	      {
-		if (!add_journal_entry_st (vol, idir->fh, &st, name,
-					   JOURNAL_OPERATION_DEL))
+		if (!add_journal_entry_meta (vol, idir->fh, &meta, name,
+					     JOURNAL_OPERATION_DEL))
 		  MARK_VOLUME_DELETE (vol);
 	      }
-
-#ifdef ENABLE_CHECKING
-	    if (path.str == NULL)
-	      abort ();
-#endif
-
-	    file_name_from_path (&filename, &path);
-	    filename.str[-1] = 0;
-	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
-	      {
-		meta.flags = 0;
-		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					      zfs_mode_to_ftype (st.st_mode));
-		meta.uid = map_uid_node2zfs (st.st_uid);
-		meta.gid = map_gid_node2zfs (st.st_gid);
-		if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
-				      parent_st.st_dev, parent_st.st_ino,
-				      &filename))
-		  MARK_VOLUME_DELETE (vol);
-	      }
-	    filename.str[-1] = '/';
 
 	    if (!inc_local_version (vol, idir->fh))
 	      MARK_VOLUME_DELETE (vol);
@@ -2264,24 +2262,23 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_dentry_unlock (vol, idir);
 
 out:
-  if (path.str)
-    free (path.str);
-
   return r;
 }
 
 /* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
    in directory TO_DIR on volume VOL.
-   Store the stat structure of original file TO_NAME to ST_OLD
-   and path to PATHP.  Store the stat structure of the new file TO_NAME
-   to ST_NEW.  */
+   Store the metadata of original file TO_NAME to META_OLD
+   and the stat structure of the new file TO_NAME to ST_NEW.  */
 
 static int32_t
-local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
+local_rename (metadata *meta_old, struct stat *st_new,
 	      internal_dentry from_dir, string *from_name,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
   struct stat parent_st;
+  struct stat st;
+  zfs_fh fh;
+  metadata tmp_meta;
   string path1, path2;
   int32_t r;
 
@@ -2296,12 +2293,12 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
   release_dentry (from_dir);
   if (to_dir->fh != from_dir->fh)
     release_dentry (to_dir);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
   r = parent_exists (&path1, &parent_st);
   if (r != ZFS_OK)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path1.str);
       free (path2.str);
       return r;
@@ -2311,6 +2308,7 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
       r = parent_exists (&path2, &parent_st);
       if (r != ZFS_OK)
 	{
+	  zfsd_mutex_unlock (&vol->mutex);
 	  free (path1.str);
 	  free (path2.str);
 	  return r;
@@ -2320,12 +2318,13 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
   r = lstat (path1.str, st_new);
   if (r != 0)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path1.str);
       free (path2.str);
       return errno;
     }
 
-  r = lstat (path2.str, st_old);
+  r = lstat (path2.str, &st);
   if (r != 0)
     {
       /* PATH2 does not exist.  */
@@ -2333,23 +2332,48 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
       free (path1.str);
       free (path2.str);
       if (r != 0)
-	return errno;
-      pathp->str = NULL;
-      pathp->len = 0;
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return errno;
+	}
+
+      meta_old->slot_status = EMPTY_SLOT;
     }
   else
     {
       /* PATH2 exists.  */
       r = rename (path1.str, path2.str);
       free (path1.str);
+      free (path2.str);
       if (r != 0)
 	{
-	  free (path2.str);
+	  zfsd_mutex_unlock (&vol->mutex);
 	  return errno;
 	}
-      *pathp = path2;
+
+      /* Lookup the metadata of overwritten file.  */
+      fh.dev = st.st_dev;
+      fh.ino = st.st_ino;
+      meta_old->flags = METADATA_COMPLETE;
+      meta_old->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				     zfs_mode_to_ftype (st.st_mode));
+      meta_old->uid = map_uid_node2zfs (st.st_uid);
+      meta_old->gid = map_gid_node2zfs (st.st_gid);
+      if (!lookup_metadata (vol, &fh, meta_old, true))
+	MARK_VOLUME_DELETE (vol);
+
+      /* Delete the metadata.  */
+      tmp_meta.flags = 0;
+      tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					zfs_mode_to_ftype (st.st_mode));
+      tmp_meta.uid = map_uid_node2zfs (st.st_uid);
+      tmp_meta.gid = map_gid_node2zfs (st.st_gid);
+      if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
+			    parent_st.st_dev, parent_st.st_ino, to_name))
+	MARK_VOLUME_DELETE (vol);
     }
 
+  zfsd_mutex_unlock (&vol->mutex);
   return ZFS_OK;
 }
 
@@ -2414,8 +2438,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   volume vol;
   internal_dentry from_dentry, to_dentry;
   virtual_dir vd;
-  struct stat st_old, st_new;
-  string path;
+  metadata meta_old;
+  struct stat st_new;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
 
@@ -2570,8 +2594,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   if (r != ZFS_OK)
     return r;
 
-  path.str = NULL;
-  path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       r = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
@@ -2585,7 +2607,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	  if (r != ZFS_OK)
 	    return r;
 	}
-      r = local_rename (&st_old, &st_new, &path, from_dentry, from_name,
+      r = local_rename (&meta_old, &st_new, from_dentry, from_name,
 			to_dentry, to_name, vol);
     }
   else if (vol->master != this_node)
@@ -2626,34 +2648,14 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	  zfs_fh fh;
 	  metadata meta;
 
-	  if (path.str)
+	  if (meta_old.slot_status == VALID_SLOT)
 	    {
-	      string filename;
-	      struct stat parent_st;
-
 	      if (vol->master != this_node)
 		{
-		  if (!add_journal_entry_st (vol, to_dentry->fh, &st_old,
+		  if (!add_journal_entry_meta (vol, to_dentry->fh, &meta_old,
 					     to_name, JOURNAL_OPERATION_DEL))
 		    MARK_VOLUME_DELETE (vol);
 		}
-
-	      file_name_from_path (&filename, &path);
-	      filename.str[-1] = 0;
-	      if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
-		{
-		  meta.flags = 0;
-		  meta.modetype
-		    = GET_MODETYPE (GET_MODE (st_old.st_mode),
-				    zfs_mode_to_ftype (st_old.st_mode));
-		  meta.uid = map_uid_node2zfs (st_old.st_uid);
-		  meta.gid = map_gid_node2zfs (st_old.st_gid);
-		  if (!delete_metadata (vol, &meta, st_old.st_dev,
-					st_old.st_ino, parent_st.st_dev,
-					parent_st.st_ino, &filename))
-		    MARK_VOLUME_DELETE (vol);
-		}
-	      filename.str[-1] = '/';
 	    }
 
 	  fh.dev = st_new.st_dev;
@@ -2674,11 +2676,11 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 	  if (vol->master != this_node)
 	    {
-	      if (!add_journal_entry_st (vol, from_dentry->fh, &st_new,
-					 from_name, JOURNAL_OPERATION_DEL))
+	      if (!add_journal_entry_meta (vol, from_dentry->fh, &meta,
+					   from_name, JOURNAL_OPERATION_DEL))
 		MARK_VOLUME_DELETE (vol);
-	      if (!add_journal_entry_st (vol, to_dentry->fh, &st_new,
-					 to_name, JOURNAL_OPERATION_ADD))
+	      if (!add_journal_entry_meta (vol, to_dentry->fh, &meta,
+					   to_name, JOURNAL_OPERATION_ADD))
 		MARK_VOLUME_DELETE (vol);
 	    }
 
@@ -2691,9 +2693,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       if (to_dentry != from_dentry)
 	release_dentry (from_dentry);
     }
-
-  if (path.str)
-    free (path.str);
 
   internal_dentry_unlock (vol, to_dentry);
   if (tmp_from.ino != tmp_to.ino)
@@ -3022,13 +3021,15 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 }
 
 /* Delete local file NAME from directory DIR on volume VOL.
-   Store the stat structure of NAME to ST and path to PATHP.  */
+   Store the metadata of the file to META.  */
 
 static int32_t
-local_unlink (struct stat *st, string *pathp,
-	      internal_dentry dir, string *name, volume vol)
+local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
 {
   struct stat parent_st;
+  struct stat st;
+  zfs_fh fh;
+  metadata tmp_meta;
   string path;
   int32_t r;
 
@@ -3039,19 +3040,20 @@ local_unlink (struct stat *st, string *pathp,
 
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
   r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return r;
     }
 
-  r = lstat (path.str, st);
+  r = lstat (path.str, &st);
   if (r != 0)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return errno;
     }
@@ -3059,11 +3061,34 @@ local_unlink (struct stat *st, string *pathp,
 
   if (r != 0)
     {
+      zfsd_mutex_unlock (&vol->mutex);
       free (path.str);
       return errno;
     }
 
-  *pathp = path;
+  /* Lookup the metadata of deleted dir.  */
+  fh.dev = st.st_dev;
+  fh.ino = st.st_ino;
+  meta->flags = METADATA_COMPLETE;
+  meta->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				 zfs_mode_to_ftype (st.st_mode));
+  meta->uid = map_uid_node2zfs (st.st_uid);
+  meta->gid = map_gid_node2zfs (st.st_gid);
+  if (!lookup_metadata (vol, &fh, meta, true))
+    MARK_VOLUME_DELETE (vol);
+
+  /* Delete the metadata.  */
+  tmp_meta.flags = 0;
+  tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				    zfs_mode_to_ftype (st.st_mode));
+  tmp_meta.uid = map_uid_node2zfs (st.st_uid);
+  tmp_meta.gid = map_gid_node2zfs (st.st_gid);
+  if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
+			parent_st.st_dev, parent_st.st_ino, name))
+    MARK_VOLUME_DELETE (vol);
+
+  zfsd_mutex_unlock (&vol->mutex);
+  free (path.str);
   return ZFS_OK;
 }
 
@@ -3118,10 +3143,9 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry dentry, parent, other;
   internal_dentry idir;
   virtual_dir pvd;
-  struct stat st;
+  metadata meta;
   fattr fa;
   sattr sa;
-  string path;
   zfs_fh tmp_fh;
   zfs_fh local_fh;
   zfs_fh remote_fh;
@@ -3173,8 +3197,6 @@ zfs_unlink (zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
-  path.str = NULL;
-  path.len = 0;
   if (CONFLICT_DIR_P (idir->fh->local_fh))
     {
       dentry = dentry_lookup_name (NULL, idir, name);
@@ -3379,7 +3401,7 @@ zfs_unlink (zfs_fh *dir, string *name)
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
 	return r;
-      r = local_unlink (&st, &path, idir, name, vol);
+      r = local_unlink (&meta, idir, name, vol);
     }
   else if (vol->master != this_node)
     {
@@ -3399,11 +3421,6 @@ zfs_unlink (zfs_fh *dir, string *name)
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      internal_dentry parent, dentry;
-      string filename;
-      struct stat parent_st;
-      metadata meta;
-
       switch (what_to_do)
 	{
 	  default:
@@ -3417,31 +3434,10 @@ zfs_unlink (zfs_fh *dir, string *name)
 		&& !SPECIAL_DIR_P (idir, name->str, true)
 		&& !(idir->fh->meta.flags & METADATA_SHADOW_TREE))
 	      {
-		if (!add_journal_entry_st (vol, idir->fh, &st, name,
-					   JOURNAL_OPERATION_DEL))
+		if (!add_journal_entry_meta (vol, idir->fh, &meta, name,
+					     JOURNAL_OPERATION_DEL))
 		  MARK_VOLUME_DELETE (vol);
 	      }
-
-#ifdef ENABLE_CHECKING
-	    if (path.str == NULL)
-	      abort ();
-#endif
-
-	    file_name_from_path (&filename, &path);
-	    filename.str[-1] = 0;
-	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
-	      {
-		meta.flags = 0;
-		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					      zfs_mode_to_ftype (st.st_mode));
-		meta.uid = map_uid_node2zfs (st.st_uid);
-		meta.gid = map_gid_node2zfs (st.st_gid);
-		if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
-				      parent_st.st_dev, parent_st.st_ino,
-				      &filename))
-		  MARK_VOLUME_DELETE (vol);
-	      }
-	    filename.str[-1] = '/';
 
 	    if (!inc_local_version (vol, idir->fh))
 	      MARK_VOLUME_DELETE (vol);
@@ -3577,9 +3573,6 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry_unlock (vol, idir);
 
 out:
-  if (path.str)
-    free (path.str);
-
   return r;
 }
 
