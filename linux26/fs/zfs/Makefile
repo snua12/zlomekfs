@@ -7,6 +7,10 @@
 
 ifneq ($(KERNELRELEASE),)
 
+ifeq ($(CONFIG_ZFS_FS),)
+CONFIG_ZFS_FS := m
+endif
+
 obj-$(CONFIG_ZFS_FS) += zfs.o
 zfs-objs := chardev.o data-coding.o dir.o file.o inode.o super.o zfs_prot.o zfsd_call.o
 
