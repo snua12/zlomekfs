@@ -807,7 +807,7 @@ map_gid_zfs2node (uint32_t gid)
     }
   zfsd_mutex_unlock (&users_groups_mutex);
 
-  return default_node_uid;
+  return default_node_gid;
 }
 
 /* Map (local) node GID to ZFS group ID.  */
@@ -837,7 +837,7 @@ map_gid_node2zfs (uint32_t gid)
     }
   zfsd_mutex_unlock (&users_groups_mutex);
 
-  return DEFAULT_ZFS_UID;
+  return DEFAULT_ZFS_GID;
 }
 
 /* Initialize data structures in USER-GROUP.C.  */
