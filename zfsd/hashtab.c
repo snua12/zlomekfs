@@ -232,6 +232,47 @@ htab_clear_slot (htab_t htab, void **slot)
   htab->n_deleted++;
 }
 
+/* Similar to HTAB_FIND_WITH_HASH but it computes the hash key first.  */
+void *
+htab_find (htab_t htab, const void *elem)
+{
+  return htab_find_with_hash (htab, elem, (*htab->hash_f) (elem));
+}
+
+/* Find the element ELEM whose hash key is HASH in hash table HTAB.
+   This function cannot be used to insert or delete an element,
+   use htab_find_slot_with_hash and htab_clear_slot for that purpose.  */
+
+void *
+htab_find_with_hash (htab_t htab, const void *elem, hash_t hash)
+{
+  unsigned int size;
+  unsigned int index;
+  unsigned int step;
+  void *entry;
+
+  size = htab->size;
+  index = hash % size;
+
+  entry = htab->table[index];
+  if (entry == EMPTY_ENTRY
+      || (entry != DELETED_ENTRY && (*htab->eq_f) (entry, elem)))
+    return entry;
+
+  step = 1 + hash % (size - 2);
+  for (;;)
+    {
+      index += step;
+      if (index >= size)
+	index -= size;
+
+      entry = htab->table[index];
+      if (entry == EMPTY_ENTRY
+	  || (entry != DELETED_ENTRY && (*htab->eq_f) (entry, elem)))
+	return entry;
+    }
+}
+
 /* Similar to HTAB_FIND_SLOT_WITH_HASH but it computes the hash key first.  */
 
 void **
