@@ -438,13 +438,76 @@ mark_all_volumes (void)
   zfsd_mutex_unlock (&volume_mutex);
 }
 
+/* Destroy volume VOL if it is invalid.  */
+
+static void
+destroy_invalid_volume_1 (volume vol)
+{
+  void **slot;
+  bool master_marked;
+
+  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&volume_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (vol->marked || vol->master == NULL)
+    volume_destroy (vol);
+  else
+    {
+      zfsd_mutex_lock (&node_mutex);
+      zfsd_mutex_lock (&vol->master->mutex);
+      master_marked = vol->master->marked;
+      zfsd_mutex_unlock (&vol->master->mutex);
+      zfsd_mutex_unlock (&node_mutex);
+      if (master_marked)
+	volume_destroy ((volume) *slot);
+      else
+	{
+	  if (vol->slaves)
+	    {
+	      /* Delete the marked "slaves".  */
+	      zfsd_mutex_lock (&node_mutex);
+	      HTAB_FOR_EACH_SLOT (vol->slaves, slot)
+		{
+		  node nod = (node) *slot;
+
+		  zfsd_mutex_lock (&nod->mutex);
+		  if (nod->marked)
+		    htab_clear_slot (vol->slaves, slot);
+		  zfsd_mutex_unlock (&nod->mutex);
+		}
+	      zfsd_mutex_unlock (&node_mutex);
+	    }
+	  zfsd_mutex_unlock (&vol->mutex);
+	}
+    }
+}
+
+/* Destroy volume VID if it is invalid.  */
+
+void
+destroy_invalid_volume (uint32_t vid)
+{
+  volume vol;
+
+  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&fh_mutex);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_lookup_nolock (vid);
+  if (vol)
+    destroy_invalid_volume_1 (vol);
+  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
+}
+
 /* Delete invalid volumes.  */
 
 void
 destroy_invalid_volumes (void)
 {
-  void **slot, **slot2;
-  bool master_marked;
+  void **slot;
 
   zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
@@ -454,37 +517,7 @@ destroy_invalid_volumes (void)
       volume vol = (volume) *slot;
 
       zfsd_mutex_lock (&vol->mutex);
-      if (vol->marked || vol->master == NULL)
-	volume_destroy ((volume) *slot);
-      else
-	{
-	  zfsd_mutex_lock (&node_mutex);
-	  zfsd_mutex_lock (&vol->master->mutex);
-	  master_marked = vol->master->marked;
-	  zfsd_mutex_unlock (&vol->master->mutex);
-	  zfsd_mutex_unlock (&node_mutex);
-	  if (master_marked)
-	    volume_destroy ((volume) *slot);
-	  else
-	    {
-	      if (vol->slaves)
-		{
-		  /* Delete the marked "slaves".  */
-		  zfsd_mutex_lock (&node_mutex);
-		  HTAB_FOR_EACH_SLOT (vol->slaves, slot2)
-		    {
-		      node nod = (node) *slot2;
-
-		      zfsd_mutex_lock (&nod->mutex);
-		      if (nod->marked)
-			htab_clear_slot (vol->slaves, slot2);
-		      zfsd_mutex_unlock (&nod->mutex);
-		    }
-		  zfsd_mutex_unlock (&node_mutex);
-		}
-	      zfsd_mutex_unlock (&vol->mutex);
-	    }
-	}
+      destroy_invalid_volume_1 (vol);
     }
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
