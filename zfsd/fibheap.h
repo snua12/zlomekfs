@@ -49,6 +49,8 @@
 #include "alloc-pool.h"
 
 typedef uint64_t fibheapkey_t;
+#define FIBHEAPKEY_MIN 0
+#define FIBHEAPKEY_MAX ((fibheapkey_t) -1)
 
 typedef struct fibnode_def
 {
@@ -64,7 +66,7 @@ typedef struct fibnode_def
 
 typedef struct fibheap_def
 {
-  size_t nodes;
+  unsigned int nodes;
   struct fibnode_def *min;
   struct fibnode_def *root;
   pthread_mutex_t *mutex;
@@ -77,7 +79,7 @@ typedef int (*fibheap_foreach_fn) (void *node_data, void *data);
 
 extern fibheap fibheap_new (unsigned int block_size, pthread_mutex_t *mutex);
 extern fibnode fibheap_insert (fibheap, fibheapkey_t, void *);
-extern int fibheap_empty (fibheap);
+extern int fibheap_size (fibheap);
 extern fibheapkey_t fibheap_min_key (fibheap);
 extern fibheapkey_t fibheap_replace_key (fibheap, fibnode, fibheapkey_t);
 extern void *fibheap_replace_key_data (fibheap, fibnode, fibheapkey_t, void *);

@@ -31,8 +31,6 @@
 #include "log.h"
 #include "alloc-pool.h"
 
-#define FIBHEAPKEY_MIN 0
-
 static void fibheap_ins_root (fibheap, fibnode);
 static void fibheap_rem_root (fibheap, fibnode);
 static void fibheap_consolidate (fibheap);
@@ -270,11 +268,19 @@ fibheap_delete (fibheap heap)
 
 /* Determine if HEAP is empty.  */
 int
-fibheap_empty (fibheap heap)
+fibheap_size (fibheap heap)
 {
-  CHECK_MUTEX_LOCKED (heap->mutex);
+  unsigned int n;
 
-  return heap->nodes == 0;
+  if (heap->mutex)
+    zfsd_mutex_lock (heap->mutex);
+
+  n = heap->nodes;
+
+  if (heap->mutex)
+    zfsd_mutex_unlock (heap->mutex);
+
+  return n;
 }
 
 /* Extract the minimum node of the heap.  */
