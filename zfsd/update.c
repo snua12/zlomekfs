@@ -895,7 +895,7 @@ out:
 
 int32_t
 delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
-	     bool journal_p)
+	     bool journal_p, bool move_to_shadow_p)
 {
   string path;
   uint32_t vid;
@@ -912,7 +912,8 @@ delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = recursive_unlink (&path, vid, destroy_dentry, journal_p);
+  r = recursive_unlink (&path, vid, destroy_dentry, journal_p,
+			move_to_shadow_p);
   free (path.str);
 
   return r;
@@ -923,7 +924,7 @@ delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
 
 int32_t
 delete_tree_name (internal_dentry dir, string *name, volume vol,
-		  bool destroy_dentry, bool journal_p)
+		  bool destroy_dentry, bool journal_p, bool move_to_shadow_p)
 {
   string path;
   uint32_t vid;
@@ -940,7 +941,8 @@ delete_tree_name (internal_dentry dir, string *name, volume vol,
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (&path, vid, destroy_dentry, journal_p);
+  r = recursive_unlink (&path, vid, destroy_dentry, journal_p,
+			move_to_shadow_p);
   free (path.str);
 
   return r;
@@ -1768,7 +1770,7 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
 	abort ();
 #endif
 
-      if (delete_tree_name (dir, name, vol, false, true) != ZFS_OK)
+      if (delete_tree_name (dir, name, vol, false, true, true) != ZFS_OK)
 	return ZFS_UPDATE_FAILED;
       return ZFS_OK;
     }
@@ -1925,7 +1927,8 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		    abort ();
 #endif
 
-		  r = delete_tree_name (dir, &entry->name, vol, true, false);
+		  r = delete_tree_name (dir, &entry->name, vol, true, false,
+					true);
 		  if (r != ZFS_OK)
 		    goto out;
 
@@ -2049,7 +2052,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    abort ();
 #endif
 
-	  r = delete_tree_name (dir, &entry->name, vol, true, false);
+	  r = delete_tree_name (dir, &entry->name, vol, true, false, true);
 	  if (r != ZFS_OK)
 	    goto out;
 	}
@@ -2501,7 +2504,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 			   while master has deleted it.
 			   In this situation, delete the local file.  */
 			r = delete_tree_name (dir, &entry->name, vol, true,
-					      true);
+					      true, true);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
 						   false);
 #ifdef ENABLE_CHECKING
