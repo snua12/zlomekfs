@@ -862,6 +862,13 @@ zfs_lookup_retry:
   if (!idir)
     abort ();
 
+  if (idir->fh->attr.type != FT_DIR)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
