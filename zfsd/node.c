@@ -35,6 +35,7 @@
 #include "network.h"
 #include "thread.h"
 #include "zfs_prot.h"
+#include "user-group.h"
 
 /* Hash table of nodes, searched by ID.  */
 static htab_t node_htab;
@@ -151,6 +152,9 @@ node_create (unsigned int id, char *name)
 #endif
   nod->fd = -1;
   nod->generation = 0;
+  nod->map_uid_to_node = NULL;
+  nod->map_uid_to_zfs = NULL;
+  nod->map_gid_to_node = NULL;
 
   /* Are we creating a structure describing local node?  */
   if (strcmp (name, node_name) == 0)
@@ -208,6 +212,15 @@ node_destroy (node nod)
     abort ();
 #endif
   htab_clear_slot (node_htab_name, slot);
+
+  if (nod->map_uid_to_node)
+    {
+      user_mapping_destroy_all (nod);
+      htab_destroy (nod->map_uid_to_node);
+      htab_destroy (nod->map_uid_to_zfs);
+      group_mapping_destroy_all (nod);
+      htab_destroy (nod->map_gid_to_node);
+    }
 
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_destroy (&nod->mutex);

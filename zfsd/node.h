@@ -26,6 +26,7 @@
 #include <rpc/rpc.h>
 #include "pthread.h"
 #include "thread.h"
+#include "hashtab.h"
 
 /* Node description.  */
 typedef struct node_def
@@ -41,6 +42,11 @@ typedef struct node_def
 #ifdef RPC
   CLIENT *clnt;			/* RPC client */
 #endif
+
+  /* Tables for mapping between ZFS IDs and node IDs.  */
+  htab_t map_uid_to_node;
+  htab_t map_uid_to_zfs;
+  htab_t map_gid_to_node;
 } *node;
 
 /* Predefined node IDs.  */

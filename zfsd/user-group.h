@@ -24,6 +24,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include "hashtab.h"
+#include "node.h"
 
 /* Description of ZFS user.  */
 typedef struct user_def
@@ -41,11 +42,34 @@ typedef struct group_def
   char *name;			/* name of the group */
 } *group_t;
 
+/* Structure describing mapping between ZFS user/group ID
+   and node user/group ID.  */
+typedef struct id_mapping_def
+{
+  uint32_t zfs_id;		/* ID of ZFS user/group */
+  uint32_t node_id;		/* ID of node user/group */
+} *id_mapping;
+
+/* Hash functions for user/group ID mapping.  */
+#define MAP_ID_HASH(UID) (UID)
+
 extern user_t user_create (uint32_t id, char *name, uint32_t gid);
 extern void set_default_groups ();
 extern void user_destroy (user_t u);
 extern group_t group_create (uint32_t id, char *name, char *user_list);
 extern void group_destroy (group_t g);
+
+extern hash_t map_id_to_node_hash (const void *x);
+extern hash_t map_id_to_zfs_hash (const void *x);
+extern int map_id_to_node_eq (const void *x, const void *y);
+extern int map_id_to_zfs_eq (const void *x, const void *y);
+extern id_mapping user_mapping_create (char *zfs_user, char *node_user,
+				       node nod);
+extern void user_mapping_destroy_all (node nod);
+extern id_mapping group_mapping_create (char *zfs_group, char *node_group,
+					node nod);
+extern void group_mapping_destroy_all (node nod);
+
 extern void initialize_user_group_c ();
 extern void cleanup_user_group_c ();
 
