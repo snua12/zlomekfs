@@ -66,15 +66,16 @@ extern void internal_cap_unlock (volume vol, internal_dentry dentry,
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int32_t get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			       internal_dentry *dentry, virtual_dir *vd,
-			       bool unlock_fh_mutex);
+			       bool unlock_fh_mutex, bool delete_volume_p);
 extern internal_cap get_capability_no_zfs_fh_lookup (zfs_cap *cap,
 						     internal_dentry dentry,
 						     uint32_t flags);
 extern int32_t find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-				internal_dentry *dentry, virtual_dir *vd);
+				internal_dentry *dentry, virtual_dir *vd,
+				bool delete_volume_p);
 extern int32_t find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 				       volume *vol, internal_dentry *dentry,
-				       virtual_dir *vd);
+				       virtual_dir *vd, bool delete_volume_p);
 extern int32_t put_capability (internal_cap cap, internal_fh fh,
 			       virtual_dir vd);
 

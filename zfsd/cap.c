@@ -137,7 +137,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 
       if (VIRTUAL_FH_P (tmp_cap->fh))
 	zfsd_mutex_lock (&vd_mutex);
-      r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp);
+      r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, true);
       if (VIRTUAL_FH_P (tmp_cap->fh) && vdp && !*vdp)
 	zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
@@ -166,7 +166,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 
       if (VIRTUAL_FH_P (tmp_cap->fh))
 	zfsd_mutex_lock (&vd_mutex);
-      r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp);
+      r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, false);
       /* Following condition should not be needed.  */
       if (VIRTUAL_FH_P (tmp_cap->fh) && vdp && !*vdp)
 	zfsd_mutex_unlock (&vd_mutex);
@@ -351,7 +351,7 @@ internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
 int32_t
 get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 		internal_dentry *dentry, virtual_dir *vd,
-		bool unlock_fh_mutex)
+		bool unlock_fh_mutex, bool delete_volume_p)
 {
   internal_cap icap;
   int32_t r;
@@ -367,7 +367,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
 
-  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd);
+  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (cap->fh))
@@ -460,18 +460,21 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry,
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal dentry DENTRY and virtual directory to VD.
-   Create a new internal capability if it does not exist.  */
+   If DELETE_VOLUME_P is true and the volume should be deleted do not
+   lookup the file handle and delete the volume if there are no file handles
+   locked on it.  */
 
 int32_t
 find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-		 internal_dentry *dentry, virtual_dir *vd)
+		 internal_dentry *dentry, virtual_dir *vd,
+		 bool delete_volume_p)
 {
   int32_t r;
 
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
 
-  r = find_capability_nolock (cap, icapp, vol, dentry, vd);
+  r = find_capability_nolock (cap, icapp, vol, dentry, vd, delete_volume_p);
 
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_unlock (&vd_mutex);
@@ -483,12 +486,15 @@ find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal dentry DENTRY and virtual directory to VD.
-   Create a new internal capability if it does not exist.
+   If DELETE_VOLUME_P is true and the volume should be deleted do not
+   lookup the file handle and delete the volume if there are no file handles
+   locked on it.
    This function is similar to FIND_CAPABILITY but does not lock big locks.  */
 
 int32_t
 find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
-			volume *vol, internal_dentry *dentry, virtual_dir *vd)
+			volume *vol, internal_dentry *dentry, virtual_dir *vd,
+			bool delete_volume_p)
 {
   internal_cap icap;
   int32_t r;
@@ -496,7 +502,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   if (VIRTUAL_FH_P (cap->fh))
     CHECK_MUTEX_LOCKED (&vd_mutex);
 
-  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd);
+  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
   if (r != ZFS_OK)
     return r;
 

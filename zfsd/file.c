@@ -405,7 +405,7 @@ zfs_create_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -456,7 +456,7 @@ zfs_create_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -640,7 +640,7 @@ zfs_open_retry:
 
   cap->fh = *fh;
   cap->flags = flags & O_ACCMODE;
-  r = get_capability (cap, &icap, &vol, &dentry, &vd, true);
+  r = get_capability (cap, &icap, &vol, &dentry, &vd, true, true);
   if (r != ZFS_OK)
     return r;
 
@@ -698,7 +698,7 @@ zfs_open_retry:
 
   if (VIRTUAL_FH_P (tmp_cap.fh))
     zfsd_mutex_lock (&vd_mutex);
-  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd);
+  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -758,7 +758,7 @@ zfs_close (zfs_cap *cap)
 
 zfs_close_retry:
 
-  r = find_capability (cap, &icap, &vol, &dentry, &vd);
+  r = find_capability (cap, &icap, &vol, &dentry, &vd, true);
   if (r != ZFS_OK)
     return r;
 
@@ -811,7 +811,7 @@ zfs_close_retry:
 
   if (VIRTUAL_FH_P (tmp_cap.fh))
     zfsd_mutex_lock (&vd_mutex);
-  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd);
+  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1345,7 +1345,7 @@ zfs_readdir_retry:
 
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
-  r = find_capability_nolock (cap, &icap, &vol, &dentry, &vd);
+  r = find_capability_nolock (cap, &icap, &vol, &dentry, &vd, true);
   if (VIRTUAL_FH_P (cap->fh) && !vd)
     zfsd_mutex_unlock (&vd_mutex);
   if (r != ZFS_OK)
@@ -1424,7 +1424,7 @@ zfs_readdir_retry:
     {
       if (VIRTUAL_FH_P (tmp_cap.fh))
 	zfsd_mutex_lock (&vd_mutex);
-      r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd);
+      r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -1609,7 +1609,7 @@ zfs_read (uint32_t *rcount, void *buffer,
 
 zfs_read_retry:
 
-  r = find_capability (cap, &icap, &vol, &dentry, NULL);
+  r = find_capability (cap, &icap, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -1696,7 +1696,7 @@ zfs_read_retry:
   else
     abort ();
 
-  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1832,7 +1832,7 @@ zfs_write (write_res *res, write_args *args)
 
 zfs_write_retry:
 
-  r = find_capability (&args->cap, &icap, &vol, &dentry, NULL);
+  r = find_capability (&args->cap, &icap, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -1857,7 +1857,7 @@ zfs_write_retry:
   else
     abort ();
 
-  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1954,7 +1954,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   cap.flags = O_RDONLY;
 
   /* Open directory.  */
-  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, false);
+  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, false, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1962,7 +1962,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
   r = local_open (0, dentry, vol);
 
-  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1999,7 +1999,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 	}
       release_dentry (dentry);
 
-      r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
+      r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -2039,7 +2039,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   cap.flags = O_RDONLY;
 
   /* Open directory.  */
-  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, true);
+  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, true, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2047,7 +2047,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
   r = remote_open (&remote_cap, icap, 0, dentry, vol);
 
-  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2077,7 +2077,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
       r = remote_readdir (&list, icap, dentry, entries->last_cookie,
 			  &data, vol, &filldir_htab);
 
-      r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+      r2 = find_capability (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -2089,7 +2089,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
 	  remote_close (icap, dentry, vol);
 
-	  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+	  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
@@ -2106,7 +2106,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   /* Close directory.  */
   r = remote_close (icap, dentry, vol);
 
-  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2135,9 +2135,11 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
   for (total = 0; total < count; total += n_read)
     {
-      r = find_capability (cap, &icap, &vol, &dentry, NULL);
+      r = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
-	return r;
+	abort ();
+#endif
 
 #ifdef ENABLE_CHECKING
       if (!(vol->local_path && vol->master != this_node))
@@ -2174,9 +2176,11 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
   for (total = 0; total < count; total += n_read)
     {
-      r = find_capability (cap, &icap, &vol, &dentry, NULL);
+      r = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
-	return r;
+	abort ();
+#endif
 
 #ifdef ENABLE_CHECKING
       if (!(vol->local_path && vol->master != this_node))
@@ -2213,9 +2217,11 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
   for (total = 0; total < count; total += res.written)
     {
-      r = find_capability_nolock (cap, &icap, &vol, &dentry, NULL);
+      r = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
-	return r;
+	abort ();
+#endif
 
 #ifdef ENABLE_CHECKING
       if (!(vol->local_path && vol->master != this_node))
@@ -2308,9 +2314,11 @@ remote_md5sum (md5sum_res *res, md5sum_args *args)
 
 remote_md5sum_retry:
 
-  r = find_capability (&args->cap, &icap, &vol, &dentry, NULL);
+  r = find_capability (&args->cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
   if (r != ZFS_OK)
-    return r;
+    abort ();
+#endif
 
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (icap->master_cap))

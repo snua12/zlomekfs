@@ -107,7 +107,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_fh_lookup_nolock (&cap->fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup_nolock (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r != ZFS_OK)
     abort ();
@@ -132,7 +132,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
       if (r != ZFS_OK)
 	return r;
 
-      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
+      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
 	abort ();
@@ -279,7 +279,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	    abort ();	/* FIXME */
 
 	  /* Add the interval to UPDATED.  */
-	  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
+	  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r != ZFS_OK)
 	    abort ();
@@ -297,7 +297,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 
   if (flush)
     {
-      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
+      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
 	abort ();
@@ -341,7 +341,7 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
   if (r != ZFS_OK)
     return r;
 
-  r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -356,7 +356,7 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
       if (r != ZFS_OK)
 	return r;
 
-      r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
+      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -414,7 +414,7 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
 	return r;
     }
 
-  r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -453,7 +453,7 @@ update_file (zfs_fh *fh)
 
   cap.fh = *fh;
   cap.flags = O_RDONLY;
-  r = get_capability (&cap, &icap, &vol, &dentry, NULL, true);
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL, true, true);
   if (r != ZFS_OK)
     return r;
 
@@ -483,7 +483,7 @@ update_file (zfs_fh *fh)
     goto out2;
 
 retry_remote_lookup:
-  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -506,7 +506,7 @@ retry_remote_lookup:
       goto out2;
     }
 
-  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -526,7 +526,7 @@ retry_remote_lookup:
   release_dentry (dentry);
   r = update_file_blocks (false, NULL, NULL, 0, &cap, &blocks);
 
-  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -540,7 +540,7 @@ retry_remote_lookup:
   goto out;
 
 out2:
-  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -577,7 +577,7 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
   if (r != ZFS_OK)
     goto out;
 
-  r2 = zfs_fh_lookup (fh, volp, dentryp, NULL);
+  r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -587,7 +587,7 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
   if (r != ZFS_OK)
     goto out;
 
-  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL);
+  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -601,7 +601,7 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
   return UPDATE_P (*dentryp, *attr);
 
 out:
-  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL);
+  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -703,7 +703,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    if (!delete_tree (dentry, vol))
 	      return ZFS_UPDATE_FAILED;
 
-	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	    if (r2 != ZFS_OK)
 	      abort ();
@@ -750,7 +750,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    if (!delete_tree (dentry, vol))
 	      return ZFS_UPDATE_FAILED;
 
-	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	    if (r2 != ZFS_OK)
 	      abort ();
@@ -788,7 +788,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	if (r != ZFS_OK)
 	  return r;
 
-	r2 = zfs_fh_lookup_nolock (local_fh, &vol, &dentry, NULL);
+	r2 = zfs_fh_lookup_nolock (local_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -797,7 +797,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	if (!delete_tree (dentry, vol))
 	  return ZFS_UPDATE_FAILED;
 
-	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -824,7 +824,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	if (!delete_tree (dentry, vol))
 	  return ZFS_UPDATE_FAILED;
 
-	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -853,7 +853,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 
       if (dir_fh)
 	{
-	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 	}
@@ -966,7 +966,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	if (r != ZFS_OK)
 	  return r;
 
-	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -1011,7 +1011,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       uint32_t flags;
       bool ok;
 
-      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
+      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
       if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	abort ();
 
@@ -1072,7 +1072,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
 
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -1111,7 +1111,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
 
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -1135,7 +1135,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	}
       zfsd_mutex_unlock (&running_mutex);
 
-      r2 = zfs_fh_lookup (fh, NULL, &dentry, NULL);
+      r2 = zfs_fh_lookup (fh, NULL, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -1177,7 +1177,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	{
 	  /* Update file.  */
 
-	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
@@ -1185,7 +1185,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	  if (r != ZFS_OK)
 	    goto out;
 
-	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
@@ -1193,7 +1193,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	  if (r != ZFS_OK)
 	    goto out;
 
-	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
@@ -1221,7 +1221,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       else
 	{
 	  /* Delete file.  */
-	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
@@ -1237,7 +1237,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 
       entry = (dir_entry *) *slot;
 
-      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
+      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
       if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	abort ();
 
@@ -1245,7 +1245,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       if (r != ZFS_OK)
 	goto out;
 
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
       if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	abort ();
 
@@ -1260,7 +1260,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   r = ZFS_OK;
 
 out:
-  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
+  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();

@@ -369,18 +369,21 @@ internal_dentry_eq_name (const void *xx, const void *yy)
 }
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
-   and set *VOLP, *DENTRYP and VDP according to it.  */
+   and set *VOLP, *DENTRYP and VDP according to it.
+   If DELETE_VOLUME_P is true and the volume should be deleted do not
+   lookup the file handle and delete the volume if there are no file handles
+   locked on it.  */
 
 int32_t
 zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
-	       virtual_dir *vdp)
+	       virtual_dir *vdp, bool delete_volume_p)
 {
   int32_t res;
 
   if (VIRTUAL_FH_P (*fh))
     zfsd_mutex_lock (&vd_mutex);
 
-  res = zfs_fh_lookup_nolock (fh, volp, dentryp, vdp);
+  res = zfs_fh_lookup_nolock (fh, volp, dentryp, vdp, delete_volume_p);
 
   if (VIRTUAL_FH_P (*fh))
     zfsd_mutex_unlock (&vd_mutex);
@@ -392,11 +395,14 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *DENTRYP and VDP according to it.
-   This function is similar to FH_LOOKUP but the big locks must be locked.  */
+   This function is similar to FH_LOOKUP but the big locks must be locked.
+   If DELETE_VOLUME_P is true and the volume should be deleted do not
+   lookup the file handle and delete the volume if there are no file handles
+   locked on it.  */
 
 int32_t
 zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
-		      virtual_dir *vdp)
+		      virtual_dir *vdp, bool delete_volume_p)
 {
   hash_t hash = ZFS_FH_HASH (fh);
 
@@ -443,9 +449,10 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	      zfsd_mutex_unlock (&fh_mutex);
 	      return ENOENT;
 	    }
-	  if (vol->delete_p)
+	  if (delete_volume_p && vol->delete_p)
 	    {
-	      volume_delete (vol);
+	      if (vol->n_locked_fhs == 0)
+		volume_delete (vol);
 	      zfsd_mutex_unlock (&fh_mutex);
 	      return ENOENT;
 	    }
@@ -538,7 +545,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	      int32_t r;
 
 	      zfsd_mutex_unlock (&fh_mutex);
-	      r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL);
+	      r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	      if (r != ZFS_OK)
 		abort ();
@@ -723,7 +730,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
-      r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL);
+      r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL, true);
       if (r != ZFS_OK)
 	return r;
     }
@@ -747,7 +754,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
       release_dentry (*dentryp);
       zfsd_mutex_unlock (&(*volp)->mutex);
 
-      r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL);
+      r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
 	abort ();
@@ -840,7 +847,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
       zfsd_mutex_unlock (&(*volp)->mutex);
       zfsd_mutex_unlock (&fh_mutex);
 
-      r = zfs_fh_lookup (tmp_fh2, volp, dentry2p, NULL);
+      r = zfs_fh_lookup (tmp_fh2, volp, dentry2p, NULL, true);
       if (r != ZFS_OK)
 	goto out1;
 
@@ -848,7 +855,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
       if (r != ZFS_OK)
 	{
 out1:
-	  r2 = zfs_fh_lookup_nolock (tmp_fh1, volp, dentry1p, NULL);
+	  r2 = zfs_fh_lookup_nolock (tmp_fh1, volp, dentry1p, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
@@ -877,7 +884,7 @@ out1:
       zfsd_mutex_unlock (&(*volp)->mutex);
       zfsd_mutex_unlock (&fh_mutex);
 
-      r = zfs_fh_lookup (tmp_fh1, volp, dentry1p, NULL);
+      r = zfs_fh_lookup (tmp_fh1, volp, dentry1p, NULL, true);
       if (r != ZFS_OK)
 	goto out2;
 
@@ -885,7 +892,7 @@ out1:
       if (r != ZFS_OK)
 	{
 out2:
-	  r2 = zfs_fh_lookup_nolock (tmp_fh2, volp, dentry2p, NULL);
+	  r2 = zfs_fh_lookup_nolock (tmp_fh2, volp, dentry2p, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
@@ -904,7 +911,7 @@ out2:
     }
 
   /* Lookup dentries again.  */
-  r2 = zfs_fh_lookup_nolock (tmp_fh1, volp, dentry1p, NULL);
+  r2 = zfs_fh_lookup_nolock (tmp_fh1, volp, dentry1p, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();

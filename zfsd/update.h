@@ -60,7 +60,8 @@
 									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
-	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
+				       false);				\
 	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
 	      abort ();							\
 									\
@@ -99,7 +100,8 @@
 									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
-	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
+				       false);				\
 	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
 	      abort ();							\
 									\
@@ -131,7 +133,8 @@
 	    zfsd_mutex_unlock (&(VOL)->mutex);				\
 	    zfsd_mutex_unlock (&fh_mutex);				\
 									\
-	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
+				       false);				\
 	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
 	      abort ();							\
 									\
@@ -167,8 +170,8 @@
 									\
 	    if (VIRTUAL_FH_P ((CAP).fh))				\
 	      zfsd_mutex_lock (&vd_mutex);				\
-	    r = find_capability_nolock (&(CAP), &(ICAP), &(VOL), &(DENTRY),\
-				 &(VD));				\
+	    r = find_capability_nolock (&(CAP), &(ICAP), &(VOL),	\
+					&(DENTRY), &(VD), false);	\
 	    if (VIRTUAL_FH_P ((CAP).fh))				\
 	      zfsd_mutex_unlock (&vd_mutex);				\
 	    if (ENABLE_CHECKING_VALUE && r != ZFS_OK)			\

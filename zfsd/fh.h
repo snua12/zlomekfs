@@ -99,7 +99,8 @@ typedef struct volume_def *volume;
 									\
 	zfsd_mutex_unlock (&fh_mutex);					\
 									\
-	r2 = zfs_fh_lookup_nolock (&(DIR_FH), &(VOL), &(DIR), NULL);	\
+	r2 = zfs_fh_lookup_nolock (&(DIR_FH), &(VOL), &(DIR), NULL,	\
+				   false);				\
 	if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
 	  abort ();							\
       }									\
@@ -290,10 +291,11 @@ extern pthread_t cleanup_dentry_thread;
 extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
 extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
-			      internal_dentry *dentryp, virtual_dir *vdp);
+			      internal_dentry *dentryp, virtual_dir *vdp,
+			      bool delete_volume_p);
 extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
 				     internal_dentry *dentryp,
-				     virtual_dir *vdp);
+				     virtual_dir *vdp, bool delete_volume_p);
 extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,

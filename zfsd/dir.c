@@ -694,7 +694,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 zfs_getattr_retry:
 
   /* Lookup FH.  */
-  r = zfs_fh_lookup (fh, &vol, &dentry, &vd);
+  r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
   if (r != ZFS_OK)
     return r;
 
@@ -732,7 +732,7 @@ zfs_getattr_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -886,7 +886,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 zfs_setattr_retry:
 
   /* Lookup FH.  */
-  r = zfs_fh_lookup (fh, &vol, &dentry, &vd);
+  r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
   if (r != ZFS_OK)
     return r;
 
@@ -923,7 +923,7 @@ zfs_setattr_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1078,7 +1078,7 @@ zfs_lookup_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -1212,7 +1212,7 @@ zfs_lookup_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1350,7 +1350,7 @@ zfs_mkdir_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -1401,7 +1401,7 @@ zfs_mkdir_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1529,7 +1529,7 @@ zfs_rmdir_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -1572,7 +1572,7 @@ zfs_rmdir_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1728,7 +1728,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   /* Lookup TO_DIR.  */
   if (VIRTUAL_FH_P (*to_dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd);
+  r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*to_dir))
@@ -1761,7 +1761,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   /* Lookup FROM_DIR.  */
   if (VIRTUAL_FH_P (*from_dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd);
+  r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*from_dir))
@@ -1799,7 +1799,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 zfs_rename_retry:
   /* Lookup dentries.  */
-  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL);
+  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -1840,7 +1840,7 @@ zfs_rename_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_to, &vol, &to_dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_to, &vol, &to_dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2017,7 +2017,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   if (VIRTUAL_FH_P (*from))
     return EPERM;
 
-  r = zfs_fh_lookup (from, &vol, &from_dentry, NULL);
+  r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -2036,7 +2036,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2074,7 +2074,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
 zfs_link_retry:
   /* Lookup dentries.  */
-  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL);
+  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, false);
   if (r != ZFS_OK)
     return r;
 
@@ -2114,7 +2114,7 @@ zfs_link_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_dir, &vol, &dir_dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_dir, &vol, &dir_dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2273,7 +2273,7 @@ zfs_unlink_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2316,7 +2316,7 @@ zfs_unlink_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2498,7 +2498,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
 zfs_readlink_retry:
 
   /* Lookup FH.  */
-  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -2516,7 +2516,7 @@ zfs_readlink_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2647,7 +2647,7 @@ zfs_symlink_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2699,7 +2699,7 @@ zfs_symlink_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2851,7 +2851,7 @@ zfs_mknod_retry:
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2902,7 +2902,7 @@ zfs_mknod_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -3136,7 +3136,7 @@ zfs_hardlinks (hardlinks_res *res, zfs_fh *fh, uint32_t start,
 
 zfs_hardlinks_retry:
 
-  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -3151,7 +3151,7 @@ zfs_hardlinks_retry:
 	  r = remote_hardlinks (res, dentry, vol, start, fill_hardlink);
 	  if (r < ZFS_OK && r != ZFS_STALE)
 	    {
-	      r2 = zfs_fh_lookup (&tmp_fh, &vol, &dentry, NULL);
+	      r2 = zfs_fh_lookup (&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	      if (r2 != ZFS_OK)
 		abort ();
@@ -3170,7 +3170,7 @@ zfs_hardlinks_retry:
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -3210,7 +3210,7 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, string *entry,
   r = remote_lookup (res, dir, entry, vol);
   if (r == ZFS_STALE)
     {
-      r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL);
+      r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL, true);
       if (r != ZFS_OK)
 	return r;
 
@@ -3232,7 +3232,7 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, string *entry,
       free (name.str);
       if (r == ZFS_OK)
 	{
-	  r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL);
+	  r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL, true);
 	  if (r != ZFS_OK)
 	    return r;
 
@@ -3257,7 +3257,7 @@ refresh_path (zfs_fh *fh)
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
-  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
@@ -3296,7 +3296,7 @@ refresh_master_fh (zfs_fh *fh)
     abort ();
 #endif
 
-  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -3324,7 +3324,7 @@ refresh_master_fh (zfs_fh *fh)
 	    return r;
 
 retry_lookup:
-	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
@@ -3350,7 +3350,7 @@ retry_lookup:
 	  if (r != ZFS_OK)
 	    return r;
 
-	  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+	  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
@@ -3372,7 +3372,7 @@ retry_lookup:
 	  if (r != ZFS_OK)
 	    return r;
 
-	  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+	  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
