@@ -1871,6 +1871,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   string path;
   zfs_fh tmp_fh;
   int32_t r, r2;
+  int what_to_do = 0;
 
   TRACE ("");
 
@@ -1926,6 +1927,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
+      what_to_do = 1;
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
 	return r;
@@ -1933,6 +1935,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
     }
   else if (vol->master != this_node)
     {
+      what_to_do = 2;
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_rmdir (idir, name, vol);
     }
@@ -1948,50 +1951,61 @@ zfs_rmdir (zfs_fh *dir, string *name)
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &idir, name, &tmp_fh);
+      string filename;
+      struct stat parent_st;
+      metadata meta;
 
-      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+      switch (what_to_do)
 	{
-	  string filename;
-	  struct stat parent_st;
-	  metadata meta;
+	  default:
+	    break;
 
-	  if (vol->master != this_node)
-	    {
-	      if (!add_journal_entry_st (vol, idir->fh, &st, name,
-					 JOURNAL_OPERATION_DEL))
-		MARK_VOLUME_DELETE (vol);
-	    }
+	  case 1:
+	    /* Deleted a local directory.  */
+	    delete_dentry (&vol, &idir, name, &tmp_fh);
+
+	    if (vol->master != this_node)
+	      {
+		if (!add_journal_entry_st (vol, idir->fh, &st, name,
+					   JOURNAL_OPERATION_DEL))
+		  MARK_VOLUME_DELETE (vol);
+	      }
 
 #ifdef ENABLE_CHECKING
-	  if (path.str == NULL)
-	    abort ();
+	    if (path.str == NULL)
+	      abort ();
 #endif
 
-	  file_name_from_path (&filename, &path);
-	  filename.str[-1] = 0;
-	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
-	    {
-	      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					    zfs_mode_to_ftype (st.st_mode));
-	      meta.uid = map_uid_node2zfs (st.st_uid);
-	      meta.gid = map_gid_node2zfs (st.st_gid);
-	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
-				    parent_st.st_dev, parent_st.st_ino,
-				    &filename))
-		MARK_VOLUME_DELETE (vol);
-	    }
-	  filename.str[-1] = '/';
+	    file_name_from_path (&filename, &path);
+	    filename.str[-1] = 0;
+	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
+	      {
+		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					      zfs_mode_to_ftype (st.st_mode));
+		meta.uid = map_uid_node2zfs (st.st_uid);
+		meta.gid = map_gid_node2zfs (st.st_gid);
+		if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
+				      parent_st.st_dev, parent_st.st_ino,
+				      &filename))
+		  MARK_VOLUME_DELETE (vol);
+	      }
+	    filename.str[-1] = '/';
 
-	  if (!inc_local_version (vol, idir->fh))
-	    MARK_VOLUME_DELETE (vol);
+	    if (!inc_local_version (vol, idir->fh))
+	      MARK_VOLUME_DELETE (vol);
+	    break;
+
+	  case 2:
+	    /* Deleted a remote directory.  */
+	    delete_dentry (&vol, &idir, name, &tmp_fh);
+	    break;
 	}
     }
 
+  internal_dentry_unlock (vol, idir);
+
   if (path.str)
     free (path.str);
-
-  internal_dentry_unlock (vol, idir);
 
   return r;
 }
