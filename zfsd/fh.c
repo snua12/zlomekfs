@@ -857,6 +857,26 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
     abort ();
 #endif
 
+  if (!start)
+    {
+      start = vol->root_dentry;
+      if (!start)
+	return NULL;
+
+      acquire_dentry (start);
+    }
+
+  if (CONFLICT_DIR_P (start->fh->local_fh))
+    {
+      dentry = dentry_lookup_name (vol, start, &this_node->name);
+      release_dentry (start);
+
+      if (!dentry)
+	return NULL;
+
+      start = dentry;
+    }
+
   str = path->str;
   while (*str)
     {
@@ -871,13 +891,22 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
       name.len = strlen (name.str);
 
       dentry = dentry_lookup_name (vol, start, &name);
-      if (start)
-	release_dentry (start);
+      release_dentry (start);
 
       if (!dentry)
 	return NULL;
 
       start = dentry;
+      if (CONFLICT_DIR_P (start->fh->local_fh))
+	{
+	  dentry = dentry_lookup_name (vol, start, &this_node->name);
+	  release_dentry (start);
+
+	  if (!dentry)
+	    return NULL;
+
+	  start = dentry;
+	}
     }
 
   return dentry;
