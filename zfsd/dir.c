@@ -5508,7 +5508,8 @@ refresh_fh (zfs_fh *fh)
   return r;
 }
 
-/* Refresh local path PATH on volume VOL.  */
+/* Refresh local path LOCAL_PATH on volume VOL and store its file handle
+   to FH.  */
 
 int32_t
 refresh_local_path (zfs_fh *fh, volume vol, string *local_path)
@@ -5540,4 +5541,19 @@ refresh_local_path (zfs_fh *fh, volume vol, string *local_path)
     *fh = res.file;
 
   return r;
+}
+
+/* Refresh local path LOCAL_PATH on volume with ID == VID and store its
+   file handle to FH.  */
+
+int32_t
+refresh_local_path_vid (zfs_fh *fh, uint32_t vid, string *local_path)
+{
+  volume vol;
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    return ESTALE;
+
+  return refresh_local_path (fh, vol, local_path);
 }

@@ -133,5 +133,7 @@ extern int32_t local_invalidate_fh (zfs_fh *fh);
 extern int32_t local_invalidate (internal_dentry dentry, bool volume_root_p);
 extern int32_t refresh_fh (zfs_fh *fh);
 extern int32_t refresh_local_path (zfs_fh *fh, volume vol, string *local_path);
+extern int32_t refresh_local_path_vid (zfs_fh *fh, uint32_t vid,
+				       string *local_path);
 
 #endif
