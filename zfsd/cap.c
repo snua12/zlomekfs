@@ -110,6 +110,8 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     abort ();
 #endif
 
+  message (4, stderr, "CAP %p LOCK\n", (*dentryp)->fh);
+
   *tmp_cap = (*icapp)->local_cap;
   wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
   if (wait_for_locked)
@@ -135,6 +137,8 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       if (r != ZFS_OK)
 	return r;
     }
+
+  message (4, stderr, "CAP %p LOCKED\n", (*dentryp)->fh);
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
