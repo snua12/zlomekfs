@@ -486,6 +486,54 @@ mark_all_volumes (void)
   zfsd_mutex_unlock (&volume_mutex);
 }
 
+/** \fn static void delete_dentries_of_marked_volume (volume vol)
+    \brief Delete all dentries of marked volume.
+    \param vol Volume on which the dentries will be deleted.  */
+
+static void
+delete_dentries_of_marked_volume (volume vol)
+{
+  internal_dentry dentry;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!vol->marked)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      return;
+    }
+
+  dentry = vol->root_dentry;
+  zfsd_mutex_lock (&dentry->fh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  internal_dentry_destroy (dentry, true, false, true);
+}
+
+/** \fn static void delete_dentries_of_marked_volumes (void)
+    \brief Delete all dentries of marked volume.
+    \param vol Volume on which the dentries will be deleted.  */
+
+void
+delete_dentries_of_marked_volumes (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&fh_mutex);
+  zfsd_mutex_lock (&volume_mutex);
+  HTAB_FOR_EACH_SLOT (volume_htab, slot)
+    {
+      volume vol = (volume) *slot;
+
+      zfsd_mutex_lock (&vol->mutex);
+      zfsd_mutex_unlock (&volume_mutex);
+      delete_dentries_of_marked_volume (vol);
+      zfsd_mutex_lock (&volume_mutex);
+    }
+  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+}
+
 /* Destroy volume VOL if it is marked.  */
 
 static void

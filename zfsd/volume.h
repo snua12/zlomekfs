@@ -89,6 +89,7 @@ extern bool volume_set_local_info (volume *volp, string *local_path,
 extern bool volume_set_local_info_wrapper (volume *volp, char *local_path,
 					   uint64_t size_limit);
 extern void mark_all_volumes (void);
+extern void delete_dentries_of_marked_volumes (void);
 extern void destroy_marked_volume (uint32_t vid);
 extern void destroy_marked_volumes (void);
 extern void destroy_all_volumes (void);
