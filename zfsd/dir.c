@@ -705,7 +705,7 @@ zfs_getattr_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, dentry, tmp_fh);
       r = local_getattr (fa, dentry, vol);
@@ -727,7 +727,7 @@ zfs_getattr_retry:
   if (r == ZFS_OK)
     {
       /* Update cached file attributes.  */
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	set_attr_version (fa, &dentry->fh->meta);
       dentry->fh->attr = *fa;
     }
@@ -900,7 +900,7 @@ zfs_setattr_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, dentry, tmp_fh);
       r = local_setattr (fa, dentry, sa, vol);
@@ -922,7 +922,7 @@ zfs_setattr_retry:
   if (r == ZFS_OK)
     {
       /* Update cached file attributes.  */
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	set_attr_version (fa, &dentry->fh->meta);
       dentry->fh->attr = *fa;
     }
@@ -1189,7 +1189,7 @@ zfs_lookup_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_lookup (res, idir, name, vol);
@@ -1382,7 +1382,7 @@ zfs_mkdir_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_mkdir (res, idir, name, attr, vol);
@@ -1411,7 +1411,7 @@ zfs_mkdir_retry:
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
 			   &res->attr);
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
@@ -1561,7 +1561,7 @@ zfs_rmdir_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_rmdir (&st, idir, name, vol);
@@ -1585,7 +1585,7 @@ zfs_rmdir_retry:
     {
       DESTROY_DENTRY (vol, idir, name->str, tmp_fh, NULL);
 
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!delete_metadata (vol, st.st_dev, st.st_ino, NULL))
 	    vol->delete_p = true;
@@ -1834,7 +1834,7 @@ zfs_rename_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       UPDATE_FH_IF_NEEDED_2 (vol, to_dentry, from_dentry, tmp_to, tmp_from);
       if (tmp_from.ino != tmp_to.ino)
@@ -1884,7 +1884,7 @@ zfs_rename_retry:
 	  release_dentry (dentry);
 	}
 
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	{
 	  if (relative_path)
 	    {
@@ -2117,7 +2117,7 @@ zfs_link_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       UPDATE_FH_IF_NEEDED_2 (vol, dir_dentry, from_dentry, tmp_dir, tmp_from);
       if (tmp_from.ino != tmp_dir.ino)
@@ -2155,7 +2155,7 @@ zfs_link_retry:
 
       internal_dentry_link (from_dentry->fh, vol, dir_dentry, name->str);
 
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
 	  if (!inc_local_version (vol, dir_dentry->fh))
 	    vol->delete_p = true;
@@ -2325,7 +2325,7 @@ zfs_unlink_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_unlink (&st, &path, idir, name, vol);
@@ -2352,7 +2352,7 @@ zfs_unlink_retry:
       relative_path = local_path_to_relative_path (vol, path);
       DESTROY_DENTRY (vol, idir, name->str, tmp_fh, relative_path);
 
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 #ifdef ENABLE_CHECKING
 	  if (relative_path == NULL)
@@ -2532,7 +2532,7 @@ zfs_readlink_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     r = local_readlink (res, dentry, vol);
   else if (vol->master != this_node)
     {
@@ -2712,7 +2712,7 @@ zfs_symlink_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_symlink (res, idir, name, to, attr, vol);
@@ -2741,7 +2741,7 @@ zfs_symlink_retry:
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
 			   &res->attr);
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
@@ -2919,7 +2919,7 @@ zfs_mknod_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_mknod (res, idir, name, attr, type, rdev, vol);
@@ -2948,7 +2948,7 @@ zfs_mknod_retry:
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
 			   &res->attr);
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
@@ -3182,7 +3182,7 @@ zfs_hardlinks_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       if (vol->master != this_node)
 	{

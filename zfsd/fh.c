@@ -1514,7 +1514,7 @@ internal_dentry_link (internal_fh fh, volume vol,
 #endif
   *slot = dentry;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       char *path;
 

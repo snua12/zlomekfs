@@ -443,7 +443,7 @@ zfs_create_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_create (res, &fd, idir, name, flags, attr, vol);
@@ -476,7 +476,7 @@ zfs_create_retry:
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry,
 					      flags & O_ACCMODE);
 
-      if (vol->local_path)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	{
 	  /* Remote file is not open.  */
 	  zfs_fh_undefine (icap->master_cap.fh);
@@ -673,7 +673,7 @@ zfs_open_retry:
     }
 
   flags &= ~O_ACCMODE;
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       UPDATE_CAP_IF_NEEDED (icap, vol, dentry, vd, tmp_cap);
 
@@ -746,7 +746,7 @@ zfs_open_retry:
     }
   else
     {
-      if (vol->local_path && vol->master != this_node)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node)
 	{
 	  if (dentry->fh->attr.type == FT_REG
 	      && !save_interval_trees (vol, dentry->fh))
@@ -821,7 +821,7 @@ zfs_close_retry:
   if (dentry)
     zfsd_mutex_unlock (&fh_mutex);
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       if (!zfs_cap_undefined (icap->master_cap)
 	  && (dentry->fh->attr.type == FT_BLK
@@ -1431,7 +1431,7 @@ zfs_readdir_retry:
   data.written = 0;
   data.count = (count > ZFS_MAXDATA) ? ZFS_MAXDATA : count;
 
-  if (!dentry || vol->local_path)
+  if (!dentry || INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       r = local_readdir (list, dentry, vd, cookie, &data, vol, filldir);
       if (vd)
@@ -1690,7 +1690,7 @@ zfs_read_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       if (vol->master != this_node && dentry->fh->attr.type == FT_REG && update)
 	{
@@ -1943,7 +1943,7 @@ zfs_write_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       if (vol->master != this_node)
 	{
@@ -1989,7 +1989,7 @@ zfs_write_retry:
 
   if (r == ZFS_OK)
     {
-      if (vol->local_path && dentry->fh->attr.type == FT_REG)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && dentry->fh->attr.type == FT_REG)
 	{
 	  if (!set_metadata_flags (vol, dentry->fh,
 				   dentry->fh->meta.flags | METADATA_MODIFIED))
@@ -2266,7 +2266,7 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 #endif
 
 #ifdef ENABLE_CHECKING
-      if (!(vol->local_path && vol->master != this_node))
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
 	abort ();
 #endif
 
@@ -2307,7 +2307,7 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 #endif
 
 #ifdef ENABLE_CHECKING
-      if (!(vol->local_path && vol->master != this_node))
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
 	abort ();
 #endif
 
@@ -2348,7 +2348,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 #endif
 
 #ifdef ENABLE_CHECKING
-      if (!(vol->local_path && vol->master != this_node))
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
 	abort ();
 #endif
 

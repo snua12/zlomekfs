@@ -109,7 +109,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 #endif
 
 #ifdef ENABLE_CHECKING
-  if (!(vol->local_path && vol->master != this_node))
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     abort ();
 #endif
 
@@ -435,7 +435,7 @@ update_file (zfs_fh *fh)
   if (r != ZFS_OK)
     return r;
 
-  if (!(vol->local_path && vol->master != this_node))
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -1045,7 +1045,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!(vol->local_path && vol->master != this_node))
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     abort ();
   if (attr->type != dir->fh->attr.type && !dir->parent)
     abort ();
