@@ -24,7 +24,11 @@
 #include "system.h"
 #include "fh.h"
 #include "zfs_prot.h"
+#include "volume.h"
 
+extern char *build_local_path (volume vol, internal_fh fh);
+extern char *build_local_path_name (volume vol, internal_fh fh,
+				    const char *name);
 extern int get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh);
 extern int update_volume_root (volume vol, internal_fh *ifh);
 extern int zfs_extended_lookup (zfs_fh *fh, zfs_fh *dir, char *path);

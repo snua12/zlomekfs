@@ -21,6 +21,10 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include "system.h"
 #include "fh.h"
+#include "zfs_prot.h"
+
+extern int zfs_getattr (fattr *fa, zfs_fh *fh);
 
 #endif
