@@ -787,6 +787,32 @@ cleanup_zfs_prot_c (void)
 #include "zfsd_call.h"
 
 
+static int zfs_error(int error)
+{
+	switch (error) {
+		case ZFS_OK:
+			return 0;
+		case ZFS_REQUEST_TOO_LONG:
+		case ZFS_INVALID_REQUEST:
+		case ZFS_REPLY_TOO_LONG:
+		case ZFS_INVALID_REPLY:
+			return -EPROTO;
+		case ZFS_UNKNOWN_FUNCTION:			
+			return -EOPNOTSUPP;
+		case ZFS_COULD_NOT_CONNECT:
+		case ZFS_COULD_NOT_AUTH:
+			return -ENOTCONN;
+		case ZFS_STALE:
+		case ZFS_METADATA_ERROR:
+		case ZFS_UPDATE_FAILED:
+		case ZFS_EXITING:
+		case ZFS_CONNECTION_CLOSED:
+		case ZFS_REQUEST_TIMEOUT:
+		default:
+			return -ESTALE;
+	}
+}
+
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)	\
 int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 {								\
@@ -816,7 +842,7 @@ int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 	if (!decode_status(*dc, &error))			\
 		return -EPROTO;					\
 								\
-	return -error;						\
+	return zfs_error(error);				\
 }
 # include "zfs_prot.def"
 # undef DEFINE_ZFS_PROC
