@@ -166,7 +166,7 @@ local_create (create_res *res, internal_fh dir, string *name,
 
   path = build_local_path_name (vol, dir, name->str);
   r = open (path, flags, attr->mode);
-  if (r != 0)
+  if (r < 0)
     {
       free (path);
       return errno;
@@ -293,7 +293,9 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       else
 	ifh = internal_fh_create (&res->file, &res->file, idir,
 				  vol, name->str, &res->attr);
+      zfsd_mutex_lock (&cap_mutex);
       icap = get_capability_no_fh_lookup (&res->cap, ifh);
+      zfsd_mutex_unlock (&cap_mutex);
 
       zfsd_mutex_unlock (&ifh->mutex);
       zfsd_mutex_unlock (&icap->mutex);
