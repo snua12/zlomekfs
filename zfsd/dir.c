@@ -39,6 +39,7 @@
 #include "data-coding.h"
 #include "volume.h"
 #include "network.h"
+#include "kernel.h"
 #include "zfs_prot.h"
 #include "user-group.h"
 #include "update.h"
@@ -4168,6 +4169,9 @@ local_invalidate (internal_dentry dentry, bool volume_root_p)
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  if (!mounted)
+    return ZFS_COULD_NOT_CONNECT;
 
   args.fh = dentry->fh->local_fh;
   release_dentry (dentry);
