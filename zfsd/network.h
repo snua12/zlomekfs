@@ -63,8 +63,8 @@ typedef struct server_fd_data_def
   connection_status conn;	/* status of connection with remote node */
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
-  int busy;			/* number of threads using file descriptor */
-  int flags;			/* See SERVER_FD_* below */
+  unsigned int busy;		/* number of threads using file descriptor */
+  unsigned int flags;		/* See SERVER_FD_* below */
 } server_fd_data_t;
 
 #define SERVER_FD_CLOSE 1
@@ -81,7 +81,7 @@ typedef struct server_thread_data_def
   DC dc;			/* buffer for request to this server */
   DC dc_call;			/* buffer for request for remote server */
   unsigned int generation;	/* generation of file descriptor */
-  int index;			/* index of FD in array "active" */
+  unsigned int index;		/* index of FD in array "active" */
   call_args args;		/* union for decoded call arguments.  */
   int retval;			/* return value for request.  */
 #endif
