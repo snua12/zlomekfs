@@ -616,7 +616,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
     }
   else
     {
-      volume vol;
+      volume vol = NULL;
       internal_dentry dentry;
 
       zfsd_mutex_lock (&fh_mutex);
@@ -1438,7 +1438,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	      && !zfs_fh_undefined (dentry->fh->meta.master_fh)
 	      && !zfs_fh_undefined (*master_fh)))
 	{
-	  uint32_t vid;
+	  uint32_t vid = 0;
 	  zfs_fh tmp;
 	  unsigned int level;
 
