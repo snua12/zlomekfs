@@ -143,13 +143,16 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 
       pthread_mutex_lock (&volume_mutex);
       vol = volume_lookup (fh->vid);
-      pthread_mutex_unlock (&volume_mutex);
       if (!vol || !VOLUME_ACTIVE_P (vol))
-	return false;
+	{
+	  pthread_mutex_unlock (&volume_mutex);
+	  return false;
+	}
 
       pthread_mutex_lock (&vol->fh_mutex);
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
       pthread_mutex_unlock (&vol->fh_mutex);
+      pthread_mutex_unlock (&volume_mutex);
       if (!ifh)
 	return false;
 
