@@ -831,6 +831,26 @@ init_volume_metadata (volume vol)
   return true;
 }
 
+/* Close file for hahs file HFILE.  */
+
+static void
+close_hash_file (hfile_t hfile)
+{
+  CHECK_MUTEX_LOCKED (&hfile->mutex);
+
+  if (hfile->fd >= 0)
+    {
+      zfsd_mutex_lock (&metadata_mutex);
+      zfsd_mutex_lock (&metadata_fd_data[hfile->fd].mutex);
+      if (hfile->generation == metadata_fd_data[hfile->fd].generation)
+	close_metadata_fd (hfile->fd);
+      else
+	zfsd_mutex_unlock (&metadata_fd_data[hfile->fd].mutex);
+      zfsd_mutex_unlock (&metadata_mutex);
+      hfile->fd = -1;
+    }
+}
+
 /* Close hash file containing metadata for volume VOL.  */
 
 void
@@ -838,22 +858,7 @@ close_volume_metadata (volume vol)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (vol->metadata->fd >= 0)
-    {
-      zfsd_mutex_lock (&metadata_mutex);
-      zfsd_mutex_lock (&metadata_fd_data[vol->metadata->fd].mutex);
-      if (vol->metadata->generation
-	  == metadata_fd_data[vol->metadata->fd].generation)
-	{
-	  close_metadata_fd (vol->metadata->fd);
-	}
-      else
-	{
-	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	}
-      zfsd_mutex_unlock (&metadata_mutex);
-    }
-  vol->metadata->fd = -1;
+  close_hash_file (vol->metadata);
   hfile_destroy (vol->metadata);
   vol->metadata = NULL;
   vol->delete_p = true;
