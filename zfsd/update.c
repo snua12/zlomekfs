@@ -2721,6 +2721,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   bool flush_journal;
   bool local_volume_root;
   bool local_exists;
+  bool cancel;
   uint64_t version_increase;
 
   TRACE ("");
@@ -2782,6 +2783,45 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    if (r2 != ZFS_OK)
 	      abort ();
 #endif
+
+	    cancel = false;
+	    if (r == ZFS_OK)	/* ! m-d conflict */
+	      {
+		if (ZFS_FH_EQ (meta.master_fh, res.file) /* ! c-c */
+		    /* ! a-a */
+		    && (!METADATA_ATTR_CHANGE_P (meta, local_res.attr)
+			|| !METADATA_ATTR_CHANGE_P (meta, res.attr))
+		    && (local_res.attr.type != FT_REG	/* ! m-m */
+			|| local_res.attr.version == meta.master_version
+			|| res.attr.version == meta.master_version))
+		  cancel = true;
+	      }
+	    else
+	      cancel = true;
+
+	    if (cancel)
+	      {
+		conflict = dentry_lookup_name (vol, dir, &entry->name);
+		if (conflict)
+		  {
+		    if (CONFLICT_DIR_P (conflict->fh->local_fh))
+		      {
+			release_dentry (dir);
+			cancel_conflict (vol, conflict);
+
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
+		      }
+		    else
+		      {
+			release_dentry (conflict);
+		      }
+		  }
+	      }
 
 	    if (r == ZFS_OK)
 	      {
@@ -2961,6 +3001,39 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    if (r2 != ZFS_OK)
 	      abort ();
 #endif
+
+	    cancel = false;
+	    if (r == ZFS_OK)
+	      {
+		if (!ZFS_FH_EQ (res.file, entry->master_fh)) /* ! d-m */
+		  cancel = true;
+	      }
+	    else
+	      cancel = true;
+
+	    if (cancel)
+	      {
+		conflict = dentry_lookup_name (vol, dir, &entry->name);
+		if (conflict)
+		  {
+		    if (CONFLICT_DIR_P (conflict->fh->local_fh))
+		      {
+			release_dentry (dir);
+			cancel_conflict (vol, conflict);
+
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
+		      }
+		    else
+		      {
+			release_dentry (conflict);
+		      }
+		  }
+	      }
 
 	    if (r == ZFS_OK)
 	      {
