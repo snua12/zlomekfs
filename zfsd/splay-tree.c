@@ -3,7 +3,7 @@
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
    Some modifications for ZFS:
-   Copyright (C) 2003 Josef Zlomek (josef.zlomek@email.cz).
+   Copyright (C) 2003, 2004 Josef Zlomek (josef.zlomek@email.cz).
 
    This file is part of ZFS.
 

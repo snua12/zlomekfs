@@ -4,7 +4,7 @@
    This code is in the public domain; do with it what you wish.
 
    Some modifications for oftpd and ZFS:
-   Copyright (C) 2001,2003 Josef Zlomek
+   Copyright (C) 2001, 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
