@@ -21,6 +21,9 @@
 #include "system.h"
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "pthread.h"
 #include "fh.h"
 #include "alloc-pool.h"
@@ -30,6 +33,7 @@
 #include "memory.h"
 #include "server.h"
 #include "varray.h"
+#include "zfs_prot.h"
 
 /* File handle of ZFS root.  */
 zfs_fh root_fh = {SERVER_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
@@ -402,10 +406,13 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->fh.ino = last_virtual_ino;
   vd->parent = parent;
   vd->name = xstrdup (name);
+  virtual_dir_set_fattr (vd);
 
   varray_create (&vd->subdirs, sizeof (virtual_dir), 16);
   vd->subdir_index = VARRAY_USED (parent->subdirs);
   VARRAY_PUSH (parent->subdirs, vd, virtual_dir);
+  vd->parent->attr.nlink++;
+  vd->parent->attr.ctime = vd->parent->attr.mtime = time (NULL);
 
   vd->n_mountpoints = 0;
   vd->vol = NULL;
@@ -461,6 +468,8 @@ virtual_dir_destroy (virtual_dir vd)
 	    = top;
 	  VARRAY_POP (vd->parent->subdirs);
 	  top->subdir_index = vd->subdir_index;
+	  vd->parent->attr.nlink--;
+	  vd->parent->attr.ctime = vd->parent->attr.mtime = time (NULL);
 
 	  /* Delete the virtual_fh from the table of virtual directories.  */
 	  slot = htab_find_slot (virtual_dir_htab_name, vd, NO_INSERT);
@@ -499,6 +508,7 @@ virtual_root_create ()
   root->subdir_index = 0;
   root->n_mountpoints = 1;
   root->vol = NULL;
+  virtual_dir_set_fattr (root);
 
   /* Insert the root into hash table.  */
   slot = htab_find_slot_with_hash (virtual_dir_htab, &root->fh,
@@ -597,6 +607,31 @@ virtual_mountpoint_create (volume vol)
   free (mountpoint);
 
   return vd;
+}
+
+/* Set the file attributes of virtual directory VD.  */
+
+void
+virtual_dir_set_fattr (virtual_dir vd)
+{
+  vd->attr.type = FT_DIR;
+  vd->attr.mode = S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+  vd->attr.nlink = 2;
+  vd->attr.uid = 0; /* FIXME? */
+  vd->attr.gid = 0; /* FIXME? */
+  vd->attr.rdev = 0;
+  vd->attr.size = 0;
+  vd->attr.blocks = 0;
+  vd->attr.blksize = 4096;
+  vd->attr.generation = 0;
+  vd->attr.fversion = 0;
+  vd->attr.sid = vd->fh.sid;
+  vd->attr.vid = vd->fh.vid;
+  vd->attr.fsid = vd->fh.dev;
+  vd->attr.fileid = vd->fh.ino;
+  vd->attr.atime = time (NULL);
+  vd->attr.mtime = vd->attr.atime;
+  vd->attr.ctime = vd->attr.atime;
 }
 
 /* Print the virtual directory VD and its subdirectories to file F

@@ -43,24 +43,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   if (vd)
     {
-      fa->type = FT_DIR;
-      fa->mode = S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
-      fa->nlink = 2 + vd->subdirs.nelem;
-      fa->uid = 0; /* FIXME? */
-      fa->gid = 0; /* FIXME? */
-      fa->rdev = 0;
-      fa->size = 0;
-      fa->blocks = 0;
-      fa->blksize = 4096;
-      fa->generation = 0;
-      fa->fversion = 0;
-      fa->sid = vd->fh.sid;
-      fa->vid = vd->fh.vid;
-      fa->fsid = vd->fh.dev;
-      fa->fileid = vd->fh.ino;
-      fa->atime = time (NULL);	/* FIXME? */
-      fa->mtime = fa->atime;	/* FIXME? */
-      fa->ctime = fa->atime;	/* FIXME? */
+      memcpy (fa, &vd->attr, sizeof (fattr));
     }
   else /* if (ifh) */
     {
