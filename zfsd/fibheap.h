@@ -71,6 +71,10 @@ typedef struct fibheap_def
   alloc_pool pool;
 } *fibheap;
 
+/* The type of a function used to iterate over the tree.
+   Returns non-zero value to stop traversing.  */
+typedef int (*fibheap_foreach_fn) (void *node_data, void *data);
+
 extern fibheap fibheap_new (unsigned int block_size, pthread_mutex_t *mutex);
 extern fibnode fibheap_insert (fibheap, fibheapkey_t, void *);
 extern int fibheap_empty (fibheap);
@@ -83,5 +87,6 @@ extern void *fibheap_replace_data (fibheap, fibnode, void *);
 extern void *fibheap_delete_node (fibheap, fibnode);
 extern void fibheap_delete (fibheap);
 extern fibheap fibheap_union (fibheap, fibheap);
+extern int fibheap_foreach (fibheap heap, fibheap_foreach_fn fn, void *data);
 
 #endif

@@ -28,6 +28,7 @@
 #include "pthread.h"
 #include "fibheap.h"
 #include "memory.h"
+#include "log.h"
 #include "alloc-pool.h"
 
 #define FIBHEAPKEY_MIN 0
@@ -42,6 +43,8 @@ static fibnode fibheap_extr_min_node (fibheap);
 static void fibnode_insert_after (fibnode, fibnode);
 #define fibnode_insert_before(a, b) fibnode_insert_after (a->left, b)
 static fibnode fibnode_remove (fibnode);
+static int fibheap_foreach_helper (fibnode node, fibheap_foreach_fn fn,
+				   void *data);
 
 
 /* Create a new fibonacci heap.  */
@@ -63,10 +66,16 @@ fibheap_insert (fibheap heap, fibheapkey_t key, void *data)
 {
   fibnode node;
 
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
   /* Create the new node.  */
   node = (fibnode) pool_alloc (heap->pool);
+  node->parent = NULL;
+  node->child = NULL;
   node->left = node;
   node->right = node;
+  node->degree = 0;
+  node->mark = 0;
 
   /* Set the node's data.  */
   node->data = data;
@@ -89,6 +98,8 @@ fibheap_insert (fibheap heap, fibheapkey_t key, void *data)
 void *
 fibheap_min (fibheap heap)
 {
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
   /* If there is no min, we can't easily return it.  */
   if (heap->min == NULL)
     return NULL;
@@ -99,6 +110,8 @@ fibheap_min (fibheap heap)
 fibheapkey_t
 fibheap_min_key (fibheap heap)
 {
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
   /* If there is no min, we can't easily return it.  */
   if (heap->min == NULL)
     return 0;
@@ -110,6 +123,12 @@ fibheap
 fibheap_union (fibheap heapa, fibheap heapb)
 {
   fibnode a_root, b_root, temp;
+
+#ifdef ENABLE_CHECKING
+  if (heapa->mutex != heapb->mutex)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (heapa->mutex);
 
   /* If one of the heaps is empty, the union is just the other heap.  */
   if ((a_root = heapa->root) == NULL)
@@ -146,6 +165,8 @@ fibheap_extract_min (fibheap heap)
   fibnode z;
   void *ret = NULL;
 
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
   /* If we don't have a min set, it means we have no nodes.  */
   if (heap->min != NULL)
     {
@@ -167,6 +188,8 @@ fibheap_replace_key_data (fibheap heap, fibnode node, fibheapkey_t key,
   void *odata;
   fibheapkey_t okey;
   fibnode y;
+
+  CHECK_MUTEX_LOCKED (heap->mutex);
 
   /* If we wanted to, we could actually do a real increase by redeleting and
      inserting. However, this would require O (log n) time. So just bail out
@@ -225,6 +248,8 @@ fibheap_delete_node (fibheap heap, fibnode node)
 {
   void *ret = node->data;
 
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
   /* To perform delete, we just make it the min key, and extract.  */
   fibheap_replace_key (heap, node, FIBHEAPKEY_MIN);
   fibheap_extract_min (heap);
@@ -247,6 +272,8 @@ fibheap_delete (fibheap heap)
 int
 fibheap_empty (fibheap heap)
 {
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
   return heap->nodes == 0;
 }
 
@@ -446,4 +473,43 @@ fibnode_remove (fibnode node)
   node->right = node;
 
   return ret;
+}
+
+static int
+fibheap_foreach_helper (fibnode node, fibheap_foreach_fn fn, void *data)
+{
+  fibnode stop_node = node;
+  int val;
+
+  do
+    {
+      val = (*fn) (node->data, data);
+      if (val)
+	return val;
+
+      if (node->child)
+	{
+	  val = fibheap_foreach_helper (node->child, fn, data);
+	  if (val)
+	    return val;
+	}
+
+      node = node->right;
+    }
+  while (node != stop_node);
+
+  return 0;
+}
+
+int
+fibheap_foreach (fibheap heap, fibheap_foreach_fn fn, void *data)
+{
+  int val = 0;
+
+  CHECK_MUTEX_LOCKED (heap->mutex);
+
+  if (heap->root)
+    val = fibheap_foreach_helper (heap->root, fn, data);
+
+  return val;
 }
