@@ -35,8 +35,6 @@
 extern char *build_local_path (volume vol, internal_dentry dentry);
 extern char *build_local_path_name (volume vol, internal_dentry dentry,
 				    char *name);
-extern char *build_relative_path (internal_dentry dentry);
-extern char *build_relative_path_name (internal_dentry dentry, char *name);
 extern char *local_path_to_relative_path (volume vol, char *path);
 extern char *file_name_from_path (char *path);
 extern int32_t parent_exists (char *path);
