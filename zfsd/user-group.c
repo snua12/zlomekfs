@@ -149,7 +149,7 @@ user_create (uint32_t id, string *name)
 				    NO_INSERT);
   if (slot1 && slot2 && *slot1 == *slot2)
     {
-      u = *slot1;
+      u = (user_t) *slot1;
       if (!u->marked)
 	{
 	  message (1, stderr, "Duplicate user ID and name: %" PRIu32 " %s\n",
@@ -240,7 +240,7 @@ group_create (uint32_t id, string *name)
 				    NO_INSERT);
   if (slot1 && slot2 && *slot1 == *slot2)
     {
-      g = *slot1;
+      g = (group_t) *slot1;
       if (!g->marked)
 	{
 	  message (1, stderr, "Duplicate group ID and name: %" PRIu32 " %s\n",
