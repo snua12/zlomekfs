@@ -241,7 +241,7 @@ static void
 process_arguments (int argc, char **argv)
 {
   int c;
-  int config_file_allocated = 0;
+  bool config_file_allocated = false;
 
   while ((c = getopt_long (argc, argv, "f:qv", long_options, NULL)) != -1)
     {
@@ -251,7 +251,7 @@ process_arguments (int argc, char **argv)
 	    if (config_file_allocated)
 	      free (config_file);
 	    config_file = xstrdup (optarg);
-	    config_file_allocated = 1;
+	    config_file_allocated = true;
 	    break;
 
 	  case 'v':
