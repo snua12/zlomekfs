@@ -948,7 +948,6 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   fh = (internal_fh) pool_alloc (fh_pool);
   fh->local_fh = *local_fh;
-  fh->meta.master_fh = *master_fh;
   fh->attr = *attr;
   fh->cap = NULL;
   fh->ndentries = 0;
@@ -999,6 +998,9 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   else
     memset (&fh->meta, 0, sizeof (fh->meta));
 
+  /* FIXME: Temporary init master_fh here, in future
+     master_fh management must be significantly improved.  */
+  fh->meta.master_fh = *master_fh;
   set_attr_version (&fh->attr, &fh->meta);
   attr->version = fh->attr.version;
 
