@@ -1167,6 +1167,9 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	  else
 	    release_dentry (conflict);
 	}
+
+      if (!request_from_this_node ())
+	local_invalidate_fh (fh);
     }
 
   internal_dentry_unlock (vol, dentry);
