@@ -1202,15 +1202,15 @@ remote_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 	{
 	  DC *dc = (DC *) list->buffer;
 
-	  if (t->dc_reply.max_length > dc->cur_length)
+	  if (!decode_dir_list (&t->dc_reply, list))
+	    r = ZFS_INVALID_REPLY;
+	  else if (t->dc_reply.max_length > t->dc_reply.cur_length)
 	    {
 	      memcpy (dc->current, t->dc_reply.current,
 		      t->dc_reply.max_length - t->dc_reply.cur_length);
 	      dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
 	      dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
 	    }
-	  else
-	    r = ZFS_INVALID_REPLY;
 	}
       else if (filldir == &filldir_array)
 	{
