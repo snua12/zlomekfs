@@ -40,6 +40,9 @@
 /* The time between two attempts to connect to node in seconds.  */
 #define NODE_CONNECT_VISCOSITY 15
 
+/* The timeout for connection attempt in seconds.  */
+#define NODE_CONNECT_TIMEOUT 3
+
 /* Maximal value for MetadataTreeDepth.  */
 #define MAX_METADATA_TREE_DEPTH 6
 

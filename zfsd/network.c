@@ -1406,7 +1406,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	  break;
 	}
 
-      if (r <= 0)
+      if (r < 0)
 	continue;
 
       now = time (NULL);
@@ -1417,7 +1417,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	r--;
 
       zfsd_mutex_lock (&active_mutex);
-      for (i = nactive - 1; i >= 0 && r > 0; i--)
+      for (i = nactive - 1; i >= 0; i--)
 	{
 	  fd_data_t *fd_data = &fd_data_a[pfd[i].fd];
 
@@ -1436,37 +1436,47 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	      close_active_fd (i);
 	      zfsd_mutex_unlock (&fd_data->mutex);
 	    }
-	  else if (fd_data->conn == CONNECTION_CONNECTING
-		   && pfd[i].revents & CAN_WRITE)
+	  else if (fd_data->conn == CONNECTION_CONNECTING)
 	    {
-	      int e;
-	      socklen_t l = sizeof (e);
+	      if (pfd[i].revents & CAN_WRITE)
+		{
+		  int e;
+		  socklen_t l = sizeof (e);
 
-	      if (getsockopt (pfd[i].fd, SOL_SOCKET, SO_ERROR, &e, &l) < 0)
-		{
-		  message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
-			   strerror (errno));
-		  zfsd_mutex_lock (&fd_data->mutex);
-		  close_active_fd (i);
-		  zfsd_mutex_unlock (&fd_data->mutex);
-		}
+		  printf ("foo\n");
+		  if (getsockopt (pfd[i].fd, SOL_SOCKET, SO_ERROR, &e, &l) < 0)
+		    {
+		      message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
+			       strerror (errno));
+		      zfsd_mutex_lock (&fd_data->mutex);
+		      close_active_fd (i);
+		      zfsd_mutex_unlock (&fd_data->mutex);
+		    }
 #ifdef ENABLE_CHECKING
-	      else if (l != sizeof (e))
-		abort ();
+		  else if (l != sizeof (e))
+		    abort ();
 #endif
-	      else if (e != 0)
+		  else if (e != 0)
+		    {
+		      message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
+			       strerror (e));
+		      zfsd_mutex_lock (&fd_data->mutex);
+		      close_active_fd (i);
+		      zfsd_mutex_unlock (&fd_data->mutex);
+		    }
+		  else
+		    {
+		      zfsd_mutex_lock (&fd_data->mutex);
+		      fd_data->conn = CONNECTION_ACTIVE;
+		      zfsd_cond_broadcast (&fd_data->cond);
+		      zfsd_mutex_unlock (&fd_data->mutex);
+		    }
+		}
+	      else if (now > fd_data->last_use + NODE_CONNECT_TIMEOUT)
 		{
-		  message (2, stderr, "error on socket %d: %s\n", pfd[i].fd,
-			   strerror (e));
+		  message (2, stderr, "timeout on socket %d\n", pfd[i].fd);
 		  zfsd_mutex_lock (&fd_data->mutex);
 		  close_active_fd (i);
-		  zfsd_mutex_unlock (&fd_data->mutex);
-		}
-	      else
-		{
-		  zfsd_mutex_lock (&fd_data->mutex);
-		  fd_data->conn = CONNECTION_ACTIVE;
-		  zfsd_cond_broadcast (&fd_data->cond);
 		  zfsd_mutex_unlock (&fd_data->mutex);
 		}
 	    }
