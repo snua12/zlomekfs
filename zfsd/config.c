@@ -807,6 +807,120 @@ read_volume_list (zfs_fh *config_dir)
   return true;
 }
 
+/* Process line LINE number LINE_NUM from file FILE_NAME.
+   Return 0 if we should continue reading lines from file.  */
+
+static int
+process_line_user (char *line, char *file_name, unsigned int line_num,
+		   ATTRIBUTE_UNUSED void *data)
+{
+  string parts[2];
+  uint32_t id;
+
+  if (split_and_trim (line, 2, parts) == 2)
+    {
+      if (sscanf (parts[0].str, "%" PRIu32, &id) != 1)
+	{
+	  message (0, stderr, "%s:%u: Wrong format of line\n",
+		   file_name, line_num);
+	}
+      else if (id == (uint32_t) -1)
+	{
+	  message (0, stderr, "%s:%u: User ID must not be %" PRIu32 "\n",
+		   file_name, line_num, (uint32_t) -1);
+	}
+      else if (parts[1].len == 0)
+	{
+	  message (0, stderr, "%s:%u: User name must not be empty\n",
+		   file_name, line_num);
+	}
+      else
+	{
+	  user_create (id, &parts[1]);
+	}
+    }
+  else
+    {
+      message (0, stderr, "%s:%u: Wrong format of line\n",
+	       file_name, line_num);
+    }
+
+  return 0;
+}
+
+/* Read list of users from CONFIG_DIR/user_list.  */
+
+static bool
+read_user_list (zfs_fh *config_dir)
+{
+  dir_op_res user_list_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&user_list_res, config_dir, "user_list");
+  if (r != ZFS_OK)
+    return false;
+
+  return process_file_by_lines (&user_list_res.file, "config/user_list",
+				process_line_user, NULL);
+}
+
+/* Process line LINE number LINE_NUM from file FILE_NAME.
+   Return 0 if we should continue reading lines from file.  */
+
+static int
+process_line_group (char *line, char *file_name, unsigned int line_num,
+		    ATTRIBUTE_UNUSED void *data)
+{
+  string parts[2];
+  uint32_t id;
+
+  if (split_and_trim (line, 2, parts) == 2)
+    {
+      if (sscanf (parts[0].str, "%" PRIu32, &id) != 1)
+	{
+	  message (0, stderr, "%s:%u: Wrong format of line\n",
+		   file_name, line_num);
+	}
+      else if (id == (uint32_t) -1)
+	{
+	  message (0, stderr, "%s:%u: Group ID must not be %" PRIu32 "\n",
+		   file_name, line_num, (uint32_t) -1);
+	}
+      else if (parts[1].len == 0)
+	{
+	  message (0, stderr, "%s:%u: Group name must not be empty\n",
+		   file_name, line_num);
+	}
+      else
+	{
+	  group_create (id, &parts[1]);
+	}
+    }
+  else
+    {
+      message (0, stderr, "%s:%u: Wrong format of line\n",
+	       file_name, line_num);
+    }
+
+  return 0;
+}
+
+/* Read list of groups from CONFIG_DIR/group_list.  */
+
+static bool
+read_group_list (zfs_fh *config_dir)
+{
+  dir_op_res group_list_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&group_list_res, config_dir, "group_list");
+  if (r != ZFS_OK)
+    return false;
+
+  return process_file_by_lines (&group_list_res.file, "config/group_list",
+				process_line_group, NULL);
+}
+
 /* Has the config reader already terminated?  */
 static volatile bool config_reader_terminated;
 
@@ -835,6 +949,17 @@ config_reader (void *data)
   if (!read_volume_list (&config_dir_res.file))
     goto out;
 
+  /* Config directory may have changed so lookup it again.  */
+  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  if (r != ZFS_OK)
+    goto out;
+
+  if (!read_user_list (&config_dir_res.file))
+    goto out;
+
+  if (!read_group_list (&config_dir_res.file))
+    goto out;
+
   /* Reread the updated configuration about nodes and volumes.  */
   vol = volume_lookup (VOLUME_ID_CONFIG);
   if (vol)
@@ -842,10 +967,6 @@ config_reader (void *data)
       if (vol->master != this_node)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-
-	  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
-	  if (r != ZFS_OK)
-	    goto out;
 
 	  if (!read_node_list (&config_dir_res.file))
 	    goto out;
