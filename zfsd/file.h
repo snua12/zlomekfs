@@ -22,6 +22,9 @@
 #define FILE_H
 
 #include "system.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"

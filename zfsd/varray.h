@@ -64,19 +64,21 @@ typedef struct varray_def
 /* Empty the variable-sized array VA.  */
 #define VARRAY_CLEAR(VA) ((VA).nused = 0)
 
-#ifdef ENABLE_CHECKING
+#if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007)
 
 /* Access the Nth element of type T from variable-sized array VA with bounds
    checking.  */
-#define VARRAY_ACCESS(VA, N, T)						  \
-  ((N) >= (VA).nused							  \
-   ? varray_check_failed ((N), __FILE__, __LINE__), *(T *) NULL \
-   : ((T *) (VA).array)[N])
+#define VARRAY_ACCESS(VA, N, T) __extension__				\
+  (*({									\
+    if ((N) >= (VA).nused)						\
+      varray_check_failed ((N), __FILE__, __LINE__);			\
+    &((T *) (VA).array)[N];						\
+  }))
 
 #else
 
 /* Access the Nth element of type T from variable-sized array VA.  */
-#define VARRAY_ACCESS(VA, N, T)						  \
+#define VARRAY_ACCESS(VA, N, T)						\
    (((T *) (VA).array)[N])
 
 #endif
