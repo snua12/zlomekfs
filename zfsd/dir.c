@@ -385,7 +385,8 @@ out:
 /* Recursivelly unlink the file PATH on volume with ID == VID.  */
 
 int32_t
-recursive_unlink (string *path, uint32_t vid, bool destroy_dentry)
+recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
+		  bool journal_p)
 {
   metadata meta, meta2;
   string filename;
@@ -4653,7 +4654,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  r = recursive_unlink (&path, vid, true);
+  r = recursive_unlink (&path, vid, true, journal);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -4761,7 +4762,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     }
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (&shadow_path, vid, true);
+  r = recursive_unlink (&shadow_path, vid, true, journal);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -4880,7 +4881,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  return ENOENT;
 	}
 
-      r = recursive_unlink (&new_path, vid, true);
+      r = recursive_unlink (&new_path, vid, true, journal);
       if (r != ZFS_OK)
 	{
 	  free (old_path.str);
@@ -5166,7 +5167,7 @@ local_reintegrate_del_fh (zfs_fh *fh)
   if (shadow_path.str == NULL)
     return ZFS_METADATA_ERROR;
 
-  r = recursive_unlink (&shadow_path, vid, true);
+  r = recursive_unlink (&shadow_path, vid, true, true);
   free (shadow_path.str);
 
   return r;
@@ -5195,7 +5196,7 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
   if (destroy_p
       || metadata_n_hardlinks (vol, fh, &meta) > 1)
     {
-      if (delete_tree_name (dir, name, vol, true) != ZFS_OK)
+      if (delete_tree_name (dir, name, vol, true, journal) != ZFS_OK)
 	return ZFS_UPDATE_FAILED;
     }
   else

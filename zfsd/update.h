@@ -93,9 +93,9 @@ extern int32_t update_cap_if_needed (internal_cap *icapp, volume *volp,
 extern int update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 		     fattr *attr);
 extern int32_t delete_tree (internal_dentry dentry, volume vol,
-			    bool destroy_dentry);
+			    bool destroy_dentry, bool journal_p);
 extern int32_t delete_tree_name (internal_dentry dir, string *name, volume vol,
-				 bool destroy_dentry);
+				 bool destroy_dentry, bool journal_p);
 extern int32_t resolve_conflict_discard_local (zfs_fh *conflict_fh,
 					       internal_dentry local,
 					       internal_dentry remote,
