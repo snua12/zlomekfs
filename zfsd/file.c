@@ -2211,7 +2211,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
   uint32_t total;
   uint32_t r;
 
-  for (total = 0; total < count;)
+  for (total = 0; total < count; total += res.written)
     {
       r = find_capability_nolock (cap, &icap, &vol, &dentry, NULL);
       if (r != ZFS_OK)
