@@ -157,7 +157,7 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 	      || !finish_decoding (&t->u.server.dc))
 	    return ZFS_INVALID_REPLY;
 	}
-      else
+      else if (r >= ZFS_LAST_DECODED_ERROR)
 	{
 	  if (!finish_decoding (&t->u.server.dc))
 	    return ZFS_INVALID_REPLY;
@@ -341,7 +341,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
 	  || !finish_decoding (&t->u.server.dc))
 	return ZFS_INVALID_REPLY;
     }
-  else
+  else if (r >= ZFS_LAST_DECODED_ERROR)
     {
       if (!finish_decoding (&t->u.server.dc))
 	return ZFS_INVALID_REPLY;
@@ -480,8 +480,11 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
   r = zfs_proc_rmdir_client (t, &args, vol->master);
   zfsd_mutex_unlock (&vol->master->mutex);
 
-  if (!finish_decoding (&t->u.server.dc))
-    return ZFS_INVALID_REPLY;
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->u.server.dc))
+	return ZFS_INVALID_REPLY;
+    }
 
   return r;
 }

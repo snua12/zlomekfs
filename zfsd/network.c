@@ -286,6 +286,8 @@ send_request (thread *t, uint32_t request_id, int fd)
       return;
     }
 
+  td->retval = ZFS_OK;
+
   /* Add the tread to the table of waiting threads.  */
   wd = ((waiting4reply_data *)
 	pool_alloc (server_fd_data[fd].waiting4reply_pool));
@@ -317,9 +319,12 @@ send_request (thread *t, uint32_t request_id, int fd)
   /* Wait for reply.  */
   semaphore_down (&t->sem, 1);
 
-  /* Decode return value.  */
-  if (!decode_status (&td->dc, &td->retval))
-    td->retval = ZFS_INVALID_REPLY;
+  /* If there was no error with connection, decode return value.  */
+  if (td->retval == ZFS_OK)
+    {
+      if (!decode_status (&td->dc, &td->retval))
+	td->retval = ZFS_INVALID_REPLY;
+    }
 }
 
 /* Add file descriptor FD to the set of active file descriptors.  */

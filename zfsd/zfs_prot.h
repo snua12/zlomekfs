@@ -32,19 +32,23 @@
 #define ZFS_AUTH_LEN 16
 #define ZFS_VERIFY_LEN 16
 
-/* Error codes.  */
+/* Error codes.
+   System errors have positive numbers, ZFS errors have negative numbers.  */
 #define ZFS_OK			0
 #define ZFS_REQUEST_TOO_LONG	-1	/* Request was too long.  */
 #define ZFS_INVALID_REQUEST	-2	/* Request was not well encoded. */
-#define ZFS_INVALID_REPLY	-3	/* Reply was not well encoded. */
-#define ZFS_UNKNOWN_FUNCTION	-4	/* Unknown function in request.  */
-#define ZFS_CONNECTION_CLOSED	-5	/* Connection closed while waiting for
-					   reply.  */
-#define ZFS_COULD_NOT_CONNECT	-6	/* Could not connect to node.  */
-#define ZFS_COULD_NOT_AUTH	-7	/* Could not authenticate with node.  */
-#define ZFS_INVALID_AUTH_LEVEL	-8	/* Remote node has not authenticated
+#define ZFS_UNKNOWN_FUNCTION	-3	/* Unknown function in request.  */
+#define ZFS_INVALID_AUTH_LEVEL	-4	/* Remote node has not authenticated
 					   enough yet.  */
-#define ZFS_EXITING		-9	/* zfsd is exiting */
+#define ZFS_LAST_DECODED_ERROR	-999	/* Code of last error which is being
+					   decoded from DC */
+#define ZFS_INVALID_REPLY	-1000	/* Reply was not well encoded. */
+#define ZFS_EXITING		-1001	/* zfsd is exiting */
+#define ZFS_COULD_NOT_CONNECT	-1002	/* Could not connect to node.  */
+#define ZFS_COULD_NOT_AUTH	-1003	/* Could not authenticate with node.  */
+#define ZFS_CONNECTION_CLOSED	-1004	/* Connection closed while waiting for
+					   reply.  */
+
 
 typedef enum direction_def
 {
