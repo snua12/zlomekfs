@@ -28,6 +28,16 @@
 
 #define abort() verbose_abort(__FILE__, __LINE__)
 
+#ifdef ENABLE_CHECKING
+/* Print which function we are in with additional information.  */
+#define TRACE(format, ...) message (4, stderr,				      \
+				    "TRACE %s() by %lu: " format "\n",	      \
+				    __func__, (unsigned long) pthread_self (),\
+				    ## __VA_ARGS__)
+#else
+#define TRACE(...)
+#endif
+
 /* Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
 
