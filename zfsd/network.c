@@ -229,6 +229,10 @@ close_network_fd (int fd)
   message (2, stderr, "Closing FD %d\n", fd);
   close (fd);
   wake_all_threads (&fd_data_a[fd], ZFS_CONNECTION_CLOSED);
+  htab_destroy (fd_data_a[fd].waiting4reply);
+  fibheap_delete (fd_data_a[fd].waiting4reply_heap);
+  free_alloc_pool (fd_data_a[fd].waiting4reply_pool);
+
   fd_data_a[fd].generation++;
   fd_data_a[fd].conn = CONNECTION_NONE;
   fd_data_a[fd].auth = AUTHENTICATION_NONE;
@@ -259,9 +263,6 @@ close_active_fd (int i)
     dc_destroy (&fd_data_a[fd].dc[j]);
   fd_data_a[fd].ndc = 0;
   fd_data_a[fd].fd = -1;
-  htab_destroy (fd_data_a[fd].waiting4reply);
-  fibheap_delete (fd_data_a[fd].waiting4reply_heap);
-  free_alloc_pool (fd_data_a[fd].waiting4reply_pool);
 }
 
 /* Return true if there is a valid file descriptor attached to node NOD
