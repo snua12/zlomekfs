@@ -1733,11 +1733,14 @@ lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
       free (name.str);
     }
 
-  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  if (r == ZFS_OK)
+    {
+      r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
+      if (r2 != ZFS_OK)
+	abort ();
 #endif
+    }
 
   RETURN_INT (r);
 }
