@@ -23,6 +23,77 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
-
+#include <errno.h>
 #include "fh.h"
 #include "dir.h"
+
+/* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
+
+int
+zfs_extended_lookup (svc_fh *fh, svc_fh *dir, char *path)
+{
+  svc_fh tmp;
+  char *s;
+  int r;
+
+  tmp = (*path == '/') ? root_fh : *dir;
+  while (*path)
+    {
+      while (*path == '/')
+	path++;
+
+      s = path;
+      while (*path != 0 && *path != '/')
+	path++;
+      if (*path == '/')
+	*path++ = 0;
+
+      r = zfs_lookup (&tmp, &tmp, s);
+      if (r)
+	return r;
+    }
+
+  *fh = tmp;
+  return 0;
+}
+
+/* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
+
+int
+zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name)
+{
+  internal_fh idir;
+  internal_fh ifh;
+
+  /* Lookup the DIR.  */
+  idir = (internal_fh) fh_lookup (dir);
+  if (!idir)
+    return ESTALE;
+
+  /* Lookup the NAME in DIR.  */
+  ifh = fh_lookup_name (idir, name);
+  if (ifh && VIRTUAL_FH_P (ifh->client_fh) && ifh->vd->active)
+    {
+      *fh = ifh->client_fh;
+      return 0;
+    }
+  
+  if (!ifh)
+    {
+      if (VIRTUAL_FH_P (idir->client_fh))
+	{
+	}
+    }
+
+
+
+
+
+
+  return 0;
+}
+
+#if 0
+int
+zfs_readdir (svc_fh *dir, 
+#endif

@@ -23,6 +23,7 @@
 
 #include "fh.h"
 
+extern int zfs_extended_lookup (svc_fh *fh, svc_fh *dir, char *path);
 extern int zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name);
 
 
