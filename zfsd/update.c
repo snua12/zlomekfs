@@ -2070,6 +2070,16 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
+  if (dir->fh->meta.master_version == attr->version)
+    {
+      /* This happens when we have reintegrated a directory
+	 and no other node has changed the directory.  */
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ZFS_OK);
+    }
+
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
@@ -3025,7 +3035,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	      RETURN_INT (r);
 	  }
 
-	if (how & IFH_UPDATE)
+	if (how & (IFH_UPDATE | IFH_REINTEGRATE))
 	  {
 	    r = update_dir (vol, dentry, fh, attr);
 	  }
