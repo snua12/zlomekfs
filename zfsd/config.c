@@ -244,7 +244,7 @@ split_and_trim (char *line, int n, char **parts)
 
 /* Get the name of local node.  */
 void
-get_node_name ()
+set_node_name ()
 {
   struct utsname un;
 
@@ -362,7 +362,7 @@ read_config_file (const char *file)
   int line_num;
 
   /* Get the name of local node.  */
-  get_node_name ();
+  set_node_name ();
 
   f = fopen (file, "rt");
   if (!f)

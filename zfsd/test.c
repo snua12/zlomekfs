@@ -50,7 +50,7 @@ fake_config ()
   node nod;
   volume vol;
 
-  get_node_name ();
+  set_node_name ();
   set_string (&kernel_file_name, "/home/joe/kernel");
 
   zfsd_mutex_lock (&node_mutex);
