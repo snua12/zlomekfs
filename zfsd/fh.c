@@ -2025,7 +2025,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
     abort ();
   if (GET_CONFLICT (*fh))
     abort ();
-  if (vol->id != fh->vid)
+  if (exists && vol->id != fh->vid)
     abort ();
 #endif
 
