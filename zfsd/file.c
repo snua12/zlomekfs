@@ -522,7 +522,7 @@ zfs_create_retry:
 	}
       else if (vol->master != this_node)
 	{
-	  memcpy (icap->master_cap.verify, res->cap.verify, ZFS_VERIFY_LEN);
+	  icap->master_cap = res->cap;
 	  memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
 	}
 
