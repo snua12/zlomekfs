@@ -109,20 +109,6 @@ internal_fh_eq_name (const void *xx, const void *yy)
   	  && strcmp (x->name, y->name) == 0);
 }
 
-/* Free the internal file handle X.  */
-
-void
-internal_fh_del (void *x)
-{
-  internal_fh fh = (internal_fh) x;
-
-  if (fh->attr.type == FT_DIR)
-    varray_destroy (&fh->dentries);
-
-  free (fh->name);
-  pool_free (fh_pool, x);
-}
-
 /* Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *IFHP and VDP according to it.  */
 
@@ -363,19 +349,13 @@ internal_fh_destroy (internal_fh fh, volume vol)
   if (!slot)
     abort ();
 #endif
-  zfsd_mutex_lock (&fh_pool_mutex);	/* FIXME: temporary; see below */
   htab_clear_slot (vol->fh_htab, slot);
-  zfsd_mutex_unlock (&fh_pool_mutex);	/* FIXME: temporary; see below */
-
-#if 0 /* FIXME: temporarily disabled - until internal_fh_del is removed and this
-	 function is used instead.  */
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
   free (fh->name);
   zfsd_mutex_lock (&fh_pool_mutex);
   pool_free (fh_pool, fh);
   zfsd_mutex_unlock (&fh_pool_mutex);
-#endif
 }
 
 /* Print the contents of hash table HTAB to file F.  */

@@ -141,7 +141,6 @@ extern hash_t internal_fh_hash (const void *x);
 extern hash_t internal_fh_hash_name (const void *x);
 extern int internal_fh_eq (const void *xx, const void *yy);
 extern int internal_fh_eq_name (const void *xx, const void *yy);
-extern void internal_fh_del (void *x);
 extern bool fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 		       virtual_dir *vdp);
 extern bool fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,

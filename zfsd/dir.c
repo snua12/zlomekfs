@@ -324,8 +324,11 @@ update_volume_root (volume vol, internal_fh *ifh)
       || !ZFS_FH_EQ (vol->root_fh->master_fh, master_fh))
     {
       /* FIXME? delete only FHs which are not open now?  */
-      htab_empty (vol->fh_htab_name);
-      htab_empty (vol->fh_htab);
+      if (vol->root_fh)
+	{
+	  zfsd_mutex_lock (&vol->root_fh->mutex);
+	  internal_fh_destroy (vol->root_fh, vol);
+	}
 
       vol->root_fh = internal_fh_create (&local_fh, &master_fh, NULL,
 					 vol, "", &attr);
