@@ -321,6 +321,14 @@ do_tests (void *data)
 	break;
 
       message (2, stderr, "TEST %d\n", ++test);
+      str = xstrdup ("/volume2/sabbath/hidden");
+      printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
+      free (str);
+
+      if (!get_running ())
+	break;
+
+      message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/subdir/file");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
