@@ -78,8 +78,12 @@ extern volume volume_create (uint32_t id);
 extern void volume_delete (volume vol);
 extern void volume_set_common_info (volume vol, string *name,
 				    string *mountpoint, node master);
+extern void volume_set_common_info_wrapper (volume vol, char *name,
+					    char *mountpoint, node master);
 extern bool volume_set_local_info (volume vol, string *local_path,
 				   uint64_t size_limit);
+extern bool volume_set_local_info_wrapper (volume vol, char *local_path,
+					   uint64_t size_limit);
 extern void delete_all_volumes (void);
 extern void initialize_volume_c (void);
 extern void cleanup_volume_c (void);

@@ -237,6 +237,20 @@ volume_set_common_info (volume vol, string *name, string *mountpoint,
   virtual_mountpoint_create (vol);
 }
 
+/* Wrapper for volume_set_common_info.  */
+
+void
+volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
+				node master)
+{
+  string name_str;
+  string mountpoint_str;
+
+  xmkstring (&name_str, name);
+  xmkstring (&mountpoint_str, mountpoint);
+  volume_set_common_info (vol, &name_str, &mountpoint_str, master);
+}
+
 /* Set the information for a volume with local copy.  */
 
 bool
@@ -248,6 +262,18 @@ volume_set_local_info (volume vol, string *local_path, uint64_t size_limit)
   vol->size_limit = size_limit;
 
   return init_volume_metadata (vol);
+}
+
+/* Wrapper for volume_set_local_info.  */
+
+bool
+volume_set_local_info_wrapper (volume vol, char *local_path,
+			       uint64_t size_limit)
+{
+  string local_path_str;
+
+  xmkstring (&local_path_str, local_path);
+  return volume_set_local_info (vol, &local_path_str, size_limit);
 }
 
 /* Print the information about volume VOL to file F.  */

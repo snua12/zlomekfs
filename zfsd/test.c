@@ -46,32 +46,6 @@ static thread testing_thread_data;
 /* ID of test thread.  */
 static pthread_t test_id;
 
-/* Wrapper for volume_set_common_info.  */
-
-static void
-volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
-				node master)
-{
-  string name_str;
-  string mountpoint_str;
-
-  xmkstring (&name_str, name);
-  xmkstring (&mountpoint_str, mountpoint);
-  volume_set_common_info (vol, &name_str, &mountpoint_str, master);
-}
-
-/* Wrapper for volume_set_local_info.  */
-
-static bool
-volume_set_local_info_wrapper (volume vol, char *local_path,
-			       uint64_t size_limit)
-{
-  string local_path_str;
-
-  xmkstring (&local_path_str, local_path);
-  return volume_set_local_info (vol, &local_path_str, size_limit);
-}
-
 /* Testing configuration until configuration reading is programmed.  */
 
 void
