@@ -1606,6 +1606,13 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 	  zfsd_mutex_unlock (&(*volp)->mutex);
 
 	  internal_dentry_destroy (dentry, true);
+
+	  if (CONFLICT_DIR_P (dir_fh))
+	    {
+	      *dirp = dentry_lookup (dir_fh);
+	      if (!try_resolve_conflict (*dirp))
+		release_dentry (*dirp);
+	    }
 	}
 
       zfsd_mutex_unlock (&fh_mutex);
@@ -1614,9 +1621,6 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
       if (r2 != ZFS_OK)
 	abort ();
 #endif
-
-      if (CONFLICT_DIR_P ((*dirp)->fh->local_fh))
-	try_resolve_conflict (*dirp);
     }
 }
 
