@@ -872,6 +872,8 @@ zfs_close (zfs_cap *cap)
     {
       /* We are closing a conflict directory.  */
       put_capability (icap, dentry->fh, vd);
+      if (vd)
+	zfsd_mutex_unlock (&vd->mutex);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return ZFS_OK;
