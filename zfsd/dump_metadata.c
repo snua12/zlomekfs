@@ -138,8 +138,8 @@ int main (int argc, char **argv)
 	  continue;
 	}
 
-      fh.dev = meta.dev = st.st_dev;
-      fh.ino = meta.ino = st.st_ino;
+      meta.dev = st.st_dev;
+      meta.ino = st.st_ino;
       if (!hfile_lookup (vol->metadata, &meta))
 	{
 	  fprintf (stderr, "%s: Can't find in hash file\n", argv[i]);
@@ -150,6 +150,10 @@ int main (int argc, char **argv)
 
       if (meta.slot_status != VALID_SLOT)
 	continue;
+
+      fh.dev = meta.dev;
+      fh.ino = meta.ino;
+      fh.gen = meta.gen;
 
       printf (" Flags:");
       if (meta.flags & METADATA_COMPLETE)
