@@ -297,7 +297,7 @@ encode_string (DC *dc, string *str)
 }
 
 bool
-decode_void (ATTRIBUTE_UNUSED DC * dc, ATTRIBUTE_UNUSED void *v)
+decode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED void *v)
 {
   return true;
 }
