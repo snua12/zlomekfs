@@ -92,9 +92,6 @@ struct internal_fh_def
   /* File attributes.  */
   fattr attr;
 
-  /* Open file descriptor.  */
-  int fd;
-
   /* Directory entries (of type 'struct internal_fh_def *').  */
   varray dentries;
 

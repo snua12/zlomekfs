@@ -224,13 +224,15 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
   fh->master_fh = *master_fh;
   fh->parent = parent;
   fh->name = xstrdup (name);
-  fh->fd = -1;
   fh->attr = *attr;
 
   if (fh->attr.type == FT_DIR)
     varray_create (&fh->dentries, sizeof (internal_fh), 16);
-  fh->dentry_index = VARRAY_USED (parent->dentries);
-  VARRAY_PUSH (parent->dentries, fh, internal_fh);
+  if (parent)
+    {
+      fh->dentry_index = VARRAY_USED (parent->dentries);
+      VARRAY_PUSH (parent->dentries, fh, internal_fh);
+    }
 
   zfsd_mutex_lock (&vol->fh_mutex);
 #ifdef ENABLE_CHECKING
@@ -277,11 +279,14 @@ internal_fh_destroy (internal_fh fh, volume vol)
     }
 
   /* Remove FH from parent's directory entries.  */
-  top = VARRAY_TOP (fh->parent->dentries, internal_fh);
-  VARRAY_ACCESS (fh->parent->dentries, fh->dentry_index, internal_fh)
-    = top;
-  VARRAY_POP (fh->parent->dentries);
-  top->dentry_index = fh->dentry_index;
+  if (fh->parent)
+    {
+      top = VARRAY_TOP (fh->parent->dentries, internal_fh);
+      VARRAY_ACCESS (fh->parent->dentries, fh->dentry_index, internal_fh)
+	= top;
+      VARRAY_POP (fh->parent->dentries);
+      top->dentry_index = fh->dentry_index;
+    }
 
   zfsd_mutex_lock (&vol->fh_mutex);
   if (fh->parent)
