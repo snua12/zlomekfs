@@ -3165,9 +3165,9 @@ zfs_mknod_retry:
 /* Check whether local file FH on volume VOL exists.  */
 
 int32_t
-local_file_info (zfs_fh *fh, volume vol)
+local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 {
-  metadata meta;
+  char *path;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -3175,18 +3175,16 @@ local_file_info (zfs_fh *fh, volume vol)
     abort ();
 #endif
 
-  if (!find_metadata (vol, fh, &meta))
+  path = get_local_path_from_metadata (vol, fh);
+  if (!path)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_METADATA_ERROR;
+      return ENOENT;
     }
+
+  xmkstring (&res->path, local_path_to_relative_path (vol, path));
+  free (path);
   zfsd_mutex_unlock (&vol->mutex);
-
-  if (meta.slot_status != VALID_SLOT)
-    return ENOENT;
-
-  if (meta.gen != fh->gen)
-    return ENOENT;
 
   return ZFS_OK;
 }
@@ -3194,7 +3192,7 @@ local_file_info (zfs_fh *fh, volume vol)
 /* Check whether remote file for DENTRY on volume VOL exists.  */
 
 int32_t
-remote_file_info (internal_dentry dentry, volume vol)
+remote_file_info (file_info_res *res, internal_dentry dentry, volume vol)
 {
   zfs_fh args;
   thread *t;
@@ -3220,7 +3218,15 @@ remote_file_info (internal_dentry dentry, volume vol)
   t = (thread *) pthread_getspecific (thread_data_key);
   r = zfs_proc_file_info_client (t, &args, nod, &fd);
 
-  if (r >= ZFS_LAST_DECODED_ERROR)
+  if (r == ZFS_OK)
+    {
+      if (!decode_zfs_path (t->dc_reply, &res->path)
+	  || !finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+      else
+	res->path.str = (char *) xmemdup (res->path.str, res->path.len);
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
     {
       if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
@@ -3234,7 +3240,7 @@ remote_file_info (internal_dentry dentry, volume vol)
 /* Check whether local file FH exists.  */
 
 int32_t
-zfs_file_info (zfs_fh *fh)
+zfs_file_info (file_info_res *res, zfs_fh *fh)
 {
   volume vol;
   internal_dentry dentry;
@@ -3248,7 +3254,7 @@ zfs_file_info (zfs_fh *fh)
     return ENOENT;
 
   if (vol->local_path)
-    r = local_file_info (fh, vol);
+    r = local_file_info (res, fh, vol);
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&vol->mutex);
@@ -3257,7 +3263,7 @@ zfs_file_info (zfs_fh *fh)
       if (r != ZFS_OK)
 	return r;
 
-      r = remote_file_info (dentry, vol);
+      r = remote_file_info (res, dentry, vol);
     }
 
   return r;

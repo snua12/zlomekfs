@@ -605,17 +605,23 @@ zfs_proc_ping_server (data_buffer *args, DC *dc,
   encode_data_buffer (dc, args);
 }
 
-/* void zfs_proc_file_info (zfs_fh); */
+/* file_info_res zfs_proc_file_info (zfs_fh); */
 
 void
 zfs_proc_file_info_server (zfs_fh *args, DC *dc,
 			   ATTRIBUTE_UNUSED void *data,
 			   ATTRIBUTE_UNUSED bool map_id)
 {
+  file_info_res res;
   int32_t r;
 
-  r = zfs_file_info (args);
+  r = zfs_file_info (&res, args);
   encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      encode_zfs_path (dc, &res.path);
+      free (res.path.str);
+    }
 }
 
 /* Call remote FUNCTION with ARGS using data structures in thread T

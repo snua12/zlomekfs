@@ -283,5 +283,7 @@ extern bool decode_md5sum_args (DC *dc, md5sum_args *args);
 extern bool encode_md5sum_args (DC *dc, md5sum_args *args);
 extern bool decode_md5sum_res (DC *dc, md5sum_res *res);
 extern bool encode_md5sum_res (DC *dc, md5sum_res *res);
+extern bool decode_file_info_res (DC *dc, file_info_res *res);
+extern bool encode_file_info_res (DC *dc, file_info_res *res);
 
 #endif

@@ -332,6 +332,11 @@ typedef struct md5sum_res_def
   unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][MD5_SIZE];
 } md5sum_res;
 
+typedef struct file_info_res_def
+{
+  zfs_path path;
+} file_info_res;
+
 typedef union call_args_def
 {
   char null;

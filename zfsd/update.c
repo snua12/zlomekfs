@@ -1353,6 +1353,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
     {
       journal_entry entry, next;
       dir_op_res res;
+      file_info_res info;
       bool flush_journal;
 
 #ifdef ENABLE_CHECKING
@@ -1387,7 +1388,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		      }
 		    else
 		      {
-			r = zfs_file_info (&entry->master_fh);
+			r = zfs_file_info (&info, &entry->master_fh);
+			free (info.path.str);
 			r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
