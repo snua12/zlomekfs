@@ -134,6 +134,7 @@ build_interval_path (volume vol, zfs_fh *fh, interval_tree_purpose purpose,
   varray v;
   unsigned int i;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (tree_depth > MAX_METADATA_TREE_DEPTH)
     abort ();
@@ -633,6 +634,8 @@ close_volume_metadata (volume vol)
 void
 close_interval_file (interval_tree tree)
 {
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
   zfsd_mutex_lock (&metadata_mutex);
   if (tree->fd >= 0)
     {
@@ -1124,6 +1127,7 @@ save_interval_trees (volume vol, internal_fh fh)
 {
   bool r = true;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (fh->updated)
