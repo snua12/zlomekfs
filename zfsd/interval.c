@@ -407,10 +407,10 @@ interval_tree_intersection_varray (interval_tree tree, varray src,
   varray_create (dest, sizeof (interval), 16);
   for (i = 0; i < VARRAY_USED (src); i++)
     {
-      interval x;
+      interval *x;
 
-      x = VARRAY_ACCESS (src, i, interval);
-      interval_tree_intersection_1 (tree, x.start, x.end, dest);
+      x = &VARRAY_ACCESS (src, i, interval);
+      interval_tree_intersection_1 (tree, x->start, x->end, dest);
     }
 }
 
