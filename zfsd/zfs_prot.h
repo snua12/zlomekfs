@@ -40,6 +40,8 @@
 #define ZFS_UNKNOWN_FUNCTION	-3	/* Unknown function in request.  */
 #define ZFS_INVALID_AUTH_LEVEL	-4	/* Remote node has not authenticated
 					   enough yet.  */
+#define ZFS_METADATA_ERROR	-5	/* Error when accessing file containing
+					   metadata.  */
 #define ZFS_LAST_DECODED_ERROR	-99	/* Code of last error which is being
 					   decoded from DC */
 
