@@ -681,6 +681,7 @@ zfs_proc_reread_config_server (reread_config_args *args,
 			       ATTRIBUTE_UNUSED void *data,
 			       ATTRIBUTE_UNUSED bool map_id)
 {
+  string relative_path;
   thread *t;
 
   t = (thread *) pthread_getspecific (thread_data_key);
@@ -689,7 +690,8 @@ zfs_proc_reread_config_server (reread_config_args *args,
     abort ();
 #endif
 
-  add_reread_config_request (&args->path, t->from_sid);
+  xstringdup (&relative_path, &args->path);
+  add_reread_config_request (&relative_path, t->from_sid);
 }
 
 /* Call remote FUNCTION with ARGS using data structures in thread T
