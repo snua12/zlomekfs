@@ -1338,6 +1338,9 @@ add_reread_config_request (string *relative_path)
 {
   reread_config_request node;
 
+  if (get_thread_state (&config_reader_data) != THREAD_IDLE)
+    return;
+
   zfsd_mutex_lock (&reread_config_mutex);
   node = (reread_config_request) pool_alloc (reread_config_pool);
   node->next = NULL;
