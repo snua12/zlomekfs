@@ -473,14 +473,14 @@ bool
 decode_sattr_args (DC *dc, sattr_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
-	  && decode_sattr (dc, &args->attributes));
+	  && decode_sattr (dc, &args->attr));
 }
 
 bool
 encode_sattr_args (DC *dc, sattr_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
-	  && encode_sattr (dc, &args->attributes));
+	  && encode_sattr (dc, &args->attr));
 }
 
 bool
@@ -501,14 +501,14 @@ bool
 decode_dir_op_res (DC *dc, dir_op_res *res)
 {
   return (decode_zfs_fh (dc, &res->file)
-	  && decode_fattr (dc, &res->attributes));
+	  && decode_fattr (dc, &res->attr));
 }
 
 bool
 encode_dir_op_res (DC *dc, dir_op_res *res)
 {
   return (encode_zfs_fh (dc, &res->file)
-	  && encode_fattr (dc, &res->attributes));
+	  && encode_fattr (dc, &res->attr));
 }
 
 bool
@@ -516,7 +516,7 @@ decode_open_name_args (DC *dc, open_name_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
 	  && decode_int32_t (dc, &args->flags)
-	  && decode_sattr (dc, &args->attributes));
+	  && decode_sattr (dc, &args->attr));
 }
 
 bool
@@ -524,7 +524,7 @@ encode_open_name_args (DC *dc, open_name_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
 	  && encode_int32_t (dc, args->flags)
-	  && encode_sattr (dc, &args->attributes));
+	  && encode_sattr (dc, &args->attr));
 }
 
 bool
@@ -686,7 +686,7 @@ decode_symlink_args (DC *dc, symlink_args *args)
 {
   return (decode_dir_op_args (dc, &args->from)
 	  && decode_zfs_path (dc, &args->to)
-	  && decode_sattr (dc, &args->attributes));
+	  && decode_sattr (dc, &args->attr));
 }
 
 bool
@@ -694,14 +694,14 @@ encode_symlink_args (DC *dc, symlink_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
 	  && encode_zfs_path (dc, &args->to)
-	  && encode_sattr (dc, &args->attributes));
+	  && encode_sattr (dc, &args->attr));
 }
 
 bool
 decode_mknod_args (DC *dc, mknod_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
-	  && decode_sattr (dc, &args->attributes)
+	  && decode_sattr (dc, &args->attr)
 	  && decode_uint32_t (dc, &args->rdev));
 }
 
@@ -709,7 +709,7 @@ bool
 encode_mknod_args (DC *dc, mknod_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
-	  && encode_sattr (dc, &args->attributes)
+	  && encode_sattr (dc, &args->attr)
 	  && encode_uint32_t (dc, args->rdev));
 }
 

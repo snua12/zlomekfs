@@ -133,7 +133,7 @@ typedef struct volume_root_args_def
 typedef struct sattr_args_def
 {
   zfs_fh file;
-  sattr attributes;
+  sattr attr;
 } sattr_args;
 
 typedef struct dir_op_args_def
@@ -145,14 +145,14 @@ typedef struct dir_op_args_def
 typedef struct dir_op_res_def
 {
   zfs_fh file;
-  fattr attributes;
+  fattr attr;
 } dir_op_res;
 
 typedef struct open_name_args_def
 {
   dir_op_args where;
   int flags;
-  sattr attributes;
+  sattr attr;
 } open_name_args;
 
 typedef struct open_res_def
@@ -231,13 +231,13 @@ typedef struct symlink_args_def
 {
   dir_op_args from;
   zfs_path to;
-  sattr attributes;
+  sattr attr;
 } symlink_args;
 
 typedef struct mknod_args_def
 {
   dir_op_args where;
-  sattr attributes;
+  sattr attr;
   unsigned int rdev;
 } mknod_args;
 
