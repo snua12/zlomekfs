@@ -34,6 +34,9 @@ typedef enum metadata_type_def
   /* Generic metadata hashed by local file handle.  */
   METADATA_TYPE_METADATA,
 
+  /* Mapping of master file handle to local file handle.  */
+  METADATA_TYPE_FH_MAPPING,
+
   /* Intervals updated from master node.  */
   METADATA_TYPE_UPDATED,
 
@@ -56,6 +59,14 @@ typedef struct metadata_def
   uint64_t master_version;	/* version on server/version got from server */
   zfs_fh master_fh;		/* master file handle */
 } metadata;
+
+/* File handle mapping.  */
+typedef struct fh_mapping_def
+{
+  uint32_t slot_status;		/* status of slot (empty, deleted, valid) */
+  zfs_fh master_fh;		/* master file handle */
+  zfs_fh local_fh;		/* local file handle */
+} fh_mapping;
 
 #define METADATA_COMPLETE	1	/* file is complete */
 #define METADATA_MODIFIED	2	/* file is modified */

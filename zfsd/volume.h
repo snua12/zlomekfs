@@ -52,6 +52,8 @@ struct volume_def
   internal_dentry root_dentry;	/* dentry of root on underlying FS.  */
   virtual_dir root_vd;		/* virtual directory for the mountpoint */
   hfile_t metadata;		/* hash file with metadata */
+  hfile_t fh_mapping;		/* hash file with master_fh -> local_fh
+				   mapping */
 };
 
 /* Predefined volume IDs.  */

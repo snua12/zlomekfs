@@ -115,6 +115,7 @@ volume_create (uint32_t id)
   vol->root_dentry = NULL;
   vol->root_vd = NULL;
   vol->metadata = NULL;
+  vol->fh_mapping = NULL;
 
   zfsd_mutex_init (&vol->mutex);
   zfsd_mutex_lock (&vol->mutex);

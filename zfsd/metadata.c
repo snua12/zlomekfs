@@ -71,6 +71,12 @@ static pthread_mutex_t metadata_mutex;
 						      sizeof (uint32_t)), \
 					&(M).ino, sizeof (uint32_t)))
 
+/* Hash function for file handle mapping M.  */
+#define FH_MAPPING_HASH(M) (crc32_update (crc32_buffer (&(M).master_fh.dev, \
+							sizeof (uint32_t)), \
+					  &(M).master_fh.ino,		    \
+					  sizeof (uint32_t)))
+
 static bool init_metadata_for_created_volume_root (volume vol);
 static void delete_hardlinks_fh (volume vol, zfs_fh *fh);
 static void read_hardlinks (string_list sl, int fd);
@@ -136,6 +142,64 @@ metadata_encode (void *x)
   m->master_fh.gen = u32_to_le (m->master_fh.gen);
 }
 
+/* Hash function for fh_mapping X.  */
+
+static hashval_t
+fh_mapping_hash (const void *x)
+{
+  return FH_MAPPING_HASH (*(metadata *) x);
+}
+
+/* Compare element X of hash file with possible element Y.  */
+
+static int
+fh_mapping_eq (const void *x, const void *y)
+{
+  fh_mapping *m1 = (fh_mapping *) x;
+  fh_mapping *m2 = (fh_mapping *) y;
+
+  return (m1->master_fh.dev == m2->master_fh.dev
+	  && m1->master_fh.ino == m2->master_fh.ino);
+}
+
+/* Decode element X of the hash file.  */
+
+static void
+fh_mapping_decode (void *x)
+{
+  fh_mapping *m = (fh_mapping *) x;
+
+  m->master_fh.sid = le_to_u32 (m->master_fh.sid);
+  m->master_fh.vid = le_to_u32 (m->master_fh.vid);
+  m->master_fh.dev = le_to_u32 (m->master_fh.dev);
+  m->master_fh.ino = le_to_u32 (m->master_fh.ino);
+  m->master_fh.gen = le_to_u32 (m->master_fh.gen);
+  m->local_fh.sid = le_to_u32 (m->local_fh.sid);
+  m->local_fh.vid = le_to_u32 (m->local_fh.vid);
+  m->local_fh.dev = le_to_u32 (m->local_fh.dev);
+  m->local_fh.ino = le_to_u32 (m->local_fh.ino);
+  m->local_fh.gen = le_to_u32 (m->local_fh.gen);
+}
+
+/* Encode element X of the hash file.  */
+
+static void
+fh_mapping_encode (void *x)
+{
+  fh_mapping *m = (fh_mapping *) x;
+
+  m->master_fh.sid = u32_to_le (m->master_fh.sid);
+  m->master_fh.vid = u32_to_le (m->master_fh.vid);
+  m->master_fh.dev = u32_to_le (m->master_fh.dev);
+  m->master_fh.ino = u32_to_le (m->master_fh.ino);
+  m->master_fh.gen = u32_to_le (m->master_fh.gen);
+  m->local_fh.sid = le_to_u32 (m->local_fh.sid);
+  m->local_fh.vid = le_to_u32 (m->local_fh.vid);
+  m->local_fh.dev = le_to_u32 (m->local_fh.dev);
+  m->local_fh.ino = le_to_u32 (m->local_fh.ino);
+  m->local_fh.gen = le_to_u32 (m->local_fh.gen);
+}
+
 /* Build path to file with global metadata of type TYPE for volume VOL.  */
 
 static char *
@@ -152,6 +216,10 @@ build_metadata_path (volume vol, metadata_type type)
     {
       case METADATA_TYPE_METADATA:
 	path = xstrconcat (2, vol->local_path, "/.zfs/metadata");
+	break;
+
+      case METADATA_TYPE_FH_MAPPING:
+	path = xstrconcat (2, vol->local_path, "/.zfs/fh_mapping");
 	break;
 
       default:
@@ -530,6 +598,10 @@ open_hash_file (volume vol, metadata_type type)
 	hfile = vol->metadata;
 	break;
 
+      case METADATA_TYPE_FH_MAPPING:
+	hfile = vol->fh_mapping;
+	break;
+
       default:
 	abort ();
     }
@@ -756,7 +828,7 @@ init_volume_metadata (volume vol)
 #endif
 
   path = build_metadata_path (vol, METADATA_TYPE_METADATA);
-  vol->metadata = hfile_create (sizeof (metadata), 256, metadata_hash,
+  vol->metadata = hfile_create (sizeof (metadata), 32, metadata_hash,
 				metadata_eq, metadata_decode, metadata_encode,
 				path, &vol->mutex);
   insert_volume_root = (lstat (vol->local_path, &st) < 0);
@@ -764,6 +836,7 @@ init_volume_metadata (volume vol)
   if (!create_path_for_file (path, S_IRWXU))
     {
       free (path);
+      close_volume_metadata (vol);
       return false;
     }
   free (path);
@@ -801,8 +874,8 @@ init_volume_metadata (volume vol)
 	  if (!full_write (fd, &header, sizeof (header)))
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
-	      close_volume_metadata (vol);
 	      unlink (vol->metadata->file_name);
+	      close_volume_metadata (vol);
 	      return false;
 	    }
 
@@ -811,8 +884,8 @@ init_volume_metadata (volume vol)
 			      + sizeof (header))) < 0)
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
-	      close_volume_metadata (vol);
 	      unlink (vol->metadata->file_name);
+	      close_volume_metadata (vol);
 	      return false;
 	    }
 	}
@@ -827,7 +900,77 @@ init_volume_metadata (volume vol)
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
 
   if (insert_volume_root)
-    return init_metadata_for_created_volume_root (vol);
+    {
+      if (!init_metadata_for_created_volume_root (vol))
+	{
+	  close_volume_metadata (vol);
+	  return false;
+	}
+    }
+
+  path = build_metadata_path (vol, METADATA_TYPE_FH_MAPPING);
+  vol->fh_mapping = hfile_create (sizeof (fh_mapping), 32, fh_mapping_hash,
+				  fh_mapping_eq, fh_mapping_decode,
+				  fh_mapping_encode, path, &vol->mutex);
+
+  fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
+  if (fd < 0)
+    {
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  if (fstat (fd, &st) < 0)
+    {
+      message (2, stderr, "%s: fstat: %s\n", vol->fh_mapping->file_name,
+	       strerror (errno));
+      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  if (!hfile_init (vol->fh_mapping, &st))
+    {
+      if ((st.st_mode & S_IFMT) != S_IFREG)
+	{
+	  message (2, stderr, "%s: Not a regular file\n",
+		   vol->fh_mapping->file_name);
+	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
+      else if ((uint64_t) st.st_size < (uint64_t) sizeof (header))
+	{
+	  header.n_elements = 0;
+	  header.n_deleted = 0;
+	  if (!full_write (fd, &header, sizeof (header)))
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	      unlink (vol->fh_mapping->file_name);
+	      close_volume_metadata (vol);
+	      return false;
+	    }
+
+	  if (ftruncate (fd, ((uint64_t) vol->fh_mapping->size
+			      * sizeof (fh_mapping)
+			      + sizeof (header))) < 0)
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	      unlink (vol->fh_mapping->file_name);
+	      close_volume_metadata (vol);
+	      return false;
+	    }
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+
   return true;
 }
 
@@ -863,6 +1006,12 @@ close_volume_metadata (volume vol)
       close_hash_file (vol->metadata);
       hfile_destroy (vol->metadata);
       vol->metadata = NULL;
+    }
+  if (vol->fh_mapping)
+    {
+      close_hash_file (vol->fh_mapping);
+      hfile_destroy (vol->fh_mapping);
+      vol->fh_mapping = NULL;
     }
   vol->delete_p = true;
 }
@@ -1130,7 +1279,6 @@ init_metadata_for_created_volume_root (volume vol)
   if (!hfile_lookup (vol->metadata, &meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
       return false;
     }
 
@@ -1148,7 +1296,6 @@ init_metadata_for_created_volume_root (volume vol)
       if (!hfile_insert (vol->metadata, &meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
     }
