@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
 #include "pthread.h"
 #include "fh.h"
 #include "alloc-pool.h"
@@ -113,10 +114,10 @@ internal_fh_eq_name (const void *xx, const void *yy)
 /* Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *IFHP and VDP according to it.  */
 
-bool
+int
 zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
-  bool res;
+  int res;
 
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*fh))
@@ -135,7 +136,7 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
    and set *VOLP, *IFHP and VDP according to it.
    This function is similar to FH_LOOKUP but the big locks must be locked.  */
 
-bool
+int
 zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 		  virtual_dir *vdp)
 {
@@ -150,20 +151,17 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
       CHECK_MUTEX_LOCKED (&vd_mutex);
 
       vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, hash);
-      if (vd)
-	{
-	  zfsd_mutex_lock (&vd->mutex);
-	  if (vd->vol)
-	    zfsd_mutex_lock (&vd->vol->mutex);
-	}
       if (!vd)
-	return false;
+	return ENOENT;
+
+      zfsd_mutex_lock (&vd->mutex);
+      if (vd->vol)
+	zfsd_mutex_lock (&vd->vol->mutex);
 
       *volp = vd->vol;
       if (ifhp)
 	*ifhp = NULL;
       *vdp = vd;
-      return true;
     }
   else
     {
@@ -172,12 +170,12 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 
       vol = volume_lookup (fh->vid);
       if (!vol)
-	return false;
+	return ENOENT;
 
       if (!volume_active_p (vol))
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return false;
+	  return ESTALE;
 	}
 
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
@@ -189,17 +187,16 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
       else
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return false;
+	  return ESTALE;
 	}
 
       *volp = vol;
       *ifhp = ifh;
       if (vdp)
 	*vdp = NULL;
-      return true;
     }
 
-  return false;
+  return ZFS_OK;
 }
 
 /* Return the virtual directory for NAME in virtual directory PARENT.  */

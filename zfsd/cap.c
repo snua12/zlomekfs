@@ -213,6 +213,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
 		volume *vol, internal_fh *ifh, virtual_dir *vd)
 {
   internal_cap icap;
+  int r;
 
 #ifdef ENABLE_CHECKING
   if (cap->flags & ~O_ACCMODE)
@@ -222,8 +223,9 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (VIRTUAL_FH_P (cap->fh) && cap->flags != O_RDONLY)
     return EISDIR;
 
-  if (!zfs_fh_lookup (&cap->fh, vol, ifh, vd))
-    return ESTALE;
+  r = zfs_fh_lookup (&cap->fh, vol, ifh, vd);
+  if (r != ZFS_OK)
+    return r;
 
   if (*vd && *vol)
     update_volume_root (*vol, ifh);
@@ -306,6 +308,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 			volume *vol, internal_fh *ifh, virtual_dir *vd)
 {
   internal_cap icap;
+  int r;
 
   CHECK_MUTEX_LOCKED (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -316,10 +319,11 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   if (!icap)
     return EBADF;
 
-  if (!zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd))
+  r = zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd);
+  if (r != ZFS_OK)
     {
       internal_cap_destroy (icap);
-      return ESTALE;
+      return r;
     }
 
   if (vd && *vd && *vol)

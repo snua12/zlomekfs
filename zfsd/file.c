@@ -333,12 +333,13 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
-  if (!zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd))
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
+  if (r != ZFS_OK)
     {
       zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
-      return ESTALE;
+      return r;
     }
   zfsd_mutex_unlock (&volume_mutex);
 
