@@ -40,6 +40,7 @@
 #define ZFS_CONNECTION_CLOSED	-5	/* Connection closed while waiting for
 					   reply.  */
 #define ZFS_COULD_NOT_CONNECT	-6	/* Could not connect to node.  */
+#define ZFS_COULD_NOT_AUTH	-7	/* Could not authenticate with node.  */
 
 typedef enum direction_def
 {
@@ -302,5 +303,8 @@ struct node_def;
   extern void zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+
+extern void initialize_zfs_prot_c ();
+extern void cleanup_zfs_prot_c ();
 
 #endif
