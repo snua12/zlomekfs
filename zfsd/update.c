@@ -1007,9 +1007,9 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
   return r;
 }
 
-/* Create generic file NAME in directory DIR on volume VOL with remote file
-   REMOTE_FH and remote attributes REMOTE_ATTR.  DIR_FH is a file handle of
-   the directory.
+/* Create local generic file NAME in directory DIR on volume VOL with remote
+   file REMOTE_FH and remote attributes REMOTE_ATTR.  DIR_FH is a file handle
+   of the directory.
    Store created local file handle to LOCAL_FH.  */
 
 static int32_t
@@ -1155,6 +1155,63 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	  r = ZFS_METADATA_ERROR;
 	}
       zfsd_mutex_unlock (&vol->mutex);
+    }
+
+  return r;
+}
+
+/* Create remote generic file NAME in directory DIR on volume VOL according
+   to local attributes ATTR.  DIR_FH is a file handle of the directory.
+   Return file handle together with attributes in RES.  */
+
+static int32_t
+create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
+		  volume vol, zfs_fh *dir_fh, fattr *attr)
+{
+  sattr sa;
+  int32_t r, r2;
+  read_link_res link_to;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  sa.mode = attr->mode;
+  sa.uid = attr->uid;
+  sa.gid = attr->gid;
+  sa.size = (uint64_t) -1;
+  sa.atime = attr->atime;
+  sa.mtime = attr->mtime;
+
+  switch (attr->type)
+    {
+      default:
+	abort ();
+
+      case FT_DIR:
+	r = remote_mkdir (res, dir, name, &sa, vol);
+	break;
+
+      case FT_LNK:
+	r = local_readlink_name (&link_to, dir, name, vol);
+	if (r != ZFS_OK)
+	  return r;
+
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	if (r2 != ZFS_OK)
+	  abort ();
+#endif
+
+	r = remote_symlink (res, dir, name, &link_to.path, &sa, vol);
+	break;
+
+      case FT_REG:
+      case FT_BLK:
+      case FT_CHR:
+      case FT_SOCK:
+      case FT_FIFO:
+	r = remote_mknod (res, dir, name, &sa, attr->type, attr->rdev, vol);
+	break;
     }
 
   return r;
@@ -1513,17 +1570,9 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		  {
 		    if (zfs_fh_undefined (entry->master_fh))
 		      {
-			sattr sa;
-
-			sa.mode = local_res.attr.mode;
-			sa.uid = local_res.attr.uid;
-			sa.gid = local_res.attr.gid;
-			sa.size = (uint32_t) -1;
-			sa.atime = local_res.attr.atime;
-			sa.mtime = local_res.attr.mtime;
 			zfsd_mutex_unlock (&fh_mutex);
-			r = remote_mknod (&res, dentry, &entry->name, &sa,
-					  local_res.attr.type, 0, vol);
+			r = create_remote_fh (&res, dentry, &entry->name, vol,
+					      fh, &local_res.attr);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
 #ifdef ENABLE_CHECKING
