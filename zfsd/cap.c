@@ -110,8 +110,8 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     abort ();
 #endif
 
-  message (4, stderr, "FH %p LOCK %u, by %lu at %s:%d\n", level,
-	   (void *) (*dentryp)->fh, (unsigned long) pthread_self (),
+  message (4, stderr, "FH %p LOCK %u, by %lu at %s:%d\n",
+	   (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
 	   __FILE__, __LINE__);
 
   *tmp_cap = (*icapp)->local_cap;
@@ -140,8 +140,8 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 	return r;
     }
 
-  message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n", level,
-	   (void *) (*dentryp)->fh, (unsigned long) pthread_self (),
+  message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n",
+	   (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
 	   __FILE__, __LINE__);
 
   (*dentryp)->fh->level = level;
