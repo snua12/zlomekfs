@@ -26,6 +26,7 @@
 #include "zfs_prot.h"
 
 extern int get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh);
+extern int update_volume_root (volume vol, internal_fh *ifh);
 extern int zfs_extended_lookup (zfs_fh *fh, zfs_fh *dir, char *path);
 extern int zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name);
 
