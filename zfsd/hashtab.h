@@ -20,8 +20,7 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef _HASHTAB_H
 #define _HASHTAB_H
@@ -37,13 +36,13 @@ enum insert
 typedef unsigned int hash_t;
 
 /* Compute hash of a table entry.  */
-typedef hash_t (*htab_hash)(const void *x);
+typedef hash_t (*htab_hash) (const void *x);
 
 /* Compare the hash table entry with possible entry.  */
-typedef int (*htab_eq)(const void *x, const void *y);
+typedef int (*htab_eq) (const void *x, const void *y);
 
 /* Cleanup function called when element is deleted from hash table.  */
-typedef void (*htab_del)(void *x);
+typedef void (*htab_del) (void *x);
 
 typedef struct hash
 {
@@ -67,22 +66,22 @@ typedef struct hash
 
   /* Cleanup function.  */
   htab_del del_f;
-} *htab_t;
+}
+ *htab_t;
 
-extern htab_t htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f,
-			  htab_del del_f);
-extern void htab_destroy(htab_t htab);
-extern void htab_clear_slot(htab_t htab, void **slot);
-extern void **htab_find_slot(htab_t htab, const void *elem,
-			     enum insert insert);
-extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
-				       hash_t hash, enum insert insert);
+extern htab_t htab_create (unsigned int size, htab_hash hash_f, htab_eq eq_f,
+			   htab_del del_f);
+extern void htab_destroy (htab_t htab);
+extern void htab_clear_slot (htab_t htab, void **slot);
+extern void **htab_find_slot (htab_t htab, const void *elem,
+			      enum insert insert);
+extern void **htab_find_slot_with_hash (htab_t htab, const void *elem,
+					hash_t hash, enum insert insert);
 
 #define FOR_EACH_SLOT(HTAB,SLOT)				\
   for ((SLOT) = (HTAB)->table;					\
        (SLOT) < (HTAB)->table + (HTAB)->size;			\
        (SLOT)++)						\
     if (*(SLOT) != EMPTY_ENTRY && *(SLOT) != DELETED_ENTRY)
-      
 
 #endif

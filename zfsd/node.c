@@ -16,8 +16,7 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
 #include <string.h>
@@ -28,22 +27,22 @@
 
 /* Create node structure and fill it with information.  */
 node
-node_create(char *name)
+node_create (char *name)
 {
   node nod;
   struct hostent *he;
- 
-  nod = (node) xmalloc(sizeof(node));
-  nod->name = xstrdup(name);
+
+  nod = (node) xmalloc (sizeof (node));
+  nod->name = xstrdup (name);
   nod->flags = 0;
-  
-  he = gethostbyname(name);
+
+  he = gethostbyname (name);
   if (he)
     {
-      if (he->h_addrtype == AF_INET && he->h_length == sizeof(nod->addr))
+      if (he->h_addrtype == AF_INET && he->h_length == sizeof (nod->addr))
 	{
 	  nod->flags |= NODE_ADDR_RESOLVED;
-	  memcpy(&nod->addr, he->h_addr_list[0], sizeof(nod->addr));
+	  memcpy (&nod->addr, he->h_addr_list[0], sizeof (nod->addr));
 	}
     }
 

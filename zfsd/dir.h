@@ -16,8 +16,7 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef _DIR_H
 #define _DIR_H
@@ -25,11 +24,11 @@
 #include "fh.h"
 #include "hashtab.h"
 
-typedef struct mount_dir_tree {
+typedef struct mount_dir_tree
+{
   struct mount_dir_tree *parent;	/* pointer to parent directory */
 
   htab_t subdirs;			/* subdirectories */
-
 
 } mount_dir_tree;
 

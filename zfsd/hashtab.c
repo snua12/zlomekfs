@@ -20,8 +20,7 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
 #include <stdio.h>
@@ -71,19 +70,19 @@ static const unsigned int primes[] = {
    or equal to N. */
 
 static unsigned int
-get_higher_prime(unsigned int n)
+get_higher_prime (unsigned int n)
 {
   unsigned int low = 0;
-  unsigned int high = sizeof(primes) / sizeof(primes[0]) - 1;
+  unsigned int high = sizeof (primes) / sizeof (primes[0]) - 1;
 
   if (n > MAX_PRIME)
     {
-      message(-1, stderr,
-	      "%d is greater than maximum predefined prime number (%d).\n",
-	      n, MAX_PRIME);
-      abort();
+      message (-1, stderr,
+	       "%d is greater than maximum predefined prime number (%d).\n",
+	       n, MAX_PRIME);
+      abort ();
     }
-  
+
   while (low != high)
     {
       unsigned int mid = (low + high) / 2;
@@ -99,13 +98,13 @@ get_higher_prime(unsigned int n)
    to be inserted. Expects no deleted slots in the table.  */
 
 static void **
-htab_find_empty_slot(htab_t htab, hash_t hash)
+htab_find_empty_slot (htab_t htab, hash_t hash)
 {
   unsigned int size;
   unsigned int index;
   unsigned int step;
   void **slot;
-  
+
   size = htab->size;
   index = hash % size;
   slot = htab->table + index;
@@ -113,7 +112,7 @@ htab_find_empty_slot(htab_t htab, hash_t hash)
     return slot;
 #ifdef ENABLE_CHECKING
   if (*slot == DELETED_ENTRY)
-    abort();
+    abort ();
 #endif
 
   step = 1 + hash % (size - 2);
@@ -128,7 +127,7 @@ htab_find_empty_slot(htab_t htab, hash_t hash)
 	return slot;
 #ifdef ENABLE_CHECKING
       if (*slot == DELETED_ENTRY)
-	abort();
+	abort ();
 #endif
     }
 }
@@ -136,7 +135,7 @@ htab_find_empty_slot(htab_t htab, hash_t hash)
 /* Expand the hash table HTAB.  */
 
 static int
-htab_expand(htab_t htab)
+htab_expand (htab_t htab)
 {
   void **new_table;
   void **old_table;
@@ -147,7 +146,7 @@ htab_expand(htab_t htab)
 
   /* Get next prime number from table.  */
   new_size = get_higher_prime (htab->size + 1);
-  new_table = (void **) xcalloc(new_size, sizeof(void *));
+  new_table = (void **) xcalloc (new_size, sizeof (void *));
   if (!new_table)
     return 0;
   htab->table = new_table;
@@ -155,17 +154,17 @@ htab_expand(htab_t htab)
 
   htab->n_elements -= htab->n_deleted;
   htab->n_deleted = 0;
- 
+
   for (i = 0; i < old_size; i++)
     if (old_table[i] != EMPTY_ENTRY && old_table[i] != DELETED_ENTRY)
       {
 	void **slot;
 
-	slot = htab_find_empty_slot(htab, (*htab->hash_f)(old_table[i]));
+	slot = htab_find_empty_slot (htab, (*htab->hash_f) (old_table[i]));
 	*slot = old_table[i];
       }
-  
-  free(old_table);
+
+  free (old_table);
   return 1;
 }
 
@@ -173,22 +172,22 @@ htab_expand(htab_t htab)
    HASH_F, compare function EQ_F and element cleanup function DEL_F.  */
 
 htab_t
-htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f)
+htab_create (unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f)
 {
   htab_t htab;
 
-  htab = (htab_t) xmalloc(sizeof(htab_t));
+  htab = (htab_t) xmalloc (sizeof (htab_t));
   if (!htab)
     return NULL;
 
-  size = get_higher_prime(size);
-  htab->table = (void **) xcalloc(size, sizeof(void *));
+  size = get_higher_prime (size);
+  htab->table = (void **) xcalloc (size, sizeof (void *));
   if (!htab->table)
     {
-      free(htab);
+      free (htab);
       return NULL;
     }
-  
+
   htab->size = size;
   htab->n_elements = 0;
   htab->n_deleted = 0;
@@ -202,33 +201,33 @@ htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f)
    it is called for each present element.  */
 
 void
-htab_destroy(htab_t htab)
+htab_destroy (htab_t htab)
 {
   unsigned int i;
   if (htab->del_f)
     {
       for (i = 0; i < htab->size; i++)
 	if (htab->table[i] != EMPTY_ENTRY && htab->table[i] != DELETED_ENTRY)
-	  (*htab->del_f)(htab->table[i]);
+	  (*htab->del_f) (htab->table[i]);
     }
-  free(htab->table);
-  free(htab);
+  free (htab->table);
+  free (htab);
 }
 
 /* Clear the slot SLOT of the hash table HTAB.  If the cleanup function is
    defined it is called for the element in slot.  */
 
 void
-htab_clear_slot(htab_t htab, void **slot)
+htab_clear_slot (htab_t htab, void **slot)
 {
 #ifdef ENABLE_CHECKING
   if (slot < htab->table || slot >= htab->table + htab->size
       || *slot == EMPTY_ENTRY || *slot == DELETED_ENTRY)
-    abort();
+    abort ();
 #endif
 
   if (htab->del_f)
-    (*htab->del_f)(*slot);
+    (*htab->del_f) (*slot);
 
   *slot = DELETED_ENTRY;
   htab->n_deleted++;
@@ -237,9 +236,9 @@ htab_clear_slot(htab_t htab, void **slot)
 /* Similar to HTAB_FIND_SLOT_WITH_HASH but it computes the hash key first.  */
 
 void **
-htab_find_slot(htab_t htab, const void *elem, enum insert insert)
+htab_find_slot (htab_t htab, const void *elem, enum insert insert)
 {
-  return htab_find_slot_with_hash(htab, elem, (*htab->hash_f)(elem), insert);
+  return htab_find_slot_with_hash (htab, elem, (*htab->hash_f) (elem), insert);
 }
 
 /* Find the slot of hash table HTAB which contains element ELEM with hash key
@@ -247,8 +246,8 @@ htab_find_slot(htab_t htab, const void *elem, enum insert insert)
    is true and element is not present in the hash table it is inserted.  */
 
 void **
-htab_find_slot_with_hash(htab_t htab, const void *elem, hash_t hash,
-			 enum insert insert)
+htab_find_slot_with_hash (htab_t htab, const void *elem, hash_t hash,
+			  enum insert insert)
 {
   unsigned int size;
   unsigned int index;
@@ -256,9 +255,9 @@ htab_find_slot_with_hash(htab_t htab, const void *elem, hash_t hash,
   void **first_deleted_slot;
 
   if (insert == INSERT && htab->size * 2 <= htab->n_elements * 3
-      && htab_expand(htab) == 0)
+      && htab_expand (htab) == 0)
     return NULL;
-  
+
   size = htab->size;
   index = hash % size;
   first_deleted_slot = NULL;
@@ -267,7 +266,7 @@ htab_find_slot_with_hash(htab_t htab, const void *elem, hash_t hash,
     goto empty_entry;
   if (htab->table[index] == DELETED_ENTRY)
     first_deleted_slot = &htab->table[index];
-  else if ((*htab->eq_f)(htab->table[index], elem))
+  else if ((*htab->eq_f) (htab->table[index], elem))
     return &htab->table[index];
 
   step = 1 + hash % (size - 2);
@@ -284,16 +283,16 @@ htab_find_slot_with_hash(htab_t htab, const void *elem, hash_t hash,
 	  if (!first_deleted_slot)
 	    first_deleted_slot = &htab->table[index];
 	}
-      else if ((*htab->eq_f)(htab->table[index], elem))
+      else if ((*htab->eq_f) (htab->table[index], elem))
 	return &htab->table[index];
     }
-  
+
 empty_entry:
   if (insert == NO_INSERT)
     return NULL;
 
   htab->n_elements++;
-  
+
   if (first_deleted_slot)
     {
       *first_deleted_slot = EMPTY_ENTRY;

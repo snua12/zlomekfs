@@ -16,8 +16,7 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef _VOLUME_H
 #define _VOLUME_H
@@ -29,14 +28,14 @@
 /* Volume description.  */
 typedef struct volume_def
 {
-  unsigned id;		/* ID of the volume */
-  char *name;		/* name of the volume */
-  node master;		/* master node for the volume */
-  char *mountpoint;	/* "mountpoint" for the volume on the cluster fs */
-  int flags;		/* see VOLUME_* below */
-  
-  char *localpath;	/* directory with local copy of volume */
-  uint64_t size_limit;	/* size limit for copy of volume */
+  unsigned id;			/* ID of the volume */
+  char *name;			/* name of the volume */
+  node master;			/* master node for the volume */
+  char *mountpoint;		/* "mountpoint" for the volume on the cluster fs */
+  int flags;			/* see VOLUME_* below */
+
+  char *localpath;		/* directory with local copy of volume */
+  uint64_t size_limit;		/* size limit for copy of volume */
 } *volume;
 
 /* Predefined volume IDs.  */
@@ -50,6 +49,6 @@ typedef struct volume_def
 #define VOLUME_COPY	4	/* this is a copy of a volume */
 
 /* Function prototypes.  */
-extern volume volume_create(unsigned id);
+extern volume volume_create (unsigned id);
 
 #endif

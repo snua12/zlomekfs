@@ -16,17 +16,16 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef _FH_H
 #define _FH_H
 
-typedef struct svc_fh {
+typedef struct svc_fh
+{
   unsigned vid;		/* Volume ID */
   unsigned dev;		/* Device ... */
-  unsigned ino;		/* ... and inode number of the file */ 
+  unsigned ino;		/* ... and inode number of the file */
 } svc_fh;
-
 
 #endif

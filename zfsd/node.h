@@ -16,8 +16,7 @@
    You should have received a copy of the GNU General Public License along with
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html
-   */
+   or download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef _NODE_H
 #define _NODE_H
@@ -30,7 +29,7 @@ typedef struct node_def
 {
   char *name;			/* name of the node */
   struct sockaddr_in addr;	/* address */
-  				/* public key */
+				/* public key */
   int flags;			/* see NODE_* below */
 } *node;
 
@@ -41,6 +40,6 @@ typedef struct node_def
 #define NODE_ADDR_RESOLVED	4	/* the address of node is resolved  */
 
 /* Function prototypes.  */
-extern node node_create(char *name);
+extern node node_create (char *name);
 
 #endif
