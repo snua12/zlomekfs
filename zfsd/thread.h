@@ -120,6 +120,7 @@ typedef struct thread_pool_regulator_data_def
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
 				size_t max_spare_threads);
+extern void thread_pool_destroy (thread_pool *pool);
 extern int create_idle_thread (thread_pool *pool, thread_start start,
 			       thread_initialize init);
 extern int destroy_idle_thread (thread_pool *pool);
