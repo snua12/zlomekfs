@@ -181,7 +181,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
       local_fh->vid = vol->id;
       local_fh->dev = st.st_dev;
       local_fh->ino = st.st_ino;
-      fattr_from_struct_stat (attr, &st, vol);
+      fattr_from_struct_stat (attr, &st);
     }
   else
     abort ();
@@ -349,13 +349,25 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry)
   return ZFS_OK;
 }
 
-/* Convert attributes from STRUCT STAT ST to FATTR ATTR for file on volume
-   VOL.  */
+/* Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
 
 void
-fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
+fattr_from_struct_stat (fattr *attr, struct stat *st)
 {
-  CHECK_MUTEX_LOCKED (&vol->mutex);
+  attr->version = 0;		/* FIXME */
+  attr->dev = st->st_dev;
+  attr->ino = st->st_ino;
+  attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
+  attr->nlink = st->st_nlink;
+  attr->uid = map_uid_node2zfs (st->st_uid);
+  attr->gid = map_gid_node2zfs (st->st_gid);
+  attr->rdev = st->st_rdev;
+  attr->size = st->st_size;
+  attr->blocks = st->st_blocks;
+  attr->blksize = st->st_blksize;
+  attr->atime = st->st_atime;
+  attr->mtime = st->st_mtime;
+  attr->ctime = st->st_ctime;
 
   switch (st->st_mode & S_IFMT)
     {
@@ -391,41 +403,21 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
 	attr->type = FT_BAD;
 	break;
     }
-
-  attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
-  attr->nlink = st->st_nlink;
-  attr->uid = map_uid_node2zfs (st->st_uid);
-  attr->gid = map_gid_node2zfs (st->st_gid);
-  attr->rdev = st->st_rdev;
-  attr->size = st->st_size;
-  attr->blocks = st->st_blocks;
-  attr->blksize = st->st_blksize;
-  attr->generation = 0;	/* FIXME? how? */
-  attr->version = 0;		/* FIXME */
-  attr->sid = this_node->id;
-  attr->vid = vol->id;
-  attr->dev = st->st_dev;
-  attr->ino = st->st_ino;
-  attr->atime = st->st_atime;
-  attr->mtime = st->st_mtime;
-  attr->ctime = st->st_ctime;
 }
 
-/* Get attributes of local file PATH on volume VOL and store them to ATTR.  */
+/* Get attributes of local file PATH and store them to ATTR.  */
 
 int32_t
-local_getattr_path (fattr *attr, char *path, volume vol)
+local_getattr_path (fattr *attr, char *path)
 {
   struct stat st;
   int32_t r;
-
-  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   r = lstat (path, &st);
   if (r != 0)
     return errno;
 
-  fattr_from_struct_stat (attr, &st, vol);
+  fattr_from_struct_stat (attr, &st);
   return ZFS_OK;
 }
 
@@ -442,7 +434,7 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path (vol, dentry);
-  r = local_getattr_path (attr, path, vol);
+  r = local_getattr_path (attr, path);
   free (path);
 
   return r;
@@ -551,14 +543,12 @@ zfs_getattr_retry:
   return ZFS_OK;
 }
 
-/* Set attributes of local file PATH on volume VOL according to SA,
+/* Set attributes of local file PATH according to SA,
    reget attributes and store them to FA.  */
 
 int32_t
-local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
+local_setattr_path (fattr *fa, char *path, sattr *sa)
 {
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
   if (sa->mode != (uint32_t) -1)
     {
       if (chmod (path, sa->mode) != 0)
@@ -589,7 +579,7 @@ local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
     }
 
   if (fa)
-    return local_getattr_path (fa, path, vol);
+    return local_getattr_path (fa, path);
   return ZFS_OK;
 }
 
@@ -606,7 +596,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path (vol, dentry);
-  r = local_setattr_path (fa, path, sa, vol);
+  r = local_setattr_path (fa, path, sa);
   free (path);
 
   return r;
@@ -745,7 +735,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
-  r = local_getattr_path (&res->attr, path, vol);
+  r = local_getattr_path (&res->attr, path);
   free (path);
   if (r != ZFS_OK)
     return r;
@@ -965,7 +955,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
       return errno;
     }
 
-  r = local_setattr_path (&res->attr, path, attr, vol);
+  r = local_setattr_path (&res->attr, path, attr);
   free (path);
   if (r != ZFS_OK)
     return r;
@@ -2026,7 +2016,7 @@ local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
       return errno;
     }
 
-  r = local_setattr_path (NULL, path, attr, vol);
+  r = local_setattr_path (NULL, path, attr);
   free (path);
   if (r != ZFS_OK)
     return r;
@@ -2177,7 +2167,7 @@ local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
       return errno;
     }
 
-  r = local_setattr_path (NULL, path, attr, vol);
+  r = local_setattr_path (NULL, path, attr);
   free (path);
   if (r != ZFS_OK)
     return r;

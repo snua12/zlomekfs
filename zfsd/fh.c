@@ -1241,6 +1241,9 @@ virtual_mountpoint_destroy (volume vol)
 void
 virtual_dir_set_fattr (virtual_dir vd)
 {
+  vd->attr.dev = vd->fh.dev;
+  vd->attr.ino = vd->fh.ino;
+  vd->attr.version = 0;
   vd->attr.type = FT_DIR;
   vd->attr.mode = S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
   vd->attr.nlink = 2;
@@ -1250,12 +1253,6 @@ virtual_dir_set_fattr (virtual_dir vd)
   vd->attr.size = 0;
   vd->attr.blocks = 0;
   vd->attr.blksize = 4096;
-  vd->attr.generation = 0;
-  vd->attr.version = 0;
-  vd->attr.sid = vd->fh.sid;
-  vd->attr.vid = vd->fh.vid;
-  vd->attr.dev = vd->fh.dev;
-  vd->attr.ino = vd->fh.ino;
   vd->attr.atime = time (NULL);
   vd->attr.mtime = vd->attr.atime;
   vd->attr.ctime = vd->attr.atime;

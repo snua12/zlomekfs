@@ -111,6 +111,9 @@ typedef uint32_t zfs_time;
 
 typedef struct fattr_def
 {
+  uint32_t dev;
+  uint32_t ino;
+  uint64_t version;
   ftype type;
   uint32_t mode;
   uint32_t nlink;
@@ -120,12 +123,6 @@ typedef struct fattr_def
   uint64_t size;
   uint64_t blocks;
   uint32_t blksize;
-  uint32_t generation;
-  uint64_t version;
-  uint32_t sid;
-  uint32_t vid;
-  uint32_t dev;
-  uint32_t ino;
   zfs_time atime;
   zfs_time mtime;
   zfs_time ctime;
