@@ -2284,12 +2284,12 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 }
 
 /* Link local file FROM to be a file with NAME in directory DIR
-   on volume VOL.  */
+   on volume VOL.  Store the stat structure to ST.  */
 
 static int32_t
-local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
+local_link (struct stat *st, internal_dentry from, internal_dentry dir,
+	    string *name, volume vol)
 {
-  struct stat st;
   string path1, path2;
   int32_t r;
 
@@ -2307,7 +2307,7 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = lstat (path1.str, &st);
+  r = lstat (path1.str, st);
   if (r != 0)
     {
       free (path1.str);
@@ -2387,6 +2387,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   volume vol;
   internal_dentry from_dentry, dir_dentry;
   virtual_dir vd;
+  struct stat st;
   zfs_fh tmp_from, tmp_dir;
   int32_t r, r2;
 
@@ -2516,7 +2517,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	  if (r != ZFS_OK)
 	    return r;
 	}
-      r = local_link (from_dentry, dir_dentry, name, vol);
+      r = local_link (&st, from_dentry, dir_dentry, name, vol);
     }
   else if (vol->master != this_node)
     {
