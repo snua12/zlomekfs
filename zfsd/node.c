@@ -235,6 +235,11 @@ try_create_node (uint32_t id, string *name, string *host_name)
 				    HASH_NODE_NAME (*name), NO_INSERT);
   if (slot && slot2 && *slot == *slot2)
     {
+      nod = (node) *slot;
+
+      zfsd_mutex_lock (&nod->mutex);
+      nod->marked = false;
+      zfsd_mutex_unlock (&nod->mutex);
       zfsd_mutex_unlock (&node_mutex);
       return NULL;
     }
