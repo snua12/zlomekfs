@@ -86,6 +86,6 @@ extern void register_server ();
 extern int server_start ();
 extern int server_init_fd_data ();
 #endif
-extern int server_cleanup ();
+extern void server_cleanup ();
 
 #endif
