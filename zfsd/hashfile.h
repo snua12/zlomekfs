@@ -24,6 +24,9 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "pthread.h"
 
 /* Type of hash value.  */
@@ -100,6 +103,7 @@ extern hfile_t hfile_create (unsigned int element_size, unsigned int size,
 			     hfile_hash hash_f, hfile_eq eq_f,
 			     hfile_decode decode_f, hfile_encode encode_f,
 			     const char *file_name, pthread_mutex_t *mutex);
+extern bool hfile_init (hfile_t hfile, struct stat *st);
 extern void hfile_destroy (hfile_t hfile);
 extern bool hfile_lookup (hfile_t hfile, void *x);
 extern bool hfile_insert (hfile_t hfile, void *x);

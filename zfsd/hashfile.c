@@ -372,6 +372,38 @@ hfile_create (unsigned int element_size, unsigned int size,
   return hfile;
 }
 
+/* Initialize hash file HFILE.  */
+
+bool
+hfile_init (hfile_t hfile, struct stat *st)
+{
+  hashfile_header header;
+
+#ifdef ENABLE_CHECKING
+  if (hfile->fd < 0)
+    abort ();
+#endif
+
+  if (fstat (hfile->fd, st) < 0)
+    return false;
+
+  if ((st->st_mode & S_IFMT) != S_IFREG)
+    return false;
+
+  if ((uint64_t) st->st_size < (uint64_t) sizeof (header))
+    return false;
+
+  if (!full_read (hfile->fd, &header, sizeof (header)))
+    return false;
+
+  hfile->n_elements = le_to_u32 (header.n_elements);
+  hfile->n_deleted = le_to_u32 (header.n_deleted);
+  hfile->size = (((uint64_t) st->st_size - sizeof (header))
+		 / hfile->element_size);
+
+  return true;
+}
+
 /* Destroy the hash table HTAB.  */
 
 void
