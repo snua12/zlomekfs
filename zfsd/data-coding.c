@@ -797,3 +797,98 @@ encode_auth_stage2_args (DC *dc, auth_stage2_args *args)
 {
   return encode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN);
 }
+
+bool
+decode_md5sum_args (DC *dc, md5sum_args *args)
+{
+  uint32_t i;
+
+  if (!decode_zfs_cap (dc, &args->cap)
+      || !decode_uint32_t (dc, &args->count))
+    return false;
+
+  if (args->count > ZFS_MAX_MD5_CHUNKS)
+    return false;
+
+  for (i = 0; i < args->count; i++)
+    if (!decode_uint64_t (dc, &args->offset[i]))
+      return false;
+
+  for (i = 0; i < args->count; i++)
+    if (!decode_uint32_t (dc, &args->length[i]))
+      return false;
+
+  return true;
+}
+
+bool
+encode_md5sum_args (DC *dc, md5sum_args *args)
+{
+  uint32_t i;
+
+#ifdef ENABLE_CHECKING
+  if (args->count > ZFS_MAX_MD5_CHUNKS)
+    abort ();
+#endif
+
+  encode_zfs_cap (dc, &args->cap);
+  encode_uint32_t (dc, args->count);
+
+  for (i = 0; i < args->count; i++)
+    encode_uint64_t (dc, &args->offset[i]);
+
+  for (i = 0; i < args->count; i++)
+    encode_uint32_t (dc, &args->length[i]);
+
+  return true;
+}
+
+bool
+decode_md5sum_res (DC *dc, md5sum_res *res)
+{
+  uint32_t i;
+
+  if (!decode_uint32_t (dc, &res->count))
+    return false;
+
+  if (res->count > ZFS_MAX_MD5_CHUNKS)
+    return false;
+
+  for (i = 0; i < res->count; i++)
+    if (!decode_uint64_t (dc, &res->offset[i]))
+      return false;
+
+  for (i = 0; i < res->count; i++)
+    if (!decode_uint32_t (dc, &res->length[i]))
+      return false;
+
+  for (i = 0; i < res->count; i++)
+    if (!decode_fixed_buffer (dc, res->md5sum[i], 16))
+      return false;
+
+  return true;
+}
+
+bool
+encode_md5sum_res (DC *dc, md5sum_res *res)
+{
+  uint32_t i;
+
+#ifdef ENABLE_CHECKING
+  if (res->count > ZFS_MAX_MD5_CHUNKS)
+    abort ();
+#endif
+
+  encode_uint32_t (dc, res->count);
+
+  for (i = 0; i < res->count; i++)
+    encode_uint64_t (dc, &res->offset[i]);
+
+  for (i = 0; i < res->count; i++)
+    encode_uint32_t (dc, &res->length[i]);
+
+  for (i = 0; i < res->count; i++)
+    encode_fixed_buffer (dc, res->md5sum[i], 16);
+
+  return true;
+}

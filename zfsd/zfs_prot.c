@@ -508,6 +508,22 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t,
   zfsd_mutex_unlock (&fd_data->mutex);
 }
 
+/* md5sum_res zfs_proc_md5sum (md5sum_args); */
+
+void
+zfs_proc_md5sum_server (md5sum_args *args, thread *t,
+			ATTRIBUTE_UNUSED bool map_id)
+{
+  DC *dc = &t->dc;
+  int32_t r;
+  md5sum_res md5;
+
+  r = zfs_md5sum (&md5, args);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_status (dc, &md5);
+}
+
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\

@@ -31,6 +31,7 @@
 #define ZFS_MAXNODELEN 256
 #define ZFS_AUTH_LEN 16
 #define ZFS_VERIFY_LEN 16
+#define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (16 + 2 * sizeof (uint64_t)))
 
 /* Error codes.
    System errors have positive numbers, ZFS errors have negative numbers.  */
@@ -285,6 +286,22 @@ typedef struct auth_stage2_args_def
   char auth[ZFS_AUTH_LEN];
 } auth_stage2_args;
 
+typedef struct md5sum_args_def
+{
+  zfs_cap cap;
+  uint32_t count;
+  uint64_t offset[ZFS_MAX_MD5_CHUNKS];
+  uint32_t length[ZFS_MAX_MD5_CHUNKS];
+} md5sum_args;
+
+typedef struct md5sum_res_def
+{
+  uint32_t count;
+  uint64_t offset[ZFS_MAX_MD5_CHUNKS];
+  uint32_t length[ZFS_MAX_MD5_CHUNKS];
+  unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][16];
+} md5sum_res;
+
 typedef union call_args_def
 {
   char null;
@@ -309,6 +326,7 @@ typedef union call_args_def
   mknod_args mknod;
   auth_stage1_args auth_stage1;
   auth_stage2_args auth_stage2;
+  md5sum_args md5sum;
 } call_args;
 
 /* Mapping file type -> file mode.  */

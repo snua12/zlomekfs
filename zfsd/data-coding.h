@@ -247,5 +247,9 @@ extern bool decode_auth_stage1_args (DC *dc, auth_stage1_args *args);
 extern bool encode_auth_stage1_args (DC *dc, auth_stage1_args *args);
 extern bool decode_auth_stage2_args (DC *dc, auth_stage2_args *args);
 extern bool encode_auth_stage2_args (DC *dc, auth_stage2_args *args);
+extern bool decode_md5sum_args (DC *dc, md5sum_args *args);
+extern bool encode_md5sum_args (DC *dc, md5sum_args *args);
+extern bool decode_md5sum_res (DC *dc, md5sum_res *res);
+extern bool encode_md5sum_res (DC *dc, md5sum_res *res);
 
 #endif

@@ -1364,6 +1364,16 @@ zfs_write_retry:
   return r;
 }
 
+/* Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
+   length ARGS->LENGTH[i] and store them (together with the information about
+   ranges) to RES.  */
+
+int32_t
+zfs_md5sum (md5sum_res *res, md5sum_args *args)
+{
+  return ZFS_UNKNOWN_FUNCTION;
+}
+
 /* Initialize data structures in FILE.C.  */
 
 void
