@@ -2227,18 +2227,27 @@ read_config_file (const char *file)
 	{
 	  if (value_len)
 	    {
-	      /* Configuration options which may have a value.  */
+	      /* Configuration options which require a value.  */
 
+#if 0
 	      if (strncasecmp (key, "privatekey", 11) == 0)
 		{
 		  set_string_with_length (&private_key, value, value_len);
 		  message (1, stderr, "PrivateKey = '%s'\n", value);
 		}
-	      else if (strncasecmp (key, "localconfig", 12) == 0
-		       || strncasecmp (key, "localconfiguration", 19) == 0)
+	      else
+#endif
+	      if (strncasecmp (key, "localconfig", 12) == 0
+		  || strncasecmp (key, "localconfiguration", 19) == 0)
 		{
 		  set_string_with_length (&local_config, value, value_len);
 		  message (1, stderr, "LocalConfig = '%s'\n", value);
+		}
+	      else if (strncasecmp (key, "kerneldevice", 13) == 0
+		       || strncasecmp (key, "kernelfile", 11) == 0)
+		{
+		  set_string_with_length (&kernel_file_name, value, value_len);
+		  message (1, stderr, "KernelDevice = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)
 		{
@@ -2296,12 +2305,13 @@ read_config_file (const char *file)
 	    }
 	  else
 	    {
-	      /* Configuration options which may have no value.  */
+	      /* Configuration options which have no value.  */
 
 	      /* Configuration options which require a value.  */
-	      if (strncasecmp (key, "privatekey", 11) == 0
-		  || strncasecmp (key, "localconfig", 12) == 0
+	      if (strncasecmp (key, "localconfig", 12) == 0
 		  || strncasecmp (key, "localconfiguration", 19) == 0
+		  || strncasecmp (key, "kerneldevice", 13) == 0
+		  || strncasecmp (key, "kernelfile", 11) == 0
 		  || strncasecmp (key, "defaultuser", 12) == 0
 		  || strncasecmp (key, "defaultuid", 11) == 0
 		  || strncasecmp (key, "defaultgroup", 13) == 0
