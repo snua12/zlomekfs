@@ -1039,7 +1039,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 			   fh, &remote_fh, attr);
       free (name.str);
       if (r != ZFS_OK)
-	goto out2;
+	return r;
     }
   else
     {
@@ -1068,7 +1068,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 
       r = local_setattr (&dir->fh->attr, dir, &sa, vol);
       if (r != ZFS_OK)
-	goto out2;
+	return r;
     }
 
   if (attr->type == FT_REG)
@@ -1109,13 +1109,13 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 
   r = full_local_readdir (fh, &local_entries);
   if (r != ZFS_OK)
-    goto out2;
+    return r;
 
   r = full_remote_readdir (fh, &remote_entries);
   if (r != ZFS_OK)
     {
       htab_destroy (local_entries.htab);
-      goto out2;
+      return r;
     }
 
   HTAB_FOR_EACH_SLOT (local_entries.htab, slot,
@@ -1209,7 +1209,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   r = ZFS_OK;
 
 out:
-  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
+  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1220,26 +1220,10 @@ out:
     {
       vol->flags |= VOLUME_DELETE;
     }
-  if (r != ZFS_OK)
-    internal_dentry_unlock (dir);
-  else
-    release_dentry (dir);
+  release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
   htab_destroy (local_entries.htab);
   htab_destroy (remote_entries.htab);
-  return r;
-
-out2:
-  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  internal_dentry_unlock (dir);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
   return r;
 }
 
