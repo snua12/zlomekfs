@@ -2359,6 +2359,10 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, uint32_t old_parent_dev,
   return true;
 }
 
+/* Delete a hardlink [PARENT_DEV, PARENT_INO, NAME] from hardlink list for
+   file handle FH on volume VOL.
+   Return false on file error.  */
+
 bool
 metadata_hardlink_delete (volume vol, zfs_fh *fh, uint32_t parent_dev,
 			  uint32_t parent_ino, char *name)
