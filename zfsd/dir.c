@@ -3356,7 +3356,7 @@ retry_lookup:
 	    abort ();
 #endif
 
-	  dentry->fh->meta.master_fh = res.file;
+	  set_master_fh (vol, dentry->fh, &res.file);
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
@@ -3378,7 +3378,7 @@ retry_lookup:
 	    abort ();
 #endif
 
-	  dentry->fh->meta.master_fh = tmp_fh;
+	  set_master_fh (vol, dentry->fh, &tmp_fh);
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}

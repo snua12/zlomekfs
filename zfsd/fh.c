@@ -718,7 +718,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
       else
 	{
 	  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-	    dentry->fh->meta.master_fh = *master_fh;
+	    set_master_fh (vol, dentry->fh, master_fh);
 
 	  set_attr_version (attr, &dentry->fh->meta);
 	  dentry->fh->attr = *attr;
@@ -1076,6 +1076,39 @@ out2:
   return ZFS_OK;
 }
 
+/* Set master file handle of file handle FH on volume VOL to MASTER_FH.  */
+
+bool
+set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (vol->local_path && vol->master != this_node)
+    {
+      if (!ZFS_FH_EQ (fh->meta.master_fh, *master_fh))
+	{
+	  fh->meta.master_fh = *master_fh;
+	  return flush_metadata (vol, fh);
+	}
+    }
+  else
+    fh->meta.master_fh = *master_fh;
+
+  return true;
+}
+
+/* Clear metadata in file handle FH.  */
+
+static void
+clear_meta (internal_fh fh)
+{
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  memset (&fh->meta, 0, offsetof (metadata, master_fh));
+  zfs_fh_undefine (fh->meta.master_fh);
+}
+
 /* Create a new internal file handle on volume VOL with local file handle
    LOCAL_FH, remote file handle MASTER_FH, attributes ATTR, lock it to level
    LEVEL and store it to hash tables.  */
@@ -1138,7 +1171,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
       if (!init_metadata (vol, fh))
 	{
 	  vol->delete_p = true;
-	  memset (&fh->meta, 0, sizeof (fh->meta));
+	  clear_meta (fh);
 	}
       else
 	{
@@ -1153,11 +1186,15 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 	}
     }
   else
-    memset (&fh->meta, 0, sizeof (fh->meta));
+    clear_meta (fh);
 
-  /* FIXME: Temporary init master_fh here, in future
-     master_fh management must be significantly improved.  */
-  fh->meta.master_fh = *master_fh;
+  if (!vol->delete_p
+      && !set_master_fh (vol, fh, master_fh))
+    {
+      vol->delete_p = true;
+      clear_meta (fh);
+    }
+
   set_attr_version (&fh->attr, &fh->meta);
   attr->version = fh->attr.version;
 

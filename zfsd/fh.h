@@ -318,6 +318,7 @@ extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
 				      volume *volp, internal_dentry *dentry1p,
 				      internal_dentry *dentry2p,
 				      zfs_fh *tmp_fh1, zfs_fh *tmp_fh2);
+extern bool set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh);
 extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
 					       zfs_fh *master_fh, volume vol,
 					       internal_dentry parent,
