@@ -1550,6 +1550,9 @@ zfs_link_retry:
 
 	  internal_dentry_destroy (dentry, vol);
 	}
+      dentry = internal_dentry_link (dentry1->fh, vol, dentry2, name->str);
+      /* DENTRY->FH->MUTEX is already locked
+	 because DENTRY->FH == DENTRY1->FH.  */
     }
 
   zfsd_mutex_unlock (&dentry1->fh->mutex);
