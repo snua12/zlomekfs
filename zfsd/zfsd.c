@@ -552,7 +552,7 @@ main (int argc, char **argv)
   /* Make the connection with kernel and start main client thread.  */
   if (!client_start ())
     terminate ();
-  
+
   /* Register the ZFS protocol RPC server, register_server never returns (unless
      error occurs).  */
 #ifdef RPC

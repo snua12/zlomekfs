@@ -96,7 +96,7 @@ thread_state
 get_thread_state (thread *t)
 {
   thread_state res;
-  
+
   zfsd_mutex_lock (&t->mutex);
   res = t->state;
   zfsd_mutex_unlock (&t->mutex);
