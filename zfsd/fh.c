@@ -1231,6 +1231,9 @@ virtual_root_destroy (virtual_dir root)
 {
   void **slot;
 
+  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&root->mutex);
+
   /* Destroy capability associated with virtual directroy.  */
   if (root->cap)
     {
@@ -1244,7 +1247,6 @@ virtual_root_destroy (virtual_dir root)
 #endif
   varray_destroy (&root->subdirs);
 
-  zfsd_mutex_lock (&vd_mutex);
   slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -1253,6 +1255,8 @@ virtual_root_destroy (virtual_dir root)
 #endif
   htab_clear_slot (vd_htab, slot);
   free (root->name);
+  zfsd_mutex_unlock (&root->mutex);
+  zfsd_mutex_destroy (&root->mutex);
   pool_free (vd_pool, root);
   zfsd_mutex_unlock (&vd_mutex);
 }
