@@ -32,9 +32,6 @@
 #include "memory.h"
 #include "splay-tree.h"
 
-/* Local function prototypes.  */
-static void interval_tree_shrink (interval_tree tree);
-
 /* Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
 
 interval_tree
@@ -86,18 +83,6 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
       /* Lookup the predecessor and successor of key START.  */
       prev = splay_tree_predecessor (tree->splay, start);
       next = splay_tree_successor (tree->splay, start);
-
-      if (tree->size == tree->preferred_size
-	  && !((prev && INTERVAL_END (prev) >= start)
-	       || (next && INTERVAL_START (next) <= end)))
-	{
-	  /* Maybe we will be inserting a new node. Shrink the tree first.  */
-	  interval_tree_shrink (tree);
-
-	  /* The nodes may have been merged with others. Lookup them again.  */
-	  prev = splay_tree_predecessor (tree->splay, start);
-	  next = splay_tree_successor (tree->splay, start);
-	}
 
       if (prev && INTERVAL_END (prev) >= start)
 	{
@@ -171,7 +156,6 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 	  if (INTERVAL_END (prev) > end)
 	    {
 	      /* We are cutting a subinterval from interval PREV.  */
-	      interval_tree_shrink (tree);
 	      splay_tree_insert (tree->splay, end, INTERVAL_END (prev));
 	      tree->size++;
 	      INTERVAL_END (prev) = start;
@@ -180,7 +164,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 	  else
 	    {
 	      /* We are shortening the interval PREV.  */
-	      INTERVAL_END (prev) = end;
+	      INTERVAL_END (prev) = start;
 	    }
 	}
     }
@@ -240,132 +224,6 @@ interval_tree_successor (interval_tree tree, uint64_t key)
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   return splay_tree_successor (tree->splay, key);
-}
-
-/* Data passed to interval_tree_shrink_foreach.  */
-typedef struct interval_tree_shrink_data_def
-{
-  /* The END of prevous interval.  */
-  uint64_t last_end;
-
-  /* The sequential number of curent node.  */
-  int index;
-
-  /* The array of nodes.  */
-  splay_tree_node *node;
-
-  /* The array "holes" between an interval and its successor interval.  */
-  uint64_t *diff;
-
-  /* The indexes of nodes in an array sorted by the size of "holes".  */
-  int *pos;
-} interval_tree_shrink_data;
-
-/* Fill the interval_tree_shrink_data DATA according to the tree, process
-   one NODE.  */
-
-static int
-interval_tree_shrink_foreach (splay_tree_node node, void *data)
-{
-  interval_tree_shrink_data *d = (interval_tree_shrink_data *) data;
-
-  d->node[d->index] = node;
-  d->pos[d->index] = d->index;
-  if (d->index)
-    d->diff[d->index - 1] = INTERVAL_START (node) - d->last_end;
-  d->last_end = INTERVAL_END (node);
-  d->index++;
-  return 0;
-}
-
-/* Find the size of K-th smallest "hole", A and B are the bounds where to
-   search for K.  */
-
-static uint64_t
-interval_tree_shrink_find_k (interval_tree_shrink_data *x, int k, int a, int b)
-{
-  int i, j;
-  uint64_t m;
-
-  while (a < b)
-    {
-      i = a;
-      j = b;
-      m = x->diff[x->pos[(a + b) / 2]];
-
-      do
-	{
-	  while (x->diff[x->pos[i]] < m)
-	    i++;
-	  while (x->diff[x->pos[j]] > m)
-	    j--;
-	  if (i < j)
-	    {
-	      int sw = x->pos[i];
-	      x->pos[i] = x->pos[j];
-	      x->pos[j] = sw;
-	      i++;
-	      j--;
-	    }
-	}
-      while (i < j);
-
-      if (k <= j)
-	b = j;
-      if (i <= k)
-	a = i;
-    }
-
-  return x->diff[x->pos[a]];
-}
-
-/* If the size of TREE is the maximum size,
-   1/3 of the intervals which are close to another interval
-   will be merged with the interval they are close to.  */
-
-static void
-interval_tree_shrink (interval_tree tree)
-{
-  unsigned int i, n;
-  interval_tree_shrink_data d;
-  uint64_t threshold;
-
-  if (tree->size < tree->preferred_size)
-    return;
-
-  /* Find out the size of "holes" between intervals.  */
-  d.last_end = 0;
-  d.index = 0;
-  d.node = (splay_tree_node *) xmalloc (tree->size * sizeof (splay_tree_node));
-  d.diff = (uint64_t *) xmalloc (tree->size * sizeof (uint64_t));
-  d.pos = (int *) xmalloc (tree->size * sizeof (int));
-  splay_tree_foreach (tree->splay, interval_tree_shrink_foreach, &d);
-
-  /* N is the number of nodes that will be deleted.  */
-  n = tree->size / 3;
-  threshold = interval_tree_shrink_find_k (&d, n - 1, 0, tree->size - 2);
-
-  /* Merge nodes which are closer to each other than THRESHOLD.  */
-  i = 0;
-  while (n--)
-    {
-      while (d.diff[i] > threshold)
-	{
-	  i++;
-#ifdef ENABLE_CHECKING
-	  if (i + 1 >= tree->size)
-	    abort ();
-#endif
-	}
-      INTERVAL_END (d.node[i]) = INTERVAL_END (d.node[i + 1]);
-      splay_tree_delete (tree->splay, INTERVAL_START (d.node[i + 1]));
-      tree->size--;
-      d.node[i + 1] = d.node[i];
-      i++;
-    }
-  free (d.node);
-  free (d.diff);
-  free (d.pos);
 }
 
 /* Print the interval in NODE to file DATA.  */
