@@ -3203,7 +3203,7 @@ create_shadow_path (string *path, volume vol, zfs_fh *fh, string *name)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   build_shadow_metadata_path (path, vol, fh, name);
-  if (!create_path_for_file (path, S_IRWXU, vol))
+  if (!create_path_for_file (path, S_IRWXU | S_IRWXG | S_IRWXO, vol))
     {
       free (path->str);
       path->str = NULL;
