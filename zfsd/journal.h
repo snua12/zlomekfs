@@ -1,0 +1,86 @@
+/* Journal datatype.
+   Copyright (C) 2004 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
+
+   You should have received a copy of the GNU General Public License along with
+   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
+   or download it from http://www.gnu.org/licenses/gpl.html */
+
+#ifndef JOURNAL_H
+#define JOURNAL_H
+
+#include "system.h"
+#include <inttypes.h>
+#include "pthread.h"
+#include "memory.h"
+#include "hashtab.h"
+#include "crc32.h"
+#include "zfs_prot.h"
+
+/* Hash function for journal entry J.  */
+#define JOURNAL_HASH(J)							    \
+  (crc32_update (crc32_update (crc32_update (crc32_string ((J)->name.str),  \
+					     &(J)->dev, sizeof (uint32_t)), \
+			       &(J)->ino, sizeof (uint32_t)),		    \
+		 &(J)->gen, sizeof (uint32_t)))
+
+/* Operation stored to journal.  */
+typedef enum journal_operation_def
+{
+  JOURNAL_OPERATION_ADD,		/* add directory entry */
+  JOURNAL_OPERATION_DEL,		/* delete directory entry */
+  JOURNAL_OPERATION_LAST_AND_UNUSED
+} journal_operation_t;
+
+/* Journal entry.  */
+typedef struct journal_entry_def *journal_entry;
+struct journal_entry_def
+{
+  journal_entry next;		/* next entry in the doubly linked chain */
+  journal_entry prev;		/* previous entry in the doubly linked chain */
+
+  uint32_t dev;			/* device of the local file handle */
+  uint32_t ino;			/* inode of the local file handle */
+  uint32_t gen;			/* generation of the local file handle */
+  journal_operation_t oper;	/* journaled operation */
+  string name;			/* name of local file */
+  zfs_fh master_fh;		/* master file handle */
+};
+
+/* Definition of journal datatype.  */
+typedef struct journal_def
+{
+  /* Hash table.  */
+  htab_t htab;
+
+  /* Mutex which must be locked when accessing the journal.  */
+  pthread_mutex_t *mutex;
+
+  /* First and last node of the doubly-linked chain.  */
+  journal_entry first;
+  journal_entry last;
+} *journal;
+
+extern journal journal_create (unsigned int nelem, pthread_mutex_t *mutex);
+extern void journal_destroy (journal j);
+extern bool journal_insert (journal j, zfs_fh *local_fh, zfs_fh *master_fh,
+			    char *name, journal_operation_t oper, bool copy);
+extern bool journal_member (journal j, zfs_fh *local_fh, char *name);
+extern bool journal_delete (journal j, zfs_fh *local_fh, char *name);
+
+extern void initialize_journal_c (void);
+extern void cleanup_journal_c (void);
+
+#endif
