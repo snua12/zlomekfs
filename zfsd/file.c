@@ -71,7 +71,7 @@ capability_opened_p (internal_cap cap)
 /* Close local file for internal capability CAP on volume VOL.  */
 
 static int
-close_local_capability (internal_cap cap)
+local_close (internal_cap cap)
 {
   if (cap->fd >= 0)
     {
@@ -86,10 +86,10 @@ close_local_capability (internal_cap cap)
   return ZFS_OK;
 }
 
-/* Close local file for internal capability CAP on volume VOL.  */
+/* Close remote file for internal capability CAP on volume VOL.  */
 
 static int
-close_remote_capability (internal_cap cap, volume vol)
+remote_close (internal_cap cap, volume vol)
 {
   thread *t;
   int32_t r;
@@ -115,23 +115,6 @@ close_remote_capability (internal_cap cap, volume vol)
   return r;
 }
 
-/* Close internal capability CAP on volume VOL.  */
-
-static int
-close_capability (internal_cap cap, volume vol)
-{
-  int r;
-
-  if (vol->local_path)
-    r = close_local_capability (cap);
-  else if (vol->master != this_node)
-    r = close_remote_capability (cap, vol);
-  else
-    abort ();
-
-  return ZFS_OK;
-}
-
 /* Open local file for capability CAP (whose internal file handle is FH)
    with additional FLAGS on volume VOL.  */
 
@@ -150,7 +133,7 @@ capability_open (internal_cap cap, unsigned int flags, internal_fh fh,
 #endif
 
   /* Close the old file descriptor, new one will be opened.  */
-  close_local_capability (cap);
+  local_close (cap);
 
   path = build_local_path (vol, fh);
   cap->fd = open (path, cap->local_cap.flags | flags);
@@ -172,8 +155,8 @@ capability_open (internal_cap cap, unsigned int flags, internal_fh fh,
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
 static int
-open_local_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
-		       internal_fh fh, volume vol)
+local_open (zfs_cap *cap, internal_cap icap, unsigned int flags,
+	    internal_fh fh, volume vol)
 {
   int r;
 
@@ -190,8 +173,7 @@ open_local_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
    Store ZFS capability to CAP.  */
 
 static int
-open_remote_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
-			volume vol)
+remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
 {
   open_args args;
   thread *t;
@@ -263,9 +245,9 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
     zfsd_mutex_unlock (&vd->mutex);
 
   if (vol->local_path)
-    r = open_local_capability (cap, icap, flags & ~O_ACCMODE, ifh, vol);
+    r = local_open (cap, icap, flags & ~O_ACCMODE, ifh, vol);
   else if (vol->master != this_node)
-    r = open_remote_capability (cap, icap, flags & ~O_ACCMODE, vol);
+    r = remote_open (cap, icap, flags & ~O_ACCMODE, vol);
   else
     abort ();
 
@@ -309,7 +291,14 @@ zfs_close (zfs_cap *cap)
     zfsd_mutex_unlock (&vd->mutex);
 
   if (icap->busy == 1)
-    r = close_capability (icap, vol);
+    {
+      if (vol->local_path)
+	r = local_close (icap);
+      else if (vol->master != this_node)
+	r = remote_close (icap, vol);
+      else
+	abort ();
+    }
   else
     r = ZFS_OK;
 
@@ -431,8 +420,8 @@ read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
 /* Read COUNT bytes from local directory CAP starting at position COOKIE.  */
 
 static int
-read_local_dir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
-		readdir_data *data, volume vol)
+local_readdir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
+	       readdir_data *data, volume vol)
 {
   char buf[ZFS_MAXDATA];
   int r, pos;
@@ -519,7 +508,7 @@ read_local_dir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
 /* Read COUNT bytes from remote directory CAP starting at position COOKIE.  */
 
 static int
-read_remote_dir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
+remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
 {
   read_dir_args args;
   thread *t;
@@ -616,7 +605,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   if (!ifh || vol->local_path)
     {
       encode_dir_list (dc, &data.list);
-      r = read_local_dir (dc, icap, ifh, vd, &data, vol);
+      r = local_readdir (dc, icap, ifh, vd, &data, vol);
       if (vd)
 	{
 	  zfsd_mutex_unlock (&vd->mutex);
@@ -629,7 +618,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
     }
   else if (vol->master != this_node)
     {
-      r = read_remote_dir (dc, icap, &data, vol);
+      r = remote_readdir (dc, icap, &data, vol);
       if (vd)
 	{
 	  zfsd_mutex_unlock (&vd->mutex);
@@ -925,29 +914,4 @@ void
 cleanup_file_c ()
 {
   free (internal_fd_data);
-}
-
-/*****************************************************************************/
-
-int
-zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
-		  sattr *attr)
-{
-#if 0
-  int r;
-
-  if (!(flags & O_CREAT))
-    {
-      r = zfs_lookup (fh, dir, name);
-      if (r)
-	return r;
-
-      return zfs_open (fh);
-    }
-  else
-    {
-      /* FIXME: finish */
-    }
-#endif
-  return ZFS_OK;
 }
