@@ -103,6 +103,8 @@ init_fd_data (int fd)
   if (fd_data_a[fd].conn != CONNECTION_NONE
       && fd_data_a[fd].conn != CONNECTION_CONNECTING)
     abort ();
+  if (fd_data_a[fd].speed != CONNECTION_SPEED_NONE)
+    abort ();
   if (fd_data_a[fd].conn == CONNECTION_NONE
       && fd_data_a[fd].sid != 0)
     abort ();
@@ -233,6 +235,7 @@ close_network_fd (int fd)
 
   fd_data_a[fd].generation++;
   fd_data_a[fd].conn = CONNECTION_NONE;
+  fd_data_a[fd].speed = CONNECTION_SPEED_NONE;
   fd_data_a[fd].auth = AUTHENTICATION_NONE;
   fd_data_a[fd].sid = 0;
   zfsd_cond_broadcast (&fd_data_a[fd].cond);
@@ -450,6 +453,7 @@ node_connect (node nod)
 node_connected:
   freeaddrinfo (addr);
   fd_data_a[s].conn = CONNECTION_CONNECTING;
+  fd_data_a[s].speed = CONNECTION_SPEED_NONE;
   fd_data_a[s].auth = AUTHENTICATION_NONE;
   fd_data_a[s].sid = nod->id;
   zfsd_cond_broadcast (&fd_data_a[s].cond);
@@ -634,8 +638,9 @@ node_authenticate_error:
   t->retval = r;
   message (2, stderr, "not auth\n");
   zfsd_mutex_lock (&fd_data_a[fd].mutex);
-  fd_data_a[fd].auth = AUTHENTICATION_NONE;
   fd_data_a[fd].conn = CONNECTION_NONE;
+  fd_data_a[fd].speed = CONNECTION_SPEED_NONE;
+  fd_data_a[fd].auth = AUTHENTICATION_NONE;
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[fd]);
   close_network_fd (fd);

@@ -44,6 +44,14 @@ typedef enum connection_status_def
   CONNECTION_ESTABLISHED
 } connection_status;
 
+/* Connection speed.  */
+typedef enum connection_speed_def
+{
+  CONNECTION_SPEED_NONE,
+  CONNECTION_SPEED_SLOW,
+  CONNECTION_SPEED_FAST
+} connection_speed;
+
 /* Status of authentication.  */
 typedef enum authentication_status_def
 {
@@ -74,6 +82,7 @@ typedef struct fd_data_def
   time_t last_use;		/* time of last use of the socket */
   unsigned int generation;	/* generation of open file descriptor */
   connection_status conn;	/* status of connection with remote node */
+  connection_speed speed;	/* speed of connection with remote node */
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
   unsigned int busy;		/* number of threads using file descriptor */
