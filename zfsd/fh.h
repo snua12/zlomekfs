@@ -21,9 +21,13 @@
 #ifndef FH_H
 #define FH_H
 
+/* Forward declaration.  */
+typedef struct volume_def *volume;
+
 #include "system.h"
 #include <stdio.h>
 #include "alloc-pool.h"
+#include "crc32.h"
 #include "hashtab.h"
 #include "server.h"
 #include "varray.h"
@@ -40,6 +44,28 @@
 			    && (FH).dev == VIRTUAL_DEVICE	\
 			    && (FH).vid == VOLUME_ID_NONE	\
 			    && (FH).sid == SERVER_ANY)
+
+/* Hash function for svc_fh FH.  */
+#define SVC_FH_HASH(FH) (crc32_buffer ((FH), sizeof (svc_fh)))
+
+/* Compare two svc_fh FH1 and FH2.  */
+#define SVC_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
+			     && (FH1).dev == (FH2).dev		\
+			     && (FH1).vid == (FH2).vid		\
+			     && (FH1).sid == (FH2).sid)
+
+
+/* Hash function for internal_fh FH, computed from client_fh.  */
+#define INTERNAL_FH_HASH(FH)						\
+  (crc32_buffer (&(FH)->client_fh, sizeof (svc_fh)))
+
+/* Hash function for internal_fh FH, computed from parent_fh and name.  */
+#define INTERNAL_FH_HASH_NAME(FH)					\
+  (crc32_update (crc32_string ((FH)->name),				\
+		 &(FH)->parent->client_fh, sizeof (svc_fh)))
+
+/* Destroy the virtual mountpoint of volume VOL.  */
+#define virtual_mountpoint_destroy(VOL) (virtual_dir_destroy ((VOL)->root_vd))
 
 /* Structure of the file handle being sent between daemon and kernel
    and between daemons.  */
@@ -58,11 +84,11 @@ typedef struct svc_fh_def
   unsigned int ino;
 } svc_fh;
 
-#include "volume.h"
-
 /* Forward definitions.  */
-struct internal_fh_def;
-struct virtual_dir_def;
+typedef struct internal_fh_def *internal_fh;
+typedef struct virtual_dir_def *virtual_dir;
+
+#include "volume.h"
 
 /* Internal information about file handle.  */
 struct internal_fh_def
@@ -74,10 +100,13 @@ struct internal_fh_def
   svc_fh server_fh;
 
   /* Pointer to file handle of the parent directory.  */
-  struct internal_fh_def *parent;
+  internal_fh parent;
 
+#if 0
   /* Pointer to the virtual file handle which contains this internal_fh.  */
   struct virtual_dir_def *vd;
+  volume vol;
+#endif
   
   /* File name.  */
   char *name;
@@ -90,11 +119,13 @@ struct internal_fh_def
 struct virtual_dir_def
 {
   /* Handle of this node.  */
-  struct internal_fh_def *virtual_fh;
-  struct internal_fh_def *real_fh;
+  svc_fh fh;
 
   /* Pointer to parent virtual directory.  */
-  struct virtual_dir_def *parent;
+  virtual_dir parent;
+
+  /* Directory name.  */
+  char *name;
 
   /* Subdirectories (of type 'struct internal_fh_def *').  */
   varray subdirs;
@@ -103,7 +134,7 @@ struct virtual_dir_def
   unsigned int subdir_index;
 
   /* Number of active leaves
-     (i.e. the number of volume mountpoints on connected servers.  */
+     (i.e. the number of mountpoints of volumes which are VOLUME_ACTIVE_P).  */
   unsigned int active;
 
   /* Total number of leaves.  */
@@ -113,17 +144,26 @@ struct virtual_dir_def
   volume vol;
 };
 
-typedef struct internal_fh_def *internal_fh;
-typedef struct virtual_dir_def *virtual_dir;
-
 /* File handle of ZFS root.  */
 extern svc_fh root_fh;
 
-extern internal_fh fh_lookup (svc_fh *fh);
-extern internal_fh fh_lookup_name (internal_fh parent, const char *name);
+/* Allocation pool for file handles.  */
+extern alloc_pool fh_pool;
+
+extern hash_t internal_fh_hash (const void *x);
+extern hash_t internal_fh_hash_name (const void *x);
+extern int internal_fh_eq (const void *xx, const void *yy);
+extern int internal_fh_eq_name (const void *xx, const void *yy);
+extern void internal_fh_del (void *x);
+extern int fh_lookup (svc_fh *fh, volume *volp, internal_fh *ifhp,
+		      virtual_dir *vdp);
+extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
+extern internal_fh fh_lookup_name (volume vol, internal_fh parent,
+				   const char *name);
 extern internal_fh internal_fh_create (svc_fh *client_fh, svc_fh *server_fh,
-				       internal_fh parent, const char *name);
-extern void internal_fh_destroy (internal_fh fh);
+				       internal_fh parent, volume vol,
+				       const char *name);
+extern void internal_fh_destroy (internal_fh fh, volume vol);
 extern void print_fh_htab (FILE *f, htab_t htab);
 extern void debug_fh_htab (htab_t htab);
 

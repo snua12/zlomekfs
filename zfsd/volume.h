@@ -23,27 +23,31 @@
 
 #include "system.h"
 #include <inttypes.h>
-#include "node.h"
-
-typedef struct volume_def *volume;
 #include "fh.h"
+#include "node.h"
 
 /* Volume description.  */
 struct volume_def
 {
-  unsigned id;			/* ID of the volume */
+  unsigned int id;		/* ID of the volume */
   char *name;			/* name of the volume */
   node master;			/* master node for the volume */
-  char *mountpoint;		/* "mountpoint" for the volume on the cluster fs */
-  svc_fh root_fh;		/* File handle of the remote root.  */
+  char *mountpoint;		/* "mountpoint" for the volume on cluster fs */
   int flags;			/* see VOLUME_* below */
 
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
+
+  svc_fh root_fh;		/* file handle of the remote root.  */
+  virtual_dir root_vd;		/* virtual directory for the mountpoint */
+  htab_t fh_htab;		/* hash table of used file handles,
+				   searched by client_fh */
+  htab_t fh_htab_name;		/* hash table of used file handles,
+				   searched by(parent_fh, name) */
 };
 
 /* Predefined volume IDs.  */
-#define VOLUME_ID_NONE    0	/* ID of the non-existing 'root' volume */
+#define VOLUME_ID_VIRTUAL 0	/* ID of the non-existing 'root' volume */
 #define VOLUME_ID_CONFIG  1	/* ID of 'config' volume */
 
 /* Volume flags.  */
@@ -53,7 +57,8 @@ struct volume_def
 #define VOLUME_COPY	4	/* this is a copy of a volume */
 
 /* Is the volume active (i.e. accessible)?  */
-#define VOLUME_ACTIVE_P(V) ((V)->master->status != CONNECTION_NONE)
+#define VOLUME_ACTIVE_P(V) (((V)->flags & VOLUME_LOCAL) > 0		\
+			    ||  (V)->master->status != CONNECTION_NONE)
 
 /* Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0
@@ -61,6 +66,7 @@ struct volume_def
 /* Function prototypes.  */
 extern volume volume_lookup (unsigned int id);
 extern volume volume_create (unsigned int id);
+extern void volume_destroy (volume vol);
 extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);
 extern void volume_set_local_info (volume vol, const char *local_path,

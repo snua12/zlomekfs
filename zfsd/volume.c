@@ -28,8 +28,11 @@
 /* Hash table of volumes.  */
 static htab_t volume_htab;
 
+/* Hash function for volume ID ID.  */
+#define VOLUME_HASH_ID(ID) (ID)
+
 /* Hash function for volume N.  */
-#define VOLUME_HASH(N) ((N)->id)
+#define VOLUME_HASH(V) ((V)->id)
 
 /* Hash function for volume X.  */
 
@@ -55,7 +58,7 @@ volume_eq (const void *x, const void *y)
 volume
 volume_lookup (unsigned int id)
 {
-  return htab_find (volume_htab, &id);
+  return (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
 }
 
 /* Create volume structure and fill it with information.  */
@@ -74,6 +77,12 @@ volume_create (unsigned int id)
   vol->flags = 0;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
+  vol->root_fh = root_fh;
+  vol->root_vd = NULL;
+  vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
+			      internal_fh_del);
+  vol->fh_htab_name = htab_create (250, internal_fh_hash_name,
+				   internal_fh_eq_name, NULL);
 
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot (volume_htab, &vol->id, NO_INSERT);
@@ -85,6 +94,28 @@ volume_create (unsigned int id)
   *slot = vol;
 
   return vol;
+}
+
+/* Destroy volume VOL and free memory associated with it.  */
+
+void
+volume_destroy (volume vol)
+{
+  void **slot;
+
+  virtual_mountpoint_destroy (vol);
+
+  htab_destroy (vol->fh_htab_name);
+  htab_destroy (vol->fh_htab);
+
+  slot = htab_find_slot (volume_htab, &vol->id, NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (volume_htab, slot);
+  
+  free (vol);
 }
 
 /* Set the information common for all volume types.  */
@@ -99,6 +130,16 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
   if (!(master->flags & NODE_LOCAL))
     vol->flags |= VOLUME_COPY;
   virtual_mountpoint_create (vol);
+
+  /* FIXME: */
+  if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
+    {
+      /* get local root svc_fh */
+    }
+  else
+    {
+      /* get remote root svc_fh */
+    }
 }
 
 /* Set the information for a volume with local copy.  */
@@ -109,6 +150,43 @@ volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
   set_string (&vol->local_path, local_path);
   vol->size_limit = size_limit;
   vol->flags |= VOLUME_LOCAL;
+}
+
+/* Print the information about volume VOL to file F.  */
+
+void
+print_volume (FILE *f, volume vol)
+{
+  fprintf (f, "%u %s %s\n", vol->id, vol->name, vol->mountpoint);
+}
+
+/* Print the information about all volumes to file F.  */
+
+void
+print_volumes (FILE *f)
+{
+  void **slot;
+
+  FOR_EACH_SLOT (volume_htab, slot)
+    {
+      print_volume (f, (volume) *slot);
+    }
+}
+
+/* Print the information about volume VOL to STDERR.  */
+
+void
+debug_volume (volume vol)
+{
+  print_volume (stderr, vol);
+}
+
+/* Print the information about all volumes to STDERR.  */
+
+void
+debug_volumes ()
+{
+  print_volumes (stderr);
 }
 
 /* Initialize data structures in VOLUME.C.  */
@@ -124,5 +202,12 @@ initialize_volume_c ()
 void
 cleanup_volume_c ()
 {
+  void **slot;
+
+  FOR_EACH_SLOT (volume_htab, slot)
+    {
+      volume_destroy ((volume) *slot);
+    }
+
   htab_destroy (volume_htab);
 }

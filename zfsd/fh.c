@@ -30,45 +30,35 @@
 #include "varray.h"
 
 /* File handle of ZFS root.  */
-svc_fh root_fh = {SERVER_ANY, VOLUME_ID_NONE, VIRTUAL_DEVICE, ROOT_INODE};
+svc_fh root_fh = {SERVER_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
 
 /* The virtual directory root.  */
-virtual_dir root;
+static virtual_dir root;
 
 /* Allocation pool for file handles.  */
-static alloc_pool fh_pool;
+alloc_pool fh_pool;
 
 /* Allocation pool for virtual directories ("mountpoints").  */
 static alloc_pool virtual_dir_pool;
 
-/* Hash table of used file handles, searched by client_fh.  */
-static htab_t fh_htab;
-
-/* Hash table of used file handles, searched by (parent_fh, name).  */
-static htab_t fh_htab_name;
-
-/* Hash table of virtual directories (mount tree).  */
+/* Hash table of virtual directories, searched by fh.  */
 static htab_t virtual_dir_htab;
 
-/* Hash function for svc_fh FH.  */
-#define SVC_FH_HASH(FH) (crc32_buffer ((FH), sizeof (svc_fh)))
+/* Hash table of virtual directories, searched by (parent->fh, name).  */
+static htab_t virtual_dir_htab_name;
 
-/* Hash function for internal_fh FH, computed from client_fh.  */
-#define INTERNAL_FH_HASH(FH)						\
-  (crc32_buffer (&(FH)->client_fh, sizeof (svc_fh)))
-
-/* Hash function for internal_fh FH, computed from parent_fh and name.  */
-#define INTERNAL_FH_HASH_NAME(FH)					\
-  (crc32_update (crc32_string ((FH)->name),				\
-		 &(FH)->parent->client_fh, sizeof (svc_fh)))
-
-/* Hash function for virtual_dir VD.  */
+/* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
-  (crc32_buffer (&(VD)->virtual_fh, sizeof (svc_fh)))
+  (crc32_buffer (&(VD)->fh, sizeof (svc_fh)))
+
+/* Hash function for virtual_dir VD, computed from (parent->fh, name).  */
+#define VIRTUAL_DIR_HASH_NAME(VD)					\
+  (crc32_update (crc32_string ((VD)->name),				\
+		 &(VD)->parent->fh, sizeof (svc_fh)))
 
 /* Hash function for internal file handle X, computed from client_fh.  */
 
-static hash_t
+hash_t
 internal_fh_hash (const void *x)
 {
   return INTERNAL_FH_HASH ((internal_fh) x);
@@ -76,7 +66,7 @@ internal_fh_hash (const void *x)
 
 /* Hash function for internal_fh X, computed from parent_fh and name.  */
 
-static hash_t
+hash_t
 internal_fh_hash_name (const void *x)
 {
   return INTERNAL_FH_HASH_NAME ((internal_fh) x);
@@ -84,7 +74,7 @@ internal_fh_hash_name (const void *x)
 
 /* Compare an internal file handle XX with client's file handle YY.  */
 
-static int
+int
 internal_fh_eq (const void *xx, const void *yy)
 {
   svc_fh *x = &((internal_fh) xx)->client_fh;
@@ -97,7 +87,7 @@ internal_fh_eq (const void *xx, const void *yy)
 /* Compare two internal file handles XX and YY whether they have same parent
    and file name.  */
 
-static int
+int
 internal_fh_eq_name (const void *xx, const void *yy)
 {
   internal_fh x = (internal_fh) xx;
@@ -107,124 +97,152 @@ internal_fh_eq_name (const void *xx, const void *yy)
   	  && strcmp (x->name, y->name) == 0);
 }
 
-/* Find the internal file handle for svc_fh FH.  */
+/* Free the internal file handle X.  */
 
-internal_fh
-fh_lookup (svc_fh *fh)
+void
+internal_fh_del (void *x)
+{
+  pool_free (fh_pool, x);
+}
+
+/* Find the internal file handle or virtual directory for svc_fh FH
+   and set *VOLP, *IFHP and VDP according to it.  */
+
+int
+fh_lookup (svc_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
   hash_t hash = SVC_FH_HASH (fh);
  
-  return (internal_fh) htab_find_with_hash (fh_htab, fh, hash);
+  if (fh->vid == VOLUME_ID_VIRTUAL)
+    {
+      virtual_dir vd;
+
+      vd = (virtual_dir) htab_find_with_hash (virtual_dir_htab, fh, hash);
+      if (!vd || vd->active == 0)
+	return 0;
+
+      *volp = vd->vol;
+      *ifhp = NULL;
+      *vdp = vd;
+      return 1;
+    }
+  else
+    {
+      volume vol;
+      internal_fh ifh;
+
+      vol = volume_lookup (fh->vid);
+      if (!vol || !VOLUME_ACTIVE_P (vol))
+	return 0;
+
+      ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
+      if (!ifh)
+	return 0;
+
+      *volp = vol;
+      *ifhp = ifh;
+      *vdp = NULL;
+      return 1;
+    }
+
+  return 0;
 }
 
-/* Find the internal file handle for file NAME in directory PARENT.  */
+/* Return the virtual directory for NAME in virtual directory PARENT.  */
+
+virtual_dir 
+vd_lookup_name (virtual_dir parent, const char *name)
+{
+  virtual_dir vd;
+  struct virtual_dir_def tmp_vd;
+
+  tmp_vd.parent = parent;
+  tmp_vd.name = (char *) name;
+  vd = (virtual_dir) htab_find (virtual_dir_htab_name, &tmp_vd);
+  if (vd && vd->active)
+    return vd;
+
+  return NULL;
+}
+
+/* Return the internal file handle or virtual directory for NAME in directory
+   PARENT on volume VOL.  */
 
 internal_fh
-fh_lookup_name (internal_fh parent, const char *name)
+fh_lookup_name (volume vol, internal_fh parent, const char *name)
 {
-  struct internal_fh_def ifh;
+  struct internal_fh_def tmp_fh;
 
-  ifh.name = (char *) name;
-  ifh.parent = parent;
- 
-  return (internal_fh) htab_find (fh_htab_name, &ifh);
+  tmp_fh.parent = parent;
+  tmp_fh.name = (char *) name;
+
+  return (internal_fh) htab_find (vol->fh_htab_name, &tmp_fh);
 }
 
 /* Create a new internal file handle and store it to hash tables.  */
 
 internal_fh
 internal_fh_create (svc_fh *client_fh, svc_fh *server_fh, internal_fh parent,
-		    const char *name)
+		    volume vol, const char *name)
 {
-  internal_fh new_fh;
-  internal_fh old_fh;
+  internal_fh fh;
   void **slot;
 
   /* Create a new internal file handle.  */
-  new_fh = (internal_fh) pool_alloc (fh_pool);
-  new_fh->client_fh = *client_fh;
-  new_fh->server_fh = *server_fh;
-  new_fh->parent = parent;
-  new_fh->name = xstrdup (name);
-  new_fh->vd = NULL;
-  new_fh->fd = -1;
-
-  slot = htab_find_slot (fh_htab, new_fh, INSERT);
-  *slot = new_fh;
-
-  slot = htab_find_slot (fh_htab_name, new_fh, NO_INSERT);
-  if (slot)
-    {
-      /* PARENT_FH + NAME is already there so it must be a mountpoint.  */
-      old_fh = (internal_fh) *slot;
+  fh = (internal_fh) pool_alloc (fh_pool);
+  fh->client_fh = *client_fh;
+  fh->server_fh = *server_fh;
+  fh->parent = parent;
+  fh->name = xstrdup (name);
+  fh->fd = -1;
 
 #ifdef ENABLE_CHECKING
-      if (VIRTUAL_FH_P (new_fh->client_fh) == VIRTUAL_FH_P (old_fh->client_fh))
+  slot = htab_find_slot (vol->fh_htab, fh, NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+  slot = htab_find_slot (vol->fh_htab, fh, INSERT);
+  *slot = fh;
+
+  if (parent)
+    {
+#ifdef ENABLE_CHECKING
+      slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
+      if (slot)
 	abort ();
 #endif
-
-      if (VIRTUAL_FH_P (old_fh->client_fh))
-	{
-	  virtual_dir vd;
-
-	  /* Set new underlying file handle for mountpoint.  */
-	  vd = (virtual_dir) htab_find (virtual_dir_htab, &old_fh->client_fh);
-	  vd->real_fh = new_fh;
-	  new_fh->vd = vd;
-	}
-    }
-  else
-    {
-      /* PARENT_FH + NAME is not there yet so insert it.  */
-      slot = htab_find_slot (fh_htab_name, new_fh, INSERT);
-      *slot = new_fh;
+      slot = htab_find_slot (vol->fh_htab_name, fh, INSERT);
+      *slot = fh;
     }
 
-  return new_fh;
+  return fh;
 }
 
 /* Destroy the internal file handle FH.  */
 
 void
-internal_fh_destroy (internal_fh fh)
+internal_fh_destroy (internal_fh fh, volume vol)
 {
   void **slot;
 
-  if (VIRTUAL_FH_P (fh->client_fh))
+  if (fh->parent)
     {
-      slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, NO_INSERT);
+      slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
 #ifdef ENABLE_CHECKING
       if (!slot)
 	abort ();
 #endif
-      virtual_dir_destroy ((virtual_dir) *slot);
+      htab_clear_slot (vol->fh_htab_name, slot);
     }
-  else
-    {
-      /* Find out whether the file handle is the real file handle of some
-	 virtual directory.  */
-      if (fh->vd)
-	{
-	  fh->vd->real_fh = NULL;
-	}
-      else
-	{
-	  slot = htab_find_slot (fh_htab_name, fh, NO_INSERT);
-#ifdef ENABLE_CHECKING
-	  if (!slot)
-	    abort ();
-#endif
-	  htab_clear_slot (fh_htab_name, slot);
-	}
 
-      slot = htab_find_slot (fh_htab, fh, NO_INSERT);
+  slot = htab_find_slot (vol->fh_htab, fh, NO_INSERT);
 #ifdef ENABLE_CHECKING
-      if (!slot)
-	abort ();
+  if (!slot)
+    abort ();
 #endif
-      htab_clear_slot (fh_htab, slot);
-      pool_free (fh_pool, fh);
-    }
+  htab_clear_slot (vol->fh_htab, slot);
+
+  pool_free (fh_pool, fh);
 }
 
 /* Print the contents of hash table HTAB to file F.  */
@@ -255,16 +273,34 @@ debug_fh_htab (htab_t htab)
   print_fh_htab (stderr, htab);
 }
 
-/* Hash function for virtual_dir X.  */
+/* Hash function for virtual_dir X, computed from FH.  */
 
 static hash_t
 virtual_dir_hash (const void *x)
 {
+  virtual_dir vd = (virtual_dir) x;
+
 #ifdef ENABLE_CHECKING
-  if (!VIRTUAL_FH_P (*(svc_fh *) x))
+  if (!VIRTUAL_FH_P (vd->fh))
     abort ();
 #endif
-  return SVC_FH_HASH ((svc_fh *) x);
+
+  return VIRTUAL_DIR_HASH (vd);
+}
+
+/* Hash function for virtual_dir X, computed from (PARENT->FH, NAME).  */
+
+static hash_t
+virtual_dir_hash_name (const void *x)
+{
+  virtual_dir vd = (virtual_dir) x;
+
+#ifdef ENABLE_CHECKING
+  if (!vd->parent || !VIRTUAL_FH_P (vd->parent->fh))
+    abort ();
+#endif
+
+  return VIRTUAL_DIR_HASH_NAME (vd);
 }
 
 /* Compare a virtual directory XX with client's file handle YY.  */
@@ -272,7 +308,7 @@ virtual_dir_hash (const void *x)
 static int
 virtual_dir_eq (const void *xx, const void *yy)
 {
-  svc_fh *x = &((virtual_dir) xx)->virtual_fh->client_fh;
+  svc_fh *x = &((virtual_dir) xx)->fh;
   svc_fh *y = (svc_fh *) yy;
 
 #ifdef ENABLE_CHECKING
@@ -285,57 +321,77 @@ virtual_dir_eq (const void *xx, const void *yy)
 	  && x->vid == y->vid && x->sid == y->sid);
 }
 
+/* Compare two virtual directories XX and YY whether they have same parent
+   and file name.  */
+
+static int
+virtual_dir_eq_name (const void *xx, const void *yy)
+{
+  virtual_dir x = (virtual_dir) xx;
+  virtual_dir y = (virtual_dir) yy;
+
+#ifdef ENABLE_CHECKING
+  if (!VIRTUAL_FH_P (x->fh))
+    abort ();
+  if (!y->parent || !VIRTUAL_FH_P (y->parent->fh))
+    abort ();
+#endif
+
+  return (x->parent == y->parent
+	  && strcmp (x->name, y->name) == 0);
+}
+
+/* Free the virtual firectory X.  */
+
+void
+virtual_dir_del (void *x)
+{
+  pool_free (virtual_dir_pool, x);
+}
+
 /* Create a new virtual directory NAME in virtual directory PARENT.  */
 
 virtual_dir
 virtual_dir_create (virtual_dir parent, const char *name)
 {
   virtual_dir vd;
-  internal_fh fh;
-  svc_fh sfh;
   static unsigned int last_virtual_ino;
   void **slot;
 
   last_virtual_ino++;
   if (last_virtual_ino == 0)
     last_virtual_ino++;
-  sfh.sid = SERVER_ANY;
-  sfh.vid = VOLUME_ID_NONE;
-  sfh.dev = VIRTUAL_DEVICE;
-  sfh.ino = last_virtual_ino;
-  fh = internal_fh_create (&sfh, &sfh, parent->virtual_fh, name);
+
   vd = (virtual_dir) pool_alloc (virtual_dir_pool);
-
-  fh->vd = vd;
-  vd->virtual_fh = fh;
+  vd->fh.sid = SERVER_ANY;
+  vd->fh.vid = VOLUME_ID_VIRTUAL;
+  vd->fh.dev = VIRTUAL_DEVICE;
+  vd->fh.ino = last_virtual_ino;
   vd->parent = parent;
+  vd->name = xstrdup (name);
 
-  slot = htab_find_slot (fh_htab_name, fh, NO_INSERT);
-  if (slot)
-    {
-      /* Remember and overwrite the original file handle for parent+name.  */
-      vd->real_fh = (internal_fh) *slot;
-      *slot = fh;
-    }
-  else
-    {
-      vd->real_fh = NULL;
-    }
-
-  varray_create (&vd->subdirs, sizeof (internal_fh), 16);
+  varray_create (&vd->subdirs, sizeof (virtual_dir), 16);
   vd->subdir_index = VARRAY_USED (parent->subdirs);
-  VARRAY_PUSH (parent->subdirs, fh, internal_fh);
+  VARRAY_PUSH (parent->subdirs, vd, virtual_dir);
 
   vd->active = 0;
   vd->total = 0;
   vd->vol = NULL;
   
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, NO_INSERT);
+  slot = htab_find_slot (virtual_dir_htab, &vd->fh, NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, INSERT);
+  slot = htab_find_slot (virtual_dir_htab, &vd->fh, INSERT);
+  *slot = vd;
+
+#ifdef ENABLE_CHECKING
+  slot = htab_find_slot (virtual_dir_htab_name, vd, NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+  slot = htab_find_slot (virtual_dir_htab_name, vd, INSERT);
   *slot = vd;
 
   return vd;
@@ -347,7 +403,7 @@ void
 virtual_dir_destroy (virtual_dir vd)
 {
   virtual_dir parent;
-  void **slot, **slot2;
+  void **slot;
   int was_active;
 
   was_active = VOLUME_ACTIVE_P (vd->vol);
@@ -363,69 +419,34 @@ virtual_dir_destroy (virtual_dir vd)
       
       if (vd->total == 0)
 	{
+	  virtual_dir top;
+
 #ifdef ENABLE_CHECKING
 	  if (VARRAY_USED (vd->subdirs))
-	    message (2, stderr, "Subdirs remaining in ROOT.\n");
+	    abort ();
 #endif
 	  varray_destroy (&vd->subdirs);
 
 	  /* Remove VD from parent's subdirectories.  */
-	  VARRAY_ACCESS (vd->parent->subdirs, vd->subdir_index, internal_fh)
-	    = VARRAY_TOP (vd->parent->subdirs, internal_fh);
+	  top = VARRAY_TOP (vd->parent->subdirs, virtual_dir);
+	  VARRAY_ACCESS (vd->parent->subdirs, vd->subdir_index, virtual_dir)
+	    = top;
 	  VARRAY_POP (vd->parent->subdirs);
+	  top->subdir_index = vd->subdir_index;
 
-	  if (vd->real_fh)
-	    {
-	      vd->real_fh->vd = NULL;
-
-	      /* Replace the VIRTUAL_FH by REAL_FH in the FH_HTAB_NAME.  */
-	      slot = htab_find_slot (fh_htab_name, &vd->virtual_fh, NO_INSERT);
-#ifdef ENABLE_CHECKING
-	      if (!slot)
-		abort ();
-#endif
-	      slot2 = htab_find_slot (fh_htab, &vd->real_fh, NO_INSERT);
-#ifdef ENABLE_CHECKING
-	      if (!slot2)
-		abort ();
-#endif
-	      *slot2 = *slot;
-	    }
-	  else
-	    {
-	      slot = htab_find_slot (fh_htab_name, &vd->virtual_fh, NO_INSERT);
-#ifdef ENABLE_CHECKING
-	      if (!slot)
-		abort ();
-#endif
-	      htab_clear_slot (fh_htab_name, slot);
-	    }
-
-	  vd->virtual_fh->vd = NULL;
-	  /* Delete the virtual_fh from the table of all file handles.  */
-	  slot = htab_find_slot (fh_htab, &vd->virtual_fh, NO_INSERT);
+	  /* Delete the virtual_fh from the table of virtual directories.  */
+	  slot = htab_find_slot (virtual_dir_htab_name, vd, NO_INSERT);
 #ifdef ENABLE_CHECKING
 	  if (!slot)
 	    abort ();
 #endif
-	  pool_free (fh_pool, *slot);
-	  htab_clear_slot (fh_htab, slot);
-
-	  /* Delete the virtual_fh from the table of virtual directories.  */
-	  slot = htab_find_slot (virtual_dir_htab, &vd->virtual_fh, NO_INSERT);
+	  htab_clear_slot (virtual_dir_htab_name, slot);
+	  slot = htab_find_slot (virtual_dir_htab, &vd->fh, NO_INSERT);
 #ifdef ENABLE_CHECKING
 	  if (!slot)
 	    abort ();
 #endif
 	  htab_clear_slot (virtual_dir_htab, slot);
-
-#ifdef ENABLE_CHECKING
-	  /* FIXME: delete the subdir from parent directory.  */
-	  if (VARRAY_USED (vd->subdirs))
-	    abort ();
-#endif
-	  varray_destroy (&vd->subdirs);
-	  pool_free (virtual_dir_pool, vd);
 	}
     }
 }
@@ -436,32 +457,20 @@ virtual_dir
 virtual_root_create ()
 {
   virtual_dir root;
-  internal_fh fh;
   void **slot;
 
-  fh = (internal_fh) pool_alloc (fh_pool);
   root = (virtual_dir) pool_alloc (virtual_dir_pool);
 
-  fh->client_fh = root_fh;
-  fh->server_fh = root_fh;
-  fh->parent = NULL;
-  fh->vd = root;
-  fh->name = xstrdup ("");
-  fh->fd = -1;
-  
-  root->virtual_fh = fh;
-  root->real_fh = NULL;
+  root->fh = root_fh;
   root->parent = NULL;
-  varray_create (&root->subdirs, sizeof (internal_fh), 16);
+  root->name = xstrdup ("");
+  varray_create (&root->subdirs, sizeof (virtual_dir), 16);
   root->subdir_index = 0;
   root->active = 1;
   root->total = 1;
-  root->vol = NULL;
 
-  /* Insert the root into hash tables.  */
-  slot = htab_find_slot (fh_htab, fh, INSERT);
-  *slot = fh;
-  slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, INSERT);
+  /* Insert the root into hash table.  */
+  slot = htab_find_slot (virtual_dir_htab, root, INSERT);
   *slot = root;
 
   return root;
@@ -472,17 +481,25 @@ virtual_root_create ()
 void
 virtual_root_destroy (virtual_dir root)
 {
-  free (root->virtual_fh->name);
+  void **slot;
+
+  free (root->name);
+
 #ifdef ENABLE_CHECKING
   if (VARRAY_USED (root->subdirs))
-    message (2, stderr, "Subdirs remaining in ROOT.\n");
+    abort ();
 #endif
   varray_destroy (&root->subdirs);
-  pool_free (fh_pool, root->virtual_fh);
-  pool_free (virtual_dir_pool, root);
+
+  slot = htab_find_slot (virtual_dir_htab, root, NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (virtual_dir_htab, slot);
 }
 
-/* Create the virtual mountpoint.  */
+/* Create the virtual mountpoint for volume VOL.  */
 
 virtual_dir
 virtual_mountpoint_create (volume vol)
@@ -517,21 +534,23 @@ virtual_mountpoint_create (volume vol)
   vd = root;
   for (i = 0; i < VARRAY_USED (subpath); i++)
     {
-      internal_fh fh;
-      struct internal_fh_def tmp_fh;
+      struct virtual_dir_def tmp_vd;
 
       parent = vd;
       s = VARRAY_ACCESS (subpath, i, char *);
 
-      tmp_fh.parent = parent->virtual_fh;
-      tmp_fh.name = s;
-      fh = (internal_fh) htab_find (fh_htab_name, &tmp_fh);
-      if (fh && VIRTUAL_FH_P (fh->client_fh))
-	vd = fh->vd;
-      else
+      tmp_vd.parent = parent;
+      tmp_vd.name = s;
+      vd = (virtual_dir) htab_find (virtual_dir_htab_name, &tmp_vd);
+      if (!vd)
 	vd = virtual_dir_create (parent, s);
+#ifdef ENABLE_CHECKING
+      if (!VIRTUAL_FH_P (vd->fh))
+	abort ();
+#endif
     }
   vd->vol = vol;
+  vol->root_vd = vd;
 
   /* Increase the count of volumes in subtree.  */
   active = VOLUME_ACTIVE_P (vol);
@@ -558,14 +577,13 @@ print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
   for (i = 0; i < indent; i++)
     fputc (' ', f);
     
-  fprintf (f, "'%s'", vd->virtual_fh->name);
+  fprintf (f, "'%s'", vd->name);
   if (vd->vol)
     fprintf (f, "; VOLUME = '%s'", vd->vol->name);
   fputc ('\n', f);
 
   for (i = 0; i < VARRAY_USED (vd->subdirs); i++)
-    print_virtual_tree_node (f,
-			     VARRAY_ACCESS (vd->subdirs, i, internal_fh)->vd,
+    print_virtual_tree_node (f, VARRAY_ACCESS (vd->subdirs, i, virtual_dir),
 			     indent + 1);
 }
 
@@ -593,14 +611,14 @@ initialize_fh_c ()
   /* Data structures for file handles.  */
   fh_pool = create_alloc_pool ("fh_pool", sizeof (struct internal_fh_def),
 			       1023);
-  fh_htab = htab_create (1000, internal_fh_hash, internal_fh_eq, NULL);
-  fh_htab_name = htab_create (1000, internal_fh_hash_name, internal_fh_eq_name,
-			      NULL);
 
   /* Data structures for virtual directories.  */
   virtual_dir_pool = create_alloc_pool ("virtual_dir_pool",
 					sizeof (struct virtual_dir_def), 127);
-  virtual_dir_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq, NULL);
+  virtual_dir_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq,
+				  virtual_dir_del);
+  virtual_dir_htab_name = htab_create (100, virtual_dir_hash_name,
+				       virtual_dir_eq_name, NULL);
 
   root = virtual_root_create ();
 }
@@ -613,11 +631,10 @@ cleanup_fh_c ()
   virtual_root_destroy (root);
   
   /* Data structures for file handles.  */
-  htab_destroy (fh_htab);
-  htab_destroy (fh_htab_name);
 #ifdef ENABLE_CHECKING
   if (fh_pool->elts_free < fh_pool->elts_allocated)
-    message (2, stderr, "Memory leak in fh_pool.\n");
+    message (2, stderr, "Memory leak (%u elements) in fh_pool.\n",
+	     fh_pool->elts_allocated - fh_pool->elts_free);
 #endif
   free_alloc_pool (fh_pool);
 
@@ -625,7 +642,8 @@ cleanup_fh_c ()
   htab_destroy (virtual_dir_htab);
 #ifdef ENABLE_CHECKING
   if (virtual_dir_pool->elts_free < virtual_dir_pool->elts_allocated)
-    message (2, stderr, "Memory leak in virtual_dir_pool.\n");
+    message (2, stderr, "Memory leak (%u elements) in virtual_dir_pool.\n",
+	     virtual_dir_pool->elts_allocated - virtual_dir_pool->elts_free);
 #endif
   free_alloc_pool (virtual_dir_pool);
 }
