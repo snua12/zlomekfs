@@ -58,14 +58,13 @@
 char *config_file = "/etc/zfs/config";
 
 /* Local function prototypes.  */
-static void terminate ();
 static void exit_sighandler (int signum);
 static void fatal_sigaction (int signum, siginfo_t *info, void *data);
-static void init_sig_handlers ();
+static void init_sig_handlers (void);
 static void usage (int exitcode) ATTRIBUTE_NORETURN;
 static void version (int exitcode) ATTRIBUTE_NORETURN;
 static void process_arguments (int argc, char **argv);
-static void die () ATTRIBUTE_NORETURN;
+static void die (void) ATTRIBUTE_NORETURN;
 
 #ifndef SI_FROMKERNEL
 #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
@@ -73,7 +72,7 @@ static void die () ATTRIBUTE_NORETURN;
 
 /* Make zfsd to terminate.  */
 
-static void
+void
 terminate (void)
 {
   sigset_t mask, old_mask;
