@@ -2165,7 +2165,8 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  continue;
 	}
 
-      if (!zfs_fh_undefined (meta.master_fh))
+      if (!zfs_fh_undefined (meta.master_fh)
+	  && (meta.flags & METADATA_MODIFIED) == 0)
 	{
 	  vol = volume_lookup (fh->vid);
 #ifdef ENABLE_CHECKING
@@ -2185,6 +2186,26 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
 	  r = local_reintegrate_del (vol, &local_res.file, dir, &entry->name,
 				     r != ZFS_OK, fh);
+	}
+      else if (meta.flags & METADATA_MODIFIED)
+	{
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+
+	  remote_res.file.sid = dir->fh->meta.master_fh.sid;
+	  conflict = create_conflict (vol, dir, &entry->name, &local_res.file,
+				      &local_res.attr);
+	  add_file_to_conflict_dir (vol, conflict, true, &local_res.file,
+				    &local_res.attr, &meta);
+	  add_file_to_conflict_dir (vol, conflict, false, &remote_res.file,
+				    &local_res.attr, NULL);
+	  release_dentry (conflict);
+	  release_dentry (dir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
 	}
       else
 	{
