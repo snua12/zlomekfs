@@ -746,7 +746,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
       if (r != ZFS_OK)
 	return r;
     }
-  
+
   if (vol->local_path)
     r = local_rmdir (idir, name, vol);
   else if (vol->master != this_node)
