@@ -1624,10 +1624,12 @@ internal_dentry_move (internal_dentry dentry, volume vol,
 
   parent = dentry->parent;
 
+#ifdef ENABLE_CHECKING
   /* Check whether we are not moving DENTRY to its subtree.  */
   for (tmp = dir; tmp; tmp = tmp->parent)
     if (tmp == dentry)
-      return false;
+      abort ();
+#endif
 
   /* Delete DENTRY from parent's directory entries.  */
   internal_dentry_del_from_dir (dentry);

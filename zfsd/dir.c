@@ -1906,6 +1906,23 @@ zfs_rename_retry:
   else
     to_dentry = from_dentry;
 
+  /* Check whether we are not moving a directory into its subdirectory.  */
+  if (from_dentry != to_dentry)
+    {
+      internal_dentry tmp;
+
+      for (tmp = to_dentry; tmp; tmp = tmp->parent)
+	if (tmp->parent == from_dentry
+	    && strcmp (tmp->name, from_name->str) == 0)
+	  {
+	    release_dentry (from_dentry);
+	    release_dentry (to_dentry);
+	    zfsd_mutex_unlock (&vol->mutex);
+	    zfsd_mutex_unlock (&fh_mutex);
+	    return EINVAL;
+	  }
+    }
+
   zfsd_mutex_unlock (&fh_mutex);
 
   r = internal_dentry_lock2 (LEVEL_EXCLUSIVE, LEVEL_EXCLUSIVE, &vol,
