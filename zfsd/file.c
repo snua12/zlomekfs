@@ -154,7 +154,7 @@ retry_open:
 /* If local file for capability CAP is opened return true and lock
    INTERNAL_FD_DATA[CAP->FD].MUTEX.  */
 
-bool
+static bool
 capability_opened_p (internal_cap cap)
 {
   if (cap->fd < 0)
@@ -254,8 +254,8 @@ capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
     abort ();
 #endif
 
-  /* Close the old file descriptor, new one will be opened.  */
-  local_close (cap);
+  if (capability_opened_p (cap))
+    return ZFS_OK;
 
   path = build_local_path (vol, dentry);
   cap->fd = safe_open (path, cap->local_cap.flags | flags, 0);
@@ -1048,12 +1048,9 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 
   if (dentry)
     {
-      if (!capability_opened_p (cap))
-	{
-	  r = capability_open (cap, 0, dentry, vol);
-	  if (r != ZFS_OK)
-	    return r;
-	}
+      r = capability_open (cap, 0, dentry, vol);
+      if (r != ZFS_OK)
+	return r;
 
       if (cookie < 0)
 	cookie = 0;
@@ -1434,16 +1431,14 @@ local_read (uint32_t *rcount, void *buffer, internal_cap cap,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  if (!capability_opened_p (cap))
+  r = capability_open (cap, 0, dentry, vol);
+  if (r != ZFS_OK)
     {
-      r = capability_open (cap, 0, dentry, vol);
-      if (r != ZFS_OK)
-	{
-	  release_dentry (dentry);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  return r;
-	}
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return r;
     }
+
   fd = cap->fd;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
@@ -1701,16 +1696,14 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  if (!capability_opened_p (cap))
+  r = capability_open (cap, 0, dentry, vol);
+  if (r != ZFS_OK)
     {
-      r = capability_open (cap, 0, dentry, vol);
-      if (r != ZFS_OK)
-	{
-	  release_dentry (dentry);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  return r;
-	}
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return r;
     }
+
   fd = cap->fd;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
