@@ -70,15 +70,15 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   varray_destroy (&tmp);
 }
 
-/* Update some of the BLOCKS (described in ARGS) of local file LOCAL_CAP
-   from remote file REMOTE_CAP.  If USE_BUFFER is true, load the needed
-   intervals to BUFFER (the beginning of buffer is at file offset OFFSET) and
+/* Update some of the BLOCKS (described in ARGS) of local file CAP
+   from remote file.  If USE_BUFFER is true, load the needed intervals
+   to BUFFER (the beginning of buffer is at file offset OFFSET) and
    store the updated number of bytes read from file to RCOUNT.  */
 
 static int32_t
 update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
-		      uint64_t offset, md5sum_args *args, zfs_cap *local_cap,
-		      zfs_cap *master_cap, varray *blocks)
+		      uint64_t offset, md5sum_args *args, zfs_cap *cap,
+		      varray *blocks)
 {
   volume vol;
   internal_dentry dentry;
@@ -88,11 +88,11 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
   unsigned int i, j;
 
 #ifdef ENABLE_CHECKING
-  if (VIRTUAL_FH_P (local_cap->fh))
+  if (VIRTUAL_FH_P (cap->fh))
     abort ();
 #endif
 
-  args->cap = *master_cap;
+  args->cap = *cap;
   r = remote_md5sum (&remote_md5, args);
   if (r != ZFS_OK)
     return r;
@@ -100,12 +100,12 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
   if (remote_md5.count == 0)
     return ZFS_OK;
 
-  args->cap = *local_cap;
+  args->cap = *cap;
   r = local_md5sum (&local_md5, args);
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_fh_lookup (&local_cap->fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
   if (r != ZFS_OK)
     return r;
 
@@ -188,12 +188,12 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	      else
 		buf = tmp_buf;
 
-	      r = full_remote_read (&remote_md5.length[i], buf, local_cap,
+	      r = full_remote_read (&remote_md5.length[i], buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
 		return r;
 
-	      r = full_local_write (&count, buf, local_cap,
+	      r = full_local_write (&count, buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
 		return r;
@@ -210,7 +210,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 		{
 		  buf = data.real_buffer;
 
-		  r = full_local_read (&count, buf, local_cap,
+		  r = full_local_read (&count, buf, cap,
 				       remote_md5.offset[i],
 				       remote_md5.length[i]);
 		  if (r != ZFS_OK)
@@ -219,7 +219,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 		    abort (); /* FIXME */
 		}
 
-	      r = full_remote_read (&remote_md5.length[i], tmp_buf, local_cap,
+	      r = full_remote_read (&remote_md5.length[i], tmp_buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
 		return r;
@@ -245,7 +245,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 		}
 
 	      /* Write updated buffer BUF.  */
-	      r = full_local_write (&count, buf, local_cap,
+	      r = full_local_write (&count, buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
 		return r;
@@ -253,7 +253,7 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 		abort ();	/* FIXME */
 
 	      /* Add the interval to UPDATED.  */
-	      r = zfs_fh_lookup (&local_cap->fh, &vol, &dentry, NULL);
+	      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
 	      if (r != ZFS_OK)
 		return r;
 
@@ -320,8 +320,7 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
 		  r = update_file_blocks_1 (use_buffer, rcount, buffer, offset,
-					    &args, &local_cap, &master_cap,
-					    blocks);
+					    &args, &local_cap, blocks);
 		  if (r != ZFS_OK)
 		    return r;
 		  args.count = 0;
@@ -339,7 +338,7 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
   if (args.count > 0)
     {
       r = update_file_blocks_1 (use_buffer, rcount, buffer, offset, &args,
-				&local_cap, &master_cap, blocks);
+				&local_cap, blocks);
       if (r != ZFS_OK)
 	return r;
     }
