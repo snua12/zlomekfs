@@ -406,7 +406,7 @@ interval_tree_intersection (interval_tree tree, uint64_t start, uint64_t end,
    to varray DEST.  */
 
 void
-interval_tree_intersection_varray (interval_tree tree, varray src,
+interval_tree_intersection_varray (interval_tree tree, varray *src,
 				   varray *dest)
 {
   unsigned int i;
@@ -414,11 +414,11 @@ interval_tree_intersection_varray (interval_tree tree, varray src,
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   varray_create (dest, sizeof (interval), 16);
-  for (i = 0; i < VARRAY_USED (src); i++)
+  for (i = 0; i < VARRAY_USED (*src); i++)
     {
       interval *x;
 
-      x = &VARRAY_ACCESS (src, i, interval);
+      x = &VARRAY_ACCESS (*src, i, interval);
       interval_tree_intersection_1 (tree, x->start, x->end, dest);
     }
 }
@@ -487,18 +487,18 @@ interval_tree_complement (interval_tree tree, uint64_t start, uint64_t end,
    to varray DEST.  */
 
 void
-interval_tree_complement_varray (interval_tree tree, varray src, varray *dest)
+interval_tree_complement_varray (interval_tree tree, varray *src, varray *dest)
 {
   unsigned int i;
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   varray_create (dest, sizeof (interval), 16);
-  for (i = 0; i < VARRAY_USED (src); i++)
+  for (i = 0; i < VARRAY_USED (*src); i++)
     {
       interval *x;
 
-      x = &VARRAY_ACCESS (src, i, interval);
+      x = &VARRAY_ACCESS (*src, i, interval);
       interval_tree_complement_1 (tree, x->start, x->end, dest);
     }
 }
