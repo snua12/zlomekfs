@@ -567,7 +567,6 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 		message (2, stderr, "%s: %s\n", path, strerror (errno));
 		vol->flags |= VOLUME_DELETE;
 	      }
-	    free (path);
 	    return true;
 	  }
 	else
@@ -590,7 +589,6 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 		message (2, stderr, "%s: %s\n", path, strerror (errno));
 		vol->flags |= VOLUME_DELETE;
 	      }
-	    free (path);
 	    return true;
 	  }
 	else
@@ -641,7 +639,10 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
   close_interval_file (tree);
 
   if (delete_useless_interval_file (vol, fh, type, tree, path))
-    return true;
+    {
+      free (path);
+      return true;
+    }
 
   new_path = xstrconcat (2, path, ".new");
   fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT,
