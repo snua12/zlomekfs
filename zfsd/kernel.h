@@ -23,8 +23,11 @@
 
 #include "system.h"
 
-extern void create_client_threads ();
-extern int initialize_client ();
+/* Thread ID of the main client thread (thread receiving data from socket).  */
+extern pthread_t main_client_thread;
+
+extern bool create_client_threads ();
+extern bool client_start ();
 extern void client_cleanup ();
 
 #endif

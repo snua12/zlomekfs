@@ -75,6 +75,7 @@ exit_sighandler (int signum)
 {
   running = false;
 
+  pthread_kill (main_client_thread, SIGUSR1);
   pthread_kill (main_network_thread, SIGUSR1);
 }
 
@@ -512,16 +513,16 @@ main (int argc, char **argv)
   if (!init_network_fd_data ())
     die ();
 
-  /* Make the connection with kernel.  */
-  if (!initialize_client ())
-    die ();
-
   /* Create client threads and related threads.  */
   create_client_threads ();
 
   /* Create network threads and related threads.  */
   create_network_threads ();
 
+  /* Make the connection with kernel and start main client thread.  */
+  if (!client_start ())
+    exit_sighandler (0);
+  
   /* Register the ZFS protocol RPC server, register_server never returns (unless
      error occurs).  */
 #ifdef RPC
