@@ -290,7 +290,7 @@ out:
       /* Get FH.GEN.  */
       meta.modetype = GET_MODETYPE (0, FT_BAD);
       if (!lookup_metadata (vol, &fh, &meta, false))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
 
       if (r == ZFS_OK)
 	{
@@ -300,7 +300,7 @@ out:
 	  meta.gid = map_gid_node2zfs (st.st_gid);
 	  if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
 				parent_st->st_dev, parent_st->st_ino, name))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
       zfsd_mutex_unlock (&vol->mutex);
 
@@ -1438,10 +1438,10 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   else if (!zfs_fh_undefined (meta->master_fh)
 	   && !delete_metadata_of_created_file (vol, &res->file, meta))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
@@ -1605,10 +1605,10 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
 				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
       release_dentry (dentry);
     }
@@ -1806,7 +1806,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	    {
 	      if (!add_journal_entry_st (vol, idir->fh, &st, name,
 					 JOURNAL_OPERATION_DEL))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 
 #ifdef ENABLE_CHECKING
@@ -1825,12 +1825,12 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
 				    &filename))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  filename.str[-1] = '/';
 
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
     }
 
@@ -2211,7 +2211,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 		{
 		  if (!add_journal_entry_st (vol, to_dentry->fh, &st_old,
 					     to_name, JOURNAL_OPERATION_DEL))
-		    vol->delete_p = true;
+		    MARK_VOLUME_DELETE (vol);
 		}
 
 	      file_name_from_path (&filename, &path);
@@ -2226,7 +2226,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 		  if (!delete_metadata (vol, &meta, st_old.st_dev,
 					st_old.st_ino, parent_st.st_dev,
 					parent_st.st_ino, &filename))
-		    vol->delete_p = true;
+		    MARK_VOLUME_DELETE (vol);
 		}
 	      filename.str[-1] = '/';
 	    }
@@ -2244,22 +2244,22 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 					  to_dentry->fh->local_fh.dev,
 					  to_dentry->fh->local_fh.ino,
 					  to_name))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry_st (vol, from_dentry->fh, &st_new,
 					 from_name, JOURNAL_OPERATION_DEL))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	      if (!add_journal_entry_st (vol, to_dentry->fh, &st_new,
 					 to_name, JOURNAL_OPERATION_ADD))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 
 	  if (!inc_local_version (vol, from_dentry->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	  if (!inc_local_version (vol, to_dentry->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
 
       if (to_dentry != from_dentry)
@@ -2558,17 +2558,17 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh, &meta,
 					 dir_dentry->fh->local_fh.dev,
 					 dir_dentry->fh->local_fh.ino, name))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, dir_dentry->fh,
 				      &from_dentry->fh->local_fh,
 				      &from_dentry->fh->meta.master_fh,
 				      name, JOURNAL_OPERATION_ADD))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  if (!inc_local_version (vol, dir_dentry->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
 
       if (dir_dentry != from_dentry)
@@ -2774,7 +2774,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    {
 	      if (!add_journal_entry_st (vol, idir->fh, &st, name,
 					 JOURNAL_OPERATION_DEL))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 
 #ifdef ENABLE_CHECKING
@@ -2793,12 +2793,12 @@ zfs_unlink (zfs_fh *dir, string *name)
 	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
 				    &filename))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  filename.str[-1] = '/';
 
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
     }
 
@@ -3093,10 +3093,10 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   else if (!zfs_fh_undefined (meta->master_fh)
 	   && !delete_metadata_of_created_file (vol, &res->file, meta))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
@@ -3262,10 +3262,10 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
 				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
       release_dentry (dentry);
     }
@@ -3331,10 +3331,10 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   else if (!zfs_fh_undefined (meta->master_fh)
 	   && !delete_metadata_of_created_file (vol, &res->file, meta))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
@@ -3503,10 +3503,10 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
 				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
       release_dentry (dentry);
     }
@@ -3729,7 +3729,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 					  new_parent_dev, new_parent_ino,
 					  &new_name))
 	    {
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      free (old_path.str);
 	      free (new_path.str);
@@ -3759,7 +3759,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  if (!metadata_hardlink_insert (vol, fh, &meta, new_parent_dev,
 					 new_parent_ino, &new_name))
 	    {
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      free (old_path.str);
 	      free (new_path.str);
@@ -4043,7 +4043,7 @@ local_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
   set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
   if (!flush_metadata (vol, &dentry->fh->meta))
     {
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return ZFS_UPDATE_FAILED;

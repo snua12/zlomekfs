@@ -1175,7 +1175,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 	{
 	  fh->journal = journal_create (5, &fh->mutex);
 	  if (!read_journal (vol, fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
     }
   else
@@ -1184,7 +1184,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   if (!vol->delete_p
       && !set_master_fh (vol, fh, master_fh))
     {
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
       clear_meta (fh);
     }
 
@@ -1458,7 +1458,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 					 parent->fh->local_fh.dev,
 					 parent->fh->local_fh.ino, name))
 	    {
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	    }
 	}
     }

@@ -364,12 +364,12 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   if (!lookup_metadata (vol, &res->file, meta, true))
-    vol->delete_p = true;
+    MARK_VOLUME_DELETE (vol);
   else if (!existed)
     {
       if (!zfs_fh_undefined (meta->master_fh)
 	  && !delete_metadata_of_created_file (vol, &res->file, meta))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
     }
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -553,11 +553,11 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 		  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
 					  &dentry->fh->meta.master_fh, name,
 					  JOURNAL_OPERATION_ADD))
-		    vol->delete_p = true;
+		    MARK_VOLUME_DELETE (vol);
 		}
 	    }
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 
 	  if (vol->master != this_node)
 	    {
@@ -576,7 +576,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 		}
 	      else
 		{
-		  vol->delete_p = true;
+		  MARK_VOLUME_DELETE (vol);
 		  r = ZFS_METADATA_ERROR;
 		  local_close (dentry->fh);
 		  close (fd);
@@ -762,7 +762,7 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
 		  }
 		else
 		  {
-		    vol->delete_p = true;
+		    MARK_VOLUME_DELETE (vol);
 		    r = ZFS_METADATA_ERROR;
 		  }
 		break;
@@ -821,7 +821,7 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
 	  if (dentry->fh->attr.type == FT_REG
 	      && !save_interval_trees (vol, dentry->fh))
 	    {
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	      r = ZFS_METADATA_ERROR;
 	    }
 	}
@@ -912,7 +912,7 @@ zfs_close (zfs_cap *cap)
 	    {
 	      if (dentry->fh->attr.type == FT_REG
 		  && !save_interval_trees (vol, dentry->fh))
-		vol->delete_p = true;
+		MARK_VOLUME_DELETE (vol);
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
 	  r = local_close (dentry->fh);
@@ -2121,7 +2121,7 @@ zfs_write (write_res *res, write_args *args)
 	  if (!set_metadata_flags (vol, dentry->fh,
 				   dentry->fh->meta.flags | METADATA_MODIFIED))
 	    {
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	    }
 	  else
 	    {
@@ -2158,10 +2158,10 @@ zfs_write (write_res *res, write_args *args)
 
 		  if (!append_interval (vol, dentry->fh,
 					METADATA_TYPE_UPDATED, start, end))
-		    vol->delete_p = true;
+		    MARK_VOLUME_DELETE (vol);
 		  if (!append_interval (vol, dentry->fh,
 					METADATA_TYPE_MODIFIED, start, end))
-		    vol->delete_p = true;
+		    MARK_VOLUME_DELETE (vol);
 
 		  varray_destroy (&blocks);
 		}

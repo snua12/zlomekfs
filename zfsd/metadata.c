@@ -874,10 +874,10 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags | METADATA_COMPLETE))
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 
 	    if (!remove_file_and_path (path, metadata_tree_depth))
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 
 	    return true;
 	  }
@@ -885,7 +885,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags & ~METADATA_COMPLETE))
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	  }
 	break;
 
@@ -894,10 +894,10 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags & ~METADATA_MODIFIED))
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 
 	    if (!remove_file_and_path (path, metadata_tree_depth))
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 
 	    return true;
 	  }
@@ -905,7 +905,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	  {
 	    if (!set_metadata_flags (vol, fh,
 				     fh->meta.flags | METADATA_MODIFIED))
-	      vol->delete_p = true;
+	      MARK_VOLUME_DELETE (vol);
 	  }
 	break;
 
@@ -1238,7 +1238,7 @@ close_volume_metadata (volume vol)
       hfile_destroy (vol->fh_mapping);
       vol->fh_mapping = NULL;
     }
-  vol->delete_p = true;
+  MARK_VOLUME_DELETE (vol);
 }
 
 /* Close file for interval tree TREE.  */
@@ -1679,7 +1679,7 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
 
   if (!lookup_metadata (vol, fh, meta, true))
     {
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
       zfsd_mutex_unlock (&vol->mutex);
       return false;
     }
@@ -1990,15 +1990,15 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
     {
       build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_UPDATED, i);
       if (!remove_file_and_path (&path, i))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (path.str);
       build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_MODIFIED, i);
       if (!remove_file_and_path (&path, i))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (path.str);
       build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL, i);
       if (!remove_file_and_path (&path, i))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (path.str);
     }
 
@@ -2101,15 +2101,15 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
     {
       build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_UPDATED, i);
       if (!remove_file_and_path (&path, i))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (path.str);
       build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_MODIFIED, i);
       if (!remove_file_and_path (&path, i))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (path.str);
       build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_JOURNAL, i);
       if (!remove_file_and_path (&path, i))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (path.str);
     }
 
@@ -2249,7 +2249,7 @@ delete_hardlinks_file (volume vol, zfs_fh *fh)
 
       build_fh_metadata_path (&file, vol, fh, METADATA_TYPE_HARDLINKS, i);
       if (!remove_file_and_path (&file, metadata_tree_depth))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
       free (file.str);
     }
 }
@@ -2669,7 +2669,7 @@ metadata_n_hardlinks (volume vol, zfs_fh *fh, metadata *meta)
   if (!read_hardlinks (vol, fh, meta, hl))
     {
       n = 0;
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
     }
   else
     n = hardlink_list_length (hl);
@@ -2698,7 +2698,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
   meta.modetype = GET_MODETYPE (0, FT_BAD);
   if (!read_hardlinks (vol, fh, &meta, hl))
     {
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
       hardlink_list_destroy (hl);
       path->str = NULL;
       path->len = 0;
@@ -2792,14 +2792,14 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
 #endif
 
       if (!delete_metadata (vol, &meta, fh->dev, fh->ino, 0, 0, NULL))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
     }
 
   if (flush)
     {
       if (!write_hardlinks (vol, fh, &meta, hl))
 	{
-	  vol->delete_p = true;
+	  MARK_VOLUME_DELETE (vol);
 	  if (path->str)
 	    {
 	      free (path->str);

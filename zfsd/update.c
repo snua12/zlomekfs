@@ -147,7 +147,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
       if (flush || dentry->fh->updated->deleted)
 	{
 	  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
 
       if (local_md5.count > remote_md5.count)
@@ -180,7 +180,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
 				local_md5.offset[i],
 				local_md5.offset[i] + local_md5.length[i]))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 	}
     }
   release_dentry (dentry);
@@ -283,7 +283,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
 				remote_md5.offset[i],
 				remote_md5.offset[i] + count))
-	    vol->delete_p = true;
+	    MARK_VOLUME_DELETE (vol);
 
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -299,7 +299,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 #endif
 
       if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_MODIFIED))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
 
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -498,7 +498,7 @@ update_file (zfs_fh *fh)
 
   if (!load_interval_trees (vol, dentry->fh))
     {
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       r = ZFS_METADATA_ERROR;
@@ -519,7 +519,7 @@ update_file (zfs_fh *fh)
 
   if (!save_interval_trees (vol, dentry->fh))
     {
-      vol->delete_p = true;
+      MARK_VOLUME_DELETE (vol);
       r = ZFS_METADATA_ERROR;
       goto out;
     }
@@ -1133,7 +1133,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
       (*dentryp)->fh->meta.uid = (*dentryp)->fh->attr.uid;
       (*dentryp)->fh->meta.gid = (*dentryp)->fh->attr.gid;
       if (!flush_metadata (*volp, &(*dentryp)->fh->meta))
-	(*volp)->delete_p = true;
+	MARK_VOLUME_DELETE (*volp);
     }
   else
     {
@@ -1149,7 +1149,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
       meta.uid = sa.uid;
       meta.gid = sa.gid;
       if (!flush_metadata (*volp, &meta))
-	(*volp)->delete_p = true;
+	MARK_VOLUME_DELETE (*volp);
 
       zfsd_mutex_unlock (&(*volp)->mutex);
     }
@@ -1275,7 +1275,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       release_dentry (dentry);
       if (!ok)
 	{
-	  vol->delete_p = true;
+	  MARK_VOLUME_DELETE (vol);
 	  r = ZFS_METADATA_ERROR;
 	}
       zfsd_mutex_unlock (&vol->mutex);
@@ -1722,7 +1722,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
       if (!get_fh_mapping_for_master_fh (vol, &remote_res.file, &map))
 	{
-	  vol->delete_p = true;
+	  MARK_VOLUME_DELETE (vol);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  r = ZFS_METADATA_ERROR;
 	  goto out;
@@ -1764,7 +1764,7 @@ out:
     {
       if (!set_metadata (vol, dir->fh, r == ZFS_OK ? METADATA_COMPLETE : 0,
 			 attr->version, attr->version))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
     }
 
   release_dentry (dir);
@@ -1895,7 +1895,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
 		    if (!flush_metadata (vol, &meta))
 		      {
-			vol->delete_p = true;
+			MARK_VOLUME_DELETE (vol);
 			continue;
 		      }
 
@@ -2071,7 +2071,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       zfsd_mutex_unlock (&fh_mutex);
       if (!lookup_metadata (vol, &dir->fh->local_fh, &dir->fh->meta, true))
 	{
-	  vol->delete_p = true;
+	  MARK_VOLUME_DELETE (vol);
 	  goto out2;
 	}
 
@@ -2084,7 +2084,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       dir->fh->meta.local_version = version;
       dir->fh->meta.master_version = version;
       if (!flush_metadata (vol, &dir->fh->meta))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
 
       if (version != attr->version)
 	{
@@ -2110,7 +2110,7 @@ out2:
   if (flush_journal)
     {
       if (!write_journal (vol, dir->fh))
-	vol->delete_p = true;
+	MARK_VOLUME_DELETE (vol);
     }
 
   release_dentry (dir);

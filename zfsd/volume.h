@@ -29,6 +29,9 @@
 #include "fh.h"
 #include "node.h"
 
+/* Mark the volume to delete it.  */
+#define MARK_VOLUME_DELETE(VOL) (VOL)->delete_p = true
+
 /* Volume description.  */
 struct volume_def
 {
