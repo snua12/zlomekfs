@@ -131,6 +131,11 @@ build_metadata_path (volume vol, metadata_type type)
 {
   char *path;
 
+#ifdef ENABLE_CHECKING
+  if (vol->local_path == NULL)
+    abort ();
+#endif
+
   switch (type)
     {
       case METADATA_TYPE_LIST:
@@ -159,6 +164,8 @@ build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
+  if (vol->local_path == NULL)
+    abort ();
   if (tree_depth > MAX_METADATA_TREE_DEPTH)
     abort ();
 #endif
@@ -698,7 +705,7 @@ init_volume_metadata (volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (!vol->local_path)
+  if (vol->local_path == NULL)
     abort ();
 #endif
 
@@ -1620,7 +1627,7 @@ flush_hardlinks (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!fh->hardlinks)
+  if (fh->hardlinks == NULL)
     abort ();
 #endif
 
