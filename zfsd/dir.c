@@ -1748,6 +1748,13 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
       return EACCES;
     }
 
+  if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
+    }
+
   attr->mode = GET_MODE (attr->mode);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
@@ -2466,6 +2473,13 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       return EACCES;
     }
 
+  if (to_dentry->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (to_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
+    }
+
   tmp_to = to_dentry->fh->local_fh;
   release_dentry (to_dentry);
   zfsd_mutex_unlock (&vol->mutex);
@@ -2848,6 +2862,13 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       return EPERM;
     }
 
+  if (from_dentry->fh->meta.flags & (METADATA_SHADOW_TREE | METADATA_SHADOW))
+    {
+      release_dentry (from_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
+    }
+
   tmp_from = from_dentry->fh->local_fh;
   release_dentry (from_dentry);
   zfsd_mutex_unlock (&vol->mutex);
@@ -2891,6 +2912,13 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       release_dentry (dir_dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
+    }
+
+  if (dir_dentry->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (dir_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
     }
 
   tmp_dir = dir_dentry->fh->local_fh;
@@ -3984,6 +4012,13 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
       return EACCES;
     }
 
+  if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
+    }
+
   attr->mode = (uint32_t) -1;
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
@@ -4223,6 +4258,13 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
+    }
+
+  if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
     }
 
   attr->mode = GET_MODE (attr->mode);

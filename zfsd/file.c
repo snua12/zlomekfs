@@ -496,6 +496,13 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       return EACCES;
     }
 
+  if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EPERM;
+    }
+
   attr->mode = GET_MODE (attr->mode);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
