@@ -3137,6 +3137,101 @@ zfs_mknod_retry:
   return r;
 }
 
+/* Check whether local file FH on volume VOL exists.  */
+
+int32_t
+local_file_info (zfs_fh *fh, volume vol)
+{
+  metadata meta;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (!vol->local_path)
+    abort ();
+#endif
+
+  if (!find_metadata (vol, fh, &meta))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_METADATA_ERROR;
+    }
+  zfsd_mutex_unlock (&vol->mutex);
+
+  return meta.slot_status == VALID_SLOT ? ZFS_OK : ENOENT;
+}
+
+/* Check whether remote file for DENTRY on volume VOL exists.  */
+
+int32_t
+remote_file_info (internal_dentry dentry, volume vol)
+{
+  zfs_fh args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    abort ();
+#endif
+
+  args = dentry->fh->meta.master_fh;
+
+  release_dentry (dentry);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_file_info_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
+/* Check whether local file FH exists.  */
+
+int32_t
+zfs_file_info (zfs_fh *fh)
+{
+  volume vol;
+  internal_dentry dentry;
+  int32_t r;
+
+  if (VIRTUAL_FH_P (*fh))
+    return EINVAL;
+
+  vol = volume_lookup (fh->vid);
+  if (!vol)
+    return ENOENT;
+
+  if (vol->local_path)
+    r = local_file_info (fh, vol);
+  else if (vol->master != this_node)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+
+      r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+      if (r != ZFS_OK)
+	return r;
+
+      r = remote_file_info (dentry, vol);
+    }
+
+  return r;
+}
+
 /* Recursively refresh path to DENTRY on volume VOL and lookup ENTRY.
    Store result of REMOTE_LOOKUP to RES (unused).  */
 

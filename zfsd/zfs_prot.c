@@ -605,6 +605,19 @@ zfs_proc_ping_server (data_buffer *args, DC *dc,
   encode_data_buffer (dc, args);
 }
 
+/* void zfs_proc_file_info (zfs_fh); */
+
+void
+zfs_proc_file_info_server (zfs_fh *args, DC *dc,
+			   ATTRIBUTE_UNUSED void *data,
+			   ATTRIBUTE_UNUSED bool map_id)
+{
+  int32_t r;
+
+  r = zfs_file_info (args);
+  encode_status (dc, r);
+}
+
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\

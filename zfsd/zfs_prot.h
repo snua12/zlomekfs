@@ -372,6 +372,7 @@ typedef union call_args_def
   md5sum_args md5sum;
   hardlinks_args hardlinks;
   data_buffer ping;
+  zfs_fh file_info;
 } call_args;
 
 /* Mapping file type -> file mode.  */
