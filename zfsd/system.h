@@ -39,6 +39,10 @@
 #define __STDC_CONSTANT_MACROS
 #endif
 
+#ifndef offsetof
+#define offsetof(TYPE, MEMBER)  ((unsigned long) &((TYPE *) 0)->MEMBER)
+#endif
+
 /* Definitions of some GCC attributes.  */
 #ifdef __GNUC__
 
