@@ -469,6 +469,62 @@ reintegrate_file_blocks (zfs_cap *cap)
   RETURN_INT (ZFS_OK);
 }
 
+/* Return true if file *DENTRYP on volume *VOLP with file handle FH should
+   be updated.  Store remote attributes to ATTR.  */
+
+static int
+update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
+	  bool fh_mutex_locked)
+{
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!((*volp)->local_path.str && (*volp)->master != this_node))
+    abort ();
+#endif
+
+  if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
+    RETURN_INT (0);
+
+  if (fh_mutex_locked)
+    zfsd_mutex_unlock (&fh_mutex);
+
+  r = remote_getattr (attr, *dentryp, *volp);
+  if (r != ZFS_OK)
+    goto out;
+
+  if (fh_mutex_locked)
+    r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  else
+    r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if ((*dentryp)->fh->attr.type != attr->type)
+    RETURN_INT (0);
+
+  RETURN_INT (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
+	      + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE
+	      + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
+
+out:
+  if (fh_mutex_locked)
+    r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  else
+    r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  RETURN_INT (0);
+}
+
 /* Update file with file handle FH.  */
 
 static int32_t
@@ -658,62 +714,6 @@ out:
   put_capability (icap, dentry->fh, NULL);
   internal_cap_unlock (vol, dentry, NULL);
   RETURN_INT (r);
-}
-
-/* Return true if file *DENTRYP on volume *VOLP with file handle FH should
-   be updated.  Store remote attributes to ATTR.  */
-
-static int
-update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
-	  bool fh_mutex_locked)
-{
-  int32_t r, r2;
-
-  TRACE ("");
-  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
-  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!((*volp)->local_path.str && (*volp)->master != this_node))
-    abort ();
-#endif
-
-  if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
-    RETURN_INT (0);
-
-  if (fh_mutex_locked)
-    zfsd_mutex_unlock (&fh_mutex);
-
-  r = remote_getattr (attr, *dentryp, *volp);
-  if (r != ZFS_OK)
-    goto out;
-
-  if (fh_mutex_locked)
-    r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
-  else
-    r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  if ((*dentryp)->fh->attr.type != attr->type)
-    RETURN_INT (0);
-
-  RETURN_INT (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
-	      + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE
-	      + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
-
-out:
-  if (fh_mutex_locked)
-    r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
-  else
-    r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  RETURN_INT (0);
 }
 
 /* Update generic file DENTRY with file handle FH on volume VOL if needed.  */
