@@ -883,6 +883,25 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
   return dentry;
 }
 
+/* Return the internal dentry for LOCAL_PATH on volume VOL.  */
+
+internal_dentry
+dentry_lookup_local_path (volume vol, string *local_path)
+{
+  string relative_path;
+  internal_dentry dentry;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  local_path_to_relative_path (&relative_path, vol, local_path);
+
+  dentry = dentry_lookup_path (vol, NULL, &relative_path);
+
+  free (relative_path.str);
+  return dentry;
+}
+
 /* Lock dentry *DENTRYP on volume *VOLP to level LEVEL.
    Store the local ZFS file handle to TMP_FH.  */
 
