@@ -215,6 +215,7 @@ initialize_data_structures ()
 {
   initialize_fh_c ();
   initialize_node_c ();
+  initialize_volume_c ();
 }
 
 /* Destroy data structures.  */
@@ -222,6 +223,7 @@ initialize_data_structures ()
 void
 cleanup_data_structures ()
 {
+  cleanup_volume_c ();
   cleanup_node_c ();
   cleanup_fh_c ();
 }

@@ -34,7 +34,7 @@ typedef struct volume_def
   char *mountpoint;		/* "mountpoint" for the volume on the cluster fs */
   int flags;			/* see VOLUME_* below */
 
-  char *localpath;		/* directory with local copy of volume */
+  char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
 } *volume;
 
@@ -53,5 +53,7 @@ typedef struct volume_def
 
 /* Function prototypes.  */
 extern volume volume_create (unsigned id);
+extern void initialize_volume_c ();
+extern void cleanup_volume_c ();
 
 #endif

@@ -24,11 +24,38 @@
 #include "memory.h"
 #include "volume.h"
 
+/* Hash table of volumes.  */
+static htab_t volume_htab;
+
+/* Hash function for volume N.  */
+#define VOLUME_HASH(N) ((N)->id)
+
+/* Hash function for volume X.  */
+
+static hash_t
+volume_hash (const void *x)
+{
+  return VOLUME_HASH ((volume) x);
+}
+
+/* Compare a volume X with ID *Y.  */
+
+static int
+volume_eq (const void *x, const void *y)
+{
+  volume n = (volume) x;
+  unsigned int id = *(unsigned int *) y;
+
+  return n->id == id;
+}
+
 /* Create volume structure and fill it with information.  */
+
 volume
 volume_create (unsigned id)
 {
   volume vol;
+  void **slot;
 
   vol = (volume) xmalloc (sizeof (volume));
   vol->id = id;
@@ -36,8 +63,56 @@ volume_create (unsigned id)
   vol->master = NULL;
   vol->mountpoint = NULL;
   vol->flags = 0;
-  vol->localpath = NULL;
+  vol->local_path = NULL;
   vol->size_limit = UINT64_MAX;
 
+#ifdef ENABLE_CHECKING
+  slot = htab_find_slot (volume_htab, &vol->id, NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+
+  slot = htab_find_slot (volume_htab, &vol->id, INSERT);
+  *slot = vol;
+
   return vol;
+}
+
+/* Set the information common for all volume types.  */
+
+void
+volume_set_common_info (volume vol, const char *name, const char *mountpoint,
+			node master)
+{
+  set_string (&vol->name, name);
+  set_string (&vol->mountpoint, mountpoint);
+  vol->master = master;
+  if (!(master->flags & NODE_LOCAL))
+    vol->flags |= VOLUME_COPY;
+}
+
+/* Set the information for a volume with local copy.  */
+
+void
+volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
+{
+  set_string (&vol->local_path, local_path);
+  vol->size_limit = size_limit;
+  vol->flags |= VOLUME_LOCAL;
+}
+
+/* Initialize data structures in VOLUME.C.  */
+
+void
+initialize_volume_c ()
+{
+  volume_htab = htab_create (200, volume_hash, volume_eq, NULL);
+}
+
+/* Destroy data structures in VOLUME.C.  */
+
+void
+cleanup_volume_c ()
+{
+  htab_destroy (volume_htab);
 }
