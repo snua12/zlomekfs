@@ -2773,7 +2773,6 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   unsigned char buf[ZFS_MAXDATA];
   int32_t r;
   uint32_t total;
-  uint32_t count;
 
   TRACE ("");
 
@@ -2791,7 +2790,7 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   for (i = 0; i < args->count; i++)
     {
       MD5Init (&context);
-      for (total = 0; total < args->length[i]; total += count)
+      for (total = 0; total < args->length[i]; total += rres.data.len)
 	{
 	  r = zfs_read (&rres, &args->cap, args->offset[i] + total,
 			args->length[i] - total, false);
