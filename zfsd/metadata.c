@@ -975,6 +975,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
     }
 
   CHECK_MUTEX_LOCKED (tree->mutex);
+  interval_tree_insert (tree, start, end);
 
   if (!interval_opened_p (tree))
     {
