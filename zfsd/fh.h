@@ -154,6 +154,9 @@ struct internal_fh_def
   /* Modified intervals.  */
   interval_tree modified;
 
+  /* List of hardlinks.  */
+  string_list hardlinks;
+
   /* "Lock" level of the file handle.  */
   unsigned int level;
 
