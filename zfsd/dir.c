@@ -247,9 +247,12 @@ local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
 {
   struct stat st;
   char *path;
+  int r;
 
   path = build_local_path_name (vol, dir, name);
-  if (lstat (path, &st) != 0)
+  r = lstat (path, &st);
+  free (path);
+  if (r != 0)
     return errno;
 
   fh->sid = dir->local_fh.sid;

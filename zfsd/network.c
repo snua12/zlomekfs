@@ -869,6 +869,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, server_main exiting\n", strerror (errno));
+	  free (pfd);
 	  return NULL;
 	}
 
@@ -890,6 +891,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	      pthread_mutex_unlock (&fd_data->mutex);
 	    }
 	  pthread_mutex_unlock (&active_mutex);
+	  free (pfd);
 	  return NULL;
 	}
 
@@ -1076,6 +1078,7 @@ retry_accept:
       pthread_mutex_unlock (&active_mutex);
     }
 
+  free (pfd);
   return NULL;
 }
 

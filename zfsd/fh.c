@@ -589,6 +589,7 @@ virtual_mountpoint_create (volume vol)
 	abort ();
 #endif
     }
+  varray_destroy (&subpath);
   vd->vol = vol;
   vol->root_vd = vd;
 
