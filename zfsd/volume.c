@@ -58,7 +58,7 @@ volume_create (unsigned id)
   volume vol;
   void **slot;
 
-  vol = (volume) xmalloc (sizeof (volume));
+  vol = (volume) xmalloc (sizeof (struct volume_def));
   vol->id = id;
   vol->name = NULL;
   vol->master = NULL;

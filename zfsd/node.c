@@ -59,8 +59,8 @@ node_create (unsigned int id, char *name)
   struct hostent *he;
   void **slot;
 
-  nod = (node) xmalloc (sizeof (node));
-  nod->id = 0;
+  nod = (node) xmalloc (sizeof (struct node_def));
+  nod->id = id;
   nod->name = xstrdup (name);
   nod->flags = 0;
   nod->status = CONNECTION_NONE;
@@ -69,10 +69,11 @@ node_create (unsigned int id, char *name)
   he = gethostbyname (name);
   if (he)
     {
-      if (he->h_addrtype == AF_INET && he->h_length == sizeof (nod->addr))
+      if (he->h_addrtype == AF_INET
+	  && he->h_length == sizeof (nod->addr.sin_addr))
 	{
 	  nod->flags |= NODE_ADDR_RESOLVED;
-	  memcpy (&nod->addr, he->h_addr_list[0], sizeof (nod->addr));
+	  memcpy (&nod->addr.sin_addr, he->h_addr_list[0], he->h_length);
 	}
     }
 
