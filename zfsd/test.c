@@ -119,7 +119,7 @@ fake_config ()
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (4);
-  volume_set_common_info (vol, "volume4", "/volume2/find/volume4", nod);
+  volume_set_common_info (vol, "volume4", "/volume2/artax/volume4", nod);
   if (nod == this_node)
     {
       if (volume_set_local_info (vol, "/home/zlomj9am/.zfs/dir2",
@@ -133,14 +133,13 @@ fake_config ()
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
-#if 0
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (3, "jaro");
+  nod = node_create (3, "find");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (5);
-  volume_set_common_info (vol, "volume5", "/jaro/volume5", nod);
+  volume_set_common_info (vol, "volume5", "/other/volume5", nod);
   if (nod == this_node)
     {
       if (volume_set_local_info (vol, "/home/joe/.zfs/dir1", VOLUME_NO_LIMIT))
@@ -166,7 +165,6 @@ fake_config ()
     zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&nod->mutex);
-#endif
 
   debug_virtual_tree ();
 }
@@ -387,8 +385,8 @@ do_tests (void *data)
       if (!get_running ())
 	goto out;
 
-      message (1, stderr, "TEST LOOKUP /volume2/find/hidden\n");
-      str = xstrdup ("/volume2/find/hidden");
+      message (1, stderr, "TEST LOOKUP /volume2/artax/hidden\n");
+      str = xstrdup ("/volume2/artax/hidden");
       r = zfs_extended_lookup (&res, &root_fh, str);
       message (1, stderr, "  %s\n", zfs_strerror (r));
       free (str);
