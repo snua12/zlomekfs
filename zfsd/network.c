@@ -27,6 +27,7 @@
 #include "semaphore.h"
 #include "server.h"
 #include "log.h"
+#include "util.h"
 #include "malloc.h"
 #include "thread.h"
 #include "zfs_prot.h"
@@ -271,38 +272,6 @@ close_active_fd (int i)
   free_alloc_pool (server_fd_data[fd].waiting4reply_pool);
 }
 
-/* Safely write LEN bytes to file descriptor FD data from buffer BUF.  */
-
-static bool
-safe_write (int fd, char *buf, size_t len)
-{
-  ssize_t w;
-  unsigned int written;
-
-  if (verbose >= 2)
-    {
-      size_t i;
-
-      message (2, stderr, "Sending data from %p:\n", buf);
-      for (i = 0; i < len; i++)
-	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
-      fprintf (stderr, "\n");
-    }
-
-  for (written = 0; written < len; written += w)
-    {
-      w = write (fd, buf + written, len - written);
-      if (w <= 0)
-	{
-	  message (2, stderr, "sending data FAILED\n");
-	  return false;
-	}
-    }
-
-  message (2, stderr, "sending data SUCCEDED\n");
-  return true;
-}
-
 /* Helper function for sending request.  Send request with request id REQUEST_ID
    using data in thread T to connected socket FD and wait for reply.
    It expects server_fd_data[fd].mutex to be locked.  */
@@ -344,7 +313,7 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   /* Send the request.  */
   server_fd_data[fd].last_use = time (NULL);
-  if (!safe_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
+  if (!full_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
     {
       zfsd_mutex_unlock (&server_fd_data[fd].mutex);
       td->retval = ZFS_CONNECTION_CLOSED;
@@ -386,7 +355,7 @@ send_reply (server_thread_data *td)
   if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
     {
       td->fd_data->last_use = time (NULL);
-      if (!safe_write (td->fd_data->fd, td->dc.buffer, td->dc.cur_length))
+      if (!full_write (td->fd_data->fd, td->dc.buffer, td->dc.cur_length))
 	{
 	}
     }
