@@ -225,6 +225,8 @@ close_server_fd (int fd)
 #ifdef ENABLE_CHECKING
   if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
     abort ();
+  if (fd < 0)
+    abort ();
 #endif
 
   message (2, stderr, "Closing FD %d\n", fd);
