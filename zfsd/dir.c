@@ -3500,6 +3500,9 @@ retry_lookup:
 int32_t
 refresh_fh (zfs_fh *fh)
 {
+  internal_dentry dentry;
+  volume vol;
+  zfs_fh volume_root_fh;
   file_info_res info;
   dir_op_res res;
   int32_t r;
@@ -3511,7 +3514,25 @@ refresh_fh (zfs_fh *fh)
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_extended_lookup (&res, &root_fh, info.path.str);
+  vol = volume_lookup (fh->vid);
+  if (!vol)
+    {
+      free (info.path.str);
+      return ENOENT;
+    }
+
+  r = get_volume_root_dentry (vol, &dentry, true);
+  if (r != ZFS_OK)
+    {
+      free (info.path.str);
+      return r;
+    }
+
+  volume_root_fh = dentry->fh->local_fh;
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  r = zfs_extended_lookup (&res, &volume_root_fh, info.path.str);
   free (info.path.str);
 
   return r;
