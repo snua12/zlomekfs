@@ -619,7 +619,10 @@ zfs_getattr_retry:
     return r;
 
   if (vol->local_path)
-    r = local_getattr (fa, dentry, vol);
+    {
+      UPDATE_FH_IF_NEEDED (vol, dentry, tmp_fh);
+      r = local_getattr (fa, dentry, vol);
+    }
   else if (vol->master != this_node)
     r = remote_getattr (fa, dentry, vol);
   else
@@ -802,7 +805,10 @@ zfs_setattr_retry:
     return r;
 
   if (vol->local_path)
-    r = local_setattr (fa, dentry, sa, vol);
+    {
+      UPDATE_FH_IF_NEEDED (vol, dentry, tmp_fh);
+      r = local_setattr (fa, dentry, sa, vol);
+    }
   else if (vol->master != this_node)
     r = remote_setattr (fa, dentry, sa, vol);
   else
