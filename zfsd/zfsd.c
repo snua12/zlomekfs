@@ -32,6 +32,8 @@
 #include "memory.h"
 #include "config.h"
 #include "fh.h"
+#include "dir.h"
+#include "file.h"
 #include "log.h"
 #include "node.h"
 #include "volume.h"
