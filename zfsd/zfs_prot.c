@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -455,6 +456,51 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+
+/* Return string describing error code.  */
+
+char *
+zfs_strerror (int errnum)
+{
+  if (errnum >= 0)
+    return strerror (errnum);
+
+  switch (errnum)
+    {
+      case ZFS_REQUEST_TOO_LONG:
+	return "Request too long";
+
+      case ZFS_INVALID_REQUEST:
+	return "Invalid request";
+	
+      case ZFS_UNKNOWN_FUNCTION:
+	return "Unknown function";
+
+      case ZFS_INVALID_AUTH_LEVEL:
+	return "Invalid authentication level";
+
+      case ZFS_INVALID_REPLY:
+	return "Invalid reply";
+
+      case ZFS_EXITING:
+	return "zfsd is exiting";
+
+      case ZFS_COULD_NOT_CONNECT:
+	return "Could not connect";
+
+      case ZFS_COULD_NOT_AUTH:
+	return "Could not authenticate";
+
+      case ZFS_CONNECTION_CLOSED:
+	return "Connection closed";
+
+      default:
+	return "UNKNOWN error code";
+    }
+
+  /* Never reached,  just avoids compiler warning.  */
+  return "UNKNOWN error code";
+}
 
 /* Initialize data structures needed by this module.  */
 

@@ -337,6 +337,7 @@ struct node_def;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
+extern char *zfs_strerror (int errnum);
 extern void initialize_zfs_prot_c ();
 extern void cleanup_zfs_prot_c ();
 
