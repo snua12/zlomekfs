@@ -527,6 +527,13 @@ do_tests (void *data)
 
 	  if (!get_running ())
 	    goto out;
+
+	  message (1, stderr, "TEST GETATTR\n");
+	  r = zfs_getattr (&fa, &res.file);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    goto out;
 	}
     }
 
