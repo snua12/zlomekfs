@@ -132,6 +132,7 @@ fake_config ()
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
+#if 0
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (3, "jaro");
   zfsd_mutex_unlock (&node_mutex);
@@ -164,6 +165,7 @@ fake_config ()
     zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&nod->mutex);
+#endif
 
   debug_virtual_tree ();
 }
