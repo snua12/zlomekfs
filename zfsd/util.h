@@ -26,7 +26,7 @@
 #include <stddef.h>
 
 extern void print_hex_buffer (char *buf, unsigned int len, FILE *f);
-extern bool full_read (int fd, char *buf, size_t len);
-extern bool full_write (int fd, char *buf, size_t len);
+extern bool full_read (int fd, void *buf, size_t len);
+extern bool full_write (int fd, void *buf, size_t len);
 
 #endif

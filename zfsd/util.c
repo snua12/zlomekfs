@@ -42,14 +42,14 @@ print_hex_buffer (char *buf, unsigned int len, FILE *f)
 /* Read LEN bytes from file descriptor FD to buffer BUF.  */
 
 bool
-full_read (int fd, char *buf, size_t len)
+full_read (int fd, void *buf, size_t len)
 {
   ssize_t r;
   unsigned int total_read;
 
   for (total_read = 0; total_read < len; total_read += r)
     {
-      r = read (fd, buf + total_read, len - total_read);
+      r = read (fd, (char *) buf + total_read, len - total_read);
       if (r <= 0)
 	{
 	  message (2, stderr, "reading data FAILED: %d (%s)\n",
@@ -61,7 +61,7 @@ full_read (int fd, char *buf, size_t len)
   if (verbose >= 3)
     {
       message (3, stderr, "Reading data from %d to %p:\n", fd, buf);
-      print_hex_buffer (buf, len, stderr);
+      print_hex_buffer ((char *) buf, len, stderr);
     }
 
   message (2, stderr, "reading data SUCCEDED\n");
@@ -71,7 +71,7 @@ full_read (int fd, char *buf, size_t len)
 /* Write LEN bytes from buffer BUF to file descriptor FD.  */
 
 bool
-full_write (int fd, char *buf, size_t len)
+full_write (int fd, void *buf, size_t len)
 {
   ssize_t w;
   unsigned int total_written;
@@ -79,12 +79,12 @@ full_write (int fd, char *buf, size_t len)
   if (verbose >= 3)
     {
       message (3, stderr, "Writing data to %d from %p:\n", fd, buf);
-      print_hex_buffer (buf, len, stderr);
+      print_hex_buffer ((char *) buf, len, stderr);
     }
 
   for (total_written = 0; total_written < len; total_written += w)
     {
-      w = write (fd, buf + total_written, len - total_written);
+      w = write (fd, (char *) buf + total_written, len - total_written);
       if (w <= 0)
 	{
 	  message (2, stderr, "writing data FAILED: %d (%s)\n",
