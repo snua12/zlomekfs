@@ -3302,6 +3302,13 @@ refresh_path_1 (dir_op_res *res, internal_dentry dentry, string *entry,
 	return r;
 
       parent = dentry->parent;
+      if (parent && GET_CONFLICT (parent->fh->local_fh))
+	{
+	  zfsd_mutex_lock (&parent->fh->mutex);
+	  release_dentry (dentry);
+	  dentry = parent;
+	  parent = parent->parent;
+	}
       if (!parent)
 	{
 	  release_dentry (dentry);
@@ -3350,6 +3357,13 @@ refresh_path (zfs_fh *fh)
     return r;
 
   parent = dentry->parent;
+  if (parent && GET_CONFLICT (parent->fh->local_fh))
+    {
+      zfsd_mutex_lock (&parent->fh->mutex);
+      release_dentry (dentry);
+      dentry = parent;
+      parent = parent->parent;
+    }
   if (!parent)
     {
       release_dentry (dentry);
@@ -3369,7 +3383,10 @@ refresh_path (zfs_fh *fh)
   return r;
 }
 
-/* Refresh master file handles on path to DENTRY on volume VOL.  */
+/* Refresh master file handles on path to DENTRY on volume VOL.
+
+   Under the conflict dentry, all dentries have valid master_fh
+   so we do not need to worry about conflict dentries.  */
 
 int32_t
 refresh_master_fh (zfs_fh *fh)
