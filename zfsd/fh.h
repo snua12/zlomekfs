@@ -21,7 +21,7 @@
 #ifndef FH_H
 #define FH_H
 
-typedef struct svc_fh
+typedef struct svc_fh_def
 {
   unsigned vid;		/* Volume ID */
   unsigned dev;		/* Device ... */

@@ -24,9 +24,9 @@
 #include "fh.h"
 #include "hashtab.h"
 
-typedef struct mount_dir_tree
+typedef struct mount_dir_tree_def
 {
-  struct mount_dir_tree *parent;	/* pointer to parent directory */
+  struct mount_dir_tree_def *parent;	/* pointer to parent directory */
 
   htab_t subdirs;			/* subdirectories */
 
