@@ -710,7 +710,7 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
     RETURN_INT (0);
 
   RETURN_INT (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
-	      + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE
+	      + REINTEGRATE_P (*dentryp, *attr) * IFH_REINTEGRATE
 	      + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
 
 out:

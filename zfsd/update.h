@@ -50,12 +50,19 @@
        : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version \
 	   && (ATTR).version > (DENTRY)->fh->meta.master_version))))
 
-/* Reintegrate the file DENTRY
-   if local file was modified since we reintegrated it last time.
-   If both UPDATE_P and REINTEGRATE_P are true, there is a conflict
-   on the file.  */
-#define REINTEGRATE_P(DENTRY)						\
-  ((DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version)
+/** Check whether we should reintegrate a generic file.
+    Reintegrate a directory if the local version has changed since the last
+    time we reintegrated the directory or it was not completely reintegrated.
+    Reintegrate a regular file if remote file was not modified and local file
+    was modified since we reintegrated it last time or it was not completely
+    reintegrated.
+    \param DENTRY The dentry of the file to be checked.
+    \param ATTR The remote attributes of the file.  */
+#define REINTEGRATE_P(DENTRY, ATTR)					\
+  ((DENTRY)->fh->attr.type == FT_DIR					\
+   ? (DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version	\
+   : ((ATTR).version == (DENTRY)->fh->meta.master_version		\
+      && (DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version))
 
 /* Are metadata (mode, UID and GID) different in META and ATTR?  */
 #define METADATA_ATTR_CHANGE_P(META, ATTR)				\
