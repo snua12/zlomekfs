@@ -307,6 +307,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = safe_open (path, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
     {
@@ -445,6 +446,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       return EACCES;
     }
 
+  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;

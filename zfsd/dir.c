@@ -784,6 +784,7 @@ local_setattr_path (fattr *fa, char *path, sattr *sa)
 
   if (sa->mode != (uint32_t) -1)
     {
+      sa->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
       if (chmod (path, sa->mode) != 0)
 	return errno;
     }
@@ -926,6 +927,9 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
     return r;
+
+  if (sa->mode != (uint32_t) -1)
+    sa->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
@@ -1300,6 +1304,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = mkdir (path, attr->mode);
   if (r != 0)
     {
@@ -1427,6 +1432,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
       return EACCES;
     }
 
+  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
@@ -2974,6 +2980,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = mknod (path, attr->mode | ftype2mode[type], rdev);
   if (r != 0)
     {
@@ -3106,6 +3113,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
       return EACCES;
     }
 
+  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
