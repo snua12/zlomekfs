@@ -313,7 +313,8 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
     abort ();
 #endif
 
-  if (zfs_cap_undefined (icap->master_cap))
+  if (zfs_fh_undefined (icap->master_cap.fh)
+      || zfs_cap_undefined (icap->master_cap))
     {
       zfs_cap master_cap;
 
@@ -398,6 +399,110 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
     }
 
   return ZFS_OK;
+}
+
+/* Update file with file handle FH.  */
+
+int32_t
+update_file (zfs_fh *fh)
+{
+  varray blocks;
+  volume vol;
+  internal_dentry dentry;
+  internal_cap icap;
+  zfs_cap cap;
+  int32_t r, r2;
+  fattr attr;
+  int retry = 0;
+
+  cap.fh = *fh;
+  cap.flags = O_RDONLY;
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL, false);
+  if (r != ZFS_OK)
+    return r;
+
+  if (!(vol->local_path && vol->master != this_node))
+    {
+      r = ZFS_UPDATE_FAILED;
+      goto out;
+    }
+  zfsd_mutex_unlock (&fh_mutex);
+
+  r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, NULL, &cap);
+  if (r != ZFS_OK)
+    return r;
+
+  if (dentry->fh->attr.type != FT_REG)
+    {
+      r = ZFS_UPDATE_FAILED;
+      goto out;
+    }
+
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  r = refresh_master_fh (fh);
+  if (r != ZFS_OK)
+    goto out2;
+
+retry_remote_lookup:
+  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  r = remote_getattr (&attr, dentry, vol);
+  if (r == ZFS_STALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (fh);
+      if (r == ZFS_OK)
+	goto retry_remote_lookup;
+    }
+  if (r != ZFS_OK)
+    goto out2;
+
+  if (attr.type != FT_REG)
+    {
+      r = ZFS_UPDATE_FAILED;
+      goto out2;
+    }
+
+  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (!load_interval_trees (vol, dentry->fh))
+    {
+      vol->flags |= VOLUME_DELETE;
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      r = ZFS_METADATA_ERROR;
+      goto out2;
+    }
+
+  zfsd_mutex_unlock (&vol->mutex);
+  get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
+  release_dentry (dentry);
+  r = update_file_blocks (false, NULL, NULL, 0, &cap, &blocks);
+
+out2:
+  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+out:
+  put_capability (icap, dentry->fh, NULL);
+  internal_cap_unlock (dentry, NULL);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+  return r;
 }
 
 /* Return true if file *DENTRYP on volume *VOLP with file handle FH should
@@ -1184,17 +1289,7 @@ update_worker (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-     /* TODO: do some work.  */
-#if 0
-  zfs_fh *fh = (zfs_fh *) data;
-  volume vol;
-  internal_dentry dentry;
-  int32_t r;
-
-  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
-  if (r != ZFS_OK)
-    return NULL;
-#endif
+      update_file ((zfs_fh *) &t->u.update.fh);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
       zfsd_mutex_lock (&update_pool.idle.mutex);
