@@ -219,6 +219,7 @@ build_local_path (volume vol, internal_fh fh)
   internal_fh tmp;
   unsigned int n;
   varray v;
+  char *r;
 
   /* Count the number of strings which will be concatenated.  */
   n = 1;
@@ -236,7 +237,10 @@ build_local_path (volume vol, internal_fh fh)
     }
   VARRAY_ACCESS (v, 0, char *) = vol->local_path;
 
-  return xstrconcat_varray (&v);
+  r = xstrconcat_varray (&v);
+  varray_destroy (&v);
+
+  return r;
 }
 
 /* Return the local path of file NAME in directory FH on volume VOL.  */
