@@ -107,7 +107,7 @@ fake_config ()
   vol = volume_create (6);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
-    volume_set_local_info (vol, "home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
+    volume_set_local_info (vol, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume6", "/volume6", nod);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&nod->mutex);
