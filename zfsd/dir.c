@@ -1159,7 +1159,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 	    }
 	}
     }
-  else /* if (vol->master != this_node) */
+  else
     {
       r = get_volume_root_remote (vol, &master_fh, &attr);
       if (r == ZFS_OK)
