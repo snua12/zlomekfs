@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -37,6 +38,8 @@
 #include "volume.h"
 #include "config.h"
 #include "fibheap.h"
+#include "util.h"
+#include "data-coding.h"
 
 /* Data for file descriptor.  */
 typedef struct metadata_fd_data_def
@@ -507,6 +510,48 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
 
   return flush_interval_tree_1 (tree, path);
+}
+
+/* Write the interval [START, END) to the end of interval file of purpose
+   PURPOSE for file handle FH on volume VOL.  Open the interval file for
+   appending when it is not opened.  */
+
+bool
+append_interval (volume vol, internal_fh fh, interval_tree_purpose purpose,
+		 uint64_t start, uint64_t end)
+{
+  interval_tree tree;
+  interval i;
+  bool r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  switch (purpose)
+    {
+      case INTERVAL_TREE_UPDATED:
+	tree = fh->updated;
+	break;
+
+      case INTERVAL_TREE_MODIFIED:
+	tree = fh->modified;
+	break;
+    }
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  if (!interval_opened_p (tree))
+    {
+      if (open_interval_file (vol, fh, purpose) < 0)
+	return false;
+    }
+
+  i.start = u64_to_le (start);
+  i.end = u64_to_le (end);
+  r = full_write (tree->fd, &i, sizeof (interval));
+
+  zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
+  return r;
 }
 
 /* Initialize data structures in METADATA.C.  */

@@ -22,6 +22,7 @@
 #define METADATA_H
 
 #include "system.h"
+#include <inttypes.h>
 #include "volume.h"
 #include "fh.h"
 
@@ -39,6 +40,9 @@ extern bool init_interval_tree (volume vol, internal_fh fh,
 				interval_tree_purpose purpose);
 extern bool flush_interval_tree (volume vol, internal_fh fh,
 				 interval_tree_purpose purpose);
+extern bool append_interval (volume vol, internal_fh fh,
+			     interval_tree_purpose purpose,
+			     uint64_t start, uint64_t end);
 
 extern void initialize_metadata_c ();
 extern void cleanup_metadata_c ();
