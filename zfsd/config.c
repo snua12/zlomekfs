@@ -216,12 +216,12 @@ split_and_trim (char *line, int n, string *parts)
 	  if (line > start)
 	    {
 	      /* Delete white spaces at the end of a part.  */
-	      do
+	      line--;
+	      while (line >= start && (*line == ' ' || *line == '\t'))
 		{
 		  *line = 0;
 		  line--;
 		}
-	      while (line >= start && (*line == ' ' || *line == '\t'));
 	      line++;
 	    }
 	  parts[i].len = line - start;
