@@ -121,6 +121,7 @@ build_local_path_name (volume vol, internal_dentry dentry, const char *name)
 bool
 recursive_unlink (const char *path, uint32_t vid)
 {
+  volume vol;
   internal_dentry dentry;
   zfs_fh fh;
   bool r;
@@ -176,6 +177,14 @@ recursive_unlink (const char *path, uint32_t vid)
 	  r = errno == ENOENT;
 	  goto out;
 	}
+    }
+
+  vol = volume_lookup (vid);
+  if (vol)
+    {
+      if (!delete_metadata (vol, st.st_dev, st.st_ino))
+	vol->flags |= VOLUME_DELETE;
+      zfsd_mutex_unlock (&vol->mutex);
     }
 
   r = true;
