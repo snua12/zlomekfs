@@ -21,7 +21,7 @@
 CC = gcc
 LD = $(CC)
 DEFS = 
-CFLAGS = -g
+CFLAGS = -g -Wall -pedantic
 LDFLAGS = -lpthread
 COMPILE = $(CC) $(DEFS) $(CFLAGS)
 LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
