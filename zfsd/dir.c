@@ -388,15 +388,20 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
   if (move_to_shadow_p)
     {
       vol = volume_lookup (fh->vid);
-      if (vol && vol->master != this_node
-	  && zfs_fh_undefined (meta->master_fh))
+      if (vol)
 	{
-	  string name;
+	  if (vol->master != this_node
+	      && zfs_fh_undefined (meta->master_fh))
+	    {
+	      string name;
 
-	  file_name_from_path (&name, path);
-	  return (move_to_shadow_base (vol, fh, path, &name, parent_fh,
-				       journal_p)
-		  ? ZFS_OK : ZFS_METADATA_ERROR);
+	      file_name_from_path (&name, path);
+	      return (move_to_shadow_base (vol, fh, path, &name, parent_fh,
+					   journal_p)
+		      ? ZFS_OK : ZFS_METADATA_ERROR);
+	    }
+
+	  zfsd_mutex_unlock (&vol->mutex);
 	}
     }
 
