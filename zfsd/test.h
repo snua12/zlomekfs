@@ -25,5 +25,6 @@
 
 extern void fake_config (void);
 extern void test_zfs (void);
+extern void test_cleanup (void);
 
 #endif

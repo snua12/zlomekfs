@@ -484,6 +484,9 @@ main (int argc, char **argv)
     }
 
   fd_data_shutdown ();
+#ifdef TEST
+  test_cleanup ();
+#endif
 
   if (update_started)
     update_cleanup ();

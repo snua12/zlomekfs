@@ -43,6 +43,9 @@
 /* Data for testing thread.  */
 static thread testing_thread_data;
 
+/* ID of test thread.  */
+static pthread_t test_id;
+
 /* Testing configuration until configuration reading is programmed.  */
 
 void
@@ -639,20 +642,28 @@ test_zfs (void)
   if (get_running ()
       && strcmp (node_name.str, "orion") == 0)
     {
-      pthread_t id;
-
       /* Initialize testing thread data.  */
       semaphore_init (&testing_thread_data.sem, 0);
       network_worker_init (&testing_thread_data);
       testing_thread_data.from_sid = this_node->id;
 
-      if (pthread_create (&id, NULL, do_tests, &testing_thread_data))
-	message (-1, stderr, "pthread_create() failed\n");
-      else
-	pthread_join (id, NULL);
-
-      /* Destroy main thread data.  */
-      network_worker_cleanup (&testing_thread_data);
-      semaphore_destroy (&testing_thread_data.sem);
+      if (pthread_create (&test_id, NULL, do_tests, &testing_thread_data))
+	{
+	  message (-1, stderr, "pthread_create() failed\n");
+	  test_id = 0;
+	}
     }
+}
+
+/* Cleanup after tests.  */
+
+void
+test_cleanup ()
+{
+  if (test_id)
+    pthread_join (test_id, NULL);
+
+  /* Destroy test thread data.  */
+  network_worker_cleanup (&testing_thread_data);
+  semaphore_destroy (&testing_thread_data.sem);
 }
