@@ -2386,6 +2386,30 @@ metadata_hardlink_delete (volume vol, zfs_fh *fh, uint32_t parent_dev,
   return true;
 }
 
+/* Return the number of hardlinks of file FH on volume VOL.  */
+
+unsigned int
+metadata_n_hardlinks (volume vol, zfs_fh *fh)
+{
+  unsigned int n;
+  hardlink_list hl;
+  metadata meta;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  hl = hardlink_list_create (2, NULL);
+  if (!read_hardlinks (vol, fh, &meta, hl))
+    {
+      n = 0;
+      vol->delete_p = true;
+    }
+  else
+    n = hardlink_list_length (hl);
+  hardlink_list_destroy (hl);
+
+  return n;
+}
+
 /* Return a local path for file handle FH on volume VOL.  */
 
 char *
