@@ -535,7 +535,10 @@ reintegrate_file_blocks (zfs_cap *cap)
       if (dentry->fh->meta.local_version < dentry->fh->meta.master_version
 	  || (dentry->fh->meta.local_version == dentry->fh->meta.master_version
 	      && interval_tree_min (dentry->fh->modified)))
-	dentry->fh->meta.local_version = dentry->fh->meta.master_version + 1;
+	{
+	  dentry->fh->meta.local_version = dentry->fh->meta.master_version + 1;
+	  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+	}
 
       if (!flush_metadata (vol, &dentry->fh->meta))
 	MARK_VOLUME_DELETE (vol);
@@ -2739,6 +2742,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  dir->fh->meta.flags &= ~METADATA_COMPLETE;
 	  dir->fh->meta.local_version = version;
 	  dir->fh->meta.master_version = version;
+	  set_attr_version (&dir->fh->attr, &dir->fh->meta);
 	  if (!flush_metadata (vol, &dir->fh->meta))
 	    MARK_VOLUME_DELETE (vol);
 	}
