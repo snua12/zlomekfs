@@ -992,14 +992,6 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	  volume vol;
 
 	  saved_vid = vid;
-	  if (strcmp (parts[2].str, "/config") != 0)
-	    {
-	      message (0, stderr,
-		       "%s:%d: Mountpoint of config volume must be '/config'\n",
-		       file_name, line_num);
-	      saved_mountpoint.str = NULL;
-	    }
-
 	  xstringdup (&saved_name, &parts[1]);
 	  xstringdup (&saved_mountpoint, &parts[2]);
 
@@ -1062,9 +1054,6 @@ read_volume_list (zfs_fh *config_dir)
 
   if (saved_vid == VOLUME_ID_CONFIG)
     {
-      if (saved_mountpoint.str == NULL)
-	return false;
-
       read_volume_hierarchy (&volume_hierarchy_res.file, saved_vid,
 			     &saved_name, &saved_mountpoint);
       free (saved_name.str);
@@ -1463,7 +1452,7 @@ reread_node_list (void)
   dir_op_res config_dir_res;
   int32_t r;
 
-  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     return false;
 
@@ -1489,7 +1478,7 @@ reread_volume_list (void)
   dir_op_res config_dir_res;
   int32_t r;
 
-  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     return false;
 
@@ -1511,7 +1500,7 @@ reread_user_list (void)
   dir_op_res config_dir_res;
   int32_t r;
 
-  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     return false;
 
@@ -1540,7 +1529,7 @@ reread_group_list (void)
   dir_op_res config_dir_res;
   int32_t r;
 
-  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     return false;
 
@@ -1566,6 +1555,7 @@ reread_group_list (void)
 static void
 reread_volume_hierarchy (volume vol)
 {
+  dir_op_res config_dir_res;
   dir_op_res volume_hierarchy_dir_res;
   int32_t r;
   uint32_t vid;
@@ -1578,8 +1568,17 @@ reread_volume_hierarchy (volume vol)
   vol->marked = true;
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = zfs_extended_lookup (&volume_hierarchy_dir_res, &root_fh,
-			   "config/volume");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
+  if (r != ZFS_OK)
+    {
+      free (name.str);
+      free (mountpoint.str);
+      destroy_invalid_volume (vid);
+      return;
+    }
+
+  r = zfs_extended_lookup (&volume_hierarchy_dir_res, &config_dir_res.file,
+			   "volume");
   if (r != ZFS_OK)
     {
       free (name.str);
@@ -1599,11 +1598,16 @@ reread_volume_hierarchy (volume vol)
 static bool
 reread_user_mapping (uint32_t sid)
 {
+  dir_op_res config_dir_res;
   dir_op_res user_dir_res;
   int32_t r;
   node nod;
 
-  r = zfs_extended_lookup (&user_dir_res, &root_fh, "config/user");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
+  if (r != ZFS_OK)
+    return true;
+
+  r = zfs_extended_lookup (&user_dir_res, &config_dir_res.file, "user");
   if (r != ZFS_OK)
     return true;
 
@@ -1643,11 +1647,16 @@ reread_user_mapping (uint32_t sid)
 static bool
 reread_group_mapping (uint32_t sid)
 {
+  dir_op_res config_dir_res;
   dir_op_res group_dir_res;
   int32_t r;
   node nod;
 
-  r = zfs_extended_lookup (&group_dir_res, &root_fh, "config/group");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
+  if (r != ZFS_OK)
+    return true;
+
+  r = zfs_extended_lookup (&group_dir_res, &config_dir_res.file, "group");
   if (r != ZFS_OK)
     return true;
 
@@ -1874,7 +1883,7 @@ config_reader (void *data)
 
   invalidate_config ();
 
-  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     goto out;
 
@@ -1885,7 +1894,7 @@ config_reader (void *data)
     goto out;
 
   /* Config directory may have changed so lookup it again.  */
-  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     goto out;
 
