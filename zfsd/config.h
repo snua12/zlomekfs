@@ -35,9 +35,6 @@ extern thread config_reader_data;
 /* File used to communicate with kernel.  */
 extern string kernel_file_name;
 
-/* Directory with node configuration.  */
-extern string node_config;
-
 extern void set_node_name (void);
 extern void set_default_uid_gid (void);
 extern void add_reread_config_request_dentry (internal_dentry dentry);
