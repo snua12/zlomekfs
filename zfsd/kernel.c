@@ -21,6 +21,7 @@
 #include "system.h"
 #include <stdlib.h>
 #include <pthread.h>
+#include <signal.h>
 #include "constant.h"
 #include "client.h"
 #include "log.h"
@@ -108,7 +109,7 @@ client_worker (void *data)
 
       /* We were requested to die.  */
       if (t->state == THREAD_DYING)
-	return data;
+	break;
 
       /* We have some work to do.  */
       /* FIXME: TODO: call appropriate routine */
@@ -166,4 +167,17 @@ int
 initialize_client ()
 {
   return 1;
+}
+
+/* Terminate client threads and destroy data structures.  */
+
+void
+client_cleanup ()
+{
+  /* TODO: for each thread waiting for reply do:
+     set retval to indicate we are exiting
+     unlock the thread	*/
+
+  pthread_kill (client_regulator_data.thread_id, SIGUSR1);
+  thread_pool_destroy (&client_pool);
 }

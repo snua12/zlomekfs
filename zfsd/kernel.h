@@ -25,5 +25,6 @@
 
 extern void create_client_threads ();
 extern int initialize_client ();
+extern void client_cleanup ();
 
 #endif
