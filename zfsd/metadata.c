@@ -79,10 +79,9 @@ static pthread_mutex_t metadata_mutex;
 					  &(M).master_fh.ino,		    \
 					  sizeof (uint32_t)))
 static bool init_metadata_for_created_volume_root (volume vol);
-static void read_hardlinks (hardlink_list sl, int fd);
+static void read_hardlinks_file (hardlink_list sl, int fd);
 static void delete_hardlinks_file (volume vol, zfs_fh *fh);
-static bool flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl,
-				    char *path);
+static bool write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl);
 
 /* Hash function for metadata X.  */
 
@@ -1762,28 +1761,26 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
     {
       hardlink_list hl;
       int fd;
-      unsigned int generation;
 
       path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_HARDLINKS,
 				     metadata_tree_depth);
       fd = open_fh_metadata (path, vol, &fh, METADATA_TYPE_HARDLINKS,
 			     O_RDONLY, S_IRUSR | S_IWUSR);
+      free (path);
       if (fd >= 0)
 	{
 	  hl = hardlink_list_create (2, NULL);
-
-	  generation = metadata_fd_data[fd].generation;
-	  read_hardlinks (hl, fd);
+	  read_hardlinks_file (hl, fd);
 
 	  hardlink_list_delete (hl, parent_dev, parent_ino, name);
 	  if (hl->first)
-	    return flush_hardlinks_zfs_fh (vol, &fh, hl, path);
+	    return write_hardlinks (vol, &fh, hl);
 	  else
-	    delete_hardlinks_file (vol, &fh);
-
-	  hardlink_list_destroy (hl);
+	    {
+	      hardlink_list_destroy (hl);
+	      delete_hardlinks_file (vol, &fh);
+	    }
 	}
-      free (path);
     }
 
   /* Delete interval files and journal.  */
@@ -1937,7 +1934,7 @@ delete_hardlinks_file (volume vol, zfs_fh *fh)
 /* Read list of hardlinks from file descriptor FD to hardlink list HL.  */
 
 static void
-read_hardlinks (hardlink_list hl, int fd)
+read_hardlinks_file (hardlink_list hl, int fd)
 {
   FILE *f;
 
@@ -1977,24 +1974,26 @@ read_hardlinks (hardlink_list hl, int fd)
   fclose (f);
 }
 
-/* Write list of hardlinks for file handle FH on volume VOL
-   from hardlink list HL to file PATH.
+/* Write hardlink list HL for file handle FH on volume VOL to hardlink file.
    Return false on file error.  */
 
 static bool
-write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
+write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
 {
   hardlink_list_entry entry;
-  char *new_path;
+  char *path, *new_path;
   int fd;
   FILE *f;
 
+  path = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS,
+				 metadata_tree_depth);
   new_path = xstrconcat (2, path, ".new");
   fd = open_fh_metadata (new_path, vol, fh, METADATA_TYPE_HARDLINKS,
 			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
   if (fd < 0)
     {
       free (new_path);
+      free (path);
       return false;
     }
 
@@ -2022,6 +2021,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 	  fclose (f);
 	  unlink (new_path);
 	  free (new_path);
+	  free (path);
 	  return false;
 	}
     }
@@ -2029,22 +2029,26 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
   fclose (f);
   rename (new_path, path);
   free (new_path);
+  free (path);
   return true;
 }
 
-/* Load list of hardlinks of file handle FH on volume VOL.
-   Return false on file error.  */
+/* Read hardlinks for file handle FH on volume VOL to hardlink list HL
+   and the metadata to META.  */
 
-bool
-init_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
+static bool
+read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 {
-  char *path;
-  int fd;
-
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!lookup_metadata (vol, fh, meta, false))
+    return false;
 
   if (meta->name[0] == 0)
     {
+      char *path;
+      int fd;
+
 #ifdef ENABLE_CHECKING
       if (meta->parent_dev != (uint32_t) -1
 	  || meta->parent_ino != (uint32_t) -1)
@@ -2058,7 +2062,7 @@ init_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
       free (path);
 
       if (fd >= 0)
-	read_hardlinks (hl, fd);
+	read_hardlinks_file (hl, fd);
     }
   else
     {
@@ -2075,12 +2079,12 @@ init_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
   return true;
 }
 
-/* Flush the hardlink list HL for file handle HL on volume VOL
-   either to file PATH or to metadata file if possible.
+/* Write the hardlink list HL for file handle FH on volume VOL
+   either to hardlink file or to metadata file.
    Return false on file error.  */
 
 static bool
-flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
+write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 {
   metadata meta;
 
@@ -2094,14 +2098,12 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
       && (hl->first->next
 	  || hl->first->name.len >= METADATA_NAME_SIZE))
     {
-      if (!write_hardlinks (vol, fh, hl, path))
+      if (!write_hardlinks_file (vol, fh, hl))
 	{
 	  hardlink_list_destroy (hl);
-	  free (path);
 	  return false;
 	}
       hardlink_list_destroy (hl);
-      free (path);
 
       if (!hashfile_opened_p (vol->metadata))
 	{
@@ -2117,7 +2119,6 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
       if (!hfile_lookup (vol->metadata, &meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
       if (meta.slot_status != VALID_SLOT)
@@ -2137,7 +2138,6 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 	  if (!hfile_insert (vol->metadata, &meta))
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	      close_volume_metadata (vol);
 	      return false;
 	    }
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
@@ -2168,7 +2168,6 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
       if (!hfile_insert (vol->metadata, &meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
@@ -2176,6 +2175,7 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
   else if (hl->first)
     {
       hardlink_list_entry entry;
+
       if (!hashfile_opened_p (vol->metadata))
 	{
 	  int fd;
@@ -2184,7 +2184,6 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 	  if (fd < 0)
 	    {
 	      hardlink_list_destroy (hl);
-	      free (path);
 	      return false;
 	    }
 	}
@@ -2194,9 +2193,7 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
       if (!hfile_lookup (vol->metadata, &meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  close_volume_metadata (vol);
 	  hardlink_list_destroy (hl);
-	  free (path);
 	  return false;
 	}
       if (meta.slot_status != VALID_SLOT)
@@ -2219,12 +2216,10 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 	      METADATA_NAME_SIZE - entry->name.len);
 
       hardlink_list_destroy (hl);
-      free (path);
 
       if (!hfile_insert (vol->metadata, &meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  close_volume_metadata (vol);
 	  return false;
 	}
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
@@ -2233,80 +2228,9 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
     }
   else
     {
+      hardlink_list_destroy (hl);
       delete_hardlinks_file (vol, fh);
     }
-
-  return true;
-}
-
-/* Flush the hardlink list for file handle HL on volume VOL
-   either to special file or to metadata file if possible.
-   Return false on file error.  */
-
-static bool
-flush_hardlinks (volume vol, internal_fh fh)
-{
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (fh->hardlinks == NULL)
-    abort ();
-#endif
-
-  if (fh->hardlinks->first
-      && (fh->hardlinks->first->next
-	  || fh->hardlinks->first->name.len >= METADATA_NAME_SIZE))
-    {
-      char *path;
-
-      path = build_fh_metadata_path (vol, &fh->local_fh,
-				     METADATA_TYPE_HARDLINKS,
-				     metadata_tree_depth);
-      if (!write_hardlinks (vol, &fh->local_fh, fh->hardlinks, path))
-	{
-	  free (path);
-	  return false;
-	}
-      free (path);
-
-      if (fh->meta.name[0] == 0)
-	{
-#ifdef ENABLE_CHECKING
-	  if (fh->meta.parent_dev != (uint32_t) -1
-	      || fh->meta.parent_ino != (uint32_t) -1)
-	    abort ();
-#endif
-	  return true;
-	}
-
-#ifdef ENABLE_CHECKING
-      if (fh->meta.parent_dev == (uint32_t) -1
-	  && fh->meta.parent_ino == (uint32_t) -1)
-	abort ();
-#endif
-
-      fh->meta.parent_dev = (uint32_t) -1;
-      fh->meta.parent_ino = (uint32_t) -1;
-      memset (fh->meta.name, 0, METADATA_NAME_SIZE);
-      return flush_metadata (vol, fh);
-    }
-  else if (fh->hardlinks->first)
-    {
-      hardlink_list_entry entry;
-
-      entry = fh->hardlinks->first;
-      fh->meta.parent_dev = entry->parent_dev;
-      fh->meta.parent_ino = entry->parent_ino;
-      memcpy (fh->meta.name, entry->name.str, entry->name.len);
-      memset (fh->meta.name + entry->name.len, 0,
-	      METADATA_NAME_SIZE - entry->name.len);
-      if (!flush_metadata (vol, fh))
-	return false;
-
-      delete_hardlinks_file (vol, &fh->local_fh);
-    }
-  else
-    abort ();
 
   return true;
 }
@@ -2316,19 +2240,25 @@ flush_hardlinks (volume vol, internal_fh fh)
    Return false on file error.  */
 
 bool
-metadata_hardlink_insert (volume vol, internal_fh fh, uint32_t parent_dev,
+metadata_hardlink_insert (volume vol, zfs_fh *fh, uint32_t parent_dev,
 			  uint32_t parent_ino, char *name)
 {
+  hardlink_list hl;
+  metadata meta;
+
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!fh->hardlinks)
-    abort ();
-#endif
 
-  if (hardlink_list_insert (fh->hardlinks, parent_dev, parent_ino, name, true))
-    return flush_hardlinks (vol, fh);
+  hl = hardlink_list_create (2, NULL);
+  if (!read_hardlinks (vol, fh, &meta, hl))
+    {
+      hardlink_list_destroy (hl);
+      return false;
+    }
 
+  if (hardlink_list_insert (hl, parent_dev, parent_ino, name, true))
+    return write_hardlinks (vol, fh, hl);
+
+  hardlink_list_destroy (hl);
   return true;
 }
 
@@ -2338,48 +2268,55 @@ metadata_hardlink_insert (volume vol, internal_fh fh, uint32_t parent_dev,
    Return false on file error.  */
 
 bool
-metadata_hardlink_replace (volume vol, internal_fh fh, uint32_t old_parent_dev,
+metadata_hardlink_replace (volume vol, zfs_fh *fh, uint32_t old_parent_dev,
 			   uint32_t old_parent_ino, char *old_name,
 			   uint32_t new_parent_dev, uint32_t new_parent_ino,
 			   char *new_name)
 {
+  hardlink_list hl;
+  metadata meta;
   bool flush;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!fh->hardlinks)
-    abort ();
-#endif
 
-  flush = hardlink_list_delete (fh->hardlinks, old_parent_dev, old_parent_ino,
+  hl = hardlink_list_create (2, NULL);
+  if (!read_hardlinks (vol, fh, &meta, hl))
+    {
+      hardlink_list_destroy (hl);
+      return false;
+    }
+
+  flush = hardlink_list_delete (hl, old_parent_dev, old_parent_ino,
 				old_name);
-  flush |= hardlink_list_insert (fh->hardlinks, new_parent_dev, new_parent_ino,
+  flush |= hardlink_list_insert (hl, new_parent_dev, new_parent_ino,
 				 new_name, true);
   if (flush)
-    return flush_hardlinks (vol, fh);
+    return write_hardlinks (vol, fh, hl);
 
+  hardlink_list_destroy (hl);
   return true;
 }
 
-/* Delete a hardlink [PARENT_DEV, PARENT_INO, NAME] from hardlink list for
-   file handle FH on volume VOL.
-   Return false on file error.  */
-
 bool
-metadata_hardlink_delete (volume vol, internal_fh fh, uint32_t parent_dev,
+metadata_hardlink_delete (volume vol, zfs_fh *fh, uint32_t parent_dev,
 			  uint32_t parent_ino, char *name)
 {
+  hardlink_list hl;
+  metadata meta;
+
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!fh->hardlinks)
-    abort ();
-#endif
 
-  if (hardlink_list_delete (fh->hardlinks, parent_dev, parent_ino, name))
-    return flush_hardlinks (vol, fh);
+  hl = hardlink_list_create (2, NULL);
+  if (!read_hardlinks (vol, fh, &meta, hl))
+    {
+      hardlink_list_destroy (hl);
+      return false;
+    }
 
+  if (hardlink_list_delete (hl, parent_dev, parent_ino, name))
+    return write_hardlinks (vol, fh, hl);
+
+  hardlink_list_destroy (hl);
   return true;
 }
 
@@ -2398,32 +2335,9 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  /* Get metadata.  */
-  if (!hashfile_opened_p (vol->metadata))
-    {
-      int fd;
-
-      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
-      if (fd < 0)
-	{
-	  vol->delete_p = true;
-	  return NULL;
-	}
-    }
-
-  meta.dev = fh->dev;
-  meta.ino = fh->ino;
-  if (!hfile_lookup (vol->metadata, &meta))
-    {
-      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      vol->delete_p = true;
-      return NULL;
-    }
-  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-
   /* Get hardlink list.  */
   hl = hardlink_list_create (2, NULL);
-  if (!init_hardlinks (vol, fh, &meta, hl))
+  if (!read_hardlinks (vol, fh, &meta, hl))
     {
       vol->delete_p = true;
       hardlink_list_destroy (hl);
@@ -2478,14 +2392,9 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 
   if (flush)
     {
-      char *file;
-
-      file = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS,
-				     metadata_tree_depth);
-      if (!flush_hardlinks_zfs_fh (vol, fh, hl, file))
+      if (!write_hardlinks (vol, fh, hl))
 	{
 	  vol->delete_p = true;
-	  hardlink_list_destroy (hl);
 	  if (path)
 	    free (path);
 	  return NULL;

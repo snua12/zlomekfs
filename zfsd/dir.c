@@ -1690,10 +1690,12 @@ zfs_rmdir_retry:
 
 /* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
    in directory TO_DIR on volume VOL.
-   Store the stat structure of NAME to ST and path to PATHP.  */
+   Store the stat structure of original file TO_NAME to ST_OLD
+   and path to PATHP.  Store the stat structure of the new file TO_NAME
+   to ST_NEW.  */
 
 static int32_t
-local_rename (struct stat *st, char **pathp,
+local_rename (struct stat *st_old, struct stat *st_new, char **pathp,
 	      internal_dentry from_dir, string *from_name,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
@@ -1713,7 +1715,15 @@ local_rename (struct stat *st, char **pathp,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = lstat (path2, st);
+  r = lstat (path1, st_new);
+  if (r != 0)
+    {
+      free (path1);
+      free (path2);
+      return errno;
+    }
+
+  r = lstat (path2, st_old);
   if (r != 0)
     {
       /* PATH2 does not exist.  */
@@ -1800,7 +1810,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   volume vol;
   internal_dentry from_dentry, to_dentry;
   virtual_dir vd;
-  struct stat st;
+  struct stat st_old, st_new;
   char *path = NULL;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
@@ -1935,8 +1945,8 @@ zfs_rename_retry:
       UPDATE_FH_IF_NEEDED_2 (vol, to_dentry, from_dentry, tmp_to, tmp_from);
       if (tmp_from.ino != tmp_to.ino)
 	UPDATE_FH_IF_NEEDED_2 (vol, from_dentry, to_dentry, tmp_from, tmp_to);
-      r = local_rename (&st, &path, from_dentry, from_name, to_dentry,
-			to_name, vol);
+      r = local_rename (&st_old, &st_new, &path, from_dentry, from_name,
+			to_dentry, to_name, vol);
     }
   else if (vol->master != this_node)
     {
@@ -1980,6 +1990,8 @@ zfs_rename_retry:
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
+	  zfs_fh fh;
+
 	  if (path)
 	    {
 	      char *slash;
@@ -1993,13 +2005,24 @@ zfs_rename_retry:
 
 	      if (lstat (path, &parent_st) == 0)
 		{
-		  if (!delete_metadata (vol, st.st_dev, st.st_ino,
+		  if (!delete_metadata (vol, st_old.st_dev, st_old.st_ino,
 					parent_st.st_dev, parent_st.st_ino,
 					slash + 1))
 		    vol->delete_p = true;
 		}
 	      *slash = '/';
 	    }
+
+	  fh.dev = st_new.st_dev;
+	  fh.ino = st_new.st_ino;
+	  if (!metadata_hardlink_replace (vol, &fh,
+					  from_dentry->fh->local_fh.dev,
+					  from_dentry->fh->local_fh.ino,
+					  from_name->str,
+					  to_dentry->fh->local_fh.dev,
+					  to_dentry->fh->local_fh.ino,
+					  to_name->str))
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, from_dentry->fh))
 	    vol->delete_p = true;
 	  if (!inc_local_version (vol, to_dentry->fh))
@@ -2258,6 +2281,11 @@ zfs_link_retry:
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
 	{
+	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh,
+					 dir_dentry->fh->local_fh.dev,
+					 dir_dentry->fh->local_fh.ino, 
+					 name->str))
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, dir_dentry->fh))
 	    vol->delete_p = true;
 	}

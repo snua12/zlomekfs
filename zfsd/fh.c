@@ -39,7 +39,6 @@
 #include "memory.h"
 #include "network.h"
 #include "varray.h"
-#include "hardlink-list.h"
 #include "journal.h"
 #include "metadata.h"
 #include "zfs_prot.h"
@@ -1076,7 +1075,6 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->updated = NULL;
   fh->modified = NULL;
   fh->interval_tree_users = 0;
-  fh->hardlinks = NULL;
   fh->journal = NULL;
   fh->level = level;
   fh->users = 0;
@@ -1173,8 +1171,6 @@ internal_fh_destroy_stage1 (internal_fh fh)
   if (fh->attr.type == FT_DIR)
     varray_destroy (&fh->subdentries);
 
-  if (fh->hardlinks)
-    hardlink_list_destroy (fh->hardlinks);
   if (fh->journal)
     journal_destroy (fh->journal);
 
@@ -1353,14 +1349,6 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
 	{
-	  if (!fh->hardlinks)
-	    {
-	      fh->hardlinks = hardlink_list_create (2, &fh->mutex);
-	      if (!init_hardlinks (vol, &fh->local_fh, &fh->meta,
-				   fh->hardlinks))
-		vol->delete_p = true;
-	    }
-
 	  if (fh->attr.type == FT_DIR
 	      && !fh->journal)
 	    {
@@ -1369,7 +1357,8 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 		vol->delete_p = true;
 	    }
 
-	  if (!metadata_hardlink_insert (vol, fh, parent->fh->local_fh.dev,
+	  if (!metadata_hardlink_insert (vol, &fh->local_fh,
+					 parent->fh->local_fh.dev,
 					 parent->fh->local_fh.ino, name))
 	    {
 	      vol->delete_p = true;
@@ -1592,13 +1581,6 @@ internal_dentry_link (internal_fh fh, volume vol,
 #endif
   *slot = dentry;
 
-  if (parent && INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
-    {
-      if (!metadata_hardlink_insert (vol, dentry->fh, parent->fh->local_fh.dev,
-				     parent->fh->local_fh.ino, dentry->name))
-	vol->delete_p = true;
-    }
-
   return dentry;
 }
 
@@ -1639,18 +1621,6 @@ internal_dentry_move (internal_dentry dentry, volume vol,
 
   /* Insert DENTRY to DIR.  */
   internal_dentry_add_to_dir (dir, dentry);
-
-  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
-    {
-      if (!metadata_hardlink_replace (vol, dentry->fh,
-				      parent->fh->local_fh.dev,
-				      parent->fh->local_fh.ino, old_name,
-				      dir->fh->local_fh.dev,
-				      dir->fh->local_fh.ino, name))
-	{
-	  vol->delete_p = true;
-	}
-    }
 
   free (old_name);
   return true;
