@@ -133,7 +133,7 @@ metadata_encode (void *x)
   m->master_fh.vid = u32_to_le (m->master_fh.vid);
   m->master_fh.dev = u32_to_le (m->master_fh.dev);
   m->master_fh.ino = u32_to_le (m->master_fh.ino);
-  m->master_fh.ino = u32_to_le (m->master_fh.gen);
+  m->master_fh.gen = u32_to_le (m->master_fh.gen);
 }
 
 /* Build path to file with global metadata of type TYPE for volume VOL.  */
