@@ -156,6 +156,8 @@ int main (int argc, char **argv)
 	printf (" complete");
       if (meta.flags & METADATA_MODIFIED)
 	printf (" modified");
+      if (meta.flags & METADATA_SHADOW)
+	printf (" shadow");
       printf ("\n");
 
       printf (" Generation: %" PRIu32 "\n", meta.gen);
