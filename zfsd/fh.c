@@ -1088,13 +1088,14 @@ set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 
   if (vol->local_path && vol->master != this_node)
     {
-      if (!ZFS_FH_EQ (fh->meta.master_fh, *master_fh))
+      if (!ZFS_FH_EQ (fh->meta.master_fh, *master_fh)
+	  && !zfs_fh_undefined (*master_fh))
 	{
 	  fh->meta.master_fh = *master_fh;
 	  return flush_metadata (vol, fh);
 	}
     }
-  else
+  else if (!zfs_fh_undefined (*master_fh))
     fh->meta.master_fh = *master_fh;
 
   return true;
