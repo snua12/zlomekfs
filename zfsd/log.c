@@ -1,5 +1,5 @@
 /* Logging functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -31,7 +31,7 @@
 #include "log.h"
 
 /* Level of verbosity.  Higher number means more messages.  */
-int verbose = 2;
+int verbose = 1;
 
 /* Thread ID of the main thread.  */
 pthread_t main_thread;
