@@ -44,7 +44,6 @@
 #include "thread.h"
 #include "zfs_prot.h"
 #include "config.h"
-#include "fh.h"
 
 /* Pool of kernel threads (threads communicating with kernel).  */
 thread_pool kernel_pool;
