@@ -336,14 +336,19 @@ internal_fh_destroy (internal_fh fh, volume vol)
   if (!slot)
     abort ();
 #endif
+  zfsd_mutex_lock (&fh_pool_mutex);	/* FIXME: temporary; see below */
   htab_clear_slot (vol->fh_htab, slot);
+  zfsd_mutex_unlock (&fh_pool_mutex);	/* FIXME: temporary; see below */
 
+#if 0 /* FIXME: temporarily disabled - until internal_fh_del is removed and this
+	 function is used instead.  */
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
   free (fh->name);
   zfsd_mutex_lock (&fh_pool_mutex);
   pool_free (fh_pool, fh);
   zfsd_mutex_unlock (&fh_pool_mutex);
+#endif
 }
 
 /* Print the contents of hash table HTAB to file F.  */
