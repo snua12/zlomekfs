@@ -775,6 +775,8 @@ internal_dentry_unlock (internal_dentry dentry)
 	  release_dentry (dentry);
 	}
     }
+  else
+    release_dentry (dentry);
 }
 
 /* Lock 2 dentries on volume *VOLP, lock *DENTRY1P to level LEVEL1 and

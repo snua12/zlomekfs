@@ -192,6 +192,8 @@ internal_cap_unlock (internal_dentry dentry, virtual_dir vd)
 	  else
 	    zfsd_mutex_unlock (&vd->mutex);
 	}
+      else
+	zfsd_mutex_unlock (&vd->mutex);
     }
 }
 
