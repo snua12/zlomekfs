@@ -489,19 +489,20 @@ main (int argc, char **argv)
 #ifdef RPC
   register_server ();
 #else
-  server_start ();
-
-#ifdef TEST
-  test_zfs (&main_thread_data);
-#else
-  if (!read_cluster_config ())
+  if (server_start ())
     {
-      server_cleanup ();
-      die ();
-    }
+#ifdef TEST
+      test_zfs (&main_thread_data);
+#else
+      if (!read_cluster_config ())
+	{
+	  server_cleanup ();
+	  die ();
+	}
 #endif
 
-  pthread_join (main_server_thread, NULL);
+      pthread_join (main_server_thread, NULL);
+    }
 #endif
 
   client_cleanup ();
