@@ -112,7 +112,6 @@ extern int32_t local_reintegrate_del (volume vol, internal_dentry dentry,
 extern int32_t remote_reintegrate_del (volume vol, internal_dentry dir,
 				       string *name, bool destroy_p);
 extern int32_t zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p);
-extern int32_t refresh_master_fh (zfs_fh *fh);
 extern int32_t refresh_fh (zfs_fh *fh);
 
 #endif
