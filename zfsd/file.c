@@ -2306,7 +2306,7 @@ zfs_write (write_res *res, write_args *args)
 
 	      start = (args->offset / ZFS_MODIFIED_BLOCK_SIZE
 		       * ZFS_MODIFIED_BLOCK_SIZE);
-	      end = ((args->offset + args->data.len
+	      end = ((args->offset + res->written
 		      + ZFS_MODIFIED_BLOCK_SIZE - 1)
 		     / ZFS_MODIFIED_BLOCK_SIZE * ZFS_MODIFIED_BLOCK_SIZE);
 
@@ -2314,7 +2314,9 @@ zfs_write (write_res *res, write_args *args)
 					  &blocks);
 
 	      start = args->offset;
-	      end = args->offset + args->data.len;
+	      end = args->offset + res->written;
+	      if (dentry->fh->attr.size < end)
+		dentry->fh->attr.size = end;
 	      for (i = 0; i < VARRAY_USED (blocks); i++)
 		{
 		  if (VARRAY_ACCESS (blocks, i, interval).end < start)
