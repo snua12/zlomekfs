@@ -40,6 +40,8 @@ extern int32_t local_getattr (fattr *attr, char *path, volume vol);
 extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
 extern int32_t local_setattr_path (fattr *fa, char *path, sattr *sa,
 				   volume vol);
+extern int32_t local_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
+			      volume vol);
 extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
 extern int32_t zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int32_t zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);

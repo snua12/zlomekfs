@@ -501,7 +501,7 @@ local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 /* Set attributes of local file DENTRY on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
-static int32_t
+int32_t
 local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
   char *path;
