@@ -284,10 +284,6 @@ cleanup_unused_dentries (void)
 		 while CLEANUP_DENTRY_MUTEX was unlocked.  */
 	      if (dentry_should_have_cleanup_node (dentry))
 		{
-#ifdef ENABLE_CHECKING
-		  if (!dentry->heap_node)
-		    abort ();
-#endif
 		  release_dentry (dentry);
 		  zfsd_mutex_unlock (&fh_mutex);
 		  continue;
