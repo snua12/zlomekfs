@@ -91,11 +91,18 @@ typedef enum ftype_def
 
 typedef struct zfs_fh_def
 {
-  uint32_t sid;		/* Server ID.  */
+  uint32_t sid;		/* Server ID + conflict flag.  */
   uint32_t vid;		/* Volume ID.  */
   uint32_t dev;		/* Device ... */
   uint32_t ino;		/* ... and inode number of the file.  */
 } zfs_fh;
+
+#define GET_SID(FH) ((FH).sid & UINT32_C(0x7fffffff))
+#define SET_SID(FH, SID) ((FH).sid = (((FH).sid & UINT32_C(0x80000000))	\
+				      | ((SID) & UINT32_C(0x7fffffff))))
+#define GET_CONFLICT(FH) ((FH).sid >> 31)
+#define SET_CONFLICT(FH, VALUE) ((FH).sid = (((FH).sid & UINT32_C(0x7fffffff)) \
+					     | ((VALUE) << 31)))
 
 typedef struct zfs_cap_def
 {

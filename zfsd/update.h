@@ -87,7 +87,7 @@
     if ((VOL)->master != this_node)					\
       {									\
 	if (ENABLE_CHECKING_VALUE					\
-	    && ((FH).sid != (FH2).sid					\
+	    && (GET_SID (FH) != GET_SID (FH2)				\
 		|| (FH).vid != (FH2).vid				\
 		|| (FH).dev != (FH2).dev))				\
 	  abort ();							\
