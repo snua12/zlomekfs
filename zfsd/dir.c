@@ -1146,7 +1146,7 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
       str.len = strlen (str.str);
 
       r = zfs_lookup (res, &res->file, &str);
-      if (r)
+      if (r != ZFS_OK)
 	return r;
     }
 
