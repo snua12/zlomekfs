@@ -34,6 +34,7 @@ typedef struct volume_def *volume;
 #include "hashtab.h"
 #include "varray.h"
 #include "fibheap.h"
+#include "interval.h"
 #include "zfs_prot.h"
 
 #define VIRTUAL_DEVICE 0	/* Device number of device with virtual
@@ -100,8 +101,14 @@ struct internal_fh_def
   /* Contained directory entries (of type 'struct internal_dentry_def *').  */
   varray subdentries;
 
-  /* Number Directory entries associated with this file handle.  */
+  /* Number of directory entries associated with this file handle.  */
   unsigned int ndentries;
+
+  /* Updated intervals.  */
+  interval_tree updated;
+
+  /* Modified intervals.  */
+  interval_tree modified;
 };
 
 /* Internal directory entry.  */
