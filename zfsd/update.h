@@ -21,5 +21,20 @@
 #ifndef UPDATE_H
 #define UPDATE_H
 
+#include "system.h"
+#include <inttypes.h>
+#include "varray.h"
+#include "fh.h"
+#include "cap.h"
+#include "zfs_prot.h"
+
+#define ZFS_UPDATED_BLOCK_SIZE ZFS_MAXDATA
+#define ZFS_MODIFIED_BLOCK_SIZE 1024
+
+extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
+				     uint64_t end, varray *blocks);
+extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,
+				   void *buffer, uint64_t offset,
+				   internal_cap cap, varray *blocks);
 
 #endif

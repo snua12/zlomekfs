@@ -34,6 +34,7 @@
 #include "constant.h"
 #include "memory.h"
 #include "fibheap.h"
+#include "varray.h"
 #include "data-coding.h"
 #include "fh.h"
 #include "file.h"
@@ -43,6 +44,7 @@
 #include "metadata.h"
 #include "network.h"
 #include "md5.h"
+#include "update.h"
 
 /* int getdents(unsigned int fd, struct dirent *dirp, unsigned int count); */
 _syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
@@ -1198,6 +1200,40 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
   return r;
 }
 
+/* Align the range of length COUNT starting at OFFSET and store the bounds of
+   resulting range to START and END.  */
+
+static void
+align_range (uint64_t offset, uint32_t count, uint64_t *start, uint64_t *end)
+{
+  uint64_t block;
+
+  /* First check whether the range is contained in a block of size
+     ZFS_UPDATED_BLOCK_SIZE aligned to ZFS_UPDATED_BLOCK_SIZE.  */
+  block = offset / ZFS_UPDATED_BLOCK_SIZE * ZFS_UPDATED_BLOCK_SIZE;
+  if (offset + count <= block + ZFS_UPDATED_BLOCK_SIZE)
+    {
+      *start = block;
+      *end = block + ZFS_UPDATED_BLOCK_SIZE;
+      return;
+    }
+
+  /* Then check whether the range is contained in a block of size
+     ZFS_UPDATED_BLOCK_SIZE aligned to ZFS_MODIFIED_BLOCK_SIZE.  */
+  block = offset / ZFS_MODIFIED_BLOCK_SIZE * ZFS_MODIFIED_BLOCK_SIZE;
+  if (offset + count <= block + ZFS_UPDATED_BLOCK_SIZE)
+    {
+      *start = block;
+      *end = block + ZFS_UPDATED_BLOCK_SIZE;
+      return;
+    }
+
+  /* Finally enlarge the range to be ZFS_UPDATED_BLOCK_SIZE long.  */
+  *start = offset;
+  *end = offset + (count <= ZFS_UPDATED_BLOCK_SIZE
+		   ? ZFS_UPDATED_BLOCK_SIZE : count);
+}
+
 /* Read COUNT bytes from file CAP at offset OFFSET, sotre the count of bytes
    read to RCOUNT and the data to BUFFER.  If UPDATE is true update the
    local file on copied volume.  */
@@ -1233,7 +1269,67 @@ zfs_read_retry:
     }
 
   if (vol->local_path)
-    r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+    {
+      if (vol->master != this_node && update && r == ZFS_OK)
+	{
+	  varray blocks;
+	  uint64_t start;
+	  uint64_t end;
+	  uint64_t offset2;
+	  unsigned int i;
+	  bool covered;
+	  bool complete;
+
+	  align_range (offset, count, &start, &end);
+	  get_blocks_for_updating (dentry->fh, start, end, &blocks);
+
+	  covered = false;
+	  complete = true;
+	  offset2 = offset + count;
+	  for (i = 0; i < VARRAY_USED (blocks); i++)
+	    {
+	      if (offset2 <= VARRAY_ACCESS (blocks, i, interval).start)
+		break;
+
+	      if (VARRAY_ACCESS (blocks, i, interval).start <= offset
+		  && offset < VARRAY_ACCESS (blocks, i, interval).end)
+		{
+		  complete = false;
+		  if (VARRAY_ACCESS (blocks, i, interval).start < offset2
+		      && offset2 <= VARRAY_ACCESS (blocks, i, interval).end)
+		    covered = true;
+		}
+	      else if (VARRAY_ACCESS (blocks, i, interval).start < offset2
+		       && offset2 <= VARRAY_ACCESS (blocks, i, interval).end)
+		complete = false;
+	    }
+
+	  if (complete)
+	    {
+	      r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+	    }
+	  else
+	    {
+	      if (covered)
+		{
+		  zfsd_mutex_unlock (&vol->mutex);
+		}
+	      else
+		{
+		  r = local_read (rcount, buffer, icap, dentry, offset, count,
+				  vol);
+		}
+	      zfsd_mutex_unlock (&dentry->fh->mutex);
+
+	      r = update_file_blocks (true, rcount, buffer, offset,
+				      icap, &blocks);
+	    }
+
+	  varray_destroy (&blocks);
+	}
+      else
+	r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+    }
   else if (vol->master != this_node)
     r = remote_read (rcount, buffer, icap, offset, count, vol);
   else
