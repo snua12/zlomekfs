@@ -469,6 +469,45 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
   return ZFS_OK;
 }
 
+/* Return dentry for file NAME in directory DIR on volume VOL.
+   If it does not exist create it.  Update its local file handle to
+   LOCAL_FH, master file handle to MASTER_FH and attributes to ATTR.  */
+
+internal_dentry
+get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
+	    volume vol, internal_dentry dir, char *name, fattr *attr)
+{
+  internal_dentry dentry;
+
+  dentry = dentry_lookup_name (vol, dir, name);
+  if (dentry)
+    {
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+      if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh)
+	  || (!ZFS_FH_EQ (dentry->fh->master_fh, *master_fh)
+	      && !zfs_fh_undefined (dentry->fh->master_fh)))
+	{
+	  internal_dentry_destroy (dentry, vol);
+	  dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
+					   attr);
+	}
+      else
+	{
+	  if (zfs_fh_undefined (dentry->fh->master_fh))
+	    dentry->fh->master_fh = *master_fh;
+
+	  set_attr_version (attr, &dentry->fh->meta);
+	  dentry->fh->attr = *attr;
+	}
+    }
+  else
+    dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
+				     attr);
+
+  return dentry;
+}
+
 /* Update time of last use of DENTRY and unlock it.  */
 
 void

@@ -956,33 +956,8 @@ zfs_lookup_retry:
     {
       internal_dentry dentry;
 
-      /* Update internal file handles in htab.  */
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
-	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
-		  && !zfs_fh_undefined (dentry->fh->master_fh)))
-	    {
-	      internal_dentry_destroy (dentry, vol);
-	      dentry = internal_dentry_create (&res->file, &master_res.file,
-					       vol, idir, name->str,
-					       &res->attr);
-	    }
-	  else
-	    {
-	      if (zfs_fh_undefined (dentry->fh->master_fh))
-		dentry->fh->master_fh = master_res.file;
-
-	      set_attr_version (&res->attr, &dentry->fh->meta);
-	      dentry->fh->attr = res->attr;
-	    }
-	}
-      else
-	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					 idir, name->str, &res->attr);
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+			   &res->attr);
       release_dentry (dentry);
     }
 
@@ -1149,34 +1124,8 @@ zfs_mkdir_retry:
     {
       internal_dentry dentry;
 
-      /* Update internal file handle in htab.  */
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
-	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
-		  && !zfs_fh_undefined (dentry->fh->master_fh)))
-	    {
-	      internal_dentry_destroy (dentry, vol);
-	      dentry = internal_dentry_create (&res->file, &master_res.file,
-					       vol, idir, name->str,
-					       &res->attr);
-	    }
-	  else
-	    {
-	      if (zfs_fh_undefined (dentry->fh->master_fh))
-		dentry->fh->master_fh = master_res.file;
-
-	      set_attr_version (&res->attr, &dentry->fh->meta);
-	      dentry->fh->attr = res->attr;
-	    }
-	}
-      else
-	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					 idir, name->str, &res->attr);
-
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+			   &res->attr);
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, idir->fh))
@@ -2283,34 +2232,8 @@ zfs_symlink_retry:
     {
       internal_dentry dentry;
 
-      /* Update internal file handle in htab.  */
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
-	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
-		  && !zfs_fh_undefined (dentry->fh->master_fh)))
-	    {
-	      internal_dentry_destroy (dentry, vol);
-	      dentry = internal_dentry_create (&res->file, &master_res.file,
-					       vol, idir, name->str,
-					       &res->attr);
-	    }
-	  else
-	    {
-	      if (zfs_fh_undefined (dentry->fh->master_fh))
-		dentry->fh->master_fh = master_res.file;
-
-	      set_attr_version (&res->attr, &dentry->fh->meta);
-	      dentry->fh->attr = res->attr;
-	    }
-	}
-      else
-	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					 idir, name->str, &res->attr);
-
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+			   &res->attr);
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, idir->fh))
@@ -2491,34 +2414,8 @@ zfs_mknod_retry:
     {
       internal_dentry dentry;
 
-      /* Update internal file handle in htab.  */
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
-	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
-		  && !zfs_fh_undefined (dentry->fh->master_fh)))
-	    {
-	      internal_dentry_destroy (dentry, vol);
-	      dentry = internal_dentry_create (&res->file, &master_res.file,
-					       vol, idir, name->str,
-					       &res->attr);
-	    }
-	  else
-	    {
-	      if (zfs_fh_undefined (dentry->fh->master_fh))
-		dentry->fh->master_fh = master_res.file;
-
-	      set_attr_version (&res->attr, &dentry->fh->meta);
-	      dentry->fh->attr = res->attr;
-	    }
-	}
-      else
-	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					 idir, name->str, &res->attr);
-
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+			   &res->attr);
       if (vol->local_path)
 	{
 	  if (!inc_local_version (vol, idir->fh))

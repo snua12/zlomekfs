@@ -435,33 +435,8 @@ zfs_create_retry:
       internal_cap icap;
       internal_dentry dentry;
 
-      /* Update internal dentry and capability.  */
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
-	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
-		  && !zfs_fh_undefined (dentry->fh->master_fh)))
-	    {
-	      internal_dentry_destroy (dentry, vol);
-	      dentry = internal_dentry_create (&res->file, &master_res.file,
-					       vol, idir, name->str,
-					       &res->attr);
-	    }
-	  else
-	    {
-	      if (zfs_fh_undefined (dentry->fh->master_fh))
-		dentry->fh->master_fh = master_res.file;
-
-	      set_attr_version (&res->attr, &dentry->fh->meta);
-	      dentry->fh->attr = res->attr;
-	    }
-	}
-      else
-	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					 idir, name->str, &res->attr);
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+			   &res->attr);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry);
 
       if (vol->local_path)
