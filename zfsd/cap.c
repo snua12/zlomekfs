@@ -337,7 +337,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  
+
   if (vd && *vd)
     zfsd_mutex_unlock (&vd_mutex);
   else
