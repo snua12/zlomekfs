@@ -36,5 +36,6 @@ extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,
 				   void *buffer, uint64_t offset,
 				   internal_cap cap, varray *blocks);
+extern bool update_p (internal_dentry dentry, volume vol);
 
 #endif

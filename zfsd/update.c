@@ -335,3 +335,25 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
 
   return ZFS_OK;
 }
+
+/* Return true if file DENTRY on volume VOL should be updated.  */
+
+bool
+update_p (internal_dentry dentry, volume vol)
+{
+  fattr attr;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!(vol->local_path && vol->master != this_node))
+    abort ();
+#endif
+
+  r = remote_getattr (&attr, dentry, vol);
+  if (r != ZFS_OK)
+    return false;
+
+  return attr.version > dentry->fh->attr.version;
+}
