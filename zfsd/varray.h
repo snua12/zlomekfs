@@ -49,7 +49,7 @@ typedef struct varray_def
     {							\
       if ((VA).nused >= (VA).nelem)			\
 	varray_grow (&(VA), 2 * (VA).nelem);		\
-      (((T) *) (VA).array)[(VA).nused++] = (X);		\
+      ((T *) (VA).array)[(VA).nused++] = (X);		\
     }							\
   while (0)
 
@@ -57,7 +57,7 @@ typedef struct varray_def
 #define VARRAY_POP(VA) ((VA).nused--)
 
 /* Access the top element of variable-sized array VA.  */
-#define VARRAY_TOP(VA) ((((T) *) (VA).array)[(VA).nused - 1])
+#define VARRAY_TOP(VA, T) (((T *) (VA).array)[(VA).nused - 1])
   
 /* Empty the variable-sized array VA.  */
 #define VARRAY_CLEAR(VA) ((VA).nused = 0)
@@ -68,14 +68,14 @@ typedef struct varray_def
    checking.  */
 #define VARRAY_ACCESS(VA, N, T)						  \
   ((N) >= (VA).nused							  \
-   ? varray_check_failed (&(VA), (N), __FILE__, __LINE__), *((T) *) NULL \
-   : (((T) *) (VA).array)[N])
+   ? varray_check_failed ((N), __FILE__, __LINE__), *(T *) NULL \
+   : ((T *) (VA).array)[N])
 
 #else
 
 /* Access the Nth element of type T from variable-sized array VA.  */
 #define VARRAY_ACCESS(VA, N, T)						  \
-   ((((T) *) (VA).array)[N])
+   (((T *) (VA).array)[N])
 
 #endif
 
