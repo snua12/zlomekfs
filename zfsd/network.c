@@ -573,6 +573,7 @@ node_authenticate (thread *t, node nod, authentication_status auth)
   int32_t r;
   uint32_t sid;
   int fd;
+  unsigned int generation;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
   CHECK_MUTEX_LOCKED (&fd_data_a[nod->fd].mutex);
@@ -599,6 +600,7 @@ again:
       return -1;
     }
   fd = nod->fd;
+  generation = nod->generation;
   zfsd_mutex_unlock (&nod->mutex);
   nod = NULL;
 
@@ -665,6 +667,7 @@ again:
 	    r = ZFS_CONNECTION_CLOSED;
 	    goto node_authenticate_error;
 	  }
+	generation = nod->generation;
 	if (!node_has_valid_fd (nod))
 	  {
 	    r = ZFS_CONNECTION_CLOSED;
@@ -722,6 +725,7 @@ again:
 	    r = ZFS_CONNECTION_CLOSED;
 	    goto node_authenticate_error;
 	  }
+	generation = nod->generation;
 	if (!node_has_valid_fd (nod))
 	  {
 	    r = ZFS_CONNECTION_CLOSED;
@@ -770,7 +774,7 @@ node_authenticate_error:
       r = ZFS_COULD_NOT_AUTH;
     }
   t->retval = r;
-  if (fd_data_a[fd].generation == t->u.network.generation)
+  if (fd_data_a[fd].generation == generation)
     close_network_fd (fd);
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
   if (nod)
