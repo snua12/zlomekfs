@@ -98,7 +98,7 @@ fake_config ()
   vol = volume_create (5);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
-    volume_set_local_info (vol, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
+    volume_set_local_info (vol, "/home/joe/.zfs/dir1", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume5", "/jaro/volume5", nod);
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -169,7 +169,7 @@ walk_dir (zfs_fh *dir, char *path)
       direction dddd;
       uint32_t rid;
 
-      message (1, stderr, "%s\n", path);
+      message (0, stderr, "%s\n", path);
       dc_create (&dc, ZFS_MAX_REQUEST_LEN);
 
       do {
@@ -228,7 +228,7 @@ walk_dir (zfs_fh *dir, char *path)
 		free (new_path);
 	      }
 	    else
-	      message (1, stderr, "%s%s\n", path, entry.name.str);
+	      message (0, stderr, "%s%s\n", path, entry.name.str);
 	    free (entry.name.str);
 	  }
       } while (list.eof == 0);
@@ -305,7 +305,7 @@ test_zfs (thread *t)
 	  printf ("%d\n", zfs_close (&cap));
 	}
 
-      message (1, stderr, "Walking through directory structure:\n");
+      message (0, stderr, "Walking through directory structure:\n");
       walk_dir (&root_fh, "/");
     }
 
