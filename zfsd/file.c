@@ -453,8 +453,6 @@ read_local_dir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
 	{
 	  return (data->list.n == 0) ? EINVAL : ZFS_OK;
 	}
-      if (data->cookie < 0)
-	data->cookie = 0;
     }
 
   if (fh)
@@ -466,6 +464,8 @@ read_local_dir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
 	    return r;
 	}
 
+      if (data->cookie < 0)
+	data->cookie = 0;
       r = lseek (cap->fd, data->cookie, SEEK_SET);
       if (r < 0)
 	{
@@ -622,7 +622,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   status_len = dc->cur_length;
   encode_status (dc, ZFS_OK);
 
-  if (!vol || vol->local_path)
+  if (!ifh || vol->local_path)
     {
       encode_dir_list (dc, &data.list);
       r = read_local_dir (dc, icap, ifh, vd, &data, vol);
@@ -659,7 +659,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   encode_status (dc, r);
   if (r == ZFS_OK)
     {
-      if (!vol || vol->local_path)
+      if (!ifh || vol->local_path)
 	encode_dir_list (dc, &data.list);
       dc->current = cur_pos;
       dc->cur_length = cur_len;
