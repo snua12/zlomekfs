@@ -1410,27 +1410,32 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   else
     {
       dentry = vol->root_dentry;
-      if (dentry && GET_CONFLICT (dentry->fh->local_fh))
-	{
-	  internal_dentry tmp;
-	  unsigned int i;
-
-	  for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
-	    {
-	      tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
-	      if (INTERNAL_FH_HAS_LOCAL_PATH (tmp->fh))
-		{
-		  dir = dentry;
-		  dentry = tmp;
-		  name = tmp->name;
-		  break;
-		}
-	    }
-	}
       if (dentry)
 	zfsd_mutex_lock (&dentry->fh->mutex);
     }
 
+  if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+    {
+      internal_dentry tmp;
+      unsigned int i;
+
+      for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
+	{
+	  tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
+	  if (GET_SID (tmp->fh->local_fh) == GET_SID (*local_fh))
+	    {
+	      release_dentry (dir);
+	      zfsd_mutex_lock (&tmp->fh->mutex);
+	      dir = dentry;
+	      dentry = tmp;
+	      name = tmp->name;
+	      goto do_get_dentry;
+	    }
+	}
+      abort ();
+    }
+
+do_get_dentry:
   if (dentry)
     {
       CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1494,6 +1499,8 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
   if (!dir)
     vol->root_dentry = dentry;
+
+  /* TODO: possibly cancel conflict.  */
 
   return dentry;
 }
