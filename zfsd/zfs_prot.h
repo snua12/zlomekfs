@@ -41,6 +41,8 @@
 					   reply.  */
 #define ZFS_COULD_NOT_CONNECT	-6	/* Could not connect to node.  */
 #define ZFS_COULD_NOT_AUTH	-7	/* Could not authenticate with node.  */
+#define ZFS_INVALID_AUTH_LEVEL	-8	/* Remote node has not authenticated
+					   enough yet.  */
 
 typedef enum direction_def
 {
@@ -280,12 +282,10 @@ typedef union call_args_def
   auth_stage2_args auth_stage2;
 } call_args;
 
-#include "data-coding.h"
-
 /* Function numbers.  */
 enum function_number_def
 {
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   ZFS_PROC_##NAME = NUMBER,
 #include "zfs_prot.def"
   ZFS_PROC_LAST_AND_UNUSED
@@ -296,11 +296,12 @@ struct thread_def;
 struct node_def;
 
 /* Function headers.  */
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern int zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
-					   ARGS_TYPE *args,		\
+					   ARGS *args,			\
 					   struct node_def *nod);	\
-  extern void zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc);
+  extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
+					    struct thread_def *t);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
