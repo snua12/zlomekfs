@@ -70,6 +70,11 @@ typedef struct volume_def *volume;
    || ((DENTRY)->parent->parent == NULL					\
        && CONFLICT_DIR_P ((DENTRY)->parent->fh->local_fh)))
 
+/* Is file NAME in directory DIR a special dir?  */
+#define SPECIAL_DIR_P(DIR, NAME)					\
+  (LOCAL_VOLUME_ROOT_P (DIR)						\
+   && strcmp ((NAME), ".zfs") == 0)
+
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
 			     ? memset (&(FH), -1, sizeof (zfs_fh))	\

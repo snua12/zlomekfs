@@ -1508,8 +1508,8 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       zfsd_mutex_unlock (&fh_mutex);
     }
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -1740,8 +1740,8 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -1954,8 +1954,8 @@ zfs_rmdir (zfs_fh *dir, string *name)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -2458,9 +2458,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (to_dentry)
-      && strncmp (to_name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (to_dentry, to_name->str))
     {
       release_dentry (to_dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -2504,9 +2503,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (from_dentry)
-      && strncmp (from_name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (from_dentry, from_name->str))
     {
       release_dentry (from_dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -2887,8 +2885,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (dir_dentry) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (dir_dentry, name->str))
     {
       release_dentry (dir_dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -3162,8 +3160,8 @@ zfs_unlink (zfs_fh *dir, string *name)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -3978,8 +3976,8 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -4219,8 +4217,8 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
-  /* Hide ".zfs" in the root of the volume.  */
-  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
