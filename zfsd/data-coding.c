@@ -836,10 +836,10 @@ encode_md5sum_args (DC *dc, md5sum_args *args)
   encode_uint32_t (dc, args->count);
 
   for (i = 0; i < args->count; i++)
-    encode_uint64_t (dc, &args->offset[i]);
+    encode_uint64_t (dc, args->offset[i]);
 
   for (i = 0; i < args->count; i++)
-    encode_uint32_t (dc, &args->length[i]);
+    encode_uint32_t (dc, args->length[i]);
 
   return true;
 }
@@ -883,10 +883,10 @@ encode_md5sum_res (DC *dc, md5sum_res *res)
   encode_uint32_t (dc, res->count);
 
   for (i = 0; i < res->count; i++)
-    encode_uint64_t (dc, &res->offset[i]);
+    encode_uint64_t (dc, res->offset[i]);
 
   for (i = 0; i < res->count; i++)
-    encode_uint32_t (dc, &res->length[i]);
+    encode_uint32_t (dc, res->length[i]);
 
   for (i = 0; i < res->count; i++)
     encode_fixed_buffer (dc, res->md5sum[i], MD5_SIZE);
