@@ -1423,11 +1423,6 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
       now = time (NULL);
 
-      /* Decrease the number of (unprocessed) sockets with events
-	 if there were events on main socket.  */
-      if (pfd[n].revents)
-	r--;
-
       zfsd_mutex_lock (&active_mutex);
       for (i = nactive - 1; i >= 0; i--)
 	{
@@ -1574,10 +1569,6 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		    }
 		}
 	    }
-
-	  /* Decrease the number of (unprocessed) sockets with events.  */
-	  if (pfd[i].revents)
-	    r--;
 	}
 
       if (accept_connections)
