@@ -2518,9 +2518,12 @@ zfs_rename_finish (internal_dentry *from_dir, string *from_name,
     {
       if ((*vol)->master != this_node)
 	{
-	  if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_old,
-				       to_name, JOURNAL_OPERATION_DEL))
-	    MARK_VOLUME_DELETE (*vol);
+	  if (meta_old->slot_status == VALID_SLOT)
+	    {
+	      if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_old,
+					   to_name, JOURNAL_OPERATION_DEL))
+		MARK_VOLUME_DELETE (*vol);
+	    }
 
 	  if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_new,
 				       to_name, JOURNAL_OPERATION_ADD))
