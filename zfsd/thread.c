@@ -66,8 +66,14 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 void
 thread_pool_destroy (thread_pool *pool)
 {
-  /* TODO: write it */
+  pthread_mutex_lock (&pool->idle.mutex);
+  pthread_mutex_lock (&pool->empty.mutex);
 
+  while (pool->empty.nelem < pool->size)
+    destroy_idle_thread (pool);
+
+  pthread_mutex_unlock (&pool->empty.mutex);
+  pthread_mutex_unlock (&pool->idle.mutex);
 }
 
 /* Create a new idle thread in thread pool POOL and start a routine START in it.
