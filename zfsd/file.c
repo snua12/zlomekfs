@@ -186,7 +186,7 @@ capability_opened_p (internal_fh fh)
 /* Open local file for dentry DENTRY with additional FLAGS on volume VOL.  */
 
 static int32_t
-capability_open (uint32_t flags, internal_dentry dentry, volume vol)
+capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 {
   string path;
 
@@ -205,6 +205,9 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
 
   else if (capability_opened_p (dentry->fh))
     {
+      *fd = dentry->fh->fd;
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
       return ZFS_OK;
     }
@@ -215,6 +218,7 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
     flags |= O_RDWR;
 
   build_local_path (&path, vol, dentry);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
   dentry->fh->fd = safe_open (path.str, flags, 0);
   free (path.str);
@@ -224,8 +228,11 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
       zfsd_mutex_lock (&internal_fd_data[dentry->fh->fd].mutex);
       init_fh_fd_data (dentry->fh);
       zfsd_mutex_unlock (&opened_mutex);
+      *fd = dentry->fh->fd;
+      release_dentry (dentry);
       return ZFS_OK;
     }
+  release_dentry (dentry);
 
   if (errno == ENOENT || errno == ENOTDIR)
     return ESTALE;
@@ -623,17 +630,16 @@ int32_t
 local_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   int32_t r;
+  int fd;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  r = capability_open (flags, dentry, vol);
+  r = capability_open (&fd, flags, dentry, vol);
   if (r == ZFS_OK)
-    zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
+    zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 
   return r;
 }
@@ -1274,6 +1280,8 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   char buf[ZFS_MAXDATA];
   int32_t r, pos;
   struct dirent *de;
+  int fd;
+  bool local_volume_root;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -1295,35 +1303,53 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
     {
       if (!read_virtual_dir (list, vd, cookie, data, filldir))
 	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
 	  if (dentry)
-	    zfsd_mutex_unlock (&fh_mutex);
+	    {
+	      release_dentry (dentry);
+	      zfsd_mutex_unlock (&fh_mutex);
+	    }
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
 	  return (list->n == 0) ? EINVAL : ZFS_OK;
+	}
+
+      if (!dentry)
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
 	}
     }
 
   if (dentry)
     {
-      r = capability_open (0, dentry, vol);
+      local_volume_root = LOCAL_VOLUME_ROOT_P (dentry);
+
+      r = capability_open (&fd, 0, dentry, vol);
       if (r != ZFS_OK)
-	return r;
+	goto out;
 
       list->eof = 0;
       if (cookie < 0)
 	cookie = 0;
 
-      r = lseek (dentry->fh->fd, cookie, SEEK_SET);
+      r = lseek (fd, cookie, SEEK_SET);
       if (r < 0)
 	{
-	  zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
-	  return errno;
+	  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+	  r = errno;
+	  goto out;
 	}
 
       while (1)
 	{
-	  r = getdents (dentry->fh->fd, (struct dirent *) buf, ZFS_MAXDATA);
+	  r = getdents (fd, (struct dirent *) buf, ZFS_MAXDATA);
 	  if (r <= 0)
 	    {
-	      zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
+	      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 
 	      /* Comment from glibc: On some systems getdents fails with ENOENT when
 		 open directory has been rmdir'd already.  POSIX.1 requires that we
@@ -1334,11 +1360,13 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	      if (r == 0)
 		{
 		  list->eof = 1;
-		  return ZFS_OK;
+		  r = ZFS_OK;
+		  goto out;
 		}
 
 	      /* EINVAL means that buffer was too small.  */
-	      return (errno == EINVAL && list->n > 0) ? ZFS_OK : errno;
+	      r = (errno == EINVAL && list->n > 0) ? ZFS_OK : errno;
+	      goto out;
 	    }
 
 	  for (pos = 0; pos < r; pos += de->d_reclen)
@@ -1347,7 +1375,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	      cookie = de->d_off;
 
 	      /* Hide special dirs in the root of the volume.  */
-	      if (SPECIAL_DIR_P (dentry, de->d_name))
+	      if (local_volume_root && SPECIAL_NAME_P (de->d_name))
 		continue;
 
 	      if (vd)
@@ -1376,11 +1404,20 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	      if (!(*filldir) (de->d_ino, cookie, de->d_name,
 			       strlen (de->d_name), list, data))
 		{
-		  zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
-		  return ZFS_OK;
+		  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+		  r = ZFS_OK;
+		  goto out;
 		}
 	    }
 	}
+
+out:
+      if (vd)
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	}
+      return r;
     }
 
   return ZFS_OK;
@@ -1623,15 +1660,6 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   else if (!dentry || INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       r = local_readdir (list, dentry, vd, cookie, &data, vol, filldir);
-      if (vd)
-	{
-	  zfsd_mutex_unlock (&vd->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	}
-      if (dentry)
-	release_dentry (dentry);
-      if (vol)
-	zfsd_mutex_unlock (&vol->mutex);
     }
   else if (vol->master != this_node)
     {
@@ -1698,18 +1726,10 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  r = capability_open (0, dentry, vol);
-  if (r != ZFS_OK)
-    {
-      release_dentry (dentry);
-      zfsd_mutex_unlock (&vol->mutex);
-      return r;
-    }
-
-  fd = dentry->fh->fd;
   regular_file = dentry->fh->attr.type == FT_REG;
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
+  r = capability_open (&fd, 0, dentry, vol);
+  if (r != ZFS_OK)
+    return r;
 
   if (regular_file || offset != (uint64_t) -1)
     {
@@ -1991,17 +2011,9 @@ local_write (write_res *res, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  r = capability_open (0, dentry, vol);
+  r = capability_open (&fd, 0, dentry, vol);
   if (r != ZFS_OK)
-    {
-      release_dentry (dentry);
-      zfsd_mutex_unlock (&vol->mutex);
-      return r;
-    }
-
-  fd = dentry->fh->fd;
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
+    return r;
 
   r = lseek (fd, offset, SEEK_SET);
   if (r < 0)
