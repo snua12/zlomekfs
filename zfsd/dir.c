@@ -881,7 +881,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  local_fh->sid = this_node->id;	/* FIXME: race condition? */
+  local_fh->sid = this_node->id;
   local_fh->vid = vol->id;
 
   path = xstrdup (vol->local_path.str);
