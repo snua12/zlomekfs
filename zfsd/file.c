@@ -484,10 +484,13 @@ zfs_create_retry:
 	  zfs_fh_undefine (icap->master_cap.fh);
 	  zfs_cap_undefine (icap->master_cap);
 
-	  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				  &dentry->fh->meta.master_fh, name->str,
-				  JOURNAL_OPERATION_ADD))
-	    vol->delete_p = true;
+	  if (vol->master != this_node)
+	    {
+	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
+				      &dentry->fh->meta.master_fh, name->str,
+				      JOURNAL_OPERATION_ADD))
+		vol->delete_p = true;
+	    }
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,

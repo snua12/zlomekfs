@@ -2666,6 +2666,8 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 #ifdef ENABLE_CHECKING
   if (!fh->journal)
     abort ();
+  if (!vol->local_path || !vol->is_copy)
+    abort ();
 #endif
 
   if (!journal_opened_p (fh->journal))
@@ -2736,6 +2738,10 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!vol->local_path || !vol->is_copy)
+    abort ();
+#endif
 
   local_fh.dev = st->st_dev;
   local_fh.ino = st->st_ino;
