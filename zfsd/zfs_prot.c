@@ -74,6 +74,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup (args->vid);
+  zfsd_mutex_unlock (&volume_mutex);
   if (!vol)
     {
       encode_status (dc, ENOENT);
@@ -81,6 +82,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
   else
     {
       r = update_volume_root (vol, &ifh);
+      zfsd_mutex_unlock (&vol->mutex);
       encode_status (dc, r);
       if (r == ZFS_OK)
 	{
@@ -88,7 +90,6 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
 	  encode_fattr (dc, &ifh->attr);
 	}
     }
-  zfsd_mutex_unlock (&volume_mutex);
 }
 
 /* fattr zfs_proc_getattr (zfs_fh); */

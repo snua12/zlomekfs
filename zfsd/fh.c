@@ -150,16 +150,20 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 
       zfsd_mutex_lock (&volume_mutex);
       vol = volume_lookup (fh->vid);
-      if (!vol || !volume_active_p (vol))
+      zfsd_mutex_unlock (&volume_mutex);
+      if (!vol)
+	return false;
+
+      if (!volume_active_p (vol))
 	{
-	  zfsd_mutex_unlock (&volume_mutex);
+	  zfsd_mutex_unlock (&vol->mutex);
 	  return false;
 	}
 
-      zfsd_mutex_lock (&vol->mutex);
+
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
+      /* FIXME: Temporarily unlock it here.  */
       zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_unlock (&volume_mutex);
       if (!ifh)
 	return false;
 
@@ -198,12 +202,11 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
   struct internal_fh_def tmp_fh;
   internal_fh fh;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   tmp_fh.parent = parent;
   tmp_fh.name = (char *) name;
-
-  zfsd_mutex_lock (&vol->mutex);
   fh = (internal_fh) htab_find (vol->fh_htab_name, &tmp_fh);
-  zfsd_mutex_unlock (&vol->mutex);
   return fh;
 }
 
@@ -234,7 +237,6 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
       VARRAY_PUSH (parent->dentries, fh, internal_fh);
     }
 
-  zfsd_mutex_lock (&vol->mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -256,8 +258,6 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
       *slot = fh;
     }
 
-  zfsd_mutex_unlock (&vol->mutex);
-
   return fh;
 }
 
@@ -268,6 +268,8 @@ internal_fh_destroy (internal_fh fh, volume vol)
 {
   void **slot;
   internal_fh top;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (fh->attr.type == FT_DIR)
     {
@@ -288,7 +290,6 @@ internal_fh_destroy (internal_fh fh, volume vol)
       top->dentry_index = fh->dentry_index;
     }
 
-  zfsd_mutex_lock (&vol->mutex);
   if (fh->parent)
     {
       slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
@@ -306,7 +307,6 @@ internal_fh_destroy (internal_fh fh, volume vol)
     abort ();
 #endif
   htab_clear_slot (vol->fh_htab, slot);
-  zfsd_mutex_unlock (&vol->mutex);
 
   free (fh->name);
   zfsd_mutex_lock (&fh_pool_mutex);
@@ -586,6 +586,8 @@ virtual_mountpoint_create (volume vol)
   virtual_dir vd, parent, tmp;
   char *s, *mountpoint;
   unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   mountpoint = xstrdup (vol->mountpoint);
   varray_create (&subpath, sizeof (char *), 16);

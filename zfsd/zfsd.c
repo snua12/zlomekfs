@@ -352,46 +352,64 @@ cleanup_data_structures ()
 void
 fake_config ()
 {
-  node n;
-  volume v;
+  node nod;
+  volume vol;
 
   get_node_name ();
 
-  n = node_create (1, "orion");
+  nod = node_create (1, "orion");
 
-  v = volume_create (1);
-  if (n == this_node)
-    volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
-  volume_set_common_info (v, "volume1", "/volume1", n);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (1);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    volume_set_local_info (vol, "/.zfs/dir1", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume1", "/volume1", nod);
+  zfsd_mutex_unlock (&vol->mutex);
 
-  v = volume_create (2);
-  if (n == this_node)
-    volume_set_local_info (v, "/.zfs/dir2", VOLUME_NO_LIMIT);
-  volume_set_common_info (v, "volume2", "/volume2", n);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (2);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    volume_set_local_info (vol, "/.zfs/dir2", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume2", "/volume2", nod);
+  zfsd_mutex_unlock (&vol->mutex);
 
-  n = node_create (2, "sabbath");
+  nod = node_create (2, "sabbath");
 
-  v = volume_create (3);
-  if (n == this_node)
-    volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
-  volume_set_common_info (v, "volume3", "/volume1/volume3", n);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (3);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    volume_set_local_info (vol, "/.zfs/dir1", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume3", "/volume1/volume3", nod);
+  zfsd_mutex_unlock (&vol->mutex);
 
-  v = volume_create (4);
-  if (n == this_node)
-    volume_set_local_info (v, "/.zfs/dir2", VOLUME_NO_LIMIT);
-  volume_set_common_info (v, "volume4", "/volume2/sabbath/volume4", n);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (4);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    volume_set_local_info (vol, "/.zfs/dir2", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume4", "/volume2/sabbath/volume4", nod);
+  zfsd_mutex_unlock (&vol->mutex);
 
-  n = node_create (3, "jaro");
+  nod = node_create (3, "jaro");
 
-  v = volume_create (5);
-  if (n == this_node)
-    volume_set_local_info (v, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
-  volume_set_common_info (v, "volume5", "/jaro/volume5", n);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (5);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    volume_set_local_info (vol, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume5", "/jaro/volume5", nod);
+  zfsd_mutex_unlock (&vol->mutex);
 
-  v = volume_create (6);
-  if (n == this_node)
-    volume_set_local_info (v, "home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
-  volume_set_common_info (v, "volume6", "/volume6", n);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (6);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    volume_set_local_info (vol, "home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume6", "/volume6", nod);
+  zfsd_mutex_unlock (&vol->mutex);
 
   debug_virtual_tree ();
 }

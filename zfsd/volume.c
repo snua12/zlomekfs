@@ -64,7 +64,15 @@ volume_eq (const void *x, const void *y)
 volume
 volume_lookup (unsigned int id)
 {
-  return (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
+  volume vol;
+
+  CHECK_MUTEX_LOCKED (&volume_mutex);
+
+  vol = (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
+  if (vol)
+    zfsd_mutex_lock (&vol->mutex);
+
+  return vol;
 }
 
 /* Create volume structure and fill it with information.  */
@@ -74,6 +82,8 @@ volume_create (unsigned int id)
 {
   volume vol;
   void **slot;
+
+  CHECK_MUTEX_LOCKED (&volume_mutex);
 
   vol = (volume) xmalloc (sizeof (struct volume_def));
   vol->id = id;
@@ -86,14 +96,16 @@ volume_create (unsigned int id)
   vol->local_root_fh = root_fh;
   vol->master_root_fh = root_fh;
   vol->root_vd = NULL;
+
   pthread_mutex_init (&vol->mutex, NULL);
+  zfsd_mutex_lock (&vol->mutex);
+
   vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
 			      internal_fh_del, &vol->mutex);
   vol->fh_htab_name = htab_create (250, internal_fh_hash_name,
 				   internal_fh_eq_name, NULL, &vol->mutex);
 
 
-  zfsd_mutex_lock (&volume_mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
@@ -104,7 +116,6 @@ volume_create (unsigned int id)
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
   *slot = vol;
-  zfsd_mutex_unlock (&volume_mutex);
 
   return vol;
 }
@@ -118,15 +129,14 @@ volume_destroy (volume vol)
   void **slot;
 
   CHECK_MUTEX_LOCKED (&volume_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   virtual_mountpoint_destroy (vol);
 
-  zfsd_mutex_lock (&vol->mutex);
   zfsd_mutex_lock (&fh_pool_mutex);
   htab_destroy (vol->fh_htab_name);
   htab_destroy (vol->fh_htab);
   zfsd_mutex_unlock (&fh_pool_mutex);
-  zfsd_mutex_unlock (&vol->mutex);
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
@@ -135,6 +145,8 @@ volume_destroy (volume vol)
     abort ();
 #endif
   htab_clear_slot (volume_htab, slot);
+  zfsd_mutex_unlock (&vol->mutex);
+  pthread_mutex_destroy (&vol->mutex);
 
   if (vol->local_path)
     free (vol->local_path);
@@ -149,6 +161,8 @@ void
 volume_set_common_info (volume vol, const char *name, const char *mountpoint,
 			node master)
 {
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   set_string (&vol->name, name);
   set_string (&vol->mountpoint, mountpoint);
   vol->master = master;
@@ -162,15 +176,20 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
 void
 volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
 {
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   set_string (&vol->local_path, local_path);
   vol->size_limit = size_limit;
 }
+
+/* Return true when volume VOL is accessible.  */
 
 bool
 volume_active_p (volume vol)
 {
   bool active;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   /* TODO: some checks? */
 #endif
@@ -239,7 +258,13 @@ cleanup_volume_c ()
   void **slot;
 
   zfsd_mutex_lock (&volume_mutex);
-  HTAB_FOR_EACH_SLOT (volume_htab, slot, volume_destroy ((volume) *slot));
+  HTAB_FOR_EACH_SLOT (volume_htab, slot,
+    {
+      volume vol = (volume) *slot;
+
+      zfsd_mutex_lock (&vol->mutex);
+      volume_destroy ((volume) *slot);
+    });
   htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
   pthread_mutex_destroy (&volume_mutex);

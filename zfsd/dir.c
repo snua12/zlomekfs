@@ -236,6 +236,8 @@ update_volume_root (volume vol, internal_fh *ifh)
   fattr attr;
   int r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   r = get_volume_root (vol, &local_fh, &master_fh, &attr);
   if (r != ZFS_OK)
     return r;
@@ -244,10 +246,8 @@ update_volume_root (volume vol, internal_fh *ifh)
       || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
     {
       /* FIXME? delete only FHs which are not open now?  */
-      zfsd_mutex_lock (&vol->mutex);
       htab_empty (vol->fh_htab_name);
       htab_empty (vol->fh_htab);
-      zfsd_mutex_unlock (&vol->mutex);
 
       vol->local_root_fh = local_fh;
       vol->master_root_fh = master_fh;
@@ -371,7 +371,9 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
 	{
 	  int r;
 
+	  zfsd_mutex_lock (&pvd->vol->mutex);	/* FIXME: temporary */
 	  r = update_volume_root (pvd->vol, &idir);
+	  zfsd_mutex_unlock (&pvd->vol->mutex);	/* FIXME: temporary */
 	  if (r != ZFS_OK)
 	    return r;
 	}
@@ -412,6 +414,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
 	abort ();
 
       /* Update internal file handles in htab.  */
+      zfsd_mutex_lock (&vol->mutex);	/* FIXME: temporary */
       ifh = fh_lookup_name (vol, idir, name);
       if (ifh)
 	{
@@ -426,6 +429,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, const char *name)
       else
 	ifh = internal_fh_create (&res->file, &master_res.file, idir, vol,
 				  name, &res->attr);
+      zfsd_mutex_unlock (&vol->mutex);	/* FIXME: temporary */
 
       return ZFS_OK;
     }
