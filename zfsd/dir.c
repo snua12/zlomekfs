@@ -255,6 +255,31 @@ file_name_from_path (char *path)
   return path + 1;
 }
 
+/* Check whether parent of file PATH exists and return ESTALE if it does not
+   exist.  */
+
+int32_t
+parent_exists (char *path)
+{
+  struct stat st;
+  int32_t r;
+  char *file;
+
+  file = file_name_from_path (path);
+  file[-1] = 0;
+  r = lstat (path[0] ? path : "/", &st);
+  file[-1] = '/';
+
+  if (r != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
+      return errno;
+    }
+
+  return ZFS_OK;
+}
+
 /* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
 
 static bool
