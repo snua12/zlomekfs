@@ -915,62 +915,66 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
 	  return errno;
 	}
 
-      r = getdents (cap->fd, (struct dirent *) buf,
-		    data->count - data->written);
-      if (r <= 0)
+      while (1)
 	{
-	  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
-
-	  /* Comment from glibc: On some systems getdents fails with ENOENT when
-	     open directory has been rmdir'd already.  POSIX.1 requires that we
-	     treat this condition like normal EOF.  */
-	  if (r < 0 && errno == ENOENT)
-	    r = 0;
-
-	  if (r == 0)
+	  r = getdents (cap->fd, (struct dirent *) buf, ZFS_MAXDATA);
+	  if (r <= 0)
 	    {
-	      data->list.eof = 1;
-	      return ZFS_OK;
+	      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+
+	      /* Comment from glibc: On some systems getdents fails with ENOENT when
+		 open directory has been rmdir'd already.  POSIX.1 requires that we
+		 treat this condition like normal EOF.  */
+	      if (r < 0 && errno == ENOENT)
+		r = 0;
+
+	      if (r == 0)
+		{
+		  data->list.eof = 1;
+		  return ZFS_OK;
+		}
+
+	      /* EINVAL means that (DATA.COUNT - DATA.WRITTEN) was too low.  */
+	      return (errno == EINVAL) ? ZFS_OK : errno;
 	    }
 
-	  /* EINVAL means that (DATA.COUNT - DATA.WRITTEN) was too low.  */
-	  return (errno == EINVAL) ? ZFS_OK : errno;
-	}
-
-      for (pos = 0; pos < r; pos += de->d_reclen)
-	{
-	  de = (struct dirent *) &buf[pos];
-	  data->cookie = de->d_off;
-
-	  /* Hide ".zfs" in the root of the volume.  */
-	  if (!dentry->parent
-	      && strncmp (de->d_name, ".zfs", 5) == 0)
-	    continue;
-
-	  if (vd)
+	  for (pos = 0; pos < r; pos += de->d_reclen)
 	    {
-	      virtual_dir svd;
+	      de = (struct dirent *) &buf[pos];
+	      data->cookie = de->d_off;
 
-	      /* Hide "." and "..".  */
-	      if (de->d_name[0] == '.'
-		  && (de->d_name[1] == 0
-		      || (de->d_name[1] == '.'
-			  && de->d_name[2] == 0)))
+	      /* Hide ".zfs" in the root of the volume.  */
+	      if (!dentry->parent
+		  && strncmp (de->d_name, ".zfs", 5) == 0)
 		continue;
 
-	      /* Hide files which have the same name like some virtual
-		 directory.  */
-	      svd = vd_lookup_name (vd, de->d_name);
-	      if (svd)
+	      if (vd)
 		{
-		  zfsd_mutex_unlock (&svd->mutex);
-		  continue;
+		  virtual_dir svd;
+
+		  /* Hide "." and "..".  */
+		  if (de->d_name[0] == '.'
+		      && (de->d_name[1] == 0
+			  || (de->d_name[1] == '.'
+			      && de->d_name[2] == 0)))
+		    continue;
+
+		  /* Hide files which have the same name like some virtual
+		     directory.  */
+		  svd = vd_lookup_name (vd, de->d_name);
+		  if (svd)
+		    {
+		      zfsd_mutex_unlock (&svd->mutex);
+		      continue;
+		    }
+		}
+	      if (!filldir (dc, de->d_ino, de->d_name, strlen (de->d_name), data))
+		{
+		  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+		  return ZFS_OK;
 		}
 	    }
-	  if (!filldir (dc, de->d_ino, de->d_name, strlen (de->d_name), data))
-	    break;
 	}
-      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
     }
 
   return ZFS_OK;
