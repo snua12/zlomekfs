@@ -633,7 +633,7 @@ zfs_proc_reintegrate_add_server (reintegrate_add_args *args, DC *dc,
 {
   int32_t r;
 
-  r = zfs_reintegrate_add (args);
+  r = zfs_reintegrate_add (&args->fh, &args->dir, &args->name);
   encode_status (dc, r);
 }
 

@@ -3345,7 +3345,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
    by moving the file or linking it.  */
 
 int32_t
-zfs_reintegrate_add (reintegrate_add_args *args)
+zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
 {
   return ZFS_OK;
 }
