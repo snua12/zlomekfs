@@ -98,8 +98,6 @@
 	    zfsd_mutex_unlock (&fh_mutex);				\
 									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
-	    if (r != ZFS_OK)						\
-	      return r;							\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
 	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
