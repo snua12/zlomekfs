@@ -566,7 +566,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
 	{
 	  fd_data->auth = AUTHENTICATION_FINISHED;
 	  encode_status (dc, ZFS_OK);
-	  node_update_fd (nod, fd_data->fd, fd_data->generation);
+	  update_node_fd (nod, fd_data->fd, fd_data->generation);
 	}
       zfsd_mutex_unlock (&nod->mutex);
     }

@@ -83,7 +83,10 @@ extern network_fd_data_t *network_fd_data;
 
 struct thread_def;
 
+extern void update_node_fd (node nod, int fd, unsigned int generation);
 extern void close_network_fd (int fd);
+extern bool node_connected_p (node nod);
+extern int node_connect_and_authenticate (thread *t, node nod);
 extern void recycle_dc_to_fd_data (DC *dc, network_fd_data_t *fd_data);
 extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);

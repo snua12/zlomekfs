@@ -25,7 +25,6 @@
 #include <inttypes.h>
 #include <netdb.h>
 #include "pthread.h"
-#include "thread.h"
 #include "hashtab.h"
 
 /* Node description.  */
@@ -74,9 +73,6 @@ extern node node_lookup (uint32_t id);
 extern node node_lookup_name (char *name);
 extern node node_create (uint32_t id, char *name);
 extern void node_destroy (node nod);
-extern void node_update_fd (node nod, int fd, unsigned int generation);
-extern bool node_connected_p (node nod);
-extern int node_connect_and_authenticate (thread *t, node nod);
 extern void initialize_node_c ();
 extern void cleanup_node_c ();
 
