@@ -666,7 +666,7 @@ test_zfs (void)
 /* Cleanup after tests.  */
 
 void
-test_cleanup ()
+test_cleanup (void)
 {
   if (test_id)
     pthread_join (test_id, NULL);
