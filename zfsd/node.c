@@ -31,7 +31,7 @@
 #include "log.h"
 #include "memory.h"
 #include "node.h"
-#include "server.h"
+#include "network.h"
 #include "thread.h"
 #include "zfs_prot.h"
 
@@ -223,10 +223,10 @@ node_update_fd (node nod, int fd, unsigned int generation)
 
   if (nod->fd >= 0 && nod->fd != fd)
     {
-      zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
-      if (nod->generation == server_fd_data[nod->fd].generation)
-	server_fd_data[nod->fd].flags = SERVER_FD_CLOSE;
-      zfsd_mutex_unlock (&server_fd_data[nod->fd].mutex);
+      zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
+      if (nod->generation == network_fd_data[nod->fd].generation)
+	network_fd_data[nod->fd].flags = SERVER_FD_CLOSE;
+      zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
     }
 
   nod->fd = fd;
@@ -244,10 +244,10 @@ node_connected_p (node nod)
   if (nod->fd < 0)
     return false;
 
-  zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
-  if (nod->generation != server_fd_data[nod->fd].generation)
+  zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
+  if (nod->generation != network_fd_data[nod->fd].generation)
     {
-      zfsd_mutex_unlock (&server_fd_data[nod->fd].mutex);
+      zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
       return false;
     }
 
@@ -290,7 +290,7 @@ node_connect (node nod)
 		    break;
 		  }
 
-		/* Connect the server socket to ZFS_PORT.  */
+		/* Connect the network socket to ZFS_PORT.  */
 		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
 		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
 		  goto node_connected;
@@ -308,7 +308,7 @@ node_connect (node nod)
 		    break;
 		  }
 
-		/* Connect the server socket to ZFS_PORT.  */
+		/* Connect the network socket to ZFS_PORT.  */
 		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
 		  = htons (ZFS_PORT);
 		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
@@ -325,8 +325,8 @@ node_connect (node nod)
 
 node_connected:
   freeaddrinfo (addr);
-  server_fd_data[s].auth = AUTHENTICATION_NONE;
-  server_fd_data[s].conn = CONNECTION_FAST; /* FIXME */
+  network_fd_data[s].auth = AUTHENTICATION_NONE;
+  network_fd_data[s].conn = CONNECTION_FAST; /* FIXME */
   message (2, stderr, "FD %d connected to %s\n", s, nod->name);
   return s;
 }
@@ -341,7 +341,7 @@ node_authenticate (thread *t, node nod)
   auth_stage2_args args2;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
-  CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
 
   memset (&args1, 0, sizeof (args1));
   memset (&args2, 0, sizeof (args2));
@@ -354,25 +354,25 @@ node_authenticate (thread *t, node nod)
   if (!node_connected_p (nod))
     goto node_authenticate_error;
 
-  CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
-  server_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
+  CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
+  network_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
 
   if (zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd) != ZFS_OK)
     goto node_authenticate_error;
   if (!node_connected_p (nod))
     goto node_authenticate_error;
 
-  CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
-  server_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
+  CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
+  network_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
   return true;
 
 node_authenticate_error:
   message (2, stderr, "not auth\n");
-  server_fd_data[nod->fd].auth = AUTHENTICATION_NONE;
-  server_fd_data[nod->fd].conn = CONNECTION_NONE;
-  zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
-  close_server_fd (nod->fd);
-  zfsd_mutex_unlock (&server_fd_data[nod->fd].mutex);
+  network_fd_data[nod->fd].auth = AUTHENTICATION_NONE;
+  network_fd_data[nod->fd].conn = CONNECTION_NONE;
+  zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
+  close_network_fd (nod->fd);
+  zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
   nod->fd = -1;
   return false;
 }
@@ -383,7 +383,7 @@ node_authenticate_error:
 int
 node_connect_and_authenticate (thread *t, node nod)
 {
-  server_thread_data *td = &t->u.server;
+  network_thread_data *td = &t->u.server;
   int fd;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
@@ -408,7 +408,7 @@ node_connect_and_authenticate (thread *t, node nod)
 	  return -1;
 	}
       add_fd_to_active (fd);
-      node_update_fd (nod, fd, server_fd_data[fd].generation);
+      node_update_fd (nod, fd, network_fd_data[fd].generation);
 
       if (!node_authenticate (t, nod))
 	{

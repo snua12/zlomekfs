@@ -186,7 +186,7 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa)
 
   args.file = fh->master_fh;
   args.attr = *sa;
-  t = (thread *) pthread_getspecific (server_thread_key);
+  t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_lookup (fh->master_fh.sid);

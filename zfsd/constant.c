@@ -25,8 +25,8 @@
 /* Maximal number of file descriptors.  */
 int max_nfd;
 
-/* Maximal number of server sockets.  */
-int max_server_sockets;
+/* Maximal number of network sockets.  */
+int max_network_sockets;
 
 /* Initialize the constants */
 
@@ -34,5 +34,5 @@ void
 init_constants ()
 {
   max_nfd = getdtablesize ();
-  max_server_sockets = max_nfd / 3;
+  max_network_sockets = max_nfd / 3;
 }

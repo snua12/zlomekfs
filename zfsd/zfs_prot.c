@@ -28,7 +28,7 @@
 #include "data-coding.h"
 #include "config.h"
 #include "thread.h"
-#include "server.h"
+#include "network.h"
 #include "node.h"
 #include "dir.h"
 #include "file.h"
@@ -301,7 +301,7 @@ void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
-  server_fd_data_t *fd_data = t->u.server.fd_data;
+  network_fd_data_t *fd_data = t->u.server.fd_data;
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
@@ -323,7 +323,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
       sleep (1);	/* FIXME: create constant or configuration directive */
       zfsd_mutex_lock (&fd_data->mutex);
       if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
-	close_server_fd (fd_data->fd);
+	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);
 
@@ -336,7 +336,7 @@ void
 zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
-  server_fd_data_t *fd_data = t->u.server.fd_data;
+  network_fd_data_t *fd_data = t->u.server.fd_data;
   node nod;
   bool authenticated = false;
 
@@ -363,7 +363,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
       sleep (1);	/* FIXME: create constant or configuration directive */
       zfsd_mutex_lock (&fd_data->mutex);
       if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
-	close_server_fd (fd_data->fd);
+	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);
 }
@@ -372,7 +372,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 int								\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
-  server_thread_data *td = &t->u.server;				\
+  network_thread_data *td = &t->u.server;				\
   uint32_t req_id;							\
 									\
   zfsd_mutex_lock (&request_id_mutex);				\
@@ -398,7 +398,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 int									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
 {									\
-  server_thread_data *td = &t->u.server;				\
+  network_thread_data *td = &t->u.server;				\
   int fd;								\
 									\
   CHECK_MUTEX_LOCKED (&nod->mutex);					\

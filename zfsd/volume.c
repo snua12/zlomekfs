@@ -26,7 +26,7 @@
 #include "hashtab.h"
 #include "memory.h"
 #include "volume.h"
-#include "server.h"
+#include "network.h"
 
 /* Hash table of volumes.  */
 static htab_t volume_htab;
@@ -199,8 +199,8 @@ volume_active_p (volume vol)
   zfsd_mutex_lock (&vol->master->mutex);
   active
     = (node_connected_p (vol->master)
-       && (server_fd_data[vol->master->fd].auth == AUTHENTICATION_FINISHED));
-  zfsd_mutex_unlock (&server_fd_data[vol->master->fd].mutex);
+       && (network_fd_data[vol->master->fd].auth == AUTHENTICATION_FINISHED));
+  zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
   zfsd_mutex_unlock (&vol->master->mutex);
 
   return active;

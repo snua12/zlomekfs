@@ -40,7 +40,7 @@
 #include "volume.h"
 #include "thread.h"
 #include "client.h"
-#include "server.h"
+#include "network.h"
 #include "zfsd.h"
 #include "constant.h"
 #include "random.h"
@@ -75,7 +75,7 @@ exit_sighandler (int signum)
 {
   running = false;
 
-  pthread_kill (main_server_thread, SIGUSR1);
+  pthread_kill (main_network_thread, SIGUSR1);
 }
 
 /* Report the fatal signal.  */
@@ -305,13 +305,13 @@ die ()
 bool
 initialize_data_structures ()
 {
-  if (pthread_key_create (&server_thread_key, NULL))
+  if (pthread_key_create (&thread_data_key, NULL))
     return false;
 
   /* Initialize main thread data.  */
   semaphore_init (&main_thread_data.sem, 0);
-  server_worker_init (&main_thread_data);
-  pthread_setspecific (server_thread_key, &main_thread_data);
+  network_worker_init (&main_thread_data);
+  pthread_setspecific (thread_data_key, &main_thread_data);
 
   /* Initialize data structures in other modules.  */
   if (!initialize_random_c ())
@@ -331,7 +331,7 @@ void
 cleanup_data_structures ()
 {
   /* Destroy main thread data.  */
-  server_worker_cleanup (&main_thread_data);
+  network_worker_cleanup (&main_thread_data);
   semaphore_destroy (&main_thread_data.sem);
 
   /* Destroy data structures in other modules.  */
@@ -509,7 +509,7 @@ main (int argc, char **argv)
   main_thread = pthread_self ();
 
   /* Initialize information about network file descriptors.  */
-  if (!init_server_fd_data ())
+  if (!init_network_fd_data ())
     die ();
 
   /* Make the connection with kernel.  */
@@ -519,15 +519,15 @@ main (int argc, char **argv)
   /* Create client threads and related threads.  */
   create_client_threads ();
 
-  /* Create server threads and related threads.  */
-  create_server_threads ();
+  /* Create network threads and related threads.  */
+  create_network_threads ();
 
   /* Register the ZFS protocol RPC server, register_server never returns (unless
      error occurs).  */
 #ifdef RPC
   register_server ();
 #else
-  if (server_start ())
+  if (network_start ())
     {
 #ifdef TEST
       test_zfs (&main_thread_data);
@@ -536,14 +536,14 @@ main (int argc, char **argv)
 	exit_sighandler (0);
 #endif
 
-      pthread_join (main_server_thread, NULL);
+      pthread_join (main_network_thread, NULL);
     }
   else
     running = false;
 #endif
 
   client_cleanup ();
-  server_cleanup ();
+  network_cleanup ();
 
   cleanup_data_structures ();
 

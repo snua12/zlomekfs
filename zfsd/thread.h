@@ -27,14 +27,14 @@
 #include "pthread.h"
 #include "queue.h"
 #include "semaphore.h"
-#include "server.h"
+#include "network.h"
 #include "zfs_prot.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 extern volatile bool running;
 
-/* Key for server thread specific data.  */
-extern pthread_key_t server_thread_key;
+/* Key for thread specific data.  */
+extern pthread_key_t thread_data_key;
 
 /* State of the thread.  */
 typedef enum thread_state_def
@@ -69,7 +69,7 @@ typedef struct thread_def
 
   /* Additional data for each subtype.  */
   union {
-    server_thread_data server;
+    network_thread_data server;
     client_thread_data client;
 #if 0
     update_thread_data update;

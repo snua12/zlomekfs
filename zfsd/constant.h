@@ -41,8 +41,8 @@
 /* Maximal number of file descriptors.  */
 extern int max_nfd;
 
-/* Maximal number of server sockets.  */
-extern int max_server_sockets;
+/* Maximal number of network sockets.  */
+extern int max_network_sockets;
 
 extern void init_constants ();
 

@@ -25,18 +25,18 @@
 #include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
-#include "server.h"
+#include "network.h"
 #include "log.h"
 #include "util.h"
 #include "malloc.h"
 #include "thread.h"
 #include "zfs_prot.h"
 
-/* Pool of server threads.  */
-static thread_pool server_pool;
+/* Pool of network threads.  */
+static thread_pool network_pool;
 
-/* Data for server pool regulator.  */
-static thread_pool_regulator_data server_regulator_data;
+/* Data for network pool regulator.  */
+static thread_pool_regulator_data network_regulator_data;
 
 #ifdef RPC
 #if 0
@@ -47,47 +47,47 @@ static thread_pool_regulator_data server_regulator_data;
 extern void zfs_program_1 (struct svc_req *rqstp, SVCXPRT *transp);
 
 /* Local function prototypes.  */
-static void *server_worker (void *data);
-static void server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp);
+static void *network_worker (void *data);
+static void network_dispatch (struct svc_req *rqstp, register SVCXPRT *transp);
 
-/* Function which receives a RPC request and passes it to some server thread.
-   It also regulates the number of server threads.  */
+/* Function which receives a RPC request and passes it to some network thread.
+   It also regulates the number of network threads.  */
 
 static void
-server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
+network_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
 {
   size_t index;
 
-  zfsd_mutex_lock (&server_pool.idle.mutex);
+  zfsd_mutex_lock (&network_pool.idle.mutex);
 
   /* Regulate the number of threads.  */
-  thread_pool_regulate (&server_pool, server_worker, NULL);
+  thread_pool_regulate (&network_pool, network_worker, NULL);
 
   /* Select an idle thread and forward the request to it.  */
-  index = queue_get (&server_pool.idle);
+  index = queue_get (&network_pool.idle);
 #ifdef ENABLE_CHECKING
-  if (server_pool.threads[index].t.state == THREAD_BUSY)
+  if (network_pool.threads[index].t.state == THREAD_BUSY)
     abort ();
 #endif
-  server_pool.threads[index].t.state = THREAD_BUSY;
-  server_pool.threads[index].t.u.server.rqstp = rqstp;
-  server_pool.threads[index].t.u.server.transp = transp;
+  network_pool.threads[index].t.state = THREAD_BUSY;
+  network_pool.threads[index].t.u.server.rqstp = rqstp;
+  network_pool.threads[index].t.u.server.transp = transp;
   printf ("%p %p\n", rqstp, transp);
-  zfsd_mutex_unlock (&server_pool.threads[index].t.mutex);
+  zfsd_mutex_unlock (&network_pool.threads[index].t.mutex);
 
-  zfsd_mutex_unlock (&server_pool.idle.mutex);
+  zfsd_mutex_unlock (&network_pool.idle.mutex);
 }
 
-/* The main function of the server thread.  */
+/* The main function of the network thread.  */
 
 static void *
-server_worker (void *data)
+network_worker (void *data)
 {
   thread *t = (thread *) data;
 
   while (1)
     {
-      /* Wait until server_dispatch wakes us up.  */
+      /* Wait until network_dispatch wakes us up.  */
       zfsd_mutex_lock (&t->mutex);
 
 #ifdef ENABLE_CHECKING
@@ -105,10 +105,10 @@ server_worker (void *data)
 #endif
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      zfsd_mutex_lock (&server_pool.idle.mutex);
+      zfsd_mutex_lock (&network_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
 	{
-	  queue_put (&server_pool.idle, t->index);
+	  queue_put (&network_pool.idle, t->index);
 	  t->state = THREAD_IDLE;
 	}
       else
@@ -117,10 +117,10 @@ server_worker (void *data)
 	  if (t->state != THREAD_DYING)
 	    abort ();
 #endif
-	  zfsd_mutex_unlock (&server_pool.idle.mutex);
+	  zfsd_mutex_unlock (&network_pool.idle.mutex);
 	  break;
 	}
-      zfsd_mutex_unlock (&server_pool.idle.mutex);
+      zfsd_mutex_unlock (&network_pool.idle.mutex);
     }
 
   return data;
@@ -142,17 +142,17 @@ server_worker (void *data)
 #include "hashtab.h"
 #include "alloc-pool.h"
 
-/* Thread ID of the main server thread (thread receiving data from sockets).  */
-pthread_t main_server_thread;
+/* Thread ID of the main network thread (thread receiving data from sockets).  */
+pthread_t main_network_thread;
 
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
 
 /* The array of data for each file descriptor.  */
-server_fd_data_t *server_fd_data;
+network_fd_data_t *network_fd_data;
 
 /* Array of pointers to data of active file descriptors.  */
-static server_fd_data_t **active;
+static network_fd_data_t **active;
 
 /* Number of active file descriptors.  */
 static int nactive;
@@ -190,41 +190,41 @@ static void
 init_fd_data (int fd)
 {
   CHECK_MUTEX_LOCKED (&active_mutex);
-  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
 #endif
 
-  /* Set the server's data.  */
-  active[nactive] = &server_fd_data[fd];
+  /* Set the network file descriptor's data.  */
+  active[nactive] = &network_fd_data[fd];
   nactive++;
-  server_fd_data[fd].fd = fd;
-  server_fd_data[fd].read = 0;
-  if (server_fd_data[fd].ndc == 0)
+  network_fd_data[fd].fd = fd;
+  network_fd_data[fd].read = 0;
+  if (network_fd_data[fd].ndc == 0)
     {
-      dc_create (&server_fd_data[fd].dc[0], ZFS_MAX_REQUEST_LEN);
-      server_fd_data[fd].ndc++;
+      dc_create (&network_fd_data[fd].dc[0], ZFS_MAX_REQUEST_LEN);
+      network_fd_data[fd].ndc++;
     }
-  server_fd_data[fd].last_use = time (NULL);
-  server_fd_data[fd].generation++;
-  server_fd_data[fd].busy = 0;
-  server_fd_data[fd].flags = 0;
+  network_fd_data[fd].last_use = time (NULL);
+  network_fd_data[fd].generation++;
+  network_fd_data[fd].busy = 0;
+  network_fd_data[fd].flags = 0;
 
-  server_fd_data[fd].waiting4reply_pool
+  network_fd_data[fd].waiting4reply_pool
     = create_alloc_pool ("waiting4reply_data",
 			 sizeof (waiting4reply_data), 30,
-			 &server_fd_data[fd].mutex);
-  server_fd_data[fd].waiting4reply
+			 &network_fd_data[fd].mutex);
+  network_fd_data[fd].waiting4reply
     = htab_create (30, waiting4reply_hash, waiting4reply_eq,
-		   NULL, &server_fd_data[fd].mutex);
+		   NULL, &network_fd_data[fd].mutex);
 }
 
-/* Close file descriptor FD and update its server_fd_data.  */
+/* Close file descriptor FD and update its network_fd_data.  */
 void
-close_server_fd (int fd)
+close_network_fd (int fd)
 {
-  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
@@ -232,8 +232,8 @@ close_server_fd (int fd)
 
   message (2, stderr, "Closing FD %d\n", fd);
   close (fd);
-  server_fd_data[fd].generation++;
-  server_fd_data[fd].auth = AUTHENTICATION_NONE;
+  network_fd_data[fd].generation++;
+  network_fd_data[fd].auth = AUTHENTICATION_NONE;
 }
 
 /* Close an active file descriptor on index I in ACTIVE.  */
@@ -246,39 +246,39 @@ close_active_fd (int i)
   void **slot;
 
   CHECK_MUTEX_LOCKED (&active_mutex);
-  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
-  close_server_fd (fd);
+  close_network_fd (fd);
   nactive--;
   if (i < nactive)
     active[i] = active[nactive];
-  for (j = 0; j < server_fd_data[fd].ndc; j++)
-    dc_destroy (&server_fd_data[fd].dc[j]);
-  server_fd_data[fd].ndc = 0;
-  server_fd_data[fd].fd = -1;
-  HTAB_FOR_EACH_SLOT (server_fd_data[fd].waiting4reply, slot,
+  for (j = 0; j < network_fd_data[fd].ndc; j++)
+    dc_destroy (&network_fd_data[fd].dc[j]);
+  network_fd_data[fd].ndc = 0;
+  network_fd_data[fd].fd = -1;
+  HTAB_FOR_EACH_SLOT (network_fd_data[fd].waiting4reply, slot,
     {
       waiting4reply_data *data = *(waiting4reply_data **) slot;
 
       data->t->u.server.retval = ZFS_CONNECTION_CLOSED;
       semaphore_up (&data->t->sem, 1);
     });
-  htab_destroy (server_fd_data[fd].waiting4reply);
-  free_alloc_pool (server_fd_data[fd].waiting4reply_pool);
+  htab_destroy (network_fd_data[fd].waiting4reply);
+  free_alloc_pool (network_fd_data[fd].waiting4reply_pool);
 }
 
 /* Helper function for sending request.  Send request with request id REQUEST_ID
    using data in thread T to connected socket FD and wait for reply.
-   It expects server_fd_data[fd].mutex to be locked.  */
+   It expects network_fd_data[fd].mutex to be locked.  */
 
 void
 send_request (thread *t, uint32_t request_id, int fd)
 {
-  server_thread_data *td = &t->u.server;
+  network_thread_data *td = &t->u.server;
   void **slot;
   waiting4reply_data *wd;
 
-  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
   if (!running)
     {
@@ -290,31 +290,31 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   /* Add the tread to the table of waiting threads.  */
   wd = ((waiting4reply_data *)
-	pool_alloc (server_fd_data[fd].waiting4reply_pool));
+	pool_alloc (network_fd_data[fd].waiting4reply_pool));
   wd->request_id = request_id;
   wd->t = t;
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (server_fd_data[fd].waiting4reply,
+  slot = htab_find_slot_with_hash (network_fd_data[fd].waiting4reply,
 				   &request_id,
 				   WAITING4REPLY_HASH (request_id), NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot_with_hash (server_fd_data[fd].waiting4reply,
+  slot = htab_find_slot_with_hash (network_fd_data[fd].waiting4reply,
 				   &request_id,
 				   WAITING4REPLY_HASH (request_id), INSERT);
   *slot = wd;
 
   /* Send the request.  */
-  server_fd_data[fd].last_use = time (NULL);
+  network_fd_data[fd].last_use = time (NULL);
   if (!full_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
     {
-      zfsd_mutex_unlock (&server_fd_data[fd].mutex);
+      zfsd_mutex_unlock (&network_fd_data[fd].mutex);
       td->retval = ZFS_CONNECTION_CLOSED;
-      htab_clear_slot (server_fd_data[fd].waiting4reply, slot);
+      htab_clear_slot (network_fd_data[fd].waiting4reply, slot);
       return;
     }
-  zfsd_mutex_unlock (&server_fd_data[fd].mutex);
+  zfsd_mutex_unlock (&network_fd_data[fd].mutex);
 
   /* Wait for reply.  */
   semaphore_down (&t->sem, 1);
@@ -333,16 +333,16 @@ void
 add_fd_to_active (int fd)
 {
   zfsd_mutex_lock (&active_mutex);
-  zfsd_mutex_lock (&server_fd_data[fd].mutex);
+  zfsd_mutex_lock (&network_fd_data[fd].mutex);
   init_fd_data (fd);
-  pthread_kill (main_server_thread, SIGUSR1);	/* terminate poll */
+  pthread_kill (main_network_thread, SIGUSR1);	/* terminate poll */
   zfsd_mutex_unlock (&active_mutex);
 }
 
 /* Send a reply.  */
 
 static void
-send_reply (server_thread_data *td)
+send_reply (network_thread_data *td)
 {
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&td->fd_data->mutex);
@@ -362,7 +362,7 @@ send_reply (server_thread_data *td)
 /* Send error reply with error status STATUS.  */
 
 static void
-send_error_reply (server_thread_data *td, uint32_t request_id, int status)
+send_error_reply (network_thread_data *td, uint32_t request_id, int status)
 {
   start_encoding (&td->dc);
   encode_direction (&td->dc, DIR_REPLY);
@@ -372,41 +372,41 @@ send_error_reply (server_thread_data *td, uint32_t request_id, int status)
   send_reply (td);
 }
 
-/* Initialize server thread T.  */
+/* Initialize network thread T.  */
 
 void
-server_worker_init (thread *t)
+network_worker_init (thread *t)
 {
   dc_create (&t->u.server.dc_call, ZFS_MAX_REQUEST_LEN);
 }
 
-/* Cleanup server thread DATA.  */
+/* Cleanup network thread DATA.  */
 
 void
-server_worker_cleanup (void *data)
+network_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
 
   dc_destroy (&t->u.server.dc_call);
 }
 
-/* The main function of the server thread.  */
+/* The main function of the network thread.  */
 
 static void *
-server_worker (void *data)
+network_worker (void *data)
 {
   thread *t = (thread *) data;
-  server_thread_data *td = &t->u.server;
-  server_fd_data_t *fd_data;
+  network_thread_data *td = &t->u.server;
+  network_fd_data_t *fd_data;
   uint32_t request_id;
   uint32_t fn;
 
-  pthread_cleanup_push (server_worker_cleanup, data);
-  pthread_setspecific (server_thread_key, data);
+  pthread_cleanup_push (network_worker_cleanup, data);
+  pthread_setspecific (thread_data_key, data);
 
   while (1)
     {
-      /* Wait until server_dispatch wakes us up.  */
+      /* Wait until network_dispatch wakes us up.  */
       semaphore_down (&t->sem, 1);
 
 #ifdef ENABLE_CHECKING
@@ -488,10 +488,10 @@ out:
       zfsd_mutex_unlock (&fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      zfsd_mutex_lock (&server_pool.idle.mutex);
+      zfsd_mutex_lock (&network_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
 	{
-	  queue_put (&server_pool.idle, t->index);
+	  queue_put (&network_pool.idle, t->index);
 	  t->state = THREAD_IDLE;
 	}
       else
@@ -500,10 +500,10 @@ out:
 	  if (t->state != THREAD_DYING)
 	    abort ();
 #endif
-	  zfsd_mutex_unlock (&server_pool.idle.mutex);
+	  zfsd_mutex_unlock (&network_pool.idle.mutex);
 	  break;
 	}
-      zfsd_mutex_unlock (&server_pool.idle.mutex);
+      zfsd_mutex_unlock (&network_pool.idle.mutex);
     }
 
   pthread_cleanup_pop (1);
@@ -511,11 +511,11 @@ out:
   return data;
 }
 
-/* Function which gets a request and passes it to some server thread.
-   It also regulates the number of server threads.  */
+/* Function which gets a request and passes it to some network thread.
+   It also regulates the number of network threads.  */
 
 static void
-server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
+network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 {
   size_t index;
   direction dir;
@@ -573,26 +573,26 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
       case DIR_REQUEST:
 	/* Dispatch request.  */
 
-	zfsd_mutex_lock (&server_pool.idle.mutex);
+	zfsd_mutex_lock (&network_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
-	thread_pool_regulate (&server_pool, server_worker, NULL);
+	thread_pool_regulate (&network_pool, network_worker, NULL);
 
 	/* Select an idle thread and forward the request to it.  */
-	index = queue_get (&server_pool.idle);
+	index = queue_get (&network_pool.idle);
 #ifdef ENABLE_CHECKING
-	if (server_pool.threads[index].t.state == THREAD_BUSY)
+	if (network_pool.threads[index].t.state == THREAD_BUSY)
 	  abort ();
 #endif
-	server_pool.threads[index].t.state = THREAD_BUSY;
-	server_pool.threads[index].t.u.server.fd_data = fd_data;
-	server_pool.threads[index].t.u.server.dc = *dc;
-	server_pool.threads[index].t.u.server.generation = generation;
+	network_pool.threads[index].t.state = THREAD_BUSY;
+	network_pool.threads[index].t.u.server.fd_data = fd_data;
+	network_pool.threads[index].t.u.server.dc = *dc;
+	network_pool.threads[index].t.u.server.generation = generation;
 
 	/* Let the thread run.  */
-	semaphore_up (&server_pool.threads[index].t.sem, 1);
+	semaphore_up (&network_pool.threads[index].t.sem, 1);
 
-	zfsd_mutex_unlock (&server_pool.idle.mutex);
+	zfsd_mutex_unlock (&network_pool.idle.mutex);
 	break;
 
       default:
@@ -604,27 +604,27 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
 #endif
 
-/* Create server threads and related threads.  */
+/* Create network threads and related threads.  */
 
 bool
-create_server_threads ()
+create_network_threads ()
 {
   int i;
 
   /* FIXME: read the numbers from configuration.  */
-  thread_pool_create (&server_pool, 256, 4, 16);
+  thread_pool_create (&network_pool, 256, 4, 16);
 
-  zfsd_mutex_lock (&server_pool.idle.mutex);
-  zfsd_mutex_lock (&server_pool.empty.mutex);
+  zfsd_mutex_lock (&network_pool.idle.mutex);
+  zfsd_mutex_lock (&network_pool.empty.mutex);
   for (i = 0; i < /* FIXME: */ 10; i++)
     {
-      create_idle_thread (&server_pool, server_worker, server_worker_init);
+      create_idle_thread (&network_pool, network_worker, network_worker_init);
     }
-  zfsd_mutex_unlock (&server_pool.empty.mutex);
-  zfsd_mutex_unlock (&server_pool.idle.mutex);
+  zfsd_mutex_unlock (&network_pool.empty.mutex);
+  zfsd_mutex_unlock (&network_pool.idle.mutex);
 
-  thread_pool_create_regulator (&server_regulator_data, &server_pool,
-				server_worker, server_worker_init);
+  thread_pool_create_regulator (&network_regulator_data, &network_pool,
+				network_worker, network_worker_init);
   return true;
 }
 
@@ -646,7 +646,7 @@ register_server ()
       message (-1, stderr, "cannot create udp service.\n");
       return;
     }
-  if (!svc_register (udp, ZFS_PROGRAM, ZFS_VERSION, server_dispatch,
+  if (!svc_register (udp, ZFS_PROGRAM, ZFS_VERSION, network_dispatch,
 		     IPPROTO_UDP))
     {
       message (-1, stderr,
@@ -661,7 +661,7 @@ register_server ()
       message (-1, stderr, "cannot create tcp service.\n");
       return;
     }
-  if (!svc_register (tcp, ZFS_PROGRAM, ZFS_VERSION, server_dispatch,
+  if (!svc_register (tcp, ZFS_PROGRAM, ZFS_VERSION, network_dispatch,
 		     IPPROTO_TCP))
     {
       message (-1, stderr,
@@ -685,10 +685,10 @@ register_server ()
 
 #else
 
-/* Main function of the main (i.e. listening) server thread.  */
+/* Main function of the main (i.e. listening) network thread.  */
 
 static void *
-server_main (void * ATTRIBUTE_UNUSED data)
+network_main (void * ATTRIBUTE_UNUSED data)
 {
   struct pollfd *pfd;
   int i, n;
@@ -721,15 +721,15 @@ server_main (void * ATTRIBUTE_UNUSED data)
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
       if (r < 0 && errno != EINTR)
 	{
-	  message (-1, stderr, "%s, server_main exiting\n", strerror (errno));
-	  goto server_main_out;
+	  message (-1, stderr, "%s, network_main exiting\n", strerror (errno));
+	  goto network_main_out;
 	}
 
       if (!running)
 	{
 	  message (2, stderr, "Terminating\n");
 
-server_main_out:
+network_main_out:
 	  close (main_socket);
 	  accept_connections = 0;
 
@@ -737,7 +737,7 @@ server_main_out:
 	  zfsd_mutex_lock (&active_mutex);
 	  for (i = nactive - 1; i >= 0; i--)
 	    {
-	      server_fd_data_t *fd_data = active[i];
+	      network_fd_data_t *fd_data = active[i];
 
 	      zfsd_mutex_lock (&fd_data->mutex);
 	      if (fd_data->busy == 0)
@@ -763,7 +763,7 @@ server_main_out:
       zfsd_mutex_lock (&active_mutex);
       for (i = nactive - 1; i >= 0 && r > 0; i--)
 	{
-	  server_fd_data_t *fd_data = &server_fd_data[pfd[i].fd];
+	  network_fd_data_t *fd_data = &network_fd_data[pfd[i].fd];
 
 	  message (2, stderr, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
 	  if ((pfd[i].revents & CANNOT_RW)
@@ -850,7 +850,7 @@ server_main_out:
 			  zfsd_mutex_unlock (&fd_data->mutex);
 
 			  /* We have read complete request, dispatch it.  */
-			  server_dispatch (fd_data, dc, generation);
+			  network_dispatch (fd_data, dc, generation);
 			}
 		    }
 		}
@@ -879,7 +879,7 @@ retry_accept:
 	      s = accept (main_socket, (struct sockaddr *) &ca, &ca_len);
 
 	      if ((s < 0 && errno == EMFILE)
-		  || (s >= 0 && nactive == max_server_sockets))
+		  || (s >= 0 && nactive == max_network_sockets))
 		{
 		  time_t oldest = 0;
 		  int index = -1;
@@ -905,7 +905,7 @@ retry_accept:
 		    }
 		  else
 		    {
-		      server_fd_data_t *fd_data = active[index];
+		      network_fd_data_t *fd_data = active[index];
 
 		      /* Close file descriptor unused for the longest time.  */
 		      zfsd_mutex_lock (&fd_data->mutex);
@@ -927,9 +927,9 @@ retry_accept:
 	      else
 		{
 		  message (2, stderr, "accepted FD %d\n", s);
-		  zfsd_mutex_lock (&server_fd_data[s].mutex);
+		  zfsd_mutex_lock (&network_fd_data[s].mutex);
 		  init_fd_data (s);
-		  zfsd_mutex_unlock (&server_fd_data[s].mutex);
+		  zfsd_mutex_unlock (&network_fd_data[s].mutex);
 		}
 	    }
 	}
@@ -940,15 +940,15 @@ retry_accept:
   return NULL;
 }
 
-/* Create a listening socket and start the main server thread.  */
+/* Create a listening socket and start the main network thread.  */
 
 bool
-server_start ()
+network_start ()
 {
   socklen_t socket_options;
   struct sockaddr_in sa;
 
-  /* Create a server socket.  */
+  /* Create a listening socket.  */
   main_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (main_socket < 0)
     {
@@ -966,7 +966,7 @@ server_start ()
       return false;
     }
 
-  /* Bind the server socket to ZFS_PORT.  */
+  /* Bind the socket to ZFS_PORT.  */
   sa.sin_family = AF_INET;
   sa.sin_port = htons (ZFS_PORT);
   sa.sin_addr.s_addr = htonl (INADDR_ANY);
@@ -985,11 +985,11 @@ server_start ()
       return false;
     }
 
-  /* Create the main server thread.  */
-  if (pthread_create (&main_server_thread, NULL, server_main, NULL))
+  /* Create the main network thread.  */
+  if (pthread_create (&main_network_thread, NULL, network_main, NULL))
     {
       message (-1, stderr, "pthread_create() failed\n");
-      free (server_fd_data);
+      free (network_fd_data);
       close (main_socket);
       return false;
     }
@@ -1000,21 +1000,21 @@ server_start ()
 /* Initialize information about network file descriptors.  */
 
 bool
-init_server_fd_data ()
+init_network_fd_data ()
 {
   int i;
 
   zfsd_mutex_init (&active_mutex);
-  server_fd_data = (server_fd_data_t *) xcalloc (max_nfd,
-						 sizeof (server_fd_data_t));
+  network_fd_data = (network_fd_data_t *) xcalloc (max_nfd,
+						 sizeof (network_fd_data_t));
   for (i = 0; i < max_nfd; i++)
     {
-      zfsd_mutex_init (&server_fd_data[i].mutex);
-      server_fd_data[i].fd = -1;
+      zfsd_mutex_init (&network_fd_data[i].mutex);
+      network_fd_data[i].fd = -1;
     }
 
   nactive = 0;
-  active = (server_fd_data_t **) xmalloc (max_nfd * sizeof (server_fd_data_t));
+  active = (network_fd_data_t **) xmalloc (max_nfd * sizeof (network_fd_data_t));
 
   return true;
 }
@@ -1022,7 +1022,7 @@ init_server_fd_data ()
 /* Destroy information about network file descriptors.  */
 
 void
-server_destroy_fd_data ()
+network_destroy_fd_data ()
 {
   int i;
 
@@ -1030,7 +1030,7 @@ server_destroy_fd_data ()
   zfsd_mutex_lock (&active_mutex);
   for (i = nactive - 1; i >= 0; i--)
     {
-      server_fd_data_t *fd_data = active[i];
+      network_fd_data_t *fd_data = active[i];
       zfsd_mutex_lock (&fd_data->mutex);
       close_active_fd (i);
       zfsd_mutex_unlock (&fd_data->mutex);
@@ -1039,25 +1039,25 @@ server_destroy_fd_data ()
   zfsd_mutex_destroy (&active_mutex);
 
   for (i = 0; i < max_nfd; i++)
-    zfsd_mutex_destroy (&server_fd_data[i].mutex);
+    zfsd_mutex_destroy (&network_fd_data[i].mutex);
 
   free (active);
-  free (server_fd_data);
+  free (network_fd_data);
 }
 
 #endif
 
-/* Terminate server threads and destroy data structures.  */
+/* Terminate network threads and destroy data structures.  */
 
 void
-server_cleanup ()
+network_cleanup ()
 {
   int i;
 
   /* Tell each thread waiting for reply that we are exiting.  */
   for (i = nactive - 1; i >= 0; i--)
     {
-      server_fd_data_t *fd_data = active[i];
+      network_fd_data_t *fd_data = active[i];
       void **slot;
 
       zfsd_mutex_lock (&fd_data->mutex);
@@ -1071,7 +1071,7 @@ server_cleanup ()
       zfsd_mutex_unlock (&fd_data->mutex);
     }
 
-  pthread_kill (server_regulator_data.thread_id, SIGUSR1);
-  thread_pool_destroy (&server_pool);
-  server_destroy_fd_data ();
+  pthread_kill (network_regulator_data.thread_id, SIGUSR1);
+  thread_pool_destroy (&network_pool);
+  network_destroy_fd_data ();
 }

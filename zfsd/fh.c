@@ -31,7 +31,7 @@
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"
-#include "server.h"
+#include "network.h"
 #include "varray.h"
 #include "zfs_prot.h"
 

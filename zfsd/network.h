@@ -45,8 +45,8 @@ typedef enum authentication_status_def
   AUTHENTICATION_FINISHED
 } authentication_status;
 
-/* Data for a server socket.  */
-typedef struct server_fd_data_def
+/* Data for a network socket.  */
+typedef struct network_fd_data_def
 {
   pthread_mutex_t mutex;
   htab_t waiting4reply;		/* table of waiting4reply_data */
@@ -65,54 +65,54 @@ typedef struct server_fd_data_def
   unsigned int sid;		/* ID of node which wants to connect */
   unsigned int busy;		/* number of threads using file descriptor */
   unsigned int flags;		/* See SERVER_FD_* below */
-} server_fd_data_t;
+} network_fd_data_t;
 
 #define SERVER_FD_CLOSE 1
 
-/* Additional data for a server thread.  */
-typedef struct server_thread_data_def
+/* Additional data for a network thread.  */
+typedef struct network_thread_data_def
 {
 #ifdef RPC
   /* Parameters passed to zfs_program_1 */
   struct svc_req *rqstp;
   SVCXPRT *transp;
 #else
-  server_fd_data_t *fd_data;	/* passed from main server thread */
-  DC dc;			/* buffer for request to this server */
-  DC dc_call;			/* buffer for request for remote server */
+  network_fd_data_t *fd_data;	/* passed from main network thread */
+  DC dc;			/* buffer for request to this node */
+  DC dc_call;			/* buffer for request for remote node */
   unsigned int generation;	/* generation of file descriptor */
   unsigned int index;		/* index of FD in array "active" */
   call_args args;		/* union for decoded call arguments.  */
   int retval;			/* return value for request.  */
 #endif
-} server_thread_data;
+} network_thread_data;
 
 #define SERVER_ANY 0
 
 #ifndef RPC
 
-/* Thread ID of the main server thread (thread receiving data from sockets).  */
-extern pthread_t main_server_thread;
+/* Thread ID of the main network thread (thread receiving data from sockets).  */
+extern pthread_t main_network_thread;
 
 /* The array of data for each file descriptor.  */
-extern server_fd_data_t *server_fd_data;
+extern network_fd_data_t *network_fd_data;
 
 #endif
 
 struct thread_def;
 
-extern void close_server_fd (int fd);
-extern void server_worker_init (struct thread_def *t);
-extern void server_worker_cleanup (void *data);
+extern void close_network_fd (int fd);
+extern void network_worker_init (struct thread_def *t);
+extern void network_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
-extern bool create_server_threads ();
+extern bool create_network_threads ();
 #ifdef RPC
 extern void register_server ();
 #else
-extern bool server_start ();
-extern bool init_server_fd_data ();
+extern bool network_start ();
+extern bool init_network_fd_data ();
 #endif
-extern void server_cleanup ();
+extern void network_cleanup ();
 
 #endif

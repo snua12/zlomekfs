@@ -46,8 +46,8 @@ pthread_mutex_t zfsd_mutex_initializer
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 volatile bool running = true;
 
-/* Key for server thread specific data.  */
-pthread_key_t server_thread_key;
+/* Key for thread specific data.  */
+pthread_key_t thread_data_key;
 
 /* Initialize POOL to be a thread pool of MAX_THREADS threads with
    MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
