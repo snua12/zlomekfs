@@ -25,6 +25,7 @@
 
 #ifdef __KERNEL__
 # include <linux/types.h>
+typedef unsigned int		uintptr_t;
 #else
 # include <inttypes.h>
 # include <netinet/in.h>
@@ -146,7 +147,6 @@ typedef struct data_coding_def
 
 #include "zfs_prot.h"
 
-extern void dc_init (DC *dc);
 extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
 #ifndef __KERNEL__

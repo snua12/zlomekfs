@@ -19,24 +19,25 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include <unistd.h>
-#include <inttypes.h>
-#include <string.h>
-#include <stdio.h>
+
+#ifdef __KERNEL__
+# include <linux/types.h>
+# include <linux/string.h>
+# include <linux/slab.h>
+# include <linux/vmalloc.h>
+#else
+# include <unistd.h>
+# include <inttypes.h>
+# include <string.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include "util.h"
+#endif
+
 #include "data-coding.h"
 #include "md5.h"
-#include "log.h"
 #include "memory.h"
-#include "util.h"
 #include "zfs_prot.h"
-
-/* Initialize a data coding buffer DC.  */
-
-void
-dc_init (DC *dc)
-{
-  dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
-}
 
 /* Return a new data coding buffer.  */
 
@@ -45,8 +46,14 @@ dc_create (void)
 {
   DC *dc;
 
+#ifdef __KERNEL__
+  dc = (DC *) vmalloc (sizeof (DC));
+  if (dc)
+    dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
+#else
   dc = (DC *) xmalloc (sizeof (DC));
   dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
+#endif
 
   return dc;
 }
@@ -56,7 +63,11 @@ dc_create (void)
 void
 dc_destroy (DC *dc)
 {
+#ifdef __KERNEL__
+  vfree (dc);
+#else
   free (dc);
+#endif
 }
 
 #ifndef __KERNEL__
@@ -279,7 +290,12 @@ decode_string (DC *dc, string *str, uint32_t max_len)
   if (dc->cur_length > dc->max_length)
     return false;
 
+#ifdef __KERNEL__
+  str->str = (char *) kmalloc (str->len + 1, GFP_KERNEL);
+  return false;
+#else
   str->str = (char *) xmalloc (str->len + 1);
+#endif
   memcpy (str->str, dc->cur_pos, str->len);
   str->str[str->len] = 0;
   dc->cur_pos += str->len;
@@ -564,7 +580,11 @@ decode_create_args (DC *dc, create_args *args)
   if (!(decode_uint32_t (dc, &args->flags)
 	&& decode_sattr (dc, &args->attr)))
     {
+#ifdef __KERNEL__
+      kfree (args->where.name.str);
+#else
       free (args->where.name.str);
+#endif
       return false;
     }
 
@@ -663,7 +683,11 @@ decode_mkdir_args (DC *dc, mkdir_args *args)
 
   if (!decode_sattr (dc, &args->attr))
     {
+#ifdef __KERNEL__
+      kfree (args->where.name.str);
+#else
       free (args->where.name.str);
+#endif
       return false;
     }
 
@@ -685,7 +709,11 @@ decode_rename_args (DC *dc, rename_args *args)
 
   if (!decode_dir_op_args (dc, &args->to))
     {
+#ifdef __KERNEL__
+      kfree (args->from.name.str);
+#else
       free (args->from.name.str);
+#endif
       return false;
     }
 
@@ -777,14 +805,23 @@ decode_symlink_args (DC *dc, symlink_args *args)
 
   if (!decode_zfs_path (dc, &args->to))
     {
+#ifdef __KERNEL__
+      kfree (args->from.name.str);
+#else
       free (args->from.name.str);
+#endif
       return false;
     }
 
   if (!decode_sattr (dc, &args->attr))
     {
+#ifdef __KERNEL__
+      kfree (args->from.name.str);
+      kfree (args->to.str);
+#else
       free (args->from.name.str);
       free (args->to.str);
+#endif
       return false;
     }
 
@@ -809,7 +846,11 @@ decode_mknod_args (DC *dc, mknod_args *args)
 	&& decode_ftype (dc, &args->type)
 	&& decode_uint32_t (dc, &args->rdev)))
     {
+#ifdef __KERNEL__
+      kfree (args->where.name.str);
+#else
       free (args->where.name.str);
+#endif
       return false;
     }
 
