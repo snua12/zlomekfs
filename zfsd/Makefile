@@ -39,17 +39,18 @@ OBJECTS = alloc-pool.o config.o dir.o file.o fh.o hashtab.o interval.o \
 
 all: $(PACKAGE)
 
-$(PACKAGE): $(OBJECTS)
-	$(LINK) $(OBJECTS) $(LIBS)
-
-zfs_prot.h: zfs_prot.x
-# temporarily generate everything what can be generated
-	rpcgen -a zfs_prot.x
-  
 clean:
 	-rm -f $(PACKAGE) *.o core *.core
 	-rm -f Makefile.zfs_prot zfs_prot.h zfs_prot_*
 
+$(PACKAGE): $(OBJECTS)
+	$(LINK) $(OBJECTS) $(LIBS)
+
+# RPC code
+zfs_prot.h: zfs_prot.x
+# temporarily generate everything what can be generated
+	rpcgen -a zfs_prot.x
+  
 # Dependencies:
 alloc-pool.o: alloc-pool.c alloc-pool.h system.h log.h memory.h
 config.o: config.c config.h system.h log.h memory.h
