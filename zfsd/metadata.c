@@ -146,8 +146,8 @@ build_metadata_path (volume vol, metadata_type type)
 
   switch (type)
     {
-      case METADATA_TYPE_LIST:
-	path = xstrconcat (2, vol->local_path, "/.zfs/list");
+      case METADATA_TYPE_METADATA:
+	path = xstrconcat (2, vol->local_path, "/.zfs/metadata");
 	break;
 
       default:
@@ -310,10 +310,10 @@ remove_file_and_path (char *file, unsigned int tree_depth)
   return true;
 }
 
-/* Is the hash file HFILE for list of file handles opened?  */
+/* Is the hash file HFILE opened?  */
 
 static bool
-list_opened_p (hfile_t hfile)
+metadata_opened_p (hfile_t hfile)
 {
   CHECK_MUTEX_LOCKED (hfile->mutex);
 
@@ -362,11 +362,10 @@ interval_opened_p (interval_tree tree)
   return true;
 }
 
-/* Initialize file descriptor for hash file HFILE containing list
-   of file handles and metadata.  */
+/* Initialize file descriptor for hash file HFILE.  */
 
 static void
-init_list_fd (hfile_t hfile)
+init_hashfile_fd (hfile_t hfile)
 {
 #ifdef ENABLE_CHECKING
   if (hfile->fd < 0)
@@ -515,7 +514,7 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
    of file handles and metadata.  */
 
 static int
-open_list_file (volume vol)
+open_metadata_file (volume vol)
 {
   int fd;
 
@@ -530,7 +529,7 @@ open_list_file (volume vol)
 
   zfsd_mutex_lock (&metadata_mutex);
   zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
-  init_list_fd (vol->metadata);
+  init_hashfile_fd (vol->metadata);
   zfsd_mutex_unlock (&metadata_mutex);
 
   return fd;
@@ -743,7 +742,7 @@ init_volume_metadata (volume vol)
     abort ();
 #endif
 
-  path = build_metadata_path (vol, METADATA_TYPE_LIST);
+  path = build_metadata_path (vol, METADATA_TYPE_METADATA);
   vol->metadata = hfile_create (sizeof (metadata), 256, metadata_hash,
 				metadata_eq, metadata_decode, metadata_encode,
 				path, &vol->mutex);
@@ -756,7 +755,7 @@ init_volume_metadata (volume vol)
     }
   free (path);
 
-  fd = open_list_file (vol);
+  fd = open_metadata_file (vol);
   if (fd < 0)
     {
       close_volume_metadata (vol);
@@ -1096,11 +1095,11 @@ init_metadata_for_created_volume_root (volume vol)
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     return false;
 
-  if (!list_opened_p (vol->metadata))
+  if (!metadata_opened_p (vol->metadata))
     {
       int fd;
 
-      fd = open_list_file (vol);
+      fd = open_metadata_file (vol);
       if (fd < 0)
 	return false;
     }
@@ -1145,11 +1144,11 @@ init_metadata (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (!list_opened_p (vol->metadata))
+  if (!metadata_opened_p (vol->metadata))
     {
       int fd;
 
-      fd = open_list_file (vol);
+      fd = open_metadata_file (vol);
       if (fd < 0)
 	return false;
     }
@@ -1189,11 +1188,11 @@ flush_metadata (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (!list_opened_p (vol->metadata))
+  if (!metadata_opened_p (vol->metadata))
     {
       int fd;
 
-      fd = open_list_file (vol);
+      fd = open_metadata_file (vol);
       if (fd < 0)
 	return false;
     }
@@ -1340,11 +1339,11 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
       free (path);
     }
 
-  if (!list_opened_p (vol->metadata))
+  if (!metadata_opened_p (vol->metadata))
     {
       int fd;
 
-      fd = open_list_file (vol);
+      fd = open_metadata_file (vol);
       if (fd < 0)
 	return false;
     }

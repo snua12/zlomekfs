@@ -32,7 +32,7 @@ extern unsigned int metadata_tree_depth;
 typedef enum metadata_type_def
 {
   /* Generic metadata hashed by local file handle.  */
-  METADATA_TYPE_LIST,
+  METADATA_TYPE_METADATA,
 
   /* Intervals updated from master node.  */
   METADATA_TYPE_UPDATED,
