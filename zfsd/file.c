@@ -1072,6 +1072,7 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 		    {
 		      if (!decode_dir_entry (&t->dc_reply, &entries[i]))
 			{
+			  list->n = i;
 			  r = ZFS_INVALID_REPLY;
 			  break;
 			}
@@ -1180,6 +1181,19 @@ zfs_readdir_retry:
   else
     abort ();
   zfsd_mutex_unlock (&icap->mutex);
+
+  /* Cleanup decoded directory entries on error.  */
+  if (r != ZFS_OK)
+    {
+      if (filldir == &filldir_array)
+	{
+	  uint32_t i;
+	  dir_entry *entries = (dir_entry *) list->buffer;
+
+	  for (i = 0; i < list->n; i++)
+	    free (entries[i].name.str);
+	}
+    }
 
   if (r == ESTALE && retry < 1)
     {
