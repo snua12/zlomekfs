@@ -969,7 +969,8 @@ update_metadata (volume vol, internal_fh fh)
   return true;
 }
 
-/* Load interval trees for file handle FH on volume VOL.  */
+/* Load interval trees for file handle FH on volume VOL.
+   Return false on file error.  */
 
 bool
 load_interval_trees (volume vol, internal_fh fh)
@@ -995,7 +996,8 @@ load_interval_trees (volume vol, internal_fh fh)
   return true;
 }
 
-/* Save interval trees for file handle FH on volume VOL.  */
+/* Save interval trees for file handle FH on volume VOL.
+   Return false on file error.  */
 
 bool
 save_interval_trees (volume vol, internal_fh fh)
