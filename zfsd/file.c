@@ -884,8 +884,9 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
   int32_t r, pos;
   struct dirent *de;
 
-  CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
+  if (vol)
+    CHECK_MUTEX_LOCKED (&vol->mutex);
   if (dentry)
     CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   if (vd)
