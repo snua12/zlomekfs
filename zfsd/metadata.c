@@ -822,11 +822,11 @@ append_interval (volume vol, internal_fh fh, interval_tree_purpose purpose,
   return r;
 }
 
-/* Init metadata for file handle FH on volume VOL and store them to DATA.
+/* Init metadata for file handle FH on volume VOL.
    Return false on file error.  */
 
 bool
-init_metadata (volume vol, internal_fh fh, metadata *data)
+init_metadata (volume vol, internal_fh fh)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
@@ -840,23 +840,23 @@ init_metadata (volume vol, internal_fh fh, metadata *data)
 	return false;
     }
 
-  data->dev = fh->local_fh.dev;
-  data->ino = fh->local_fh.ino;
-  if (!hfile_lookup (vol->metadata, data))
+  fh->meta.dev = fh->local_fh.dev;
+  fh->meta.ino = fh->local_fh.ino;
+  if (!hfile_lookup (vol->metadata, &fh->meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       close_volume_metadata (vol);
       return false;
     }
 
-  if (data->slot_status != VALID_SLOT)
+  if (fh->meta.slot_status != VALID_SLOT)
     {
-      data->slot_status = VALID_SLOT;
-      data->flags = METADATA_COMPLETE;
-      data->dev = fh->local_fh.dev;
-      data->ino = fh->local_fh.ino;
-      data->local_version = 1;
-      data->master_version = 0;
+      fh->meta.slot_status = VALID_SLOT;
+      fh->meta.flags = METADATA_COMPLETE;
+      fh->meta.dev = fh->local_fh.dev;
+      fh->meta.ino = fh->local_fh.ino;
+      fh->meta.local_version = 1;
+      fh->meta.master_version = 0;
     }
 
   if (!init_interval_tree (vol, fh, INTERVAL_TREE_UPDATED))
@@ -870,7 +870,6 @@ init_metadata (volume vol, internal_fh fh, metadata *data)
       close_interval_file (fh->updated);
       interval_tree_destroy (fh->updated);
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
       return false;
     }
 
@@ -880,10 +879,10 @@ init_metadata (volume vol, internal_fh fh, metadata *data)
   return true;
 }
 
-/* Write the metadata DATA for file handle FH on volume VOL to list file.  */
+/* Write the metadata for file handle FH on volume VOL to list file.  */
 
 bool
-update_metadata (volume vol, internal_fh fh, metadata *data)
+update_metadata (volume vol, internal_fh fh)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
@@ -897,7 +896,7 @@ update_metadata (volume vol, internal_fh fh, metadata *data)
 	return false;
     }
 
-  if (!hfile_insert (vol->metadata, data))
+  if (!hfile_insert (vol->metadata, &fh->meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       close_volume_metadata (vol);
