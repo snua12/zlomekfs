@@ -24,6 +24,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <netinet/in.h>
+#include "zfs_prot.h"
 
 /* Align a number to be a multiple of 2 ,4, 8, 16.  */
 #define ALIGN_1(N) (N)
@@ -154,4 +155,55 @@ extern int encode_int32_t (DC *dc, int32_t val);
 extern int encode_uint32_t (DC *dc, uint32_t val);
 extern int encode_int64_t (DC *dc, int64_t val);
 extern int encode_uint64_t (DC *dc, uint64_t val);
+
+extern int decode_data_buffer (DC *dc, data_buffer *data);
+extern int encode_data_buffer (DC *dc, data_buffer *data);
+extern int decode_string (DC *dc, string *str, uint32_t max_len);
+extern int encode_string (DC *dc, string *str);
+extern int decode_ftype (DC *dc, ftype *type);
+extern int encode_ftype (DC *dc, ftype type);
+extern int decode_zfs_fh (DC *dc, zfs_fh *fh);
+extern int encode_zfs_fh (DC *dc, zfs_fh *fh);
+extern int decode_zfs_time (DC *dc, zfs_time *time);
+extern int encode_zfs_time (DC *dc, zfs_time *time);
+extern int decode_fattr (DC *dc, fattr *attr);
+extern int encode_fattr (DC *dc, fattr *attr);
+extern int decode_sattr (DC *dc, sattr *attr);
+extern int encode_sattr (DC *dc, sattr *attr);
+extern int decode_filename (DC *dc, string *str);
+extern int encode_filename (DC *dc, string *str);
+extern int decode_zfs_path (DC *dc, string *str);
+extern int encode_zfs_path (DC *dc, string *str);
+extern int decode_sattr_args (DC *dc, sattr_args *args);
+extern int encode_sattr_args (DC *dc, sattr_args *args);
+extern int decode_dir_op_args (DC *dc, dir_op_args *args);
+extern int encode_dir_op_args (DC *dc, dir_op_args *args);
+extern int decode_dir_op_res (DC *dc, dir_op_res *res);
+extern int encode_dir_op_res (DC *dc, dir_op_res *res);
+extern int decode_open_name_args (DC *dc, open_name_args *args);
+extern int encode_open_name_args (DC *dc, open_name_args *args);
+extern int decode_open_res (DC *dc, open_res *res);
+extern int encode_open_res (DC *dc, open_res *res);
+extern int decode_read_dir_args (DC *dc, read_dir_args *args);
+extern int encode_read_dir_args (DC *dc, read_dir_args *args);
+/* FIXME: reply of readdir */
+extern int decode_rename_args (DC *dc, rename_args *args);
+extern int encode_rename_args (DC *dc, rename_args *args);
+extern int decode_link_args (DC *dc, link_args *args);
+extern int encode_link_args (DC *dc, link_args *args);
+extern int decode_read_args (DC *dc, read_args *args);
+extern int encode_read_args (DC *dc, read_args *args);
+extern int decode_read_res (DC *dc, read_res *res);
+extern int encode_read_res (DC *dc, read_res *res);
+extern int decode_write_args (DC *dc, write_args *args);
+extern int encode_write_args (DC *dc, write_args *args);
+extern int decode_write_res (DC *dc, write_res *res);
+extern int encode_write_res (DC *dc, write_res *res);
+extern int decode_read_link_res (DC *dc, read_link_res *res);
+extern int encode_read_link_res (DC *dc, read_link_res *res);
+extern int decode_symlink_args (DC *dc, symlink_args *args);
+extern int encode_symlink_args (DC *dc, symlink_args *args);
+extern int decode_mknod_args (DC *dc, mknod_args *args);
+extern int encode_mknod_args (DC *dc, mknod_args *args);
+
 #endif
