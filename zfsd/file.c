@@ -314,7 +314,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 {
   volume vol;
   internal_fh idir;
-  virtual_dir vd, pvd;
+  virtual_dir pvd;
   int r = ZFS_OK;
 
   /* Lookup the file.  */
@@ -323,34 +323,9 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   if (pvd)
     {
-      zfsd_mutex_lock (&vd_mutex);
-      vd = vd_lookup_name (pvd, name->str);
-      zfsd_mutex_unlock (&vd_mutex);
-      if (vd)
-	{
-	  /* Virtual directory tree is read only for users.  */
-	  if (vol)
-	    zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&pvd->mutex);
-	  zfsd_mutex_unlock (&vd->mutex);
-	  return EROFS;
-	}
-      else if (!vol)
-	{
-	  zfsd_mutex_unlock (&pvd->mutex);
-	  return ENOENT;
-	}
-      else
-	{
-	  r = update_volume_root (vol, &idir);
-	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&pvd->mutex);
-	      return r;
-	    }
-	  zfsd_mutex_unlock (&pvd->mutex);
-	}
+      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      if (r != ZFS_OK)
+	return r;
     }
 
   if (vol->local_path)

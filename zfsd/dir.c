@@ -110,6 +110,49 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
   return r;
 }
 
+/* Check whether we can perform file system change operation on NAME in
+   virtual directory PVD.  Resolve whether the is a volume mapped on PVD
+   whose mounpoint name is not NAME and if so return ZFS_OK and store
+   the internal_fh of the root of volume to IDIR.  */
+
+int
+validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
+					 internal_fh *idir)
+{
+  virtual_dir vd;
+
+  zfsd_mutex_lock (&vd_mutex);
+  vd = vd_lookup_name (pvd, name->str);
+  zfsd_mutex_unlock (&vd_mutex);
+  if (vd)
+    {
+      /* Virtual directory tree is read only for users.  */
+      if (pvd->vol)
+	zfsd_mutex_unlock (&pvd->vol->mutex);
+      zfsd_mutex_unlock (&pvd->mutex);
+      zfsd_mutex_unlock (&vd->mutex);
+      return EROFS;
+    }
+  else if (!pvd->vol)
+    {
+      zfsd_mutex_unlock (&pvd->mutex);
+      return ENOENT;
+    }
+  else
+    {
+      int r = update_volume_root (pvd->vol, idir);
+      if (r != ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&pvd->vol->mutex);
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  return r;
+	}
+      zfsd_mutex_unlock (&pvd->mutex);
+    }
+
+  return ZFS_OK;
+}
+
 /* Store the local file handle of root of volume VOL to LOCAL_FH
    and its attributes to ATTR.  */
 
@@ -561,7 +604,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 {
   volume vol;
   internal_fh idir;
-  virtual_dir vd, pvd;
+  virtual_dir pvd;
   int r = ZFS_OK;
 
   /* Lookup the file.  */
@@ -570,34 +613,9 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
   if (pvd)
     {
-      zfsd_mutex_lock (&vd_mutex);
-      vd = vd_lookup_name (pvd, name->str);
-      zfsd_mutex_unlock (&vd_mutex);
-      if (vd)
-	{
-	  /* Virtual directory tree is read only for users.  */
-	  if (vol)
-	    zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&pvd->mutex);
-	  zfsd_mutex_unlock (&vd->mutex);
-	  return EROFS;
-	}
-      else if (!vol)
-	{
-	  zfsd_mutex_unlock (&pvd->mutex);
-	  return ENOENT;
-	}
-      else
-	{
-	  r = update_volume_root (vol, &idir);
-	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&pvd->mutex);
-	      return r;
-	    }
-	  zfsd_mutex_unlock (&pvd->mutex);
-	}
+      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      if (r != ZFS_OK)
+	return r;
     }
   
   if (vol->local_path)
