@@ -256,6 +256,7 @@ send_request (thread *t, uint32_t request_id, int fd)
     {
       t->retval = ZFS_CONNECTION_CLOSED;
       htab_clear_slot (network_fd_data[fd].waiting4reply, slot);
+      pool_free (network_fd_data[fd].waiting4reply_pool, wd);
       zfsd_mutex_unlock (&network_fd_data[fd].mutex);
       return;
     }
@@ -953,6 +954,7 @@ network_cleanup ()
 
 	  data->t->retval = ZFS_EXITING;
 	  htab_clear_slot (fd_data->waiting4reply, slot);
+	  pool_free (fd_data->waiting4reply_pool, data);
 	  semaphore_up (&data->t->sem, 1);
 	});
       zfsd_mutex_unlock (&fd_data->mutex);
