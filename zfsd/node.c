@@ -29,6 +29,9 @@
 /* Hash table of nodes.  */
 static htab_t node_htab;
 
+/* Hash function for node ID.  */
+#define NODE_HASH_ID(ID) (ID)
+
 /* Hash function for node N.  */
 #define NODE_HASH(N) ((N)->id)
 
@@ -49,6 +52,12 @@ node_eq (const void *x, const void *y)
   unsigned int id = *(unsigned int *) y;
 
   return n->id == id;
+}
+
+node
+node_lookup (unsigned int id)
+{
+  return (node) htab_find_with_hash (node_htab, &id, NODE_HASH_ID (id));
 }
 
 /* Create new node with ID and NAME and insert it to hash table.  */

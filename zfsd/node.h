@@ -52,6 +52,7 @@ typedef struct node_def
 #define NODE_ADDR_RESOLVED	4	/* the address of node is resolved  */
 
 /* Function prototypes.  */
+extern node node_lookup (unsigned int id);
 extern node node_create (unsigned int id, char *name);
 extern void initialize_node_c ();
 extern void cleanup_node_c ();
