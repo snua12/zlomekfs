@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "data-coding.h"
+#include "md5.h"
 #include "log.h"
 #include "memory.h"
 #include "util.h"
@@ -863,7 +864,7 @@ decode_md5sum_res (DC *dc, md5sum_res *res)
       return false;
 
   for (i = 0; i < res->count; i++)
-    if (!decode_fixed_buffer (dc, res->md5sum[i], 16))
+    if (!decode_fixed_buffer (dc, res->md5sum[i], MD5_SIZE))
       return false;
 
   return true;
@@ -888,7 +889,7 @@ encode_md5sum_res (DC *dc, md5sum_res *res)
     encode_uint32_t (dc, &res->length[i]);
 
   for (i = 0; i < res->count; i++)
-    encode_fixed_buffer (dc, res->md5sum[i], 16);
+    encode_fixed_buffer (dc, res->md5sum[i], MD5_SIZE);
 
   return true;
 }

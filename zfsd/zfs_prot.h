@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include "md5.h"
 
 #define ZFS_PORT 12323
 #define ZFS_MAXDATA 8192
@@ -30,8 +31,8 @@
 #define ZFS_MAXNAMELEN 255
 #define ZFS_MAXNODELEN 256
 #define ZFS_AUTH_LEN 16
-#define ZFS_VERIFY_LEN 16
-#define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (16 + 2 * sizeof (uint64_t)))
+#define ZFS_VERIFY_LEN MD5_SIZE
+#define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (MD5_SIZE + 2 * sizeof (uint64_t)))
 
 /* Error codes.
    System errors have positive numbers, ZFS errors have negative numbers.  */
@@ -299,7 +300,7 @@ typedef struct md5sum_res_def
   uint32_t count;
   uint64_t offset[ZFS_MAX_MD5_CHUNKS];
   uint32_t length[ZFS_MAX_MD5_CHUNKS];
-  unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][16];
+  unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][MD5_SIZE];
 } md5sum_res;
 
 typedef union call_args_def
