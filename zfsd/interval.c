@@ -194,6 +194,9 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
   while (1)
     {
       next = splay_tree_successor (tree->splay, start);
+      if (!next)
+	break;
+
       if (INTERVAL_END (next) <= end)
 	{
 	  splay_tree_delete (tree->splay, INTERVAL_START (next));
