@@ -146,10 +146,12 @@ wait_for_thread_to_die (volatile pthread_t *thid, void **ret)
 
   message (3, stderr, "joining %lu\n", id);
   r = pthread_join (id, ret);
+  if (r == 0)
+    message (3, stderr, "joined %lu\n", id);
 
   /* Disable destroying this thread.  */
   zfsd_mutex_lock (&running_mutex);
-  id = 0;
+  *thid = 0;
   zfsd_mutex_unlock (&running_mutex);
 
   return r;
@@ -287,6 +289,7 @@ thread_pool_destroy (thread_pool *pool)
 {
   size_t i;
 
+  pthread_yield ();
   wait_for_thread_to_die (&pool->main_thread, NULL);
   wait_for_thread_to_die (&pool->regulator_thread, NULL);
   zfsd_mutex_destroy (&pool->main_in_syscall);
