@@ -113,9 +113,13 @@ void
 zfs_proc_setattr_server (sattr_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
+  int32_t r;
+  fattr fa;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_setattr (&fa, &args->file, &args->attr);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_fattr (dc, &fa);
 }
 
 /* dir_op_res zfs_proc_lookup (dir_op_args); */

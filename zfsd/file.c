@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <utime.h>
 #include <errno.h>
 #include "fh.h"
 #include "file.h"
@@ -118,15 +119,123 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   /* TODO: Update file and fattr.  */
 
   if (vd)
-    {
-      *fa = vd->attr;
-    }
+    *fa = vd->attr;
   else /* if (ifh) */
-    {
-      *fa = ifh->attr;
-    }
+    *fa = ifh->attr;
 
   return ZFS_OK;
+}
+
+/* Set attributes of local file fh according to SA, reget attributes
+   (use volume VOL) and store them to FA.  */
+
+static int
+local_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
+{
+  char *path;
+  int r;
+
+  path = build_local_path (vol, fh);
+  if (sa->mode != (unsigned int) -1)
+    {
+      if (chmod (path, sa->mode) != 0)
+	goto local_setattr_error;
+    }
+
+  if (sa->uid != (unsigned int) -1 || sa->gid != (unsigned int) -1)
+    {
+      if (lchown (path, sa->uid, sa->gid) != 0)
+	goto local_setattr_error;
+    }
+
+  if (sa->size != (uint64_t) -1)
+    {
+      if (truncate (path, sa->size) != 0)
+	goto local_setattr_error;
+    }
+
+  if (sa->atime != (zfs_time) -1 || sa->mtime != (zfs_time) -1)
+    {
+      struct utimbuf t;
+
+      t.actime = sa->atime;
+      t.modtime = sa->mtime;
+      if (utime (path, &t) != 0)
+	goto local_setattr_error;
+    }
+
+  r = local_getattr (fa, path, vol);
+  free (path);
+  return r;
+
+local_setattr_error:
+  free (path);
+  return errno;
+}
+
+/* Set attributes of remote file fh according to SA, reget attributes
+   and store them to FA.  */
+
+static int
+remote_setattr (fattr *fa, internal_fh fh, sattr *sa)
+{
+  sattr_args args;
+  thread *t;
+  node nod;
+  int32_t r;
+
+  args.file = fh->master_fh;
+  args.attr = *sa;
+  t = (thread *) pthread_getspecific (server_thread_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  nod = node_lookup (fh->master_fh.sid);
+  zfsd_mutex_unlock (&node_mutex);
+  if (!nod)
+    return ENOENT;
+
+  r = zfs_proc_setattr_client (t, &args, nod);
+  zfsd_mutex_unlock (&nod->mutex);
+  if (r == ZFS_OK)
+    {
+      if (!decode_fattr (&t->u.server.dc, fa)
+	  || !finish_decoding (&t->u.server.dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Set attributes of file with handle FH according to SA, reget attributes
+   and store them to FA.  */
+
+int
+zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
+{
+  volume vol;
+  internal_fh ifh;
+  int r = ZFS_OK;
+
+  /* Virtual directory tree is read only for users.  */
+  if (VIRTUAL_FH_P (*fh))
+    return EROFS;
+
+  /* Lookup the file.  */
+  if (!fh_lookup (fh, &vol, &ifh, NULL))
+    return ESTALE;
+
+  if (vol->local_path)
+    r = local_setattr (fa, ifh, sa, vol);
+  else if (vol->master != this_node)
+    r = remote_setattr (fa, ifh, sa);
+  else
+    abort ();
+
+  /* Update cached file attributes.  */
+  if (r == ZFS_OK)
+    ifh->attr = *fa;
+
+  return r;
 }
 
 /*****************************************************************************/
@@ -158,12 +267,6 @@ zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
       /* FIXME: finish */
     }
 #endif
-  return ZFS_OK;
-}
-
-int
-zfs_setattr (fattr *fa, zfs_fh *fh, unsigned int valid, sattr *sa)
-{
   return ZFS_OK;
 }
 

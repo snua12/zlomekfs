@@ -29,5 +29,6 @@
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
 extern int local_getattr (fattr *attr, char *path, volume vol);
 extern int zfs_getattr (fattr *fa, zfs_fh *fh);
+extern int zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
 
 #endif

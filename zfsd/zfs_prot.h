@@ -117,6 +117,11 @@ typedef struct fattr_def
   zfs_time ctime;
 } fattr;
 
+#define SATTR_MODE	1
+#define SATTR_CHOWN	2
+#define SATTR_SIZE	4
+#define SATTR_UTIME	8
+
 typedef struct sattr_def
 {
   unsigned int mode;
