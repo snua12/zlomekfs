@@ -76,7 +76,7 @@ decode_##T (DC *dc, T *ret)					\
     return 0;							\
 								\
   dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
-  *ret = F (* (T *) dc->current);				\
+  *ret = F (dc->current);					\
   dc->current += S;						\
 								\
   return 1;							\
@@ -90,6 +90,7 @@ int								\
 encode_##T (DC *dc, T val)					\
 {								\
   int prev = dc->cur_length;					\
+  char *s;							\
 								\
   /* Advance and check the length.  */				\
   dc->cur_length = ALIGN_##S (dc->cur_length) + S;		\
@@ -99,14 +100,19 @@ encode_##T (DC *dc, T val)					\
       return 0;							\
     }								\
 								\
+  /* Clear bytes which are before the aligned offset.  */	\
+  s = dc->current;						\
   dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
-  *(T *) dc->current = F (val);				\
+  while (s < dc->current)					\
+    *s++ = 0;							\
+								\
+  *(T *) dc->current = F (val);					\
   dc->current += S;						\
 								\
   return 1;							\
 }
 
-DECODE_SIMPLE_TYPE (char, 1, )
+DECODE_SIMPLE_TYPE (char, 1, *)
 DECODE_SIMPLE_TYPE (int16_t, 2, le_to_i16p)
 DECODE_SIMPLE_TYPE (uint16_t, 2, le_to_u16p)
 DECODE_SIMPLE_TYPE (int32_t, 4, le_to_i32p)
