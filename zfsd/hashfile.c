@@ -402,7 +402,7 @@ hfile_lookup (hfile_t hfile, void *x)
   if (!offset)
     return false;
 
-  memcpy (x, hfile->element, hfile->size);
+  memcpy (x, hfile->element, hfile->element_size);
   return true;
 }
 
@@ -431,7 +431,7 @@ hfile_insert (hfile_t hfile, void *x)
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_insert_error;
 
-  if (!full_write (hfile->fd, x, hfile->size))
+  if (!full_write (hfile->fd, x, hfile->element_size))
     goto hfile_insert_error;
 
   if ((uint64_t) lseek (hfile->fd, 0, SEEK_SET) != 0)
