@@ -466,25 +466,20 @@ out:
   return false;
 }
 
-/* Read list of nodes from CONFIG_DIR/node_list.  */
+/* Read file FH by lines and call function PROCESS for each line.  */
 
 static bool
-read_node_list (zfs_fh *config_dir)
+process_file_by_lines (zfs_fh *fh, char *file_name,
+		       void (*process) (char *, char *, unsigned int))
 {
   char buf[ZFS_MAXDATA];
   unsigned int index, i, line_num;
   uint32_t count;
   uint64_t offset;
-  dir_op_res node_list_res;
   zfs_cap cap;
   int32_t r;
-  node nod;
 
-  r = zfs_extended_lookup (&node_list_res, config_dir, "node_list");
-  if (r != ZFS_OK)
-    return false;
-
-  r = zfs_open (&cap, &node_list_res.file, O_RDONLY);
+  r = zfs_open (&cap, fh, O_RDONLY);
   if (r != ZFS_OK)
     return false;
 
@@ -508,39 +503,8 @@ read_node_list (zfs_fh *config_dir)
 	  for (i = index; i < count; i++)
 	    if (buf[i] == '\n')
 	      {
-		string parts[2];
-		uint32_t sid;
-
 		buf[i] = 0;
-		if (split_and_trim (buf + index, 2, parts) == 2)
-		  {
-		    if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
-		      {
-			message (0, stderr,
-				 "config/node_list:%u: Wrong format of line\n",
-				 line_num);
-		      }
-		    else if (sid == 0 || sid == (uint32_t) -1)
-		      {
-			message (0, stderr,
-				 "config/node_list:%u: Node ID must not "
-				 "be 0 or %" PRIu32 "\n", line_num,
-				 (uint32_t) -1);
-		      }
-		    else
-		      {
-			nod = try_create_node (sid, &parts[1]);
-			if (nod)
-			  zfsd_mutex_unlock (&nod->mutex);
-		      }
-		  }
-		else
-		  {
-		    message (0, stderr,
-			     "config/node_list:%u: Wrong format of line\n",
-			     line_num);
-		  }
-		
+		(*process) (buf + index, file_name, line_num);
 		line_num++;
 		break;
 	      }
@@ -550,8 +514,7 @@ read_node_list (zfs_fh *config_dir)
 
       if (index == 0 && i == ZFS_MAXDATA)
 	{
-	  message (0, stderr,
-		   "config/node_list:%u: Line too long\n", line_num);
+	  message (0, stderr, "%s:%u: Line too long\n", file_name, line_num);
 	  goto out;
 	}
       if (index > 0)
@@ -575,6 +538,58 @@ read_node_list (zfs_fh *config_dir)
 out:
   zfs_close (&cap);
   return false;
+}
+
+/* Process line LINE number LINE_NUM from file FILE_NAME.  */
+
+static void
+process_line_node (char *line, char *file_name, unsigned int line_num)
+{
+  string parts[2];
+  uint32_t sid;
+  node nod;
+
+  if (split_and_trim (line, 2, parts) == 2)
+    {
+      if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
+	{
+	  message (0, stderr, "%s:%u: Wrong format of line\n",
+		   file_name, line_num);
+	}
+      else if (sid == 0 || sid == (uint32_t) -1)
+	{
+	  message (0, stderr, "%s:%u: Node ID must not be 0 or %" PRIu32 "\n",
+		   file_name, line_num, (uint32_t) -1);
+	}
+      else
+	{
+	  nod = try_create_node (sid, &parts[1]);
+	  if (nod)
+	    zfsd_mutex_unlock (&nod->mutex);
+	}
+    }
+  else
+    {
+      message (0, stderr, "%s:%u: Wrong format of line\n",
+	       file_name, line_num);
+    }
+
+}
+
+/* Read list of nodes from CONFIG_DIR/node_list.  */
+
+static bool
+read_node_list (zfs_fh *config_dir)
+{
+  dir_op_res node_list_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&node_list_res, config_dir, "node_list");
+  if (r != ZFS_OK)
+    return false;
+
+  return process_file_by_lines (&node_list_res.file, "config/node_list",
+				process_line_node);
 }
 
 /* Has the config reader already terminated?  */
