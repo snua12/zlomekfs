@@ -888,17 +888,8 @@ zfs_lookup_retry:
   if (vol->local_path)
     {
       r = local_lookup (res, idir, name, vol);
-#if 0
       if (r == ZFS_OK)
-	{
-	  if (vol->master == this_node)
-	    master_res.file = res->file;
-	  else
-	    r = remote_lookup (&master_res, idir->fh, name, vol);
-	}
-#else
-      zfs_fh_undefine (master_res.file);
-#endif
+	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
@@ -1085,17 +1076,8 @@ zfs_mkdir_retry:
   if (vol->local_path)
     {
       r = local_mkdir (res, idir, name, attr, vol);
-#if 0
       if (r == ZFS_OK)
-	{
-	  if (vol->master == this_node)
-	    master_res.file = res->file;
-	  else
-	    r = remote_mkdir (&master_res, idir->fh, name, attr, vol);
-	}
-#else
-      zfs_fh_undefine (master_res.file);
-#endif
+	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
