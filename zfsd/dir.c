@@ -274,10 +274,7 @@ recursive_unlink_1 (metadata *meta, metadata *meta2, string *path,
 
       d = opendir (path->str);
       if (!d)
-	{
-	  r = (errno == ENOENT ? ZFS_OK : errno);
-	  goto out;
-	}
+	return (errno == ENOENT ? ZFS_OK : errno);
 
       while ((de = readdir (d)) != NULL)
 	{
