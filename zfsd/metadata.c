@@ -1149,51 +1149,6 @@ init_metadata_for_created_volume_root (volume vol)
   return true;
 }
 
-/* Init metadata for file handle FH on volume VOL.
-   Return false on file error.  */
-
-bool
-init_metadata (volume vol, internal_fh fh)
-{
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-
-  if (!hashfile_opened_p (vol->metadata))
-    {
-      int fd;
-
-      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
-      if (fd < 0)
-	return false;
-    }
-
-  fh->meta.dev = fh->local_fh.dev;
-  fh->meta.ino = fh->local_fh.ino;
-  if (!hfile_lookup (vol->metadata, &fh->meta))
-    {
-      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
-      return false;
-    }
-
-  if (fh->meta.slot_status != VALID_SLOT)
-    {
-      fh->meta.slot_status = VALID_SLOT;
-      fh->meta.flags = METADATA_COMPLETE;
-      fh->meta.dev = fh->local_fh.dev;
-      fh->meta.ino = fh->local_fh.ino;
-      fh->meta.gen = 1;
-      fh->meta.local_version = 1;
-      fh->meta.master_version = 0;
-      zfs_fh_undefine (fh->meta.master_fh);
-    }
-
-  set_attr_version (&fh->attr, &fh->meta);
-
-  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-  return true;
-}
-
 /* Get metadata for file handle FH on volume VOL.
    Store the metadata to META and update FH->GEN.  */
 

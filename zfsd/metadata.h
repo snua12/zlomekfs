@@ -80,7 +80,6 @@ extern bool append_interval (volume vol, internal_fh fh,
 			     metadata_type type,
 			     uint64_t start, uint64_t end);
 extern void set_attr_version (fattr *attr, metadata *meta);
-extern bool init_metadata (volume vol, internal_fh fh);
 extern bool get_metadata (volume vol, zfs_fh *fh, metadata *meta);
 extern bool flush_metadata (volume vol, internal_fh fh);
 extern bool set_metadata (volume vol, internal_fh fh, uint32_t flags,
