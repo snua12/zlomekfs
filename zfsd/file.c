@@ -48,7 +48,7 @@ _syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
 /* The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
 
-/* Array of opened file descriptors.  */
+/* Heap of opened file descriptors.  */
 static fibheap opened;
 
 /* Mutex protecting access to OPENED.  */
