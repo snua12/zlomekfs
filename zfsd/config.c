@@ -406,7 +406,9 @@ read_local_volume_info (string *path)
 	    {
 	      zfsd_mutex_lock (&fh_mutex);
 	      zfsd_mutex_lock (&volume_mutex);
-	      vol = volume_create (id);
+	      vol = volume_lookup_nolock (id);
+	      if (!vol)
+		vol = volume_create (id);
 	      zfsd_mutex_unlock (&volume_mutex);
 
 	      if (volume_set_local_info (&vol, &parts[1], size_limit))
@@ -1632,6 +1634,9 @@ reread_volume_list (void)
 
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
+    return false;
+
+  if (!read_local_volume_info (path))
     return false;
 
   mark_all_volumes ();

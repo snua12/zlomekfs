@@ -367,7 +367,12 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
   volume_set_common_info (vol, &name_str, &mountpoint_str, master);
 }
 
-/* Set the information for a volume with local copy.  */
+/** \fn bool volume_set_local_info (volume *volp, string *local_path,
+	uint64_t size_limit)
+    \brief Set the information for a volume with local copy.
+    \param volp Volume.
+    \param local_path Local path to the volume.
+    \param size_limit Size limit for the volume.  */
 
 bool
 volume_set_local_info (volume *volp, string *local_path, uint64_t size_limit)
@@ -377,13 +382,42 @@ volume_set_local_info (volume *volp, string *local_path, uint64_t size_limit)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  set_string (&vol->local_path, local_path);
+  if (vol->local_path.len != local_path->len
+      || vol->local_path.str == NULL
+      || strcmp (vol->local_path.str, local_path->str) != 0)
+    {
+      uint32_t vid;
+      internal_dentry dentry;
+
+      /* We are changing the local path, so delete all dentries.  */
+      vid = vol->id;
+      dentry = vol->root_dentry;
+      zfsd_mutex_lock (&dentry->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      internal_dentry_destroy (dentry, true, false, true);
+      *volp = vol = volume_lookup (vid);
+      if (!vol)
+	{
+	  /* The volume was destroyed.  */
+	  return true;
+	}
+
+      set_string (&vol->local_path, local_path);
+    }
+
   vol->size_limit = size_limit;
 
+  close_volume_metadata (vol);
+  vol->delete_p = false;
   return init_volume_metadata (vol);
 }
 
-/* Wrapper for volume_set_local_info.  */
+/** \fn bool volume_set_local_info_wrapper (volume *volp, string *local_path,
+	uint64_t size_limit)
+    \brief Set the information for a volume with local copy.
+    \param volp Volume.
+    \param local_path Local path to the volume.
+    \param size_limit Size limit for the volume.  */
 
 bool
 volume_set_local_info_wrapper (volume *volp, char *local_path,
