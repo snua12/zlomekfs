@@ -1938,7 +1938,7 @@ read_hardlinks_file (hardlink_list hl, int fd)
 {
   FILE *f;
 
-  f = fdopen (fd, "rt");
+  f = fdopen (fd, "rb");
 #ifdef ENABLE_CHECKING
   if (!f)
     abort ();
@@ -1997,7 +1997,7 @@ write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
       return false;
     }
 
-  f = fdopen (fd, "wt");
+  f = fdopen (fd, "wb");
 #ifdef ENABLE_CHECKING
   if (!f)
     abort ();
@@ -2454,7 +2454,7 @@ flush_journal (volume vol, internal_fh fh, char *path)
       return false;
     }
 
-  f = fdopen (fd, "wt");
+  f = fdopen (fd, "wb");
 #ifdef ENABLE_CHECKING
   if (!f)
     abort ();
@@ -2534,7 +2534,7 @@ read_journal (volume vol, internal_fh fh)
       return true;
     }
 
-  f = fdopen (fd, "wt");
+  f = fdopen (fd, "rb");
 #ifdef ENABLE_CHECKING
   if (!f)
     abort ();
