@@ -1,6 +1,7 @@
 /*
    Inode operations.
    Copyright (C) 2004 Martin Zlomek
+   Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -159,20 +160,25 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 
 	if (ZFS_I(inode)->flags & NEED_REVALIDATE) {
 		ZFS_I(inode)->flags &= ~NEED_REVALIDATE;
-		return 0;
+		goto out_invalid;
 	}
 
 	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
 		fattr attr;
 
 		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh))
-			return 0;
+			goto out_invalid;
 
 		zfs_attr_to_iattr(inode, &attr);
 		dentry->d_time = jiffies;
 	}
 
 	return 1;
+
+out_invalid:
+	shrink_dcache_parent(dentry);
+	d_drop(dentry);
+	return 0;
 }
 
 struct dentry_operations zfs_dentry_operations = {
