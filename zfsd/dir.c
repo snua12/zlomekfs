@@ -1857,6 +1857,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);
+  set_attr_version (&res->attr, meta);
 
   RETURN_INT (ZFS_OK);
 }
