@@ -183,6 +183,10 @@ xstrconcat_varray (varray *va)
   varray_create (&v, sizeof (size_t), n);
   for (i = 0; i < n; i++)
     {
+#ifdef ENABLE_CHECKING
+      if (VARRAY_ACCESS (*va, i, char *) == NULL)
+	abort ();
+#endif
       l = strlen (VARRAY_ACCESS (*va, i, char *));
       VARRAY_PUSH (v, l, size_t);
       len += l;
