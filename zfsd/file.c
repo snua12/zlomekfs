@@ -801,6 +801,26 @@ filldir_encode (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
   return true;
 }
 
+/* Store one directory entry (INO, COOKIE, NAME[NAME_LEN]) to array
+   LIST->BUFFER.  */
+
+bool
+filldir_array (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
+		dir_list *list, ATTRIBUTE_UNUSED readdir_data *data)
+{
+  dir_entry *entries = (dir_entry *) list->buffer;
+
+  if (list->n >= ZFS_MAX_DIR_ENTRIES)
+    return false;
+
+  entries[list->n].ino = ino;
+  entries[list->n].cookie = cookie;
+  entries[list->n].name.str = xmemdup (name, name_len + 1);
+  entries[list->n].name.len = name_len;
+  list->n++;
+  return true;
+}
+
 /* Read DATA->COUNT bytes from virtual directory VD starting at position
    COOKIE.  Store directory entries to LIST using function FILLDIR.  */
 
@@ -1027,6 +1047,32 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 	    }
 	  else
 	    r = ZFS_INVALID_REPLY;
+	}
+      else if (filldir == &filldir_array)
+	{
+	  if (!decode_dir_list (&t->dc_reply, list))
+	    r = ZFS_INVALID_REPLY;
+	  else
+	    {
+	      uint32_t i;
+	      dir_entry *entries = (dir_entry *) list->buffer;
+
+	      if (list->n <= ZFS_MAX_DIR_ENTRIES)
+		{
+		  for (i = 0; i < list->n; i++)
+		    {
+		      if (!decode_dir_entry (&t->dc_reply, &entries[i]))
+			{
+			  r = ZFS_INVALID_REPLY;
+			  break;
+			}
+		    }
+		  if (!finish_decoding (&t->dc_reply))
+		    r = ZFS_INVALID_REPLY;
+		}
+	      else
+		r = ZFS_INVALID_REPLY;
+	    }
 	}
       else
 	abort ();

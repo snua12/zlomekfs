@@ -34,6 +34,7 @@
 #define ZFS_AUTH_LEN 16
 #define ZFS_VERIFY_LEN MD5_SIZE
 #define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (MD5_SIZE + 2 * sizeof (uint64_t)))
+#define ZFS_MAX_DIR_ENTRIES (ZFS_MAXDATA / (4 * sizeof (uint32_t)))
 
 /* Error codes.
    System errors have positive numbers, ZFS errors have negative numbers.  */
