@@ -43,6 +43,18 @@ typedef struct internal_fd_data_def
   fibnode heap_node;		/* node of heap whose data is this structure  */
 } internal_fd_data_t;
 
+/* Data for supplementary functions of readdir.  */
+typedef struct readdir_data_def
+{
+  uint32_t written;
+  uint32_t count;
+} readdir_data;
+
+/* Function called to add one directory entry to list.  */
+typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
+			   uint32_t name_len, dir_list *list,
+			   readdir_data *data);
+
 #include "cap.h"
 extern int32_t local_close (internal_cap cap);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
@@ -54,8 +66,11 @@ extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
 			   uint32_t flags, sattr *attr);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
 extern int32_t zfs_close (zfs_cap *cap);
+extern bool filldir_encode (uint32_t ino, int32_t cookie, char *name,
+			    uint32_t name_len, dir_list *list,
+			    readdir_data *data);
 extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
-			    uint32_t count);
+			    uint32_t count, filldir_f filldir);
 extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			 uint64_t offset, uint32_t count, bool update);
 extern int32_t zfs_write (write_res *res, write_args *args);

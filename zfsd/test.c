@@ -203,7 +203,7 @@ walk_dir (zfs_fh *dir, char *path)
 	old_len = dc.cur_length;
 	encode_status (&dc, ZFS_OK);
 	encode_dir_list (&dc, &list);
-	r = zfs_readdir (&list, &cap, cookie, ZFS_MAXDATA);
+	r = zfs_readdir (&list, &cap, cookie, ZFS_MAXDATA, &filldir_encode);
 	cur_pos = dc.current;
 	cur_len = dc.cur_length;
 	dc.current = old_pos;

@@ -760,20 +760,12 @@ zfs_close_retry:
   return r;
 }
 
-/* Data for supplementary functions for readdir.  */
-
-typedef struct readdir_data_def
-{
-  uint32_t written;
-  uint32_t count;
-} readdir_data;
-
-/* Add one directory entry (INO, COOKIE, NAME[NAME_LEN]) to LIST.
+/* Encode one directory entry (INO, COOKIE, NAME[NAME_LEN]) to DC LIST->BUFFER.
    Additional data is passed in DATA.  */
 
-static bool
-filldir (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
-	 dir_list *list, readdir_data *data)
+bool
+filldir_encode (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
+		dir_list *list, readdir_data *data)
 {
   DC *dc = (DC *) list->buffer;
   char *old_pos;
@@ -810,11 +802,11 @@ filldir (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
 }
 
 /* Read DATA->COUNT bytes from virtual directory VD starting at position
-   COOKIE.  Store directory entries to LIST.  */
+   COOKIE.  Store directory entries to LIST using function FILLDIR.  */
 
 static bool
 read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
-		  readdir_data *data)
+		  readdir_data *data, filldir_f filldir)
 {
   uint32_t ino;
   unsigned int i;
@@ -830,7 +822,7 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
     {
       case 0:
 	cookie--;
-	if (!filldir (vd->fh.ino, cookie, ".", 1, list, data))
+	if (!(*filldir) (vd->fh.ino, cookie, ".", 1, list, data))
 	  return false;
 	/* Fallthru.  */
 
@@ -845,7 +837,7 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 	  ino = vd->fh.ino;
 
 	cookie--;
-	if (!filldir (ino, cookie, "..", 2, list, data))
+	if (!(*filldir) (ino, cookie, "..", 2, list, data))
 	  return false;
 	/* Fallthru.  */
 
@@ -857,8 +849,8 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 	    svd = VARRAY_ACCESS (vd->subdirs, i, virtual_dir);
 	    zfsd_mutex_lock (&svd->mutex);
 	    cookie--;
-	    if (!filldir (svd->fh.ino, cookie, svd->name, strlen (svd->name),
-			  list, data))
+	    if (!(*filldir) (svd->fh.ino, cookie, svd->name,
+			     strlen (svd->name), list, data))
 	      {
 		zfsd_mutex_unlock (&svd->mutex);
 		return false;
@@ -876,11 +868,12 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 
 /* Read COUNT bytes from local directory CAP (from internal directory entry
    DENTRY and virtual directory VD) on volume VOL starting at position COOKIE.
-   Store directory entries to LIST.  */
+   Store directory entries to LIST using function FILLDIR.  */
 
 static int32_t
 local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
-	       virtual_dir vd, int32_t cookie, readdir_data *data, volume vol)
+	       virtual_dir vd, int32_t cookie, readdir_data *data, volume vol,
+	       filldir_f filldir)
 {
   char buf[ZFS_MAXDATA];
   int32_t r, pos;
@@ -896,7 +889,7 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 
   if (vd)
     {
-      if (!read_virtual_dir (list, vd, cookie, data))
+      if (!read_virtual_dir (list, vd, cookie, data, filldir))
 	{
 	  return (list->n == 0) ? EINVAL : ZFS_OK;
 	}
@@ -973,8 +966,8 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 		      continue;
 		    }
 		}
-	      if (!filldir (de->d_ino, cookie, de->d_name, strlen (de->d_name),
-			    list, data))
+	      if (!(*filldir) (de->d_ino, cookie, de->d_name,
+			       strlen (de->d_name), list, data))
 		{
 		  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
 		  return ZFS_OK;
@@ -987,11 +980,12 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 }
 
 /* Read COUNT bytes from remote directory CAP on volume VOL starting
-   at position COOKIE.  Store directory entries to LIST.  */
+   at position COOKIE.
+   Store directory entries to LIST using function FILLDIR.  */
 
 static int32_t
 remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
-		readdir_data *data, volume vol)
+		readdir_data *data, volume vol, filldir_f filldir)
 {
   DC *dc = (DC *) list->buffer;
   read_dir_args args;
@@ -1022,15 +1016,20 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 
   if (r == ZFS_OK)
     {
-      if (t->dc_reply.max_length > dc->cur_length)
+      if (filldir == &filldir_encode)
 	{
-	  memcpy (dc->current, t->dc_reply.current,
-		  t->dc_reply.max_length - t->dc_reply.cur_length);
-	  dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
-	  dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
+	  if (t->dc_reply.max_length > dc->cur_length)
+	    {
+	      memcpy (dc->current, t->dc_reply.current,
+		      t->dc_reply.max_length - t->dc_reply.cur_length);
+	      dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
+	      dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
+	    }
+	  else
+	    r = ZFS_INVALID_REPLY;
 	}
       else
-	r = ZFS_INVALID_REPLY;
+	abort ();
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1044,10 +1043,11 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 }
 
 /* Read COUNT bytes from directory CAP starting at position COOKIE.
-   Store directory entries to LIST.  */
+   Store directory entries to LIST using function FILLDIR.  */
 
 int32_t
-zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count)
+zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
+	     filldir_f filldir)
 {
   volume vol;
   internal_cap icap;
@@ -1100,7 +1100,7 @@ zfs_readdir_retry:
 
   if (!dentry || vol->local_path)
     {
-      r = local_readdir (list, icap, dentry, vd, cookie, &data, vol);
+      r = local_readdir (list, icap, dentry, vd, cookie, &data, vol, filldir);
       if (vd)
 	{
 	  zfsd_mutex_unlock (&vd->mutex);
@@ -1113,7 +1113,7 @@ zfs_readdir_retry:
     }
   else if (vol->master != this_node)
     {
-      r = remote_readdir (list, icap, cookie, &data, vol);
+      r = remote_readdir (list, icap, cookie, &data, vol, filldir);
       if (vd)
 	{
 	  zfsd_mutex_unlock (&vd->mutex);

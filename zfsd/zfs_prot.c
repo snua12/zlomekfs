@@ -270,7 +270,8 @@ zfs_proc_readdir_server (read_dir_args *args, thread *t,
   encode_status (dc, ZFS_OK);
   encode_dir_list (dc, &list);
 
-  r = zfs_readdir (&list, &args->cap, args->cookie, args->count);
+  r = zfs_readdir (&list, &args->cap, args->cookie, args->count,
+		   &filldir_encode);
 
   cur_pos = dc->current;
   cur_len = dc->cur_length;
