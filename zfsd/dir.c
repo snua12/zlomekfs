@@ -511,19 +511,19 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_fh (&t->dc_reply, remote_fh)
-	  || !decode_fattr (&t->dc_reply, attr)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_zfs_fh (t->dc_reply, remote_fh)
+	  || !decode_fattr (t->dc_reply, attr)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
 
   if (r == ZFS_OK && attr->type != FT_DIR)
     return ENOTDIR;
@@ -663,18 +663,18 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_fattr (&t->dc_reply, attr)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_fattr (t->dc_reply, attr)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -866,18 +866,18 @@ remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_fattr (&t->dc_reply, fa)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_fattr (t->dc_reply, fa)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -1060,18 +1060,18 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_dir_op_res (&t->dc_reply, res)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_dir_op_res (t->dc_reply, res)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -1360,18 +1360,18 @@ remote_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   if (r == ZFS_OK)
     {
-      if (!decode_dir_op_res (&t->dc_reply, res)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_dir_op_res (t->dc_reply, res)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -1550,12 +1550,12 @@ remote_rmdir (internal_dentry dir, string *name, volume vol)
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -1752,12 +1752,12 @@ remote_rename (internal_dentry from_dir, string *from_name,
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -2052,12 +2052,12 @@ remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -2313,12 +2313,12 @@ remote_unlink (internal_dentry dir, string *name, volume vol)
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -2493,9 +2493,9 @@ remote_readlink (read_link_res *res, internal_dentry file, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_path (&t->dc_reply, &res->path))
+      if (!decode_zfs_path (t->dc_reply, &res->path))
 	r = ZFS_INVALID_REPLY;
-      else if (!finish_decoding (&t->dc_reply))
+      else if (!finish_decoding (t->dc_reply))
 	{
 	  free (res->path.str);
 	  r = ZFS_INVALID_REPLY;
@@ -2503,12 +2503,12 @@ remote_readlink (read_link_res *res, internal_dentry file, volume vol)
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -2534,9 +2534,9 @@ remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_path (&t->dc_reply, &res->path))
+      if (!decode_zfs_path (t->dc_reply, &res->path))
 	r = ZFS_INVALID_REPLY;
-      else if (!finish_decoding (&t->dc_reply))
+      else if (!finish_decoding (t->dc_reply))
 	{
 	  free (res->path.str);
 	  r = ZFS_INVALID_REPLY;
@@ -2544,12 +2544,12 @@ remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh, volume vol)
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -2688,18 +2688,18 @@ remote_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 
   if (r == ZFS_OK)
     {
-      if (!decode_dir_op_res (&t->dc_reply, res)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_dir_op_res (t->dc_reply, res)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -2895,18 +2895,18 @@ remote_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   if (r == ZFS_OK)
     {
-      if (!decode_dir_op_res (&t->dc_reply, res)
-	  || !finish_decoding (&t->dc_reply))
+      if (!decode_dir_op_res (t->dc_reply, res)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 
@@ -3150,19 +3150,19 @@ remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
 	{
 	  DC *dc = (DC *) res->buffer;
 
-	  if (!decode_hardlinks_res (&t->dc_reply, res))
+	  if (!decode_hardlinks_res (t->dc_reply, res))
 	    r = ZFS_INVALID_REPLY;
-	  else if (t->dc_reply.max_length > t->dc_reply.cur_length)
+	  else if (t->dc_reply->max_length > t->dc_reply->cur_length)
 	    {
-	      memcpy (dc->current, t->dc_reply.current,
-		      t->dc_reply.max_length - t->dc_reply.cur_length);
-	      dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
-	      dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
+	      memcpy (dc->current, t->dc_reply->current,
+		      t->dc_reply->max_length - t->dc_reply->cur_length);
+	      dc->current += t->dc_reply->max_length - t->dc_reply->cur_length;
+	      dc->cur_length += t->dc_reply->max_length - t->dc_reply->cur_length;
 	    }
 	}
       else if (fill_hardlink == &fill_hardlink_string_list)
 	{
-	  if (!decode_hardlinks_res (&t->dc_reply, res))
+	  if (!decode_hardlinks_res (t->dc_reply, res))
 	    r = ZFS_INVALID_REPLY;
 	  else
 	    {
@@ -3172,7 +3172,7 @@ remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
 
 	      for (i = 0; i < res->n; i++)
 		{
-		  if (decode_zfs_path (&t->dc_reply, &str))
+		  if (decode_zfs_path (t->dc_reply, &str))
 		    {
 		      string_list_insert (sl, str.str, false);
 		    }
@@ -3183,7 +3183,7 @@ remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
 		      break;
 		    }
 		}
-	      if (!finish_decoding (&t->dc_reply))
+	      if (!finish_decoding (t->dc_reply))
 		r = ZFS_INVALID_REPLY;
 	    }
 	}
@@ -3192,12 +3192,12 @@ remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc_reply))
+      if (!finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (&t->dc_reply, fd);
+    recycle_dc_to_fd (t->dc_reply, fd);
   return r;
 }
 

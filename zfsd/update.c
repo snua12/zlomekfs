@@ -1293,7 +1293,7 @@ out:
 static void
 update_worker_init (thread *t)
 {
-  dc_create (&t->dc_call);
+  t->dc_call = dc_create ();
 }
 
 /* Cleanup update thread DATA.  */
@@ -1303,7 +1303,7 @@ update_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
 
-  dc_destroy (&t->dc_call);
+  dc_destroy (t->dc_call);
 }
 
 /* The main function of an update thread.  */

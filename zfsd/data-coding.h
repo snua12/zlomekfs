@@ -131,17 +131,17 @@
 
 typedef struct data_coding_def
 {
-  char *unaligned;		/* pointer allocated by malloc */
   char *buffer;			/* previous pointer aligned to 16 */
   char *current;		/* current position to buffer while
 				   encoding/decoding */
   unsigned int max_length;	/* maximal valid position to buffer */ 
   unsigned int cur_length;	/* current position to buffer */
+  char data[DC_SIZE + 15];
 } DC;
 
 #include "zfs_prot.h"
 
-extern void dc_create (DC *dc);
+extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
 extern void print_dc (DC *dc, FILE *f);
 extern void debug_dc (DC *dc);

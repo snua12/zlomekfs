@@ -76,7 +76,7 @@ typedef struct fd_data_def
   unsigned int read;		/* number of bytes already read */
 
   /* Unused data coding buffers for the file descriptor.  */
-  DC dc[MAX_FREE_BUFFERS_PER_ACTIVE_FD];
+  DC *dc[MAX_FREE_BUFFERS_PER_ACTIVE_FD];
   int ndc;
 
   time_t last_use;		/* time of last use of the socket */

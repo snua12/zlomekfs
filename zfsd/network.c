@@ -123,7 +123,7 @@ init_fd_data (int fd)
   fd_data_a[fd].read = 0;
   if (fd_data_a[fd].ndc == 0)
     {
-      dc_create (&fd_data_a[fd].dc[0]);
+      fd_data_a[fd].dc[0] = dc_create ();
       fd_data_a[fd].ndc++;
     }
   fd_data_a[fd].last_use = time (NULL);
@@ -262,7 +262,7 @@ close_active_fd (int i)
   if (i < nactive)
     active[i] = active[nactive];
   for (j = 0; j < fd_data_a[fd].ndc; j++)
-    dc_destroy (&fd_data_a[fd].dc[j]);
+    dc_destroy (fd_data_a[fd].dc[j]);
   fd_data_a[fd].ndc = 0;
   fd_data_a[fd].fd = -1;
   fd_data_a[fd].generation++;
@@ -494,8 +494,8 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
       if (*r != ZFS_OK)
 	return false;
 
-      if (!decode_data_buffer (&t->dc_reply, &ping_res)
-	  || !finish_decoding (&t->dc_reply)
+      if (!decode_data_buffer (t->dc_reply, &ping_res)
+	  || !finish_decoding (t->dc_reply)
 	  || ping_res.len != ping_args.len)
 	{
 	  *r = ZFS_INVALID_REPLY;
@@ -517,7 +517,7 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
       if (fd != nod->fd)
 	{
 	  if (*r >= ZFS_ERROR_HAS_DC_REPLY)
-	    recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[nod->fd]);
+	    recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[nod->fd]);
 	  zfsd_mutex_unlock (&nod->mutex);
 	  return true;
 	}
@@ -645,7 +645,7 @@ again:
 	if (fd != nod->fd)
 	  {
 	    if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	      recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[nod->fd]);
+	      recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[nod->fd]);
 	    zfsd_mutex_unlock (&nod->mutex);
 	    goto again;
 	  }
@@ -655,7 +655,7 @@ again:
 	zfsd_mutex_unlock (&nod->mutex);
 	fd_data_a[fd].auth = AUTHENTICATION_STAGE_1;
 	if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	  recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[fd]);
+	  recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[fd]);
 	zfsd_cond_broadcast (&fd_data_a[fd].cond);
 
 	goto again;
@@ -697,7 +697,7 @@ again:
 	if (fd != nod->fd)
 	  {
 	    if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	      recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[nod->fd]);
+	      recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[nod->fd]);
 	    zfsd_mutex_unlock (&nod->mutex);
 	    goto again;
 	  }
@@ -708,7 +708,7 @@ again:
 	fd_data_a[fd].auth = AUTHENTICATION_FINISHED;
 	fd_data_a[fd].conn = CONNECTION_ESTABLISHED;
 	if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	  recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[fd]);
+	  recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[fd]);
 	zfsd_cond_broadcast (&fd_data_a[fd].cond);
 
 	goto again;
@@ -733,7 +733,7 @@ node_authenticate_error:
   message (2, stderr, "not auth\n");
   zfsd_mutex_lock (&fd_data_a[fd].mutex);
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[fd]);
+    recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[fd]);
   if (fd_data_a[fd].generation == t->u.network.generation)
     close_network_fd (fd);
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
@@ -811,7 +811,7 @@ recycle_dc_to_fd_data (DC *dc, fd_data_t *fd_data)
   if (fd_data->fd >= 0 && fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
     {
       /* Add the buffer to the queue.  */
-      fd_data->dc[fd_data->ndc] = *dc;
+      fd_data->dc[fd_data->ndc] = dc;
       fd_data->ndc++;
     }
   else
@@ -875,7 +875,7 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   /* Send the request.  */
   fd_data_a[fd].last_use = time (NULL);
-  if (!full_write (fd, t->dc_call.buffer, t->dc_call.cur_length))
+  if (!full_write (fd, t->dc_call->buffer, t->dc_call->cur_length))
     {
       t->retval = ZFS_CONNECTION_CLOSED;
       htab_clear_slot (fd_data_a[fd].waiting4reply, slot);
@@ -892,7 +892,7 @@ send_request (thread *t, uint32_t request_id, int fd)
   /* If there was no error with connection, decode return value.  */
   if (t->retval == ZFS_OK)
     {
-      if (!decode_status (&t->dc_reply, &t->retval))
+      if (!decode_status (t->dc_reply, &t->retval))
 	t->retval = ZFS_INVALID_REPLY;
     }
 }
@@ -912,8 +912,8 @@ send_reply (thread *t)
   if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
     {
       td->fd_data->last_use = time (NULL);
-      if (!full_write (td->fd_data->fd, t->u.network.dc.buffer,
-		       t->u.network.dc.cur_length))
+      if (!full_write (td->fd_data->fd, t->u.network.dc->buffer,
+		       t->u.network.dc->cur_length))
 	{
 	}
     }
@@ -925,11 +925,11 @@ send_reply (thread *t)
 static void
 send_error_reply (thread *t, uint32_t request_id, int32_t status)
 {
-  start_encoding (&t->u.network.dc);
-  encode_direction (&t->u.network.dc, DIR_REPLY);
-  encode_request_id (&t->u.network.dc, request_id);
-  encode_status (&t->u.network.dc, status);
-  finish_encoding (&t->u.network.dc);
+  start_encoding (t->u.network.dc);
+  encode_direction (t->u.network.dc, DIR_REPLY);
+  encode_request_id (t->u.network.dc, request_id);
+  encode_status (t->u.network.dc, status);
+  finish_encoding (t->u.network.dc);
   send_reply (t);
 }
 
@@ -938,7 +938,7 @@ send_error_reply (thread *t, uint32_t request_id, int32_t status)
 void
 network_worker_init (thread *t)
 {
-  dc_create (&t->dc_call);
+  t->dc_call = dc_create ();
 }
 
 /* Cleanup network thread DATA.  */
@@ -948,7 +948,7 @@ network_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
 
-  dc_destroy (&t->dc_call);
+  dc_destroy (t->dc_call);
 }
 
 /* The main function of the network thread.  */
@@ -983,19 +983,19 @@ network_worker (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-      if (!decode_request_id (&t->u.network.dc, &request_id))
+      if (!decode_request_id (t->u.network.dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
 	  goto out;
 	}
 
-      if (t->u.network.dc.max_length > DC_SIZE)
+      if (t->u.network.dc->max_length > DC_SIZE)
 	{
 	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
-      if (!decode_function (&t->u.network.dc, &fn))
+      if (!decode_function (t->u.network.dc, &fn))
 	{
 	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
@@ -1012,21 +1012,21 @@ network_worker (void *data)
 				  ZFS_INVALID_AUTH_LEVEL);		\
 		goto out;						\
 	      }								\
-	    if (!decode_##ARGS (&t->u.network.dc,			\
+	    if (!decode_##ARGS (t->u.network.dc,			\
 				&t->u.network.args.FUNCTION)		\
-		|| !finish_decoding (&t->u.network.dc))			\
+		|| !finish_decoding (t->u.network.dc))			\
 	      {								\
 		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	\
 		goto out;						\
 	      }								\
 	    call_statistics[CALL_FROM_NETWORK][NUMBER]++;		\
-	    start_encoding (&t->u.network.dc);				\
-	    encode_direction (&t->u.network.dc, DIR_REPLY);		\
-	    encode_request_id (&t->u.network.dc, request_id);		\
+	    start_encoding (t->u.network.dc);				\
+	    encode_direction (t->u.network.dc, DIR_REPLY);		\
+	    encode_request_id (t->u.network.dc, request_id);		\
 	    zfs_proc_##FUNCTION##_server (&t->u.network.args.FUNCTION,	\
-					  &t->u.network.dc,		\
+					  t->u.network.dc,		\
 					  &t->u.network, false);	\
-	    finish_encoding (&t->u.network.dc);				\
+	    finish_encoding (t->u.network.dc);				\
 	    send_reply (t);						\
 	    break;
 #include "zfs_prot.def"
@@ -1040,7 +1040,7 @@ network_worker (void *data)
 out:
       zfsd_mutex_lock (&td->fd_data->mutex);
       td->fd_data->busy--;
-      recycle_dc_to_fd_data (&t->u.network.dc, td->fd_data);
+      recycle_dc_to_fd_data (t->u.network.dc, td->fd_data);
       zfsd_mutex_unlock (&td->fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
@@ -1073,7 +1073,7 @@ out:
 static bool
 network_dispatch (fd_data_t *fd_data)
 {
-  DC *dc = &fd_data->dc[0];
+  DC *dc = fd_data->dc[0];
   size_t index;
   direction dir;
 
@@ -1125,7 +1125,7 @@ network_dispatch (fd_data_t *fd_data)
 
 	    data = *(waiting4reply_data **) slot;
 	    t = data->t;
-	    t->dc_reply = *dc;
+	    t->dc_reply = dc;
 	    t->from_sid = fd_data->sid;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
@@ -1154,7 +1154,7 @@ network_dispatch (fd_data_t *fd_data)
 #endif
 	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
 	network_pool.threads[index].t.from_sid = fd_data->sid;
-	network_pool.threads[index].t.u.network.dc = *dc;
+	network_pool.threads[index].t.u.network.dc = dc;
 	network_pool.threads[index].t.u.network.fd_data = fd_data;
 	network_pool.threads[index].t.u.network.generation
 	  = fd_data->generation;
@@ -1330,12 +1330,12 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		  zfsd_mutex_lock (&fd_data->mutex);
 		  if (fd_data->ndc == 0)
 		    {
-		      dc_create (&fd_data->dc[0]);
+		      fd_data->dc[0] = dc_create ();
 		      fd_data->ndc++;
 		    }
 		  zfsd_mutex_unlock (&fd_data->mutex);
 
-		  r = read (fd_data->fd, fd_data->dc[0].buffer + fd_data->read,
+		  r = read (fd_data->fd, fd_data->dc[0]->buffer + fd_data->read,
 			    4 - fd_data->read);
 		  if (r <= 0)
 		    {
@@ -1348,22 +1348,22 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
 		  if (fd_data->read == 4)
 		    {
-		      start_decoding (&fd_data->dc[0]);
+		      start_decoding (fd_data->dc[0]);
 		    }
 		}
 	      else
 		{
-		  if (fd_data->dc[0].max_length <= DC_SIZE)
+		  if (fd_data->dc[0]->max_length <= DC_SIZE)
 		    {
 		      r = read (fd_data->fd,
-				fd_data->dc[0].buffer + fd_data->read,
-				fd_data->dc[0].max_length - fd_data->read);
+				fd_data->dc[0]->buffer + fd_data->read,
+				fd_data->dc[0]->max_length - fd_data->read);
 		    }
 		  else
 		    {
 		      int l;
 
-		      l = fd_data->dc[0].max_length - fd_data->read;
+		      l = fd_data->dc[0]->max_length - fd_data->read;
 		      if (l > ZFS_MAXDATA)
 			l = ZFS_MAXDATA;
 		      r = read (fd_data->fd, dummy, l);
@@ -1379,9 +1379,9 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		    {
 		      fd_data->read += r;
 
-		      if (fd_data->dc[0].max_length == fd_data->read)
+		      if (fd_data->dc[0]->max_length == fd_data->read)
 			{
-			  if (fd_data->dc[0].max_length <= DC_SIZE)
+			  if (fd_data->dc[0]->max_length <= DC_SIZE)
 			    {
 			      /* We have read complete request, dispatch it.  */
 			      zfsd_mutex_lock (&fd_data->mutex);

@@ -30,13 +30,17 @@
 #include "util.h"
 #include "zfs_prot.h"
 
-/* Create a new data coding buffer DC.  */
+/* Return a new data coding buffer.  */
 
-void
-dc_create (DC *dc)
+DC *
+dc_create (void)
 {
-  dc->unaligned = (char *) xmalloc (DC_SIZE + 15);
-  dc->buffer = (char *) ALIGN_PTR_16 (dc->unaligned);
+  DC *dc;
+
+  dc = xmalloc (sizeof (DC));
+  dc->buffer = ALIGN_PTR_16 (dc->data);
+
+  return dc;
 }
 
 /* Free the data coding buffer DC.  */
@@ -44,7 +48,7 @@ dc_create (DC *dc)
 void
 dc_destroy (DC *dc)
 {
-  free (dc->unaligned);
+  free (dc);
 }
 
 /* Print DC to file F.  */

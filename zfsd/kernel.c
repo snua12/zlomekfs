@@ -68,7 +68,7 @@ init_fd_data (void)
   fd_data_a[kernel_fd].busy = 0;
   if (fd_data_a[kernel_fd].ndc == 0)
     {
-      dc_create (&fd_data_a[kernel_fd].dc[0]);
+      fd_data_a[kernel_fd].dc[0] = dc_create ();
       fd_data_a[kernel_fd].ndc++;
     }
 
@@ -96,7 +96,7 @@ close_kernel_fd (void)
   close (kernel_fd);
   wake_all_threads (&fd_data_a[kernel_fd], ZFS_CONNECTION_CLOSED);
   for (j = 0; j < fd_data_a[kernel_fd].ndc; j++)
-    dc_destroy (&fd_data_a[kernel_fd].dc[j]);
+    dc_destroy (fd_data_a[kernel_fd].dc[j]);
 
   htab_destroy (fd_data_a[kernel_fd].waiting4reply);
   fibheap_delete (fd_data_a[kernel_fd].waiting4reply_heap);
@@ -112,8 +112,8 @@ send_reply (thread *t)
 {
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
-  if (!full_write (kernel_fd, t->u.kernel.dc.buffer,
-		   t->u.kernel.dc.cur_length))
+  if (!full_write (kernel_fd, t->u.kernel.dc->buffer,
+		   t->u.kernel.dc->cur_length))
     {
     }
   zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
@@ -124,11 +124,11 @@ send_reply (thread *t)
 static void
 send_error_reply (thread *t, uint32_t request_id, int32_t status)
 {
-  start_encoding (&t->u.kernel.dc);
-  encode_direction (&t->u.kernel.dc, DIR_REPLY);
-  encode_request_id (&t->u.kernel.dc, request_id);
-  encode_status (&t->u.kernel.dc, status);
-  finish_encoding (&t->u.kernel.dc);
+  start_encoding (t->u.kernel.dc);
+  encode_direction (t->u.kernel.dc, DIR_REPLY);
+  encode_request_id (t->u.kernel.dc, request_id);
+  encode_status (t->u.kernel.dc, status);
+  finish_encoding (t->u.kernel.dc);
   send_reply (t);
 }
 
@@ -137,7 +137,7 @@ send_error_reply (thread *t, uint32_t request_id, int32_t status)
 static void
 kernel_worker_init (thread *t)
 {
-  dc_create (&t->dc_call);
+  t->dc_call = dc_create ();
 }
 
 /* Cleanup kernel thread DATA.  */
@@ -147,7 +147,7 @@ kernel_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
 
-  dc_destroy (&t->dc_call);
+  dc_destroy (t->dc_call);
 }
 
 /* The main function of the kernel thread.  */
@@ -181,19 +181,19 @@ kernel_worker (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-      if (!decode_request_id (&t->u.kernel.dc, &request_id))
+      if (!decode_request_id (t->u.kernel.dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
 	  goto out;
 	}
 
-      if (t->u.kernel.dc.max_length > DC_SIZE)
+      if (t->u.kernel.dc->max_length > DC_SIZE)
 	{
 	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
-      if (!decode_function (&t->u.kernel.dc, &fn))
+      if (!decode_function (t->u.kernel.dc, &fn))
 	{
 	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
@@ -204,21 +204,21 @@ kernel_worker (void *data)
 	{
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 	  case ZFS_PROC_##NAME:						\
-	    if (!decode_##ARGS (&t->u.kernel.dc,			\
+	    if (!decode_##ARGS (t->u.kernel.dc,				\
 				&t->u.kernel.args.FUNCTION)		\
-		|| !finish_decoding (&t->u.kernel.dc))			\
+		|| !finish_decoding (t->u.kernel.dc))			\
 	      {								\
 		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	\
 		goto out;						\
 	      }								\
 	    call_statistics[CALL_FROM_KERNEL][NUMBER]++;		\
-	    start_encoding (&t->u.kernel.dc);				\
-	    encode_direction (&t->u.kernel.dc, DIR_REPLY);		\
-	    encode_request_id (&t->u.kernel.dc, request_id);		\
+	    start_encoding (t->u.kernel.dc);				\
+	    encode_direction (t->u.kernel.dc, DIR_REPLY);		\
+	    encode_request_id (t->u.kernel.dc, request_id);		\
 	    zfs_proc_##FUNCTION##_server (&t->u.kernel.args.FUNCTION,	\
-					  &t->u.kernel.dc,		\
+					  t->u.kernel.dc,		\
 					  &t->u.kernel, true);		\
-	    finish_encoding (&t->u.kernel.dc);				\
+	    finish_encoding (t->u.kernel.dc);				\
 	    send_reply (t);						\
 	    break;
 #include "zfs_prot.def"
@@ -232,7 +232,7 @@ kernel_worker (void *data)
 out:
       zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
       fd_data_a[kernel_fd].busy--;
-      recycle_dc_to_fd_data (&t->u.kernel.dc, &fd_data_a[kernel_fd]);
+      recycle_dc_to_fd_data (t->u.kernel.dc, &fd_data_a[kernel_fd]);
       zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
@@ -265,7 +265,7 @@ out:
 static bool
 kernel_dispatch (fd_data_t *fd_data)
 {
-  DC *dc = &fd_data_a[kernel_fd].dc[0];
+  DC *dc = fd_data_a[kernel_fd].dc[0];
   size_t index;
   direction dir;
 
@@ -317,7 +317,7 @@ kernel_dispatch (fd_data_t *fd_data)
 
 	    data = *(waiting4reply_data **) slot;
 	    t = data->t;
-	    t->dc_reply = *dc;
+	    t->dc_reply = dc;
 	    t->from_sid = fd_data->sid;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
@@ -347,7 +347,7 @@ kernel_dispatch (fd_data_t *fd_data)
 	set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
 	kernel_pool.threads[index].t.from_sid = this_node->id;
 	  /* FIXME: race condition? */
-	kernel_pool.threads[index].t.u.kernel.dc = *dc;
+	kernel_pool.threads[index].t.u.kernel.dc = dc;
 	network_pool.threads[index].t.u.network.fd_data = fd_data;
 
 	/* Let the thread run.  */
@@ -416,12 +416,12 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	      zfsd_mutex_lock (&fd_data->mutex);
 	      if (fd_data->ndc == 0)
 		{
-		  dc_create (&fd_data->dc[0]);
+		  fd_data->dc[0] = dc_create ();
 		  fd_data->ndc++;
 		}
 	      zfsd_mutex_unlock (&fd_data->mutex);
 
-	      r = read (fd_data->fd, fd_data->dc[0].buffer + fd_data->read,
+	      r = read (fd_data->fd, fd_data->dc[0]->buffer + fd_data->read,
 			4 - fd_data->read);
 	      if (r <= 0)
 		break;
@@ -429,22 +429,22 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	      fd_data->read += r;
 	      if (fd_data->read == 4)
 		{
-		  start_decoding (&fd_data->dc[0]);
+		  start_decoding (fd_data->dc[0]);
 		}
 	    }
 	  else
 	    {
-	      if (fd_data->dc[0].max_length <= DC_SIZE)
+	      if (fd_data->dc[0]->max_length <= DC_SIZE)
 		{
 		  r = read (fd_data->fd,
-			    fd_data->dc[0].buffer + fd_data->read,
-			    fd_data->dc[0].max_length - fd_data->read);
+			    fd_data->dc[0]->buffer + fd_data->read,
+			    fd_data->dc[0]->max_length - fd_data->read);
 		}
 	      else
 		{
 		  int l;
 
-		  l = fd_data->dc[0].max_length - fd_data->read;
+		  l = fd_data->dc[0]->max_length - fd_data->read;
 		  if (l > ZFS_MAXDATA)
 		    l = ZFS_MAXDATA;
 		  r = read (fd_data->fd, dummy, l);
@@ -454,9 +454,9 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 		break;
 
 	      fd_data->read += r;
-	      if (fd_data->dc[0].max_length == fd_data->read)
+	      if (fd_data->dc[0]->max_length == fd_data->read)
 		{
-		  if (fd_data->dc[0].max_length <= DC_SIZE)
+		  if (fd_data->dc[0]->max_length <= DC_SIZE)
 		    {
 		      /* We have read complete request, dispatch it.  */
 		      zfsd_mutex_lock (&fd_data->mutex);

@@ -660,16 +660,16 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
-  start_encoding (&t->dc_call);						\
-  encode_direction (&t->dc_call, DIR_REQUEST);				\
-  encode_request_id (&t->dc_call, req_id);				\
-  encode_function (&t->dc_call, NUMBER);				\
-  if (!encode_##ARGS (&t->dc_call, args))				\
+  start_encoding (t->dc_call);						\
+  encode_direction (t->dc_call, DIR_REQUEST);				\
+  encode_request_id (t->dc_call, req_id);				\
+  encode_function (t->dc_call, NUMBER);					\
+  if (!encode_##ARGS (t->dc_call, args))				\
     {									\
-      zfsd_mutex_unlock (&fd_data_a[fd].mutex);			\
+      zfsd_mutex_unlock (&fd_data_a[fd].mutex);				\
       return ZFS_REQUEST_TOO_LONG;					\
     }									\
-  finish_encoding (&t->dc_call);					\
+  finish_encoding (t->dc_call);						\
 									\
   send_request (t, req_id, fd);						\
 									\

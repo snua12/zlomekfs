@@ -56,7 +56,7 @@ typedef enum thread_state_def
 struct fd_data_def;
 typedef struct network_thread_data_def
 {
-  DC dc;				/* buffer for request to this node */
+  DC *dc;				/* buffer for request to this node */
   call_args args;			/* union for decoded call arguments */
   struct fd_data_def *fd_data;		/* passed from main network thread */
   unsigned int generation;		/* generation of file descriptor */
@@ -66,7 +66,7 @@ typedef struct network_thread_data_def
 /* Additional data for a kernel thread.  */
 typedef struct kernel_thread_data_def
 {
-  DC dc;				/* buffer for request to this node */
+  DC *dc;				/* buffer for request to this node */
   call_args args;			/* union for decoded call arguments */
   struct fd_data_def *fd_data;		/* passed from main network thread */
 } kernel_thread_data;
@@ -96,8 +96,8 @@ typedef struct thread_def
   /* Semaphore used to stop an idle thread.  */
   semaphore sem;
 
-  DC dc_call;			/* buffer for request for remote node */
-  DC dc_reply;			/* buffer for reply from remote node */
+  DC *dc_call;			/* buffer for request for remote node */
+  DC *dc_reply;			/* buffer for reply from remote node */
   int32_t retval;		/* return value for request.  */
   uint32_t from_sid;		/* request came from node SID */
 

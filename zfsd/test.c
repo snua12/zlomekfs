@@ -359,7 +359,7 @@ do_tests (void *data)
       r = zfs_proc_null_client (t, NULL, nod, &fd);
       message (1, stderr, "  %s\n", zfs_strerror (r));
       if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	recycle_dc_to_fd (&t->dc_reply, fd);
+	recycle_dc_to_fd (t->dc_reply, fd);
 
       if (!get_running ())
 	goto out;
@@ -370,8 +370,8 @@ do_tests (void *data)
       r = zfs_proc_ping_client (t, &ping, nod, &fd);
       if (r == ZFS_OK)
 	{
-	  if (!decode_data_buffer (&t->dc_reply, &ping_res)
-	      || !finish_decoding (&t->dc_reply))
+	  if (!decode_data_buffer (t->dc_reply, &ping_res)
+	      || !finish_decoding (t->dc_reply))
 	    message (1, stderr, "  INVALID_REPLY\n");
 	  else if (ping.len != ping_res.len
 	      || strncmp (ping.buf, ping_res.buf, ping.len) != 0)
@@ -379,7 +379,7 @@ do_tests (void *data)
 	}
       message (1, stderr, "  %s\n", zfs_strerror (r));
       if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	recycle_dc_to_fd (&t->dc_reply, fd);
+	recycle_dc_to_fd (t->dc_reply, fd);
 
       if (!get_running ())
 	goto out;
@@ -389,7 +389,7 @@ do_tests (void *data)
       r = zfs_proc_root_client (t, NULL, nod, &fd);
       message (1, stderr, "  %s\n", zfs_strerror (r));
       if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	recycle_dc_to_fd (&t->dc_reply, fd);
+	recycle_dc_to_fd (t->dc_reply, fd);
 
       if (!get_running ())
 	goto out;
