@@ -22,5 +22,6 @@
 #define SYSTEM_H
 
 #define _GNU_SOURCE
+#define ENABLE_CHECKING
 
 #endif
