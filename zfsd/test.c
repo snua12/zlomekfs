@@ -288,10 +288,18 @@ do_tests (void *data)
   dir_op_res res;
   dir_op_res res2;
   zfs_cap cap;
-  int test = 0;
   string rmdir_name = {3, "dir"};
-  sattr attr = {0755, 0, 0, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
+  sattr sa = {0755, (unsigned int) -1, (unsigned int) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
+  fattr fa;
   thread *t = (thread *) data;
+  create_res creater;
+  read_link_res readlinkr;
+  string test = {4, "test"};
+  string test2 = {5, "test2"};
+  string test3 = {5, "test3"};
+  string sym = {7, "symlink"};
+  string path = {4, "path"};
+  string pip = {4, "pipe"};
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
@@ -314,7 +322,7 @@ do_tests (void *data)
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
       zfsd_mutex_unlock (&node_mutex);
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST NULL\n");
       r = zfs_proc_null_client (t, NULL, nod);
 
       zfsd_mutex_lock (&node_mutex);
@@ -330,7 +338,7 @@ do_tests (void *data)
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
       zfsd_mutex_unlock (&node_mutex);
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST ROOT\n");
       r = zfs_proc_root_client (t, NULL, nod);
 
       zfsd_mutex_lock (&node_mutex);
@@ -343,7 +351,7 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST LOOKUP /volume2/sabbath/hidden\n");
       str = xstrdup ("/volume2/sabbath/hidden");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
@@ -351,7 +359,7 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST LOOKUP /volume1/subdir/file\n");
       str = xstrdup ("/volume1/subdir/file");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
@@ -359,7 +367,7 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST LOOKUP /volume1/volume3/subdir/file\n");
       str = xstrdup ("/volume1/volume3/subdir/file");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
@@ -367,7 +375,7 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST LOOKUP /volume1/volume3/subdir\n");
       str = xstrdup ("/volume1/volume3/subdir");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
@@ -375,32 +383,137 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
-      printf ("%d\n", zfs_mkdir (&res2, &res.file, &rmdir_name, &attr));
+      message (2, stderr, "TEST MKDIR\n");
+      printf ("%d\n", zfs_mkdir (&res2, &res.file, &rmdir_name, &sa));
 
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
+      message (2, stderr, "TEST RMDIR\n");
       printf ("%d\n", zfs_rmdir (&res.file, &rmdir_name));
 
       if (!get_running ())
 	break;
 
-      message (2, stderr, "TEST %d\n", ++test);
-      printf ("%d\n", r = zfs_open (&cap, &res.file, O_RDONLY));
+      message (2, stderr, "TEST CREATE\n");
+      printf ("%d\n", r = zfs_create (&creater, &res.file, &test,
+				      O_RDWR | O_TRUNC | O_CREAT, &sa));
 
       if (r == ZFS_OK)
 	{
-	  message (2, stderr, "TEST %d\n", ++test);
+	  if (!get_running ())
+	    break;
+
+	  message (2, stderr, "TEST CLOSE\n");
+	  printf ("%d\n", zfs_close (&cap));
+	}
+
+      message (2, stderr, "TEST LINK\n");
+      printf ("%d\n", zfs_link (&cap.fh, &res.file, &test2));
+
+      message (2, stderr, "TEST UNLINK\n");
+      printf ("%d\n", zfs_unlink (&res.file, &test));
+
+      message (2, stderr, "TEST RENAME\n");
+      printf ("%d\n", zfs_rename (&res.file, &test2, &res.file, &test3));
+
+      message (2, stderr, "TEST UNLINK\n");
+      printf ("%d\n", zfs_unlink (&res.file, &test3));
+
+      message (2, stderr, "TEST SYMLINK\n");
+      printf ("%d\n", zfs_symlink (&res.file, &sym, &path, &sa));
+
+      message (2, stderr, "TEST LOOKUP /volume1/volume3/subdir/symlink\n");
+      str = xstrdup ("/volume1/volume3/subdir/symlink");
+      printf ("%d\n", zfs_extended_lookup (&res2, &root_fh, str));
+      free (str);
+
+      if (!get_running ())
+	break;
+
+      message (2, stderr, "TEST READLINK\n");
+      printf ("%d\n", zfs_readlink (&readlinkr, &res2.file));
+
+      message (2, stderr, "TEST UNLINK\n");
+      printf ("%d\n", zfs_unlink (&res.file, &sym));
+
+      message (2, stderr, "TEST MKNOD\n");
+      printf ("%d\n", zfs_mknod (&res.file, &pip, &sa, FT_FIFO, 1234));
+
+      message (2, stderr, "TEST UNLINK\n");
+      printf ("%d\n", zfs_unlink (&res.file, &pip));
+
+      if (!get_running ())
+	break;
+
+      message (2, stderr, "TEST LOOKUP /volume1/volume3/subdir/file\n");
+      str = xstrdup ("/volume1/volume3/subdir/file");
+      printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
+      free (str);
+
+      if (!get_running ())
+	break;
+
+      message (2, stderr, "TEST OPEN\n");
+      printf ("%d\n", r = zfs_open (&cap, &res.file, O_RDWR));
+
+      if (r == ZFS_OK)
+	{
+	  write_args writea;
+	  write_res writer;
+	  uint32_t request_id;
+	  direction dir;
+	  int32_t status;
+	  data_buffer data;
+	  DC dc;
+
+	  writea.cap = cap;
+	  writea.offset = 0;
+	  writea.data.len = 4;
+	  memcpy (writea.data.buf, "abcd", writea.data.len);
+	  message (2, stderr, "TEST WRITE\n");
+	  printf ("%d", zfs_write (&writer, &writea));
+	  printf (" %d\n", writer.written);
+
+	  if (!get_running ())
+	    break;
+
+	  dc_create (&dc, ZFS_MAX_REQUEST_LEN);
+	  start_encoding (&dc);
+	  encode_direction (&dc, DIR_REPLY);
+	  encode_request_id (&dc, 0);
+	  message (2, stderr, "TEST READ\n");
+	  printf ("%d\n", zfs_read (&dc, &cap, 0, 4));
+	  finish_encoding (&dc);
+	  start_decoding (&dc);
+	  decode_direction (&dc, &dir);
+	  decode_request_id (&dc, &request_id);
+	  decode_status (&dc, &status);
+	  decode_data_buffer (&dc, &data);
+	  if (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0)
+	    printf ("FAILURE\n");
+
+	  if (!get_running ())
+	    break;
+
+	  message (2, stderr, "TEST CLOSE\n");
 	  printf ("%d\n", zfs_close (&cap));
 	}
 
       if (!get_running ())
 	break;
 
-      message (0, stderr, "Walking through directory structure:\n");
-      walk_dir (&root_fh, "/");
+      message (2, stderr, "TEST SETATTR\n");
+      printf ("%d\n", zfs_setattr (&fa, &res.file, &sa));
+
+      if (!get_running ())
+	break;
+
+      if (0)
+	{
+	  message (0, stderr, "Walking through directory structure:\n");
+	  walk_dir (&root_fh, "/");
+	}
     }
   while (0);
 
