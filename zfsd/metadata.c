@@ -2359,6 +2359,22 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, uint32_t old_parent_dev,
   return true;
 }
 
+/* Clear the hardlink list of file FH on volume VOL and add a hardlink
+   specifying that the file is in shadow.  */
+
+bool
+metadata_hardlink_set_shadow (volume vol, zfs_fh *fh)
+{
+  hardlink_list hl;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  hl = hardlink_list_create (2, NULL);
+  hardlink_list_insert (hl, 0, 0, "", true);
+
+  return write_hardlinks (vol, fh, hl);
+}
+
 /* Return the number of hardlinks of file FH on volume VOL.  */
 
 unsigned int
