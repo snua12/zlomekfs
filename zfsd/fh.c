@@ -1082,6 +1082,7 @@ cleanup_fh_c ()
 
   /* Data structures for cleanup of file handles.  */
   zfsd_mutex_lock (&cleanup_fh_mutex);
+  fibheap_delete (cleanup_fh_heap);
   zfsd_mutex_unlock (&cleanup_fh_mutex);
   zfsd_mutex_destroy (&cleanup_fh_mutex);
 }
