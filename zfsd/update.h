@@ -224,8 +224,8 @@ extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks);
 extern int update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 		     fattr *attr);
-extern bool delete_tree (internal_dentry dentry, volume vol);
-extern bool delete_tree_name (internal_dentry dir, string *name, volume vol);
+extern int32_t delete_tree (internal_dentry dentry, volume vol);
+extern int32_t delete_tree_name (internal_dentry dir, string *name, volume vol);
 extern bool move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir,
 			      string *name);
 extern bool move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir,

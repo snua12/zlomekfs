@@ -208,7 +208,7 @@ parent_exists (string *path)
 
 /* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
 
-static bool
+static int32_t
 recursive_unlink_1 (string *path, string *name, uint32_t vid,
 		    struct stat *parent_st)
 {
@@ -216,19 +216,19 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
   internal_dentry dentry;
   zfs_fh fh;
   metadata meta;
-  bool r;
+  int32_t r;
   struct stat st;
 
   TRACE ("%s", path->str);
 
   if (lstat (path->str, &st) != 0)
-    return errno == ENOENT;
+    return (errno == ENOENT ? ZFS_OK : errno);
 
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     {
       if (unlink (path->str) != 0)
 	{
-	  r = errno == ENOENT;
+	  r = (errno == ENOENT ? ZFS_OK : errno);
 	  goto out;
 	}
     }
@@ -240,7 +240,7 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
       d = opendir (path->str);
       if (!d)
 	{
-	  r = errno == ENOENT;
+	  r = (errno == ENOENT ? ZFS_OK : errno);
 	  goto out;
 	}
 
@@ -263,17 +263,17 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
 	  new_name.len = len;
 	  r = recursive_unlink_1 (&new_path, &new_name, vid, &st);
 	  free (new_path.str);
-	  if (!r)
+	  if (r != ZFS_OK)
 	    {
 	      closedir (d);
-	      return false;
+	      return r;
 	    }
 	}
       closedir (d);
 
       if (rmdir (path->str) != 0)
 	{
-	  r = errno == ENOENT;
+	  r = (errno == ENOENT ? ZFS_OK : errno);
 	  goto out;
 	}
     }
@@ -287,7 +287,7 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  r = true;
+  r = ZFS_OK;
 
 out:
   /* Destroy dentry associated with the file.  */
@@ -309,7 +309,7 @@ out:
 /* Recursivelly unlink the file PATH on volume with ID == VID.
    SHADOW is true when the PATH is in shadow.  */
 
-bool
+int32_t
 recursive_unlink (string *path, uint32_t vid, bool shadow)
 {
   string filename;
@@ -333,7 +333,7 @@ recursive_unlink (string *path, uint32_t vid, bool shadow)
       if (lstat (path->str[0] ? path->str : "/", &parent_st) != 0
 	  && errno != ENOENT)
 	{
-	  return false;
+	  return errno;
 	}
       filename.str[-1] = '/';
     }
@@ -3810,7 +3810,7 @@ local_reintegrate_del (volume vol, internal_dentry dir, string *name,
   if (destroy_p
       || metadata_n_hardlinks (vol, &res.file, &meta) > 1)
     {
-      if (!delete_tree_name (dir, name, vol))
+      if (delete_tree_name (dir, name, vol) != ZFS_OK)
 	return ZFS_UPDATE_FAILED;
     }
   else
