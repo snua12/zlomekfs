@@ -198,11 +198,13 @@ internal_fh_create (svc_fh *client_fh, svc_fh *server_fh, internal_fh parent,
   fh->fd = -1;
 
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (vol->fh_htab, fh, NO_INSERT);
+  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->client_fh,
+				   INTERNAL_FH_HASH (fh), NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot (vol->fh_htab, fh, INSERT);
+  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->client_fh,
+				   INTERNAL_FH_HASH (fh), INSERT);
   *slot = fh;
 
   if (parent)
@@ -236,7 +238,8 @@ internal_fh_destroy (internal_fh fh, volume vol)
       htab_clear_slot (vol->fh_htab_name, slot);
     }
 
-  slot = htab_find_slot (vol->fh_htab, fh, NO_INSERT);
+  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->client_fh,
+				   INTERNAL_FH_HASH (fh), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();
@@ -380,11 +383,13 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->vol = NULL;
   
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (virtual_dir_htab, &vd->fh, NO_INSERT);
+  slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
+				   VIRTUAL_DIR_HASH (vd), NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot (virtual_dir_htab, &vd->fh, INSERT);
+  slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
+				   VIRTUAL_DIR_HASH (vd), INSERT);
   *slot = vd;
 
 #ifdef ENABLE_CHECKING
@@ -442,7 +447,8 @@ virtual_dir_destroy (virtual_dir vd)
 	    abort ();
 #endif
 	  htab_clear_slot (virtual_dir_htab_name, slot);
-	  slot = htab_find_slot (virtual_dir_htab, &vd->fh, NO_INSERT);
+	  slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
+					   VIRTUAL_DIR_HASH (vd), NO_INSERT);
 #ifdef ENABLE_CHECKING
 	  if (!slot)
 	    abort ();
@@ -471,7 +477,8 @@ virtual_root_create ()
   root->total = 1;
 
   /* Insert the root into hash table.  */
-  slot = htab_find_slot (virtual_dir_htab, root, INSERT);
+  slot = htab_find_slot_with_hash (virtual_dir_htab, &root->fh,
+				   VIRTUAL_DIR_HASH (root), INSERT);
   *slot = root;
 
   return root;
@@ -492,7 +499,8 @@ virtual_root_destroy (virtual_dir root)
 #endif
   varray_destroy (&root->subdirs);
 
-  slot = htab_find_slot (virtual_dir_htab, root, NO_INSERT);
+  slot = htab_find_slot_with_hash (virtual_dir_htab, &root->fh,
+				   VIRTUAL_DIR_HASH (root), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();

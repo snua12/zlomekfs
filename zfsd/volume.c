@@ -86,12 +86,14 @@ volume_create (unsigned int id)
 				   internal_fh_eq_name, NULL);
 
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (volume_htab, &vol->id, NO_INSERT);
+  slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
+				   NO_INSERT);
   if (slot)
     abort ();
 #endif
 
-  slot = htab_find_slot (volume_htab, &vol->id, INSERT);
+  slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
+				   INSERT);
   *slot = vol;
 
   return vol;
@@ -109,7 +111,8 @@ volume_destroy (volume vol)
   htab_destroy (vol->fh_htab_name);
   htab_destroy (vol->fh_htab);
 
-  slot = htab_find_slot (volume_htab, &vol->id, NO_INSERT);
+  slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
+				   NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();

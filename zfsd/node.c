@@ -79,12 +79,14 @@ node_create (unsigned int id, char *name)
     }
 
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (node_htab, &nod->id, NO_INSERT);
+  slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
+				   NO_INSERT);
   if (slot)
     abort ();
 #endif
 
-  slot = htab_find_slot (node_htab, &nod->id, INSERT);
+  slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
+				   INSERT);
   *slot = nod;
 
   return nod;
