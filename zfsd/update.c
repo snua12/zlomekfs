@@ -769,6 +769,9 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
+  if ((*dentryp)->fh->attr.type != attr->type)
+    return 0;
+
   return (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
 	  + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE);
 
@@ -1861,20 +1864,6 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
   int32_t r;
 
   TRACE ("");
-
-  if (dentry->fh->attr.type != attr->type)
-    {
-#ifdef ENABLE_CHECKING
-      if (!dentry->parent)
-	abort ();
-#endif
-
-      /* This can't happen.  If it happens something is wierd,
-	 either someone wants to destabilize us
-	 or some metadata was not updated.  */
-      abort ();	/* FIXME: delete the abort () after testing */
-      return ZFS_UPDATE_FAILED;
-    }
 
   if (how & IFH_REINTEGRATE)
     {
