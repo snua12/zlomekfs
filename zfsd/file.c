@@ -1943,40 +1943,6 @@ remote_read (read_res *res, internal_cap cap, internal_dentry dentry,
   RETURN_INT (r);
 }
 
-/* Align the range of length COUNT starting at OFFSET and store the bounds of
-   resulting range to START and END.  */
-
-static void
-align_range (uint64_t offset, uint32_t count, uint64_t *start, uint64_t *end)
-{
-  uint64_t block;
-
-  /* First check whether the range is contained in a block of size
-     ZFS_UPDATED_BLOCK_SIZE aligned to ZFS_UPDATED_BLOCK_SIZE.  */
-  block = offset / ZFS_UPDATED_BLOCK_SIZE * ZFS_UPDATED_BLOCK_SIZE;
-  if (offset + count <= block + ZFS_UPDATED_BLOCK_SIZE)
-    {
-      *start = block;
-      *end = block + ZFS_UPDATED_BLOCK_SIZE;
-      return;
-    }
-
-  /* Then check whether the range is contained in a block of size
-     ZFS_UPDATED_BLOCK_SIZE aligned to ZFS_MODIFIED_BLOCK_SIZE.  */
-  block = offset / ZFS_MODIFIED_BLOCK_SIZE * ZFS_MODIFIED_BLOCK_SIZE;
-  if (offset + count <= block + ZFS_UPDATED_BLOCK_SIZE)
-    {
-      *start = block;
-      *end = block + ZFS_UPDATED_BLOCK_SIZE;
-      return;
-    }
-
-  /* Finally enlarge the range to be ZFS_UPDATED_BLOCK_SIZE long.  */
-  *start = offset;
-  *end = offset + (count <= ZFS_UPDATED_BLOCK_SIZE
-		   ? ZFS_UPDATED_BLOCK_SIZE : count);
-}
-
 /* Read COUNT bytes from file CAP at offset OFFSET, store the results to RES.
    If UPDATE is true update the local file on copied volume.  */
 
@@ -2027,14 +1993,17 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
       else if (dentry->fh->attr.type == FT_REG && update)
 	{
 	  varray blocks;
-	  uint64_t start;
 	  uint64_t end;
 	  uint64_t offset2;
+	  uint32_t count2;
 	  unsigned int i;
 	  bool complete;
 
-	  align_range (offset, count, &start, &end);
-	  get_blocks_for_updating (dentry->fh, start, end, &blocks);
+	  count2 = (count < ZFS_UPDATED_BLOCK_SIZE
+		    ? ZFS_UPDATED_BLOCK_SIZE : count);
+	  end = (offset < (uint64_t) -1 - count2
+		 ? offset + count2 : (uint64_t) -1);
+	  get_blocks_for_updating (dentry->fh, offset, end, &blocks);
 
 	  complete = true;
 	  offset2 = offset + count;
