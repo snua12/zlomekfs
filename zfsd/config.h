@@ -58,7 +58,6 @@ typedef struct volume_def
   
   char *localpath;
   uint64_t size_limit;
-  char data[1];
 } *volume;
 
 #define VOLUME_LOCAL	1	/* this volume is located on local node */
