@@ -277,6 +277,8 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   zfs_fh_undefine (cap->master_cap.fh);
   zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
+  cap->master_busy = 0;
+  cap->master_close_p = false;
   internal_cap_compute_verify (cap);
   cap->next = NULL;
   vd->cap = cap;
