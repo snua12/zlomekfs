@@ -399,6 +399,36 @@ read_local_cluster_config (string *path)
   return true;
 }
 
+/* Initialize data structures which are needed for reading configuration.  */
+
+bool
+init_config (void)
+{
+  volume vol;
+  node nod;
+
+  vol = volume_lookup (VOLUME_ID_CONFIG);
+  if (!vol)
+    {
+      message (0, stderr, "Config volume (ID == %" PRIu32 " does not exist.\n",
+	       VOLUME_ID_CONFIG);
+      goto out;
+    }
+
+  zfsd_mutex_lock (&node_mutex);
+  nod = node_create ((uint32_t) -1, &node_name);
+  zfsd_mutex_unlock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  volume_set_common_info_wrapper (vol, "config", "/config", nod);
+
+  zfsd_mutex_unlock (&vol->mutex);
+  return true;
+
+out:
+  delete_all_volumes ();
+  return false;
+}
+
 static bool
 read_global_cluster_config (void)
 {
@@ -419,15 +449,6 @@ invalidate_config (void)
 
 static bool
 fix_config (void)
-{
-
-  return true;
-}
-
-/* Initialize data structures which are needed for reading configuration.  */
-
-bool
-init_config (void)
 {
 
   return true;
@@ -621,6 +642,9 @@ read_cluster_config (void)
   invalidate_config ();
 
   if (!read_local_cluster_config (&node_config))
+    return false;
+
+  if (!init_config ())
     return false;
 
   if (!read_global_cluster_config ())
