@@ -27,7 +27,22 @@
 #include "data-coding.h"
 #include "hashtab.h"
 #include "alloc-pool.h"
-#include "node.h"
+
+/* Connection status.  */
+typedef enum connection_status_def
+{
+  CONNECTION_NONE = 0,
+  CONNECTION_SLOW,
+  CONNECTION_FAST
+} connection_status;
+
+/* Status of authentication.  */
+typedef enum authentication_status_def
+{
+  AUTHENTICATION_NONE = 0,
+  AUTHENTICATION_IN_PROGRESS,
+  AUTHENTICATION_FINISHED
+} authentication_status;
 
 /* Data for a server socket.  */
 typedef struct server_fd_data_def
@@ -44,6 +59,7 @@ typedef struct server_fd_data_def
 
   time_t last_use;		/* time of last use of the socket */
   unsigned int generation;	/* generation of open file descriptor */
+  connection_status conn;	/* status of connection with remote node */
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
   int busy;			/* number of threads using file descriptor */
@@ -84,7 +100,7 @@ struct thread_def;
 extern void close_server_fd (int fd);
 extern void server_worker_init (struct thread_def *t);
 extern void server_worker_cleanup (void *data);
-extern void add_fd_to_active (int fd, node nod);
+extern void add_fd_to_active (int fd);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
 extern bool create_server_threads ();
 #ifdef RPC
