@@ -56,6 +56,7 @@ extern void xstringconcat_varray (string *dst, varray *va);
 extern void set_str_with_length (char **destp, const char *src, int len);
 extern void set_str (char **destp, const char *src);
 extern void set_string (string *dst, string *src);
+extern void set_string_with_length (string *dst, const char *src, int len);
 extern void append_string (string *dst, string *src, const char *str,
 			   unsigned int len);
 extern void append_file_name (string *dst, string *path, const char *name,

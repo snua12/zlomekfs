@@ -293,6 +293,24 @@ set_string (string *dst, string *src)
   memcpy (dst->str, src->str, dst->len + 1);
 }
 
+/* Set a copy of SRC of length LEN to DST.  */
+
+void
+set_string_with_length (string *dst, const char *src, int len)
+{
+  if (dst->str)
+    free (dst->str);
+
+  dst->len = len;
+  dst->str = (char *) malloc (dst->len + 1);
+  if (!dst->str)
+    {
+      message (-1, stderr, "Not enough memory.\n");
+      abort ();
+    }
+  memcpy (dst->str, src, dst->len + 1);
+}
+
 /* Append STR of length LEN to SRC and store it to DST.  */
 
 void
