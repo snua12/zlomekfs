@@ -59,10 +59,12 @@ typedef struct allocation_object_def
     } u;
 } allocation_object;
 
+/* Offset of user data in the allocation object.  */
+#define DATA_OFFSET (offsetof (allocation_object, u.data))
+
 /* Convert a pointer to allocation_object from a pointer to user data.  */
 #define ALLOCATION_OBJECT_PTR_FROM_USER_PTR(X)				\
-   ((allocation_object *) (((char *) (X))				\
-			   - offsetof (allocation_object, u.data)))
+   ((allocation_object *) (((char *) (X)) - DATA_OFFSET))
 
 /* Convert a pointer to user data from a pointer to allocation_object.  */
 #define USER_PTR_FROM_ALLOCATION_OBJECT_PTR(X)				\
@@ -83,24 +85,19 @@ create_alloc_pool (const char *name, size_t size, size_t num,
   alloc_pool pool;
   size_t header_size;
 
+#ifdef ENABLE_CHECKING
   if (!name)
     abort ();
+  if (num == 0)
+    abort ();
+#endif
 
   /* Make size large enough to store the list header.  */
   if (size < sizeof (alloc_pool_list))
     size = sizeof (alloc_pool_list);
 
   /* Now align the size to a multiple of 4.  */
-  size = align_four (size);
-
-#ifdef ENABLE_CHECKING
-  /* Add the aligned size of ID.  */
-  size += offsetof (allocation_object, u.data);
-#endif
-
-  /* Um, we can't really allocate 0 elements per block.  */
-  if (num == 0)
-    abort ();
+  size = align_four (size) + DATA_OFFSET;
 
   /* Now init the various pieces of our pool structure.  */
   pool = (alloc_pool) xmalloc (sizeof (struct alloc_pool_def));
