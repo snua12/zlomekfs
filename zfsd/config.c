@@ -1830,6 +1830,7 @@ config_reader (void *data)
   dir_op_res group_dir_res;
   int32_t r;
   volume vol;
+  varray v;
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
@@ -1914,10 +1915,14 @@ config_reader (void *data)
   zfsd_mutex_unlock (&t->mutex);
   
   /* Reread parts of configuration when notified.  */
+  varray_create (&v, sizeof (uint32_t), 4);
   while (1)
     {
       string relative_path;
-      uint32_t from_sid;
+      uint32_t from_sid, sid;
+      unsigned int i;
+      node nod;
+      void **slot;
 
       /* Wait until we are notified.  */
       semaphore_down (&t->sem, 1);
@@ -1931,10 +1936,49 @@ config_reader (void *data)
 
       while (get_reread_config_request (&relative_path, &from_sid))
 	{
+	  /* First send the reread_config request to slave nodes.  */
+	  vol = volume_lookup (VOLUME_ID_CONFIG);
+	  if (!vol)
+	    {
+	      terminate ();
+	      break;
+	    }
+#ifdef ENABLE_CHECKING
+	  if (!vol->slaves)
+	    abort ();
+#endif
+
+	  VARRAY_USED (v) = 0;
+	  HTAB_FOR_EACH_SLOT (vol->slaves, slot)
+	    {
+	      node nod = (node) *slot;
+
+	      zfsd_mutex_lock (&node_mutex);
+	      zfsd_mutex_lock (&nod->mutex);
+	      if (nod->id != from_sid)
+		VARRAY_PUSH (v, nod->id, uint32_t);
+	      zfsd_mutex_unlock (&nod->mutex);
+	      zfsd_mutex_unlock (&node_mutex);
+	    }
+	  zfsd_mutex_unlock (&vol->mutex);
+
+	  for (i = 0; i < VARRAY_USED (v); i++)
+	    {
+	      sid = VARRAY_ACCESS (v, i, uint32_t);
+	      nod = node_lookup (sid);
+	      if (nod)
+		remote_reread_config (&relative_path, nod);
+	    }
+
+	  /* Then reread the configuration.  */
 	  if (!reread_config_file (&relative_path))
-	    terminate ();
+	    {
+	      terminate ();
+	      break;
+	    }
 	}
     }
+  varray_destroy (&v);
 
 dying:
   set_thread_state (t, THREAD_DEAD);
