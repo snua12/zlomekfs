@@ -27,6 +27,9 @@
 /* Maximal number of free data buffers for an active file descriptor.  */
 #define MAX_FREE_BUFFERS_PER_SERVER_FD 4
 
+/* Maximal length of request / reply.  */
+#define ZFS_MAX_REQUEST_LEN 8888
+
 /* The event groups for poll().  */
 #define CAN_READ (POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND)
 #define CAN_WRITE (POLLOUT | POLLWRNORM | POLLWRBAND)
