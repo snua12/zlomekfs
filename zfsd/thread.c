@@ -167,10 +167,13 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
     }
 }
 
+/* Main function of thread regulating the thread pool. DATA is the structure
+   with additional information for the regulator.  */
+
 static void *
 thread_pool_regulator (void *data)
 {
-  thread_pool_regulator_data *d;
+  thread_pool_regulator_data *d = (thread_pool_regulator_data *) data;
 
   while (1)
     {
@@ -181,6 +184,10 @@ thread_pool_regulator (void *data)
       pthread_mutex_unlock (&d->pool->idle.mutex);
     }
 }
+
+/* Create a thread regulating the thread pool POOL which uses START to start
+   a new thread and INIT to initialize thread's data. DATA is the structure with
+   additional information for the regulator.  */
 
 void
 thread_pool_create_regulator (thread_pool_regulator_data *data,
