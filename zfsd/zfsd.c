@@ -43,6 +43,7 @@
 #include "node.h"
 #include "volume.h"
 #include "zfs_prot.h"
+#include "metadata.h"
 #include "user-group.h"
 
 #ifdef TEST
@@ -314,6 +315,7 @@ initialize_data_structures ()
   if (!initialize_random_c ())
     return false;
 
+  initialize_metadata_c ();
   initialize_fh_c ();
   initialize_file_c ();
   initialize_cap_c ();
@@ -337,6 +339,7 @@ cleanup_data_structures ()
   cleanup_cap_c ();
   cleanup_file_c ();
   cleanup_fh_c ();
+  cleanup_metadata_c ();
   cleanup_random_c ();
 
   free (node_name);
