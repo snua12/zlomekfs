@@ -2448,7 +2448,7 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 	    release_dentry (dentry);
 	    release_dentry (dentry2);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (conflict, false);
+	    internal_dentry_destroy (conflict, true);
 	    return true;
 	  }
 	release_dentry (dentry);
