@@ -73,9 +73,9 @@
 
 typedef enum direction_def
 {
-  DIR_REQUEST,
-  DIR_REPLY,
-  DIR_ONEWAY,
+  DIR_REQUEST,		/* Request which wants a reply.  */
+  DIR_REPLY,		/* Reply to request.  */
+  DIR_ONEWAY,		/* Request which does not want a reply.  */
   DIR_LAST_AND_UNUSED
 } direction;
 
@@ -401,10 +401,6 @@ typedef union call_args_def
 
 /* Mapping file type -> file mode.  */
 extern unsigned int ftype2mode[FT_LAST_AND_UNUSED];
-
-/* Mode of requests.  */
-#define ZFS_CALL_ONEWAY		1	/* Send request, no reply.  */
-#define ZFS_CALL_TWOWAY		2	/* Send request, receive reply.  */
 
 /* Function numbers.  */
 enum function_number_def

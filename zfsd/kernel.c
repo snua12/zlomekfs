@@ -195,14 +195,14 @@ kernel_worker (void *data)
 
       if (t->u.kernel.dc->max_length > DC_SIZE)
 	{
-	  if (t->u.kernel.dir == ZFS_CALL_TWOWAY)
+	  if (t->u.kernel.dir == DIR_REQUEST)
 	    send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
       if (!decode_function (t->u.kernel.dc, &fn))
 	{
-	  if (t->u.kernel.dir == ZFS_CALL_TWOWAY)
+	  if (t->u.kernel.dir == DIR_REQUEST)
 	    send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
 	}
@@ -218,7 +218,7 @@ kernel_worker (void *data)
 	  case ZFS_PROC_##NAME:						\
 	    if (t->u.kernel.dir != CALL_MODE)				\
 	      {								\
-		if (t->u.kernel.dir == ZFS_CALL_TWOWAY)			\
+		if (t->u.kernel.dir == DIR_REQUEST)			\
 		  send_error_reply (t, request_id,			\
 				    ZFS_INVALID_DIRECTION);		\
 		goto out;						\
@@ -227,12 +227,12 @@ kernel_worker (void *data)
 				&t->u.kernel.args.FUNCTION)		\
 		|| !finish_decoding (t->u.kernel.dc))			\
 	      {								\
-		if (CALL_MODE == ZFS_CALL_TWOWAY)			\
+		if (CALL_MODE == DIR_REQUEST)				\
 		  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
 		goto out;						\
 	      }								\
 	    call_statistics[CALL_FROM_KERNEL][NUMBER]++;		\
-	    if (CALL_MODE == ZFS_CALL_TWOWAY)				\
+	    if (CALL_MODE == DIR_REQUEST)				\
 	      {								\
 		start_encoding (t->u.kernel.dc);			\
 		encode_direction (t->u.kernel.dc, DIR_REPLY);		\
@@ -241,7 +241,7 @@ kernel_worker (void *data)
 	    zfs_proc_##FUNCTION##_server (&t->u.kernel.args.FUNCTION,	\
 					  t->u.kernel.dc,		\
 					  &t->u.kernel, true);		\
-	    if (CALL_MODE == ZFS_CALL_TWOWAY)				\
+	    if (CALL_MODE == DIR_REQUEST)				\
 	      {								\
 		finish_encoding (t->u.kernel.dc);			\
 		send_reply (t);						\
@@ -252,7 +252,7 @@ kernel_worker (void *data)
 #undef ZFS_CALL_SERVER
 
 	  default:
-	    if (t->u.kernel.dir == ZFS_CALL_TWOWAY)
+	    if (t->u.kernel.dir == DIR_REQUEST)
 	      send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
 	    goto out;
 	}

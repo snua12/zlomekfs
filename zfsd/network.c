@@ -1084,14 +1084,14 @@ network_worker (void *data)
 	{
 	  message (1, stderr, "Packet too long: %u\n",
 		   t->u.network.dc->max_length);
-	  if (t->u.network.dir == ZFS_CALL_TWOWAY)
+	  if (t->u.network.dir == DIR_REQUEST)
 	    send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
       if (!decode_function (t->u.network.dc, &fn))
 	{
-	  if (t->u.network.dir == ZFS_CALL_TWOWAY)
+	  if (t->u.network.dir == DIR_REQUEST)
 	    send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
 	}
@@ -1104,14 +1104,14 @@ network_worker (void *data)
 	  case ZFS_PROC_##NAME:						\
 	    if (t->u.network.dir != CALL_MODE)				\
 	      {								\
-		if (t->u.network.dir == ZFS_CALL_TWOWAY)		\
+		if (t->u.network.dir == DIR_REQUEST)			\
 		  send_error_reply (t, request_id,			\
 				    ZFS_INVALID_DIRECTION);		\
 		goto out;						\
 	      }								\
 	    if (td->fd_data->auth < AUTH)				\
 	      {								\
-		if (CALL_MODE == ZFS_CALL_TWOWAY)			\
+		if (CALL_MODE == DIR_REQUEST)				\
 		  send_error_reply (t, request_id,			\
 				    ZFS_INVALID_AUTH_LEVEL);		\
 		goto out;						\
@@ -1120,12 +1120,12 @@ network_worker (void *data)
 				&t->u.network.args.FUNCTION)		\
 		|| !finish_decoding (t->u.network.dc))			\
 	      {								\
-		if (CALL_MODE == ZFS_CALL_TWOWAY)			\
+		if (CALL_MODE == DIR_REQUEST)				\
 		  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
 		goto out;						\
 	      }								\
 	    call_statistics[CALL_FROM_NETWORK][NUMBER]++;		\
-	    if (CALL_MODE == ZFS_CALL_TWOWAY)				\
+	    if (CALL_MODE == DIR_REQUEST)				\
 	      {								\
 		start_encoding (t->u.network.dc);			\
 		encode_direction (t->u.network.dc, DIR_REPLY);		\
@@ -1134,7 +1134,7 @@ network_worker (void *data)
 	    zfs_proc_##FUNCTION##_server (&t->u.network.args.FUNCTION,	\
 					  t->u.network.dc,		\
 					  &t->u.network, false);	\
-	    if (CALL_MODE == ZFS_CALL_TWOWAY)				\
+	    if (CALL_MODE == DIR_REQUEST)				\
 	      {								\
 		finish_encoding (t->u.network.dc);			\
 		send_reply (t);						\
@@ -1145,7 +1145,7 @@ network_worker (void *data)
 #undef ZFS_CALL_SERVER
 
 	  default:
-	    if (t->u.network.dir == ZFS_CALL_TWOWAY)
+	    if (t->u.network.dir == DIR_REQUEST)
 	      send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
 	    goto out;
 	}

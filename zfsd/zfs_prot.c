@@ -709,8 +709,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
   start_encoding (t->dc_call);						\
-  encode_direction (t->dc_call, (CALL_MODE == ZFS_CALL_ONEWAY		\
-				 ? DIR_ONEWAY : DIR_REQUEST));		\
+  encode_direction (t->dc_call, CALL_MODE);				\
   encode_request_id (t->dc_call, req_id);				\
   encode_function (t->dc_call, NUMBER);					\
   if (!encode_##ARGS (t->dc_call, args))				\
@@ -720,7 +719,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
     }									\
   finish_encoding (t->dc_call);						\
 									\
-  if (CALL_MODE == ZFS_CALL_ONEWAY)					\
+  if (CALL_MODE == DIR_ONEWAY)						\
     send_oneway_request (t, fd);					\
   else									\
     send_request (t, req_id, fd);					\
