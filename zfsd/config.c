@@ -316,6 +316,7 @@ read_local_config (const char *path)
       fclose (f);
     }
 
+  free (volumes);
   return 1;
 }
 
