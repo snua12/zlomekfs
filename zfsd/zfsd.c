@@ -440,13 +440,14 @@ test_zfs (thread *t)
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
       zfsd_mutex_unlock (&node_mutex);
-
       message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_null_client (t, NULL, nod);
 
+      zfsd_mutex_lock (&node_mutex);
+      nod = node_lookup (2);
+      zfsd_mutex_unlock (&node_mutex);
       message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_root_client (t, NULL, nod);
-      zfsd_mutex_unlock (&nod->mutex);
 
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/subdir/file");

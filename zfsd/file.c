@@ -195,7 +195,6 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa)
     return ENOENT;
 
   r = zfs_proc_setattr_client (t, &args, nod);
-  zfsd_mutex_unlock (&nod->mutex);
   if (r == ZFS_OK)
     {
       if (!decode_fattr (&t->dc, fa)

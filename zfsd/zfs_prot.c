@@ -402,6 +402,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
   CHECK_MUTEX_LOCKED (&nod->mutex);					\
 									\
   fd = node_connect_and_authenticate (t, nod);				\
+  zfsd_mutex_unlock (&nod->mutex);					\
   if (fd < 0)								\
     return t->retval;							\
 									\
