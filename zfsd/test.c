@@ -551,7 +551,7 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      if (0)
+      if (1)
 	{
 	  message (0, stderr, "Walking through directory structure:\n");
 	  walk_dir (&root_fh, "/");
