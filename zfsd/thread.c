@@ -420,7 +420,8 @@ thread_pool_regulate (thread_pool *pool)
 
   /* Create new threads.  */
   while (pool->idle.nelem < pool->min_spare_threads
-	 && pool->idle.nelem < pool->idle.size)
+	 && pool->idle.nelem < pool->idle.size
+	 && pool->empty.nelem > 0)
     {
       message (2, stderr, "Regulating: creating idle thread\n");
       create_idle_thread (pool);
