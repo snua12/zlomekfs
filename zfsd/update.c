@@ -1085,7 +1085,6 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.mtime = (zfs_time) -1;
 
 	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
-	free (link_to.path.str);
 	if (r == ZFS_OK)
 	  {
 	    *local_fh = res.file;
@@ -1526,7 +1525,6 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			zfsd_mutex_unlock (&vol->mutex);
 			zfsd_mutex_unlock (&fh_mutex);
 			r = zfs_file_info (&info, &entry->master_fh);
-			free (info.path.str);
 
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
