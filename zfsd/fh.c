@@ -282,11 +282,10 @@ cleanup_unused_dentries (void)
 
 	      /* We may have added a dentry to it
 		 while CLEANUP_DENTRY_MUTEX was unlocked.  */
-	      if (dentry->fh->attr.type == FT_DIR
-		  && VARRAY_USED (dentry->fh->subdentries) > 0)
+	      if (dentry_should_have_cleanup_node (dentry))
 		{
 #ifdef ENABLE_CHECKING
-		  if (dentry->heap_node)
+		  if (!dentry->heap_node)
 		    abort ();
 #endif
 		  release_dentry (dentry);
