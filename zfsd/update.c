@@ -42,6 +42,7 @@
 #include "zfs_prot.h"
 #include "file.h"
 #include "dir.h"
+#include "journal.h"
 #include "metadata.h"
 
 /* Queue of file handles.  */
@@ -1326,9 +1327,14 @@ out:
   return r;
 }
 
+/* Update generic file DENTRY on volume VOL with file handle FH according
+   to attributes ATTR.  */
+
 static int32_t
 reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 {
+  int32_t r, r2;
+
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1337,11 +1343,156 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
     abort ();
   if (attr->type != dentry->fh->attr.type && !dentry->parent)
     abort ();
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    abort ();
 #endif
+
+  zfsd_mutex_unlock (&fh_mutex);
+
+  if (dentry->fh->attr.type == FT_DIR)
+    {
+      journal_entry entry, next;
+      dir_op_res res;
+      bool flush_journal;
+
+#ifdef ENABLE_CHECKING
+      if (dentry->fh->level == LEVEL_UNLOCKED)
+	abort ();
+#endif
+
+      flush_journal = false;
+      for (entry = dentry->fh->journal->first; entry; entry = next)
+	{
+	  next = entry->next;
+
+	  switch (entry->oper)
+	    {
+	      case JOURNAL_OPERATION_ADD:
+		r = remote_lookup (&res, dentry, &entry->name, vol);
+		r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+		if (r2 != ZFS_OK)
+		  abort ();
+#endif
+
+		if (r == ZFS_OK)
+		  {
+		    /* TODO: create conflict */
+		  }
+		else if (r == ENOENT)
+		  {
+		    if (zfs_fh_undefined (entry->master_fh))
+		      {
+			/* TODO: create remote file */
+		      }
+		    else
+		      {
+			r = zfs_file_info (&entry->master_fh);
+			r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
+
+			if (r == ZFS_OK)
+			  {
+			    /* TODO: link/rename remote file */
+			  }
+			else if (r == ENOENT)
+			  {
+			    /* TODO: delete local file */
+			  }
+			else
+			  {
+			    message (0, stderr,
+				     "Reintegrate file info error: %d\n", r);
+			    goto out;
+			  }
+		      }
+		  }
+		else
+		  {
+		    message (0, stderr, "Reintegrate lookup error: %d\n", r);
+		    goto out;
+		  }
+		break;
+
+	      case JOURNAL_OPERATION_DEL:
+		r = remote_lookup (&res, dentry, &entry->name, vol);
+		r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+		if (r2 != ZFS_OK)
+		  abort ();
+#endif
+
+		if (r == ZFS_OK)
+		  {
+		    if (ZFS_FH_EQ (res.file, entry->master_fh))
+		      {
+			/* TODO: delete remote file.  */
+		      }
+		    else
+		      {
+			/* TODO: create conflict */
+		      }
+		  }
+		else if (r == ENOENT)
+		  {
+		    /* Nothing to do.  */
+
+		    if (!journal_delete_entry (dentry->fh->journal, entry))
+		      abort ();
+		    flush_journal = true;
+		  }
+		else
+		  {
+		    message (0, stderr, "Reintegrate lookup error: %d\n", r);
+		    goto out;
+		  }
+		break;
+
+	      default:
+		abort ();
+	    }
+	}
+
+out:
+      if (flush_journal)
+	{
+	  if (!write_journal (vol, dentry->fh))
+	    vol->delete_p = true;
+	}
+    }
+  else if (dentry->fh->attr.type == FT_REG)
+    {
+      /* Schedule reintegration of regular file.  */
+
+      zfsd_mutex_lock (&running_mutex);
+      if (update_pool.main_thread == 0)
+	{
+	  /* Update threads are not running.  */
+	  zfsd_mutex_unlock (&running_mutex);
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return ZFS_OK;
+	}
+      zfsd_mutex_unlock (&running_mutex);
+
+      if (dentry->fh->flags)
+	{
+	  dentry->fh->flags |= IFH_REINTEGRATE;
+	}
+      else
+	{
+	  dentry->fh->flags |= IFH_REINTEGRATE;
+	  zfsd_mutex_lock (&update_queue.mutex);
+	  queue_put (&update_queue, &dentry->fh->local_fh);
+	  zfsd_mutex_unlock (&update_queue.mutex);
+	}
+    }
 
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   return ZFS_OK;
 }
