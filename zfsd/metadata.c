@@ -663,6 +663,7 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
     }
 
   rename (new_path, path);
+  tree->deleted = false;
 
 #ifdef ENABLE_CHECKING
   if (tree->fd >= 0)
