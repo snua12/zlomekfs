@@ -506,7 +506,8 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
 
   path = build_fh_metadata_path (vol, &fh->local_fh, type,
 				 metadata_tree_depth);
-  fd = open_metadata (path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+  fd = open_fh_metadata (path, vol, &fh->local_fh, type,
+			 O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
   free (path);
   if (fd < 0)
     return fd;
