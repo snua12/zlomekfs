@@ -90,6 +90,7 @@ static void destroy_inodecache(void)
 		INFO("zfs_inode_cache: not all structures were freed\n");
 }
 
+
 static struct super_operations zfs_super_operations = {
 	.alloc_inode    = zfs_alloc_inode,
 	.destroy_inode  = zfs_destroy_inode,
@@ -104,7 +105,7 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 	struct inode *root_inode;
 	int error;
 
-	TRACE("zfs: zfs_fill_super");
+	TRACE("zfs: fill_super\n");
 
 	if (!channel.connected) {
 		ERROR("zfs: zfsd has not opened communication device\n");

@@ -31,7 +31,6 @@
 
 static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
 {
-	inode->i_ino = attr->ino;
 	inode->i_version = attr->version;
 	inode->i_mode = attr->mode | ftype2mode[attr->type];
 	inode->i_nlink = attr->nlink;

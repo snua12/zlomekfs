@@ -23,9 +23,11 @@
 #ifndef _ZFSD_CALL_H
 #define _ZFSD_CALL_H
 
+#include "zfs.h"
 #include "zfs_prot.h"
 
 
+extern int send_request(struct request *req);
 extern int zfsd_root(zfs_fh *fh);
 extern int zfsd_getattr(fattr *attr, zfs_fh *fh);
 

@@ -25,7 +25,6 @@
 
 #include <linux/kernel.h>
 #include <linux/fs.h>
-#include <linux/types.h>
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <asm/semaphore.h>
@@ -85,7 +84,7 @@ enum request_state {REQ_PENDING, REQ_PROCESSING, REQ_DEQUEUED};
 struct request {
 	struct semaphore lock;
 	enum request_state state;
-	uint32_t id;			/* unique request id */
+	unsigned int id;		/* unique request id */
 	DC *dc;				/* the message */
 	unsigned int length;		/* length of request body (dc.buffer) */
 	struct list_head item;		/* item in req_pending

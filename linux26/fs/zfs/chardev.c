@@ -35,72 +35,6 @@
 #include "zfs_prot.h"
 
 
-static int zfs_chardev_open(struct inode *inode, struct file *file)
-{
-	int i;
-
-	TRACE("zfs: chardev_open\n");
-
-	down(&channel.lock);
-
-	if (channel.connected) {
-		up(&channel.lock);
-		return -EBUSY;
-	}
-
-	init_MUTEX(&channel.request_id_lock);
-	channel.request_id = 0;
-
-	init_MUTEX(&channel.req_pending_lock);
-	INIT_LIST_HEAD(&channel.req_pending);
-
-	init_MUTEX(&channel.req_processing_lock);
-	for (i = 0; i < REQ_PROCESSING_TABSIZE; i++)
-		INIT_LIST_HEAD(&channel.req_processing[i]);
-
-	init_waitqueue_head(&channel.waitq);
-
-	channel.connected = 1;
-
-	up(&channel.lock);
-
-	return 0;
-}
-
-static int zfs_chardev_release(struct inode *inode, struct file *file)
-{
-	struct list_head *item;
-	struct request *req;
-	int i;
-
-	TRACE("zfs: chardev_close\n");
-
-	down(&channel.lock);
-
-	channel.connected = 0;
-
-	down(&channel.req_pending_lock);
-	list_for_each(item, &channel.req_pending) {
-		req = list_entry(item, struct request, item);
-		wake_up(&req->waitq);
-	}
-	up(&channel.req_pending_lock);
-
-	down(&channel.req_processing_lock);
-	for (i = 0; i < REQ_PROCESSING_TABSIZE; i++)
-		list_for_each(item, &channel.req_processing[i]) {
-			req = list_entry(item, struct request, item);
-			wake_up(&req->waitq);
-		}
-	up(&channel.req_processing_lock);
-
-	wake_up_all(&channel.waitq);
-
-	up(&channel.lock);
-
-	return 0;
-}
-
 static ssize_t zfs_chardev_read(struct file *file, char __user *buf, size_t nbytes, loff_t *off)
 {
 	DECLARE_WAITQUEUE(wait, current);
@@ -171,7 +105,7 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 	struct request *req = NULL;
 	DC *dc;
 	direction dir;
-	uint32_t id;
+	unsigned int id;
 
 	TRACE("zfs: chardev_write: %u bytes\n", nbytes);
 
@@ -224,11 +158,79 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 	return nbytes;
 }
 
+static int zfs_chardev_open(struct inode *inode, struct file *file)
+{
+	int i;
+
+	TRACE("zfs: chardev_open\n");
+
+	down(&channel.lock);
+
+	if (channel.connected) {
+		up(&channel.lock);
+		return -EBUSY;
+	}
+
+	init_MUTEX(&channel.request_id_lock);
+	channel.request_id = 0;
+
+	init_MUTEX(&channel.req_pending_lock);
+	INIT_LIST_HEAD(&channel.req_pending);
+
+	init_MUTEX(&channel.req_processing_lock);
+	for (i = 0; i < REQ_PROCESSING_TABSIZE; i++)
+		INIT_LIST_HEAD(&channel.req_processing[i]);
+
+	init_waitqueue_head(&channel.waitq);
+
+	channel.connected = 1;
+
+	up(&channel.lock);
+
+	return 0;
+}
+
+static int zfs_chardev_release(struct inode *inode, struct file *file)
+{
+	struct list_head *item;
+	struct request *req;
+	int i;
+
+	TRACE("zfs: chardev_close\n");
+
+	down(&channel.lock);
+
+	channel.connected = 0;
+
+	down(&channel.req_pending_lock);
+	list_for_each(item, &channel.req_pending) {
+		req = list_entry(item, struct request, item);
+		wake_up(&req->waitq);
+	}
+	up(&channel.req_pending_lock);
+
+	down(&channel.req_processing_lock);
+	for (i = 0; i < REQ_PROCESSING_TABSIZE; i++)
+		list_for_each(item, &channel.req_processing[i]) {
+			req = list_entry(item, struct request, item);
+			wake_up(&req->waitq);
+		}
+	up(&channel.req_processing_lock);
+
+	wake_up_all(&channel.waitq);
+
+	up(&channel.lock);
+
+	dc_destroy_all();
+
+	return 0;
+}
+
 struct file_operations zfs_chardev_file_operations = {
 	.owner		= THIS_MODULE,
-	.open		= zfs_chardev_open,
-	.release	= zfs_chardev_release,
 	.read		= zfs_chardev_read,
 	.write		= zfs_chardev_write,
+	.open		= zfs_chardev_open,
+	.release	= zfs_chardev_release,
 };
 
