@@ -205,6 +205,39 @@ hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
   return true;
 }
 
+/* Delete hardlink list entry ENTRY from hardlink list HL.
+   Return true if it was really deleted.  */
+
+bool
+hardlink_list_delete_entry (hardlink_list hl, hardlink_list_entry entry)
+{
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (hl->mutex);
+
+  slot = htab_find_slot_with_hash (hl->htab, entry,
+				   HARDLINK_LIST_HASH (entry), NO_INSERT);
+  if (!slot)
+    return false;
+
+  if (entry->next)
+    entry->next->prev = entry->prev;
+  else
+    hl->last = entry->prev;
+  if (entry->prev)
+    entry->prev->next = entry->next;
+  else
+    hl->first = entry->next;
+
+  free (entry->name.str);
+  zfsd_mutex_lock (&hardlink_list_mutex);
+  pool_free (hardlink_list_pool, entry);
+  zfsd_mutex_unlock (&hardlink_list_mutex);
+  htab_clear_slot (hl->htab, slot);
+
+  return true;
+}
+
 /* Initialize data structures in HARDLINK-LIST.C.  */
 
 void

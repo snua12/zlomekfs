@@ -75,6 +75,8 @@ extern bool hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, char *name);
 extern bool hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, char *name);
+extern bool hardlink_list_delete_entry (hardlink_list hl,
+					hardlink_list_entry entry);
 
 extern void initialize_hardlink_list_c (void);
 extern void cleanup_hardlink_list_c (void);
