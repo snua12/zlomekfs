@@ -51,13 +51,13 @@ $(PACKAGE): $(OBJECTS) $(RPC_OBJECTS)
 
 # RPC code
 zfs_prot.h: zfs_prot.x
-	rpcgen -h zfs_prot.x -o zfs_prot.h
+	rpcgen -h zfs_prot.x > zfs_prot.h
 zfs_prot_svc.c: zfs_prot.x zfs_prot.h
-	rpcgen -m zfs_prot.x -o $@
+	rpcgen -m zfs_prot.x > $@
 zfs_prot_server.c: zfs_prot.x zfs_prot.h
-	rpcgen -Ss zfs_prot.x -o $@
+	rpcgen -Ss zfs_prot.x > $@
 zfs_prot_xdr.c: zfs_prot.x zfs_prot.h
-	rpcgen -c zfs_prot.x -o $@
+	rpcgen -c zfs_prot.x > $@
 zfs_prot_svc.o: zfs_prot_svc.c
 zfs_prot_server.o: zfs_prot_server.c
 zfs_prot_xdr.o: zfs_prot_xdr.c
@@ -77,6 +77,6 @@ node.o: node.c node.h system.h memory.h
 queue.o: queue.c queue.h system.h log.h memory.h
 server.o: server.c server.h system.h log.h thread.h zfs_prot.h
 splay-tree.o: splay-tree.c splay-tree.h system.h alloc-pool.h log.h memory.h
-thread.o: thread.c thread.h system.h log.h memory.h zfs_prot.h
+thread.o: thread.c thread.h system.h log.h memory.h
 volume.o: volume.c volume.h system.h memory.h
 zfsd.o: zfsd.c zfsd.h system.h client.h config.h log.h memory.h server.h
