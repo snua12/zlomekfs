@@ -29,11 +29,12 @@
 #include <utime.h>
 #include <errno.h>
 #include "pthread.h"
+#include "log.h"
+#include "memory.h"
 #include "fh.h"
 #include "dir.h"
 #include "file.h"
-#include "log.h"
-#include "memory.h"
+#include "config.h"
 #include "thread.h"
 #include "varray.h"
 #include "data-coding.h"
@@ -391,6 +392,9 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 	  if (!delete_metadata (vol, meta, st.st_dev, st.st_ino,
 				parent_fh->dev, parent_fh->ino, name))
 	    MARK_VOLUME_DELETE (vol);
+
+	  if (vol->id == VOLUME_ID_CONFIG)
+	    add_reread_config_request_local_path (vol, path);
 	}
       zfsd_mutex_unlock (&vol->mutex);
 
@@ -2929,6 +2933,11 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
 				  &to_name, shadow))
     MARK_VOLUME_DELETE (vol);
 
+  if (vol->id == VOLUME_ID_CONFIG)
+    {
+      add_reread_config_request_local_path (vol, to_path);
+      add_reread_config_request_local_path (vol, from_path);
+    }
   zfsd_mutex_unlock (&vol->mutex);
   RETURN_INT (ZFS_OK);
 }
@@ -3378,6 +3387,9 @@ local_link_base (metadata *meta, string *from_path, string *to_path,
 				 to_parent_st.st_ino, &to_name))
     MARK_VOLUME_DELETE (vol);
 
+  if (vol->id == VOLUME_ID_CONFIG)
+    add_reread_config_request_local_path (vol, to_path);
+
   zfsd_mutex_unlock (&vol->mutex);
   RETURN_INT (ZFS_OK);
 }
@@ -3783,6 +3795,9 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
   if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
 			parent_st.st_dev, parent_st.st_ino, name))
     MARK_VOLUME_DELETE (vol);
+
+  if (vol->id == VOLUME_ID_CONFIG)
+    add_reread_config_request_local_path (vol, &path);
 
   zfsd_mutex_unlock (&vol->mutex);
   free (path.str);
