@@ -22,6 +22,8 @@
 #ifndef _LOG_H
 #define _LOG_H
 
+#define abort() verbose_abort(__FILE__, __LINE__)
+
 /* Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
 
