@@ -306,7 +306,7 @@ open_list_file (volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
 retry_open:
-  fd = open (vol->metadata->file_name, O_RDWR | O_CREAT);
+  fd = open (vol->metadata->file_name, O_RDWR | O_CREAT, S_IRWXU);
   if ((fd < 0 && errno == EMFILE)
       || (fd >= 0
 	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
@@ -426,7 +426,7 @@ create_path_for_file (char *file, unsigned int mode)
   *last = 0;
 
   /* Find the first existing directory.  */
-  for (end = last - 1;;)
+  for (end = last;;)
     {
       if (lstat (file, &st) == 0)
 	{
@@ -447,13 +447,16 @@ create_path_for_file (char *file, unsigned int mode)
   /* Create the path.  */
   for (;;)
     {
-      *end = '/';
+      if (end < last)
+	{
+	  *end = '/';
 
-      if (mkdir (file, mode) != 0)
-	return false;
+	  if (mkdir (file, mode) != 0)
+	    return false;
 
-      for (end++; end < last && *end; end++)
-	;
+	  for (end++; end < last && *end; end++)
+	    ;
+	}
       if (end >= last)
 	{
 	  *last = '/';
@@ -552,13 +555,17 @@ init_volume_metadata (volume vol)
 
   fd = open_list_file (vol);
   if (fd < 0)
-    return false;
+    {
+      close_volume_metadata (vol);
+      return false;
+    }
 
   if (fstat (fd, &st) < 0)
     {
       message (2, stderr, "%s: fstat: %s\n", vol->metadata->file_name,
 	       strerror (errno));
-      close_metadata_fd (fd);
+      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+      close_volume_metadata (vol);
       vol->metadata->fd = -1;
       return false;
     }
@@ -567,8 +574,8 @@ init_volume_metadata (volume vol)
     {
       message (2, stderr, "%s: Not a regular file\n",
 	       vol->metadata->file_name);
-      close_metadata_fd (fd);
-      vol->metadata->fd = -1;
+      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+      close_volume_metadata (vol);
       return false;
     }
 
@@ -578,8 +585,8 @@ init_volume_metadata (volume vol)
       header.n_deleted = 0;
       if (!full_write (fd, &header, sizeof (header)))
 	{
-	  close_metadata_fd (fd);
-	  vol->metadata->fd = -1;
+	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	  close_volume_metadata (vol);
 	  unlink (vol->metadata->file_name);
 	  return false;
 	}
@@ -587,8 +594,8 @@ init_volume_metadata (volume vol)
       if (ftruncate (fd, ((uint64_t) vol->metadata->size * sizeof (metadata)
 			  + sizeof (header))) < 0)
 	{
-	  close_metadata_fd (fd);
-	  vol->metadata->fd = -1;
+	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	  close_volume_metadata (vol);
 	  unlink (vol->metadata->file_name);
 	  return false;
 	}
@@ -597,8 +604,8 @@ init_volume_metadata (volume vol)
     {
       if (!full_read (fd, &header, sizeof (header)))
 	{
-	  close_metadata_fd (fd);
-	  vol->metadata->fd = -1;
+	  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+	  close_volume_metadata (vol);
 	  return false;
 	}
       vol->metadata->n_elements = le_to_u32 (header.n_elements);
@@ -618,8 +625,17 @@ close_volume_metadata (volume vol)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (list_opened_p (vol->metadata))
-    close_metadata_fd (vol->metadata->fd);
+  zfsd_mutex_lock (&metadata_mutex);
+  if (vol->metadata->fd >= 0)
+    {
+      if (vol->metadata->generation
+	  == metadata_fd_data[vol->metadata->fd].generation)
+	{
+	  zfsd_mutex_lock (&metadata_fd_data[vol->metadata->fd].mutex);
+	  close_metadata_fd (vol->metadata->fd);
+	}
+    }
+  zfsd_mutex_unlock (&metadata_mutex);
   vol->metadata->fd = -1;
   hfile_destroy (vol->metadata);
 }
