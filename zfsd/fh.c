@@ -957,6 +957,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 {
   int32_t r;
   bool wait_for_locked;
+  unsigned int id;
 
   TRACE ("%p", (void *) *dentryp);
 #ifdef ENABLE_CHECKING
@@ -977,16 +978,14 @@ internal_dentry_lock (unsigned int level, volume *volp,
 	   __FILE__, __LINE__);
 
   *tmp_fh = (*dentryp)->fh->local_fh;
+  id = (*dentryp)->fh->id2assign++;
   wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
   if (wait_for_locked)
     {
-      /* Mark the dentry so that nobody else can lock dentry before us.  */
-      if (level > (*dentryp)->fh->level)
-	(*dentryp)->fh->level = level;
-
       zfsd_mutex_unlock (&(*volp)->mutex);
 
-      while ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
+      while ((*dentryp)->fh->id2run != id
+	     || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
@@ -1004,6 +1003,10 @@ internal_dentry_lock (unsigned int level, volume *volp,
   (*dentryp)->users++;
   (*volp)->n_locked_fhs++;
   set_owned (*dentryp, level);
+
+  (*dentryp)->fh->id2run++;
+  if (level != LEVEL_EXCLUSIVE)
+    zfsd_cond_broadcast (&(*dentryp)->fh->cond);
 
   if (!wait_for_locked)
     {
@@ -1053,11 +1056,12 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
       destroy_unused_capabilities (dentry->fh);
       if (dentry->deleted)
 	{
+	  abort ();
 	  internal_dentry_destroy (dentry, true, true);
 	}
       else
 	{
-	  zfsd_cond_signal (&dentry->fh->cond);
+	  zfsd_cond_broadcast (&dentry->fh->cond);
 	  release_dentry (dentry);
 	}
     }
@@ -1242,6 +1246,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->journal = NULL;
   fh->level = level;
   fh->users = 0;
+  fh->id2assign = 0;
+  fh->id2run = 0;
   fh->fd = -1;
   fh->generation = 0;
   fh->flags = 0;

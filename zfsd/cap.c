@@ -105,6 +105,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 {
   int32_t r;
   bool wait_for_locked;
+  unsigned int id;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -125,18 +126,16 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 	   __FILE__, __LINE__);
 
   *tmp_cap = (*icapp)->local_cap;
+  id = (*dentryp)->fh->id2assign++;
   wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
   if (wait_for_locked)
     {
-      /* Mark the dentry so that nobody else can lock dentry before us.  */
-      if (level > (*dentryp)->fh->level)
-	(*dentryp)->fh->level = level;
-
       zfsd_mutex_unlock (&(*volp)->mutex);
       if (vdp && *vdp)
 	zfsd_mutex_unlock (&(*vdp)->mutex);
 
-      while ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
+      while ((*dentryp)->fh->id2run != id
+	     || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
@@ -159,6 +158,10 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       (*vdp)->busy = true;
       (*vdp)->users++;
     }
+
+  (*dentryp)->fh->id2run++;
+  if (level != LEVEL_EXCLUSIVE)
+    zfsd_cond_broadcast (&(*dentryp)->fh->cond);
 
   if (!wait_for_locked)
     {

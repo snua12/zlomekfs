@@ -182,6 +182,12 @@ struct internal_fh_def
   /* Number of current users of the file handle.  */
   unsigned int users;
 
+  /* Lock ID which will be assigned next.  */
+  unsigned int id2assign;
+
+  /* Lock ID which will run next.  */
+  unsigned int id2run;
+
   /* Open file descriptor.  */
   int fd;
 
