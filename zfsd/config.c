@@ -1636,7 +1636,7 @@ reread_volume_list (void)
   if (r != ZFS_OK)
     return false;
 
-  if (!read_local_volume_info (path))
+  if (!read_local_volume_info (&local_config))
     return false;
 
   mark_all_volumes ();
