@@ -493,7 +493,6 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    create_res res;
 	    int fd;
 
-
 	    dir = dentry->parent;
 	    xmkstring (&name, dentry->name);
 	    if (!delete_tree (dentry, vol))
@@ -528,6 +527,24 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 		return r;
 	      }
 	  }
+	else
+	  {
+	    sa.mode = attr.mode;
+	    sa.uid = attr.uid;
+	    sa.gid = attr.gid;
+	    sa.size = (uint64_t) -1;
+	    sa.atime = (zfs_time) -1;
+	    sa.mtime = (zfs_time) -1;
+
+	    r = local_setattr (&dentry->fh->attr, dentry, &sa, vol);
+	    if (r != ZFS_OK)
+	      {
+		zfsd_mutex_unlock (&dentry->fh->mutex);
+		zfsd_mutex_unlock (&vol->mutex);
+		return r;
+	      }
+	  }
+
 	if (!schedule)
 	  return ZFS_OK;
 	return schedule_update_regular_file (dentry, vol);
@@ -568,6 +585,23 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	    free (name.str);
 	    if (r != ZFS_OK)
 	      {
+		zfsd_mutex_unlock (&vol->mutex);
+		return r;
+	      }
+	  }
+	else
+	  {
+	    sa.mode = attr.mode;
+	    sa.uid = attr.uid;
+	    sa.gid = attr.gid;
+	    sa.size = (uint64_t) -1;
+	    sa.atime = (zfs_time) -1;
+	    sa.mtime = (zfs_time) -1;
+
+	    r = local_setattr (&dentry->fh->attr, dentry, &sa, vol);
+	    if (r != ZFS_OK)
+	      {
+		zfsd_mutex_unlock (&dentry->fh->mutex);
 		zfsd_mutex_unlock (&vol->mutex);
 		return r;
 	      }
