@@ -601,8 +601,6 @@ zfs_close_retry:
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
-  else
-    zfsd_mutex_unlock (&ifh->mutex);
   if (vd)
     zfsd_mutex_unlock (&vd->mutex);
 
@@ -625,6 +623,7 @@ zfs_close_retry:
     }
 
   put_capability (icap, ifh);
+  zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&cap_mutex);
 
   if (r == ESTALE && retry < 1)
