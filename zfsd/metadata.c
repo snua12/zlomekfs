@@ -828,8 +828,10 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	    if (unlink (path) < 0)
 	      {
 		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		free (path);
 		return false;
 	      }
+	    free (path);
 	    return true;
 	  }
 	else
@@ -847,8 +849,10 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	    if (unlink (path) < 0)
 	      {
 		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		free (path);
 		return false;
 	      }
+	    free (path);
 	    return true;
 	  }
 	else
