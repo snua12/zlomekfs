@@ -1849,6 +1849,8 @@ config_reader (void *data)
   dir_op_res config_dir_res;
   dir_op_res user_dir_res;
   dir_op_res group_dir_res;
+  string relative_path;
+  uint32_t from_sid;
   int32_t r;
   volume vol;
   varray v;
@@ -1939,8 +1941,7 @@ config_reader (void *data)
   varray_create (&v, sizeof (uint32_t), 4);
   while (1)
     {
-      string relative_path;
-      uint32_t from_sid, sid;
+      uint32_t sid;
       unsigned int i;
       node nod;
       void **slot;
@@ -2001,6 +2002,10 @@ config_reader (void *data)
 	}
     }
   varray_destroy (&v);
+
+  /* Free remaining requests.  */
+  while (get_reread_config_request (&relative_path, &from_sid))
+    free (relative_path.str);
 
 dying:
   set_thread_state (t, THREAD_DEAD);
