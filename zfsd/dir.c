@@ -1139,7 +1139,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
       RETURN_INT (ENOENT);
     }
 
-  if (vol->master == this_node)
+  if (vol->local_path.str || vol->master == this_node)
     {
       r = get_volume_root_local (vol, &local_fh, &attr, &meta);
       if (r == ZFS_OK)
