@@ -481,6 +481,9 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 #ifdef ENABLE_CHECKING
       if (dentry->deleted)
 	abort ();
+      if (volp && vol->local_path && vol->master == this_node
+	  && !zfs_fh_undefined (dentry->fh->master_fh))
+	abort ();
 #endif
 
       cleanup_dentry_update_node (dentry);
