@@ -1113,17 +1113,6 @@ zfs_volume_root (dir_op_res *res, uint32_t vid)
   if (!vol)
     RETURN_INT (ENOENT);
 
-  if (vol->delete_p)
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_lock (&fh_mutex);
-      vol = volume_lookup (vid);
-      if (vol)
-	volume_delete (vol);
-      zfsd_mutex_unlock (&fh_mutex);
-      RETURN_INT (ENOENT);
-    }
-
   r = get_volume_root_dentry (vol, &dentry, true);
   if (r != ZFS_OK)
     RETURN_INT (r);
