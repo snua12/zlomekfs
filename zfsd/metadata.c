@@ -1383,6 +1383,62 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
   return true;
 }
 
+/* Get file handle mapping for master file handle MASTER_FH on volume VOL
+   and store it to MAP.  */
+
+bool
+get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
+{
+  bool r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!hashfile_opened_p (vol->fh_mapping))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
+      if (fd < 0)
+	return false;
+    }
+
+  map->master_fh.dev = master_fh->dev;
+  map->master_fh.ino = master_fh->ino;
+  if (!hfile_lookup (vol->fh_mapping, map))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  if (map->slot_status == VALID_SLOT
+      && meta->master_fh.gen < master_fh->gen)
+    {
+      /* There is a master file handle with older genration in the hash file
+	 so delete it and return undefined local file handle.  */
+      if (!hfile_delete (vol->fh_mapping, map))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
+      map->slot_status = DELETED_SLOT;
+    }
+
+#ifdef ENABLE_VALGRIND_CHECKING
+  if (map->slot_status != VALID_SLOT)
+    {
+      VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (&map->local_fh,
+						sizeof (zfs_fh)));
+      VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (&map->master_fh,
+						sizeof (zfs_fh)));
+    }
+#endif
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
+  return true;
+}
+
 /* Write the metadata for file handle FH on volume VOL to list file.
    Return false on file error.  */
 
