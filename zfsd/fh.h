@@ -86,14 +86,11 @@ struct internal_fh_def
   /* Pointer to file handle of the parent directory.  */
   internal_fh parent;
 
-#if 0
-  /* Pointer to the virtual file handle which contains this internal_fh.  */
-  struct virtual_dir_def *vd;
-  volume vol;
-#endif
-  
   /* File name.  */
   char *name;
+
+  /* File attributes.  */
+  fattr attr;
 
   /* Open file descriptor.  */
   int fd;
@@ -110,6 +107,12 @@ struct virtual_dir_def
 
   /* Directory name.  */
   char *name;
+  
+  /* Volume which is mounted here.  */
+  volume vol;
+
+  /* Directory attributes.  */
+  fattr attr;
 
   /* Subdirectories (of type 'struct internal_fh_def *').  */
   varray subdirs;
@@ -119,9 +122,6 @@ struct virtual_dir_def
 
   /* Total number of mountpoints in subtree (including current node).  */
   unsigned int n_mountpoints;
-  
-  /* Volume which is mounted here.  */
-  volume vol;
 };
 
 /* File handle of ZFS root.  */
