@@ -205,7 +205,7 @@ typedef struct dir_list_def
 {
   uint32_t n;
   char eof;
-  /* dir_entry dir_entries[];  */
+  void *buffer;			/* For internal use in zfsd.  */
 } dir_list;
 
 typedef struct read_dir_res_def

@@ -256,8 +256,34 @@ zfs_proc_readdir_server (read_dir_args *args, thread *t,
 			 ATTRIBUTE_UNUSED bool map_id)
 {
   DC *dc = &t->dc;
+  int32_t r;
+  char *old_pos, *cur_pos;
+  unsigned int old_len, cur_len;
+  dir_list list;
 
-  zfs_readdir (dc, &args->cap, args->cookie, args->count);
+  list.n = 0;
+  list.eof = 0;
+  list.buffer = dc;
+
+  old_pos = dc->current;
+  old_len = dc->cur_length;
+  encode_status (dc, ZFS_OK);
+  encode_dir_list (dc, &list);
+
+  r = zfs_readdir (&list, &args->cap, args->cookie, args->count);
+
+  cur_pos = dc->current;
+  cur_len = dc->cur_length;
+  dc->current = old_pos;
+  dc->cur_length = old_len;
+
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      encode_dir_list (dc, &list);
+      dc->current = cur_pos;
+      dc->cur_length = cur_len;
+    }
 }
 
 /* dir_op_res zfs_proc_mkdir (mkdir_args); */
@@ -355,8 +381,8 @@ zfs_proc_read_server (read_args *args, thread *t,
 {
   DC *dc = &t->dc;
   int32_t r;
-  char *old_pos = dc->current;
-  unsigned int old_len = dc->cur_length;
+  char *old_pos;
+  unsigned int old_len;
   uint32_t count;
   char *buffer;
 

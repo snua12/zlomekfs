@@ -54,7 +54,7 @@ extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
 			   uint32_t flags, sattr *attr);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
 extern int32_t zfs_close (zfs_cap *cap);
-extern int32_t zfs_readdir (DC *dc, zfs_cap *cap, int32_t cookie,
+extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
 			    uint32_t count);
 extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			 uint64_t offset, uint32_t count, bool update);

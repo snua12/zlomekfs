@@ -182,6 +182,8 @@ walk_dir (zfs_fh *dir, char *path)
       unsigned int i;
       direction dddd;
       uint32_t rid;
+      char *old_pos, *cur_pos;
+      unsigned int old_len, cur_len;
 
       message (0, stderr, "%s\n", path);
       dc_create (&dc, ZFS_MAX_REQUEST_LEN);
@@ -190,10 +192,29 @@ walk_dir (zfs_fh *dir, char *path)
 	if (!get_running ())
 	  return ZFS_EXITING;
 
+	list.n = 0;
+	list.eof = 0;
+	list.buffer = &dc;
+
 	start_encoding (&dc);
 	encode_direction (&dc, DIR_REPLY);
 	encode_request_id (&dc, 1234567890);
-	r = zfs_readdir (&dc, &cap, cookie, ZFS_MAXDATA);
+	old_pos = dc.current;
+	old_len = dc.cur_length;
+	encode_status (&dc, ZFS_OK);
+	encode_dir_list (&dc, &list);
+	r = zfs_readdir (&list, &cap, cookie, ZFS_MAXDATA);
+	cur_pos = dc.current;
+	cur_len = dc.cur_length;
+	dc.current = old_pos;
+	dc.cur_length = old_len;
+	encode_status (&dc, r);
+	if (r == ZFS_OK)
+	  {
+	    encode_dir_list (&dc, &list);
+	    dc.current = cur_pos;
+	    dc.cur_length = cur_len;
+	  }
 	finish_encoding (&dc);
 	if (r != ZFS_OK)
 	  {
