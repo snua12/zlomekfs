@@ -116,7 +116,7 @@ create_server_threads ()
   int i;
 
   /* FIXME: read the numbers from configuration.  */
-  thread_pool_create (&server_pool, 1024, 4, 16);
+  thread_pool_create (&server_pool, 256, 4, 16);
 
   pthread_mutex_lock (&server_pool.idle.mutex);
   pthread_mutex_lock (&server_pool.empty.mutex);

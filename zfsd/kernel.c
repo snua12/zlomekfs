@@ -140,7 +140,7 @@ create_client_threads ()
   int i;
 
   /* FIXME: read the numbers from configuration.  */
-  thread_pool_create (&client_pool, 1024, 4, 16);
+  thread_pool_create (&client_pool, 64, 4, 16);
 
   pthread_mutex_lock (&client_pool.idle.mutex);
   pthread_mutex_lock (&client_pool.empty.mutex);
