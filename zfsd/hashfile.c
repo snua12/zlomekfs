@@ -391,7 +391,7 @@ hfile_destroy (hfile_t hfile)
   free (hfile);
 }
 
-/* Lookup element X from hash file HFILE.  Return true on success.  */
+/* Lookup element X from hash file HFILE.  Return false on file failure.  */
 
 bool
 hfile_lookup (hfile_t hfile, void *x)
@@ -406,7 +406,7 @@ hfile_lookup (hfile_t hfile, void *x)
   return true;
 }
 
-/* Insert element X into hash file HFILE.  Return true on success.  */
+/* Insert element X into hash file HFILE.  Return false on file failure.  */
 
 bool
 hfile_insert (hfile_t hfile, void *x)
@@ -453,7 +453,7 @@ hfile_insert_error:
   return false;
 }
 
-/* Delete element X from hash file HFILE.  Return true on success.  */
+/* Delete element X from hash file HFILE.  Return false on file failure.  */
 
 bool
 hfile_delete (hfile_t hfile, void *x)
