@@ -168,8 +168,11 @@ walk_dir (zfs_fh *dir, char *path)
 {
   zfs_cap cap;
   dir_op_res res;
-  DC dc;
   int32_t r;
+  uint32_t i;
+  int32_t cookie;
+  dir_list list;
+  dir_entry entries[ZFS_MAX_DIR_ENTRIES];
 
   if (!get_running ())
     return ZFS_EXITING;
@@ -177,16 +180,8 @@ walk_dir (zfs_fh *dir, char *path)
   r = zfs_open (&cap, dir, O_RDONLY);
   if (r == ZFS_OK)
     {
-      int32_t cookie = 0;
-      dir_list list;
-      unsigned int i;
-      direction dddd;
-      uint32_t rid;
-      char *old_pos, *cur_pos;
-      unsigned int old_len, cur_len;
-
       message (0, stderr, "%s\n", path);
-      dc_create (&dc, ZFS_MAX_REQUEST_LEN);
+      cookie = 0;
 
       do {
 	if (!get_running ())
@@ -194,112 +189,68 @@ walk_dir (zfs_fh *dir, char *path)
 
 	list.n = 0;
 	list.eof = 0;
-	list.buffer = &dc;
+	list.buffer = entries;
 
-	start_encoding (&dc);
-	encode_direction (&dc, DIR_REPLY);
-	encode_request_id (&dc, 1234567890);
-	old_pos = dc.current;
-	old_len = dc.cur_length;
-	encode_status (&dc, ZFS_OK);
-	encode_dir_list (&dc, &list);
-	r = zfs_readdir (&list, &cap, cookie, ZFS_MAXDATA, &filldir_encode);
-	cur_pos = dc.current;
-	cur_len = dc.cur_length;
-	dc.current = old_pos;
-	dc.cur_length = old_len;
-	encode_status (&dc, r);
-	if (r == ZFS_OK)
-	  {
-	    encode_dir_list (&dc, &list);
-	    dc.current = cur_pos;
-	    dc.cur_length = cur_len;
-	  }
-	finish_encoding (&dc);
+	r = zfs_readdir (&list, &cap, cookie, ZFS_MAXDATA, &filldir_array);
 	if (r != ZFS_OK)
 	  {
 	    message (0, stderr, "readdir(): %d (%s)\n", r, zfs_strerror (r));
 	    zfs_close (&cap);
-	    dc_destroy (&dc);
 	    return r;
-	  }
-	start_decoding (&dc);
-	if (!decode_direction (&dc, &dddd)
-	    || !decode_request_id (&dc, &rid)
-	    || !decode_status (&dc, &r)
-	    || !decode_dir_list (&dc, &list))
-	  {
-	    r = zfs_close (&cap);
-	    if (r != ZFS_OK)
-	      message (0, stderr, "close(): %d (%s)\n", r, zfs_strerror (r));
-	    dc_destroy (&dc);
-	    return ZFS_INVALID_REPLY;
 	  }
 
 	for (i = 0; i < list.n; i++)
 	  {
-	    dir_entry entry;
-
-	    if (!decode_dir_entry (&dc, &entry))
+	    cookie = entries[i].cookie;
+	    if (entries[i].name.str[0] == '.'
+		&& (entries[i].name.str[1] == 0
+		    || (entries[i].name.str[1] == '.'
+			&& entries[i].name.str[2] == 0)))
 	      {
-		zfs_close (&cap);
-		dc_destroy (&dc);
-		return ZFS_INVALID_REPLY;
-	      }
-
-	    cookie = entry.cookie;
-	    if (entry.name.str[0] == '.'
-		&& (entry.name.str[1] == 0
-		    || (entry.name.str[1] == '.'
-			&& entry.name.str[2] == 0)))
-	      {
-		free (entry.name.str);
+		free (entries[i].name.str);
 		continue;
 	      }
 
 	    if (!get_running ())
-	      {
-		free (entry.name.str);
-		return ZFS_EXITING;
-	      }
+	      goto walk_dir_exiting;
 
-	    r = zfs_lookup (&res, dir, &entry.name);
+	    r = zfs_lookup (&res, dir, &entries[i].name);
 	    if (r != ZFS_OK)
 	      {
 		message (0, stderr, "lookup(): %d (%s)\n", r, zfs_strerror (r));
-		free (entry.name.str);
+		free (entries[i].name.str);
 		continue;
 	      }
 	    if (res.attr.type == FT_DIR)
 	      {
 		char *new_path;
 
-		new_path = xstrconcat (3, path, entry.name.str, "/");
+		new_path = xstrconcat (3, path, entries[i].name.str, "/");
 		r = walk_dir (&res.file, new_path);
 		free (new_path);
 
 		if (!get_running ())
-		  {
-		    free (entry.name.str);
-		    return ZFS_EXITING;
-		  }
+		  goto walk_dir_exiting;
 	      }
 	    else
-	      message (0, stderr, "%s%s\n", path, entry.name.str);
-	    free (entry.name.str);
+	      message (0, stderr, "%s%s\n", path, entries[i].name.str);
+	    free (entries[i].name.str);
 	  }
       } while (list.eof == 0);
+
       r = zfs_close (&cap);
       if (r != ZFS_OK)
 	message (0, stderr, "close(): %d (%s)\n", r, zfs_strerror (r));
-      dc_destroy (&dc);
     }
   else
-    {
-      message (0, stderr, "open(): %d (%s)\n", r, zfs_strerror (r));
-    }
+    message (0, stderr, "open(): %d (%s)\n", r, zfs_strerror (r));
 
   return r;
+
+walk_dir_exiting:
+  for (; i < list.n; i++)
+    free (entries[i].name.str);
+  return ZFS_EXITING;
 }
 
 /* Test functions accessing ZFS.  */
