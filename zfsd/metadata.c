@@ -3091,6 +3091,8 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
 	  journal_insert (journal, &local_fh, &master_fh, master_version,
 			  &name, (journal_operation_t) oper, false);
 	}
+      else
+	free (name.str);
     }
 
   fclose (f);
