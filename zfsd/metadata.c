@@ -32,6 +32,7 @@
 #include "metadata.h"
 #include "constant.h"
 #include "memory.h"
+#include "crc32.h"
 #include "interval.h"
 #include "varray.h"
 #include "fh.h"
@@ -40,6 +41,7 @@
 #include "fibheap.h"
 #include "util.h"
 #include "data-coding.h"
+#include "hashfile.h"
 
 /* Data for file descriptor.  */
 typedef struct metadata_fd_data_def
@@ -58,6 +60,66 @@ static fibheap metadata_heap;
 
 /* Mutex protecting access to METADATA.  */
 static pthread_mutex_t metadata_mutex;
+
+/* Hash function for metadata M.  */
+#define METADATA_HASH(M) (crc32_update (crc32_buffer (&(M).dev,		  \
+						      sizeof (uint32_t)), \
+					&(M).ino, sizeof (uint32_t)))
+
+/* Hash function for metadata X.  */
+
+static hashval_t
+metadata_hash (const void *x)
+{
+  return METADATA_HASH (*(metadata *) x);
+}
+
+/* Compare element X of hash file with possible element Y.  */
+
+static int
+metadata_eq (const void *x, const void *y)
+{
+  metadata *m1 = (metadata *) x;
+  metadata *m2 = (metadata *) y;
+
+  return (m1->dev == m2->dev && m1->ino == m2->ino);
+}
+
+/* Decode element X of the hash file.  */
+
+static void
+metadata_decode (void *x)
+{
+  metadata *m = (metadata *) x;
+
+  m->flags = le_to_u32 (m->flags);
+  m->dev = le_to_u32 (m->dev);
+  m->ino = le_to_u32 (m->ino);
+  m->local_version = le_to_u64 (m->local_version);
+  m->master_version = le_to_u64 (m->master_version);
+}
+
+/* Encode element X of the hash file.  */
+
+static void
+metadata_encode (void *x)
+{
+  metadata *m = (metadata *) x;
+
+  m->flags = u32_to_le (m->flags);
+  m->dev = u32_to_le (m->dev);
+  m->ino = u32_to_le (m->ino);
+  m->local_version = u64_to_le (m->local_version);
+  m->master_version = u64_to_le (m->master_version);
+}
+
+/* Build path to file with list of files and their metadata for volume VOL.  */
+
+static char *
+build_list_path (volume vol)
+{
+  return xstrconcat (2, vol->local_path, "/.zfs/list");
+}
 
 /* Build path to file with interval tree of purpose PURPOSE for file handle FH
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
@@ -111,6 +173,32 @@ build_interval_path (volume vol, internal_fh fh, interval_tree_purpose purpose,
   return path;
 }
 
+/* Is the hash file HFILE for list of file handles opened?  */
+
+static bool
+list_opened_p (hfile_t hfile)
+{
+  CHECK_MUTEX_LOCKED (hfile->mutex);
+
+  if (hfile->fd < 0)
+    return false;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[hfile->fd].mutex);
+  if (hfile->generation != metadata_fd_data[hfile->fd].generation)
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[hfile->fd].mutex);
+      zfsd_mutex_unlock (&metadata_mutex);
+      return false;
+    }
+
+  metadata_fd_data[hfile->fd].heap_node
+    = fibheap_replace_key (metadata_heap, metadata_fd_data[hfile->fd].heap_node,
+			   (fibheapkey_t) time (NULL));
+  zfsd_mutex_unlock (&metadata_mutex);
+  return true;
+}
+
 /* Is the interval file for interval tree TREE opened?  */
 
 static bool
@@ -135,6 +223,28 @@ interval_opened_p (interval_tree tree)
 			   (fibheapkey_t) time (NULL));
   zfsd_mutex_unlock (&metadata_mutex);
   return true;
+}
+
+/* Initialize file descriptor for hash file HFILE containing list
+   of file handles and metadata.  */
+
+static void
+init_list_fd (hfile_t hfile)
+{
+#ifdef ENABLE_CHECKING
+  if (hfile->fd < 0)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (hfile->mutex);
+  CHECK_MUTEX_LOCKED (&metadata_mutex);
+  CHECK_MUTEX_LOCKED (&metadata_fd_data[hfile->fd].mutex);
+
+  metadata_fd_data[hfile->fd].fd = hfile->fd;
+  metadata_fd_data[hfile->fd].generation++;
+  hfile->generation = metadata_fd_data[hfile->fd].generation;
+  metadata_fd_data[hfile->fd].heap_node
+    = fibheap_insert (metadata_heap, (fibheapkey_t) time (NULL),
+		      &metadata_fd_data[hfile->fd]);
 }
 
 /* Initialize file descriptor for interval tree TREE.  */
@@ -183,6 +293,49 @@ close_metadata_fd (int fd)
   fibheap_delete_node (metadata_heap, metadata_fd_data[fd].heap_node);
   metadata_fd_data[fd].heap_node = NULL;
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+}
+
+/* Open and initialize file descriptor for hash file HFILE with list
+   of file handles and metadata.  */
+
+static int
+open_list_file (volume vol)
+{
+  int fd;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+retry_open:
+  fd = open (vol->metadata->file_name, O_RDWR | O_CREAT);
+  if ((fd < 0 && errno == EMFILE)
+      || (fd >= 0
+	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
+    {
+      metadata_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&metadata_mutex);
+      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
+      if (fd_data && fd_data->fd >= 0)
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  close_metadata_fd (fd_data->fd);
+	}
+      zfsd_mutex_unlock (&metadata_mutex);
+      if (fd_data)
+	goto retry_open;
+    }
+
+  if (fd < 0)
+    return fd;
+
+  vol->metadata->fd = fd;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
+  init_list_fd (vol->metadata);
+  zfsd_mutex_unlock (&metadata_mutex);
+
+  return fd;
 }
 
 /* Open and initialize file descriptor for interval of purpose PURPOSE for
@@ -265,18 +418,16 @@ create_path_for_file (char *file, unsigned int mode)
 
   for (last = file; *last; last++)
     ;
-  last--;
+  for (last--; last != file && *last != '/'; last--)
+    ;
+  if (last == file)
+    return false;
+
+  *last = 0;
 
   /* Find the first existing directory.  */
-  for (end = last;;)
+  for (end = last - 1;;)
     {
-      for (; end != file && *end != '/'; end--)
-	;
-      if (end == file)
-	return false;
-
-      *end = 0;
-
       if (lstat (file, &st) == 0)
 	{
 	  if ((st.st_mode & S_IFMT) != S_IFDIR)
@@ -284,6 +435,13 @@ create_path_for_file (char *file, unsigned int mode)
 
 	  break;
 	}
+
+      for (; end != file && *end != '/'; end--)
+	;
+      if (end == file)
+	return false;
+
+      *end = 0;
     }
 
   /* Create the path.  */
@@ -297,7 +455,10 @@ create_path_for_file (char *file, unsigned int mode)
       for (end++; end < last && *end; end++)
 	;
       if (end >= last)
-	return true;
+	{
+	  *last = '/';
+	  return true;
+	}
     }
 
   return false;
@@ -364,6 +525,103 @@ retry_open:
   free (new_path);
   free (path);
   return true;
+}
+
+/* Initialize hash file containing metadata for volume VOL.  */
+
+bool
+init_volume_metadata (volume vol)
+{
+  hashfile_header header;
+  int fd;
+  char *path;
+  struct stat st;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  path = build_list_path (vol);
+  vol->metadata = hfile_create (sizeof (metadata), 256, metadata_hash,
+				metadata_eq, metadata_decode, metadata_encode,
+				path, &vol->mutex);
+  if (!create_path_for_file (path, S_IRWXU))
+    {
+      free (path);
+      return false;
+    }
+  free (path);
+
+  fd = open_list_file (vol);
+  if (fd < 0)
+    return false;
+
+  if (fstat (fd, &st) < 0)
+    {
+      message (2, stderr, "%s: fstat: %s\n", vol->metadata->file_name,
+	       strerror (errno));
+      close_metadata_fd (fd);
+      vol->metadata->fd = -1;
+      return false;
+    }
+
+  if ((st.st_mode & S_IFMT) != S_IFREG)
+    {
+      message (2, stderr, "%s: Not a regular file\n",
+	       vol->metadata->file_name);
+      close_metadata_fd (fd);
+      vol->metadata->fd = -1;
+      return false;
+    }
+
+  if ((uint64_t) st.st_size < (uint64_t) sizeof (header))
+    {
+      header.n_elements = 0;
+      header.n_deleted = 0;
+      if (!full_write (fd, &header, sizeof (header)))
+	{
+	  close_metadata_fd (fd);
+	  vol->metadata->fd = -1;
+	  unlink (vol->metadata->file_name);
+	  return false;
+	}
+
+      if (ftruncate (fd, ((uint64_t) vol->metadata->size * sizeof (metadata)
+			  + sizeof (header))) < 0)
+	{
+	  close_metadata_fd (fd);
+	  vol->metadata->fd = -1;
+	  unlink (vol->metadata->file_name);
+	  return false;
+	}
+    }
+  else
+    {
+      if (!full_read (fd, &header, sizeof (header)))
+	{
+	  close_metadata_fd (fd);
+	  vol->metadata->fd = -1;
+	  return false;
+	}
+      vol->metadata->n_elements = le_to_u32 (header.n_elements);
+      vol->metadata->n_deleted = le_to_u32 (header.n_deleted);
+      vol->metadata->size = (((uint64_t) st.st_size - sizeof (header))
+			     / sizeof (metadata));
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+  return true;
+}
+
+/* Close hash file containing metadata for volume VOL.  */
+
+void
+close_volume_metadata (volume vol)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (list_opened_p (vol->metadata))
+    close_metadata_fd (vol->metadata->fd);
+  vol->metadata->fd = -1;
+  hfile_destroy (vol->metadata);
 }
 
 /* Initialize interval tree of purpose PURPOSE for file handle FH

@@ -36,6 +36,22 @@ typedef enum interval_tree_purpose_def
   INTERVAL_TREE_MODIFIED
 } interval_tree_purpose;
 
+/* Metadata for file.  */
+typedef struct metadata_def
+{
+  uint32_t slot_status;		/* status of slot (empty, deleted, valid) */
+  uint32_t flags;		/* see METADATA_* below */
+  uint32_t dev;			/* device of the file */
+  uint32_t ino;			/* inode of the file */
+  uint64_t local_version;	/* local version (is it needed?) */
+  uint64_t master_version;	/* version on server/version got from server */
+} metadata;
+
+#define METADATA_COMPLETE	1	/* file is complete */
+#define METADATA_MODIFIED	2	/* file is modified */
+
+extern bool init_volume_metadata (volume vol);
+extern void close_volume_metadata (volume vol);
 extern bool init_interval_tree (volume vol, internal_fh fh,
 				interval_tree_purpose purpose);
 extern bool flush_interval_tree (volume vol, internal_fh fh,
