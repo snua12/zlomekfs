@@ -77,8 +77,8 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh)
       r = zfs_proc_volume_root_client (t, &args, vol->master);
       if (r == ZFS_OK)
 	{
-	  if (!decode_zfs_fh (&t->u.server.dc_call, remote_fh)
-	      || !finish_decoding (&t->u.server.dc_call))
+	  if (!decode_zfs_fh (&t->u.server.dc, remote_fh)
+	      || !finish_decoding (&t->u.server.dc))
 	    return ZFS_INVALID_REPLY;
 	}
     }
@@ -146,6 +146,36 @@ get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh)
 	{
 	  r = get_volume_root_remote (vol, master_fh);
 	}
+    }
+
+  return r;
+}
+
+/* Update root of volume VOL, create an internal file handle for it and store
+   it to IFH.  */
+
+int
+update_volume_root (volume vol, internal_fh *ifh)
+{
+  zfs_fh local_fh, master_fh;
+  int r;
+
+  r = get_volume_root (vol, &local_fh, &master_fh);
+  if (r != ZFS_OK)
+    return r;
+
+  if (!ZFS_FH_EQ (vol->local_root_fh, local_fh)
+      || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
+    {
+      /* FIXME? delete only FHs which are not open now?  */
+      pthread_mutex_lock (&vol->fh_mutex);
+      htab_empty (vol->fh_htab_name);
+      htab_empty (vol->fh_htab);
+      pthread_mutex_unlock (&vol->fh_mutex);
+
+      vol->local_root_fh = local_fh;
+      vol->master_root_fh = master_fh;
+      *ifh = internal_fh_create (&local_fh, &master_fh, NULL, vol, "");
     }
 
   return r;
@@ -246,8 +276,7 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
 }
 
 static int
-local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
-	      unsigned int *dev, unsigned int *ino)
+local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol)
 {
   struct stat st;
   char *path;
@@ -268,33 +297,32 @@ local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
 }
 
 static int
-remote_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
-	       unsigned int *dev, unsigned int *ino)
+remote_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol)
 {
-  return ESTALE;
-}
+  dir_op_args args;
+  thread *t;
+  node n;
+  int32_t r;
 
-static void
-update_volume_root (volume vol, internal_fh *ifh)
-{
-  zfs_fh local_fh, master_fh;
+  args.dir = dir->master_fh;
+  args.name.str = (char *) name;
+  args.name.len = strlen (name);
+  t = (thread *) pthread_getspecific (server_thread_key);
+  pthread_mutex_lock (&node_mutex);
+  n = node_lookup (dir->master_fh.sid);
+  if (!n)
+    return ENOENT;
 
-  if (get_volume_root (vol, &local_fh, &master_fh) != ZFS_OK)
-    return;
-
-  if (!ZFS_FH_EQ (vol->local_root_fh, local_fh)
-      || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
+  pthread_mutex_unlock (&node_mutex);
+  r = zfs_proc_lookup_client (t, &args, n);
+  if (r == ZFS_OK)
     {
-      /* FIXME? delete only FHs which are not open now?  */
-      pthread_mutex_lock (&vol->fh_mutex);
-      htab_empty (vol->fh_htab_name);
-      htab_empty (vol->fh_htab);
-      pthread_mutex_unlock (&vol->fh_mutex);
-
-      vol->local_root_fh = local_fh;
-      vol->master_root_fh = master_fh;
-      *ifh = internal_fh_create (&local_fh, &master_fh, NULL, vol, "");
+      if (!decode_zfs_fh (&t->u.server.dc, fh)
+	  || !finish_decoding (&t->u.server.dc))
+	return ZFS_INVALID_REPLY;
     }
+
+  return r;
 }
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
@@ -305,36 +333,13 @@ zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
   volume vol;
   internal_fh idir, ifh;
   virtual_dir vd, pvd;
+  zfs_fh master_fh;
 
   /* Lookup the DIR.  */
   if (!fh_lookup (dir, &vol, &idir, &pvd))
     return ESTALE;
 
-  if (pvd && pvd->vol)
-    update_volume_root (pvd->vol, &idir);
-
-  /* TODO: update directory */
-
-  if (idir)
-    {
-      unsigned int dev;
-      unsigned int ino;
-      int r;
-
-      if (vol->flags & VOLUME_LOCAL)
-	r = local_lookup (fh, idir, name, vol, &dev, &ino);
-      else
-	r = remote_lookup (fh, idir, name, vol, &dev, &ino);
-      if (r)
-	return r;
-
-      /* FIXME: update hash tables of fh. */
-      ifh = fh_lookup_name (vol, idir, name);
-      if (!ifh)
-	ifh = internal_fh_create (fh, fh, idir, vol, name);
-      return ZFS_OK;
-    }
-  else	/* if (idir == NULL) */
+  if (pvd)
     {
       vd = vd_lookup_name (pvd, name);
       if (vd)
@@ -342,53 +347,70 @@ zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
 	  *fh = vd->fh;
 	  return ZFS_OK;
 	}
+
+      if (pvd->vol)
+	{
+	  int r;
+
+	  r = update_volume_root (pvd->vol, &idir);
+	  if (r != ZFS_OK)
+	    return r;
+	}
       else
 	return ENOENT;
     }
 
-#if 0
+  /* TODO: update directory */
 
-  /* Lookup the DIR.  */
-  idir = (internal_fh) fh_lookup (dir);
-  if (!idir)
-    return ESTALE;
-
-  if (VIRTUAL_FH_P (idir->client_fh) && !idir->vd->active && idir->vd->real_fh)
-    idir = idir->vd->real_fh;
-  else
-    return ESTALE;
-
-  /* Lookup the NAME in DIR.  */
-  ifh = fh_lookup_name (idir, name);
-  if (ifh && VIRTUAL_FH_P (ifh->client_fh) && ifh->vd->active)
+  if (idir)
     {
-      *fh = ifh->client_fh;
-      return 0;
-    }
+      int r;
 
-  vol = volume_lookup (idir->client_fh.vid);
-  if (vol->flags & VOLUME_COPY)
-    {
-      /* update directory */
-    }
-
-  if (vol->flags & VOLUME_LOCAL)
-    r = local_lookup (idir, fh, vol, &dev, &ino);
-  else
-    r = remote_lookup (idir, fh, vol, &dev, &ino);
-
-  if (r)
-    return r;
-
-
-
-  if (!ifh)
-    {
-      if (VIRTUAL_FH_P (idir->client_fh))
+      if (vol->local_path)
 	{
+	  r = local_lookup (fh, idir, name, vol);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  if (vol->master == this_node)
+	    master_fh = *fh;
+	  else
+	    {
+	      r = remote_lookup (fh, idir, name, vol);
+	      if (r != ZFS_OK)
+		return r;
+	    }
 	}
+      else if (vol->master != this_node)
+	{
+	  r = remote_lookup (fh, idir, name, vol);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  master_fh = *fh;
+	}
+      else
+	abort ();
+
+      /* Update internal file handles in htab.  */
+      ifh = fh_lookup_name (vol, idir, name);
+      if (ifh)
+	{
+	  if (!ZFS_FH_EQ (ifh->local_fh, *fh)
+	      || !ZFS_FH_EQ (ifh->master_fh, master_fh))
+	    {
+	      internal_fh_destroy (ifh, vol);
+	      ifh = internal_fh_create (fh, &master_fh, idir, vol, name);
+	    }
+	}
+      else
+	ifh = internal_fh_create (fh, &master_fh, idir, vol, name);
+
+      return ZFS_OK;
     }
-#endif
+  else
+    abort ();
+
   return ESTALE;
 }
 
