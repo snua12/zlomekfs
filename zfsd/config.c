@@ -867,6 +867,56 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 			 process_line_volume_hierarchy, &data);
   free (file_name);
 
+  /* Set the common volume info for volumes which were not listed in volume
+     hierarchy.  */
+  if (VARRAY_USED (data.hierarchy) > 0)
+    {
+      unsigned int i;
+      string str;
+      volume vol;
+      node nod;
+
+      for (i = 0; i < VARRAY_USED (data.hierarchy); i++)
+	{
+	  master_name = VARRAY_ACCESS (data.hierarchy, i, char *);
+	  if (master_name)
+	    break;
+	}
+
+      if (master_name)
+	{
+	  str.str = master_name;
+	  str.len = strlen (master_name);
+	  nod = node_lookup_name (&str);
+	  if (!nod)
+	    goto out;
+	  zfsd_mutex_unlock (&nod->mutex);
+
+	  zfsd_mutex_lock (&vd_mutex);
+	  zfsd_mutex_lock (&volume_mutex);
+	  vol = volume_lookup_nolock (vid);
+	  if (!vol)
+	    vol = volume_create (vid);
+	  else
+	    {
+	      if (!vol->marked)
+		{
+		  zfsd_mutex_unlock (&vol->mutex);
+		  zfsd_mutex_unlock (&volume_mutex);
+		  zfsd_mutex_unlock (&vd_mutex);
+		  goto out;
+		}
+	      if (vol->slaves)
+		htab_empty (vol->slaves);
+	    }
+	  volume_set_common_info (vol, name, mountpoint, nod);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&volume_mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	}
+    }
+
+out:
   while (VARRAY_USED (data.hierarchy) > 0)
     {
       master_name = VARRAY_TOP (data.hierarchy, char *);
