@@ -445,7 +445,47 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   return ZFS_OK;
 }
 
-/* Set attributes of local file fh on volume VOL according to SA,
+/* Set attributes of local file PATH on volume VOL according to SA,
+   reget attributes and store them to FA.  */
+
+static int
+local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
+{
+  if (sa->mode != (unsigned int) -1)
+    {
+      if (chmod (path, sa->mode) != 0)
+	return errno;
+    }
+
+  if (sa->uid != (unsigned int) -1 || sa->gid != (unsigned int) -1)
+    {
+      if (lchown (path, sa->uid, sa->gid) != 0)
+	return errno;
+    }
+
+  if (sa->size != (uint64_t) -1)
+    {
+      if (truncate (path, sa->size) != 0)
+	return errno;
+    }
+
+  if (sa->atime != (zfs_time) -1 || sa->mtime != (zfs_time) -1)
+    {
+      struct utimbuf t;
+
+      t.actime = sa->atime;
+      t.modtime = sa->mtime;
+      if (utime (path, &t) != 0)
+	return errno;
+    }
+
+  if (fa)
+    return local_getattr (fa, path, vol);
+
+  return ZFS_OK;
+}
+
+/* Set attributes of local file FH on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
 static int
@@ -458,41 +498,9 @@ local_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path (vol, fh);
-  if (sa->mode != (unsigned int) -1)
-    {
-      if (chmod (path, sa->mode) != 0)
-	goto local_setattr_error;
-    }
-
-  if (sa->uid != (unsigned int) -1 || sa->gid != (unsigned int) -1)
-    {
-      if (lchown (path, sa->uid, sa->gid) != 0)
-	goto local_setattr_error;
-    }
-
-  if (sa->size != (uint64_t) -1)
-    {
-      if (truncate (path, sa->size) != 0)
-	goto local_setattr_error;
-    }
-
-  if (sa->atime != (zfs_time) -1 || sa->mtime != (zfs_time) -1)
-    {
-      struct utimbuf t;
-
-      t.actime = sa->atime;
-      t.modtime = sa->mtime;
-      if (utime (path, &t) != 0)
-	goto local_setattr_error;
-    }
-
-  r = local_getattr (fa, path, vol);
+  r = local_setattr_path (fa, path, sa, vol);
   free (path);
   return r;
-
-local_setattr_error:
-  free (path);
-  return errno;
 }
 
 /* Set attributes of remote file fh on volume VOL according to SA,
@@ -806,7 +814,7 @@ local_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
       return errno;
     }
 
-  r = local_getattr (&res->attr, path, vol);
+  r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)
     return r;
