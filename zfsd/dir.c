@@ -4045,7 +4045,10 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
 
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
-    vol = volume_lookup (fh->vid);
+    {
+      vol = volume_lookup (fh->vid);
+      dentry = NULL;
+    }
 
   if (!vol)
     return ESTALE;
