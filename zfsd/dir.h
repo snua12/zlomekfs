@@ -38,10 +38,13 @@ extern void build_local_path_name (string *dst, volume vol,
 extern int32_t recursive_unlink (string *path, uint32_t vid, bool shadow);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
-							internal_dentry *dir);
+							internal_dentry *dir,
+							uint32_t conflict_error);
 extern int32_t validate_operation_on_zfs_fh (zfs_fh *fh,
 					     uint32_t conflict_error,
 					     uint32_t non_exist_error);
+extern int32_t validate_operation_on_volume_root (internal_dentry dentry,
+						  uint32_t conflict_error);
 extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 				       fattr *attr);
 extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentryp,

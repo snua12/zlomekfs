@@ -353,11 +353,14 @@ recursive_unlink (string *path, uint32_t vid, bool shadow)
 /* Check whether we can perform file system change operation on NAME in
    virtual directory PVD.  Resolve whether the is a volume mapped on PVD
    whose mounpoint name is not NAME and if so return ZFS_OK and store
-   the internal dentry of the root of volume to DIR.  */
+   the internal dentry of the root of volume to DIR.
+   If there is a volume mapped on PVD and its root is a conflict directory
+   we can't do a file system change operation.  */
 
 int32_t
 validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
-					 internal_dentry *dir)
+					 internal_dentry *dir,
+					 uint32_t conflict_error)
 {
   virtual_dir vd;
 
@@ -393,6 +396,14 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
       r = get_volume_root_dentry (vol, dir, true);
       if (r != ZFS_OK)
 	return r;
+
+      r = validate_operation_on_volume_root (*dir, conflict_error);
+      if (r != ZFS_OK)
+	{
+	  release_dentry (*dir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return r;
+	}
     }
 
   return ZFS_OK;
@@ -422,6 +433,32 @@ validate_operation_on_zfs_fh (zfs_fh *fh, uint32_t conflict_error,
 	return conflict_error;
       if (NON_EXIST_FH_P (*fh))
 	return non_exist_error;
+    }
+
+  return ZFS_OK;
+}
+
+/* Check whether we can perform operation on volume root DENTRY.
+   If DENTRY is a conflict directory return EINVAL if request came from network
+   and CONFLICT_ERROR if request came from kernel.  */
+
+int32_t
+validate_operation_on_volume_root (internal_dentry dentry,
+				   uint32_t conflict_error)
+{
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (NON_EXIST_FH_P (dentry->fh->local_fh))
+    abort ();
+#endif
+
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
+    {
+#ifdef ENABLE_CHECKING
+      if (!request_from_this_node ())
+	abort ();
+#endif
+      return conflict_error;
     }
 
   return ZFS_OK;
@@ -613,11 +650,18 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
   if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
 
-  if (dentry->parent && request_from_this_node ())
+  if (dentry->parent)
     {
-      release_dentry (dentry);
-      dentry = vol->root_dentry;
-      acquire_dentry (dentry);
+#ifdef ENABLE_CHECKING
+      if (dentry->parent != vol->root_dentry)
+	abort ();
+#endif
+      if (request_from_this_node ())
+	{
+	  release_dentry (dentry);
+	  dentry = vol->root_dentry;
+	  acquire_dentry (dentry);
+	}
     }
 
   *dentryp = dentry;
@@ -754,6 +798,14 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 	  r = get_volume_root_dentry (vol, &dentry, true);
 	  if (r != ZFS_OK)
 	    return r;
+
+	  r = validate_operation_on_volume_root (dentry, ZFS_OK);
+	  if (r != ZFS_OK)
+	    {
+	      release_dentry (dentry);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
 	}
       else
 	{
@@ -967,6 +1019,14 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	  r = get_volume_root_dentry (vol, &dentry, true);
 	  if (r != ZFS_OK)
 	    return r;
+
+	  r = validate_operation_on_volume_root (dentry, EROFS);
+	  if (r != ZFS_OK)
+	    {
+	      release_dentry (dentry);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
 	}
       else
 	{
@@ -1241,6 +1301,14 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 		  return ZFS_OK;
 		}
 
+	      r = validate_operation_on_volume_root (idir, ZFS_OK);
+	      if (r != ZFS_OK)
+		{
+		  release_dentry (idir);
+		  zfsd_mutex_unlock (&vol->mutex);
+		  return r;
+		}
+
 	      res->attr = idir->fh->attr;
 	      release_dentry (idir);
 	      zfsd_mutex_unlock (&vol->mutex);
@@ -1265,6 +1333,14 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  if (idir->fh->attr.type != FT_DIR)
 	    abort ();
 #endif
+
+	  r = validate_operation_on_volume_root (idir, ZFS_OK);
+	  if (r != ZFS_OK)
+	    {
+	      release_dentry (idir);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
 	}
       else
 	return ENOENT;
@@ -1557,7 +1633,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -1763,7 +1839,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -2039,7 +2115,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
   if (vd)
     {
-      r = validate_operation_on_virtual_directory (vd, to_name, &to_dentry);
+      r = validate_operation_on_virtual_directory (vd, to_name, &to_dentry,
+						   EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -2084,7 +2161,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
   if (vd)
     {
-      r = validate_operation_on_virtual_directory (vd, from_name, &from_dentry);
+      r = validate_operation_on_virtual_directory (vd, from_name, &from_dentry,
+						   EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -2466,7 +2544,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
   if (vd)
     {
-      r = validate_operation_on_virtual_directory (vd, name, &dir_dentry);
+      r = validate_operation_on_virtual_directory (vd, name, &dir_dentry,
+						   EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -2733,7 +2812,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -3216,7 +3295,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -3457,7 +3536,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
