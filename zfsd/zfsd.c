@@ -92,7 +92,7 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
   if (config_reader_data.thread_id)
     {
       set_thread_state (&config_reader_data, THREAD_DYING);
-      semaphore_up (&config_reader_data.sem, 1);
+      semaphore_up (&config_sem, 1);
     }
 
   /* Terminate the sleep.  */

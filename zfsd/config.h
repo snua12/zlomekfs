@@ -28,11 +28,15 @@
 #include <inttypes.h>
 #include "pthread.h"
 #include "memory.h"
+#include "semaphore.h"
 #include "thread.h"
 #include "fh.h"
 
 /*! Data for config reader thread.  */
 extern thread config_reader_data;
+
+/*! Semaphore for managing the reread request queue.  */
+extern semaphore config_sem;
 
 /*! File used to communicate with kernel.  */
 extern string kernel_file_name;
