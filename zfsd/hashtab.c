@@ -1,7 +1,7 @@
 /* Expandable hash table datatype.
    Copyright (C) 2003 Josef Zlomek
-   Inspired with gcc/libiberty/hashtab.c
-   by Vladimir Makarov (vmakarov@cygnus.com)
+   Original version: GCC project, file gcc/libiberty/hashtab.c
+     by Vladimir Makarov (vmakarov@cygnus.com)
 
    This file is part of ZFS.
 
@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include "hashtab.h"
 #include "memory.h"
+#include "log.h"
 
 /* Value for empty hash table entry.  */
 #define EMPTY_ENTRY ((void *) 0)
@@ -55,6 +56,8 @@ static const unsigned int primes[] = {
   4194301,
   8388593,
   16777213,
+  33554393,
+  67108859,
 };
 
 #define N_PRIMES (sizeof(primes) / sizeof(primes[0]))
@@ -71,10 +74,10 @@ get_higher_prime(unsigned int n)
 
   if (n > MAX_PRIME)
     {
-      fprintf(stderr,
+      message(-1, stderr,
 	      "%d is greater than maximum predefined prime number (%d).\n",
 	      n, MAX_PRIME);
-      return 0;
+      abort();
     }
   
   while (low != high)
@@ -165,14 +168,11 @@ htab_create(unsigned int size, htab_hash hash, htab_hash hash_f, htab_eq eq_f)
 {
   htab_t htab;
 
-  size = get_higher_prime(size);
-  if (!size)
-    return NULL;
-
   htab = (htab_t) xmalloc(sizeof(htab_t));
   if (!htab)
     return NULL;
 
+  size = get_higher_prime(size);
   htab->table = (void **) xcalloc(size, sizeof(void *));
   if (!htab->table)
     {
@@ -219,15 +219,14 @@ htab_clear_slot(htab_t htab, void **slot, htab_del del_f)
 }
 
 void **
-htab_find_slot(htab_t htab, const void *elem,
-			     enum insert insert)
+htab_find_slot(htab_t htab, const void *elem, enum insert insert)
 {
   return htab_find_slot_with_hash(htab, elem, (*htab->hash_f)(elem), insert);
 }
 
 void **
-htab_find_slot_with_hash(htab_t htab, const void *elem,
-				       hash_t hash, enum insert insert)
+htab_find_slot_with_hash(htab_t htab, const void *elem, hash_t hash,
+			 enum insert insert)
 {
   unsigned int size;
   unsigned int index;
