@@ -136,6 +136,73 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
   RETURN_INT (r);
 }
 
+/** \fn static int32_t truncate_local_file (volume *volp,
+        internal_dentry *dentryp, zfs_fh *fh, uint64_t size)
+    \brief Truncate the local file according to the remote size but do not
+    get rid of local modifications of the file.
+    \param volp Volume which the file is on.
+    \param dentryp Dentry of the file.
+    \param fh File handle of the file.
+    \param size Remote size of the file.  */
+
+static int32_t
+truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
+		     uint64_t size)
+{
+  interval_tree_node n;
+  fattr fa;
+  sattr sa;
+  uint32_t r;
+  bool flush;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+
+  memset (&sa, -1, sizeof (sattr));
+  sa.size = size;
+  n = interval_tree_max ((*dentryp)->fh->modified);
+  if (n && sa.size < INTERVAL_END (n))
+    sa.size = INTERVAL_END (n);
+
+  if (sa.size == (*dentryp)->fh->attr.size)
+    RETURN_INT (ZFS_OK);
+
+  r = local_setattr (&fa, *dentryp, &sa, *volp);
+  if (r != ZFS_OK)
+    RETURN_INT (r);
+
+  r = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r != ZFS_OK)
+    abort ();
+#endif
+
+  /* Flush the interval tree if the file was complete but now is larger
+     to clean the complete flag.  */
+  flush = ((*dentryp)->fh->attr.size < size
+	   && !((*dentryp)->fh->meta.flags & METADATA_UPDATED_TREE));
+
+  (*dentryp)->fh->attr.size = fa.size;
+  interval_tree_delete ((*dentryp)->fh->updated, fa.size, UINT64_MAX);
+  interval_tree_delete ((*dentryp)->fh->modified, fa.size, UINT64_MAX);
+  if (fa.size > size)
+    {
+      if (!append_interval (*volp, (*dentryp)->fh, METADATA_TYPE_UPDATED,
+			    size, fa.size))
+	MARK_VOLUME_DELETE (*volp);
+    }
+
+  if (flush || (*dentryp)->fh->updated->deleted)
+    {
+      if (!flush_interval_tree (*volp, (*dentryp)->fh, METADATA_TYPE_UPDATED))
+	MARK_VOLUME_DELETE (*volp);
+    }
+
+  RETURN_INT (r);
+}
+
 /* Update BLOCKS (described in ARGS) of local file CAP from remote file,
    start searching in BLOCKS at index INDEX.
    CONFLICT_P says whether the file is in conflict.  */
@@ -209,48 +276,11 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
      truncate local file.  */
   if (local_md5.size != remote_md5.size)
     {
-      interval_tree_node n;
-      fattr fa;
-      sattr sa;
-
-      memset (&sa, -1, sizeof (sattr));
-      sa.size = remote_md5.size;
-      n = interval_tree_max (dentry->fh->modified);
-      if (n && sa.size < INTERVAL_END (n))
-	sa.size = INTERVAL_END (n);
-
-      r = local_setattr (&fa, dentry, &sa, vol);
+      r = truncate_local_file (&vol, &dentry, &cap->fh, remote_md5.size);
       if (r != ZFS_OK)
 	RETURN_INT (r);
 
-      r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r != ZFS_OK)
-	abort ();
-#endif
-
-      /* Flush the interval tree if the file was complete but now is larger
-	 to clean the complete flag.  */
-      flush = (local_md5.size < remote_md5.size
-	       && !(dentry->fh->meta.flags & METADATA_UPDATED_TREE));
-
-      dentry->fh->attr.size = fa.size;
-      local_md5.size = fa.size;
-      interval_tree_delete (dentry->fh->updated, local_md5.size, UINT64_MAX);
-      interval_tree_delete (dentry->fh->modified, local_md5.size, UINT64_MAX);
-      if (local_md5.size > remote_md5.size)
-	{
-	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
-				remote_md5.size, local_md5.size))
-	    MARK_VOLUME_DELETE (vol);
-	}
-
-      if (flush || dentry->fh->updated->deleted)
-	{
-	  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
-	    MARK_VOLUME_DELETE (vol);
-	}
-
+      local_md5.size = dentry->fh->attr.size;
       if (local_md5.count > remote_md5.count)
 	local_md5.count = remote_md5.count;
     }
@@ -830,19 +860,21 @@ update_file (zfs_fh *fh)
 
   if (r == ZFS_OK && (what & IFH_UPDATE))
     {
-      zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_unlock (&fh_mutex);
-      get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
-      release_dentry (dentry);
-      if (VARRAY_USED (blocks) > 0)
+      r = truncate_local_file (&vol, &dentry, fh, attr.size);
+      if (r == ZFS_OK)
 	{
-	  r = update_file_blocks (&cap, &blocks,
-				  (what & (IFH_UPDATE | IFH_REINTEGRATE))
-				  == (IFH_UPDATE | IFH_REINTEGRATE));
+	  zfsd_mutex_unlock (&vol->mutex);
+	  get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
+	  release_dentry (dentry);
+
+	  if (VARRAY_USED (blocks) > 0)
+	    {
+	      r = update_file_blocks (&cap, &blocks,
+				      (what & (IFH_UPDATE | IFH_REINTEGRATE))
+				      == (IFH_UPDATE | IFH_REINTEGRATE));
+	    }
+	  varray_destroy (&blocks);
 	}
-      else
-	r = ZFS_OK;
-      varray_destroy (&blocks);
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
