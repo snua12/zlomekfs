@@ -1598,7 +1598,7 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
   if (map->slot_status == VALID_SLOT
       && map->master_fh.gen < master_fh->gen)
     {
-      /* There is a master file handle with older genration in the hash file
+      /* There is a master file handle with older generation in the hash file
 	 so delete it and return undefined local file handle.  */
       if (!hfile_delete (vol->fh_mapping, map))
 	{
