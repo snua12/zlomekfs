@@ -52,6 +52,9 @@ thread_pool kernel_pool;
 /* File descriptor of file communicating with kernel.  */
 int kernel_fd = -1;
 
+/* Is ZFS mounted?  */
+bool mounted = false;
+
 /* Initialize data for kernel file descriptor.  */
 
 static void
@@ -201,6 +204,9 @@ kernel_worker (void *data)
 	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
 	}
+
+      /* ZFS is mounted if kernel wants something from zfsd.  */
+      mounted = true;
 
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)

@@ -31,6 +31,9 @@ extern thread_pool kernel_pool;
 /* File descriptor of file communicating with kernel.  */
 extern int kernel_fd;
 
+/* Is ZFS mounted?  */
+extern bool mounted;
+
 extern void close_kernel_fd (void);
 extern bool kernel_start (void);
 extern void kernel_cleanup (void);

@@ -742,7 +742,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 int32_t									\
 zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
 {									\
-  if (kernel_fd < 0)							\
+  if (!mounted)								\
     {									\
       t->retval = ZFS_COULD_NOT_CONNECT;				\
       return t->retval;							\

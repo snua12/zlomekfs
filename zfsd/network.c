@@ -913,7 +913,10 @@ send_oneway_request (thread *t, int fd)
   /* Send the request.  */
   fd_data_a[fd].last_use = time (NULL);
   if (!full_write (fd, t->dc_call->buffer, t->dc_call->cur_length))
-    t->retval = ZFS_CONNECTION_CLOSED;
+    {
+      t->retval = ZFS_CONNECTION_CLOSED;
+      mounted = false;
+    }
   else
     t->retval = ZFS_OK;
 
