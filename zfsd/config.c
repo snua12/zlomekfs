@@ -953,11 +953,11 @@ process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
 	      if (!nod)
 		abort ();
 #endif
+	      user_mapping_create (&parts[0], &parts[1], nod);
+	      zfsd_mutex_unlock (&nod->mutex);
 	    }
 	  else
-	    nod = NULL;
-
-	  user_mapping_create (&parts[0], &parts[1], nod);
+	    user_mapping_create (&parts[0], &parts[1], NULL);
 	}
     }
   else
@@ -969,7 +969,7 @@ process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of UID mapping.  If NOD is NULL read the default UID mapping
+/* Read list of user mapping.  If NOD is NULL read the default user mapping
    from CONFIG_DIR/user/default else read the special mapping for node SID.  */
 
 static bool
