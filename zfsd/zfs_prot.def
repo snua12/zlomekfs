@@ -41,9 +41,9 @@ DEFINE_ZFS_PROC (5, LOOKUP, lookup, dir_op_args,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (6, OPEN_BY_NAME, open_by_name, open_name_args,
 		 AUTHENTICATION_FINISHED)
-DEFINE_ZFS_PROC (7, OPEN_BY_FD, open_by_fd, zfs_fh,
+DEFINE_ZFS_PROC (7, OPEN_BY_FH, open_by_fh, open_fh_args,
 		 AUTHENTICATION_FINISHED)
-DEFINE_ZFS_PROC (8, CLOSE, close, zfs_fh,
+DEFINE_ZFS_PROC (8, CLOSE, close, zfs_cap,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (9, READDIR, readdir, read_dir_args,
 		 AUTHENTICATION_FINISHED)

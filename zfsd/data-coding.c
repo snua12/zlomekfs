@@ -354,6 +354,22 @@ encode_zfs_fh (DC *dc, zfs_fh *fh)
 }
 
 bool
+decode_zfs_cap (DC *dc, zfs_cap *cap)
+{
+  return (decode_zfs_fh (dc, &cap->fh)
+	  && decode_uint32_t (dc, &cap->mode)
+	  && decode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
+}
+
+bool
+encode_zfs_cap (DC *dc, zfs_cap *cap)
+{
+  return (encode_zfs_fh (dc, &cap->fh)
+	  && encode_uint32_t (dc, cap->mode)
+	  && encode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
+}
+
+bool
 decode_fattr (DC *dc, fattr *attr)
 {
   return (decode_ftype (dc, &attr->type)
@@ -515,7 +531,7 @@ bool
 decode_open_name_args (DC *dc, open_name_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
-	  && decode_int32_t (dc, &args->flags)
+	  && decode_uint32_t (dc, &args->mode)
 	  && decode_sattr (dc, &args->attr));
 }
 
@@ -523,23 +539,37 @@ bool
 encode_open_name_args (DC *dc, open_name_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
-	  && encode_int32_t (dc, args->flags)
+	  && encode_uint32_t (dc, args->mode)
 	  && encode_sattr (dc, &args->attr));
+}
+
+bool
+decode_open_fh_args (DC *dc, open_fh_args *args)
+{
+  return (decode_zfs_fh (dc, &args->file)
+	  && decode_uint32_t (dc, &args->mode));
+}
+
+bool
+encode_open_fh_args (DC *dc, open_fh_args *args)
+{
+  return (encode_zfs_fh (dc, &args->file)
+	  && encode_uint32_t (dc, args->mode));
 }
 
 bool
 decode_read_dir_args (DC *dc, read_dir_args *args)
 {
-  return (decode_zfs_fh (dc, &args->dir)
-	  && decode_int32_t (dc, &args->cookie)
+  return (decode_zfs_cap (dc, &args->dir)
+	  && decode_uint32_t (dc, &args->cookie)
 	  && decode_uint32_t (dc, &args->count));
 }
 
 bool
 encode_read_dir_args (DC *dc, read_dir_args *args)
 {
-  return (encode_zfs_fh (dc, &args->dir)
-	  && encode_int32_t (dc, args->cookie)
+  return (encode_zfs_cap (dc, &args->dir)
+	  && encode_uint32_t (dc, args->cookie)
 	  && encode_uint32_t (dc, args->count));
 }
 
@@ -548,7 +578,7 @@ decode_dir_entry (DC *dc, dir_entry *entry)
 {
   return (decode_zfs_fh (dc, &entry->fh)
 	  && decode_filename (dc, &entry->name)
-	  && decode_int32_t (dc, &entry->cookie));
+	  && decode_uint32_t (dc, &entry->cookie));
 }
 
 bool
@@ -604,7 +634,7 @@ encode_link_args (DC *dc, link_args *args)
 bool
 decode_read_args (DC *dc, read_args *args)
 {
-  return (decode_zfs_fh (dc, &args->file)
+  return (decode_zfs_cap (dc, &args->file)
 	  && decode_uint64_t (dc, &args->offset)
 	  && decode_uint32_t (dc, &args->count));
 }
@@ -612,7 +642,7 @@ decode_read_args (DC *dc, read_args *args)
 bool
 encode_read_args (DC *dc, read_args *args)
 {
-  return (encode_zfs_fh (dc, &args->file)
+  return (encode_zfs_cap (dc, &args->file)
 	  && encode_uint64_t (dc, args->offset)
 	  && encode_uint32_t (dc, args->count));
 }
@@ -632,7 +662,7 @@ encode_read_res (DC *dc, read_res *res)
 bool
 decode_write_args (DC *dc, write_args *args)
 {
-  return (decode_zfs_fh (dc, &args->file)
+  return (decode_zfs_cap (dc, &args->file)
 	  && decode_uint64_t (dc, &args->offset)
 	  && decode_data_buffer (dc, &args->data));
 }
@@ -640,7 +670,7 @@ decode_write_args (DC *dc, write_args *args)
 bool
 encode_write_args (DC *dc, write_args *args)
 {
-  return (encode_zfs_fh (dc, &args->file)
+  return (encode_zfs_cap (dc, &args->file)
 	  && encode_uint64_t (dc, args->offset)
 	  && encode_data_buffer (dc, &args->data));
 }

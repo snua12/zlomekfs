@@ -30,6 +30,7 @@
 #define ZFS_MAXNAMELEN 255
 #define ZFS_MAXNODELEN 256
 #define ZFS_AUTH_LEN 16
+#define ZFS_VERIFY_LEN 16
 
 /* Error codes.  */
 #define ZFS_OK			0
@@ -84,6 +85,13 @@ typedef struct zfs_fh_def
   unsigned int dev;		/* Device ... */
   unsigned int ino;		/* ... and inode number of the file.  */
 } zfs_fh;
+
+typedef struct zfs_cap_def
+{
+  zfs_fh fh;
+  unsigned int mode;
+  unsigned char verify[ZFS_VERIFY_LEN];
+} zfs_cap;
 
 typedef unsigned int zfs_time;
 
@@ -151,14 +159,20 @@ typedef struct dir_op_res_def
 typedef struct open_name_args_def
 {
   dir_op_args where;
-  int flags;
+  unsigned int mode;
   sattr attr;
 } open_name_args;
 
+typedef struct open_fh_args_def
+{
+  zfs_fh file;
+  unsigned int mode;
+} open_fh_args;
+
 typedef struct read_dir_args_def
 {
-  zfs_fh dir;
-  int cookie;
+  zfs_cap dir;
+  unsigned int cookie;
   unsigned int count;
 } read_dir_args;
 
@@ -166,7 +180,7 @@ typedef struct dir_entry_def
 {
   zfs_fh fh;
   filename name;
-  int cookie;
+  unsigned int cookie;
 } dir_entry;
 
 typedef struct dir_list_def
@@ -195,7 +209,7 @@ typedef struct link_args_def
 
 typedef struct read_args_def
 {
-  zfs_fh file;
+  zfs_cap file;
   uint64_t offset;
   unsigned int count;
 } read_args;
@@ -207,7 +221,7 @@ typedef struct read_res_def
 
 typedef struct write_args_def
 {
-  zfs_fh file;
+  zfs_cap file;
   uint64_t offset;
   data_buffer data;
 } write_args;
@@ -257,8 +271,8 @@ typedef union call_args_def
   sattr_args setattr;
   dir_op_args lookup;
   open_name_args open_by_name;
-  zfs_fh open_by_fd;
-  zfs_fh close;
+  open_fh_args open_by_fh;
+  zfs_cap close;
   read_dir_args readdir;
   open_name_args mkdir;
   dir_op_args rmdir;
