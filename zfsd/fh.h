@@ -70,12 +70,16 @@ typedef struct volume_def *volume;
    || ((DENTRY)->parent->parent == NULL					\
        && CONFLICT_DIR_P ((DENTRY)->parent->fh->local_fh)))
 
+/* True when the NAME would be a special dir if the NAME was in local
+   volume root.  */
+#define SPECIAL_NAME_P(NAME)						\
+  (strcmp ((NAME), ".zfs") == 0						\
+   || (strcmp ((NAME), ".shadow") == 0					\
+       && !request_from_this_node ()))
+
 /* Is file NAME in directory DIR a special dir?  */
 #define SPECIAL_DIR_P(DIR, NAME)					\
-  (LOCAL_VOLUME_ROOT_P (DIR)						\
-   && (strcmp ((NAME), ".zfs") == 0					\
-       || (strcmp ((NAME), ".shadow") == 0				\
-	   && !request_from_this_node ())))
+  (LOCAL_VOLUME_ROOT_P (DIR) && SPECIAL_NAME_P (NAME))
 
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
