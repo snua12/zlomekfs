@@ -2294,6 +2294,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   metadata meta;
   file_info_res info;
   bool flush_journal;
+  bool local_volume_root;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -2310,6 +2311,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
+  local_volume_root = LOCAL_VOLUME_ROOT_P (dir);
   flush_journal = false;
   for (entry = dir->fh->journal->first; entry; entry = next)
     {
@@ -2318,6 +2320,14 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       CHECK_MUTEX_LOCKED (&fh_mutex);
       CHECK_MUTEX_LOCKED (&vol->mutex);
       CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+      if (local_volume_root && SPECIAL_NAME_P (entry->name.str, true))
+	{
+	  if (!journal_delete_entry (dir->fh->journal, entry))
+	    abort ();
+	  flush_journal = true;
+	  continue;
+	}
 
       switch (entry->oper)
 	{
