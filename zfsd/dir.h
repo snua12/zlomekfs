@@ -109,7 +109,7 @@ extern int32_t remote_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t zfs_file_info (file_info_res *res, zfs_fh *fh);
 extern int32_t local_reintegrate_add (volume vol, internal_dentry dir,
 				      string *name, zfs_fh *fh,
-				      zfs_fh *dir_fh);
+				      zfs_fh *dir_fh, bool journal);
 extern int32_t remote_reintegrate_add (volume vol, internal_dentry dir,
 				       string *name, zfs_fh *fh,
 				       zfs_fh *dir_fh);
