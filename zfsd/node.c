@@ -1,5 +1,5 @@
 /* Node functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -46,6 +46,9 @@ static htab_t node_htab_name;
 
 /* Mutex for table of nodes.  */
 pthread_mutex_t node_mutex;
+
+/* The host name of local node.  */
+string node_name;
 
 /* Description of local node.  */
 node this_node;

@@ -1,5 +1,5 @@
 /* Configuration.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -34,6 +34,7 @@
 #include "constant.h"
 #include "log.h"
 #include "memory.h"
+#include "node.h"
 #include "metadata.h"
 #include "user-group.h"
 
@@ -45,9 +46,6 @@
 
 /* File used to communicate with kernel.  */
 char *kernel_file_name;
-
-/* The host name of local node.  */
-string node_name;
 
 /* Directory with node configuration. */
 char *node_config;

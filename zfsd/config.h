@@ -1,5 +1,5 @@
 /* Configuration.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -29,9 +29,6 @@
 
 /* File used to communicate with kernel.  */
 extern char *kernel_file_name;
-
-/* The host name of local node.  */
-extern string node_name;
 
 /* Directory with node configuration.  */
 extern char *node_config;

@@ -63,6 +63,9 @@ typedef struct node_def
 /* Mutex for table of nodes.  */
 extern pthread_mutex_t node_mutex;
 
+/* The host name of local node.  */
+extern string node_name;
+
 /* Description of local node.  */
 extern node this_node;
 
