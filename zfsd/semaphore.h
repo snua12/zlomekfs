@@ -1,5 +1,7 @@
-/*! Semaphore functions.
-   Copyright (C) 2003 Josef Zlomek
+/*! \file
+    \brief Semaphore functions.  */
+
+/* Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
 

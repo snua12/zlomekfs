@@ -1,5 +1,7 @@
-/*! An expandable hash tables datatype.
-   Copyright (C) 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
+/*! \file
+    \brief An expandable hash tables datatype.  */
+
+/* Copyright (C) 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
    Contributed by Vladimir Makarov (vmakarov@cygnus.com).
 
    Some modifications for ZFS:

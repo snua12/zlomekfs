@@ -1,5 +1,7 @@
-/*! Definitions for 32-bit CRC.
-   Copyright (C) 2003 Josef Zlomek
+/*! \file
+    \brief Definitions for 32-bit CRC.  */
+
+/* Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
 

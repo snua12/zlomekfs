@@ -1,5 +1,7 @@
-/*! Functions for threads communicating with kernel.
-   Copyright (C) 2003, 2004 Josef Zlomek
+/*! \file
+    \brief Functions for threads communicating with kernel.  */
+
+/* Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 

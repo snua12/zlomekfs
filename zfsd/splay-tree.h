@@ -1,5 +1,7 @@
-/*! A splay-tree datatype.
-   Copyright 1998, 1999, 2000, 2002 Free Software Foundation, Inc.
+/*! \file
+    \brief A splay-tree datatype.  */
+
+/* Copyright 1998, 1999, 2000, 2002 Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
    Some modifications for ZFS:

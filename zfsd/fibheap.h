@@ -1,5 +1,7 @@
-/*! A Fibonacci heap datatype.
-   Copyright 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+/*! \file
+    \brief A Fibonacci heap datatype.  */
+
+/* Copyright 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
    Contributed by Daniel Berlin (dan@cgsoftware.com).
 
    Some modifications for ZFS:

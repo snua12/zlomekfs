@@ -1,5 +1,7 @@
-/* ZFS protocol - definitions of ZFS procedures.
-   Copyright (C) 2003, 2004 Josef Zlomek
+/*! \file
+    \brief ZFS protocol - definitions of ZFS procedures.  */
+
+/* Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 

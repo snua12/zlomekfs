@@ -1,5 +1,7 @@
-/*! Functions to support a pool of allocatable objects.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+/*! \file
+    \brief Functions to support a pool of allocatable objects.  */
+
+/* Copyright (C) 1997, 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
    Some modifications for ZFS:

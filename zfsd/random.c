@@ -1,5 +1,7 @@
-/*! Random bytes.
-   Copyright (C) 2003, 2004 Josef Zlomek
+/*! \file
+    \brief Random bytes.  */
+
+/* Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
