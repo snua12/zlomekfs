@@ -817,11 +817,15 @@ dentry_lookup (zfs_fh *fh)
   RETURN_PTR (dentry);
 }
 
-/* Return the internal dentry for NAME in directory PARENT
-   or the volume root of volume VOL if PARENT is NULL.  */
+/** \fn static internal_dentry dentry_lookup_name_nolock (volume vol,
+	internal_dentry parent, string *name)
+    \brief Lookup the internal dentry by name but do not lock it.
+    \param vol Volume whose root is returned if parent == NULL.
+    \param parent Directory in which the dentry is being looked up.
+    \param name Name of the dentry.  */
 
-internal_dentry
-dentry_lookup_name (volume vol, internal_dentry parent, string *name)
+static internal_dentry
+dentry_lookup_name_nolock (volume vol, internal_dentry parent, string *name)
 {
   struct internal_dentry_def tmp;
   internal_dentry dentry;
@@ -829,11 +833,7 @@ dentry_lookup_name (volume vol, internal_dentry parent, string *name)
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
 #ifdef ENABLE_CHECKING
-  if (parent)
-    CHECK_MUTEX_LOCKED (&parent->fh->mutex);
-  else if (vol)
-    CHECK_MUTEX_LOCKED (&vol->mutex);
-  else
+  if (!parent && !vol)
     abort ();
 #endif
 
@@ -847,15 +847,40 @@ dentry_lookup_name (volume vol, internal_dentry parent, string *name)
   else
     dentry = vol->root_dentry;
 
-  if (dentry)
-    {
-      acquire_dentry (dentry);
-
 #ifdef ENABLE_CHECKING
-      if (dentry->parent != parent)
-	abort ();
+  if (dentry && dentry->parent != parent)
+    abort ();
 #endif
-    }
+
+  RETURN_PTR (dentry);
+}
+
+/** \fn static internal_dentry dentry_lookup_name_nolock (volume vol,
+	internal_dentry parent, string *name)
+    \brief Lookup the internal dentry by name and lock it.
+    \param vol Volume whose root is returned if parent == NULL.
+    \param parent Directory in which the dentry is being looked up.
+    \param name Name of the dentry.  */
+
+internal_dentry
+dentry_lookup_name (volume vol, internal_dentry parent, string *name)
+{
+  internal_dentry dentry;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+#ifdef ENABLE_CHECKING
+  if (parent)
+    CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+  else if (vol)
+    CHECK_MUTEX_LOCKED (&vol->mutex);
+  else
+    abort ();
+#endif
+
+  dentry = dentry_lookup_name_nolock (vol, parent, name);
+  if (dentry)
+    acquire_dentry (dentry);
 
   RETURN_PTR (dentry);
 }
@@ -886,15 +911,13 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
       start = vol->root_dentry;
       if (!start)
 	RETURN_PTR (NULL);
-
-      acquire_dentry (start);
     }
+  else
+    release_dentry (start);
 
   if (CONFLICT_DIR_P (start->fh->local_fh))
     {
-      dentry = dentry_lookup_name (vol, start, &this_node->name);
-      release_dentry (start);
-
+      dentry = dentry_lookup_name_nolock (vol, start, &this_node->name);
       if (!dentry)
 	RETURN_PTR (NULL);
 
@@ -915,18 +938,14 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
 	*str++ = 0;
       name.len = strlen (name.str);
 
-      dentry = dentry_lookup_name (vol, start, &name);
-      release_dentry (start);
-
+      dentry = dentry_lookup_name_nolock (vol, start, &name);
       if (!dentry)
 	RETURN_PTR (NULL);
 
       start = dentry;
       if (CONFLICT_DIR_P (start->fh->local_fh))
 	{
-	  dentry = dentry_lookup_name (vol, start, &this_node->name);
-	  release_dentry (start);
-
+	  dentry = dentry_lookup_name_nolock (vol, start, &this_node->name);
 	  if (!dentry)
 	    RETURN_PTR (NULL);
 
@@ -934,6 +953,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
 	}
     }
 
+  acquire_dentry (dentry);
   RETURN_PTR (dentry);
 }
 
