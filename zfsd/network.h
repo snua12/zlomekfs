@@ -44,6 +44,7 @@ typedef struct server_fd_data_def
 
   time_t last_use;		/* time of last use of the socket */
   unsigned int generation;	/* generation of open file descriptor */
+  authentication_status auth;	/* status of authentication with remote node */
   int busy;			/* number of threads using file descriptor */
 } server_fd_data_t;
 
@@ -72,14 +73,18 @@ typedef struct server_thread_data_def
 /* Thread ID of the main server thread (thread receiving data from sockets).  */
 extern pthread_t main_server_thread;
 
+/* The array of data for each file descriptor.  */
+extern server_fd_data_t *server_fd_data;
+
 #endif
 
 struct thread_def;
 
+extern void close_server_fd (int fd);
 extern void server_worker_init (struct thread_def *t);
 extern void server_worker_cleanup (void *data);
-extern bool node_connected_p (node nod);
-extern void send_request (struct thread_def *t, uint32_t request_id, node nod);
+extern void add_fd_to_active (int fd, node nod);
+extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
 extern int create_server_threads ();
 #ifdef RPC
 extern void register_server ();

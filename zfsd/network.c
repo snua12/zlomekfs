@@ -147,7 +147,7 @@ pthread_t main_server_thread;
 static int main_socket;
 
 /* The array of data for each file descriptor.  */
-static server_fd_data_t *server_fd_data;
+server_fd_data_t *server_fd_data;
 
 /* Array of pointers to data of active file descriptors.  */
 static server_fd_data_t **active;
@@ -192,6 +192,8 @@ init_fd_data (int fd)
     abort ();
   if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
     abort ();
+  if (fd < 0)
+    abort ();
 #endif
   /* Set the server's data.  */
   active[nactive] = &server_fd_data[fd];
@@ -216,6 +218,21 @@ init_fd_data (int fd)
 		   NULL, &server_fd_data[fd].mutex);
 }
 
+/* Close file descriptor FD and update its server_fd_data.  */
+void
+close_server_fd (int fd)
+{
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
+    abort ();
+#endif
+
+  message (2, stderr, "Closing FD %d\n", fd);
+  close (fd);
+  server_fd_data[fd].generation++;
+  server_fd_data[fd].auth = AUTHENTICATION_NONE;
+}
+
 /* Close an active file descriptor on index I in ACTIVE.  */
 
 static void
@@ -225,15 +242,13 @@ close_active_fd (int i)
   int j;
   void **slot;
 
-  message (2, stderr, "Closing FD %d\n", fd);
 #ifdef ENABLE_CHECKING
   if (pthread_mutex_trylock (&active_mutex) == 0)
     abort ();
   if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
     abort ();
 #endif
-  close (active[i]->fd);
-  active[i]->generation++;
+  close_server_fd (fd);
   active[i] = active[nactive];
   nactive--;
   for (j = 0; j < server_fd_data[fd].ndc; j++)
@@ -269,141 +284,6 @@ server_worker_cleanup (void *data)
   dc_destroy (&t->u.server.dc_call);
 }
 
-/* Authenticate connection with node NOD on socket FD.  */
-
-static bool
-node_authenticate (node nod, int fd)
-{
-  auth_stage1_args args1;
-  auth_stage2_args args2;
-
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
-
-#if 0
-  /* FIXME: really do authentication; currently the functions are empty.  */
-  if (zfs_proc_auth_stage1_client (t, &args1, nod) != ZFS_OK)
-    goto node_authenticate_error;
-
-  if (zfs_proc_auth_stage2_client (t, &args2, nod) != ZFS_OK)
-    goto node_authenticate_error;
-#endif
-  
-  nod->auth = AUTHENTICATION_FINISHED;
-  return true;
-
-node_authenticate_error:
-  nod->fd = -1;
-  nod->auth = AUTHENTICATION_NONE;
-  nod->conn = CONNECTION_NONE;
-  close (fd);
-  return false;
-}
-
-/* If node NOD is connected return true and lock SERVER_FD_DATA[NOD->FD].MUTEX.
-   This function expects NOD->MUTEX to be locked.  */
-
-bool
-node_connected_p (node nod)
-{
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
-
-  if (nod->fd < 0)
-    return false;
-
-  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
-  if (nod->generation != server_fd_data[nod->fd].generation)
-    {
-      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
-      return false;
-    }
-
-  return true;
-}
-
-/* Connect to node NOD, return open file descriptor.  */
-
-static int
-node_connect (node nod)
-{
-  struct addrinfo *addr, *a;
-  int s;
-  int err;
-
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
-
-  /* Lookup the IP address.  */
-  if ((err = getaddrinfo (nod->name, NULL, NULL, &addr)) != 0)
-    {
-      message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
-      return -1;
-    }
-
-  for (a = addr; a; a = a->ai_next)
-    {
-      switch (a->ai_family)
-	{
-	  case AF_INET:
-	    if (a->ai_socktype == SOCK_STREAM
-		&& a->ai_protocol == IPPROTO_TCP)
-	      {
-		s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (s < 0)
-		  {
-		    message (-1, stderr, "socket(): %s\n", strerror (errno));
-		    break;
-		  }
-
-		/* Connect the server socket to ZFS_PORT.  */
-		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
-		  goto node_connected;
-	      }
-	    break;
-
-	  case AF_INET6:
-	    if (a->ai_socktype == SOCK_STREAM
-		&& a->ai_protocol == IPPROTO_TCP)
-	      {
-		s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-		if (s < 0)
-		  {
-		    message (-1, stderr, "socket(): %s\n", strerror (errno));
-		    break;
-		  }
-
-		/* Connect the server socket to ZFS_PORT.  */
-		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
-		  = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
-		  goto node_connected;
-	      }
-	    break;
-	}
-    }
-
-  message (-1, stderr, "Could not connect to %s\n", nod->name);
-  close (s);
-  freeaddrinfo (addr);
-  return -1;
-
-node_connected: 
-  freeaddrinfo (addr);
-  nod->fd = s;
-  nod->auth = AUTHENTICATION_NONE;
-  nod->conn = CONNECTION_FAST; /* FIXME */
-  message (2, stderr, "FD %d connected to %s\n", s, nod->name);
-  return s;
-}
-
 /* Safely write LEN bytes to file descriptor FD data from buffer BUF.  */
 
 static bool
@@ -436,8 +316,8 @@ safe_write (int fd, char *buf, size_t len)
    using data in thread T to connected socket FD and wait for reply.
    It expects server_fd_data[fd].mutex to be locked.  */
 
-static void
-really_send_request (thread *t, int fd, uint32_t request_id)
+void
+send_request (thread *t, uint32_t request_id, int fd)
 {
   server_thread_data *td = &t->u.server;
   void **slot;
@@ -447,8 +327,6 @@ really_send_request (thread *t, int fd, uint32_t request_id)
   if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
     abort ();
 #endif
-
-  /* Here, server_fd_data[fd].mutex is locked.  */
 
   /* Add the tread to the table of waiting threads.  */
   wd = ((waiting4reply_data *)
@@ -485,53 +363,15 @@ really_send_request (thread *t, int fd, uint32_t request_id)
     td->retval = ZFS_INVALID_REPLY;
 }
 
-/* Send request with request id REQUEST_ID using data in thread T to node NOD
-   and wait for reply.  Try to connect to node NOD if not connected.  */
-
 void
-send_request (thread *t, uint32_t request_id, node nod)
+add_fd_to_active (int fd, node nod)
 {
-  server_thread_data *td = &t->u.server;
-  int fd;
-
-  pthread_mutex_lock (&nod->mutex);
-  fd = nod->fd;
-  if (fd >= 0)
-    {
-      pthread_mutex_lock (&server_fd_data[fd].mutex);
-      if (nod->generation == server_fd_data[fd].generation)
-	{
-	  pthread_mutex_unlock (&nod->mutex);
-	  really_send_request (t, fd, request_id);
-	  return;
-	}
-      pthread_mutex_unlock (&server_fd_data[fd].mutex);
-    }
-
-  fd = node_connect (nod);
-  if (fd < 0)
-    {
-      td->retval = ZFS_COULD_NOT_CONNECT;
-      pthread_mutex_unlock (&nod->mutex);
-      return;
-    }
-
   pthread_mutex_lock (&active_mutex);
   pthread_mutex_lock (&server_fd_data[fd].mutex);
   init_fd_data (fd);
   pthread_kill (main_server_thread, SIGUSR1);
   nod->generation = server_fd_data[fd].generation;
   pthread_mutex_unlock (&active_mutex);
-
-  if (!node_authenticate (nod, fd))
-    {
-      td->retval = ZFS_COULD_NOT_AUTH;
-      pthread_mutex_unlock (&nod->mutex);
-      return;
-    }
-  
-  pthread_mutex_unlock (&nod->mutex);
-  really_send_request (t, fd, request_id);
 }
 
 /* Send a reply.  */
@@ -613,22 +453,28 @@ server_worker (void *data)
 	}
 
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
+      fd_data = td->fd_data;
       switch (fn)
 	{
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
-	  case ZFS_PROC_##NAME:						\
-	    if (!decode_##ARGS_TYPE (&td->dc, &td->args.FUNCTION)	\
-		|| !finish_decoding (&td->dc))				\
-	      {								\
-		send_error_reply (td, request_id, ZFS_INVALID_REQUEST);	\
-		goto out;						\
-	      }								\
-	    start_encoding (&td->dc);					\
-	    encode_direction (&td->dc, DIR_REPLY);			\
-	    encode_request_id (&td->dc, request_id);			\
-	    zfs_proc_##FUNCTION##_server (&td->args.FUNCTION, &td->dc);	\
-	    finish_encoding (&td->dc);					\
-	    send_reply (td);						\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		      \
+	  case ZFS_PROC_##NAME:						      \
+	    if (fd_data->auth < AUTH)					      \
+	      {								      \
+		send_error_reply (td, request_id, ZFS_INVALID_AUTH_LEVEL);    \
+		goto out;						      \
+	      }								      \
+	    if (!decode_##ARGS (&td->dc, &td->args.FUNCTION)		      \
+		|| !finish_decoding (&td->dc))				      \
+	      {								      \
+		send_error_reply (td, request_id, ZFS_INVALID_REQUEST);	      \
+		goto out;						      \
+	      }								      \
+	    start_encoding (&td->dc);					      \
+	    encode_direction (&td->dc, DIR_REPLY);			      \
+	    encode_request_id (&td->dc, request_id);			      \
+	    zfs_proc_##FUNCTION##_server (&td->args.FUNCTION, t);	      \
+	    finish_encoding (&td->dc);					      \
+	    send_reply (td);						      \
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -639,7 +485,6 @@ server_worker (void *data)
 	}
 
 out:
-      fd_data = td->fd_data;
       pthread_mutex_lock (&fd_data->mutex);
       fd_data->busy--;
       if (running)
