@@ -67,8 +67,8 @@ typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
 
 #include "cap.h"
 extern int32_t local_close (internal_fh fh);
-extern int32_t remote_close (internal_cap cap, internal_dentry dentry,
-			     volume vol);
+extern int32_t cond_remote_close (zfs_cap *cap, internal_cap icap,
+				  internal_dentry *dentryp, volume *volp);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
 			     string *name, uint32_t flags, sattr *attr,
 			     volume vol, metadata *meta, bool *exists);
@@ -77,9 +77,8 @@ extern int32_t remote_create (create_res *res, internal_dentry dir,
 			      volume vol);
 extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
 			   uint32_t flags, sattr *attr);
-extern int32_t local_open (uint32_t flags, internal_dentry dentry, volume vol);
-extern int32_t remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
-			    internal_dentry dentry, volume vol);
+extern int32_t cond_remote_open (zfs_cap *cap, internal_cap icap,
+				 internal_dentry *dentryp, volume *volp);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
 extern int32_t zfs_close (zfs_cap *cap);
 extern bool filldir_encode (uint32_t ino, int32_t cookie, char *name,

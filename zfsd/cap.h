@@ -54,6 +54,12 @@ struct internal_cap_def
 
   /* Number of clients using this capability.  */
   unsigned int busy;
+
+  /* Number of clients using the remote capability.  */
+  unsigned int master_busy;
+
+  /* Close master capability in zfs_close.  */
+  bool master_close_p;
 };
 
 #include "fh.h"

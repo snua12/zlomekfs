@@ -330,35 +330,6 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   if (VARRAY_USED (*blocks) == 0)
     return ZFS_OK;
 
-  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-    abort ();
-#endif
-
-  if (zfs_fh_undefined (icap->master_cap.fh)
-      || zfs_cap_undefined (icap->master_cap))
-    {
-      zfs_cap master_cap;
-
-      r = remote_open (&master_cap, icap, cap->flags, dentry, vol);
-      if (r != ZFS_OK)
-	return r;
-
-      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-#endif
-
-      icap->master_cap = master_cap;
-    }
-
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-
   args.count = 0;
   index = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
@@ -411,18 +382,10 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 #endif
 
   if (dentry->fh->meta.flags & METADATA_COMPLETE)
-    {
-      dentry->fh->flags &= ~IFH_UPDATE;
+    dentry->fh->flags &= ~IFH_UPDATE;
 
-      r = remote_close (icap, dentry, vol);
-      if (r != ZFS_OK)
-	return r;
-    }
-  else
-    {
-      release_dentry (dentry);
-      zfsd_mutex_unlock (&vol->mutex);
-    }
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
@@ -449,25 +412,6 @@ reintegrate_file_blocks (zfs_cap *cap)
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
 #endif
-
-  if (zfs_fh_undefined (icap->master_cap.fh)
-      || zfs_cap_undefined (icap->master_cap))
-    {
-      zfs_cap master_cap;
-
-      zfsd_mutex_unlock (&fh_mutex);
-      r = remote_open (&master_cap, icap, cap->flags, dentry, vol);
-      if (r != ZFS_OK)
-	return r;
-
-      r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-#endif
-
-      icap->master_cap = master_cap;
-    }
 
   for (offset = 0; offset < dentry->fh->attr.size; )
     {
@@ -517,18 +461,10 @@ reintegrate_file_blocks (zfs_cap *cap)
     }
 
   if (!(dentry->fh->meta.flags & METADATA_MODIFIED))
-    {
-      dentry->fh->flags &= ~IFH_REINTEGRATE;
+    dentry->fh->flags &= ~IFH_REINTEGRATE;
 
-      r = remote_close (icap, dentry, vol);
-      if (r != ZFS_OK)
-	return r;
-    }
-  else
-    {
-      release_dentry (dentry);
-      zfsd_mutex_unlock (&vol->mutex);
-    }
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
@@ -545,6 +481,7 @@ update_file (zfs_fh *fh)
   zfs_cap cap;
   int32_t r, r2;
   fattr attr;
+  bool opened_remote = false;
 
   TRACE ("");
 
@@ -625,11 +562,16 @@ update_file (zfs_fh *fh)
       goto out2;
     }
 
-  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
 #endif
+
+  r = cond_remote_open (&cap, icap, &dentry, &vol);
+  if (r != ZFS_OK)
+    goto out2;
+  opened_remote = true;
 
   if (!load_interval_trees (vol, dentry->fh))
     {
@@ -703,6 +645,8 @@ out2:
 #endif
 
 out:
+  if (opened_remote)
+    cond_remote_close (&cap, icap, &dentry, &vol);
   put_capability (icap, dentry->fh, NULL);
   internal_cap_unlock (vol, dentry, NULL);
   return r;

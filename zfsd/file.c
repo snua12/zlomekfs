@@ -266,7 +266,7 @@ local_close (internal_fh fh)
 /* Close remote file for internal capability CAP for dentry DENTRY
    on volume VOL.  */
 
-int32_t
+static int32_t
 remote_close (internal_cap cap, internal_dentry dentry, volume vol)
 {
   zfs_cap args;
@@ -304,6 +304,59 @@ remote_close (internal_cap cap, internal_dentry dentry, volume vol)
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
   return r;
+}
+
+/* Close remote file for capability CAP and ICAP of dentry DENTRY on volume VOL
+   if we are the last user of it.  */
+
+int32_t
+cond_remote_close (zfs_cap *cap, internal_cap icap, internal_dentry *dentryp,
+		   volume *volp)
+{
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (icap->master_busy == 0)
+    abort ();
+  if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
+    abort ();
+  if (zfs_fh_undefined (icap->master_cap.fh)
+      || zfs_cap_undefined (icap->master_cap))
+    abort ();
+#endif
+
+  if (icap->master_busy == 1)
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_close (icap, *dentryp, *volp);
+
+      r2 = find_capability_nolock (cap, &icap, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      if (r != ZFS_OK)
+	return r;
+
+      zfs_fh_undefine (icap->master_cap.fh);
+      zfs_cap_undefine (icap->master_cap);
+    }
+#ifdef ENABLE_CHECKING
+  else
+    {
+      if (zfs_fh_undefined (icap->master_cap.fh)
+	  || zfs_cap_undefined (icap->master_cap))
+	abort ();
+    }
+#endif
+
+  icap->master_busy--;
+  return ZFS_OK;
 }
 
 /* Create local file NAME in directory DIR on volume VOL with open flags FLAGS,
@@ -620,7 +673,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 
 /* Open local file for dentry with open flags FLAGS on volume VOL.  */
 
-int32_t
+static int32_t
 local_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   int32_t r;
@@ -641,7 +694,7 @@ local_open (uint32_t flags, internal_dentry dentry, volume vol)
 /* Open remote file for capability ICAP (whose internal dentry is DENTRY)
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
-int32_t
+static int32_t
 remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 	     internal_dentry dentry, volume vol)
 {
@@ -693,6 +746,53 @@ remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
   return r;
+}
+
+/* Open remote file for capability CAP if it is not opened yet.
+   Store its dentry to DENTRYP and volume to VOLP.  */
+
+int32_t
+cond_remote_open (zfs_cap *cap, internal_cap icap, internal_dentry *dentryp,
+		  volume *volp)
+{
+  zfs_cap master_cap;
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
+    abort ();
+#endif
+
+  if (icap->master_busy == 0)
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_open (&master_cap, icap, 0, *dentryp, *volp);
+      if (r != ZFS_OK)
+	return r;
+
+      r2 = find_capability_nolock (cap, &icap, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      icap->master_cap = master_cap;
+    }
+#ifdef ENABLE_CHECKING
+  else
+    {
+      if (zfs_fh_undefined (icap->master_cap.fh)
+	  || zfs_cap_undefined (icap->master_cap))
+	abort ();
+    }
+#endif
+
+  icap->master_busy++;
+  return ZFS_OK;
 }
 
 /* Open file handle FH with open flags FLAGS and return capability in CAP.  */
@@ -888,7 +988,6 @@ zfs_close (zfs_cap *cap)
 
   if (vd)
     zfsd_mutex_unlock (&vd->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
@@ -898,6 +997,7 @@ zfs_close (zfs_cap *cap)
 	      || dentry->fh->attr.type == FT_SOCK
 	      || dentry->fh->attr.type == FT_FIFO))
 	{
+	  zfsd_mutex_unlock (&fh_mutex);
 	  r = remote_close (icap, dentry, vol);
 
 	  r2 = find_capability (&tmp_cap, &icap, &vol, &dentry, &vd, false);
@@ -906,8 +1006,18 @@ zfs_close (zfs_cap *cap)
 	    abort ();
 #endif
 	}
+      else if (icap->master_close_p)
+	{
+	  r = cond_remote_close (&tmp_cap, icap, &dentry, &vol);
+	  if (r == ZFS_OK)
+	    icap->master_close_p = false;
+	  zfsd_mutex_unlock (&fh_mutex);
+	}
       else
-	r = ZFS_OK;
+	{
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = ZFS_OK;
+	}
 
       if (icap->busy == 1)
 	{
@@ -927,7 +1037,10 @@ zfs_close (zfs_cap *cap)
       release_dentry (dentry);
     }
   else if (vol->master != this_node)
-    r = remote_close (icap, dentry, vol);
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_close (icap, dentry, vol);
+    }
   else
     abort ();
 
@@ -1886,6 +1999,15 @@ zfs_read (uint32_t *rcount, void *buffer,
 	    }
 	  else
 	    {
+	      if (icap->master_busy == 0)
+		{
+		  r = cond_remote_open (&tmp_cap, icap, &dentry, &vol);
+		  if (r != ZFS_OK)
+		    goto out_update;
+
+		  icap->master_close_p = true;
+		}
+
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
@@ -1904,6 +2026,7 @@ zfs_read (uint32_t *rcount, void *buffer,
 		}
 	    }
 
+out_update:
 	  varray_destroy (&blocks);
 	}
       else

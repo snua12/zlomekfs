@@ -237,6 +237,8 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
   zfs_fh_undefine (cap->master_cap.fh);
   zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
+  cap->master_busy = 0;
+  cap->master_close_p = false;
   internal_cap_compute_verify (cap);
   cap->next = fh->cap;
   fh->cap = cap;
