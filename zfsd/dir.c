@@ -220,6 +220,62 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
   return ZFS_OK;
 }
 
+/* Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
+
+static void
+fattr_from_struct_stat (fattr *attr, struct stat *st)
+{
+  attr->version = 0;
+  attr->dev = st->st_dev;
+  attr->ino = st->st_ino;
+  attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
+  attr->nlink = st->st_nlink;
+  attr->uid = map_uid_node2zfs (st->st_uid);
+  attr->gid = map_gid_node2zfs (st->st_gid);
+  attr->rdev = st->st_rdev;
+  attr->size = st->st_size;
+  attr->blocks = st->st_blocks;
+  attr->blksize = st->st_blksize;
+  attr->atime = st->st_atime;
+  attr->mtime = st->st_mtime;
+  attr->ctime = st->st_ctime;
+
+  switch (st->st_mode & S_IFMT)
+    {
+      case S_IFSOCK:
+	attr->type = FT_SOCK;
+	break;
+
+      case S_IFLNK:
+	attr->type = FT_LNK;
+	break;
+
+      case S_IFREG:
+	attr->type = FT_REG;
+	break;
+
+      case S_IFBLK:
+	attr->type = FT_BLK;
+	break;
+
+      case S_IFDIR:
+	attr->type = FT_DIR;
+	break;
+
+      case S_IFCHR:
+	attr->type = FT_CHR;
+	break;
+
+      case S_IFIFO:
+	attr->type = FT_FIFO;
+	break;
+
+      default:
+	attr->type = FT_BAD;
+	break;
+    }
+}
+
 /* Store the local file handle of root of volume VOL to LOCAL_FH
    and its attributes to ATTR.  */
 
@@ -401,62 +457,6 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry)
 
   *dentry = vol->root_dentry;
   return ZFS_OK;
-}
-
-/* Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
-
-void
-fattr_from_struct_stat (fattr *attr, struct stat *st)
-{
-  attr->version = 0;		/* FIXME */
-  attr->dev = st->st_dev;
-  attr->ino = st->st_ino;
-  attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
-  attr->nlink = st->st_nlink;
-  attr->uid = map_uid_node2zfs (st->st_uid);
-  attr->gid = map_gid_node2zfs (st->st_gid);
-  attr->rdev = st->st_rdev;
-  attr->size = st->st_size;
-  attr->blocks = st->st_blocks;
-  attr->blksize = st->st_blksize;
-  attr->atime = st->st_atime;
-  attr->mtime = st->st_mtime;
-  attr->ctime = st->st_ctime;
-
-  switch (st->st_mode & S_IFMT)
-    {
-      case S_IFSOCK:
-	attr->type = FT_SOCK;
-	break;
-
-      case S_IFLNK:
-	attr->type = FT_LNK;
-	break;
-
-      case S_IFREG:
-	attr->type = FT_REG;
-	break;
-
-      case S_IFBLK:
-	attr->type = FT_BLK;
-	break;
-
-      case S_IFDIR:
-	attr->type = FT_DIR;
-	break;
-
-      case S_IFCHR:
-	attr->type = FT_CHR;
-	break;
-
-      case S_IFIFO:
-	attr->type = FT_FIFO;
-	break;
-
-      default:
-	attr->type = FT_BAD;
-	break;
-    }
 }
 
 /* Get attributes of local file PATH and store them to ATTR.  */
