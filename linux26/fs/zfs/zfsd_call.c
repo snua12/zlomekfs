@@ -25,6 +25,7 @@
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <linux/preempt.h>
 #include <linux/errno.h>
 #include <linux/compiler.h>
 #include <asm/semaphore.h>
@@ -61,19 +62,22 @@ int send_request(struct request *req) {
 
 	req->state = REQ_PENDING;
 
-	TRACE("%u: waiting for reply", req->id);
-
-	add_wait_queue(&req->waitq, &wait);
-	set_current_state(TASK_INTERRUPTIBLE);
+	/* Disable preemtible scheduling.
+	   We need this to avoid waking up this thread (in zfs_chardev_write()) before it goes asleep. */ 
+	preempt_disable();
 
 	/* Wake up a thread waiting for a request. */
 	up(&channel.req_pending_count);
 
-	/* FIXME: If pre-emptible kernel reschedule right now, this thread will be sleeping probably without timeout.
-	   Does exist some kernel lock, or something like down_interruptible_timeout()? */
+	TRACE("%u: waiting for reply", req->id);
 
+	add_wait_queue(&req->waitq, &wait);
+	set_current_state(TASK_INTERRUPTIBLE);
 	timeout_left = schedule_timeout(ZFS_TIMEOUT * HZ);
 	remove_wait_queue(&req->waitq, &wait);
+
+	/* Enable preemtible scheduling, but do not try to schedule right now. */
+	preempt_enable_no_resched();
 
 	down(&req->lock);
 
