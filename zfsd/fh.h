@@ -115,6 +115,10 @@ struct internal_dentry_def
   /* Internal file handle associated with this dentry.  */
   internal_fh fh;
 
+  /* Pointers to next and previous dentry with the same file handle,
+     making a cyclic double linked chain.  */
+  internal_dentry next, prev;
+
   /* Contained directory entries (of type 'struct internal_dentry_def *').  */
   varray dentries;
 

@@ -516,6 +516,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->local_fh = *local_fh;
   fh->master_fh = *master_fh;
   fh->attr = *attr;
+  fh->ndentries = 0;
 
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
@@ -540,6 +541,11 @@ internal_fh_destroy (internal_fh fh, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
+
+#ifdef ENABLE_CHECKING
+  if (fh->ndentries != 0)
+    abort ();
+#endif
 
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -583,7 +589,9 @@ debug_fh_htab (htab_t htab)
   print_fh_htab (stderr, htab);
 }
 
-/* Create a new internal dentry and store it to hash tables.  */
+/* Create a new internal dentry NAME in directory PARENT on volume VOL and
+   internal file handle for local file handle LOCAL_FH and master file handle
+   MASTER_FH with attributes ATTR and store it to hash tables.  */
 
 internal_dentry
 internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
@@ -602,6 +610,8 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   zfsd_mutex_unlock (&dentry_pool_mutex);
   dentry->parent = parent;
   dentry->name = xstrdup (name);
+  dentry->next = dentry;
+  dentry->prev = dentry;
   dentry->ncap = 0;
   dentry->last_use = time (NULL);
   dentry->heap_node = NULL;
@@ -638,10 +648,15 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
   slot = htab_find_slot_with_hash (vol->dentry_htab, &fh->local_fh,
 				   INTERNAL_DENTRY_HASH (dentry), INSERT);
-#ifdef ENABLE_CHECKING
   if (*slot)
-    abort ();
-#endif
+    {
+      internal_dentry old = (internal_dentry) *slot;
+
+      dentry->next = old->next;
+      dentry->prev = old;
+      old->next->prev = dentry;
+      old->next = dentry;
+    }
   *slot = dentry;
 
   if (parent)
@@ -721,9 +736,29 @@ internal_dentry_destroy (internal_dentry dentry, volume vol)
   if (!slot)
     abort ();
 #endif
-  htab_clear_slot (vol->dentry_htab, slot);
 
-  internal_fh_destroy (dentry->fh, vol);
+  dentry->fh->ndentries--;
+  if (dentry->next == dentry)
+    {
+#ifdef ENABLE_CHECKING
+      if (dentry->fh->ndentries != 0)
+	abort ();
+#endif
+      htab_clear_slot (vol->dentry_htab, slot);
+      internal_fh_destroy (dentry->fh, vol);
+    }
+  else
+    {
+#ifdef ENABLE_CHECKING
+      if (dentry->fh->ndentries == 0)
+	abort ();
+#endif
+      dentry->next->prev = dentry->prev;
+      dentry->prev->next = dentry->next;
+      *slot = dentry->next;
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+    }
+
   free (dentry->name);
   zfsd_mutex_lock (&dentry_pool_mutex);
   pool_free (dentry_pool, dentry);
