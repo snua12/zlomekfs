@@ -123,6 +123,7 @@ kernel_worker (void *data)
 
   pthread_cleanup_push (kernel_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
+  pthread_setspecific (thread_name_key, "Kernel worker thread");
 
   while (1)
     {
@@ -297,6 +298,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
   static char dummy[ZFS_MAXDATA];
 
   thread_disable_signals ();
+  pthread_setspecific (thread_name_key, "Kernel main thread");
 
   while (!thread_pool_terminate_p (&kernel_pool))
     {

@@ -291,6 +291,7 @@ void *
 cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
 {
   thread_disable_signals ();
+  pthread_setspecific (thread_name_key, "IFH cleanup thread");
 
   while (get_running ())
     {

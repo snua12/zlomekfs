@@ -56,6 +56,9 @@ pthread_mutex_t running_mutex;
 /* Key for thread specific data.  */
 pthread_key_t thread_data_key;
 
+/* Key for thread name.  */
+pthread_key_t thread_name_key;
+
 /* Get value of RUNNING flag.  */
 
 bool
@@ -455,6 +458,7 @@ thread_pool_regulator (void *data)
   thread_pool *pool = (thread_pool *) data;
 
   thread_disable_signals ();
+  pthread_setspecific (thread_name_key, "Regulator thread");
 
   while (!thread_pool_terminate_p (pool))
     {

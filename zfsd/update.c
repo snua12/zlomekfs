@@ -1263,6 +1263,7 @@ update_worker (void *data)
 
   pthread_cleanup_push (update_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
+  pthread_setspecific (thread_name_key, "Network worker thread");
 
   while (1)
     {
@@ -1313,6 +1314,7 @@ update_main (ATTRIBUTE_UNUSED void *data)
   size_t index;
 
   thread_disable_signals ();
+  pthread_setspecific (thread_name_key, "Update main thread");
 
   while (!thread_pool_terminate_p (&update_pool))
     {

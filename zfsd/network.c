@@ -352,6 +352,7 @@ network_worker (void *data)
 
   pthread_cleanup_push (network_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
+  pthread_setspecific (thread_name_key, "Network worker thread");
 
   while (1)
     {
@@ -568,6 +569,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
   static char dummy[ZFS_MAXDATA];
 
   thread_disable_signals ();
+  pthread_setspecific (thread_name_key, "Network main thread");
 
   pfd = (struct pollfd *) xmalloc (max_nfd * sizeof (struct pollfd));
   accept_connections = 1;

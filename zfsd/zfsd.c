@@ -342,6 +342,8 @@ initialize_data_structures ()
 {
   if (pthread_key_create (&thread_data_key, NULL))
     return false;
+  if (pthread_key_create (&thread_name_key, NULL))
+    return false;
 
   /* Initialize data structures in other modules.  */
   if (!initialize_random_c ())
@@ -380,6 +382,7 @@ cleanup_data_structures ()
   free (kernel_file_name);
 
   pthread_key_delete (thread_data_key);
+  pthread_key_delete (thread_name_key);
 }
 
 static void

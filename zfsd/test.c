@@ -322,6 +322,7 @@ do_tests (void *data)
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
+  pthread_setspecific (thread_name_key, "Testing thread");
 
   if (0)
     {

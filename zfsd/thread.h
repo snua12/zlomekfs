@@ -34,6 +34,9 @@
 /* Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
 
+/* Key for thread name.  */
+extern pthread_key_t thread_name_key;
+
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 extern volatile bool running;
 
