@@ -4600,7 +4600,7 @@ local_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
       MARK_VOLUME_DELETE (vol);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_UPDATE_FAILED;
+      return ZFS_METADATA_ERROR;
     }
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
