@@ -1269,7 +1269,10 @@ internal_fh_destroy_stage1 (internal_fh fh)
     varray_destroy (&fh->subdentries);
 
   if (fh->journal)
-    journal_destroy (fh->journal);
+    {
+      close_journal_file (fh->journal);
+      journal_destroy (fh->journal);
+    }
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
