@@ -410,6 +410,8 @@ user_mapping_create (char *zfs_user, char *node_user, node nod)
   void **slot2;
   id_mapping map;
 
+  CHECK_MUTEX_LOCKED (&users_groups_mutex);
+
   u = (user_t) htab_find_with_hash (users_name, zfs_user,
 				    USER_NAME_HASH (zfs_user));
   if (!u)
@@ -442,8 +444,6 @@ user_mapping_create (char *zfs_user, char *node_user, node nod)
     }
   else
     {
-      CHECK_MUTEX_LOCKED (&users_groups_mutex);
-
       map_to_node = map_uid_to_node;
       map_to_zfs = map_uid_to_zfs;
     }
@@ -572,6 +572,8 @@ group_mapping_create (char *zfs_group, char *node_group, node nod)
   void **slot2;
   id_mapping map;
 
+  CHECK_MUTEX_LOCKED (&users_groups_mutex);
+
   g = (group_t) htab_find_with_hash (groups_name, zfs_group,
 				     GROUP_NAME_HASH (zfs_group));
   if (!g)
@@ -604,8 +606,6 @@ group_mapping_create (char *zfs_group, char *node_group, node nod)
     }
   else
     {
-      CHECK_MUTEX_LOCKED (&users_groups_mutex);
-
       map_to_node = map_uid_to_node;
       map_to_zfs = map_gid_to_zfs;
     }
