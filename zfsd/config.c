@@ -571,7 +571,7 @@ init_config_volume (void)
 	      zfsd_mutex_unlock (&fh_mutex);
 
 	      /* Recreate the directory where config volume is cached.  */
-	      recursive_unlink (&path, VOLUME_ID_CONFIG, false, false, false);
+	      recursive_unlink (&path, VOLUME_ID_VIRTUAL, false, false, false);
 	      vol = volume_lookup (VOLUME_ID_CONFIG);
 #ifdef ENABLE_CHECKING
 	      if (!vol)
