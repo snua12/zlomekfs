@@ -399,9 +399,9 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 }
 
 /* Check whether we can perform operation on ZFS file handle FH.
-   If DENY_CONFLICT is true return error when we are trying to do an operation
-   on a special file handle created because of conflict.
-   If FH is a file handle of non-existing file return NON_EXIST_ERROR.  */
+   If request came from network return EINVAL for special file handles.
+   Otherwise return CONFLICT_ERROR for conflict directory and NON_EXIST_ERROR
+   for non-existing file.  */
 
 int32_t
 validate_operation_on_zfs_fh (zfs_fh *fh, uint32_t conflict_error,
