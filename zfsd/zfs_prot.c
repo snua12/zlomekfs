@@ -157,9 +157,13 @@ void
 zfs_proc_open_by_fh_server (open_fh_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  zfs_cap res;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_open_by_fh (&res, &args->file, args->flags);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_zfs_cap (dc, &res);
 }
 
 /* void zfs_proc_close (zfs_cap); */
@@ -168,9 +172,10 @@ void
 zfs_proc_close_server (zfs_cap *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_close (args);
+  encode_status (dc, r);
 }
 
 /* read_dir_res zfs_proc_readdir (read_dir_args); */

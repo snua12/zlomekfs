@@ -39,6 +39,7 @@
 #include "random.h"
 #include "fh.h"
 #include "cap.h"
+#include "file.h"
 #include "node.h"
 #include "volume.h"
 #include "zfs_prot.h"
@@ -317,6 +318,7 @@ initialize_data_structures ()
 
   initialize_fh_c ();
   initialize_cap_c ();
+  initialize_file_c ();
   initialize_node_c ();
   initialize_volume_c ();
   initialize_zfs_prot_c ();
@@ -336,6 +338,7 @@ cleanup_data_structures ()
   cleanup_zfs_prot_c ();
   cleanup_volume_c ();
   cleanup_node_c ();
+  cleanup_file_c ();
   cleanup_cap_c ();
   cleanup_fh_c ();
   cleanup_random_c ();

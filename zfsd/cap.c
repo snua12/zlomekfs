@@ -23,9 +23,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 #include "pthread.h"
 #include "cap.h"
-#include "constant.h"
 #include "crc32.h"
 #include "alloc-pool.h"
 #include "hashtab.h"
@@ -33,11 +33,7 @@
 #include "log.h"
 #include "random.h"
 #include "util.h"
-#include "memory.h"
 #include "zfs_prot.h"
-
-/* The array of data for each file descriptor.  */
-internal_fd_data_t *internal_fd_data;
 
 /* Allocation pool for capabilities.  */
 static alloc_pool cap_pool;
@@ -76,34 +72,31 @@ internal_cap_eq (const void *xx, const void *yy)
 /* Find capability for internal file handle FH and open flags FLAGS.  */
 
 internal_cap
-internal_cap_lookup (internal_fh fh, unsigned int flags)
+internal_cap_lookup (zfs_cap *cap)
 {
-  zfs_cap tmp_cap;
-  internal_cap cap;
+  internal_cap icap;
 
   CHECK_MUTEX_LOCKED (&cap_mutex);
 
-  tmp_cap.fh = fh->local_fh;
-  tmp_cap.flags = flags;
-  cap = (internal_cap) htab_find_with_hash (cap_htab, &tmp_cap,
-					    ZFS_CAP_HASH (tmp_cap));
-  if (cap)
-    zfsd_mutex_lock (&cap->mutex);
+  icap = (internal_cap) htab_find_with_hash (cap_htab, cap,
+					    ZFS_CAP_HASH (*cap));
+  if (icap)
+    zfsd_mutex_lock (&icap->mutex);
 
-  return cap;
+  return icap;
 }
 
 /* Create a new capability for internal file handle FH with open flags FLAGS.  */
 
 static internal_cap
-internal_cap_create (internal_fh fh, unsigned int flags)
+internal_cap_create_fh (internal_fh fh, unsigned int flags)
 {
   internal_cap cap;
   void **slot;
 
   CHECK_MUTEX_LOCKED (&cap_mutex);
 #ifdef ENABLE_CHECKING
-  /* This should be handled in ZFS "open".  */
+  /* This should be handled in get_capability().  */
   if (fh->attr.type == FT_DIR && flags != O_RDONLY)
     abort ();
 #endif
@@ -117,6 +110,49 @@ internal_cap_create (internal_fh fh, unsigned int flags)
     }
   cap->local_cap.fh = fh->local_fh;
   cap->master_cap.fh = fh->master_fh;
+  cap->local_cap.flags = flags;
+  cap->master_cap.flags = flags;
+  cap->busy = 1;
+  zfsd_mutex_init (&cap->mutex);
+  zfsd_mutex_lock (&cap->mutex);
+
+#ifdef ENABLE_CHECKING
+  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
+				   INTERNAL_CAP_HASH (cap), NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
+				   INTERNAL_CAP_HASH (cap), INSERT);
+  *slot = cap;
+
+  return cap;
+}
+
+/* Create a new capability for virtual directory VD with open flags FLAGS.  */
+
+static internal_cap
+internal_cap_create_vd (virtual_dir vd, unsigned int flags)
+{
+  internal_cap cap;
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&cap_mutex);
+#ifdef ENABLE_CHECKING
+  /* This should be handled in get_capability().  */
+  if (flags != O_RDONLY)
+    abort ();
+#endif
+
+  cap = (internal_cap) pool_alloc (cap_pool);
+
+  if (!full_read (fd_urandom, cap->random, CAP_RANDOM_LEN))
+    {
+      pool_free (cap_pool, cap);
+      return NULL;
+    }
+  cap->local_cap.fh = vd->fh;
+  cap->master_cap.fh = vd->fh;
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
   cap->busy = 1;
@@ -159,53 +195,85 @@ internal_cap_destroy (internal_cap cap)
   pool_free (cap_pool, *slot);
 }
 
-/* Get a capability for internal file handle FH with open flags FLAGS.
-   Create a new one if it does not exist.  */
+/* Get an internal capability CAP and store it to ICAPP. Store capability's
+   volume to VOL, internal file handle IFH and virtual directory to VD.
+   Create a new internal capability if it does not exist.  */
 
-internal_cap
-get_capability (internal_fh fh, unsigned int flags)
+int
+get_capability (zfs_cap *cap, internal_cap *icapp,
+		volume *vol, internal_fh *ifh, virtual_dir *vd)
 {
-  internal_cap cap;
+  internal_cap icap;
+
+  CHECK_MUTEX_LOCKED (&cap_mutex);
 
 #ifdef ENABLE_CHECKING
-  if (flags & ~O_ACCMODE)
+  if (cap->flags & ~O_ACCMODE)
     abort ();
 #endif
 
-  zfsd_mutex_lock (&cap_mutex);
-  cap = internal_cap_lookup (fh, flags);
-  if (cap)
-    cap->busy++;
-  else
-    cap = internal_cap_create (fh, flags);
-  zfsd_mutex_unlock (&cap_mutex);
+  if (VIRTUAL_FH_P (cap->fh) && cap->flags != O_RDONLY)
+    return EISDIR;
 
-  return cap;
+  if (!fh_lookup (&cap->fh, vol, ifh, vd))
+    return ESTALE;
+
+  if (vd && cap->flags != O_RDONLY)
+    {
+      zfsd_mutex_unlock (&(*vol)->mutex);
+      zfsd_mutex_unlock (&(*vd)->mutex);
+      return EISDIR;
+    }
+
+  icap = internal_cap_lookup (cap);
+  if (icap)
+    icap->busy++;
+  else if (VIRTUAL_FH_P (cap->fh))
+    icap = internal_cap_create_vd (*vd, cap->flags);
+  else
+    icap = internal_cap_create_fh (*ifh, cap->flags);
+
+  *icapp = icap;
+  return ZFS_OK;
+}
+
+/* Find an internal capability CAP and store it to ICAPP. Store capability's
+   volume to VOL, internal file handle IFH and virtual directory to VD.
+   Create a new internal capability if it does not exist.  */
+
+int
+find_capability (zfs_cap *cap, internal_cap *icapp,
+		 volume *vol, internal_fh *ifh, virtual_dir *vd)
+{
+  internal_cap icap;
+
+  CHECK_MUTEX_LOCKED (&cap_mutex);
+
+  icap = internal_cap_lookup (cap);
+  if (!icap)
+    return EBADF;
+
+  if (!fh_lookup (&cap->fh, vol, ifh, vd))
+    {
+      zfsd_mutex_unlock (&icap->mutex);
+      return ESTALE;
+    }
+
+  *icapp = icap;
+  return ZFS_OK;
 }
 
 /* Decrease the number of users of capability CAP and destroy the capability
    when the number of users becomes 0.  */
 
 int
-put_capability (zfs_cap *zcap)
+put_capability (internal_cap cap)
 {
-  internal_cap cap;
-
-  zfsd_mutex_lock (&cap_mutex);
-  cap = (internal_cap) htab_find_with_hash (cap_htab, zcap,
-					    ZFS_CAP_HASH (*zcap));
-  if (!cap)
-    {
-      zfsd_mutex_unlock (&cap_mutex);
-      return EBADF;
-    }
-  zfsd_mutex_lock (&cap->mutex);
   cap->busy--;
   if (cap->busy == 0)
     internal_cap_destroy (cap);
   else
     zfsd_mutex_unlock (&cap->mutex);
-  zfsd_mutex_unlock (&cap_mutex);
 
   return ZFS_OK;
 }
@@ -215,17 +283,6 @@ put_capability (zfs_cap *zcap)
 void
 initialize_cap_c ()
 {
-  int i;
-
-  /* Data for each file descriptor.  */
-  internal_fd_data
-    = (internal_fd_data_t *) xcalloc (max_nfd, sizeof (internal_fd_data_t));
-  for (i = 0; i < max_nfd; i++)
-    {
-      zfsd_mutex_init (&internal_fd_data[i].mutex);
-      internal_fd_data[i].fd = -1;
-    }
-
   zfsd_mutex_init (&cap_mutex);
   cap_pool = create_alloc_pool ("cap_pool", sizeof (struct internal_cap_def),
 				250, &cap_mutex);
@@ -258,6 +315,4 @@ cleanup_cap_c ()
   free_alloc_pool (cap_pool);
   zfsd_mutex_unlock (&cap_mutex);
   zfsd_mutex_destroy (&cap_mutex);
-
-  free (internal_fd_data);
 }

@@ -25,14 +25,30 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
+#include "pthread.h"
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"
+
+/* Data for file descriptor.  */
+typedef struct internal_fd_data_def
+{
+  pthread_mutex_t mutex;
+  int fd;			/* file descriptor */
+  time_t last_use;		/* time of last use of the file descriptor */
+  unsigned int generation;	/* generation of open file descriptor */
+  int busy;			/* number of threads using file descriptor */
+} internal_fd_data_t;
 
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
 extern int local_getattr (fattr *attr, char *path, volume vol);
 extern int zfs_getattr (fattr *fa, zfs_fh *fh);
 extern int zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
+extern int zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags);
+extern int zfs_close (zfs_cap *cap);
 extern int zfs_unlink (zfs_fh *dir, string *name);
+extern void initialize_file_c ();
+extern void cleanup_file_c ();
 
 #endif

@@ -25,9 +25,20 @@
 #include <unistd.h>
 #include <utime.h>
 #include <errno.h>
+#include <time.h>
+#include "pthread.h"
+#include "constant.h"
+#include "memory.h"
 #include "fh.h"
 #include "file.h"
 #include "dir.h"
+#include "cap.h"
+
+/* The array of data for each file descriptor.  */
+internal_fd_data_t *internal_fd_data;
+
+/* Convert attributes from STRUCT STAT ST to FATTR ATTR for file on volume
+   VOL.  */
 
 void
 fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
@@ -257,6 +268,282 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   return r;
 }
 
+/* If local file for capability CAP is opened return true and lock
+   INTERNAL_FD_DATA[CAP->FD].MUTEX.  */
+
+bool
+capability_opened_p (internal_cap cap)
+{
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+
+  if (cap->fd < 0)
+    return false;
+
+  zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
+  if (cap->generation != internal_fd_data[cap->fd].generation)
+    {
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      return false;
+    }
+
+  internal_fd_data[cap->fd].last_use = time (NULL);
+  return true;
+}
+
+/* Close local file for internal capability CAP on volume VOL.  */
+
+static int
+close_local_capability (internal_cap cap)
+{
+  if (cap->fd >= 0)
+    {
+      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
+      internal_fd_data[cap->fd].fd = -1;
+      internal_fd_data[cap->fd].generation++;
+      close (cap->fd);
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      cap->fd = -1;
+    }
+
+  return ZFS_OK;
+}
+
+/* Close local file for internal capability CAP on volume VOL.  */
+
+static int
+close_remote_capability (internal_cap cap, volume vol)
+{
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_close_client (t, &cap->master_cap, vol->master);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Close internal capability CAP on volume VOL.  */
+
+static int
+close_capability (internal_cap cap, volume vol)
+{
+  int r;
+
+  if (vol->local_path)
+    r = close_local_capability (cap);
+  else if (vol->master != this_node)
+    r = close_remote_capability (cap, vol);
+  else
+    abort ();
+
+  return ZFS_OK;
+}
+
+/* Open local file for capability CAP (whose internal file handle is FH)
+   with additional FLAGS on volume VOL.  */
+
+static int
+capability_open (internal_cap cap, unsigned int flags, internal_fh fh,
+		 volume vol)
+{
+  char *path;
+
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (flags & O_CREAT)
+    abort ();
+#endif
+
+  /* Close the old file descriptor, new one will be opened.  */
+  close_local_capability (cap);
+
+  path = build_local_path (vol, fh);
+  cap->fd = open (path, cap->local_cap.flags | flags);
+  free (path);
+  if (cap->fd >= 0)
+    {
+      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
+      internal_fd_data[cap->fd].fd = cap->fd;
+      internal_fd_data[cap->fd].generation++;
+      internal_fd_data[cap->fd].last_use = time (NULL);
+      cap->generation = internal_fd_data[cap->fd].generation;
+      return ZFS_OK;
+    }
+
+  return errno;
+}
+
+/* Open local file for capability ICAP (whose internal file handle is FH)
+   with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
+
+static int
+open_local_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
+		       internal_fh fh, volume vol)
+{
+  int r;
+
+  r = capability_open (icap, flags, fh, vol);
+  if (r != ZFS_OK)
+    return r;
+
+  zfsd_mutex_unlock (&internal_fd_data[icap->fd].mutex);
+  *cap = icap->local_cap;
+  return ZFS_OK;
+}
+
+/* Open remote file for capability ICAP with open flags FLAGS on volume VOL.
+   Store ZFS capability to CAP.  */
+
+static int
+open_remote_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
+			volume vol)
+{
+  open_fh_args args;
+  thread *t;
+  int32_t r;
+
+  args.file = icap->master_cap.fh;
+  args.flags = icap->master_cap.flags | flags;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_open_by_fh_client (t, &args, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      if (!decode_zfs_cap (&t->dc, cap)
+	  || !finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+
+      icap->master_cap = *cap;
+    }
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Open file for capability ICAP (whose internal file handle is FH)
+   with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
+
+static int
+open_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
+		 internal_fh fh, volume vol)
+{
+  int r;
+
+  CHECK_MUTEX_LOCKED (&icap->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (vol->local_path)
+    r = open_local_capability (cap, icap, flags, fh, vol);
+  else if (vol->master != this_node)
+    r = open_remote_capability (cap, icap, flags, vol);
+  else
+    abort ();
+
+  return r;
+}
+
+/* Open file handle FH with open flags FLAGS and return capability in CAP.  */
+
+int
+zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
+{
+  volume vol;
+  internal_cap icap;
+  internal_fh ifh;
+  virtual_dir vd;
+  int r;
+
+  /* When O_CREAT is set the function zfs_open_by_name is called.
+     The flag is superfluous here.  */
+  flags &= ~O_CREAT;
+
+  cap->fh = *fh;
+  cap->flags = flags & O_ACCMODE;
+  zfsd_mutex_lock (&cap_mutex);
+  r = get_capability (cap, &icap, &vol, &ifh, &vd);
+  zfsd_mutex_unlock (&cap_mutex);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vd)
+    {
+      zfsd_mutex_unlock (&icap->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&vd->mutex);
+      return ZFS_OK;
+    }
+
+  r = open_capability (cap, icap, flags & ~O_ACCMODE, ifh, vol);
+  zfsd_mutex_unlock (&icap->mutex);
+  zfsd_mutex_unlock (&ifh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  return r;
+}
+
+/* Close capability CAP.  */
+
+int
+zfs_close (zfs_cap *cap)
+{
+  volume vol;
+  internal_cap icap;
+  internal_fh ifh;
+  virtual_dir vd;
+  int r;
+
+  zfsd_mutex_lock (&cap_mutex);
+  r = find_capability (cap, &icap, &vol, &ifh, &vd);
+  if (r != ZFS_OK)
+    {
+      zfsd_mutex_unlock (&cap_mutex);
+      return r;
+    }
+
+  if (vd)
+    {
+      put_capability (icap);
+      zfsd_mutex_unlock (&cap_mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&vd->mutex);
+      return ZFS_OK;
+    }
+
+  if (icap->busy == 1)
+    r = close_capability (icap, vol);
+  else
+    r = ZFS_OK;
+
+  put_capability (icap);
+  zfsd_mutex_unlock (&cap_mutex);
+  zfsd_mutex_unlock (&ifh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  return r;
+}
+
 /* Delete local file NAME from directory DIR on volume VOL.  */
 
 static int
@@ -351,14 +638,97 @@ zfs_unlink (zfs_fh *dir, string *name)
   return r;
 }
 
+/* Initialize data structures in FILE.C.  */
+
+void
+initialize_file_c ()
+{
+  int i;
+
+  /* Data for each file descriptor.  */
+  internal_fd_data
+    = (internal_fd_data_t *) xcalloc (max_nfd, sizeof (internal_fd_data_t));
+  for (i = 0; i < max_nfd; i++)
+    {
+      zfsd_mutex_init (&internal_fd_data[i].mutex);
+      internal_fd_data[i].fd = -1;
+    }
+}
+
+/* Destroy data structures in CAP.C.  */
+
+void
+cleanup_file_c ()
+{
+  free (internal_fd_data);
+}
+
 /*****************************************************************************/
 
-int
-zfs_open (zfs_fh *fh)
+#if 0
+static void
+really_local_open (internal_fh fh, int flags, mode_t mode)
 {
-
-  return ZFS_OK;
 }
+
+#include <errno.h>
+/* Open internal file handle FH.  */
+int
+local_open (internal_fh fh, int flags, mode_t mode)
+{
+  int fd;
+  char *path;
+
+  if (fh->fd >= 0)
+    {
+      pthread_mutex_lock (&internal_fd_data[fh->fd].mutex);
+      if (fh->generation == internal_fd_data[fh->fd].generation)
+	{
+	  internal_fd_data[fh->fd].busy++;
+	  pthread_mutex_unlock (&internal_fd_data[fh->fd].mutex);
+	  return ZFS_OK;
+	}
+      pthread_mutex_unlock (&internal_fd_data[fh->fd].mutex);
+    }
+
+/*  fd = open (*/
+}
+
+int
+local_read (internal_fh fh, void *buf, uint64_t pos, unsigned int count)
+{
+}
+
+int
+local_close (internal_fh fh)
+{
+  int r = ZFS_OK;
+
+  if (fh->fd < 0)
+    return EBADF;
+
+  pthread_mutex_lock (&internal_fd_data[fh->fd].mutex);
+  if (fh->generation == internal_fd_data[fh->fd].generation)
+    {
+      internal_fd_data[fh->fd].busy--;
+      if (internal_fd_data[fh->fd].busy == 0)
+	{
+	  internal_fd_data[fh->fd].fd = -1;
+	  internal_fd_data[fh->fd].generation++;
+	  do
+	    {
+	      r = close (fh->fd);
+	    }
+	  while (r < 0 && errno == EINTR);
+	  if (r < 0)
+	    r = errno;
+	}
+    }
+
+  pthread_mutex_unlock (&internal_fd_data[fh->fd].mutex);
+  return r;
+}
+#endif
 
 int
 zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
@@ -380,11 +750,5 @@ zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
       /* FIXME: finish */
     }
 #endif
-  return ZFS_OK;
-}
-
-int
-zfs_close (zfs_fh *fh)
-{
   return ZFS_OK;
 }
