@@ -1131,7 +1131,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
   metadata meta;
   fattr fa;
   sattr sa;
-  int32_t r;
+  int32_t r = ZFS_OK;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
