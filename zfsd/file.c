@@ -383,6 +383,14 @@ zfs_create_retry:
 	return r;
     }
 
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
+
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
@@ -843,12 +851,20 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
 	    {
 	      virtual_dir svd;
 
+	      /* Hide "." and "..".  */
 	      if (de->d_name[0] == '.'
 		  && (de->d_name[1] == 0
 		      || (de->d_name[1] == '.'
 			  && de->d_name[2] == 0)))
 		continue;
 
+	      /* Hide ".zfs" in the root of the volume.  */
+	      if (!dentry->parent
+		  && strncmp (de->d_name, ".zfs", 5) == 0)
+		continue;
+
+	      /* Hide files which have the same name like some virtual
+		 directory.  */
 	      svd = vd_lookup_name (vd, de->d_name);
 	      if (svd)
 		{

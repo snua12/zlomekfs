@@ -769,6 +769,14 @@ zfs_lookup_retry:
   if (!idir)
     abort ();
 
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
+
   /* TODO: update directory */
 
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
@@ -947,6 +955,14 @@ zfs_mkdir_retry:
 	return r;
     }
 
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
+
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
@@ -1091,6 +1107,14 @@ zfs_rmdir_retry:
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
+    }
+
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
     }
 
   if (vol->local_path)
@@ -1289,6 +1313,14 @@ zfs_rename_retry:
       zfsd_mutex_unlock (&dentry1->fh->mutex);
     }
   zfsd_mutex_unlock (&vd_mutex);
+
+  /* Hide ".zfs" in root of volumes.  */
+  if ((!dentry1->parent && strncmp (from_name->str, ".zfs", 5) == 0)
+      || (!dentry2->parent && strncmp (to_name->str, ".zfs", 5) == 0))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
 
   zfsd_mutex_lock (&dentry1->fh->mutex);
   if (dentry1 != dentry2)
@@ -1532,6 +1564,16 @@ zfs_link_retry:
     }
   zfsd_mutex_unlock (&vd_mutex);
 
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!dentry2->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&dentry1->fh->mutex);
+      if (dentry1 != dentry2)
+	zfsd_mutex_unlock (&dentry2->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
+
   if (dentry1->fh->master_fh.dev != dentry2->fh->master_fh.dev)
     {
       zfsd_mutex_unlock (&dentry1->fh->mutex);
@@ -1668,6 +1710,14 @@ zfs_unlink_retry:
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
+    }
+
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
     }
 
   if (vol->local_path)
@@ -1911,6 +1961,14 @@ zfs_symlink_retry:
 	return r;
     }
 
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
+
   attr->mode = (uint32_t) -1;
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
@@ -2052,6 +2110,14 @@ zfs_mknod_retry:
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
+    }
+
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+    {
+      zfsd_mutex_unlock (&idir->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
     }
 
   attr->size = (uint64_t) -1;
