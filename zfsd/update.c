@@ -1867,6 +1867,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		if (zfs_fh_undefined (meta.master_fh))
 		  {
 		    internal_dentry subdentry;
+		    bool success;
 
 		    r = create_remote_fh (&res, dir, &entry->name, vol,
 					  fh, &local_res.attr);
@@ -1887,15 +1888,20 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		    meta.master_version = meta.local_version;
 		    meta.local_version++;
 
+		    success = flush_metadata (vol, &meta);
+
 		    if (subdentry)
 		      {
-			subdentry->fh->meta = meta;
-			set_attr_version (&subdentry->fh->attr,
-					  &subdentry->fh->meta);
+			if (success)
+			  {
+			    subdentry->fh->meta = meta;
+			    set_attr_version (&subdentry->fh->attr,
+					      &subdentry->fh->meta);
+			  }
 			release_dentry (subdentry);
 		      }
 
-		    if (!flush_metadata (vol, &meta))
+		    if (!success)
 		      {
 			MARK_VOLUME_DELETE (vol);
 			continue;
