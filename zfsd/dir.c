@@ -767,6 +767,12 @@ zfs_getattr_retry:
 int32_t
 local_setattr_path (fattr *fa, char *path, sattr *sa)
 {
+  if (sa->size != (uint64_t) -1)
+    {
+      if (truncate (path, sa->size) != 0)
+	return errno;
+    }
+
   if (sa->mode != (uint32_t) -1)
     {
       if (chmod (path, sa->mode) != 0)
@@ -777,12 +783,6 @@ local_setattr_path (fattr *fa, char *path, sattr *sa)
     {
       if (lchown (path, map_uid_zfs2node (sa->uid),
 		  map_gid_zfs2node (sa->gid)) != 0)
-	return errno;
-    }
-
-  if (sa->size != (uint64_t) -1)
-    {
-      if (truncate (path, sa->size) != 0)
 	return errno;
     }
 
