@@ -26,6 +26,7 @@
 #include <signal.h>
 #include "config.h"
 #include "log.h"
+#include "memory.h"
 #include "zfsd.h"
 
 /* Name of the configuration file.  */
@@ -65,12 +66,13 @@ static void
 usage(int exitcode)
 {
   printf("Usage: zfsd [OPTION]...\n\n");
-  printf("  -v, --verbose  Verbose; display verbose debugging messages.\n");
-  printf("                 Multiple -v increases verbosity.\n");
-  printf("  -q, --quiet    Quiet; display less messages.\n");
-  printf("                 Multiple -q increases quietness.\n");
-  printf("      --help     display this help and exit\n");
-  printf("      --version  output version information and exit\n");
+  printf("  -f, --config=FILE  Specifies the name of the configuration file.\n");
+  printf("  -v, --verbose      Verbose; display verbose debugging messages.\n");
+  printf("                     Multiple -v increases verbosity.\n");
+  printf("  -q, --quiet        Quiet; display less messages.\n");
+  printf("                     Multiple -q increases quietness.\n");
+  printf("      --help         Display this help and exit.\n");
+  printf("      --version      Output version information and exit.\n");
 
   exit(exitcode);
 }
@@ -98,6 +100,7 @@ enum long_option
 
 static struct option const long_options[] =
 {
+    {"config", required_argument, 0, 'f'},
     {"verbose", no_argument, 0, 'v'},
     {"quiet", no_argument, 0, 'q'},
     {"help", no_argument, 0, OPTION_HELP},
@@ -111,11 +114,19 @@ static void
 process_arguments(int argc, char **argv)
 {
   int c;
+  int config_file_allocated = 0;
 
-  while ((c = getopt_long(argc, argv, "qv", long_options, NULL)) != -1)
+  while ((c = getopt_long(argc, argv, "f:qv", long_options, NULL)) != -1)
     {
       switch (c)
 	{
+	  case 'f':
+	    if (config_file_allocated)
+	      free(config_file);
+	    config_file = xstrdup(optarg);
+	    config_file_allocated = 1;
+	    break;
+
 	  case 'v':
 	    verbose++;
 	    break;
@@ -137,6 +148,9 @@ process_arguments(int argc, char **argv)
 	    break;
 	}
     }
+
+  if (optind < argc)
+    usage(EXIT_FAILURE);
 }
 
 /* Entry point of ZFS daemon.  */
