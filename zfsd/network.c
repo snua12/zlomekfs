@@ -285,6 +285,7 @@ send_request (thread *t, uint32_t request_id, int fd)
   if (!get_running ())
     {
       t->retval = ZFS_EXITING;
+      zfsd_mutex_unlock (&network_fd_data[fd].mutex);
       return;
     }
 
