@@ -22,7 +22,6 @@
 #define TEST_H
 
 #include "system.h"
-#include "thread.h"
 
 extern void fake_config ();
 extern void test_zfs ();
