@@ -2267,72 +2267,59 @@ out:
   return r;
 }
 
-/* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
-   in directory TO_DIR on volume VOL.
-   Store the metadata of original file TO_NAME to META_OLD
-   and the stat structure of the new file TO_NAME to ST_NEW.  */
+/* Rename local file FROM_PATH to TO_PATH on volume VOL.
+   Store the metadata of original file TO_PATH to META_OLD
+   and the stat structure of the new file TO_PATH to ST_NEW.  */
 
 static int32_t
-local_rename (metadata *meta_old, struct stat *st_new,
-	      internal_dentry from_dir, string *from_name,
-	      internal_dentry to_dir, string *to_name, volume vol)
+local_rename_base (metadata *meta_old, struct stat *st_new, bool same_dir,
+		   string *from_path, string *to_path, volume vol)
 {
   struct stat parent_st;
   struct stat st;
   zfs_fh fh;
   metadata tmp_meta;
-  string path1, path2;
+  string to_name;
   int32_t r;
 
-  TRACE ("");
-  CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
-  CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh_mutex);
 
-  build_local_path_name (&path1, vol, from_dir, from_name);
-  build_local_path_name (&path2, vol, to_dir, to_name);
-  release_dentry (from_dir);
-  if (to_dir->fh != from_dir->fh)
-    release_dentry (to_dir);
-  zfsd_mutex_unlock (&fh_mutex);
-
-  r = parent_exists (&path1, &parent_st);
+  r = parent_exists (from_path, &parent_st);
   if (r != ZFS_OK)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      free (path1.str);
-      free (path2.str);
+      free (from_path->str);
+      free (to_path->str);
       return r;
     }
-  if (to_dir != from_dir)
+  if (!same_dir)
     {
-      r = parent_exists (&path2, &parent_st);
+      r = parent_exists (to_path, &parent_st);
       if (r != ZFS_OK)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  free (path1.str);
-	  free (path2.str);
+	  free (from_path->str);
+	  free (to_path->str);
 	  return r;
 	}
     }
 
-  r = lstat (path1.str, st_new);
+  r = lstat (from_path->str, st_new);
   if (r != 0)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      free (path1.str);
-      free (path2.str);
+      free (from_path->str);
+      free (to_path->str);
       return errno;
     }
 
-  r = lstat (path2.str, &st);
+  r = lstat (to_path->str, &st);
   if (r != 0)
     {
-      /* PATH2 does not exist.  */
-      r = rename (path1.str, path2.str);
-      free (path1.str);
-      free (path2.str);
+      /* TO_PATH does not exist.  */
+      r = rename (from_path->str, to_path->str);
+      free (from_path->str);
+      free (to_path->str);
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -2343,10 +2330,10 @@ local_rename (metadata *meta_old, struct stat *st_new,
     }
   else
     {
-      /* PATH2 exists.  */
-      r = rename (path1.str, path2.str);
-      free (path1.str);
-      free (path2.str);
+      /* TO_PATH exists.  */
+      r = rename (from_path->str, to_path->str);
+      free (from_path->str);
+      free (to_path->str);
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -2365,18 +2352,48 @@ local_rename (metadata *meta_old, struct stat *st_new,
 	MARK_VOLUME_DELETE (vol);
 
       /* Delete the metadata.  */
+      file_name_from_path (&to_name, to_path);
       tmp_meta.flags = 0;
       tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					zfs_mode_to_ftype (st.st_mode));
       tmp_meta.uid = map_uid_node2zfs (st.st_uid);
       tmp_meta.gid = map_gid_node2zfs (st.st_gid);
       if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
-			    parent_st.st_dev, parent_st.st_ino, to_name))
+			    parent_st.st_dev, parent_st.st_ino, &to_name))
 	MARK_VOLUME_DELETE (vol);
     }
 
   zfsd_mutex_unlock (&vol->mutex);
   return ZFS_OK;
+}
+
+/* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
+   in directory TO_DIR on volume VOL.
+   Store the metadata of original file TO_NAME to META_OLD
+   and the stat structure of the new file TO_NAME to ST_NEW.  */
+
+static int32_t
+local_rename (metadata *meta_old, struct stat *st_new,
+	      internal_dentry from_dir, string *from_name,
+	      internal_dentry to_dir, string *to_name, volume vol)
+{
+  string from_path, to_path;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
+  CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+
+  build_local_path_name (&from_path, vol, from_dir, from_name);
+  build_local_path_name (&to_path, vol, to_dir, to_name);
+  release_dentry (from_dir);
+  if (to_dir->fh != from_dir->fh)
+    release_dentry (to_dir);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  return local_rename_base (meta_old, st_new, from_dir == to_dir,
+			    &from_path, &to_path, vol);
 }
 
 /* Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME
