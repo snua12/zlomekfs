@@ -357,6 +357,10 @@ node_connect (node nod)
   int err;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
+#ifdef ENABLE_CHECKING
+  if (nod == this_node)
+    abort ();
+#endif
 
   /* Lookup the IP address.  */
   addr = NULL;
