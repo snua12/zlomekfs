@@ -1542,6 +1542,38 @@ reread_group_list (void)
   return true;
 }
 
+/* Reread volume hierarchy for volume VOL.  */
+
+static void
+reread_volume_hierarchy (volume vol)
+{
+  dir_op_res volume_hierarchy_dir_res;
+  int32_t r;
+  uint32_t vid;
+  string name;
+  string mountpoint;
+
+  vid = vol->id;
+  xstringdup (&name, &vol->name);
+  xstringdup (&mountpoint, &vol->mountpoint);
+  vol->marked = true;
+  zfsd_mutex_unlock (&vol->mutex);
+
+  r = zfs_extended_lookup (&volume_hierarchy_dir_res, &root_fh,
+			   "config/volume");
+  if (r != ZFS_OK)
+    {
+      free (name.str);
+      free (mountpoint.str);
+      return;
+    }
+
+  read_volume_hierarchy (&volume_hierarchy_dir_res.file, vid, &name,
+			 &mountpoint);
+
+  destroy_invalid_volume (vid);
+}
+
 /* Reread user mapping for node SID.  */
 
 static bool
@@ -1635,6 +1667,7 @@ reread_group_mapping (uint32_t sid)
 static bool
 reread_config_file (string *relative_path)
 {
+  string name;
   char *str = relative_path->str;
 
   if (strncmp (str, "/config/", 8) != 0)
@@ -1651,8 +1684,15 @@ reread_config_file (string *relative_path)
       str += 6;
       if (*str == '/')
 	{
-	  str++;
+	  volume vol;
 
+	  str++;
+	  name.str = str;
+	  name.len = relative_path->len - (str - relative_path->str);
+
+	  vol = volume_lookup_name (&name);
+	  if (vol)
+	    reread_volume_hierarchy (vol);
 	}
       else if (strncmp (str, "_list", 6) == 0)
 	{
