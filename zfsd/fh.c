@@ -566,6 +566,11 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 	  vol->flags |= VOLUME_DELETE;
 	  memset (&fh->meta, 0, sizeof (fh->meta));
 	}
+      else
+	{
+	  if (fh->meta.local_version == 0)
+	    inc_local_version (vol, fh);
+	}
     }
   else
     memset (&fh->meta, 0, sizeof (fh->meta));
