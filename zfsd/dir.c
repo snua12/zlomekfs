@@ -3152,15 +3152,28 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    zfsd_mutex_unlock (&fh_mutex);
 	    goto out;
 
+	  case 8:
+	    /* Resolved conflict: deleted remote non-existing file.  */
 	  case 4:
 	    /* Resolved conflict: deleted remote file.  */
 	    delete_dentry (&vol, &idir, name, &tmp_fh);
 
-	    /* Clear the master file handle of local file.  */
 	    dentry = conflict_local_dentry (idir);
-	    if (!set_metadata_master_fh (vol, dentry->fh, &undefined_fh))
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+	    parent = idir->parent;
+	    acquire_dentry (parent);
+
+	    /* Add the local file to journal so that it could be
+	       reintegrated.  */
+	    if (!add_journal_entry (vol, parent->fh, &dentry->fh->local_fh,
+				    &dentry->fh->meta.master_fh, &idir->name,
+				    JOURNAL_OPERATION_ADD))
 	      MARK_VOLUME_DELETE (vol);
 	    release_dentry (dentry);
+	    release_dentry (parent);
 
 	    if (try_resolve_conflict (vol, idir))
 	      {
@@ -3225,32 +3238,6 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    internal_dentry_destroy (idir, true);
 	    zfsd_mutex_unlock (&fh_mutex);
 	    goto out;
-
-	  case 8:
-	    /* Resolved conflict: deleted remote non-existing file.  */
-	    dentry = conflict_local_dentry (idir);
-#ifdef ENABLE_CHECKING
-	    if (!dentry)
-	      abort ();
-#endif
-	    parent = idir->parent;
-	    acquire_dentry (parent);
-
-	    /* Add the local file to journal so that it could be
-	       reintegrated.  */
-	    if (!add_journal_entry (vol, parent->fh, &dentry->fh->local_fh,
-				    &dentry->fh->meta.master_fh, &idir->name,
-				    JOURNAL_OPERATION_ADD))
-	      MARK_VOLUME_DELETE (vol);
-	    release_dentry (dentry);
-	    release_dentry (parent);
-
-	    if (try_resolve_conflict (vol, idir))
-	      {
-		zfsd_mutex_unlock (&fh_mutex);
-		goto out;
-	      }
-	    break;
 	}
     }
 
