@@ -269,6 +269,7 @@ cleanup_cap_c ()
 #endif
   free_alloc_pool (cap_pool);
   zfsd_mutex_unlock (&cap_mutex);
-
   pthread_mutex_destroy (&cap_mutex);
+
+  free (internal_fd_data);
 }
