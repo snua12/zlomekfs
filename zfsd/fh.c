@@ -1664,24 +1664,24 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 
 	  release_dentry (*dirp);
 	  zfsd_mutex_unlock (&(*volp)->mutex);
-	  subdentry = dentry_lookup_name (NULL, dentry, &this_node->name);
-	  if (subdentry)
+	  subdentry = conflict_local_dentry (dentry);
+#ifdef ENABLE_CHECKING
+	  if (!subdentry)
+	    abort ();
+#endif
+
+	  tmp_fh = dentry->fh->local_fh;
+	  release_dentry (dentry);
+
+	  internal_dentry_destroy (subdentry, true, true);
+
+	  dentry = dentry_lookup (&tmp_fh);
+	  *volp = volume_lookup (tmp_fh.vid);
+	  if (!try_resolve_conflict (*volp, dentry))
 	    {
-	      tmp_fh = dentry->fh->local_fh;
 	      release_dentry (dentry);
-
-	      internal_dentry_destroy (subdentry, true, true);
-
-	      dentry = dentry_lookup (&tmp_fh);
-	      *volp = volume_lookup (tmp_fh.vid);
-	      if (!try_resolve_conflict (*volp, dentry))
-		{
-		  release_dentry (dentry);
-		  zfsd_mutex_unlock (&(*volp)->mutex);
-		}
+	      zfsd_mutex_unlock (&(*volp)->mutex);
 	    }
-	  else
-	    release_dentry (dentry);
 	}
       else
 	{
