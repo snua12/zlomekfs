@@ -908,6 +908,11 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	  message (0, stderr, "%s:%u: Volume ID must not be 0 or %" PRIu32 "\n",
 		   file_name, line_num, (uint32_t) -1);
 	}
+      else if (parts[1].len == 0)
+	{
+	  message (0, stderr, "%s:%u: Volume name must not be empty\n",
+		   file_name, line_num);
+	}
       else if (parts[2].str[0] != '/')
 	{
 	  message (0, stderr,
@@ -917,9 +922,16 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
       else if (vid == VOLUME_ID_CONFIG && saved_vid == 0)
 	{
 	  volume vol;
-	  string str;
 
 	  saved_vid = vid;
+	  if (strcmp (parts[2].str, "/config") != 0)
+	    {
+	      message (0, stderr,
+		       "%s:%d: Mountpoint of config volume must be '/config'\n",
+		       file_name, line_num);
+	      saved_mountpoint.str = NULL;
+	    }
+
 	  xstringdup (&saved_name, &parts[1]);
 	  xstringdup (&saved_mountpoint, &parts[2]);
 
@@ -932,13 +944,11 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	  else
 #endif
 	    {
-	      vol->marked = false;
 	      if (vol->slaves)
 		htab_empty (vol->slaves);
 	    }
-	  str.str = "/config";
-	  str.len = strlen ("/config");
-	  volume_set_common_info (vol, &parts[1], &str, this_node);
+	  volume_set_common_info (vol, &parts[1], &parts[2], this_node);
+	  vol->marked = true;
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&volume_mutex);
 	  zfsd_mutex_unlock (&vd_mutex);
@@ -965,6 +975,7 @@ read_volume_list (zfs_fh *config_dir)
 {
   dir_op_res volume_list_res;
   dir_op_res volume_hierarchy_res;
+  volume vol;
   int32_t r;
 
   r = zfs_extended_lookup (&volume_list_res, config_dir, "volume_list");
@@ -983,10 +994,30 @@ read_volume_list (zfs_fh *config_dir)
 
   if (saved_vid == VOLUME_ID_CONFIG)
     {
+      if (saved_mountpoint.str == NULL)
+	return false;
+
       read_volume_hierarchy (&volume_hierarchy_res.file, saved_vid,
 			     &saved_name, &saved_mountpoint);
       free (saved_name.str);
       free (saved_mountpoint.str);
+
+      vol = volume_lookup (saved_vid);
+      if (!vol)
+	goto no_config;
+      if (vol->marked)
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  goto no_config;
+	}
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+  else
+    {
+no_config:
+      message (0, stderr,
+	       "config/volume_list: Config volume does not exist\n");
+      return false;
     }
 
   return true;
