@@ -87,7 +87,7 @@ typedef struct fd_data_def
 extern thread_pool network_pool;
 
 /* The array of data for each file descriptor.  */
-extern fd_data_t *fd_data;
+extern fd_data_t *fd_data_a;
 
 struct thread_def;
 
