@@ -1396,7 +1396,9 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      r = update_fh_if_needed (&vol, &dentry, &tmp_fh, IFH_METADATA);
+      r = update_fh_if_needed (&vol, &dentry, &tmp_fh,
+			       dentry->fh->attr.type == FT_DIR
+			       ? IFH_ALL_UPDATE : IFH_METADATA);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_getattr (fa, dentry, vol);
