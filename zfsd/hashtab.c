@@ -176,7 +176,7 @@ htab_create (unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f)
 {
   htab_t htab;
 
-  htab = (htab_t) xmalloc (sizeof (htab_t));
+  htab = (htab_t) xmalloc (sizeof (struct htab_def));
   if (!htab)
     return NULL;
 

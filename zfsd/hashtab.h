@@ -44,7 +44,7 @@ typedef int (*htab_eq) (const void *x, const void *y);
 /* Cleanup function called when element is deleted from hash table.  */
 typedef void (*htab_del) (void *x);
 
-typedef struct hash
+typedef struct htab_def
 {
   /* Table itself.  */
   void **table;
@@ -66,8 +66,7 @@ typedef struct hash
 
   /* Cleanup function.  */
   htab_del del_f;
-}
- *htab_t;
+} *htab_t;
 
 extern htab_t htab_create (unsigned int size, htab_hash hash_f, htab_eq eq_f,
 			   htab_del del_f);
