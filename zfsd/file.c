@@ -307,6 +307,13 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	{
 	  local_close (icap);
 	  icap->fd = fd;
+
+	  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
+	  internal_fd_data[fd].fd = fd;
+	  internal_fd_data[fd].generation++;
+	  internal_fd_data[fd].last_use = time (NULL);
+	  icap->generation = internal_fd_data[fd].generation;
+	  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 	}
 
       zfsd_mutex_unlock (&ifh->mutex);
