@@ -3215,6 +3215,7 @@ add_journal_entry_meta (volume vol, journal_t journal, zfs_fh *fh,
 {
   zfs_fh local_fh;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (!vol->local_path.str || !vol->is_copy)
