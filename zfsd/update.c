@@ -452,6 +452,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
   sattr sa;
   int32_t r;
   read_link_res link_to;
+  dir_op_res dir_res;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -602,7 +603,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	sa.mtime = (zfs_time) -1;
 
 	zfsd_mutex_lock (&dir->fh->mutex);
-	r = local_symlink (dir, &name, &link_to.path, &sa, vol);
+	r = local_symlink (&dir_res, dir, &name, &link_to.path, &sa, vol);
 	zfsd_mutex_unlock (&dir->fh->mutex);
 	zfsd_mutex_unlock (&vol->mutex);
 	free (name.str);
@@ -630,7 +631,7 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	sa.mtime = (zfs_time) -1;
 
 	zfsd_mutex_lock (&dir->fh->mutex);
-	r = local_mknod (dir, &name, &sa, attr.type, attr.rdev, vol);
+	r = local_mknod (&dir_res, dir, &name, &sa, attr.type, attr.rdev, vol);
 	zfsd_mutex_unlock (&dir->fh->mutex);
 	zfsd_mutex_unlock (&vol->mutex);
 	free (name.str);

@@ -440,12 +440,13 @@ zfs_proc_readlink_server (zfs_fh *args, thread *t,
     }
 }
 
-/* void zfs_proc_symlink (symlink_args); */
+/* dir_op_res zfs_proc_symlink (symlink_args); */
 
 void
 zfs_proc_symlink_server (symlink_args *args, thread *t, bool map_id)
 {
   DC *dc = &t->dc;
+  dir_op_res res;
   int32_t r;
 
   if (map_id)
@@ -453,19 +454,30 @@ zfs_proc_symlink_server (symlink_args *args, thread *t, bool map_id)
       args->attr.uid = map_uid_node2zfs (args->attr.uid);
       args->attr.gid = map_gid_node2zfs (args->attr.gid);
     }
-  r = zfs_symlink (&args->from.dir, &args->from.name, &args->to, &args->attr);
+  r = zfs_symlink (&res, &args->from.dir, &args->from.name, &args->to,
+		   &args->attr);
   encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      if (map_id)
+	{
+	  res.attr.uid = map_uid_zfs2node (res.attr.uid);
+	  res.attr.gid = map_gid_zfs2node (res.attr.gid);
+	}
+      encode_dir_op_res (dc, &res);
+    }
 
   free (args->from.name.str);
   free (args->to.str);
 }
 
-/* void zfs_proc_mknod (mknod_args); */
+/* dir_op_res zfs_proc_mknod (mknod_args); */
 
 void
 zfs_proc_mknod_server (mknod_args *args, thread *t, bool map_id)
 {
   DC *dc = &t->dc;
+  dir_op_res res;
   int32_t r;
 
   if (map_id)
@@ -473,9 +485,18 @@ zfs_proc_mknod_server (mknod_args *args, thread *t, bool map_id)
       args->attr.uid = map_uid_node2zfs (args->attr.uid);
       args->attr.gid = map_gid_node2zfs (args->attr.gid);
     }
-  r = zfs_mknod (&args->where.dir, &args->where.name, &args->attr, args->type,
-		 args->rdev);
+  r = zfs_mknod (&res, &args->where.dir, &args->where.name, &args->attr,
+		 args->type, args->rdev);
   encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      if (map_id)
+	{
+	  res.attr.uid = map_uid_zfs2node (res.attr.uid);
+	  res.attr.gid = map_gid_zfs2node (res.attr.gid);
+	}
+      encode_dir_op_res (dc, &res);
+    }
 
   free (args->where.name.str);
 }

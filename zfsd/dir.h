@@ -63,18 +63,20 @@ extern int32_t local_readlink (read_link_res *res, internal_dentry file,
 			       volume vol);
 extern int32_t remote_readlink (read_link_res *res, internal_fh fh, volume vol);
 extern int32_t zfs_readlink (read_link_res *res, zfs_fh *fh);
-extern int32_t local_symlink (internal_dentry dir, string *name, string *to,
-			      sattr *attr, volume vol);
-extern int32_t remote_symlink (internal_fh dir, string *name, string *to,
-			       sattr *attr, volume vol);
-extern int32_t zfs_symlink (zfs_fh *dir, string *name, string *to,
-			    sattr *attr);
-extern int32_t local_mknod (internal_dentry dir, string *name, sattr *attr,
-			    ftype type, uint32_t rdev, volume vol);
-extern int32_t remote_mknod (internal_fh dir, string *name, sattr *attr,
-			     ftype type, uint32_t rdev, volume vol);
-extern int32_t zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
-			  uint32_t rdev);
+extern int32_t local_symlink (dir_op_res *res, internal_dentry dir,
+			      string *name, string *to, sattr *attr,
+			      volume vol);
+extern int32_t remote_symlink (dir_op_res *res, internal_fh dir, string *name,
+			       string *to, sattr *attr, volume vol);
+extern int32_t zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name,
+			    string *to, sattr *attr);
+extern int32_t local_mknod (dir_op_res *res, internal_dentry dir, string *name,
+			    sattr *attr, ftype type, uint32_t rdev, volume vol);
+extern int32_t remote_mknod (dir_op_res *res, internal_fh dir, string *name,
+			     sattr *attr, ftype type, uint32_t rdev,
+			     volume vol);
+extern int32_t zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name,
+			  sattr *attr, ftype type, uint32_t rdev);
 extern int32_t refresh_path (zfs_fh *fh);
 extern int32_t refresh_master_fh (internal_dentry dentry, volume vol);
 

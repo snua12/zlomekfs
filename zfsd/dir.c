@@ -2086,8 +2086,8 @@ zfs_readlink_retry:
    set its attributes according to ATTR.  */
 
 int32_t
-local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
-	       volume vol)
+local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
+	       sattr *attr, volume vol)
 {
   char *path;
   int32_t r;
@@ -2103,10 +2103,15 @@ local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
       return errno;
     }
 
-  r = local_setattr_path (NULL, path, attr);
+  r = local_setattr_path (&res->attr, path, attr);
   free (path);
   if (r != ZFS_OK)
     return r;
+
+  res->file.sid = dir->fh->local_fh.sid;
+  res->file.vid = dir->fh->local_fh.vid;
+  res->file.dev = res->attr.dev;
+  res->file.ino = res->attr.ino;
 
   return ZFS_OK;
 }
@@ -2115,8 +2120,8 @@ local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
    set its attributes according to ATTR.  */
 
 int32_t
-remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
-		volume vol)
+remote_symlink (dir_op_res *res, internal_fh dir, string *name, string *to,
+		sattr *attr, volume vol)
 {
   symlink_args args;
   thread *t;
@@ -2141,7 +2146,13 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
   zfsd_mutex_unlock (&node_mutex);
   r = zfs_proc_symlink_client (t, &args, vol->master, &fd);
 
-  if (r >= ZFS_LAST_DECODED_ERROR)
+  if (r == ZFS_OK)
+    {
+      if (!decode_dir_op_res (&t->dc_reply, res)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
     {
       if (!finish_decoding (&t->dc_reply))
 	r = ZFS_INVALID_REPLY;
@@ -2156,11 +2167,13 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
    set its attributes according to ATTR.  */
 
 int32_t
-zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
+zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
+	     sattr *attr)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
+  dir_op_res master_res;
   int32_t r;
   int retry = 0;
 
@@ -2202,9 +2215,17 @@ zfs_symlink_retry:
   attr->mtime = (zfs_time) -1;
 
   if (vol->local_path)
-    r = local_symlink (idir, name, to, attr, vol);
+    {
+      r = local_symlink (res, idir, name, to, attr, vol);
+      if (r == ZFS_OK)
+	zfs_fh_undefined (master_res.file);
+    }
   else if (vol->master != this_node)
-    r = remote_symlink (idir->fh, name, to, attr, vol);
+    {
+      r = remote_symlink (res, idir->fh, name, to, attr, vol);
+      if (r == ZFS_OK)
+	master_res.file = res->file;
+    }
   else
     abort ();
 
@@ -2212,10 +2233,17 @@ zfs_symlink_retry:
     {
       internal_dentry dentry;
 
-      /* Delete internal file handle in htab because it is outdated.  */
+      /* Update internal file handle in htab.  */
       dentry = dentry_lookup_name (vol, idir, name->str);
       if (dentry)
-	internal_dentry_destroy (dentry, vol);
+	{
+	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+	  internal_dentry_destroy (dentry, vol);
+	}
+      dentry = internal_dentry_create (&res->file, &master_res.file, vol,
+				       idir, name->str, &res->attr);
+      zfsd_mutex_unlock (&dentry->fh->mutex);
     }
 
   zfsd_mutex_unlock (&idir->fh->mutex);
@@ -2237,8 +2265,8 @@ zfs_symlink_retry:
    If device is being created RDEV is its number.  */
 
 int32_t
-local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
-	     uint32_t rdev, volume vol)
+local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
+	     ftype type, uint32_t rdev, volume vol)
 {
   char *path;
   int32_t r;
@@ -2254,10 +2282,15 @@ local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
       return errno;
     }
 
-  r = local_setattr_path (NULL, path, attr);
+  r = local_setattr_path (&res->attr, path, attr);
   free (path);
   if (r != ZFS_OK)
     return r;
+
+  res->file.sid = dir->fh->local_fh.sid;
+  res->file.vid = dir->fh->local_fh.vid;
+  res->file.dev = res->attr.dev;
+  res->file.ino = res->attr.ino;
 
   return ZFS_OK;
 }
@@ -2267,8 +2300,8 @@ local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
    If device is being created RDEV is its number.  */
 
 int32_t
-remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
-	      uint32_t rdev, volume vol)
+remote_mknod (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
+	      ftype type, uint32_t rdev, volume vol)
 {
   mknod_args args;
   thread *t;
@@ -2294,7 +2327,13 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
   zfsd_mutex_unlock (&node_mutex);
   r = zfs_proc_mknod_client (t, &args, vol->master, &fd);
 
-  if (r >= ZFS_LAST_DECODED_ERROR)
+  if (r == ZFS_OK)
+    {
+      if (!decode_dir_op_res (&t->dc_reply, res)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
     {
       if (!finish_decoding (&t->dc_reply))
 	r = ZFS_INVALID_REPLY;
@@ -2310,12 +2349,13 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
    If device is being created RDEV is its number.  */
 
 int32_t
-zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
+zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 	   uint32_t rdev)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
+  dir_op_res master_res;
   int32_t r;
   int retry = 0;
 
@@ -2357,11 +2397,15 @@ zfs_mknod_retry:
 
   if (vol->local_path)
     {
-      r = local_mknod (idir, name, attr, type, rdev, vol);
+      r = local_mknod (res, idir, name, attr, type, rdev, vol);
+      if (r == ZFS_OK)
+	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
-      r = remote_mknod (idir->fh, name, attr, type, rdev, vol);
+      r = remote_mknod (res, idir->fh, name, attr, type, rdev, vol);
+      if (r == ZFS_OK)
+	master_res.file = res->file;
     }
   else
     abort ();
@@ -2370,7 +2414,7 @@ zfs_mknod_retry:
     {
       internal_dentry dentry;
 
-      /* Delete internal file handle in htab because it is outdated.  */
+      /* Update internal file handle in htab.  */
       dentry = dentry_lookup_name (vol, idir, name->str);
       if (dentry)
 	{
@@ -2378,6 +2422,9 @@ zfs_mknod_retry:
 
 	  internal_dentry_destroy (dentry, vol);
 	}
+      dentry = internal_dentry_create (&res->file, &master_res.file, vol,
+				       idir, name->str, &res->attr);
+      zfsd_mutex_unlock (&dentry->fh->mutex);
     }
 
   zfsd_mutex_unlock (&idir->fh->mutex);

@@ -417,7 +417,7 @@ do_tests (void *data)
 	    }
 
 	  message (1, stderr, "TEST SYMLINK\n");
-	  r = zfs_symlink (&res.file, &sym, &path, &sa_symlink);
+	  r = zfs_symlink (&res2, &res.file, &sym, &path, &sa_symlink);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
@@ -449,7 +449,7 @@ do_tests (void *data)
 	    break;
 
 	  message (1, stderr, "TEST MKNOD\n");
-	  r = zfs_mknod (&res.file, &pip, &sa, FT_FIFO, 1234);
+	  r = zfs_mknod (&res2, &res.file, &pip, &sa, FT_FIFO, 1234);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
