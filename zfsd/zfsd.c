@@ -133,7 +133,7 @@ init_sig_handlers ()
   /* Set the signal handler for terminating zfsd.  */
   sigfillset (&sig.sa_mask);
   sig.sa_handler = exit_sighandler;
-  sig.sa_flags = 0;
+  sig.sa_flags = SA_RESTART;
   sigaction (SIGINT, &sig, NULL);
   sigaction (SIGQUIT, &sig, NULL);
   sigaction (SIGTERM, &sig, NULL);
@@ -141,7 +141,7 @@ init_sig_handlers ()
   /* Set the signal handler for fatal errors.  */
   sigfillset (&sig.sa_mask);
   sig.sa_sigaction = fatal_sigaction;
-  sig.sa_flags = SA_SIGINFO;
+  sig.sa_flags = SA_SIGINFO | SA_RESTART;
   sigaction (SIGILL, &sig, NULL);
   sigaction (SIGBUS, &sig, NULL);
   sigaction (SIGFPE, &sig, NULL);
@@ -154,7 +154,7 @@ init_sig_handlers ()
   /* Set the signal handler for terminating poll().  */
   sigfillset (&sig.sa_mask);
   sig.sa_handler = dummy_sighandler;
-  sig.sa_flags = SA_RESTART;
+  sig.sa_flags = 0;
   sigaction (SIGUSR1, &sig, NULL);
 
   /* Ignore SIGPIPE.  */
