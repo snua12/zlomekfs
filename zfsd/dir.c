@@ -3785,9 +3785,9 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   if (vol->local_path)
     {
       dentry = dentry_lookup_name (idir, name->str);
+      release_dentry (idir);
       if (!dentry)
 	{
-	  release_dentry (idir);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
 	  return ESTALE;
