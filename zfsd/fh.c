@@ -691,6 +691,22 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
   else
     {
       dentry = vol->root_dentry;
+      if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+	{
+	  internal_dentry tmp;
+	  unsigned int i;
+
+	  for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
+	    {
+	      tmp = VARRAY_ACCESS (dentry->fh->subdentries, 0, internal_dentry);
+	      if (INTERNAL_FH_HAS_LOCAL_PATH (tmp->fh))
+		{
+		  dir = dentry;
+		  dentry = tmp;
+		  break;
+		}
+	    }
+	}
       if (dentry)
 	zfsd_mutex_lock (&dentry->fh->mutex);
     }

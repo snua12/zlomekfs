@@ -583,11 +583,12 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       return ENOENT;
     }
 
-  *dentry = get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr);
+  get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr);
 
   if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
 
+  *dentry = vol->root_dentry;
   return ZFS_OK;
 }
 
