@@ -815,7 +815,7 @@ filldir_array (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
 
   entries[list->n].ino = ino;
   entries[list->n].cookie = cookie;
-  entries[list->n].name.str = xmemdup (name, name_len + 1);
+  entries[list->n].name.str = (char *) xmemdup (name, name_len + 1);
   entries[list->n].name.len = name_len;
   list->n++;
   return true;
