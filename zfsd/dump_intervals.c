@@ -30,7 +30,6 @@ int main (int argc, char **argv)
 {
   int fd, i;
   interval_tree tree;
-  interval_tree_node node;
   struct stat st;
 
   if (argc < 2)
