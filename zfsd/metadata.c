@@ -541,15 +541,93 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   return fd;
 }
 
-/* Flush interval tree TREE to file name PATH.  */
+/* Flush interval tree of type TYPE for file handle FH on volume VOL
+   to file PATH.  */
 
 static bool
-flush_interval_tree_1 (interval_tree tree, char *path)
+flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
+		       char *path)
 {
+  interval_tree tree;
   char *new_path;
   int fd;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  switch (type)
+    {
+      case METADATA_TYPE_UPDATED:
+	tree = fh->updated;
+	break;
+
+      case METADATA_TYPE_MODIFIED:
+	tree = fh->modified;
+	break;
+
+      default:
+	abort ();
+    }
+
   CHECK_MUTEX_LOCKED (tree->mutex);
+
+  close_interval_file (tree);
+
+  switch (type)
+    {
+      case METADATA_TYPE_UPDATED:
+	if (tree->size == 1
+	    && INTERVAL_START (tree->splay->root) == 0
+	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags | METADATA_COMPLETE))
+	      vol->flags |= VOLUME_DELETE;
+
+	    if (unlink (path) < 0 && errno != ENOENT)
+	      {
+		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		free (path);
+		return false;
+	      }
+	    free (path);
+	    return true;
+	  }
+	else
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags & ~METADATA_COMPLETE))
+	      vol->flags |= VOLUME_DELETE;
+	  }
+	break;
+
+      case METADATA_TYPE_MODIFIED:
+	if (tree->size == 0)
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags & ~METADATA_MODIFIED))
+	      vol->flags |= VOLUME_DELETE;
+
+	    if (unlink (path) < 0 && errno != ENOENT)
+	      {
+		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		free (path);
+		return false;
+	      }
+	    free (path);
+	    return true;
+	  }
+	else
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags | METADATA_MODIFIED))
+	      vol->flags |= VOLUME_DELETE;
+	  }
+	break;
+
+      default:
+	abort ();
+    }
 
   new_path = xstrconcat (2, path, ".new");
   fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT,
@@ -814,7 +892,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
       close (fd);
     }
 
-  return flush_interval_tree_1 (*treep, path);
+  return flush_interval_tree_1 (vol, fh, type, path);
 }
 
 /* Flush the interval tree of type TYPE for file handle FH on volume VOL
@@ -824,32 +902,11 @@ bool
 flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   char *path;
-  interval_tree tree;
 
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-
-  switch (type)
-    {
-      case METADATA_TYPE_UPDATED:
-	tree = fh->updated;
-	break;
-
-      case METADATA_TYPE_MODIFIED:
-	tree = fh->modified;
-	break;
-
-      default:
-	abort ();
-    }
-
-  CHECK_MUTEX_LOCKED (tree->mutex);
-
-  close_interval_file (tree);
   path = build_fh_metadata_path (vol, &fh->local_fh, type,
 				 metadata_tree_depth);
 
-  return flush_interval_tree_1 (tree, path);
+  return flush_interval_tree_1 (vol, fh, type, path);
 }
 
 /* Flush the interval tree of type TYPE for file handle FH on volume VOL
@@ -883,61 +940,10 @@ free_interval_tree (volume vol, internal_fh fh, metadata_type type)
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
-  close_interval_file (tree);
   path = build_fh_metadata_path (vol, &fh->local_fh, type,
 				 metadata_tree_depth);
 
-  switch (type)
-    {
-      case METADATA_TYPE_UPDATED:
-	if (tree->size == 1
-	    && INTERVAL_START (tree->splay->root) == 0
-	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
-	  {
-	    interval_tree_destroy (tree);
-	    *treep = NULL;
-	    fh->meta.flags |= METADATA_COMPLETE;
-	    if (unlink (path) < 0)
-	      {
-		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		free (path);
-		return false;
-	      }
-	    free (path);
-	    return true;
-	  }
-	else
-	  {
-	    fh->meta.flags &= ~METADATA_COMPLETE;
-	  }
-	break;
-
-      case METADATA_TYPE_MODIFIED:
-	if (tree->size == 0)
-	  {
-	    interval_tree_destroy (tree);
-	    *treep = NULL;
-	    fh->meta.flags &= ~METADATA_MODIFIED;
-	    if (unlink (path) < 0)
-	      {
-		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		free (path);
-		return false;
-	      }
-	    free (path);
-	    return true;
-	  }
-	else
-	  {
-	    fh->meta.flags |= METADATA_MODIFIED;
-	  }
-	break;
-
-      default:
-	abort ();
-    }
-
-  r = flush_interval_tree_1 (tree, path);
+  r = flush_interval_tree_1 (vol, fh, type, path);
   close_interval_file (tree);
   interval_tree_destroy (tree);
   *treep = NULL;
