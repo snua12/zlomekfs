@@ -385,6 +385,9 @@ recursive_unlink (metadata *meta, string *path, uint32_t vid,
     return (errno == ENOENT ? ZFS_OK : errno);
   filename.str[-1] = '/';
 
+  if (meta)
+    meta->slot_status = EMPTY_SLOT;
+
   return recursive_unlink_1 (meta ? meta : &tmp_meta, path, &filename, vid,
 			     &parent_st, destroy_dentry);
 }
