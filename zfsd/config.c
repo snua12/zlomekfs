@@ -1565,6 +1565,7 @@ reread_volume_hierarchy (volume vol)
     {
       free (name.str);
       free (mountpoint.str);
+      destroy_invalid_volume (vid);
       return;
     }
 
