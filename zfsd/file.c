@@ -368,6 +368,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     abort ();
 #endif
 
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;

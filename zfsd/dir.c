@@ -335,6 +335,7 @@ out:
       if (r == ZFS_OK)
 	{
 	  /* Delete metadata.  */
+	  meta.flags = 0;
 	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					zfs_mode_to_ftype (st.st_mode));
 	  meta.uid = map_uid_node2zfs (st.st_uid);
@@ -563,6 +564,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
 
   local_fh->dev = st.st_dev;
   local_fh->ino = st.st_ino;
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 				 zfs_mode_to_ftype (st.st_mode));
   meta->uid = map_uid_node2zfs (st.st_uid);
@@ -1243,6 +1245,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
@@ -1618,6 +1621,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     abort ();
 #endif
 
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
@@ -2125,6 +2129,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	    filename.str[-1] = 0;
 	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	      {
+		meta.flags = 0;
 		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					      zfs_mode_to_ftype (st.st_mode));
 		meta.uid = map_uid_node2zfs (st.st_uid);
@@ -2629,6 +2634,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	      filename.str[-1] = 0;
 	      if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 		{
+		  meta.flags = 0;
 		  meta.modetype
 		    = GET_MODETYPE (GET_MODE (st_old.st_mode),
 				    zfs_mode_to_ftype (st_old.st_mode));
@@ -2644,6 +2650,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 	  fh.dev = st_new.st_dev;
 	  fh.ino = st_new.st_ino;
+	  meta.flags = METADATA_COMPLETE;
 	  meta.modetype = GET_MODETYPE (GET_MODE (st_new.st_mode),
 					zfs_mode_to_ftype (st_new.st_mode));
 	  meta.uid = map_uid_node2zfs (st_new.st_uid);
@@ -2971,6 +2978,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	{
 	  metadata meta;
 
+	  meta.flags = METADATA_COMPLETE;
 	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					zfs_mode_to_ftype (st.st_mode));
 	  meta.uid = map_uid_node2zfs (st.st_uid);
@@ -3414,6 +3422,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    filename.str[-1] = 0;
 	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	      {
+		meta.flags = 0;
 		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					      zfs_mode_to_ftype (st.st_mode));
 		meta.uid = map_uid_node2zfs (st.st_uid);
@@ -3844,6 +3853,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
     abort ();
 #endif
 
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;
@@ -4083,6 +4093,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     abort ();
 #endif
 
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
   meta->uid = res->attr.uid;
   meta->gid = res->attr.gid;

@@ -1260,6 +1260,7 @@ set_metadata_attr (volume vol, metadata *meta, zfs_fh *fh, fattr *attr)
   if (dentry)
     *meta = dentry->fh->meta;
 
+  meta->flags = METADATA_COMPLETE;
   meta->modetype = GET_MODETYPE (attr->mode, attr->type);
   meta->uid = attr->uid;
   meta->gid = attr->gid;
@@ -1269,6 +1270,7 @@ set_metadata_attr (volume vol, metadata *meta, zfs_fh *fh, fattr *attr)
 
   if (dentry)
     {
+      dentry->fh->meta.flags = meta->flags;
       dentry->fh->meta.modetype = meta->modetype;
       dentry->fh->meta.uid = meta->uid;
       dentry->fh->meta.gid = meta->gid;
@@ -1350,6 +1352,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
 	abort ();
 #endif
 
+      meta.flags = METADATA_COMPLETE;
       meta.modetype = GET_MODETYPE (sa.mode, attr->type);
       meta.uid = sa.uid;
       meta.gid = sa.gid;

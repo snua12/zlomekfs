@@ -448,6 +448,7 @@ create_path_for_file (string *file, unsigned int mode, volume vol)
 
 	      fh.dev = st.st_dev;
 	      fh.ino = st.st_ino;
+	      meta.flags = METADATA_SHADOW_TREE;
 	      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					    zfs_mode_to_ftype (st.st_mode));
 	      meta.uid = map_uid_node2zfs (st.st_uid);
@@ -457,7 +458,6 @@ create_path_for_file (string *file, unsigned int mode, volume vol)
 		  MARK_VOLUME_DELETE (vol);
 		  return false;
 		}
-	      meta.flags = METADATA_SHADOW_TREE;
 	      
 	      name.str = end + 1;
 	      name.len = strlen (end + 1);
@@ -1663,6 +1663,7 @@ init_metadata_for_created_volume_root (volume vol)
 bool
 lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 {
+  uint32_t flags = meta->flags;
   uint32_t modetype = meta->modetype;
   uint32_t uid = meta->uid;
   uint32_t gid = meta->gid;
@@ -1703,7 +1704,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 
       if (insert)
 	{
-	  meta->flags = METADATA_COMPLETE;
+	  meta->flags = flags;
 	  zfs_fh_undefine (meta->master_fh);
 	  if (!hfile_insert (vol->metadata, meta, false))
 	    {
@@ -1715,7 +1716,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
   else if (insert && meta->slot_status != VALID_SLOT)
     {
       meta->slot_status = VALID_SLOT;
-      meta->flags = METADATA_COMPLETE;
+      meta->flags = flags;
       meta->dev = fh->dev;
       meta->ino = fh->ino;
       meta->gen = 1;
@@ -2223,7 +2224,6 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
   if (meta->slot_status != VALID_SLOT)
     {
       meta->slot_status = VALID_SLOT;
-      meta->flags = METADATA_COMPLETE;
       meta->dev = dev;
       meta->ino = ino;
       meta->gen = 1;
@@ -3161,6 +3161,7 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
 
   local_fh.dev = st->st_dev;
   local_fh.ino = st->st_ino;
+  meta.flags = METADATA_COMPLETE;
   meta.modetype = GET_MODETYPE (GET_MODE (st->st_mode),
 				zfs_mode_to_ftype (st->st_mode));
   meta.uid = map_uid_node2zfs (st->st_uid);
