@@ -133,6 +133,7 @@ xstrconcat (unsigned int n, ...)
       VARRAY_PUSH (v, s, char *);
     }
   va_end (va);
+  varray_destroy (&v);
 
   return xstrconcat_varray (&v);
 }

@@ -226,10 +226,16 @@ walk_dir (zfs_fh *dir, char *path)
 		&& (entry.name.str[1] == 0
 		    || (entry.name.str[1] == '.'
 			&& entry.name.str[2] == 0)))
-	      continue;
+	      {
+		free (entry.name.str);
+		continue;
+	      }
 
 	    if (!get_running ())
-	      return ZFS_EXITING;
+	      {
+		free (entry.name.str);
+		return ZFS_EXITING;
+	      }
 
 	    r = zfs_lookup (&res, dir, &entry.name);
 	    if (r != ZFS_OK)
@@ -250,7 +256,10 @@ walk_dir (zfs_fh *dir, char *path)
 		free (new_path);
 
 		if (!get_running ())
-		  return ZFS_EXITING;
+		  {
+		    free (entry.name.str);
+		    return ZFS_EXITING;
+		  }
 	      }
 	    else
 	      message (0, stderr, "%s%s\n", path, entry.name.str);
