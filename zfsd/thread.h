@@ -26,6 +26,10 @@
 #include <pthread.h>
 #include <rpc/rpc.h>
 #include "queue.h"
+#include "server.h"
+
+/* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
+extern int running;
 
 /* State of the thread.  */
 typedef enum thread_state_def
@@ -36,12 +40,23 @@ typedef enum thread_state_def
   THREAD_BUSY		/* thread is working */
 } thread_state;
 
+/* Forward declarations.  */
+struct server_fd_data_def;
+
 /* Additional data for a server thread.  */
 typedef struct server_thread_data_def
 {
+#ifdef RPC
   /* Parameters passed to zfs_program_1 */
   struct svc_req *rqstp;
   SVCXPRT *transp;
+#else
+  server_fd_data_t *fd_data;	/* passed from main server thread */
+  char *original;		/* malloc()d pointer to request */
+  char *aligned;		/* aligned pointer to request */
+  char *reply;			/* buffer for reply */
+  unsigned int generation;	/* generation of file descriptor */
+#endif
 } server_thread_data;
 
 /* Additional data for a client thread.  */

@@ -22,10 +22,47 @@
 #define SERVER_H
 
 #include "system.h"
+#include <time.h>
+#include "constant.h"
+
+/* Data for a server socket.  */
+typedef struct server_fd_data_def
+{
+  int fd;			/* file descriptor of the socket */
+  unsigned int read;		/* number of bytes already read */
+
+  /* Unused data buffers for the file descriptor.  */
+  struct
+    {
+      char *original;		/* pointer to data returned by malloc */
+      char *aligned;		/* PTR aligned to a multiple of 16 */
+    } buffer[MAX_FREE_BUFFERS_PER_SERVER_FD];
+  int nbuffer;
+
+  unsigned int length;		/* the length of the request */
+  time_t last_use;		/* time of last use of the socket */
+  unsigned int generation;	/* generation of open file descriptor */
+  int busy;			/* number of threads using file descriptor */
+  pthread_mutex_t mutex;
+} server_fd_data_t;
 
 #define SERVER_ANY 0
 
-extern void create_server_threads ();
+#ifndef RPC
+/* Thread ID of the main server thread (thread receiving data from sockets).  */
+extern pthread_t main_server_thread;
+
+/* Key for server thread specific data.  */
+extern pthread_key_t server_thread_data_key;
+
+#endif
+
+extern int create_server_threads ();
+#ifdef RPC
 extern void register_server ();
+#else
+extern int server_start ();
+#endif
+extern int server_cleanup ();
 
 #endif
