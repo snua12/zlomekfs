@@ -264,11 +264,11 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
   string name_str;
   string mountpoint_str;
 
-  xmkstring (&name_str, name);
-  xmkstring (&mountpoint_str, mountpoint);
+  name_str.str = name;
+  name_str.len = strlen (name);
+  mountpoint_str.str = mountpoint;
+  mountpoint_str.len = strlen (mountpoint);
   volume_set_common_info (vol, &name_str, &mountpoint_str, master);
-  free (name_str.str);
-  free (mountpoint_str.str);
 }
 
 /* Set the information for a volume with local copy.  */
@@ -292,7 +292,8 @@ volume_set_local_info_wrapper (volume vol, char *local_path,
 {
   string local_path_str;
 
-  xmkstring (&local_path_str, local_path);
+  local_path_str.str = local_path;
+  local_path_str.len = strlen (local_path);
   return volume_set_local_info (vol, &local_path_str, size_limit);
 }
 
