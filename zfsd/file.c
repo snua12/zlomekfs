@@ -2131,7 +2131,7 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
   internal_dentry dentry;
   uint32_t n_read;
   uint32_t total;
-  uint32_t r;
+  int32_t r;
 
   for (total = 0; total < count; total += n_read)
     {
@@ -2170,7 +2170,7 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
   internal_dentry dentry;
   uint32_t n_read;
   uint32_t total;
-  uint32_t r;
+  int32_t r;
 
   for (total = 0; total < count; total += n_read)
     {
@@ -2209,7 +2209,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
   data_buffer data;
   write_res res;
   uint32_t total;
-  uint32_t r;
+  int32_t r;
 
   for (total = 0; total < count; total += res.written)
     {
