@@ -1661,8 +1661,6 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 #ifdef ENABLE_CHECKING
   if ((*dirp)->fh->level == LEVEL_UNLOCKED)
     abort();
-  if (CONFLICT_DIR_P (*dir_fh))
-    abort ();
 #endif
 
   dentry = dentry_lookup_name (NULL, *dirp, name);
