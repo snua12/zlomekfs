@@ -2081,7 +2081,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       entry = (dir_entry *) *slot;
 
       if (LOCAL_VOLUME_ROOT_P (dir)
-	  && strcmp (entry->name, ".shadow") == 0)
+	  && strcmp (entry->name.str, ".shadow") == 0)
 	{
 	  htab_clear_slot (local_entries.htab, slot);
 	  continue;
