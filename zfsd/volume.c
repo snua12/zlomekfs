@@ -457,7 +457,7 @@ destroy_invalid_volume_1 (volume vol)
       zfsd_mutex_unlock (&vol->master->mutex);
       zfsd_mutex_unlock (&node_mutex);
       if (master_marked)
-	volume_destroy ((volume) *slot);
+	volume_destroy (vol);
       else
 	{
 	  if (vol->slaves)
