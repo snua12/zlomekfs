@@ -182,7 +182,6 @@ close_active_fd (int i)
 static void
 server_worker_init (thread *t)
 {
-  t->u.server.reply = (char *) xmalloc (ZFS_MAX_REQUEST_LEN);
 }
 
 /* Cleanup server thread DATA.  */
@@ -190,9 +189,7 @@ server_worker_init (thread *t)
 static void
 server_worker_cleanup (void *data)
 {
-  thread *t = (thread *) data;
-
-  free (t->u.server.reply);
+  /*thread *t = (thread *) data;*/
 }
 
 /* Send a reply.  */
