@@ -56,7 +56,7 @@
 	  {								\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
-	    r2 = zfs_fh_lookup (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
 	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
 	      abort ();							\
 									\
@@ -64,8 +64,11 @@
 	      {								\
 		internal_dentry_unlock ((DENTRY));			\
 		zfsd_mutex_unlock (&(VOL)->mutex);			\
+		zfsd_mutex_unlock (&fh_mutex);				\
 		return r;						\
 	      }								\
+									\
+	    zfsd_mutex_unlock (&fh_mutex);				\
 	  }								\
       }									\
   } while (0)
