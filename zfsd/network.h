@@ -37,7 +37,6 @@ typedef struct server_fd_data_def
   DC dc[MAX_FREE_BUFFERS_PER_SERVER_FD];
   int ndc;
 
-  unsigned int length;		/* the length of the request */
   time_t last_use;		/* time of last use of the socket */
   unsigned int generation;	/* generation of open file descriptor */
   int busy;			/* number of threads using file descriptor */

@@ -203,6 +203,7 @@ server_worker (void *data)
   thread *t = (thread *) data;
   server_thread_data *td = &t->u.server;
   server_fd_data_t *d;
+  uint32_t request_id;
 
   pthread_cleanup_push (server_worker_cleanup, data);
   pthread_setspecific (server_thread_data_key, data);
@@ -222,6 +223,9 @@ server_worker (void *data)
 	return data;
 
       d = td->fd_data;
+
+      decode_uint32_t (&td->dc, &request_id);
+
       /* FIXME: process the request */
       /* 1. decode request */
       /* 2. call appropriate routine */
@@ -280,33 +284,56 @@ server_worker (void *data)
 /* Function which gets a request and passes it to some server thread.
    It also regulates the number of server threads.  */
 
-static int
+static void
 server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 {
   size_t index;
+  direction dir;
 
-  pthread_mutex_lock (&server_pool.idle.mutex);
+  if (!decode_direction (dc, &dir))
+    {
+      /* Invalid direction, FIXME: log it.  */
+      return;
+    }
 
-  /* Regulate the number of threads.  */
-  thread_pool_regulate (&server_pool, server_worker, NULL);
+  switch (dir)
+    {
+      case DIR_REPLY:
+	/* Dispatch reply.  */
 
-  /* Select an idle thread and forward the request to it.  */
-  index = queue_get (&server_pool.idle);
+	/* FIXME: finish */
+	break;
+
+      case DIR_REQUEST:
+	/* Dispatch request.  */
+
+	pthread_mutex_lock (&server_pool.idle.mutex);
+
+	/* Regulate the number of threads.  */
+	thread_pool_regulate (&server_pool, server_worker, NULL);
+
+	/* Select an idle thread and forward the request to it.  */
+	index = queue_get (&server_pool.idle);
 #ifdef ENABLE_CHECKING
-  if (server_pool.threads[index].t.state == THREAD_BUSY)
-    abort ();
+	if (server_pool.threads[index].t.state == THREAD_BUSY)
+	  abort ();
 #endif
-  server_pool.threads[index].t.state = THREAD_BUSY;
-  server_pool.threads[index].t.u.server.fd_data = fd_data;
-  server_pool.threads[index].t.u.server.dc = *dc;
-  server_pool.threads[index].t.u.server.generation = generation;
+	server_pool.threads[index].t.state = THREAD_BUSY;
+	server_pool.threads[index].t.u.server.fd_data = fd_data;
+	server_pool.threads[index].t.u.server.dc = *dc;
+	server_pool.threads[index].t.u.server.generation = generation;
 
-  /* Let the thread run.  */
-  pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
+	/* Let the thread run.  */
+	pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
 
-  pthread_mutex_unlock (&server_pool.idle.mutex);
+	pthread_mutex_unlock (&server_pool.idle.mutex);
+	break;
 
-  return 0;
+      default:
+	/* This case never happens, it is caught in the beginning of this
+	   function. It is here to make compiler happy.  */ 
+	abort ();
+    }
 }
 
 #endif
@@ -404,6 +431,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
   int i, n, r;
   int accept_connections;
   time_t now;
+  static char dummy[ZFS_MAXDATA];
 
   nactive = 0;
   active = (server_fd_data_t **) xmalloc (getdtablesize ()
@@ -482,6 +510,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		      d->ndc++;
 		    }
 		  pthread_mutex_unlock (&d->mutex);
+
 		  r = read (d->fd, d->dc[0].buffer + d->read, 4 - d->read);
 		  if (r < 0)
 		    {
@@ -493,12 +522,27 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		    d->read += r;
 
 		  if (d->read == 4)
-		    d->length = GET_UINT (d->dc[0].buffer);
+		    {
+		      start_decoding (&d->dc[0]);
+		    }
 		}
 	      else
 		{
-		  r = read (d->fd, d->dc[0].buffer + d->read,
-			    d->length - 4);
+		  if (d->dc[0].max_length <= d->dc[0].size)
+		    {
+		      r = read (d->fd, d->dc[0].buffer + d->read,
+				d->dc[0].max_length - d->read);
+		    }
+		  else
+		    {
+		      int l;
+
+		      l = d->dc[0].max_length - d->read;
+		      if (l > ZFS_MAXDATA)
+			l = ZFS_MAXDATA;
+		      r = read (d->fd, dummy, l);
+		    }
+
 		  if (r < 0)
 		    {
 		      pthread_mutex_lock (&active[i]->mutex);
@@ -509,7 +553,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		    {
 		      d->read += r;
 
-		      if (d->read == d->length)
+		      if (d->dc[0].max_length == d->read)
 			{
 			  unsigned int generation;
 			  DC *dc;
@@ -523,7 +567,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 			    d->dc[0] = d->dc[d->ndc];
 			  pthread_mutex_unlock (&d->mutex);
 
-			  /* We have read complete request so dispatch it.  */
+			  /* We have read complete request, dispatch it.  */
 			  server_dispatch (d, dc, generation);
 			}
 		    }
