@@ -685,11 +685,14 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
   if (nod)
     {
       vol = volume_lookup (vid);
-      if (vol)
+      if (!vol)
 	{
-	  volume_set_common_info (vol, name, mountpoint, nod);
-	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_lock (&volume_mutex);
+	  vol = volume_create (vid);
+	  zfsd_mutex_unlock (&volume_mutex);
 	}
+      volume_set_common_info (vol, name, mountpoint, nod);
+      zfsd_mutex_unlock (&vol->mutex);
     }
 
   while (VARRAY_USED (hierarchy) > 0)
