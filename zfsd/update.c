@@ -150,10 +150,12 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	abort ();
 #endif
 
-      dentry->fh->attr.size = fa.size;
+      /* Flush the interval tree if the file was complete but now is larger
+	 to clean the complete flag.  */
       flush = (local_md5.size < remote_md5.size
 	       && (dentry->fh->meta.flags & METADATA_COMPLETE));
 
+      dentry->fh->attr.size = fa.size;
       local_md5.size = fa.size;
       interval_tree_delete (dentry->fh->updated, local_md5.size, UINT64_MAX);
       interval_tree_delete (dentry->fh->modified, local_md5.size, UINT64_MAX);
