@@ -64,8 +64,9 @@ start_decoding (DC *dc, void *ptr)
 }
 
 /* Decode a value of type T and size S from DC and store it to *RET.
+   Call F to transform little endian to cpu endian.
    Return true on success.  */
-#define DECODE_SIMPLE_TYPE(T, S)				\
+#define DECODE_SIMPLE_TYPE(T, S, F)				\
 int								\
 decode_##T (DC *dc, T *ret)					\
 {								\
@@ -75,15 +76,16 @@ decode_##T (DC *dc, T *ret)					\
     return 0;							\
 								\
   dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
-  *ret = *(T *) dc->current;					\
+  *ret = F (* (T *) dc->current);				\
   dc->current += S;						\
 								\
   return 1;							\
 }
 
 /* Encode a value VAL of type T and size S to DC.
+   Call F to transform cpu endian to little endian.
    Return true on success.  */
-#define ENCODE_SIMPLE_TYPE(T, S)				\
+#define ENCODE_SIMPLE_TYPE(T, S, F)				\
 int								\
 encode_##T (DC *dc, T val)					\
 {								\
@@ -98,24 +100,24 @@ encode_##T (DC *dc, T val)					\
     }								\
 								\
   dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
-  *(T *) dc->current = val;					\
+  *(T *) dc->current = F (val);				\
   dc->current += S;						\
 								\
   return 1;							\
 }
 
-DECODE_SIMPLE_TYPE (char, 1)
-DECODE_SIMPLE_TYPE (int16_t, 2)
-DECODE_SIMPLE_TYPE (uint16_t, 2)
-DECODE_SIMPLE_TYPE (int32_t, 4)
-DECODE_SIMPLE_TYPE (uint32_t, 4)
-DECODE_SIMPLE_TYPE (int64_t, 8)
-DECODE_SIMPLE_TYPE (uint64_t, 8)
+DECODE_SIMPLE_TYPE (char, 1, )
+DECODE_SIMPLE_TYPE (int16_t, 2, le_to_i16p)
+DECODE_SIMPLE_TYPE (uint16_t, 2, le_to_u16p)
+DECODE_SIMPLE_TYPE (int32_t, 4, le_to_i32p)
+DECODE_SIMPLE_TYPE (uint32_t, 4, le_to_u32p)
+DECODE_SIMPLE_TYPE (int64_t, 8, le_to_i64p)
+DECODE_SIMPLE_TYPE (uint64_t, 8, le_to_u64p)
 
-ENCODE_SIMPLE_TYPE (char, 1)
-ENCODE_SIMPLE_TYPE (int16_t, 2)
-ENCODE_SIMPLE_TYPE (uint16_t, 2)
-ENCODE_SIMPLE_TYPE (int32_t, 4)
-ENCODE_SIMPLE_TYPE (uint32_t, 4)
-ENCODE_SIMPLE_TYPE (int64_t, 8)
-ENCODE_SIMPLE_TYPE (uint64_t, 8)
+ENCODE_SIMPLE_TYPE (char, 1, )
+ENCODE_SIMPLE_TYPE (int16_t, 2, i16_to_le)
+ENCODE_SIMPLE_TYPE (uint16_t, 2, u16_to_le)
+ENCODE_SIMPLE_TYPE (int32_t, 4, i32_to_le)
+ENCODE_SIMPLE_TYPE (uint32_t, 4, u32_to_le)
+ENCODE_SIMPLE_TYPE (int64_t, 8, i64_to_le)
+ENCODE_SIMPLE_TYPE (uint64_t, 8, u32_to_le)
