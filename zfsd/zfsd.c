@@ -115,6 +115,9 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
       semaphore_up (&config_reader_data.sem, 1);
     }
 
+  /* Terminate the sleep.  */
+  pthread_kill (main_thread, SIGUSR1);
+
   message (2, stderr, "Leaving exit_sighandler\n");
 }
 
