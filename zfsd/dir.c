@@ -1427,10 +1427,14 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     }
 
   r = local_setattr_path (&res->attr, &path, attr);
-  free (path.str);
   if (r != ZFS_OK)
-    return r;
+    {
+      rmdir (path.str);
+      free (path.str);
+      return r;
+    }
 
+  free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);
@@ -3017,10 +3021,14 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
     }
 
   r = local_setattr_path (&res->attr, &path, attr);
-  free (path.str);
   if (r != ZFS_OK)
-    return r;
+    {
+      unlink (path.str);
+      free (path.str);
+      return r;
+    }
 
+  free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);
@@ -3237,10 +3245,14 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
     }
 
   r = local_setattr_path (&res->attr, &path, attr);
-  free (path.str);
   if (r != ZFS_OK)
-    return r;
+    {
+      unlink (path.str);
+      free (path.str);
+      return r;
+    }
 
+  free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);

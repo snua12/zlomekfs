@@ -339,13 +339,16 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   *fdp = r;
 
   r = local_setattr_path (&res->attr, &path, attr);
-  free (path.str);
   if (r != ZFS_OK)
     {
       close (*fdp);
+      if (!*exists)
+	unlink (path.str);
+      free (path.str);
       return r;
     }
 
+  free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
   get_metadata (volume_lookup (res->file.vid), &res->file, meta);
