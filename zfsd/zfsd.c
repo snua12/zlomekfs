@@ -29,6 +29,7 @@
 #include "config.h"
 #include "log.h"
 #include "memory.h"
+#include "client.h"
 #include "server.h"
 #include "zfsd.h"
 
@@ -227,12 +228,21 @@ main (int argc, char **argv)
     }
 #endif
 
+  /* Make the connection with kernel.  */
+  if (!initialize_client ())
+    die ();
 
-  
-  create_server_pool ();
+  /* Create client threads and related threads.  */
+  create_client_threads ();
 
-  /* register_server never returns (unless error occurs).  */
+  /* Create server threads and related threads.  */
+  create_server_threads ();
+
+  /* Register the ZFS protocol RPC server, register_server never returns (unless
+     error occurs).  */
   register_server ();
+
+  /* FIXME: kill threads.  */
 
   return EXIT_FAILURE;
 }
