@@ -7,4 +7,4 @@ zfs-objs := chardev.o data-coding.o dir.o file.o inode.o super.o zfs_prot.o zfsd
 
 # If you want debugging output, please uncomment the following line.
 
-EXTRA_CFLAGS += -DDEBUG
+# EXTRA_CFLAGS += -DDEBUG
