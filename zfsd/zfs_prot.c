@@ -20,6 +20,8 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 #include "pthread.h"
@@ -34,6 +36,10 @@
 #include "file.h"
 #include "volume.h"
 #include "log.h"
+
+/* Mapping file type -> file mode.  */
+unsigned int ftype2mode[FT_LAST_AND_UNUSED]
+  = {0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO};
 
 /* Request ID for next call.  */
 static volatile uint32_t request_id;

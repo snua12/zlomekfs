@@ -297,6 +297,9 @@ typedef union call_args_def
   auth_stage2_args auth_stage2;
 } call_args;
 
+/* Mapping file type -> file mode.  */
+extern unsigned int ftype2mode[FT_LAST_AND_UNUSED];
+
 /* Function numbers.  */
 enum function_number_def
 {
