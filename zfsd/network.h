@@ -49,7 +49,7 @@ typedef struct server_fd_data_def
 extern pthread_t main_server_thread;
 
 /* Key for server thread specific data.  */
-extern pthread_key_t server_thread_data_key;
+extern pthread_key_t server_thread_key;
 
 #endif
 

@@ -141,7 +141,7 @@ server_worker (void *data)
 pthread_t main_server_thread;
 
 /* Key for server thread specific data.  */
-pthread_key_t server_thread_data_key;
+pthread_key_t server_thread_key;
 
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
@@ -244,7 +244,7 @@ server_worker (void *data)
   uint32_t fn;
 
   pthread_cleanup_push (server_worker_cleanup, data);
-  pthread_setspecific (server_thread_data_key, data);
+  pthread_setspecific (server_thread_key, data);
 
   while (1)
     {
@@ -419,7 +419,7 @@ create_server_threads ()
 {
   int i;
 
-  if (pthread_key_create (&server_thread_data_key, NULL))
+  if (pthread_key_create (&server_thread_key, NULL))
     return 0;
   
   /* FIXME: read the numbers from configuration.  */
