@@ -20,6 +20,11 @@
 
 #include "system.h"
 #include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 #include "pthread.h"
 #include "metadata.h"
 #include "constant.h"
@@ -27,6 +32,7 @@
 #include "interval.h"
 #include "varray.h"
 #include "fh.h"
+#include "config.h"
 
 /* Build path to file with interval tree of purpose PURPOSE for file handle FH
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
@@ -78,4 +84,54 @@ build_metadata_path (volume vol, internal_fh fh, interval_tree_purpose purpose,
   varray_destroy (&v);
 
   return path;
+}
+
+/* Create a full path to file FILE with access rights MODE.
+   Return true if path exists at the end of this function.  */
+
+static bool
+create_path_for_file (char *file, unsigned int mode)
+{
+  struct stat st;
+  char *last;
+  char *end;
+
+  for (last = file; *last; last++)
+    ;
+  last--;
+
+  /* Find the first existing directory.  */
+  for (end = last;;)
+    {
+      for (; end != file && *end != '/'; end--)
+	;
+      if (end == file)
+	return false;
+
+      *end = 0;
+
+      if (lstat (file, &st) == 0)
+	{
+	  if ((st.st_mode & S_IFMT) != S_IFDIR)
+	    return false;
+
+	  break;
+	}
+    }
+
+  /* Create the path.  */
+  for (;;)
+    {
+      *end = '/';
+
+      if (mkdir (file, mode) != 0)
+	return false;
+
+      for (end++; end < last && *end; end++)
+	;
+      if (end >= last)
+	return true;
+    }
+
+  return false;
 }
