@@ -1565,10 +1565,10 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 }
 
 /* Create a new internal dentry NAME in directory PARENT on volume VOL for
-   internal file handle FH.  */
+   file DENTRY.  */
 
 internal_dentry
-internal_dentry_link (internal_fh fh, volume vol,
+internal_dentry_link (internal_dentry orig, volume vol,
 		      internal_dentry parent, char *name)
 {
   internal_dentry dentry, old;
@@ -1576,15 +1576,15 @@ internal_dentry_link (internal_fh fh, volume vol,
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&orig->fh->mutex);
   if (parent)
     CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
   dentry = (internal_dentry) pool_alloc (dentry_pool);
   dentry->parent = NULL;
   dentry->name = xstrdup (name);
-  dentry->fh = fh;
-  fh->ndentries++;
+  dentry->fh = orig->fh;
+  orig->fh->ndentries++;
   dentry->next = dentry;
   dentry->prev = dentry;
   dentry->last_use = time (NULL);
@@ -1597,7 +1597,7 @@ internal_dentry_link (internal_fh fh, volume vol,
       internal_dentry_add_to_dir (parent, dentry);
     }
 
-  slot = htab_find_slot_with_hash (dentry_htab, &fh->local_fh,
+  slot = htab_find_slot_with_hash (dentry_htab, &orig->fh->local_fh,
 				   INTERNAL_DENTRY_HASH (dentry), INSERT);
   if (*slot)
     {

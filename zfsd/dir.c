@@ -2510,7 +2510,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       else
 	from_dentry = dir_dentry;
 
-      internal_dentry_link (from_dentry->fh, vol, dir_dentry, name->str);
+      internal_dentry_link (from_dentry, vol, dir_dentry, name->str);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
 	{

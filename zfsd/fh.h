@@ -318,7 +318,7 @@ extern void debug_fh_htab (void);
 extern void print_subdentries (FILE *f, internal_fh fh);
 extern void debug_subdentries (internal_fh fh);
 
-extern internal_dentry internal_dentry_link (internal_fh fh, volume vol,
+extern internal_dentry internal_dentry_link (internal_dentry orig, volume vol,
 					     internal_dentry parent,
 					     char *name);
 extern bool internal_dentry_move (internal_dentry dentry, volume vol,
