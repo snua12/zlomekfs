@@ -386,8 +386,8 @@ read_local_cluster_config (string *path)
 	      uint64_t size_limit;
 
 	      /* 0 ... ID
-	         1 ... local path
-	         2 ... size limit */
+		 1 ... local path
+		 2 ... size limit */
 	      if (sscanf (parts[0].str, "%" PRIu32, &id) != 1
 		  || sscanf (parts[2].str, "%" PRIu64, &size_limit) != 1)
 		{
@@ -460,7 +460,7 @@ init_config (void)
   zfsd_mutex_unlock (&node_mutex);
 
   volume_set_common_info_wrapper (vol, "config", "/config", nod);
-  
+
   zfsd_mutex_unlock (&vd_mutex);
   zfsd_mutex_unlock (&vol->mutex);
   return true;
@@ -1018,7 +1018,8 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
   r = zfs_extended_lookup (&user_mapping_res, user_dir, node_name.str);
   if (r != ZFS_OK)
     {
-      free (node_name.str);
+      if (sid != 0)
+	free (node_name.str);
       return true;
     }
 
@@ -1026,7 +1027,8 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
   ret = process_file_by_lines (&user_mapping_res.file, file_name,
 			       process_line_user_mapping, &sid);
   free (file_name);
-  free (node_name.str);
+  if (sid != 0)
+    free (node_name.str);
   return ret;
 }
 
@@ -1116,7 +1118,8 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
   r = zfs_extended_lookup (&group_mapping_res, group_dir, node_name.str);
   if (r != ZFS_OK)
     {
-      free (node_name.str);
+      if (sid != 0)
+	free (node_name.str);
       return true;
     }
 
@@ -1124,7 +1127,8 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
   ret = process_file_by_lines (&group_mapping_res.file, file_name,
 			       process_line_group_mapping, &sid);
   free (file_name);
-  free (node_name.str);
+  if (sid != 0)
+    free (node_name.str);
   return ret;
 }
 
