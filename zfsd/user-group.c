@@ -43,6 +43,7 @@ static htab_t groups_name;
 static htab_t map_uid_to_node;
 static htab_t map_uid_to_zfs;
 static htab_t map_gid_to_node;
+static htab_t map_gid_to_zfs;
 
 /* Mutex protecting hash tables users_*, groups_*, map_*.  */
 pthread_mutex_t users_groups_mutex;
@@ -570,7 +571,9 @@ group_mapping_create (char *zfs_group, char *node_group, node nod)
   group_t g;
   struct group *grp;
   htab_t map_to_node;
-  void **slot;
+  htab_t map_to_zfs;
+  void **slot1;
+  void **slot2;
   id_mapping map;
 
   g = (group_t) htab_find_with_hash (groups_name, zfs_group,
@@ -596,34 +599,42 @@ group_mapping_create (char *zfs_group, char *node_group, node nod)
     {
       CHECK_MUTEX_LOCKED (&nod->mutex);
 #ifdef ENABLE_CHECKING
-      if (!nod->map_gid_to_node)
+      if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
 	abort ();
 #endif
 
       map_to_node = nod->map_gid_to_node;
+      map_to_zfs = nod->map_gid_to_zfs;
     }
   else
     {
       CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
       map_to_node = map_uid_to_node;
+      map_to_zfs = map_gid_to_zfs;
     }
 
-  slot = htab_find_slot_with_hash (map_to_node, &g->id, GROUP_ID_HASH (g->id),
-				   INSERT);
+  slot1 = htab_find_slot_with_hash (map_to_node, &g->id, GROUP_ID_HASH (g->id),
+				    INSERT);
+  slot2 = htab_find_slot_with_hash (map_to_zfs, &grp->gr_gid,
+				    GROUP_ID_HASH (grp->gr_gid), INSERT);
 #ifdef ENABLE_CHECKING
-  if (!slot)
+  if (!slot1 || !slot2)
     abort ();
 #endif
 
-  /* If G->ID is already in the table we have nothing to do.  */
-  if (*slot)
-    return (id_mapping) *slot;
+  /* If both GIDs are in the tables we have nothing to do.  */
+  if (*slot1 && *slot2)
+    return (id_mapping) *slot1;
 
   map = (id_mapping) xmalloc (sizeof (*map));
   map->zfs_id = g->id;
   map->node_id = grp->gr_gid;
-  *slot = map;
+
+  if (!*slot1)
+    *slot1 = map;
+  if (!*slot2)
+    *slot2 = map;
 
   return map;
 }
@@ -635,29 +646,37 @@ static void
 group_mapping_destroy (id_mapping map, node nod)
 {
   htab_t map_to_node;
+  htab_t map_to_zfs;
   void **slot;
 
   if (nod)
     {
       CHECK_MUTEX_LOCKED (&nod->mutex);
 #ifdef ENABLE_CHECKING
-      if (!nod->map_gid_to_node)
+      if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
 	abort ();
 #endif
 
       map_to_node = nod->map_gid_to_node;
+      map_to_zfs = nod->map_gid_to_zfs;
     }
   else
     {
       CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
       map_to_node = map_gid_to_node;
+      map_to_zfs = map_gid_to_zfs;
     }
 
   slot = htab_find_slot_with_hash (map_to_node, &map->zfs_id,
 				   GROUP_ID_HASH (map->zfs_id), NO_INSERT);
   if (slot)
     htab_clear_slot (map_to_node, slot);
+
+  slot = htab_find_slot_with_hash (map_to_zfs, &map->node_id,
+				   GROUP_ID_HASH (map->node_id), NO_INSERT);
+  if (slot)
+    htab_clear_slot (map_to_zfs, slot);
 
   free (map);
 }
@@ -669,26 +688,35 @@ void
 group_mapping_destroy_all (node nod)
 {
   htab_t map_to_node;
+  htab_t map_to_zfs;
   void **slot;
 
   if (nod)
     {
       CHECK_MUTEX_LOCKED (&nod->mutex);
 #ifdef ENABLE_CHECKING
-      if (!nod->map_gid_to_node)
+      if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
 	abort ();
 #endif
 
       map_to_node = nod->map_gid_to_node;
+      map_to_zfs = nod->map_gid_to_zfs;
     }
   else
     {
       CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
       map_to_node = map_gid_to_node;
+      map_to_zfs = map_gid_to_zfs;
     }
 
   HTAB_FOR_EACH_SLOT (map_to_node, slot,
+    {
+      id_mapping map = (id_mapping) *slot;
+
+      group_mapping_destroy (map, nod);
+    });
+  HTAB_FOR_EACH_SLOT (map_to_zfs, slot,
     {
       id_mapping map = (id_mapping) *slot;
 
@@ -765,7 +793,7 @@ map_gid_zfs2node (uint32_t gid)
 
   zfsd_mutex_lock (&this_node->mutex);
   map = (id_mapping) htab_find_with_hash (this_node->map_gid_to_node, &gid,
-					  USER_ID_HASH (gid));
+					  GROUP_ID_HASH (gid));
   if (map)
     {
       zfsd_mutex_unlock (&this_node->mutex);
@@ -775,7 +803,7 @@ map_gid_zfs2node (uint32_t gid)
 
   zfsd_mutex_lock (&users_groups_mutex);
   map = (id_mapping) htab_find_with_hash (map_gid_to_node, &gid,
-					  USER_ID_HASH (gid));
+					  GROUP_ID_HASH (gid));
   if (map)
     {
       zfsd_mutex_unlock (&users_groups_mutex);
@@ -784,6 +812,36 @@ map_gid_zfs2node (uint32_t gid)
   zfsd_mutex_unlock (&users_groups_mutex);
 
   return default_node_uid;
+}
+
+/* Map (local) node GID to ZFS group ID.  */
+
+uint32_t
+map_gid_node2zfs (uint32_t gid)
+{
+  id_mapping map;
+
+  zfsd_mutex_lock (&this_node->mutex);
+  map = (id_mapping) htab_find_with_hash (this_node->map_gid_to_zfs, &gid,
+					  GROUP_ID_HASH (gid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&this_node->mutex);
+      return map->zfs_id;
+    }
+  zfsd_mutex_unlock (&this_node->mutex);
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  map = (id_mapping) htab_find_with_hash (map_gid_to_zfs, &gid,
+					  GROUP_ID_HASH (gid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&users_groups_mutex);
+      return map->zfs_id;
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+
+  return DEFAULT_ZFS_UID;
 }
 
 /* Initialize data structures in USER-GROUP.C.  */
@@ -810,6 +868,8 @@ initialize_user_group_c ()
 				NULL, &users_groups_mutex);
   map_gid_to_node = htab_create (20, map_id_to_node_hash, map_id_to_node_eq,
 				 NULL, &users_groups_mutex);
+  map_gid_to_zfs = htab_create (20, map_id_to_zfs_hash, map_id_to_zfs_eq,
+				NULL, &users_groups_mutex);
 }
 
 /* Destroy data structures in USER-GROUP.C.  */
@@ -846,6 +906,7 @@ cleanup_user_group_c ()
   htab_destroy (map_uid_to_zfs);
   group_mapping_destroy_all (NULL);
   htab_destroy (map_gid_to_node);
+  htab_destroy (map_gid_to_zfs);
 
   zfsd_mutex_unlock (&users_groups_mutex);
   zfsd_mutex_destroy (&users_groups_mutex);

@@ -47,6 +47,7 @@ typedef struct node_def
   htab_t map_uid_to_node;
   htab_t map_uid_to_zfs;
   htab_t map_gid_to_node;
+  htab_t map_gid_to_zfs;
 } *node;
 
 /* Predefined node IDs.  */

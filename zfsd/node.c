@@ -155,6 +155,7 @@ node_create (unsigned int id, char *name)
   nod->map_uid_to_node = NULL;
   nod->map_uid_to_zfs = NULL;
   nod->map_gid_to_node = NULL;
+  nod->map_gid_to_zfs = NULL;
 
   /* Are we creating a structure describing local node?  */
   if (strcmp (name, node_name) == 0)
@@ -169,6 +170,9 @@ node_create (unsigned int id, char *name)
       nod->map_gid_to_node = htab_create (5, map_id_to_node_hash,
 					  map_id_to_node_eq, NULL,
 					  &nod->mutex);
+      nod->map_gid_to_zfs = htab_create (5, map_id_to_zfs_hash,
+					 map_id_to_zfs_eq, NULL,
+					 &nod->mutex);
     }
 
   zfsd_mutex_init (&nod->mutex);
@@ -229,8 +233,10 @@ node_destroy (node nod)
       user_mapping_destroy_all (nod);
       htab_destroy (nod->map_uid_to_node);
       htab_destroy (nod->map_uid_to_zfs);
+
       group_mapping_destroy_all (nod);
       htab_destroy (nod->map_gid_to_node);
+      htab_destroy (nod->map_gid_to_zfs);
     }
 
   zfsd_mutex_unlock (&nod->mutex);
