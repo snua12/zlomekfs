@@ -5027,7 +5027,6 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       free (path.str);
       return false;
     }
-  zfsd_mutex_unlock (&vol->mutex);
 
   r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
