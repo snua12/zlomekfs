@@ -106,9 +106,11 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup_nolock (&cap->fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
   if (r != ZFS_OK)
-    return r;
+    abort ();
+#endif
 
 #ifdef ENABLE_CHECKING
   if (!(vol->local_path && vol->master != this_node))
@@ -133,9 +135,18 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	return r;
 
       local_md5.count = remote_md5.count;
+
+      r = zfs_fh_lookup (&cap->fh, NULL, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+      if (r != ZFS_OK)
+	abort ();
+#endif
     }
   else
-    zfsd_mutex_unlock (&vol->mutex);
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
 
   /* DENTRY->FH->MUTEX is still locked.  */
 
