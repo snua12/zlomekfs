@@ -329,7 +329,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   if (exists)
     *exists = existed;
 
-  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (attr->mode);
   r = safe_open (path.str, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
     {
@@ -491,7 +491,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       return EACCES;
     }
 
-  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (attr->mode);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;

@@ -433,8 +433,7 @@ fattr_from_struct_stat (fattr *attr, struct stat *st)
   attr->version = 0;
   attr->dev = st->st_dev;
   attr->ino = st->st_ino;
-  attr->mode = st->st_mode & (S_IRWXU | S_IRWXG | S_IRWXO
-			      | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (st->st_mode);
   attr->nlink = st->st_nlink;
   attr->uid = map_uid_node2zfs (st->st_uid);
   attr->gid = map_gid_node2zfs (st->st_gid);
@@ -844,7 +843,7 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
 
   if (sa->mode != (uint32_t) -1)
     {
-      sa->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+      sa->mode = GET_MODE (sa->mode);
       if (chmod (path->str, sa->mode) != 0)
 	return errno;
     }
@@ -996,7 +995,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
     return r;
 
   if (sa->mode != (uint32_t) -1)
-    sa->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+    sa->mode = GET_MODE (sa->mode);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
@@ -1427,7 +1426,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (attr->mode);
   r = mkdir (path.str, attr->mode);
   if (r != 0)
     {
@@ -1575,7 +1574,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
       return EACCES;
     }
 
-  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (attr->mode);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
@@ -3291,7 +3290,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (attr->mode);
   r = mknod (path.str, attr->mode | ftype2mode[type], rdev);
   if (r != 0)
     {
@@ -3444,7 +3443,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
       return EACCES;
     }
 
-  attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = GET_MODE (attr->mode);
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;

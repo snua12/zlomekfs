@@ -30,6 +30,10 @@
 #include "hardlink-list.h"
 #include "journal.h"
 
+/* Get mode from MODE from struct stat.  */
+#define GET_MODE(MODE) ((MODE) & (S_IRWXU | S_IRWXG | S_IRWXO		\
+				  | S_ISUID | S_ISGID | S_ISVTX))
+
 /* Depth of directory tree for saving metadata about files.  */
 extern unsigned int metadata_tree_depth;
 
