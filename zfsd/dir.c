@@ -1512,10 +1512,16 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 #endif
 		    }
 		  else
-		    dentry = conflict_other_dentry (conflict, other);
+		    {
+		      dentry = conflict_other_dentry (conflict, other);
+		      release_dentry (conflict);
+		    }
 		}
 	      else
-		release_dentry (other);
+		{
+		  release_dentry (other);
+		  release_dentry (conflict);
+		}
 	    }
 	  else
 	    release_dentry (conflict);
