@@ -81,6 +81,7 @@ init_fd_data (void)
   fd_data_a[kernel_fd].waiting4reply
     = htab_create (30, waiting4reply_hash, waiting4reply_eq,
 		   NULL, &fd_data_a[kernel_fd].mutex);
+  zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 }
 
 /* Close kernel file and destroy data structures used by it.  */
@@ -94,6 +95,7 @@ close_kernel_fd (void)
     return;
 
   close (kernel_fd);
+  zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
   wake_all_threads (&fd_data_a[kernel_fd], ZFS_CONNECTION_CLOSED);
   for (j = 0; j < fd_data_a[kernel_fd].ndc; j++)
     dc_destroy (fd_data_a[kernel_fd].dc[j]);
@@ -101,6 +103,7 @@ close_kernel_fd (void)
   htab_destroy (fd_data_a[kernel_fd].waiting4reply);
   fibheap_delete (fd_data_a[kernel_fd].waiting4reply_heap);
   free_alloc_pool (fd_data_a[kernel_fd].waiting4reply_pool);
+  zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 
   kernel_fd = -1;
 }
