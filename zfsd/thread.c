@@ -74,6 +74,10 @@ thread_pool_destroy (thread_pool *pool)
 
   pthread_mutex_unlock (&pool->empty.mutex);
   pthread_mutex_unlock (&pool->idle.mutex);
+
+  free (pool->unaligned_array);
+  queue_destroy (&pool->empty);
+  queue_destroy (&pool->idle);
 }
 
 /* Create a new idle thread in thread pool POOL and start a routine START in it.
