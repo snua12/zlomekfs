@@ -617,11 +617,6 @@ again:
       case AUTHENTICATION_NONE:
 	fd_data_a[fd].auth = AUTHENTICATION_Q1;
 
-	if (node_measure_connection_speed (t, fd, sid, &r))
-	  goto again;
-	if (r != ZFS_OK)
-	  goto node_authenticate_error;
-
 	memset (&args1, 0, sizeof (args1));
 	/* FIXME: really do authentication */
 	args1.node = node_name;
@@ -669,6 +664,12 @@ again:
 
       case AUTHENTICATION_STAGE_1:
 	fd_data_a[fd].auth = AUTHENTICATION_Q3;
+
+	if (node_measure_connection_speed (t, fd, sid, &r))
+	  goto again;
+	if (r != ZFS_OK)
+	  goto node_authenticate_error;
+
 	memset (&args2, 0, sizeof (args2));
 	/* FIXME: really do authentication */
 	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd);
