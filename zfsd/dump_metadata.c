@@ -27,6 +27,28 @@
 #include "hashfile.h"
 #include "metadata.h"
 
+static void
+print_mode (uint32_t mode)
+{
+  printf (" Mode: ");
+  printf (mode & S_IRUSR ? "r" : "-");
+  printf (mode & S_IWUSR ? "w" : "-");
+  printf (mode & S_ISUID
+	  ? (mode & S_IXUSR ? "s" : "S")
+	  : (mode & S_IXUSR ? "x" : "-"));
+  printf (mode & S_IRGRP ? "r" : "-");
+  printf (mode & S_IWGRP ? "w" : "-");
+  printf (mode & S_ISGID
+	  ? (mode & S_IXGRP ? "s" : "S")
+	  : (mode & S_IXGRP ? "x" : "-"));
+  printf (mode & S_IROTH ? "r" : "-");
+  printf (mode & S_IWOTH ? "w" : "-");
+  printf (mode & S_ISVTX
+	  ? (mode & S_IXOTH ? "t" : "T")
+	  : (mode & S_IXOTH ? "x" : "-"));
+  printf ("\n");
+}
+
 int main (int argc, char **argv)
 {
   hfile_t hfile;
@@ -71,7 +93,7 @@ int main (int argc, char **argv)
 	  continue;
 	}
 
-      printf ("%s:\n", argv[i]);
+      printf ("\n%s:\n", argv[i]);
 
       printf (" Flags:");
       if (meta.flags & METADATA_COMPLETE)
@@ -83,6 +105,12 @@ int main (int argc, char **argv)
       printf (" Generation: %" PRIu32 "\n", meta.gen);
       printf (" Local version: %" PRIu64 "\n", meta.local_version);
       printf (" Master version: %" PRIu64 "\n", meta.master_version);
+      printf (" UID: %" PRIu32 "\n", meta.uid);
+      printf (" GID: %" PRIu32 "\n", meta.gid);
+      print_mode (meta.mode);
+      printf (" Master FH: [%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32
+	      ",%" PRIu32 "]\n", meta.master_fh.sid, meta.master_fh.vid,
+	      meta.master_fh.dev, meta.master_fh.ino, meta.master_fh.gen);
     }
 
   return 0;
