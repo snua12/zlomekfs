@@ -202,6 +202,11 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa)
 	  || !finish_decoding (&t->u.server.dc))
 	return ZFS_INVALID_REPLY;
     }
+  else
+    {
+      if (!finish_decoding (&t->u.server.dc))
+	return ZFS_INVALID_REPLY;
+    }
 
   return r;
 }

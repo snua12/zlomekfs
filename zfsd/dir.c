@@ -157,6 +157,11 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 	      || !finish_decoding (&t->u.server.dc))
 	    return ZFS_INVALID_REPLY;
 	}
+      else
+	{
+	  if (!finish_decoding (&t->u.server.dc))
+	    return ZFS_INVALID_REPLY;
+	}
     }
   else
     abort ();
@@ -334,6 +339,11 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
     {
       if (!decode_dir_op_res (&t->u.server.dc, res)
 	  || !finish_decoding (&t->u.server.dc))
+	return ZFS_INVALID_REPLY;
+    }
+  else
+    {
+      if (!finish_decoding (&t->u.server.dc))
 	return ZFS_INVALID_REPLY;
     }
 
