@@ -58,6 +58,8 @@ server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
   /* Select an idle thread and forward the request to it.  */
   index = queue_get (&server_pool.idle);
   server_pool.threads[index].t.state = THREAD_BUSY;
+  server_pool.threads[index].t.u.server.rqstp = rqstp;
+  server_pool.threads[index].t.u.server.transp = transp;
   pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
 
   pthread_mutex_unlock (&server_pool.idle.mutex);
