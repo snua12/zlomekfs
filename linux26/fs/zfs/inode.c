@@ -154,6 +154,8 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 	args.where.name.str = (char *)dentry->d_name.name;
 	args.where.name.len = dentry->d_name.len;
 	args.flags = nd->intent.open.flags;
+	if (args.flags & O_ACCMODE)
+		args.flags--;
 	args.attr.mode = mode & S_IALLUGO;
 	args.attr.uid = current->fsuid;
 	if (dir->i_mode & S_ISGID)
@@ -324,7 +326,7 @@ static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 	args.where.dir = ZFS_I(dir)->fh;
 	args.where.name.str = (char *)dentry->d_name.name;
 	args.where.name.len = dentry->d_name.len;
-	args.attr.mode = mode & S_IALLUGO;
+	args.attr.mode = mode & (S_IRWXUGO | S_ISVTX);
 	args.attr.uid = current->fsuid;
 	if (dir->i_mode & S_ISGID) {
 		args.attr.gid = dir->i_gid;
@@ -389,7 +391,10 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 	args.where.name.len = dentry->d_name.len;
 	args.attr.mode = mode & S_IALLUGO;
 	args.attr.uid = current->fsuid;
-	args.attr.gid = current->fsgid;
+	if (dir->i_mode & S_ISGID)
+		args.attr.gid = dir->i_gid;
+	else
+		args.attr.gid = current->fsgid;
 	args.attr.size = -1;
 	args.attr.atime = -1;
 	args.attr.mtime = -1;
