@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <stdio.h>
 #include "pthread.h"
 #include "zfs_prot.h"
 #include "fh.h"
@@ -73,6 +74,9 @@ extern int32_t find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 				       volume *vol, internal_dentry *dentry,
 				       virtual_dir *vd);
 extern int32_t put_capability (internal_cap cap, internal_dentry dentry);
+extern void print_capabilities (FILE *f);
+extern void debug_capabilities ();
+
 extern void initialize_cap_c ();
 extern void cleanup_cap_c ();
 

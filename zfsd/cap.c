@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include "pthread.h"
 #include "cap.h"
@@ -406,6 +407,41 @@ put_capability (internal_cap cap, internal_dentry dentry)
     zfsd_mutex_unlock (&cap->mutex);
 
   return ZFS_OK;
+}
+
+/* Print capabalities to file F.  */
+
+void
+print_capabilities (FILE *f)
+{
+  void **slot;
+
+  HTAB_FOR_EACH_SLOT (cap_htab, slot,
+    {
+      internal_cap cap = (internal_cap) *slot;
+
+      fprintf (f, "[%u,%u,%u,%u] ",
+	       cap->local_cap.fh.sid, cap->local_cap.fh.vid,
+	       cap->local_cap.fh.dev, cap->local_cap.fh.ino);
+      print_hex_buffer (cap->local_cap.verify, ZFS_VERIFY_LEN, f);
+
+      if (!zfs_cap_undefined (cap->master_cap))
+	{
+	  fprintf (f, "[%u,%u,%u,%u] ",
+		   cap->master_cap.fh.sid, cap->master_cap.fh.vid,
+		   cap->master_cap.fh.dev, cap->master_cap.fh.ino);
+	  print_hex_buffer (cap->master_cap.verify, ZFS_VERIFY_LEN, f);
+	}
+      fprintf (f, "\n");
+    });
+}
+
+/* Print capabalities to STDERR.  */
+
+void
+debug_capabilities ()
+{
+  print_capabilities (stderr);
 }
 
 /* Initialize data structures in CAP.C.  */
