@@ -24,6 +24,9 @@
 /* The interval between 2 invocations of thread pool regulator in seconds.  */
 #define THREAD_POOL_REGULATOR_INTERVAL 15
 
+/* The time between two attempts to connect to node in seconds.  */
+#define NODE_CONNECT_VISCOSITY 10
+
 /* Maximal number of free data buffers for an active file descriptor.  */
 #define MAX_FREE_BUFFERS_PER_SERVER_FD 4
 

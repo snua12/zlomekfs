@@ -50,6 +50,7 @@ typedef struct node_def
   char *name;			/* name of the node */
 				/* public key */
   int flags;			/* see NODE_* below */
+  time_t last_connect;		/* last attemp to connect to node */
   connection_status conn;	/* connection status */
   authentication_status auth;	/* authentication status */
   int fd;			/* file descriptor */

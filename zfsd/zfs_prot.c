@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include "constant.h"
 #include "zfs_prot.h"
 #include "data-coding.h"
 #include "config.h"
@@ -502,6 +503,17 @@ zfs_proc_client_connect (thread *t, node nod)
   pthread_mutex_lock (&nod->mutex);
   if (!node_connected_p (nod))
     {
+      time_t now;
+
+      /* Do not try to connect too often.  */
+      now = time (NULL);
+      if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
+	{
+	  td->retval = ZFS_COULD_NOT_CONNECT;
+	  pthread_mutex_unlock (&nod->mutex);
+	  return -1;
+	}
+      nod->last_connect = now;
 
       fd = node_connect (nod);
       if (fd < 0)

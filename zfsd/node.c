@@ -120,6 +120,7 @@ node_create (unsigned int id, char *name)
   nod->id = id;
   nod->name = xstrdup (name);
   nod->flags = 0;
+  nod->last_connect = 0;
   nod->conn = CONNECTION_NONE;
   nod->auth = AUTHENTICATION_NONE;
 #ifdef RPC
