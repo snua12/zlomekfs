@@ -27,6 +27,7 @@
 #include "pthread.h"
 #include "memory.h"
 #include "thread.h"
+#include "fh.h"
 
 /* Data for config reader thread.  */
 extern thread config_reader_data;
@@ -42,8 +43,11 @@ extern pthread_rwlock_t lock_config;
 
 extern void set_node_name (void);
 extern void set_default_uid_gid (void);
-extern bool read_config_file (const char *file);
+extern void add_reread_config_request (string *relative_path);
 extern bool read_cluster_config (void);
+extern bool read_config_file (const char *file);
+
+extern void initialize_config_c (void);
 extern void cleanup_config_c (void);
 
 #endif

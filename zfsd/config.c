@@ -35,12 +35,14 @@
 #include "constant.h"
 #include "log.h"
 #include "memory.h"
+#include "alloc-pool.h"
 #include "semaphore.h"
 #include "node.h"
 #include "volume.h"
 #include "metadata.h"
 #include "user-group.h"
 #include "thread.h"
+#include "fh.h"
 #include "dir.h"
 #include "file.h"
 #include "network.h"
@@ -62,6 +64,28 @@ string node_config;
 
 /* File with private key.  */
 static string private_key;
+
+/* Element of list of requests for config reread.  */
+typedef struct reread_config_request_def *reread_config_request;
+struct reread_config_request_def
+{
+  /* Next element in the chain.  */
+  reread_config_request next;
+
+  /* Path relative to root of config volume.  */
+  string relative_path;
+};
+
+/* First and last element of the chain of requests for rereading
+   configuration.  */
+static reread_config_request reread_config_first;
+static reread_config_request reread_config_last;
+
+/* Alloc pool for allocating nodes of reread config chain.  */
+static alloc_pool reread_config_pool;
+
+/* Mutex protecting the reread_config chain and alloc pool.  */
+static pthread_mutex_t reread_config_mutex;
 
 /* Process one line of configuration file.  Return the length of value.  */
 
@@ -1307,6 +1331,50 @@ fix_config (void)
   return true;
 }
 
+/* Add request to reread config file RELATIVE_PATH to queue.  */
+
+void
+add_reread_config_request (string *relative_path)
+{
+  reread_config_request node;
+
+  zfsd_mutex_lock (&reread_config_mutex);
+  node = pool_alloc (reread_config_pool);
+  node->next = NULL;
+  node->relative_path = *relative_path;
+
+  if (reread_config_last)
+    reread_config_last->next = node;
+  else
+    reread_config_first = node;
+  reread_config_last = node;
+
+  zfsd_mutex_unlock (&reread_config_mutex);
+}
+
+/* Get a request to reread config from queue and store the relative path of
+   the file to be reread to RELATIVE_PATH.  */
+
+static bool
+get_reread_config_request (string *relative_path)
+{
+  zfsd_mutex_lock (&reread_config_mutex);
+  if (reread_config_first == NULL)
+    {
+      zfsd_mutex_unlock (&reread_config_mutex);
+      return false;
+    }
+
+  *relative_path = reread_config_first->relative_path;
+
+  reread_config_first = reread_config_first->next;
+  if (!reread_config_first)
+    reread_config_last = NULL;
+
+  zfsd_mutex_unlock (&reread_config_mutex);
+  return true;
+}
+
 /* Has the config reader already terminated?  */
 static volatile bool reading_cluster_config;
 
@@ -1662,11 +1730,35 @@ read_config_file (const char *file)
   return true;
 }
 
+/* Initialize data structures in CONFIG.C.  */
+
+void
+initialize_config_c (void)
+{
+  zfsd_mutex_init (&reread_config_mutex);
+
+  reread_config_pool
+    = create_alloc_pool ("reread_config_pool",
+			 sizeof (struct reread_config_request_def), 1022,
+			 &reread_config_mutex);
+}
+
 /* Destroy data structures in CONFIG.C.  */
 
 void
 cleanup_config_c (void)
 {
+  zfsd_mutex_lock (&reread_config_mutex);
+#ifdef ENABLE_CHECKING
+  if (reread_config_pool->elts_free < reread_config_pool->elts_allocated)
+    message (2, stderr, "Memory leak (%u elements) in reread_config_pool.\n",
+	     reread_config_pool->elts_allocated
+	     - reread_config_pool->elts_free);
+#endif
+  free_alloc_pool (reread_config_pool);
+  zfsd_mutex_unlock (&reread_config_mutex);
+  zfsd_mutex_destroy (&reread_config_mutex);
+
   if (node_name.str)
     free (node_name.str);
   free (node_host_name.str);
