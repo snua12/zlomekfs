@@ -600,7 +600,8 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	      waiting4reply_data *data;
 	      void **slot;
 
-	      data = fibheap_extract_min (active[i]->waiting4reply_heap);
+	      data = ((waiting4reply_data *)
+		      fibheap_extract_min (active[i]->waiting4reply_heap));
 	      slot = htab_find_slot_with_hash (active[i]->waiting4reply,
 					       &data->request_id,
 					       WAITING4REPLY_HASH (data->request_id),
