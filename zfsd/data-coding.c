@@ -683,8 +683,8 @@ decode_link_args (DC *dc, link_args *args)
 bool
 encode_link_args (DC *dc, link_args *args)
 {
-  return (decode_zfs_fh (dc, &args->from)
-	  && decode_dir_op_args (dc, &args->to));
+  return (encode_zfs_fh (dc, &args->from)
+	  && encode_dir_op_args (dc, &args->to));
 }
 
 bool
