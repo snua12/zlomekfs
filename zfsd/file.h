@@ -45,6 +45,11 @@ typedef struct internal_fd_data_def
 
 #include "cap.h"
 extern int32_t local_close (internal_cap cap);
+extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
+			     string *name, uint32_t flags, sattr *attr,
+			     volume vol);
+extern int32_t remote_create (create_res *res, internal_fh dir, string *name,
+			      uint32_t flags, sattr *attr, volume vol);
 extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
 			   uint32_t flags, sattr *attr);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
