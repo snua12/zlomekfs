@@ -176,7 +176,6 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
     abort ();
 #endif
 
-  pthread_mutex_lock (&pool->idle.mutex);
   pthread_mutex_lock (&pool->empty.mutex);
 
   /* Let some threads to die.  */
@@ -195,7 +194,6 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
     }
 
   pthread_mutex_unlock (&pool->empty.mutex);
-  pthread_mutex_unlock (&pool->idle.mutex);
 }
 
 /* Main function of thread regulating the thread pool. DATA is the structure
