@@ -39,7 +39,19 @@ OBJECTS = config.o hashtab.o log.o memory.o zfsd.o
 all: $(PACKAGE)
 
 $(PACKAGE): $(OBJECTS)
-#	$(LINK) $(OBJECTS) $(LIBS)
+	$(LINK) $(OBJECTS) $(LIBS)
 
+zfs_prot.h: zfs_prot.x
+# temporarily generate everything what can be generated
+	rpcgen -a zfs_prot.x
+  
 clean:
 	-rm -f $(PACKAGE) *.o core *.core
+	-rm -f Makefile.zfs_prot zfs_prot.h zfs_prot_*
+
+# Dependencies:
+config.o: config.c config.h system.h log.h memory.h
+hashtab.o: hashtab.c hashtab.h system.h log.h memory.h
+log.o: log.c log.h system.h
+memory.o: memory.c memory.h system.h log.h
+zfsd.o: zfsd.c zfsd.h system.h config.h log.h
