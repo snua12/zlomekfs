@@ -2149,10 +2149,6 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
   metadata meta;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-#ifdef ENABLE_CHECKING
-  if (hl->first == NULL)
-    abort ();
-#endif
 
   if (hl->first
       && (hl->first->next
