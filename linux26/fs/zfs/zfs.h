@@ -53,6 +53,9 @@
 /* Maximum age of dentry in seconds after that revalidation is requered. */
 #define ZFS_DENTRY_MAXAGE 10
 
+/* Is INODE root inode? */
+#define IS_ROOT_INODE(inode) (inode == inode->i_sb->s_root->d_inode)
+
 #define CAP(p) ((zfs_cap *)p)
 #define COOKIE(p) ((int32_t *)&((zfs_cap *)p)[1])
 

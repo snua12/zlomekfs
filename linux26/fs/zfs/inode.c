@@ -199,7 +199,7 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 
 	error = zfsd_create(&res, &args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return error;
 	}
@@ -242,7 +242,7 @@ static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struc
 		if (!inode)
 			return ERR_PTR(-ENOMEM);
 	} else if (error != -ENOENT) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return ERR_PTR(error);
 	} else
@@ -256,25 +256,27 @@ static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struc
 	return NULL;
 }
 
-static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry *dst_dentry)
+static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry *dentry)
 {
 	struct inode *inode = src_dentry->d_inode;
 	link_args args;
 	int error;
 
-	TRACE("'%s' -> '%s'", dst_dentry->d_name.name, src_dentry->d_name.name);
+	TRACE("'%s' -> '%s'", dentry->d_name.name, src_dentry->d_name.name);
 
 	args.from = ZFS_I(inode)->fh;
 	args.to.dir = ZFS_I(dir)->fh;
-	args.to.name.str = (char *)dst_dentry->d_name.name;
-	args.to.name.len = dst_dentry->d_name.len;
+	args.to.name.str = (char *)dentry->d_name.name;
+	args.to.name.len = dentry->d_name.len;
 
 	error = zfsd_link(&args);
 	if (error) {
 		if (error == -ESTALE) {
 			/* We do not know which one (dir or inode) is bad, so invalidate both. */
-			make_bad_inode(dir);
-			make_bad_inode(inode);
+			if (!IS_ROOT_INODE(dir))
+				make_bad_inode(dir);
+			if (!IS_ROOT_INODE(inode))
+				make_bad_inode(inode);
 		}
 		return error;
 	}
@@ -283,7 +285,7 @@ static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry 
 	inode->i_ctime = CURRENT_TIME;
 
 	atomic_inc(&inode->i_count);
-	d_instantiate(dst_dentry, inode);
+	d_instantiate(dentry, inode);
 
 	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
@@ -304,7 +306,7 @@ static int zfs_unlink(struct inode *dir, struct dentry *dentry)
 
 	error = zfsd_unlink(&args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return error;
 	}
@@ -346,7 +348,7 @@ static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old
 
 	error = zfsd_symlink(&res, &args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return error;
 	}
@@ -387,7 +389,7 @@ static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 
 	error = zfsd_mkdir(&res, &args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return error;
 	}
@@ -418,7 +420,7 @@ static int zfs_rmdir(struct inode *dir, struct dentry *dentry)
 
 	error = zfsd_rmdir(&args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return error;
 	}
@@ -457,7 +459,7 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 
 	error = zfsd_mknod(&res, &args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
 			make_bad_inode(dir);
 		return error;
 	}
@@ -491,8 +493,10 @@ static int zfs_rename(struct inode *old_dir, struct dentry *old_dentry, struct i
 	error = zfsd_rename(&args);
 	if (error) {
 		if (error == -ESTALE) {
-			make_bad_inode(old_dir);
-			make_bad_inode(old_inode);
+			if (!IS_ROOT_INODE(old_dir))
+				make_bad_inode(old_dir);
+			if (!IS_ROOT_INODE(new_dir))
+				make_bad_inode(new_dir);
 		}
 		return error;
 	}
@@ -521,7 +525,7 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 
 	error = zfsd_setattr(&attr, &args);
 	if (error) {
-		if (error == -ESTALE)
+		if ((error == -ESTALE) && !IS_ROOT_INODE(inode))
 			make_bad_inode(inode);
 		return error;
 	}

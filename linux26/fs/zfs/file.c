@@ -105,7 +105,7 @@ int zfs_open(struct inode *inode, struct file *file)
 		error = zfsd_open(cap, &args);
 		if (error) {
 			kfree(cap);
-			if (error == -ESTALE)
+			if ((error == -ESTALE) && !IS_ROOT_INODE(inode))
 				make_bad_inode(inode);
 			return error;
 		}

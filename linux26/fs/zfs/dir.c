@@ -43,7 +43,7 @@ static int zfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 	args.count = ZFS_MAXDATA;
 
 	error = zfsd_readdir(&args, file, dirent, filldir);
-	if (error == -ESTALE)
+	if ((error == -ESTALE) && !IS_ROOT_INODE(inode))
 		make_bad_inode(inode);
 
 	return error;
