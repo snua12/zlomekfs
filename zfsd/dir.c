@@ -1145,105 +1145,115 @@ int
 zfs_rename (zfs_fh *from_dir, string *from_name,
 	    zfs_fh *to_dir, string *to_name)
 {
-  volume vol1 = NULL, vol2 = NULL;
-  internal_fh ifh1 = NULL, ifh2 = NULL;
-  virtual_dir vd1 = NULL, vd2 = NULL;
+  volume vol;
+  internal_fh ifh1, ifh2;
+  virtual_dir vd1, vd2;
   int r;
 
   /* Lookup FROM_DIR.  */
   zfsd_mutex_lock (&volume_mutex);
   zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (from_dir, &vol1, &ifh1, &vd1);
+  r = zfs_fh_lookup_nolock (from_dir, &vol, &ifh1, &vd1);
   if (r != ZFS_OK)
     {
       zfsd_mutex_unlock (&volume_mutex);
       zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  if (!vol1)
+  zfsd_mutex_unlock (&volume_mutex);
+  if (!vol)
     {
-      r = EROFS;
-      goto zfs_rename_error_unlock_volume;
+      /* FROM_DIR is a virtual directory without volume under it.  */
+      zfsd_mutex_unlock (&vd1->mutex);
+      zfsd_mutex_unlock (&vd_mutex);
+      return EROFS;
     }
-  /* If directory handles are the same unlock IFH1 and VD1 for the same reason
-     as VOL1.  */
-  if (!ZFS_FH_EQ (*from_dir, *to_dir))
+  /* Temporarily unlock IFH1, we are still holding VOL->MUTEX so we are
+     allowed to lock it again.  */
+  if (ifh1)
+    zfsd_mutex_unlock (&ifh1->mutex);
+  /* Similarly, we are holding VD_MUTEX so unlock VD1->MUTEX.  */
+  if (vd1)
+    zfsd_mutex_unlock (&vd1->mutex);
+
+  if (VIRTUAL_FH_P (*to_dir))
     {
-      /* Because LINK operation is allowed only within same volume
-	 we may unlock VOL1.  Moreover we have to do so to avoid deadlock.  */
-      zfsd_mutex_unlock (&vol1->mutex);
-
-      /* Lookup TO_DIR.  */
-      r = zfs_fh_lookup_nolock (to_dir, &vol2, &ifh2, &vd2);
-      if (r != ZFS_OK)
-	goto zfs_rename_error_unlock_volume;
-      zfsd_mutex_unlock (&volume_mutex);
-
-      if (!vol2)
+      vd2 = vd_lookup (to_dir);
+      if (!vd2)
 	{
-	  r = EROFS;
-	  goto zfs_rename_error_unlock_vd;
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return ENOENT;
 	}
-      if (vol1 != vol2)
+      zfsd_mutex_lock (&vd2->mutex);
+      if (vd2->vol != vol)
 	{
-	  r = EXDEV;
-	  goto zfs_rename_error_unlock_vd;
+	  r = vd2->vol ? EXDEV : EROFS;
+	  zfsd_mutex_unlock (&vd2->mutex);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return r;
 	}
     }
   else
     {
-      zfsd_mutex_unlock (&volume_mutex);
-      vd2 = vd1;
-      ifh2 = ifh1;
-      vol2 = vol1;
+      vd2 = NULL;
+      if (vol->id != to_dir->vid)
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return EXDEV;
+	}
+
+      ifh2 = fh_lookup (vol, to_dir);
+      if (!ifh2)
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return ESTALE;
+	}
     }
 
-  /* Check validity of the operation.  */
-  if (vd1)
-    {
-      r = validate_operation_on_virtual_directory (vd1, from_name, &ifh1);
-      if (r != ZFS_OK)
-	{
-	  if (vd2 == vd1)
-	    {
-	      vd2 = NULL;
-	      vol2 = NULL;
-	    }
-	  vd1 = NULL;
-	  vol1 = NULL;
-	  goto zfs_rename_error_unlock_vd;
-	}
-      zfsd_mutex_unlock (&vd1->mutex);
-      vd1 = NULL;
-    }
+  /* At this point, both file handles are for the same volume.  */
   if (vd2)
     {
-      if (vd2 != vd1)
+      r = validate_operation_on_virtual_directory (vd2, to_name, &ifh2);
+      if (r != ZFS_OK)
 	{
-	  r = validate_operation_on_virtual_directory (vd2, to_name, &ifh2);
-	  if (r != ZFS_OK)
-	    {
-	      vd2 = NULL;
-	      vol2 = NULL;
-	      goto zfs_rename_error_unlock_vd;
-	    }
-	  zfsd_mutex_unlock (&vd2->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return r;
 	}
-      else
-	ifh2 = ifh1;
-      vd2 = NULL;
+      zfsd_mutex_unlock (&ifh2->mutex);
+    }
+  if (vd1)
+    {
+      zfsd_mutex_lock (&vd1->mutex);
+      r = validate_operation_on_virtual_directory (vd1, to_name, &ifh1);
+      if (r != ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return r;
+	}
+      zfsd_mutex_unlock (&ifh1->mutex);
     }
   zfsd_mutex_unlock (&vd_mutex);
+
+  zfsd_mutex_lock (&ifh1->mutex);
+  if (ifh1 != ifh2)
+    zfsd_mutex_lock (&ifh2->mutex);
+
   if (ifh1->master_fh.dev != ifh2->master_fh.dev)
     {
-      r = EXDEV;
-      goto zfs_rename_error;
+      zfsd_mutex_unlock (&ifh1->mutex);
+      zfsd_mutex_unlock (&ifh2->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EXDEV;
     }
 
-  if (vol1->local_path)
-    r = local_rename (ifh1, from_name, ifh2, to_name, vol1);
-  else if (vol1->master != this_node)
-    r = remote_rename (ifh1, from_name, ifh2, to_name, vol1);
+  if (vol->local_path)
+    r = local_rename (ifh1, from_name, ifh2, to_name, vol);
+  else if (vol->master != this_node)
+    r = remote_rename (ifh1, from_name, ifh2, to_name, vol);
   else
     abort ();
 
@@ -1253,46 +1263,26 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
       /* Delete internal file handle in htab because it is outdated.  */
       /* FIXME? move the internal_fh to another directory? */
-      ifh = fh_lookup_name (vol1, ifh1, to_name->str);
+      ifh = fh_lookup_name (vol, ifh1, from_name->str);
       if (ifh)
 	{
 	  CHECK_MUTEX_LOCKED (&ifh->mutex);
 
-	  internal_fh_destroy (ifh, vol1);
+	  internal_fh_destroy (ifh, vol);
 	}
-      ifh = fh_lookup_name (vol2, ifh2, to_name->str);
+      ifh = fh_lookup_name (vol, ifh2, to_name->str);
       if (ifh)
 	{
 	  CHECK_MUTEX_LOCKED (&ifh->mutex);
 
-	  internal_fh_destroy (ifh, vol2);
+	  internal_fh_destroy (ifh, vol);
 	}
     }
 
   zfsd_mutex_unlock (&ifh1->mutex);
-  if (ifh2 != ifh1)
+  if (ifh1 != ifh2)
     zfsd_mutex_unlock (&ifh2->mutex);
-  zfsd_mutex_unlock (&vol2->mutex);
-
-  return r;
-
-zfs_rename_error_unlock_volume:
-  zfsd_mutex_unlock (&volume_mutex);
-
-zfs_rename_error_unlock_vd:
-  zfsd_mutex_unlock (&vd_mutex);
-
-zfs_rename_error:
-  if (ifh1)
-    zfsd_mutex_unlock (&ifh1->mutex);
-  if (ifh2 && ifh2 != ifh1)
-    zfsd_mutex_unlock (&ifh2->mutex);
-  if (vd1)
-    zfsd_mutex_unlock (&vd1->mutex);
-  if (vd2 && vd2 != vd1)
-    zfsd_mutex_unlock (&vd2->mutex);
-  if (vol2)
-    zfsd_mutex_unlock (&vol2->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return r;
 }
