@@ -545,7 +545,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
     zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide special dirs in the root of the volume.  */
-  if (SPECIAL_DIR_P (idir, name->str))
+  if (SPECIAL_DIR_P (idir, name->str, true))
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -1464,7 +1464,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	      cookie = de->d_off;
 
 	      /* Hide special dirs in the root of the volume.  */
-	      if (local_volume_root && SPECIAL_NAME_P (de->d_name))
+	      if (local_volume_root && SPECIAL_NAME_P (de->d_name, false))
 		continue;
 
 	      if (vd)
