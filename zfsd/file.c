@@ -410,6 +410,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       else if (vol->master != this_node)
 	{
 	  memcpy (icap->master_cap.verify, res->cap.verify, ZFS_VERIFY_LEN);
+	  memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
 	}
 
       zfsd_mutex_unlock (&ifh->mutex);
@@ -526,7 +527,10 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
     {
       r = remote_open (cap, icap, flags & ~O_ACCMODE, vol);
       if (r == ZFS_OK)
-	memcpy (icap->master_cap.verify, cap->verify, ZFS_VERIFY_LEN);
+	{
+	  memcpy (icap->master_cap.verify, cap->verify, ZFS_VERIFY_LEN);
+	  memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
+	}
     }
   else
     abort ();
