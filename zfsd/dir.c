@@ -36,7 +36,6 @@
 #include "memory.h"
 #include "thread.h"
 #include "varray.h"
-#include "string-list.h"
 #include "data-coding.h"
 #include "volume.h"
 #include "network.h"
@@ -238,10 +237,10 @@ local_path_to_relative_path (volume vol, char *path)
   return path + i;
 }
 
-/* Recursively unlink the file PATH on volume with ID == VID.  */
+/* Recursively unlink the file FILE with path PATH on volume with ID == VID.  */
 
 bool
-recursive_unlink (char *path, uint32_t vid)
+recursive_unlink (char *path, char *name, uint32_t vid, struct stat *parent_st)
 {
   volume vol;
   internal_dentry dentry;
@@ -285,7 +284,7 @@ recursive_unlink (char *path, uint32_t vid)
 	    continue;
 
 	  new_path = xstrconcat (3, path, "/", de->d_name);
-	  r = recursive_unlink (new_path, vid);
+	  r = recursive_unlink (new_path, de->d_name, vid, &st);
 	  free (new_path);
 	  if (!r)
 	    {
@@ -306,7 +305,7 @@ recursive_unlink (char *path, uint32_t vid)
   if (vol)
     {
       if (!delete_metadata (vol, st.st_dev, st.st_ino,
-			    local_path_to_relative_path (vol, path)))
+			    parent_st->st_dev, parent_st->st_ino, name))
 	vol->delete_p = true;
       zfsd_mutex_unlock (&vol->mutex);
     }
@@ -1642,19 +1641,32 @@ zfs_rmdir_retry:
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      char *relative_path;
-
-      relative_path = local_path_to_relative_path (vol, path);
-      delete_dentry (&vol, &idir, name->str, &tmp_fh, relative_path);
+      delete_dentry (&vol, &idir, name->str, &tmp_fh);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
+	  char *slash;
+	  struct stat parent_st;
+
 #ifdef ENABLE_CHECKING
-	  if (relative_path == NULL)
+	  if (path == NULL)
 	    abort ();
 #endif
-	  if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
-	    vol->delete_p = true;
+	  for (slash = path; *slash; slash++)
+	    ;
+	  for (; *slash != '/'; slash--)
+	    ;
+	  *slash = 0;
+	  
+	  if (lstat (path, &parent_st) == 0)
+	    {
+	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
+				    parent_st.st_dev, parent_st.st_ino,
+				    slash + 1))
+		vol->delete_p = true;
+	    }
+	  *slash = '/';
+
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	}
@@ -1926,10 +1938,8 @@ zfs_rename_retry:
   if (r == ZFS_OK)
     {
       internal_dentry dentry;
-      char *relative_path;
 
-      relative_path = local_path_to_relative_path (vol, path);
-      delete_dentry (&vol, &to_dentry, to_name->str, &tmp_to, relative_path);
+      delete_dentry (&vol, &to_dentry, to_name->str, &tmp_to);
 
       if (tmp_from.ino != tmp_to.ino)
 	{
@@ -1953,10 +1963,25 @@ zfs_rename_retry:
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
-	  if (relative_path)
+	  if (path)
 	    {
-	      if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
-		vol->delete_p = true;
+	      char *slash;
+	      struct stat parent_st;
+
+	      for (slash = path; *slash; slash++)
+		;
+	      for (; *slash != '/'; slash--)
+		;
+	      *slash = 0;
+
+	      if (lstat (path, &parent_st) == 0)
+		{
+		  if (!delete_metadata (vol, st.st_dev, st.st_ino,
+					parent_st.st_dev, parent_st.st_ino,
+					slash + 1))
+		    vol->delete_p = true;
+		}
+	      *slash = '/';
 	    }
 	  if (!inc_local_version (vol, from_dentry->fh))
 	    vol->delete_p = true;
@@ -2199,7 +2224,7 @@ zfs_link_retry:
 
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &dir_dentry, name->str, &tmp_dir, NULL);
+      delete_dentry (&vol, &dir_dentry, name->str, &tmp_dir);
 
       if (tmp_from.ino != tmp_dir.ino)
 	{
@@ -2398,19 +2423,32 @@ zfs_unlink_retry:
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      char *relative_path;
-
-      relative_path = local_path_to_relative_path (vol, path);
-      delete_dentry (&vol, &idir, name->str, &tmp_fh, relative_path);
+      delete_dentry (&vol, &idir, name->str, &tmp_fh);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
+	  char *slash;
+	  struct stat parent_st;
+
 #ifdef ENABLE_CHECKING
-	  if (relative_path == NULL)
+	  if (path == NULL)
 	    abort ();
 #endif
-	  if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
-	    vol->delete_p = true;
+	  for (slash = path; *slash; slash++)
+	    ;
+	  for (; *slash != '/'; slash--)
+	    ;
+	  *slash = 0;
+	  
+	  if (lstat (path, &parent_st) == 0)
+	    {
+	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
+				    parent_st.st_dev, parent_st.st_ino,
+				    slash + 1))
+		vol->delete_p = true;
+	    }
+	  *slash = '/';
+
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	}

@@ -35,7 +35,7 @@ typedef struct volume_def *volume;
 #include "varray.h"
 #include "fibheap.h"
 #include "interval.h"
-#include "string-list.h"
+#include "hardlink-list.h"
 #include "zfs_prot.h"
 #include "util.h"
 
@@ -135,7 +135,7 @@ struct internal_fh_def
   unsigned int interval_tree_users;
 
   /* List of hardlinks.  */
-  string_list hardlinks;
+  hardlink_list hardlinks;
 
   /* "Lock" level of the file handle.  */
   unsigned int level;
@@ -280,7 +280,7 @@ extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,
 				   char *name, fattr *attr, metadata *meta);
 extern void delete_dentry (volume *volp, internal_dentry *dirp, char *name,
-			   zfs_fh *dir_fh, char *path);
+			   zfs_fh *dir_fh);
 extern virtual_dir vd_lookup (zfs_fh *fh);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);

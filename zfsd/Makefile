@@ -41,9 +41,9 @@ ZFSD =	alloc-pool.o cap.o config.o constant.o crc32.o \
 DUMP_INTERVALS = alloc-pool.o dump_intervals.o interval.o log.o \
 		 memory.o splay-tree.o util.o varray.o
 DUMP_METADATA = alloc-pool.o constant.o crc32.o dump_metadata.o \
-		fibheap.o hashfile.o hashtab.o interval.o log.o \
-		memory.o metadata.o pthread.o splay-tree.o \
-		string-list.o util.o varray.o
+		fibheap.o hardlink-list.o hashfile.o hashtab.o \
+		interval.o log.o memory.o metadata.o pthread.o \
+		splay-tree.o string-list.o util.o varray.o
 
 .c.o:
 	$(COMPILE) -c $<

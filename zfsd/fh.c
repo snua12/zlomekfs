@@ -1171,7 +1171,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
     varray_destroy (&fh->subdentries);
 
   if (fh->hardlinks)
-    string_list_destroy (fh->hardlinks);
+    hardlink_list_destroy (fh->hardlinks);
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -1345,6 +1345,21 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
     {
       dentry_update_cleanup_node (dentry);
       internal_dentry_add_to_dir (parent, dentry);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
+	{
+	  if (!fh->hardlinks)
+	    {
+	      if (!init_hardlinks (vol, fh))
+		vol->delete_p = true;
+	    }
+
+	  if (!metadata_hardlink_insert (vol, fh, parent->fh->local_fh.dev,
+					 parent->fh->local_fh.ino, name))
+	    {
+	      vol->delete_p = true;
+	    }
+	}
     }
 
   slot = htab_find_slot_with_hash (dentry_htab, &fh->local_fh,
@@ -1480,11 +1495,10 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 }
 
 /* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
-   on volume VOL.  Delete PATH from hardlinks.  */
+   on volume VOL.  */
 
 void
-delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh,
-	       char *path)
+delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 {
   internal_dentry dentry;
   int32_t r2;
@@ -1500,8 +1514,6 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh,
   dentry = dentry_lookup_name (*dirp, name);
   if (dentry)
     {
-      if (path && dentry->fh->hardlinks)
-	string_list_delete (dentry->fh->hardlinks, path);
       release_dentry (*dirp);
       zfsd_mutex_unlock (&(*volp)->mutex);
 
@@ -1565,20 +1577,10 @@ internal_dentry_link (internal_fh fh, volume vol,
 #endif
   *slot = dentry;
 
-  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+  if (parent && INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      char *path;
-
-      /* Add the path to the hardlink list.  */
-      if (!dentry->fh->hardlinks)
-	{
-	  dentry->fh->hardlinks = string_list_create (4, &dentry->fh->mutex);
-	  path = build_relative_path (old);
-	  string_list_insert (dentry->fh->hardlinks, path, false);
-	}
-      path = build_relative_path_name (parent, name);
-      string_list_insert (dentry->fh->hardlinks, path, false);
-      if (!flush_hardlinks (vol, dentry->fh))
+      if (!metadata_hardlink_insert (vol, dentry->fh, parent->fh->local_fh.dev,
+				     parent->fh->local_fh.ino, dentry->name))
 	vol->delete_p = true;
     }
 
@@ -1592,7 +1594,8 @@ bool
 internal_dentry_move (internal_dentry dentry, volume vol,
 		      internal_dentry dir, char *name)
 {
-  internal_dentry tmp;
+  internal_dentry tmp, parent;
+  char *old_name;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1604,6 +1607,8 @@ internal_dentry_move (internal_dentry dentry, volume vol,
 #endif
   CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
 
+  parent = dentry->parent;
+
   /* Check whether we are not moving DENTRY to its subtree.  */
   for (tmp = dir; tmp; tmp = tmp->parent)
     if (tmp == dentry)
@@ -1612,12 +1617,25 @@ internal_dentry_move (internal_dentry dentry, volume vol,
   /* Delete DENTRY from parent's directory entries.  */
   internal_dentry_del_from_dir (dentry);
 
-  free (dentry->name);
+  old_name = dentry->name;
   dentry->name = xstrdup (name);
 
   /* Insert DENTRY to DIR.  */
   internal_dentry_add_to_dir (dir, dentry);
 
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+    {
+      if (!metadata_hardlink_replace (vol, dentry->fh,
+				      parent->fh->local_fh.dev,
+				      parent->fh->local_fh.ino, old_name,
+				      dir->fh->local_fh.dev,
+				      dir->fh->local_fh.ino, name))
+	{
+	  vol->delete_p = true;
+	}
+    }
+
+  free (old_name);
   return true;
 }
 
