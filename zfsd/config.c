@@ -25,6 +25,7 @@
 #include <strings.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sys/utsname.h>
 #include "zfs_prot.h"
 #include "config.h"
 
@@ -51,65 +52,65 @@ node
 node_create(char *name, cipher key_type, int pubkey_len, char *pubkey)
 {
   int name_len, size;
-  node node;
+  node nod;
   struct hostent *he;
   int data_end = 0;
  
   name_len = strlen(name);
   size = sizeof(struct node_def) + name_len + pubkey_len;
-  node = (node) malloc(size);
-  if (!node)
+  nod = (node) malloc(size);
+  if (!nod)
     return NULL;
 
-  node->name = &node->data[data_end];
-  memcpy(node->name, name, name_len + 1);
+  nod->name = &nod->data[data_end];
+  memcpy(nod->name, name, name_len + 1);
   data_end += name_len + 1;
   
-  node->key_type = key_type;
-  node->pubkey_len = pubkey_len;
-  node->pubkey = &node->data[data_end];
+  nod->key_type = key_type;
+  nod->pubkey_len = pubkey_len;
+  nod->pubkey = &nod->data[data_end];
   if (pubkey_len)
     {
-      memcpy(node->pubkey, pubkey, pubkey_len);
+      memcpy(nod->pubkey, pubkey, pubkey_len);
       data_end += pubkey_len;
     }
-  node->flags = 0;
+  nod->flags = 0;
   
   he = gethostbyname(name);
   if (he)
     {
-      if (he->h_addrtype == AF_INET && he->h_length == sizeof(node->addr))
+      if (he->h_addrtype == AF_INET && he->h_length == sizeof(nod->addr))
 	{
-	  node->flags |= NODE_ADDR_RESOLVED;
-	  memcpy(node->addr, he->h_addr_list[0], sizeof(node->addr));
+	  nod->flags |= NODE_ADDR_RESOLVED;
+	  memcpy(&nod->addr, he->h_addr_list[0], sizeof(nod->addr));
 	}
     }
-  return node;
+  return nod;
 }
 
 /* Create volume structure and fill it with information.  */
 volume
-volume_create(char *name, node master, char *location, data_end)
+volume_create(char *name, node master, char *location, int data_end)
 {
   int name_len, loc_len, lpath_len, size;
-  volume volume;
+  volume vol;
 
   name_len = strlen(name);
   loc_len = strlen(location);
   size = sizeof(struct volume_def) + data_end + name_len + loc_len;
-  volume = (volume) malloc(size);
-  if (!volume)
+  vol = (volume) malloc(size);
+  if (!vol)
     return NULL;
 
-  volume->master = master;
-  volume->flags = 0;
+  vol->master = master;
+  vol->flags = 0;
   
-  volume->name = &volume->data[data_end];
-  memcpy(volume->name, name, name_len + 1);
+  vol->name = &vol->data[data_end];
+  memcpy(vol->name, name, name_len + 1);
   data_end += name_len + 1;
 
-  volume->location = &volume->data[data_end];
-  memcpy(volume->location, location, loc_len + 1);
+  vol->location = &vol->data[data_end];
+  memcpy(vol->location, location, loc_len + 1);
   data_end += loc_len + 1;
 }
 
@@ -133,7 +134,7 @@ set_string(char **destp, char *src, int len)
   if (!destp)
     return 0;
 
-  memcpy(*dstp, src, len + 1);
+  memcpy(*destp, src, len + 1);
 
   return 1;
 }
@@ -145,23 +146,28 @@ enum automata_states {
   STATE_QUOTED_BACKSLASH	/* inside quotes and after backslash */
 };
 
-/* Process one line of configuration file.  */
+/* Process one line of configuration file.  Return the length of value.  */
 
 static int
-process_line(char *file, int line_num, char *line)
+process_line(char *file, int line_num, char *line, char **key, char **value)
 {
-  char *key;
-  char *val;
   char *dest;
   enum automata_states state;
 
   /* Skip white spaces.  */
   while (*line == ' ' || *line == '\t')
     line++;
+
   if (*line == '#')
-    return 1;
+    {
+      /* There was no key nor value.  */
+      *line = 0;
+      *key = line;
+      *value = line;
+      return 0;
+    }
   
-  key = line;
+  *key = line;
   /* Skip the key.  */
   while (*line != 0 && *line != '#' && *line != ' ' && *line != '\t')
     line++;
@@ -170,7 +176,7 @@ process_line(char *file, int line_num, char *line)
     {
       *line = 0;
       message(0, stderr, "%s:%d:Option ``%s'' has no value.\n",
-	      file, line_num, key);
+	      file, line_num, *key);
       return 0;
     }
   *line = 0;
@@ -180,7 +186,7 @@ process_line(char *file, int line_num, char *line)
   while (*line == ' ' || *line == '\t')
     line++;
 
-  val = line;
+  *value = line;
   dest = line;
 
   /* Finite automata.  */
@@ -239,7 +245,7 @@ process_line(char *file, int line_num, char *line)
 	    break;
 
 	  case STATE_QUOTED_BACKSLASH:
-	    *dest++ = *list++;
+	    *dest++ = *line++;
 	    state = STATE_QUOTED;
 	    break;
 	}
@@ -250,39 +256,13 @@ process_line(char *file, int line_num, char *line)
     *dest++ = '\\';
   *dest = 0;
 
-  if (val == dest)
+  if (*value == dest)
     {
       message(0, stderr, "%s:%d:Option ``%s'' has no value.\n",
-	      file, line_num, key);
+	      file, line_num, *key);
       return 0;
     }
-
-  /* Compare the key.  */
-  if (strncasecmp(key, "nodename", 9) == 0)
-    {
-      return set_string(&node_name, val, dest - val);
-
-    }
-  else if (strncasecmp(key, "privatekey", 11) == 0)
-    {
-      return set_string(&private_key, val, dest - val);
-    }
-  else if (strncasecmp(key, "nodeconfig", 11) == 0
-	   || strncasecmp(key, "nodeconfiguration", 18) == 0)
-    {
-      return set_string(&node_config, val, dest - val);
-    }
-  else if (strncasecmp(key, "clusterconfig", 14) == 0
-	   || strncasecmp(key, "clusterconfiguration", 21) == 0)
-    {
-      return set_string(&cluster_config, val, dest - val);
-    }
-  else
-    {
-      message(0, stderr, "%s:%d:Unknown option: ``%s''.\n",
-	      file, line_num, key);
-      return 0;
-    }
+  return dest - *value;
 }
 
 /* Get the name of local node.  */
@@ -297,9 +277,9 @@ get_node_name()
     return;
 
   len = strlen(un.nodename);
-  r = set_string(&nodename, un.nodename, len);
+  r = set_string(&node_name, un.nodename, len);
   if (r)
-    message(1, stderr, "Autodetected node name: ``%s''\n", nodename);
+    message(1, stderr, "Autodetected node name: ``%s''\n", node_name);
   return r;
 }
 
@@ -322,33 +302,81 @@ read_cluster_config(char *path)
 }
 
 int
-read_config(char *filename)
+read_config(char *file)
 {
   FILE *f;
-  char line[LINE_SIZE];
+  char line[LINE_SIZE + 1];
+  char *key, *value;
   int line_num;
   int r = 1; 
 
   /* Get the name of local node.  */
   get_node_name();
   
-  f = fopen(filename, "rt");
+  f = fopen(file, "rt");
   if (!f)
     {
-      message(-1, "Can't open config file %s.\n", filename);
+      message(-1, stderr, "Can't open config file %s.\n", file);
       return 0;
     }
 
-  message(2, "Reading configuration file %s.\n", filename);
+  message(2, stderr, "Reading configuration file %s.\n", file);
   line_num = 0;
   while (!feof(f))
     {
+      int value_len;
+
       if (!fgets(line, sizeof(line), f))
 	break;
 
       line_num++;
-      if (!process_line(filename, line_num, line))
-	r = 0;
+      value_len = process_line(file, line_num, line, &key, &value);
+
+      if (*key)		/* There was a configuration directive on the line.  */
+	{
+	  if (value_len)
+	    {
+	      /* Configuration options which may have a value.  */
+
+	      if (strncasecmp(key, "nodename", 9) == 0)
+		{
+		  if (!set_string(&node_name, value, value_len))
+		    return 0;
+		}
+	      else if (strncasecmp(key, "privatekey", 11) == 0)
+		{
+		  if (!set_string(&private_key, value, value_len))
+		    return 0;
+		}
+	      else if (strncasecmp(key, "nodeconfig", 11) == 0
+		       || strncasecmp(key, "nodeconfiguration", 18) == 0)
+		{
+		  if (!set_string(&node_config, value, value_len))
+		    return 0;
+		}
+	      else if (strncasecmp(key, "clusterconfig", 14) == 0
+		       || strncasecmp(key, "clusterconfiguration", 21) == 0)
+		{
+		  if (!set_string(&cluster_config, value, value_len))
+		    return 0;
+		}
+	      else
+		{
+		  message(0, stderr, "%s:%d:Unknown option: ``%s''.\n",
+			  file, line_num, key);
+		  return 0;
+		}
+	    }
+	  else
+	    {
+	      /* Configuration options which may have no value.  */
+	        {
+		  message(0, stderr, "%s:%d:Unknown option: ``%s''.\n",
+			  file, line_num, key);
+		  return 0;
+		}
+	    }
+	}
     }
   fclose(f);
   if (r == 0)
