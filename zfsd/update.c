@@ -1031,16 +1031,6 @@ files_are_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
   return ZFS_OK;
 
 differ:
-  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  r = delete_tree_name (dir, name, vol, true, false);
-  if (r != ZFS_OK)
-    return r;
-
   *same = false;
   return ZFS_OK;
 }
