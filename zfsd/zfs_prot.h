@@ -24,6 +24,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include "md5.h"
+#include "memory.h"
 
 #define ZFS_PORT 12323
 #define ZFS_MAXDATA 8192
@@ -72,12 +73,6 @@ typedef struct data_buffer_def
   char *buf;
   char real_buffer[ZFS_MAXDATA];
 } data_buffer;
-
-typedef struct string_def
-{
-  uint32_t len;
-  char *str;
-} string;
 
 typedef enum ftype_def
 {

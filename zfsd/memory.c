@@ -101,6 +101,34 @@ xstrndup (const char *s, size_t n)
   return r;
 }
 
+/* Create string DEST from S.  */
+void
+xmkstring (string *dest, const char *s)
+{
+  dest->len = strlen (s);
+  dest->str = (char *) malloc (dest->len + 1);
+  if (!dest->str)
+    {
+      message (-1, stderr, "Not enough memory.\n");
+      abort ();
+    }
+  memcpy (dest->str, s, dest->len + 1);
+}
+
+/* Duplicate string SRC and store it to */
+void
+xstringdup (string *dest, string *src)
+{
+  dest->len = src->len;
+  dest->str = (char *) malloc (dest->len + 1);
+  if (!dest->str)
+    {
+      message (-1, stderr, "Not enough memory.\n");
+      abort ();
+    }
+  memcpy (dest->str, src->str, dest->len + 1);
+}
+
 /* Return a copy of memory SRC of size N.  */
 void *
 xmemdup (const void *src, size_t n)

@@ -23,13 +23,23 @@
 
 #include "system.h"
 #include <stddef.h>
+#include <inttypes.h>
 #include "varray.h"
+
+/* String type.  */
+typedef struct string_def
+{
+  uint32_t len;
+  char *str;
+} string;
 
 extern void *xcalloc (size_t nmemb, size_t size) ATTRIBUTE_MALLOC;
 extern void *xmalloc (size_t size) ATTRIBUTE_MALLOC;
 extern void *xrealloc (void *ptr, size_t size) ATTRIBUTE_MALLOC;
 extern char *xstrdup (const char *s) ATTRIBUTE_MALLOC;
 extern char *xstrndup (const char *s, size_t n) ATTRIBUTE_MALLOC;
+extern void xmkstring (string *dest, const char *s);
+extern void xstringdup (string *dest, string *src);
 extern void *xmemdup (const void *src, size_t n) ATTRIBUTE_MALLOC;
 extern char *xstrconcat (unsigned int n, ...) ATTRIBUTE_MALLOC;
 extern char *xstrconcat_varray (varray *va) ATTRIBUTE_MALLOC;
