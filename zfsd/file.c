@@ -682,6 +682,19 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	}
 
       release_dentry (dentry);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_REINTEGRATE);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
     }
 
   internal_dentry_unlock (vol, idir);
@@ -1081,6 +1094,24 @@ zfs_close (zfs_cap *cap)
   if (cap->fh.vid == VOLUME_ID_CONFIG
       && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
     add_reread_config_request_dentry (dentry);
+
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+      && dentry->fh->attr.type == FT_REG
+      && (dentry->fh->meta.flags & METADATA_MODIFIED)
+      && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
+    {
+      r2 = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap,
+				 IFH_REINTEGRATE);
+      if (r2 != ZFS_OK)
+	{
+	  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
+				       &vd, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
+    }
 
   if (r == ZFS_OK)
     put_capability (icap, dentry->fh, vd);

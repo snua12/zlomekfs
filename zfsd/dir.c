@@ -1574,6 +1574,19 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
       if (!request_from_this_node ())
 	local_invalidate_fh (fh);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &dentry, &tmp_fh, IFH_METADATA);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
     }
 
   internal_dentry_unlock (vol, dentry);
@@ -2270,6 +2283,19 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 	    MARK_VOLUME_DELETE (vol);
 	}
       release_dentry (dentry);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_REINTEGRATE);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
     }
 
   internal_dentry_unlock (vol, idir);
@@ -2617,6 +2643,21 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
 	    if (!inc_local_version (vol, idir->fh))
 	      MARK_VOLUME_DELETE (vol);
+
+	    if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	      {
+		r2 = update_fh_if_needed (&vol, &idir, &tmp_fh,
+					  IFH_REINTEGRATE);
+		if (r2 != ZFS_OK)
+		  {
+		    r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL,
+					       false);
+#ifdef ENABLE_CHECKING
+		    if (r2 != ZFS_OK)
+		      abort ();
+#endif
+		  }
+	      }
 	    break;
 
 	  case 2:
@@ -3224,8 +3265,26 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       zfs_rename_journal (from_dentry, from_name, to_dentry, to_name, vol,
 			  &meta_old, &meta_new);
 
-      if (tmp_from.ino != tmp_to.ino)
-	release_dentry (from_dentry);
+      r2 = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
+				 &tmp_to, &tmp_from, IFH_REINTEGRATE);
+      if (r2 == ZFS_OK && tmp_from.ino != tmp_to.ino)
+	{
+	  r2 = update_fh_if_needed_2 (&vol, &from_dentry, &to_dentry,
+				     &tmp_from, &tmp_to, IFH_REINTEGRATE);
+	}
+      if (r2 != ZFS_OK)
+	{
+	  r2 = zfs_fh_lookup_nolock (&tmp_to, &vol, &to_dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
+      else
+	{
+	  if (tmp_from.ino != tmp_to.ino)
+	    release_dentry (from_dentry);
+	}
     }
 
   internal_dentry_unlock (vol, to_dentry);
@@ -3589,8 +3648,21 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       internal_dentry_link (from_dentry, vol, dir_dentry, name);
       zfs_link_journal (dir_dentry, name, vol, &meta);
 
-      if (dir_dentry != from_dentry)
-	release_dentry (from_dentry);
+      r2 = update_fh_if_needed_2 (&vol, &dir_dentry, &from_dentry,
+				  &tmp_dir, &tmp_from, IFH_REINTEGRATE);
+      if (r2 != ZFS_OK)
+	{
+	  r2 = zfs_fh_lookup_nolock (&tmp_dir, &vol, &dir_dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
+      else
+	{
+	  if (dir_dentry != from_dentry)
+	    release_dentry (from_dentry);
+	}
     }
 
   internal_dentry_unlock (vol, dir_dentry);
@@ -4029,6 +4101,21 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 	    if (!inc_local_version (vol, idir->fh))
 	      MARK_VOLUME_DELETE (vol);
+
+	    if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	      {
+		r2 = update_fh_if_needed (&vol, &idir, &tmp_fh,
+					  IFH_REINTEGRATE);
+		if (r2 != ZFS_OK)
+		  {
+		    r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL,
+					       false);
+#ifdef ENABLE_CHECKING
+		    if (r2 != ZFS_OK)
+		      abort ();
+#endif
+		  }
+	      }
 	    break;
 
 	  case 2:
@@ -4637,6 +4724,19 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 	    MARK_VOLUME_DELETE (vol);
 	}
       release_dentry (dentry);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_REINTEGRATE);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
     }
 
   internal_dentry_unlock (vol, idir);
@@ -4889,6 +4989,19 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 	    MARK_VOLUME_DELETE (vol);
 	}
       release_dentry (dentry);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_REINTEGRATE);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
     }
 
   internal_dentry_unlock (vol, idir);
@@ -5638,6 +5751,22 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
     abort ();
 #endif
 
+  if (r == ZFS_OK)
+    {
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_REINTEGRATE);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
+    }
+
   internal_dentry_unlock (vol, idir);
 
   RETURN_INT (r);
@@ -6039,6 +6168,19 @@ zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
   if (r == ZFS_OK)
     {
       delete_dentry (&vol, &idir, name, &tmp_fh);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+	{
+	  r2 = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_REINTEGRATE);
+	  if (r2 != ZFS_OK)
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+	    }
+	}
     }
 
   internal_dentry_unlock (vol, idir);
