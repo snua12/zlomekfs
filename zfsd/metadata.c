@@ -1673,17 +1673,6 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
 	}
       map->slot_status = DELETED_SLOT;
     }
-
-#ifdef ENABLE_VALGRIND_CHECKING
-  if (map->slot_status != VALID_SLOT)
-    {
-      VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (&map->local_fh,
-						sizeof (zfs_fh)));
-      VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (&map->master_fh,
-						sizeof (zfs_fh)));
-    }
-#endif
-
   zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
 
   if (map->slot_status == VALID_SLOT)
