@@ -492,16 +492,24 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
       *r = zfs_proc_ping_client_1 (t, &ping_args, fd);
       gettimeofday (&t1, NULL);
       if (*r != ZFS_OK)
-	return false;
+	{
+	  if (*r >= ZFS_ERROR_HAS_DC_REPLY)
+	    recycle_dc_to_fd (t->dc_reply, fd);
+	  return false;
+	}
 
       if (!decode_data_buffer (t->dc_reply, &ping_res)
 	  || !finish_decoding (t->dc_reply)
 	  || ping_res.len != ping_args.len
 	  || memcmp (ping_res.buf, ping_args.buf, ping_args.len) != 0)
 	{
+	  if (*r >= ZFS_ERROR_HAS_DC_REPLY)
+	    recycle_dc_to_fd (t->dc_reply, fd);
 	  *r = ZFS_INVALID_REPLY;
 	  return false;
 	}
+      if (*r >= ZFS_ERROR_HAS_DC_REPLY)
+	recycle_dc_to_fd (t->dc_reply, fd);
 
       nod = node_lookup (sid);
       if (!nod)
@@ -517,8 +525,6 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
 	}
       if (fd != nod->fd)
 	{
-	  if (*r >= ZFS_ERROR_HAS_DC_REPLY)
-	    recycle_dc_to_fd_data (t->dc_reply, &fd_data_a[nod->fd]);
 	  zfsd_mutex_unlock (&nod->mutex);
 	  return true;
 	}
