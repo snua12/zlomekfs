@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html
    */
 
+#include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,12 +77,21 @@ xstrdup(const char *s)
 char *
 xstrndup(const char *s, size_t n)
 {
-  char *r = strndup(s, n);
+  int len;
+  char *r;
+  
+  len = strlen(s);
+  if (len > n)
+    len = n;
+  
+  r = malloc(len + 1);
   if (!r)
     {
       message(-1, stderr, "Not enough memory.\n");
       abort();
     }
+  memcpy(r, s, len);
+  r[len] = 0;
   return r;
 }
 
@@ -94,6 +104,6 @@ xmemdup(const void *src, size_t n)
       message(-1, stderr, "Not enough memory.\n");
       abort();
     }
-  memcpy(r, s, n);
+  memcpy(r, src, n);
   return r;
 }
