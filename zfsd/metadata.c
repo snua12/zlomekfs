@@ -284,15 +284,48 @@ close_metadata_fd (int fd)
 #ifdef ENABLE_CHECKING
   if (metadata_fd_data[fd].fd < 0)
     abort ();
-  if (!metadata_fd_data[fd].heap_node)
-    abort ();
 #endif
   metadata_fd_data[fd].fd = -1;
   metadata_fd_data[fd].generation++;
   close (fd);
-  fibheap_delete_node (metadata_heap, metadata_fd_data[fd].heap_node);
-  metadata_fd_data[fd].heap_node = NULL;
+  if (metadata_fd_data[fd].heap_node)
+    {
+      fibheap_delete_node (metadata_heap, metadata_fd_data[fd].heap_node);
+      metadata_fd_data[fd].heap_node = NULL;
+    }
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+}
+
+static int
+open_metadata (const char *pathname, int flags, mode_t mode)
+{
+  int fd;
+
+retry_open:
+  fd = open (pathname, flags, mode);
+  if ((fd < 0 && errno == EMFILE)
+      || (fd >= 0
+	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
+    {
+      metadata_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&metadata_mutex);
+      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
+      if (fd_data)
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  fd_data->heap_node = NULL;
+	  if (fd_data->fd >= 0)
+	    close_metadata_fd (fd_data->fd);
+	  else
+	    zfsd_mutex_unlock (&fd_data->mutex);
+	}
+      zfsd_mutex_unlock (&metadata_mutex);
+      if (fd_data)
+	goto retry_open;
+    }
+
+  return fd;
 }
 
 /* Open and initialize file descriptor for hash file HFILE with list
@@ -305,26 +338,7 @@ open_list_file (volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-retry_open:
-  fd = open (vol->metadata->file_name, O_RDWR | O_CREAT, S_IRWXU);
-  if ((fd < 0 && errno == EMFILE)
-      || (fd >= 0
-	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
-    {
-      metadata_fd_data_t *fd_data;
-
-      zfsd_mutex_lock (&metadata_mutex);
-      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
-      if (fd_data && fd_data->fd >= 0)
-	{
-	  zfsd_mutex_lock (&fd_data->mutex);
-	  close_metadata_fd (fd_data->fd);
-	}
-      zfsd_mutex_unlock (&metadata_mutex);
-      if (fd_data)
-	goto retry_open;
-    }
-
+  fd = open_metadata (vol->metadata->file_name, O_RDWR | O_CREAT, S_IRWXU);
   if (fd < 0)
     return fd;
 
@@ -352,26 +366,7 @@ open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
-retry_open:
-  fd = open (path, O_WRONLY | O_CREAT);
-  if ((fd < 0 && errno == EMFILE)
-      || (fd >= 0
-	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
-    {
-      metadata_fd_data_t *fd_data;
-
-      zfsd_mutex_lock (&metadata_mutex);
-      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
-      if (fd_data && fd_data->fd >= 0)
-	{
-	  zfsd_mutex_lock (&fd_data->mutex);
-	  close_metadata_fd (fd_data->fd);
-	}
-      zfsd_mutex_unlock (&metadata_mutex);
-      if (fd_data)
-	goto retry_open;
-    }
-
+  fd = open_metadata (path, O_WRONLY | O_CREAT, S_IRWXU);
   free (path);
   if (fd < 0)
     return fd;
@@ -478,25 +473,7 @@ flush_interval_tree_1 (interval_tree tree, char *path)
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   new_path = xstrconcat (2, path, ".new");
-retry_open:
-  fd = open (new_path, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
-  if ((fd < 0 && errno == EMFILE)
-      || (fd >= 0
-	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
-    {
-      metadata_fd_data_t *fd_data;
-
-      zfsd_mutex_lock (&metadata_mutex);
-      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
-      if (fd_data && fd_data->fd >= 0)
-	{
-	  zfsd_mutex_lock (&fd_data->mutex);
-	  close_metadata_fd (fd_data->fd);
-	}
-      zfsd_mutex_unlock (&metadata_mutex);
-      if (fd_data)
-	goto retry_open;
-    }
+  fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
 
   if (fd < 0)
     {
