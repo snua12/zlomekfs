@@ -417,8 +417,6 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 bool
 kernel_start ()
 {
-  zfsd_mutex_init (&kernel_data.mutex);
-
   /* Open connection with kernel.  */
   kernel_file = open (kernel_file_name, O_RDWR);
   if (kernel_file < 0)
@@ -428,10 +426,13 @@ kernel_start ()
       return false;
     }
 
+  zfsd_mutex_init (&kernel_data.mutex);
+
   if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_main,
 			   kernel_worker, kernel_worker_init))
     {
       close (kernel_file);
+      zfsd_mutex_destroy (&kernel_data.mutex);
       return false;
     }
 
