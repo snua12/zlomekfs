@@ -1390,7 +1390,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
       message (2, stderr, "Polling %d sockets\n", n + accept_connections);
       zfsd_mutex_lock (&network_pool.main_in_syscall);
       zfsd_mutex_unlock (&active_mutex);
-      r = poll (pfd, n + accept_connections, 1000000);
+      r = poll (pfd, n + accept_connections, 1000);
       zfsd_mutex_unlock (&network_pool.main_in_syscall);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
 
