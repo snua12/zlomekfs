@@ -1190,7 +1190,6 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 		htab_empty (vol->slaves);
 	    }
 	  volume_set_common_info (vol, &parts[1], &parts[2], vol->master);
-	  vol->marked = true;
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&volume_mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
