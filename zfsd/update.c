@@ -1573,6 +1573,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		  {
 		    if (zfs_fh_undefined (entry->master_fh))
 		      {
+			internal_dentry subdentry;
+
 			r = create_remote_fh (&res, dentry, &entry->name, vol,
 					      fh, &local_res.attr);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
@@ -1584,14 +1586,45 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			if (r != ZFS_OK)
 			  continue;
 
+			/* Update local metadata.  */
+			subdentry = dentry_lookup (&local_res.file);
+			if (subdentry)
+			  meta = subdentry->fh->meta;
+
 			meta.master_fh = res.file;
+			meta.master_version = meta.local_version;
+			meta.local_version++;
+
+			if (subdentry)
+			  {
+			    subdentry->fh->meta = meta;
+			    set_attr_version (&subdentry->fh->attr,
+					      &subdentry->fh->meta);
+			    release_dentry (subdentry);
+			  }
+
 			if (!flush_metadata (vol, &meta))
 			  {
 			    vol->delete_p = true;
 			    continue;
 			  }
 
-			/* TODO: set remote metadata. */
+			release_dentry (dentry);
+			zfsd_mutex_unlock (&fh_mutex);
+
+			/* Set remote metadata. */
+			r = remote_reintegrate_set (&res.file,
+						    meta.master_version,
+						    NULL, vol);
+
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
+			if (r != ZFS_OK)
+			  continue;
 
 			if (!journal_delete_entry (dentry->fh->journal,
 						   entry))
