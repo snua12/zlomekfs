@@ -113,12 +113,19 @@ node_create (unsigned int id, char *name)
   return nod;
 }
 
+/* Destroy node NOD and free memory associated with it.
+   This function expects node_mutex to be locked.  */
+
 void
 node_destroy (node nod)
 {
   void **slot;
 
-  pthread_mutex_lock (&node_mutex);
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&node_mutex) == 0)
+    abort ();
+#endif
+  
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -126,7 +133,6 @@ node_destroy (node nod)
     abort ();
 #endif
   htab_clear_slot (node_htab, slot);
-  pthread_mutex_unlock (&node_mutex);
 
   free (nod->name);
   free (nod);

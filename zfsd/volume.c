@@ -107,13 +107,19 @@ volume_create (unsigned int id)
   return vol;
 }
 
-/* Destroy volume VOL and free memory associated with it.  */
+/* Destroy volume VOL and free memory associated with it.
+   This function expects volume_mutex to be locked.  */
 
 void
 volume_destroy (volume vol)
 {
   void **slot;
 
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&volume_mutex) == 0)
+    abort ();
+#endif
+  
   virtual_mountpoint_destroy (vol);
 
   pthread_mutex_lock (&vol->fh_mutex);
@@ -123,7 +129,6 @@ volume_destroy (volume vol)
   pthread_mutex_unlock (&fh_pool_mutex);
   pthread_mutex_unlock (&vol->fh_mutex);
 
-  pthread_mutex_lock (&volume_mutex);
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -131,7 +136,6 @@ volume_destroy (volume vol)
     abort ();
 #endif
   htab_clear_slot (volume_htab, slot);
-  pthread_mutex_unlock (&volume_mutex);
 
   if (vol->local_path)
     free (vol->local_path);
