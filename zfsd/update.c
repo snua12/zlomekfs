@@ -1059,6 +1059,8 @@ out2:
   return r;
 }
 
+/* The main function of an update thread.  */
+
 static void *
 update_worker (void *data)
 {
@@ -1115,6 +1117,8 @@ update_worker (void *data)
   
   return NULL;
 }
+
+/* Main function if the main update thread.  */
 
 static void *
 update_main (ATTRIBUTE_UNUSED void *data)
