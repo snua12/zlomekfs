@@ -1070,15 +1070,12 @@ bool
 delete_metadata (volume vol, uint32_t dev, uint32_t ino)
 {
   zfs_fh fh;
-  metadata meta;
   int i;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   fh.dev = dev;
   fh.ino = ino;
-  meta.dev = dev;
-  meta.ino = ino;
 
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
@@ -1091,24 +1088,6 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino)
       unlink (file);
       free (file);
     }
-
-  if (!list_opened_p (vol->metadata))
-    {
-      int fd;
-
-      fd = open_list_file (vol);
-      if (fd < 0)
-	return false;
-    }
-
-  if (!hfile_delete (vol->metadata, &meta))
-    {
-      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
-      return false;
-    }
-
-  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 
   return true;
 }
