@@ -579,11 +579,6 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
-  /* We would destroy locked dentry which would cause problems in
-     UPDATE_FH_IF_NEEDED* macros it we returned true.  */
-  if ((*dentryp)->fh->attr.type == FT_DIR && attr->type != FT_DIR)
-    return false;
-
   return UPDATE_P (*dentryp, *attr);
 
 out:
