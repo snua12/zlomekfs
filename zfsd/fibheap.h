@@ -79,7 +79,7 @@ typedef int (*fibheap_foreach_fn) (void *node_data, void *data);
 
 extern fibheap fibheap_new (unsigned int block_size, pthread_mutex_t *mutex);
 extern fibnode fibheap_insert (fibheap, fibheapkey_t, void *);
-extern int fibheap_size (fibheap);
+extern unsigned int fibheap_size (fibheap);
 extern fibheapkey_t fibheap_min_key (fibheap);
 extern fibnode fibheap_replace_key (fibheap, fibnode, fibheapkey_t);
 extern void *fibheap_extract_min (fibheap);

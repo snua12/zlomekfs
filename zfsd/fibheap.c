@@ -238,7 +238,7 @@ fibheap_delete (fibheap heap)
 }
 
 /* Return size of the heap HEAP.  */
-int
+unsigned int
 fibheap_size (fibheap heap)
 {
   unsigned int n;
