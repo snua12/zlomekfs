@@ -1348,7 +1348,8 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	      close_active_fd (i);
 	      zfsd_mutex_unlock (&fd_data->mutex);
 	    }
-	  else if (fd_data->conn == CONNECTION_CONNECTING)
+	  else if (fd_data->conn == CONNECTION_CONNECTING
+		   && pfd[i].revents & CAN_WRITE)
 	    {
 	      int e;
 	      socklen_t l = sizeof (e);
