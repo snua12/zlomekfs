@@ -472,7 +472,7 @@ read_config_file (const char *file)
 		}
 	      else if (strncasecmp (key, "defaultuid", 11) == 0)
 		{
-		  if (sscanf ("%" PRIu32, &default_node_uid) != 1)
+		  if (sscanf (value, "%" PRIu32, &default_node_uid) != 1)
 		    {
 		      message (0, stderr, "Not an unsigned number: %s\n",
 			       value);
@@ -488,7 +488,7 @@ read_config_file (const char *file)
 		}
 	      else if (strncasecmp (key, "defaultgid", 11) == 0)
 		{
-		  if (sscanf ("%" PRIu32, &default_node_gid) != 1)
+		  if (sscanf (value, "%" PRIu32, &default_node_gid) != 1)
 		    {
 		      message (0, stderr, "Not an unsigned number: %s\n",
 			       value);
