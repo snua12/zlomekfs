@@ -1545,7 +1545,7 @@ zfs_rename_retry:
       zfsd_mutex_unlock (&vd_mutex);
       return EROFS;
     }
-  /* Temporarily unlock IFH1, we are still holding VOL->MUTEX so we are
+  /* Temporarily unlock DENTRY1, we are still holding VOL->MUTEX so we are
      allowed to lock it again.  */
   if (dentry1)
     release_dentry (dentry1);
@@ -1827,7 +1827,7 @@ zfs_link_retry:
       return EROFS;
     }
 
-  /* Temporarily unlock IFH1, we are still holding VOL->MUTEX so we are
+  /* Temporarily unlock DENTRY1, we are still holding VOL->MUTEX so we are
      allowed to lock it again.  */
   if (dentry1)
     release_dentry (dentry1);
