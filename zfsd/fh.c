@@ -1507,31 +1507,68 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	    internal_dentry dir, string *name, fattr *attr, metadata *meta)
 {
   internal_dentry dentry, subdentry;
+  zfs_fh tmp;
+  int32_t r;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (dir)
+    {
+      CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+      if (dir->fh->level == LEVEL_UNLOCKED)
+	abort ();
+    }
+#endif
 
   dentry = dentry_lookup_name (vol, dir, name);
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     {
+      if (dir)
+	{
+	  tmp = dir->fh->local_fh;
+	  release_dentry (dir);
+	}
+      else
+	tmp.vid = vol->id;
+
       subdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh,
 					    attr, meta);
-      if (try_resolve_conflict (vol, dentry))
+      if (!try_resolve_conflict (vol, dentry))
 	{
-	  vol = volume_lookup (local_fh->vid);
-	  dentry = dentry_lookup_name (vol, dir, name);
+	  /* DIR was locked so it can't have been deleted.  */
+	  if (dir)
+	    acquire_dentry (dir);
+	  release_dentry (dentry);
+	  /* We did not unlock fh_mutex so SUBDENTRY is still valid.  */
+	  acquire_dentry (subdentry);
+	  return subdentry;
+	}
+
+      if (dir)
+	{
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
-	  if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
+	  if (r != ZFS_OK)
 	    abort ();
 #endif
 	}
       else
 	{
-	  release_dentry (dentry);
-	  acquire_dentry (subdentry);
-	  return subdentry;
+	  vol = volume_lookup (tmp.vid);
+#ifdef ENABLE_CHECKING
+	  if (!vol)
+	    abort ();
+#endif
 	}
+
+      dentry = dentry_lookup_name (vol, dir, name);
+#ifdef ENABLE_CHECKING
+      if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
+	abort ();
+#endif
     }
 
   if (dentry)
@@ -1543,8 +1580,6 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	      && !zfs_fh_undefined (dentry->fh->meta.master_fh)
 	      && !zfs_fh_undefined (*master_fh)))
 	{
-	  uint32_t vid = 0;
-	  zfs_fh tmp;
 	  unsigned int level;
 
 	  if (dir)
@@ -1558,7 +1593,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	      release_dentry (dir);
 	    }
 	  else
-	    vid = vol->id;
+	    tmp.vid = vol->id;
 	  zfsd_mutex_unlock (&vol->mutex);
 
 	  level = get_level (dentry->fh);
@@ -1566,8 +1601,6 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
 	  if (dir)
 	    {
-	      int32_t r;
-
 	      zfsd_mutex_unlock (&fh_mutex);
 	      r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1577,7 +1610,11 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	    }
 	  else
 	    {
-	      vol = volume_lookup (vid);
+	      vol = volume_lookup (tmp.vid);
+#ifdef ENABLE_CHECKING
+	      if (!vol)
+		abort ();
+#endif
 	    }
 	  dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
 					   attr, meta, level);
