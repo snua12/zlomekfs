@@ -670,6 +670,7 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh)
   int how;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 
@@ -709,6 +710,10 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
   int how;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentry2p)->fh->mutex);
 
   r = ZFS_OK;
   if ((*volp)->master != this_node)
@@ -806,6 +811,9 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
   int how;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 
   r = ZFS_OK;
   if ((*volp)->master != this_node)
