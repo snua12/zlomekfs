@@ -46,6 +46,7 @@
 #include "dir.h"
 #include "file.h"
 #include "network.h"
+#include "zfsd.h"
 
 #ifdef BUFSIZ
 #define LINE_SIZE BUFSIZ
@@ -1379,6 +1380,68 @@ reread_volume_list (void)
   return true;
 }
 
+/* Reread configuration file RELATIVE_PATH.  */ 
+
+static bool
+reread_config_file (string *relative_path)
+{
+  char *str = relative_path->str;
+
+  if (strncmp (str, "/config/", 8) != 0)
+    goto out_true;
+
+  str += 8;
+  if (strncmp (str, "node_list", 10) == 0)
+    {
+      if (!reread_node_list ())
+	goto out;
+    }
+  else if (strncmp (str, "volume", 6) == 0)
+    {
+      str += 6;
+      if (*str == '/')
+	{
+	  str++;
+
+	}
+      else if (strncmp (str, "_list", 6) == 0)
+	{
+	  if (!reread_volume_list ())
+	    goto out;
+	}
+    }
+  else if (strncmp (str, "user", 4) == 0)
+    {
+      str += 4;
+      if (*str == '/')
+	{
+	  str++;
+	}
+      else if (strncmp (str, "_list", 6) == 0)
+	{
+	}
+    }
+  else if (strncmp (str, "group", 5) == 0)
+    {
+      str += 5;
+      if (*str == '/')
+	{
+	  str++;
+	}
+      else if (strncmp (str, "_list", 6) == 0)
+	{
+	}
+    }
+
+out_true:
+  free (relative_path->str);
+  return true;
+
+out:
+  free (relative_path->str);
+  return false;
+}
+
 /* Add request to reread config file RELATIVE_PATH to queue.  */
 
 void
@@ -1527,6 +1590,8 @@ config_reader (void *data)
   /* Reread parts of configuration when notified.  */
   while (1)
     {
+      string relative_path;
+
       /* Wait until we are notified.  */
       semaphore_down (&t->sem, 1);
 
@@ -1537,7 +1602,11 @@ config_reader (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-      /* TODO: process requests for rereading configuration.  */
+      while (get_reread_config_request (&relative_path))
+	{
+	  if (!reread_config_file (&relative_path))
+	    terminate ();
+	}
     }
 
 dying:
