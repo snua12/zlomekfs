@@ -197,42 +197,35 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 static int32_t
 get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 {
+  volume_root_args args;
+  thread *t;
   int32_t r;
+  int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  /* The volume is completelly remote or we have a copy of the volume.
-     Call the remote function only when we need the file handle.  */
-  if (vol->master != this_node)
+  args.vid = vol->id;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_volume_root_client (t, &args, vol->master, &fd);
+  if (r == ZFS_OK)
     {
-      volume_root_args args;
-      thread *t;
-      int fd;
-
-      t = (thread *) pthread_getspecific (thread_data_key);
-      args.vid = vol->id;
-      zfsd_mutex_lock (&node_mutex);
-      zfsd_mutex_lock (&vol->master->mutex);
-      zfsd_mutex_unlock (&node_mutex);
-      r = zfs_proc_volume_root_client (t, &args, vol->master, &fd);
-      if (r == ZFS_OK)
-	{
-	  if (!decode_zfs_fh (&t->dc_reply, remote_fh)
-	      || !decode_fattr (&t->dc_reply, attr)
-	      || !finish_decoding (&t->dc_reply))
-	    r = ZFS_INVALID_REPLY;
-	}
-      else if (r >= ZFS_LAST_DECODED_ERROR)
-	{
-	  if (!finish_decoding (&t->dc_reply))
-	    r = ZFS_INVALID_REPLY;
-	}
-
-      if (r >= ZFS_ERROR_HAS_DC_REPLY)
-	recycle_dc_to_fd (&t->dc_reply, fd);
+      if (!decode_zfs_fh (&t->dc_reply, remote_fh)
+	  || !decode_fattr (&t->dc_reply, attr)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
     }
-  else
-    abort ();
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (&t->dc_reply, fd);
 
   if (r == ZFS_OK && attr->type != FT_DIR)
     return ENOTDIR;
