@@ -261,10 +261,15 @@ thread_pool_terminate (thread_pool *pool)
 {
   zfsd_mutex_lock (&running_mutex);
   pool->terminate = true;	/* used in main thread to finish */
-  zfsd_mutex_unlock (&running_mutex);
+  if (pool->main_thread != 0)
+    {
+      zfsd_mutex_unlock (&running_mutex);
+      queue_exiting (&pool->idle);
+      queue_exiting (&pool->empty);
+    }
+  else
+    zfsd_mutex_unlock (&running_mutex);
 
-  queue_exiting (&pool->idle);
-  queue_exiting (&pool->empty);
   thread_terminate_blocking_syscall (&pool->main_thread,
 				     &pool->main_in_syscall);
   thread_terminate_blocking_syscall (&pool->regulator_thread,
