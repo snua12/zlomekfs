@@ -382,13 +382,9 @@ hfile_destroy (hfile_t hfile)
   CHECK_MUTEX_LOCKED (hfile->mutex);
 
 #ifdef ENABLE_CHECKING
-  /* Temporary check.  */
   if (hfile->fd >= 0)
     abort ();
 #endif
-
-  if (hfile->fd >= 0)
-    close (hfile->fd);
 
   free (hfile->file_name);
   free (hfile->element);
