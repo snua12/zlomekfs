@@ -677,10 +677,6 @@ zfs_open_retry:
     {
       UPDATE_CAP_IF_NEEDED (icap, vol, dentry, vd, tmp_cap);
 
-      /* Remote file is not open.  */
-      zfs_fh_undefine (icap->master_cap.fh);
-      zfs_cap_undefine (icap->master_cap);
-
       if (vol->master != this_node)
 	{
 	  switch (dentry->fh->attr.type)
