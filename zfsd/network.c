@@ -82,7 +82,7 @@ waiting4reply_hash (const void *xx)
 {
   const waiting4reply_data *x = (waiting4reply_data *) xx;
 
-  return WAITING4REPLY_HASH(x->request_id);
+  return WAITING4REPLY_HASH (x->request_id);
 }
 
 /* Return true when waiting4reply_data XX is data for request ID *YY.  */
@@ -93,7 +93,7 @@ waiting4reply_eq (const void *xx, const void *yy)
   const waiting4reply_data *x = (waiting4reply_data *) xx;
   const unsigned int id = *(unsigned int *) yy;
 
-  return WAITING4REPLY_HASH(x->request_id) == id;
+  return WAITING4REPLY_HASH (x->request_id) == id;
 }
 
 /* Initialize data for file descriptor FD and add it to ACTIVE.  */
