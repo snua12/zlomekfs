@@ -20,9 +20,12 @@
 
 #include "system.h"
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <signal.h>
+#include <errno.h>
+#include <sys/mman.h>
 #include "config.h"
 #include "log.h"
 #include "memory.h"
@@ -214,6 +217,15 @@ main (int argc, char **argv)
   if (!read_config (config_file))
     die ();
 
+#if 0
+  /* Temporarily disable because it needs root privileges.  */
+  /* Keep the pages of the daemon in memory.  */
+  if (mlockall (MCL_CURRENT | MCL_FUTURE))
+    {
+      message (-1, stderr, "mlockall: %s\n", strerror (errno));
+      die ();
+    }
+#endif
 
 
   
