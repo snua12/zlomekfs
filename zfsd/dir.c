@@ -5357,6 +5357,50 @@ remote_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   return r;
 }
 
+/* If DESTROY_P delete remote file NAME and its subtree from directory DIR,
+   otherwise move it to shadow.  */
+
+int32_t
+remote_reintegrate_del_zfs_fh (volume vol, zfs_fh *fh, zfs_fh *dir,
+			       string *name, bool destroy_p)
+{
+  reintegrate_del_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (*dir))
+    abort ();
+#endif
+
+  args.fh = *fh;
+  args.dir = *dir;
+  args.name = *name;
+  args.destroy_p = destroy_p;
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reintegrate_del_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
 /* If DESTROY_P delete file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
