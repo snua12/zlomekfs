@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include "memory.h"
 #include "log.h"
+#include "memory.h"
 
 /* Similar to CALLOC but always returns valid pointer.  */
 void *

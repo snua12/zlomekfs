@@ -26,8 +26,8 @@
 #include "system.h"
 #include <stdio.h>
 #include "hashtab.h"
-#include "memory.h"
 #include "log.h"
+#include "memory.h"
 
 /* Value for empty hash table entry.  */
 #define EMPTY_ENTRY ((void *) 0)

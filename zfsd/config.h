@@ -26,8 +26,6 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include "zfs_prot.h"
-#include "log.h"
 
 /* The host name of local node.  */
 extern char *node_name;
@@ -65,6 +63,8 @@ typedef struct volume_def
   char *localpath;
   uint64_t size_limit;
 } *volume;
+
+#define VOLUME_ID_CONFIG 1	/* ID of 'config' volume */
 
 #define VOLUME_DELETE	1	/* the volume should be deleted from memory
 				   datastructures  */

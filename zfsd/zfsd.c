@@ -20,14 +20,16 @@
    */
 
 #include "system.h"
+#include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <signal.h>
 #include "config.h"
 #include "log.h"
+#include "zfsd.h"
 
 /* Name of the configuration file.  */
-static char *config_file = "/etc/zfs/config";
+char *config_file = "/etc/zfs/config";
 
 /* Initialize signal handlers.  */
 
