@@ -1445,8 +1445,6 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
 	RETURN_INT (errno);
     }
 
-  /* FIXME: delete the getuid () test*/
-  if (getuid () == 0)
   if (sa->uid != (uint32_t) -1 || sa->gid != (uint32_t) -1)
     {
       if (lchown (path->str, map_uid_zfs2node (sa->uid),
