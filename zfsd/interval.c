@@ -371,7 +371,7 @@ interval_tree_intersection_1 (interval_tree tree, uint64_t start, uint64_t end,
   if (!node)
     {
       node = splay_tree_predecessor (tree->splay, start);
-      if (INTERVAL_END (node) <= start)
+      if (!node || INTERVAL_END (node) <= start)
 	node = splay_tree_successor (tree->splay, start);
     }
   if (!node)
