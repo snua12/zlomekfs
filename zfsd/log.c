@@ -25,6 +25,9 @@
 #include <string.h>
 #include <signal.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "log.h"
 
 /* Level of verbosity.  Higher number means more messages.  */
@@ -53,12 +56,30 @@ void
 internal_error (char *format, ...)
 {
   va_list va;
+#ifdef ENABLE_CHECKING
+  int pid;
+#endif
 
   va_start (va, format);
   fprintf (stderr, "\nInternal error: ");
   vfprintf (stderr, format, va);
   fprintf (stderr, "\n");
   va_end (va);
+
+#ifdef ENABLE_CHECKING
+  pid = fork ();
+  if (pid == 0)
+    {
+      char buf[24];
+
+      sprintf (buf, "%d", getppid ());
+      execlp ("gdb", "gdb", "zfsd", buf, NULL);
+    }
+  else if (pid > 0)
+    {
+      waitpid (pid, NULL, 0);
+    }
+#endif
 
   if (pthread_self () == main_thread)
     exit (EXIT_FAILURE);
