@@ -408,6 +408,9 @@ read_config_file (const char *file)
   /* Set default local user/group.  */
   set_default_uid_gid ();
 
+  /* Default values.  */
+  set_string (&kernel_file_name, "/dev/zfs");
+
   f = fopen (file, "rt");
   if (!f)
     {
