@@ -33,7 +33,7 @@
 #include "log.h"
 
 /*! Level of verbosity.  Higher number means more messages.  */
-int verbose = 1;
+int verbose = 0;
 
 /*! Print message to F if LEVEL > VERBOSE.  */
 void
