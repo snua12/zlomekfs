@@ -492,7 +492,8 @@ zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
   if (vd)
     {
       zfsd_mutex_unlock (&icap->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
+      if (vol)
+	zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
