@@ -278,7 +278,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (r != ZFS_OK)
     return r;
 
-  if (*vd && *vol)
+  if (vd && *vd && *vol)
     get_volume_root_dentry (*vol, dentry);
 
   if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
