@@ -524,7 +524,6 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
   if (nod)
     {
       /* FIXME: do the key authorization */
-      nod->fd = fd_data->fd;
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
       zfsd_cond_broadcast (&fd_data->cond);
@@ -534,6 +533,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
       res.node.str = this_node->name;
       res.node.len = strlen (this_node->name);
       encode_auth_stage1_res (dc, &res);
+      update_node_fd (nod, fd_data->fd, fd_data->generation, false);
     }
 
   if (!nod)
@@ -573,7 +573,6 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
 	  fd_data->speed = args->speed;
 	  zfsd_cond_broadcast (&fd_data->cond);
 	  encode_status (dc, ZFS_OK);
-	  update_node_fd (nod, fd_data->fd, fd_data->generation, false);
 	}
       zfsd_mutex_unlock (&nod->mutex);
     }
