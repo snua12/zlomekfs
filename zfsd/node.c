@@ -276,6 +276,11 @@ node_connected_p (node nod)
       return false;
     }
 
+#ifdef ENABLE_CHECKING
+  if (network_fd_data[nod->fd].sid != nod->id)
+    abort ();
+#endif
+
   return true;
 }
 
@@ -352,6 +357,7 @@ node_connected:
   freeaddrinfo (addr);
   network_fd_data[s].auth = AUTHENTICATION_NONE;
   network_fd_data[s].conn = CONNECTION_FAST; /* FIXME */
+  network_fd_data[s].sid = nod->id;
   message (2, stderr, "FD %d connected to %s\n", s, nod->name);
   return s;
 }
