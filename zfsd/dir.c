@@ -717,6 +717,14 @@ zfs_getattr_retry:
 	}
     }
 
+  if (GET_CONFLICT (dentry->fh->local_fh))
+    {
+      *fa = dentry->fh->attr;
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_OK;
+    }
+
   r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
     return r;
@@ -1146,18 +1154,73 @@ zfs_lookup_retry:
 	  r = get_volume_root_dentry (vol, &idir, true);
 	  if (r != ZFS_OK)
 	    return r;
+#ifdef ENABLE_CHECKING
+	  if (idir->fh->attr.type != FT_DIR)
+	    abort ();
+#endif
 	}
       else
 	return ENOENT;
     }
   else
-    zfsd_mutex_unlock (&fh_mutex);
-
-  if (idir->fh->attr.type != FT_DIR)
     {
-      release_dentry (idir);
-      zfsd_mutex_unlock (&vol->mutex);
-      return ENOTDIR;
+      if (idir->fh->attr.type != FT_DIR)
+	{
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ENOTDIR;
+	}
+
+      if (strcmp (name->str, ".") == 0)
+	{
+	  res->file = idir->fh->local_fh;
+	  res->attr = idir->fh->attr;
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ZFS_OK;
+	}
+      else if (strcmp (name->str, "..") == 0)
+	{
+	  if (idir->parent)
+	    {
+	      res->file = idir->parent->fh->local_fh;
+	      res->attr = idir->parent->fh->attr;
+	      release_dentry (idir);
+	    }
+	  else
+	    {
+	      release_dentry (idir);
+	      /* This is safe because the virtual directory can't be destroyed
+		 while volume is locked.  */
+	      pvd = vol->root_vd->parent ? vol->root_vd->parent : vol->root_vd;
+	      res->file = pvd->fh;
+	      res->attr = pvd->attr;
+	    }
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ZFS_OK;
+	}
+
+      if (GET_CONFLICT (idir->fh->local_fh))
+	{
+	  internal_dentry dentry;
+
+	  dentry = dentry_lookup_name (idir, name->str);
+	  if (dentry)
+	    {
+	      res->file = dentry->fh->local_fh;
+	      res->attr = dentry->fh->attr;
+	      release_dentry (dentry);
+	    }
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return dentry ? ZFS_OK : ENOENT;
+	}
+
+      zfsd_mutex_unlock (&fh_mutex);
     }
 
   /* Hide ".zfs" in the root of the volume.  */
@@ -1170,36 +1233,6 @@ zfs_lookup_retry:
 
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-
-  if (strcmp (name->str, ".") == 0)
-    {
-      res->file = idir->fh->local_fh;
-      res->attr = idir->fh->attr;
-      release_dentry (idir);
-      zfsd_mutex_unlock (&vol->mutex);
-      return ZFS_OK;
-    }
-  else if (strcmp (name->str, "..") == 0)
-    {
-      if (idir->parent)
-	{
-	  res->file = idir->parent->fh->local_fh;
-	  res->attr = idir->parent->fh->attr;
-	  release_dentry (idir);
-	  zfsd_mutex_unlock (&vol->mutex);
-	}
-      else
-	{
-	  release_dentry (idir);
-	  /* This is safe because the virtual directory can't be destroyed
-	     while volume is locked.  */
-	  pvd = vol->root_vd->parent ? vol->root_vd->parent : vol->root_vd;
-	  res->file = pvd->fh;
-	  res->attr = pvd->attr;
-	  zfsd_mutex_unlock (&vol->mutex);
-	}
-      return ZFS_OK;
-    }
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)

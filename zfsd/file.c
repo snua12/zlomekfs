@@ -662,6 +662,14 @@ zfs_open_retry:
       return ZFS_OK;
     }
 
+  if (GET_CONFLICT (dentry->fh->local_fh))
+    {
+      /* We are opening a conflict directory.  */
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_OK;
+    }
+
   r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, &vd, &tmp_cap);
   if (r != ZFS_OK)
     return r;
@@ -802,6 +810,15 @@ zfs_close_retry:
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&vd->mutex);
+      return ZFS_OK;
+    }
+
+  if (GET_CONFLICT (dentry->fh->local_fh))
+    {
+      /* We are closing a conflict directory.  */
+      put_capability (icap, dentry->fh, vd);
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
       return ZFS_OK;
     }
 
@@ -1084,6 +1101,79 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 
 	  }
 	if (i >= VARRAY_USED (vd->subdirs))
+	  list->eof = 1;
+	break;
+    }
+
+  return true;
+}
+
+/* Read DATA->COUNT bytes from conflict directory IDIR on volume VOL
+   starting at position COOKIE.  Store directory entries to LIST using
+   function FILLDIR.  */
+
+static int32_t
+read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
+		   readdir_data *data, volume vol, filldir_f filldir)
+{
+  uint32_t ino;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&idir->fh->mutex);
+
+  if (cookie < 0)
+    cookie = 0;
+
+  switch (cookie)
+    {
+      case 0:
+	cookie++;
+	if (!(*filldir) (idir->fh->local_fh.ino, cookie, ".", 1, list, data))
+	  return false;
+	/* Fallthru.  */
+
+      case 1:
+	if (idir->parent)
+	  {
+	    zfsd_mutex_lock (&idir->parent->fh->mutex);
+	    ino = idir->parent->fh->local_fh.ino;
+	    zfsd_mutex_unlock (&idir->parent->fh->mutex);
+	  }
+	else
+	  {
+	    virtual_dir pvd;
+
+	    /* This is safe because the virtual directory can't be destroyed
+	       while volume is locked.  */
+	    pvd = vol->root_vd->parent ? vol->root_vd->parent : vol->root_vd;
+	    ino = pvd->fh.ino;
+	  }
+
+	cookie++;
+	if (!(*filldir) (ino, cookie, "..", 2, list, data))
+	  return false;
+	/* Fallthru.  */
+
+      default:
+	for (i = cookie - 2; i < VARRAY_USED (idir->fh->subdentries); i++)
+	  {
+	    internal_dentry dentry;
+
+	    dentry = VARRAY_ACCESS (idir->fh->subdentries, i, internal_dentry);
+	    zfsd_mutex_lock (&dentry->fh->mutex);
+	    cookie++;
+	    if (!(*filldir) (dentry->fh->local_fh.ino, cookie, dentry->name,
+			     strlen (dentry->name), list, data))
+	      {
+		zfsd_mutex_unlock (&dentry->fh->mutex);
+		return false;
+	      }
+	    zfsd_mutex_unlock (&dentry->fh->mutex);
+
+	  }
+	if (i >= VARRAY_USED (idir->fh->subdentries))
 	  list->eof = 1;
 	break;
     }
@@ -1428,7 +1518,14 @@ zfs_readdir_retry:
   data.written = 0;
   data.count = (count > ZFS_MAXDATA) ? ZFS_MAXDATA : count;
 
-  if (!dentry || INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+  if (dentry && GET_CONFLICT (dentry->fh->local_fh))
+    {
+      r = read_conflict_dir (list, dentry, cookie, &data, vol, filldir);
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+  else if (!dentry || INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       r = local_readdir (list, dentry, vd, cookie, &data, vol, filldir);
       if (vd)
