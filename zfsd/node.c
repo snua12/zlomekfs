@@ -209,10 +209,11 @@ node_update_fd (node nod, int fd, unsigned int generation)
   if (pthread_mutex_trylock (&nod->mutex) == 0)
     abort ();
 #endif
-  if (nod->fd >= 0)
+  if (nod->fd >= 0 && nod->fd != fd)
     {
       pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
-      server_fd_data[nod->fd].busy = -1;
+      if (nod->generation == server_fd_data[nod->fd].generation)
+	server_fd_data[nod->fd].flags = SERVER_FD_CLOSE;
       pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
     }
 
@@ -259,8 +260,11 @@ node_connect (node nod)
 #endif
 
   /* Lookup the IP address.  */
+  addr = NULL;
   if ((err = getaddrinfo (nod->name, NULL, NULL, &addr)) != 0)
     {
+      if (addr)
+	abort ();
       message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
       return -1;
     }
