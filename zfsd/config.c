@@ -470,7 +470,7 @@ out:
 
 static bool
 process_file_by_lines (zfs_fh *fh, char *file_name,
-		       void (*process) (char *, char *, unsigned int, void *),
+		       int (*process) (char *, char *, unsigned int, void *),
 		       void *data)
 {
   char buf[ZFS_MAXDATA];
@@ -505,7 +505,8 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 	    if (buf[i] == '\n')
 	      {
 		buf[i] = 0;
-		(*process) (buf + index, file_name, line_num, data);
+		if ((*process) (buf + index, file_name, line_num, data) != 0)
+		  goto finish;
 		line_num++;
 		break;
 	      }
@@ -530,6 +531,7 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 	}
     }
 
+finish:
   r = zfs_close (&cap);
   if (r != ZFS_OK)
     return false;
@@ -541,9 +543,10 @@ out:
   return false;
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.  */
+/* Process line LINE number LINE_NUM from file FILE_NAME.
+   Return 0 if we should continue reading lines from file.  */
 
-static void
+static int
 process_line_node (char *line, char *file_name, unsigned int line_num,
 		   ATTRIBUTE_UNUSED void *data)
 {
@@ -575,6 +578,8 @@ process_line_node (char *line, char *file_name, unsigned int line_num,
       message (0, stderr, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
+
+  return 0;
 }
 
 /* Read list of nodes from CONFIG_DIR/node_list.  */
@@ -593,9 +598,10 @@ read_node_list (zfs_fh *config_dir)
 				process_line_node, NULL);
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.  */
+/* Process line LINE number LINE_NUM from file FILE_NAME.
+   Return 0 if we should continue reading lines from file.  */
 
-static void
+static int
 process_line_volume (char *line, char *file_name, unsigned int line_num,
 		     ATTRIBUTE_UNUSED void *data)
 {
@@ -630,6 +636,8 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
       message (0, stderr, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
+
+  return 0;
 }
 
 /* Read list of volumes from CONFIG_DIR/volume_list.  */
