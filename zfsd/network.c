@@ -391,9 +391,9 @@ safe_write (int fd, char *buf, size_t len)
     {
       size_t i;
 
-      message (2, stderr, "Sending request:\n");
+      message (2, stderr, "Sending data:\n");
       for (i = 0; i < len; i++)
-	fprintf (stderr, "%02x ", buf[i]);
+	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
       fprintf (stderr, "\n");
     }
 
@@ -859,7 +859,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 
       message (2, stderr, "Polling %d sockets\n", n + accept_connections);
       r = poll (pfd, n + accept_connections, -1);
-      message (2, stderr, "Poll returned %d\n", r);
+      message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, server_main exiting\n", strerror (errno));
