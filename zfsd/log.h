@@ -34,9 +34,12 @@ extern int verbose;
 extern void message (int level, FILE *f, char *format, ...) ATTRIBUTE_PRINTF_3;
 
 /* Report an internal error.  */
-void verbose_abort (const char *file, int line);
+extern void internal_error (char *format, ...) ATTRIBUTE_NORETURN;
+
+/* Report an "Aborted" internal error.  */
+extern void verbose_abort (const char *file, int line) ATTRIBUTE_NORETURN;
 
 /* Report the signal caught.  */
-void fatal_sighandler (int signum);
+extern void fatal_sighandler (int signum) ATTRIBUTE_NORETURN;
 
 #endif

@@ -29,9 +29,6 @@
 /* Level of verbosity.  Higher number means more messages.  */
 int verbose = 2;
 
-/* Local function prototypes.  */
-static void internal_error (char *format, ...) ATTRIBUTE_NORETURN;
-
 /* Print message to F if LEVEL > VERBOSE.  */
 void
 message (int level, FILE * f, char *format, ...)
@@ -48,7 +45,7 @@ message (int level, FILE * f, char *format, ...)
 }
 
 /* Print the internal error message and exit.  */
-static void
+void
 internal_error (char *format, ...)
 {
   va_list va;
@@ -62,7 +59,7 @@ internal_error (char *format, ...)
   exit (EXIT_FAILURE);
 }
 
-/* Report an internal error.  */
+/* Report an "Aborted" internal error.  */
 void
 verbose_abort (const char *file, int line)
 {
