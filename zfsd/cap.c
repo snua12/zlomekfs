@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 #include "pthread.h"
 #include "cap.h"
 #include "crc32.h"
@@ -88,6 +89,25 @@ internal_cap_lookup (zfs_cap *cap)
   return icap;
 }
 
+/* Compute VERIFY for capability CAP.  */
+
+static void
+internal_cap_compute_verify (internal_cap cap)
+{
+  /* FIXME: generate real verify; temporarily clear it to make valgrind happy */
+  memset (cap->local_cap.verify, 0, sizeof (cap->local_cap.verify));
+}
+
+/* Verify capability CAP by comparing with ICAP.  */
+
+static int
+verify_capability (zfs_cap *cap, internal_cap icap)
+{
+  return (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0
+	  ? ZFS_OK
+	  : EBADF);
+}
+
 /* Create a new capability for internal file handle FH with open flags FLAGS.  */
 
 static internal_cap
@@ -114,12 +134,10 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
   cap->master_cap.fh = fh->master_fh;
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
-  /* FIXME: generate real verify; temporarily clear it to make valgrind happy */
-  memset (cap->local_cap.verify, 0, sizeof (cap->local_cap.verify));
-  memset (cap->master_cap.verify, 0, sizeof (cap->master_cap.verify));
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;
+  internal_cap_compute_verify (cap);
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
@@ -165,6 +183,7 @@ internal_cap_create_vd (virtual_dir vd, unsigned int flags)
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;
+  internal_cap_compute_verify (cap);
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
@@ -321,6 +340,13 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   icap = internal_cap_lookup (cap);
   if (!icap)
     return EBADF;
+
+  r = verify_capability (cap, icap);
+  if (r != ZFS_OK)
+    {
+      zfsd_mutex_unlock (&icap->mutex);
+      return r;
+    }
 
   r = zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd);
   if (r != ZFS_OK)

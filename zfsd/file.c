@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 #include <time.h>
 #include "pthread.h"
 #include "constant.h"
@@ -280,8 +281,6 @@ local_create (create_res *res, int *fdp, internal_fh dir, string *name,
   res->file.ino = res->attr.ino;
   res->cap.fh = res->file;
   res->cap.flags = flags & O_ACCMODE;
-  /* FIXME: generate real verify; temporarily clear it to make valgrind happy */
-  memset (res->cap.verify, 0, sizeof (res->cap.verify));
 
   return ZFS_OK;
 }
@@ -400,12 +399,17 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	{
 	  local_close (icap);
 	  icap->fd = fd;
+	  memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
 
 	  zfsd_mutex_lock (&opened_mutex);
 	  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
 	  init_cap_fd_data (icap);
 	  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 	  zfsd_mutex_unlock (&opened_mutex);
+	}
+      else if (vol->master != this_node)
+	{
+	  memcpy (icap->master_cap.verify, res->cap.verify, ZFS_VERIFY_LEN);
 	}
 
       zfsd_mutex_unlock (&ifh->mutex);
@@ -513,9 +517,17 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
     zfsd_mutex_unlock (&vd->mutex);
 
   if (vol->local_path)
-    r = local_open (cap, icap, flags & ~O_ACCMODE, ifh, vol);
+    {
+      r = local_open (cap, icap, flags & ~O_ACCMODE, ifh, vol);
+      if (r == ZFS_OK)
+	memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
+    }
   else if (vol->master != this_node)
-    r = remote_open (cap, icap, flags & ~O_ACCMODE, vol);
+    {
+      r = remote_open (cap, icap, flags & ~O_ACCMODE, vol);
+      if (r == ZFS_OK)
+	memcpy (icap->master_cap.verify, cap->verify, ZFS_VERIFY_LEN);
+    }
   else
     abort ();
 
