@@ -31,12 +31,9 @@
 #include "zfs_prot.h"
 
 /* Hash function for journal entry J.  */
-#define JOURNAL_HASH(J)							    \
-  (crc32_update (crc32_update (crc32_update (crc32_buffer ((J)->name.str,   \
-							   (J)->name.len),  \
-					     &(J)->dev, sizeof (uint32_t)), \
-			       &(J)->ino, sizeof (uint32_t)),		    \
-		 &(J)->gen, sizeof (uint32_t)))
+#define JOURNAL_HASH(J)							\
+  (crc32_update (crc32_buffer ((J)->name.str, (J)->name.len),		\
+		 &(J)->oper, sizeof ((J)->oper)))
 
 /* Operation stored to journal.  */
 typedef enum journal_operation_def
@@ -85,11 +82,13 @@ typedef struct journal_def
 extern journal_t journal_create (unsigned int nelem, pthread_mutex_t *mutex);
 extern void journal_empty (journal_t journal);
 extern void journal_destroy (journal_t journal);
-extern bool journal_insert (journal_t journal, zfs_fh *local_fh,
-			    zfs_fh *master_fh, uint64_t master_version,
-			    string *name, journal_operation_t oper, bool copy);
-extern bool journal_member (journal_t journal, zfs_fh *local_fh, string *name);
-extern bool journal_delete (journal_t journal, zfs_fh *local_fh, string *name);
+extern bool journal_insert (journal_t journal, journal_operation_t oper,
+			    zfs_fh *local_fh, zfs_fh *master_fh,
+			    uint64_t master_version, string *name, bool copy);
+extern bool journal_member (journal_t journal, journal_operation_t oper,
+			    string *name);
+extern bool journal_delete (journal_t journal, journal_operation_t oper,
+			    string *name);
 extern bool journal_delete_entry (journal_t journal, journal_entry entry);
 extern void print_journal (FILE *f, journal_t journal);
 extern void debug_journal (journal_t journal);

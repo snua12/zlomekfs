@@ -50,9 +50,7 @@ journal_eq (const void *x, const void *y)
   const journal_entry j1 = (const journal_entry) x;
   const journal_entry j2 = (const journal_entry) y;
 
-  return (j1->dev == j2->dev
-	  && j1->ino == j2->ino
-	  && j1->gen == j2->gen
+  return (j1->oper == j2->oper
 	  && j1->name.len == j2->name.len
 	  && strcmp (j1->name.str, j2->name.str) == 0);
 }
@@ -120,55 +118,34 @@ journal_destroy (journal_t journal)
   free (journal);
 }
 
-/* Insert a journal entry with key [LOCAL_FH, NAME], master file handle
-   MASTER_FH and operation OPER to journal JOURNAL.
-   Return true if the journal has changed.  */
+/** \fn bool journal_insert (journal_t journal, journal_operation_t oper,
+	zfs_fh *local_fh, zfs_fh *master_fh, uint64_t master_version,
+	string *name, bool copy)
+    \brief Insert a journal entry and return true if the journal has changed.
+    \param journal Journal into which the entry will be inserted.
+    \param oper The type of operation of the journal entry.
+    \param local_fh Local file handle of the corresponding file.
+    \param master_fh Master file handle of the corresponding file.
+    \param master_version Master version of the file.
+    \param name Name of the file.
+    \param copy Copy the name.  */
 
 bool
-journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
-		uint64_t master_version, string *name,
-		journal_operation_t oper, bool copy)
+journal_insert (journal_t journal, journal_operation_t oper,
+		zfs_fh *local_fh, zfs_fh *master_fh,
+		uint64_t master_version, string *name, bool copy)
 {
   journal_entry entry;
   void **slot;
 
   CHECK_MUTEX_LOCKED (journal->mutex);
 
-  zfsd_mutex_lock (&journal_mutex);
-  entry = (journal_entry) pool_alloc (journal_pool);
-  zfsd_mutex_unlock (&journal_mutex);
-  entry->dev = local_fh->dev;
-  entry->ino = local_fh->ino;
-  entry->gen = local_fh->gen;
-  entry->name = *name;
-
-  slot = htab_find_slot_with_hash (journal->htab, entry, JOURNAL_HASH (entry),
-				   INSERT);
-  if (*slot)
+  if (oper == JOURNAL_OPERATION_DEL)
     {
-      journal_entry old = (journal_entry) *slot;
-
-      if (old->oper == JOURNAL_OPERATION_ADD
-	  && oper == JOURNAL_OPERATION_DEL)
+      /* If we are adding a DEL entry try to anihilate ;-) it with the
+	 corresponding ADD entry.  */
+      if (journal_delete (journal, JOURNAL_OPERATION_ADD, name))
 	{
-	  /* Anihilate ;-) the entries.  */
-
-	  if (old->next)
-	    old->next->prev = old->prev;
-	  else
-	    journal->last = old->prev;
-	  if (old->prev)
-	    old->prev->next = old->next;
-	  else
-	    journal->first = old->next;
-
-	  free (old->name.str);
-	  zfsd_mutex_lock (&journal_mutex);
-	  pool_free (journal_pool, old);
-	  pool_free (journal_pool, entry);
-	  zfsd_mutex_unlock (&journal_mutex);
-	  htab_clear_slot (journal->htab, slot);
-
 	  if (!copy)
 	    {
 	      /* If we shall not copy NAME the NAME is dynamically allocated
@@ -177,29 +154,42 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
 	    }
 	  return true;
 	}
-      else
-	{
-	  /* When we are writing an entry with the same operation to the jounal
-	     zfsd have crashed and left the journal in inconsistent state.
-	     In this case, delete the old entry and add a new one.  */
-
-	  if (old->next)
-	    old->next->prev = old->prev;
-	  else
-	    journal->last = old->prev;
-	  if (old->prev)
-	    old->prev->next = old->next;
-	  else
-	    journal->first = old->next;
-
-	  free (old->name.str);
-	  zfsd_mutex_lock (&journal_mutex);
-	  pool_free (journal_pool, old);
-	  zfsd_mutex_unlock (&journal_mutex);
-	}
     }
 
+  zfsd_mutex_lock (&journal_mutex);
+  entry = (journal_entry) pool_alloc (journal_pool);
+  zfsd_mutex_unlock (&journal_mutex);
   entry->oper = oper;
+  entry->name = *name;
+
+  slot = htab_find_slot_with_hash (journal->htab, entry, JOURNAL_HASH (entry),
+				   INSERT);
+  if (*slot)
+    {
+      journal_entry old = (journal_entry) *slot;
+
+      /* When there already is an entry with the same operation and name
+	 in the journal, zfsd has crashed and left the journal in inconsistent
+	 state. In this case, delete the old entry and add a new one.  */
+
+      if (old->next)
+	old->next->prev = old->prev;
+      else
+	journal->last = old->prev;
+      if (old->prev)
+	old->prev->next = old->next;
+      else
+	journal->first = old->next;
+
+      free (old->name.str);
+      zfsd_mutex_lock (&journal_mutex);
+      pool_free (journal_pool, old);
+      zfsd_mutex_unlock (&journal_mutex);
+    }
+
+  entry->dev = local_fh->dev;
+  entry->ino = local_fh->ino;
+  entry->gen = local_fh->gen;
   entry->master_fh = *master_fh;
   entry->master_version = master_version;
   if (copy)
@@ -216,29 +206,35 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
   return true;
 }
 
-/* Return true if a journal entry with key [LOCAL_FH, NAME] is a member
-   of journal JOURNAL.  */
+/** \fn bool journal_member (journal_t journal, journal_operation_t oper,
+	string *name)
+    \brief Return true if the journal entry is a member of the journal.
+    \param journal Journal in which the entry should be looked up.
+    \param oper The type of operation of the journal entry.
+    \param name The name of file of the journal entry.  */
 
 bool
-journal_member (journal_t journal, zfs_fh *local_fh, string *name)
+journal_member (journal_t journal, journal_operation_t oper, string *name)
 {
   struct journal_entry_def entry;
 
   CHECK_MUTEX_LOCKED (journal->mutex);
 
-  entry.dev = local_fh->dev;
-  entry.ino = local_fh->ino;
-  entry.gen = local_fh->gen;
+  entry.oper = oper;
   entry.name = *name;
   return (htab_find_with_hash (journal->htab, &entry, JOURNAL_HASH (&entry))
 	  != NULL);
 }
 
-/* Delete a journal entry with key [LOCAL_FH, NAME] from journal JOURNAL.
-   Return true if it was really deleted.  */
+/** \fn bool journal_member (journal_t journal, journal_operation_t oper,
+	string *name)
+    \brief Delete the journal entry.l entry is a member of the journal.
+    \param journal Journal from which the entry should be deleted.
+    \param oper The type of operation of the journal entry.
+    \param name The name of file of the journal entry.  */
 
 bool
-journal_delete (journal_t journal, zfs_fh *local_fh, string *name)
+journal_delete (journal_t journal, journal_operation_t oper, string *name)
 {
   struct journal_entry_def entry;
   journal_entry del;
@@ -246,9 +242,7 @@ journal_delete (journal_t journal, zfs_fh *local_fh, string *name)
 
   CHECK_MUTEX_LOCKED (journal->mutex);
 
-  entry.dev = local_fh->dev;
-  entry.ino = local_fh->ino;
-  entry.gen = local_fh->gen;
+  entry.oper = oper;
   entry.name = *name;
   slot = htab_find_slot_with_hash (journal->htab, &entry, JOURNAL_HASH (&entry),
 				   NO_INSERT);

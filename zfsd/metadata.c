@@ -3088,8 +3088,8 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
 
       if (oper < JOURNAL_OPERATION_LAST_AND_UNUSED)
 	{
-	  journal_insert (journal, &local_fh, &master_fh, master_version,
-			  &name, (journal_operation_t) oper, false);
+	  journal_insert (journal, (journal_operation_t) oper,
+			  &local_fh, &master_fh, master_version, &name, false);
 	}
       else
 	free (name.str);
@@ -3202,8 +3202,8 @@ add_journal_entry (volume vol, journal_t journal, zfs_fh *fh, zfs_fh *local_fh,
   if (!r)
     RETURN_BOOL (false);
 
-  journal_insert (journal, local_fh, master_fh, master_version, name,
-		  oper, true);
+  journal_insert (journal, oper, local_fh, master_fh, master_version, name,
+		  true);
 
   RETURN_BOOL (true);
 }
