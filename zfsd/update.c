@@ -79,6 +79,60 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   varray_destroy (&tmp);
 }
 
+/** \fn int32_t update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
+    \brief Clear the tree of updated intervals and set version of file.
+    \param fh File handle of the file.
+    \param version New version of the file.  */
+
+int32_t
+update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
+{
+  volume vol;
+  internal_dentry dentry;
+  int32_t r;
+
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r != ZFS_OK)
+    abort ();
+#endif
+
+  r = ZFS_OK;
+
+  dentry->fh->meta.flags &= ~METADATA_COMPLETE;
+  if (dentry->fh->meta.local_version > dentry->fh->meta.master_version)
+    {
+      if (dentry->fh->meta.local_version <= version)
+	dentry->fh->meta.local_version = version + 1;
+    }
+  else
+    {
+      if (dentry->fh->meta.local_version < version)
+	dentry->fh->meta.local_version = version;
+    }
+  dentry->fh->meta.master_version = version;
+  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+
+  if (!flush_metadata (vol, &dentry->fh->meta))
+    {
+      MARK_VOLUME_DELETE (vol);
+      r = ZFS_METADATA_ERROR;
+    }
+
+  interval_tree_empty (dentry->fh->updated);
+  interval_tree_add (dentry->fh->updated, dentry->fh->modified);
+  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
+    {
+      MARK_VOLUME_DELETE (vol);
+      r = ZFS_METADATA_ERROR;
+    }
+
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  RETURN_INT (r);
+}
+
 /* Update BLOCKS (described in ARGS) of local file CAP from remote file,
    start searching in BLOCKS at index INDEX.
    CONFLICT_P says whether the file is in conflict.  */
@@ -95,6 +149,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   int32_t r;
   unsigned int i, j;
   uint64_t version;
+  bool changed;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -129,6 +184,23 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     abort ();
 #endif
+
+  if (!conflict_p && dentry->fh->meta.master_version != remote_md5.version)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+
+      r = update_file_clear_updated_tree (&cap->fh, remote_md5.version);
+      if (r != ZFS_OK)
+	RETURN_INT (r);
+
+      r = zfs_fh_lookup_nolock (&cap->fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r != ZFS_OK)
+	abort ();
+#endif
+    }
 
   /* If the size of remote file differs from the size of local file
      truncate local file.  */
@@ -234,6 +306,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 		     < remote_md5.offset[i]))
 	    j++;
 
+	  changed = false;
 	  if ((VARRAY_ACCESS (*blocks, j, interval).start
 	       <= remote_md5.offset[i])
 	      && (remote_md5.offset[i] + remote_md5.length[i]
@@ -245,7 +318,10 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 				    remote_md5.offset[i], remote_md5.length[i],
 				    conflict_p ? NULL : &version);
 	      if (r == ZFS_CHANGED)
-		goto changed;
+		{
+		  changed = true;
+		  r = update_file_clear_updated_tree (&cap->fh, version);
+		}
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 
@@ -262,7 +338,10 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 				    remote_md5.offset[i], remote_md5.length[i],
 				    conflict_p ? NULL : &version);
 	      if (r == ZFS_CHANGED)
-		goto changed;
+		{
+		  changed = true;
+		  r = ZFS_OK;
+		}
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 
@@ -318,6 +397,9 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
+
+	  if (changed)
+	    return ZFS_CHANGED;
 	}
     }
   *index = j;
@@ -338,47 +420,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
     }
 
   RETURN_INT (ZFS_OK);
-
-changed:
-  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r != ZFS_OK)
-    abort ();
-#endif
-
-  r = ZFS_OK;
-
-  dentry->fh->meta.flags &= ~METADATA_COMPLETE;
-  if (dentry->fh->meta.local_version > dentry->fh->meta.master_version)
-    {
-      if (dentry->fh->meta.local_version <= version)
-	dentry->fh->meta.local_version = version + 1;
-    }
-  else
-    {
-      if (dentry->fh->meta.local_version < version)
-	dentry->fh->meta.local_version = version;
-    }
-  dentry->fh->meta.master_version = version;
-  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
-
-  if (!flush_metadata (vol, &dentry->fh->meta))
-    {
-      MARK_VOLUME_DELETE (vol);
-      r = ZFS_METADATA_ERROR;
-    }
-
-  interval_tree_empty (dentry->fh->updated);
-  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
-    {
-      MARK_VOLUME_DELETE (vol);
-      r = ZFS_METADATA_ERROR;
-    }
-
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-
-  RETURN_INT (r);
 }
 
 /* Update BLOCKS of local file CAP from remote file.  CONFLICT_P says
@@ -425,6 +466,8 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 		{
 		  r = update_file_blocks_1 (&args, cap, blocks, &index,
 					    conflict_p);
+		  if (r == ZFS_CHANGED)
+		    RETURN_INT (ZFS_OK);
 		  if (r != ZFS_OK)
 		    RETURN_INT (r);
 		  args.count = 0;
@@ -442,6 +485,8 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
   if (args.count > 0)
     {
       r = update_file_blocks_1 (&args, cap, blocks, &index, conflict_p);
+      if (r == ZFS_CHANGED)
+	RETURN_INT (ZFS_OK);
       if (r != ZFS_OK)
 	RETURN_INT (r);
     }
