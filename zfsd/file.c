@@ -1886,7 +1886,7 @@ remote_read (read_res *res, internal_cap cap, internal_dentry dentry,
 
   if (r == ZFS_OK)
     {
-      void *buffer = res->data.buf;
+      char *buffer = res->data.buf;
 
       if (!decode_read_res (t->dc_reply, res)
 	  || !finish_decoding (t->dc_reply))
@@ -2787,7 +2787,7 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   res->size = dentry->fh->attr.size;
   release_dentry (dentry);
 
-  rres.data.buf = buf;
+  rres.data.buf = (char *) buf;
   for (i = 0; i < args->count; i++)
     {
       MD5Init (&context);
