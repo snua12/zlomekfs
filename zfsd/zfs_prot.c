@@ -803,9 +803,13 @@ cleanup_zfs_prot_c ()
   printf ("%-12s%15s%15s\n", "Function", "From kernel", "From network");
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
-  printf ("%-12s%15" PRIu64 "%15" PRIu64 "\n", #FUNCTION,		\
-	  call_statistics[CALL_FROM_KERNEL][NUMBER],			\
-	  call_statistics[CALL_FROM_NETWORK][NUMBER]);
+  if (call_statistics[CALL_FROM_KERNEL][NUMBER] > 0			\
+      || call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)		\
+    {									\
+      printf ("%-12s%15" PRIu64 "%15" PRIu64 "\n", #FUNCTION,		\
+	      call_statistics[CALL_FROM_KERNEL][NUMBER],		\
+	      call_statistics[CALL_FROM_NETWORK][NUMBER]);		\
+    }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
