@@ -1331,6 +1331,54 @@ fix_config (void)
   return true;
 }
 
+/* Reread list of nodes.  */
+
+static bool
+reread_node_list (void)
+{
+  dir_op_res config_dir_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  if (r != ZFS_OK)
+    return false;
+
+  mark_all_nodes ();
+
+  if (!read_node_list (&config_dir_res.file))
+    return false;
+
+  if (this_node == NULL || this_node->marked)
+    return false;
+
+  destroy_invalid_volumes ();
+  destroy_invalid_nodes ();
+
+  return true;
+}
+
+/* Reread list of volumes.  */
+
+static bool
+reread_volume_list (void)
+{
+  dir_op_res config_dir_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+  if (r != ZFS_OK)
+    return false;
+
+  mark_all_volumes ();
+
+  if (!read_volume_list (&config_dir_res.file))
+    return false;
+
+  destroy_invalid_volumes ();
+
+  return true;
+}
+
 /* Add request to reread config file RELATIVE_PATH to queue.  */
 
 void
