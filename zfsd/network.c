@@ -1152,12 +1152,15 @@ server_init_fd_data ()
   n = getdtablesize ();
   server_fd_data = (server_fd_data_t *) xcalloc (n, sizeof (server_fd_data_t));
   for (i = 0; i < n; i++)
-    if (pthread_mutex_init (&server_fd_data[i].mutex, NULL))
-      {
-	message (-1, stderr, "pthread_mutex_init() failed\n");
-	free (server_fd_data);
-	return 0;
-      }
+    {
+      if (pthread_mutex_init (&server_fd_data[i].mutex, NULL))
+	{
+	  message (-1, stderr, "pthread_mutex_init() failed\n");
+	  free (server_fd_data);
+	  return 0;
+	}
+      server_fd_data[i].fd = -1;
+    }
 
   nactive = 0;
   active = (server_fd_data_t **) xmalloc (getdtablesize ()
