@@ -183,6 +183,8 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
   *slot = entry;
   entry->next = NULL;
   entry->prev = journal->last;
+  if (journal->last)
+    journal->last->next = entry;
   journal->last = entry;
   if (journal->first == NULL)
     journal->first = entry;
