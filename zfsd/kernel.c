@@ -56,6 +56,10 @@ client_dispatch ()
 
   /* Select an idle thread and forward the request to it.  */
   index = queue_get (&client_pool.idle);
+#ifdef ENABLE_CHECKING
+  if (client_pool.threads[index].t.state == THREAD_BUSY)
+    abort ();
+#endif
   client_pool.threads[index].t.state = THREAD_BUSY;
   /* FIXME: read and pass request */
   pthread_mutex_unlock (&client_pool.threads[index].t.mutex);
@@ -100,8 +104,6 @@ client_worker (void *data)
 #ifdef ENABLE_CHECKING
       if (t->state == THREAD_DEAD)
 	abort ();
-      if (t->state == THREAD_BUSY)
-	abort ();
 #endif
 
       /* We were requested to die.  */
@@ -114,7 +116,10 @@ client_worker (void *data)
       /* Put self to the idle queue if not requested to die meanwhile.  */
       pthread_mutex_lock (&client_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
-	queue_put (&client_pool.idle, t->index);
+	{
+	  queue_put (&client_pool.idle, t->index);
+	  t->state = THREAD_IDLE;
+	}
       else
 	{
 #ifdef ENABLE_CHECKING

@@ -55,9 +55,14 @@ server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
 
   /* Select an idle thread and forward the request to it.  */
   index = queue_get (&server_pool.idle);
+#ifdef ENABLE_CHECKING
+  if (server_pool.threads[index].t.state == THREAD_BUSY)
+    abort ();
+#endif
   server_pool.threads[index].t.state = THREAD_BUSY;
   server_pool.threads[index].t.u.server.rqstp = rqstp;
   server_pool.threads[index].t.u.server.transp = transp;
+  printf ("%p %p\n", rqstp, transp);
   pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
 
   pthread_mutex_unlock (&server_pool.idle.mutex);
@@ -78,8 +83,6 @@ server_worker (void *data)
 #ifdef ENABLE_CHECKING
       if (t->state == THREAD_DEAD)
 	abort ();
-      if (t->state == THREAD_BUSY)
-	abort ();
 #endif
 
       /* We were requested to die.  */
@@ -92,7 +95,10 @@ server_worker (void *data)
       /* Put self to the idle queue if not requested to die meanwhile.  */
       pthread_mutex_lock (&server_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
-	queue_put (&server_pool.idle, t->index);
+	{
+	  queue_put (&server_pool.idle, t->index);
+	  t->state = THREAD_IDLE;
+	}
       else
 	{
 #ifdef ENABLE_CHECKING
@@ -172,7 +178,9 @@ register_server ()
       return;
     }
 
-/*  svc_run ();*/
+#if 0
+  svc_run ();
+#endif
   message (-1, stderr, "svc_run returned.\n");
 
 #if 0
