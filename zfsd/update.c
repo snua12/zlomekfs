@@ -516,6 +516,8 @@ reintegrate_file_blocks (zfs_cap *cap)
   uint32_t count;
   int32_t r, r2;
   uint64_t version_increase;
+  uint64_t diff;
+  metadata *meta;
 
   TRACE ("");
 
@@ -581,7 +583,19 @@ reintegrate_file_blocks (zfs_cap *cap)
     }
 
   zfsd_mutex_unlock (&fh_mutex);
-  remote_reintegrate (dentry, 0, vol);
+
+  meta = &dentry->fh->meta;
+  diff = meta->local_version - (meta->master_version + version_increase);
+  if (diff > 0
+      && !interval_tree_min (dentry->fh->modified))
+    {
+      if (remote_reintegrate_ver (dentry, diff, NULL, vol) == ZFS_OK)
+	version_increase += diff;
+    }
+  else
+    {
+      remote_reintegrate (dentry, 0, vol);
+    }
 
   r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -589,24 +603,25 @@ reintegrate_file_blocks (zfs_cap *cap)
     abort ();
 #endif
 
+  meta = &dentry->fh->meta;
   if (version_increase)
     {
-      dentry->fh->meta.master_version += version_increase;
+      meta->master_version += version_increase;
       if (interval_tree_min (dentry->fh->modified))
 	{
-	  if (dentry->fh->meta.local_version <= dentry->fh->meta.master_version)
-	    dentry->fh->meta.local_version
-	      = dentry->fh->meta.master_version + 1;
+	  if (meta->local_version <= meta->master_version)
+	    meta->local_version = meta->master_version + 1;
 	}
       else
 	{
-	  if (dentry->fh->meta.local_version < dentry->fh->meta.master_version)
-	    dentry->fh->meta.local_version = dentry->fh->meta.master_version;
+	  if (meta->local_version < meta->master_version)
+	    meta->local_version = meta->master_version;
 	}
-      set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+      set_attr_version (&dentry->fh->attr, meta);
 
-      if (!flush_metadata (vol, &dentry->fh->meta))
+      if (!flush_metadata (vol, meta))
 	MARK_VOLUME_DELETE (vol);
+
     }
 
   if (dentry->fh->modified->deleted)
