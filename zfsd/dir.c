@@ -1466,6 +1466,10 @@ zfs_mkdir_retry:
 			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
+	  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
+				  &dentry->fh->meta.master_fh, name->str,
+				  JOURNAL_OPERATION_ADD))
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
@@ -1647,6 +1651,10 @@ zfs_rmdir_retry:
 	{
 	  char *slash;
 	  struct stat parent_st;
+
+	  if (!add_journal_entry_st (vol, idir->fh, &st, name->str,
+				     JOURNAL_OPERATION_DEL))
+	    vol->delete_p = true;
 
 #ifdef ENABLE_CHECKING
 	  if (path == NULL)
@@ -1997,6 +2005,10 @@ zfs_rename_retry:
 	      char *slash;
 	      struct stat parent_st;
 
+	      if (!add_journal_entry_st (vol, to_dentry->fh, &st_old,
+					 to_name->str, JOURNAL_OPERATION_DEL))
+		vol->delete_p = true;
+
 	      for (slash = path; *slash; slash++)
 		;
 	      for (; *slash != '/'; slash--)
@@ -2023,6 +2035,14 @@ zfs_rename_retry:
 					  to_dentry->fh->local_fh.ino,
 					  to_name->str))
 	    vol->delete_p = true;
+
+	  if (!add_journal_entry_st (vol, from_dentry->fh, &st_new,
+				     from_name->str, JOURNAL_OPERATION_DEL))
+	    vol->delete_p = true;
+	  if (!add_journal_entry_st (vol, to_dentry->fh, &st_new,
+				     to_name->str, JOURNAL_OPERATION_ADD))
+	    vol->delete_p = true;
+
 	  if (!inc_local_version (vol, from_dentry->fh))
 	    vol->delete_p = true;
 	  if (!inc_local_version (vol, to_dentry->fh))
@@ -2286,6 +2306,11 @@ zfs_link_retry:
 					 dir_dentry->fh->local_fh.ino, 
 					 name->str))
 	    vol->delete_p = true;
+	  if (!add_journal_entry (vol, dir_dentry->fh,
+				  &from_dentry->fh->local_fh,
+				  &from_dentry->fh->meta.master_fh, name->str,
+				  JOURNAL_OPERATION_ADD))
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, dir_dentry->fh))
 	    vol->delete_p = true;
 	}
@@ -2474,6 +2499,10 @@ zfs_unlink_retry:
 	{
 	  char *slash;
 	  struct stat parent_st;
+
+	  if (!add_journal_entry_st (vol, idir->fh, &st, name->str,
+				     JOURNAL_OPERATION_DEL))
+	    vol->delete_p = true;
 
 #ifdef ENABLE_CHECKING
 	  if (path == NULL)
@@ -2871,6 +2900,10 @@ zfs_symlink_retry:
 			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
+	  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
+				  &dentry->fh->meta.master_fh, name->str,
+				  JOURNAL_OPERATION_ADD))
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
@@ -3078,6 +3111,10 @@ zfs_mknod_retry:
 			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
+	  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
+				  &dentry->fh->meta.master_fh, name->str,
+				  JOURNAL_OPERATION_ADD))
+	    vol->delete_p = true;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
