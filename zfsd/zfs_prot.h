@@ -366,11 +366,11 @@ typedef struct reintegrate_del_args_def
   char destroy_p;
 } reintegrate_del_args;
 
-typedef struct reintegrate_set_args_def
+typedef struct reintegrate_ver_args_def
 {
   zfs_fh fh;
-  uint64_t version;
-} reintegrate_set_args;
+  uint64_t version_inc;
+} reintegrate_ver_args;
 
 typedef struct invalidate_args_def
 {
@@ -411,7 +411,7 @@ typedef union call_args_def
   zfs_fh file_info;
   reintegrate_add_args reintegrate_add;
   reintegrate_del_args reintegrate_del;
-  reintegrate_set_args reintegrate_set;
+  reintegrate_ver_args reintegrate_ver;
   invalidate_args invalidate;
   reread_config_args reread_config;
   reintegrate_args reintegrate;

@@ -1204,17 +1204,17 @@ encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 }
 
 bool
-decode_reintegrate_set_args (DC *dc, reintegrate_set_args *args)
+decode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args)
 {
   return (decode_zfs_fh (dc, &args->fh)
-	  && decode_uint64_t (dc, &args->version));
+	  && decode_uint64_t (dc, &args->version_inc));
 }
 
 bool
-encode_reintegrate_set_args (DC *dc, reintegrate_set_args *args)
+encode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
-	  && encode_uint64_t (dc, args->version));
+	  && encode_uint64_t (dc, args->version_inc));
 }
 
 #endif

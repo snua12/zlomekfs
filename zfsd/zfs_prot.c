@@ -657,16 +657,16 @@ zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void reintegrate_set (reintegrate_set_args);  */
+/* void reintegrate_ver (reintegrate_ver_args);  */
 
 void
-zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
+zfs_proc_reintegrate_ver_server (reintegrate_ver_args *args, DC *dc,
 				 ATTRIBUTE_UNUSED void *data,
 				 ATTRIBUTE_UNUSED bool map_id)
 {
   int32_t r;
 
-  r = zfs_reintegrate_set (&args->fh, args->version);
+  r = zfs_reintegrate_ver (&args->fh, args->version_inc);
   encode_status (dc, r);
 }
 

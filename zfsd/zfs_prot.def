@@ -92,7 +92,7 @@ DEFINE_ZFS_PROC (27, REINTEGRATE_ADD, reintegrate_add, reintegrate_add_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 DEFINE_ZFS_PROC (28, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (29, REINTEGRATE_SET, reintegrate_set, reintegrate_set_args,
+DEFINE_ZFS_PROC (29, REINTEGRATE_SET, reintegrate_ver, reintegrate_ver_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # endif
 #endif

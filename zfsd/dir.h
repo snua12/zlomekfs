@@ -139,11 +139,12 @@ extern int32_t remote_reintegrate_del_zfs_fh (volume vol, zfs_fh *fh,
 					      bool destroy_p);
 extern int32_t zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name,
 				    bool destroy_p);
-extern int32_t local_reintegrate_set (internal_dentry dentry, uint64_t version,
-				      volume vol);
-extern int32_t remote_reintegrate_set (internal_dentry dentry, uint64_t version,
-				       zfs_fh *fh, volume vol);
-extern int32_t zfs_reintegrate_set (zfs_fh *fh, uint64_t version);
+extern int32_t local_reintegrate_ver (internal_dentry dentry,
+				      uint64_t version_inc, volume vol);
+extern int32_t remote_reintegrate_ver (internal_dentry dentry,
+				       uint64_t version_inc, zfs_fh *fh,
+				       volume vol);
+extern int32_t zfs_reintegrate_ver (zfs_fh *fh, uint64_t version_inc);
 extern int32_t local_invalidate_fh (zfs_fh *fh);
 extern int32_t local_invalidate (internal_dentry dentry, bool volume_root_p);
 extern int32_t refresh_fh (zfs_fh *fh);

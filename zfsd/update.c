@@ -1612,7 +1612,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
   sattr sa;
   fattr fa;
   int32_t r, r2;
-  uint64_t version;
+  uint64_t version, version_inc;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1664,6 +1664,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
 
   version = (local->fh->attr.version > remote->fh->attr.version
 	     ? local->fh->attr.version + 1 : remote->fh->attr.version + 1);
+  version_inc = version - remote->fh->attr.version;
   release_dentry (remote);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -1704,8 +1705,8 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
   release_dentry (conflict);
   zfsd_mutex_unlock (&fh_mutex);
 
-  remote->fh->attr.version = version;
-  r = remote_reintegrate_set (remote, version, NULL, vol);
+  remote->fh->attr.version += version_inc;
+  r = remote_reintegrate_ver (remote, version_inc, NULL, vol);
   RETURN_INT (r);
 
 out_save:
@@ -1729,7 +1730,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
   sattr sa;
   fattr fa;
   int32_t r, r2;
-  uint64_t version;
+  uint64_t version, version_inc;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1781,6 +1782,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
 
   version = (local->fh->attr.version > remote->fh->attr.version
 	     ? local->fh->attr.version : remote->fh->attr.version + 1);
+  version_inc = version - remote->fh->attr.version;
   release_dentry (remote);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -1821,8 +1823,8 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
   release_dentry (conflict);
   zfsd_mutex_unlock (&fh_mutex);
 
-  remote->fh->attr.version = version;
-  r = remote_reintegrate_set (remote, version, NULL, vol);
+  remote->fh->attr.version += version_inc;
+  r = remote_reintegrate_ver (remote, version_inc, NULL, vol);
   RETURN_INT (r);
 
 out_save:
@@ -2844,7 +2846,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
       /* We need to call following call even if VERSION == ATTR->VERSION
 	 because we need to release the right to reintegrate the dir.  */
-      r = remote_reintegrate_set (dir, version, NULL, vol);
+      r = remote_reintegrate_ver (dir, version - attr->version, NULL, vol);
       if (r == ZFS_OK)
 	attr->version = version;
 
