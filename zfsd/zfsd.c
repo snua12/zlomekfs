@@ -43,6 +43,7 @@
 #include "node.h"
 #include "volume.h"
 #include "zfs_prot.h"
+#include "user-group.h"
 
 #ifdef TEST
 #include "test.h"
@@ -319,6 +320,7 @@ initialize_data_structures ()
   initialize_node_c ();
   initialize_volume_c ();
   initialize_zfs_prot_c ();
+  initialize_user_group_c ();
   return true;
 }
 
@@ -328,6 +330,7 @@ void
 cleanup_data_structures ()
 {
   /* Destroy data structures in other modules.  */
+  cleanup_user_group_c ();
   cleanup_zfs_prot_c ();
   cleanup_volume_c ();
   cleanup_node_c ();
