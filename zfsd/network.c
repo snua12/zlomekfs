@@ -190,6 +190,7 @@ update_node_fd (node nod, int fd, unsigned int generation, bool active)
 	{
 	  /* The new connection is in forbidden direction.  */
 	  close_network_fd (fd);
+	  zfsd_mutex_lock (&fd_data_a[nod->fd].mutex);
 	}
     }
 }
