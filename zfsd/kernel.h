@@ -1,4 +1,4 @@
-/* Client thread functions.
+/* Functions for threads communicating with kernel.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -25,17 +25,17 @@
 #include "pthread.h"
 #include "thread.h"
 
-/* Data for client pool regulator.  */
-extern thread_pool_regulator_data client_regulator_data;
+/* Data for kernel pool regulator.  */
+extern thread_pool_regulator_data kernel_regulator_data;
 
-/* Thread ID of the main client thread (thread receiving data from socket).  */
-extern pthread_t main_client_thread;
+/* Thread ID of the main kernel thread (thread receiving data from socket).  */
+extern pthread_t main_kernel_thread;
 
-/* This mutex is locked when main client thread is in poll.  */
-extern pthread_mutex_t main_client_thread_in_syscall;
+/* This mutex is locked when main kernel thread is in poll.  */
+extern pthread_mutex_t main_kernel_thread_in_syscall;
 
-extern bool create_client_threads ();
-extern bool client_start ();
-extern void client_cleanup ();
+extern bool create_kernel_threads ();
+extern bool kernel_start ();
+extern void kernel_cleanup ();
 
 #endif

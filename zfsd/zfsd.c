@@ -34,7 +34,7 @@
 #include "log.h"
 #include "config.h"
 #include "thread.h"
-#include "client.h"
+#include "kernel.h"
 #include "network.h"
 #include "random.h"
 #include "fh.h"
@@ -89,13 +89,13 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
   zfsd_mutex_lock (&running_mutex);
   running = false;
 
-  thread_terminate_blocking_syscall (main_client_thread,
-				     &main_client_thread_in_syscall);
+  thread_terminate_blocking_syscall (main_kernel_thread,
+				     &main_kernel_thread_in_syscall);
   thread_terminate_blocking_syscall (main_network_thread,
 				     &main_network_thread_in_syscall);
-  if (client_regulator_data.thread_id)
-    thread_terminate_blocking_syscall (client_regulator_data.thread_id,
-				       &client_regulator_data.in_syscall);
+  if (kernel_regulator_data.thread_id)
+    thread_terminate_blocking_syscall (kernel_regulator_data.thread_id,
+				       &kernel_regulator_data.in_syscall);
   if (network_regulator_data.thread_id)
     thread_terminate_blocking_syscall (network_regulator_data.thread_id,
 				       &network_regulator_data.in_syscall);
@@ -165,7 +165,7 @@ init_sig_handlers ()
 
   /* Initialize the mutexes which are used with signal handlers.  */
   zfsd_mutex_init (&running_mutex);
-  zfsd_mutex_init (&main_client_thread_in_syscall);
+  zfsd_mutex_init (&main_kernel_thread_in_syscall);
   zfsd_mutex_init (&main_network_thread_in_syscall);
 
   /* Set the signal handler for terminating zfsd.  */
@@ -392,14 +392,14 @@ main (int argc, char **argv)
   if (!init_network_fd_data ())
     die ();
 
-  /* Create client threads and related threads.  */
-  create_client_threads ();
+  /* Create kernel threads and related threads.  */
+  create_kernel_threads ();
 
   /* Create network threads and related threads.  */
   create_network_threads ();
 
-  /* Make the connection with kernel and start main client thread.  */
-  if (!client_start ())
+  /* Make the connection with kernel and start main kernel thread.  */
+  if (!kernel_start ())
     terminate ();
 
   /* Create listening socket and start the main network thread.  */
@@ -417,7 +417,7 @@ main (int argc, char **argv)
   else
     terminate ();
 
-  client_cleanup ();
+  kernel_cleanup ();
   network_cleanup ();
 
   cleanup_data_structures ();

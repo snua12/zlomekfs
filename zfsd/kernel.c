@@ -1,4 +1,4 @@
-/* Client thread functions.
+/* Functions for threads communicating with kernel.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -33,7 +33,7 @@
 #include "constant.h"
 #include "semaphore.h"
 #include "data-coding.h"
-#include "client.h"
+#include "kernel.h"
 #include "log.h"
 #include "util.h"
 #include "memory.h"
@@ -41,19 +41,19 @@
 #include "zfs_prot.h"
 #include "config.h"
 
-/* Pool of client threads.  */
-static thread_pool client_pool;
+/* Pool of kernel threads (threads communicating with kernel).  */
+static thread_pool kernel_pool;
 
-/* Data for client pool regulator.  */
-thread_pool_regulator_data client_regulator_data;
+/* Data for kernel pool regulator.  */
+thread_pool_regulator_data kernel_regulator_data;
 
 #include "memory.h"
 #include "node.h"
 #include "hashtab.h"
 #include "alloc-pool.h"
 
-/* Data for a client socket.  */
-typedef struct client_fd_data_def
+/* Data for a kernel socket.  */
+typedef struct kernel_fd_data_def
 {
   pthread_mutex_t mutex;
   int fd;			/* file descriptor of the socket */
@@ -63,18 +63,18 @@ typedef struct client_fd_data_def
   /* Unused data coding buffers for the file descriptor.  */
   DC dc[MAX_FREE_BUFFERS_PER_ACTIVE_FD];
   int ndc;
-} client_fd_data_t;
+} kernel_fd_data_t;
 
-/* Thread ID of the main client thread (thread receiving data from sockets).  */
-pthread_t main_client_thread;
+/* Thread ID of the main kernel thread (thread receiving data from sockets).  */
+pthread_t main_kernel_thread;
 
-/* This mutex is locked when main client thread is in poll.  */
-pthread_mutex_t main_client_thread_in_syscall;
+/* This mutex is locked when main kernel thread is in poll.  */
+pthread_mutex_t main_kernel_thread_in_syscall;
 
 /* File descriptor of file communicating with kernel.  */
 static int kernel_file;
 
-client_fd_data_t client_data;
+kernel_fd_data_t kernel_data;
 
 /* Send a reply.  */
 
@@ -82,11 +82,11 @@ static void
 send_reply (thread *t)
 {
   message (2, stderr, "sending reply\n");
-  zfsd_mutex_lock (&client_data.mutex);
+  zfsd_mutex_lock (&kernel_data.mutex);
   if (!full_write (kernel_file, t->dc.buffer, t->dc.cur_length))
     {
     }
-  zfsd_mutex_unlock (&client_data.mutex);
+  zfsd_mutex_unlock (&kernel_data.mutex);
 }
 
 /* Send error reply with error status STATUS.  */
@@ -102,28 +102,28 @@ send_error_reply (thread *t, uint32_t request_id, int32_t status)
   send_reply (t);
 }
 
-/* Initialize client thread T.  */
+/* Initialize kernel thread T.  */
 
 void
-client_worker_init (thread *t)
+kernel_worker_init (thread *t)
 {
   dc_create (&t->dc_call, ZFS_MAX_REQUEST_LEN);
 }
 
-/* Cleanup client thread DATA.  */
+/* Cleanup kernel thread DATA.  */
 
 void
-client_worker_cleanup (void *data)
+kernel_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
 
   dc_destroy (&t->dc_call);
 }
 
-/* The main function of the client thread.  */
+/* The main function of the kernel thread.  */
 
 static void *
-client_worker (void *data)
+kernel_worker (void *data)
 {
   thread *t = (thread *) data;
   uint32_t request_id;
@@ -131,12 +131,12 @@ client_worker (void *data)
 
   thread_disable_signals ();
 
-  pthread_cleanup_push (client_worker_cleanup, data);
+  pthread_cleanup_push (kernel_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
 
   while (1)
     {
-      /* Wait until client_dispatch wakes us up.  */
+      /* Wait until kernel_dispatch wakes us up.  */
       semaphore_down (&t->sem, 1);
 
 #ifdef ENABLE_CHECKING
@@ -193,25 +193,25 @@ client_worker (void *data)
 	}
 
 out:
-      zfsd_mutex_lock (&client_data.mutex);
-      if (client_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
+      zfsd_mutex_lock (&kernel_data.mutex);
+      if (kernel_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
 	{
 	  /* Add the buffer to the queue.  */
-	  client_data.dc[client_data.ndc] = t->dc;
-	  client_data.ndc++;
+	  kernel_data.dc[kernel_data.ndc] = t->dc;
+	  kernel_data.ndc++;
 	}
       else
 	{
 	  /* Free the buffer.  */
 	  dc_destroy (&t->dc);
 	}
-      zfsd_mutex_unlock (&client_data.mutex);
+      zfsd_mutex_unlock (&kernel_data.mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      zfsd_mutex_lock (&client_pool.idle.mutex);
+      zfsd_mutex_lock (&kernel_pool.idle.mutex);
       if (get_thread_state (t) == THREAD_BUSY)
 	{
-	  queue_put (&client_pool.idle, t->index);
+	  queue_put (&kernel_pool.idle, t->index);
 	  set_thread_state (t, THREAD_IDLE);
 	}
       else
@@ -220,10 +220,10 @@ out:
 	  if (get_thread_state (t) != THREAD_DYING)
 	    abort ();
 #endif
-	  zfsd_mutex_unlock (&client_pool.idle.mutex);
+	  zfsd_mutex_unlock (&kernel_pool.idle.mutex);
 	  break;
 	}
-      zfsd_mutex_unlock (&client_pool.idle.mutex);
+      zfsd_mutex_unlock (&kernel_pool.idle.mutex);
     }
 
   pthread_cleanup_pop (1);
@@ -231,11 +231,11 @@ out:
   return data;
 }
 
-/* Function which gets a request and passes it to some client thread.
-   It also regulates the number of client threads.  */
+/* Function which gets a request and passes it to some kernel thread.
+   It also regulates the number of kernel threads.  */
 
 static void
-client_dispatch (DC *dc)
+kernel_dispatch (DC *dc)
 {
   size_t index;
   direction dir;
@@ -251,24 +251,24 @@ client_dispatch (DC *dc)
       case DIR_REQUEST:
 	/* Dispatch request.  */
 
-	zfsd_mutex_lock (&client_pool.idle.mutex);
+	zfsd_mutex_lock (&kernel_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
-	thread_pool_regulate (&client_pool, client_worker, NULL);
+	thread_pool_regulate (&kernel_pool, kernel_worker, NULL);
 
 	/* Select an idle thread and forward the request to it.  */
-	index = queue_get (&client_pool.idle);
+	index = queue_get (&kernel_pool.idle);
 #ifdef ENABLE_CHECKING
-	if (get_thread_state (&client_pool.threads[index].t) == THREAD_BUSY)
+	if (get_thread_state (&kernel_pool.threads[index].t) == THREAD_BUSY)
 	  abort ();
 #endif
-	set_thread_state (&client_pool.threads[index].t, THREAD_BUSY);
-	client_pool.threads[index].t.dc = *dc;
+	set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
+	kernel_pool.threads[index].t.dc = *dc;
 
 	/* Let the thread run.  */
-	semaphore_up (&client_pool.threads[index].t.sem, 1);
+	semaphore_up (&kernel_pool.threads[index].t.sem, 1);
 
-	zfsd_mutex_unlock (&client_pool.idle.mutex);
+	zfsd_mutex_unlock (&kernel_pool.idle.mutex);
 	break;
 
       default:
@@ -278,34 +278,34 @@ client_dispatch (DC *dc)
     }
 }
 
-/* Create client threads and related threads.  */
+/* Create kernel threads and related threads.  */
 
 bool
-create_client_threads ()
+create_kernel_threads ()
 {
   int i;
 
   /* FIXME: read the numbers from configuration.  */
-  thread_pool_create (&client_pool, 256, 4, 16);
+  thread_pool_create (&kernel_pool, 256, 4, 16);
 
-  zfsd_mutex_lock (&client_pool.idle.mutex);
-  zfsd_mutex_lock (&client_pool.empty.mutex);
+  zfsd_mutex_lock (&kernel_pool.idle.mutex);
+  zfsd_mutex_lock (&kernel_pool.empty.mutex);
   for (i = 0; i < /* FIXME: */ 5; i++)
     {
-      create_idle_thread (&client_pool, client_worker, client_worker_init);
+      create_idle_thread (&kernel_pool, kernel_worker, kernel_worker_init);
     }
-  zfsd_mutex_unlock (&client_pool.empty.mutex);
-  zfsd_mutex_unlock (&client_pool.idle.mutex);
+  zfsd_mutex_unlock (&kernel_pool.empty.mutex);
+  zfsd_mutex_unlock (&kernel_pool.idle.mutex);
 
-  thread_pool_create_regulator (&client_regulator_data, &client_pool,
-				client_worker, client_worker_init);
+  thread_pool_create_regulator (&kernel_regulator_data, &kernel_pool,
+				kernel_worker, kernel_worker_init);
   return true;
 }
 
-/* Main function of the main (i.e. listening) client thread.  */
+/* Main function of the main (i.e. listening) kernel thread.  */
 
 static void *
-client_main (ATTRIBUTE_UNUSED void *data)
+kernel_main (ATTRIBUTE_UNUSED void *data)
 {
   struct pollfd pfd;
   ssize_t r;
@@ -319,14 +319,14 @@ client_main (ATTRIBUTE_UNUSED void *data)
       pfd.events = CAN_READ;
 
       message (2, stderr, "Polling\n");
-      zfsd_mutex_lock (&main_client_thread_in_syscall);
+      zfsd_mutex_lock (&main_kernel_thread_in_syscall);
       r = poll (&pfd, 1, -1);
-      zfsd_mutex_unlock (&main_client_thread_in_syscall);
+      zfsd_mutex_unlock (&main_kernel_thread_in_syscall);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
 
       if (r < 0 && errno != EINTR)
 	{
-	  message (-1, stderr, "%s, client_main exiting\n", strerror (errno));
+	  message (-1, stderr, "%s, kernel_main exiting\n", strerror (errno));
 	  break;
 	}
 
@@ -345,95 +345,95 @@ client_main (ATTRIBUTE_UNUSED void *data)
 
       if (pfd.revents & CAN_READ)
 	{
-	  if (client_data.read < 4)
+	  if (kernel_data.read < 4)
 	    {
-	      zfsd_mutex_lock (&client_data.mutex);
-	      if (client_data.ndc == 0)
+	      zfsd_mutex_lock (&kernel_data.mutex);
+	      if (kernel_data.ndc == 0)
 		{
-		  dc_create (&client_data.dc[0], ZFS_MAX_REQUEST_LEN);
-		  client_data.ndc++;
+		  dc_create (&kernel_data.dc[0], ZFS_MAX_REQUEST_LEN);
+		  kernel_data.ndc++;
 		}
-	      zfsd_mutex_unlock (&client_data.mutex);
+	      zfsd_mutex_unlock (&kernel_data.mutex);
 
-	      r = read (client_data.fd, client_data.dc[0].buffer + client_data.read,
-			4 - client_data.read);
+	      r = read (kernel_data.fd, kernel_data.dc[0].buffer + kernel_data.read,
+			4 - kernel_data.read);
 	      if (r <= 0)
 		break;
 
-	      client_data.read += r;
-	      if (client_data.read == 4)
+	      kernel_data.read += r;
+	      if (kernel_data.read == 4)
 		{
-		  start_decoding (&client_data.dc[0]);
+		  start_decoding (&kernel_data.dc[0]);
 		}
 	    }
 	  else
 	    {
-	      if (client_data.dc[0].max_length <= client_data.dc[0].size)
+	      if (kernel_data.dc[0].max_length <= kernel_data.dc[0].size)
 		{
-		  r = read (client_data.fd,
-			    client_data.dc[0].buffer + client_data.read,
-			    client_data.dc[0].max_length - client_data.read);
+		  r = read (kernel_data.fd,
+			    kernel_data.dc[0].buffer + kernel_data.read,
+			    kernel_data.dc[0].max_length - kernel_data.read);
 		}
 	      else
 		{
 		  int l;
 
-		  l = client_data.dc[0].max_length - client_data.read;
+		  l = kernel_data.dc[0].max_length - kernel_data.read;
 		  if (l > ZFS_MAXDATA)
 		    l = ZFS_MAXDATA;
-		  r = read (client_data.fd, dummy, l);
+		  r = read (kernel_data.fd, dummy, l);
 		}
 
 	      if (r <= 0)
 		break;
 
-	      client_data.read += r;
-	      if (client_data.dc[0].max_length == client_data.read)
+	      kernel_data.read += r;
+	      if (kernel_data.dc[0].max_length == kernel_data.read)
 		{
-		  if (client_data.dc[0].max_length <= client_data.dc[0].size)
+		  if (kernel_data.dc[0].max_length <= kernel_data.dc[0].size)
 		    {
 		      DC *dc;
 
-		      zfsd_mutex_lock (&client_data.mutex);
-		      dc = &client_data.dc[0];
-		      client_data.read = 0;
-		      client_data.busy++;
-		      client_data.ndc--;
-		      if (client_data.ndc > 0)
-			client_data.dc[0] = client_data.dc[client_data.ndc];
-		      zfsd_mutex_unlock (&client_data.mutex);
+		      zfsd_mutex_lock (&kernel_data.mutex);
+		      dc = &kernel_data.dc[0];
+		      kernel_data.read = 0;
+		      kernel_data.busy++;
+		      kernel_data.ndc--;
+		      if (kernel_data.ndc > 0)
+			kernel_data.dc[0] = kernel_data.dc[kernel_data.ndc];
+		      zfsd_mutex_unlock (&kernel_data.mutex);
 
 		      /* We have read complete request, dispatch it.  */
-		      client_dispatch (dc);
+		      kernel_dispatch (dc);
 		    }
 		  else
 		    {
 		      message (2, stderr, "Packet too long: %u\n",
-			       client_data.read);
-		      client_data.read = 0;
+			       kernel_data.read);
+		      kernel_data.read = 0;
 		    }
 		}
 	    }
 	}
     }
 
-  if (client_data.busy == 0)
+  if (kernel_data.busy == 0)
     close (kernel_file);
   message (2, stderr, "Terminating...\n");
   return NULL;
 }
 
-/* Create a listening socket and start the main client thread.  */
+/* Create a listening socket and start the main kernel thread.  */
 
 bool
-client_start ()
+kernel_start ()
 {
 #if 0
   socklen_t socket_options;
   struct sockaddr_in sa;
 #endif
 
-  zfsd_mutex_init (&client_data.mutex);
+  zfsd_mutex_init (&kernel_data.mutex);
 
   /* Open connection with kernel.  */
   kernel_file = open (kernel_file_name, O_RDWR);
@@ -444,8 +444,8 @@ client_start ()
       return false;
     }
 
-  /* Create the main client thread.  */
-  if (pthread_create (&main_client_thread, NULL, client_main, NULL))
+  /* Create the main kernel thread.  */
+  if (pthread_create (&main_kernel_thread, NULL, kernel_main, NULL))
     {
       message (-1, stderr, "pthread_create() failed\n");
       close (kernel_file);
@@ -455,11 +455,11 @@ client_start ()
   return true;
 }
 
-/* Terminate client threads and destroy data structures.  */
+/* Terminate kernel threads and destroy data structures.  */
 
 void
-client_cleanup ()
+kernel_cleanup ()
 {
-  thread_pool_destroy (&client_pool);
-  zfsd_mutex_destroy (&client_data.mutex);
+  thread_pool_destroy (&kernel_pool);
+  zfsd_mutex_destroy (&kernel_data.mutex);
 }

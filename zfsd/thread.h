@@ -57,12 +57,12 @@ typedef struct network_thread_data_def
   unsigned int index;         /* index of FD in array "active" */
 } network_thread_data;
 
-/* Additional data for a client thread.  */
-typedef struct client_thread_data_def
+/* Additional data for a kernel thread.  */
+typedef struct kernel_thread_data_def
 {
   /* Buffer for data.  */
   char *buffer;
-} client_thread_data;
+} kernel_thread_data;
 
 /* Definition of thread's variables.  */
 typedef struct thread_def
@@ -92,7 +92,7 @@ typedef struct thread_def
   union {
     network_thread_data network;
 #if 0
-    client_thread_data client;
+    kernel_thread_data kernel;
     update_thread_data update;
 #endif
   } u;
