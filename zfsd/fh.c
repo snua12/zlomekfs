@@ -1403,6 +1403,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 		{
 		  dir = dentry;
 		  dentry = tmp;
+		  name = tmp->name;
 		  break;
 		}
 	    }
