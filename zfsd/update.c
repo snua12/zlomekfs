@@ -319,15 +319,19 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   if (VARRAY_USED (*blocks) == 0)
     return ZFS_OK;
 
-  r = refresh_master_fh (&cap->fh);
-  if (r != ZFS_OK)
-    return r;
-
   r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
 #endif
+
+  /* FIXME: call this function only if we have a valid master file handle.  */
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOENT;
+    }
 
   if (zfs_fh_undefined (icap->master_cap.fh)
       || zfs_cap_undefined (icap->master_cap))
@@ -430,11 +434,17 @@ update_file (zfs_fh *fh)
   int32_t r, r2;
   fattr attr;
 
-  cap.fh = *fh;
-  cap.flags = O_RDONLY;
-  r = get_capability (&cap, &icap, &vol, &dentry, NULL, true, true);
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
+
+  /* FIXME: call this function only if we have a valid master file handle.  */
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOENT;
+    }
 
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     {
@@ -442,6 +452,14 @@ update_file (zfs_fh *fh)
       zfsd_mutex_unlock (&vol->mutex);
       return ZFS_UPDATE_FAILED;
     }
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  cap.fh = *fh;
+  cap.flags = O_RDONLY;
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL, true, true);
+  if (r != ZFS_OK)
+    return r;
 
   r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, NULL, &cap);
   if (r != ZFS_OK)
@@ -456,10 +474,6 @@ update_file (zfs_fh *fh)
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-
-  r = refresh_master_fh (fh);
-  if (r != ZFS_OK)
-    goto out2;
 
   r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -549,13 +563,13 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
+  /* FIXME: call this function only if we have a valid master file handle.  */
+  if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
+    return 0;
+
   release_dentry (*dentryp);
   zfsd_mutex_unlock (&(*volp)->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-
-  r = refresh_master_fh (fh);
-  if (r != ZFS_OK)
-    goto out;
 
   r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -583,7 +597,7 @@ out:
     abort ();
 #endif
 
-  return false;
+  return 0;
 }
 
 /* Delete file in place of file DENTRY on volume VOL.  */
