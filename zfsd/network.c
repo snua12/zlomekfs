@@ -940,7 +940,6 @@ network_start ()
   if (!thread_pool_create (&network_pool, 256, 4, 16, network_main,
 			   network_worker, network_worker_init))
     {
-      free (network_fd_data);
       close (main_socket);
       destroy_network_fd_data ();
       return false;
