@@ -371,6 +371,7 @@ main (int argc, char **argv)
   printf ("sizeof (thread) = %d\n", sizeof (thread));
   printf ("sizeof (padded_thread) = %d\n", sizeof (padded_thread));
   printf ("sizeof (internal_fh) = %d\n", sizeof (struct internal_fh_def));
+  printf ("sizeof (internal_dentry) = %d\n", sizeof (struct internal_dentry_def));
 
 #if 0
   /* Temporarily disable because it needs root privileges.  */
