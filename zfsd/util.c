@@ -25,6 +25,18 @@
 #include "pthread.h"
 #include "log.h"
 
+/* Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  */
+
+void
+print_hex_buffer (char *buf, unsigned int len, FILE *f)
+{
+  unsigned int i;
+
+  for (i = 0; i < len; i++)
+    fprintf (f, "%02x ", (unsigned char) buf[i]);
+  fprintf (f, "\n");
+}
+
 /* Read LEN bytes from file descriptor FD to buffer BUF.  */
 
 bool
@@ -45,12 +57,8 @@ full_read (int fd, char *buf, size_t len)
 
   if (verbose >= 3)
     {
-      size_t i;
-
       message (3, stderr, "Reading data from %d to %p:\n", fd, buf);
-      for (i = 0; i < len; i++)
-	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
-      fprintf (stderr, "\n");
+      print_hex_buffer (buf, len, stderr);
     }
 
   message (2, stderr, "reading data SUCCEDED\n");
@@ -67,12 +75,8 @@ full_write (int fd, char *buf, size_t len)
 
   if (verbose >= 3)
     {
-      size_t i;
-
       message (3, stderr, "Writing data to %d from %p:\n", fd, buf);
-      for (i = 0; i < len; i++)
-	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
-      fprintf (stderr, "\n");
+      print_hex_buffer (buf, len, stderr);
     }
 
   for (total_written = 0; total_written < len; total_written += w)
