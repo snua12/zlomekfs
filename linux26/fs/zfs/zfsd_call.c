@@ -26,6 +26,7 @@
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/errno.h>
+#include <linux/compiler.h>
 #include <asm/semaphore.h>
 #include <asm/uaccess.h>
 
@@ -131,31 +132,6 @@ int zfsd_root(zfs_fh *fh)
 	return error;
 }
 
-int zfsd_lookup(dir_op_res *res, dir_op_args *args)
-{
-	DC *dc;
-	int error;
-
-	TRACE("zfs:  zfsd_lookup\n");
-
-	dc = dc_get();
-	if (!dc)
-		return -ENOMEM;
-
-	error = zfs_proc_lookup_zfsd(&dc, args);
-
-	if (!error
-	    && (!decode_dir_op_res(dc, res)
-		|| !finish_decoding(dc)))
-		error = -EPROTO;
-
-	dc_put(dc);
-
-	TRACE("zfs:  zfsd_lookup: %d\n", error);
-
-	return error;
-}
-
 int zfsd_getattr(fattr *attr, zfs_fh *fh)
 {
 	DC *dc;
@@ -202,6 +178,178 @@ int zfsd_setattr(fattr *attr, sattr_args *args)
 	dc_put(dc);
 
 	TRACE("zfs:  zfsd_setattr: %d\n", error);
+
+	return error;
+}
+
+int zfsd_create(create_res *res, create_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_create\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_create_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_create_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_create: %d\n", error);
+
+	return error;
+}
+
+int zfsd_lookup(dir_op_res *res, dir_op_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_lookup\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_lookup_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_dir_op_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_lookup: %d\n", error);
+
+	return error;
+}
+
+int zfsd_link(link_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_link\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_link_zfsd(&dc, args);
+
+	if (!error
+	    && !finish_decoding(dc))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_link: %d\n", error);
+
+	return error;
+}
+
+int zfsd_unlink(dir_op_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_unlink\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_unlink_zfsd(&dc, args);
+
+	if (!error
+	    && !finish_decoding(dc))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_unlink: %d\n", error);
+
+	return error;
+}
+
+int zfsd_mkdir(dir_op_res *res, mkdir_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_mkdir\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_mkdir_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_dir_op_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_mkdir: %d\n", error);
+
+	return error;
+}
+
+int zfsd_rmdir(dir_op_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_rmdir\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_rmdir_zfsd(&dc, args);
+
+	if (!error
+	    && !finish_decoding(dc))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_rmdir: %d\n", error);
+
+	return error;
+}
+
+int zfsd_mknod(dir_op_res *res, mknod_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_mknod\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_mknod_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_dir_op_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_mknod: %d\n", error);
 
 	return error;
 }

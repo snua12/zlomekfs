@@ -46,6 +46,8 @@
 
 #define ZFS_MAGIC *((uint32_t *)"zfs")
 #define ZFS_CHARDEV_MAJOR 251
+//#define ZFS_BLOCKSIZE 4096
+//#define ZFS_BLOCKSIZEBITS 12
 
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 

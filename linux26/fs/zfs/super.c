@@ -112,8 +112,8 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 		return -EIO;
 	}
 
-	sb->s_blocksize = 8192;
-	sb->s_blocksize_bits = 13;
+//	sb->s_blocksize = ZFS_BLOCKSIZE;
+//	sb->s_blocksize_bits = ZFS_BLOCKSIZEBITS;
 	sb->s_op = &zfs_super_operations;
 	sb->s_magic = ZFS_MAGIC;
 

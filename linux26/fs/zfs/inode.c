@@ -21,16 +21,29 @@
  */
 
 #include <linux/fs.h>
-#include <linux/kdev_t.h>
 #include <linux/errno.h>
 #include <linux/string.h>
-#include <linux/time.h>
 #include <linux/stat.h>
+#include <linux/namei.h>
+#include <linux/sched.h>
+#include <linux/time.h>
 
 #include "zfs.h"
 #include "zfs_prot.h"
 #include "zfsd_call.h"
 
+
+static void zfs_iattr_to_sattr(sattr *attr, struct iattr *iattr)
+{
+	unsigned int valid = iattr->ia_valid;
+
+	attr->mode = (valid & ATTR_MODE) ? (iattr->ia_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX)) : -1;
+	attr->uid = (valid & ATTR_UID) ? iattr->ia_uid : -1;
+	attr->gid = (valid & ATTR_GID) ? iattr->ia_gid : -1;
+	attr->size = (valid & ATTR_SIZE) ? iattr->ia_size : -1;
+	attr->atime = (valid & ATTR_ATIME) ? iattr->ia_atime.tv_sec : -1;
+	attr->mtime = (valid & ATTR_MTIME) ? iattr->ia_mtime.tv_sec : -1;
+}
 
 static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
 {
@@ -45,8 +58,33 @@ static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
 	inode->i_blocks = attr->blocks;
 	inode->i_blksize = attr->blksize;
 	inode->i_atime.tv_sec = attr->atime;
+	inode->i_atime.tv_nsec = 0;
 	inode->i_mtime.tv_sec = attr->mtime;
+	inode->i_mtime.tv_nsec = 0;
 	inode->i_ctime.tv_sec = attr->ctime;
+	inode->i_ctime.tv_nsec = 0;
+}
+
+static ftype zfs_mode_to_ftype(int mode)
+{
+	switch (mode & S_IFMT) {
+		case S_IFSOCK:
+			return FT_SOCK;
+		case S_IFLNK:
+			return FT_LNK;
+		case S_IFREG:
+			return FT_REG;
+		case S_IFBLK:
+			return FT_BLK;
+		case S_IFDIR:
+			return FT_DIR;
+		case S_IFCHR:
+			return FT_CHR;
+		case S_IFIFO:
+			return FT_FIFO;
+		default:
+			return FT_BAD;
+	}
 }
 
 static struct inode_operations zfs_file_inode_operations, zfs_dir_inode_operations;
@@ -105,7 +143,44 @@ struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 
 static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
 {
-	TRACE("zfs: create\n");
+	create_args args;
+	create_res res;
+	struct inode *inode;
+	int error;
+
+	TRACE("zfs: create: '%s'\n", dentry->d_name.name);
+
+	args.where.dir = ZFS_I(dir)->fh;
+	args.where.name.str = (char *)dentry->d_name.name;
+	args.where.name.len = dentry->d_name.len;
+	args.flags = nd->intent.open.flags;
+	args.attr.mode = mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	args.attr.uid = current->fsuid;
+	if (dir->i_mode & S_ISGID)
+		args.attr.gid = dir->i_gid;
+	else
+		args.attr.gid = current->fsgid;
+	args.attr.size = -1;
+	args.attr.atime = -1;
+	args.attr.mtime = -1;
+
+	error = zfsd_create(&res, &args);
+	if (error)
+		return error;
+
+	/* FIXME: how to give CAPs to ->open(), when 2 threads create the same file in the same time (they share the same dentry) */
+	dentry->d_fsdata = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
+	if (!dentry->d_fsdata)
+		return -ENOMEM;
+	*(zfs_cap *)dentry->d_fsdata = res.cap;
+
+	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+	if (!inode)
+		return -ENOMEM;
+
+	d_instantiate(dentry, inode);
+
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
@@ -119,33 +194,79 @@ static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struc
 
 	TRACE("zfs: lookup: '%s'\n", dentry->d_name.name);
 
+	if (dentry->d_name.len > ZFS_MAXNAMELEN)
+		return ERR_PTR(-ENAMETOOLONG);
+
 	args.dir = ZFS_I(dir)->fh;
 	args.name.str = (char *)dentry->d_name.name;
 	args.name.len = dentry->d_name.len;
 
 	error = zfsd_lookup(&res, &args);
-	if (error)
+	if (error) {
+		if (error == -ENOENT) {
+			d_add(dentry, NULL);
+			return NULL;
+		}
 		return ERR_PTR(error);
+	}
 
 	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
 	if (!inode)
 		return ERR_PTR(-ENOMEM);
 
-	d_instantiate(dentry, inode);
+	d_add(dentry, inode);
 
 	return NULL;
 }
 
 static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry *dst_dentry)
 {
-	TRACE("zfs: link\n");
+	struct inode *inode = src_dentry->d_inode;
+	link_args args;
+	int error;
+
+	TRACE("zfs: link: '%s' -> '%s'\n", src_dentry->d_name.name, dst_dentry->d_name.name);
+
+	args.from = ZFS_I(inode)->fh;
+	args.to.dir = ZFS_I(dir)->fh;
+	args.to.name.str = (char *)dst_dentry->d_name.name;
+	args.to.name.len = dst_dentry->d_name.len;
+
+	error = zfsd_link(&args);
+	if (error)
+		return error;
+
+	inode->i_nlink++;
+	inode->i_ctime = CURRENT_TIME;
+
+	atomic_inc(&inode->i_count);
+	d_instantiate(dst_dentry, inode);
+
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
 
 static int zfs_unlink(struct inode *dir, struct dentry *dentry)
 {
-	TRACE("zfs: unlink\n");
+	struct inode *inode = dentry->d_inode;
+	dir_op_args args;
+	int error;
+
+	TRACE("zfs: unlink: '%s'\n", dentry->d_name.name);
+
+	args.dir = ZFS_I(dir)->fh;
+	args.name.str = (char *)dentry->d_name.name;
+	args.name.len = dentry->d_name.len;
+
+	error = zfsd_unlink(&args);
+	if (error)
+		return error;
+
+	inode->i_nlink--;
+	inode->i_ctime = CURRENT_TIME;
+
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
@@ -159,21 +280,99 @@ static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old
 
 static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 {
-	TRACE("zfs: mkdir\n");
+	mkdir_args args;
+	dir_op_res res;
+	struct inode *inode;
+	int error;
+
+	TRACE("zfs: mkdir: '%s'\n", dentry->d_name.name);
+
+	args.where.dir = ZFS_I(dir)->fh;
+	args.where.name.str = (char *)dentry->d_name.name;
+	args.where.name.len = dentry->d_name.len;
+	args.attr.mode = mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	args.attr.uid = current->fsuid;
+	if (dir->i_mode & S_ISGID) {
+		args.attr.gid = dir->i_gid;
+		args.attr.mode |= S_ISGID;
+	} else
+		args.attr.gid = current->fsgid;
+	args.attr.size = -1;
+	args.attr.atime = -1;
+	args.attr.mtime = -1;
+
+	error = zfsd_mkdir(&res, &args);
+	if (error)
+		return error;
+
+	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+	if (!inode)
+		return -ENOMEM;
+
+	d_instantiate(dentry, inode);
+
+	dir->i_nlink++;
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
 
 static int zfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
-	TRACE("zfs: rmdir\n");
+	struct inode *inode = dentry->d_inode;
+	dir_op_args args;
+	int error;
+
+	TRACE("zfs: rmdir: '%s'\n", dentry->d_name.name);
+
+	args.dir = ZFS_I(dir)->fh;
+	args.name.str = (char *)dentry->d_name.name;
+	args.name.len = dentry->d_name.len;
+
+	error = zfsd_rmdir(&args);
+	if (error)
+		return error;
+
+	inode->i_nlink--;
+
+	dir->i_nlink--;
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
 
-static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
+static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t rdev)
 {
-	TRACE("zfs: mknod\n");
+	mknod_args args;
+	dir_op_res res;
+	struct inode *inode;
+	int error;
+
+	TRACE("zfs: mknod: '%s'\n", dentry->d_name.name);
+
+	args.where.dir = ZFS_I(dir)->fh;
+	args.where.name.str = (char *)dentry->d_name.name;
+	args.where.name.len = dentry->d_name.len;
+	args.attr.mode = mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	args.attr.uid = current->fsuid;
+	args.attr.gid = current->fsgid;
+	args.attr.size = -1;
+	args.attr.atime = -1;
+	args.attr.mtime = -1;
+	args.type = zfs_mode_to_ftype(mode);
+	args.rdev = huge_encode_dev(rdev);
+
+	error = zfsd_mknod(&res, &args);
+	if (error)
+		return error;
+
+	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+	if (!inode)
+		return -ENOMEM;
+
+	d_instantiate(dentry, inode);
+
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
@@ -183,16 +382,6 @@ static int zfs_rename (struct inode *old_dir, struct dentry *old_dentry, struct 
 	TRACE("zfs: rename\n");
 
 	return 0;
-}
-
-static void zfs_iattr_to_sattr(sattr *attr, struct iattr *iattr)
-{
-	attr->mode = iattr->ia_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
-	attr->uid = iattr->ia_uid;
-	attr->gid = iattr->ia_gid;
-	attr->size = iattr->ia_size;
-	attr->atime = iattr->ia_atime.tv_sec;
-	attr->mtime = iattr->ia_mtime.tv_sec;
 }
 
 static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
@@ -208,13 +397,12 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 	zfs_iattr_to_sattr(&args.attr, iattr);
 
 	error = zfsd_setattr(&attr, &args);
+	if (error)
+		return error;
 
-	if (!error) {
-		inode->i_ctime = CURRENT_TIME;
-		zfs_attr_to_iattr(inode, &attr);
-	}
+	zfs_attr_to_iattr(inode, &attr);
 
-	return error;
+	return 0;
 }
 
 static struct inode_operations zfs_dir_inode_operations = {

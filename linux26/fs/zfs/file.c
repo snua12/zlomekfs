@@ -23,6 +23,7 @@
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/errno.h>
+#include <linux/time.h>
 
 #include "zfs.h"
 #include "zfs_prot.h"
@@ -31,6 +32,7 @@
 
 static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff_t *off)
 {
+	struct inode *inode = file->f_dentry->d_inode;
 	read_args args;
 	int error;
 
@@ -42,14 +44,17 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 
 	error = zfsd_read(buf, &args);
 
-	if (error > 0)
-		file->f_pos += error;
+	if (error > 0) {
+		*off += error;
+		inode->i_atime = CURRENT_TIME;
+	}
 
 	return error;
 }
 
 static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {
+	struct inode *inode = file->f_dentry->d_inode;
 	write_args args;
 	int error;
 
@@ -62,34 +67,46 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 
 	error = zfsd_write(&args);
 
-	if (error > 0)
-		file->f_pos += error;
+	if (error > 0) {
+		*off += error;
+		inode->i_mtime = CURRENT_TIME;
+		if (*off > inode->i_size) {
+			inode->i_size = *off;
+			inode->i_ctime = CURRENT_TIME;
+		}
+	}
 
 	return error;
 }
 
 int zfs_open(struct inode *inode, struct file *file)
 {
+	struct dentry *dentry = file->f_dentry;
 	zfs_cap *cap;
 	open_args args;
 	int error;
 
 	TRACE("zfs: open: '%s'\n", file->f_dentry->d_name.name);
 
-	cap = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
-	if (!cap)
-		return -ENOMEM;
+	if ((file->f_flags & O_CREAT) && dentry->d_fsdata) {
+		file->private_data = dentry->d_fsdata;
+		dentry->d_fsdata = NULL;
+	} else {
+		cap = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
+		if (!cap)
+			return -ENOMEM;
 
-	args.file = ZFS_I(inode)->fh;
-	args.flags = file->f_flags;
+		args.file = ZFS_I(inode)->fh;
+		args.flags = file->f_flags;
 
-	error = zfsd_open(cap, &args);
-	if (error) {
-		kfree(cap);
-		return error;
+		error = zfsd_open(cap, &args);
+		if (error) {
+			kfree(cap);
+			return error;
+		}
+
+		file->private_data = cap;
 	}
-
-	file->private_data = cap;
 
 	return 0;
 }

@@ -23,15 +23,24 @@
 #ifndef _ZFSD_CALL_H
 #define _ZFSD_CALL_H
 
+#include <linux/fs.h>
+#include <linux/compiler.h>
+
 #include "zfs.h"
 #include "zfs_prot.h"
 
 
 extern int send_request(struct request *req);
 extern int zfsd_root(zfs_fh *fh);
-extern int zfsd_lookup(dir_op_res *res, dir_op_args *args);
 extern int zfsd_getattr(fattr *attr, zfs_fh *fh);
 extern int zfsd_setattr(fattr *attr, sattr_args *args);
+extern int zfsd_create(create_res *res, create_args *args);
+extern int zfsd_lookup(dir_op_res *res, dir_op_args *args);
+extern int zfsd_link(link_args *args);
+extern int zfsd_unlink(dir_op_args *args);
+extern int zfsd_mkdir(dir_op_res *res, mkdir_args *args);
+extern int zfsd_rmdir(dir_op_args *args);
+extern int zfsd_mknod(dir_op_res *res, mknod_args *args);
 extern int zfsd_open(zfs_cap *cap, open_args *args);
 extern int zfsd_close(zfs_cap *cap);
 extern int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t filldir);

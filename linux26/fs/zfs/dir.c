@@ -37,8 +37,6 @@ static int zfs_readdir (struct file *file, void *dirent, filldir_t filldir)
 	args.cookie = file->f_pos;
 	args.count = ZFS_MAXDATA;
 
-	/* TODO: need_revalidate?: (file->f_version != file->f_dentry->d_inode->i_version) */
-
 	return zfsd_readdir(&args, file, dirent, filldir);
 }
 
