@@ -23,6 +23,8 @@
 
 #include "system.h"
 
+#define SERVER_ANY 0
+
 extern void create_server_threads ();
 extern void register_server ();
 
