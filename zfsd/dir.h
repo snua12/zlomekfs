@@ -77,5 +77,6 @@ extern int32_t remote_mknod (internal_fh dir, string *name, sattr *attr,
 extern int32_t zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
 			  uint32_t rdev);
 extern int32_t refresh_path (zfs_fh *fh);
+extern int32_t refresh_master_fh (internal_dentry dentry, volume vol);
 
 #endif

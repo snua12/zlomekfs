@@ -2419,3 +2419,64 @@ refresh_path (zfs_fh *fh)
 
   return r;
 }
+
+/* Refresh master file handles on path to DENTRY on volume VOL.  */
+
+int32_t
+refresh_master_fh (internal_dentry dentry, volume vol)
+{
+  int32_t r;
+  int retry = 0;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  /* Refresh path to DENTRY.  */
+  if (zfs_fh_undefined (dentry->fh->master_fh))
+    {
+      if (dentry->parent)
+	{
+	  dir_op_res res;
+	  string s;
+
+	  zfsd_mutex_lock (&dentry->parent->fh->mutex);
+	  r = refresh_master_fh (dentry->parent, vol);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&dentry->parent->fh->mutex);
+	      return r;
+	    }
+
+retry_lookup:
+	  s.str = dentry->name;
+	  s.len = strlen (dentry->name);
+	  r = remote_lookup (&res, dentry->parent->fh, &s, vol);
+	  if (r == ESTALE && retry < 1)
+	    {
+	      retry++;
+	      r = refresh_path (&dentry->parent->fh->local_fh);
+	      if (r == ZFS_OK)
+		goto retry_lookup;
+	    }
+	  
+	  zfsd_mutex_unlock (&dentry->parent->fh->mutex);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  dentry->fh->master_fh = res.file;
+	}
+      else
+	{
+	  fattr fa;
+	  zfs_fh fh;
+
+	  r = get_volume_root_remote (vol, &fh, &fa);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  dentry->fh->master_fh = fh;
+	}
+    }
+
+  return ZFS_OK;
+}
