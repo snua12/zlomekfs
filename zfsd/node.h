@@ -33,6 +33,14 @@ typedef enum connection_status_def
   CONNECTION_FAST
 } connection_status;
 
+/* Status of authentication.  */
+typedef enum authentication_status_def
+{
+  AUTHENTICATION_NONE = 0,
+  AUTHENTICATION_IN_PROGRESS,
+  AUTHENTICATION_DONE
+} authentication_status;
+
 /* Node description.  */
 typedef struct node_def
 {
@@ -41,7 +49,8 @@ typedef struct node_def
   struct sockaddr_in addr;	/* address */
 				/* public key */
   int flags;			/* see NODE_* below */
-  connection_status status;	/* Connection status */
+  connection_status conn;	/* connection status */
+  authentication_status auth;	/* authentication status */
   CLIENT *clnt;			/* RPC client */
 } *node;
 

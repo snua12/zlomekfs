@@ -311,7 +311,7 @@ fake_config ()
 
   n = node_create (1, "orion");
   n->flags |= NODE_LOCAL;
-  n->status = CONNECTION_FAST;
+  n->conn = CONNECTION_FAST;
 
   v = volume_create (1);
   volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);

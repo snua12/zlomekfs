@@ -73,7 +73,8 @@ node_create (unsigned int id, char *name)
   nod->id = id;
   nod->name = xstrdup (name);
   nod->flags = 0;
-  nod->status = CONNECTION_NONE;
+  nod->conn = CONNECTION_NONE;
+  nod->auth = AUTHENTICATION_NONE;
   nod->clnt = NULL;
 
   he = gethostbyname (name);
