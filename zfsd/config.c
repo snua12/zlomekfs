@@ -1805,25 +1805,6 @@ add_reread_config_request_dentry (internal_dentry dentry)
   add_reread_config_request (&relative_path, t->from_sid);
 }
 
-/* Add request to reread config file DENTRY to queue.  */
-
-void
-add_reread_config_request_name (internal_dentry dir, string *name)
-{
-  string relative_path;
-  thread *t;
-
-  build_relative_path_name (&relative_path, dir, name);
-
-  t = (thread *) pthread_getspecific (thread_data_key);
-#ifdef ENABLE_CHECKING
-  if (t == NULL)
-    abort ();
-#endif
-
-  add_reread_config_request (&relative_path, t->from_sid);
-}
-
 /* Add request to reread config file PATH on volume VOL to queue.  */
 
 void
