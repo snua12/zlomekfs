@@ -18,31 +18,38 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#include "system.h"
-#include <inttypes.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-#include "pthread.h"
-#include "constant.h"
-#include "zfs_prot.h"
-#include "data-coding.h"
-#include "config.h"
-#include "thread.h"
-#include "network.h"
-#include "kernel.h"
-#include "node.h"
-#include "dir.h"
-#include "file.h"
-#include "volume.h"
-#include "log.h"
-#include "user-group.h"
+#ifndef __KERNEL__
+# include "system.h"
+# include <inttypes.h>
+# include <string.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <unistd.h>
+# include <errno.h>
+# include "pthread.h"
+# include "constant.h"
+# include "zfs_prot.h"
+# include "data-coding.h"
+# include "config.h"
+# include "thread.h"
+# include "network.h"
+# include "kernel.h"
+# include "node.h"
+# include "dir.h"
+# include "file.h"
+# include "volume.h"
+# include "log.h"
+# include "user-group.h"
+#else
+# include <linux/stat.h>
+# include "zfs_prot.h"
+#endif
 
 /* Mapping file type -> file mode.  */
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
   = {0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO};
+
+#ifndef __KERNEL__
 
 /* Request ID for next call.  */
 static volatile uint32_t request_id;
@@ -768,3 +775,50 @@ cleanup_zfs_prot_c (void)
 
 #endif
 }
+
+#else	/* __KERNEL__ */
+
+#include <linux/errno.h>
+#include <asm/semaphore.h>
+
+#include "zfs.h"
+#include "data-coding.h"
+#include "zfs_prot.h"
+#include "zfsd_call.h"
+
+
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)	\
+int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
+{								\
+	struct request req;					\
+	int error;						\
+								\
+	down(&channel.request_id_lock);				\
+	req.id = channel.request_id++;				\
+	up(&channel.request_id_lock);				\
+								\
+	req.dc = *dc;						\
+								\
+	start_encoding(*dc);					\
+	encode_direction(*dc, DIR_REQUEST);			\
+	encode_request_id(*dc, req.id);				\
+	encode_function(*dc, NUMBER);				\
+	encode_##ARGS(*dc, args);				\
+	req.length = finish_encoding(*dc);			\
+								\
+	error = send_request(&req);				\
+								\
+	*dc = req.dc;						\
+								\
+	if (error)						\
+		return error;					\
+								\
+	if (!decode_status(*dc, &error))			\
+		return -EPROTO;					\
+								\
+	return -error;						\
+}
+# include "zfs_prot.def"
+# undef DEFINE_ZFS_PROC
+
+#endif  /* __KERNEL__ */

@@ -404,6 +404,15 @@ struct node_def;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
+#ifdef __KERNEL__
+
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+  extern int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+
+#endif
+
 /* Call statistics.  */
 #define CALL_FROM_KERNEL	0
 #define CALL_FROM_NETWORK	1
