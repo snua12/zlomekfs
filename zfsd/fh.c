@@ -692,12 +692,6 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	}
 
       acquire_dentry (dentry);
-#ifdef ENABLE_CHECKING
-      if (volp && vol->local_path.str && vol->master == this_node
-	  && !zfs_fh_undefined (dentry->fh->meta.master_fh))
-	abort ();
-#endif
-
       if (volp)
 	*volp = vol;
       *dentryp = dentry;
