@@ -50,6 +50,9 @@ typedef struct thread_def
   /* State of the thread.  */
   thread_state state;
 
+  /* The sequential number of the thread.  */
+  size_t id;
+
   /* Mutex used to stop an idle thread.  */
   pthread_mutex_t mutex;
 
@@ -63,11 +66,11 @@ typedef struct thread_def
   };
 } thread;
 
-/* Thread datatype padded to a multiple of 32 to avoid cache ping pong.  */
+/* Thread datatype padded to 256 bytes to avoid cache ping pong.  */
 typedef union padded_thread_def
 {
   thread t;
-  char padding[64];
+  char padding[256];
 } padded_thread;
 
 /* Definition of thread pool.  */
