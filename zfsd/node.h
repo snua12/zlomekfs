@@ -70,7 +70,15 @@ extern string node_host_name;
 /* Description of local node.  */
 extern node this_node;
 
+/* Hash function for node name.  */
+#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
+
+/* Hash function for node NODE, computed from its name.  */
+#define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
+
 /* Function prototypes.  */
+extern hash_t node_hash_name (const void *x);
+extern int node_eq_name (const void *x, const void *y);
 extern node node_lookup (uint32_t id);
 extern node node_lookup_name (string *name);
 extern node node_create (uint32_t id, string *name, string *host_name);

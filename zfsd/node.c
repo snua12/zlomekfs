@@ -61,12 +61,6 @@ node this_node;
 /* Hash function for node NODE, computed from ID.  */
 #define NODE_HASH(NODE) ((NODE)->id)
 
-/* Hash function for node name.  */
-#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
-
-/* Hash function for node NODE, computed from its name.  */
-#define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
-
 /* Hash function for node X, computed from ID.  */
 
 static hash_t
@@ -77,7 +71,7 @@ node_hash (const void *x)
 
 /* Hash function for node X, computed from node name.  */
 
-static hash_t
+hash_t
 node_hash_name (const void *x)
 {
   return NODE_HASH_NAME ((node) x);
@@ -96,7 +90,7 @@ node_eq (const void *x, const void *y)
 
 /* Compare a name of node X with string Y.  */
 
-static int
+int
 node_eq_name (const void *x, const void *y)
 {
   node nod = (node) x;
