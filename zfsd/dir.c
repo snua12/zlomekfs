@@ -4050,13 +4050,15 @@ zfs_unlink (zfs_fh *dir, string *name)
   metadata meta;
   fattr fa;
   sattr sa;
-  zfs_fh tmp_fh;
+  zfs_fh tmp_fh, tmp_parent;
   zfs_fh local_fh;
   zfs_fh remote_fh;
-  zfs_fh parent_fh;
+  uint64_t master_version;
   dir_op_res res;
   int32_t r, r2;
   int what_to_do = 0;
+  bool locked2;
+  string name2;
 
   TRACE ("");
 
@@ -4104,10 +4106,29 @@ zfs_unlink (zfs_fh *dir, string *name)
       RETURN_INT (EACCES);
     }
 
-  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
-  if (r != ZFS_OK)
-    RETURN_INT (r);
+  if (idir->parent && CONFLICT_DIR_P (idir->fh->local_fh))
+    {
+      locked2 = true;
+      parent = idir->parent;
+      acquire_dentry (parent);
+      tmp_fh = idir->fh->local_fh;
+      tmp_parent = parent->fh->local_fh;
+      r = internal_dentry_lock2 (LEVEL_EXCLUSIVE, LEVEL_EXCLUSIVE, &vol,
+				 &idir, &parent, &tmp_fh, &tmp_parent);
+      if (r != ZFS_OK)
+	RETURN_INT (r);
+      release_dentry (parent);
+    }
+  else
+    {
+      locked2 = false;
+      parent = NULL;
+      r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	RETURN_INT (r);
+    }
 
+  name2.str = NULL;
   if (CONFLICT_DIR_P (idir->fh->local_fh))
     {
       dentry = dentry_lookup_name (NULL, idir, name);
@@ -4128,8 +4149,6 @@ zfs_unlink (zfs_fh *dir, string *name)
 	}
       else
 	{
-	  string name2;
-
 	  other = conflict_other_dentry (idir, dentry);
 #ifdef ENABLE_CHECKING
 	  if (!other)
@@ -4159,13 +4178,11 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 		  local_fh = dentry->fh->local_fh;
 		  remote_fh = dentry->fh->meta.master_fh;
-		  parent_fh = parent->fh->local_fh;
 		  release_dentry (dentry);
 		  release_dentry (other);
-		  r = resolve_conflict_delete_local (&res, parent, &parent_fh,
+		  r = resolve_conflict_delete_local (&res, parent, &tmp_parent,
 						     &name2, &local_fh,
 						     &remote_fh, vol);
-		  free (name2.str);
 		}
 	      else /* Both DENTRY and OTHER are regular dentries.  */
 		{
@@ -4181,14 +4198,12 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 		      local_fh = dentry->fh->local_fh;
 		      remote_fh = dentry->fh->meta.master_fh;
-		      parent_fh = parent->fh->local_fh;
 		      release_dentry (dentry);
 		      release_dentry (other);
 		      r = resolve_conflict_delete_local (&res, parent,
-							 &parent_fh, &name2,
+							 &tmp_parent, &name2,
 							 &local_fh, &remote_fh,
 							 vol);
-		      free (name2.str);
 		    }
 		  else if ((dentry->fh->attr.version
 			    > dentry->fh->meta.master_version)
@@ -4229,6 +4244,10 @@ zfs_unlink (zfs_fh *dir, string *name)
 	      if (NON_EXIST_FH_P (dentry->fh->local_fh))
 		{
 		  what_to_do = 8;
+		  xstringdup (&name2, &idir->name);
+		  local_fh = other->fh->local_fh;
+		  remote_fh = dentry->fh->local_fh;
+		  master_version = other->fh->meta.master_version;
 		  release_dentry (idir);
 		  release_dentry (dentry);
 		  release_dentry (other);
@@ -4244,12 +4263,13 @@ zfs_unlink (zfs_fh *dir, string *name)
 		  release_dentry (idir);
 		  zfsd_mutex_unlock (&fh_mutex);
 
+		  local_fh = other->fh->local_fh;
 		  remote_fh = dentry->fh->local_fh;
+		  master_version = other->fh->meta.master_version;
 		  release_dentry (dentry);
 		  release_dentry (other);
 		  r = resolve_conflict_delete_remote (vol, parent, &name2,
 						      &remote_fh);
-		  free (name2.str);
 		}
 	      else /* Both DENTRY and OTHER are regular dentries.  */
 		{
@@ -4264,12 +4284,13 @@ zfs_unlink (zfs_fh *dir, string *name)
 		      release_dentry (idir);
 		      zfsd_mutex_unlock (&fh_mutex);
 
+		      local_fh = other->fh->local_fh;
 		      remote_fh = dentry->fh->local_fh;
+		      master_version = other->fh->meta.master_version;
 		      release_dentry (dentry);
 		      release_dentry (other);
 		      r = resolve_conflict_delete_remote (vol, parent, &name2,
 							  &remote_fh);
-		      free (name2.str);
 		    }
 		  else if ((dentry->fh->attr.version
 			    > other->fh->meta.master_version)
@@ -4323,11 +4344,31 @@ zfs_unlink (zfs_fh *dir, string *name)
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+  if (locked2)
+    {
+      r2 = zfs_fh_lookup_nolock (&tmp_parent, &vol, &parent, NULL, false);
 #ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
+      if (r2 != ZFS_OK)
+	abort ();
 #endif
+
+      idir = dentry_lookup (&tmp_fh);
+    }
+  else
+    {
+      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      if (CONFLICT_DIR_P (idir->fh->local_fh))
+	{
+	  parent = idir->parent;
+	  if (parent)
+	    acquire_dentry (parent);
+	}
+    }
 
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
@@ -4377,57 +4418,39 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 	  case 3:
 	    /* Resolved conflict: deleted local file.  */
-	    parent = idir->parent;
-	    acquire_dentry (parent);
-
 	    if (!inc_local_version (vol, parent->fh))
 	      MARK_VOLUME_DELETE (vol);
 
 	    release_dentry (parent);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (idir, true, true, idir->parent == NULL);
+	    internal_dentry_destroy (idir, true, true, parent == NULL);
 	    zfsd_mutex_unlock (&fh_mutex);
-	    goto out;
+	    break;
 
 	  case 8:
 	    /* Resolved conflict: deleted remote non-existing file.  */
 	  case 4:
 	    /* Resolved conflict: deleted remote file.  */
-	    delete_dentry (&vol, &idir, name, &tmp_fh);
-
-	    dentry = conflict_local_dentry (idir);
-#ifdef ENABLE_CHECKING
-	    if (!dentry)
-	      abort ();
-#endif
-	    parent = idir->parent;
-	    acquire_dentry (parent);
 
 	    /* Add the local file to journal so that it could be
 	       reintegrated.  */
 	    if (!add_journal_entry (vol, parent->fh->journal,
-				    &parent->fh->local_fh,
-				    &dentry->fh->local_fh,
-				    &dentry->fh->meta.master_fh,
-				    dentry->fh->meta.master_version,
-				    &idir->name, JOURNAL_OPERATION_ADD))
+				    &parent->fh->local_fh, &local_fh,
+				    &remote_fh, master_version,
+				    &name2, JOURNAL_OPERATION_ADD))
 	      MARK_VOLUME_DELETE (vol);
-	    release_dentry (dentry);
 	    release_dentry (parent);
+	    zfsd_mutex_unlock (&vol->mutex);
 
-	    if (try_resolve_conflict (vol, idir))
-	      {
-		zfsd_mutex_unlock (&fh_mutex);
-		goto out;
-	      }
-#ifdef ENABLE_CHECKING
-	    else
-	      abort ();
-#endif
+	    if (idir)
+	      internal_dentry_destroy (idir, true, true, parent == NULL);
+	    zfsd_mutex_unlock (&fh_mutex);
 	    break;
 
 	  case 5:
 	    /* Resolved conflict: set local metadata.  */
+	    if (parent)
+	      release_dentry (parent);
 	    dentry = conflict_local_dentry (idir);
 	    other = conflict_other_dentry (idir, dentry);
 #ifdef ENABLE_CHECKING
@@ -4448,15 +4471,18 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    release_dentry (dentry);
 	    release_dentry (other);
 
-	    if (try_resolve_conflict (vol, idir))
+	    if (!try_resolve_conflict (vol, idir))
 	      {
-		zfsd_mutex_unlock (&fh_mutex);
-		goto out;
+		release_dentry (idir);
+		zfsd_mutex_unlock (&vol->mutex);
 	      }
+	    zfsd_mutex_unlock (&fh_mutex);
 	    break;
 
 	  case 6:
 	    /* Resolved conflict: set remote metadata.  */
+	    if (parent)
+	      release_dentry (parent);
 	    dentry = dentry_lookup_name (NULL, idir, name);
 #ifdef ENABLE_CHECKING
 	    if (!dentry)
@@ -4473,36 +4499,65 @@ zfs_unlink (zfs_fh *dir, string *name)
 	      MARK_VOLUME_DELETE (vol);
 	    release_dentry (other);
 
-	    if (try_resolve_conflict (vol, idir))
+	    if (!try_resolve_conflict (vol, idir))
 	      {
-		zfsd_mutex_unlock (&fh_mutex);
-		goto out;
+		release_dentry (idir);
+		zfsd_mutex_unlock (&vol->mutex);
 	      }
+	    zfsd_mutex_unlock (&fh_mutex);
 	    break;
 
 	  case 7:
 	    /* Resolved conflict: deleted local non-existing file.  */
+	    release_dentry (parent);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (idir, true, true, idir->parent == NULL);
+	    internal_dentry_destroy (idir, true, true, parent == NULL);
 	    zfsd_mutex_unlock (&fh_mutex);
-	    goto out;
+	    break;
 
 	  case 9:
 	    /* Resolved conflict: discarded local changes.  */
 	  case 10:
 	    /* Resolved conflict: discarded remote changes.  */
-	    if (try_resolve_conflict (vol, idir))
+	    release_dentry (parent);
+	    if (!try_resolve_conflict (vol, idir))
 	      {
-		zfsd_mutex_unlock (&fh_mutex);
-		goto out;
+		release_dentry (idir);
+		zfsd_mutex_unlock (&vol->mutex);
 	      }
+	    zfsd_mutex_unlock (&fh_mutex);
 	    break;
 	}
     }
 
-  internal_dentry_unlock (vol, idir);
+  if (r == ZFS_OK && what_to_do > 2)
+    {
+      if (locked2)
+	{
+	  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+	  if (r2 == ZFS_OK)
+	    internal_dentry_unlock (vol, idir);
 
-out:
+	  r2 = zfs_fh_lookup_nolock (&tmp_parent, &vol, &parent, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	  internal_dentry_unlock (vol, parent);
+	}
+      else
+	{
+	  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
+	  if (r2 == ZFS_OK)
+	    internal_dentry_unlock (vol, idir);
+	}
+    }
+  else
+    internal_dentry_unlock (vol, idir);
+
+  if (name2.str)
+    free (name2.str);
+
   RETURN_INT (r);
 }
 
