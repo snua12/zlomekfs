@@ -293,6 +293,7 @@ extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
 extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
 				     internal_dentry *dentryp,
 				     virtual_dir *vdp, bool delete_volume_p);
+extern void acquire_dentry (internal_dentry dentry);
 extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,

@@ -660,16 +660,12 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	  return ZFS_STALE;
 	}
 
-      zfsd_mutex_lock (&dentry->fh->mutex);
+      acquire_dentry (dentry);
 #ifdef ENABLE_CHECKING
-      if (dentry->deleted)
-	abort ();
       if (volp && vol->local_path && vol->master == this_node
 	  && !zfs_fh_undefined (dentry->fh->meta.master_fh))
 	abort ();
 #endif
-
-      dentry_update_cleanup_node (dentry);
 
       if (volp)
 	*volp = vol;
@@ -679,6 +675,19 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
     }
 
   return ZFS_OK;
+}
+
+/* Lock DENTRY and update time of last use.  */
+
+void
+acquire_dentry (internal_dentry dentry)
+{
+  zfsd_mutex_lock (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dentry->deleted)
+    abort ();
+#endif
+  dentry_update_cleanup_node (dentry);
 }
 
 /* Update time of last use of DENTRY and unlock it.  */
@@ -758,14 +767,7 @@ dentry_lookup (zfs_fh *fh)
   dentry = (internal_dentry) htab_find_with_hash (dentry_htab, fh,
 						  ZFS_FH_HASH (fh));
   if (dentry)
-    {
-      zfsd_mutex_lock (&dentry->fh->mutex);
-#ifdef ENABLE_CHECKING
-      if (dentry->deleted)
-	abort ();
-#endif
-      dentry_update_cleanup_node (dentry);
-    }
+    acquire_dentry (dentry);
 
   return dentry;
 }
@@ -786,14 +788,7 @@ dentry_lookup_name (internal_dentry parent, const char *name)
 
   dentry = (internal_dentry) htab_find (dentry_htab_name, &tmp);
   if (dentry)
-    {
-      zfsd_mutex_lock (&dentry->fh->mutex);
-#ifdef ENABLE_CHECKING
-      if (dentry->deleted)
-	abort ();
-#endif
-      dentry_update_cleanup_node (dentry);
-    }
+    acquire_dentry (dentry);
 
   return dentry;
 }
@@ -1464,7 +1459,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	  sdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh, attr,
 					      meta);
 	  release_dentry (dentry);
-	  zfsd_mutex_lock (&sdentry->fh->mutex);
+	  acquire_dentry (sdentry);
 	  return sdentry;
 	}
     }
@@ -1473,9 +1468,9 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
       dentry = vol->root_dentry;
       if (dentry)
 	{
-	  zfsd_mutex_lock (&dentry->fh->mutex);
+	  acquire_dentry (dentry);
 #ifdef ENABLE_CHECKING
-	  if (CONFLICT_DIR_P (dentry->fh->local_fh))
+	  if (!REGULAR_FH_P (dentry->fh->local_fh))
 	    abort ();
 #endif
 	}
@@ -1649,7 +1644,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
 	  dentry = add_file_to_conflict_dir (vol, conflict, true, &tmp_fh,
 					     &tmp_attr, &meta);
 	  release_dentry (conflict);
-	  zfsd_mutex_lock (&orig->fh->mutex);
+	  acquire_dentry (orig);
 	  return dentry;
 	}
 #ifdef ENABLE_CHECKING
@@ -2097,7 +2092,7 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
     {
       dentry = VARRAY_ACCESS ((*conflictp)->fh->subdentries, i,
 			      internal_dentry);
-      zfsd_mutex_lock (&dentry->fh->mutex);
+      acquire_dentry (dentry);
 
 #ifdef ENABLE_CHECKING
       if (CONFLICT_DIR_P (dentry->fh->local_fh))
