@@ -82,34 +82,6 @@ typedef struct volume_def *volume;
   (GET_SID ((FH)->local_fh) == this_node->id				\
    && GET_CONFLICT ((FH)->local_fh) == 0)
 
-/* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
-   on volume VOL.  Delete PATH from hardlinks.  */
-#define DESTROY_DENTRY(VOL, DIR, NAME, DIR_FH, PATH)			\
-  do {									\
-    internal_dentry dentry;						\
-									\
-    if (ENABLE_CHECKING_VALUE && (DIR)->fh->level == LEVEL_UNLOCKED)	\
-      abort();								\
-									\
-    dentry = dentry_lookup_name ((DIR), (NAME));			\
-    if (dentry)								\
-      {									\
-	if ((PATH) && dentry->fh->hardlinks)				\
-	  string_list_delete (dentry->fh->hardlinks, (PATH));		\
-	release_dentry ((DIR));						\
-	zfsd_mutex_unlock (&(VOL)->mutex);				\
-									\
-	internal_dentry_destroy (dentry, true);				\
-									\
-	zfsd_mutex_unlock (&fh_mutex);					\
-									\
-	r2 = zfs_fh_lookup_nolock (&(DIR_FH), &(VOL), &(DIR), NULL,	\
-				   false);				\
-	if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
-	  abort ();							\
-      }									\
-  } while (0)
-
 /* "Lock" level of the file handle or virtual directory.  */
 #define LEVEL_UNLOCKED	0
 #define LEVEL_SHARED	1
@@ -307,6 +279,8 @@ extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,
 				   char *name, fattr *attr, metadata *meta);
+extern void delete_dentry (volume *volp, internal_dentry *dirp, char *name,
+			   zfs_fh *dir_fh, char *path);
 extern virtual_dir vd_lookup (zfs_fh *fh);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);

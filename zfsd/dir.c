@@ -1645,7 +1645,7 @@ zfs_rmdir_retry:
       char *relative_path;
 
       relative_path = local_path_to_relative_path (vol, path);
-      DESTROY_DENTRY (vol, idir, name->str, tmp_fh, relative_path);
+      delete_dentry (&vol, &idir, name->str, &tmp_fh, relative_path);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
@@ -1929,7 +1929,7 @@ zfs_rename_retry:
       char *relative_path;
 
       relative_path = local_path_to_relative_path (vol, path);
-      DESTROY_DENTRY (vol, to_dentry, to_name->str, tmp_to, relative_path);
+      delete_dentry (&vol, &to_dentry, to_name->str, &tmp_to, relative_path);
 
       if (tmp_from.ino != tmp_to.ino)
 	{
@@ -2199,7 +2199,7 @@ zfs_link_retry:
 
   if (r == ZFS_OK)
     {
-      DESTROY_DENTRY (vol, dir_dentry, name->str, tmp_dir, NULL);
+      delete_dentry (&vol, &dir_dentry, name->str, &tmp_dir, NULL);
 
       if (tmp_from.ino != tmp_dir.ino)
 	{
@@ -2401,7 +2401,7 @@ zfs_unlink_retry:
       char *relative_path;
 
       relative_path = local_path_to_relative_path (vol, path);
-      DESTROY_DENTRY (vol, idir, name->str, tmp_fh, relative_path);
+      delete_dentry (&vol, &idir, name->str, &tmp_fh, relative_path);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{

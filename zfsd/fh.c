@@ -1479,6 +1479,44 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   return dentry;
 }
 
+/* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
+   on volume VOL.  Delete PATH from hardlinks.  */
+
+void
+delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh,
+	       char *path)
+{
+  internal_dentry dentry;
+  int32_t r2;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dirp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if ((*dirp)->fh->level == LEVEL_UNLOCKED)
+    abort();
+#endif
+
+  dentry = dentry_lookup_name (*dirp, name);
+  if (dentry)
+    {
+      if (path && dentry->fh->hardlinks)
+	string_list_delete (dentry->fh->hardlinks, path);
+      release_dentry (*dirp);
+      zfsd_mutex_unlock (&(*volp)->mutex);
+
+      internal_dentry_destroy (dentry, true);
+
+      zfsd_mutex_unlock (&fh_mutex);
+
+      r2 = zfs_fh_lookup_nolock (dir_fh, volp, dirp, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+    }
+}
+
 /* Create a new internal dentry NAME in directory PARENT on volume VOL for
    internal file handle FH.  */
 
