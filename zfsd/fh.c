@@ -1722,7 +1722,10 @@ void
 internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
 		      internal_dentry to_dir, string *to_name)
 {
-  internal_dentry dentry, dentry2, sdentry;
+  internal_dentry dentry, sdentry;
+#ifdef ENABLE_CHECKING
+  internal_dentry tmp;
+#endif
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1735,15 +1738,10 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
     return;
 
 #ifdef ENABLE_CHECKING
-  if (1)
-    {
-      internal_dentry tmp;
-
-      /* Check whether we are not moving DENTRY to its subtree.  */
-      for (tmp = to_dir; tmp; tmp = tmp->parent)
-	if (tmp == dentry)
-	  abort ();
-    }
+  /* Check whether we are not moving DENTRY to its subtree.  */
+  for (tmp = to_dir; tmp; tmp = tmp->parent)
+    if (tmp == dentry)
+      abort ();
 #endif
 
   /* Delete DENTRY from FROM_DIR's directory entries.  */
@@ -1765,8 +1763,8 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
 
   /* Insert DENTRY to TO_DIR.  */
 #ifdef ENABLE_CHECKING
-  dentry2 = dentry_lookup_name (NULL, to_dir, to_name);
-  if (dentry2)
+  tmp = dentry_lookup_name (NULL, to_dir, to_name);
+  if (tmp)
     abort ();
 #endif
 
