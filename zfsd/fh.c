@@ -650,7 +650,6 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   if (!*slot)
     {
       fh = internal_fh_create (local_fh, master_fh, attr, vol);
-      *slot = fh;
     }
   else
     {
