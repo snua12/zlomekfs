@@ -32,6 +32,7 @@
 #include "pthread.h"
 #include "constant.h"
 #include "memory.h"
+#include "fibheap.h"
 #include "data-coding.h"
 #include "fh.h"
 #include "file.h"
@@ -46,6 +47,82 @@ _syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
 /* The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
 
+/* Array of opened file descriptors.  */
+static fibheap opened;
+
+/* Mutex protecting access to OPENED and NOPENED.  */
+static pthread_mutex_t opened_mutex;
+
+/* Initialize data for file descriptor of capability CAP.  */
+
+static void
+init_cap_fd_data (internal_cap cap)
+{
+#ifdef ENABLE_CHECKING
+  if (cap->fd < 0)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (&opened_mutex);
+  CHECK_MUTEX_LOCKED (&internal_fd_data[cap->fd].mutex);
+
+  internal_fd_data[cap->fd].fd = cap->fd;
+  internal_fd_data[cap->fd].generation++;
+  cap->generation = internal_fd_data[cap->fd].generation;
+  internal_fd_data[cap->fd].heap_node
+    = fibheap_insert (opened, (fibheapkey_t) time (NULL),
+		      &internal_fd_data[cap->fd]);
+}
+
+/* Close file descriptor FD of local file.  */
+
+static void
+close_local_fd (int fd)
+{
+  CHECK_MUTEX_LOCKED (&opened_mutex);
+#ifdef ENABLE_CHECKING
+  if (fd < 0)
+    abort ();
+#endif
+
+  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
+  internal_fd_data[fd].fd = -1;
+  internal_fd_data[fd].generation++;
+  close (fd);
+  fibheap_delete_node (opened, internal_fd_data[fd].heap_node);
+  internal_fd_data[fd].heap_node = NULL;
+  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+}
+
+/* Wrapper for open. If open fails because of too many open file descriptors
+   it closes a file descriptor unused for longest time.  */
+
+static int
+safe_open (const char *pathname, unsigned int flags, unsigned int mode)
+{
+  int fd;
+
+retry_open:
+  fd = open (pathname, flags, mode);
+  if ((fd < 0 && errno == EMFILE)
+      || (fd >= 0 && fibheap_size (opened) >= max_local_fds))
+    {
+      internal_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&opened_mutex);
+      fd_data = (internal_fd_data_t *) fibheap_extract_min (opened);
+      if (fd_data && fd_data->fd >= 0)
+	close_local_fd (fd_data->fd);
+      zfsd_mutex_unlock (&opened_mutex);
+      if (fd_data)
+	goto retry_open;
+    }
+
+  if (fd < 0)
+    return errno;
+
+  return fd;
+}
+
 /* If local file for capability CAP is opened return true and lock
    INTERNAL_FD_DATA[CAP->FD].MUTEX.  */
 
@@ -57,14 +134,18 @@ capability_opened_p (internal_cap cap)
   if (cap->fd < 0)
     return false;
 
+  zfsd_mutex_lock (&opened_mutex);
   zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
   if (cap->generation != internal_fd_data[cap->fd].generation)
     {
       zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      zfsd_mutex_unlock (&opened_mutex);
       return false;
     }
 
-  internal_fd_data[cap->fd].last_use = time (NULL);
+  fibheap_replace_key (opened, internal_fd_data[cap->fd].heap_node,
+		       (fibheapkey_t) time (NULL));
+  zfsd_mutex_unlock (&opened_mutex);
   return true;
 }
 
@@ -73,13 +154,13 @@ capability_opened_p (internal_cap cap)
 int
 local_close (internal_cap cap)
 {
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+
   if (cap->fd >= 0)
     {
-      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
-      internal_fd_data[cap->fd].fd = -1;
-      internal_fd_data[cap->fd].generation++;
-      close (cap->fd);
-      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      zfsd_mutex_lock (&opened_mutex);
+      close_local_fd (cap->fd);
+      zfsd_mutex_unlock (&opened_mutex);
       cap->fd = -1;
     }
 
@@ -140,11 +221,10 @@ capability_open (internal_cap cap, unsigned int flags, internal_fh fh,
   free (path);
   if (cap->fd >= 0)
     {
+      zfsd_mutex_lock (&opened_mutex);
       zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
-      internal_fd_data[cap->fd].fd = cap->fd;
-      internal_fd_data[cap->fd].generation++;
-      internal_fd_data[cap->fd].last_use = time (NULL);
-      cap->generation = internal_fd_data[cap->fd].generation;
+      init_cap_fd_data (cap);
+      zfsd_mutex_unlock (&opened_mutex);
       return ZFS_OK;
     }
 
@@ -166,7 +246,7 @@ local_create (create_res *res, int *fdp, internal_fh dir, string *name,
   CHECK_MUTEX_LOCKED (&dir->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
-  r = open (path, flags, attr->mode);
+  r = safe_open (path, flags, attr->mode);
   if (r < 0)
     {
       free (path);
@@ -306,12 +386,11 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	  local_close (icap);
 	  icap->fd = fd;
 
+	  zfsd_mutex_lock (&opened_mutex);
 	  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
-	  internal_fd_data[fd].fd = fd;
-	  internal_fd_data[fd].generation++;
-	  internal_fd_data[fd].last_use = time (NULL);
-	  icap->generation = internal_fd_data[fd].generation;
+	  init_cap_fd_data (icap);
 	  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+	  zfsd_mutex_unlock (&opened_mutex);
 	}
 
       zfsd_mutex_unlock (&ifh->mutex);
@@ -1074,6 +1153,9 @@ initialize_file_c ()
 {
   int i;
 
+  zfsd_mutex_init (&opened_mutex);
+  opened = fibheap_new (max_local_fds, &opened_mutex);
+
   /* Data for each file descriptor.  */
   internal_fd_data
     = (internal_fd_data_t *) xcalloc (max_nfd, sizeof (internal_fd_data_t));
@@ -1089,5 +1171,19 @@ initialize_file_c ()
 void
 cleanup_file_c ()
 {
+  while (fibheap_size (opened) > 0)
+    {
+      internal_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&opened_mutex);
+      fd_data = (internal_fd_data_t *) fibheap_extract_min (opened);
+      if (fd_data && fd_data->fd >= 0)
+	close_local_fd (fd_data->fd);
+      zfsd_mutex_unlock (&opened_mutex);
+    }
+  zfsd_mutex_lock (&opened_mutex);
+  fibheap_delete (opened);
+  zfsd_mutex_unlock (&opened_mutex);
+  zfsd_mutex_destroy (&opened_mutex);
   free (internal_fd_data);
 }

@@ -31,15 +31,16 @@
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"
+#include "fibheap.h"
 
 /* Data for file descriptor.  */
 typedef struct internal_fd_data_def
 {
   pthread_mutex_t mutex;
   int fd;			/* file descriptor */
-  time_t last_use;		/* time of last use of the file descriptor */
   unsigned int generation;	/* generation of open file descriptor */
   int busy;			/* number of threads using file descriptor */
+  fibnode heap_node;		/* node of heap whose data is this structure  */
 } internal_fd_data_t;
 
 #include "cap.h"
