@@ -600,7 +600,8 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
 	  zfsd_mutex_unlock (&ifh->mutex);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&icap->mutex);
-	  r = ENOTDIR;
+	  encode_status (dc, ENOTDIR);
+	  return ENOTDIR;
 	}
     }
   if (r != ZFS_OK)
