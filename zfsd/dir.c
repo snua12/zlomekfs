@@ -330,10 +330,11 @@ out:
   return r;
 }
 
-/* Recursivelly unlink the file PATH on volume with ID == VID.  */
+/* Recursivelly unlink the file PATH on volume with ID == VID.
+   SHADOW is true when the PATH is in shadow.  */
 
 bool
-recursive_unlink (char *path, uint32_t vid)
+recursive_unlink (char *path, uint32_t vid, bool shadow)
 {
   char *slash;
   struct stat parent_st;
@@ -343,19 +344,28 @@ recursive_unlink (char *path, uint32_t vid)
     abort ();
 #endif
 
-  for (slash = path; *slash; slash++)
-    ;
-  for (; *slash != '/'; slash--)
-    ;
-  *slash = 0;
-
-  if (lstat (path, &parent_st) != 0
-      && errno != ENOENT)
+  if (shadow)
     {
-      return false;
+      parent_st.st_dev = 0;
+      parent_st.st_ino = 0;
+    }
+  else
+    {
+      for (slash = path; *slash; slash++)
+	;
+      for (; *slash != '/'; slash--)
+	;
+      *slash = 0;
+
+      if (lstat (path, &parent_st) != 0
+	  && errno != ENOENT)
+	{
+	  return false;
+	}
+
+      *slash = '/';
     }
 
-  *slash = '/';
   return recursive_unlink_1 (path, slash + 1, vid, &parent_st);
 }
 

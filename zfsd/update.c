@@ -605,7 +605,7 @@ delete_tree (internal_dentry dentry, volume vol)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = recursive_unlink (path, vid);
+  r = recursive_unlink (path, vid, false);
   free (path);
 
   return r;
@@ -630,7 +630,7 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (path, vid);
+  r = recursive_unlink (path, vid, false);
   free (path);
 
   return r;
@@ -658,7 +658,7 @@ move_to_shadow (volume vol, internal_dentry dentry)
   zfsd_mutex_unlock (&fh_mutex);
 
   shadow_path = get_shadow_path (vol, &fh, true);
-  if (!recursive_unlink (shadow_path, vid))
+  if (!recursive_unlink (shadow_path, vid, true))
     {
       free (path);
       free (shadow_path);
