@@ -561,16 +561,45 @@ zfs_rmdir (zfs_fh *dir, string *name)
 {
   volume vol;
   internal_fh idir;
+  virtual_dir vd, pvd;
   int r = ZFS_OK;
 
-  /* Virtual directory tree is read only for users.  */
-  if (VIRTUAL_FH_P (*dir))
-    return EROFS;
-
   /* Lookup the file.  */
-  if (!fh_lookup (dir, &vol, &idir, NULL))
+  if (!fh_lookup (dir, &vol, &idir, &pvd))
     return ESTALE;
 
+  if (pvd)
+    {
+      zfsd_mutex_lock (&vd_mutex);
+      vd = vd_lookup_name (pvd, name->str);
+      zfsd_mutex_unlock (&vd_mutex);
+      if (vd)
+	{
+	  /* Virtual directory tree is read only for users.  */
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  zfsd_mutex_unlock (&vd->mutex);
+	  return EROFS;
+	}
+      else if (!vol)
+	{
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  return ENOENT;
+	}
+      else
+	{
+	  r = update_volume_root (vol, &idir);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&pvd->mutex);
+	      return r;
+	    }
+	  zfsd_mutex_unlock (&pvd->mutex);
+	}
+    }
+  
   if (vol->local_path)
     r = local_rmdir (idir, name, vol);
   else if (vol->master != this_node)
