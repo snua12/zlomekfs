@@ -64,6 +64,7 @@ init_cap_fd_data (internal_cap cap)
     abort ();
 #endif
   CHECK_MUTEX_LOCKED (&opened_mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
   CHECK_MUTEX_LOCKED (&internal_fd_data[cap->fd].mutex);
 
   internal_fd_data[cap->fd].fd = cap->fd;
@@ -79,14 +80,13 @@ init_cap_fd_data (internal_cap cap)
 static void
 close_local_fd (int fd)
 {
-  CHECK_MUTEX_LOCKED (&opened_mutex);
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
 #endif
+  CHECK_MUTEX_LOCKED (&opened_mutex);
+  CHECK_MUTEX_LOCKED (&internal_fd_data[fd].mutex);
 
-  message (2, stderr, "Closing FD %d\n", fd);
-  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
   if (internal_fd_data[fd].fd < 0)
     abort ();
@@ -96,8 +96,11 @@ close_local_fd (int fd)
   internal_fd_data[fd].fd = -1;
   internal_fd_data[fd].generation++;
   close (fd);
-  fibheap_delete_node (opened, internal_fd_data[fd].heap_node);
-  internal_fd_data[fd].heap_node = NULL;
+  if (internal_fd_data[fd].heap_node)
+    {
+      fibheap_delete_node (opened, internal_fd_data[fd].heap_node);
+      internal_fd_data[fd].heap_node = NULL;
+    }
   zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 }
 
@@ -119,7 +122,11 @@ retry_open:
       zfsd_mutex_lock (&opened_mutex);
       fd_data = (internal_fd_data_t *) fibheap_extract_min (opened);
       if (fd_data && fd_data->fd >= 0)
-	close_local_fd (fd_data->fd);
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  fd_data->heap_node = NULL;
+	  close_local_fd (fd_data->fd);
+	}
       zfsd_mutex_unlock (&opened_mutex);
       if (fd_data)
 	goto retry_open;
@@ -168,7 +175,11 @@ local_close (internal_cap cap)
   if (cap->fd >= 0)
     {
       zfsd_mutex_lock (&opened_mutex);
-      close_local_fd (cap->fd);
+      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
+      if (cap->generation == internal_fd_data[cap->fd].generation)
+	close_local_fd (cap->fd);
+      else
+	zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
       zfsd_mutex_unlock (&opened_mutex);
       cap->fd = -1;
     }
@@ -1308,7 +1319,11 @@ cleanup_file_c ()
 	abort ();
 #endif
       if (fd_data && fd_data->fd >= 0)
-	close_local_fd (fd_data->fd);
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  fd_data->heap_node = NULL;
+	  close_local_fd (fd_data->fd);
+	}
       zfsd_mutex_unlock (&opened_mutex);
     }
   zfsd_mutex_lock (&opened_mutex);
