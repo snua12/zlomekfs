@@ -978,9 +978,10 @@ init_volume_metadata (volume vol)
 #endif
 
   path = build_metadata_path (vol, METADATA_TYPE_METADATA);
-  vol->metadata = hfile_create (sizeof (metadata), 32, metadata_hash,
-				metadata_eq, metadata_decode, metadata_encode,
-				path, &vol->mutex);
+  vol->metadata = hfile_create (sizeof (metadata),
+				offsetof (metadata, parent_dev), 32,
+				metadata_hash, metadata_eq, metadata_decode,
+				metadata_encode, path, &vol->mutex);
   insert_volume_root = (lstat (vol->local_path, &st) < 0);
 
   if (!create_path_for_file (path, S_IRWXU))
@@ -1059,7 +1060,8 @@ init_volume_metadata (volume vol)
     }
 
   path = build_metadata_path (vol, METADATA_TYPE_FH_MAPPING);
-  vol->fh_mapping = hfile_create (sizeof (fh_mapping), 32, fh_mapping_hash,
+  vol->fh_mapping = hfile_create (sizeof (fh_mapping), sizeof (fh_mapping),
+				  32, fh_mapping_hash,
 				  fh_mapping_eq, fh_mapping_decode,
 				  fh_mapping_encode, path, &vol->mutex);
   free (path);
@@ -1467,7 +1469,7 @@ init_metadata_for_created_volume_root (volume vol)
       meta.parent_ino = (uint32_t) -1;
       memset (meta.name, 0, METADATA_NAME_SIZE);
 
-      if (!hfile_insert (vol->metadata, &meta))
+      if (!hfile_insert (vol->metadata, &meta, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  return false;
@@ -1524,7 +1526,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
       meta->parent_ino = (uint32_t) -1;
       memset (meta->name, 0, METADATA_NAME_SIZE);
 
-      if (!hfile_insert (vol->metadata, meta))
+      if (!hfile_insert (vol->metadata, meta, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  return false;
@@ -1633,7 +1635,7 @@ flush_metadata (volume vol, metadata *meta)
 	return false;
     }
 
-  if (!hfile_insert (vol->metadata, meta))
+  if (!hfile_insert (vol->metadata, meta, true))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       return false;
@@ -1734,7 +1736,7 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
       map.slot_status = VALID_SLOT;
       map.master_fh = *master_fh;
       map.local_fh = fh->local_fh;
-      if (!hfile_insert (vol->fh_mapping, &map))
+      if (!hfile_insert (vol->fh_mapping, &map, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
 	  close_volume_metadata (vol);
@@ -1759,7 +1761,7 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 	  map.slot_status = VALID_SLOT;
 	  map.master_fh = *master_fh;
 	  map.local_fh = fh->local_fh;
-	  if (!hfile_insert (vol->fh_mapping, &map))
+	  if (!hfile_insert (vol->fh_mapping, &map, false))
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
 	      close_volume_metadata (vol);
@@ -1890,7 +1892,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   if (!vol->is_copy)
     meta.master_version = meta.local_version;
 
-  if (!hfile_insert (vol->metadata, &meta))
+  if (!hfile_insert (vol->metadata, &meta, false))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       close_volume_metadata (vol);
@@ -2193,7 +2195,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  meta.parent_ino = (uint32_t) -1;
 	  memset (meta.name, 0, METADATA_NAME_SIZE);
 
-	  if (!hfile_insert (vol->metadata, &meta))
+	  if (!hfile_insert (vol->metadata, &meta, false))
 	    {
 	      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	      return false;
@@ -2223,7 +2225,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
       meta.parent_ino = (uint32_t) -1;
       memset (meta.name, 0, METADATA_NAME_SIZE);
 
-      if (!hfile_insert (vol->metadata, &meta))
+      if (!hfile_insert (vol->metadata, &meta, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  return false;
@@ -2280,7 +2282,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 
       hardlink_list_destroy (hl);
 
-      if (!hfile_insert (vol->metadata, &meta))
+      if (!hfile_insert (vol->metadata, &meta, false))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  return false;

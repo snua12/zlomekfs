@@ -40,7 +40,8 @@ int main (int argc, char **argv)
       return 1;
     }
 
-  hfile = hfile_create (sizeof (metadata), 256, metadata_hash, metadata_eq,
+  hfile = hfile_create (sizeof (metadata), offsetof (metadata, parent_dev),
+			256, metadata_hash, metadata_eq,
 			metadata_decode, metadata_encode, argv[1], NULL);
   hfile->fd = open (hfile->file_name, O_RDONLY);
   if (hfile->fd < 0)
@@ -72,16 +73,16 @@ int main (int argc, char **argv)
 
       printf ("%s:\n", argv[i]);
 
-      printf ("  Flags:");
+      printf (" Flags:");
       if (meta.flags & METADATA_COMPLETE)
 	printf (" complete");
       if (meta.flags & METADATA_MODIFIED)
 	printf (" modified");
       printf ("\n");
 
-      printf ("  Generation: %" PRIu32 "\n", meta.gen);
-      printf ("  Local version: %" PRIu64 "\n", meta.local_version);
-      printf ("  Master version: %" PRIu64 "\n", meta.master_version);
+      printf (" Generation: %" PRIu32 "\n", meta.gen);
+      printf (" Local version: %" PRIu64 "\n", meta.local_version);
+      printf (" Master version: %" PRIu64 "\n", meta.master_version);
     }
 
   return 0;

@@ -321,10 +321,13 @@ hfile_expand_error:
 }
 
 /* Create the hash table data structure with SIZE elements, hash function
-   HASH_F and compare function EQ_F.  */
+   HASH_F, compare function EQ_F, decode function DECODE_F, encode function
+   ENCODE_F  and file FILE_NAME.  The size of the whole element is ELEMENT_SIZE,
+   te size of base of element is BASE_SIZE*/
 
 hfile_t
-hfile_create (unsigned int element_size, unsigned int size,
+hfile_create (unsigned int element_size, unsigned int base_size,
+	      unsigned int size,
 	      hfile_hash hash_f, hfile_eq eq_f,
 	      hfile_decode decode_f, hfile_encode encode_f,
 	      const char *file_name, pthread_mutex_t *mutex)
@@ -336,6 +339,8 @@ hfile_create (unsigned int element_size, unsigned int size,
     abort ();
   if (element_size > HFILE_BUFFER_SIZE)
     abort ();
+  if (base_size > element_size)
+    abort ();
   if (!hash_f)
     abort ();
   if (!eq_f)
@@ -346,6 +351,7 @@ hfile_create (unsigned int element_size, unsigned int size,
   hfile->mutex = mutex;
   hfile->element = (char *) xmalloc (element_size);
   hfile->element_size = element_size;
+  hfile->base_size = base_size;
   hfile->size = size;
   hfile->n_elements = 0;
   hfile->n_deleted = 0;
@@ -434,10 +440,11 @@ hfile_lookup (hfile_t hfile, void *x)
   return true;
 }
 
-/* Insert element X into hash file HFILE.  Return false on file failure.  */
+/* Insert element X into hash file HFILE.  If BASE_ONLY is true insert only
+   the base of the element.  Return false on file failure.  */
 
 bool
-hfile_insert (hfile_t hfile, void *x)
+hfile_insert (hfile_t hfile, void *x, bool base_only)
 {
   uint64_t offset;
   uint32_t status;
@@ -463,7 +470,8 @@ hfile_insert (hfile_t hfile, void *x)
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_insert_error;
 
-  if (!full_write (hfile->fd, x, hfile->element_size))
+  if (!full_write (hfile->fd, x, (base_only
+				  ? hfile->base_size : hfile->element_size)))
     goto hfile_insert_error;
 
   if ((uint64_t) lseek (hfile->fd, 0, SEEK_SET) != 0)

@@ -53,8 +53,11 @@ typedef struct hfile_def
   /* Temporary buffer for one element.  */
   char *element;
 
-  /* Size of element.  */
+  /* Size of the whole element.  */
   unsigned int element_size;
+
+  /* Size if the base of the element.  */
+  unsigned int base_size;
 
   /* Size of the table (number of the entries).  */
   unsigned int size;
@@ -99,14 +102,15 @@ typedef struct hashfile_header_def
 #define DELETED_SLOT	1
 #define VALID_SLOT	2
 
-extern hfile_t hfile_create (unsigned int element_size, unsigned int size,
+extern hfile_t hfile_create (unsigned int element_size, unsigned int base_size,
+			     unsigned int size,
 			     hfile_hash hash_f, hfile_eq eq_f,
 			     hfile_decode decode_f, hfile_encode encode_f,
 			     const char *file_name, pthread_mutex_t *mutex);
 extern bool hfile_init (hfile_t hfile, struct stat *st);
 extern void hfile_destroy (hfile_t hfile);
 extern bool hfile_lookup (hfile_t hfile, void *x);
-extern bool hfile_insert (hfile_t hfile, void *x);
+extern bool hfile_insert (hfile_t hfile, void *x, bool base_only);
 extern bool hfile_delete (hfile_t hfile, void *x);
 
 #endif
