@@ -25,19 +25,21 @@
 #include <inttypes.h>
 #include <netinet/in.h>
 
-/* Align a number to be a multiple of 2, 4, 8, 16.  */
+/* Align a number to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_1(N) (N)
 #define ALIGN_2(N) (((N) + 1) & ~1)
 #define ALIGN_4(N) (((N) + 3) & ~3)
 #define ALIGN_8(N) (((N) + 7) & ~7)
 #define ALIGN_16(N) (((N) + 15) & ~15)
+#define ALIGN_256(N) (((N) + 255) & ~255)
 
-/* Align a pointer to be a multiple of 2, 4, 8, 16.  */
+/* Align a pointer to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_PTR_1(P) ((void *) ALIGN_1 ((uintptr_t) (P)))
 #define ALIGN_PTR_2(P) ((void *) ALIGN_2 ((uintptr_t) (P)))
 #define ALIGN_PTR_4(P) ((void *) ALIGN_4 ((uintptr_t) (P)))
 #define ALIGN_PTR_8(P) ((void *) ALIGN_8 ((uintptr_t) (P)))
 #define ALIGN_PTR_16(P) ((void *) ALIGN_16 ((uintptr_t) (P)))
+#define ALIGN_PTR_256(P) ((void *) ALIGN_256 ((uintptr_t) (P)))
 
 /* Extract the I-th byte of the number.  */
 #define byte0(X) ((unsigned char) (X))

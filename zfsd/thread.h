@@ -96,7 +96,7 @@ typedef struct thread_def
 typedef union padded_thread_def
 {
   thread t;
-  char padding[256];
+  char padding[((sizeof (thread) + 255) / 256) * 256];
 } padded_thread;
 
 /* Definition of thread pool.  */
@@ -104,7 +104,8 @@ typedef struct thread_pool_def {
   size_t min_spare_threads;	/* minimal number of spare threads */
   size_t max_spare_threads;	/* maximal number of spare threads */
   size_t size;			/* total number of slots for threads */
-  padded_thread *threads;	/* thread slots */
+  void *unaligned_array;	/* pointer returned by xmalloc */
+  padded_thread *threads;	/* thread slots, previous pointer aligned */
   queue idle;			/* queue of idle threads */
   queue empty;			/* queue of empty thread slots */
 } thread_pool;

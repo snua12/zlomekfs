@@ -42,8 +42,8 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   pool->min_spare_threads = min_spare_threads;
   pool->max_spare_threads = max_spare_threads;
   pool->size = max_threads;
-  pool->threads = (padded_thread *) xmalloc (max_threads
-					     * sizeof (padded_thread));
+  pool->unaligned_array = xmalloc (max_threads * sizeof (padded_thread) + 255);
+  pool->threads = (padded_thread *) ALIGN_PTR_256 (pool->unaligned_array);
   queue_create (&pool->idle, max_threads);
   queue_create (&pool->empty, max_threads);
 
