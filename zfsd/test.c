@@ -114,7 +114,6 @@ fake_config (void)
     }
 #ifdef TEST_UPDATE
   else if (this_node && strcmp (this_node->name.str, "orion") == 0)
-    /* FIXME: race condition?  */
     {
       if (volume_set_local_info (vol, "/.zfs/vol3", VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
@@ -176,6 +175,15 @@ fake_config (void)
       else
 	volume_delete (vol);
     }
+#ifdef TEST_UPDATE
+  else if (this_node && strcmp (this_node->name.str, "orion") == 0)
+    {
+      if (volume_set_local_info (vol, "/.zfs/vol6", VOLUME_NO_LIMIT))
+	zfsd_mutex_unlock (&vol->mutex);
+      else
+	volume_delete (vol);
+    }
+#endif
   else
     zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
