@@ -90,10 +90,10 @@ extern void mark_all_users (void);
 extern void mark_all_groups (void);
 extern void mark_user_mapping (node nod);
 extern void mark_group_mapping (node nod);
-extern void destroy_invalid_users (void);
-extern void destroy_invalid_groups (void);
-extern void destroy_invalid_user_mapping (node nod);
-extern void destroy_invalid_group_mapping (node nod);
+extern void destroy_marked_users (void);
+extern void destroy_marked_groups (void);
+extern void destroy_marked_user_mapping (node nod);
+extern void destroy_marked_group_mapping (node nod);
 
 extern void initialize_user_group_c (void);
 extern void cleanup_user_group_c (void);

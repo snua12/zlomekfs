@@ -943,10 +943,10 @@ mark_group_mapping (node nod)
     }
 }
 
-/* Destroy invalid users.  */
+/* Destroy marked users.  */
 
 void
-destroy_invalid_users (void)
+destroy_marked_users (void)
 {
   void **slot;
 
@@ -961,10 +961,10 @@ destroy_invalid_users (void)
   zfsd_mutex_unlock (&users_groups_mutex);
 }
 
-/* Destroy invalid groups.  */
+/* Destroy marked groups.  */
 
 void
-destroy_invalid_groups (void)
+destroy_marked_groups (void)
 {
   void **slot;
 
@@ -979,10 +979,10 @@ destroy_invalid_groups (void)
   zfsd_mutex_unlock (&users_groups_mutex);
 }
 
-/* Destroy invalid user mapping.  */
+/* Destroy marked user mapping.  */
 
 void
-destroy_invalid_user_mapping (node nod)
+destroy_marked_user_mapping (node nod)
 {
   htab_t map_to_node;
   htab_t map_to_zfs;
@@ -1036,10 +1036,10 @@ destroy_invalid_user_mapping (node nod)
   zfsd_mutex_unlock (&users_groups_mutex);
 }
 
-/* Destroy invalid group mapping.  */
+/* Destroy marked group mapping.  */
 
 void
-destroy_invalid_group_mapping (node nod)
+destroy_marked_group_mapping (node nod)
 {
   htab_t map_to_node;
   htab_t map_to_zfs;

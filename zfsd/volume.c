@@ -435,10 +435,10 @@ mark_all_volumes (void)
   zfsd_mutex_unlock (&volume_mutex);
 }
 
-/* Destroy volume VOL if it is invalid.  */
+/* Destroy volume VOL if it is marked.  */
 
 static void
-destroy_invalid_volume_1 (volume vol)
+destroy_marked_volume_1 (volume vol)
 {
   void **slot;
   bool master_marked;
@@ -480,10 +480,10 @@ destroy_invalid_volume_1 (volume vol)
     }
 }
 
-/* Destroy volume VID if it is invalid.  */
+/* Destroy volume VID if it is marked.  */
 
 void
-destroy_invalid_volume (uint32_t vid)
+destroy_marked_volume (uint32_t vid)
 {
   volume vol;
 
@@ -491,15 +491,15 @@ destroy_invalid_volume (uint32_t vid)
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup_nolock (vid);
   if (vol)
-    destroy_invalid_volume_1 (vol);
+    destroy_marked_volume_1 (vol);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
 }
 
-/* Delete invalid volumes.  */
+/* Delete marked volumes.  */
 
 void
-destroy_invalid_volumes (void)
+destroy_marked_volumes (void)
 {
   void **slot;
 
@@ -510,7 +510,7 @@ destroy_invalid_volumes (void)
       volume vol = (volume) *slot;
 
       zfsd_mutex_lock (&vol->mutex);
-      destroy_invalid_volume_1 (vol);
+      destroy_marked_volume_1 (vol);
     }
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);

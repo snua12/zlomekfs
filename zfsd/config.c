@@ -1428,19 +1428,19 @@ fix_config (void)
   if (this_node == NULL || this_node->marked)
     return false;
 
-  destroy_invalid_volumes ();
-  destroy_invalid_nodes ();
+  destroy_marked_volumes ();
+  destroy_marked_nodes ();
 
-  destroy_invalid_user_mapping (NULL);
-  destroy_invalid_group_mapping (NULL);
+  destroy_marked_user_mapping (NULL);
+  destroy_marked_group_mapping (NULL);
 
   zfsd_mutex_lock (&this_node->mutex);
-  destroy_invalid_user_mapping (this_node);
-  destroy_invalid_group_mapping (this_node);
+  destroy_marked_user_mapping (this_node);
+  destroy_marked_group_mapping (this_node);
   zfsd_mutex_unlock (&this_node->mutex);
 
-  destroy_invalid_users ();
-  destroy_invalid_groups ();
+  destroy_marked_users ();
+  destroy_marked_groups ();
 
   return true;
 }
@@ -1465,8 +1465,8 @@ reread_node_list (void)
   if (this_node == NULL || this_node->marked)
     return false;
 
-  destroy_invalid_volumes ();
-  destroy_invalid_nodes ();
+  destroy_marked_volumes ();
+  destroy_marked_nodes ();
 
   return true;
 }
@@ -1488,7 +1488,7 @@ reread_volume_list (void)
   if (!read_volume_list (&config_dir_res.file))
     return false;
 
-  destroy_invalid_volumes ();
+  destroy_marked_volumes ();
 
   return true;
 }
@@ -1513,11 +1513,11 @@ reread_user_list (void)
   if (this_node)
     {
       zfsd_mutex_lock (&this_node->mutex);
-      destroy_invalid_user_mapping (this_node);
+      destroy_marked_user_mapping (this_node);
       zfsd_mutex_unlock (&this_node->mutex);
     }
-  destroy_invalid_user_mapping (NULL);
-  destroy_invalid_users ();
+  destroy_marked_user_mapping (NULL);
+  destroy_marked_users ();
 
   return true;
 }
@@ -1542,11 +1542,11 @@ reread_group_list (void)
   if (this_node)
     {
       zfsd_mutex_lock (&this_node->mutex);
-      destroy_invalid_group_mapping (this_node);
+      destroy_marked_group_mapping (this_node);
       zfsd_mutex_unlock (&this_node->mutex);
     }
-  destroy_invalid_group_mapping (NULL);
-  destroy_invalid_groups ();
+  destroy_marked_group_mapping (NULL);
+  destroy_marked_groups ();
 
   return true;
 }
@@ -1574,7 +1574,7 @@ reread_volume_hierarchy (volume vol)
     {
       free (name.str);
       free (mountpoint.str);
-      destroy_invalid_volume (vid);
+      destroy_marked_volume (vid);
       return;
     }
 
@@ -1584,14 +1584,14 @@ reread_volume_hierarchy (volume vol)
     {
       free (name.str);
       free (mountpoint.str);
-      destroy_invalid_volume (vid);
+      destroy_marked_volume (vid);
       return;
     }
 
   read_volume_hierarchy (&volume_hierarchy_dir_res.file, vid, &name,
 			 &mountpoint);
 
-  destroy_invalid_volume (vid);
+  destroy_marked_volume (vid);
 }
 
 /* Reread user mapping for node SID.  */
@@ -1634,11 +1634,11 @@ reread_user_mapping (uint32_t sid)
   if (nod)
     {
       zfsd_mutex_lock (&nod->mutex);
-      destroy_invalid_user_mapping (nod);
+      destroy_marked_user_mapping (nod);
       zfsd_mutex_unlock (&nod->mutex);
     }
   else
-    destroy_invalid_user_mapping (nod);
+    destroy_marked_user_mapping (nod);
 
   return true;
 }
@@ -1683,11 +1683,11 @@ reread_group_mapping (uint32_t sid)
   if (nod)
     {
       zfsd_mutex_lock (&nod->mutex);
-      destroy_invalid_group_mapping (nod);
+      destroy_marked_group_mapping (nod);
       zfsd_mutex_unlock (&nod->mutex);
     }
   else
-    destroy_invalid_group_mapping (nod);
+    destroy_marked_group_mapping (nod);
 
   return true;
 }

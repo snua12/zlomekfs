@@ -316,10 +316,10 @@ mark_all_nodes (void)
   zfsd_mutex_unlock (&node_mutex);
 }
 
-/* Destroy invalid nodes.  */
+/* Destroy marked nodes.  */
 
 void
-destroy_invalid_nodes (void)
+destroy_marked_nodes (void)
 {
   void **slot;
 
