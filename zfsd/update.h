@@ -165,19 +165,32 @@
 	    zfsd_mutex_unlock (&fh_mutex);				\
 									\
 	    r = update_fh ((DENTRY), (VOL), &tmp_fh, &remote_attr);	\
-	    if (r != ZFS_OK)						\
-	      return r;							\
 									\
 	    if (VIRTUAL_FH_P ((CAP).fh))				\
 	      zfsd_mutex_lock (&vd_mutex);				\
-	    r = find_capability_nolock (&(CAP), &(ICAP), &(VOL),	\
+	    r2 = find_capability_nolock (&(CAP), &(ICAP), &(VOL),	\
 					&(DENTRY), &(VD), false);	\
-	    if (VIRTUAL_FH_P ((CAP).fh))				\
-	      zfsd_mutex_unlock (&vd_mutex);				\
-	    if (ENABLE_CHECKING_VALUE && r != ZFS_OK)			\
+	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
 	      abort ();							\
+									\
+	    if (r != ZFS_OK)						\
+	      {								\
+		internal_cap_unlock ((VOL), (DENTRY), (VD));		\
+		zfsd_mutex_unlock (&(VOL)->mutex);			\
+		zfsd_mutex_unlock (&fh_mutex);				\
+		if (VIRTUAL_FH_P ((CAP).fh))				\
+		  zfsd_mutex_unlock (&vd_mutex);			\
+		return r;						\
+	      }								\
+									\
 	    if (VD)							\
-	      zfsd_mutex_unlock (&(VD)->mutex);				\
+	      {								\
+		zfsd_mutex_unlock (&(VD)->mutex);			\
+		zfsd_mutex_unlock (&vd_mutex);				\
+	      }								\
+	    if (ENABLE_CHECKING_VALUE					\
+		&& !(VD) && VIRTUAL_FH_P ((CAP).fh))			\
+	      abort ();							\
 	  }								\
       }									\
   } while (0)
