@@ -426,7 +426,7 @@ hfile_insert (hfile_t hfile, void *x)
   if (status == VALID_SLOT)
     return true;
 
-  *(uint32_t *) hfile->element = VALID_SLOT;
+  *(uint32_t *) x = VALID_SLOT;
 
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_insert_error;
@@ -473,13 +473,14 @@ hfile_delete (hfile_t hfile, void *x)
   if (status != VALID_SLOT)
     return true;
 
+  memset (hfile->element, 0, hfile->element_size);
   *(uint32_t *) hfile->element = DELETED_SLOT;
   hfile->n_deleted++;
 
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
     goto hfile_delete_error;
 
-  if (!full_write (hfile->fd, x, sizeof (uint32_t)))
+  if (!full_write (hfile->fd, hfile->element, hfile->element_size))
     goto hfile_delete_error;
 
   if ((uint64_t) lseek (hfile->fd, 0, SEEK_SET) != 0)
