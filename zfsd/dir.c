@@ -1159,6 +1159,93 @@ zfs_unlink (zfs_fh *dir, string *name)
   return r;
 }
 
+/* Read local symlink FH on volume VOL.  */
+
+static int
+local_readlink (read_link_res *res, internal_fh fh, volume vol)
+{
+  char *path;
+  char buf[ZFS_MAXDATA + 1];
+  int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  path = build_local_path (vol, fh);
+  r = readlink (path, buf, ZFS_MAXDATA);
+  free (path);
+  if (r < 0)
+    return errno;
+
+  buf[r] = 0;
+  res->path.str = xstrdup (buf);
+  res->path.len = r;
+
+  return ZFS_OK;
+}
+
+/* Read remote symlink FH on volume VOL.  */
+
+static int
+remote_readlink (read_link_res *res, internal_fh fh, volume vol)
+{
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_readlink_client (t, &fh->master_fh, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      if (!decode_zfs_path (&t->dc, &res->path)
+	  || !finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Read symlink FH.  */
+
+int
+zfs_readlink (read_link_res *res, zfs_fh *fh)
+{
+  volume vol;
+  internal_fh ifh;
+  int r = ZFS_OK;
+
+  if (VIRTUAL_FH_P (*fh))
+    return EINVAL;
+
+  /* Lookup the file.  */
+  if (!fh_lookup (fh, &vol, &ifh, NULL))
+    return ESTALE;
+
+  if (vol->local_path)
+    r = local_readlink (res, ifh, vol);
+  else if (vol->master != this_node)
+    r = remote_readlink (res, ifh, vol);
+  else
+    abort ();
+
+  zfsd_mutex_unlock (&ifh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  return r;
+}
+
 /* Create local special file NAME of type TYPE in directory DIR,
    set the attributes according to ATTR.
    If device is being created RDEV is its number.  */

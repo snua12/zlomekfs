@@ -287,9 +287,13 @@ void
 zfs_proc_readlink_server (zfs_fh *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
+  read_link_res res;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_readlink (&res, args);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_read_link_res (dc, &res);
 }
 
 /* void zfs_proc_symlink (symlink_args); */
