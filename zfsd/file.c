@@ -415,12 +415,9 @@ zfs_create_retry:
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 	  internal_dentry_destroy (dentry, vol);
-	  dentry = internal_dentry_create (&res->file, &res->file, vol,
-					   idir, name->str, &res->attr);
 	}
-      else
-	dentry = internal_dentry_create (&res->file, &res->file, vol,
-					 idir, name->str, &res->attr);
+      dentry = internal_dentry_create (&res->file, &res->file, vol,
+				       idir, name->str, &res->attr);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry);
 
       if (vol->local_path)

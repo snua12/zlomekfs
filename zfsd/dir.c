@@ -998,12 +998,9 @@ zfs_mkdir_retry:
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 	  internal_dentry_destroy (dentry, vol);
-	  dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					   idir, name->str, &res->attr);
 	}
-      else
-	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-					 idir, name->str, &res->attr);
+      dentry = internal_dentry_create (&res->file, &master_res.file, vol,
+				       idir, name->str, &res->attr);
       zfsd_mutex_unlock (&dentry->fh->mutex);
     }
 
