@@ -490,15 +490,12 @@ main (int argc, char **argv)
   printf ("sizeof (fh_mapping) = %u\n", sizeof (fh_mapping));
 #endif
 
-#if 0
-  /* Temporarily disable because it needs root privileges.  */
   /* Keep the pages of the daemon in memory.  */
   if (mlockall (MCL_CURRENT | MCL_FUTURE))
     {
       message (-1, stderr, "mlockall: %s\n", strerror (errno));
       die ();
     }
-#endif
 
   daemon_mode ();
 
