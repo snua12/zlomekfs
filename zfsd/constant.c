@@ -21,6 +21,9 @@
 #include "system.h"
 #include <unistd.h>
 
+/* Maximal number of file descriptors.  */
+int max_nfd;
+
 /* Maximal number of server sockets.  */
 int max_server_sockets;
 
@@ -29,8 +32,6 @@ int max_server_sockets;
 void
 init_constants ()
 {
-  int max_nfd;
-
   max_nfd = getdtablesize ();
   max_server_sockets = max_nfd / 3;
 }

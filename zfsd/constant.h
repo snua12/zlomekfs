@@ -35,6 +35,9 @@
 #define CAN_WRITE (POLLOUT | POLLWRNORM | POLLWRBAND)
 #define CANNOT_RW (POLLERR | POLLHUP | POLLNVAL)
 
+/* Maximal number of file descriptors.  */
+extern int max_nfd;
+
 /* Maximal number of server sockets.  */
 extern int max_server_sockets;
 
