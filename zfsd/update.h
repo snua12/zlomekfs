@@ -96,10 +96,6 @@ extern int32_t delete_tree (internal_dentry dentry, volume vol,
 			    bool destroy_dentry);
 extern int32_t delete_tree_name (internal_dentry dir, string *name, volume vol,
 				 bool destroy_dentry);
-extern bool move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir,
-			      string *name, metadata *meta);
-extern bool move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir,
-			    string *name, metadata *meta);
 extern int32_t resolve_conflict_discard_local (zfs_fh *conflict_fh,
 					       internal_dentry local,
 					       internal_dentry remote,

@@ -4418,6 +4418,165 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   return r;
 }
 
+/* Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
+
+static bool
+move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
+		  metadata *meta)
+{
+  string path;
+  string shadow_path;
+  uint32_t vid;
+  uint32_t new_parent_dev;
+  uint32_t new_parent_ino;
+  int32_t r;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  build_local_path_name (&path, vol, dir, name);
+  vid = vol->id;
+  new_parent_dev = dir->fh->local_fh.dev;
+  new_parent_ino = dir->fh->local_fh.ino;
+  release_dentry (dir);
+  zfsd_mutex_unlock (&fh_mutex);
+  get_local_path_from_metadata (&shadow_path, vol, fh);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  if (shadow_path.str == NULL)
+    {
+      free (path.str);
+      return ZFS_METADATA_ERROR;
+    }
+
+  r = recursive_unlink (&path, vid, false, true);
+  if (r != ZFS_OK)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  if (rename (shadow_path.str, path.str) != 0)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  if (!metadata_hardlink_set (vol, fh, meta, new_parent_dev, new_parent_ino,
+			      name))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&vol->mutex);
+  free (path.str);
+  free (shadow_path.str);
+  return true;
+}
+
+/* Move file NAME with file handle FH in directory DIR
+   on volume VOL to shadow.  */
+
+static bool
+move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
+		metadata *meta)
+{
+  struct stat parent_st;
+  string path;
+  string shadow_path;
+  string file_name;
+  uint32_t vid;
+  int32_t r;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  build_local_path_name (&path, vol, dir, name);
+  vid = vol->id;
+  release_dentry (dir);
+  zfsd_mutex_unlock (&fh_mutex);
+  if (!create_shadow_path (&shadow_path, vol, fh, name))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path.str);
+      return false;
+    }
+  zfsd_mutex_unlock (&vol->mutex);
+
+  r = recursive_unlink (&shadow_path, vid, true, true);
+  if (r != ZFS_OK)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  if (rename (path.str, shadow_path.str) != 0)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  r = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+  if (r == ZFS_OK)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      internal_dentry_destroy (dir, false, true);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    {
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  file_name_from_path (&file_name, &shadow_path);
+  file_name.str[-1] = 0;
+  if (lstat (shadow_path.str[0] ? shadow_path.str : "/", &parent_st) != 0)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+  file_name.str[-1] = '/';
+
+  if (!metadata_hardlink_set (vol, fh, meta, parent_st.st_dev,
+			      parent_st.st_ino, &file_name))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path.str);
+      free (shadow_path.str);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&vol->mutex);
+  free (path.str);
+  free (shadow_path.str);
+  return true;
+}
+
 /* Name the local file handle FH as NAME in directory DIR on volume VOL
    by moving the file or linking it.  */
 
