@@ -33,6 +33,7 @@
 #include "interval.h"
 #include "varray.h"
 #include "fh.h"
+#include "volume.h"
 #include "config.h"
 #include "fibheap.h"
 
