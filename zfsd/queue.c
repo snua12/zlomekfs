@@ -36,6 +36,7 @@ queue_create (queue *q, size_t size)
 #endif
 
   pthread_mutex_init (&q->mutex, NULL);
+  pthread_cond_init (&q->non_empty, NULL);
   q->queue = (size_t *) xmalloc (size * sizeof (size_t));
   q->size = size;
   q->nelem = 0;
@@ -54,6 +55,7 @@ queue_destroy (queue *q)
 #endif
 
   q->size = 0;
+  pthread_cond_destroy (&q->non_empty);
   pthread_mutex_destroy (&q->mutex);
   free (q->queue);
 }
@@ -64,6 +66,8 @@ void
 queue_put (queue *q, size_t elem)
 {
 #ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&q->mutex) == 0)
+    abort ();
   if (q->size == 0)
     abort ();
   if (q->nelem == q->size)
@@ -75,6 +79,7 @@ queue_put (queue *q, size_t elem)
   if (q->end == q->size)
     q->end = 0;
   q->nelem++;
+  pthread_cond_signal (&q->non_empty);
 }
 
 /* Get an element from the queue Q.  */
@@ -85,12 +90,15 @@ queue_get (queue *q)
   size_t r;
 
 #ifdef ENABLE_CHECKING
-  if (q->size == 0)
+  if (pthread_mutex_trylock (&q->mutex) == 0)
     abort ();
-  if (q->nelem == 0)
+  if (q->size == 0)
     abort ();
 #endif
  
+  while (q->nelem == 0)
+    pthread_cond_wait (&q->non_empty, &q->mutex);
+
   r = q->queue[q->start];
   q->start++;
   if (q->start == q->size)

@@ -28,6 +28,7 @@
 typedef struct queue_def
 {
   pthread_mutex_t mutex;	/* mutex for accessing the queue */
+  pthread_cond_t non_empty;	/* cond. var. for waiting while (nelem == 0) */
   size_t *queue;		/* the queue itself */
   size_t size;			/* size of the queue */
   size_t nelem;			/* number of elements in the queue */
