@@ -105,12 +105,10 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     abort ();
   if (dentryp == NULL)
     abort ();
-#endif
   if (vdp && *vdp)
     CHECK_MUTEX_LOCKED (&(*vdp)->mutex);
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
-#ifdef ENABLE_CHECKING
   if (level > LEVEL_EXCLUSIVE)
     abort ();
 #endif
@@ -512,8 +510,10 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   internal_cap icap;
   int32_t r;
 
+#ifdef ENABLE_CHECKING
   if (VIRTUAL_FH_P (cap->fh))
     CHECK_MUTEX_LOCKED (&vd_mutex);
+#endif
 
   r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
   if (r == ZFS_STALE)
@@ -589,10 +589,12 @@ out:
 int32_t
 put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 {
+#ifdef ENABLE_CHECKING
   if (fh)
     CHECK_MUTEX_LOCKED (&fh->mutex);
   if (vd)
     CHECK_MUTEX_LOCKED (&vd->mutex);
+#endif
 
   cap->busy--;
   if (cap->busy == 0)

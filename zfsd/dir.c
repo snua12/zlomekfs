@@ -420,8 +420,10 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&pvd->mutex);
+#ifdef ENABLE_CHECKING
   if (pvd->vol)
     CHECK_MUTEX_LOCKED (&pvd->vol->mutex);
+#endif
 
   vd = vd_lookup_name (pvd, name->str);
   if (vd)
@@ -1229,8 +1231,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       virtual_dir vd;
 
       CHECK_MUTEX_LOCKED (&pvd->mutex);
+#ifdef ENABLE_CHECKING
       if (vol)
 	CHECK_MUTEX_LOCKED (&vol->mutex);
+#endif
 
       if (strcmp (name->str, ".") == 0)
 	{

@@ -1342,8 +1342,10 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
   if (parent)
     CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+#endif
 
   dentry = (internal_dentry) pool_alloc (dentry_pool);
   dentry->parent = NULL;
@@ -1577,8 +1579,10 @@ internal_dentry_link (internal_dentry orig, volume vol,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&orig->fh->mutex);
+#ifdef ENABLE_CHECKING
   if (parent)
     CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+#endif
 
   dentry = (internal_dentry) pool_alloc (dentry_pool);
   dentry->parent = NULL;
@@ -1623,7 +1627,7 @@ void
 internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
 		      internal_dentry to_dir, char *to_name)
 {
-  internal_dentry tmp, dentry;
+  internal_dentry dentry;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1635,10 +1639,15 @@ internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
     return;
 
 #ifdef ENABLE_CHECKING
-  /* Check whether we are not moving DENTRY to its subtree.  */
-  for (tmp = to_dir; tmp; tmp = tmp->parent)
-    if (tmp == dentry)
-      abort ();
+  if (1)
+    {
+      internal_dentry tmp;
+
+      /* Check whether we are not moving DENTRY to its subtree.  */
+      for (tmp = to_dir; tmp; tmp = tmp->parent)
+	if (tmp == dentry)
+	  abort ();
+    }
 #endif
 
   /* Delete DENTRY from FROM_DIR's directory entries.  */
@@ -1718,7 +1727,9 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
 
   if (dentry->fh->level != LEVEL_UNLOCKED)
     {
+#ifdef ENABLE_CHECKING
       internal_dentry tmp1, tmp2;
+#endif
       internal_fh fh = dentry->fh;
 
       do
@@ -1840,9 +1851,9 @@ change_conflict_fh (internal_dentry conflict, zfs_fh *new_fh)
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+#ifdef ENABLE_CHECKING
   if (conflict->parent)
     CHECK_MUTEX_LOCKED (&conflict->parent->fh->mutex);
-#ifdef ENABLE_CHECKING
   if (!GET_CONFLICT (conflict->fh->local_fh))
     abort ();
   if (conflict->fh->attr.type != FT_DIR)

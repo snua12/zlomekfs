@@ -1181,6 +1181,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   int32_t r, pos;
   struct dirent *de;
 
+#ifdef ENABLE_CHECKING
   if (vol)
     CHECK_MUTEX_LOCKED (&vol->mutex);
   if (dentry)
@@ -1193,6 +1194,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
       CHECK_MUTEX_LOCKED (&vd_mutex);
       CHECK_MUTEX_LOCKED (&vd->mutex);
     }
+#endif
 
   if (vd)
     {
