@@ -1680,7 +1680,7 @@ local_symlink (internal_fh dir, string *name, string *to, sattr *attr,
   CHECK_MUTEX_LOCKED (&dir->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
-  r = symlink (path, to->str);
+  r = symlink (to->str, path);
   if (r != 0)
     {
       free (path);
@@ -1763,6 +1763,7 @@ zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
 	return r;
     }
 
+  attr->mode = (unsigned int) -1;
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
@@ -1781,12 +1782,7 @@ zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
       /* Delete internal file handle in htab because it is outdated.  */
       ifh = fh_lookup_name (vol, idir, name->str);
       if (ifh)
-	{
-	  CHECK_MUTEX_LOCKED (&ifh->mutex);
-
-	  internal_fh_destroy (ifh, vol);
-	}
-      zfsd_mutex_unlock (&ifh->mutex);
+	internal_fh_destroy (ifh, vol);
     }
 
   zfsd_mutex_unlock (&idir->mutex);
