@@ -368,7 +368,7 @@ zfs_proc_read_server (read_args *args, thread *t,
   dc->current = old_pos;
   dc->cur_length = old_len;
 
-  r = zfs_read (&count, buffer, &args->cap, args->offset, args->count);
+  r = zfs_read (&count, buffer, &args->cap, args->offset, args->count, true);
   encode_status (dc, r);
   if (r == ZFS_OK)
     {

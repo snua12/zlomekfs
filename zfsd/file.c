@@ -1199,11 +1199,12 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 }
 
 /* Read COUNT bytes from file CAP at offset OFFSET, sotre the count of bytes
-   read to RCOUNT and the data to BUFFER.  */
+   read to RCOUNT and the data to BUFFER.  If UPDATE is true update the
+   local file on copied volume.  */
 
 int32_t
 zfs_read (uint32_t *rcount, void *buffer,
-	  zfs_cap *cap, uint64_t offset, uint32_t count)
+	  zfs_cap *cap, uint64_t offset, uint32_t count, bool update)
 {
   volume vol;
   internal_cap icap;
@@ -1404,7 +1405,7 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
       for (total = 0; total < args->length[i]; total += count)
 	{
 	  r = zfs_read (&count, buf, &args->cap, args->offset[i],
-			args->length[i]);
+			args->length[i], false);
 	  if (r != ZFS_OK)
 	    return r;
 

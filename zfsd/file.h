@@ -53,8 +53,8 @@ extern int32_t zfs_readdir (DC *dc, zfs_cap *cap, int32_t cookie,
 			    uint32_t count);
 extern int32_t remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 			    uint64_t offset, uint32_t count, volume vol);
-extern int32_t zfs_read (uint32_t *rcount, void *buffer,
-			 zfs_cap *cap, uint64_t offset, uint32_t count);
+extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
+			 uint64_t offset, uint32_t count, bool update);
 extern int32_t local_write (write_res *res, internal_cap cap,
 			    internal_dentry dentry, uint64_t offset,
 			    data_buffer *data, volume vol);

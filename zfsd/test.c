@@ -523,7 +523,7 @@ do_tests (void *data)
 	    break;
 
 	  message (1, stderr, "TEST READ\n");
-	  r = zfs_read (&data.len, data.buf, &cap, 0, 4);
+	  r = zfs_read (&data.len, data.buf, &cap, 0, 4, true);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 	  if (r == ZFS_OK
 	      && (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0))
