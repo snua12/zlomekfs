@@ -2417,7 +2417,8 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 #endif
 
 #ifdef ENABLE_CHECKING
-      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+	    && vol->master != this_node))
 	abort ();
 #endif
 
@@ -2460,7 +2461,8 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 #endif
 
 #ifdef ENABLE_CHECKING
-      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+	    && vol->master != this_node))
 	abort ();
 #endif
 
@@ -2501,7 +2503,8 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 #endif
 
 #ifdef ENABLE_CHECKING
-      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+      if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
+	    && vol->master != this_node))
 	abort ();
 #endif
 
