@@ -1438,7 +1438,10 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     {
       r = validate_operation_on_virtual_directory (vd2, name, &ifh2);
       if (r != ZFS_OK)
-	return r;
+	{
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return r;
+	}
 
       CHECK_MUTEX_LOCKED (&ifh2->mutex);
 
@@ -1451,7 +1454,10 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     {
       r = update_volume_root (vol, &ifh1);
       if (r != ZFS_OK)
-	return EROFS;
+	{
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return EROFS;
+	}
 
       CHECK_MUTEX_LOCKED (&ifh1->mutex);
 
