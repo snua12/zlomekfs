@@ -1414,6 +1414,7 @@ static int32_t
 reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
+  bool b;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1427,12 +1428,12 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
-  zfsd_mutex_unlock (&fh_mutex);
-
   if (dentry->fh->attr.type == FT_DIR)
     {
       journal_entry entry, next;
+      dir_op_res local_res;
       dir_op_res res;
+      metadata meta;
       file_info_res info;
       bool flush_journal;
 
@@ -1446,11 +1447,32 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 	{
 	  next = entry->next;
 
+	  CHECK_MUTEX_LOCKED (&fh_mutex);
+	  CHECK_MUTEX_LOCKED (&vol->mutex);
+	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
 	  switch (entry->oper)
 	    {
 	      case JOURNAL_OPERATION_ADD:
+		/* Check whether local file still exists.  */ 
+		r = local_lookup (&local_res, dentry, &entry->name, vol,
+				  &meta);
+		r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+		if (r2 != ZFS_OK)
+		  abort ();
+#endif
+		if (r != ZFS_OK)
+		  {
+		    if (!journal_delete_entry (dentry->fh->journal, entry))
+		      abort ();
+		    flush_journal = true;
+		    continue;
+		  }
+
+		zfsd_mutex_unlock (&fh_mutex);
 		r = remote_lookup (&res, dentry, &entry->name, vol);
-		r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+		r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
 		  abort ();
@@ -1464,12 +1486,48 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		  {
 		    if (zfs_fh_undefined (entry->master_fh))
 		      {
-			/* TODO: create remote file */
+			sattr sa;
+
+			sa.mode = local_res.attr.mode;
+			sa.uid = local_res.attr.uid;
+			sa.gid = local_res.attr.gid;
+			sa.size = (uint32_t) -1;
+			sa.atime = local_res.attr.atime;
+			sa.mtime = local_res.attr.mtime;
+			zfsd_mutex_unlock (&fh_mutex);
+			r = remote_mknod (&res, dentry, &entry->name, &sa,
+					  FT_REG, 0, vol);
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
+			if (r != ZFS_OK)
+			  continue;
+
+			meta.master_fh = res.file;
+			if (!flush_metadata (vol, &meta))
+			  {
+			    vol->delete_p = true;
+			    continue;
+			  }
+
+			/* TODO: set remote metadata. */
+
+			if (!journal_delete_entry (dentry->fh->journal,
+						   entry))
+			  abort ();
+			flush_journal = true;
 		      }
 		    else
 		      {
+			release_dentry (dentry);
+			zfsd_mutex_unlock (&vol->mutex);
+			zfsd_mutex_unlock (&fh_mutex);
 			r = zfs_file_info (&info, &entry->master_fh);
 			free (info.path.str);
+
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
 #ifdef ENABLE_CHECKING
@@ -1479,8 +1537,23 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 
 			if (r == ZFS_OK)
 			  {
-			    /* TODO: link/rename remote file */
 			    zfsd_mutex_unlock (&fh_mutex);
+			    r = remote_reintegrate_add (vol, dentry,
+							&entry->name,
+							&entry->master_fh);
+			    r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
+						       false);
+#ifdef ENABLE_CHECKING
+			    if (r2 != ZFS_OK)
+			      abort ();
+#endif
+			    if (r == ZFS_OK)
+			      {
+				if (!journal_delete_entry (dentry->fh->journal,
+							   entry))
+				  abort ();
+				flush_journal = true;
+			      }
 			  }
 			else if (r == ENOENT)
 			  {
@@ -1488,8 +1561,15 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			       This can happen when we linked/renamed a file
 			       while master has deleted it.
 			       In this situation, delete the local file.  */
-			    if (!delete_tree_name (dentry, entry->name.str,
-						   vol))
+			    b = delete_tree_name (dentry, entry->name.str,
+						  vol);
+			    r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
+						       false);
+#ifdef ENABLE_CHECKING
+			    if (r2 != ZFS_OK)
+			      abort ();
+#endif
+			    if (!b)
 			      goto out;
 
 			    if (!journal_delete_entry (dentry->fh->journal,
@@ -1499,7 +1579,6 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			  }
 			else
 			  {
-			    zfsd_mutex_unlock (&fh_mutex);
 			    message (0, stderr,
 				     "Reintegrate file info error: %d\n", r);
 			    goto out;
@@ -1514,8 +1593,9 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		break;
 
 	      case JOURNAL_OPERATION_DEL:
+		zfsd_mutex_unlock (&fh_mutex);
 		r = remote_lookup (&res, dentry, &entry->name, vol);
-		r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+		r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
 		  abort ();
@@ -1530,10 +1610,24 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			file_fh.dev = entry->dev;
 			file_fh.ino = entry->ino;
 			file_fh.gen = entry->gen;
+			zfsd_mutex_unlock (&fh_mutex);
 			r = local_file_info (&info, &file_fh, vol);
 
-			/* TODO: delete remote file.  */
-			/* TODO: if r == ZFS_OK move remote file to shadow */
+			r = remote_reintegrate_del (vol, dentry, &entry->name,
+						    r != ZFS_OK);
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
+			  abort ();
+#endif
+			if (r == ZFS_OK)
+			  {
+			    if (!journal_delete_entry (dentry->fh->journal,
+						       entry))
+			      abort ();
+			    flush_journal = true;
+			  }
 		      }
 		    else
 		      {
@@ -1561,6 +1655,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 	}
 
 out:
+      zfsd_mutex_unlock (&fh_mutex);
       if (flush_journal)
 	{
 	  if (!write_journal (vol, dentry->fh))
@@ -1570,6 +1665,8 @@ out:
   else if (dentry->fh->attr.type == FT_REG)
     {
       /* Schedule reintegration of regular file.  */
+
+      zfsd_mutex_unlock (&fh_mutex);
 
       zfsd_mutex_lock (&running_mutex);
       if (update_pool.main_thread == 0)
