@@ -636,6 +636,64 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
   return r;
 }
 
+/* Move file DENTRY on volume VOL to shadow.  */
+
+bool
+move_to_shadow (volume vol, internal_dentry dentry)
+{
+  zfs_fh fh;
+  char *path;
+  char *shadow_path;
+  uint32_t vid;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  path = build_local_path (vol, dentry);
+  fh = dentry->fh->local_fh;
+  vid = vol->id;
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  shadow_path = get_shadow_path (vol, &fh, true);
+  if (!recursive_unlink (shadow_path, vid))
+    {
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  if (rename (path, shadow_path) != 0)
+    {
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    {
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  if (!metadata_hardlink_set_shadow (vol, &fh))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+  
+  zfsd_mutex_unlock (&vol->mutex);
+  free (path);
+  free (shadow_path);
+  return true;
+}
+
 /* Update generic file DENTRY on volume VOL with name NAME, with local file
    handle LOCAL_FH, remote file handle REMOTE_FH and remote attributes
    REMOTE_ATTR.  DIR_FH is a file handle of the directory.
