@@ -1755,7 +1755,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
 	  filename = file_name_from_path (path);
 	  filename[-1] = 0;
-	  if (lstat (path, &parent_st) == 0)
+	  if (lstat (path[0] ? path : "/", &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
@@ -2116,7 +2116,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 	      filename = file_name_from_path (path);
 	      filename[-1] = 0;
-	      if (lstat (path, &parent_st) == 0)
+	      if (lstat (path[0] ? path : "/", &parent_st) == 0)
 		{
 		  if (!delete_metadata (vol, st_old.st_dev, st_old.st_ino,
 					parent_st.st_dev, parent_st.st_ino,
@@ -2625,7 +2625,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 	  filename = file_name_from_path (path);
 	  filename[-1] = 0;
-	  if (lstat (path, &parent_st) == 0)
+	  if (lstat (path[0] ? path : "/", &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
