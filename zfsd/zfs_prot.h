@@ -168,18 +168,25 @@ typedef struct dir_op_res_def
   fattr attr;
 } dir_op_res;
 
-typedef struct open_name_args_def
+typedef struct create_args_def
 {
   dir_op_args where;
   unsigned int flags;
   sattr attr;
-} open_name_args;
+} create_args;
 
-typedef struct open_fh_args_def
+typedef struct create_res_def
+{
+  zfs_cap cap;
+  zfs_fh file;
+  fattr attr;
+} create_res;
+
+typedef struct open_args_def
 {
   zfs_fh file;
   unsigned int flags;
-} open_fh_args;
+} open_args;
 
 typedef struct read_dir_args_def
 {
@@ -284,8 +291,8 @@ typedef union call_args_def
   zfs_fh getattr;
   sattr_args setattr;
   dir_op_args lookup;
-  open_name_args open_by_name;
-  open_fh_args open_by_fh;
+  create_args create;
+  open_args open;
   zfs_cap close;
   read_dir_args readdir;
   mkdir_args mkdir;

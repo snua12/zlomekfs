@@ -554,7 +554,7 @@ encode_dir_op_res (DC *dc, dir_op_res *res)
 }
 
 bool
-decode_open_name_args (DC *dc, open_name_args *args)
+decode_create_args (DC *dc, create_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
 	  && decode_uint32_t (dc, &args->flags)
@@ -562,7 +562,7 @@ decode_open_name_args (DC *dc, open_name_args *args)
 }
 
 bool
-encode_open_name_args (DC *dc, open_name_args *args)
+encode_create_args (DC *dc, create_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
 	  && encode_uint32_t (dc, args->flags)
@@ -570,14 +570,30 @@ encode_open_name_args (DC *dc, open_name_args *args)
 }
 
 bool
-decode_open_fh_args (DC *dc, open_fh_args *args)
+decode_create_res (DC *dc, create_res *res)
+{
+  return (decode_zfs_cap (dc, &res->cap)
+	  && decode_zfs_fh (dc, &res->file)
+	  && decode_fattr (dc, &res->attr));
+}
+
+bool
+encode_create_res (DC *dc, create_res *res)
+{
+  return (encode_zfs_cap (dc, &res->cap)
+	  && encode_zfs_fh (dc, &res->file)
+	  && encode_fattr (dc, &res->attr));
+}
+
+bool
+decode_open_args (DC *dc, open_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
 	  && decode_uint32_t (dc, &args->flags));
 }
 
 bool
-encode_open_fh_args (DC *dc, open_fh_args *args)
+encode_open_args (DC *dc, open_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
 	  && encode_uint32_t (dc, args->flags));

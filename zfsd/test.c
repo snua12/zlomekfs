@@ -168,7 +168,7 @@ walk_dir (zfs_fh *dir, char *path)
   if (!get_running ())
     return ZFS_EXITING;
 
-  r = zfs_open_by_fh (&cap, dir, O_RDONLY);
+  r = zfs_open (&cap, dir, O_RDONLY);
   if (r == ZFS_OK)
     {
       int cookie = 0;
@@ -388,7 +388,7 @@ do_tests (void *data)
 	break;
 
       message (2, stderr, "TEST %d\n", ++test);
-      printf ("%d\n", r = zfs_open_by_fh (&cap, &res.file, O_RDONLY));
+      printf ("%d\n", r = zfs_open (&cap, &res.file, O_RDONLY));
 
       if (r == ZFS_OK)
 	{

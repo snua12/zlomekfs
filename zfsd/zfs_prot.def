@@ -39,9 +39,9 @@ DEFINE_ZFS_PROC (4, SETATTR, setattr, sattr_args,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (5, LOOKUP, lookup, dir_op_args,
 		 AUTHENTICATION_FINISHED)
-DEFINE_ZFS_PROC (6, OPEN_BY_NAME, open_by_name, open_name_args,
+DEFINE_ZFS_PROC (6, CREATE, create, create_args,
 		 AUTHENTICATION_FINISHED)
-DEFINE_ZFS_PROC (7, OPEN_BY_FH, open_by_fh, open_fh_args,
+DEFINE_ZFS_PROC (7, OPEN, open, open_args,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (8, CLOSE, close, zfs_cap,
 		 AUTHENTICATION_FINISHED)

@@ -193,7 +193,7 @@ static int
 open_remote_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
 			volume vol)
 {
-  open_fh_args args;
+  open_args args;
   thread *t;
   int32_t r;
 
@@ -204,7 +204,7 @@ open_remote_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_open_by_fh_client (t, &args, vol->master);
+  r = zfs_proc_open_client (t, &args, vol->master);
 
   if (r == ZFS_OK)
     {
@@ -254,7 +254,7 @@ open_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
 /* Open file handle FH with open flags FLAGS and return capability in CAP.  */
 
 int
-zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
+zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
 {
   volume vol;
   internal_cap icap;
@@ -262,7 +262,7 @@ zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
   virtual_dir vd;
   int r;
 
-  /* When O_CREAT is set the function zfs_open_by_name is called.
+  /* When O_CREAT is set the function zfs_create is called.
      The flag is superfluous here.  */
   flags &= ~O_CREAT;
 

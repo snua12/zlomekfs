@@ -146,10 +146,10 @@ zfs_proc_lookup_server (dir_op_args *args, thread *t)
   free (args->name.str);
 }
 
-/* zfs_cap zfs_proc_open_by_name (open_name_args); */
+/* zfs_cap zfs_proc_create (create_args); */
 
 void
-zfs_proc_open_by_name_server (open_name_args *args, thread *t)
+zfs_proc_create_server (create_args *args, thread *t)
 {
   DC *dc = &t->dc;
 
@@ -157,16 +157,16 @@ zfs_proc_open_by_name_server (open_name_args *args, thread *t)
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
-/* zfs_cap zfs_proc_open_by_fh (open_fh_args); */
+/* zfs_cap zfs_proc_open (open_args); */
 
 void
-zfs_proc_open_by_fh_server (open_fh_args *args, thread *t)
+zfs_proc_open_server (open_args *args, thread *t)
 {
   DC *dc = &t->dc;
   zfs_cap res;
   int32_t r;
 
-  r = zfs_open_by_fh (&res, &args->file, args->flags);
+  r = zfs_open (&res, &args->file, args->flags);
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_zfs_cap (dc, &res);
