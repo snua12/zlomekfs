@@ -217,7 +217,8 @@ encode_data_buffer (DC *dc, data_buffer *data)
       return false;
     }
 
-  memcpy (dc->current, data->buf, data->len);
+  if (dc->current != data->buf)
+    memcpy (dc->current, data->buf, data->len);
   dc->current += data->len;
 
   return true;
