@@ -1587,6 +1587,45 @@ zfs_write_retry:
 	  if (!set_metadata_flags (vol, dentry->fh,
 				   dentry->fh->meta.flags | METADATA_MODIFIED))
 	    vol->flags |= VOLUME_DELETE;
+	  else
+	    {
+	      if (vol->master != this_node)
+		{
+		  uint64_t start, end;
+		  varray blocks;
+		  unsigned int i;
+
+		  start = (args->offset / ZFS_MODIFIED_BLOCK_SIZE
+			   * ZFS_MODIFIED_BLOCK_SIZE);
+		  end = ((args->offset + args->data.len
+			  + ZFS_MODIFIED_BLOCK_SIZE - 1)
+			 / ZFS_MODIFIED_BLOCK_SIZE * ZFS_MODIFIED_BLOCK_SIZE);
+
+		  interval_tree_intersection (dentry->fh->updated, start, end,
+					      &blocks);
+
+		  start = args->offset;
+		  end = args->offset + args->data.len;
+		  for (i = 0; i < VARRAY_USED (blocks); i++)
+		    {
+		      if (VARRAY_ACCESS (blocks, i, interval).end < start)
+			continue;
+		      if (VARRAY_ACCESS (blocks, i, interval).start > end)
+			break;
+
+		      /* Now the interval is joinable with [START, END).  */
+		      if (VARRAY_ACCESS (blocks, i, interval).start < start)
+			start = VARRAY_ACCESS (blocks, i, interval).start;
+		      if (VARRAY_ACCESS (blocks, i, interval).end > end)
+			end = VARRAY_ACCESS (blocks, i, interval).end;
+		    }
+
+		  interval_tree_insert (dentry->fh->updated, start, end);
+		  if (!append_interval (vol, dentry->fh,
+					INTERVAL_TREE_MODIFIED, start, end))
+		    vol->flags |= VOLUME_DELETE;
+		}
+	    }
 	}
     }
 
