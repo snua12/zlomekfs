@@ -139,7 +139,8 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 	return false;
 
       *volp = vd->vol;
-      *ifhp = NULL;
+      if (ifhp)
+	*ifhp = NULL;
       *vdp = vd;
       return true;
     }
@@ -169,7 +170,8 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 
       *volp = vol;
       *ifhp = ifh;
-      *vdp = NULL;
+      if (vdp)
+	*vdp = NULL;
       return true;
     }
 
