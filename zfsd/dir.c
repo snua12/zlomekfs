@@ -401,7 +401,7 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
   attr->blocks = st->st_blocks;
   attr->blksize = st->st_blksize;
   attr->generation = 0;	/* FIXME? how? */
-  attr->fversion = 0;		/* FIXME */
+  attr->version = 0;		/* FIXME */
   attr->sid = this_node->id;
   attr->vid = vol->id;
   attr->dev = st->st_dev;

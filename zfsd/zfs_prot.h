@@ -121,7 +121,7 @@ typedef struct fattr_def
   uint64_t blocks;
   uint32_t blksize;
   uint32_t generation;
-  uint64_t fversion;
+  uint64_t version;
   uint32_t sid;
   uint32_t vid;
   uint32_t dev;

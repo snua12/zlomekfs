@@ -1251,7 +1251,7 @@ virtual_dir_set_fattr (virtual_dir vd)
   vd->attr.blocks = 0;
   vd->attr.blksize = 4096;
   vd->attr.generation = 0;
-  vd->attr.fversion = 0;
+  vd->attr.version = 0;
   vd->attr.sid = vd->fh.sid;
   vd->attr.vid = vd->fh.vid;
   vd->attr.dev = vd->fh.dev;
