@@ -54,4 +54,4 @@ config.o: config.c config.h system.h log.h memory.h
 hashtab.o: hashtab.c hashtab.h system.h log.h memory.h
 log.o: log.c log.h system.h
 memory.o: memory.c memory.h system.h log.h
-zfsd.o: zfsd.c zfsd.h system.h config.h log.h
+zfsd.o: zfsd.c zfsd.h system.h config.h log.h memory.h
