@@ -672,18 +672,6 @@ encode_read_args (DC *dc, read_args *args)
 }
 
 bool
-decode_read_res (DC *dc, read_res *res)
-{
-  return (decode_data_buffer (dc, &res->data));
-}
-
-bool
-encode_read_res (DC *dc, read_res *res)
-{
-  return (encode_data_buffer (dc, &res->data));
-}
-
-bool
 decode_write_args (DC *dc, write_args *args)
 {
   return (decode_zfs_cap (dc, &args->file)

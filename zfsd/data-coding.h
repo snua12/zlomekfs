@@ -229,8 +229,6 @@ extern bool decode_link_args (DC *dc, link_args *args);
 extern bool encode_link_args (DC *dc, link_args *args);
 extern bool decode_read_args (DC *dc, read_args *args);
 extern bool encode_read_args (DC *dc, read_args *args);
-extern bool decode_read_res (DC *dc, read_res *res);
-extern bool encode_read_res (DC *dc, read_res *res);
 extern bool decode_write_args (DC *dc, write_args *args);
 extern bool encode_write_args (DC *dc, write_args *args);
 extern bool decode_write_res (DC *dc, write_res *res);

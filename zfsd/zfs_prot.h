@@ -222,11 +222,6 @@ typedef struct read_args_def
   unsigned int count;
 } read_args;
 
-typedef struct read_res_def
-{
-  data_buffer data;
-} read_res;
-
 typedef struct write_args_def
 {
   zfs_cap file;
