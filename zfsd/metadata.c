@@ -1501,6 +1501,8 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
 {
   if (!vol)
     return false;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (!meta)
     abort ();
@@ -1509,7 +1511,6 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
   if (!lookup_metadata (vol, fh, meta, true))
     {
       vol->delete_p = true;
-      close_volume_metadata (vol);
       zfsd_mutex_unlock (&vol->mutex);
       return false;
     }
