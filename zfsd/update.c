@@ -1612,17 +1612,17 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
       if (!flush_metadata (vol, &local->fh->meta))
 	MARK_VOLUME_DELETE (vol);
     }
-  zfsd_mutex_unlock (&fh_mutex);
 
   version = (local->fh->attr.version > remote->fh->attr.version
 	     ? local->fh->attr.version + 1 : remote->fh->attr.version + 1);
   release_dentry (remote);
+  zfsd_mutex_unlock (&fh_mutex);
 
   /* Update the interval trees.  */
   if (!load_interval_trees (vol, local->fh))
     goto out;
 
-  interval_tree_sub (local->fh->updated, local->fh->modified);
+  interval_tree_empty (local->fh->updated);
   interval_tree_empty (local->fh->modified);
   if (local->fh->interval_tree_users > 1)
     {
@@ -1637,9 +1637,14 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
     goto out;
 
   /* Update local and remote version.  */
-  r = local_reintegrate_set (local, version, vol);
-  if (r != ZFS_OK)
-    RETURN_INT (r);
+  local->fh->meta.local_version = version;
+  local->fh->meta.master_version = version;
+  local->fh->meta.flags &= ~METADATA_COMPLETE;
+  set_attr_version (&local->fh->attr, &local->fh->meta);
+  if (!flush_metadata (vol, &local->fh->meta))
+    MARK_VOLUME_DELETE (vol);
+  release_dentry (local);
+  zfsd_mutex_unlock (&vol->mutex);
 
   r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -1724,11 +1729,11 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
       if (!flush_metadata (vol, &local->fh->meta))
 	MARK_VOLUME_DELETE (vol);
     }
-  zfsd_mutex_unlock (&fh_mutex);
 
   version = (local->fh->attr.version > remote->fh->attr.version
 	     ? local->fh->attr.version : remote->fh->attr.version + 1);
   release_dentry (remote);
+  zfsd_mutex_unlock (&fh_mutex);
 
   /* Update the interval trees.  */
   if (!load_interval_trees (vol, local->fh))
@@ -1749,9 +1754,14 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
     goto out;
 
   /* Update local and remote version.  */
-  r = local_reintegrate_set (local, version + 1, vol);
-  if (r != ZFS_OK)
-    RETURN_INT (r);
+  local->fh->meta.local_version = version + 1;
+  local->fh->meta.master_version = version;
+  local->fh->meta.flags &= ~METADATA_COMPLETE;
+  set_attr_version (&local->fh->attr, &local->fh->meta);
+  if (!flush_metadata (vol, &local->fh->meta))
+    MARK_VOLUME_DELETE (vol);
+  release_dentry (local);
+  zfsd_mutex_unlock (&vol->mutex);
 
   r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
