@@ -31,6 +31,7 @@
 #include "memory.h"
 #include "varray.h"
 #include "volume.h"
+#include "zfs_prot.h"
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
@@ -151,8 +152,13 @@ remote_lookup (svc_fh *fh, internal_fh dir, const char *name, volume vol,
 static void
 update_root (volume vol, internal_fh *ifh)
 {
-  svc_fh new_root = {vol->master->id, vol->id, 1, 1};
+  svc_fh new_root;
 
+  new_root.sid = vol->master->id;
+  new_root.vid = vol->id;
+  new_root.dev = 1;
+  new_root.ino = 1;
+  
   /* FIXME: */
   if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
     {
@@ -278,7 +284,7 @@ zfs_open (svc_fh *fh)
 
 int
 zfs_open_by_name (svc_fh *fh, svc_fh *dir, const char *name, int flags,
-		  struct sattr *attr)
+		  sattr *attr)
 {
   int r;
 
@@ -298,13 +304,13 @@ zfs_open_by_name (svc_fh *fh, svc_fh *dir, const char *name, int flags,
 }
 
 int
-zfs_getattr (struct fattr *fa, svc_fh *fh)
+zfs_getattr (fattr *fa, svc_fh *fh)
 {
   return 0;
 }
 
 int
-zfs_setattr (struct fattr *fa, svc_fh *fh, unsigned int valid, struct sattr *sa)
+zfs_setattr (fattr *fa, svc_fh *fh, unsigned int valid, sattr *sa)
 {
   return 0;
 }

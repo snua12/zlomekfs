@@ -22,7 +22,7 @@
 #include <unistd.h>
 
 /* Maximal number of server sockets.  */
-int max_server_sockets = getdtablesize();
+int max_server_sockets;
 
 /* Initialize the constants */
 
