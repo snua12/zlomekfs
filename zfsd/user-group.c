@@ -62,20 +62,20 @@ users_name_hash (const void *x)
   return USER_NAME_HASH (((user) x)->name);
 }
 
-/* Compare an user XX with user ID YY.  */
+/* Compare an user X with user ID Y.  */
 
 static int
-users_id_eq (const void *xx, const void *yy)
+users_id_eq (const void *x, const void *y)
 {
-  return ((user) xx)->id == *(uint32_t *) yy;
+  return ((user) x)->id == *(uint32_t *) y;
 }
 
-/* Compare an user XX with user name YY.  */
+/* Compare an user X with user name Y.  */
 
 static int
-users_name_eq (const void *xx, const void *yy)
+users_name_eq (const void *x, const void *y)
 {
-  return strcmp (((user) xx)->name, (const char *) yy);
+  return strcmp (((user) x)->name, (const char *) y);
 }
 
 /* Hash function for group X, computed from ID.  */
@@ -94,20 +94,20 @@ groups_name_hash (const void *x)
   return USER_NAME_HASH (((group) x)->name);
 }
 
-/* Compare a group XX with group ID YY.  */
+/* Compare a group X with group ID Y.  */
 
 static int
-groups_id_eq (const void *xx, const void *yy)
+groups_id_eq (const void *x, const void *y)
 {
-  return ((group) xx)->id == *(uint32_t *) yy;
+  return ((group) x)->id == *(uint32_t *) y;
 }
 
-/* Compare a group XX with group name YY.  */
+/* Compare a group X with group name Y.  */
 
 static int
-groups_name_eq (const void *xx, const void *yy)
+groups_name_eq (const void *x, const void *y)
 {
-  return strcmp (((group) xx)->name, (const char *) yy);
+  return strcmp (((group) x)->name, (const char *) y);
 }
 
 /* Create an user with ID and NAME with default group GID.  */
@@ -354,6 +354,7 @@ initialize_user_group_c ()
 {
   zfsd_mutex_init (&users_groups_mutex);
 
+  /* User and group tables.  */
   users_id = htab_create (100, users_id_hash, users_id_eq, NULL,
 			  &users_groups_mutex);
   users_name = htab_create (100, users_name_hash, users_name_eq, NULL,
@@ -372,6 +373,8 @@ cleanup_user_group_c ()
   void **slot;
 
   zfsd_mutex_lock (&users_groups_mutex);
+
+  /* User and group tables.  */
   HTAB_FOR_EACH_SLOT (users_id, slot,
     {
       user u = (user) *slot;
