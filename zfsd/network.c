@@ -330,6 +330,12 @@ send_request (thread *t, uint32_t request_id, int fd)
     abort ();
 #endif
 
+  if (!running)
+    {
+      td->retval = ZFS_EXITING;
+      return;
+    }
+  
   /* Add the tread to the table of waiting threads.  */
   wd = ((waiting4reply_data *)
 	pool_alloc (server_fd_data[fd].waiting4reply_pool));
@@ -348,6 +354,7 @@ send_request (thread *t, uint32_t request_id, int fd)
   *slot = wd;
 
   /* Send the request.  */
+  server_fd_data[fd].last_use = time (NULL);
   if (!safe_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
     {
       pthread_mutex_unlock (&server_fd_data[fd].mutex);
@@ -388,6 +395,7 @@ send_reply (server_thread_data *td)
      and we have not reopened it.  */
   if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
     {
+      td->fd_data->last_use = time (NULL);
       if (!safe_write (td->fd_data->fd, td->dc.buffer, td->dc.cur_length))
 	{
 	}
@@ -715,7 +723,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
   time_t now;
   static char dummy[ZFS_MAXDATA];
 
-  pfd = (struct pollfd *) xmalloc (getdtablesize () * sizeof (struct pollfd));
+  pfd = (struct pollfd *) xmalloc (max_nfd * sizeof (struct pollfd));
   accept_connections = 1;
 
   while (running)
@@ -1016,7 +1024,7 @@ server_start ()
 int
 server_init_fd_data ()
 {
-  int i, n;
+  int i;
 
   if (pthread_mutex_init (&active_mutex, NULL))
     {
@@ -1024,9 +1032,9 @@ server_init_fd_data ()
       return 0;
     }
 
-  n = getdtablesize ();
-  server_fd_data = (server_fd_data_t *) xcalloc (n, sizeof (server_fd_data_t));
-  for (i = 0; i < n; i++)
+  server_fd_data = (server_fd_data_t *) xcalloc (max_nfd,
+						 sizeof (server_fd_data_t));
+  for (i = 0; i < max_nfd; i++)
     {
       if (pthread_mutex_init (&server_fd_data[i].mutex, NULL))
 	{
@@ -1038,8 +1046,7 @@ server_init_fd_data ()
     }
 
   nactive = 0;
-  active = (server_fd_data_t **) xmalloc (getdtablesize ()
-					  * sizeof (server_fd_data_t));
+  active = (server_fd_data_t **) xmalloc (max_nfd * sizeof (server_fd_data_t));
 
   return 1;
 }
@@ -1049,7 +1056,7 @@ server_init_fd_data ()
 void
 server_destroy_fd_data ()
 {
-  int i, n;
+  int i;
 
   /* Close connected sockets.  */
   pthread_mutex_lock (&active_mutex);
@@ -1063,8 +1070,7 @@ server_destroy_fd_data ()
   pthread_mutex_unlock (&active_mutex);
   pthread_mutex_destroy (&active_mutex);
 
-  n = getdtablesize ();
-  for (i = 0; i < n; i++)
+  for (i = 0; i < max_nfd; i++)
     pthread_mutex_destroy (&server_fd_data[i].mutex);
 
   free (active);
@@ -1078,9 +1084,24 @@ server_destroy_fd_data ()
 void
 server_cleanup ()
 {
-  /* TODO: for each thread waiting for reply do:
-     set retval to indicate we are exiting
-     unlock the thread	*/
+  int i;
+
+  /* Tell each thread waiting for reply that we are exiting.  */
+  for (i = nactive - 1; i >= 0; i--)
+    {
+      server_fd_data_t *fd_data = active[i];
+      void **slot;
+
+      pthread_mutex_lock (&fd_data->mutex);
+      HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot,
+	{
+	  waiting4reply_data *data = *(waiting4reply_data **) slot;
+
+	  data->t->u.server.retval = ZFS_EXITING;
+	  pthread_mutex_unlock (&data->t->mutex);
+	});
+      pthread_mutex_unlock (&fd_data->mutex);
+    }
 
   pthread_kill (server_regulator_data.thread_id, SIGUSR1);
   thread_pool_destroy (&server_pool);
