@@ -1669,6 +1669,27 @@ config AFS_FS
 config RXRPC
 	tristate
 
+config ZFS_FS
+	tristate "ZFS support (Experimental)"
+	depends on INET && EXPERIMENTAL
+	help
+	  ZFS is an advanced network file system, similar to NFS in that it
+	  enables you to mount file systems of a remote server and access them
+	  with regular Unix commands as if they were sitting on your hard
+	  disk. ZFS has several advantages over NFS: support for
+	  disconnected operation (e.g. for laptops), persistent client caches
+	  and write back caching.
+
+	  If you say Y here, your Linux box will be able to act as a ZFS
+	  *client*. You will need user level daemon as well, both for the
+	  client and server. Servers are currently user level, i.e. they need
+	  no kernel support.
+
+	  To compile the ZFS client support as a module, choose M here: the
+	  module will be called zfs.
+
+	  If unsure, say N.
+
 endmenu
 
 menu "Partition Types"
