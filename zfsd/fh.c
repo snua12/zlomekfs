@@ -157,7 +157,7 @@ dentry_key (internal_dentry dentry)
 static bool
 dentry_should_have_cleanup_node (internal_dentry dentry)
 {
-  TRACE ("");
+  TRACE ("%p", (void *) dentry);
 
   /* Root dentry can't be deleted.  */
   if (!dentry->parent)
@@ -195,7 +195,7 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
 static void
 dentry_update_cleanup_node (internal_dentry dentry)
 {
-  TRACE ("");
+  TRACE ("%p", (void *) dentry);
 #ifdef ENABLE_CHECKING
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
@@ -713,7 +713,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 void
 acquire_dentry (internal_dentry dentry)
 {
-  TRACE ("");
+  TRACE ("%p", (void *) dentry);
 
   zfsd_mutex_lock (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -728,7 +728,7 @@ acquire_dentry (internal_dentry dentry)
 void
 release_dentry (internal_dentry dentry)
 {
-  TRACE ("");
+  TRACE ("%p", (void *) dentry);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   dentry_update_cleanup_node (dentry);
@@ -862,7 +862,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
   string name;
   char *str;
 
-  TRACE ("");
+  TRACE ("%s", path->str);
   CHECK_MUTEX_LOCKED (&fh_mutex);
 #ifdef ENABLE_CHECKING
   if (start)
@@ -937,7 +937,7 @@ dentry_lookup_local_path (volume vol, string *local_path)
   string relative_path;
   internal_dentry dentry;
 
-  TRACE ("");
+  TRACE ("%s", local_path->str);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   local_path_to_relative_path (&relative_path, vol, local_path);
@@ -958,7 +958,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
   int32_t r;
   bool wait_for_locked;
 
-  TRACE ("");
+  TRACE ("%p", (void *) *dentryp);
 #ifdef ENABLE_CHECKING
   if (volp == NULL)
     abort ();
@@ -1024,7 +1024,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 void
 internal_dentry_unlock (volume vol, internal_dentry dentry)
 {
-  TRACE ("");
+  TRACE ("%p", (void *) dentry);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1074,7 +1074,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
 {
   int32_t r, r2;
 
-  TRACE ("");
+  TRACE ("%p %p", (void *) *dentry1p, (void *) *dentry2p);
 #ifdef ENABLE_CHECKING
   /* internal_dentry_lock2 should be used only by zfs_link and zfs_rename
      thus the files should be on the same device.  */
@@ -1315,7 +1315,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
   void **slot;
   internal_cap cap, next;
 
-  TRACE ("");
+  TRACE ("%p", (void *) fh);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1361,7 +1361,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
 static void
 internal_fh_destroy_stage2 (internal_fh fh)
 {
-  TRACE ("");
+  TRACE ("%p", (void *) fh);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1770,7 +1770,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
   internal_dentry dentry;
   int32_t r2;
 
-  TRACE ("");
+  TRACE ("%p", (void *) *dirp);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dirp)->fh->mutex);
@@ -1976,7 +1976,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
   zfs_fh tmp_fh;
   void **slot;
 
-  TRACE ("");
+  TRACE ("%p", (void *) dentry);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
