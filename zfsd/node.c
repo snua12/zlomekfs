@@ -146,10 +146,10 @@ node_create (uint32_t id, string *name)
   nod = (node) xmalloc (sizeof (struct node_def));
   nod->id = id;
   xstringdup (&nod->name, name);
-  nod->flags = 0;
   nod->last_connect = 0;
   nod->fd = -1;
   nod->generation = 0;
+  nod->marked = false;
   nod->map_uid_to_node = NULL;
   nod->map_uid_to_zfs = NULL;
   nod->map_gid_to_node = NULL;

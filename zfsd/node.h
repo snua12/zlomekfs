@@ -39,10 +39,10 @@ typedef struct node_def
   uint32_t id;			/* ID of the node */
   string name;			/* name of the node */
 				/* public key */
-  int flags;			/* see NODE_* below */
   time_t last_connect;		/* last attemp to connect to node */
   int fd;			/* file descriptor */
   unsigned int generation;	/* generation of open file descriptor */
+  bool marked;			/* Is the node marked?  */
 
   /* Tables for mapping between ZFS IDs and node IDs.  */
   htab_t map_uid_to_node;
@@ -54,10 +54,6 @@ typedef struct node_def
 /* Predefined node IDs.  */
 #define NODE_NONE 0		/* ID for non-existing node, used as SID
 				   in file handle of virtual directory.  */
-
-/* Node flags.  */
-#define NODE_DELETE		1	/* the node should be deleted from
-					   memory datastructures  */
 
 /* Mutex for table of nodes.  */
 extern pthread_mutex_t node_mutex;

@@ -111,6 +111,7 @@ volume_create (uint32_t id)
   vol->mountpoint.str = NULL;
   vol->mountpoint.len = 0;
   vol->delete_p = false;
+  vol->marked = false;
   vol->n_locked_fhs = 0;
   vol->local_path.str = NULL;
   vol->local_path.len = 0;

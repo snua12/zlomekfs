@@ -175,6 +175,7 @@ user_create (uint32_t id, string *name)
   u = (user_t) xmalloc (sizeof (*u));
   u->id = id;
   xstringdup (&u->name, name);
+  u->marked = false;
   *slot1 = u;
   *slot2 = u;
 
@@ -253,6 +254,7 @@ group_create (uint32_t id, string *name)
   g = (group_t) xmalloc (sizeof (*g));
   g->id = id;
   xstringdup (&g->name, name);
+  g->marked = false;
   *slot1 = g;
   *slot2 = g;
 
@@ -388,6 +390,7 @@ user_mapping_create (string *zfs_user, string *node_user, node nod)
   map = (id_mapping) xmalloc (sizeof (*map));
   map->zfs_id = u->id;
   map->node_id = pwd->pw_uid;
+  map->marked = false;
 
   if (!*slot1)
     *slot1 = map;

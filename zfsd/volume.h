@@ -42,16 +42,17 @@ struct volume_def
 
   pthread_mutex_t mutex;
   uint32_t id;			/* ID of the volume */
-  node master;			/* master node for the volume */
+  node master;			/* master node of the volume */
   string name;			/* name of the volume */
-  string mountpoint;		/* "mountpoint" for the volume on cluster fs */
+  string mountpoint;		/* "mountpoint" of the volume on cluster fs */
 
   bool delete_p;		/* Shall the volume be deleted? */
+  bool marked;			/* Is the volume marked?  */
   bool is_copy;			/* Is the volume a copy of remote volume?  */
   unsigned int n_locked_fhs;	/* number of locked file handles */
 
   string local_path;		/* directory with local copy of volume */
-  uint64_t size_limit;		/* size limit for copy of volume */
+  uint64_t size_limit;		/* size limit of a copy of the volume */
 
   uint32_t last_conflict_ino;	/* the inode number of conflict dir
 				   assigned for the last time */

@@ -31,6 +31,7 @@ typedef struct user_def
 {
   uint32_t id;			/* user ID */
   string name;			/* name of the user */
+  bool marked;			/* Is the user marked?  */
 } *user_t;
 
 /* Description of ZFS group.  */
@@ -38,6 +39,7 @@ typedef struct group_def
 {
   uint32_t id;			/* group ID */
   string name;			/* name of the group */
+  bool marked;			/* Is the group marked?  */
 } *group_t;
 
 /* Structure describing mapping between ZFS user/group ID
@@ -46,6 +48,7 @@ typedef struct id_mapping_def
 {
   uint32_t zfs_id;		/* ID of ZFS user/group */
   uint32_t node_id;		/* ID of node user/group */
+  bool marked;			/* Is the id mapping marked?  */
 } *id_mapping;
 
 /* ID of default ZFS user/group.  */
