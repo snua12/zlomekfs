@@ -1832,7 +1832,7 @@ read_hardlinks (hardlink_list hl, int fd)
       parent_dev = le_to_u32 (parent_dev);
       parent_ino = le_to_u32 (parent_ino);
       name_len = le_to_u32 (name_len);
-      name = xmalloc (name_len + 1);
+      name = (char *) xmalloc (name_len + 1);
 
       if (fread (name, 1, name_len + 1, f) != name_len + 1)
 	{

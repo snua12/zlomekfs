@@ -2493,7 +2493,7 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
     return errno;
 
   buf[r] = 0;
-  res->path.str = xmemdup (buf, r + 1);
+  res->path.str = (char *) xmemdup (buf, r + 1);
   res->path.len = r;
 
   return ZFS_OK;
