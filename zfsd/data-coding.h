@@ -35,6 +35,19 @@ typedef unsigned long		uintptr_t;
 /* Maximal length of request / reply.  */
 #define DC_SIZE 8888
 
+/* Maximal number of DC structures for a file decriptor.  */
+#define MAX_FREE_DCS 8
+
+typedef struct data_coding_def
+{
+  char *buffer;			/* previous pointer aligned to 16 */
+  char *cur_pos;		/* current position to buffer while
+				   encoding/decoding */
+  unsigned int max_length;	/* maximal valid index to buffer */ 
+  unsigned int cur_length;	/* current index to buffer */
+  char data[DC_SIZE + 15];
+} DC;
+
 /* Align a number to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_1(N) (N)
 #define ALIGN_2(N) (((N) + 1) & ~1)
@@ -134,16 +147,6 @@ typedef unsigned long		uintptr_t;
 #define le_to_u32p(X) le_to_u32 (*(uint32_t *) (X))
 #define le_to_i64p(X) le_to_i64 (*(int64_t *) (X))
 #define le_to_u64p(X) le_to_u64 (*(uint64_t *) (X))
-
-typedef struct data_coding_def
-{
-  char *buffer;			/* previous pointer aligned to 16 */
-  char *cur_pos;		/* current position to buffer while
-				   encoding/decoding */
-  unsigned int max_length;	/* maximal valid index to buffer */ 
-  unsigned int cur_length;	/* current index to buffer */
-  char data[DC_SIZE + 15];
-} DC;
 
 #include "zfs_prot.h"
 

@@ -841,7 +841,7 @@ recycle_dc_to_fd_data (DC *dc, fd_data_t *fd_data)
 {
   CHECK_MUTEX_LOCKED (&fd_data->mutex);
 
-  if (fd_data->fd >= 0 && fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
+  if (fd_data->fd >= 0 && fd_data->ndc < MAX_FREE_DCS)
     {
       /* Add the buffer to the queue.  */
       fd_data->dc[fd_data->ndc] = dc;
