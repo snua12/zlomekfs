@@ -304,7 +304,6 @@ cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
       cleanup_unused_dentries ();
     }
 
-  zfsd_mutex_destroy (&cleanup_dentry_thread_in_syscall);
   return NULL;
 }
 
