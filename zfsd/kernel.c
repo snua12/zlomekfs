@@ -370,23 +370,26 @@ kernel_dispatch (fd_data_t *fd_data)
 static void *
 kernel_main (ATTRIBUTE_UNUSED void *data)
 {
-  struct pollfd pfd;
   ssize_t r;
-  static char dummy[ZFS_MAXDATA];
+  fd_data_t *fd_data;
 
   thread_disable_signals ();
   pthread_setspecific (thread_name_key, "Kernel main thread");
 
+  fd_data = &fd_data_a[kernel_fd];
   while (!thread_pool_terminate_p (&kernel_pool))
     {
-      pfd.fd = kernel_fd;
-      pfd.events = CAN_READ;
+      zfsd_mutex_lock (&fd_data->mutex);
+      if (fd_data->ndc == 0)
+	{
+	  fd_data->dc[0] = dc_create ();
+	  fd_data->ndc++;
+	}
+      zfsd_mutex_unlock (&fd_data->mutex);
 
-      message (2, stderr, "Polling\n");
       zfsd_mutex_lock (&kernel_pool.main_in_syscall);
-      r = poll (&pfd, 1, -1);
+      r = read (kernel_fd, fd_data->dc[0]->buffer, DC_SIZE);
       zfsd_mutex_unlock (&kernel_pool.main_in_syscall);
-      message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
 
       if (r < 0 && errno != EINTR)
 	{
@@ -403,80 +406,24 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       if (r <= 0)
 	continue;
 
-      message (2, stderr, "FD %d revents %d\n", pfd.fd, pfd.revents);
-      if (pfd.revents & CANNOT_RW)
-	break;
+      start_decoding (fd_data->dc[0]);
 
-      if (pfd.revents & CAN_READ)
+      if (fd_data->dc[0]->max_length == (unsigned int) r)
 	{
-	  fd_data_t *fd_data = &fd_data_a[kernel_fd];
-
-	  if (fd_data->read < 4)
+	  /* Dispatch the request.  */
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  fd_data->read = 0;
+	  if (kernel_dispatch (fd_data))
 	    {
-	      zfsd_mutex_lock (&fd_data->mutex);
-	      if (fd_data->ndc == 0)
-		{
-		  fd_data->dc[0] = dc_create ();
-		  fd_data->ndc++;
-		}
-	      zfsd_mutex_unlock (&fd_data->mutex);
-
-	      r = read (fd_data->fd, fd_data->dc[0]->buffer + fd_data->read,
-			4 - fd_data->read);
-	      if (r <= 0)
-		break;
-
-	      fd_data->read += r;
-	      if (fd_data->read == 4)
-		{
-		  start_decoding (fd_data->dc[0]);
-		}
+	      fd_data->ndc--;
+	      if (fd_data->ndc > 0)
+		fd_data->dc[0] = fd_data->dc[fd_data->ndc];
 	    }
-	  else
-	    {
-	      if (fd_data->dc[0]->max_length <= DC_SIZE)
-		{
-		  r = read (fd_data->fd,
-			    fd_data->dc[0]->buffer + fd_data->read,
-			    fd_data->dc[0]->max_length - fd_data->read);
-		}
-	      else
-		{
-		  int l;
-
-		  l = fd_data->dc[0]->max_length - fd_data->read;
-		  if (l > ZFS_MAXDATA)
-		    l = ZFS_MAXDATA;
-		  r = read (fd_data->fd, dummy, l);
-		}
-
-	      if (r <= 0)
-		break;
-
-	      fd_data->read += r;
-	      if (fd_data->dc[0]->max_length == fd_data->read)
-		{
-		  if (fd_data->dc[0]->max_length <= DC_SIZE)
-		    {
-		      /* We have read complete request, dispatch it.  */
-		      zfsd_mutex_lock (&fd_data->mutex);
-		      fd_data->read = 0;
-		      if (kernel_dispatch (fd_data))
-			{
-			  fd_data->ndc--;
-			  if (fd_data->ndc > 0)
-			    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-			}
-		      zfsd_mutex_unlock (&fd_data->mutex);
-		    }
-		  else
-		    {
-		      message (2, stderr, "Packet too long: %u\n",
-			       fd_data->read);
-		      fd_data->read = 0;
-		    }
-		}
-	    }
+	  zfsd_mutex_unlock (&fd_data->mutex);
+	}
+      else
+	{
+	  message (2, stderr, "Invalid packet\n");
 	}
     }
 
