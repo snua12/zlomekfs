@@ -569,6 +569,8 @@ reintegrate_file_blocks (zfs_cap *cap)
     abort ();
 #endif
 
+  dentry->fh->flags |= IFH_REINTEGRATING;
+
   version_increase = 0;
   for (offset = 0; offset < dentry->fh->attr.size; )
     {
@@ -683,6 +685,7 @@ reintegrate_file_blocks (zfs_cap *cap)
 
     }
 
+  dentry->fh->flags &= ~IFH_REINTEGRATING;
   if (dentry->fh->modified->deleted)
     {
       if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_MODIFIED))
@@ -1780,6 +1783,17 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
   data_conflict = (dentry->fh->attr.type == FT_REG
 		   && dentry->fh->attr.version > dentry->fh->meta.master_version
 		   && attr->version > dentry->fh->meta.master_version);
+
+  if (!attr_conflict && data_conflict
+      && (dentry->fh->flags & IFH_REINTEGRATING))
+    {
+      /* The modify-modify conflict may be caused by reintegration
+	 so change nothing.  */
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ZFS_OK);
+    }
 
   conflict = dentry->parent;
   if (conflict)

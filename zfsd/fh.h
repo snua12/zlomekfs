@@ -210,6 +210,7 @@ struct internal_fh_def
 #define IFH_METADATA	4
 #define IFH_ALL_UPDATE	(IFH_UPDATE | IFH_REINTEGRATE | IFH_METADATA)
 #define IFH_ENQUEUED	8
+#define IFH_REINTEGRATING 16
 
 /* Information about locked dentries.  */
 typedef struct lock_info_def
