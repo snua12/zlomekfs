@@ -69,16 +69,6 @@ get_running ()
   return value;
 }
 
-/* Set RUNNING flag to VALUE.  */
-
-void
-set_running (bool value)
-{
-  zfsd_mutex_lock (&running_mutex);
-  running = value;
-  zfsd_mutex_unlock (&running_mutex);
-}
-
 /* Terminate blocking syscall in THREAD.  We mark the blocking syscall by
    locking MUTEX.  */
 
