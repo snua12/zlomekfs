@@ -345,8 +345,10 @@ cond_remote_close (zfs_cap *cap, internal_cap icap, internal_dentry *dentryp,
       if (r != ZFS_OK)
 	return r;
 
-      zfs_fh_undefine (icap->master_cap.fh);
-      zfs_cap_undefine (icap->master_cap);
+      /* Do not undefine master_cap because it still may be used by a user.
+	 We are just closing last "update" use of it.
+         When all uses are closed the capability is destroyed so it is
+         superfluous to undefine master_cap in that case.  */
     }
 #ifdef ENABLE_CHECKING
   else
