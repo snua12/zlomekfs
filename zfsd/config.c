@@ -598,13 +598,118 @@ read_node_list (zfs_fh *config_dir)
 				process_line_node, NULL);
 }
 
+/* Process line LINE number LINE_NUM of volume hierarchy file FILE_NAME
+   and update hierarchy DATA.  */
+
+static int
+process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
+			       ATTRIBUTE_UNUSED unsigned int line_num,
+			       void *data)
+{
+  varray *hierarchy = (varray *) data;
+  char *name;
+  unsigned int i;
+
+  for (i = 0; line[i] == ' '; i++)
+    ;
+
+  /* Free superfluous records.  */
+  while (VARRAY_USED (*hierarchy) > i)
+    {
+      name = VARRAY_TOP (*hierarchy, char *);
+      if (name)
+	free (name);
+      VARRAY_POP (*hierarchy);
+    }
+
+  /* Are we processing local node?  */
+  if (strncmp (line + i, node_name.str, node_name.len + 1) == 0)
+    return 1;
+
+  /* Add missing empty records.  */
+  while (VARRAY_USED (*hierarchy) < i)
+    {
+      VARRAY_PUSH (*hierarchy, NULL, char *);
+    }
+
+  name = xstrdup (line + i);
+  VARRAY_PUSH (*hierarchy, name, char *);
+  return 0;
+}
+
+/* Read appropriate file in VOLUME_INFO_DIR and process info about volume VID
+   with name NAME and volume mountpoint MOUNTPOINT.  */
+
+static void
+read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
+		       string *name, string *mountpoint)
+{
+  dir_op_res file_res;
+  varray hierarchy;
+  char *file_name, *master_name;
+  string str;
+  int32_t r;
+  volume vol;
+  node nod;
+
+  r = zfs_extended_lookup (&file_res, volume_hierarchy_dir, name->str);
+  if (r != ZFS_OK)
+    return;
+
+  varray_create (&hierarchy, sizeof (char *), 4);
+  file_name = xstrconcat (2, "config/volume/", name->str);
+  process_file_by_lines (&file_res.file, file_name,
+			 process_line_volume_hierarchy, &hierarchy);
+  free (file_name);
+
+  master_name = NULL;
+  while (VARRAY_USED (hierarchy) > 0)
+    {
+      master_name = VARRAY_TOP (hierarchy, char *);
+      if (master_name)
+	break;
+      VARRAY_POP (hierarchy);
+    }
+
+  if (master_name)
+    {
+      str.str = master_name;
+      str.len = strlen (master_name);
+      nod = node_lookup_name (&str);
+      if (nod)
+	zfsd_mutex_unlock (&nod->mutex);
+    }
+  else
+    nod = this_node;
+
+  if (nod)
+    {
+      vol = volume_lookup (vid);
+      if (vol)
+	{
+	  volume_set_common_info (vol, name, mountpoint, nod);
+	  zfsd_mutex_unlock (&vol->mutex);
+	}
+    }
+
+  while (VARRAY_USED (hierarchy) > 0)
+    {
+      master_name = VARRAY_TOP (hierarchy, char *);
+      if (master_name)
+	free (master_name);
+      VARRAY_POP (hierarchy);
+    }
+  varray_destroy (&hierarchy);
+}
+
 /* Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
 process_line_volume (char *line, char *file_name, unsigned int line_num,
-		     ATTRIBUTE_UNUSED void *data)
+		     void *data)
 {
+  zfs_fh *volume_hierarchy_dir = (zfs_fh *) data;
   string parts[3];
   uint32_t vid;
 
@@ -628,7 +733,8 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	}
       else
 	{
-	  /* TODO: process volume */
+	  read_volume_hierarchy (volume_hierarchy_dir, vid, &parts[1],
+				 &parts[2]);
 	}
     }
   else
@@ -646,14 +752,20 @@ static bool
 read_volume_list (zfs_fh *config_dir)
 {
   dir_op_res volume_list_res;
+  dir_op_res volume_hierarchy_res;
   int32_t r;
 
   r = zfs_extended_lookup (&volume_list_res, config_dir, "volume_list");
   if (r != ZFS_OK)
     return false;
 
-  return process_file_by_lines (&volume_list_res.file, "config/volume_list",
-				process_line_volume, config_dir);
+  r = zfs_extended_lookup (&volume_hierarchy_res, config_dir, "volume");
+  if (r != ZFS_OK)
+    return false;
+
+  return process_file_by_lines (&volume_list_res.file, "config/volume",
+				process_line_volume,
+				&volume_hierarchy_res.file);
 }
 
 /* Has the config reader already terminated?  */
