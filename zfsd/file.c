@@ -2629,7 +2629,7 @@ full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
 int32_t
 full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
-		  uint64_t offset, uint32_t count)
+		  uint64_t offset, uint32_t count, uint64_t *version)
 {
   read_res res;
   volume vol;
@@ -2658,6 +2658,11 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
       r = remote_read (&res, icap, dentry, offset + total, count - total, vol);
       if (r != ZFS_OK)
 	RETURN_INT (r);
+      if (res.version != *version)
+	{
+	  *version = res.version;
+	  RETURN_INT (ZFS_CHANGED);
+	}
 
       if (res.data.len == 0)
 	break;
