@@ -545,14 +545,14 @@ bool
 decode_open_fh_args (DC *dc, open_fh_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
-	  && decode_uint32_t (dc, &args->mode));
+	  && decode_uint32_t (dc, &args->flags));
 }
 
 bool
 encode_open_fh_args (DC *dc, open_fh_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
-	  && encode_uint32_t (dc, args->mode));
+	  && encode_uint32_t (dc, args->flags));
 }
 
 bool

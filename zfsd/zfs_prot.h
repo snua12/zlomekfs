@@ -174,7 +174,7 @@ typedef struct open_name_args_def
 typedef struct open_fh_args_def
 {
   zfs_fh file;
-  unsigned int mode;
+  unsigned int flags;
 } open_fh_args;
 
 typedef struct read_dir_args_def
