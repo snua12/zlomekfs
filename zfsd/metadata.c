@@ -2566,17 +2566,9 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 	    return false;
 	}
 
-      meta->dev = fh->dev;
-      meta->ino = fh->ino;
-      if (!hfile_lookup (vol->metadata, meta))
-	{
-	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  return false;
-	}
       if (meta->slot_status != VALID_SLOT)
 	{
 	  meta->slot_status = VALID_SLOT;
-	  meta->flags = METADATA_COMPLETE;
 	  meta->dev = fh->dev;
 	  meta->ino = fh->ino;
 	  meta->gen = 1;
@@ -2640,18 +2632,9 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 	    }
 	}
 
-      meta->dev = fh->dev;
-      meta->ino = fh->ino;
-      if (!hfile_lookup (vol->metadata, meta))
-	{
-	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  hardlink_list_destroy (hl);
-	  return false;
-	}
       if (meta->slot_status != VALID_SLOT)
 	{
 	  meta->slot_status = VALID_SLOT;
-	  meta->flags = METADATA_COMPLETE;
 	  meta->dev = fh->dev;
 	  meta->ino = fh->ino;
 	  meta->gen = 1;
