@@ -1052,6 +1052,213 @@ zfs_rmdir (zfs_fh *dir, string *name)
   return r;
 }
 
+/* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
+   in directory TO_DIR on volume VOL.  */
+
+static int
+local_rename (internal_fh from_dir, string *from_name,
+	      internal_fh to_dir, string *to_name, volume vol)
+{
+  char *path1, *path2;
+  int r;
+
+  CHECK_MUTEX_LOCKED (&from_dir->mutex);
+  CHECK_MUTEX_LOCKED (&to_dir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  path1 = build_local_path_name (vol, from_dir, from_name->str);
+  path2 = build_local_path_name (vol, to_dir, to_name->str);
+  r = rename (path1, path2);
+  free (path1);
+  free (path2);
+  if (r != 0)
+    return errno;
+
+  return ZFS_OK;
+}
+
+/* Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME
+   in directory TO_DIR on volume VOL.  */
+
+static int
+remote_rename (internal_fh from_dir, string *from_name,
+	       internal_fh to_dir, string *to_name, volume vol)
+{
+  rename_args args;
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&from_dir->mutex);
+  CHECK_MUTEX_LOCKED (&to_dir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  args.from.dir = from_dir->master_fh;
+  args.from.name = *from_name;
+  args.to.dir = to_dir->master_fh;
+  args.to.name = *to_name;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_rename_client (t, &args, vol->master);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Rename file FROM_NAME in directory FROM_DIR to file TO_NAME
+   in directory TO_DIR.  */
+
+int
+zfs_rename (zfs_fh *from_dir, string *from_name,
+	    zfs_fh *to_dir, string *to_name)
+{
+  volume vol1 = NULL, vol2 = NULL;
+  internal_fh ifh1 = NULL, ifh2 = NULL;
+  virtual_dir vd1 = NULL, vd2 = NULL;
+  int r = ZFS_OK;
+
+  /* Lookup FROM.  */
+  zfsd_mutex_lock (&volume_mutex);
+  zfsd_mutex_lock (&vd_mutex);
+  if (!fh_lookup_nolock (from_dir, &vol1, &ifh1, &vd1))
+    {
+      zfsd_mutex_unlock (&volume_mutex);
+      zfsd_mutex_unlock (&vd_mutex);
+      return ESTALE;
+    }
+  if (!vol1)
+    {
+      r = EROFS;
+      goto zfs_rename_error_unlock_volume;
+    }
+  /* If directory handles are the same unlock IFH1 and VD1 for the same reason
+     as VOL1.  */
+  if (!ZFS_FH_EQ (*from_dir, *to_dir))
+    {
+      /* Because LINK operation is allowed only within same volume
+	 we may unlock VOL1.  Moreover we have to do so to avoid deadlock.  */
+      zfsd_mutex_unlock (&vol1->mutex);
+
+      /* Lookup TO.  */
+      if (!fh_lookup_nolock (to_dir, &vol2, &ifh2, &vd2))
+	{
+	  r = ESTALE;
+	  goto zfs_rename_error_unlock_volume;
+	}
+      zfsd_mutex_unlock (&volume_mutex);
+
+      if (!vol2)
+	{
+	  r = EROFS;
+	  goto zfs_rename_error_unlock_vd;
+	}
+      if (vol1 != vol2)
+	{
+	  r = EXDEV;
+	  goto zfs_rename_error_unlock_vd;
+	}
+    }
+  else
+    {
+      zfsd_mutex_unlock (&volume_mutex);
+      vd2 = vd1;
+      ifh2 = ifh1;
+      vol2 = vol1;
+    }
+
+  zfsd_mutex_unlock (&volume_mutex);
+  /* Check validity of the operation.  */
+  if (vd1)
+    {
+      r = validate_operation_on_virtual_directory (vd1, from_name, &ifh1);
+      if (r != ZFS_OK)
+	goto zfs_rename_error_unlock_vd;
+      zfsd_mutex_unlock (&vd1->mutex);
+      vd1 = NULL;
+    }
+  if (vd2)
+    {
+      if (vd2 != vd1)
+	{
+	  r = validate_operation_on_virtual_directory (vd2, to_name, &ifh2);
+	  if (r != ZFS_OK)
+	    goto zfs_rename_error_unlock_vd;
+	  zfsd_mutex_unlock (&vd2->mutex);
+	}
+      else
+	ifh2 = ifh1;
+      vd2 = NULL;
+    }
+  zfsd_mutex_unlock (&vd_mutex);
+  if (ifh1->master_fh.dev != ifh2->master_fh.dev)
+    {
+      r = EXDEV;
+      goto zfs_rename_error;
+    }
+
+  if (vol1->local_path)
+    r = local_rename (ifh1, from_name, ifh2, to_name, vol1);
+  else if (vol1->master != this_node)
+    r = remote_rename (ifh1, from_name, ifh2, to_name, vol1);
+  else
+    abort ();
+
+  if (r == ZFS_OK)
+    {
+      internal_fh ifh;
+
+      /* Delete internal file handle in htab because it is outdated.  */
+      /* FIXME? move the internal_fh to another directory? */
+      ifh = fh_lookup_name (vol1, ifh1, to_name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  internal_fh_destroy (ifh, vol1);
+	}
+      ifh = fh_lookup_name (vol2, ifh2, to_name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  internal_fh_destroy (ifh, vol2);
+	}
+    }
+
+  zfsd_mutex_unlock (&ifh1->mutex);
+  zfsd_mutex_unlock (&ifh2->mutex);
+  zfsd_mutex_unlock (&vol2->mutex);
+
+  return r;
+
+zfs_rename_error_unlock_volume:
+  zfsd_mutex_unlock (&volume_mutex);
+
+zfs_rename_error_unlock_vd:
+  zfsd_mutex_unlock (&vd_mutex);
+
+zfs_rename_error:
+  if (ifh1)
+    zfsd_mutex_unlock (&ifh1->mutex);
+  if (ifh2 && ifh2 != ifh1)
+    zfsd_mutex_unlock (&ifh2->mutex);
+  if (vd1)
+    zfsd_mutex_unlock (&vd1->mutex);
+  if (vd2 && vd2 != vd1)
+    zfsd_mutex_unlock (&vd2->mutex);
+  if (vol2)
+    zfsd_mutex_unlock (&vol2->mutex);
+
+  return r;
+}
+
 /* Link local file FROM to be a file with NAME in directory DIR
    on volume VOL.  */
 

@@ -230,9 +230,13 @@ void
 zfs_proc_rename_server (rename_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_rename (&args->from.dir, &args->from.name,
+		  &args->to.dir, &args->to.name);
+  encode_status (dc, r);
+  free (args->from.name.str);
+  free (args->to.name.str);
 }
 
 /* void zfs_proc_link (link_args); */
