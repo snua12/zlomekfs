@@ -1965,6 +1965,7 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
 	abort ();
 #endif
 
+      meta.modetype = GET_MODETYPE (0, FT_BAD);
       if (metadata_n_hardlinks (vol, &res->file, &meta) > 1)
 	{
 	  if (delete_tree_name (dir, name, vol, false) != ZFS_OK)
