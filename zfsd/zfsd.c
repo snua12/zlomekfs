@@ -27,7 +27,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 #include <ucontext.h>
-#include <pthread.h>
+#include "pthread.h"
 #include "semaphore.h"
 #include "memory.h"
 #include "config.h"
@@ -399,9 +399,9 @@ test_zfs (thread *t)
       node nod;
       char *str;
 
-      pthread_mutex_lock (&node_mutex);
+      zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
-      pthread_mutex_unlock (&node_mutex);
+      zfsd_mutex_unlock (&node_mutex);
 
       message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_null_client (t, NULL, nod);

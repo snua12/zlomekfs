@@ -24,6 +24,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "pthread.h"
 
 #define abort() verbose_abort(__FILE__, __LINE__)
 

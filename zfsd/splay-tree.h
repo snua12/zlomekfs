@@ -36,7 +36,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <inttypes.h>
-#include <pthread.h>
+#include "pthread.h"
 #include "alloc-pool.h"
 
 /* Use typedefs for the key and data types to facilitate changing

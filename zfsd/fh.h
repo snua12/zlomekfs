@@ -26,6 +26,7 @@ typedef struct volume_def *volume;
 
 #include "system.h"
 #include <stdio.h>
+#include "pthread.h"
 #include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"

@@ -23,7 +23,7 @@
 
 #include "system.h"
 #include <stddef.h>
-#include <pthread.h>
+#include "pthread.h"
 
 typedef struct queue_def
 {

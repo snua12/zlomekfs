@@ -29,6 +29,7 @@
 
 #include "system.h"
 #include <stdlib.h>
+#include "pthread.h"
 #include "alloc-pool.h"
 #include "log.h"
 #include "memory.h"

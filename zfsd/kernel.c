@@ -20,8 +20,8 @@
 
 #include "system.h"
 #include <stdlib.h>
-#include <pthread.h>
 #include <signal.h>
+#include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
 #include "client.h"
@@ -52,7 +52,7 @@ client_dispatch ()
 {
   size_t index;
 
-  pthread_mutex_lock (&client_pool.idle.mutex);
+  zfsd_mutex_lock (&client_pool.idle.mutex);
 
   /* Regulate the number of threads.  */
   thread_pool_regulate (&client_pool, client_worker, client_worker_init);
@@ -65,9 +65,9 @@ client_dispatch ()
 #endif
   client_pool.threads[index].t.state = THREAD_BUSY;
   /* FIXME: read and pass request */
-  pthread_mutex_unlock (&client_pool.threads[index].t.mutex);
+  zfsd_mutex_unlock (&client_pool.threads[index].t.mutex);
 
-  pthread_mutex_unlock (&client_pool.idle.mutex);
+  zfsd_mutex_unlock (&client_pool.idle.mutex);
 }
 #endif
 
@@ -116,7 +116,7 @@ client_worker (void *data)
       /* FIXME: TODO: call appropriate routine */
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      pthread_mutex_lock (&client_pool.idle.mutex);
+      zfsd_mutex_lock (&client_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
 	{
 	  queue_put (&client_pool.idle, t->index);
@@ -128,10 +128,10 @@ client_worker (void *data)
 	  if (t->state != THREAD_DYING)
 	    abort ();
 #endif
-	  pthread_mutex_unlock (&client_pool.idle.mutex);
+	  zfsd_mutex_unlock (&client_pool.idle.mutex);
 	  break;
 	}
-      pthread_mutex_unlock (&client_pool.idle.mutex);
+      zfsd_mutex_unlock (&client_pool.idle.mutex);
     }
 
   pthread_cleanup_pop (1);
@@ -149,14 +149,14 @@ create_client_threads ()
   /* FIXME: read the numbers from configuration.  */
   thread_pool_create (&client_pool, 64, 4, 16);
 
-  pthread_mutex_lock (&client_pool.idle.mutex);
-  pthread_mutex_lock (&client_pool.empty.mutex);
+  zfsd_mutex_lock (&client_pool.idle.mutex);
+  zfsd_mutex_lock (&client_pool.empty.mutex);
   for (i = 0; i < /* FIXME: */ 10; i++)
     {
       create_idle_thread (&client_pool, client_worker, client_worker_init);
     }
-  pthread_mutex_unlock (&client_pool.empty.mutex);
-  pthread_mutex_unlock (&client_pool.idle.mutex);
+  zfsd_mutex_unlock (&client_pool.empty.mutex);
+  zfsd_mutex_unlock (&client_pool.idle.mutex);
 
   thread_pool_create_regulator (&client_regulator_data, &client_pool,
 				client_worker, client_worker_init);

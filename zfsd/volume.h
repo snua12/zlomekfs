@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include "pthread.h"
 #include "fh.h"
 #include "node.h"
 

@@ -25,6 +25,7 @@
 #include "system.h"
 #include <stdlib.h>
 #include <string.h>
+#include "pthread.h"
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"

@@ -19,7 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include <pthread.h>
+#include "pthread.h"
 #include "semaphore.h"
 
 /* Initialize semaphore SEM and set its value to N.  */
@@ -64,10 +64,10 @@ semaphore_destroy (semaphore *sem)
 int
 semaphore_up (semaphore *sem, unsigned int n)
 {
-  pthread_mutex_lock (&sem->mutex);
+  zfsd_mutex_lock (&sem->mutex);
   sem->value += n;
-  pthread_cond_signal (&sem->cond);
-  pthread_mutex_unlock (&sem->mutex);
+  zfsd_cond_signal (&sem->cond);
+  zfsd_mutex_unlock (&sem->mutex);
 
   return 0;
 }
@@ -77,11 +77,11 @@ semaphore_up (semaphore *sem, unsigned int n)
 int
 semaphore_down (semaphore *sem, unsigned int n)
 {
-  pthread_mutex_lock (&sem->mutex);
+  zfsd_mutex_lock (&sem->mutex);
   while (sem->value < n)
-    pthread_cond_wait (&sem->cond, &sem->mutex);
+    zfsd_cond_wait (&sem->cond, &sem->mutex);
   sem->value -= n;
-  pthread_mutex_unlock (&sem->mutex);
+  zfsd_mutex_unlock (&sem->mutex);
 
   return 0;
 }

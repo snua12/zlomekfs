@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <time.h>
+#include "pthread.h"
 #include "constant.h"
 #include "data-coding.h"
 #include "hashtab.h"

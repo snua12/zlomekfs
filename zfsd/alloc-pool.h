@@ -27,7 +27,7 @@
 
 #include "system.h"
 #include <stddef.h>
-#include <pthread.h>
+#include "pthread.h"
 
 typedef unsigned long ALLOC_POOL_ID_TYPE;
 

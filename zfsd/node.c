@@ -20,11 +20,11 @@
 
 #include "system.h"
 #include <string.h>
-#include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
+#include "pthread.h"
 #include "config.h"
 #include "crc32.h"
 #include "hashtab.h"
@@ -138,7 +138,7 @@ node_create (unsigned int id, char *name)
   if (strcmp (name, node_name) == 0)
     this_node = nod;
 
-  pthread_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&node_mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
@@ -158,7 +158,7 @@ node_create (unsigned int id, char *name)
   slot = htab_find_slot_with_hash (node_htab_name, nod->name,
 				   NODE_HASH_NAME (nod), INSERT);
   *slot = nod;
-  pthread_mutex_unlock (&node_mutex);
+  zfsd_mutex_unlock (&node_mutex);
 
   return nod;
 }
@@ -194,7 +194,7 @@ node_destroy (node nod)
 #endif
   htab_clear_slot (node_htab_name, slot);
 
-  pthread_mutex_unlock (&nod->mutex);
+  zfsd_mutex_unlock (&nod->mutex);
   pthread_mutex_destroy (&nod->mutex);
   free (nod->name);
   free (nod);
@@ -211,10 +211,10 @@ node_update_fd (node nod, int fd, unsigned int generation)
 #endif
   if (nod->fd >= 0 && nod->fd != fd)
     {
-      pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+      zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
       if (nod->generation == server_fd_data[nod->fd].generation)
 	server_fd_data[nod->fd].flags = SERVER_FD_CLOSE;
-      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+      zfsd_mutex_unlock (&server_fd_data[nod->fd].mutex);
     }
 
   nod->fd = fd;
@@ -235,10 +235,10 @@ node_connected_p (node nod)
   if (nod->fd < 0)
     return false;
 
-  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+  zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
   if (nod->generation != server_fd_data[nod->fd].generation)
     {
-      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+      zfsd_mutex_unlock (&server_fd_data[nod->fd].mutex);
       return false;
     }
 
@@ -375,9 +375,9 @@ node_authenticate_error:
   message (2, stderr, "not auth\n");
   server_fd_data[nod->fd].auth = AUTHENTICATION_NONE;
   server_fd_data[nod->fd].conn = CONNECTION_NONE;
-  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+  zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
   close_server_fd (nod->fd);
-  pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+  zfsd_mutex_unlock (&server_fd_data[nod->fd].mutex);
   nod->fd = -1;
   return false;
 }
@@ -391,7 +391,7 @@ node_connect_and_authenticate (thread *t, node nod)
   server_thread_data *td = &t->u.server;
   int fd;
 
-  pthread_mutex_lock (&nod->mutex);
+  zfsd_mutex_lock (&nod->mutex);
   if (!node_connected_p (nod))
     {
       time_t now;
@@ -401,7 +401,7 @@ node_connect_and_authenticate (thread *t, node nod)
       if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
 	{
 	  td->retval = ZFS_COULD_NOT_CONNECT;
-	  pthread_mutex_unlock (&nod->mutex);
+	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
       nod->last_connect = now;
@@ -410,7 +410,7 @@ node_connect_and_authenticate (thread *t, node nod)
       if (fd < 0)
 	{
 	  td->retval = ZFS_COULD_NOT_CONNECT;
-	  pthread_mutex_unlock (&nod->mutex);
+	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
       add_fd_to_active (fd);
@@ -419,14 +419,14 @@ node_connect_and_authenticate (thread *t, node nod)
       if (!node_authenticate (t, nod))
 	{
 	  td->retval = ZFS_COULD_NOT_AUTH;
-	  pthread_mutex_unlock (&nod->mutex);
+	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
     }
   else
     fd = nod->fd;
 
-  pthread_mutex_unlock (&nod->mutex);
+  zfsd_mutex_unlock (&nod->mutex);
   return fd;
 }
 
@@ -448,16 +448,16 @@ cleanup_node_c ()
 {
   void **slot;
 
-  pthread_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&node_mutex);
   HTAB_FOR_EACH_SLOT (node_htab, slot,
     {
       node nod = (node) *slot;
 
-      pthread_mutex_lock (&nod->mutex);
+      zfsd_mutex_lock (&nod->mutex);
       node_destroy (nod);
     });
   htab_destroy (node_htab);
   htab_destroy (node_htab_name);
-  pthread_mutex_unlock (&node_mutex);
+  zfsd_mutex_unlock (&node_mutex);
   pthread_mutex_destroy (&node_mutex);
 }

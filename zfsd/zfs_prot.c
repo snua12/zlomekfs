@@ -19,10 +19,10 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include <pthread.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
+#include "pthread.h"
 #include "constant.h"
 #include "zfs_prot.h"
 #include "data-coding.h"
@@ -72,7 +72,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
   volume vol;
   internal_fh ifh;
 
-  pthread_mutex_lock (&volume_mutex);
+  zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup (args->vid);
   if (!vol)
     {
@@ -85,7 +85,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
       if (r == ZFS_OK)
 	encode_zfs_fh (dc, &vol->local_root_fh);
     }
-  pthread_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&volume_mutex);
 }
 
 /* fattr zfs_proc_getattr (zfs_fh); */
@@ -290,31 +290,31 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
   server_fd_data_t *fd_data = t->u.server.fd_data;
   node nod;
 
-  pthread_mutex_lock (&node_mutex);
-  pthread_mutex_lock (&fd_data->mutex);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&fd_data->mutex);
   nod = node_lookup_name (args->node.str);
   if (nod)
     {
-      pthread_mutex_lock (&nod->mutex);
-      pthread_mutex_unlock (&node_mutex);
+      zfsd_mutex_lock (&nod->mutex);
+      zfsd_mutex_unlock (&node_mutex);
       /* FIXME: do the key authorization */
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_IN_PROGRESS;
       encode_status (dc, ZFS_OK);
-      pthread_mutex_unlock (&nod->mutex);
+      zfsd_mutex_unlock (&nod->mutex);
     }
   else
-    pthread_mutex_unlock (&node_mutex);
+    zfsd_mutex_unlock (&node_mutex);
 
   if (!nod)
     {
-      pthread_mutex_unlock (&fd_data->mutex);
+      zfsd_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
-      pthread_mutex_lock (&fd_data->mutex);
+      zfsd_mutex_lock (&fd_data->mutex);
       if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
 	close_server_fd (fd_data->fd);
     }
-  pthread_mutex_unlock (&fd_data->mutex);
+  zfsd_mutex_unlock (&fd_data->mutex);
 
   free (args->node.str);
 }
@@ -329,13 +329,13 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
   node nod;
   bool authenticated = false;
 
-  pthread_mutex_lock (&node_mutex);
-  pthread_mutex_lock (&fd_data->mutex);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&fd_data->mutex);
   nod = node_lookup (fd_data->sid);
   if (nod)
     {
-      pthread_mutex_lock (&nod->mutex);
-      pthread_mutex_unlock (&node_mutex);
+      zfsd_mutex_lock (&nod->mutex);
+      zfsd_mutex_unlock (&node_mutex);
       /* FIXME: verify the authentication data */
       authenticated = true;
       if (authenticated)
@@ -344,20 +344,20 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 	  encode_status (dc, ZFS_OK);
 	  node_update_fd (nod, fd_data->fd, fd_data->generation);
 	}
-      pthread_mutex_unlock (&nod->mutex);
+      zfsd_mutex_unlock (&nod->mutex);
     }
   else
-    pthread_mutex_unlock (&node_mutex);
+    zfsd_mutex_unlock (&node_mutex);
 
   if (!authenticated)
     {
-      pthread_mutex_unlock (&fd_data->mutex);
+      zfsd_mutex_unlock (&fd_data->mutex);
       sleep (1);	/* FIXME: create constant or configuration directive */
-      pthread_mutex_lock (&fd_data->mutex);
+      zfsd_mutex_lock (&fd_data->mutex);
       if (fd_data->fd >= 0 && fd_data->generation == t->u.server.generation)
 	close_server_fd (fd_data->fd);
     }
-  pthread_mutex_unlock (&fd_data->mutex);
+  zfsd_mutex_unlock (&fd_data->mutex);
 }
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
@@ -367,9 +367,9 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   server_thread_data *td = &t->u.server;				\
   uint32_t req_id;							\
 									\
-  pthread_mutex_lock (&request_id_mutex);				\
+  zfsd_mutex_lock (&request_id_mutex);				\
   req_id = request_id++;						\
-  pthread_mutex_unlock (&request_id_mutex);				\
+  zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
   start_encoding (&td->dc_call);					\
   encode_direction (&td->dc_call, DIR_REQUEST);				\

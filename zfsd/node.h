@@ -24,7 +24,7 @@
 #include "system.h"
 #include <netdb.h>
 #include <rpc/rpc.h>
-#include <pthread.h>
+#include "pthread.h"
 #include "thread.h"
 
 /* Node description.  */

@@ -23,7 +23,7 @@
 
 #include "system.h"
 #include <inttypes.h>
-#include <pthread.h>
+#include "pthread.h"
 #include "log.h"
 #include "splay-tree.h"
 

@@ -23,8 +23,8 @@
 
 #include "system.h"
 #include <stddef.h>
-#include <pthread.h>
 #include <rpc/rpc.h>
+#include "pthread.h"
 #include "queue.h"
 #include "semaphore.h"
 #include "server.h"

@@ -21,8 +21,8 @@
 #include "system.h"
 #include "data-coding.h"
 #include <stdlib.h>
-#include <pthread.h>
 #include <signal.h>
+#include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
 #include "server.h"
@@ -57,7 +57,7 @@ server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
 {
   size_t index;
 
-  pthread_mutex_lock (&server_pool.idle.mutex);
+  zfsd_mutex_lock (&server_pool.idle.mutex);
 
   /* Regulate the number of threads.  */
   thread_pool_regulate (&server_pool, server_worker, NULL);
@@ -72,9 +72,9 @@ server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
   server_pool.threads[index].t.u.server.rqstp = rqstp;
   server_pool.threads[index].t.u.server.transp = transp;
   printf ("%p %p\n", rqstp, transp);
-  pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
+  zfsd_mutex_unlock (&server_pool.threads[index].t.mutex);
 
-  pthread_mutex_unlock (&server_pool.idle.mutex);
+  zfsd_mutex_unlock (&server_pool.idle.mutex);
 }
 
 /* The main function of the server thread.  */
@@ -87,7 +87,7 @@ server_worker (void *data)
   while (1)
     {
       /* Wait until server_dispatch wakes us up.  */
-      pthread_mutex_lock (&t->mutex);
+      zfsd_mutex_lock (&t->mutex);
 
 #ifdef ENABLE_CHECKING
       if (t->state == THREAD_DEAD)
@@ -104,7 +104,7 @@ server_worker (void *data)
 #endif
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      pthread_mutex_lock (&server_pool.idle.mutex);
+      zfsd_mutex_lock (&server_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
 	{
 	  queue_put (&server_pool.idle, t->index);
@@ -116,10 +116,10 @@ server_worker (void *data)
 	  if (t->state != THREAD_DYING)
 	    abort ();
 #endif
-	  pthread_mutex_unlock (&server_pool.idle.mutex);
+	  zfsd_mutex_unlock (&server_pool.idle.mutex);
 	  break;
 	}
-      pthread_mutex_unlock (&server_pool.idle.mutex);
+      zfsd_mutex_unlock (&server_pool.idle.mutex);
     }
 
   return data;
@@ -345,12 +345,12 @@ send_request (thread *t, uint32_t request_id, int fd)
   server_fd_data[fd].last_use = time (NULL);
   if (!safe_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
     {
-      pthread_mutex_unlock (&server_fd_data[fd].mutex);
+      zfsd_mutex_unlock (&server_fd_data[fd].mutex);
       td->retval = ZFS_CONNECTION_CLOSED;
       htab_clear_slot (server_fd_data[fd].waiting4reply, slot);
       return;
     }
-  pthread_mutex_unlock (&server_fd_data[fd].mutex);
+  zfsd_mutex_unlock (&server_fd_data[fd].mutex);
 
   /* Wait for reply.  */
   semaphore_down (&t->sem, 1);
@@ -365,11 +365,11 @@ send_request (thread *t, uint32_t request_id, int fd)
 void
 add_fd_to_active (int fd)
 {
-  pthread_mutex_lock (&active_mutex);
-  pthread_mutex_lock (&server_fd_data[fd].mutex);
+  zfsd_mutex_lock (&active_mutex);
+  zfsd_mutex_lock (&server_fd_data[fd].mutex);
   init_fd_data (fd);
   pthread_kill (main_server_thread, SIGUSR1);	/* terminate poll */
-  pthread_mutex_unlock (&active_mutex);
+  zfsd_mutex_unlock (&active_mutex);
 }
 
 /* Send a reply.  */
@@ -378,7 +378,7 @@ static void
 send_reply (server_thread_data *td)
 {
   message (2, stderr, "sending reply\n");
-  pthread_mutex_lock (&td->fd_data->mutex);
+  zfsd_mutex_lock (&td->fd_data->mutex);
 
   /* Send a reply if we have not closed the file descriptor
      and we have not reopened it.  */
@@ -389,7 +389,7 @@ send_reply (server_thread_data *td)
 	{
 	}
     }
-  pthread_mutex_unlock (&td->fd_data->mutex);
+  zfsd_mutex_unlock (&td->fd_data->mutex);
 }
 
 /* Send error reply with error status STATUS.  */
@@ -502,7 +502,7 @@ server_worker (void *data)
 	}
 
 out:
-      pthread_mutex_lock (&fd_data->mutex);
+      zfsd_mutex_lock (&fd_data->mutex);
       fd_data->busy--;
       if (running)
 	{
@@ -518,10 +518,10 @@ out:
 	      dc_destroy (&td->dc);
 	    }
 	}
-      pthread_mutex_unlock (&fd_data->mutex);
+      zfsd_mutex_unlock (&fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      pthread_mutex_lock (&server_pool.idle.mutex);
+      zfsd_mutex_lock (&server_pool.idle.mutex);
       if (t->state == THREAD_BUSY)
 	{
 	  queue_put (&server_pool.idle, t->index);
@@ -533,10 +533,10 @@ out:
 	  if (t->state != THREAD_DYING)
 	    abort ();
 #endif
-	  pthread_mutex_unlock (&server_pool.idle.mutex);
+	  zfsd_mutex_unlock (&server_pool.idle.mutex);
 	  break;
 	}
-      pthread_mutex_unlock (&server_pool.idle.mutex);
+      zfsd_mutex_unlock (&server_pool.idle.mutex);
     }
 
   pthread_cleanup_pop (1);
@@ -577,14 +577,14 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 		break;
 	      }
 	    message (2, stderr, "REPLY: ID=%u\n", request_id);
-	    pthread_mutex_lock (&fd_data->mutex);
+	    zfsd_mutex_lock (&fd_data->mutex);
 	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
 					     &request_id,
 					     WAITING4REPLY_HASH (request_id),
 					     NO_INSERT);
 	    if (!slot)
 	      {
-		pthread_mutex_unlock (&fd_data->mutex);
+		zfsd_mutex_unlock (&fd_data->mutex);
 		/* TODO: log request was not found.  */
 		message (1, stderr, "Request ID %d has not been found.\n",
 			 request_id);
@@ -596,7 +596,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    t->u.server.dc = *dc;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    pool_free (fd_data->waiting4reply_pool, data);
-	    pthread_mutex_unlock (&fd_data->mutex);
+	    zfsd_mutex_unlock (&fd_data->mutex);
 
 	    /* Let the thread run again.  */
 	    semaphore_up (&t->sem, 1);
@@ -606,7 +606,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
       case DIR_REQUEST:
 	/* Dispatch request.  */
 
-	pthread_mutex_lock (&server_pool.idle.mutex);
+	zfsd_mutex_lock (&server_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
 	thread_pool_regulate (&server_pool, server_worker, NULL);
@@ -625,7 +625,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	/* Let the thread run.  */
 	semaphore_up (&server_pool.threads[index].t.sem, 1);
 
-	pthread_mutex_unlock (&server_pool.idle.mutex);
+	zfsd_mutex_unlock (&server_pool.idle.mutex);
 	break;
 
       default:
@@ -647,14 +647,14 @@ create_server_threads ()
   /* FIXME: read the numbers from configuration.  */
   thread_pool_create (&server_pool, 256, 4, 16);
 
-  pthread_mutex_lock (&server_pool.idle.mutex);
-  pthread_mutex_lock (&server_pool.empty.mutex);
+  zfsd_mutex_lock (&server_pool.idle.mutex);
+  zfsd_mutex_lock (&server_pool.empty.mutex);
   for (i = 0; i < /* FIXME: */ 10; i++)
     {
       create_idle_thread (&server_pool, server_worker, server_worker_init);
     }
-  pthread_mutex_unlock (&server_pool.empty.mutex);
-  pthread_mutex_unlock (&server_pool.idle.mutex);
+  zfsd_mutex_unlock (&server_pool.empty.mutex);
+  zfsd_mutex_unlock (&server_pool.idle.mutex);
 
   thread_pool_create_regulator (&server_regulator_data, &server_pool,
 				server_worker, server_worker_init);
@@ -735,7 +735,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 
   while (running)
     {
-      pthread_mutex_lock (&active_mutex);
+      zfsd_mutex_lock (&active_mutex);
       for (i = 0; i < nactive; i++)
 	{
 	  pfd[i].fd = active[i]->fd;
@@ -747,7 +747,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	  pfd[nactive].events = CAN_READ;
 	}
       n = nactive;
-      pthread_mutex_unlock (&active_mutex);
+      zfsd_mutex_unlock (&active_mutex);
 
       message (2, stderr, "Polling %d sockets\n", n + accept_connections);
       r = poll (pfd, n + accept_connections, -1);
@@ -767,17 +767,17 @@ server_main_out:
 	  accept_connections = 0;
 
 	  /* Close idle file descriptors and free their memory.  */
-	  pthread_mutex_lock (&active_mutex);
+	  zfsd_mutex_lock (&active_mutex);
 	  for (i = nactive - 1; i >= 0; i--)
 	    {
 	      server_fd_data_t *fd_data = active[i];
 
-	      pthread_mutex_lock (&fd_data->mutex);
+	      zfsd_mutex_lock (&fd_data->mutex);
 	      if (fd_data->busy == 0)
 		close_active_fd (i);
-	      pthread_mutex_unlock (&fd_data->mutex);
+	      zfsd_mutex_unlock (&fd_data->mutex);
 	    }
-	  pthread_mutex_unlock (&active_mutex);
+	  zfsd_mutex_unlock (&active_mutex);
 	  free (pfd);
 	  message (2, stderr, "Terminating...\n");
 	  return NULL;
@@ -793,7 +793,7 @@ server_main_out:
       if (pfd[n].revents)
 	r--;
 
-      pthread_mutex_lock (&active_mutex);
+      zfsd_mutex_lock (&active_mutex);
       for (i = nactive - 1; i >= 0 && r > 0; i--)
 	{
 	  server_fd_data_t *fd_data = &server_fd_data[pfd[i].fd];
@@ -804,9 +804,9 @@ server_main_out:
 		  && fd_data->busy == 0
 		  && fd_data->read == 0))
 	    {
-	      pthread_mutex_lock (&fd_data->mutex);
+	      zfsd_mutex_lock (&fd_data->mutex);
 	      close_active_fd (i);
-	      pthread_mutex_unlock (&fd_data->mutex);
+	      zfsd_mutex_unlock (&fd_data->mutex);
 	    }
 	  else if (pfd[i].revents & CAN_READ)
 	    {
@@ -815,21 +815,21 @@ server_main_out:
 		{
 		  ssize_t r;
 
-		  pthread_mutex_lock (&fd_data->mutex);
+		  zfsd_mutex_lock (&fd_data->mutex);
 		  if (fd_data->ndc == 0)
 		    {
 		      dc_create (&fd_data->dc[0], ZFS_MAX_REQUEST_LEN);
 		      fd_data->ndc++;
 		    }
-		  pthread_mutex_unlock (&fd_data->mutex);
+		  zfsd_mutex_unlock (&fd_data->mutex);
 
 		  r = read (fd_data->fd, fd_data->dc[0].buffer + fd_data->read,
 			    4 - fd_data->read);
 		  if (r <= 0)
 		    {
-		      pthread_mutex_lock (&fd_data->mutex);
+		      zfsd_mutex_lock (&fd_data->mutex);
 		      close_active_fd (i);
-		      pthread_mutex_unlock (&fd_data->mutex);
+		      zfsd_mutex_unlock (&fd_data->mutex);
 		    }
 		  else
 		    fd_data->read += r;
@@ -859,9 +859,9 @@ server_main_out:
 
 		  if (r <= 0)
 		    {
-		      pthread_mutex_lock (&fd_data->mutex);
+		      zfsd_mutex_lock (&fd_data->mutex);
 		      close_active_fd (i);
-		      pthread_mutex_unlock (&fd_data->mutex);
+		      zfsd_mutex_unlock (&fd_data->mutex);
 		    }
 		  else
 		    {
@@ -872,7 +872,7 @@ server_main_out:
 			  unsigned int generation;
 			  DC *dc;
 
-			  pthread_mutex_lock (&fd_data->mutex);
+			  zfsd_mutex_lock (&fd_data->mutex);
 			  generation = fd_data->generation;
 			  dc = &fd_data->dc[0];
 			  fd_data->read = 0;
@@ -880,7 +880,7 @@ server_main_out:
 			  fd_data->ndc--;
 			  if (fd_data->ndc > 0)
 			    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-			  pthread_mutex_unlock (&fd_data->mutex);
+			  zfsd_mutex_unlock (&fd_data->mutex);
 
 			  /* We have read complete request, dispatch it.  */
 			  server_dispatch (fd_data, dc, generation);
@@ -933,7 +933,7 @@ retry_accept:
 		      message (2, stderr, "All filedescriptors are busy.\n");
 		      if (s > 0)
 			close (s);
-		      pthread_mutex_unlock (&active_mutex);
+		      zfsd_mutex_unlock (&active_mutex);
 		      continue;
 		    }
 		  else
@@ -941,9 +941,9 @@ retry_accept:
 		      server_fd_data_t *fd_data = active[index];
 
 		      /* Close file descriptor unused for the longest time.  */
-		      pthread_mutex_lock (&fd_data->mutex);
+		      zfsd_mutex_lock (&fd_data->mutex);
 		      close_active_fd (index);
-		      pthread_mutex_unlock (&fd_data->mutex);
+		      zfsd_mutex_unlock (&fd_data->mutex);
 		      goto retry_accept;
 		    }
 		}
@@ -960,13 +960,13 @@ retry_accept:
 	      else
 		{
 		  message (2, stderr, "accepted FD %d\n", s);
-		  pthread_mutex_lock (&server_fd_data[s].mutex);
+		  zfsd_mutex_lock (&server_fd_data[s].mutex);
 		  init_fd_data (s);
-		  pthread_mutex_unlock (&server_fd_data[s].mutex);
+		  zfsd_mutex_unlock (&server_fd_data[s].mutex);
 		}
 	    }
 	}
-      pthread_mutex_unlock (&active_mutex);
+      zfsd_mutex_unlock (&active_mutex);
     }
 
   free (pfd);
@@ -1070,15 +1070,15 @@ server_destroy_fd_data ()
   int i;
 
   /* Close connected sockets.  */
-  pthread_mutex_lock (&active_mutex);
+  zfsd_mutex_lock (&active_mutex);
   for (i = nactive - 1; i >= 0; i--)
     {
       server_fd_data_t *fd_data = active[i];
-      pthread_mutex_lock (&fd_data->mutex);
+      zfsd_mutex_lock (&fd_data->mutex);
       close_active_fd (i);
-      pthread_mutex_unlock (&fd_data->mutex);
+      zfsd_mutex_unlock (&fd_data->mutex);
     }
-  pthread_mutex_unlock (&active_mutex);
+  zfsd_mutex_unlock (&active_mutex);
   pthread_mutex_destroy (&active_mutex);
 
   for (i = 0; i < max_nfd; i++)
@@ -1103,7 +1103,7 @@ server_cleanup ()
       server_fd_data_t *fd_data = active[i];
       void **slot;
 
-      pthread_mutex_lock (&fd_data->mutex);
+      zfsd_mutex_lock (&fd_data->mutex);
       HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot,
 	{
 	  waiting4reply_data *data = *(waiting4reply_data **) slot;
@@ -1111,7 +1111,7 @@ server_cleanup ()
 	  data->t->u.server.retval = ZFS_EXITING;
 	  semaphore_up (&data->t->sem, 1);
 	});
-      pthread_mutex_unlock (&fd_data->mutex);
+      zfsd_mutex_unlock (&fd_data->mutex);
     }
 
   pthread_kill (server_regulator_data.thread_id, SIGUSR1);

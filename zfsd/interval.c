@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "pthread.h"
 #include "interval.h"
 #include "log.h"
 #include "memory.h"

@@ -21,6 +21,7 @@
 #include "system.h"
 #include <stddef.h>
 #include <unistd.h>
+#include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
 #include "memory.h"
@@ -51,14 +52,14 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   queue_create (&pool->idle, max_threads);
   queue_create (&pool->empty, max_threads);
 
-  pthread_mutex_lock (&pool->empty.mutex);
+  zfsd_mutex_lock (&pool->empty.mutex);
   for (i = 0; i < max_threads; i++)
     {
       pool->threads[i].t.state = THREAD_DEAD;
       pool->threads[i].t.index = i;
       queue_put (&pool->empty, i);
     }
-  pthread_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->empty.mutex);
 }
 
 /* Destroy thread pool POOL - terminate idle threads, wait for active threads to
@@ -67,14 +68,14 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 void
 thread_pool_destroy (thread_pool *pool)
 {
-  pthread_mutex_lock (&pool->idle.mutex);
-  pthread_mutex_lock (&pool->empty.mutex);
+  zfsd_mutex_lock (&pool->idle.mutex);
+  zfsd_mutex_lock (&pool->empty.mutex);
 
   while (pool->empty.nelem < pool->size)
     destroy_idle_thread (pool);
 
-  pthread_mutex_unlock (&pool->empty.mutex);
-  pthread_mutex_unlock (&pool->idle.mutex);
+  zfsd_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->idle.mutex);
 
   free (pool->unaligned_array);
   queue_destroy (&pool->empty);
@@ -176,7 +177,7 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
     abort ();
 #endif
 
-  pthread_mutex_lock (&pool->empty.mutex);
+  zfsd_mutex_lock (&pool->empty.mutex);
 
   /* Let some threads to die.  */
   while (pool->idle.nelem > pool->max_spare_threads)
@@ -193,7 +194,7 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
       create_idle_thread (pool, start, init);
     }
 
-  pthread_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->empty.mutex);
 }
 
 /* Main function of thread regulating the thread pool. DATA is the structure
@@ -209,9 +210,9 @@ thread_pool_regulator (void *data)
       sleep (THREAD_POOL_REGULATOR_INTERVAL);
       if (!running)
 	return NULL;
-      pthread_mutex_lock (&d->pool->idle.mutex);
+      zfsd_mutex_lock (&d->pool->idle.mutex);
       thread_pool_regulate (d->pool, d->start, d->init);
-      pthread_mutex_unlock (&d->pool->idle.mutex);
+      zfsd_mutex_unlock (&d->pool->idle.mutex);
     }
 
   return NULL;

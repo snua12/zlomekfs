@@ -22,7 +22,7 @@
 #define SEMAPHORE_H
 
 #include "system.h"
-#include <pthread.h>
+#include "pthread.h"
 
 typedef struct semaphore_def
 {

@@ -24,7 +24,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <netinet/in.h>
-#include <pthread.h>
+#include "pthread.h"
 
 /* The host name of local node.  */
 extern char *node_name;

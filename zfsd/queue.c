@@ -20,7 +20,7 @@
 
 #include "system.h"
 #include <stdlib.h>
-#include <pthread.h>
+#include "pthread.h"
 #include "queue.h"
 #include "log.h"
 #include "memory.h"
@@ -79,7 +79,7 @@ queue_put (queue *q, size_t elem)
   if (q->end == q->size)
     q->end = 0;
   q->nelem++;
-  pthread_cond_signal (&q->non_empty);
+  zfsd_cond_signal (&q->non_empty);
 }
 
 /* Get an element from the queue Q.  */
@@ -97,7 +97,7 @@ queue_get (queue *q)
 #endif
  
   while (q->nelem == 0)
-    pthread_cond_wait (&q->non_empty, &q->mutex);
+    zfsd_cond_wait (&q->non_empty, &q->mutex);
 
   r = q->queue[q->start];
   q->start++;

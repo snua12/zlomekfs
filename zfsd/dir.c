@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <errno.h>
+#include "pthread.h"
 #include "fh.h"
 #include "dir.h"
 #include "log.h"
@@ -168,10 +169,10 @@ update_volume_root (volume vol, internal_fh *ifh)
       || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
     {
       /* FIXME? delete only FHs which are not open now?  */
-      pthread_mutex_lock (&vol->fh_mutex);
+      zfsd_mutex_lock (&vol->fh_mutex);
       htab_empty (vol->fh_htab_name);
       htab_empty (vol->fh_htab);
-      pthread_mutex_unlock (&vol->fh_mutex);
+      zfsd_mutex_unlock (&vol->fh_mutex);
 
       vol->local_root_fh = local_fh;
       vol->master_root_fh = master_fh;
@@ -312,12 +313,12 @@ remote_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol)
   args.name.str = (char *) name;
   args.name.len = strlen (name);
   t = (thread *) pthread_getspecific (server_thread_key);
-  pthread_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&node_mutex);
   n = node_lookup (dir->master_fh.sid);
   if (!n)
     return ENOENT;
 
-  pthread_mutex_unlock (&node_mutex);
+  zfsd_mutex_unlock (&node_mutex);
   r = zfs_proc_lookup_client (t, &args, n);
   if (r == ZFS_OK)
     {

@@ -25,8 +25,8 @@
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
-#include <pthread.h>
 #include <sys/utsname.h>
+#include "pthread.h"
 #include "config.h"
 #include "log.h"
 #include "memory.h"

@@ -21,6 +21,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <stdlib.h>
+#include "pthread.h"
 #include "fh.h"
 #include "hashtab.h"
 #include "memory.h"
@@ -92,7 +93,7 @@ volume_create (unsigned int id)
 				   internal_fh_eq_name, NULL, &vol->fh_mutex);
 
 
-  pthread_mutex_lock (&volume_mutex);
+  zfsd_mutex_lock (&volume_mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
@@ -103,7 +104,7 @@ volume_create (unsigned int id)
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
   *slot = vol;
-  pthread_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&volume_mutex);
 
   return vol;
 }
@@ -123,12 +124,12 @@ volume_destroy (volume vol)
   
   virtual_mountpoint_destroy (vol);
 
-  pthread_mutex_lock (&vol->fh_mutex);
-  pthread_mutex_lock (&fh_pool_mutex);
+  zfsd_mutex_lock (&vol->fh_mutex);
+  zfsd_mutex_lock (&fh_pool_mutex);
   htab_destroy (vol->fh_htab_name);
   htab_destroy (vol->fh_htab);
-  pthread_mutex_unlock (&fh_pool_mutex);
-  pthread_mutex_unlock (&vol->fh_mutex);
+  zfsd_mutex_unlock (&fh_pool_mutex);
+  zfsd_mutex_unlock (&vol->fh_mutex);
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
@@ -180,12 +181,12 @@ volume_active_p (volume vol)
   if (vol->local_path)
     return true;
 
-  pthread_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
   active
     = (node_connected_p (vol->master)
        && (server_fd_data[vol->master->fd].auth == AUTHENTICATION_FINISHED));
-  pthread_mutex_unlock (&server_fd_data[vol->master->fd].mutex);
-  pthread_mutex_unlock (&vol->master->mutex);
+  zfsd_mutex_unlock (&server_fd_data[vol->master->fd].mutex);
+  zfsd_mutex_unlock (&vol->master->mutex);
 
   return active;
 }
@@ -240,9 +241,9 @@ cleanup_volume_c ()
 {
   void **slot;
 
-  pthread_mutex_lock (&volume_mutex);
+  zfsd_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot, volume_destroy ((volume) *slot));
   htab_destroy (volume_htab);
-  pthread_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&volume_mutex);
   pthread_mutex_destroy (&volume_mutex);
 }
