@@ -1907,7 +1907,7 @@ zfs_write_retry:
 
 		  interval_tree_insert (dentry->fh->updated, start, end);
 		  if (!append_interval (vol, dentry->fh,
-					INTERVAL_TREE_MODIFIED, start, end))
+					METADATA_TYPE_MODIFIED, start, end))
 		    vol->flags |= VOLUME_DELETE;
 
 		  varray_destroy (&blocks);

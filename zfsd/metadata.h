@@ -25,15 +25,21 @@
 #include <inttypes.h>
 #include "zfs_prot.h"
 
-/* Purpose of the interval tree.  */
-typedef enum interval_tree_purpose_def
+/*Type of metadata.  */
+typedef enum metadata_type_def
 {
+  /* Generic metadata hashed by local file handle.  */
+  METADATA_TYPE_LIST,
+
   /* Intervals updated from master node.  */
-  INTERVAL_TREE_UPDATED,
+  METADATA_TYPE_UPDATED,
 
   /* Intervals modified by local node.  */
-  INTERVAL_TREE_MODIFIED
-} interval_tree_purpose;
+  METADATA_TYPE_MODIFIED,
+
+  /* List of hardlinks for file handle.  */
+  METADATA_TYPE_HARDLINKS
+} metadata_type;
 
 /* Metadata for file.  */
 typedef struct metadata_def
@@ -56,13 +62,13 @@ extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);
 extern bool init_interval_tree (volume vol, internal_fh fh,
-				interval_tree_purpose purpose);
+				metadata_type type);
 extern bool flush_interval_tree (volume vol, internal_fh fh,
-				 interval_tree_purpose purpose);
+				metadata_type type);
 extern bool free_interval_tree (volume vol, internal_fh fh,
-				interval_tree_purpose purpose);
+				metadata_type type);
 extern bool append_interval (volume vol, internal_fh fh,
-			     interval_tree_purpose purpose,
+			     metadata_type type,
 			     uint64_t start, uint64_t end);
 extern void set_attr_version (fattr *attr, metadata *meta);
 extern bool init_metadata (volume vol, internal_fh fh);

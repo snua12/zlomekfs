@@ -115,20 +115,32 @@ metadata_encode (void *x)
   m->master_version = u64_to_le (m->master_version);
 }
 
-/* Build path to file with list of files and their metadata for volume VOL.  */
+/* Build path to file with global metadata of type TYPE for volume VOL.  */
 
 static char *
-build_list_path (volume vol)
+build_metadata_path (volume vol, metadata_type type)
 {
-  return xstrconcat (2, vol->local_path, "/.zfs/list");
+  char *path;
+
+  switch (type)
+    {
+      case METADATA_TYPE_LIST:
+	path = xstrconcat (2, vol->local_path, "/.zfs/list");
+	break;
+
+      default:
+	abort ();
+    }
+
+  return path;
 }
 
-/* Build path to file with interval tree of purpose PURPOSE for file handle FH
+/* Build path to file with metadata of type TYPE for file handle FH
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
 
 static char *
-build_interval_path (volume vol, zfs_fh *fh, interval_tree_purpose purpose,
-		     unsigned int tree_depth)
+build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
+			unsigned int tree_depth)
 {
   char name[17];
   char tree[2 * MAX_METADATA_TREE_DEPTH + 1];
@@ -157,15 +169,22 @@ build_interval_path (volume vol, zfs_fh *fh, interval_tree_purpose purpose,
 
   varray_create (&v, sizeof (char *), 4);
   VARRAY_PUSH (v, vol->local_path, char *);
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	VARRAY_PUSH (v, "/.zfs/updated/", char *);
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	VARRAY_PUSH (v, "/.zfs/modified/", char *);
 	break;
+
+      case METADATA_TYPE_HARDLINKS:
+	VARRAY_PUSH (v, "/.zfs/hardlinks/", char *);
+	break;
+
+      default:
+	abort ();
     }
   VARRAY_PUSH (v, tree, char *);
   VARRAY_PUSH (v, name, char *);
@@ -361,11 +380,11 @@ open_list_file (volume vol)
   return fd;
 }
 
-/* Open and initialize file descriptor for interval of purpose PURPOSE for
+/* Open and initialize file descriptor for interval of type TYPE for
    file handle FH on volume VOL.  */
 
 static int
-open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
+open_interval_file (volume vol, internal_fh fh, metadata_type type)
 {
   interval_tree tree;
   char *path;
@@ -374,7 +393,8 @@ open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
   fd = open_metadata (path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
   free (path);
   if (fd < 0)
@@ -387,15 +407,18 @@ open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
       return -1;
     }
 
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	tree = fh->updated;
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	tree = fh->modified;
 	break;
+
+      default:
+	abort ();
     }
 
   CHECK_MUTEX_LOCKED (tree->mutex);
@@ -536,7 +559,7 @@ init_volume_metadata (volume vol)
     abort ();
 #endif
 
-  path = build_list_path (vol);
+  path = build_metadata_path (vol, METADATA_TYPE_LIST);
   vol->metadata = hfile_create (sizeof (metadata), 256, metadata_hash,
 				metadata_eq, metadata_decode, metadata_encode,
 				path, &vol->mutex);
@@ -665,11 +688,10 @@ close_interval_file (interval_tree tree)
   zfsd_mutex_unlock (&metadata_mutex);
 }
 
-/* Initialize interval tree of purpose PURPOSE for file handle FH
-   on volume VOL.  */
+/* Initialize interval tree of type TYPE for file handle FH on volume VOL.  */
 
 bool
-init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
+init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   unsigned int i;
   int fd;
@@ -680,7 +702,8 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
   fd = open (path, O_RDONLY);
   if (fd < 0)
     {
@@ -701,7 +724,7 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	  {
 	    char *old_path;
 
-	    old_path = build_interval_path (vol, &fh->local_fh, purpose, i);
+	    old_path = build_fh_metadata_path (vol, &fh->local_fh, type, i);
 	    rename (old_path, path);
 	    free (old_path);
 	  }
@@ -709,15 +732,18 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
       fd = open (path, O_RDONLY);
     }
 
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	treep = &fh->updated;
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	treep = &fh->modified;
 	break;
+
+      default:
+	abort ();
     }
 
   if (fd < 0)
@@ -772,11 +798,11 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   return flush_interval_tree_1 (*treep, path);
 }
 
-/* Flush the interval tree of purpose PURPOSE for file handle FH on volume VOL
+/* Flush the interval tree of type TYPE for file handle FH on volume VOL
    to file.  */
 
 bool
-flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
+flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   char *path;
   interval_tree tree;
@@ -784,30 +810,34 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	tree = fh->updated;
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	tree = fh->modified;
 	break;
+
+      default:
+	abort ();
     }
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   close_interval_file (tree);
-  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
 
   return flush_interval_tree_1 (tree, path);
 }
 
-/* Flush the interval tree of purpose PURPOSE for file handle FH on volume VOL
+/* Flush the interval tree of type TYPE for file handle FH on volume VOL
    to file and free the interval tree.  */
 
 bool
-free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
+free_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   char *path;
   interval_tree tree, *treep;
@@ -816,27 +846,31 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	tree = fh->updated;
 	treep = &fh->updated;
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	tree = fh->modified;
 	treep = &fh->modified;
 	break;
+
+      default:
+	abort ();
     }
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   close_interval_file (tree);
-  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
 
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	if (tree->size == 1
 	    && INTERVAL_START (tree->splay->root) == 0
 	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
@@ -859,7 +893,7 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	  }
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	if (tree->size == 0)
 	  {
 	    interval_tree_destroy (tree);
@@ -879,6 +913,9 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	    fh->meta.flags |= METADATA_MODIFIED;
 	  }
 	break;
+
+      default:
+	abort ();
     }
 
   r = flush_interval_tree_1 (tree, path);
@@ -889,12 +926,12 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   return r;
 }
 
-/* Write the interval [START, END) to the end of interval file of purpose
-   PURPOSE for file handle FH on volume VOL.  Open the interval file for
-   appending when it is not opened.  */
+/* Write the interval [START, END) to the end of interval file of type TYPE
+   for file handle FH on volume VOL.  Open the interval file for appending
+   when it is not opened.  */
 
 bool
-append_interval (volume vol, internal_fh fh, interval_tree_purpose purpose,
+append_interval (volume vol, internal_fh fh, metadata_type type,
 		 uint64_t start, uint64_t end)
 {
   interval_tree tree;
@@ -904,22 +941,25 @@ append_interval (volume vol, internal_fh fh, interval_tree_purpose purpose,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  switch (purpose)
+  switch (type)
     {
-      case INTERVAL_TREE_UPDATED:
+      case METADATA_TYPE_UPDATED:
 	tree = fh->updated;
 	break;
 
-      case INTERVAL_TREE_MODIFIED:
+      case METADATA_TYPE_MODIFIED:
 	tree = fh->modified;
 	break;
+
+      default:
+	abort ();
     }
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   if (!interval_opened_p (tree))
     {
-      if (open_interval_file (vol, fh, purpose) < 0)
+      if (open_interval_file (vol, fh, type) < 0)
 	return false;
     }
 
@@ -1157,10 +1197,10 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino)
     {
       char *file;
 
-      file = build_interval_path (vol, &fh, INTERVAL_TREE_UPDATED, i);
+      file = build_fh_metadata_path (vol, &fh, METADATA_TYPE_UPDATED, i);
       unlink (file);
       free (file);
-      file = build_interval_path (vol, &fh, INTERVAL_TREE_MODIFIED, i);
+      file = build_fh_metadata_path (vol, &fh, METADATA_TYPE_MODIFIED, i);
       unlink (file);
       free (file);
     }
@@ -1215,11 +1255,11 @@ load_interval_trees (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (!init_interval_tree (vol, fh, INTERVAL_TREE_UPDATED))
+  if (!init_interval_tree (vol, fh, METADATA_TYPE_UPDATED))
     {
       return false;
     }
-  if (!init_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED))
+  if (!init_interval_tree (vol, fh, METADATA_TYPE_MODIFIED))
     {
       close_interval_file (fh->updated);
       interval_tree_destroy (fh->updated);
@@ -1242,9 +1282,9 @@ save_interval_trees (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (fh->updated)
-    r &= free_interval_tree (vol, fh, INTERVAL_TREE_UPDATED);
+    r &= free_interval_tree (vol, fh, METADATA_TYPE_UPDATED);
   if (fh->modified)
-    r &= free_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED);
+    r &= free_interval_tree (vol, fh, METADATA_TYPE_MODIFIED);
 
   return r;
 }
