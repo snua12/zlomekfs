@@ -1433,23 +1433,19 @@ init_metadata_for_created_volume_root (volume vol)
   return true;
 }
 
-/* Get metadata for file handle FH on volume VOL.
+/* Lookup metadata for file handle FH on volume VOL.
    Store the metadata to META and update FH->GEN.  */
 
-bool
-get_metadata (volume vol, zfs_fh *fh, metadata *meta)
+static bool
+lookup_metadata (volume vol, zfs_fh *fh, metadata *meta)
 {
-  if (!vol)
-    return false;
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (!vol->metadata)
     abort ();
   if (!vol->local_path)
     abort ();
-  if (!meta)
-    abort ();
 #endif
-  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!hashfile_opened_p (vol->metadata))
     {
@@ -1457,11 +1453,7 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
 
       fd = open_hash_file (vol, METADATA_TYPE_METADATA);
       if (fd < 0)
-	{
-	  vol->delete_p = true;
-	  zfsd_mutex_unlock (&vol->mutex);
-	  return false;
-	}
+	return false;
     }
 
   meta->dev = fh->dev;
@@ -1469,8 +1461,6 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
   if (!hfile_lookup (vol->metadata, meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
-      zfsd_mutex_unlock (&vol->mutex);
       return false;
     }
 
@@ -1491,14 +1481,36 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
       if (!hfile_insert (vol->metadata, meta))
 	{
 	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  close_volume_metadata (vol);
-	  zfsd_mutex_unlock (&vol->mutex);
 	  return false;
 	}
     }
   fh->gen = meta->gen;
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  return true;
+}
+
+/* Get metadata for file handle FH on volume VOL.
+   Store the metadata to META and update FH->GEN.  Unlock the volume.  */
+
+bool
+get_metadata (volume vol, zfs_fh *fh, metadata *meta)
+{
+  if (!vol)
+    return false;
+#ifdef ENABLE_CHECKING
+  if (!meta)
+    abort ();
+#endif
+
+  if (!lookup_metadata (vol, fh, meta))
+    {
+      vol->delete_p = true;
+      close_volume_metadata (vol);
+      zfsd_mutex_unlock (&vol->mutex);
+      return false;
+    }
+
   zfsd_mutex_unlock (&vol->mutex);
   return true;
 }
