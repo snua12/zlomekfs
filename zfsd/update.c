@@ -1424,7 +1424,12 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       zfsd_mutex_unlock (&fh_mutex);
 
       if (dentry->fh->attr.type == FT_REG)
-	flags = dentry->fh->meta.flags & ~METADATA_COMPLETE;
+	{
+	  if (remote_attr->size > 0)
+	    flags = dentry->fh->meta.flags & ~METADATA_COMPLETE;
+	  else
+	    flags = dentry->fh->meta.flags | METADATA_COMPLETE;
+	}
       else if (dentry->fh->attr.type == FT_DIR)
 	flags = 0;
       else
