@@ -692,8 +692,13 @@ internal_dentry_lock (unsigned int level, volume *volp,
   int32_t r;
   bool wait_for_locked;
 
-  if (volp)
-    CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+#ifdef ENABLE_CHECKING
+  if (volp == NULL)
+    abort ();
+  if (dentryp == NULL)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (level > LEVEL_EXCLUSIVE)
@@ -712,8 +717,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
       if (level > (*dentryp)->fh->level)
 	(*dentryp)->fh->level = level;
 
-      if (volp)
-	zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&(*volp)->mutex);
 
       while ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
@@ -740,8 +744,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
   if (!wait_for_locked)
     {
       release_dentry (*dentryp);
-      if (volp)
-	zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&(*volp)->mutex);
 
       r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL);
 #ifdef ENABLE_CHECKING

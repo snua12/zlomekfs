@@ -100,10 +100,15 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
   int32_t r;
   bool wait_for_locked;
 
-  if (volp)
-    CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+#ifdef ENABLE_CHECKING
+  if (volp == NULL)
+    abort ();
+  if (dentryp == NULL)
+    abort ();
+#endif
   if (vdp && *vdp)
     CHECK_MUTEX_LOCKED (&(*vdp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (level > LEVEL_EXCLUSIVE)
@@ -122,8 +127,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       if (level > (*dentryp)->fh->level)
 	(*dentryp)->fh->level = level;
 
-      if (volp)
-	zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&(*volp)->mutex);
       if (vdp && *vdp)
 	zfsd_mutex_unlock (&(*vdp)->mutex);
 
@@ -155,8 +159,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
   if (!wait_for_locked)
     {
       release_dentry (*dentryp);
-      if (volp)
-	zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&(*volp)->mutex);
       if (vdp && *vdp)
 	zfsd_mutex_unlock (&(*vdp)->mutex);
 
