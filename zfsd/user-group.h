@@ -1,0 +1,47 @@
+/* User and group functions.
+   Copyright (C) 2003 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
+
+   You should have received a copy of the GNU General Public License along with
+   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
+   or download it from http://www.gnu.org/licenses/gpl.html */
+
+#ifndef USER_GROUP_H
+#define USER_GROUP_H
+
+#include "system.h"
+#include "hashtab.h"
+
+typedef struct user_def {
+  unsigned int id;		/* user ID */
+  unsigned int gid;		/* group ID of default group */
+  char *name;			/* name of the user */
+  htab_t groups;		/* list of groups user is in */
+} *user;
+
+typedef struct group_def {
+  unsigned int id;		/* group ID */
+  char *name;			/* name of the group */
+} *group;
+
+extern user user_create (unsigned int id, char *name, unsigned int gid);
+extern void set_default_groups ();
+extern void user_destroy (user u);
+extern group group_create (unsigned int id, char *name, char *user_list);
+extern void group_destroy (group g);
+extern void initialize_user_group_c ();
+extern void cleanup_user_group_c ();
+
+#endif
