@@ -1533,22 +1533,29 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
       else
 	tmp.vid = vol->id;
 
-      subdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh,
-					    attr, meta);
-      if (!try_resolve_conflict (vol, dentry))
+      if (volume_master_connected (vol))
 	{
-	  /* DIR was locked so it can't have been deleted.  */
-	  if (dir)
-	    acquire_dentry (dir);
-	  release_dentry (dentry);
-	  /* We did not unlock fh_mutex so SUBDENTRY is still valid.  */
-	  acquire_dentry (subdentry);
-	  return subdentry;
+	  subdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh,
+						attr, meta);
+	  if (!try_resolve_conflict (vol, dentry))
+	    {
+	      /* DIR was locked so it can't have been deleted.  */
+	      if (dir)
+		acquire_dentry (dir);
+	      release_dentry (dentry);
+	      /* We did not unlock fh_mutex so SUBDENTRY is still valid.  */
+	      acquire_dentry (subdentry);
+	      return subdentry;
+	    }
+	  zfsd_mutex_unlock (&fh_mutex);
+	}
+      else
+	{
+	  cancel_conflict (vol, dentry);
 	}
 
       if (dir)
 	{
-	  zfsd_mutex_unlock (&fh_mutex);
 	  r = zfs_fh_lookup_nolock (&tmp, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r != ZFS_OK)
@@ -1557,6 +1564,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	}
       else
 	{
+	  zfsd_mutex_lock (&fh_mutex);
 	  vol = volume_lookup (tmp.vid);
 #ifdef ENABLE_CHECKING
 	  if (!vol)
