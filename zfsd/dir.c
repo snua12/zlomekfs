@@ -84,6 +84,7 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
 
   xstringconcat_varray (dst, &v);
   varray_destroy (&v);
+  TRACE ("%s", dst->str);
 }
 
 /* Return the local path of file NAME in directory DENTRY on volume VOL.  */
@@ -133,6 +134,7 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
 
   xstringconcat_varray (dst, &v);
   varray_destroy (&v);
+  TRACE ("%s", dst->str);
 }
 
 /* Return a pointer into PATH where path relative to volume root starts.  */
