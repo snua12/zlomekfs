@@ -340,7 +340,7 @@ splay_tree_lookup (splay_tree sp, splay_tree_key key)
   if (sp->root && sp->root->key == key)
     return sp->root;
   else
-    return 0;
+    return NULL;
 }
 
 /* Return the node in SP with the greatest key.  */
