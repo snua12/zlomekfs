@@ -209,7 +209,7 @@ parent_exists (string *path)
 
 static int32_t
 recursive_unlink_1 (string *path, string *name, uint32_t vid,
-		    struct stat *parent_st)
+		    struct stat *parent_st, bool destroy_dentry)
 {
   volume vol;
   internal_dentry dentry;
@@ -260,7 +260,7 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
 	  append_file_name (&new_path, path, de->d_name, len);
 	  new_name.str = new_path.str + new_path.len - len;
 	  new_name.len = len;
-	  r = recursive_unlink_1 (&new_path, &new_name, vid, &st);
+	  r = recursive_unlink_1 (&new_path, &new_name, vid, &st, true);
 	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    {
@@ -280,6 +280,9 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
   r = ZFS_OK;
 
 out:
+  if (!destroy_dentry)
+    return r;
+
   vol = volume_lookup (vid);
   if (vol)
     {
@@ -319,7 +322,8 @@ out:
    SHADOW is true when the PATH is in shadow.  */
 
 int32_t
-recursive_unlink (string *path, uint32_t vid, bool shadow)
+recursive_unlink (string *path, uint32_t vid, bool shadow,
+		  bool destroy_dentry)
 {
   string filename;
   struct stat parent_st;
@@ -347,7 +351,7 @@ recursive_unlink (string *path, uint32_t vid, bool shadow)
       filename.str[-1] = '/';
     }
 
-  return recursive_unlink_1 (path, &filename, vid, &parent_st);
+  return recursive_unlink_1 (path, &filename, vid, &parent_st, destroy_dentry);
 }
 
 /* Check whether we can perform file system change operation on NAME in
@@ -4128,7 +4132,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  return ENOENT;
 	}
 
-      r = recursive_unlink (&new_path, vid, false);
+      r = recursive_unlink (&new_path, vid, false, true);
       if (r != ZFS_OK)
 	{
 	  free (old_path.str);
@@ -4356,7 +4360,7 @@ local_reintegrate_del_fh (zfs_fh *fh)
   get_shadow_path (&shadow_path, vol, fh, false);
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (&shadow_path, vid, true);
+  r = recursive_unlink (&shadow_path, vid, true, true);
   free (shadow_path.str);
 
   return r;
@@ -4404,7 +4408,7 @@ local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   if (destroy_p
       || metadata_n_hardlinks (vol, &res.file, &meta) > 1)
     {
-      if (delete_tree_name (dir, name, vol) != ZFS_OK)
+      if (delete_tree_name (dir, name, vol, true) != ZFS_OK)
 	return ZFS_UPDATE_FAILED;
     }
   else

@@ -35,7 +35,8 @@
 extern void build_local_path (string *dst, volume vol, internal_dentry dentry);
 extern void build_local_path_name (string *dst, volume vol,
 				   internal_dentry dentry, string *name);
-extern int32_t recursive_unlink (string *path, uint32_t vid, bool shadow);
+extern int32_t recursive_unlink (string *path, uint32_t vid, bool shadow,
+				 bool destroy_dentry);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
 							internal_dentry *dir,
