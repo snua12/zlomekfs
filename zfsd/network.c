@@ -125,6 +125,19 @@ init_fd_data (int fd)
 		   NULL, &network_fd_data[fd].mutex);
 }
 
+/* Add file descriptor FD to the set of active file descriptors.  */
+
+void
+add_fd_to_active (int fd)
+{
+  zfsd_mutex_lock (&active_mutex);
+  zfsd_mutex_lock (&network_fd_data[fd].mutex);
+  init_fd_data (fd);
+  thread_terminate_blocking_syscall (&network_pool.main_thread,
+				     &network_pool.main_in_syscall);
+  zfsd_mutex_unlock (&active_mutex);
+}
+
 /* Close file descriptor FD and update its network_fd_data.  */
 
 void
@@ -273,19 +286,6 @@ send_request (thread *t, uint32_t request_id, int fd)
       if (!decode_status (&t->dc_reply, &t->retval))
 	t->retval = ZFS_INVALID_REPLY;
     }
-}
-
-/* Add file descriptor FD to the set of active file descriptors.  */
-
-void
-add_fd_to_active (int fd)
-{
-  zfsd_mutex_lock (&active_mutex);
-  zfsd_mutex_lock (&network_fd_data[fd].mutex);
-  init_fd_data (fd);
-  thread_terminate_blocking_syscall (&network_pool.main_thread,
-				     &network_pool.main_in_syscall);
-  zfsd_mutex_unlock (&active_mutex);
 }
 
 /* Send a reply.  */
