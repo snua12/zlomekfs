@@ -460,8 +460,10 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   RETURN_INT (ZFS_OK);
 }
 
-/*! Update BLOCKS of local file CAP from remote file.
-   \param modified Flag saying the local file has been modified.  */
+/*! Update blocks of local file according to remote file.
+    \param cap Capability of the local file.
+    \param blocks Blocks to be updated.
+    \param modified Flag saying the local file has been modified.  */
 
 int32_t
 update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)

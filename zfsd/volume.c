@@ -484,7 +484,7 @@ mark_all_volumes (void)
   zfsd_mutex_unlock (&volume_mutex);
 }
 
-/*!! Delete all dentries of marked volume and clear local path.
+/*! Delete all dentries of marked volume and clear local path.
     \param vol Volume on which the dentries will be deleted.  */
 
 static void
@@ -522,8 +522,7 @@ delete_dentries_of_marked_volume (volume vol)
   zfsd_mutex_unlock (&vol->mutex);
 }
 
-/*!! Delete all dentries of marked volume.
-    \param vol Volume on which the dentries will be deleted.  */
+/*! Delete all dentries of marked volume.  */
 
 void
 delete_dentries_of_marked_volumes (void)

@@ -372,11 +372,16 @@ inc_local_version_fh (zfs_fh *fh)
   RETURN_BOOL (true);
 }
 
-/*! Delete the generic file NAME with path PATH on volume VOL.
-   Use META for reading and deleting metadata.
-   If JOURNAL add a journal entry to journal JOURNAL for directory PARENT_FH.
-   Destroy the dentry of the deleted file if DESTROY_DENTRY.
-   \param inc_version_p If true increase the version of parent directory.  */
+/*! Delete a generic file.
+    \param meta Buffer for metadata.
+    \param path Path to the file.
+    \param name Name of the file.
+    \param vol Volume that the file is on, if any.
+    \param parent_fh File handle of parent directory.
+    \param journal Journal to which a del entry should be added.
+    \param destroy_dentry Destroy corresponding dentry.
+    \param inc_version_p Increase the version of parent directory.
+    \param move_to_shadow_p Move the file to shadow if necessary.  */
 
 static int32_t
 recursive_unlink_itself (metadata *meta, string *path, string *name,
