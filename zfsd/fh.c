@@ -2410,6 +2410,43 @@ conflict_remote_dentry (internal_dentry conflict)
   return NULL;
 }
 
+/* Cancel the CONFLICT on volume VOL.  */
+
+void
+cancel_conflict (volume vol, internal_dentry conflict)
+{
+  internal_dentry dentry, parent;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+
+  dentry = conflict_local_dentry (conflict);
+  if (dentry)
+    internal_dentry_del_from_dir (dentry);
+
+  parent = conflict->parent;
+  if (parent)
+    {
+      acquire_dentry (parent);
+      internal_dentry_del_from_dir (conflict);
+      if (dentry)
+	internal_dentry_add_to_dir (parent, dentry);
+      release_dentry (parent);
+    }
+  else
+    {
+      vol->root_dentry = dentry;
+    }
+
+  if (dentry)
+    release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  internal_dentry_destroy (conflict, false);
+  zfsd_mutex_unlock (&fh_mutex);
+}
+
 /* Hash function for virtual_dir X, computed from FH.  */
 
 static hash_t
