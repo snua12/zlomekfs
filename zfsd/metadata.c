@@ -35,6 +35,7 @@
 #include "crc32.h"
 #include "interval.h"
 #include "varray.h"
+#include "string-list.h"
 #include "fh.h"
 #include "volume.h"
 #include "config.h"
@@ -42,6 +43,7 @@
 #include "util.h"
 #include "data-coding.h"
 #include "hashfile.h"
+#include "zfs_prot.h"
 
 /* Data for file descriptor.  */
 typedef struct metadata_fd_data_def
@@ -1301,6 +1303,222 @@ save_interval_trees (volume vol, internal_fh fh)
     r &= free_interval_tree (vol, fh, METADATA_TYPE_MODIFIED);
 
   return r;
+}
+
+/* Open file with list of hardlinks for file handle FH on volume VOL.
+   Return open file descriptor.  */
+
+static int
+open_hardlinks_file (volume vol, internal_fh fh)
+{
+  char *path;
+  int fd;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_HARDLINKS,
+				 metadata_tree_depth);
+  fd = open_fh_metadata (path, vol, fh, METADATA_TYPE_HARDLINKS, O_RDONLY,
+			 S_IRUSR | S_IWUSR);
+  free (path);
+  if (fd < 0)
+    return fd;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
+  metadata_fd_data[fd].fd = fd;
+  metadata_fd_data[fd].generation++;
+  metadata_fd_data[fd].heap_node
+    = fibheap_insert (metadata_heap, (fibheapkey_t) time (NULL),
+		      &metadata_fd_data[fd]);
+  zfsd_mutex_unlock (&metadata_mutex);
+
+  return fd;
+}
+
+/* Close file F with descriptor FD and generation GENERATION
+   containing list of hardlinks.  */
+
+static void
+close_hardlinks_file (FILE *f, int fd, unsigned int generation)
+{
+  fclose (f);
+  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
+  if (generation == metadata_fd_data[fd].generation)
+    {
+      close_metadata_fd (fd);
+    }
+  else
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+    }
+  zfsd_mutex_unlock (&metadata_mutex);
+}
+
+/* Delete list if hardlinks of file handle FH on volume VOL.  */
+
+static void
+delete_hardlinks_file (volume vol, internal_fh fh)
+{
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (string_list_size (fh->hardlinks) >= 2)
+    abort ();
+#endif
+
+  string_list_destroy (fh->hardlinks);
+  fh->hardlinks = NULL;
+
+  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+    {
+      char *file;
+
+      file = build_fh_metadata_path (vol, &fh->local_fh,
+				     METADATA_TYPE_HARDLINKS, i);
+      unlink (file);
+      free (file);
+    }
+}
+
+/* Load list of hardlinks of file handle FH on volume VOL.
+   Return false on file error.  */
+
+bool
+init_hardlinks (volume vol, internal_fh fh)
+{
+  char line[ZFS_MAXPATHLEN + 1];
+  unsigned int generation;
+  int fd;
+  FILE *f;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (fh->hardlinks)
+    abort ();
+#endif
+
+  fd = open_hardlinks_file (vol, fh);
+  if (fd < 0)
+    return true;
+  generation = metadata_fd_data[fd].generation;
+
+  f = fdopen (fd, "rt");
+#ifdef ENABLE_CHECKING
+  if (!f)
+    abort ();
+#endif
+
+  fh->hardlinks = string_list_create (4, &fh->mutex);
+
+  while (fgets (line, ZFS_MAXPATHLEN + 1, f))
+    {
+      unsigned int l;
+
+      l = strlen (line);
+      if (l == ZFS_MAXPATHLEN && line[ZFS_MAXPATHLEN - 1] != '\n')
+	{
+	  /* Read the rest of long line.  */
+	  do
+	    {
+	      if (!fgets (line, ZFS_MAXPATHLEN + 1, f))
+		break;
+	    }
+	  while (l == ZFS_MAXPATHLEN && line[ZFS_MAXPATHLEN - 1] != '\n');
+	}
+      else if (line[0] == '/')
+	{
+	  /* Valid line always starts with '/'.  */
+
+	  if (line[l - 1] == '\n')
+	    {
+	      line[l - 1] = 0;
+	      l--;
+	    }
+
+	  string_list_insert (fh->hardlinks, line, true);
+	}
+    }
+
+  close_hardlinks_file (f, fd, generation);
+
+  /* There is at most one valid hardlink so delete the list of hardlinks.  */
+  if (string_list_size (fh->hardlinks) < 2)
+    delete_hardlinks_file (vol, fh);
+
+  return true;
+}
+
+/* Write list of hardlinks for file handle FH on volume VOL to file.
+   If there is only one hardlink delete the file with the list.
+   Return false on file error.  */
+
+bool
+write_hardlinks (volume vol, internal_fh fh)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!fh->hardlinks)
+    abort ();
+#endif
+
+  if (string_list_size (fh->hardlinks) >= 2)
+    {
+      char *path, *new_path;
+      unsigned int i, n;
+      int fd;
+      FILE *f;
+
+      path = build_fh_metadata_path (vol, &fh->local_fh,
+				     METADATA_TYPE_HARDLINKS,
+				     metadata_tree_depth);
+      new_path = xstrconcat (2, path, ".new");
+      fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT,
+			  S_IRUSR | S_IWUSR);
+      if (fd < 0)
+	{
+	  free (new_path);
+	  free (path);
+	  return false;
+	}
+
+      f = fdopen (fd, "wt");
+#ifdef ENABLE_CHECKING
+      if (!f)
+	abort ();
+#endif
+
+      n = string_list_size (fh->hardlinks);
+      for (i = 0; i < n; i++)
+	{
+	  if (!fputs (string_list_element (fh->hardlinks, i), f)
+	      || !fputc ('\n', f))
+	    {
+	      fclose (f);
+	      unlink (new_path);
+	      free (new_path);
+	      free (path);
+	      return false;
+	    }
+	}
+
+      fclose (f);
+      rename (new_path, path);
+      free (new_path);
+      free (path);
+    }
+  else
+    delete_hardlinks_file (vol, fh);
+
+  return true;
 }
 
 /* Initialize data structures in METADATA.C.  */

@@ -79,6 +79,8 @@ extern bool inc_local_version (volume vol, internal_fh fh);
 extern bool delete_metadata (volume vol, uint32_t dev, uint32_t ino);
 extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
+extern bool init_hardlinks (volume vol, internal_fh fh);
+extern bool write_hardlinks (volume vol, internal_fh fh);
 
 extern void initialize_metadata_c ();
 extern void cleanup_metadata_c ();
