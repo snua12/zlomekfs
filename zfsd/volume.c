@@ -123,6 +123,7 @@ volume_destroy (volume vol)
   pthread_mutex_unlock (&fh_pool_mutex);
   pthread_mutex_unlock (&vol->fh_mutex);
 
+  pthread_mutex_lock (&volume_mutex);
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -130,7 +131,12 @@ volume_destroy (volume vol)
     abort ();
 #endif
   htab_clear_slot (volume_htab, slot);
-  
+  pthread_mutex_unlock (&volume_mutex);
+
+  if (vol->local_path)
+    free (vol->local_path);
+  free (vol->mountpoint);
+  free (vol->name);
   free (vol);
 }
 
@@ -220,7 +226,6 @@ cleanup_volume_c ()
 
   pthread_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot, volume_destroy ((volume) *slot));
-
   htab_destroy (volume_htab);
   pthread_mutex_unlock (&volume_mutex);
   pthread_mutex_destroy (&volume_mutex);

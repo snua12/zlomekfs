@@ -175,6 +175,7 @@ xstrconcat_varray (varray *va)
       d += l;
     }
   *d = 0;
+  varray_destroy (&v);
 
   return r;
 }

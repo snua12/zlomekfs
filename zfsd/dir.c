@@ -217,6 +217,7 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
   internal_fh tmp;
   unsigned int n;
   varray v;
+  char *r;
 
   /* Count the number of strings which will be concatenated.  */
   n = 3;
@@ -238,7 +239,10 @@ build_local_path_name (volume vol, internal_fh fh, const char *name)
     }
   VARRAY_ACCESS (v, 0, char *) = vol->local_path;
 
-  return xstrconcat_varray (&v);
+  r = xstrconcat_varray (&v);
+  varray_destroy (&v);
+
+  return r;
 }
 
 static int
