@@ -50,9 +50,6 @@ char *kernel_file_name;
 /* Directory with node configuration. */
 char *node_config;
 
-/* Direcotry with cluster configuration. */
-char *cluster_config;
-
 /* File with private key.  */
 static char *private_key;
 
@@ -303,7 +300,7 @@ set_default_uid_gid (void)
 }
 
 static bool
-read_private_key (const char *filename)
+read_private_key (ATTRIBUTE_UNUSED const char *filename)
 {
 
   return true;
@@ -393,7 +390,7 @@ read_local_cluster_config (const char *path)
 }
 
 static bool
-read_global_cluster_config (const char *path)
+read_global_cluster_config (void)
 {
 
   return true;
@@ -491,14 +488,6 @@ read_config_file (const char *file)
 		{
 		  set_str_with_length (&node_config, value, value_len);
 		  message (1, stderr, "NodeConfig = '%s'\n", value);
-		}
-	      else if (strncasecmp (key, "clusterconfig", 14) == 0
-		       || strncasecmp (key, "clusterconfiguration", 21) == 0)
-		{
-		  /* TODO: FIXME: cluster configuration is always in the same
-		     ZFS directory so the parameter should not be needed.  */
-		  set_str_with_length (&cluster_config, value, value_len);
-		  message (1, stderr, "ClusterConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)
 		{
@@ -624,9 +613,7 @@ read_cluster_config (void)
   if (!read_local_cluster_config (node_config))
     return false;
 
-  /* TODO: FIXME: cluster configuration is always in the same
-     ZFS directory so the parameter should not be needed.  */
-  if (!read_global_cluster_config (cluster_config))
+  if (!read_global_cluster_config ())
     return false;
 
   if (!fix_config ())
