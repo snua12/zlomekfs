@@ -2921,6 +2921,10 @@ flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (!journal)
+    abort ();
+#endif
   CHECK_MUTEX_LOCKED (journal->mutex);
 
   close_journal_file (journal);
