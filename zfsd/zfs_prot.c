@@ -511,7 +511,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t,
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
-int									\
+int32_t									\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   uint32_t req_id;							\
@@ -538,7 +538,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 /* Call remote FUNCTION with ARGS on node NOD using data structures in thread T
    and return its error code, store file descriptor connected to NOD to FD.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
-int									\
+int32_t									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 {									\
   CHECK_MUTEX_LOCKED (&nod->mutex);					\
@@ -560,7 +560,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 /* Return string describing error code.  */
 
 char *
-zfs_strerror (int errnum)
+zfs_strerror (int32_t errnum)
 {
   if (errnum >= 0)
     return strerror (errnum);

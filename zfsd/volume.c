@@ -54,7 +54,7 @@ static int
 volume_eq (const void *x, const void *y)
 {
   volume vol = (volume) x;
-  unsigned int id = *(unsigned int *) y;
+  uint32_t id = *(uint32_t *) y;
 
   return vol->id == id;
 }
@@ -62,7 +62,7 @@ volume_eq (const void *x, const void *y)
 /* Return the volume with volume ID == ID.  */
 
 volume
-volume_lookup (unsigned int id)
+volume_lookup (uint32_t id)
 {
   volume vol;
 
@@ -78,7 +78,7 @@ volume_lookup (unsigned int id)
 /* Create volume structure and fill it with information.  */
 
 volume
-volume_create (unsigned int id)
+volume_create (uint32_t id)
 {
   volume vol;
   void **slot;

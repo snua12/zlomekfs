@@ -22,6 +22,7 @@
 #define CAP_H
 
 #include "system.h"
+#include <inttypes.h>
 #include "pthread.h"
 #include "zfs_prot.h"
 #include "fh.h"
@@ -56,16 +57,16 @@ typedef struct internal_cap_def
 extern pthread_mutex_t cap_mutex;
 
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
-extern int get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-			   internal_dentry *dentry, virtual_dir *vd);
+extern int32_t get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
+			       internal_dentry *dentry, virtual_dir *vd);
 extern internal_cap get_capability_no_zfs_fh_lookup (zfs_cap *cap,
 						     internal_dentry dentry);
-extern int find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-			    internal_dentry *dentry, virtual_dir *vd);
-extern int find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
-				   volume *vol, internal_dentry *dentry,
-				   virtual_dir *vd);
-extern int put_capability (internal_cap cap, internal_dentry dentry);
+extern int32_t find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
+				internal_dentry *dentry, virtual_dir *vd);
+extern int32_t find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
+				       volume *vol, internal_dentry *dentry,
+				       virtual_dir *vd);
+extern int32_t put_capability (internal_cap cap, internal_dentry dentry);
 extern void initialize_cap_c ();
 extern void cleanup_cap_c ();
 

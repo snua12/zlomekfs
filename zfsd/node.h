@@ -22,6 +22,7 @@
 #define NODE_H
 
 #include "system.h"
+#include <inttypes.h>
 #include <netdb.h>
 #include <rpc/rpc.h>
 #include "pthread.h"
@@ -32,7 +33,7 @@
 typedef struct node_def
 {
   pthread_mutex_t mutex;
-  unsigned int id;		/* ID of the node */
+  uint32_t id;			/* ID of the node */
   char *name;			/* name of the node */
 				/* public key */
   int flags;			/* see NODE_* below */
@@ -65,9 +66,9 @@ extern pthread_mutex_t node_mutex;
 extern node this_node;
 
 /* Function prototypes.  */
-extern node node_lookup (unsigned int id);
+extern node node_lookup (uint32_t id);
 extern node node_lookup_name (char *name);
-extern node node_create (unsigned int id, char *name);
+extern node node_create (uint32_t id, char *name);
 extern void node_destroy (node nod);
 extern void node_update_fd (node nod, int fd, unsigned int generation);
 extern bool node_connected_p (node nod);

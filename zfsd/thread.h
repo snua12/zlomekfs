@@ -22,6 +22,7 @@
 #define THREAD_H
 
 #include "system.h"
+#include <inttypes.h>
 #include <stddef.h>
 #include <rpc/rpc.h>
 #include "pthread.h"
@@ -92,7 +93,7 @@ typedef struct thread_def
   DC dc_call;			/* buffer for request for remote node */
   DC dc_reply;			/* buffer for reply from remote node */
   call_args args;		/* union for decoded call arguments.  */
-  int retval;			/* return value for request.  */
+  int32_t retval;		/* return value for request.  */
 
   /* Additional data for each subtype.  */
   union {
@@ -126,7 +127,7 @@ typedef struct thread_pool_def
 /* Description of thread waiting for reply.  */
 typedef struct waiting4reply_data_def
 {
-  unsigned int request_id;
+  uint32_t request_id;
   thread *t;
 } waiting4reply_data;
 

@@ -62,13 +62,13 @@ typedef enum direction_def
 
 typedef struct data_buffer_def
 {
-  unsigned int len;
+  uint32_t len;
   char buf[ZFS_MAXDATA];
 } data_buffer;
 
 typedef struct string_def
 {
-  unsigned int len;
+  uint32_t len;
   char *str;
 } string;
 
@@ -87,38 +87,38 @@ typedef enum ftype_def
 
 typedef struct zfs_fh_def
 {
-  unsigned int sid;		/* Server ID.  */
-  unsigned int vid;		/* Volume ID.  */
-  unsigned int dev;		/* Device ... */
-  unsigned int ino;		/* ... and inode number of the file.  */
+  uint32_t sid;		/* Server ID.  */
+  uint32_t vid;		/* Volume ID.  */
+  uint32_t dev;		/* Device ... */
+  uint32_t ino;		/* ... and inode number of the file.  */
 } zfs_fh;
 
 typedef struct zfs_cap_def
 {
   zfs_fh fh;
-  unsigned int flags;
+  uint32_t flags;
   char verify[ZFS_VERIFY_LEN];
 } zfs_cap;
 
-typedef unsigned int zfs_time;
+typedef uint32_t zfs_time;
 
 typedef struct fattr_def
 {
   ftype type;
-  unsigned int mode;
-  unsigned int nlink;
+  uint32_t mode;
+  uint32_t nlink;
   uint32_t uid;
   uint32_t gid;
-  unsigned int rdev;
+  uint32_t rdev;
   uint64_t size;
   uint64_t blocks;
-  unsigned int blksize;
-  unsigned int generation;
+  uint32_t blksize;
+  uint32_t generation;
   uint64_t fversion;
-  unsigned int sid;
-  unsigned int vid;
-  unsigned int dev;
-  unsigned int ino;
+  uint32_t sid;
+  uint32_t vid;
+  uint32_t dev;
+  uint32_t ino;
   zfs_time atime;
   zfs_time mtime;
   zfs_time ctime;
@@ -131,7 +131,7 @@ typedef struct fattr_def
 
 typedef struct sattr_def
 {
-  unsigned int mode;
+  uint32_t mode;
   uint32_t uid;
   uint32_t gid;
   uint64_t size;
@@ -147,7 +147,7 @@ typedef string nodename;
 
 typedef struct volume_root_args_def
 {
-  unsigned int vid;
+  uint32_t vid;
 } volume_root_args;
 
 typedef struct sattr_args_def
@@ -171,7 +171,7 @@ typedef struct dir_op_res_def
 typedef struct create_args_def
 {
   dir_op_args where;
-  unsigned int flags;
+  uint32_t flags;
   sattr attr;
 } create_args;
 
@@ -185,26 +185,26 @@ typedef struct create_res_def
 typedef struct open_args_def
 {
   zfs_fh file;
-  unsigned int flags;
+  uint32_t flags;
 } open_args;
 
 typedef struct read_dir_args_def
 {
   zfs_cap cap;
-  int cookie;
-  unsigned int count;
+  int32_t cookie;
+  uint32_t count;
 } read_dir_args;
 
 typedef struct dir_entry_def
 {
-  unsigned int ino;
-  int cookie;
+  uint32_t ino;
+  int32_t cookie;
   filename name;
 } dir_entry;
 
 typedef struct dir_list_def
 {
-  unsigned int n;
+  uint32_t n;
   char eof;
   /* dir_entry dir_entries[];  */
 } dir_list;
@@ -236,7 +236,7 @@ typedef struct read_args_def
 {
   zfs_cap cap;
   uint64_t offset;
-  unsigned int count;
+  uint32_t count;
 } read_args;
 
 typedef struct write_args_def
@@ -248,7 +248,7 @@ typedef struct write_args_def
 
 typedef struct write_res_def
 {
-  unsigned int written;
+  uint32_t written;
 } write_res;
 
 typedef struct read_link_res_def
@@ -268,14 +268,14 @@ typedef struct mknod_args_def
   dir_op_args where;
   sattr attr;
   ftype type;
-  unsigned int rdev;
+  uint32_t rdev;
 } mknod_args;
 
 typedef struct auth_stage1_args_def
 {
   char auth[ZFS_AUTH_LEN];
   nodename node;
-  /* int speed; */
+  /* uint32_t speed; */
 } auth_stage1_args;
 
 typedef struct auth_stage2_args_def
@@ -330,16 +330,16 @@ struct node_def;
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
 					    struct thread_def *t,	\
 					    bool map_id);		\
-  extern int zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
-					   ARGS *args,			\
-					   struct node_def *nod,	\
-					   int *fd);			\
-  extern int zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
-					     ARGS *args, int fd);
+  extern int32_t zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
+					       ARGS *args,		\
+					       struct node_def *nod,	\
+					       int *fd);		\
+  extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
+						 ARGS *args, int fd);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
-extern char *zfs_strerror (int errnum);
+extern char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c ();
 extern void cleanup_zfs_prot_c ();
 

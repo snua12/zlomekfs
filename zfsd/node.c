@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -83,7 +84,7 @@ static int
 node_eq (const void *x, const void *y)
 {
   node nod = (node) x;
-  unsigned int id = *(unsigned int *) y;
+  uint32_t id = *(uint32_t *) y;
 
   return nod->id == id;
 }
@@ -102,7 +103,7 @@ node_eq_name (const void *x, const void *y)
 /* Return the node with id ID.  */
 
 node
-node_lookup (unsigned int id)
+node_lookup (uint32_t id)
 {
   node nod;
 
@@ -135,7 +136,7 @@ node_lookup_name (char *name)
 /* Create new node with ID and NAME and insert it to hash table.  */
 
 node
-node_create (unsigned int id, char *name)
+node_create (uint32_t id, char *name)
 {
   node nod;
   void **slot;

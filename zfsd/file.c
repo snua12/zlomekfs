@@ -105,14 +105,14 @@ close_local_fd (int fd)
    it closes a file descriptor unused for longest time.  */
 
 static int
-safe_open (const char *pathname, unsigned int flags, unsigned int mode)
+safe_open (const char *pathname, uint32_t flags, uint32_t mode)
 {
   int fd;
 
 retry_open:
   fd = open (pathname, flags, mode);
   if ((fd < 0 && errno == EMFILE)
-      || (fd >= 0 && fibheap_size (opened) >= max_local_fds))
+      || (fd >= 0 && fibheap_size (opened) >= (unsigned int) max_local_fds))
     {
       internal_fd_data_t *fd_data;
 
@@ -160,7 +160,7 @@ capability_opened_p (internal_cap cap)
 
 /* Close local file for internal capability CAP on volume VOL.  */
 
-int
+int32_t
 local_close (internal_cap cap)
 {
   CHECK_MUTEX_LOCKED (&cap->mutex);
@@ -178,7 +178,7 @@ local_close (internal_cap cap)
 
 /* Close remote file for internal capability CAP on volume VOL.  */
 
-static int
+static int32_t
 remote_close (internal_cap cap, volume vol)
 {
   thread *t;
@@ -211,8 +211,8 @@ remote_close (internal_cap cap, volume vol)
 /* Open local file for capability CAP (whose internal file handle is FH)
    with additional FLAGS on volume VOL.  */
 
-static int
-capability_open (internal_cap cap, unsigned int flags, internal_dentry dentry,
+static int32_t
+capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
 		 volume vol)
 {
   char *path;
@@ -247,12 +247,12 @@ capability_open (internal_cap cap, unsigned int flags, internal_dentry dentry,
    set file attributes according to ATTR.  Store the newly opened file
    descriptor to FDP.  */
 
-int
+int32_t
 local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
-	      unsigned int flags, sattr *attr, volume vol)
+	      uint32_t flags, sattr *attr, volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -266,7 +266,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     }
   *fdp = r;
 
-  attr->mode = (unsigned int) -1;
+  attr->mode = (uint32_t) -1;
   r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)
@@ -288,9 +288,9 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
 /* Create remote file NAME in directory DIR with open flags FLAGS,
    set file attributes according to ATTR.  */
 
-int
+int32_t
 remote_create (create_res *res, internal_fh dir, string *name,
-	      unsigned int flags, sattr *attr, volume vol)
+	      uint32_t flags, sattr *attr, volume vol)
 {
   create_args args;
   thread *t;
@@ -328,14 +328,14 @@ remote_create (create_res *res, internal_fh dir, string *name,
 /* Create file NAME in directory DIR with open flags FLAGS,
    set file attributes according to ATTR.  */
 
-int
+int32_t
 zfs_create (create_res *res, zfs_fh *dir, string *name,
-	    unsigned int flags, sattr *attr)
+	    uint32_t flags, sattr *attr)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
-  int r;
+  int32_t r;
   int fd;
   int retry = 0;
 
@@ -437,11 +437,11 @@ zfs_create_retry:
 /* Open local file for capability ICAP (whose internal dentry is DENTRY)
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
-static int
-local_open (zfs_cap *cap, internal_cap icap, unsigned int flags,
+static int32_t
+local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 	    internal_dentry dentry, volume vol)
 {
-  int r;
+  int32_t r;
 
   r = capability_open (icap, flags, dentry, vol);
   zfsd_mutex_unlock (&vol->mutex);
@@ -456,8 +456,8 @@ local_open (zfs_cap *cap, internal_cap icap, unsigned int flags,
 /* Open remote file for capability ICAP with open flags FLAGS on volume VOL.
    Store ZFS capability to CAP.  */
 
-static int
-remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
+static int32_t
+remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags, volume vol)
 {
   open_args args;
   thread *t;
@@ -499,14 +499,14 @@ remote_open (zfs_cap *cap, internal_cap icap, unsigned int flags, volume vol)
 
 /* Open file handle FH with open flags FLAGS and return capability in CAP.  */
 
-int
-zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
+int32_t
+zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
 {
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
   virtual_dir vd;
-  int r;
+  int32_t r;
   int retry = 0;
 
   /* When O_CREAT is set the function zfs_create is called.
@@ -567,14 +567,14 @@ zfs_open_retry:
 
 /* Close capability CAP.  */
 
-int
+int32_t
 zfs_close (zfs_cap *cap)
 {
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
   virtual_dir vd;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_close_retry:
@@ -642,16 +642,16 @@ zfs_close_retry:
 
 typedef struct readdir_data_def
 {
-  unsigned int written;
-  unsigned int count;
-  int cookie;
+  uint32_t written;
+  uint32_t count;
+  int32_t cookie;
   dir_list list;
 } readdir_data;
 
 /* Add one directory entry to DC.  */
 
 static bool
-filldir (DC *dc, unsigned int ino, char *name, unsigned int name_len,
+filldir (DC *dc, uint32_t ino, char *name, uint32_t name_len,
 	 readdir_data *data)
 {
   char *old_pos = dc->current;
@@ -690,7 +690,7 @@ filldir (DC *dc, unsigned int ino, char *name, unsigned int name_len,
 static bool
 read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
 {
-  unsigned int ino;
+  uint32_t ino;
   unsigned int i;
 
   CHECK_MUTEX_LOCKED (&vd->mutex);
@@ -749,12 +749,12 @@ read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
 
 /* Read COUNT bytes from local directory CAP starting at position COOKIE.  */
 
-static int
+static int32_t
 local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
 	       virtual_dir vd, readdir_data *data, volume vol)
 {
   char buf[ZFS_MAXDATA];
-  int r, pos;
+  int32_t r, pos;
   struct dirent *de;
 
   if (vd)
@@ -837,7 +837,7 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
 
 /* Read COUNT bytes from remote directory CAP starting at position COOKIE.  */
 
-static int
+static int32_t
 remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
 {
   read_dir_args args;
@@ -882,17 +882,17 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
 
 /* Read COUNT bytes from directory CAP starting at position COOKIE.  */
 
-int
-zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
+int32_t
+zfs_readdir (DC *dc, zfs_cap *cap, int32_t cookie, uint32_t count)
 {
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
   virtual_dir vd;
   readdir_data data;
-  int r;
+  int32_t r;
   char *status_pos, *cur_pos;
-  int status_len, cur_len;
+  unsigned int status_len, cur_len;
   bool local;
   int retry = 0;
 
@@ -999,12 +999,12 @@ zfs_readdir_retry:
    and file handle FH on volume VOL.
    Store data to DC.  */
 
-static int
+static int32_t
 local_read (DC *dc, internal_cap cap, internal_dentry dentry, uint64_t offset,
-	    unsigned int count, volume vol)
+	    uint32_t count, volume vol)
 {
   data_buffer buf;
-  int r;
+  int32_t r;
 
   if (!capability_opened_p (cap))
     {
@@ -1043,9 +1043,9 @@ local_read (DC *dc, internal_cap cap, internal_dentry dentry, uint64_t offset,
    on volume VOL.
    Store data to DC.  */
 
-static int
+static int32_t
 remote_read (DC *dc, internal_cap cap, uint64_t offset,
-	     unsigned int count, volume vol)
+	     uint32_t count, volume vol)
 {
   read_args args;
   thread *t;
@@ -1088,13 +1088,13 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
 
 /* Read COUNT bytes from file CAP at offset OFFSET.  */
 
-int
-zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
+int32_t
+zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, uint32_t count)
 {
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
-  int r;
+  int32_t r;
   int retry = 0;
 
   if (count > ZFS_MAXDATA)
@@ -1150,11 +1150,11 @@ zfs_read_retry:
 /* Write DATA to offset OFFSET of local file with capability CAP
    and file handle FH on volume VOL.  */
 
-static int
+static int32_t
 local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 	     uint64_t offset, data_buffer *data, volume vol)
 {
-  int r;
+  int32_t r;
 
   if (!capability_opened_p (cap))
     {
@@ -1188,7 +1188,7 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 
 /* Write to remote file with capability CAP on volume VOL.  */
 
-static int
+static int32_t
 remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 {
   thread *t;
@@ -1224,13 +1224,13 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 
 /* Write to file.  */
 
-int
+int32_t
 zfs_write (write_res *res, write_args *args)
 {
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
-  int r;
+  int32_t r;
   int retry = 0;
 
   if (args->data.len > ZFS_MAXDATA)

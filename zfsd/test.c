@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -158,7 +159,7 @@ test_interval ()
 /* Print contents of directory DIR (using PATH as a prefix)
    and walk through subdirectories.  */
 
-static int
+static int32_t
 walk_dir (zfs_fh *dir, char *path)
 {
   zfs_cap cap;
@@ -172,7 +173,7 @@ walk_dir (zfs_fh *dir, char *path)
   r = zfs_open (&cap, dir, O_RDONLY);
   if (r == ZFS_OK)
     {
-      int cookie = 0;
+      int32_t cookie = 0;
       dir_list list;
       unsigned int i;
       direction dddd;
@@ -285,8 +286,8 @@ do_tests (void *data)
   dir_op_res res2;
   zfs_cap cap;
   string rmdir_name = {3, "dir"};
-  sattr sa = {0755, (unsigned int) -1, (unsigned int) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
-  sattr sa_symlink = {(unsigned int) -1, (unsigned int) -1, (unsigned int) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
+  sattr sa = {0755, (uint32_t) -1, (uint32_t) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
+  sattr sa_symlink = {(uint32_t) -1, (uint32_t) -1, (uint32_t) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
   fattr fa;
   thread *t = (thread *) data;
   create_res creater;
@@ -311,7 +312,7 @@ do_tests (void *data)
     {
       node nod;
       char *str;
-      int r;
+      int32_t r;
       int fd;
 
       if (!get_running ())

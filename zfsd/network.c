@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <stdlib.h>
 #include <signal.h>
 #include "pthread.h"
@@ -401,7 +402,7 @@ send_reply (thread *t)
 /* Send error reply with error status STATUS.  */
 
 static void
-send_error_reply (thread *t, uint32_t request_id, int status)
+send_error_reply (thread *t, uint32_t request_id, int32_t status)
 {
   start_encoding (&t->dc);
   encode_direction (&t->dc, DIR_REPLY);

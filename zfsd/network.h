@@ -22,6 +22,7 @@
 #define NETWORK_H
 
 #include "system.h"
+#include <inttypes.h>
 #include <time.h>
 #include "pthread.h"
 #include "constant.h"

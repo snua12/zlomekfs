@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -118,7 +119,7 @@ build_local_path_name (volume vol, internal_dentry dentry, const char *name)
    whose mounpoint name is not NAME and if so return ZFS_OK and store
    the internal dentry of the root of volume to DIR.  */
 
-int
+int32_t
 validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 					 internal_dentry *dir)
 {
@@ -146,7 +147,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
     }
   else
     {
-      int r = update_volume_root (pvd->vol, dir);
+      int32_t r = update_volume_root (pvd->vol, dir);
       if (r != ZFS_OK)
 	{
 	  zfsd_mutex_unlock (&pvd->vol->mutex);
@@ -162,7 +163,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 /* Store the local file handle of root of volume VOL to LOCAL_FH
    and its attributes to ATTR.  */
 
-static int
+static int32_t
 get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -192,7 +193,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 /* Store the remote file handle of root of volume VOL to REMOTE_FH
    and its attributes to ATTR.  */
 
-static int
+static int32_t
 get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 {
   int32_t r;
@@ -240,7 +241,7 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 /* Get file handle of root of volume VOL, store the local file handle to
    LOCAL_FH and master's file handle to MASTER_FH, if defined.  */
 
-static int
+static int32_t
 get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
 {
   int32_t r = ZFS_OK;
@@ -308,12 +309,12 @@ get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
 /* Update root of volume VOL, create an internal file handle for it and store
    it to IFH.  */
 
-int
+int32_t
 update_volume_root (volume vol, internal_dentry *dentry)
 {
   zfs_fh local_fh, master_fh;
   fattr attr;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -406,11 +407,11 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
 
 /* Get attributes of local file PATH on volume VOL and store them to ATTR.  */
 
-int
+int32_t
 local_getattr (fattr *attr, char *path, volume vol)
 {
   struct stat st;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -424,13 +425,13 @@ local_getattr (fattr *attr, char *path, volume vol)
 
 /* Get attributes for file with handle FH and store them to FA.  */
 
-int
+int32_t
 zfs_getattr (fattr *fa, zfs_fh *fh)
 {
   volume vol;
   internal_dentry dentry;
   virtual_dir vd;
-  int r;
+  int32_t r;
 
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd);
@@ -457,16 +458,16 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 /* Set attributes of local file PATH on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
-int
+int32_t
 local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 {
-  if (sa->mode != (unsigned int) -1)
+  if (sa->mode != (uint32_t) -1)
     {
       if (chmod (path, sa->mode) != 0)
 	return errno;
     }
 
-  if (sa->uid != (unsigned int) -1 || sa->gid != (unsigned int) -1)
+  if (sa->uid != (uint32_t) -1 || sa->gid != (uint32_t) -1)
     {
       if (lchown (path, map_uid_zfs2node (sa->uid),
 		  map_gid_zfs2node (sa->gid)) != 0)
@@ -497,11 +498,11 @@ local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 /* Set attributes of local file DENTRY on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
-static int
+static int32_t
 local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -516,7 +517,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 /* Set attributes of remote file DENTRY on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
-static int
+static int32_t
 remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
 {
   sattr_args args;
@@ -556,12 +557,12 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
 /* Set attributes of file with handle FH according to SA, reget attributes
    and store them to FA.  */
 
-int
+int32_t
 zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 {
   volume vol;
   internal_dentry dentry;
-  int r;
+  int32_t r;
   int retry = 0;
 
   /* Virtual directory tree is read only for users.  */
@@ -602,11 +603,11 @@ zfs_setattr_retry:
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
-int
+int32_t
 zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
 {
   string str;
-  int r;
+  int32_t r;
 
   res->file = (*path == '/') ? root_fh : *dir;
   while (*path)
@@ -632,11 +633,11 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
 /* Lookup file handle of local file NAME in directory DIR on volume VOL
    and store it to FH.  */
 
-static int
+static int32_t
 local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -658,7 +659,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
 /* Lookup file handle of remote file NAME in directory DIR on volume VOL
    and store it to FH.  */
 
-static int
+static int32_t
 remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
 {
   dir_op_args args;
@@ -696,14 +697,14 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
-int
+int32_t
 zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
   dir_op_res master_res;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_lookup_retry:
@@ -832,12 +833,12 @@ zfs_lookup_retry:
 /* Create directory NAME in local directory DIR on volume VOL, set owner,
    group and permitions according to ATTR.  */
 
-static int
+static int32_t
 local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 	     volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -850,7 +851,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
       return errno;
     }
 
-  attr->mode = (unsigned int) -1;
+  attr->mode = (uint32_t) -1;
   r = local_setattr_path (&res->attr, path, attr, vol);
   free (path);
   if (r != ZFS_OK)
@@ -867,7 +868,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 /* Create directory NAME in remote directory DIR on volume VOL, set owner,
    group and permitions according to ATTR.  */
 
-static int
+static int32_t
 remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 	      volume vol)
 {
@@ -909,14 +910,14 @@ remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 /* Create directory NAME in directory DIR, set owner, group and permitions
    according to ATTR.  */
 
-int
+int32_t
 zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
   dir_op_res master_res;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_mkdir_retry:
@@ -1003,11 +1004,11 @@ zfs_mkdir_retry:
 
 /* Remove local directory NAME from directory DIR on volume VOL.  */
 
-static int
+static int32_t
 local_rmdir (internal_dentry dir, string *name, volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1023,7 +1024,7 @@ local_rmdir (internal_dentry dir, string *name, volume vol)
 
 /* Remove remote directory NAME from directory DIR on volume VOL.  */
 
-static int
+static int32_t
 remote_rmdir (internal_fh dir, string *name, volume vol)
 {
   dir_op_args args;
@@ -1056,13 +1057,13 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
 
 /* Remove directory NAME from directory DIR.  */
 
-int
+int32_t
 zfs_rmdir (zfs_fh *dir, string *name)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_rmdir_retry:
@@ -1123,12 +1124,12 @@ zfs_rmdir_retry:
 /* Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME
    in directory TO_DIR on volume VOL.  */
 
-static int
+static int32_t
 local_rename (internal_dentry from_dir, string *from_name,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
   char *path1, *path2;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
@@ -1148,7 +1149,7 @@ local_rename (internal_dentry from_dir, string *from_name,
 /* Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME
    in directory TO_DIR on volume VOL.  */
 
-static int
+static int32_t
 remote_rename (internal_fh from_dir, string *from_name,
 	       internal_fh to_dir, string *to_name, volume vol)
 {
@@ -1186,14 +1187,14 @@ remote_rename (internal_fh from_dir, string *from_name,
 /* Rename file FROM_NAME in directory FROM_DIR to file TO_NAME
    in directory TO_DIR.  */
 
-int
+int32_t
 zfs_rename (zfs_fh *from_dir, string *from_name,
 	    zfs_fh *to_dir, string *to_name)
 {
   volume vol;
   internal_dentry dentry1, dentry2;
   virtual_dir vd1, vd2;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_rename_retry:
@@ -1353,11 +1354,11 @@ zfs_rename_retry:
 /* Link local file FROM to be a file with NAME in directory DIR
    on volume VOL.  */
 
-static int
+static int32_t
 local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
 {
   char *path1, *path2;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&from->fh->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1377,7 +1378,7 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
 /* Link remote file FROM to be a file with NAME in directory DIR
    on volume VOL.  */
 
-static int
+static int32_t
 remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
 {
   link_args args;
@@ -1412,13 +1413,13 @@ remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
 
 /* Link file FROM to be a file with NAME in directory DIR.  */
 
-int
+int32_t
 zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 {
   volume vol;
   internal_dentry dentry1, dentry2;
   virtual_dir vd1, vd2;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_link_retry:
@@ -1580,11 +1581,11 @@ zfs_link_retry:
 
 /* Delete local file NAME from directory DIR on volume VOL.  */
 
-static int
+static int32_t
 local_unlink (internal_dentry dir, string *name, volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1600,7 +1601,7 @@ local_unlink (internal_dentry dir, string *name, volume vol)
 
 /* Delete remote file NAME from directory DIR on volume VOL.  */
 
-static int
+static int32_t
 remote_unlink (internal_fh dir, string *name, volume vol)
 {
   dir_op_args args;
@@ -1633,13 +1634,13 @@ remote_unlink (internal_fh dir, string *name, volume vol)
 
 /* Remove directory NAME from directory DIR.  */
 
-int
+int32_t
 zfs_unlink (zfs_fh *dir, string *name)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_unlink_retry:
@@ -1699,12 +1700,12 @@ zfs_unlink_retry:
 
 /* Read local symlink FILE on volume VOL.  */
 
-static int
+static int32_t
 local_readlink (read_link_res *res, internal_dentry file, volume vol)
 {
   char *path;
   char buf[ZFS_MAXDATA + 1];
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
@@ -1725,7 +1726,7 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
 
 /* Read remote symlink FH on volume VOL.  */
 
-static int
+static int32_t
 remote_readlink (read_link_res *res, internal_fh fh, volume vol)
 {
   thread *t;
@@ -1767,12 +1768,12 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
 
 /* Read symlink FH.  */
 
-int
+int32_t
 zfs_readlink (read_link_res *res, zfs_fh *fh)
 {
   volume vol;
   internal_dentry dentry;
-  int r;
+  int32_t r;
   int retry = 0;
 
   if (VIRTUAL_FH_P (*fh))
@@ -1808,12 +1809,12 @@ zfs_readlink_retry:
 /* Create local symlink NAME in directory DIR on volume VOL pointing to TO,
    set its attributes according to ATTR.  */
 
-static int
+static int32_t
 local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
 	       volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1837,7 +1838,7 @@ local_symlink (internal_dentry dir, string *name, string *to, sattr *attr,
 /* Create remote symlink NAME in directory DIR on volume VOL pointing to TO,
    set its attributes according to ATTR.  */
 
-static int
+static int32_t
 remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
 		volume vol)
 {
@@ -1874,13 +1875,13 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
 /* Create symlink NAME in directory DIR pointing to TO,
    set its attributes according to ATTR.  */
 
-int
+int32_t
 zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_symlink_retry:
@@ -1907,7 +1908,7 @@ zfs_symlink_retry:
 	return r;
     }
 
-  attr->mode = (unsigned int) -1;
+  attr->mode = (uint32_t) -1;
   attr->size = (uint64_t) -1;
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
@@ -1947,12 +1948,12 @@ zfs_symlink_retry:
    set the attributes according to ATTR.
    If device is being created RDEV is its number.  */
 
-static int
+static int32_t
 local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
-	     unsigned int rdev, volume vol)
+	     uint32_t rdev, volume vol)
 {
   char *path;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1977,9 +1978,9 @@ local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
    set the attributes according to ATTR.
    If device is being created RDEV is its number.  */
 
-static int
+static int32_t
 remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
-	      unsigned int rdev, volume vol)
+	      uint32_t rdev, volume vol)
 {
   mknod_args args;
   thread *t;
@@ -2016,14 +2017,14 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
    set the attributes according to ATTR.
    If device is being created RDEV is its number.  */
 
-int
+int32_t
 zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
-	   unsigned int rdev)
+	   uint32_t rdev)
 {
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
-  int r;
+  int32_t r;
   int retry = 0;
 
 zfs_mknod_retry:
@@ -2101,10 +2102,10 @@ zfs_mknod_retry:
 /* Recursively refresh path to DIR on volume VOL and lookup NAME.
    Store result of REMOTE_LOOKUP to RES (unused).  */
 
-static int
+static int32_t
 refresh_path_1 (dir_op_res *res, internal_dentry dir, char *name, volume vol)
 {
-  int r;
+  int32_t r;
   string s;
 
   if (dir == NULL)
@@ -2128,13 +2129,13 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, char *name, volume vol)
 
 /* Refresh file handles on path to ZFS_FH FH.  */
 
-int
+int32_t
 refresh_path (zfs_fh *fh)
 {
   dir_op_res res;
   internal_dentry dentry;
   volume vol;
-  int r;
+  int32_t r;
 
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;

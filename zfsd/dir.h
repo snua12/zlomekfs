@@ -22,6 +22,7 @@
 #define DIR_H
 
 #include "system.h"
+#include <inttypes.h>
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"
@@ -30,27 +31,30 @@
 extern char *build_local_path (volume vol, internal_dentry dentry);
 extern char *build_local_path_name (volume vol, internal_dentry dentry,
 				    const char *name);
-extern int validate_operation_on_virtual_directory (virtual_dir pvd,
-						    string *name,
-						    internal_dentry *dir);
-extern int update_volume_root (volume vol, internal_dentry *dentry);
+extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
+							string *name,
+							internal_dentry *dir);
+extern int32_t update_volume_root (volume vol, internal_dentry *dentry);
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
-extern int local_getattr (fattr *attr, char *path, volume vol);
-extern int zfs_getattr (fattr *fa, zfs_fh *fh);
-extern int local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol);
-extern int zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
-extern int zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
-extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
-extern int zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr);
-extern int zfs_rmdir (zfs_fh *dir, string *name);
-extern int zfs_rename (zfs_fh *from_dir, string *from_name,
-		       zfs_fh *to_dir, string *to_name);
-extern int zfs_link (zfs_fh *from, zfs_fh *dir, string *name);
-extern int zfs_unlink (zfs_fh *dir, string *name);
-extern int zfs_readlink (read_link_res *res, zfs_fh *fh);
-extern int zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr);
-extern int zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
-		      unsigned int rdev);
-extern int refresh_path (zfs_fh *fh);
+extern int32_t local_getattr (fattr *attr, char *path, volume vol);
+extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
+extern int32_t local_setattr_path (fattr *fa, char *path, sattr *sa,
+				   volume vol);
+extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
+extern int32_t zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
+extern int32_t zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
+extern int32_t zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name,
+			  sattr *attr);
+extern int32_t zfs_rmdir (zfs_fh *dir, string *name);
+extern int32_t zfs_rename (zfs_fh *from_dir, string *from_name,
+			   zfs_fh *to_dir, string *to_name);
+extern int32_t zfs_link (zfs_fh *from, zfs_fh *dir, string *name);
+extern int32_t zfs_unlink (zfs_fh *dir, string *name);
+extern int32_t zfs_readlink (read_link_res *res, zfs_fh *fh);
+extern int32_t zfs_symlink (zfs_fh *dir, string *name, string *to,
+			    sattr *attr);
+extern int32_t zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
+			  uint32_t rdev);
+extern int32_t refresh_path (zfs_fh *fh);
 
 #endif

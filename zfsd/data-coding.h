@@ -126,10 +126,6 @@
 #define le_to_i64p(X) le_to_i64 (*(int64_t *) (X))
 #define le_to_u64p(X) le_to_u64 (*(uint64_t *) (X))
 
-/* Get an unsigned int (32-bit) from the pointer and perform little/big
-   endian conversion.  */
-#define GET_UINT(P) (le_to_u32p (P))
-
 typedef struct data_coding_def
 {
   char *unaligned;
@@ -147,7 +143,7 @@ extern void dc_destroy (DC *dc);
 extern void print_dc (DC *dc, FILE *f);
 extern void debug_dc (DC *dc);
 extern void start_encoding (DC *dc);
-extern int finish_encoding (DC *dc);
+extern unsigned int finish_encoding (DC *dc);
 extern bool start_decoding (DC *dc);
 extern bool finish_decoding (DC *dc);
 

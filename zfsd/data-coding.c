@@ -85,7 +85,7 @@ start_encoding (DC *dc)
 
 /* Update the size of block in DC.  Return the length of encoded buffer.  */
 
-int
+unsigned int
 finish_encoding (DC *dc)
 {
   *(uint32_t *) dc->buffer = u32_to_le ((uint32_t) dc->cur_length);
@@ -139,7 +139,7 @@ decode_##T (DC *dc, T *ret)					\
 bool								\
 encode_##T (DC *dc, T val)					\
 {								\
-  int prev = dc->cur_length;					\
+  unsigned int prev = dc->cur_length;				\
   char *s;							\
 								\
   /* Advance and check the length.  */				\
@@ -203,7 +203,7 @@ decode_data_buffer (DC *dc, data_buffer *data)
 bool
 encode_data_buffer (DC *dc, data_buffer *data)
 {
-  int prev;
+  unsigned int prev;
 
   if (!encode_uint32_t (dc, data->len))
     return false;
@@ -238,7 +238,7 @@ decode_fixed_buffer (DC *dc, void *buf, int len)
 bool
 encode_fixed_buffer (DC *dc, void *buf, int len)
 {
-  int prev = dc->cur_length;
+  unsigned int prev = dc->cur_length;
 
   dc->cur_length += len;
   if (dc->cur_length > dc->max_length)
@@ -277,7 +277,7 @@ decode_string (DC *dc, string *str, uint32_t max_len)
 bool
 encode_string (DC *dc, string *str)
 {
-  int prev;
+  unsigned int prev;
 
   if (!encode_uint32_t (dc, str->len))
     return false;
@@ -312,7 +312,7 @@ bool
 decode_direction (DC *dc, direction *dir)
 {
   uchar dir_val;
-  int r;
+  bool r;
 
   r = decode_uchar (dc, &dir_val);
   if (r)
@@ -336,7 +336,7 @@ bool
 decode_ftype (DC *dc, ftype *type)
 {
   uchar type_val;
-  int r;
+  bool r;
 
   r = decode_uchar (dc, &type_val);
   if (r)

@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -218,7 +219,7 @@ cleanup_unused_dentries ()
 	  for (i = 0; i < n; i = j)
 	    {
 	      volume vol;
-	      unsigned int vid;
+	      uint32_t vid;
 	      
 	      vid = fh[i].vid;
 	      vol = volume_lookup (vid);
@@ -369,11 +370,11 @@ internal_dentry_eq_name (const void *xx, const void *yy)
 /* Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *DENTRYP and VDP according to it.  */
 
-int
+int32_t
 zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	       virtual_dir *vdp)
 {
-  int res;
+  int32_t res;
 
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*fh))
@@ -392,7 +393,7 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
    and set *VOLP, *DENTRYP and VDP according to it.
    This function is similar to FH_LOOKUP but the big locks must be locked.  */
 
-int
+int32_t
 zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 		      virtual_dir *vdp)
 {
@@ -969,7 +970,7 @@ virtual_dir
 virtual_dir_create (virtual_dir parent, const char *name)
 {
   virtual_dir vd;
-  static unsigned int last_virtual_ino;
+  static uint32_t last_virtual_ino;
   void **slot;
 
   CHECK_MUTEX_LOCKED (&vd_mutex);

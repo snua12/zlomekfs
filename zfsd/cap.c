@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -114,7 +115,7 @@ internal_cap_compute_verify (internal_cap cap)
 
 /* Verify capability CAP by comparing with ICAP.  */
 
-static int
+static int32_t
 verify_capability (zfs_cap *cap, internal_cap icap)
 {
   if (verbose >= 3)
@@ -133,7 +134,7 @@ verify_capability (zfs_cap *cap, internal_cap icap)
 /* Create a new capability for internal dentry DENTRY with open flags FLAGS.  */
 
 static internal_cap
-internal_cap_create_dentry (internal_dentry dentry, unsigned int flags)
+internal_cap_create_dentry (internal_dentry dentry, uint32_t flags)
 {
   internal_cap cap;
   void **slot;
@@ -179,7 +180,7 @@ internal_cap_create_dentry (internal_dentry dentry, unsigned int flags)
 /* Create a new capability for virtual directory VD with open flags FLAGS.  */
 
 static internal_cap
-internal_cap_create_vd (virtual_dir vd, unsigned int flags)
+internal_cap_create_vd (virtual_dir vd, uint32_t flags)
 {
   internal_cap cap;
   void **slot;
@@ -257,12 +258,12 @@ internal_cap_destroy (internal_cap cap, internal_dentry dentry)
    volume to VOL, internal file handle IFH and virtual directory to VD.
    Create a new internal capability if it does not exist.  */
 
-int
+int32_t
 get_capability (zfs_cap *cap, internal_cap *icapp,
 		volume *vol, internal_dentry *dentry, virtual_dir *vd)
 {
   internal_cap icap;
-  int r;
+  int32_t r;
 
 #ifdef ENABLE_CHECKING
   if (cap->flags & ~O_ACCMODE)
@@ -326,11 +327,11 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry)
    volume to VOL, internal dentry DENTRY and virtual directory to VD.
    Create a new internal capability if it does not exist.  */
 
-int
+int32_t
 find_capability (zfs_cap *cap, internal_cap *icapp,
 		 volume *vol, internal_dentry *dentry, virtual_dir *vd)
 {
-  int r;
+  int32_t r;
 
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -352,12 +353,12 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
    Create a new internal capability if it does not exist.
    This function is similar to FIND_CAPABILITY but does not lock big locks.  */
 
-int
+int32_t
 find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 			volume *vol, internal_dentry *dentry, virtual_dir *vd)
 {
   internal_cap icap;
-  int r;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -392,7 +393,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 /* Decrease the number of users of capability CAP and destroy the capability
    when the number of users becomes 0.  */
 
-int
+int32_t
 put_capability (internal_cap cap, internal_dentry dentry)
 {
   CHECK_MUTEX_LOCKED (&cap_mutex);

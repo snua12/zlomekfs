@@ -25,6 +25,7 @@
 typedef struct volume_def *volume;
 
 #include "system.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <time.h>
 #include "pthread.h"
@@ -186,13 +187,14 @@ extern hash_t internal_dentry_hash_name (const void *x);
 extern int internal_fh_eq (const void *xx, const void *yy);
 extern int internal_dentry_eq (const void *xx, const void *yy);
 extern int internal_dentry_eq_name (const void *xx, const void *yy);
-extern int zfs_fh_lookup (zfs_fh *fh, volume *volp,
-			  internal_dentry *dentryp, virtual_dir *vdp);
-extern int zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
-				 internal_dentry *dentryp, virtual_dir *vdp);
+extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
+			      internal_dentry *dentryp, virtual_dir *vdp);
+extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
+				     internal_dentry *dentryp,
+				     virtual_dir *vdp);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
-				   const char *name);
+					   const char *name);
 extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
 					       zfs_fh *master_fh, volume vol,
 					       internal_dentry parent,

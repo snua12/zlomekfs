@@ -32,7 +32,7 @@
 struct volume_def
 {
   pthread_mutex_t mutex;
-  unsigned int id;		/* ID of the volume */
+  uint32_t id;			/* ID of the volume */
   char *name;			/* name of the volume */
   node master;			/* master node for the volume */
   char *mountpoint;		/* "mountpoint" for the volume on cluster fs */
@@ -67,8 +67,8 @@ struct volume_def
 extern pthread_mutex_t volume_mutex;
 
 /* Function prototypes.  */
-extern volume volume_lookup (unsigned int id);
-extern volume volume_create (unsigned int id);
+extern volume volume_lookup (uint32_t id);
+extern volume volume_create (uint32_t id);
 extern void volume_destroy (volume vol);
 extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);

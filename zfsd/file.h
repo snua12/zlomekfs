@@ -22,6 +22,7 @@
 #define FILE_H
 
 #include "system.h"
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -44,14 +45,16 @@ typedef struct internal_fd_data_def
 } internal_fd_data_t;
 
 #include "cap.h"
-extern int local_close (internal_cap cap);
-extern int zfs_create (create_res *res, zfs_fh *dir, string *name,
-		       unsigned int flags, sattr *attr);
-extern int zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags);
-extern int zfs_close (zfs_cap *cap);
-extern int zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count);
-extern int zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count);
-extern int zfs_write (write_res *res, write_args *args);
+extern int32_t local_close (internal_cap cap);
+extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
+			   uint32_t flags, sattr *attr);
+extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
+extern int32_t zfs_close (zfs_cap *cap);
+extern int32_t zfs_readdir (DC *dc, zfs_cap *cap, int32_t cookie,
+			    uint32_t count);
+extern int32_t zfs_read (DC *dc, zfs_cap *cap, uint64_t offset,
+			 uint32_t count);
+extern int32_t zfs_write (write_res *res, write_args *args);
 extern void initialize_file_c ();
 extern void cleanup_file_c ();
 
