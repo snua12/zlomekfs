@@ -48,6 +48,10 @@ typedef struct interval_tree_def
 
   /* Generation of opened file descriptor.  */
   unsigned int generation;
+
+  /* Was some interval deleted from the tree?
+     Used to decide whether to flush the tree or not.  */
+  bool deleted;
 } *interval_tree;
 
 /* Structure of an interval used by interval_tree_read/interval_tree_write.  */

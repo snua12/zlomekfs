@@ -63,6 +63,7 @@ interval_tree_create (unsigned int preferred_size, pthread_mutex_t *mutex)
   t->size = 0;
   t->fd = -1;
   t->generation = 0;
+  t->deleted = false;
   return t;
 }
 
@@ -156,6 +157,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 
   if ((node = splay_tree_lookup (tree->splay, start)) != NULL)
     {
+      tree->deleted = true;
       if (INTERVAL_END (node) > end)
 	{
 	  /* We are shortening the interval NODE.  */
@@ -174,6 +176,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 
       if (prev)
 	{
+	  tree->deleted = true;
 	  if (INTERVAL_END (prev) > end)
 	    {
 	      /* We are cutting a subinterval from interval PREV.  */
@@ -197,6 +200,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
       if (!next)
 	break;
 
+      tree->deleted = true;
       if (INTERVAL_END (next) <= end)
 	{
 	  splay_tree_delete (tree->splay, INTERVAL_START (next));
