@@ -363,12 +363,15 @@ interval_tree_intersection_1 (interval_tree tree, uint64_t start, uint64_t end,
 
   node = splay_tree_lookup (tree->splay, start);
   if (!node)
-    node = splay_tree_predecessor (tree->splay, start);
+    {
+      node = splay_tree_predecessor (tree->splay, start);
+      if (INTERVAL_END (node) <= start)
+	node = splay_tree_successor (tree->splay, start);
+    }
   if (!node)
     node = splay_tree_successor (tree->splay, start);
 
   for (; node && INTERVAL_START (node) < end;
-       start = INTERVAL_END (node),
        node = splay_tree_successor (tree->splay, INTERVAL_START (node)))
     {
       interval *x;
