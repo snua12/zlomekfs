@@ -57,6 +57,7 @@ dc_destroy (DC *dc)
 void
 print_dc (DC *dc, FILE *f)
 {
+  fprintf (f, "Cur.pos    = %d\n", dc->current - dc->buffer);
   fprintf (f, "Cur.length = %d\n", dc->cur_length);
   fprintf (f, "Max.length = %d\n", dc->max_length);
   fprintf (f, "Size       = %d\n", dc->size);
