@@ -2183,6 +2183,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 static int32_t
 local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
 {
+  struct stat st;
   char *path1, *path2;
   int32_t r;
 
@@ -2198,6 +2199,17 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
     release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  r = lstat (path1, &st);
+  if (r != 0)
+    {
+      free (path1);
+      free (path2);
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
+      return errno;
+    }
+
   r = link (path1, path2);
   free (path1);
   free (path2);
