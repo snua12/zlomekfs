@@ -204,12 +204,11 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 }
 
 /* Update BLOCKS (described in ARGS) of local file CAP from remote file,
-   start searching in BLOCKS at index INDEX.
-   CONFLICT_P says whether the file is in conflict.  */
+   start searching in BLOCKS at index INDEX.  */
 
 static int32_t
 update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
-		      unsigned int *index, bool conflict_p)
+		      unsigned int *index)
 {
   bool flush;
   volume vol;
@@ -219,6 +218,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   int32_t r;
   unsigned int i, j;
   uint64_t local_version, remote_version;
+  bool modified;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -228,8 +228,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
   args->cap = *cap;
   r = remote_md5sum (&remote_md5, args);
-  if (r == ZFS_CHANGED)
-    RETURN_INT (ZFS_OK);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -238,8 +236,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
   args->cap = *cap;
   r = local_md5sum (&local_md5, args);
-  if (r == ZFS_CHANGED)
-    RETURN_INT (ZFS_OK);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -315,6 +311,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
     }
   local_version = dentry->fh->attr.version;
   remote_version = remote_md5.version;
+  modified = (dentry->fh->attr.version != dentry->fh->meta.master_version);
 
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
@@ -350,7 +347,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	      r = full_remote_read (&remote_md5.length[i], buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i],
-				    conflict_p ? NULL : &remote_version);
+				    modified ? NULL : &remote_version);
 	      if (r == ZFS_CHANGED)
 		{
 		  r = update_file_clear_updated_tree (&cap->fh, remote_version);
@@ -373,7 +370,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	      r = full_remote_read (&remote_md5.length[i], buf2, cap,
 				    remote_md5.offset[i], remote_md5.length[i],
-				    conflict_p ? NULL : &remote_version);
+				    modified ? NULL : &remote_version);
 	      if (r == ZFS_CHANGED)
 		{
 		  r = update_file_clear_updated_tree (&cap->fh, remote_version);
@@ -459,11 +456,11 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   RETURN_INT (ZFS_OK);
 }
 
-/* Update BLOCKS of local file CAP from remote file.  CONFLICT_P says
-   whether the file is in conflict.  */
+/* Update BLOCKS of local file CAP from remote file.
+   \param modified Flag saying the local file has been modified.  */
 
 int32_t
-update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
+update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)
 {
   md5sum_args args;
   int32_t r;
@@ -476,7 +473,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 #endif
 
   args.count = 0;
-  args.ignore_changes = conflict_p;
+  args.ignore_changes = modified;
   index = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
     {
@@ -499,8 +496,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 	    {
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
-		  r = update_file_blocks_1 (&args, cap, blocks, &index,
-					    conflict_p);
+		  r = update_file_blocks_1 (&args, cap, blocks, &index);
 		  if (r == ZFS_CHANGED)
 		    RETURN_INT (ZFS_OK);
 		  if (r != ZFS_OK)
@@ -519,7 +515,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 
   if (args.count > 0)
     {
-      r = update_file_blocks_1 (&args, cap, blocks, &index, conflict_p);
+      r = update_file_blocks_1 (&args, cap, blocks, &index);
       if (r == ZFS_CHANGED)
 	RETURN_INT (ZFS_OK);
       if (r != ZFS_OK)
@@ -867,15 +863,17 @@ update_file (zfs_fh *fh)
       r = truncate_local_file (&vol, &dentry, fh, attr.size);
       if (r == ZFS_OK)
 	{
+	  bool modified;
+
 	  zfsd_mutex_unlock (&vol->mutex);
 	  get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
+	  modified = (dentry->fh->attr.version
+		      != dentry->fh->meta.master_version);
 	  release_dentry (dentry);
 
 	  if (VARRAY_USED (blocks) > 0)
 	    {
-	      r = update_file_blocks (&cap, &blocks,
-				      (what & (IFH_UPDATE | IFH_REINTEGRATE))
-				      == (IFH_UPDATE | IFH_REINTEGRATE));
+	      r = update_file_blocks (&cap, &blocks, modified);
 	    }
 	  varray_destroy (&blocks);
 	}

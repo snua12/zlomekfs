@@ -2032,7 +2032,7 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	    }
 	  else
 	    {
-	      bool conflict_p;
+	      bool modified;
 
 	      if (icap->master_busy == 0)
 		{
@@ -2043,14 +2043,14 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 		  icap->master_close_p = true;
 		}
 
-	      conflict_p = (dentry->parent != NULL
-			    && CONFLICT_DIR_P (dentry->parent->fh->local_fh));
+	      modified = (dentry->fh->attr.version
+			  != dentry->fh->meta.master_version);
 
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 
-	      r = update_file_blocks (&tmp_cap, &blocks, conflict_p);
+	      r = update_file_blocks (&tmp_cap, &blocks, modified);
 	      if (r == ZFS_OK)
 		{
 		  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
