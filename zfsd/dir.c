@@ -301,7 +301,7 @@ local_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
   path = build_local_path_name (vol, dir, name);
   r = local_getattr (&res->attr, path, vol);
   free (path);
-  if (r != 0)
+  if (r != ZFS_OK)
     return errno;
 
   res->file.sid = dir->local_fh.sid;
