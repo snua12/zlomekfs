@@ -5378,7 +5378,7 @@ refresh_fh (zfs_fh *fh)
 /* Refresh local path PATH on volume VOL.  */
 
 int32_t
-refresh_local_path (volume vol, string *local_path)
+refresh_local_path (zfs_fh *fh, volume vol, string *local_path)
 {
   internal_dentry dentry;
   zfs_fh volume_root_fh;
@@ -5403,6 +5403,8 @@ refresh_local_path (volume vol, string *local_path)
 
   r = zfs_extended_lookup (&res, &volume_root_fh, relative_path.str);
   free (relative_path.str);
+  if (fh)
+    *fh = res.file;
 
   return r;
 }
