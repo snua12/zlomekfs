@@ -1,6 +1,7 @@
 /*
    File operations.
    Copyright (C) 2004 Martin Zlomek
+   Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -37,25 +38,36 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 	struct inode *inode = file->f_dentry->d_inode;
 	read_args args;
 	int error;
+	int total = 0;
 
 	TRACE("'%s': %lld", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
-	args.offset = *off;
-	args.count = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
+	while (nbytes > 0) {
+		args.offset = *off;
+		args.count = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
 
-	error = zfsd_read(buf, &args);
-	if (error > 0) {
-		*off += error;
-		inode->i_atime = CURRENT_TIME;
-		if (*off > i_size_read(inode)) {
-			i_size_write(inode, *off);
-			inode->i_ctime = CURRENT_TIME;
+		error = zfsd_read(buf, &args);
+		if (error >= 0) {
+			*off += error;
+			buf += error;
+			total += error;
+			nbytes -= error;
+			inode->i_atime = CURRENT_TIME;
+			if (*off > i_size_read(inode)) {
+				i_size_write(inode, *off);
+				inode->i_ctime = CURRENT_TIME;
+			}
+			if (error < args.count)
+				break;
+		} else {
+			if (error == -ESTALE)
+				ZFS_I(inode)->flags |= NEED_REVALIDATE;
+			return error;
 		}
-	} else if (error == -ESTALE)
-		ZFS_I(inode)->flags |= NEED_REVALIDATE;
+	}
 
-	return error;
+	return total;
 }
 
 static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
@@ -63,26 +75,37 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 	struct inode *inode = file->f_dentry->d_inode;
 	write_args args;
 	int error;
+	int total = 0;
 
 	TRACE("'%s': %lld", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
-	args.offset = (file->f_flags & O_APPEND) ? i_size_read(inode) : *off;
-	args.data.len = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
-	args.data.buf = buf;
+	while (nbytes > 0) {
+		args.offset = (file->f_flags & O_APPEND) ? i_size_read(inode) : *off;
+		args.data.len = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
+		args.data.buf = buf;
 
-	error = zfsd_write(&args);
-	if (error > 0) {
-		*off = args.offset + error;
-		inode->i_mtime = CURRENT_TIME;
-		if (*off > i_size_read(inode)) {
-			i_size_write(inode, *off);
-			inode->i_ctime = CURRENT_TIME;
+		error = zfsd_write(&args);
+		if (error >= 0) {
+			*off = args.offset + error;
+			buf += error;
+			total += error;
+			nbytes -= error;
+			inode->i_mtime = CURRENT_TIME;
+			if (*off > i_size_read(inode)) {
+				i_size_write(inode, *off);
+				inode->i_ctime = CURRENT_TIME;
+			}
+			if (error < args.data.len)
+				break;
+		} else {
+			if (error == -ESTALE)
+				ZFS_I(inode)->flags |= NEED_REVALIDATE;
+			return error;
 		}
-	} else if (error == -ESTALE)
-		ZFS_I(inode)->flags |= NEED_REVALIDATE;
+	}
 
-	return error;
+	return total;
 }
 
 int zfs_open(struct inode *inode, struct file *file)
