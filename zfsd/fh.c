@@ -1350,7 +1350,9 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	{
 	  if (!fh->hardlinks)
 	    {
-	      if (!init_hardlinks (vol, fh))
+	      fh->hardlinks = hardlink_list_create (2, &fh->mutex);
+	      if (!init_hardlinks (vol, &fh->local_fh, &fh->meta,
+				   fh->hardlinks))
 		vol->delete_p = true;
 	    }
 

@@ -1910,48 +1910,40 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
    Return false on file error.  */
 
 bool
-init_hardlinks (volume vol, internal_fh fh)
+init_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 {
   char *path;
   int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (fh->hardlinks)
-    abort ();
-#endif
 
-  fh->hardlinks = hardlink_list_create (2, &fh->mutex);
-
-  if (fh->meta.name[0] == 0)
+  if (meta->name[0] == 0)
     {
 #ifdef ENABLE_CHECKING
-      if (fh->meta.parent_dev != (uint32_t) -1
-	  || fh->meta.parent_ino != (uint32_t) -1)
+      if (meta->parent_dev != (uint32_t) -1
+	  || meta->parent_ino != (uint32_t) -1)
 	abort ();
 #endif
 
-      path = build_fh_metadata_path (vol, &fh->local_fh,
-				     METADATA_TYPE_HARDLINKS,
+      path = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS,
 				     metadata_tree_depth);
-      fd = open_fh_metadata (path, vol, &fh->local_fh, METADATA_TYPE_HARDLINKS,
+      fd = open_fh_metadata (path, vol, fh, METADATA_TYPE_HARDLINKS,
 			     O_RDONLY, S_IRUSR | S_IWUSR);
       free (path);
 
       if (fd >= 0)
-	read_hardlinks (fh->hardlinks, fd);
+	read_hardlinks (hl, fd);
     }
   else
     {
 #ifdef ENABLE_CHECKING
-      if (fh->meta.parent_dev == (uint32_t) -1
-	  && fh->meta.parent_ino == (uint32_t) -1)
+      if (meta->parent_dev == (uint32_t) -1
+	  && meta->parent_ino == (uint32_t) -1)
 	abort ();
 #endif
 
-      hardlink_list_insert (fh->hardlinks, fh->meta.parent_dev,
-			    fh->meta.parent_ino, fh->meta.name, true);
+      hardlink_list_insert (hl, meta->parent_dev, meta->parent_ino,
+			    meta->name, true);
     }
 
   return true;
