@@ -38,9 +38,6 @@ extern string kernel_file_name;
 /* Directory with node configuration.  */
 extern string node_config;
 
-/* RW-lock for access to configuration.  */
-extern pthread_rwlock_t lock_config;
-
 extern void set_node_name (void);
 extern void set_default_uid_gid (void);
 extern void add_reread_config_request_dentry (internal_dentry dentry);
