@@ -259,6 +259,9 @@ server_worker (void *data)
 
       switch (fn)
 	{
+      /* 1. decode request */
+      /* 2. call appropriate routine */
+      /* 3. encode reply */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
 	  case ZFS_PROC_##NAME:						\
 	    if (!decode_##ARGS_TYPE (&td->dc, &td->args.FUNCTION)	\
@@ -279,9 +282,6 @@ server_worker (void *data)
 	}
 
       /* TODO: process the request */
-      /* 1. decode request */
-      /* 2. call appropriate routine */
-      /* 3. encode reply */
       d = td->fd_data;
       pthread_mutex_lock (&d->mutex);
       if (d->fd >= 0 && d->generation == td->generation)

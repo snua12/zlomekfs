@@ -24,10 +24,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <pthread.h>
 #include "log.h"
 
 /* Level of verbosity.  Higher number means more messages.  */
 int verbose = 2;
+
+/* Thread ID of the main thread.  */
+pthread_t main_thread;
 
 /* Print message to F if LEVEL > VERBOSE.  */
 void
@@ -56,7 +60,13 @@ internal_error (char *format, ...)
   fprintf (stderr, "\n");
   va_end (va);
 
-  exit (EXIT_FAILURE);
+  if (pthread_self () == main_thread)
+    exit (EXIT_FAILURE);
+  else
+    {
+      pthread_kill (main_thread, SIGTERM);
+      pthread_exit (NULL);
+    }
 }
 
 /* Report an "Aborted" internal error.  */

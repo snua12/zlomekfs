@@ -30,6 +30,9 @@
 /* Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
 
+/* Thread ID of the main thread.  */
+extern pthread_t main_thread;
+
 /* Print message to F if LEVEL > VERBOSE.  */
 extern void message (int level, FILE *f, char *format, ...) ATTRIBUTE_PRINTF_3;
 
