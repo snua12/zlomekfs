@@ -64,7 +64,8 @@ typedef struct volume_def *volume;
 #define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
 			     && (FH1).dev == (FH2).dev		\
 			     && (FH1).vid == (FH2).vid		\
-			     && GET_SID (FH1) == GET_SID (FH2))
+			     && GET_SID (FH1) == GET_SID (FH2)	\
+			     && GET_CONFLICT (FH1) == GET_CONFLICT (FH2))
 
 /* Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
