@@ -1,0 +1,41 @@
+/* ZFS protocol - definitions of ZFS procedures.
+   Copyright (C) 2003 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
+
+   You should have received a copy of the GNU General Public License along with
+   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
+   or download it from http://www.gnu.org/licenses/gpl.html */
+
+/* DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE) */
+DEFINE_ZFS_PROC (0, NULL, null, void)
+DEFINE_ZFS_PROC (1, ROOT, root, void)
+DEFINE_ZFS_PROC (2, VOLUME_ROOT, volume_root, volume_root_args)
+DEFINE_ZFS_PROC (3, GETATTR, getattr, zfs_fh)
+DEFINE_ZFS_PROC (4, SETATTR, setattr, sattr_args)
+DEFINE_ZFS_PROC (5, LOOKUP, lookup, dir_op_args)
+DEFINE_ZFS_PROC (6, OPEN_BY_NAME, open_by_name, open_name_args)
+DEFINE_ZFS_PROC (7, OPEN_BY_FD, open_by_fd, zfs_fh)
+DEFINE_ZFS_PROC (8, CLOSE, close, zfs_fh)
+DEFINE_ZFS_PROC (9, READDIR, readdir, read_dir_args)
+DEFINE_ZFS_PROC (10, MKDIR, mkdir, open_name_args)
+DEFINE_ZFS_PROC (11, RMDIR, rmdir, dir_op_args)
+DEFINE_ZFS_PROC (12, RENAME, rename, rename_args)
+DEFINE_ZFS_PROC (13, LINK, link, link_args)
+DEFINE_ZFS_PROC (14, UNLINK, unlink, dir_op_args)
+DEFINE_ZFS_PROC (15, READ, read, read_args)
+DEFINE_ZFS_PROC (16, WRITE, write, write_args)
+DEFINE_ZFS_PROC (17, READLINK, readlink, zfs_fh)
+DEFINE_ZFS_PROC (18, SYMLINK, symlink, symlink_args)
+DEFINE_ZFS_PROC (19, MKNOD, mknod, mknod_args)
