@@ -330,8 +330,9 @@ do_tests (void *data)
   string sym = {7, "symlink"};
   string path = {4, "path"};
   string pip = {4, "pipe"};
-  data_buffer ping = {5, "abcde", "abcde" }, ping_res;
+  data_buffer ping = {5, "abcde" }, ping_res;
   lock_info li[MAX_LOCKED_FILE_HANDLES];
+  char buffer[ZFS_MAXDATA];
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
@@ -366,7 +367,6 @@ do_tests (void *data)
 
       nod = node_lookup (2);
       message (1, stderr, "TEST PING\n");
-      ping.buf = ping.real_buffer;
       r = zfs_proc_ping_client (t, &ping, nod, &fd);
       if (r == ZFS_OK)
 	{
@@ -563,8 +563,8 @@ do_tests (void *data)
 	      write_res writer;
 	      data_buffer data;
 
-	      writea.data.buf = writea.data.real_buffer;
-	      data.buf = data.real_buffer;
+	      writea.data.buf = buffer;
+	      data.buf = buffer;
 
 	      message (1, stderr, "TEST READ\n");
 	      r = zfs_read (&data.len, data.buf, &cap, 16, 16, true);

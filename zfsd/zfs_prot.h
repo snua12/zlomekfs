@@ -79,7 +79,6 @@ typedef struct data_buffer_def
 {
   uint32_t len;
   char *buf;
-  char real_buffer[ZFS_MAXDATA];
 } data_buffer;
 
 typedef enum ftype_def
