@@ -179,16 +179,14 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 	}
 
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
-      if (ifh)
-	{
-	  zfsd_mutex_lock (&ifh->mutex);
-	  ifh->last_use = time (NULL);
-	}
-      else
+      if (!ifh)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
 	  return ESTALE;
 	}
+
+      zfsd_mutex_lock (&ifh->mutex);
+      ifh->last_use = time (NULL);
 
       *volp = vol;
       *ifhp = ifh;
