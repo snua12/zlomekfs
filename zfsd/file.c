@@ -2733,6 +2733,28 @@ remote_md5sum (md5sum_res *res, md5sum_args *args)
   return r;
 }
 
+/* Reread remote config file PATH (relative path WRT volume root).  */
+
+void
+remote_reread_config (string *path, node nod)
+{
+  reread_config_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&nod->mutex);
+
+  args.path = *path;
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reread_config_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+}
+
 /* Initialize data structures in FILE.C.  */
 
 void

@@ -360,6 +360,11 @@ typedef struct invalidate_args_def
   zfs_fh fh;
 } invalidate_args;
 
+typedef struct reread_config_args_def
+{
+  zfs_path path;
+} reread_config_args;
+
 typedef union call_args_def
 {
   char null;
@@ -391,6 +396,7 @@ typedef union call_args_def
   reintegrate_del_args reintegrate_del;
   reintegrate_set_args reintegrate_set;
   invalidate_args invalidate;
+  reread_config_args reread_config;
 } call_args;
 
 /* Mapping file type -> file mode.  */

@@ -345,6 +345,8 @@ extern bool encode_reintegrate_set_args (DC *dc, reintegrate_set_args *args);
 extern bool decode_invalidate_args (DC *dc, invalidate_args *args);
 #else
 extern bool encode_invalidate_args (DC *dc, invalidate_args *args);
+extern bool decode_reread_config_args (DC *dc, reread_config_args *args);
+extern bool encode_reread_config_args (DC *dc, reread_config_args *args);
 #endif
 
 #endif

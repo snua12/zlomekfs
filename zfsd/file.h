@@ -33,6 +33,7 @@
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"
+#include "node.h"
 #include "fibheap.h"
 #include "metadata.h"
 
@@ -124,6 +125,7 @@ extern int32_t full_remote_write_dentry (uint32_t *rcount, void *buffer,
 					 uint64_t offset, uint32_t count);
 extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
 extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);
+extern void remote_reread_config (string *path, node nod);
 extern void initialize_file_c (void);
 extern void cleanup_file_c (void);
 

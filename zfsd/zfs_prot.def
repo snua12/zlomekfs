@@ -96,3 +96,9 @@ DEFINE_ZFS_PROC (27, REINTEGRATE_SET, reintegrate_set, reintegrate_set_args,
 DEFINE_ZFS_PROC (28, INVALIDATE, invalidate, invalidate_args,
 		 AUTHENTICATION_NONE, ZFS_CALL_ONEWAY)
 #endif
+#if defined (ZFS_CALL_SERVER) || defined (ZFS_CALL_CLIENT)
+# ifndef __KERNEL__
+DEFINE_ZFS_PROC (29, REREAD_CONFIG, reread_config, reread_config_args,
+		 AUTHENTICATION_FINISHED, ZFS_CALL_ONEWAY)
+# endif
+#endif

@@ -1204,4 +1204,15 @@ encode_invalidate_args (DC *dc, invalidate_args *args)
   return encode_zfs_fh (dc, &args->fh);
 }
 
+bool
+decode_reread_config_args (DC *dc, reread_config_args *args)
+{
+  return decode_zfs_path (dc, &args->path);
+}
+
+bool
+encode_reread_config_args (DC *dc, reread_config_args *args)
+{
+  return encode_zfs_path (dc, &args->path);
+}
 #endif
