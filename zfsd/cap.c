@@ -23,7 +23,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <time.h>
 #include "pthread.h"
 #include "cap.h"
 #include "crc32.h"

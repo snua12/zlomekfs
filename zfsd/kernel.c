@@ -46,7 +46,6 @@ static thread_pool client_pool;
 /* Data for client pool regulator.  */
 thread_pool_regulator_data client_regulator_data;
 
-#include <time.h>
 #include "memory.h"
 #include "node.h"
 #include "hashtab.h"
