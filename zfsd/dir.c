@@ -426,11 +426,13 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 	zfsd_mutex_unlock (&pvd->vol->mutex);
       zfsd_mutex_unlock (&pvd->mutex);
       zfsd_mutex_unlock (&vd->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       return EROFS;
     }
   else if (!pvd->vol)
     {
       zfsd_mutex_unlock (&pvd->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       return EROFS;
     }
   else
@@ -439,6 +441,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
       volume vol = pvd->vol;
 
       zfsd_mutex_unlock (&pvd->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       r = get_volume_root_dentry (vol, dir, true);
       if (r != ZFS_OK)
 	return r;
@@ -1725,7 +1728,6 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -1940,7 +1942,6 @@ zfs_rmdir (zfs_fh *dir, string *name)
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -2439,7 +2440,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       r = validate_operation_on_virtual_directory (vd, to_name, &to_dentry,
 						   EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -2485,7 +2485,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     {
       r = validate_operation_on_virtual_directory (vd, from_name, &from_dentry,
 						   EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -2870,7 +2869,6 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     {
       r = validate_operation_on_virtual_directory (vd, name, &dir_dentry,
 						   EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -3147,7 +3145,6 @@ zfs_unlink (zfs_fh *dir, string *name)
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -3959,7 +3956,6 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -4202,7 +4198,6 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }

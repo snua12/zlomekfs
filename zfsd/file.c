@@ -483,7 +483,6 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
