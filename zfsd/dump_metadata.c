@@ -44,9 +44,15 @@ int main (int argc, char **argv)
 			metadata_decode, metadata_encode, argv[1], NULL);
   hfile->fd = open (hfile->file_name, O_RDONLY);
   if (hfile->fd < 0)
-    return 1;
+    {
+      perror (argv[1]);
+      return 1;
+    }
   if (!hfile_init (hfile, &st))
-    return 1;
+    {
+      fprintf (stderr, "%s: Can't initialize hash file\n", argv[1]);
+      return 1;
+    }
 
   for (i = 2; i < argc; i++)
     {
@@ -59,7 +65,10 @@ int main (int argc, char **argv)
       meta.dev = st.st_dev;
       meta.ino = st.st_ino;
       if (!hfile_lookup (hfile, &meta))
-	continue;
+	{
+	  fprintf (stderr, "%s: Can't find in hash file\n", argv[i]);
+	  continue;
+	}
 
       printf ("%s:\n", argv[i]);
 
