@@ -32,6 +32,7 @@
 #include "config.h"
 #include "thread.h"
 #include "network.h"
+#include "kernel.h"
 #include "node.h"
 #include "dir.h"
 #include "file.h"
@@ -693,6 +694,23 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
     }									\
 									\
   return zfs_proc_##FUNCTION##_client_1 (t, args, *fd);			\
+}
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+
+/* Call FUNCTION in kernel with ARGS using data structures in thread T
+   and return its error code.  */
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+int32_t									\
+zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
+{									\
+  if (kernel_fd < 0)							\
+    {									\
+      t->retval = ZFS_COULD_NOT_CONNECT;				\
+      return t->retval;							\
+    }									\
+									\
+  return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd);		\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC

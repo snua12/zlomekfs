@@ -263,7 +263,7 @@ out:
    It also regulates the number of kernel threads.  */
 
 static bool
-kernel_dispatch ()
+kernel_dispatch (fd_data_t *fd_data)
 {
   DC *dc = &fd_data_a[kernel_fd].dc[0];
   size_t index;
@@ -287,9 +287,49 @@ kernel_dispatch ()
 
   switch (dir)
     {
+      case DIR_REPLY:
+	/* Dispatch reply.  */
+
+	if (1)
+	  {
+	    uint32_t request_id;
+	    void **slot;
+	    waiting4reply_data *data;
+	    thread *t;
+
+	    if (!decode_request_id (dc, &request_id))
+	      {
+		/* TODO: log too short packet.  */
+		return false;
+	      }
+	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
+					     &request_id,
+					     WAITING4REPLY_HASH (request_id),
+					     NO_INSERT);
+	    if (!slot)
+	      {
+		/* TODO: log request was not found.  */
+		message (1, stderr, "Request ID %d has not been found.\n",
+			 request_id);
+		return false;
+	      }
+
+	    data = *(waiting4reply_data **) slot;
+	    t = data->t;
+	    t->dc_reply = *dc;
+	    t->from_sid = fd_data->sid;
+	    htab_clear_slot (fd_data->waiting4reply, slot);
+	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
+	    pool_free (fd_data->waiting4reply_pool, data);
+
+	    /* Let the thread run again.  */
+	    semaphore_up (&t->sem, 1);
+	  }
+	break;
+
       case DIR_REQUEST:
 	/* Dispatch request.  */
-
 	zfsd_mutex_lock (&kernel_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
@@ -306,6 +346,7 @@ kernel_dispatch ()
 	kernel_pool.threads[index].t.from_sid = this_node->id;
 	  /* FIXME: race condition? */
 	kernel_pool.threads[index].t.u.kernel.dc = *dc;
+	network_pool.threads[index].t.u.network.fd_data = fd_data;
 
 	/* Let the thread run.  */
 	semaphore_up (&kernel_pool.threads[index].t.sem, 1);
@@ -418,7 +459,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 		      /* We have read complete request, dispatch it.  */
 		      zfsd_mutex_lock (&fd_data->mutex);
 		      fd_data->read = 0;
-		      if (kernel_dispatch ())
+		      if (kernel_dispatch (fd_data))
 			{
 			  fd_data->busy++;
 			  fd_data->ndc--;

@@ -89,6 +89,9 @@ extern thread_pool network_pool;
 /* The array of data for each file descriptor.  */
 extern fd_data_t *fd_data_a;
 
+/* Hash function for request ID.  */
+#define WAITING4REPLY_HASH(REQUEST_ID) (REQUEST_ID)
+
 struct thread_def;
 
 extern hash_t waiting4reply_hash (const void *xx);

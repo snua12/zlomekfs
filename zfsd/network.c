@@ -66,9 +66,6 @@ static int nactive;
 /* Mutex protecting access to ACTIVE and NACTIVE.  */
 static pthread_mutex_t active_mutex;
 
-/* Hash function for request ID.  */
-#define WAITING4REPLY_HASH(REQUEST_ID) (REQUEST_ID)
-
 /* Hash function for waiting4reply_data.  */
 
 hash_t

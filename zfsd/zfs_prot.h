@@ -378,6 +378,8 @@ struct node_def;
 					       ARGS *args,		\
 					       struct node_def *nod,	\
 					       int *fd);		\
+  extern int32_t zfs_proc_##FUNCTION##_kernel (struct thread_def *t,	\
+					       ARGS *args);		\
   extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
 						 ARGS *args, int fd);
 #include "zfs_prot.def"
