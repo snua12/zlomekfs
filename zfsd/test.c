@@ -55,10 +55,8 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
   string name_str;
   string mountpoint_str;
 
-  name_str.str = name;
-  name_str.len = strlen (name);
-  mountpoint_str.str = mountpoint;
-  mountpoint_str.len = strlen (mountpoint);
+  xmkstring (&name_str, name);
+  xmkstring (&mountpoint_str, mountpoint);
   volume_set_common_info (vol, &name_str, &mountpoint_str, master);
 }
 
@@ -88,7 +86,7 @@ fake_config (void)
   set_str (&kernel_file_name, "/dev/zfs");
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (1, "orion");
+  nod = node_create_wrapper (1, "orion");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&fh_mutex);
@@ -125,7 +123,7 @@ fake_config (void)
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (2, "artax");
+  nod = node_create_wrapper (2, "artax");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&fh_mutex);
@@ -174,7 +172,7 @@ fake_config (void)
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (3, "find");
+  nod = node_create_wrapper (3, "find");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&fh_mutex);

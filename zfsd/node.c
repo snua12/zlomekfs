@@ -136,7 +136,7 @@ node_lookup_name (string *name)
 /* Create new node with ID and NAME and insert it to hash table.  */
 
 node
-node_create (uint32_t id, char *name)
+node_create (uint32_t id, string *name)
 {
   node nod;
   void **slot;
@@ -145,7 +145,7 @@ node_create (uint32_t id, char *name)
 
   nod = (node) xmalloc (sizeof (struct node_def));
   nod->id = id;
-  xmkstring (&nod->name, name);
+  xstringdup (&nod->name, name);
   nod->flags = 0;
   nod->last_connect = 0;
   nod->fd = -1;
@@ -156,7 +156,7 @@ node_create (uint32_t id, char *name)
   nod->map_gid_to_zfs = NULL;
 
   /* Are we creating a structure describing local node?  */
-  if (strcmp (name, node_name.str) == 0)
+  if (strcmp (name->str, node_name.str) == 0)
     {
       this_node = nod;
       nod->map_uid_to_node = htab_create (5, map_id_to_node_hash,
@@ -193,6 +193,17 @@ node_create (uint32_t id, char *name)
   *slot = nod;
 
   return nod;
+}
+
+/* Wrapper for node_create.  */
+
+node
+node_create_wrapper (uint32_t id, char *name)
+{
+  string name_str;
+
+  xmkstring (&name_str, name);
+  return node_create (id, &name_str);
 }
 
 /* Destroy node NOD and free memory associated with it.

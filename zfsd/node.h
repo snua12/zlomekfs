@@ -71,7 +71,8 @@ extern node this_node;
 /* Function prototypes.  */
 extern node node_lookup (uint32_t id);
 extern node node_lookup_name (string *name);
-extern node node_create (uint32_t id, char *name);
+extern node node_create (uint32_t id, string *name);
+extern node node_create_wrapper (uint32_t id, char *name);
 extern void node_destroy (node nod);
 extern void initialize_node_c (void);
 extern void cleanup_node_c (void);
