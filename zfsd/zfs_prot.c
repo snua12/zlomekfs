@@ -31,6 +31,7 @@
 #include "server.h"
 #include "node.h"
 #include "dir.h"
+#include "file.h"
 #include "volume.h"
 #include "log.h"
 
@@ -67,7 +68,6 @@ void
 zfs_proc_volume_root_server (volume_root_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
-
   int32_t r;
   volume vol;
   internal_fh ifh;
@@ -94,9 +94,13 @@ void
 zfs_proc_getattr_server (zfs_fh *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
+  int32_t r;
+  fattr fa;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_getattr (&fa, args);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_fattr (dc, &fh);
 }
 
 /* fattr zfs_proc_setattr (sattr_args); */
