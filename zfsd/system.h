@@ -25,6 +25,14 @@
 #define _GNU_SOURCE
 #endif
 
+/* ZFSD is multi-threaded so it needs reentrant (ie. thread safe) functions */
+#ifndef _REENTRANT
+#define _REENTRANT
+#endif
+#ifndef _THREAD_SAFE
+#define _THREAD_SAFE
+#endif
+
 #ifndef ENABLE_CHECKING
 #define ENABLE_CHECKING
 #endif
