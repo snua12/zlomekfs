@@ -2565,18 +2565,44 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		    if (r == ZFS_OK)
 		      free (info.path.str);
 
-		    r = remote_reintegrate_del (vol, &entry->master_fh, dir,
-						&entry->name, r != ZFS_OK);
-		    r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-		    if (r2 != ZFS_OK)
-		      abort ();
-#endif
-		    if (r == ZFS_OK)
+		    if (r != ZFS_OK
+			&& entry->master_version != res.attr.version)
 		      {
-			if (!journal_delete_entry (dir->fh->journal, entry))
+			/* File does not exist on local and was modified
+			   on master.  Create a delete-modify conflict.  */
+			local_res.file.sid = this_node->id;
+			local_res.file.vid = vol->id;
+			local_res.file.dev = entry->dev;
+			local_res.file.ino = entry->ino;
+			local_res.file.gen = entry->gen;
+			conflict = create_conflict (vol, dir, &entry->name,
+						    &local_res.file,
+						    &res.attr);
+			add_file_to_conflict_dir (vol, conflict, true,
+						  &res.file, &res.attr, NULL);
+			add_file_to_conflict_dir (vol, conflict, false,
+						  &local_res.file, &res.attr,
+						  NULL);
+			release_dentry (conflict);
+		      }
+		    else
+		      {
+			r = remote_reintegrate_del (vol, &entry->master_fh,
+						    dir, &entry->name,
+						    r != ZFS_OK);
+			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
+						   false);
+#ifdef ENABLE_CHECKING
+			if (r2 != ZFS_OK)
 			  abort ();
-			flush_journal = true;
+#endif
+			if (r == ZFS_OK)
+			  {
+			    if (!journal_delete_entry (dir->fh->journal,
+						       entry))
+			      abort ();
+			    flush_journal = true;
+			  }
 		      }
 		  }
 		else
