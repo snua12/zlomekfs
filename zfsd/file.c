@@ -203,7 +203,7 @@ local_close (internal_cap cap)
 
 /* Close remote file for internal capability CAP on volume VOL.  */
 
-static int32_t
+int32_t
 remote_close (internal_cap cap, volume vol)
 {
   thread *t;
@@ -522,7 +522,7 @@ zfs_create_retry:
 /* Open local file for capability ICAP (whose internal dentry is DENTRY)
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
-static int32_t
+int32_t
 local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 	    internal_dentry dentry, volume vol)
 {
@@ -545,7 +545,7 @@ local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 /* Open remote file for capability ICAP (whose internal dentry is DENTRY)
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
-static int32_t
+int32_t
 remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 	     internal_dentry dentry, volume vol)
 {
