@@ -2626,7 +2626,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   zfs_fh tmp_fh, tmp_parent;
   zfs_fh local_fh;
   zfs_fh remote_fh;
-  uint64_t master_version;
+  uint64_t master_version = 0;
   dir_op_res res;
   int32_t r, r2;
   int what_to_do = 0;
@@ -4100,7 +4100,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   zfs_fh tmp_fh, tmp_parent;
   zfs_fh local_fh;
   zfs_fh remote_fh;
-  uint64_t master_version;
+  uint64_t master_version = 0;
   dir_op_res res;
   int32_t r, r2;
   int what_to_do = 0;
