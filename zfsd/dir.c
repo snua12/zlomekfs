@@ -4169,6 +4169,9 @@ local_invalidate (internal_dentry dentry)
   release_dentry (dentry);
 
   t = (thread *) pthread_getspecific (thread_data_key);
+  if (t == NULL)
+    return ESRCH;
+
   r = zfs_proc_invalidate_kernel (t, &args);
 
   return r;
