@@ -176,12 +176,10 @@ capability_opened_p (internal_fh fh)
   return true;
 }
 
-/* Open local file for capability CAP associated with dentry DENTRY
-   with additional FLAGS on volume VOL.  */
+/* Open local file for dentry DENTRY with additional FLAGS on volume VOL.  */
 
 static int32_t
-capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
-		 volume vol)
+capability_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   char *path;
 
@@ -534,19 +532,17 @@ zfs_create_retry:
   return r;
 }
 
-/* Open local file for capability ICAP (whose internal dentry is DENTRY)
-   with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
+/* Open local file for dentry with open flags FLAGS on volume VOL.  */
 
 int32_t
-local_open (internal_cap icap, uint32_t flags,
-	    internal_dentry dentry, volume vol)
+local_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  r = capability_open (icap, flags, dentry, vol);
+  r = capability_open (flags, dentry, vol);
   if (r == ZFS_OK)
     zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
   release_dentry (dentry);
@@ -665,7 +661,7 @@ zfs_open_retry:
 	  if (dentry->fh->attr.type != FT_REG
 	      || load_interval_trees (vol, dentry->fh))
 	    {
-	      r = local_open (icap, flags, dentry, vol);
+	      r = local_open (flags, dentry, vol);
 	    }
 	  else
 	    {
@@ -674,7 +670,7 @@ zfs_open_retry:
 	    }
 	}
       else
-	r = local_open (icap, flags, dentry, vol);
+	r = local_open (flags, dentry, vol);
     }
   else if (vol->master != this_node)
     {
@@ -1025,13 +1021,13 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
   return true;
 }
 
-/* Read COUNT bytes from local directory CAP (from internal directory entry
-   DENTRY and virtual directory VD) on volume VOL starting at position COOKIE.
+/* Read COUNT bytes from local directory with DENTRY and virtual directory VD
+   on volume VOL starting at position COOKIE.
    Store directory entries to LIST using function FILLDIR.  */
 
 int32_t
-local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
-	       virtual_dir vd, int32_t cookie, readdir_data *data, volume vol,
+local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
+	       int32_t cookie, readdir_data *data, volume vol,
 	       filldir_f filldir)
 {
   char buf[ZFS_MAXDATA];
@@ -1055,7 +1051,7 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 
   if (dentry)
     {
-      r = capability_open (cap, 0, dentry, vol);
+      r = capability_open (0, dentry, vol);
       if (r != ZFS_OK)
 	return r;
 
@@ -1353,7 +1349,7 @@ zfs_readdir_retry:
 
   if (!dentry || vol->local_path)
     {
-      r = local_readdir (list, icap, dentry, vd, cookie, &data, vol, filldir);
+      r = local_readdir (list, dentry, vd, cookie, &data, vol, filldir);
       if (vd)
 	{
 	  zfsd_mutex_unlock (&vd->mutex);
@@ -1424,13 +1420,12 @@ zfs_readdir_retry:
   return r;
 }
 
-/* Read COUNT bytes from offset OFFSET of local file with capability CAP
-   and file handle FH on volume VOL.
+/* Read COUNT bytes from offset OFFSET of local file DENTRY on volume VOL.
    Store data to BUFFER and count to RCOUNT.  */
 
 static int32_t
-local_read (uint32_t *rcount, void *buffer, internal_cap cap,
-	    internal_dentry dentry, uint64_t offset, uint32_t count, volume vol)
+local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
+	    uint64_t offset, uint32_t count, volume vol)
 {
   int32_t r;
   int fd;
@@ -1438,7 +1433,7 @@ local_read (uint32_t *rcount, void *buffer, internal_cap cap,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  r = capability_open (cap, 0, dentry, vol);
+  r = capability_open (0, dentry, vol);
   if (r != ZFS_OK)
     {
       release_dentry (dentry);
@@ -1638,7 +1633,7 @@ zfs_read_retry:
 
 	  if (complete)
 	    {
-	      r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+	      r = local_read (rcount, buffer, dentry, offset, count, vol);
 	    }
 	  else if (covered)
 	    {
@@ -1650,8 +1645,7 @@ zfs_read_retry:
 	    }
 	  else
 	    {
-	      r = local_read (rcount, buffer, icap, dentry, offset, count,
-			      vol);
+	      r = local_read (rcount, buffer, dentry, offset, count, vol);
 	      if (r == ZFS_OK)
 		{
 		  r = update_file_blocks (true, rcount, buffer, offset,
@@ -1662,7 +1656,7 @@ zfs_read_retry:
 	  varray_destroy (&blocks);
 	}
       else
-	r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
+	r = local_read (rcount, buffer, dentry, offset, count, vol);
     }
   else if (vol->master != this_node)
     r = remote_read (rcount, buffer, icap, dentry, offset, count, vol);
@@ -1690,11 +1684,10 @@ zfs_read_retry:
   return r;
 }
 
-/* Write DATA to offset OFFSET of local file with capability CAP
-   and file handle FH on volume VOL.  */
+/* Write DATA to offset OFFSET of local file DENTRY on volume VOL.  */
 
 static int32_t
-local_write (write_res *res, internal_cap cap, internal_dentry dentry,
+local_write (write_res *res, internal_dentry dentry,
 	     uint64_t offset, data_buffer *data, volume vol)
 {
   int32_t r;
@@ -1703,7 +1696,7 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  r = capability_open (cap, 0, dentry, vol);
+  r = capability_open (0, dentry, vol);
   if (r != ZFS_OK)
     {
       release_dentry (dentry);
@@ -1821,7 +1814,7 @@ zfs_write_retry:
     return r;
 
   if (vol->local_path)
-    r = local_write (res, icap, dentry, args->offset, &args->data, vol);
+    r = local_write (res, dentry, args->offset, &args->data, vol);
   else if (vol->master != this_node)
     r = remote_write (res, icap, dentry, args, vol);
   else
@@ -1928,7 +1921,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
     abort ();
 #endif
 
-  r = local_open (icap, 0, dentry, vol);
+  r = local_open (0, dentry, vol);
 
   r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
@@ -1954,7 +1947,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
       list.n = 0;
       list.eof = false;
       list.buffer = entries;
-      r = local_readdir (&list, icap, dentry, NULL, entries->last_cookie,
+      r = local_readdir (&list, dentry, NULL, entries->last_cookie,
 			 NULL, vol, &filldir_htab);
       zfsd_mutex_unlock (&vol->mutex);
       if (r != ZFS_OK)
@@ -2110,7 +2103,7 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 	abort ();
 #endif
 
-      r = local_read (&n_read, (char *) buffer + total, icap, dentry,
+      r = local_read (&n_read, (char *) buffer + total, dentry,
 		      offset + total, count - total, vol);
       release_dentry (dentry);
       if (r != ZFS_OK)
@@ -2192,7 +2185,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
       data.len = count - total;
       data.buf = (char *) buffer + total;
-      r = local_write (&res, icap, dentry, offset + total, &data, vol);
+      r = local_write (&res, dentry, offset + total, &data, vol);
       if (r != ZFS_OK)
 	{
 	  release_dentry (dentry);

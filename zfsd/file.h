@@ -75,8 +75,7 @@ extern int32_t remote_create (create_res *res, internal_dentry dir,
 			      volume vol);
 extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
 			   uint32_t flags, sattr *attr);
-extern int32_t local_open (internal_cap icap, uint32_t flags,
-			   internal_dentry dentry, volume vol);
+extern int32_t local_open (uint32_t flags, internal_dentry dentry, volume vol);
 extern int32_t remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 			    internal_dentry dentry, volume vol);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
@@ -93,9 +92,9 @@ extern void filldir_htab_del (void *xx);
 extern bool filldir_htab (uint32_t ino, int32_t cookie, char *name,
 			  uint32_t name_len, dir_list *list,
 			  ATTRIBUTE_UNUSED readdir_data *data);
-extern int32_t local_readdir (dir_list *list, internal_cap cap,
-			      internal_dentry dentry, virtual_dir vd,
-			      int32_t cookie, readdir_data *data, volume vol,
+extern int32_t local_readdir (dir_list *list, internal_dentry dentry,
+			      virtual_dir vd, int32_t cookie,
+			      readdir_data *data, volume vol,
 			      filldir_f filldir);
 extern int32_t remote_readdir (dir_list *list, internal_cap cap,
 			       internal_dentry dentry, int32_t cookie,
