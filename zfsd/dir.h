@@ -22,14 +22,9 @@
 #define DIR_H
 
 #include "fh.h"
-#include "hashtab.h"
 
-typedef struct mount_dir_tree_def
-{
-  struct mount_dir_tree_def *parent;	/* pointer to parent directory */
+extern int zfs_lookup (svc_fh *fh, svc_fh *dir, const char *name);
 
-  htab_t subdirs;			/* subdirectories */
 
-} mount_dir_tree;
 
 #endif
