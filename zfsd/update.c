@@ -395,6 +395,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
     RETURN_INT (ZFS_OK);
 
   args.count = 0;
+  args.ignore_changes = 0;
   index = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
     {

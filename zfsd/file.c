@@ -2805,7 +2805,7 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
 			args->length[i] - total, false);
 	  if (r != ZFS_OK)
 	    RETURN_INT (r);
-	  if (rres.version != res->version)
+	  if (!args->ignore_changes && rres.version != res->version)
 	    RETURN_INT (ZFS_CHANGED);
 
 	  if (rres.data.len == 0)
@@ -2837,7 +2837,6 @@ remote_md5sum (md5sum_res *res, md5sum_args *args)
   node nod;
   internal_cap icap;
   internal_dentry dentry;
-  zfs_fh fh;
   thread *t;
   int32_t r;
   int fd;
@@ -2865,7 +2864,6 @@ remote_md5sum (md5sum_res *res, md5sum_args *args)
     }
 
   nod = vol->master;
-  fh = args->cap.fh;
   args->cap = icap->master_cap;
 
   release_dentry (dentry);

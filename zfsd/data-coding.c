@@ -1046,7 +1046,8 @@ decode_md5sum_args (DC *dc, md5sum_args *args)
   uint32_t i;
 
   if (!decode_zfs_cap (dc, &args->cap)
-      || !decode_uint32_t (dc, &args->count))
+      || !decode_uint32_t (dc, &args->count)
+      || !decode_char (dc, &args->ignore_changes))
     return false;
 
   if (args->count > ZFS_MAX_MD5_CHUNKS)
@@ -1075,6 +1076,7 @@ encode_md5sum_args (DC *dc, md5sum_args *args)
 
   encode_zfs_cap (dc, &args->cap);
   encode_uint32_t (dc, args->count);
+  encode_char (dc, args->ignore_changes);
 
   for (i = 0; i < args->count; i++)
     encode_uint64_t (dc, args->offset[i]);
