@@ -63,23 +63,21 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
 
   /* Count the number of strings which will be concatenated.  */
   n = 1;
-  for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    if (!CONFLICT_DIR_P (tmp->fh->local_fh))
+  for (tmp = dentry; tmp; tmp = tmp->parent)
+    if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
       n += 2;
 
   varray_create (&v, sizeof (string), n);
   VARRAY_USED (v) = n;
-  for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    {
-      if (CONFLICT_DIR_P (tmp->fh->local_fh))
-	n += 2;
-
-      n--;
-      VARRAY_ACCESS (v, n, string) = tmp->name;
-      n--;
-      VARRAY_ACCESS (v, n, string).str = "/";
-      VARRAY_ACCESS (v, n, string).len = 1;
-    }
+  for (tmp = dentry; tmp; tmp = tmp->parent)
+    if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
+      {
+	n--;
+	VARRAY_ACCESS (v, n, string) = tmp->name;
+	n--;
+	VARRAY_ACCESS (v, n, string).str = "/";
+	VARRAY_ACCESS (v, n, string).len = 1;
+      }
   VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
   xstringconcat_varray (dst, &v);
@@ -108,8 +106,8 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
 
   /* Count the number of strings which will be concatenated.  */
   n = 3;
-  for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    if (!CONFLICT_DIR_P (tmp->fh->local_fh))
+  for (tmp = dentry; tmp; tmp = tmp->parent)
+    if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
       n += 2;
 
   varray_create (&v, sizeof (string), n);
@@ -120,16 +118,14 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
   VARRAY_ACCESS (v, n, string).str = "/";
   VARRAY_ACCESS (v, n, string).len = 1;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    {
-      if (CONFLICT_DIR_P (tmp->fh->local_fh))
-	n += 2;
-
-      n--;
-      VARRAY_ACCESS (v, n, string) = tmp->name;
-      n--;
-      VARRAY_ACCESS (v, n, string).str = "/";
-      VARRAY_ACCESS (v, n, string).len = 1;
-    }
+    if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
+      {
+	n--;
+	VARRAY_ACCESS (v, n, string) = tmp->name;
+	n--;
+	VARRAY_ACCESS (v, n, string).str = "/";
+	VARRAY_ACCESS (v, n, string).len = 1;
+      }
   VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
   xstringconcat_varray (dst, &v);
