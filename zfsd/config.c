@@ -921,6 +921,98 @@ read_group_list (zfs_fh *config_dir)
 				process_line_group, NULL);
 }
 
+/* Process line LINE number LINE_NUM from file FILE_NAME.
+   Return 0 if we should continue reading lines from file.  */
+
+static int
+process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
+			   void *data)
+{
+  uint32_t sid = *(uint32_t *) data;
+  string parts[2];
+  node nod;
+
+  if (split_and_trim (line, 2, parts) == 2)
+    {
+      if (parts[0].len == 0)
+	{
+	  message (0, stderr, "%s:%u: ZFS user name must not be empty\n",
+		   file_name, line_num);
+	}
+      else if (parts[1].len == 0)
+	{
+	  message (0, stderr, "%s:%u: Node user name must not be empty\n",
+		   file_name, line_num);
+	}
+      else
+	{
+	  if (sid > 0)
+	    {
+	      nod = node_lookup (sid);
+#ifdef ENABLE_CHECKING
+	      if (!nod)
+		abort ();
+#endif
+	    }
+	  else
+	    nod = NULL;
+
+	  user_mapping_create (&parts[0], &parts[1], nod);
+	}
+    }
+  else
+    {
+      message (0, stderr, "%s:%u: Wrong format of line\n",
+	       file_name, line_num);
+    }
+
+  return 0;
+}
+
+/* Read list of UID mapping.  If NOD is NULL read the default UID mapping
+   from CONFIG_DIR/user/default else read the special mapping for node SID.  */
+
+static bool
+read_user_mapping (zfs_fh *user_dir, uint32_t sid)
+{
+  dir_op_res user_mapping_res;
+  int32_t r;
+  string node_name;
+  char *file_name;
+  bool ret;
+
+  if (sid == 0)
+    {
+      node_name.str = "default";
+      node_name.len = strlen ("default");
+    }
+  else
+    {
+      node nod;
+
+      nod = node_lookup (sid);
+      if (!nod)
+	return false;
+
+      xstringdup (&node_name, &nod->name);
+      zfsd_mutex_unlock (&nod->mutex);
+    }
+
+  r = zfs_extended_lookup (&user_mapping_res, user_dir, node_name.str);
+  if (r != ZFS_OK)
+    {
+      free (node_name.str);
+      return true;
+    }
+
+  file_name = xstrconcat (2, "config/user/", node_name.str);
+  ret = process_file_by_lines (&user_mapping_res.file, file_name,
+			       process_line_user_mapping, &sid);
+  free (file_name);
+  free (node_name.str);
+  return ret;
+}
+
 /* Has the config reader already terminated?  */
 static volatile bool config_reader_terminated;
 
@@ -931,6 +1023,7 @@ config_reader (void *data)
 {
   lock_info li[MAX_LOCKED_FILE_HANDLES];
   dir_op_res config_dir_res;
+  dir_op_res user_dir_res;
   int32_t r;
   volume vol;
 
@@ -958,6 +1051,15 @@ config_reader (void *data)
     goto out;
 
   if (!read_group_list (&config_dir_res.file))
+    goto out;
+
+  r = zfs_extended_lookup (&user_dir_res, &config_dir_res.file, "user");
+  if (r != ZFS_OK)
+    goto out;
+
+  if (!read_user_mapping (&user_dir_res.file, 0))
+    goto out;
+  if (!read_user_mapping (&user_dir_res.file, this_node->id))
     goto out;
 
   /* Reread the updated configuration about nodes and volumes.  */
