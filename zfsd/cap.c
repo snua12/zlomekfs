@@ -25,6 +25,7 @@
 #include <errno.h>
 #include "pthread.h"
 #include "cap.h"
+#include "constant.h"
 #include "crc32.h"
 #include "alloc-pool.h"
 #include "hashtab.h"
