@@ -36,14 +36,14 @@ ZFSD =	alloc-pool.o cap.o config.o constant.o crc32.o \
 	data-coding.o dir.o fh.o fibheap.o file.o hardlink-list.o hashfile.o \
 	hashtab.o interval.o journal.o kernel.o log.o md5.o memory.o \
 	metadata.o network.o node.o pthread.o queue.o random.o semaphore.o \
-	splay-tree.o string-list.o test.o thread.o update.o \
+	splay-tree.o test.o thread.o update.o \
 	user-group.o util.o varray.o volume.o zfsd.o zfs_prot.o
 DUMP_INTERVALS = alloc-pool.o dump_intervals.o interval.o log.o \
 		 memory.o splay-tree.o util.o varray.o
 DUMP_METADATA = alloc-pool.o constant.o crc32.o dump_metadata.o \
 		fibheap.o hardlink-list.o hashfile.o hashtab.o \
 		interval.o log.o memory.o metadata.o pthread.o \
-		splay-tree.o string-list.o util.o varray.o
+		splay-tree.o util.o varray.o
 
 .c.o:
 	$(COMPILE) -c $<
