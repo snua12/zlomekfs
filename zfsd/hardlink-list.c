@@ -240,6 +240,16 @@ hardlink_list_delete_entry (hardlink_list hl, hardlink_list_entry entry)
   return true;
 }
 
+/* Return the length of hardlink list HL, i.e. the number of entries.  */
+
+unsigned int
+hardlink_list_length (hardlink_list hl)
+{
+  CHECK_MUTEX_LOCKED (hl->mutex);
+
+  return hl->htab->n_elements - hl->htab->n_deleted;
+}
+
 /* Initialize data structures in HARDLINK-LIST.C.  */
 
 void
