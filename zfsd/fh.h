@@ -325,6 +325,8 @@ extern virtual_dir vd_lookup_name (virtual_dir parent, string *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);
 extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
 					   string *name);
+extern internal_dentry dentry_lookup_path (volume vol, internal_dentry start,
+					   string *path);
 extern int32_t internal_dentry_lock (unsigned int level, volume *volp,
 				     internal_dentry *dentryp, zfs_fh *tmp_fh);
 extern void internal_dentry_unlock (volume vol, internal_dentry dentry);

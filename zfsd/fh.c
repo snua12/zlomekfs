@@ -836,6 +836,53 @@ dentry_lookup_name (volume vol, internal_dentry parent, string *name)
   return dentry;
 }
 
+/* Return the internal dentry for PATH from directory START
+   or from the volume root of volume VOL if START is NULL.  */
+
+internal_dentry
+dentry_lookup_path (volume vol, internal_dentry start, string *path)
+{
+  internal_dentry dentry;
+  string name;
+  char *str;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+#ifdef ENABLE_CHECKING
+  if (start)
+    CHECK_MUTEX_LOCKED (&start->fh->mutex);
+  else if (vol)
+    CHECK_MUTEX_LOCKED (&vol->mutex);
+  else
+    abort ();
+#endif
+
+  str = path->str;
+  while (*str)
+    {
+      while (*str == '/')
+	str++;
+
+      name.str = str;
+      while (*str != 0 && *str != '/')
+	str++;
+      if (*str == '/')
+	*str++ = 0;
+      name.len = strlen (name.str);
+
+      dentry = dentry_lookup_name (vol, start, &name);
+      if (start)
+	release_dentry (start);
+
+      if (!dentry)
+	return NULL;
+
+      start = dentry;
+    }
+
+  return dentry;
+}
+
 /* Lock dentry *DENTRYP on volume *VOLP to level LEVEL.
    Store the local ZFS file handle to TMP_FH.  */
 
