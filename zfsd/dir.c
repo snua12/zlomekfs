@@ -198,7 +198,7 @@ local_path_to_relative_path (string *dst, volume vol, string *path)
 
 /* Return short file name from the path PATH.  */
 
-static void
+void
 file_name_from_path (string *dst, string *path)
 {
   TRACE ("");
