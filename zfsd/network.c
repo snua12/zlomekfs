@@ -458,6 +458,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 {
   size_t index;
   direction dir;
+  uint32_t from_sid;
 
   if (!decode_direction (dc, &dir))
     {
@@ -501,6 +502,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    data = *(waiting4reply_data **) slot;
 	    t = data->t;
 	    t->dc_reply = *dc;
+	    t->from_sid = fd_data->sid;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
 	    pool_free (fd_data->waiting4reply_pool, data);
@@ -513,6 +515,9 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
       case DIR_REQUEST:
 	/* Dispatch request.  */
+	zfsd_mutex_lock (&fd_data->mutex);
+	from_sid = fd_data->sid;
+	zfsd_mutex_unlock (&fd_data->mutex);
 
 	zfsd_mutex_lock (&network_pool.idle.mutex);
 
@@ -527,6 +532,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	  abort ();
 #endif
 	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
+	network_pool.threads[index].t.from_sid = from_sid;
 	network_pool.threads[index].t.u.network.dc = *dc;
 	network_pool.threads[index].t.u.network.fd_data = fd_data;
 	network_pool.threads[index].t.u.network.generation = generation;

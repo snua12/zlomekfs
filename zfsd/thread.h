@@ -95,6 +95,7 @@ typedef struct thread_def
   DC dc_call;			/* buffer for request for remote node */
   DC dc_reply;			/* buffer for reply from remote node */
   int32_t retval;		/* return value for request.  */
+  uint32_t from_sid;		/* request came from node SID */
 
   /* Additional data for each subtype.  */
   union {

@@ -257,6 +257,8 @@ kernel_dispatch (DC *dc)
 	  abort ();
 #endif
 	set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
+	kernel_pool.threads[index].t.from_sid = this_node->id;
+	  /* FIXME: race condition? */
 	kernel_pool.threads[index].t.u.kernel.dc = *dc;
 
 	/* Let the thread run.  */
