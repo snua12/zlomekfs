@@ -2933,11 +2933,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
 				  &to_name, shadow))
     MARK_VOLUME_DELETE (vol);
 
-  if (vol->id == VOLUME_ID_CONFIG)
-    {
-      add_reread_config_request_local_path (vol, to_path);
-      add_reread_config_request_local_path (vol, from_path);
-    }
   zfsd_mutex_unlock (&vol->mutex);
   RETURN_INT (ZFS_OK);
 }
