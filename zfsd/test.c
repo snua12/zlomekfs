@@ -284,7 +284,7 @@ do_tests (void *data)
       test_interval ();
     }
 
-  do
+  if (1)
     {
       node nod;
       char *str;
@@ -292,7 +292,7 @@ do_tests (void *data)
       int fd;
 
       if (!get_running ())
-	break;
+	goto out;
 
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
@@ -304,7 +304,7 @@ do_tests (void *data)
 	recycle_dc_to_fd (&t->dc_reply, fd);
 
       if (!get_running ())
-	break;
+	goto out;
 
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
@@ -316,7 +316,7 @@ do_tests (void *data)
 	recycle_dc_to_fd (&t->dc_reply, fd);
 
       if (!get_running ())
-	break;
+	goto out;
 
       message (1, stderr, "TEST LOOKUP /volume2/find/hidden\n");
       str = xstrdup ("/volume2/find/hidden");
@@ -325,7 +325,7 @@ do_tests (void *data)
       free (str);
 
       if (!get_running ())
-	break;
+	goto out;
 
       message (1, stderr, "TEST LOOKUP /volume1/subdir/file\n");
       str = xstrdup ("/volume1/subdir/file");
@@ -334,7 +334,7 @@ do_tests (void *data)
       free (str);
 
       if (!get_running ())
-	break;
+	goto out;
 
       message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir/file\n");
       str = xstrdup ("/volume1/volume3/subdir/file");
@@ -343,7 +343,7 @@ do_tests (void *data)
       free (str);
 
       if (!get_running ())
-	break;
+	goto out;
 
       message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir\n");
       str = xstrdup ("/volume1/volume3/subdir");
@@ -352,7 +352,7 @@ do_tests (void *data)
       free (str);
 
       if (!get_running ())
-	break;
+	goto out;
 
       if (r == ZFS_OK)
 	{
@@ -361,14 +361,14 @@ do_tests (void *data)
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST RMDIR\n");
 	  r = zfs_rmdir (&res.file, &rmdir_name);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST CREATE\n");
 	  r = zfs_create (&creater, &res.file, &test,
@@ -376,7 +376,7 @@ do_tests (void *data)
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  if (r == ZFS_OK)
 	    {
@@ -385,35 +385,35 @@ do_tests (void *data)
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
-		break;
+		goto out;
 
 	      message (1, stderr, "TEST LINK\n");
 	      r = zfs_link (&creater.cap.fh, &res.file, &test2);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
-		break;
+		goto out;
 
 	      message (1, stderr, "TEST UNLINK\n");
 	      r = zfs_unlink (&res.file, &test);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
-		break;
+		goto out;
 
 	      message (1, stderr, "TEST RENAME\n");
 	      r = zfs_rename (&res.file, &test2, &res.file, &test3);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
-		break;
+		goto out;
 
 	      message (1, stderr, "TEST UNLINK\n");
 	      r = zfs_unlink (&res.file, &test3);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
-		break;
+		goto out;
 	    }
 
 	  message (1, stderr, "TEST SYMLINK\n");
@@ -421,7 +421,7 @@ do_tests (void *data)
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir/symlink\n");
 	  str = xstrdup ("/volume1/volume3/subdir/symlink");
@@ -430,7 +430,7 @@ do_tests (void *data)
 	  free (str);
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST READLINK\n");
 	  r = zfs_readlink (&readlinkr, &res2.file);
@@ -439,28 +439,28 @@ do_tests (void *data)
 	    free (readlinkr.path.str);
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST UNLINK\n");
 	  r = zfs_unlink (&res.file, &sym);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST MKNOD\n");
 	  r = zfs_mknod (&res2, &res.file, &pip, &sa, FT_FIFO, 1234);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  message (1, stderr, "TEST UNLINK\n");
 	  r = zfs_unlink (&res.file, &pip);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 	}
 
       message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir/file\n");
@@ -470,7 +470,7 @@ do_tests (void *data)
       free (str);
 
       if (!get_running ())
-	break;
+	goto out;
 
       if (r == ZFS_OK)
 	{
@@ -479,7 +479,7 @@ do_tests (void *data)
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
+	    goto out;
 
 	  if (r == ZFS_OK)
 	    {
@@ -501,7 +501,7 @@ do_tests (void *data)
 		message (1, stderr, "  %d\n", writer.written);
 
 	      if (!get_running ())
-		break;
+		goto out;
 
 	      message (1, stderr, "TEST READ\n");
 	      r = zfs_read (&data.len, data.buf, &cap, 0, 4, true);
@@ -511,14 +511,14 @@ do_tests (void *data)
 		message (1, stderr, "FAILURE\n");
 
 	      if (!get_running ())
-		break;
+		goto out;
 
 	      message (1, stderr, "TEST CLOSE\n");
 	      r = zfs_close (&cap);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
-		break;
+		goto out;
 	    }
 
 	  message (1, stderr, "TEST SETATTR\n");
@@ -526,17 +526,17 @@ do_tests (void *data)
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
-	    break;
-	}
-
-      if (1)
-	{
-	  message (0, stderr, "Walking through directory structure:\n");
-	  walk_dir (&root_fh, "/");
+	    goto out;
 	}
     }
-  while (0);
 
+  if (1)
+    {
+      message (0, stderr, "Walking through directory structure:\n");
+      walk_dir (&root_fh, "/");
+    }
+
+out:
   message (2, stderr, "TESTS FINISHED\n");
   return NULL;
 }
