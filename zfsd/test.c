@@ -558,6 +558,13 @@ do_tests (void *data)
 	      writea.data.buf = writea.data.real_buffer;
 	      data.buf = data.real_buffer;
 
+	      message (1, stderr, "TEST READ\n");
+	      r = zfs_read (&data.len, data.buf, &cap, 16, 16, true);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		goto out;
+
 	      writea.cap = cap;
 	      writea.offset = 0;
 	      writea.data.len = 4;
