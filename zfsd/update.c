@@ -2391,8 +2391,11 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		      meta = subdentry->fh->meta;
 
 		    meta.master_fh = res.file;
-		    meta.master_version = meta.local_version;
-		    meta.local_version++;
+		    meta.master_version = res.attr.version;
+		    if (meta.local_version < meta.master_version
+			|| (meta.local_version == meta.master_version
+			    && (meta.flags & METADATA_MODIFIED)))
+		      meta.local_version = meta.master_version + 1;
 
 		    success = flush_metadata (vol, &meta);
 
@@ -2412,21 +2415,6 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 			MARK_VOLUME_DELETE (vol);
 			continue;
 		      }
-
-		    release_dentry (dir);
-		    zfsd_mutex_unlock (&fh_mutex);
-
-		    /* Set remote metadata. */
-		    r = remote_reintegrate_set (NULL, meta.master_version,
-						&res.file, vol);
-
-		    r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-		    if (r2 != ZFS_OK)
-		      abort ();
-#endif
-		    if (r != ZFS_OK)
-		      continue;
 
 		    if (!journal_delete_entry (dir->fh->journal, entry))
 		      abort ();
