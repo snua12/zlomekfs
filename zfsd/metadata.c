@@ -1389,8 +1389,6 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
 bool
 get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
 {
-  bool r;
-
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!hashfile_opened_p (vol->fh_mapping))
@@ -1412,7 +1410,7 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
     }
 
   if (map->slot_status == VALID_SLOT
-      && meta->master_fh.gen < master_fh->gen)
+      && map->master_fh.gen < master_fh->gen)
     {
       /* There is a master file handle with older genration in the hash file
 	 so delete it and return undefined local file handle.  */
