@@ -422,14 +422,13 @@ retry_open:
    with path PATH, open flags FLAGS and mode MODE.  */
 
 static int
-open_fh_metadata (char *path, volume vol, internal_fh fh, metadata_type type,
+open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
 		  int flags, mode_t mode)
 {
   int fd;
   unsigned int i;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
 
   fd = open_metadata (path, flags, mode);
   if (fd < 0)
@@ -449,7 +448,7 @@ open_fh_metadata (char *path, volume vol, internal_fh fh, metadata_type type,
 	  {
 	    char *old_path;
 
-	    old_path = build_fh_metadata_path (vol, &fh->local_fh, type, i);
+	    old_path = build_fh_metadata_path (vol, fh, type, i);
 	    rename (old_path, path);
 	    free (old_path);
 	  }
@@ -761,7 +760,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 
   path = build_fh_metadata_path (vol, &fh->local_fh, type,
 				 metadata_tree_depth);
-  fd = open_fh_metadata (path, vol, fh, type, O_RDONLY, 0);
+  fd = open_fh_metadata (path, vol, &fh->local_fh, type, O_RDONLY, 0);
   if (fd < 0)
     {
       if (errno != ENOENT)
@@ -1319,8 +1318,8 @@ open_hardlinks_file (volume vol, internal_fh fh)
 
   path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_HARDLINKS,
 				 metadata_tree_depth);
-  fd = open_fh_metadata (path, vol, fh, METADATA_TYPE_HARDLINKS, O_RDONLY,
-			 S_IRUSR | S_IWUSR);
+  fd = open_fh_metadata (path, vol, &fh->local_fh, METADATA_TYPE_HARDLINKS,
+			 O_RDONLY, S_IRUSR | S_IWUSR);
   free (path);
   if (fd < 0)
     return fd;
