@@ -26,7 +26,6 @@
 #include "crc32.h"
 #include "hashtab.h"
 #include "log.h"
-#include "memory.h"
 #include "varray.h"
 
 /* File handle of ZFS root.  */

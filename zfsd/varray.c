@@ -66,4 +66,5 @@ varray_check_failed (unsigned int index, const char *file, int line)
 {
   internal_error ("Element %u out of bounds, at %s:%d", index, file, line);
 }
+
 #endif

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include "hashtab.h"
 #include "memory.h"
 #include "node.h"
 

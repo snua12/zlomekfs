@@ -34,6 +34,7 @@
 #define SPLAY_TREE_H
 
 #include "system.h"
+#include <stdio.h>
 #include <inttypes.h>
 #include "alloc-pool.h"
 

@@ -26,7 +26,6 @@
 #include "log.h"
 #include "queue.h"
 #include "thread.h"
-#include "zfs_prot.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 int running = 1;

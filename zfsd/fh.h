@@ -29,7 +29,6 @@ typedef struct volume_def *volume;
 #include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"
-#include "server.h"
 #include "varray.h"
 
 #define VIRTUAL_DEVICE 0	/* Device number of device with virtual

@@ -24,7 +24,6 @@
 #include "system.h"
 #include <netdb.h>
 #include <rpc/rpc.h>
-#include "hashtab.h"
 
 /* Connection status.  */
 typedef enum connection_status_def

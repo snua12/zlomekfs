@@ -21,6 +21,8 @@
 #ifndef VARRAY_H
 #define VARRAY_H
 
+#include "system.h"
+
 /* Definition of the variable-sized array.  */
 typedef struct varray_def
 {

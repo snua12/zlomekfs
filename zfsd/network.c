@@ -97,7 +97,7 @@ server_worker (void *data)
 
 #ifdef RPC
       /* We have some work to do.  */
-      zfs_program_1(t->u.server.rqstp, t->u.server.transp);
+      zfs_program_1 (t->u.server.rqstp, t->u.server.transp);
 #endif
 
       /* Put self to the idle queue if not requested to die meanwhile.  */

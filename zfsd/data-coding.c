@@ -32,7 +32,6 @@ start_encoding (DC *dc, void *ptr, int max_length)
 #ifdef ENABLE_CHECKING
   if (ptr != ALIGN_PTR_16 (ptr))
     abort ();
-  
 #endif
 
   dc->original = (char *) ptr;

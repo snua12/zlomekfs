@@ -22,6 +22,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include "fh.h"
+#include "hashtab.h"
 #include "memory.h"
 #include "volume.h"
 
