@@ -176,6 +176,16 @@ string_list_delete (string_list sl, char *str)
   htab_clear_slot (sl->htab, slot);
 }
 
+/* Return the number of strings in string list SL.  */
+
+unsigned int
+string_list_size (string_list sl)
+{
+  CHECK_MUTEX_LOCKED (sl->mutex);
+
+  return VARRAY_USED (sl->array);
+}
+
 /* Initialize data structures in STRING-LIST.C.  */
 
 void
