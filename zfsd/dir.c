@@ -225,27 +225,22 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 static int32_t
 get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 {
+  struct stat st;
+
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  /* The volume (or its copy) is located on this node.  */
-  if (vol->local_path)
-    {
-      struct stat st;
+  if (stat (vol->local_path, &st) != 0)
+    return errno;
 
-      if (stat (vol->local_path, &st) != 0)
-	return errno;
-
-      local_fh->sid = this_node->id;
-      local_fh->vid = vol->id;
-      local_fh->dev = st.st_dev;
-      local_fh->ino = st.st_ino;
-      fattr_from_struct_stat (attr, &st);
-    }
-  else
-    abort ();
-
-  if (attr->type != FT_DIR)
+  if ((st.st_mode & S_IFMT) != S_IFDIR)
     return ENOTDIR;
+
+  local_fh->sid = this_node->id;
+  local_fh->vid = vol->id;
+  local_fh->dev = st.st_dev;
+  local_fh->ino = st.st_ino;
+  fattr_from_struct_stat (attr, &st);
+
   return ZFS_OK;
 }
 
