@@ -3110,6 +3110,12 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    /* Resolved conflict: deleted remote file.  */
 	    delete_dentry (&vol, &idir, name, &tmp_fh);
 
+	    /* Clear the master file handle of local file.  */
+	    dentry = conflict_local_dentry (idir);
+	    if (!set_metadata_master_fh (vol, dentry->fh, &undefined_fh))
+	      MARK_VOLUME_DELETE (vol);
+	    release_dentry (dentry);
+
 	    if (try_resolve_conflict (vol, idir))
 	      {
 		zfsd_mutex_unlock (&fh_mutex);
