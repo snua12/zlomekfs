@@ -23,9 +23,13 @@
 #include <unistd.h>
 #include "config.h"
 
+/* Name of the configuration file.  */
 static char *config_file = "/etc/zfs/config";
 
-int main(int argc, char **argv)
+/* Entry point of ZFS daemon.  */
+
+int
+main(int argc, char **argv)
 {
   if (!read_config(config_file))
     return EXIT_FAILURE;
