@@ -324,7 +324,7 @@ node_authenticate (thread *t, node nod)
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
   CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
-  
+
   memset (&args1, 0, sizeof (args1));
   memset (&args2, 0, sizeof (args2));
 
