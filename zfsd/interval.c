@@ -200,6 +200,46 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
     }
 }
 
+/* Return the first interval from tree TREE.  */
+
+interval_tree_node
+interval_tree_min (interval_tree tree)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  return splay_tree_min (tree->splay);
+}
+
+/* Return the last interval from tree TREE.  */
+
+interval_tree_node
+interval_tree_max (interval_tree tree)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  return splay_tree_max (tree->splay);
+}
+
+/* Return the interval whose start is lower than KEY.  */
+
+interval_tree_node
+interval_tree_predecessor (interval_tree tree, uint64_t key)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  return splay_tree_predecessor (tree->splay, key);
+}
+
+/* Return the interval whose start is greater than KEY.  */
+
+interval_tree_node
+interval_tree_successor (interval_tree tree, uint64_t key)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  return splay_tree_successor (tree->splay, key);
+}
+
 /* Data passed to interval_tree_shrink_foreach.  */
 typedef struct interval_tree_shrink_data_def
 {

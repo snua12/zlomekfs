@@ -43,6 +43,10 @@ typedef struct interval_tree_def
   unsigned size;
 } *interval_tree;
 
+typedef splay_tree_node interval_tree_node;
+#define INTERVAL_START(NODE) ((NODE)->key)
+#define INTERVAL_END(NODE) ((NODE)->value)
+
 extern interval_tree interval_tree_create (unsigned preferred_size,
 					   pthread_mutex_t *mutex);
 extern void interval_tree_destroy (interval_tree tree);
@@ -50,6 +54,12 @@ extern void interval_tree_insert (interval_tree tree,
 				  uint64_t start, uint64_t end);
 extern void interval_tree_delete (interval_tree tree,
 				  uint64_t start, uint64_t end);
+extern interval_tree_node interval_tree_min (interval_tree tree);
+extern interval_tree_node interval_tree_max (interval_tree tree);
+extern interval_tree_node interval_tree_predecessor (interval_tree tree,
+						     uint64_t key);
+extern interval_tree_node interval_tree_successor (interval_tree tree,
+						   uint64_t key);
 extern void print_interval_tree (FILE *f, interval_tree tree);
 extern void debug_interval_tree (interval_tree tree);
 
