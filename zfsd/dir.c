@@ -1029,6 +1029,12 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      RETURN_INT (ESTALE);
+    }
+
   local_fh->sid = this_node->id;
   local_fh->vid = vol->id;
 
@@ -1133,7 +1139,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
       RETURN_INT (ENOENT);
     }
 
-  if (vol->local_path.str)
+  if (vol->master == this_node)
     {
       r = get_volume_root_local (vol, &local_fh, &attr, &meta);
       if (r == ZFS_OK)
@@ -1153,14 +1159,12 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 	    }
 	}
     }
-  else if (vol->master != this_node)
+  else /* if (vol->master != this_node) */
     {
       r = get_volume_root_remote (vol, &master_fh, &attr);
       if (r == ZFS_OK)
 	local_fh = master_fh;
     }
-  else
-    abort ();
 
   if (r != ZFS_OK)
     RETURN_INT (r);
