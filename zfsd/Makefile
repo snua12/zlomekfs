@@ -23,8 +23,8 @@ prefix = /usr
 INSTALL = /usr/bin/install -c
 CC = gcc
 LD = $(CC)
-DEFS = -DENABLE_CHECKING -DENABLE_VALGRIND_CHECKING -DENABLE_STATISTICS -DTEST -DTEST_UPDATE
-CFLAGS = -g -W -Wall -std=gnu99
+DEFS =
+CFLAGS = -g -O2 -W -Wall -std=gnu99
 LDFLAGS =
 LIBS = -lpthread
 COMPILE = $(CC) $(DEFS) $(CFLAGS)
