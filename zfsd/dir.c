@@ -1203,8 +1203,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	  CHECK_MUTEX_LOCKED (&ifh->mutex);
 
 	  internal_fh_destroy (ifh, vol2);
+	  zfsd_mutex_unlock (&ifh->mutex);
 	}
-      zfsd_mutex_unlock (&ifh->mutex);
     }
 
   zfsd_mutex_unlock (&ifh1->mutex);
