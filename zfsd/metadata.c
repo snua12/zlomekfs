@@ -2917,6 +2917,7 @@ flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
   close_journal_file (journal);
 
@@ -3010,6 +3011,7 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
   if (!journal)
     abort ();
 #endif
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
   build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL,
 			  metadata_tree_depth);
