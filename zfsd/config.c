@@ -600,6 +600,7 @@ init_config_volume (void)
   return true;
 
 out_usage:
+  zfsd_mutex_unlock (&vol->mutex);
   usage();
 
 out:
