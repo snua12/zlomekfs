@@ -62,7 +62,10 @@ print_dc (DC *dc, FILE *f)
   fprintf (f, "Max.length = %d\n", dc->max_length);
   fprintf (f, "Size       = %d\n", dc->size);
   fprintf (f, "Data: ");
-  print_hex_buffer (dc->buffer, dc->cur_length, f);
+  print_hex_buffer (dc->buffer,
+		    (dc->max_length == dc->size
+		     ? dc->cur_length : dc->max_length),
+		    f);
 }
 
 /* Print DC to STDERR.  */
