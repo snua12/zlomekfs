@@ -50,6 +50,9 @@
 /* Queue of file handles.  */
 queue update_queue;
 
+/* Mutex for UPDATE_QUEUE.  */
+static pthread_mutex_t update_queue_mutex;
+
 /* Pool of update threads.  */
 thread_pool update_pool;
 
@@ -759,9 +762,9 @@ update_file (zfs_fh *fh)
       && ((dentry->fh->meta.flags & METADATA_COMPLETE) == 0
 	  || (dentry->fh->meta.flags & METADATA_MODIFIED) != 0))
     {
-      zfsd_mutex_lock (&update_queue.mutex);
+      zfsd_mutex_lock (&update_queue_mutex);
       queue_put (&update_queue, &dentry->fh->local_fh);
-      zfsd_mutex_unlock (&update_queue.mutex);
+      zfsd_mutex_unlock (&update_queue_mutex);
     }
   else
     dentry->fh->flags &= ~(IFH_ENQUEUED | IFH_UPDATE | IFH_REINTEGRATE);
@@ -1488,9 +1491,9 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 	      if (!(dentry->fh->flags & IFH_ENQUEUED))
 		{
 		  dentry->fh->flags |= IFH_ENQUEUED;
-		  zfsd_mutex_lock (&update_queue.mutex);
+		  zfsd_mutex_lock (&update_queue_mutex);
 		  queue_put (&update_queue, &dentry->fh->local_fh);
-		  zfsd_mutex_unlock (&update_queue.mutex);
+		  zfsd_mutex_unlock (&update_queue_mutex);
 		}
 	    }
 	}
@@ -2913,7 +2916,7 @@ update_worker (void *data)
       update_file ((zfs_fh *) &t->u.update.fh);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      zfsd_mutex_lock (&update_pool.idle.mutex);
+      zfsd_mutex_lock (&update_pool.mutex);
       if (get_thread_state (t) == THREAD_BUSY)
 	{
 	  queue_put (&update_pool.idle, &t->index);
@@ -2925,10 +2928,10 @@ update_worker (void *data)
 	  if (get_thread_state (t) != THREAD_DYING)
 	    abort ();
 #endif
-	  zfsd_mutex_unlock (&update_pool.idle.mutex);
+	  zfsd_mutex_unlock (&update_pool.mutex);
 	  break;
 	}
-      zfsd_mutex_unlock (&update_pool.idle.mutex);
+      zfsd_mutex_unlock (&update_pool.mutex);
     }
 
   pthread_cleanup_pop (1);
@@ -2952,13 +2955,13 @@ update_main (ATTRIBUTE_UNUSED void *data)
       bool succeeded;
 
       /* Get the file handle.  */
-      zfsd_mutex_lock (&update_queue.mutex);
+      zfsd_mutex_lock (&update_queue_mutex);
       succeeded = queue_get (&update_queue, &fh);
-      zfsd_mutex_unlock (&update_queue.mutex);
+      zfsd_mutex_unlock (&update_queue_mutex);
       if (!succeeded)
 	break;
 
-      zfsd_mutex_lock (&update_pool.idle.mutex);
+      zfsd_mutex_lock (&update_pool.mutex);
 
       /* Regulate the number of threads.  */
       if (update_pool.idle.nelem == 0)
@@ -2975,7 +2978,7 @@ update_main (ATTRIBUTE_UNUSED void *data)
       /* Let the thread run.  */
       semaphore_up (&update_pool.threads[index].t.sem, 1);
 
-      zfsd_mutex_unlock (&update_pool.idle.mutex);
+      zfsd_mutex_unlock (&update_pool.mutex);
     }
 
   message (2, stderr, "Terminating...\n");
@@ -2987,13 +2990,16 @@ update_main (ATTRIBUTE_UNUSED void *data)
 bool
 update_start (void)
 {
-  queue_create (&update_queue, sizeof (zfs_fh), 250);
+  zfsd_mutex_init (&update_queue_mutex);
+  queue_create (&update_queue, sizeof (zfs_fh), 250, &update_queue_mutex);
 
   if (!thread_pool_create (&update_pool, 6, 2, 4, update_main,
 			   update_worker, update_worker_init))
     {
-      zfsd_mutex_lock (&update_queue.mutex);
+      zfsd_mutex_lock (&update_queue_mutex);
       queue_destroy (&update_queue);
+      zfsd_mutex_unlock (&update_queue_mutex);
+      zfsd_mutex_destroy (&update_queue_mutex);
       return false;
     }
 
@@ -3006,6 +3012,8 @@ void
 update_cleanup (void)
 {
   thread_pool_destroy (&update_pool);
-  zfsd_mutex_lock (&update_queue.mutex);
+  zfsd_mutex_lock (&update_queue_mutex);
   queue_destroy (&update_queue);
+  zfsd_mutex_unlock (&update_queue_mutex);
+  zfsd_mutex_destroy (&update_queue_mutex);
 }

@@ -34,7 +34,7 @@ typedef struct queue_node_def
 
 typedef struct queue_def
 {
-  pthread_mutex_t mutex;	/* mutex for accessing the queue */
+  pthread_mutex_t *mutex;	/* mutex for accessing the queue */
   pthread_cond_t non_empty;	/* cond. var. for waiting while (nelem == 0) */
   alloc_pool pool;		/* alloc pool for elements of the queue */
   unsigned int nelem;		/* number of elements in the queue */
@@ -44,7 +44,8 @@ typedef struct queue_def
   bool exiting;			/* is the program going to exit? */
 } queue;
 
-extern void queue_create (queue *q, size_t size, size_t num);
+extern void queue_create (queue *q, size_t size, size_t num,
+			  pthread_mutex_t *mutex);
 extern void queue_destroy (queue *q);
 extern void queue_put (queue *q, void *elem);
 extern bool queue_get (queue *q, void *elem);

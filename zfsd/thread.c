@@ -198,14 +198,15 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   pool->size = max_threads;
   pool->unaligned_array = xmalloc (max_threads * sizeof (padded_thread) + 255);
   pool->threads = (padded_thread *) ALIGN_PTR_256 (pool->unaligned_array);
-  queue_create (&pool->idle, sizeof (size_t), max_threads);
-  queue_create (&pool->empty, sizeof (size_t), max_threads);
+  zfsd_mutex_init (&pool->mutex);
+  queue_create (&pool->idle, sizeof (size_t), max_threads, &pool->mutex);
+  queue_create (&pool->empty, sizeof (size_t), max_threads, &pool->mutex);
   pool->worker_start = worker_start;
   pool->worker_init = worker_init;
   zfsd_mutex_init (&pool->main_in_syscall);
   zfsd_mutex_init (&pool->regulator_in_syscall);
 
-  zfsd_mutex_lock (&pool->empty.mutex);
+  zfsd_mutex_lock (&pool->mutex);
   for (i = 0; i < max_threads; i++)
     {
       zfsd_mutex_init (&pool->threads[i].t.mutex);
@@ -213,11 +214,10 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
       pool->threads[i].t.index = i;
       queue_put (&pool->empty, &i);
     }
-  zfsd_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->mutex);
 
   /* Create worker threads.  */
-  zfsd_mutex_lock (&pool->idle.mutex);
-  zfsd_mutex_lock (&pool->empty.mutex);
+  zfsd_mutex_lock (&pool->mutex);
   for (i = 0; i < min_spare_threads; i++)
     {
       r = create_idle_thread (pool);
@@ -227,8 +227,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 	  return false;
 	}
     }
-  zfsd_mutex_unlock (&pool->empty.mutex);
-  zfsd_mutex_unlock (&pool->idle.mutex);
+  zfsd_mutex_unlock (&pool->mutex);
 
   /* Create thread pool regulator.  */
   r = pthread_create ((pthread_t *) &pool->regulator_thread, NULL,
@@ -264,6 +263,8 @@ thread_pool_terminate (thread_pool *pool)
   pool->terminate = true;	/* used in main thread to finish */
   zfsd_mutex_unlock (&running_mutex);
 
+  queue_exiting (&pool->idle);
+  queue_exiting (&pool->empty);
   thread_terminate_blocking_syscall (&pool->main_thread,
 				     &pool->main_in_syscall);
   thread_terminate_blocking_syscall (&pool->regulator_thread,
@@ -285,26 +286,20 @@ thread_pool_destroy (thread_pool *pool)
   zfsd_mutex_destroy (&pool->regulator_in_syscall);
 
   /* Wait until all worker threads are idle and destroy them.  */
-  zfsd_mutex_lock (&pool->idle.mutex);
-  zfsd_mutex_lock (&pool->empty.mutex);
-
+  zfsd_mutex_lock (&pool->mutex);
   while (pool->empty.nelem < pool->size)
     destroy_idle_thread (pool);
-
-  zfsd_mutex_unlock (&pool->empty.mutex);
-  zfsd_mutex_unlock (&pool->idle.mutex);
+  zfsd_mutex_unlock (&pool->mutex);
 
   /* Some thread may have these mutexes locked, wait for it to unlock them.  */
-  zfsd_mutex_lock (&pool->idle.mutex);
-  zfsd_mutex_lock (&pool->empty.mutex);
-
+  zfsd_mutex_lock (&pool->mutex);
   for (i = 0; i < pool->size; i++)
-    {
-      zfsd_mutex_destroy (&pool->threads[i].t.mutex);
-    }
+    zfsd_mutex_destroy (&pool->threads[i].t.mutex);
   free (pool->unaligned_array);
   queue_destroy (&pool->empty);
   queue_destroy (&pool->idle);
+  zfsd_mutex_unlock (&pool->mutex);
+  zfsd_mutex_destroy (&pool->mutex);
 }
 
 /* Create a new idle thread in thread pool POOL.
@@ -318,8 +313,7 @@ create_idle_thread (thread_pool *pool)
   thread *t;
   int r;
 
-  CHECK_MUTEX_LOCKED (&pool->idle.mutex);
-  CHECK_MUTEX_LOCKED (&pool->empty.mutex);
+  CHECK_MUTEX_LOCKED (&pool->mutex);
 
   queue_get (&pool->empty, &index);
   t = &pool->threads[index].t;
@@ -364,14 +358,11 @@ destroy_idle_thread (thread_pool *pool)
   thread *t;
   int r;
 
-  CHECK_MUTEX_LOCKED (&pool->idle.mutex);
-  CHECK_MUTEX_LOCKED (&pool->empty.mutex);
+  CHECK_MUTEX_LOCKED (&pool->mutex);
 
   /* Let the thread which was busy add itself to idle queue.  */
-  zfsd_mutex_unlock (&pool->empty.mutex);
-  zfsd_mutex_unlock (&pool->idle.mutex);
-  zfsd_mutex_lock (&pool->idle.mutex);
-  zfsd_mutex_lock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->mutex);
+  zfsd_mutex_lock (&pool->mutex);
 
   queue_get (&pool->idle, &index);
   t = &pool->threads[index].t;
@@ -413,9 +404,7 @@ thread_disable_signals (void)
 void
 thread_pool_regulate (thread_pool *pool)
 {
-  CHECK_MUTEX_LOCKED (&pool->idle.mutex);
-
-  zfsd_mutex_lock (&pool->empty.mutex);
+  CHECK_MUTEX_LOCKED (&pool->mutex);
 
   /* Let some threads to die.  */
   while (pool->idle.nelem > pool->max_spare_threads)
@@ -431,8 +420,6 @@ thread_pool_regulate (thread_pool *pool)
       message (2, stderr, "Regulating: creating idle thread\n");
       create_idle_thread (pool);
     }
-
-  zfsd_mutex_unlock (&pool->empty.mutex);
 }
 
 /* Main function of thread regulating the thread pool. DATA is the structure
@@ -454,9 +441,9 @@ thread_pool_regulator (void *data)
       zfsd_mutex_unlock (&pool->regulator_in_syscall);
       if (thread_pool_terminate_p (pool))
 	break;
-      zfsd_mutex_lock (&pool->idle.mutex);
+      zfsd_mutex_lock (&pool->mutex);
       thread_pool_regulate (pool);
-      zfsd_mutex_unlock (&pool->idle.mutex);
+      zfsd_mutex_unlock (&pool->mutex);
     }
 
   return NULL;

@@ -134,6 +134,7 @@ typedef struct thread_pool_def
   size_t size;			/* total number of slots for threads */
   void *unaligned_array;	/* pointer returned by xmalloc */
   padded_thread *threads;	/* thread slots, previous pointer aligned */
+  pthread_mutex_t mutex;	/* mutex for queues */
   queue idle;			/* queue of idle threads */
   queue empty;			/* queue of empty thread slots */
   thread_start worker_start;	/* start routine of the worker thread */

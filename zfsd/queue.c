@@ -29,17 +29,19 @@
    Alloc queue nodes in chunks of NUM nodes.  */
 
 void
-queue_create (queue *q, size_t size, size_t num)
+queue_create (queue *q, size_t size, size_t num, pthread_mutex_t *mutex)
 {
 #ifdef ENABLE_CHECKING
   if (size == 0)
     abort ();
+  if (mutex == NULL)
+    abort ();
 #endif
 
-  zfsd_mutex_init (&q->mutex);
   zfsd_cond_init (&q->non_empty);
   q->pool = create_alloc_pool ("queue_node", sizeof (void *) + size, num,
-			       &q->mutex);
+			       mutex);
+  q->mutex = mutex;
   q->nelem = 0;
   q->size = size;
   q->first = NULL;
@@ -52,7 +54,7 @@ queue_create (queue *q, size_t size, size_t num)
 void
 queue_destroy (queue *q)
 {
-  CHECK_MUTEX_LOCKED (&q->mutex);
+  CHECK_MUTEX_LOCKED (q->mutex);
 #ifdef ENABLE_CHECKING
   if (q->size == 0)
     abort ();
@@ -61,8 +63,6 @@ queue_destroy (queue *q)
   q->size = 0;
   free_alloc_pool (q->pool);
   zfsd_cond_destroy (&q->non_empty);
-  zfsd_mutex_unlock (&q->mutex);
-  zfsd_mutex_destroy (&q->mutex);
 }
 
 /* Put an element ELEM to the queue Q.  */
@@ -72,7 +72,7 @@ queue_put (queue *q, void *elem)
 {
   queue_node node;
 
-  CHECK_MUTEX_LOCKED (&q->mutex);
+  CHECK_MUTEX_LOCKED (q->mutex);
 #ifdef ENABLE_CHECKING
   if (q->size == 0)
     abort ();
@@ -104,17 +104,20 @@ queue_get (queue *q, void *elem)
 {
   queue_node node;
 
-  CHECK_MUTEX_LOCKED (&q->mutex);
+  CHECK_MUTEX_LOCKED (q->mutex);
 #ifdef ENABLE_CHECKING
   if (q->size == 0)
     abort ();
 #endif
 
-  while (q->nelem == 0 && !q->exiting)
-    zfsd_cond_wait (&q->non_empty, &q->mutex);
+  if (q->nelem == 0)
+    {
+      while (q->nelem == 0 && !q->exiting)
+	zfsd_cond_wait (&q->non_empty, q->mutex);
 
-  if (q->exiting)
-    return false;
+      if (q->exiting)
+	return false;
+    }
 
   node = q->first;
 #ifdef ENABLE_CHECKING
@@ -137,8 +140,8 @@ queue_get (queue *q, void *elem)
 void
 queue_exiting (queue *q)
 {
-  zfsd_mutex_lock (&q->mutex);
+  zfsd_mutex_lock (q->mutex);
   q->exiting = true;
   zfsd_cond_broadcast (&q->non_empty);
-  zfsd_mutex_unlock (&q->mutex);
+  zfsd_mutex_unlock (q->mutex);
 }

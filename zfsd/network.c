@@ -1184,7 +1184,7 @@ out:
       zfsd_mutex_unlock (&td->fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
-      zfsd_mutex_lock (&network_pool.idle.mutex);
+      zfsd_mutex_lock (&network_pool.mutex);
       if (get_thread_state (t) == THREAD_BUSY)
 	{
 	  queue_put (&network_pool.idle, &t->index);
@@ -1196,10 +1196,10 @@ out:
 	  if (get_thread_state (t) != THREAD_DYING)
 	    abort ();
 #endif
-	  zfsd_mutex_unlock (&network_pool.idle.mutex);
+	  zfsd_mutex_unlock (&network_pool.mutex);
 	  break;
 	}
-      zfsd_mutex_unlock (&network_pool.idle.mutex);
+      zfsd_mutex_unlock (&network_pool.mutex);
     }
 
   pthread_cleanup_pop (1);
@@ -1282,7 +1282,7 @@ network_dispatch (fd_data_t *fd_data)
 	/* Dispatch request.  */
 	fd_data->busy++;
 
-	zfsd_mutex_lock (&network_pool.idle.mutex);
+	zfsd_mutex_lock (&network_pool.mutex);
 
 	/* Regulate the number of threads.  */
 	if (network_pool.idle.nelem == 0)
@@ -1305,7 +1305,7 @@ network_dispatch (fd_data_t *fd_data)
 	/* Let the thread run.  */
 	semaphore_up (&network_pool.threads[index].t.sem, 1);
 
-	zfsd_mutex_unlock (&network_pool.idle.mutex);
+	zfsd_mutex_unlock (&network_pool.mutex);
 	break;
 
       default:
