@@ -24,8 +24,8 @@
 #include "system.h"
 #include <stddef.h>
 #include <pthread.h>
+#include <rpc/rpc.h>
 #include "queue.h"
-#include "zfs_prot.h"
 
 /* State of the thread.  */
 typedef enum thread_state_def
