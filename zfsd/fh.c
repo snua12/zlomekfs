@@ -114,7 +114,7 @@ internal_fh_eq_name (const void *xx, const void *yy)
    and set *VOLP, *IFHP and VDP according to it.  */
 
 bool
-zfs_zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
+zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
   bool res;
 
