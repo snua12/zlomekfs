@@ -429,7 +429,6 @@ update_file (zfs_fh *fh)
   zfs_cap cap;
   int32_t r, r2;
   fattr attr;
-  int retry = 0;
 
   cap.fh = *fh;
   cap.flags = O_RDONLY;
@@ -462,7 +461,6 @@ update_file (zfs_fh *fh)
   if (r != ZFS_OK)
     goto out2;
 
-retry_remote_lookup:
   r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
@@ -470,13 +468,6 @@ retry_remote_lookup:
 #endif
 
   r = remote_getattr (&attr, dentry, vol);
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (fh);
-      if (r == ZFS_OK)
-	goto retry_remote_lookup;
-    }
   if (r != ZFS_OK)
     goto out2;
 

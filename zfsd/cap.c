@@ -370,6 +370,17 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
     zfsd_mutex_lock (&vd_mutex);
 
   r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (cap->fh))
+	abort ();
+#endif
+      r = refresh_fh (&cap->fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (cap->fh))
@@ -505,6 +516,17 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     CHECK_MUTEX_LOCKED (&vd_mutex);
 
   r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (cap->fh))
+	abort ();
+#endif
+      r = refresh_fh (&cap->fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+    }
   if (r != ZFS_OK)
     return r;
 

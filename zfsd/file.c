@@ -396,7 +396,6 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   metadata meta;
   int32_t r, r2;
   int fd;
-  int retry = 0;
 
   /* When O_CREAT is NOT set the function zfs_open is called.
      Force O_CREAT to be set here.  */
@@ -406,12 +405,21 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   if (r != ZFS_OK)
     return r;
 
-zfs_create_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -544,14 +552,6 @@ zfs_create_retry:
 
   internal_dentry_unlock (vol, idir);
 
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_create_retry;
-    }
-
   return r;
 }
 
@@ -641,7 +641,6 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   virtual_dir vd;
   zfs_cap tmp_cap, remote_cap;
   int32_t r, r2;
-  int retry = 0;
   bool remote_call = false;
 
   /* When O_CREAT is set the function zfs_create is called.
@@ -651,8 +650,6 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   r = validate_operation_on_zfs_fh (fh, (flags & O_ACCMODE) != O_RDONLY);
   if (r != ZFS_OK)
     return r;
-
-zfs_open_retry:
 
   cap->fh = *fh;
   cap->flags = flags & O_ACCMODE;
@@ -772,14 +769,6 @@ zfs_open_retry:
 
   internal_cap_unlock (vol, dentry, vd);
 
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (fh);
-      if (r == ZFS_OK)
-	goto zfs_open_retry;
-    }
-
   return r;
 }
 
@@ -794,13 +783,10 @@ zfs_close (zfs_cap *cap)
   virtual_dir vd;
   zfs_cap tmp_cap;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (&cap->fh, false);
   if (r != ZFS_OK)
     return r;
-
-zfs_close_retry:
 
   r = find_capability (cap, &icap, &vol, &dentry, &vd, true);
   if (r != ZFS_OK)
@@ -890,14 +876,6 @@ zfs_close_retry:
     put_capability (icap, dentry->fh, vd);
 
   internal_cap_unlock (vol, dentry, vd);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (&cap->fh);
-      if (r == ZFS_OK)
-	goto zfs_close_retry;
-    }
 
   return r;
 }
@@ -1470,7 +1448,6 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   readdir_data data;
   zfs_cap tmp_cap;
   int32_t r, r2;
-  int retry = 0;
 
 #ifdef ENABLE_CHECKING
   if (list->n != 0
@@ -1485,8 +1462,6 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   r = validate_operation_on_zfs_fh (&cap->fh, false);
   if (r != ZFS_OK)
     return r;
-
-zfs_readdir_retry:
 
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
@@ -1583,14 +1558,6 @@ zfs_readdir_retry:
 #endif
 
       internal_cap_unlock (vol, dentry, vd);
-    }
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (&cap->fh);
-      if (r == ZFS_OK)
-	goto zfs_readdir_retry;
     }
 
   return r;
@@ -1749,7 +1716,6 @@ zfs_read (uint32_t *rcount, void *buffer,
   internal_dentry dentry;
   zfs_cap tmp_cap;
   int32_t r, r2;
-  int retry = 0;
 
   if (count > ZFS_MAXDATA)
     return EINVAL;
@@ -1763,8 +1729,6 @@ zfs_read (uint32_t *rcount, void *buffer,
   r = validate_operation_on_zfs_fh (&cap->fh, true);
   if (r != ZFS_OK)
     return r;
-
-zfs_read_retry:
 
   r = find_capability (cap, &icap, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
@@ -1887,14 +1851,6 @@ zfs_read_retry:
 
   internal_cap_unlock (vol, dentry, NULL);
 
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (&cap->fh);
-      if (r == ZFS_OK)
-	goto zfs_read_retry;
-    }
-
   return r;
 }
 
@@ -2000,7 +1956,6 @@ zfs_write (write_res *res, write_args *args)
   internal_dentry dentry;
   zfs_cap tmp_cap;
   int32_t r, r2;
-  int retry = 0;
 
   if (args->data.len > ZFS_MAXDATA)
     return EINVAL;
@@ -2014,8 +1969,6 @@ zfs_write (write_res *res, write_args *args)
   r = validate_operation_on_zfs_fh (&args->cap.fh, true);
   if (r != ZFS_OK)
     return r;
-
-zfs_write_retry:
 
   r = find_capability (&args->cap, &icap, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
@@ -2132,14 +2085,6 @@ zfs_write_retry:
     }
 
   internal_cap_unlock (vol, dentry, NULL);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (&args->cap.fh);
-      if (r == ZFS_OK)
-	goto zfs_write_retry;
-    }
 
   return r;
 }
@@ -2517,13 +2462,10 @@ remote_md5sum (md5sum_res *res, md5sum_args *args)
   node nod;
   internal_cap icap;
   internal_dentry dentry;
-  int retry = 0;
   zfs_fh fh;
   thread *t;
   int32_t r;
   int fd;
-
-remote_md5sum_retry:
 
   r = find_capability (&args->cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -2572,14 +2514,6 @@ remote_md5sum_retry:
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (&fh);
-      if (r == ZFS_OK)
-	goto remote_md5sum_retry;
-    }
 
   return r;
 }

@@ -692,16 +692,20 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   virtual_dir vd;
   zfs_fh tmp_fh;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (fh, false);
   if (r != ZFS_OK)
     return r;
 
-zfs_getattr_retry:
-
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+    }
   if (r != ZFS_OK)
     return r;
 
@@ -762,14 +766,6 @@ zfs_getattr_retry:
     }
 
   internal_dentry_unlock (vol, dentry);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (fh);
-      if (r == ZFS_OK)
-	goto zfs_getattr_retry;
-    }
 
   return ZFS_OK;
 }
@@ -894,16 +890,20 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   virtual_dir vd;
   zfs_fh tmp_fh;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (fh, true);
   if (r != ZFS_OK)
     return r;
 
-zfs_setattr_retry:
-
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+    }
   if (r != ZFS_OK)
     return r;
 
@@ -955,14 +955,6 @@ zfs_setattr_retry:
     }
 
   internal_dentry_unlock (vol, dentry);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (fh);
-      if (r == ZFS_OK)
-	goto zfs_setattr_retry;
-    }
 
   return r;
 }
@@ -1089,18 +1081,26 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (dir, false);
   if (r != ZFS_OK)
     return r;
 
-zfs_lookup_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -1276,14 +1276,6 @@ zfs_lookup_retry:
 
   internal_dentry_unlock (vol, idir);
 
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_lookup_retry;
-    }
-
   return r;
 }
 
@@ -1390,18 +1382,26 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (dir, true);
   if (r != ZFS_OK)
     return r;
 
-zfs_mkdir_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -1483,14 +1483,6 @@ zfs_mkdir_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_mkdir_retry;
-    }
 
   return r;
 }
@@ -1585,18 +1577,26 @@ zfs_rmdir (zfs_fh *dir, string *name)
   char *path = NULL;
   zfs_fh tmp_fh;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (dir, true);
   if (r != ZFS_OK)
     return r;
 
-zfs_rmdir_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -1690,14 +1690,6 @@ zfs_rmdir_retry:
     free (path);
 
   internal_dentry_unlock (vol, idir);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_rmdir_retry;
-    }
 
   return r;
 }
@@ -1828,7 +1820,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   char *path = NULL;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (from_dir, true);
   if (r != ZFS_OK)
@@ -1842,6 +1833,17 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   if (VIRTUAL_FH_P (*to_dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*to_dir))
+	abort ();
+#endif
+      r = refresh_fh (to_dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*to_dir))
@@ -1875,6 +1877,17 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   if (VIRTUAL_FH_P (*from_dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*from_dir))
+	abort ();
+#endif
+      r = refresh_fh (from_dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*from_dir))
@@ -1910,7 +1923,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       || tmp_from.sid != tmp_to.sid)
     return EXDEV;
 
-zfs_rename_retry:
   /* Lookup dentries.  */
   r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
@@ -1924,7 +1936,7 @@ zfs_rename_retry:
 	  release_dentry (from_dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
-	  return ZFS_STALE;
+	  return ESTALE;
 	}
     }
   else
@@ -2077,16 +2089,6 @@ zfs_rename_retry:
 	internal_dentry_unlock (vol, from_dentry);
     }
 
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (from_dir);
-      if (r == ZFS_OK)
-	r = refresh_path (to_dir);
-      if (r == ZFS_OK)
-	goto zfs_rename_retry;
-    }
-
   return r;
 }
 
@@ -2178,7 +2180,6 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   virtual_dir vd;
   zfs_fh tmp_from, tmp_dir;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (from, true);
   if (r != ZFS_OK)
@@ -2193,6 +2194,13 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     return EPERM;
 
   r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (from);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
+    }
   if (r != ZFS_OK)
     return r;
 
@@ -2212,6 +2220,17 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2247,7 +2266,6 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       || tmp_from.sid != tmp_dir.sid)
     return EXDEV;
 
-zfs_link_retry:
   /* Lookup dentries.  */
   r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL, true);
   if (r != ZFS_OK)
@@ -2343,16 +2361,6 @@ zfs_link_retry:
 	internal_dentry_unlock (vol, from_dentry);
     }
 
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (from);
-      if (r == ZFS_OK)
-	r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_link_retry;
-    }
-
   return r;
 }
 
@@ -2446,18 +2454,26 @@ zfs_unlink (zfs_fh *dir, string *name)
   char *path = NULL;
   zfs_fh tmp_fh;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (dir, true);
   if (r != ZFS_OK)
     return r;
 
-zfs_unlink_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2551,14 +2567,6 @@ zfs_unlink_retry:
     free (path);
 
   internal_dentry_unlock (vol, idir);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_unlink_retry;
-    }
 
   return r;
 }
@@ -2688,7 +2696,6 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   internal_dentry dentry;
   zfs_fh tmp_fh;
   int32_t r, r2;
-  int retry = 0;
 
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
@@ -2697,10 +2704,15 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   if (r != ZFS_OK)
     return r;
 
-zfs_readlink_retry:
-
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+    }
   if (r != ZFS_OK)
     return r;
 
@@ -2725,14 +2737,6 @@ zfs_readlink_retry:
 #endif
 
   internal_dentry_unlock (vol, dentry);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (fh);
-      if (r == ZFS_OK)
-	goto zfs_readlink_retry;
-    }
 
   return r;
 }
@@ -2842,18 +2846,26 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (dir, true);
   if (r != ZFS_OK)
     return r;
 
-zfs_symlink_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -2936,14 +2948,6 @@ zfs_symlink_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_symlink_retry;
-    }
 
   return r;
 }
@@ -3057,18 +3061,26 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
-  int retry = 0;
 
   r = validate_operation_on_zfs_fh (dir, true);
   if (r != ZFS_OK)
     return r;
 
-zfs_mknod_retry:
-
   /* Lookup DIR.  */
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+  if (r == ZFS_STALE)
+    {
+#ifdef ENABLE_CHECKING
+      if (VIRTUAL_FH_P (*dir))
+	abort ();
+#endif
+      r = refresh_fh (dir);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
+    }
   if (r != ZFS_OK)
     {
       if (VIRTUAL_FH_P (*dir))
@@ -3150,14 +3162,6 @@ zfs_mknod_retry:
     }
 
   internal_dentry_unlock (vol, idir);
-
-  if (r == ZFS_STALE && retry < 1)
-    {
-      retry++;
-      r = refresh_path (dir);
-      if (r == ZFS_OK)
-	goto zfs_mknod_retry;
-    }
 
   return r;
 }
@@ -3389,7 +3393,6 @@ refresh_master_fh (zfs_fh *fh)
   volume vol;
   internal_dentry dentry;
   int32_t r, r2;
-  int retry = 0;
 
 #ifdef ENABLE_CHECKING
   if (VIRTUAL_FH_P (*fh))
@@ -3423,7 +3426,6 @@ refresh_master_fh (zfs_fh *fh)
 	  if (r != ZFS_OK)
 	    return r;
 
-retry_lookup:
 	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
@@ -3438,15 +3440,6 @@ retry_lookup:
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&fh_mutex);
 	  r = remote_lookup (&res, parent, &s, vol);
-
-	  if (r == ZFS_STALE && retry < 1)
-	    {
-	      retry++;
-	      r = refresh_path (&parent_fh);
-	      if (r == ZFS_OK)
-		goto retry_lookup;
-	    }
-
 	  if (r != ZFS_OK)
 	    return r;
 
