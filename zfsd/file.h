@@ -1,4 +1,4 @@
-/* File operations.
+/*! File operations.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -37,7 +37,7 @@
 #include "fibheap.h"
 #include "metadata.h"
 
-/* Data for file descriptor.  */
+/*! Data for file descriptor.  */
 typedef struct internal_fd_data_def
 {
   pthread_mutex_t mutex;
@@ -46,21 +46,21 @@ typedef struct internal_fd_data_def
   fibnode heap_node;		/* node of heap whose data is this structure  */
 } internal_fd_data_t;
 
-/* Data for supplementary functions of readdir.  */
+/*! Data for supplementary functions of readdir.  */
 typedef struct readdir_data_def
 {
   uint32_t written;
   uint32_t count;
 } readdir_data;
 
-/* Structure holding entries for filldir_htab.  */
+/*! Structure holding entries for filldir_htab.  */
 typedef struct filldir_htab_entries_def
 {
   htab_t htab;
   int32_t last_cookie;
 } filldir_htab_entries;
 
-/* Function called to add one directory entry to list.  */
+/*! Function called to add one directory entry to list.  */
 typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
 			   uint32_t name_len, dir_list *list,
 			   readdir_data *data);

@@ -1,4 +1,4 @@
-/* Wrappers for pthread_* functions and related data.
+/*! Wrappers for pthread_* functions and related data.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -25,13 +25,13 @@
 #include <pthread.h>
 #include <string.h>
 
-/* Static mutex initializer.  */
+/*! Static mutex initializer.  */
 extern pthread_mutex_t zfsd_mutex_initializer;
 
 #define zfsd_mutex_init(M) ((*(M) = zfsd_mutex_initializer), 0)
 #define zfsd_cond_init(C) pthread_cond_init (C, NULL)
 
-/* Macros for debugging synchonization primitives.  */
+/*! Macros for debugging synchonization primitives.  */
 #if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007)
 
 #include <stdio.h>
@@ -143,7 +143,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
       }									\
     0; })
 
-/* Check whether the mutex M is locked.  */
+/*! Check whether the mutex M is locked.  */
 #define CHECK_MUTEX_LOCKED(M)						\
   do {									\
     if (M)								\
@@ -159,7 +159,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
       }									\
   } while (0)
 
-/* Check whether the mutex M is NOT locked by current thread.  */
+/*! Check whether the mutex M is NOT locked by current thread.  */
 #define CHECK_MUTEX_UNLOCKED(M)						\
   do {									\
     if (M)								\

@@ -1,4 +1,4 @@
-/* Cyclic queue datatype.
+/*! Cyclic queue datatype.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -25,7 +25,7 @@
 #include "log.h"
 #include "memory.h"
 
-/* Initialize queue Q to be a queue with elements of size SIZE.
+/*! Initialize queue Q to be a queue with elements of size SIZE.
    Alloc queue nodes in chunks of NUM nodes.  */
 
 void
@@ -49,7 +49,7 @@ queue_create (queue *q, size_t size, size_t num, pthread_mutex_t *mutex)
   q->exiting = false;
 }
 
-/* Destroy the queue Q.  */
+/*! Destroy the queue Q.  */
 
 void
 queue_destroy (queue *q)
@@ -65,7 +65,7 @@ queue_destroy (queue *q)
   zfsd_cond_destroy (&q->non_empty);
 }
 
-/* Put an element ELEM to the queue Q.  */
+/*! Put an element ELEM to the queue Q.  */
 
 void
 queue_put (queue *q, void *elem)
@@ -97,7 +97,7 @@ queue_put (queue *q, void *elem)
   zfsd_cond_signal (&q->non_empty);
 }
 
-/* Get an element from the queue Q and store it to ELEM.  */
+/*! Get an element from the queue Q and store it to ELEM.  */
 
 bool
 queue_get (queue *q, void *elem)
@@ -134,7 +134,7 @@ queue_get (queue *q, void *elem)
   return true;
 }
 
-/* Tell the queue we are exiting, i.e. wake up threads waiting for an element
+/*! Tell the queue we are exiting, i.e. wake up threads waiting for an element
    to be added to the queue.  */
 
 void

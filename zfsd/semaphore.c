@@ -1,4 +1,4 @@
-/* Semaphore functions.
+/*! Semaphore functions.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -22,7 +22,7 @@
 #include "pthread.h"
 #include "semaphore.h"
 
-/* Initialize semaphore SEM and set its value to N.  */
+/*! Initialize semaphore SEM and set its value to N.  */
 
 int
 semaphore_init (semaphore *sem, unsigned int n)
@@ -44,7 +44,7 @@ semaphore_init (semaphore *sem, unsigned int n)
   return 0;
 }
 
-/* Destroy semaphore SEM.  */
+/*! Destroy semaphore SEM.  */
 
 int
 semaphore_destroy (semaphore *sem)
@@ -59,7 +59,7 @@ semaphore_destroy (semaphore *sem)
   return r;
 }
 
-/* Increase semaphore SEM by N.  */
+/*! Increase semaphore SEM by N.  */
 
 int
 semaphore_up (semaphore *sem, unsigned int n)
@@ -72,7 +72,7 @@ semaphore_up (semaphore *sem, unsigned int n)
   return 0;
 }
 
-/* Decrease semaphore SEM by N.  */
+/*! Decrease semaphore SEM by N.  */
 
 int
 semaphore_down (semaphore *sem, unsigned int n)

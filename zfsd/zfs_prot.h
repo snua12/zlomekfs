@@ -1,4 +1,4 @@
-/* ZFS protocol.
+/*! ZFS protocol.
    Copyright (C) 2003, 2004 Josef Zlomek
    Copyright (C) 2004 Martin Zlomek
 
@@ -42,7 +42,7 @@
 #define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (MD5_SIZE + 2 * sizeof (uint64_t)))
 #define ZFS_MAX_DIR_ENTRIES (ZFS_MAXDATA / (4 * sizeof (uint32_t)))
 
-/* Error codes.
+/*! Error codes.
    System errors have positive numbers, ZFS errors have negative numbers.  */
 #define ZFS_OK			0
 #define ZFS_REQUEST_TOO_LONG	-1	/* Request was too long.  */
@@ -105,7 +105,7 @@ typedef enum ftype_def
   FT_LAST_AND_UNUSED
 } ftype;
 
-/* Connection speed.  */
+/*! Connection speed.  */
 typedef enum connection_speed_def
 {
   CONNECTION_SPEED_NONE = 0,
@@ -417,10 +417,10 @@ typedef union call_args_def
   reintegrate_args reintegrate;
 } call_args;
 
-/* Mapping file type -> file mode.  */
+/*! Mapping file type -> file mode.  */
 extern unsigned int ftype2mode[FT_LAST_AND_UNUSED];
 
-/* Function numbers.  */
+/*! Function numbers.  */
 enum function_number_def
 {
 #define ZFS_CALL_CLIENT
@@ -489,7 +489,7 @@ struct node_def;
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_KERNEL
 
-/* Call statistics.  */
+/*! Call statistics.  */
 #define CALL_FROM_KERNEL	0
 #define CALL_FROM_NETWORK	1
 extern uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];

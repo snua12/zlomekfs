@@ -1,4 +1,4 @@
-/* Functions to support a pool of allocatable objects.
+/*! Functions to support a pool of allocatable objects.
    Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003
    Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
@@ -34,7 +34,7 @@
 #define align_four(x) (((x+3) >> 2) << 2)
 #define align_eight(x) (((x+7) >> 3) << 3)
 
-/* The internal allocation object.  */
+/*! The internal allocation object.  */
 typedef struct allocation_object_def
 {
 #ifdef ENABLE_CHECKING
@@ -59,23 +59,23 @@ typedef struct allocation_object_def
     } u;
 } allocation_object;
 
-/* Offset of user data in the allocation object.  */
+/*! Offset of user data in the allocation object.  */
 #define DATA_OFFSET (offsetof (allocation_object, u.data))
 
-/* Convert a pointer to allocation_object from a pointer to user data.  */
+/*! Convert a pointer to allocation_object from a pointer to user data.  */
 #define ALLOCATION_OBJECT_PTR_FROM_USER_PTR(X)				\
    ((allocation_object *) (((char *) (X)) - DATA_OFFSET))
 
-/* Convert a pointer to user data from a pointer to allocation_object.  */
+/*! Convert a pointer to user data from a pointer to allocation_object.  */
 #define USER_PTR_FROM_ALLOCATION_OBJECT_PTR(X)				\
    ((void *) (((allocation_object *) (X))->u.data))
 
 #ifdef ENABLE_CHECKING
-/* Last used ID.  */
+/*! Last used ID.  */
 static ALLOC_POOL_ID_TYPE last_id;
 #endif
 
-/* Create a pool of things of size SIZE, with NUM in each block we
+/*! Create a pool of things of size SIZE, with NUM in each block we
    allocate.  */
 
 alloc_pool
@@ -129,7 +129,7 @@ create_alloc_pool (const char *name, size_t size, size_t num,
   return (pool);
 }
 
-/* Free all memory allocated for the given memory pool.  */
+/*! Free all memory allocated for the given memory pool.  */
 void
 free_alloc_pool (alloc_pool pool)
 {
@@ -152,7 +152,7 @@ free_alloc_pool (alloc_pool pool)
   free (pool);
 }
 
-/* Allocates one element from the pool specified.  */
+/*! Allocates one element from the pool specified.  */
 void *
 pool_alloc (alloc_pool pool)
 {
@@ -221,7 +221,7 @@ pool_alloc (alloc_pool pool)
   return ((void *) header);
 }
 
-/* Puts PTR back on POOL's free list.  */
+/*! Puts PTR back on POOL's free list.  */
 void
 pool_free (alloc_pool pool, void *ptr)
 {

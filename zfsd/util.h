@@ -1,4 +1,4 @@
-/* Helper functions.
+/*! Helper functions.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.

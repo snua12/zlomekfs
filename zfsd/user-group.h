@@ -1,4 +1,4 @@
-/* User and group functions.
+/*! User and group functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -26,7 +26,7 @@
 #include "hashtab.h"
 #include "node.h"
 
-/* Description of ZFS user.  */
+/*! Description of ZFS user.  */
 typedef struct user_def
 {
   uint32_t id;			/* user ID */
@@ -34,7 +34,7 @@ typedef struct user_def
   bool marked;			/* Is the user marked?  */
 } *user_t;
 
-/* Description of ZFS group.  */
+/*! Description of ZFS group.  */
 typedef struct group_def
 {
   uint32_t id;			/* group ID */
@@ -42,7 +42,7 @@ typedef struct group_def
   bool marked;			/* Is the group marked?  */
 } *group_t;
 
-/* Structure describing mapping between ZFS user/group ID
+/*! Structure describing mapping between ZFS user/group ID
    and node user/group ID.  */
 typedef struct id_mapping_def
 {
@@ -51,18 +51,18 @@ typedef struct id_mapping_def
   bool marked;			/* Is the id mapping marked?  */
 } *id_mapping;
 
-/* ID of default ZFS user/group.  */
+/*! ID of default ZFS user/group.  */
 #define DEFAULT_ZFS_UID ((uint32_t) -2)
 #define DEFAULT_ZFS_GID ((uint32_t) -2)
 
-/* Mutex protecting hash tables users_*, groups_*, map_*.  */
+/*! Mutex protecting hash tables users_*, groups_*, map_*.  */
 extern pthread_mutex_t users_groups_mutex;
 
-/* ID of default node user/group.  */
+/*! ID of default node user/group.  */
 extern uint32_t default_node_uid;
 extern uint32_t default_node_gid;
 
-/* Hash functions for user/group ID mapping.  */
+/*! Hash functions for user/group ID mapping.  */
 #define MAP_ID_HASH(UID) (UID)
 
 extern user_t user_create (uint32_t id, string *name);

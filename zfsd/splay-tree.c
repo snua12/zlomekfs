@@ -1,4 +1,4 @@
-/* A splay-tree datatype.
+/*! A splay-tree datatype.
    Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
@@ -22,7 +22,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-/* For an easily readable description of splay-trees, see:
+/*! For an easily readable description of splay-trees, see:
 
      Lewis, Harry R. and Denenberg, Larry.  Data Structures and Their
      Algorithms.  Harper-Collins, Inc.  1991.  */
@@ -44,7 +44,7 @@ static splay_tree_node splay_tree_splay_helper (splay_tree, splay_tree_key,
 static int splay_tree_foreach_helper (splay_tree, splay_tree_node,
 				      splay_tree_foreach_fn, void *);
 
-/* Deallocate NODE (a member of SP), and all its sub-trees.  */
+/*! Deallocate NODE (a member of SP), and all its sub-trees.  */
 
 static void
 splay_tree_destroy_helper (splay_tree sp, splay_tree_node node)
@@ -60,7 +60,7 @@ splay_tree_destroy_helper (splay_tree sp, splay_tree_node node)
   pool_free (sp->pool, node);
 }
 
-/* Help splay SP around KEY.  PARENT and GRANDPARENT are the parent
+/*! Help splay SP around KEY.  PARENT and GRANDPARENT are the parent
    and grandparent, respectively, of NODE.  */
 
 static splay_tree_node
@@ -166,7 +166,7 @@ splay_tree_splay_helper (splay_tree sp, splay_tree_key key,
     }
 }
 
-/* Splay SP around KEY.  */
+/*! Splay SP around KEY.  */
 
 static void
 splay_tree_splay (splay_tree sp, splay_tree_key key)
@@ -178,7 +178,7 @@ splay_tree_splay (splay_tree sp, splay_tree_key key)
 			   /* grandparent = */ NULL, /* parent = */ NULL);
 }
 
-/* Call FN, passing it the DATA, for every node below NODE, all of
+/*! Call FN, passing it the DATA, for every node below NODE, all of
    which are from SP, following an in-order traversal.  If FN every
    returns a non-zero value, the iteration ceases immediately, and the
    value is returned.  Otherwise, this function returns 0.  */
@@ -206,7 +206,7 @@ splay_tree_foreach_helper (splay_tree sp, splay_tree_node node,
   return 0;
 }
 
-/* Create a new splay tree, using DELETE_VALUE_FN to deallocate
+/*! Create a new splay tree, using DELETE_VALUE_FN to deallocate
    values.  */
 
 splay_tree
@@ -224,7 +224,7 @@ splay_tree_create (unsigned preferred_size,
   return sp;
 }
 
-/* Deallocate SP.  */
+/*! Deallocate SP.  */
 
 void
 splay_tree_destroy (splay_tree sp)
@@ -237,7 +237,7 @@ splay_tree_destroy (splay_tree sp)
   free (sp);
 }
 
-/* Empty SP.  */
+/*! Empty SP.  */
 
 void
 splay_tree_empty (splay_tree sp)
@@ -249,7 +249,7 @@ splay_tree_empty (splay_tree sp)
   sp->root = NULL;
 }
 
-/* Insert a new node (associating KEY with DATA) into SP.  If a
+/*! Insert a new node (associating KEY with DATA) into SP.  If a
    previous node with the indicated KEY exists, its data is replaced
    with the new value.  Returns the new node.  */
 
@@ -298,7 +298,7 @@ splay_tree_insert (splay_tree sp, splay_tree_key key, splay_tree_value value)
   return sp->root;
 }
 
-/* Delete KEY from SP.  It is not an error if it did not exist.  */
+/*! Delete KEY from SP.  It is not an error if it did not exist.  */
 
 void
 splay_tree_delete (splay_tree sp, splay_tree_key key)
@@ -339,7 +339,7 @@ splay_tree_delete (splay_tree sp, splay_tree_key key)
     }
 }
 
-/* Lookup KEY in SP, returning VALUE if present, and NULL
+/*! Lookup KEY in SP, returning VALUE if present, and NULL
    otherwise.  */
 
 splay_tree_node
@@ -355,7 +355,7 @@ splay_tree_lookup (splay_tree sp, splay_tree_key key)
     return NULL;
 }
 
-/* Return the node in SP with the greatest key.  */
+/*! Return the node in SP with the greatest key.  */
 
 splay_tree_node
 splay_tree_max (splay_tree sp)
@@ -373,7 +373,7 @@ splay_tree_max (splay_tree sp)
   return n;
 }
 
-/* Return the node in SP with the smallest key.  */
+/*! Return the node in SP with the smallest key.  */
 
 splay_tree_node
 splay_tree_min (splay_tree sp)
@@ -391,7 +391,7 @@ splay_tree_min (splay_tree sp)
   return n;
 }
 
-/* Return the immediate predecessor KEY, or NULL if there is no
+/*! Return the immediate predecessor KEY, or NULL if there is no
    predecessor.  KEY need not be present in the tree.  */
 
 splay_tree_node
@@ -422,7 +422,7 @@ splay_tree_predecessor (splay_tree sp, splay_tree_key key)
   return node;
 }
 
-/* Return the immediate successor KEY, or NULL if there is no
+/*! Return the immediate successor KEY, or NULL if there is no
    successor.  KEY need not be present in the tree.  */
 
 splay_tree_node
@@ -453,7 +453,7 @@ splay_tree_successor (splay_tree sp, splay_tree_key key)
   return node;
 }
 
-/* Call FN, passing it the DATA, for every node in SP, following an
+/*! Call FN, passing it the DATA, for every node in SP, following an
    in-order traversal.  If FN every returns a non-zero value, the
    iteration ceases immediately, and the value is returned.
    Otherwise, this function returns 0.  */
@@ -469,7 +469,7 @@ splay_tree_foreach (splay_tree sp, splay_tree_foreach_fn fn, void *data)
   return 0;
 }
 
-/* Print the key and value in NODE to file DATA.  */
+/*! Print the key and value in NODE to file DATA.  */
 static int
 print_splay_tree_node (splay_tree_node node, void *data)
 {
@@ -483,7 +483,7 @@ print_splay_tree_node (splay_tree_node node, void *data)
   return 0;
 }
 
-/* Print the contents of interval tree TREE to file F.  */
+/*! Print the contents of interval tree TREE to file F.  */
 
 void
 print_splay_tree (FILE *f, splay_tree tree)
@@ -491,7 +491,7 @@ print_splay_tree (FILE *f, splay_tree tree)
   splay_tree_foreach (tree, print_splay_tree_node, f);
 }
 
-/* Print the contents of interval tree TREE to STDERR.  */
+/*! Print the contents of interval tree TREE to STDERR.  */
 
 void
 debug_splay_tree (splay_tree tree)

@@ -1,4 +1,4 @@
-/* Definitions for 32-bit CRC.
+/*! Definitions for 32-bit CRC.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -27,7 +27,7 @@
 #define CRC32_NEXT(CRC, STR)					\
    (crc32_table[((CRC) ^ *(STR)++) & 0xff] ^ ((CRC) >> 8))
 
-/* Table used for computing 32-bit CRC.  */
+/*! Table used for computing 32-bit CRC.  */
 extern const unsigned int crc32_table[256];
 
 extern unsigned int crc32_update (unsigned int crc, const void *buf, size_t len);

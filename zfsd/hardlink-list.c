@@ -1,4 +1,4 @@
-/* Datatype for list of hardlinks.
+/*! Datatype for list of hardlinks.
    Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -28,13 +28,13 @@
 #include "crc32.h"
 #include "alloc-pool.h"
 
-/* Alloc pool of hardlink_list_entry.  */
+/*! Alloc pool of hardlink_list_entry.  */
 static alloc_pool hardlink_list_pool;
 
-/* Mutex protecting hardlink_list_pool.  */
+/*! Mutex protecting hardlink_list_pool.  */
 static pthread_mutex_t hardlink_list_mutex;
 
-/* Return hash value for hardlink X.  */
+/*! Return hash value for hardlink X.  */
 
 static hash_t
 hardlink_list_hash (const void *x)
@@ -42,7 +42,7 @@ hardlink_list_hash (const void *x)
   return HARDLINK_LIST_HASH ((const hardlink_list_entry) x);
 }
 
-/* Compare hardlinks X and Y.  */
+/*! Compare hardlinks X and Y.  */
 
 static int
 hardlink_list_eq (const void *x, const void *y)
@@ -56,7 +56,7 @@ hardlink_list_eq (const void *x, const void *y)
 	  && strcmp (h1->name.str, h2->name.str) == 0);
 }
 
-/* Create a new hardlink list with initial NELEM elements.  */
+/*! Create a new hardlink list with initial NELEM elements.  */
 
 hardlink_list
 hardlink_list_create (unsigned int nelem, pthread_mutex_t *mutex)
@@ -73,7 +73,7 @@ hardlink_list_create (unsigned int nelem, pthread_mutex_t *mutex)
   return hl;
 }
 
-/* Empty the hardlink list HL.  */
+/*! Empty the hardlink list HL.  */
 
 void
 hardlink_list_empty (hardlink_list hl)
@@ -96,7 +96,7 @@ hardlink_list_empty (hardlink_list hl)
   htab_empty (hl->htab);
 }
 
-/* Destroy hardlink list HL.  */
+/*! Destroy hardlink list HL.  */
 
 void
 hardlink_list_destroy (hardlink_list hl)
@@ -118,7 +118,7 @@ hardlink_list_destroy (hardlink_list hl)
   free (hl);
 }
 
-/* Insert hardlink [PARENT_DEV, PARENT_INO, NAME] to hardlink list HL.
+/*! Insert hardlink [PARENT_DEV, PARENT_INO, NAME] to hardlink list HL.
    If COPY is true make a copy of the NAME.
    Return true if it was really inserted.  */
 
@@ -170,7 +170,7 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
   return true;
 }
 
-/* Return true if hardlink [PARENT_DEV, PARENT_INO, NAME] is a member
+/*! Return true if hardlink [PARENT_DEV, PARENT_INO, NAME] is a member
    of hardlink list HL.  */
 
 bool
@@ -188,7 +188,7 @@ hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 	  != NULL);
 }
 
-/* Delete hardlink [PARENT_DEV, PARENT_INO, NAME] from hardlink list HL.
+/*! Delete hardlink [PARENT_DEV, PARENT_INO, NAME] from hardlink list HL.
    Return true if it was really deleted.  */
 
 bool
@@ -228,7 +228,7 @@ hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
   return true;
 }
 
-/* Delete hardlink list entry ENTRY from hardlink list HL.
+/*! Delete hardlink list entry ENTRY from hardlink list HL.
    Return true if it was really deleted.  */
 
 bool
@@ -261,7 +261,7 @@ hardlink_list_delete_entry (hardlink_list hl, hardlink_list_entry entry)
   return true;
 }
 
-/* Return the length of hardlink list HL, i.e. the number of entries.  */
+/*! Return the length of hardlink list HL, i.e. the number of entries.  */
 
 unsigned int
 hardlink_list_length (hardlink_list hl)
@@ -271,7 +271,7 @@ hardlink_list_length (hardlink_list hl)
   return hl->htab->n_elements - hl->htab->n_deleted;
 }
 
-/* Print the hardlink list HL to file F.  */
+/*! Print the hardlink list HL to file F.  */
 
 void
 print_hardlink_list (FILE *f, hardlink_list hl)
@@ -285,7 +285,7 @@ print_hardlink_list (FILE *f, hardlink_list hl)
     }
 }
 
-/* Print the hardlink list HL to STDERR.  */
+/*! Print the hardlink list HL to STDERR.  */
 
 void
 debug_hardlink_list (hardlink_list hl)
@@ -293,7 +293,7 @@ debug_hardlink_list (hardlink_list hl)
   print_hardlink_list (stderr, hl);
 }
 
-/* Initialize data structures in HARDLINK-LIST.C.  */
+/*! Initialize data structures in HARDLINK-LIST.C.  */
 
 void
 initialize_hardlink_list_c (void)
@@ -305,7 +305,7 @@ initialize_hardlink_list_c (void)
 			 1020, &hardlink_list_mutex);
 }
 
-/* Destroy data structures in HARDLINK-LIST.C.  */
+/*! Destroy data structures in HARDLINK-LIST.C.  */
 
 void
 cleanup_hardlink_list_c (void)

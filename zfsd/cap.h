@@ -1,4 +1,4 @@
-/* Capability functions.
+/*! Capability functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -27,13 +27,13 @@
 #include "pthread.h"
 #include "zfs_prot.h"
 
-/* Number of random bytes used to compute VERIFY.  */
+/*! Number of random bytes used to compute VERIFY.  */
 #define CAP_RANDOM_LEN 16
 
-/* Mark the ZFS capability CAP to be undefined.  */
+/*! Mark the ZFS capability CAP to be undefined.  */
 #define zfs_cap_undefine(CAP) ((CAP).flags = UINT32_MAX)
 
-/* Return true if the ZFS capability CAP is undefined.  */
+/*! Return true if the ZFS capability CAP is undefined.  */
 #define zfs_cap_undefined(CAP) ((CAP).flags == UINT32_MAX)
 
 typedef struct internal_cap_def *internal_cap;

@@ -1,4 +1,4 @@
-/* Node functions.
+/*! Node functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -27,7 +27,7 @@
 #include "pthread.h"
 #include "hashtab.h"
 
-/* Node description.  */
+/*! Node description.  */
 typedef struct node_def
 {
 #ifdef ENABLE_CHECKING
@@ -51,29 +51,29 @@ typedef struct node_def
   htab_t map_gid_to_zfs;
 } *node;
 
-/* Predefined node IDs.  */
+/*! Predefined node IDs.  */
 #define NODE_NONE 0		/* ID for non-existing node, used as SID
 				   in file handle of virtual directory.  */
 
-/* Mutex for table of nodes.  */
+/*! Mutex for table of nodes.  */
 extern pthread_mutex_t node_mutex;
 
-/* ID of this node.  */
+/*! ID of this node.  */
 extern uint32_t this_node_id;
 
-/* The name of local node.  */
+/*! The name of local node.  */
 extern string node_name;
 
-/* Description of local node.  */
+/*! Description of local node.  */
 extern node this_node;
 
-/* Hash function for node name.  */
+/*! Hash function for node name.  */
 #define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
 
-/* Hash function for node NODE, computed from its name.  */
+/*! Hash function for node NODE, computed from its name.  */
 #define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
 
-/* Function prototypes.  */
+/*! Function prototypes.  */
 extern hash_t node_hash_name (const void *x);
 extern int node_eq_name (const void *x, const void *y);
 extern node node_lookup (uint32_t id);

@@ -1,4 +1,4 @@
-/* Logging functions.
+/*! Logging functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -30,13 +30,13 @@
 
 #ifdef ENABLE_CHECKING
 
-/* Print which function we are in with additional information.  */
+/*! Print which function we are in with additional information.  */
 #define TRACE(format, ...) message (4, stderr,				       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
 
-/* Print the function name and return value.  */
+/*! Print the function name and return value.  */
 #define RETURN_INT(RETVAL)						\
   do {									\
     int32_t _r = (int32_t) (RETVAL);					\
@@ -73,16 +73,16 @@
 
 #endif
 
-/* Level of verbosity.  Higher number means more messages.  */
+/*! Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
 
-/* Print message to F if LEVEL > VERBOSE.  */
+/*! Print message to F if LEVEL > VERBOSE.  */
 extern void message (int level, FILE *f, char *format, ...) ATTRIBUTE_PRINTF_3;
 
-/* Report an internal error.  */
+/*! Report an internal error.  */
 extern void internal_error (char *format, ...) ATTRIBUTE_NORETURN;
 
-/* Report an "Aborted" internal error.  */
+/*! Report an "Aborted" internal error.  */
 extern void verbose_abort (const char *file, int line) ATTRIBUTE_NORETURN;
 
 #endif

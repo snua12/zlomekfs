@@ -1,4 +1,4 @@
-/* Datatype for list of hardlinks.
+/*! Datatype for list of hardlinks.
    Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -29,13 +29,13 @@
 #include "hashtab.h"
 #include "crc32.h"
 
-/* Hash function for hardlink list entry H.  */
+/*! Hash function for hardlink list entry H.  */
 #define HARDLINK_LIST_HASH(H)						    \
   (crc32_update (crc32_update (crc32_buffer ((H)->name.str, (H)->name.len), \
 		 &(H)->parent_dev, sizeof (uint32_t)),			    \
    &(H)->parent_ino, sizeof (uint32_t)))
 
-/* Entry of a hardlink list.  */
+/*! Entry of a hardlink list.  */
 typedef struct hardlink_list_entry_def *hardlink_list_entry;
 struct hardlink_list_entry_def
 {
@@ -53,7 +53,7 @@ struct hardlink_list_entry_def
   string name;
 };
 
-/* Definition of the hashed variable-sized array.  */
+/*! Definition of the hashed variable-sized array.  */
 typedef struct hardlink_list_def
 {
   /* Hash table.  */

@@ -1,4 +1,4 @@
-/* Helper functions.
+/*! Helper functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -29,7 +29,7 @@
 #include "pthread.h"
 #include "log.h"
 
-/* Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  */
+/*! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  */
 
 void
 print_hex_buffer (char *buf, unsigned int len, FILE *f)
@@ -50,7 +50,7 @@ print_hex_buffer (char *buf, unsigned int len, FILE *f)
   fprintf (f, "\n");
 }
 
-/* Read LEN bytes from file descriptor FD to buffer BUF.  */
+/*! Read LEN bytes from file descriptor FD to buffer BUF.  */
 
 bool
 full_read (int fd, void *buf, size_t len)
@@ -79,7 +79,7 @@ full_read (int fd, void *buf, size_t len)
   return true;
 }
 
-/* Write LEN bytes from buffer BUF to file descriptor FD.  */
+/*! Write LEN bytes from buffer BUF to file descriptor FD.  */
 
 bool
 full_write (int fd, void *buf, size_t len)
@@ -108,7 +108,7 @@ full_write (int fd, void *buf, size_t len)
   return true;
 }
 
-/* Create a full path PATH with access rights MODE (similarly as "mkdir -p path"
+/*! Create a full path PATH with access rights MODE (similarly as "mkdir -p path"
    does).  Return true if PATH exists at the end of this function.  */
 
 bool
@@ -169,7 +169,7 @@ full_mkdir (char *path, unsigned int mode)
   return false;
 }
 
-/* Return true if all LEN bytes of buffer P are equal to BYTE.  */
+/*! Return true if all LEN bytes of buffer P are equal to BYTE.  */
 
 bool
 bytecmp (const void *p, int byte, size_t len)

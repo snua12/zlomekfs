@@ -1,4 +1,4 @@
-/* Journal datatype.
+/*! Journal datatype.
    Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -30,12 +30,12 @@
 #include "crc32.h"
 #include "zfs_prot.h"
 
-/* Hash function for journal entry J.  */
+/*! Hash function for journal entry J.  */
 #define JOURNAL_HASH(J)							\
   (crc32_update (crc32_buffer ((J)->name.str, (J)->name.len),		\
 		 &(J)->oper, sizeof ((J)->oper)))
 
-/* Operation stored to journal.  */
+/*! Operation stored to journal.  */
 typedef enum journal_operation_def
 {
   JOURNAL_OPERATION_ADD,		/* add directory entry */
@@ -43,7 +43,7 @@ typedef enum journal_operation_def
   JOURNAL_OPERATION_LAST_AND_UNUSED
 } journal_operation_t;
 
-/* Journal entry.  */
+/*! Journal entry.  */
 typedef struct journal_entry_def *journal_entry;
 struct journal_entry_def
 {
@@ -59,7 +59,7 @@ struct journal_entry_def
   uint64_t master_version;	/* master version of the file */
 };
 
-/* Definition of journal datatype.  */
+/*! Definition of journal datatype.  */
 typedef struct journal_def
 {
   /* Hash table.  */

@@ -1,4 +1,4 @@
-/* Configuration.
+/*! Configuration.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -29,13 +29,13 @@
 #include "thread.h"
 #include "fh.h"
 
-/* Data for config reader thread.  */
+/*! Data for config reader thread.  */
 extern thread config_reader_data;
 
-/* File used to communicate with kernel.  */
+/*! File used to communicate with kernel.  */
 extern string kernel_file_name;
 
-/* Node which the local node should fetch the global configuration from.  */
+/*! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
 
 extern void set_default_uid_gid (void);

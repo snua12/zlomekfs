@@ -1,4 +1,4 @@
-/* File handle functions.
+/*! File handle functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -21,7 +21,7 @@
 #ifndef FH_H
 #define FH_H
 
-/* Forward declaration.  */
+/*! Forward declaration.  */
 typedef struct volume_def *volume;
 
 #include "system.h"
@@ -44,33 +44,33 @@ typedef struct volume_def *volume;
 				   directories */
 #define ROOT_INODE 1		/* Inode number of the root dir of ZFS */
 
-/* Maximal number of file handles locked by one thread.  */
+/*! Maximal number of file handles locked by one thread.  */
 #define MAX_LOCKED_FILE_HANDLES 2
 
-/* Is the FH virtual?  */
+/*! Is the FH virtual?  */
 #define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL			\
 			  && (FH).sid == NODE_NONE)
 
-/* Is FH a file handle of non-existing file represented as a symlink
+/*! Is FH a file handle of non-existing file represented as a symlink
    to existing file in case of exist-non_exist conflict?  */
 #define NON_EXIST_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL		\
 			    && (FH).sid != NODE_NONE)
 
-/* Is FH a conflict directroy?  */
+/*! Is FH a conflict directroy?  */
 #define CONFLICT_DIR_P(FH) ((FH).sid == NODE_NONE			\
 			    && (FH).vid != VOLUME_ID_VIRTUAL)
 
-/* Is FH a regular file handle, i.e. not special file handle?  */
+/*! Is FH a regular file handle, i.e. not special file handle?  */
 #define REGULAR_FH_P(FH) ((FH).sid != NODE_NONE				\
 			  && (FH).vid != VOLUME_ID_VIRTUAL)
 
-/* Is DENTRY a local volume root?  */
+/*! Is DENTRY a local volume root?  */
 #define LOCAL_VOLUME_ROOT_P(DENTRY)					\
   ((DENTRY)->parent == NULL						\
    || ((DENTRY)->parent->parent == NULL					\
        && CONFLICT_DIR_P ((DENTRY)->parent->fh->local_fh)))
 
-/* True when the NAME would be a special dir if the NAME was in local
+/*! True when the NAME would be a special dir if the NAME was in local
    volume root.  If ALWAYS is true return true even if request came from local
    node, otherwise return true only if request came from remote node.  */
 #define SPECIAL_NAME_P(NAME, ALWAYS)					\
@@ -78,55 +78,55 @@ typedef struct volume_def *volume;
    || (strcmp ((NAME), ".shadow") == 0					\
        && ((ALWAYS) || !request_from_this_node ())))
 
-/* Is file NAME in directory DIR a special dir?  If ALWAYS is true return true
+/*! Is file NAME in directory DIR a special dir?  If ALWAYS is true return true
    even if request came from local node, otherwise return true only if
    request came from remote node.  */
 #define SPECIAL_DIR_P(DIR, NAME, ALWAYS)				\
   (LOCAL_VOLUME_ROOT_P (DIR) && SPECIAL_NAME_P ((NAME), (ALWAYS)))
 
-/* Mark the ZFS file handle FH to be undefined.  */
+/*! Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
 			     ? memset (&(FH), -1, sizeof (zfs_fh))	\
 			     : (abort (), (void *) 0))
 
-/* Return true if the ZFS file handle FH is undefined.  */
+/*! Return true if the ZFS file handle FH is undefined.  */
 #define zfs_fh_undefined(FH) (bytecmp (&(FH), -1, sizeof (zfs_fh)))
 
-/* Hash function for zfs_fh FH.  */
+/*! Hash function for zfs_fh FH.  */
 #define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))
 
-/* Return true if FH1 and FH2 are the same.  */
+/*! Return true if FH1 and FH2 are the same.  */
 #define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino			\
 			     && (FH1).dev == (FH2).dev			\
 			     && (FH1).vid == (FH2).vid			\
 			     && (FH1).sid == (FH2).sid			\
 			     && (FH1).gen == (FH2).gen)
 
-/* Hash function for internal dentry D, computed from fh->local_fh.  */
+/*! Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
   (ZFS_FH_HASH (&(D)->fh->local_fh))
 
-/* Hash function for internal dentry D, computed from parent->fh and name.  */
+/*! Hash function for internal dentry D, computed from parent->fh and name.  */
 #define INTERNAL_DENTRY_HASH_NAME(D)					\
   (crc32_update (crc32_buffer ((D)->name.str, (D)->name.len),		\
 		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
-/* True if file handle FH has a local path.  */
+/*! True if file handle FH has a local path.  */
 #define INTERNAL_FH_HAS_LOCAL_PATH(FH)					\
   ((FH)->local_fh.sid == this_node->id					\
    && (FH)->local_fh.vid != VOLUME_ID_VIRTUAL)
 
-/* "Lock" level of the file handle or virtual directory.  */
+/*! "Lock" level of the file handle or virtual directory.  */
 #define LEVEL_UNLOCKED	0
 #define LEVEL_SHARED	1
 #define LEVEL_EXCLUSIVE	2
 
-/* Flags for internal_dentry_create_conflict.  */
+/*! Flags for internal_dentry_create_conflict.  */
 #define CONFLICT_LOCAL_EXISTS	1
 #define CONFLICT_REMOTE_EXISTS	2
 #define CONFLICT_BOTH_EXIST	(CONFLICT_LOCAL_EXISTS | CONFLICT_REMOTE_EXISTS)
 
-/* Forward definitions.  */
+/*! Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
@@ -135,7 +135,7 @@ typedef struct virtual_dir_def *virtual_dir;
 #include "cap.h"
 #include "metadata.h"
 
-/* Internal information about file handle.  */
+/*! Internal information about file handle.  */
 struct internal_fh_def
 {
 #ifdef ENABLE_CHECKING
@@ -204,7 +204,7 @@ struct internal_fh_def
   unsigned int reintegrating_generation;
 };
 
-/* Internal file handle flags.  */
+/*! Internal file handle flags.  */
 #define IFH_UPDATE	1
 #define IFH_REINTEGRATE	2
 #define IFH_METADATA	4
@@ -212,14 +212,14 @@ struct internal_fh_def
 #define IFH_ENQUEUED	8
 #define IFH_REINTEGRATING 16
 
-/* Information about locked dentries.  */
+/*! Information about locked dentries.  */
 typedef struct lock_info_def
 {
   internal_dentry dentry;
   unsigned int level;
 } lock_info;
 
-/* Internal directory entry.  */
+/*! Internal directory entry.  */
 struct internal_dentry_def
 {
   /* Mutex is not needed here because we can use FH->MUTEX
@@ -254,7 +254,7 @@ struct internal_dentry_def
   bool deleted;
 };
 
-/* Structure of a virtual directory (element of mount tree).  */
+/*! Structure of a virtual directory (element of mount tree).  */
 struct virtual_dir_def
 {
 #ifdef ENABLE_CHECKING
@@ -301,25 +301,25 @@ struct virtual_dir_def
   unsigned int deleted;
 };
 
-/* File handle of ZFS root.  */
+/*! File handle of ZFS root.  */
 extern zfs_fh root_fh;
 
-/* Static undefined ZFS file handle.  */
+/*! Static undefined ZFS file handle.  */
 extern zfs_fh undefined_fh;
 
-/* Hash table of used dentries, searched by fh->local_fh.  */
+/*! Hash table of used dentries, searched by fh->local_fh.  */
 extern htab_t dentry_htab;
 
-/* Hash table of virtual directories, searched by fh.  */
+/*! Hash table of virtual directories, searched by fh.  */
 extern htab_t vd_htab;
 
-/* Mutes for file handles, dentries and virtual directories.  */
+/*! Mutes for file handles, dentries and virtual directories.  */
 extern pthread_mutex_t fh_mutex;
 
-/* Thread ID of thread freeing dentries unused for a long time.  */
+/*! Thread ID of thread freeing dentries unused for a long time.  */
 extern pthread_t cleanup_dentry_thread;
 
-/* This mutex is locked when cleanup dentry thread is in sleep.  */
+/*! This mutex is locked when cleanup dentry thread is in sleep.  */
 extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
 extern void set_lock_info (lock_info *li);

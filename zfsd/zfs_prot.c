@@ -1,4 +1,4 @@
-/* ZFS protocol.
+/*! ZFS protocol.
    Copyright (C) 2003, 2004 Josef Zlomek
    Copyright (C) 2004 Martin Zlomek
 
@@ -51,19 +51,19 @@
 # include "user-group.h"
 #endif
 
-/* Mapping file type -> file mode.  */
+/*! Mapping file type -> file mode.  */
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
   = {0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO};
 
 #ifndef __KERNEL__
 
-/* Request ID for next call.  */
+/*! Request ID for next call.  */
 static volatile uint32_t request_id;
 
-/* Mutex for accessing request_id.  */
+/*! Mutex for accessing request_id.  */
 static pthread_mutex_t request_id_mutex;
 
-/* void zfs_proc_null (void) */
+/*! void zfs_proc_null (void) */
 
 void
 zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
@@ -73,7 +73,7 @@ zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
   encode_status (dc, ZFS_OK);
 }
 
-/* data_buffer zfs_proc_ping (data_buffer); */
+/*! data_buffer zfs_proc_ping (data_buffer); */
 
 void
 zfs_proc_ping_server (data_buffer *args, DC *dc,
@@ -84,7 +84,7 @@ zfs_proc_ping_server (data_buffer *args, DC *dc,
   encode_data_buffer (dc, args);
 }
 
-/* zfs_fh zfs_proc_root (void); */
+/*! zfs_fh zfs_proc_root (void); */
 
 void
 zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, DC *dc,
@@ -95,7 +95,7 @@ zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, DC *dc,
   encode_zfs_fh (dc, &root_fh);
 }
 
-/* dir_op_res zfs_proc_volume_root (volume_root_args); */
+/*! dir_op_res zfs_proc_volume_root (volume_root_args); */
 
 void
 zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
@@ -117,7 +117,7 @@ zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
     }
 }
 
-/* fattr zfs_proc_getattr (zfs_fh); */
+/*! fattr zfs_proc_getattr (zfs_fh); */
 
 void
 zfs_proc_getattr_server (zfs_fh *args, DC *dc,
@@ -139,7 +139,7 @@ zfs_proc_getattr_server (zfs_fh *args, DC *dc,
     }
 }
 
-/* fattr zfs_proc_setattr (setattr_args); */
+/*! fattr zfs_proc_setattr (setattr_args); */
 
 void
 zfs_proc_setattr_server (setattr_args *args, DC *dc,
@@ -166,7 +166,7 @@ zfs_proc_setattr_server (setattr_args *args, DC *dc,
     }
 }
 
-/* dir_op_res zfs_proc_lookup (dir_op_args); */
+/*! dir_op_res zfs_proc_lookup (dir_op_args); */
 
 void
 zfs_proc_lookup_server (dir_op_args *args, DC *dc,
@@ -188,7 +188,7 @@ zfs_proc_lookup_server (dir_op_args *args, DC *dc,
     }
 }
 
-/* zfs_cap zfs_proc_create (create_args); */
+/*! zfs_cap zfs_proc_create (create_args); */
 
 void
 zfs_proc_create_server (create_args *args, DC *dc,
@@ -216,7 +216,7 @@ zfs_proc_create_server (create_args *args, DC *dc,
     }
 }
 
-/* zfs_cap zfs_proc_open (open_args); */
+/*! zfs_cap zfs_proc_open (open_args); */
 
 void
 zfs_proc_open_server (open_args *args, DC *dc,
@@ -232,7 +232,7 @@ zfs_proc_open_server (open_args *args, DC *dc,
     encode_zfs_cap (dc, &res);
 }
 
-/* void zfs_proc_close (zfs_cap); */
+/*! void zfs_proc_close (zfs_cap); */
 
 void
 zfs_proc_close_server (zfs_cap *args, DC *dc,
@@ -245,7 +245,7 @@ zfs_proc_close_server (zfs_cap *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* read_dir_res zfs_proc_readdir (read_dir_args); */
+/*! read_dir_res zfs_proc_readdir (read_dir_args); */
 
 void
 zfs_proc_readdir_server (read_dir_args *args, DC *dc,
@@ -283,7 +283,7 @@ zfs_proc_readdir_server (read_dir_args *args, DC *dc,
     }
 }
 
-/* dir_op_res zfs_proc_mkdir (mkdir_args); */
+/*! dir_op_res zfs_proc_mkdir (mkdir_args); */
 
 void
 zfs_proc_mkdir_server (mkdir_args *args, DC *dc,
@@ -310,7 +310,7 @@ zfs_proc_mkdir_server (mkdir_args *args, DC *dc,
     }
 }
 
-/* void zfs_proc_rmdir (dir_op_args); */
+/*! void zfs_proc_rmdir (dir_op_args); */
 
 void
 zfs_proc_rmdir_server (dir_op_args *args, DC *dc,
@@ -323,7 +323,7 @@ zfs_proc_rmdir_server (dir_op_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void zfs_proc_rename (rename_args); */
+/*! void zfs_proc_rename (rename_args); */
 
 void
 zfs_proc_rename_server (rename_args *args, DC *dc,
@@ -337,7 +337,7 @@ zfs_proc_rename_server (rename_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void zfs_proc_link (link_args); */
+/*! void zfs_proc_link (link_args); */
 
 void
 zfs_proc_link_server (link_args *args, DC *dc,
@@ -350,7 +350,7 @@ zfs_proc_link_server (link_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void zfs_proc_unlink (dir_op_args); */
+/*! void zfs_proc_unlink (dir_op_args); */
 
 void
 zfs_proc_unlink_server (dir_op_args *args, DC *dc,
@@ -363,7 +363,7 @@ zfs_proc_unlink_server (dir_op_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* read_res zfs_proc_read (read_args); */
+/*! read_res zfs_proc_read (read_args); */
 
 void
 zfs_proc_read_server (read_args *args, DC *dc,
@@ -389,7 +389,7 @@ zfs_proc_read_server (read_args *args, DC *dc,
     encode_read_res (dc, &res);
 }
 
-/* write_res zfs_proc_write (write_args); */
+/*! write_res zfs_proc_write (write_args); */
 
 void
 zfs_proc_write_server (write_args *args, DC *dc,
@@ -405,7 +405,7 @@ zfs_proc_write_server (write_args *args, DC *dc,
     encode_write_res (dc, &res);
 }
 
-/* read_link_res zfs_proc_readlink (zfs_fh); */
+/*! read_link_res zfs_proc_readlink (zfs_fh); */
 
 void
 zfs_proc_readlink_server (zfs_fh *args, DC *dc,
@@ -424,7 +424,7 @@ zfs_proc_readlink_server (zfs_fh *args, DC *dc,
     }
 }
 
-/* dir_op_res zfs_proc_symlink (symlink_args); */
+/*! dir_op_res zfs_proc_symlink (symlink_args); */
 
 void
 zfs_proc_symlink_server (symlink_args *args, DC *dc,
@@ -452,7 +452,7 @@ zfs_proc_symlink_server (symlink_args *args, DC *dc,
     }
 }
 
-/* dir_op_res zfs_proc_mknod (mknod_args); */
+/*! dir_op_res zfs_proc_mknod (mknod_args); */
 
 void
 zfs_proc_mknod_server (mknod_args *args, DC *dc,
@@ -480,7 +480,7 @@ zfs_proc_mknod_server (mknod_args *args, DC *dc,
     }
 }
 
-/* auth_stage1_res zfs_proc_auth_stage1 (auth_stage1_args); */
+/*! auth_stage1_res zfs_proc_auth_stage1 (auth_stage1_args); */
 
 void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
@@ -522,7 +522,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
   zfsd_mutex_unlock (&fd_data->mutex);
 }
 
-/* ? zfs_proc_auth_stage2 (auth_stage2_args); */
+/*! ? zfs_proc_auth_stage2 (auth_stage2_args); */
 
 void
 zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
@@ -561,7 +561,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
   zfsd_mutex_unlock (&fd_data->mutex);
 }
 
-/* md5sum_res zfs_proc_md5sum (md5sum_args); */
+/*! md5sum_res zfs_proc_md5sum (md5sum_args); */
 
 void
 zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
@@ -577,7 +577,7 @@ zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
     encode_md5sum_res (dc, &md5);
 }
 
-/* file_info_res zfs_proc_file_info (zfs_fh); */
+/*! file_info_res zfs_proc_file_info (zfs_fh); */
 
 void
 zfs_proc_file_info_server (zfs_fh *args, DC *dc,
@@ -596,7 +596,7 @@ zfs_proc_file_info_server (zfs_fh *args, DC *dc,
     }
 }
 
-/* void reread_config (reread_config_args);  */
+/*! void reread_config (reread_config_args);  */
 
 void
 zfs_proc_reread_config_server (reread_config_args *args,
@@ -617,7 +617,7 @@ zfs_proc_reread_config_server (reread_config_args *args,
   add_reread_config_request (&relative_path, t->from_sid);
 }
 
-/* void reintegrate (reintegrate_args); */
+/*! void reintegrate (reintegrate_args); */
 
 void
 zfs_proc_reintegrate_server (reintegrate_args *args, DC *dc,
@@ -630,7 +630,7 @@ zfs_proc_reintegrate_server (reintegrate_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void reintegrate_add (reintegrate_add_args);  */
+/*! void reintegrate_add (reintegrate_add_args);  */
 
 void
 zfs_proc_reintegrate_add_server (reintegrate_add_args *args, DC *dc,
@@ -643,7 +643,7 @@ zfs_proc_reintegrate_add_server (reintegrate_add_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void reintegrate_del (reintegrate_del_args);  */
+/*! void reintegrate_del (reintegrate_del_args);  */
 
 void
 zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
@@ -657,7 +657,7 @@ zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* void reintegrate_ver (reintegrate_ver_args);  */
+/*! void reintegrate_ver (reintegrate_ver_args);  */
 
 void
 zfs_proc_reintegrate_ver_server (reintegrate_ver_args *args, DC *dc,
@@ -670,7 +670,7 @@ zfs_proc_reintegrate_ver_server (reintegrate_ver_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* Call remote FUNCTION with ARGS using data structures in thread T
+/*! Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define ZFS_CALL_CLIENT
 #define ZFS_CALL_KERNEL
@@ -709,7 +709,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 #undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_CLIENT
 
-/* Call remote FUNCTION with ARGS on node NOD using data structures in thread T
+/*! Call remote FUNCTION with ARGS on node NOD using data structures in thread T
    and return its error code, store file descriptor connected to NOD to FD.  */
 #define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
@@ -732,7 +732,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-/* Call FUNCTION in kernel with ARGS using data structures in thread T
+/*! Call FUNCTION in kernel with ARGS using data structures in thread T
    and return its error code.  */
 #define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
@@ -752,7 +752,7 @@ zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_KERNEL
 
-/* Return string describing error code.  */
+/*! Return string describing error code.  */
 
 char *
 zfs_strerror (int32_t errnum)
@@ -809,10 +809,10 @@ zfs_strerror (int32_t errnum)
   return "UNKNOWN error code";
 }
 
-/* Call statistics.  */
+/*! Call statistics.  */
 uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
 
-/* Initialize data structures needed by this module.  */
+/*! Initialize data structures needed by this module.  */
 
 void
 initialize_zfs_prot_c (void)
@@ -828,7 +828,7 @@ initialize_zfs_prot_c (void)
     }
 }
 
-/* Cleanup data structures needed by this module.  */
+/*! Cleanup data structures needed by this module.  */
 
 void
 cleanup_zfs_prot_c (void)
@@ -857,7 +857,7 @@ cleanup_zfs_prot_c (void)
 
 #else  /* !__KERNEL__ */
 
-/* Convert ZFS error to system error */
+/*! Convert ZFS error to system error */
 
 static int zfs_error(int error)
 {
@@ -888,7 +888,7 @@ static int zfs_error(int error)
 	}
 }
 
-/* Call ZFSd FUNCTION with ARGS using data structures in DC
+/*! Call ZFSd FUNCTION with ARGS using data structures in DC
    and return its error code. */
 #define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUT, CALL_MODE)	\

@@ -1,4 +1,4 @@
-/* Various constants.
+/*! Various constants.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -22,19 +22,19 @@
 #include <unistd.h>
 #include "constant.h"
 
-/* Maximal number of file descriptors.  */
+/*! Maximal number of file descriptors.  */
 int max_nfd;
 
-/* Maximal number of network sockets.  */
+/*! Maximal number of network sockets.  */
 int max_network_sockets;
 
-/* Maximal number of file descriptors for local files.  */
+/*! Maximal number of file descriptors for local files.  */
 int max_local_fds;
 
-/* Maximal number of file descriptors for files containing metadata.  */
+/*! Maximal number of file descriptors for files containing metadata.  */
 int max_metadata_fds;
 
-/* Initialize the constants */
+/*! Initialize the constants */
 
 void
 init_constants (void)

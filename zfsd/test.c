@@ -1,4 +1,4 @@
-/* Test ZFS.
+/*! Test ZFS.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -41,13 +41,13 @@
 #include "network.h"
 #include "zfs_prot.h"
 
-/* Data for testing thread.  */
+/*! Data for testing thread.  */
 static thread testing_thread_data;
 
-/* ID of test thread.  */
+/*! ID of test thread.  */
 static pthread_t test_id;
 
-/* Testing configuration until configuration reading is programmed.  */
+/*! Testing configuration until configuration reading is programmed.  */
 
 void
 fake_config (void)
@@ -226,7 +226,7 @@ fake_config (void)
   debug_virtual_tree ();
 }
 
-/* Test splay tree data type.  */
+/*! Test splay tree data type.  */
 
 #include "splay-tree.h"
 static void
@@ -242,7 +242,7 @@ test_splay (void)
   debug_splay_tree (st);
 }
 
-/* Test interval  tree data type.  */
+/*! Test interval  tree data type.  */
 
 #include "interval.h"
 static void
@@ -261,7 +261,7 @@ test_interval (void)
   debug_interval_tree (t);
 }
 
-/* Print contents of directory DIR (using PATH as a prefix)
+/*! Print contents of directory DIR (using PATH as a prefix)
    and walk through subdirectories.  */
 
 static int32_t
@@ -354,7 +354,7 @@ walk_dir_exiting:
   return ZFS_EXITING;
 }
 
-/* Test functions accessing ZFS.  */
+/*! Test functions accessing ZFS.  */
 
 static void*
 do_tests (void *data)
@@ -677,7 +677,7 @@ out:
   return NULL;
 }
 
-/* Create a thread which tests ZFS.  */
+/*! Create a thread which tests ZFS.  */
 
 void
 test_zfs (void)
@@ -698,7 +698,7 @@ test_zfs (void)
     }
 }
 
-/* Cleanup after tests.  */
+/*! Cleanup after tests.  */
 
 void
 test_cleanup (void)

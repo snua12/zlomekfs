@@ -1,4 +1,4 @@
-/* Network thread functions.
+/*! Network thread functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -34,7 +34,7 @@
 #include "node.h"
 #include "volume.h"
 
-/* Connection status.  */
+/*! Connection status.  */
 typedef enum connection_status_def
 {
   CONNECTION_NONE = 0,
@@ -44,7 +44,7 @@ typedef enum connection_status_def
   CONNECTION_ESTABLISHED
 } connection_status;
 
-/* Status of authentication.  */
+/*! Status of authentication.  */
 typedef enum authentication_status_def
 {
   AUTHENTICATION_NONE = 0,
@@ -54,7 +54,7 @@ typedef enum authentication_status_def
   AUTHENTICATION_FINISHED
 } authentication_status;
 
-/* Data for a file descriptor used to communicate with other nodes
+/*! Data for a file descriptor used to communicate with other nodes
    or kernel.  */
 typedef struct fd_data_def
 {
@@ -81,13 +81,13 @@ typedef struct fd_data_def
   bool close;			/* close the fd when possile */
 } fd_data_t;
 
-/* Pool of network threads.  */
+/*! Pool of network threads.  */
 extern thread_pool network_pool;
 
-/* The array of data for each file descriptor.  */
+/*! The array of data for each file descriptor.  */
 extern fd_data_t *fd_data_a;
 
-/* Hash function for request ID.  */
+/*! Hash function for request ID.  */
 #define WAITING4REPLY_HASH(REQUEST_ID) (REQUEST_ID)
 
 struct thread_def;

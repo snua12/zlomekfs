@@ -1,4 +1,4 @@
-/* ZFS daemon.
+/*! ZFS daemon.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -54,13 +54,13 @@
 #include "test.h"
 #endif
 
-/* Thread ID of the main thread.  */
+/*! Thread ID of the main thread.  */
 pthread_t main_thread;
 
-/* Name of the configuration file.  */
+/*! Name of the configuration file.  */
 static char *config_file;
 
-/* Local function prototypes.  */
+/*! Local function prototypes.  */
 static void exit_sighandler (int signum);
 static void fatal_sigaction (int signum, siginfo_t *info, void *data);
 static void init_sig_handlers (void);
@@ -72,7 +72,7 @@ static void die (void) ATTRIBUTE_NORETURN;
 #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 #endif
 
-/* Make zfsd to terminate.  */
+/*! Make zfsd to terminate.  */
 
 void
 terminate (void)
@@ -85,7 +85,7 @@ terminate (void)
   pthread_sigmask (SIG_SETMASK, &old_mask, NULL);
 }
 
-/* Signal handler for terminating zfsd.  */
+/*! Signal handler for terminating zfsd.  */
 
 static void
 exit_sighandler (ATTRIBUTE_UNUSED int signum)
@@ -120,7 +120,7 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
   message (2, stderr, "Leaving exit_sighandler\n");
 }
 
-/* Report the fatal signal.  */
+/*! Report the fatal signal.  */
 
 static void
 fatal_sigaction (int signum, siginfo_t *info, void *data)
@@ -160,7 +160,7 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
     }
 }
 
-/*! Signal handler for SIGHUP.
+/*!! Signal handler for SIGHUP.
     \param signum Number of the received signal.  */
 
 static void
@@ -169,7 +169,7 @@ hup_sighandler (ATTRIBUTE_UNUSED int signum)
   add_reread_config_request (&invalid_string, 0);
 }
 
-/* Empty signal handler, used to break poll and other syscalls.  */
+/*! Empty signal handler, used to break poll and other syscalls.  */
 
 static void
 dummy_sighandler (ATTRIBUTE_UNUSED int signum)
@@ -177,7 +177,7 @@ dummy_sighandler (ATTRIBUTE_UNUSED int signum)
   message (3, stderr, "signalled %lu\n", pthread_self ());
 }
 
-/* Initialize signal handlers.  */
+/*! Initialize signal handlers.  */
 
 static void
 init_sig_handlers (void)
@@ -231,7 +231,7 @@ init_sig_handlers (void)
   sigaction (SIGPIPE, &sig, NULL);
 }
 
-/* Set default sighandlers.  */
+/*! Set default sighandlers.  */
 
 static void
 disable_sig_handlers (void)
@@ -260,7 +260,7 @@ disable_sig_handlers (void)
   zfsd_mutex_destroy (&running_mutex);
 }
 
-/* Display the usage and arguments.  */
+/*! Display the usage and arguments.  */
 
 void
 usage (void)
@@ -284,7 +284,7 @@ usage (void)
 	  "Output version information and exit.\n");
 }
 
-/* Display the version, exit the program with exit code EXITCODE.  */
+/*! Display the version, exit the program with exit code EXITCODE.  */
 
 static void
 version (int exitcode)
@@ -297,7 +297,7 @@ version (int exitcode)
   exit (exitcode);
 }
 
-/* For long options that have no equivalent short option, use a non-character
+/*! For long options that have no equivalent short option, use a non-character
    as a pseudo short option, starting with CHAR_MAX + 1.  */
 enum long_option
 {
@@ -315,7 +315,7 @@ static struct option const long_options[] = {
   {NULL, 0, NULL, 0}
 };
 
-/* Process command line arguments.  */
+/*! Process command line arguments.  */
 
 static void
 process_arguments (int argc, char **argv)
@@ -368,7 +368,7 @@ process_arguments (int argc, char **argv)
     }
 }
 
-/* Write a message and exit.  */
+/*! Write a message and exit.  */
 
 static void
 die (void)
@@ -377,7 +377,7 @@ die (void)
   exit (EXIT_FAILURE);
 }
 
-/* Initialize various data structures needed by ZFSD.  */
+/*! Initialize various data structures needed by ZFSD.  */
 
 bool
 initialize_data_structures (void)
@@ -405,7 +405,7 @@ initialize_data_structures (void)
   return true;
 }
 
-/* Destroy data structures.  */
+/*! Destroy data structures.  */
 
 void
 cleanup_data_structures (void)
@@ -442,7 +442,7 @@ daemon_mode (void)
 {
 }
 
-/* Entry point of ZFS daemon.  */
+/*! Entry point of ZFS daemon.  */
 
 int
 main (int argc, char **argv)

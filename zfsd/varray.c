@@ -1,4 +1,4 @@
-/* Variable-sized array datatype.
+/*! Variable-sized array datatype.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -24,7 +24,7 @@
 #include "log.h"
 #include "memory.h"
 
-/* Initialize a variable-sized array *VA to NELEM elements of size SIZE.  */
+/*! Initialize a variable-sized array *VA to NELEM elements of size SIZE.  */
 
 void
 varray_create (varray *va, unsigned int size, unsigned int nelem)
@@ -59,7 +59,7 @@ varray_grow (varray *va, unsigned int nelem)
 
 #ifdef ENABLE_CHECKING
 
-/* Report an internal error "Element out of bounds".  */
+/*! Report an internal error "Element out of bounds".  */
 
 void
 varray_check_failed (unsigned int pos, const char *file, int line)

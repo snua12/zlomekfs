@@ -1,4 +1,4 @@
-/* Wrappers for pthread_* functions and related data.
+/*! Wrappers for pthread_* functions and related data.
    Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -23,13 +23,13 @@
 
 #ifdef ENABLE_CHECKING
 
-/* Static mutex initializer.  */
+/*! Static mutex initializer.  */
 pthread_mutex_t zfsd_mutex_initializer
   = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 
 #else
 
-/* Static mutex initializer.  */
+/*! Static mutex initializer.  */
 pthread_mutex_t zfsd_mutex_initializer
   = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
 

@@ -1,4 +1,4 @@
-/* Various constants.
+/*! Various constants.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -23,48 +23,48 @@
 
 #ifndef __KERNEL__
 
-/* The interval between 2 invocations of thread pool regulator in seconds.  */
+/*! The interval between 2 invocations of thread pool regulator in seconds.  */
 #define THREAD_POOL_REGULATOR_INTERVAL 15
 
-/* Maximal time (in seconds) which internal dentry may be unused for.
+/*! Maximal time (in seconds) which internal dentry may be unused for.
    If it is unused for longer time it is removed.  */
 #define MAX_INTERNAL_DENTRY_UNUSED_TIME 30
 
 #endif
 
-/* Timeout in seconds for request.  */
+/*! Timeout in seconds for request.  */
 #define REQUEST_TIMEOUT 15
 
 #ifndef __KERNEL__
 
-/* The time between two attempts to connect to node in seconds.  */
+/*! The time between two attempts to connect to node in seconds.  */
 #define NODE_CONNECT_VISCOSITY 15
 
-/* The timeout for connection attempt in seconds.  */
+/*! The timeout for connection attempt in seconds.  */
 #define NODE_CONNECT_TIMEOUT 2
 
-/* The maximal number of microseconds of the measuring of connection speed
+/*! The maximal number of microseconds of the measuring of connection speed
    to decide that the connection is fast.  */
 #define CONNECTION_SPEED_FAST_LIMIT 50000
 
-/* Maximal value for MetadataTreeDepth.  */
+/*! Maximal value for MetadataTreeDepth.  */
 #define MAX_METADATA_TREE_DEPTH 6
 
-/* The event groups for poll().  */
+/*! The event groups for poll().  */
 #define CAN_READ (POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND)
 #define CAN_WRITE (POLLOUT | POLLWRNORM | POLLWRBAND)
 #define CANNOT_RW (POLLERR | POLLHUP | POLLNVAL)
 
-/* Maximal number of file descriptors.  */
+/*! Maximal number of file descriptors.  */
 extern int max_nfd;
 
-/* Maximal number of network sockets.  */
+/*! Maximal number of network sockets.  */
 extern int max_network_sockets;
 
-/* Maximal number of file descriptors for local files.  */
+/*! Maximal number of file descriptors for local files.  */
 extern int max_local_fds;
 
-/* Maximal number of file descriptors for files containing metadata.  */
+/*! Maximal number of file descriptors for files containing metadata.  */
 extern int max_metadata_fds;
 
 extern void init_constants (void);

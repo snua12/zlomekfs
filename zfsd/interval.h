@@ -1,4 +1,4 @@
-/* Disjoint interval tree datatype.
+/*! Disjoint interval tree datatype.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -28,7 +28,7 @@
 #include "splay-tree.h"
 #include "varray.h"
 
-/* The interval tree.  */
+/*! The interval tree.  */
 typedef struct interval_tree_def
 {
   /* Mutex for this interval tree.  */
@@ -54,7 +54,7 @@ typedef struct interval_tree_def
   bool deleted;
 } *interval_tree;
 
-/* Structure of an interval used by interval_tree_read/interval_tree_write.  */
+/*! Structure of an interval used by interval_tree_read/interval_tree_write.  */
 typedef struct interval_def
 {
   /* Start of interval.  */

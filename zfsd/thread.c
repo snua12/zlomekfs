@@ -1,4 +1,4 @@
-/* Functions for managing thread pools.
+/*! Functions for managing thread pools.
    Copyright (C) 2003, 2004  Josef Zlomek
 
    This file is part of ZFS.
@@ -33,19 +33,19 @@
 
 static void *thread_pool_regulator (void *data);
 
-/* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
+/*! Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 volatile bool running = true;
 
-/* Mutex protecting RUNNING.  */
+/*! Mutex protecting RUNNING.  */
 pthread_mutex_t running_mutex;
 
-/* Key for thread specific data.  */
+/*! Key for thread specific data.  */
 pthread_key_t thread_data_key;
 
-/* Key for thread name.  */
+/*! Key for thread name.  */
 pthread_key_t thread_name_key;
 
-/* Get value of RUNNING flag.  */
+/*! Get value of RUNNING flag.  */
 
 bool
 get_running (void)
@@ -59,7 +59,7 @@ get_running (void)
   return value;
 }
 
-/* Shall the worker threads terminate?  */
+/*! Shall the worker threads terminate?  */
 
 bool
 thread_pool_terminate_p (thread_pool *pool)
@@ -73,7 +73,7 @@ thread_pool_terminate_p (thread_pool *pool)
   return value;
 }
 
-/* Terminate blocking syscall in thread *THID.  We mark the blocking syscall by
+/*! Terminate blocking syscall in thread *THID.  We mark the blocking syscall by
    locking MUTEX.  */
 
 void
@@ -118,7 +118,7 @@ thread_terminate_blocking_syscall (volatile pthread_t *thid,
   zfsd_mutex_unlock (&running_mutex);
 }
 
-/* Wait for thread *THID to die and store its return value to RET.  */
+/*! Wait for thread *THID to die and store its return value to RET.  */
 
 int
 wait_for_thread_to_die (volatile pthread_t *thid, void **ret)
@@ -146,7 +146,7 @@ wait_for_thread_to_die (volatile pthread_t *thid, void **ret)
   return r;
 }
 
-/* Get state of thread T.  */
+/*! Get state of thread T.  */
 
 thread_state
 get_thread_state (thread *t)
@@ -160,7 +160,7 @@ get_thread_state (thread *t)
   return res;
 }
 
-/* Set state of thread T.  */
+/*! Set state of thread T.  */
 
 void
 set_thread_state (thread *t, thread_state state)
@@ -170,7 +170,7 @@ set_thread_state (thread *t, thread_state state)
   zfsd_mutex_unlock (&t->mutex);
 }
 
-/* Initialize POOL to be a thread pool of MAX_THREADS threads with
+/*! Initialize POOL to be a thread pool of MAX_THREADS threads with
    MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
 
 bool
@@ -253,7 +253,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   return true;
 }
 
-/* Terminate the main and regulator threads in thread pool POOL
+/*! Terminate the main and regulator threads in thread pool POOL
    and tell worker threads to finish.  */
 
 void
@@ -276,7 +276,7 @@ thread_pool_terminate (thread_pool *pool)
 				     &pool->regulator_in_syscall);
 }
 
-/* Destroy thread pool POOL - terminate idle threads, wait for active threads to
+/*! Destroy thread pool POOL - terminate idle threads, wait for active threads to
    finish, free memory associated with thread pool.  */
 
 void
@@ -307,7 +307,7 @@ thread_pool_destroy (thread_pool *pool)
   zfsd_mutex_destroy (&pool->mutex);
 }
 
-/* Create a new idle thread in thread pool POOL.
+/*! Create a new idle thread in thread pool POOL.
    This function expects NETWORK_POOL.EMPTY.MUTEX and NETWORK_POOL.IDLE.MUTEX
    to be locked.  */
 
@@ -353,7 +353,7 @@ create_idle_thread (thread_pool *pool)
   return r;
 }
 
-/* Destroy an idle thread in thread pool POOL.  This function expects
+/*! Destroy an idle thread in thread pool POOL.  This function expects
    NETWORK_POOL.EMPTY.MUTEX and NETWORK_POOL.IDLE.MUTEX to be locked.  */
 
 int
@@ -389,7 +389,7 @@ destroy_idle_thread (thread_pool *pool)
   return r;
 }
 
-/* Disable receiving signals by calling thread.  */
+/*! Disable receiving signals by calling thread.  */
 
 void
 thread_disable_signals (void)
@@ -403,7 +403,7 @@ thread_disable_signals (void)
   pthread_sigmask (SIG_BLOCK, &mask, NULL);
 }
 
-/* Kill/create threads when there are too many or not enough idle threads.
+/*! Kill/create threads when there are too many or not enough idle threads.
    It expects NETWORK_POOL.IDLE.MUTEX to be locked.  */
 
 void
@@ -428,7 +428,7 @@ thread_pool_regulate (thread_pool *pool)
     }
 }
 
-/* Main function of thread regulating the thread pool. DATA is the structure
+/*! Main function of thread regulating the thread pool. DATA is the structure
    with additional information for the regulator.  */
 
 static void *

@@ -1,4 +1,4 @@
-/* Functions for updating files.
+/*! Functions for updating files.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -47,16 +47,16 @@
 #include "journal.h"
 #include "metadata.h"
 
-/* Queue of file handles.  */
+/*! Queue of file handles.  */
 queue update_queue;
 
-/* Mutex for UPDATE_QUEUE.  */
+/*! Mutex for UPDATE_QUEUE.  */
 static pthread_mutex_t update_queue_mutex;
 
-/* Pool of update threads.  */
+/*! Pool of update threads.  */
 thread_pool update_pool;
 
-/* Get blocks of file FH from interval [START, END) which need to be updated
+/*! Get blocks of file FH from interval [START, END) which need to be updated
    and store them to BLOCKS.  */
 
 void
@@ -81,7 +81,7 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   RETURN_VOID;
 }
 
-/*! Clear the tree of updated intervals and set version of file.
+/*!! Clear the tree of updated intervals and set version of file.
     \param fh File handle of the file.
     \param version New version of the file.  */
 
@@ -137,7 +137,7 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
   RETURN_INT (r);
 }
 
-/*! Truncate the local file according to the remote size but do not
+/*!! Truncate the local file according to the remote size but do not
     get rid of local modifications of the file.
     \param volp Volume which the file is on.
     \param dentryp Dentry of the file.
@@ -205,7 +205,7 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/* Update BLOCKS (described in ARGS) of local file CAP from remote file,
+/*! Update BLOCKS (described in ARGS) of local file CAP from remote file,
    start searching in BLOCKS at index INDEX.  */
 
 static int32_t
@@ -458,7 +458,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   RETURN_INT (ZFS_OK);
 }
 
-/* Update BLOCKS of local file CAP from remote file.
+/*! Update BLOCKS of local file CAP from remote file.
    \param modified Flag saying the local file has been modified.  */
 
 int32_t
@@ -527,7 +527,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)
   RETURN_INT (ZFS_OK);
 }
 
-/* Reintegrate modified blocks of local file CAP to remote file.  */
+/*! Reintegrate modified blocks of local file CAP to remote file.  */
 
 int32_t
 reintegrate_file_blocks (zfs_cap *cap)
@@ -695,7 +695,7 @@ reintegrate_file_blocks (zfs_cap *cap)
   RETURN_INT (r);
 }
 
-/* Return true if file *DENTRYP on volume *VOLP with file handle FH should
+/*! Return true if file *DENTRYP on volume *VOLP with file handle FH should
    be updated.  Store remote attributes to ATTR.  */
 
 static int
@@ -751,7 +751,7 @@ out:
   RETURN_INT (0);
 }
 
-/* Update file with file handle FH.  */
+/*! Update file with file handle FH.  */
 
 static int32_t
 update_file (zfs_fh *fh)
@@ -935,7 +935,7 @@ out:
   RETURN_INT (r);
 }
 
-/* Update generic file DENTRY with file handle FH on volume VOL if needed.
+/*! Update generic file DENTRY with file handle FH on volume VOL if needed.
    Do WHAT we are asked to do.  */
 
 int32_t
@@ -980,7 +980,7 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/* Update generic file DENTRY on volume VOL if needed.
+/*! Update generic file DENTRY on volume VOL if needed.
    DENTRY and DENTRY2 are locked before and after this macro.
    DENTRY2 might be deleted in update.  Do WHAT we are asked to do.  */
 
@@ -1087,7 +1087,7 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
   RETURN_INT (r);
 }
 
-/* Update generic file DENTRY on volume VOL associated with capability ICAP
+/*! Update generic file DENTRY on volume VOL associated with capability ICAP
    if needed.  Do WHAT we are asked to do.  */
 
 int32_t
@@ -1142,7 +1142,7 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
   RETURN_INT (r);
 }
 
-/* Delete file in place of file DENTRY on volume VOL.
+/*! Delete file in place of file DENTRY on volume VOL.
    If JOURNAL_P add a journal entries to appropriate journals.  */
 
 int32_t
@@ -1171,7 +1171,7 @@ delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
   RETURN_INT (r);
 }
 
-/* Delete file NAME in directory DIR on volume VOL.
+/*! Delete file NAME in directory DIR on volume VOL.
    If JOURNAL_P add a journal entries to appropriate journals.  */
 
 int32_t
@@ -1200,7 +1200,7 @@ delete_tree_name (internal_dentry dir, string *name, volume vol,
   RETURN_INT (r);
 }
 
-/* If the local file NAME in directory DIR_FH is the same as remote file
+/*! If the local file NAME in directory DIR_FH is the same as remote file
    REMOTE_FH set SAME to true and return ZFS_OK.
    Otherwise delete NAME and its subtree from directory DIR_FH and set SAME
    to false.
@@ -1289,7 +1289,7 @@ differ:
   RETURN_INT (ZFS_OK);
 }
 
-/* Synchronize attributes of local file LOCAL_FH with attributes LOCAL_ATTR
+/*! Synchronize attributes of local file LOCAL_FH with attributes LOCAL_ATTR
    and attributes of remote file REMOTE_FH with attributes REMOTE_ATTR.
    LOCAL_CHANGED and REMOTE_CHANGED specify which attributes have changed.  */
 
@@ -1387,7 +1387,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
   RETURN_INT (ZFS_OK);
 }
 
-/* Create local generic file NAME in directory DIR on volume VOL with remote
+/*! Create local generic file NAME in directory DIR on volume VOL with remote
    file REMOTE_FH and remote attributes REMOTE_ATTR.  DIR_FH is a file handle
    of the directory.  */
 
@@ -1526,7 +1526,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   RETURN_INT (r);
 }
 
-/* Create remote generic file NAME in directory DIR on volume VOL according
+/*! Create remote generic file NAME in directory DIR on volume VOL according
    to local attributes ATTR.  DIR_FH is a file handle of the directory.
    Return file handle together with attributes in RES.  */
 
@@ -1591,7 +1591,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   RETURN_INT (r);
 }
 
-/*! Schedule update or reintegration of a regular file if volume master
+/*!! Schedule update or reintegration of a regular file if volume master
     is connected via a fast link and the update threads are running.
     \param vol Volume the file is on.
     \param dentry The dentry of the file.  */
@@ -1634,7 +1634,7 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
   RETURN_VOID;
 }
 
-/*! Lookup the remote file which is in the same place as the local file.
+/*!! Lookup the remote file which is in the same place as the local file.
     \param res Buffer for result of directory operation.
     \param fh File handle of the file.
     \param dentryp Dentry of the file.
@@ -1697,7 +1697,7 @@ lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/*! Synchronize the local file with the remote file.
+/*!! Synchronize the local file with the remote file.
     \param vol Volume which the file is on.
     \param dentry Dentry of the file.
     \param fh File handle of the file.
@@ -1843,7 +1843,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
   RETURN_INT (ZFS_OK);
 }
 
-/* Discard changes to local file LOCAL which is in conflict with REMOTE
+/*! Discard changes to local file LOCAL which is in conflict with REMOTE
    on volume VOL.  CONFLICT_FH is a file handle of the cnflict directory
    containing these two files.  */
 
@@ -1977,7 +1977,7 @@ out:
   RETURN_INT (ZFS_METADATA_ERROR);
 }
 
-/* Discard changes to local file LOCAL which is in conflict with REMOTE
+/*! Discard changes to local file LOCAL which is in conflict with REMOTE
    on volume VOL.  CONFLICT_FH is a file handle of the cnflict directory
    containing these two files.  */
 
@@ -2111,7 +2111,7 @@ out:
   RETURN_INT (ZFS_METADATA_ERROR);
 }
 
-/* Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
+/*! Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
    and remote file handle REMOTE_FH in directory DIR with file handle DIR_FH
    on volume VOL.  Store the info about deleted file into RES.  */
 
@@ -2180,7 +2180,7 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
   RETURN_INT (r);
 }
 
-/* Resolve conflict by deleting remote file NAME with file handle REMOTE_FH
+/*! Resolve conflict by deleting remote file NAME with file handle REMOTE_FH
    in directory DIR on volume VOL.  */
 
 int32_t
@@ -2211,7 +2211,7 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
 				      map.slot_status != VALID_SLOT, &dir_fh));
 }
 
-/* Update the directory DIR on volume VOL with file handle FH,
+/*! Update the directory DIR on volume VOL with file handle FH,
    set attributes according to ATTR.  */
 
 static int32_t
@@ -2535,7 +2535,7 @@ out:
   RETURN_INT (r);
 }
 
-/* Reintegrate journal of deleted directory DIR_ENTRY on volume VID.
+/*! Reintegrate journal of deleted directory DIR_ENTRY on volume VID.
    Use RES for lookups.  */
 
 static int32_t
@@ -2695,7 +2695,7 @@ out:
   RETURN_INT (r);
 }
 
-/* Reintegrate journal for directory DIR on volume VOL with file handle FH.
+/*! Reintegrate journal for directory DIR on volume VOL with file handle FH.
    Update version of remote directrory in ATTR.  */
 
 static int32_t
@@ -3217,7 +3217,7 @@ out2:
   RETURN_INT (ZFS_OK);
 }
 
-/* Reintegrate or update generic file DENTRY on volume VOL with file handle FH
+/*! Reintegrate or update generic file DENTRY on volume VOL with file handle FH
    and remote file attributes ATTR.  HOW specifies what we should do.  */
 
 int32_t
@@ -3292,7 +3292,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
   RETURN_INT (r);
 }
 
-/* Initialize update thread T.  */
+/*! Initialize update thread T.  */
 
 static void
 update_worker_init (thread *t)
@@ -3300,7 +3300,7 @@ update_worker_init (thread *t)
   t->dc_call = dc_create ();
 }
 
-/* Cleanup update thread DATA.  */
+/*! Cleanup update thread DATA.  */
 
 static void
 update_worker_cleanup (void *data)
@@ -3310,7 +3310,7 @@ update_worker_cleanup (void *data)
   dc_destroy (t->dc_call);
 }
 
-/* The main function of an update thread.  */
+/*! The main function of an update thread.  */
 
 static void *
 update_worker (void *data)
@@ -3366,7 +3366,7 @@ update_worker (void *data)
   return NULL;
 }
 
-/* Main function if the main update thread.  */
+/*! Main function if the main update thread.  */
 
 static void *
 update_main (ATTRIBUTE_UNUSED void *data)
@@ -3412,7 +3412,7 @@ update_main (ATTRIBUTE_UNUSED void *data)
   return NULL;
 }
 
-/* Start the main update thread.  */
+/*! Start the main update thread.  */
 
 bool
 update_start (void)
@@ -3433,7 +3433,7 @@ update_start (void)
   return true;
 }
 
-/* Terminate update threads and destroy data structures.  */
+/*! Terminate update threads and destroy data structures.  */
 
 void
 update_cleanup (void)

@@ -1,4 +1,4 @@
-/* Variable-sized array datatype.
+/*! Variable-sized array datatype.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -23,7 +23,7 @@
 
 #include "system.h"
 
-/* Definition of the variable-sized array.  */
+/*! Definition of the variable-sized array.  */
 typedef struct varray_def
 {
   /* Total number of elements allocated.  */
@@ -39,13 +39,13 @@ typedef struct varray_def
   void *array;
 } varray;
 
-/* Total (allocated) size of variable-sized array VA.  */
+/*! Total (allocated) size of variable-sized array VA.  */
 #define VARRAY_SIZE(VA) ((VA).nelem)
 
-/* Number of used elements of variable-sized array VA.  */
+/*! Number of used elements of variable-sized array VA.  */
 #define VARRAY_USED(VA) ((VA).nused)
 
-/* Add an uninitialized element on top of the variable-sized array VA.  */
+/*! Add an uninitialized element on top of the variable-sized array VA.  */
 #define VARRAY_EMPTY_PUSH(VA)				\
   do							\
     {							\
@@ -55,7 +55,7 @@ typedef struct varray_def
     }							\
   while (0)
 
-/* Push an element X of type T into variable-sized array VA.  */
+/*! Push an element X of type T into variable-sized array VA.  */
 #define VARRAY_PUSH(VA, X, T)				\
   do							\
     {							\
@@ -65,18 +65,18 @@ typedef struct varray_def
     }							\
   while (0)
 
-/* Delete the last element from variable-sized array VA.  */
+/*! Delete the last element from variable-sized array VA.  */
 #define VARRAY_POP(VA) ((VA).nused--)
 
-/* Access the top element of variable-sized array VA.  */
+/*! Access the top element of variable-sized array VA.  */
 #define VARRAY_TOP(VA, T) (((T *) (VA).array)[(VA).nused - 1])
 
-/* Empty the variable-sized array VA.  */
+/*! Empty the variable-sized array VA.  */
 #define VARRAY_CLEAR(VA) ((VA).nused = 0)
 
 #if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007)
 
-/* Access the Nth element of type T from variable-sized array VA with bounds
+/*! Access the Nth element of type T from variable-sized array VA with bounds
    checking.  */
 #define VARRAY_ACCESS(VA, N, T) __extension__				\
   (*({									\
@@ -87,7 +87,7 @@ typedef struct varray_def
 
 #else
 
-/* Access the Nth element of type T from variable-sized array VA.  */
+/*! Access the Nth element of type T from variable-sized array VA.  */
 #define VARRAY_ACCESS(VA, N, T)						\
    (((T *) (VA).array)[N])
 

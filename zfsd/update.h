@@ -1,4 +1,4 @@
-/* Functions for updating files.
+/*! Functions for updating files.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -35,7 +35,7 @@
 #define ZFS_UPDATED_BLOCK_SIZE ZFS_MAXDATA
 #define ZFS_MODIFIED_BLOCK_SIZE 1024
 
-/*! Check whether we should update a generic file.
+/*!! Check whether we should update a generic file.
     Update the generic file if it has not been completelly updated yet,
     otherwise update a directory if the remote version has changed since
     the last time we updated the directory 
@@ -50,7 +50,7 @@
        : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version \
 	   && (ATTR).version > (DENTRY)->fh->meta.master_version))))
 
-/*! Check whether we should reintegrate a generic file.
+/*!! Check whether we should reintegrate a generic file.
     Reintegrate a directory if the local version has changed since the last
     time we reintegrated the directory or it was not completely reintegrated.
     Reintegrate a regular file if remote file was not modified and local file
@@ -64,27 +64,27 @@
    : ((ATTR).version == (DENTRY)->fh->meta.master_version		\
       && (DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version))
 
-/* Are metadata (mode, UID and GID) different in META and ATTR?  */
+/*! Are metadata (mode, UID and GID) different in META and ATTR?  */
 #define METADATA_ATTR_CHANGE_P(META, ATTR)				\
   ((ATTR).mode != GET_MODETYPE_MODE ((META).modetype)			\
    || (ATTR).uid != (META).uid						\
    || (ATTR).gid != (META).gid)
 
-/* Have local or remote metadata (mode, UID and GID) changed?  */
+/*! Have local or remote metadata (mode, UID and GID) changed?  */
 #define METADATA_CHANGE_P(DENTRY, ATTR)					\
   (METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, (DENTRY)->fh->attr)	\
    || METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, ATTR))
 
-/* Are metadata in attributes ATTR1 and ATTR2 equal?  */
+/*! Are metadata in attributes ATTR1 and ATTR2 equal?  */
 #define METADATA_ATTR_EQ_P(ATTR1, ATTR2)				\
   ((ATTR1).mode == (ATTR2).mode						\
    && (ATTR1).uid == (ATTR2).uid					\
    && (ATTR1).gid == (ATTR2).gid)
 
-/* Queue of file handles.  */
+/*! Queue of file handles.  */
 extern queue update_queue;
 
-/* Pool of update threads.  */
+/*! Pool of update threads.  */
 extern thread_pool update_pool;
 
 extern void get_blocks_for_updating (internal_fh fh, uint64_t start,

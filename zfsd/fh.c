@@ -1,4 +1,4 @@
-/* File handle functions.
+/*! File handle functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -46,67 +46,67 @@
 #include "dir.h"
 #include "update.h"
 
-/* File handle of ZFS root.  */
+/*! File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
 
-/* Static undefined ZFS file handle.  */
+/*! Static undefined ZFS file handle.  */
 zfs_fh undefined_fh;
 
-/* The virtual directory root.  */
+/*! The virtual directory root.  */
 static virtual_dir root;
 
-/* Allocation pool for file handles.  */
+/*! Allocation pool for file handles.  */
 static alloc_pool fh_pool;
 
-/* Allocation pool for dentries.  */
+/*! Allocation pool for dentries.  */
 static alloc_pool dentry_pool;
 
-/* Hash table of used file handles, searched by local_fh.  */
+/*! Hash table of used file handles, searched by local_fh.  */
 htab_t fh_htab;
 
-/* Hash table of used dentries, searched by fh->local_fh.  */
+/*! Hash table of used dentries, searched by fh->local_fh.  */
 htab_t dentry_htab;
 
-/* Hash table of used dentries, searched by (parent->fh->local_fh, name).  */
+/*! Hash table of used dentries, searched by (parent->fh->local_fh, name).  */
 htab_t dentry_htab_name;
 
-/* Allocation pool for virtual directories ("mountpoints").  */
+/*! Allocation pool for virtual directories ("mountpoints").  */
 static alloc_pool vd_pool;
 
-/* Hash table of virtual directories, searched by fh.  */
+/*! Hash table of virtual directories, searched by fh.  */
 htab_t vd_htab;
 
-/* Hash table of virtual directories, searched by (parent->fh, name).  */
+/*! Hash table of virtual directories, searched by (parent->fh, name).  */
 static htab_t vd_htab_name;
 
-/* Mutes for file handles, dentries and virtual directories.  */
+/*! Mutes for file handles, dentries and virtual directories.  */
 pthread_mutex_t fh_mutex;
 
-/* Key for array of locked file handles.  */
+/*! Key for array of locked file handles.  */
 static pthread_key_t lock_info_key;
 
-/* Heap holding internal file handles will be automatically freed
+/*! Heap holding internal file handles will be automatically freed
    when unused for a long time.  */
 fibheap cleanup_dentry_heap;
 
-/* Mutex protecting CLEANUP_FH_*.  */
+/*! Mutex protecting CLEANUP_FH_*.  */
 pthread_mutex_t cleanup_dentry_mutex;
 
-/* Thread ID of thread freeing file handles unused for a long time.  */
+/*! Thread ID of thread freeing file handles unused for a long time.  */
 pthread_t cleanup_dentry_thread;
 
-/* This mutex is locked when cleanup fh thread is in sleep.  */
+/*! This mutex is locked when cleanup fh thread is in sleep.  */
 pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
-/* Hash function for internal file handle FH.  */
+/*! Hash function for internal file handle FH.  */
 #define INTERNAL_FH_HASH(FH)						\
   (ZFS_FH_HASH (&(FH)->local_fh))
 
-/* Hash function for virtual_dir VD, computed from fh.  */
+/*! Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
   (ZFS_FH_HASH (&(VD)->fh))
 
-/* Hash function for virtual_dir VD, computed from (parent->fh, name).  */
+/*! Hash function for virtual_dir VD, computed from (parent->fh, name).  */
 #define VIRTUAL_DIR_HASH_NAME(VD)					\
   (crc32_update (crc32_buffer ((VD)->name.str, (VD)->name.len),		\
 		 &(VD)->parent->fh, sizeof (zfs_fh)))
@@ -115,14 +115,14 @@ static internal_dentry make_space_in_conflict_dir (volume *volp,
 						   internal_dentry *conflictp,
 						   bool exists, zfs_fh *fh);
 
-/* Dentries which should never be cleaned up.  */
+/*! Dentries which should never be cleaned up.  */
 #define DENTRY_NEVER_CLEANUP(DENTRY)					\
   ((DENTRY)->next == (DENTRY)						\
    && ((DENTRY)->fh->cap != NULL					\
        || (DENTRY)->fh->level != LEVEL_UNLOCKED				\
        || (DENTRY)->fh->reintegrating_sid != 0))
 
-/* Return the fibheap key for dentry DENTRY.  */
+/*! Return the fibheap key for dentry DENTRY.  */
 
 static fibheapkey_t
 dentry_key (internal_dentry dentry)
@@ -152,7 +152,7 @@ dentry_key (internal_dentry dentry)
   return (fibheapkey_t) dentry->last_use;
 }
 
-/* Return true if dentry DENTRY should have a node in CLEANUP_DENTRY_HEAP.  */
+/*! Return true if dentry DENTRY should have a node in CLEANUP_DENTRY_HEAP.  */
 
 static bool
 dentry_should_have_cleanup_node (internal_dentry dentry)
@@ -190,7 +190,7 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
   RETURN_BOOL (true);
 }
 
-/* Update the cleanup node of dentry DENTRY.  */
+/*! Update the cleanup node of dentry DENTRY.  */
 
 static void
 dentry_update_cleanup_node (internal_dentry dentry)
@@ -238,7 +238,7 @@ dentry_update_cleanup_node (internal_dentry dentry)
   zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
 
-/* Compare the volume IDs of ZFS_FHs P1 and P2.  */
+/*! Compare the volume IDs of ZFS_FHs P1 and P2.  */
 
 static int
 cleanup_unused_dentries_compare (const void *p1, const void *p2)
@@ -253,7 +253,7 @@ cleanup_unused_dentries_compare (const void *p1, const void *p2)
   return 1;
 }
 
-/* Free internal dentries unused for at least MAX_INTERNAL_DENTRY_UNUSED_TIME
+/*! Free internal dentries unused for at least MAX_INTERNAL_DENTRY_UNUSED_TIME
    seconds.  */
 
 static void
@@ -344,7 +344,7 @@ cleanup_unused_dentries (void)
   while (n > 0);
 }
 
-/* Main function of thread freeing file handles unused for a long time.  */
+/*! Main function of thread freeing file handles unused for a long time.  */
 
 static void *
 cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
@@ -367,14 +367,14 @@ cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
   return NULL;
 }
 
-/* Hash function for internal file handle X.  */
+/*! Hash function for internal file handle X.  */
 static hash_t
 internal_fh_hash (const void *x)
 {
   return INTERNAL_FH_HASH ((internal_fh) x);
 }
 
-/* Hash function for internal dentry X, computed from fh->local_fh.  */
+/*! Hash function for internal dentry X, computed from fh->local_fh.  */
 
 static hash_t
 internal_dentry_hash (const void *x)
@@ -382,7 +382,7 @@ internal_dentry_hash (const void *x)
   return INTERNAL_DENTRY_HASH ((internal_dentry) x);
 }
 
-/* Hash function for internal dentry X, computed from parent->fh and name.  */
+/*! Hash function for internal dentry X, computed from parent->fh and name.  */
 
 static hash_t
 internal_dentry_hash_name (const void *x)
@@ -390,7 +390,7 @@ internal_dentry_hash_name (const void *x)
   return INTERNAL_DENTRY_HASH_NAME ((internal_dentry) x);
 }
 
-/* Compare an internal file handle XX with client's file handle YY.  */
+/*! Compare an internal file handle XX with client's file handle YY.  */
 
 static int
 internal_fh_eq (const void *xx, const void *yy)
@@ -403,7 +403,7 @@ internal_fh_eq (const void *xx, const void *yy)
 	  && x->gen == y->gen);
 }
 
-/* Set array of lock info for current thread to LI. */
+/*! Set array of lock info for current thread to LI. */
 
 void
 set_lock_info (lock_info *li)
@@ -425,7 +425,7 @@ set_lock_info (lock_info *li)
     }
 }
 
-/* Add dentry DENTRY locked to level LEVEL to list of dentries owned
+/*! Add dentry DENTRY locked to level LEVEL to list of dentries owned
    by current thread.  */
 
 void
@@ -464,7 +464,7 @@ set_owned (internal_dentry dentry, unsigned int level)
 #endif
 }
 
-/* Remove dentry DENTRY from list of dentries owned by current thread.  */
+/*! Remove dentry DENTRY from list of dentries owned by current thread.  */
 
 static void
 clear_owned (internal_dentry dentry)
@@ -500,7 +500,7 @@ clear_owned (internal_dentry dentry)
 #endif
 }
 
-/* Return true if dentry DENTRY is owned by current thread.  */
+/*! Return true if dentry DENTRY is owned by current thread.  */
 
 static bool
 is_owned (internal_dentry dentry)
@@ -526,7 +526,7 @@ is_owned (internal_dentry dentry)
   RETURN_BOOL (false);
 }
 
-/* Return the level which dentry DENTRY is locked by current thread.  */
+/*! Return the level which dentry DENTRY is locked by current thread.  */
 
 static unsigned int
 get_level (internal_dentry dentry)
@@ -552,7 +552,7 @@ get_level (internal_dentry dentry)
   RETURN_INT (LEVEL_UNLOCKED);
 }
 
-/* Compare an internal file handle XX with client's file handle YY.  */
+/*! Compare an internal file handle XX with client's file handle YY.  */
 
 static int
 internal_dentry_eq (const void *xx, const void *yy)
@@ -565,7 +565,7 @@ internal_dentry_eq (const void *xx, const void *yy)
 	  && x->gen == y->gen);
 }
 
-/* Compare two internal file handles XX and YY whether they have same parent
+/*! Compare two internal file handles XX and YY whether they have same parent
    and file name.  */
 
 static int
@@ -579,7 +579,7 @@ internal_dentry_eq_name (const void *xx, const void *yy)
   	  && strcmp (x->name.str, y->name.str) == 0);
 }
 
-/* Find the internal file handle or virtual directory for zfs_fh FH
+/*! Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *DENTRYP and VDP according to it.
    If DELETE_VOLUME_P is true and the volume should be deleted do not
    lookup the file handle and delete the volume if there are no file handles
@@ -600,7 +600,7 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
   RETURN_INT (r);
 }
 
-/* Find the internal file handle or virtual directory for zfs_fh FH
+/*! Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *DENTRYP and VDP according to it.
    This function is similar to FH_LOOKUP but the big locks must be locked.
    If DELETE_VOLUME_P is true and the volume should be deleted do not
@@ -712,7 +712,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
   RETURN_INT (ZFS_OK);
 }
 
-/* Lock DENTRY and update time of last use.  */
+/*! Lock DENTRY and update time of last use.  */
 
 void
 acquire_dentry (internal_dentry dentry)
@@ -729,7 +729,7 @@ acquire_dentry (internal_dentry dentry)
   RETURN_VOID;
 }
 
-/* Update time of last use of DENTRY and unlock it.  */
+/*! Update time of last use of DENTRY and unlock it.  */
 
 void
 release_dentry (internal_dentry dentry)
@@ -743,7 +743,7 @@ release_dentry (internal_dentry dentry)
   RETURN_VOID;
 }
 
-/* Return virtual directory for file handle FH.  */
+/*! Return virtual directory for file handle FH.  */
 
 virtual_dir
 vd_lookup (zfs_fh *fh)
@@ -766,7 +766,7 @@ vd_lookup (zfs_fh *fh)
   RETURN_PTR (vd);
 }
 
-/* Return the virtual directory for NAME in virtual directory PARENT.  */
+/*! Return the virtual directory for NAME in virtual directory PARENT.  */
 
 virtual_dir
 vd_lookup_name (virtual_dir parent, string *name)
@@ -794,7 +794,7 @@ vd_lookup_name (virtual_dir parent, string *name)
   RETURN_PTR (vd);
 }
 
-/* Return the internal dentry for file handle FH.  */
+/*! Return the internal dentry for file handle FH.  */
 
 internal_dentry
 dentry_lookup (zfs_fh *fh)
@@ -817,7 +817,7 @@ dentry_lookup (zfs_fh *fh)
   RETURN_PTR (dentry);
 }
 
-/*! Lookup the internal dentry by name but do not lock it.
+/*!! Lookup the internal dentry by name but do not lock it.
     \param vol Volume whose root is returned if parent == NULL.
     \param parent Directory in which the dentry is being looked up.
     \param name Name of the dentry.  */
@@ -853,7 +853,7 @@ dentry_lookup_name_nolock (volume vol, internal_dentry parent, string *name)
   RETURN_PTR (dentry);
 }
 
-/*! Lookup the internal dentry by name and lock it.
+/*!! Lookup the internal dentry by name and lock it.
     \param vol Volume whose root is returned if parent == NULL.
     \param parent Directory in which the dentry is being looked up.
     \param name Name of the dentry.  */
@@ -881,7 +881,7 @@ dentry_lookup_name (volume vol, internal_dentry parent, string *name)
   RETURN_PTR (dentry);
 }
 
-/* Return the internal dentry for PATH from directory START
+/*! Return the internal dentry for PATH from directory START
    or from the volume root of volume VOL if START is NULL.  */
 
 internal_dentry
@@ -953,7 +953,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
   RETURN_PTR (dentry);
 }
 
-/* Return the internal dentry for LOCAL_PATH on volume VOL.  */
+/*! Return the internal dentry for LOCAL_PATH on volume VOL.  */
 
 internal_dentry
 dentry_lookup_local_path (volume vol, string *local_path)
@@ -972,7 +972,7 @@ dentry_lookup_local_path (volume vol, string *local_path)
   RETURN_PTR (dentry);
 }
 
-/* Lock dentry *DENTRYP on volume *VOLP to level LEVEL.
+/*! Lock dentry *DENTRYP on volume *VOLP to level LEVEL.
    Store the local ZFS file handle to TMP_FH.  */
 
 int32_t
@@ -1048,7 +1048,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
   RETURN_INT (ZFS_OK);
 }
 
-/* Unlock dentry DENTRY.  */
+/*! Unlock dentry DENTRY.  */
 
 void
 internal_dentry_unlock (volume vol, internal_dentry dentry)
@@ -1097,7 +1097,7 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
   RETURN_VOID;
 }
 
-/* Lock 2 dentries on volume *VOLP, lock *DENTRY1P to level LEVEL1 and
+/*! Lock 2 dentries on volume *VOLP, lock *DENTRY1P to level LEVEL1 and
    *DENTRY2P to level LEVEL2.  Use TMP_FH1 and TMP_FH2 to lookup them.  */
 
 int32_t
@@ -1213,7 +1213,7 @@ out2:
   RETURN_INT (ZFS_OK);
 }
 
-/* Set master file handle of file handle FH on volume VOL to MASTER_FH.  */
+/*! Set master file handle of file handle FH on volume VOL to MASTER_FH.  */
 
 bool
 set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
@@ -1232,7 +1232,7 @@ set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   RETURN_BOOL (true);
 }
 
-/* Clear metadata in file handle FH.  */
+/*! Clear metadata in file handle FH.  */
 
 static void
 clear_meta (internal_fh fh)
@@ -1245,7 +1245,7 @@ clear_meta (internal_fh fh)
   RETURN_VOID;
 }
 
-/* Create a new internal file handle on volume VOL with local file handle
+/*! Create a new internal file handle on volume VOL with local file handle
    LOCAL_FH, remote file handle MASTER_FH, attributes ATTR, lock it to level
    LEVEL and store it to hash tables.  */
 
@@ -1340,7 +1340,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   RETURN_PTR (fh);
 }
 
-/* Destroy almost everything of the internal file handle FH
+/*! Destroy almost everything of the internal file handle FH
    except mutex and file handle itself.  */
 
 static void
@@ -1389,7 +1389,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
   RETURN_VOID;
 }
 
-/* Destroy the rest of the internal file handle FH, i.e. the mutex
+/*! Destroy the rest of the internal file handle FH, i.e. the mutex
    and file handle itself.  */
 
 static void
@@ -1409,7 +1409,7 @@ internal_fh_destroy_stage2 (internal_fh fh)
   RETURN_VOID;
 }
 
-/* Print the contents of hash table HTAB to file F.  */
+/*! Print the contents of hash table HTAB to file F.  */
 
 void
 print_fh_htab (FILE *f)
@@ -1430,7 +1430,7 @@ print_fh_htab (FILE *f)
     }
 }
 
-/* Print the contents of hash table of filehandles HTAB to STDERR.  */
+/*! Print the contents of hash table of filehandles HTAB to STDERR.  */
 
 void
 debug_fh_htab (void)
@@ -1438,7 +1438,7 @@ debug_fh_htab (void)
   print_fh_htab (stderr);
 }
 
-/* Print subdentries of dentry DENTRY to file F.  */
+/*! Print subdentries of dentry DENTRY to file F.  */
 
 void
 print_subdentries (FILE *f, internal_dentry dentry)
@@ -1460,7 +1460,7 @@ print_subdentries (FILE *f, internal_dentry dentry)
     }
 }
 
-/* Print subdentries of dentry DENTRY to STDERR.  */
+/*! Print subdentries of dentry DENTRY to STDERR.  */
 
 void
 debug_subdentries (internal_dentry dentry)
@@ -1468,7 +1468,7 @@ debug_subdentries (internal_dentry dentry)
   print_subdentries (stderr, dentry);
 }
 
-/* Add DENTRY to list of dentries of PARENT.  */
+/*! Add DENTRY to list of dentries of PARENT.  */
 
 static void
 internal_dentry_add_to_dir (internal_dentry parent, internal_dentry dentry)
@@ -1503,7 +1503,7 @@ internal_dentry_add_to_dir (internal_dentry parent, internal_dentry dentry)
   *slot = dentry;
 }
 
-/* Delete DENTRY from the list of dentries of its parent.  */
+/*! Delete DENTRY from the list of dentries of its parent.  */
 
 static void
 internal_dentry_del_from_dir (internal_dentry dentry)
@@ -1538,7 +1538,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
   RETURN_VOID;
 }
 
-/* Create a new internal dentry NAME in directory PARENT on volume VOL and
+/*! Create a new internal dentry NAME in directory PARENT on volume VOL and
    internal file handle for local file handle LOCAL_FH and master file handle
    MASTER_FH with attributes ATTR and store it to hash tables.
    Lock the newly created file handle to level LEVEL.  */
@@ -1658,7 +1658,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   RETURN_PTR (dentry);
 }
 
-/* Return dentry for file NAME in directory DIR on volume VOL.
+/*! Return dentry for file NAME in directory DIR on volume VOL.
    If it does not exist create it.  Update its local file handle to
    LOCAL_FH, master file handle to MASTER_FH and attributes to ATTR.  */
 
@@ -1804,7 +1804,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   RETURN_PTR (dentry);
 }
 
-/* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
+/*! Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
    on volume VOL.  */
 
 void
@@ -1870,7 +1870,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
     }
 }
 
-/* Create a new internal dentry NAME in directory PARENT on volume VOL for
+/*! Create a new internal dentry NAME in directory PARENT on volume VOL for
    file DENTRY.  */
 
 internal_dentry
@@ -1929,7 +1929,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
   RETURN_PTR (dentry);
 }
 
-/* Move internal dentry for file FROM_NAME in *FROM_DIRP to be a subdentry
+/*! Move internal dentry for file FROM_NAME in *FROM_DIRP to be a subdentry
    of *TO_DIRP with name TO_NAME on volume *VOLP.  */
 
 void
@@ -2012,7 +2012,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
   RETURN_VOID;
 }
 
-/* Destroy subdentries of dentry DENTRY.  Invalidate the dentries in kernel
+/*! Destroy subdentries of dentry DENTRY.  Invalidate the dentries in kernel
    if INVALIDATE.  Return true if DENTRY still exists.  */
 
 static bool
@@ -2059,7 +2059,7 @@ internal_dentry_destroy_subdentries (internal_dentry dentry, zfs_fh *tmp_fh,
   RETURN_BOOL (true);
 }
 
-/*! Destroy internal dentry.
+/*!! Destroy internal dentry.
     \param dentry Dentry which shall be destroyed.
     \param clear_volume_root Flag whether the volume root shall be cleared.
     \param invalidate Flag whether the dentry shall be invalidated.
@@ -2243,7 +2243,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
   RETURN_VOID;
 }
 
-/* Create conflict directory for local file handle LOCAL_FH with attributes
+/*! Create conflict directory for local file handle LOCAL_FH with attributes
    according to ATTR and name NAME in directory DIR on volume VOL.
    If such conflict directory already exists update the local file handle
    and attributes and return it.  */
@@ -2378,7 +2378,7 @@ again:
   RETURN_PTR (conflict);
 }
 
-/* If there is a dentry in place for file FH in conflict directrory CONFLICT
+/*! If there is a dentry in place for file FH in conflict directrory CONFLICT
    on volume VOL delete it and return NULL.
    If FH is already there return its dentry.  */
 
@@ -2441,7 +2441,7 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
   RETURN_PTR (NULL);
 }
 
-/* Add a dentry to conflict dir CONFLICT on volume VOL.
+/*! Add a dentry to conflict dir CONFLICT on volume VOL.
    If EXISTS is true the file really exists so create a dentry with file handle
    FH, attributes ATTR and metadata META; otherwise create a virtual symlink
    representing non-existing file.  */
@@ -2543,7 +2543,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
   RETURN_PTR (dentry);
 }
 
-/* Try resolve CONFLICT on volume VOL, return true if it was resolved.  */
+/*! Try resolve CONFLICT on volume VOL, return true if it was resolved.  */
 
 bool
 try_resolve_conflict (volume vol, internal_dentry conflict)
@@ -2719,7 +2719,7 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
   RETURN_BOOL (false);
 }
 
-/* Return the local dentry in conflict dir CONFLICT.  */
+/*! Return the local dentry in conflict dir CONFLICT.  */
 
 internal_dentry
 conflict_local_dentry (internal_dentry conflict)
@@ -2747,7 +2747,7 @@ conflict_local_dentry (internal_dentry conflict)
   RETURN_PTR (NULL);
 }
 
-/* Return the remote dentry in conflict dir CONFLICT.  */
+/*! Return the remote dentry in conflict dir CONFLICT.  */
 
 internal_dentry
 conflict_remote_dentry (internal_dentry conflict)
@@ -2775,7 +2775,7 @@ conflict_remote_dentry (internal_dentry conflict)
   RETURN_PTR (NULL);
 }
 
-/* Return the other dentry in cronflict dir CONFLICT than DENTRY.  */
+/*! Return the other dentry in cronflict dir CONFLICT than DENTRY.  */
 
 internal_dentry
 conflict_other_dentry (internal_dentry conflict, internal_dentry dentry)
@@ -2804,7 +2804,7 @@ conflict_other_dentry (internal_dentry conflict, internal_dentry dentry)
   RETURN_PTR (NULL);
 }
 
-/* Cancel the CONFLICT on volume VOL.  */
+/*! Cancel the CONFLICT on volume VOL.  */
 
 void
 cancel_conflict (volume vol, internal_dentry conflict)
@@ -2848,7 +2848,7 @@ cancel_conflict (volume vol, internal_dentry conflict)
   RETURN_VOID;
 }
 
-/* Hash function for virtual_dir X, computed from FH.  */
+/*! Hash function for virtual_dir X, computed from FH.  */
 
 static hash_t
 virtual_dir_hash (const void *x)
@@ -2863,7 +2863,7 @@ virtual_dir_hash (const void *x)
   return VIRTUAL_DIR_HASH (vd);
 }
 
-/* Hash function for virtual_dir X, computed from (PARENT->FH, NAME).  */
+/*! Hash function for virtual_dir X, computed from (PARENT->FH, NAME).  */
 
 static hash_t
 virtual_dir_hash_name (const void *x)
@@ -2878,7 +2878,7 @@ virtual_dir_hash_name (const void *x)
   return VIRTUAL_DIR_HASH_NAME (vd);
 }
 
-/* Compare a virtual directory XX with client's file handle YY.  */
+/*! Compare a virtual directory XX with client's file handle YY.  */
 
 static int
 virtual_dir_eq (const void *xx, const void *yy)
@@ -2897,7 +2897,7 @@ virtual_dir_eq (const void *xx, const void *yy)
 	  /* && x->gen == y->gen */);
 }
 
-/* Compare two virtual directories XX and YY whether they have same parent
+/*! Compare two virtual directories XX and YY whether they have same parent
    and file name.  */
 
 static int
@@ -2918,7 +2918,7 @@ virtual_dir_eq_name (const void *xx, const void *yy)
 	  && strcmp (x->name.str, y->name.str) == 0);
 }
 
-/* Create a new virtual directory NAME in virtual directory PARENT.  */
+/*! Create a new virtual directory NAME in virtual directory PARENT.  */
 
 virtual_dir
 virtual_dir_create (virtual_dir parent, const char *name)
@@ -2978,7 +2978,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   RETURN_PTR (vd);
 }
 
-/* Delete a virtual directory VD from all hash tables and free it.  */
+/*! Delete a virtual directory VD from all hash tables and free it.  */
 
 void
 virtual_dir_destroy (virtual_dir vd)
@@ -3065,7 +3065,7 @@ virtual_dir_destroy (virtual_dir vd)
   RETURN_VOID;
 }
 
-/* Create the virtual root directory.  */
+/*! Create the virtual root directory.  */
 
 virtual_dir
 virtual_root_create (void)
@@ -3101,7 +3101,7 @@ virtual_root_create (void)
   RETURN_PTR (root);
 }
 
-/* Destroy virtual root directory.  */
+/*! Destroy virtual root directory.  */
 
 void
 virtual_root_destroy (virtual_dir root)
@@ -3142,7 +3142,7 @@ virtual_root_destroy (virtual_dir root)
   RETURN_VOID;
 }
 
-/* Create the virtual mountpoint for volume VOL.  */
+/*! Create the virtual mountpoint for volume VOL.  */
 
 virtual_dir
 virtual_mountpoint_create (volume vol)
@@ -3215,7 +3215,7 @@ virtual_mountpoint_create (volume vol)
   RETURN_PTR (vd);
 }
 
-/* Destroy the virtual mountpoint of volume VOL.  */
+/*! Destroy the virtual mountpoint of volume VOL.  */
 
 void
 virtual_mountpoint_destroy (volume vol)
@@ -3232,7 +3232,7 @@ virtual_mountpoint_destroy (volume vol)
     }
 }
 
-/* Set the file attributes of virtual directory VD.  */
+/*! Set the file attributes of virtual directory VD.  */
 
 void
 virtual_dir_set_fattr (virtual_dir vd)
@@ -3256,7 +3256,7 @@ virtual_dir_set_fattr (virtual_dir vd)
   vd->attr.ctime = vd->attr.atime;
 }
 
-/* Print the virtual directory VD and its subdirectories to file F
+/*! Print the virtual directory VD and its subdirectories to file F
    indented by INDENT spaces.  */
 
 static void
@@ -3277,7 +3277,7 @@ print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
 			     indent + 1);
 }
 
-/* Print the virtual tree to file F.  */
+/*! Print the virtual tree to file F.  */
 
 void
 print_virtual_tree (FILE *f)
@@ -3285,7 +3285,7 @@ print_virtual_tree (FILE *f)
   print_virtual_tree_node (f, root, 0);
 }
 
-/* Print the virtual tree to STDERR.  */
+/*! Print the virtual tree to STDERR.  */
 
 void
 debug_virtual_tree (void)
@@ -3293,7 +3293,7 @@ debug_virtual_tree (void)
   print_virtual_tree (stderr);
 }
 
-/* Initialize data structures in FH.C.  */
+/*! Initialize data structures in FH.C.  */
 
 void
 initialize_fh_c (void)
@@ -3333,7 +3333,7 @@ initialize_fh_c (void)
   root = virtual_root_create ();
 }
 
-/* Destroy data structures in FH.C.  */
+/*! Destroy data structures in FH.C.  */
 
 void
 cleanup_fh_c (void)

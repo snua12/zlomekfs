@@ -1,4 +1,4 @@
-/* A Fibonacci heap datatype.
+/*! A Fibonacci heap datatype.
    Copyright 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
    Contributed by Daniel Berlin (dan@cgsoftware.com).
 
@@ -22,7 +22,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-/* Fibonacci heaps are somewhat complex, but, there's an article in
+/*! Fibonacci heaps are somewhat complex, but, there's an article in
    DDJ that explains them pretty well:
 
    http://www.ddj.com/articles/1997/9701/9701o/9701o.htm?topic=algoritms
@@ -73,7 +73,7 @@ typedef struct fibheap_def
   alloc_pool pool;
 } *fibheap;
 
-/* The type of a function used to iterate over the tree.
+/*! The type of a function used to iterate over the tree.
    Returns non-zero value to stop traversing.  */
 typedef int (*fibheap_foreach_fn) (void *node_data, void *data);
 

@@ -1,4 +1,4 @@
-/* Data coding functions (encoding and decoding requests and replies).
+/*! Data coding functions (encoding and decoding requests and replies).
    Copyright (C) 2003, 2004 Josef Zlomek
    Copyright (C) 2004 Martin Zlomek
 
@@ -46,7 +46,7 @@
 
 #ifndef __KERNEL__
 
-/* Initialize a data coding buffer DC.  */
+/*! Initialize a data coding buffer DC.  */
 
 void
 dc_init (DC *dc)
@@ -60,7 +60,7 @@ dc_init (DC *dc)
 static int allocated;
 #endif
 
-/* Return a new data coding buffer.  */
+/*! Return a new data coding buffer.  */
 
 DC *
 dc_create (void)
@@ -81,7 +81,7 @@ dc_create (void)
   return dc;
 }
 
-/* Free the data coding buffer DC.  */
+/*! Free the data coding buffer DC.  */
 
 void
 dc_destroy (DC *dc)
@@ -100,7 +100,7 @@ DECLARE_MUTEX (dc_lock);
 static DC *dc[MAX_FREE_DCS];
 static int ndc;
 
-/* Return a new data coding buffer;
+/*! Return a new data coding buffer;
    use an unused one or create a new one.  */
 
 DC *
@@ -122,7 +122,7 @@ dc_get (void)
     }
 }
 
-/* Put back the data coding buffer DC;
+/*! Put back the data coding buffer DC;
    make it unused or free it.  */
 
 void
@@ -144,7 +144,7 @@ dc_put (DC *_dc)
     }
 }
 
-/* Free all unused data coding buffers. */
+/*! Free all unused data coding buffers. */
 
 void
 dc_destroy_all (void)
@@ -157,7 +157,7 @@ dc_destroy_all (void)
 
 #else
 
-/* Print DC to file F.  */
+/*! Print DC to file F.  */
 
 void
 print_dc (DC *dc, FILE *f)
@@ -172,7 +172,7 @@ print_dc (DC *dc, FILE *f)
 		    f);
 }
 
-/* Print DC to STDERR.  */
+/*! Print DC to STDERR.  */
 
 void
 debug_dc (DC *dc)
@@ -182,7 +182,7 @@ debug_dc (DC *dc)
 
 #endif
 
-/* Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
+/*! Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
 
 void
 start_encoding (DC *dc)
@@ -193,7 +193,7 @@ start_encoding (DC *dc)
   encode_uint32_t (dc, 0);
 }
 
-/* Update the size of block in DC.  Return the length of encoded buffer.  */
+/*! Update the size of block in DC.  Return the length of encoded buffer.  */
 
 unsigned int
 finish_encoding (DC *dc)
@@ -203,7 +203,7 @@ finish_encoding (DC *dc)
   return dc->cur_length;
 }
 
-/* Initialize DC to start decoding of PTR.  Return true on success.  */
+/*! Initialize DC to start decoding of PTR.  Return true on success.  */
 
 bool
 start_decoding (DC *dc)
@@ -215,7 +215,7 @@ start_decoding (DC *dc)
   return dc->max_length <= DC_SIZE;
 }
 
-/* Return true if all data has been read from encoded buffer.  */
+/*! Return true if all data has been read from encoded buffer.  */
 
 bool
 finish_decoding (DC *dc)
@@ -223,7 +223,7 @@ finish_decoding (DC *dc)
   return dc->cur_length == dc->max_length;
 }
 
-/* Decode a value of type T and size S from DC and store it to *RET.
+/*! Decode a value of type T and size S from DC and store it to *RET.
    Call F to transform little endian to cpu endian.
    Return true on success.  */
 #define DECODE_SIMPLE_TYPE(T, S, F)				\
@@ -242,7 +242,7 @@ decode_##T (DC *dc, T *ret)					\
   return true;							\
 }
 
-/* Encode a value VAL of type T and size S to DC.
+/*! Encode a value VAL of type T and size S to DC.
    Call F to transform cpu endian to little endian.
    Return true on success.  */
 #define ENCODE_SIMPLE_TYPE(T, S, F)				\

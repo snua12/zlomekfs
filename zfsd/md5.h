@@ -1,4 +1,4 @@
-/* This code implements the MD5 message-digest algorithm.
+/*! This code implements the MD5 message-digest algorithm.
    The algorithm is due to Ron Rivest.  This code was
    written by Colin Plumb in 1993, no copyright is claimed.
    This code is in the public domain; do with it what you wish.
@@ -34,7 +34,7 @@
 # include <inttypes.h>
 #endif
 
-/* Size of MD5 hash.  */
+/*! Size of MD5 hash.  */
 #define MD5_SIZE 16
 
 #ifndef __KERNEL__

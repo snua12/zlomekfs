@@ -1,4 +1,4 @@
-/* Dump intervals in the interval files.
+/*! Dump intervals in the interval files.
    Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.

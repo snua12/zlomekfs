@@ -1,4 +1,4 @@
-/* Memory management functions.
+/*! Memory management functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -27,15 +27,15 @@
 #include "memory.h"
 #include "varray.h"
 
-/*! \var string empty_string
+/*!! \var string empty_string
     Empty string.  */
 string empty_string = { 0, "" };
 
-/*! \var string invalid_string
+/*!! \var string invalid_string
     Invalid string.  */
 string invalid_string = { 0, NULL };
 
-/* Similar to CALLOC but always returns valid pointer.  */
+/*! Similar to CALLOC but always returns valid pointer.  */
 void *
 xcalloc (size_t nmemb, size_t size)
 {
@@ -48,7 +48,7 @@ xcalloc (size_t nmemb, size_t size)
   return r;
 }
 
-/* Similar to MALLOC but always returns valid pointer.  */
+/*! Similar to MALLOC but always returns valid pointer.  */
 void *
 xmalloc (size_t size)
 {
@@ -61,7 +61,7 @@ xmalloc (size_t size)
   return r;
 }
 
-/* Similar to REALLOC but always returns valid pointer.  */
+/*! Similar to REALLOC but always returns valid pointer.  */
 void *
 xrealloc (void *ptr, size_t size)
 {
@@ -74,7 +74,7 @@ xrealloc (void *ptr, size_t size)
   return r;
 }
 
-/* Similar to STRDUP but always returns valid pointer.  */
+/*! Similar to STRDUP but always returns valid pointer.  */
 char *
 xstrdup (const char *s)
 {
@@ -87,7 +87,7 @@ xstrdup (const char *s)
   return r;
 }
 
-/* Similar to STRNDUP but always returns valid pointer.  */
+/*! Similar to STRNDUP but always returns valid pointer.  */
 char *
 xstrndup (const char *s, size_t n)
 {
@@ -109,7 +109,7 @@ xstrndup (const char *s, size_t n)
   return r;
 }
 
-/* Create string DEST from S.  */
+/*! Create string DEST from S.  */
 void
 xmkstring (string *dest, const char *s)
 {
@@ -123,7 +123,7 @@ xmkstring (string *dest, const char *s)
   memcpy (dest->str, s, dest->len + 1);
 }
 
-/* Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
+/*! Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
    string structure.  */
 void
 xstringdup (string *dest, string *src)
@@ -141,7 +141,7 @@ xstringdup (string *dest, string *src)
   memcpy (dest->str, old_str, dest->len + 1);
 }
 
-/* Return a copy of memory SRC of size N.  */
+/*! Return a copy of memory SRC of size N.  */
 void *
 xmemdup (const void *src, size_t n)
 {
@@ -155,7 +155,7 @@ xmemdup (const void *src, size_t n)
   return r;
 }
 
-/* Return a concatenation of N strings.  */
+/*! Return a concatenation of N strings.  */
 char *
 xstrconcat (unsigned int n, ...)
 {
@@ -179,7 +179,7 @@ xstrconcat (unsigned int n, ...)
   return r;
 }
 
-/* Return a concatenation of strings stored in varray.  */
+/*! Return a concatenation of strings stored in varray.  */
 char *
 xstrconcat_varray (varray *va)
 {
@@ -226,7 +226,7 @@ xstrconcat_varray (varray *va)
   return r;
 }
 
-/* Return a concatenation of strings stored in varray.  */
+/*! Return a concatenation of strings stored in varray.  */
 void
 xstringconcat_varray (string *dst, varray *va)
 {
@@ -262,7 +262,7 @@ xstringconcat_varray (string *dst, varray *va)
   *d = 0;
 }
 
-/* Set a copy of SRC to DST.  */
+/*! Set a copy of SRC to DST.  */
 
 void
 set_str (string *dst, const char *src)
@@ -270,7 +270,7 @@ set_str (string *dst, const char *src)
   set_string_with_length (dst, src, strlen (src));
 }
 
-/* Set a copy of SRC to DST.  */
+/*! Set a copy of SRC to DST.  */
 
 void
 set_string (string *dst, string *src)
@@ -288,7 +288,7 @@ set_string (string *dst, string *src)
   memcpy (dst->str, src->str, dst->len + 1);
 }
 
-/* Set a copy of SRC of length LEN to DST.  */
+/*! Set a copy of SRC of length LEN to DST.  */
 
 void
 set_string_with_length (string *dst, const char *src, int len)
@@ -306,7 +306,7 @@ set_string_with_length (string *dst, const char *src, int len)
   memcpy (dst->str, src, dst->len + 1);
 }
 
-/* Append STR of length LEN to SRC and store it to DST.  */
+/*! Append STR of length LEN to SRC and store it to DST.  */
 
 void
 append_string (string *dst, string *src, const char *str, unsigned int len)
@@ -323,7 +323,7 @@ append_string (string *dst, string *src, const char *str, unsigned int len)
   memcpy (dst->str + src->len, str, len + 1);
 }
 
-/* Append "/" and NAME of length LEN to PATH and store it to DST.  */
+/*! Append "/" and NAME of length LEN to PATH and store it to DST.  */
 
 void
 append_file_name (string *dst, string *path, const char *name, unsigned int len)

@@ -1,4 +1,4 @@
-/* Functions for managing thread pools.
+/*! Functions for managing thread pools.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -31,19 +31,19 @@
 #include "data-coding.h"
 #include "zfs_prot.h"
 
-/* Key for thread specific data.  */
+/*! Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
 
-/* Key for thread name.  */
+/*! Key for thread name.  */
 extern pthread_key_t thread_name_key;
 
-/* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
+/*! Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 extern volatile bool running;
 
-/* Mutex protecting RUNNING flag.  */
+/*! Mutex protecting RUNNING flag.  */
 extern pthread_mutex_t running_mutex;
 
-/* State of the thread.  */
+/*! State of the thread.  */
 typedef enum thread_state_def
 {
   THREAD_DEAD,		/* thread is not created */
@@ -52,7 +52,7 @@ typedef enum thread_state_def
   THREAD_BUSY		/* thread is working */
 } thread_state;
 
-/* Additional data for a network thread.  */
+/*! Additional data for a network thread.  */
 struct fd_data_def;
 typedef struct network_thread_data_def
 {
@@ -64,7 +64,7 @@ typedef struct network_thread_data_def
   unsigned int index;			/* index of FD in array "active" */
 } network_thread_data;
 
-/* Additional data for a kernel thread.  */
+/*! Additional data for a kernel thread.  */
 typedef struct kernel_thread_data_def
 {
   DC *dc;				/* buffer for request to this node */
@@ -73,14 +73,14 @@ typedef struct kernel_thread_data_def
   struct fd_data_def *fd_data;		/* passed from main network thread */
 } kernel_thread_data;
 
-/* Additional data for an update thread.  */
+/*! Additional data for an update thread.  */
 typedef struct update_thread_data_def
 {
   /* File handle to update.  */
   zfs_fh fh;
 } update_thread_data;
 
-/* Definition of thread's variables.  */
+/*! Definition of thread's variables.  */
 typedef struct thread_def
 {
   /* Mutex protecting the state of thread.  */
@@ -111,20 +111,20 @@ typedef struct thread_def
   } u;
 } thread;
 
-/* Thread datatype padded to 256 bytes to avoid cache ping pong.  */
+/*! Thread datatype padded to 256 bytes to avoid cache ping pong.  */
 typedef union padded_thread_def
 {
   thread t;
   char padding[((sizeof (thread) + 255) / 256) * 256];
 } padded_thread;
 
-/* Type of a routine started in a new thread.  */
+/*! Type of a routine started in a new thread.  */
 typedef void *(*thread_start) (void *);
 
-/* Type of thread initializer.  */
+/*! Type of thread initializer.  */
 typedef void (*thread_init) (thread *);
 
-/* Definition of thread pool.  */
+/*! Definition of thread pool.  */
 typedef struct thread_pool_def
 {
   volatile bool terminate;	/* shall threads in this pool terminate? */
@@ -149,7 +149,7 @@ typedef struct thread_pool_def
   pthread_mutex_t regulator_in_syscall;	/* regulator is in blocking syscall */
 } thread_pool;
 
-/* Description of thread waiting for reply.  */
+/*! Description of thread waiting for reply.  */
 typedef struct waiting4reply_data_def
 {
   uint32_t request_id;

@@ -1,4 +1,4 @@
-/* Logging functions.
+/*! Logging functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -30,10 +30,10 @@
 #include "pthread.h"
 #include "log.h"
 
-/* Level of verbosity.  Higher number means more messages.  */
+/*! Level of verbosity.  Higher number means more messages.  */
 int verbose = 1;
 
-/* Print message to F if LEVEL > VERBOSE.  */
+/*! Print message to F if LEVEL > VERBOSE.  */
 void
 message (int level, FILE * f, char *format, ...)
 {
@@ -48,7 +48,7 @@ message (int level, FILE * f, char *format, ...)
   va_end (va);
 }
 
-/* Print the internal error message and exit.  */
+/*! Print the internal error message and exit.  */
 void
 internal_error (char *format, ...)
 {
@@ -83,7 +83,7 @@ internal_error (char *format, ...)
   exit (EXIT_FAILURE);
 }
 
-/* Report an "Aborted" internal error.  */
+/*! Report an "Aborted" internal error.  */
 void
 verbose_abort (const char *file, int line)
 {

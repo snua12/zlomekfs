@@ -1,4 +1,4 @@
-/* Configuration.
+/*! Configuration.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -53,22 +53,22 @@
 #define LINE_SIZE 2048
 #endif
 
-/* Data for config reader thread.  */
+/*! Data for config reader thread.  */
 thread config_reader_data;
 
-/* File used to communicate with kernel.  */
+/*! File used to communicate with kernel.  */
 string kernel_file_name;
 
-/* Directory with local node configuration. */
+/*! Directory with local node configuration. */
 static string local_config;
 
-/* File with private key.  */
+/*! File with private key.  */
 static string private_key;
 
-/* Node which the local node should fetch the global configuration from.  */
+/*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
 
-/* Element of list of requests for config reread.  */
+/*! Element of list of requests for config reread.  */
 typedef struct reread_config_request_def *reread_config_request;
 struct reread_config_request_def
 {
@@ -82,18 +82,18 @@ struct reread_config_request_def
   uint32_t from_sid;
 };
 
-/* First and last element of the chain of requests for rereading
+/*! First and last element of the chain of requests for rereading
    configuration.  */
 static reread_config_request reread_config_first;
 static reread_config_request reread_config_last;
 
-/* Alloc pool for allocating nodes of reread config chain.  */
+/*! Alloc pool for allocating nodes of reread config chain.  */
 static alloc_pool reread_config_pool;
 
-/* Mutex protecting the reread_config chain and alloc pool.  */
+/*! Mutex protecting the reread_config chain and alloc pool.  */
 static pthread_mutex_t reread_config_mutex;
 
-/* Process one line of configuration file.  Return the length of value.  */
+/*! Process one line of configuration file.  Return the length of value.  */
 
 static int
 process_line (const char *file, const int line_num, char *line, char **key,
@@ -225,7 +225,7 @@ process_line (const char *file, const int line_num, char *line, char **key,
   return dest - *value;
 }
 
-/* Split the line by ':', trim the resulting parts, fill up to N parts
+/*! Split the line by ':', trim the resulting parts, fill up to N parts
    to PARTS and return the total number of parts.  */
 
 static int
@@ -285,7 +285,7 @@ split_and_trim (char *line, int n, string *parts)
   return i;
 }
 
-/* Set default node UID to UID of user NAME.  Return true on success.  */
+/*! Set default node UID to UID of user NAME.  Return true on success.  */
 
 static bool
 set_default_uid (char *name)
@@ -300,7 +300,7 @@ set_default_uid (char *name)
   return true;
 }
 
-/* Set default node GID to GID of group NAME.  Return true on success.  */
+/*! Set default node GID to GID of group NAME.  Return true on success.  */
 
 static bool
 set_default_gid (char *name)
@@ -315,7 +315,7 @@ set_default_gid (char *name)
   return true;
 }
 
-/* Set default local user/group.  */
+/*! Set default local user/group.  */
 
 void
 set_default_uid_gid (void)
@@ -333,7 +333,7 @@ read_private_key (string *filename)
   return true;
 }
 
-/* Initialize local node so that we could read configuration.  */
+/*! Initialize local node so that we could read configuration.  */
 
 static void
 init_this_node (void)
@@ -346,7 +346,7 @@ init_this_node (void)
   zfsd_mutex_unlock (&node_mutex);
 }
 
-/*! Read local info about volumes.
+/*!! Read local info about volumes.
     \param path Path where local configuration is stored.
     \param reread True if we are rereading the local volume info.  */
 
@@ -447,7 +447,7 @@ read_local_volume_info (string *path, bool reread)
   return true;
 }
 
-/*! Reread local info about volumes.
+/*!! Reread local info about volumes.
     \param path Path where local configuration is stored.  */
 
 static bool 
@@ -463,7 +463,7 @@ reread_local_volume_info (string *path)
   return true;
 }
 
-/* Read ID and name of local node and local paths of volumes.  */
+/*! Read ID and name of local node and local paths of volumes.  */
 
 static bool
 read_local_cluster_config (string *path)
@@ -542,7 +542,7 @@ read_local_cluster_config (string *path)
   return true;
 }
 
-/* Initialize config volume so that we could read configuration.  */
+/*! Initialize config volume so that we could read configuration.  */
 
 static bool
 init_config_volume (void)
@@ -669,7 +669,7 @@ out_fh:
   return false;
 }
 
-/* Read file FH by lines and call function PROCESS for each line.  */
+/*! Read file FH by lines and call function PROCESS for each line.  */
 
 static bool
 process_file_by_lines (zfs_fh *fh, char *file_name,
@@ -747,7 +747,7 @@ out:
   return false;
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.
+/*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
@@ -796,7 +796,7 @@ process_line_node (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of nodes from CONFIG_DIR/node_list.  */
+/*! Read list of nodes from CONFIG_DIR/node_list.  */
 
 static bool
 read_node_list (zfs_fh *config_dir)
@@ -812,7 +812,7 @@ read_node_list (zfs_fh *config_dir)
 				process_line_node, NULL);
 }
 
-/* Data for process_line_volume_hierarchy.  */
+/*! Data for process_line_volume_hierarchy.  */
 typedef struct volume_hierarchy_data_def
 {
   varray hierarchy;
@@ -823,7 +823,7 @@ typedef struct volume_hierarchy_data_def
   char *master_name;
 } volume_hierarchy_data;
 
-/* Process line LINE number LINE_NUM of volume hierarchy file FILE_NAME
+/*! Process line LINE number LINE_NUM of volume hierarchy file FILE_NAME
    and update hierarchy DATA.  */
 
 static int
@@ -1006,7 +1006,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
   return 0;
 }
 
-/* Read appropriate file in VOLUME_INFO_DIR and process info about volume VID
+/*! Read appropriate file in VOLUME_INFO_DIR and process info about volume VID
    with name NAME and volume mountpoint MOUNTPOINT.  */
 
 static void
@@ -1126,14 +1126,14 @@ out:
   varray_destroy (&data.hierarchy);
 }
 
-/* Saved information about config volume because we need to update it after
+/*! Saved information about config volume because we need to update it after
    information about every volume was read.  */
 
 static uint32_t saved_vid;
 static string saved_name;
 static string saved_mountpoint;
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.
+/*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
@@ -1207,7 +1207,7 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of volumes from CONFIG_DIR/volume_list.  */
+/*! Read list of volumes from CONFIG_DIR/volume_list.  */
 
 static bool
 read_volume_list (zfs_fh *config_dir)
@@ -1259,7 +1259,7 @@ no_config:
   return true;
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.
+/*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
@@ -1302,7 +1302,7 @@ process_line_user (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of users from CONFIG_DIR/user_list.  */
+/*! Read list of users from CONFIG_DIR/user_list.  */
 
 static bool
 read_user_list (zfs_fh *config_dir)
@@ -1318,7 +1318,7 @@ read_user_list (zfs_fh *config_dir)
 				process_line_user, NULL);
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.
+/*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
@@ -1361,7 +1361,7 @@ process_line_group (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of groups from CONFIG_DIR/group_list.  */
+/*! Read list of groups from CONFIG_DIR/group_list.  */
 
 static bool
 read_group_list (zfs_fh *config_dir)
@@ -1377,7 +1377,7 @@ read_group_list (zfs_fh *config_dir)
 				process_line_group, NULL);
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.
+/*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
@@ -1431,7 +1431,7 @@ process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of user mapping.  If SID == 0 read the default user mapping
+/*! Read list of user mapping.  If SID == 0 read the default user mapping
    from CONFIG_DIR/user/default else read the special mapping for node SID.  */
 
 static bool
@@ -1477,7 +1477,7 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
   return ret;
 }
 
-/* Process line LINE number LINE_NUM from file FILE_NAME.
+/*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
 static int
@@ -1531,7 +1531,7 @@ process_line_group_mapping (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of group mapping.  If SID == 0 read the default group mapping
+/*! Read list of group mapping.  If SID == 0 read the default group mapping
    from CONFIG_DIR/group/default else read the special mapping for node SID.  */
 
 static bool
@@ -1577,7 +1577,7 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
   return ret;
 }
 
-/* Invalidate configuration.  */
+/*! Invalidate configuration.  */
 
 static void
 invalidate_config (void)
@@ -1597,7 +1597,7 @@ invalidate_config (void)
     }
 }
 
-/* Verify configuration, fix what can be fixed. Return false if there remains
+/*! Verify configuration, fix what can be fixed. Return false if there remains
    something which can't be fixed.  */
 
 static bool
@@ -1623,7 +1623,7 @@ fix_config (void)
   return true;
 }
 
-/* Reread list of nodes.  */
+/*! Reread list of nodes.  */
 
 static bool
 reread_node_list (void)
@@ -1649,7 +1649,7 @@ reread_node_list (void)
   return true;
 }
 
-/* Reread list of volumes.  */
+/*! Reread list of volumes.  */
 
 static bool
 reread_volume_list (void)
@@ -1671,7 +1671,7 @@ reread_volume_list (void)
   return true;
 }
 
-/* Reread list of users.  */
+/*! Reread list of users.  */
 
 static bool
 reread_user_list (void)
@@ -1700,7 +1700,7 @@ reread_user_list (void)
   return true;
 }
 
-/* Reread list of groups.  */
+/*! Reread list of groups.  */
 
 static bool
 reread_group_list (void)
@@ -1729,7 +1729,7 @@ reread_group_list (void)
   return true;
 }
 
-/* Reread volume hierarchy for volume VOL.  */
+/*! Reread volume hierarchy for volume VOL.  */
 
 static void
 reread_volume_hierarchy (volume vol)
@@ -1772,7 +1772,7 @@ reread_volume_hierarchy (volume vol)
   destroy_marked_volume (vid);
 }
 
-/* Reread user mapping for node SID.  */
+/*! Reread user mapping for node SID.  */
 
 static bool
 reread_user_mapping (uint32_t sid)
@@ -1821,7 +1821,7 @@ reread_user_mapping (uint32_t sid)
   return true;
 }
 
-/* Reread group mapping for node SID.  */
+/*! Reread group mapping for node SID.  */
 
 static bool
 reread_group_mapping (uint32_t sid)
@@ -1870,7 +1870,7 @@ reread_group_mapping (uint32_t sid)
   return true;
 }
 
-/* Reread configuration file RELATIVE_PATH.  */
+/*! Reread configuration file RELATIVE_PATH.  */
 
 static bool
 reread_config_file (string *relative_path)
@@ -1964,7 +1964,7 @@ out:
   return false;
 }
 
-/* Add request to reread config file DENTRY to queue.  */
+/*! Add request to reread config file DENTRY to queue.  */
 
 void
 add_reread_config_request_dentry (internal_dentry dentry)
@@ -1983,7 +1983,7 @@ add_reread_config_request_dentry (internal_dentry dentry)
   add_reread_config_request (&relative_path, t->from_sid);
 }
 
-/* Add request to reread config file PATH on volume VOL to queue.  */
+/*! Add request to reread config file PATH on volume VOL to queue.  */
 
 void
 add_reread_config_request_local_path (volume vol, string *path)
@@ -2002,7 +2002,7 @@ add_reread_config_request_local_path (volume vol, string *path)
   add_reread_config_request (&relative_path, t->from_sid);
 }
 
-/* Add request to reread config file RELATIVE_PATH to queue.
+/*! Add request to reread config file RELATIVE_PATH to queue.
    The request came from node FROM_SID.  */
 
 void
@@ -2030,7 +2030,7 @@ add_reread_config_request (string *relative_path, uint32_t from_sid)
   semaphore_up (&config_reader_data.sem, 1);
 }
 
-/* Get a request to reread config from queue and store the relative path of
+/*! Get a request to reread config from queue and store the relative path of
    the file to be reread to RELATIVE_PATH and the node ID which the request came
    from to FROM_SID.  */
 
@@ -2055,10 +2055,10 @@ get_reread_config_request (string *relative_path, uint32_t *from_sid)
   return true;
 }
 
-/* Has the config reader already terminated?  */
+/*! Has the config reader already terminated?  */
 static volatile bool reading_cluster_config;
 
-/* Thread for reading a configuration.  */
+/*! Thread for reading a configuration.  */
 
 static void *
 config_reader (void *data)
@@ -2249,7 +2249,7 @@ out:
   return NULL;
 }
 
-/* Read global configuration of the cluster from config volume.  */
+/*! Read global configuration of the cluster from config volume.  */
 
 static bool
 read_global_cluster_config (void)
@@ -2282,7 +2282,7 @@ read_global_cluster_config (void)
   return config_reader_data.retval == ZFS_OK;
 }
 
-/* Read configuration of the cluster - nodes, volumes, ... */
+/*! Read configuration of the cluster - nodes, volumes, ... */
 
 bool
 read_cluster_config (void)
@@ -2302,7 +2302,7 @@ read_cluster_config (void)
   return true;
 }
 
-/* Read configuration from FILE and using this information read configuration
+/*! Read configuration from FILE and using this information read configuration
    of node and cluster.  Return true on success.  */
 
 bool
@@ -2469,7 +2469,7 @@ read_config_file (const char *file)
   return true;
 }
 
-/* Initialize data structures in CONFIG.C.  */
+/*! Initialize data structures in CONFIG.C.  */
 
 void
 initialize_config_c (void)
@@ -2482,7 +2482,7 @@ initialize_config_c (void)
 			 &reread_config_mutex);
 }
 
-/* Destroy data structures in CONFIG.C.  */
+/*! Destroy data structures in CONFIG.C.  */
 
 void
 cleanup_config_c (void)

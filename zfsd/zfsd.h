@@ -1,4 +1,4 @@
-/* ZFS daemon.
+/*! ZFS daemon.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -21,7 +21,7 @@
 #ifndef ZFSD_H
 #define ZFSD_H
 
-/* Thread ID of the main thread.  */
+/*! Thread ID of the main thread.  */
 extern pthread_t main_thread;
 
 extern void terminate (void);

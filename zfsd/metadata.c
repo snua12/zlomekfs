@@ -1,4 +1,4 @@
-/* Metadata management functions.
+/*! Metadata management functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -47,10 +47,10 @@
 #include "zfs_prot.h"
 #include "user-group.h"
 
-/* Depth of directory tree for saving metadata about files.  */
+/*! Depth of directory tree for saving metadata about files.  */
 unsigned int metadata_tree_depth = 1;
 
-/* Data for file descriptor.  */
+/*! Data for file descriptor.  */
 typedef struct metadata_fd_data_def
 {
   pthread_mutex_t mutex;
@@ -59,22 +59,22 @@ typedef struct metadata_fd_data_def
   fibnode heap_node;		/* node of heap whose data is this structure  */
 } metadata_fd_data_t;
 
-/* The array of data for each file descriptor.  */
+/*! The array of data for each file descriptor.  */
 metadata_fd_data_t *metadata_fd_data;
 
-/* Array of opened metadata file descriptors.  */
+/*! Array of opened metadata file descriptors.  */
 static fibheap metadata_heap;
 
-/* Mutex protecting access to data structures used for opening/closing
+/*! Mutex protecting access to data structures used for opening/closing
    metadata files.  */
 static pthread_mutex_t metadata_mutex;
 
-/* Hash function for metadata M.  */
+/*! Hash function for metadata M.  */
 #define METADATA_HASH(M) (crc32_update (crc32_buffer (&(M).dev,		  \
 						      sizeof (uint32_t)), \
 					&(M).ino, sizeof (uint32_t)))
 
-/* Hash function for file handle mapping M.  */
+/*! Hash function for file handle mapping M.  */
 #define FH_MAPPING_HASH(M) (crc32_update (crc32_buffer (&(M).master_fh.dev, \
 							sizeof (uint32_t)), \
 					  &(M).master_fh.ino,		    \
@@ -85,7 +85,7 @@ static void delete_hardlinks_file (volume vol, zfs_fh *fh);
 static bool write_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
 			     hardlink_list hl);
 
-/* Hash function for metadata X.  */
+/*! Hash function for metadata X.  */
 
 hashval_t
 metadata_hash (const void *x)
@@ -93,7 +93,7 @@ metadata_hash (const void *x)
   return METADATA_HASH (*(metadata *) x);
 }
 
-/* Compare element X of hash file with possible element Y.  */
+/*! Compare element X of hash file with possible element Y.  */
 
 int
 metadata_eq (const void *x, const void *y)
@@ -106,7 +106,7 @@ metadata_eq (const void *x, const void *y)
 
 #if BYTE_ORDER != LITTLE_ENDIAN
 
-/* Decode element X of the hash file.  */
+/*! Decode element X of the hash file.  */
 
 void
 metadata_decode (void *x)
@@ -131,7 +131,7 @@ metadata_decode (void *x)
   m->parent_ino = le_to_u32 (m->parent_ino);
 }
 
-/* Encode element X of the hash file.  */
+/*! Encode element X of the hash file.  */
 
 void
 metadata_encode (void *x)
@@ -158,7 +158,7 @@ metadata_encode (void *x)
 
 #endif
 
-/* Hash function for fh_mapping X.  */
+/*! Hash function for fh_mapping X.  */
 
 static hashval_t
 fh_mapping_hash (const void *x)
@@ -166,7 +166,7 @@ fh_mapping_hash (const void *x)
   return FH_MAPPING_HASH (*(fh_mapping *) x);
 }
 
-/* Compare element X of hash file with possible element Y.  */
+/*! Compare element X of hash file with possible element Y.  */
 
 static int
 fh_mapping_eq (const void *x, const void *y)
@@ -180,7 +180,7 @@ fh_mapping_eq (const void *x, const void *y)
 
 #if BYTE_ORDER != LITTLE_ENDIAN
 
-/* Decode element X of the hash file.  */
+/*! Decode element X of the hash file.  */
 
 static void
 fh_mapping_decode (void *x)
@@ -199,7 +199,7 @@ fh_mapping_decode (void *x)
   m->local_fh.gen = le_to_u32 (m->local_fh.gen);
 }
 
-/* Encode element X of the hash file.  */
+/*! Encode element X of the hash file.  */
 
 static void
 fh_mapping_encode (void *x)
@@ -223,7 +223,7 @@ fh_mapping_encode (void *x)
 #define fh_mapping_encode NULL
 #endif
 
-/* Build path to file with global metadata of type TYPE for volume VOL.  */
+/*! Build path to file with global metadata of type TYPE for volume VOL.  */
 
 static void
 build_metadata_path (string *path, volume vol, metadata_type type)
@@ -249,7 +249,7 @@ build_metadata_path (string *path, volume vol, metadata_type type)
     }
 }
 
-/* Build path to file with metadata of type TYPE for file handle FH
+/*! Build path to file with metadata of type TYPE for file handle FH
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
 
 static void
@@ -334,7 +334,7 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
   varray_destroy (&v);
 }
 
-/* Build path PATH to shadow file for file FH with name FILE_NAME
+/*! Build path PATH to shadow file for file FH with name FILE_NAME
    on volume VOL.  */
 
 static void
@@ -389,7 +389,7 @@ build_shadow_metadata_path (string *path, volume vol, zfs_fh *fh,
   varray_destroy (&v);
 }
 
-/* Create a full path to file FILE with access rights MODE.
+/*! Create a full path to file FILE with access rights MODE.
    Return true if path exists at the end of this function.
    If VOL is not NULL we are creating a shadow tree on volume VOL
    so insert metadata for new directories.  */
@@ -495,7 +495,7 @@ create_path_for_file (string *file, unsigned int mode, volume vol)
   RETURN_BOOL (false);
 }
 
-/* Remove file FILE and its path upto depth TREE_DEPTH if it is empty.  */
+/*! Remove file FILE and its path upto depth TREE_DEPTH if it is empty.  */
 
 static bool
 remove_file_and_path (string *file, unsigned int tree_depth)
@@ -525,7 +525,7 @@ remove_file_and_path (string *file, unsigned int tree_depth)
   RETURN_BOOL (true);
 }
 
-/* Is the hash file HFILE opened?  */
+/*! Is the hash file HFILE opened?  */
 
 static bool
 hashfile_opened_p (hfile_t hfile)
@@ -552,7 +552,7 @@ hashfile_opened_p (hfile_t hfile)
   RETURN_BOOL (true);
 }
 
-/* Is the interval file for interval tree TREE opened?  */
+/*! Is the interval file for interval tree TREE opened?  */
 
 static bool
 interval_opened_p (interval_tree tree)
@@ -579,7 +579,7 @@ interval_opened_p (interval_tree tree)
   RETURN_BOOL (true);
 }
 
-/* Is the file for journal JOURNAL opened?  */
+/*! Is the file for journal JOURNAL opened?  */
 
 static bool
 journal_opened_p (journal_t journal)
@@ -607,7 +607,7 @@ journal_opened_p (journal_t journal)
   RETURN_BOOL (true);
 }
 
-/* Initialize file descriptor for hash file HFILE.  */
+/*! Initialize file descriptor for hash file HFILE.  */
 
 static void
 init_hashfile_fd (hfile_t hfile)
@@ -629,7 +629,7 @@ init_hashfile_fd (hfile_t hfile)
 		      &metadata_fd_data[hfile->fd]);
 }
 
-/* Initialize file descriptor for interval tree TREE.  */
+/*! Initialize file descriptor for interval tree TREE.  */
 
 static void
 init_interval_fd (interval_tree tree)
@@ -651,7 +651,7 @@ init_interval_fd (interval_tree tree)
 		      &metadata_fd_data[tree->fd]);
 }
 
-/* Initialize file descriptor for journal JOURNAL.  */
+/*! Initialize file descriptor for journal JOURNAL.  */
 
 static void
 init_journal_fd (journal_t journal)
@@ -673,7 +673,7 @@ init_journal_fd (journal_t journal)
 		      &metadata_fd_data[journal->fd]);
 }
 
-/* Close file descriptor FD of metadata file.  */
+/*! Close file descriptor FD of metadata file.  */
 
 static void
 close_metadata_fd (int fd)
@@ -701,7 +701,7 @@ close_metadata_fd (int fd)
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
 }
 
-/* Open metadata file PATHNAME with open flags FLAGS and mode MODE.  */
+/*! Open metadata file PATHNAME with open flags FLAGS and mode MODE.  */
 
 static int
 open_metadata (const char *pathname, int flags, mode_t mode)
@@ -741,7 +741,7 @@ retry_open:
   RETURN_INT (fd);
 }
 
-/* Open metadata file of type TYPE for file handle FH on volume VOL
+/*! Open metadata file of type TYPE for file handle FH on volume VOL
    with path PATH, open flags FLAGS and mode MODE.  */
 
 static int
@@ -825,7 +825,7 @@ open_fh_metadata (string *path, volume vol, zfs_fh *fh, metadata_type type,
   RETURN_INT (fd);
 }
 
-/* Open and initialize file descriptor for hash file HFILE of type TYPE.  */
+/*! Open and initialize file descriptor for hash file HFILE of type TYPE.  */
 
 static int
 open_hash_file (volume vol, metadata_type type)
@@ -864,7 +864,7 @@ open_hash_file (volume vol, metadata_type type)
   RETURN_INT (fd);
 }
 
-/* Open and initialize file descriptor for interval of type TYPE for
+/*! Open and initialize file descriptor for interval of type TYPE for
    file handle FH on volume VOL.  */
 
 static int
@@ -919,7 +919,7 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   RETURN_INT (fd);
 }
 
-/* Open and initialize file descriptor for journal JOURNAL for file handle FH
+/*! Open and initialize file descriptor for journal JOURNAL for file handle FH
    on volume VOL.  */
 
 static int
@@ -957,7 +957,7 @@ open_journal_file (volume vol, journal_t journal, zfs_fh *fh)
   RETURN_INT (fd);
 }
 
-/* Delete interval file PATH for interval tree TREE of type TYPE
+/*! Delete interval file PATH for interval tree TREE of type TYPE
    for internal file handle FH on volume VOL.
    Return true if it was useless.  */
 
@@ -1018,7 +1018,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
   RETURN_BOOL (false);
 }
 
-/* Flush interval tree of type TYPE for file handle FH on volume VOL
+/*! Flush interval tree of type TYPE for file handle FH on volume VOL
    to file PATH.  */
 
 static bool
@@ -1097,7 +1097,7 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
   RETURN_BOOL (true);
 }
 
-/* Return file type from struct stat's MODE.  */
+/*! Return file type from struct stat's MODE.  */
 
 ftype
 zfs_mode_to_ftype (uint32_t mode)
@@ -1132,7 +1132,7 @@ zfs_mode_to_ftype (uint32_t mode)
   return FT_BAD;
 }
 
-/* Initialize hash file containing metadata for volume VOL.  */
+/*! Initialize hash file containing metadata for volume VOL.  */
 
 bool
 init_volume_metadata (volume vol)
@@ -1300,7 +1300,7 @@ init_volume_metadata (volume vol)
   RETURN_BOOL (true);
 }
 
-/* Close file for hahs file HFILE.  */
+/*! Close file for hahs file HFILE.  */
 
 static void
 close_hash_file (hfile_t hfile)
@@ -1323,7 +1323,7 @@ close_hash_file (hfile_t hfile)
   RETURN_VOID;
 }
 
-/* Close hash file containing metadata for volume VOL.  */
+/*! Close hash file containing metadata for volume VOL.  */
 
 void
 close_volume_metadata (volume vol)
@@ -1346,7 +1346,7 @@ close_volume_metadata (volume vol)
   MARK_VOLUME_DELETE (vol);
 }
 
-/* Close file for interval tree TREE.  */
+/*! Close file for interval tree TREE.  */
 
 void
 close_interval_file (interval_tree tree)
@@ -1367,7 +1367,7 @@ close_interval_file (interval_tree tree)
     }
 }
 
-/* Close file for journal JOURNAL.  */
+/*! Close file for journal JOURNAL.  */
 
 void
 close_journal_file (journal_t journal)
@@ -1388,7 +1388,7 @@ close_journal_file (journal_t journal)
     }
 }
 
-/* Initialize interval tree of type TYPE for file handle FH on volume VOL.  */
+/*! Initialize interval tree of type TYPE for file handle FH on volume VOL.  */
 
 static bool
 init_interval_tree (volume vol, internal_fh fh, metadata_type type)
@@ -1493,7 +1493,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
   RETURN_BOOL (flush_interval_tree_1 (vol, fh, type, &path));
 }
 
-/* Flush the interval tree of type TYPE for file handle FH on volume VOL
+/*! Flush the interval tree of type TYPE for file handle FH on volume VOL
    to file.  */
 
 bool
@@ -1509,7 +1509,7 @@ flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
   RETURN_BOOL (flush_interval_tree_1 (vol, fh, type, &path));
 }
 
-/* Flush the interval tree of type TYPE for file handle FH on volume VOL
+/*! Flush the interval tree of type TYPE for file handle FH on volume VOL
    to file and free the interval tree.  */
 
 static bool
@@ -1552,7 +1552,7 @@ free_interval_tree (volume vol, internal_fh fh, metadata_type type)
   RETURN_BOOL (r);
 }
 
-/* Write the interval [START, END) to the end of interval file of type TYPE
+/*! Write the interval [START, END) to the end of interval file of type TYPE
    for file handle FH on volume VOL.  Open the interval file for appending
    when it is not opened.  */
 
@@ -1615,7 +1615,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
   RETURN_BOOL (r);
 }
 
-/* Set version in attributes ATTR according to metadata META.  */
+/*! Set version in attributes ATTR according to metadata META.  */
 
 void
 set_attr_version (fattr *attr, metadata *meta)
@@ -1625,7 +1625,7 @@ set_attr_version (fattr *attr, metadata *meta)
   attr->version = meta->local_version;
 }
 
-/* Init metadata for root of volume VOL according to ST so that volume root
+/*! Init metadata for root of volume VOL according to ST so that volume root
    would be updated.  */
 
 static bool
@@ -1689,7 +1689,7 @@ init_metadata_for_created_volume_root (volume vol)
   RETURN_BOOL (true);
 }
 
-/* Lookup metadata for file handle FH on volume VOL.  Store the metadata to META
+/*! Lookup metadata for file handle FH on volume VOL.  Store the metadata to META
    and update FH->GEN.  Insert the metadata to hash file if INSERT is true and
    the metadata was not found.  */
 
@@ -1784,7 +1784,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
    RETURN_BOOL (true);
 }
 
-/* Get metadata for file handle FH on volume VOL.
+/*! Get metadata for file handle FH on volume VOL.
    Store the metadata to META and update FH->GEN.  Unlock the volume.  */
 
 bool
@@ -1812,7 +1812,7 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
   RETURN_BOOL (true);
 }
 
-/* Delete file handle mapping MAP on volume VOL.  */
+/*! Delete file handle mapping MAP on volume VOL.  */
 
 static bool
 delete_fh_mapping (volume vol, fh_mapping *map)
@@ -1839,7 +1839,7 @@ delete_fh_mapping (volume vol, fh_mapping *map)
   RETURN_BOOL (true);
 }
 
-/* Get file handle mapping for master file handle MASTER_FH on volume VOL
+/*! Get file handle mapping for master file handle MASTER_FH on volume VOL
    and store it to MAP.  */
 
 bool
@@ -1915,7 +1915,7 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
   RETURN_BOOL (true);
 }
 
-/* Write the metadata META to list file on volume VOL.
+/*! Write the metadata META to list file on volume VOL.
    Return false on file error.  */
 
 bool
@@ -1943,7 +1943,7 @@ flush_metadata (volume vol, metadata *meta)
   RETURN_BOOL (true);
 }
 
-/* Set metadata (FLAGS, LOCAL_VERSION, MASTER_VERSION) for file handle FH
+/*! Set metadata (FLAGS, LOCAL_VERSION, MASTER_VERSION) for file handle FH
    on volume VOL.  Return false on file error.  */
 
 bool
@@ -1988,7 +1988,7 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
   RETURN_BOOL (flush_metadata (vol, &fh->meta));
 }
 
-/* Set metadata flags FLAGS for file handle FH on volume VOL.
+/*! Set metadata flags FLAGS for file handle FH on volume VOL.
    Return false on file error.  */
 
 bool
@@ -2006,7 +2006,7 @@ set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
   RETURN_BOOL (flush_metadata (vol, &fh->meta));
 }
 
-/* Set master_fh to MASTER_FH in metadata for file handle FH on volume VOL
+/*! Set master_fh to MASTER_FH in metadata for file handle FH on volume VOL
    and update reverse file handle mapping.  */
 
 bool
@@ -2072,7 +2072,7 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   RETURN_BOOL (flush_metadata (vol, &fh->meta));
 }
 
-/* Increase the local version for file FH on volume VOL.
+/*! Increase the local version for file FH on volume VOL.
    Return false on file error.  */
 
 bool
@@ -2090,7 +2090,7 @@ inc_local_version (volume vol, internal_fh fh)
   RETURN_BOOL (flush_metadata (vol, &fh->meta));
 }
 
-/* Increase the local version for file FH on volume VOL and set MODIFIED flag.
+/*! Increase the local version for file FH on volume VOL and set MODIFIED flag.
    Return false on file error.  */
 
 bool
@@ -2109,7 +2109,7 @@ inc_local_version_and_modified (volume vol, internal_fh fh)
   RETURN_BOOL (flush_metadata (vol, &fh->meta));
 }
 
-/* Delete all metadata files for file on volume VOL with device DEV
+/*! Delete all metadata files for file on volume VOL with device DEV
    and inode INO and hardlink [PARENT_DEV, PARENT_INO, NAME].  */
 
 bool
@@ -2218,7 +2218,7 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
   RETURN_BOOL (true);
 }
 
-/* Delete master fh and fh mapping for newly created file FH with metadata META
+/*! Delete master fh and fh mapping for newly created file FH with metadata META
    on volume VOL.  */
 
 bool
@@ -2297,7 +2297,7 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
   RETURN_BOOL (true);
 }
 
-/* Load interval trees for file handle FH on volume VOL.
+/*! Load interval trees for file handle FH on volume VOL.
    Return false on file error.  */
 
 bool
@@ -2328,7 +2328,7 @@ load_interval_trees (volume vol, internal_fh fh)
   RETURN_BOOL (true);
 }
 
-/* Save interval trees for file handle FH on volume VOL.
+/*! Save interval trees for file handle FH on volume VOL.
    Return false on file error.  */
 
 bool
@@ -2362,7 +2362,7 @@ save_interval_trees (volume vol, internal_fh fh)
   RETURN_BOOL (r);
 }
 
-/* Delete list of hardlinks of ZFS file handle FH on volume VOL.  */
+/*! Delete list of hardlinks of ZFS file handle FH on volume VOL.  */
 
 static void
 delete_hardlinks_file (volume vol, zfs_fh *fh)
@@ -2385,7 +2385,7 @@ delete_hardlinks_file (volume vol, zfs_fh *fh)
   RETURN_VOID;
 }
 
-/* Read list of hardlinks from file descriptor FD to hardlink list HL.  */
+/*! Read list of hardlinks from file descriptor FD to hardlink list HL.  */
 
 static void
 read_hardlinks_file (hardlink_list hl, int fd)
@@ -2429,7 +2429,7 @@ read_hardlinks_file (hardlink_list hl, int fd)
   fclose (f);
 }
 
-/* Write hardlink list HL for file handle FH on volume VOL to hardlink file.
+/*! Write hardlink list HL for file handle FH on volume VOL to hardlink file.
    Return false on file error.  */
 
 static bool
@@ -2490,7 +2490,7 @@ write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
   RETURN_BOOL (true);
 }
 
-/* Read hardlinks for file handle FH on volume VOL to hardlink list HL
+/*! Read hardlinks for file handle FH on volume VOL to hardlink list HL
    and the metadata to META.  */
 
 bool
@@ -2548,7 +2548,7 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
   RETURN_BOOL (true);
 }
 
-/* Write the hardlink list HL for file handle FH on volume VOL
+/*! Write the hardlink list HL for file handle FH on volume VOL
    either to hardlink file or to metadata file.
    Return false on file error.  */
 
@@ -2682,7 +2682,7 @@ write_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
   RETURN_BOOL (true);
 }
 
-/* Insert a hardlink [PARENT_DEV, PARENT_INO, NAME] to hardlink list for
+/*! Insert a hardlink [PARENT_DEV, PARENT_INO, NAME] to hardlink list for
    file handle FH on volume VOL.  Use META for loading metadata.
    Return false on file error.  */
 
@@ -2710,7 +2710,7 @@ metadata_hardlink_insert (volume vol, zfs_fh *fh, metadata *meta,
   RETURN_BOOL (true);
 }
 
-/* Replace a hardlink [OLD_PARENT_DEV, OLD_PARENT_INO, OLD_NAME] by
+/*! Replace a hardlink [OLD_PARENT_DEV, OLD_PARENT_INO, OLD_NAME] by
    [NEW_PARENT_DEV, NEW_PARENT_INO, NEW_NAME] in hardlink list for file
    handle FH on volume VOL.  Use META for loading metadata.
    If SHADOW is true set the METADATA_SHADOW flag, otherwise clear it.
@@ -2752,7 +2752,7 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
   RETURN_BOOL (true);
 }
 
-/* Clear the hardlink list of file FH on volume VOL and add a hardlink
+/*! Clear the hardlink list of file FH on volume VOL and add a hardlink
    specifying that the file is in shadow.  */
 
 bool
@@ -2770,7 +2770,7 @@ metadata_hardlink_set (volume vol, zfs_fh *fh, metadata *meta,
   RETURN_BOOL (write_hardlinks (vol, fh, meta, hl));
 }
 
-/* Return the number of hardlinks of file FH on volume VOL
+/*! Return the number of hardlinks of file FH on volume VOL
    and store the metadata to META.  */
 
 unsigned int
@@ -2795,7 +2795,7 @@ metadata_n_hardlinks (volume vol, zfs_fh *fh, metadata *meta)
   RETURN_BOOL (n);
 }
 
-/* Return a local path for file handle FH on volume VOL.  */
+/*! Return a local path for file handle FH on volume VOL.  */
 
 void
 get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
@@ -2914,7 +2914,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
   RETURN_VOID;
 }
 
-/* Write the journal JOURNAL for file handle FH on volume VOL to file PATH
+/*! Write the journal JOURNAL for file handle FH on volume VOL to file PATH
    or delete the file if the journal is empty.  */
 
 static bool
@@ -3010,7 +3010,7 @@ flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
   RETURN_BOOL (true);
 }
 
-/* Read journal for file handle FH on volume VOL to JOURNAL.  */
+/*! Read journal for file handle FH on volume VOL to JOURNAL.  */
 
 bool
 read_journal (volume vol, zfs_fh *fh, journal_t journal)
@@ -3099,7 +3099,7 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
   RETURN_BOOL (flush_journal (vol, fh, journal, &path));
 }
 
-/* Write the journal JOURNAL for file handle FH on volume VOL
+/*! Write the journal JOURNAL for file handle FH on volume VOL
    to appropriate file.  */
 
 bool
@@ -3113,7 +3113,7 @@ write_journal (volume vol, zfs_fh *fh, journal_t journal)
   RETURN_BOOL (flush_journal (vol, fh, journal, &path));
 }
 
-/* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH,
+/*! Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH,
    master version MASTER_VERSION and operation OPER to journal JOURNAL for file
    handle FH on volume VOL.  */
 
@@ -3208,7 +3208,7 @@ add_journal_entry (volume vol, journal_t journal, zfs_fh *fh, zfs_fh *local_fh,
   RETURN_BOOL (true);
 }
 
-/* Add a journal entry for file with metadata META, name NAME
+/*! Add a journal entry for file with metadata META, name NAME
    and operation OPER to journal JOURNAL for file handle FH on volume VOL.  */
 
 bool
@@ -3235,7 +3235,7 @@ add_journal_entry_meta (volume vol, journal_t journal, zfs_fh *fh,
 				  name, oper));
 }
 
-/* Build and create path PATH to shadow file for file FH with name NAME
+/*! Build and create path PATH to shadow file for file FH with name NAME
    on volume VOL.  */
 
 bool
@@ -3256,7 +3256,7 @@ create_shadow_path (string *path, volume vol, zfs_fh *fh, string *name)
   RETURN_BOOL (true);
 }
 
-/* Initialize data structures in METADATA.C.  */
+/*! Initialize data structures in METADATA.C.  */
 
 void
 initialize_metadata_c (void)
@@ -3276,7 +3276,7 @@ initialize_metadata_c (void)
     }
 }
 
-/* Destroy data structures in METADATA.C.  */
+/*! Destroy data structures in METADATA.C.  */
 
 void
 cleanup_metadata_c (void)

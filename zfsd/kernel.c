@@ -1,4 +1,4 @@
-/* Functions for threads communicating with kernel.
+/*! Functions for threads communicating with kernel.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -44,16 +44,16 @@
 #include "zfs_prot.h"
 #include "config.h"
 
-/* Pool of kernel threads (threads communicating with kernel).  */
+/*! Pool of kernel threads (threads communicating with kernel).  */
 thread_pool kernel_pool;
 
-/* File descriptor of file communicating with kernel.  */
+/*! File descriptor of file communicating with kernel.  */
 int kernel_fd = -1;
 
-/* Is ZFS mounted?  */
+/*! Is ZFS mounted?  */
 bool mounted = false;
 
-/* Initialize data for kernel file descriptor.  */
+/*! Initialize data for kernel file descriptor.  */
 
 static void
 init_fd_data (void)
@@ -85,7 +85,7 @@ init_fd_data (void)
   zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 }
 
-/* Close kernel file and destroy data structures used by it.  */
+/*! Close kernel file and destroy data structures used by it.  */
 
 void
 close_kernel_fd (void)
@@ -110,7 +110,7 @@ close_kernel_fd (void)
   kernel_fd = -1;
 }
 
-/* Send a reply.  */
+/*! Send a reply.  */
 
 static void
 send_reply (thread *t)
@@ -124,7 +124,7 @@ send_reply (thread *t)
   zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 }
 
-/* Send error reply with error status STATUS.  */
+/*! Send error reply with error status STATUS.  */
 
 static void
 send_error_reply (thread *t, uint32_t request_id, int32_t status)
@@ -137,7 +137,7 @@ send_error_reply (thread *t, uint32_t request_id, int32_t status)
   send_reply (t);
 }
 
-/* Initialize kernel thread T.  */
+/*! Initialize kernel thread T.  */
 
 static void
 kernel_worker_init (thread *t)
@@ -145,7 +145,7 @@ kernel_worker_init (thread *t)
   t->dc_call = dc_create ();
 }
 
-/* Cleanup kernel thread DATA.  */
+/*! Cleanup kernel thread DATA.  */
 
 static void
 kernel_worker_cleanup (void *data)
@@ -155,7 +155,7 @@ kernel_worker_cleanup (void *data)
   dc_destroy (t->dc_call);
 }
 
-/* The main function of the kernel thread.  */
+/*! The main function of the kernel thread.  */
 
 static void *
 kernel_worker (void *data)
@@ -286,7 +286,7 @@ out:
   return NULL;
 }
 
-/* Function which gets a request and passes it to some kernel thread.
+/*! Function which gets a request and passes it to some kernel thread.
    It also regulates the number of kernel threads.  */
 
 static bool
@@ -394,7 +394,7 @@ kernel_dispatch (fd_data_t *fd_data)
   return true;
 }
 
-/* Main function of the main (i.e. listening) kernel thread.  */
+/*! Main function of the main (i.e. listening) kernel thread.  */
 
 static void *
 kernel_main (ATTRIBUTE_UNUSED void *data)
@@ -467,7 +467,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
   return NULL;
 }
 
-/* Create a listening socket and start the main kernel thread.  */
+/*! Create a listening socket and start the main kernel thread.  */
 
 bool
 kernel_start (void)
@@ -493,7 +493,7 @@ kernel_start (void)
   return true;
 }
 
-/* Terminate kernel threads and destroy data structures.  */
+/*! Terminate kernel threads and destroy data structures.  */
 
 void
 kernel_cleanup (void)

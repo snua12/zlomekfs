@@ -1,4 +1,4 @@
-/* Functions for threads communicating with kernel.
+/*! Functions for threads communicating with kernel.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -25,13 +25,13 @@
 #include "pthread.h"
 #include "thread.h"
 
-/* Pool of kernel threads (threads communicating with kernel).  */
+/*! Pool of kernel threads (threads communicating with kernel).  */
 extern thread_pool kernel_pool;
 
-/* File descriptor of file communicating with kernel.  */
+/*! File descriptor of file communicating with kernel.  */
 extern int kernel_fd;
 
-/* Is ZFS mounted?  */
+/*! Is ZFS mounted?  */
 extern bool mounted;
 
 extern void close_kernel_fd (void);

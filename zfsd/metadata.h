@@ -1,4 +1,4 @@
-/* Metadata management functions.
+/*! Metadata management functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -34,23 +34,23 @@
 #error access mode flags are too big
 #endif
 
-/* Get mode from MODE from struct stat.  */
+/*! Get mode from MODE from struct stat.  */
 #define GET_MODE(MODE) ((MODE) & (S_IRWXU | S_IRWXG | S_IRWXO		\
 				  | S_ISUID | S_ISGID | S_ISVTX))
 
-/* Compute a combination of MODE and TYPE.  */
+/*! Compute a combination of MODE and TYPE.  */
 #define GET_MODETYPE(MODE, TYPE) (GET_MODE (MODE) | ((TYPE) << 24))
 
-/* Get mode from MODETYPE.  */
+/*! Get mode from MODETYPE.  */
 #define GET_MODETYPE_MODE(MODETYPE) ((MODETYPE) & UINT32_C (0xffffff))
 
-/* Get type from MODETYPE.  */
+/*! Get type from MODETYPE.  */
 #define GET_MODETYPE_TYPE(MODETYPE) ((MODETYPE) >> 24)
 
-/* Depth of directory tree for saving metadata about files.  */
+/*! Depth of directory tree for saving metadata about files.  */
 extern unsigned int metadata_tree_depth;
 
-/*Type of metadata.  */
+/*!Type of metadata.  */
 typedef enum metadata_type_def
 {
   /* Generic metadata hashed by local file handle.  */
@@ -75,11 +75,11 @@ typedef enum metadata_type_def
   METADATA_TYPE_SHADOW
 } metadata_type;
 
-/* The size of char array for file name stored in hash table.
+/*! The size of char array for file name stored in hash table.
    Longer names are stored in separate files together with hardlinks.  */
 #define METADATA_NAME_SIZE 52
 
-/* Metadata for file.  */
+/*! Metadata for file.  */
 typedef struct metadata_def
 {
   uint32_t slot_status;		/* status of slot (empty, deleted, valid) */
@@ -98,7 +98,7 @@ typedef struct metadata_def
   char name[METADATA_NAME_SIZE];/* file name */
 } metadata;
 
-/* File handle mapping.  */
+/*! File handle mapping.  */
 typedef struct fh_mapping_def
 {
   uint32_t slot_status;		/* status of slot (empty, deleted, valid) */

@@ -1,4 +1,4 @@
-/* Volume functions.
+/*! Volume functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -29,10 +29,10 @@
 #include "fh.h"
 #include "node.h"
 
-/* Mark the volume to delete it.  */
+/*! Mark the volume to delete it.  */
 #define MARK_VOLUME_DELETE(VOL) (VOL)->delete_p = true
 
-/* Volume description.  */
+/*! Volume description.  */
 struct volume_def
 {
 #ifdef ENABLE_CHECKING
@@ -64,17 +64,17 @@ struct volume_def
 				   mapping */
 };
 
-/* Predefined volume IDs.  */
+/*! Predefined volume IDs.  */
 #define VOLUME_ID_VIRTUAL 0	/* ID of the non-existing 'root' volume */
 #define VOLUME_ID_CONFIG  1	/* ID of 'config' volume */
 
-/* Value of size limit indicating that the volume is not limited.  */
+/*! Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0
 
-/* Mutex for table of volumes.  */
+/*! Mutex for table of volumes.  */
 extern pthread_mutex_t volume_mutex;
 
-/* Function prototypes.  */
+/*! Function prototypes.  */
 extern volume volume_lookup (uint32_t id);
 extern volume volume_lookup_nolock (uint32_t id);
 extern volume volume_lookup_name (string *name);

@@ -1,4 +1,4 @@
-/* An expandable hash table in a file.
+/*! An expandable hash table in a file.
    Copyright (C) 2003, 2004 Josef Zlomek
    Based on hashtab.h
 
@@ -30,22 +30,22 @@
 #include "pthread.h"
 #include "memory.h"
 
-/* Type of hash value.  */
+/*! Type of hash value.  */
 typedef unsigned int hashval_t;
 
-/* Compute hash of an encoded element.  */
+/*! Compute hash of an encoded element.  */
 typedef hashval_t (*hfile_hash) (const void *x);
 
-/* Compare the encoded hash file element with possible element.  */
+/*! Compare the encoded hash file element with possible element.  */
 typedef int (*hfile_eq) (const void *x, const void *y);
 
-/* Decode element of the hash file.  */
+/*! Decode element of the hash file.  */
 typedef void (*hfile_decode) (void *x);
 
-/* Encode element of the hash file.  */
+/*! Encode element of the hash file.  */
 typedef void (*hfile_encode) (void *x);
 
-/* Hash table datatype.  */
+/*! Hash table datatype.  */
 typedef struct hfile_def
 {
   /* Mutex which must be locked when accessing the table.  */
@@ -91,14 +91,14 @@ typedef struct hfile_def
   unsigned int generation;
 } *hfile_t;
 
-/* Header of the hash file.  */
+/*! Header of the hash file.  */
 typedef struct hashfile_header_def
 {
   uint32_t n_elements;
   uint32_t n_deleted;
 } hashfile_header;
 
-/* Status of the slot.  */
+/*! Status of the slot.  */
 #define EMPTY_SLOT	0
 #define DELETED_SLOT	1
 #define VALID_SLOT	2

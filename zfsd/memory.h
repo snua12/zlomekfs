@@ -1,4 +1,4 @@
-/* Memory management functions.
+/*! Memory management functions.
    Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -31,7 +31,7 @@
 # include "varray.h"
 #endif
 
-/* String type.  */
+/*! String type.  */
 typedef struct string_def
 {
   uint32_t len;

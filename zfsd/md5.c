@@ -1,4 +1,4 @@
-/* This code implements the MD5 message-digest algorithm.
+/*! This code implements the MD5 message-digest algorithm.
    The algorithm is due to Ron Rivest.  This code was
    written by Colin Plumb in 1993, no copyright is claimed.
    This code is in the public domain; do with it what you wish.
@@ -32,7 +32,7 @@
 #else
 static void byteReverse (unsigned char *buf, unsigned longs);
 
-/* Note: this code is harmless on little-endian machines.  */
+/*! Note: this code is harmless on little-endian machines.  */
 static void
 byteReverse (unsigned char *buf, unsigned longs)
 {
@@ -47,7 +47,7 @@ byteReverse (unsigned char *buf, unsigned longs)
 }
 #endif
 
-/* Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
+/*! Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
    initialization constants.  */
 void
 MD5Init (MD5Context *ctx)
@@ -61,7 +61,7 @@ MD5Init (MD5Context *ctx)
   ctx->bits[1] = 0;
 }
 
-/* Update context to reflect the concatenation of another buffer full
+/*! Update context to reflect the concatenation of another buffer full
    of bytes.  */
 void
 MD5Update (MD5Context *ctx, unsigned char const *buf, unsigned int len)
@@ -109,7 +109,7 @@ MD5Update (MD5Context *ctx, unsigned char const *buf, unsigned int len)
   memcpy (ctx->in, buf, len);
 }
 
-/* Final wrapup - pad to 64-byte boundary with the bit pattern
+/*! Final wrapup - pad to 64-byte boundary with the bit pattern
  * 1 0* (64-bit count of bits processed, MSB-first).  */
 void
 MD5Final (unsigned char digest[MD5_SIZE], MD5Context *ctx)
@@ -217,19 +217,19 @@ MD5HexFinal (unsigned char digest[MD5_SIZE * 2], MD5Context *ctx)
   memset (ctx, 0, sizeof (ctx));	/* In case it's sensitive */
 }
 
-/* The four core functions - F1 is optimized somewhat.  */
+/*! The four core functions - F1 is optimized somewhat.  */
 
-/* #define F1(x, y, z) (x & y | ~x & z) */
+/*! #define F1(x, y, z) (x & y | ~x & z) */
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
 #define F2(x, y, z) F1(z, x, y)
 #define F3(x, y, z) (x ^ y ^ z)
 #define F4(x, y, z) (y ^ (x | ~z))
 
-/* This is the central step in the MD5 algorithm. */
+/*! This is the central step in the MD5 algorithm. */
 #define MD5STEP(f, w, x, y, z, data, s) \
   (w += f (x, y, z) + data, w = w << s | w >> (32 - s), w += x)
 
-/* The core of the MD5 algorithm, this alters an existing MD5 hash to
+/*! The core of the MD5 algorithm, this alters an existing MD5 hash to
  * reflect the addition of 16 longwords of new data.  MD5Update blocks
  * the data and converts bytes into longwords for this routine.  */
 void

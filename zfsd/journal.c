@@ -1,4 +1,4 @@
-/* Journal datatype.
+/*! Journal datatype.
    Copyright (C) 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -28,13 +28,13 @@
 #include "crc32.h"
 #include "alloc-pool.h"
 
-/* Alloc pool of journal_entry.  */
+/*! Alloc pool of journal_entry.  */
 static alloc_pool journal_pool;
 
-/* Mutex protecting journal_pool.  */
+/*! Mutex protecting journal_pool.  */
 static pthread_mutex_t journal_mutex;
 
-/* Return hash value for journal entry X.  */
+/*! Return hash value for journal entry X.  */
 
 static hash_t
 journal_hash (const void *x)
@@ -42,7 +42,7 @@ journal_hash (const void *x)
   return JOURNAL_HASH ((const journal_entry) x);
 }
 
-/* Compare journal entries X and Y.  */
+/*! Compare journal entries X and Y.  */
 
 static int
 journal_eq (const void *x, const void *y)
@@ -55,7 +55,7 @@ journal_eq (const void *x, const void *y)
 	  && strcmp (j1->name.str, j2->name.str) == 0);
 }
 
-/* Create a new journal with initial NELEM elements.  */
+/*! Create a new journal with initial NELEM elements.  */
 
 journal_t
 journal_create (unsigned int nelem, pthread_mutex_t *mutex)
@@ -73,7 +73,7 @@ journal_create (unsigned int nelem, pthread_mutex_t *mutex)
   return journal;
 }
 
-/* Empty the journal JOURNAL.  */
+/*! Empty the journal JOURNAL.  */
 
 void
 journal_empty (journal_t journal)
@@ -96,7 +96,7 @@ journal_empty (journal_t journal)
   htab_empty (journal->htab);
 }
 
-/* Destroy journal JOURNAL.  */
+/*! Destroy journal JOURNAL.  */
 
 void
 journal_destroy (journal_t journal)
@@ -118,7 +118,7 @@ journal_destroy (journal_t journal)
   free (journal);
 }
 
-/*! Insert a journal entry and return true if the journal has changed.
+/*!! Insert a journal entry and return true if the journal has changed.
     \param journal Journal into which the entry will be inserted.
     \param oper The type of operation of the journal entry.
     \param local_fh Local file handle of the corresponding file.
@@ -203,7 +203,7 @@ journal_insert (journal_t journal, journal_operation_t oper,
   return true;
 }
 
-/*! Return true if the journal entry is a member of the journal.
+/*!! Return true if the journal entry is a member of the journal.
     \param journal Journal in which the entry should be looked up.
     \param oper The type of operation of the journal entry.
     \param name The name of file of the journal entry.  */
@@ -221,7 +221,7 @@ journal_member (journal_t journal, journal_operation_t oper, string *name)
 	  != NULL);
 }
 
-/*! Delete the journal entry.l entry is a member of the journal.
+/*!! Delete the journal entry.l entry is a member of the journal.
     \param journal Journal from which the entry should be deleted.
     \param oper The type of operation of the journal entry.
     \param name The name of file of the journal entry.  */
@@ -261,7 +261,7 @@ journal_delete (journal_t journal, journal_operation_t oper, string *name)
   return true;
 }
 
-/* Delete a journal entry ENTRY from journal JOURNAL.
+/*! Delete a journal entry ENTRY from journal JOURNAL.
    Return true if it was really deleted.  */
 
 bool
@@ -294,7 +294,7 @@ journal_delete_entry (journal_t journal, journal_entry entry)
   return true;
 }
 
-/* Print the journal JOURNAL to file F.  */
+/*! Print the journal JOURNAL to file F.  */
 
 void
 print_journal (FILE *f, journal_t journal)
@@ -327,7 +327,7 @@ print_journal (FILE *f, journal_t journal)
     }
 }
 
-/* Print the journal JOURNAL to STDERR.  */
+/*! Print the journal JOURNAL to STDERR.  */
 
 void
 debug_journal (journal_t journal)
@@ -335,7 +335,7 @@ debug_journal (journal_t journal)
   print_journal (stderr, journal);
 }
 
-/* Initialize data structures in JOURNAL.C.  */
+/*! Initialize data structures in JOURNAL.C.  */
 
 void
 initialize_journal_c (void)
@@ -346,7 +346,7 @@ initialize_journal_c (void)
 				    1020, &journal_mutex);
 }
 
-/* Destroy data structures in JOURNAL.C.  */
+/*! Destroy data structures in JOURNAL.C.  */
 
 void
 cleanup_journal_c (void)
