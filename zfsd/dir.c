@@ -706,6 +706,9 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
       if (!lookup_metadata (vol, &fh, &meta, true))
 	MARK_VOLUME_DELETE (vol);
       zfsd_mutex_unlock (&vol->mutex);
+
+      if (!vol->local_path.str || vol->master == this_node)
+	journal_p = false;
     }
 
   return recursive_unlink_start (&meta, path, &filename, &fh,
