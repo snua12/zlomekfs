@@ -55,41 +55,6 @@
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
   = {0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO};
 
-/* Return file type from struct stat's MODE.  */
-
-ftype
-zfs_mode_to_ftype (uint32_t mode)
-{
-  switch (mode & S_IFMT)
-    {
-      case S_IFSOCK:
-	return FT_SOCK;
-
-      case S_IFLNK:
-	return FT_LNK;
-
-      case S_IFREG:
-	return FT_REG;
-
-      case S_IFBLK:
-	return FT_BLK;
-
-      case S_IFDIR:
-	return FT_DIR;
-
-      case S_IFCHR:
-	return FT_CHR;
-
-      case S_IFIFO:
-	return FT_FIFO;
-
-      default:
-	return FT_BAD;
-    }
-
-  return FT_BAD;
-}
-
 #ifndef __KERNEL__
 
 /* Request ID for next call.  */

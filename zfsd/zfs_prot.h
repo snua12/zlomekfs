@@ -414,8 +414,6 @@ struct node_def;
 
 #include "data-coding.h"
 
-extern ftype zfs_mode_to_ftype (uint32_t mode);
-
 #ifdef __KERNEL__
 
 #define ZFS_CALL_CLIENT

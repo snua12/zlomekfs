@@ -111,6 +111,7 @@ extern void metadata_encode (void *x);
 #define metadata_encode NULL
 #endif
 
+extern ftype zfs_mode_to_ftype (uint32_t mode);
 extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);
