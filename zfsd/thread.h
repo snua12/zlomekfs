@@ -67,6 +67,13 @@ typedef struct kernel_thread_data_def
   call_args args;			/* union for decoded call arguments */
 } kernel_thread_data;
 
+/* Additional data for an update thread.  */
+typedef struct update_thread_data_def
+{
+  /* File handle to update.  */
+  zfs_fh fh;
+} update_thread_data;
+
 /* Definition of thread's variables.  */
 typedef struct thread_def
 {
@@ -93,9 +100,7 @@ typedef struct thread_def
   union {
     network_thread_data network;
     kernel_thread_data kernel;
-#if 0
     update_thread_data update;
-#endif
   } u;
 } thread;
 

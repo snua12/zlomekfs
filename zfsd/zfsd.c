@@ -38,6 +38,7 @@
 #include "kernel.h"
 #include "network.h"
 #include "random.h"
+#include "queue.h"
 #include "fh.h"
 #include "cap.h"
 #include "file.h"
@@ -46,6 +47,7 @@
 #include "zfs_prot.h"
 #include "metadata.h"
 #include "user-group.h"
+#include "update.h"
 
 #ifdef TEST
 #include "test.h"
@@ -94,6 +96,12 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
 
   thread_pool_terminate (&kernel_pool);
   thread_pool_terminate (&network_pool);
+
+  if (update_pool.regulator_thread)
+    {
+      queue_exiting (&update_queue);
+      thread_pool_terminate (&update_pool);
+    }
 
   thread_terminate_blocking_syscall (&cleanup_dentry_thread,
 				     &cleanup_dentry_thread_in_syscall);
@@ -384,6 +392,7 @@ main (int argc, char **argv)
 {
   bool kernel_started = false;
   bool network_started = false;
+  bool update_started = false;
 
   init_constants ();
   init_sig_handlers ();
@@ -419,6 +428,7 @@ main (int argc, char **argv)
   daemon_mode ();
 
   /* Start the threads.  */
+  update_started = update_start ();
   network_started = network_start ();
   kernel_started = kernel_start ();
 
@@ -435,17 +445,23 @@ main (int argc, char **argv)
   if (!network_started)
     terminate ();
 
-  if (network_started)
+  if (update_started)
     {
-      wait_for_thread_to_die (&network_pool.main_thread, NULL);
-      wait_for_thread_to_die (&network_pool.regulator_thread, NULL);
-      network_cleanup ();
+      wait_for_thread_to_die (&update_pool.main_thread, NULL);
+      wait_for_thread_to_die (&update_pool.regulator_thread, NULL);
+      update_cleanup ();
     }
   if (kernel_started)
     {
       wait_for_thread_to_die (&kernel_pool.main_thread, NULL);
       wait_for_thread_to_die (&kernel_pool.regulator_thread, NULL);
       kernel_cleanup ();
+    }
+  if (network_started)
+    {
+      wait_for_thread_to_die (&network_pool.main_thread, NULL);
+      wait_for_thread_to_die (&network_pool.regulator_thread, NULL);
+      network_cleanup ();
     }
 
   cleanup_data_structures ();

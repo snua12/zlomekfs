@@ -30,6 +30,8 @@
 #include "update.h"
 #include "md5.h"
 #include "memory.h"
+#include "alloc-pool.h"
+#include "queue.h"
 #include "log.h"
 #include "volume.h"
 #include "fh.h"
@@ -39,6 +41,12 @@
 #include "zfs_prot.h"
 #include "file.h"
 #include "dir.h"
+
+/* Queue of file handles.  */
+queue update_queue;
+
+/* Pool of update threads.  */
+thread_pool update_pool;
 
 /* Get blocks of file FH from interval [START, END) which need to be updated
    and store them to BLOCKS.  */
@@ -1049,4 +1057,132 @@ out2:
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
   return r;
+}
+
+static void *
+update_worker (void *data)
+{
+  thread *t = (thread *) data;
+
+  thread_disable_signals ();
+
+  pthread_setspecific (thread_data_key, data);
+
+  while (1)
+    {
+      /* Wait until network_dispatch wakes us up.  */
+      semaphore_down (&t->sem, 1);
+
+#ifdef ENABLE_CHECKING
+      if (get_thread_state (t) == THREAD_DEAD)
+	abort ();
+#endif
+
+      /* We were requested to die.  */
+      if (get_thread_state (t) == THREAD_DYING)
+	break;
+
+     /* TODO: do some work.  */
+#if 0
+  zfs_fh *fh = (zfs_fh *) data;
+  volume vol;
+  internal_dentry dentry;
+  int32_t r;
+
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return NULL;
+#endif
+
+      /* Put self to the idle queue if not requested to die meanwhile.  */
+      zfsd_mutex_lock (&update_pool.idle.mutex);
+      if (get_thread_state (t) == THREAD_BUSY)
+	{
+	  queue_put (&update_pool.idle, &t->index);
+	  set_thread_state (t, THREAD_IDLE);
+	}
+      else
+	{
+#ifdef ENABLE_CHECKING
+	  if (get_thread_state (t) != THREAD_DYING)
+	    abort ();
+#endif
+	  zfsd_mutex_unlock (&update_pool.idle.mutex);
+	  break;
+	}
+      zfsd_mutex_unlock (&update_pool.idle.mutex);
+    }
+  
+  return NULL;
+}
+
+static void *
+update_main (ATTRIBUTE_UNUSED void *data)
+{
+  zfs_fh fh;
+  size_t index;
+
+  thread_disable_signals ();
+
+  while (!thread_pool_terminate_p (&update_pool))
+    {
+      bool succeeded;
+
+      /* Get the file handle.  */
+      zfsd_mutex_lock (&update_queue.mutex);
+      succeeded = queue_get (&update_queue, &fh);
+      zfsd_mutex_unlock (&update_queue.mutex);
+      if (!succeeded)
+	break;
+
+      zfsd_mutex_lock (&update_pool.idle.mutex);
+
+      /* Regulate the number of threads.  */
+      if (update_pool.idle.nelem == 0)
+	thread_pool_regulate (&update_pool);
+
+      queue_get (&update_pool.idle, &index);
+#ifdef ENABLE_CHECKING
+      if (get_thread_state (&update_pool.threads[index].t) == THREAD_BUSY)
+	abort ();
+#endif
+      set_thread_state (&update_pool.threads[index].t, THREAD_BUSY);
+      update_pool.threads[index].t.u.update.fh = fh;
+
+      /* Let the thread run.  */
+      semaphore_up (&update_pool.threads[index].t.sem, 1);
+
+      zfsd_mutex_unlock (&update_pool.idle.mutex);
+    }
+
+  message (2, stderr, "Terminating...\n");
+  return NULL;
+}
+
+/* Start the main update thread.  */
+
+bool
+update_start ()
+{
+  queue_create (&update_queue, sizeof (zfs_fh), 250);
+
+  if (!thread_pool_create (&update_pool, 16, 4, 8, update_main,
+			   update_worker, NULL))
+    {
+      zfsd_mutex_lock (&update_queue.mutex);
+      queue_destroy (&update_queue);
+      return false;
+    }
+
+  return true;
+}
+
+/* Terminate update threads and destroy data structures.  */
+
+void
+update_cleanup ()
+{
+  thread_pool_destroy (&update_pool);
+  zfsd_mutex_lock (&update_queue.mutex);
+  queue_destroy (&update_queue);
 }
