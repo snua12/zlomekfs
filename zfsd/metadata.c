@@ -256,7 +256,7 @@ static void
 build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
 			metadata_type type, unsigned int tree_depth)
 {
-  char name[2 * 8 + 1];
+  char name[3 * 8 + 1];
   char tree[2 * MAX_METADATA_TREE_DEPTH + 1];
   varray v;
   unsigned int i;
@@ -270,11 +270,22 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
     abort ();
 #endif
 
-  sprintf (name, "%08X%08X", fh->dev, fh->ino);
+  if (type == METADATA_TYPE_JOURNAL)
+    {
+      sprintf (name, "%08X%08X%08X", fh->dev, fh->ino, fh->gen);
 #ifdef ENABLE_CHECKING
-  if (name[16] != 0)
-    abort ();
+      if (name[3 * 8] != 0)
+	abort ();
 #endif
+    }
+  else
+    {
+      sprintf (name, "%08X%08X", fh->dev, fh->ino);
+#ifdef ENABLE_CHECKING
+      if (name[2 * 8] != 0)
+	abort ();
+#endif
+    }
 
   for (i = 0; i < tree_depth; i++)
     {
@@ -291,7 +302,7 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
   VARRAY_ACCESS (v, 2, string).str = tree;
   VARRAY_ACCESS (v, 2, string).len = 2 * tree_depth;
   VARRAY_ACCESS (v, 3, string).str = name;
-  VARRAY_ACCESS (v, 3, string).len = 16;
+  VARRAY_ACCESS (v, 3, string).len = 2 * 8;
   switch (type)
     {
       case METADATA_TYPE_UPDATED:
@@ -310,6 +321,7 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
 	break;
 
       case METADATA_TYPE_JOURNAL:
+	VARRAY_ACCESS (v, 3, string).len = 3 * 8;
 	VARRAY_ACCESS (v, 4, string).str = ".journal";
 	VARRAY_ACCESS (v, 4, string).len = 8;
 	break;
@@ -2119,7 +2131,7 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
 	}
     }
 
-  /* Delete interval files and journal.  */
+  /* Delete interval files.  */
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
       build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_UPDATED, i);
@@ -2127,10 +2139,6 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
 	MARK_VOLUME_DELETE (vol);
       free (path.str);
       build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_MODIFIED, i);
-      if (!remove_file_and_path (&path, i))
-	MARK_VOLUME_DELETE (vol);
-      free (path.str);
-      build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_JOURNAL, i);
       if (!remove_file_and_path (&path, i))
 	MARK_VOLUME_DELETE (vol);
       free (path.str);
@@ -2225,7 +2233,7 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
       zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
     }
 
-  /* Delete interval files, hardlink list and journal.  */
+  /* Delete hardlink list and interval files.  */
   delete_hardlinks_file (vol, fh);
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
@@ -2234,10 +2242,6 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
 	MARK_VOLUME_DELETE (vol);
       free (path.str);
       build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_MODIFIED, i);
-      if (!remove_file_and_path (&path, i))
-	MARK_VOLUME_DELETE (vol);
-      free (path.str);
-      build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL, i);
       if (!remove_file_and_path (&path, i))
 	MARK_VOLUME_DELETE (vol);
       free (path.str);
