@@ -636,17 +636,32 @@ update_file (zfs_fh *fh)
       goto out2;
     }
 
-  zfsd_mutex_unlock (&vol->mutex);
-  get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
-  release_dentry (dentry);
-  r = update_file_blocks (&cap, &blocks);
-  varray_destroy (&blocks);
+  if (dentry->fh->flags & IFH_REINTEGRATE)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      r = reintegrate_file_blocks (&cap);
 
-  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
+      if (r2 != ZFS_OK)
+	abort ();
 #endif
+    }
+  if (r == ZFS_OK && (dentry->fh->flags & IFH_UPDATE))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
+      release_dentry (dentry);
+      r = update_file_blocks (&cap, &blocks);
+      varray_destroy (&blocks);
+
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+    }
 
   if (!save_interval_trees (vol, dentry->fh))
     {
@@ -655,8 +670,9 @@ update_file (zfs_fh *fh)
       goto out;
     }
 
-  /* If the file was not completelly updated add it to queue again.  */
-  if (r == ZFS_OK && dentry->fh->flags & IFH_UPDATE)
+  /* If the file was not completelly updated or reintegrated
+     add it to queue again.  */
+  if (r == ZFS_OK && dentry->fh->flags & (IFH_UPDATE | IFH_REINTEGRATE))
     {
       zfsd_mutex_lock (&update_queue.mutex);
       queue_put (&update_queue, &dentry->fh->local_fh);
