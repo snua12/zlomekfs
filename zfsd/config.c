@@ -49,15 +49,6 @@ char *cluster_config;
 /* File with private key.  */
 static char *private_key;
 
-static void
-set_string (char **destp, const char *src, int len)
-{
-  if (*destp)
-    free (*destp);
-
-  *destp = (char *) xmemdup (src, len + 1);
-}
-
 /* Process one line of configuration file.  Return the length of value.  */
 
 static int
@@ -256,7 +247,7 @@ get_node_name ()
     return;
 
   len = strlen (un.nodename);
-  set_string (&node_name, un.nodename, len);
+  set_string_with_length (&node_name, un.nodename, len);
   message (1, stderr, "Autodetected node name: '%s'\n", node_name);
 }
 
@@ -395,12 +386,12 @@ read_config (const char *file)
 
 	      if (strncasecmp (key, "nodename", 9) == 0)
 		{
-		  set_string (&node_name, value, value_len);
+		  set_string_with_length (&node_name, value, value_len);
 		  message (1, stderr, "NodeName = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "privatekey", 11) == 0)
 		{
-		  set_string (&private_key, value, value_len);
+		  set_string_with_length (&private_key, value, value_len);
 		  message (1, stderr, "PrivateKey = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "nodeconfig", 11) == 0
@@ -408,7 +399,7 @@ read_config (const char *file)
 		       || strncasecmp (key, "localconfig", 12) == 0
 		       || strncasecmp (key, "localconfiguration", 19) == 0)
 		{
-		  set_string (&node_config, value, value_len);
+		  set_string_with_length (&node_config, value, value_len);
 		  message (1, stderr, "NodeConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "clusterconfig", 14) == 0
@@ -416,7 +407,7 @@ read_config (const char *file)
 		{
 		  /* TODO: FIXME: cluster configuration is always in the same
 		     ZFS directory so the parameter should not be needed.  */
-		  set_string (&cluster_config, value, value_len);
+		  set_string_with_length (&cluster_config, value, value_len);
 		  message (1, stderr, "ClusterConfig = '%s'\n", value);
 		}
 	      else

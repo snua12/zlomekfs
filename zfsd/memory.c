@@ -156,3 +156,22 @@ xstrconcat (int n, ...)
 
   return r;
 }
+
+/* Set *DESTP to a new string SRC whose length is LENGTH.  */
+
+void
+set_string_with_length (char **destp, const char *src, int len)
+{
+  if (*destp)
+    free (*destp);
+
+  *destp = (char *) xmemdup (src, len + 1);
+}
+
+/* Set *DESTP to a new string SRC.  */
+
+void
+set_string (char **destp, const char *src)
+{
+  set_string_with_length (destp, src, strlen (src));
+}

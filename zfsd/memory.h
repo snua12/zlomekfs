@@ -31,5 +31,7 @@ extern char *xstrdup (const char *s) ATTRIBUTE_MALLOC;
 extern char *xstrndup (const char *s, size_t n) ATTRIBUTE_MALLOC;
 extern void *xmemdup (const void *src, size_t n) ATTRIBUTE_MALLOC;
 extern char *xstrconcat (int n, ...) ATTRIBUTE_MALLOC;
+extern void set_string_with_length (char **destp, const char *src, int len);
+extern void set_string (char **destp, const char *src);
 
 #endif
