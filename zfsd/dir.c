@@ -4355,6 +4355,8 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
       release_dentry (dentry);
       r = remote_file_info (res, &tmp_fh, vol);
     }
+  else
+    abort ();
 
   return r;
 }
