@@ -138,6 +138,8 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
   *slot = entry;
   entry->next = NULL;
   entry->prev = hl->last;
+  if (hl->last)
+    hl->last->next = entry;
   hl->last = entry;
   if (hl->first == NULL)
     hl->first = entry;
