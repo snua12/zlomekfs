@@ -254,6 +254,7 @@ typedef struct symlink_args_def
 typedef struct mknod_args_def
 {
   dir_op_args where;
+  ftype type;
   sattr attr;
   unsigned int rdev;
 } mknod_args;

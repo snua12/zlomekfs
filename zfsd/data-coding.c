@@ -717,6 +717,7 @@ bool
 decode_mknod_args (DC *dc, mknod_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
+	  && decode_ftype (dc, &args->type)
 	  && decode_sattr (dc, &args->attr)
 	  && decode_uint32_t (dc, &args->rdev));
 }
@@ -725,6 +726,7 @@ bool
 encode_mknod_args (DC *dc, mknod_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
+	  && encode_ftype (dc, args->type)
 	  && encode_sattr (dc, &args->attr)
 	  && encode_uint32_t (dc, args->rdev));
 }
