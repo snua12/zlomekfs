@@ -678,7 +678,8 @@ zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
 #define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 int32_t									\
-zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
+zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd,		\
+				bool oneway)				\
 {									\
   uint32_t req_id;							\
 									\
@@ -689,7 +690,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
   start_encoding (t->dc_call);						\
-  encode_direction (t->dc_call, DIR_REQUEST);				\
+  encode_direction (t->dc_call, oneway ? DIR_ONEWAY : DIR_REQUEST);	\
   encode_request_id (t->dc_call, req_id);				\
   encode_function (t->dc_call, NUMBER);					\
   if (!encode_##ARGS (t->dc_call, args))				\
@@ -699,7 +700,10 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
     }									\
   finish_encoding (t->dc_call);						\
 									\
-  send_request (t, req_id, fd);						\
+  if (oneway)								\
+    send_oneway_request (t, fd);					\
+  else									\
+    send_request (t, req_id, fd);					\
 									\
   return t->retval;							\
 }
@@ -725,7 +729,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
       return t->retval;							\
     }									\
 									\
-  return zfs_proc_##FUNCTION##_client_1 (t, args, *fd);			\
+  return zfs_proc_##FUNCTION##_client_1 (t, args, *fd, false);		\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -744,7 +748,7 @@ zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
       return t->retval;							\
     }									\
 									\
-  return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd);		\
+  return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd, true);	\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC

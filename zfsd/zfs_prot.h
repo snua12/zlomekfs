@@ -73,6 +73,7 @@ typedef enum direction_def
 {
   DIR_REQUEST,
   DIR_REPLY,
+  DIR_ONEWAY,
   DIR_LAST_AND_UNUSED
 } direction;
 
@@ -442,7 +443,8 @@ struct node_def;
 #define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
-						 ARGS *args, int fd);
+						 ARGS *args, int fd,	\
+						 bool oneway);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_KERNEL
