@@ -39,7 +39,7 @@ typedef enum authentication_status_def
 {
   AUTHENTICATION_NONE = 0,
   AUTHENTICATION_IN_PROGRESS,
-  AUTHENTICATION_DONE
+  AUTHENTICATION_FINISHED
 } authentication_status;
 
 /* Node description.  */

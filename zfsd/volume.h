@@ -59,9 +59,10 @@ struct volume_def
 #define VOLUME_COPY	4	/* this is a copy of a volume */
 
 /* Is the volume active (i.e. accessible)?  */
-#define VOLUME_ACTIVE_P(V) (((V)->flags & VOLUME_LOCAL) > 0		\
-			    ||  ((V)->master->conn != CONNECTION_NONE	\
-				 && (V)->master->auth == AUTHENTICATION_DONE))
+#define VOLUME_ACTIVE_P(V)					\
+  (((V)->flags & VOLUME_LOCAL) > 0				\
+   ||  ((V)->master->conn != CONNECTION_NONE			\
+	&& (V)->master->auth == AUTHENTICATION_FINISHED))
 
 /* Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0

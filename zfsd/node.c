@@ -94,7 +94,7 @@ node_create (unsigned int id, char *name)
       this_node = nod;
       nod->flags |= NODE_LOCAL;
       nod->conn = CONNECTION_FAST;
-      nod->auth = AUTHENTICATION_DONE;
+      nod->auth = AUTHENTICATION_FINISHED;
     }
 
   pthread_mutex_lock (&node_mutex);

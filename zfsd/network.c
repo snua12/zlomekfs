@@ -291,7 +291,7 @@ node_authenticate (node nod, int fd)
     goto node_authenticate_error;
 #endif
   
-  nod->auth = AUTHENTICATION_DONE;
+  nod->auth = AUTHENTICATION_FINISHED;
   return true;
 
 node_authenticate_error:
