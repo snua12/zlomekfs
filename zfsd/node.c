@@ -218,7 +218,7 @@ try_create_node (uint32_t id, string *name)
   slot = htab_find_slot_with_hash (node_htab, &id, HASH_NODE_ID (id),
 				   NO_INSERT);
   slot2 = htab_find_slot_with_hash (node_htab_name, name,
-				    HASH_NODE_NAME (name), NO_INSERT);
+				    HASH_NODE_NAME (*name), NO_INSERT);
   if (slot && slot2 && *slot == *slot2)
     {
       zfsd_mutex_unlock (&node_mutex);
