@@ -687,7 +687,10 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
   if (r != ZFS_OK)
     goto out;
 
-  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  if (fh_mutex_locked)
+    r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  else
+    r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -701,7 +704,10 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
 	      + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
 
 out:
-  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  if (fh_mutex_locked)
+    r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+  else
+    r2 = zfs_fh_lookup (fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
