@@ -454,6 +454,14 @@ main (int argc, char **argv)
   if (!network_started)
     terminate ();
 
+  /* Workaround valgrind bug (PR/77369),
+     i.e. prevent from waiting for joinee threads while signal is received.  */
+  while (running)
+    {
+      /* Sleep gets interrupted by the signal.  */
+      sleep (1000000);
+    }
+
   if (update_started)
     {
       wait_for_thread_to_die (&update_pool.main_thread, NULL);
