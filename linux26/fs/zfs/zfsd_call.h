@@ -33,7 +33,7 @@
 extern int send_request(struct request *req);
 extern int zfsd_root(zfs_fh *fh);
 extern int zfsd_getattr(fattr *attr, zfs_fh *fh);
-extern int zfsd_setattr(fattr *attr, sattr_args *args);
+extern int zfsd_setattr(fattr *attr, setattr_args *args);
 extern int zfsd_create(create_res *res, create_args *args);
 extern int zfsd_lookup(dir_op_res *res, dir_op_args *args);
 extern int zfsd_link(link_args *args);

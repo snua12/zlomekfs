@@ -167,7 +167,7 @@ int zfsd_getattr(fattr *attr, zfs_fh *fh)
 	return error;
 }
 
-int zfsd_setattr(fattr *attr, sattr_args *args)
+int zfsd_setattr(fattr *attr, setattr_args *args)
 {
 	DC *dc;
 	int error;

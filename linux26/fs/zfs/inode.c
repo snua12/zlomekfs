@@ -518,7 +518,7 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 {
 	struct inode *inode = dentry->d_inode;
 	fattr attr;
-	sattr_args args;
+	setattr_args args;
 	int error;
 
 	TRACE("'%s'", dentry->d_name.name);
