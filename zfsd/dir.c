@@ -2287,7 +2287,7 @@ zfs_symlink_retry:
       UPDATE_DIR_IF_NEEDED (vol, idir);
       r = local_symlink (res, idir, name, to, attr, vol);
       if (r == ZFS_OK)
-	zfs_fh_undefined (master_res.file);
+	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
