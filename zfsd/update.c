@@ -382,9 +382,6 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
     abort ();
 #endif
 
-  if (dentry->fh->meta.flags & METADATA_COMPLETE)
-    dentry->fh->flags &= ~IFH_UPDATE;
-
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -461,9 +458,6 @@ reintegrate_file_blocks (zfs_cap *cap)
 	MARK_VOLUME_DELETE (vol);
     }
 
-  if (!(dentry->fh->meta.flags & METADATA_MODIFIED))
-    dentry->fh->flags &= ~IFH_REINTEGRATE;
-
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -537,6 +531,7 @@ update_file (zfs_fh *fh)
   internal_cap icap;
   zfs_cap cap;
   int32_t r, r2;
+  int what;
   fattr attr;
   bool opened_remote = false;
 
@@ -553,27 +548,31 @@ update_file (zfs_fh *fh)
   if (r != ZFS_OK)
     RETURN_INT (r);
 
-#ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-    abort ();
-#endif
-
-  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node)
+      || zfs_fh_undefined (dentry->fh->meta.master_fh))
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      RETURN_INT (ZFS_UPDATE_FAILED);
+      RETURN_INT (EINVAL);
     }
-  zfsd_mutex_unlock (&vol->mutex);
 
-  switch (dentry->fh->flags & (IFH_UPDATE | IFH_REINTEGRATE))
+  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, fh);
+  if (r != ZFS_OK)
+    RETURN_INT (r);
+
+  what = update_p (&vol, &dentry, fh, &attr, true);
+  if (dentry->fh->attr.type != FT_REG || attr.type != FT_REG)
+    {
+      r = ZFS_UPDATE_FAILED;
+      goto out;
+    }
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  switch (what & (IFH_UPDATE | IFH_REINTEGRATE))
     {
       default:
-	/* The dentry may have been destroyed and recreated so the flags are
-	   reset.  */
-	printf ("%d\n", dentry->fh->flags);
-	abort ();
-	release_dentry (dentry);
 	RETURN_INT (ZFS_OK);
 
       case IFH_UPDATE:
@@ -581,54 +580,17 @@ update_file (zfs_fh *fh)
 	break;
 
       case IFH_REINTEGRATE:
-	cap.flags = O_WRONLY;
-	break;
+	/* File may change from other node when we are reintegrating file
+	   so fallthru.  */
 
       case IFH_UPDATE | IFH_REINTEGRATE:
 	cap.flags = O_RDWR;
 	break;
     }
-  release_dentry (dentry);
   cap.fh = *fh;
-  r = get_capability (&cap, &icap, &vol, &dentry, NULL, true, true);
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL, false, false);
   if (r != ZFS_OK)
     RETURN_INT (r);
-
-  r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, NULL, &cap);
-  if (r != ZFS_OK)
-    RETURN_INT (r);
-
-  if (dentry->fh->attr.type != FT_REG)
-    {
-      r = ZFS_UPDATE_FAILED;
-      goto out;
-    }
-
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
-
-  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  r = remote_getattr (&attr, dentry, vol);
-  if (r != ZFS_OK)
-    goto out2;
-
-  if (attr.type != FT_REG)
-    {
-      r = ZFS_UPDATE_FAILED;
-      goto out2;
-    }
-
-  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
 
   r = cond_remote_open (&cap, icap, &dentry, &vol);
   if (r != ZFS_OK)
@@ -645,15 +607,7 @@ update_file (zfs_fh *fh)
       goto out2;
     }
 
-#ifdef ENABLE_CHECKING
-  if ((dentry->fh->flags & (IFH_REINTEGRATE | IFH_UPDATE)) == 0)
-    {
-      printf ("%d\n", dentry->fh->flags);
-      abort ();
-    }
-#endif
-
-  if (dentry->fh->flags & IFH_REINTEGRATE)
+  if (what & IFH_REINTEGRATE)
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
@@ -665,8 +619,12 @@ update_file (zfs_fh *fh)
       if (r2 != ZFS_OK)
 	abort ();
 #endif
+
+      if (r == ZFS_OK)
+	what = update_p (&vol, &dentry, fh, &attr, true);
     }
-  if (r == ZFS_OK && (dentry->fh->flags & IFH_UPDATE))
+
+  if (r == ZFS_OK && (what & IFH_UPDATE))
     {
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
@@ -691,14 +649,16 @@ update_file (zfs_fh *fh)
 
   /* If the file was not completelly updated or reintegrated
      add it to queue again.  */
-  if (r == ZFS_OK && dentry->fh->flags & (IFH_UPDATE | IFH_REINTEGRATE))
+  if (r == ZFS_OK
+      && ((dentry->fh->meta.flags & METADATA_COMPLETE) == 0
+	  || (dentry->fh->meta.flags & METADATA_MODIFIED) != 0))
     {
       zfsd_mutex_lock (&update_queue.mutex);
       queue_put (&update_queue, &dentry->fh->local_fh);
       zfsd_mutex_unlock (&update_queue.mutex);
     }
   else
-    dentry->fh->flags = 0;
+    dentry->fh->flags &= ~(IFH_ENQUEUED | IFH_UPDATE | IFH_REINTEGRATE);
 
   goto out;
 
@@ -713,7 +673,7 @@ out:
   if (opened_remote)
     cond_remote_close (&cap, icap, &dentry, &vol);
   put_capability (icap, dentry->fh, NULL);
-  internal_cap_unlock (vol, dentry, NULL);
+  internal_dentry_unlock (vol, dentry);
   RETURN_INT (r);
 }
 
@@ -1430,14 +1390,9 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 	    {
 	      zfsd_mutex_unlock (&running_mutex);
 
-	      if (dentry->fh->flags & IFH_ENQUEUED)
+	      if (!(dentry->fh->flags & IFH_ENQUEUED))
 		{
-		  dentry->fh->flags |= how & (IFH_UPDATE | IFH_REINTEGRATE);
-		}
-	      else
-		{
-		  dentry->fh->flags |= ((how & (IFH_UPDATE | IFH_REINTEGRATE))
-					| IFH_ENQUEUED);
+		  dentry->fh->flags |= IFH_ENQUEUED;
 		  zfsd_mutex_lock (&update_queue.mutex);
 		  queue_put (&update_queue, &dentry->fh->local_fh);
 		  zfsd_mutex_unlock (&update_queue.mutex);
