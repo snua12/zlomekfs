@@ -1417,7 +1417,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
 	  for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
 	    {
-	      tmp = VARRAY_ACCESS (dentry->fh->subdentries, 0, internal_dentry);
+	      tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
 	      if (INTERNAL_FH_HAS_LOCAL_PATH (tmp->fh))
 		{
 		  dir = dentry;
