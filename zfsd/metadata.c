@@ -1053,6 +1053,7 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
 
   if (delete_useless_interval_file (vol, fh, type, tree, path))
     {
+      tree->deleted = false;
       free (path->str);
       RETURN_BOOL (true);
     }
