@@ -26,7 +26,10 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include "alloc-pool.h"
+#include "hashtab.h"
 #include "config.h"
+#include "fh.h"
 #include "log.h"
 #include "memory.h"
 #include "client.h"
@@ -203,6 +206,22 @@ die ()
   exit (EXIT_FAILURE);
 }
 
+/* Initialize various data structures needed by ZFSD.  */
+
+void
+initialize_data_structures ()
+{
+  initialize_fh_c ();
+}
+
+/* Destroy data structures.  */
+
+void
+cleanup_data_structures ()
+{
+  cleanup_fh_c ();
+}
+
 /* Entry point of ZFS daemon.  */
 
 int
@@ -212,8 +231,12 @@ main (int argc, char **argv)
 
   process_arguments (argc, argv);
 
+#if 0
   test_interval ();
   test_splay ();
+#endif
+  
+  initialize_data_structures ();
   
   if (!read_config (config_file))
     die ();
@@ -243,6 +266,8 @@ main (int argc, char **argv)
   register_server ();
 
   /* FIXME: kill threads.  */
+
+  cleanup_data_structures ();
 
   return EXIT_FAILURE;
 }
