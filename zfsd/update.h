@@ -38,15 +38,11 @@
 /* Update the file DENTRY according to remote attributes ATTR
    if local file was not modified and
    remote file was modified since we updated it last time
-   OR the file has not been completelly updated
-   and local or remote file was not modified (i.e. handle
-   partially updated file).  */
+   OR the file has not been completelly updated yet.  */
 #define UPDATE_P(DENTRY, ATTR)						    \
   (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version	    \
     && (ATTR).version > (DENTRY)->fh->meta.master_version)		    \
-   || (!((DENTRY)->fh->meta.flags & METADATA_COMPLETE)			    \
-       && ((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version  \
-	   || (ATTR).version == (DENTRY)->fh->meta.master_version)))
+   || !((DENTRY)->fh->meta.flags & METADATA_COMPLETE))
 
 /* Reintegrate the file DENTRY
    if local file was modified since we reintegrated it last time.
