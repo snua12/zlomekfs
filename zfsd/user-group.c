@@ -911,6 +911,15 @@ cleanup_user_group_c ()
 
   zfsd_mutex_lock (&users_groups_mutex);
 
+  /* Tables for mapping user and group IDs between ZFS and node.  */
+  user_mapping_destroy_all (NULL);
+  htab_destroy (map_uid_to_node);
+  htab_destroy (map_uid_to_zfs);
+
+  group_mapping_destroy_all (NULL);
+  htab_destroy (map_gid_to_node);
+  htab_destroy (map_gid_to_zfs);
+
   /* User and group tables.  */
   HTAB_FOR_EACH_SLOT (users_id, slot,
     {
@@ -921,7 +930,7 @@ cleanup_user_group_c ()
   htab_destroy (users_id);
   htab_destroy (users_name);
 
-  HTAB_FOR_EACH_SLOT (users_id, slot,
+  HTAB_FOR_EACH_SLOT (groups_id, slot,
     {
       group_t g = (group_t) *slot;
 
@@ -929,14 +938,6 @@ cleanup_user_group_c ()
     });
   htab_destroy (groups_id);
   htab_destroy (groups_name);
-
-  /* Tables for mapping user and group IDs between ZFS and node.  */
-  user_mapping_destroy_all (NULL);
-  htab_destroy (map_uid_to_node);
-  htab_destroy (map_uid_to_zfs);
-  group_mapping_destroy_all (NULL);
-  htab_destroy (map_gid_to_node);
-  htab_destroy (map_gid_to_zfs);
 
   zfsd_mutex_unlock (&users_groups_mutex);
   zfsd_mutex_destroy (&users_groups_mutex);
