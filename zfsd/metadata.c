@@ -2392,10 +2392,24 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 	      || st.st_ino != fh->ino)
 	    {
 	      flush |= hardlink_list_delete_entry (hl, entry);
+
+	      free (path);
+	      path = NULL;
 	    }
 	  else
 	    break;
 	}
+    }
+
+  if (hl->first == NULL)
+    {
+#ifdef ENABLE_CHECKING
+      if (path)
+	abort ();
+#endif
+
+      if (!delete_metadata (vol, fh->dev, fh->ino, 0, 0, NULL))
+	vol->delete_p = true;
     }
 
   if (flush)
@@ -2408,20 +2422,8 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 	  return NULL;
 	}
     }
-
-  if (hl->first == NULL)
-    {
-      hardlink_list_destroy (hl);
-#ifdef ENABLE_CHECKING
-      if (path)
-	abort ();
-#endif
-
-      if (!delete_metadata (vol, fh->dev, fh->ino, 0, 0, NULL))
-	vol->delete_p = true;
-
-      return NULL;
-    }
+  else
+    hardlink_list_destroy (hl);
 
   return path;
 }
