@@ -20,7 +20,6 @@
 
 #include "system.h"
 #include <stdlib.h>
-#include <unistd.h>
 #include <pthread.h>
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
@@ -34,13 +33,12 @@ extern void zfs_program_1 (struct svc_req *rqstp, SVCXPRT *transp);
 /* Pool of server threads.  */
 static thread_pool server_pool;
 
-/* Regulator of server pool.  */
-static pthread_t server_regulator;
+/* Data for server pool regulator.  */
+static thread_pool_regulator_data server_regulator_data;
 
 /* Local function prototypes.  */
 static void *server_worker (void *data);
 static void server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp);
-static void *server_pool_regulator (void *data);
 
 /* Function which receives a RPC request and passes it to some server thread.
    It also regulates the number of server threads.  */
@@ -110,23 +108,10 @@ server_worker (void *data)
   return data;
 }
 
-/* Main function of thread which periodically regulates the number of
-   threads in the SERVER_POOL.  */
-
-static void *
-server_pool_regulator (void *data)
-{
-  while (1)
-    {
-      pthread_mutex_lock (&server_pool.idle.mutex);
-      thread_pool_regulate (&server_pool, server_worker, NULL);
-      pthread_mutex_unlock (&server_pool.idle.mutex);
-      sleep (60);	/* FIXME: Read the number from configuration.  */
-    }
-}
+/* Create server threads and related threads.  */
 
 void
-create_server_pool ()
+create_server_threads ()
 {
   int i;
 
@@ -141,10 +126,9 @@ create_server_pool ()
     }
   pthread_mutex_unlock (&server_pool.empty.mutex);
   pthread_mutex_unlock (&server_pool.idle.mutex);
-  if (pthread_create (&server_regulator, NULL, server_pool_regulator, NULL))
-    {
-      message (-1, stderr, "pthread_create() failed\n");
-    }
+
+  thread_pool_create_regulator (&server_regulator_data, &server_pool,
+				server_worker, NULL);
 }
 
 /* Register and run the ZFS protocol server.  This function never returns
