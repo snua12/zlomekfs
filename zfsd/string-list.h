@@ -50,5 +50,6 @@ extern void string_list_insert (string_list sl, char *str, bool copy);
 extern bool string_list_member (string_list sl, char *str);
 extern void string_list_delete (string_list sl, char *str);
 extern unsigned int string_list_size (string_list sl);
+extern char *string_list_element (string_list sl, unsigned int index);
 
 #endif

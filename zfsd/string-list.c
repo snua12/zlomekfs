@@ -186,6 +186,16 @@ string_list_size (string_list sl)
   return VARRAY_USED (sl->array);
 }
 
+/* Get element of the string list SL at index INDEX.  */
+
+char *
+string_list_element (string_list sl, unsigned int index)
+{
+  CHECK_MUTEX_LOCKED (sl->mutex);
+
+  return VARRAY_ACCESS (sl->array, index, char *);
+}
+
 /* Initialize data structures in STRING-LIST.C.  */
 
 void
