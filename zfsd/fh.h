@@ -26,6 +26,7 @@ typedef struct volume_def *volume;
 
 #include "system.h"
 #include <stdio.h>
+#include <time.h>
 #include "pthread.h"
 #include "alloc-pool.h"
 #include "crc32.h"
@@ -96,6 +97,9 @@ struct internal_fh_def
 
   /* Index in parent's list of directory entries.  */
   unsigned int dentry_index;
+
+  /* Last use of this FH.  */
+  time_t last_use;
 };
 
 /* Structure of a virtual directory (element of mount tree).  */

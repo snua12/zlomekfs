@@ -182,7 +182,10 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
       if (ifh)
-	zfsd_mutex_lock (&ifh->mutex);
+	{
+	  zfsd_mutex_lock (&ifh->mutex);
+	  ifh->last_use = time (NULL);
+	}
       else
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -235,7 +238,11 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
   tmp_fh.name = (char *) name;
   fh = (internal_fh) htab_find (vol->fh_htab_name, &tmp_fh);
   if (fh)
-    zfsd_mutex_lock (&fh->mutex);
+    {
+      zfsd_mutex_lock (&fh->mutex);
+      fh->last_use = time (NULL);
+    }
+      
   return fh;
 }
 
@@ -261,6 +268,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
   fh->parent = parent;
   fh->name = xstrdup (name);
   fh->attr = *attr;
+  fh->last_use = time (NULL);
 
   if (fh->attr.type == FT_DIR)
     varray_create (&fh->dentries, sizeof (internal_fh), 16);
