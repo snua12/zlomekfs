@@ -1243,7 +1243,9 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
       RETURN_INT (ZFS_OK);
     }
 
-  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
+  r = internal_dentry_lock (dentry->fh->attr.type == FT_DIR
+			    ? LEVEL_EXCLUSIVE : LEVEL_SHARED,
+			    &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -1454,7 +1456,9 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	}
     }
 
-  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
+  r = internal_dentry_lock (dentry->fh->attr.type == FT_DIR
+			    ? LEVEL_EXCLUSIVE : LEVEL_SHARED,
+			    &vol, &dentry, &tmp_fh);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
