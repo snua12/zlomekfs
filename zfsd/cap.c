@@ -30,6 +30,7 @@
 #include "hashtab.h"
 #include "fh.h"
 #include "dir.h"
+#include "file.h"
 #include "log.h"
 #include "random.h"
 #include "volume.h"
@@ -187,6 +188,9 @@ internal_cap_destroy (internal_cap cap)
   CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
 
+  if (cap->fd >= 0)
+    local_close (cap);
+
   slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
 				   INTERNAL_CAP_HASH (cap), NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -314,7 +318,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 
   if (!zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd))
     {
-      zfsd_mutex_unlock (&icap->mutex);
+      internal_cap_destroy (icap);
       return ESTALE;
     }
 

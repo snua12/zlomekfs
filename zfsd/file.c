@@ -70,7 +70,7 @@ capability_opened_p (internal_cap cap)
 
 /* Close local file for internal capability CAP on volume VOL.  */
 
-static int
+int
 local_close (internal_cap cap)
 {
   if (cap->fd >= 0)
