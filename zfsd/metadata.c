@@ -125,7 +125,7 @@ build_list_path (volume vol)
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
 
 static char *
-build_interval_path (volume vol, internal_fh fh, interval_tree_purpose purpose,
+build_interval_path (volume vol, zfs_fh *fh, interval_tree_purpose purpose,
 		     unsigned int tree_depth)
 {
   char name[17];
@@ -139,7 +139,7 @@ build_interval_path (volume vol, internal_fh fh, interval_tree_purpose purpose,
     abort ();
 #endif
 
-  sprintf (name, "%08X%08X", fh->local_fh.dev, fh->local_fh.ino);
+  sprintf (name, "%08X%08X", fh->dev, fh->ino);
 #ifdef ENABLE_CHECKING
   if (name[16] != 0)
     abort ();
@@ -370,7 +370,7 @@ open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
+  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
   fd = open_metadata (path, O_WRONLY | O_CREAT, S_IRWXU);
   free (path);
   if (fd < 0)
@@ -661,7 +661,7 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
+  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
   fd = open (path, O_RDONLY);
   if (fd < 0)
     {
@@ -680,7 +680,8 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
       for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
 	if (i != metadata_tree_depth)
 	  {
-	    char *old_path = build_interval_path (vol, fh, purpose, i);
+	    char *old_path = build_interval_path (vol, &fh->local_fh,
+						  purpose, i);
 	    rename (old_path, path);
 	  }
 
@@ -776,7 +777,7 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   close_interval_file (tree);
-  path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
+  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
 
   return flush_interval_tree_1 (tree, path);
 }
@@ -810,7 +811,7 @@ free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   close_interval_file (tree);
-  path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
+  path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
 
   switch (purpose)
     {
