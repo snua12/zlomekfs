@@ -319,6 +319,7 @@ do_tests (void *data)
   string sym = {7, "symlink"};
   string path = {4, "path"};
   string pip = {4, "pipe"};
+  data_buffer ping = {5, "abcde", "abcde" }, ping_res;
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
@@ -344,6 +345,28 @@ do_tests (void *data)
       zfsd_mutex_unlock (&node_mutex);
       message (1, stderr, "TEST NULL\n");
       r = zfs_proc_null_client (t, NULL, nod, &fd);
+      message (1, stderr, "  %s\n", zfs_strerror (r));
+      if (r >= ZFS_ERROR_HAS_DC_REPLY)
+	recycle_dc_to_fd (&t->dc_reply, fd);
+
+      if (!get_running ())
+	goto out;
+
+      zfsd_mutex_lock (&node_mutex);
+      nod = node_lookup (2);
+      zfsd_mutex_unlock (&node_mutex);
+      message (1, stderr, "TEST PING\n");
+      ping.buf = ping.real_buffer;
+      r = zfs_proc_ping_client (t, &ping, nod, &fd);
+      if (r == ZFS_OK)
+	{
+	  if (!decode_data_buffer (&t->dc_reply, &ping_res)
+	      || !finish_decoding (&t->dc_reply))
+	    message (1, stderr, "  INVALID_REPLY\n");
+	  else if (ping.len != ping_res.len
+	      || strncmp (ping.buf, ping_res.buf, ping.len) != 0)
+	    message (1, stderr, "  MISCOMPARE\n");
+	}
       message (1, stderr, "  %s\n", zfs_strerror (r));
       if (r >= ZFS_ERROR_HAS_DC_REPLY)
 	recycle_dc_to_fd (&t->dc_reply, fd);

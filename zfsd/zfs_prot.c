@@ -637,6 +637,18 @@ zfs_proc_hardlinks_server (hardlinks_args *args, thread *t,
     }
 }
 
+/* data_buffer zfs_proc_ping (data_buffer); */
+
+void
+zfs_proc_ping_server (data_buffer *args, thread *t,
+		      ATTRIBUTE_UNUSED bool map_id)
+{
+  DC *dc = &t->dc;
+
+  encode_status (dc, ZFS_OK);
+  encode_data_buffer (dc, args);
+}
+
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\

@@ -339,6 +339,7 @@ typedef union call_args_def
   auth_stage2_args auth_stage2;
   md5sum_args md5sum;
   hardlinks_args hardlinks;
+  data_buffer ping;
 } call_args;
 
 /* Mapping file type -> file mode.  */
