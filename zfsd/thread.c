@@ -399,6 +399,7 @@ thread_disable_signals (void)
   sigset_t mask;
 
   sigemptyset (&mask);
+  sigaddset (&mask, SIGHUP);
   sigaddset (&mask, SIGINT);
   sigaddset (&mask, SIGQUIT);
   sigaddset (&mask, SIGTERM);
