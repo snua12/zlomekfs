@@ -32,6 +32,7 @@
 #include "file.h"
 #include "dir.h"
 #include "cap.h"
+#include "volume.h"
 
 /* The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
