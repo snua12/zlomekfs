@@ -979,7 +979,7 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
    DENTRY and virtual directory VD) on volume VOL starting at position COOKIE.
    Store directory entries to LIST using function FILLDIR.  */
 
-static int32_t
+int32_t
 local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 	       virtual_dir vd, int32_t cookie, readdir_data *data, volume vol,
 	       filldir_f filldir)
@@ -1092,7 +1092,7 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
    at position COOKIE.
    Store directory entries to LIST using function FILLDIR.  */
 
-static int32_t
+int32_t
 remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 		readdir_data *data, volume vol, filldir_f filldir)
 {
