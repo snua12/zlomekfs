@@ -696,6 +696,96 @@ group_mapping_destroy_all (node nod)
     });
 }
 
+/* Map ZFS user UID to (local) node user ID.  */
+
+uint32_t
+map_uid_zfs2node (uint32_t uid)
+{
+  id_mapping map;
+
+  zfsd_mutex_lock (&this_node->mutex);
+  map = (id_mapping) htab_find_with_hash (this_node->map_uid_to_node, &uid,
+					  USER_ID_HASH (uid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&this_node->mutex);
+      return map->node_id;
+    }
+  zfsd_mutex_unlock (&this_node->mutex);
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  map = (id_mapping) htab_find_with_hash (map_uid_to_node, &uid,
+					  USER_ID_HASH (uid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&users_groups_mutex);
+      return map->node_id;
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+
+  return default_node_uid;
+}
+
+/* Map (local) node UID to ZFS user ID.  */
+
+uint32_t
+map_uid_node2zfs (uint32_t uid)
+{
+  id_mapping map;
+
+  zfsd_mutex_lock (&this_node->mutex);
+  map = (id_mapping) htab_find_with_hash (this_node->map_uid_to_zfs, &uid,
+					  USER_ID_HASH (uid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&this_node->mutex);
+      return map->zfs_id;
+    }
+  zfsd_mutex_unlock (&this_node->mutex);
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  map = (id_mapping) htab_find_with_hash (map_uid_to_zfs, &uid,
+					  USER_ID_HASH (uid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&users_groups_mutex);
+      return map->zfs_id;
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+
+  return DEFAULT_ZFS_UID;
+}
+
+/* Map ZFS group GID to (local) node group ID.  */
+
+uint32_t
+map_gid_zfs2node (uint32_t gid)
+{
+  id_mapping map;
+
+  zfsd_mutex_lock (&this_node->mutex);
+  map = (id_mapping) htab_find_with_hash (this_node->map_gid_to_node, &gid,
+					  USER_ID_HASH (gid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&this_node->mutex);
+      return map->node_id;
+    }
+  zfsd_mutex_unlock (&this_node->mutex);
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  map = (id_mapping) htab_find_with_hash (map_gid_to_node, &gid,
+					  USER_ID_HASH (gid));
+  if (map)
+    {
+      zfsd_mutex_unlock (&users_groups_mutex);
+      return map->node_id;
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+
+  return default_node_uid;
+}
+
 /* Initialize data structures in USER-GROUP.C.  */
 
 void

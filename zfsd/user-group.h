@@ -73,6 +73,9 @@ extern void user_mapping_destroy_all (node nod);
 extern id_mapping group_mapping_create (char *zfs_group, char *node_group,
 					node nod);
 extern void group_mapping_destroy_all (node nod);
+extern uint32_t map_uid_zfs2node (uint32_t uid);
+extern uint32_t map_uid_node2zfs (uint32_t uid);
+extern uint32_t map_gid_zfs2node (uint32_t gid);
 
 extern void initialize_user_group_c ();
 extern void cleanup_user_group_c ();
