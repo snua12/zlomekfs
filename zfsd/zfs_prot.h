@@ -322,7 +322,6 @@ typedef struct md5sum_args_def
 {
   zfs_cap cap;
   uint32_t count;
-  uint64_t size;
   uint64_t offset[ZFS_MAX_MD5_CHUNKS];
   uint32_t length[ZFS_MAX_MD5_CHUNKS];
 } md5sum_args;
