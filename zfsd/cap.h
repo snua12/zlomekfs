@@ -64,7 +64,8 @@ extern int32_t internal_cap_lock (unsigned int level, internal_cap *icapp,
 extern void internal_cap_unlock (internal_dentry dentry, virtual_dir vd);
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int32_t get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-			       internal_dentry *dentry, virtual_dir *vd);
+			       internal_dentry *dentry, virtual_dir *vd,
+			       bool unlock_fh_mutex);
 extern internal_cap get_capability_no_zfs_fh_lookup (zfs_cap *cap,
 						     internal_dentry dentry,
 						     uint32_t flags);

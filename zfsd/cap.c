@@ -304,7 +304,8 @@ internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
 
 int32_t
 get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-		internal_dentry *dentry, virtual_dir *vd)
+		internal_dentry *dentry, virtual_dir *vd,
+		bool unlock_fh_mutex)
 {
   internal_cap icap;
   int32_t r;
@@ -330,14 +331,16 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 
   if (vd && *vd)
     zfsd_mutex_unlock (&vd_mutex);
-  else
+  else if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
 
   if (vd && *vd && *vol)
     {
       int32_t r2;
 
-      r2 = get_volume_root_dentry (*vol, dentry, true);
+      if (!unlock_fh_mutex)
+	zfsd_mutex_unlock (&fh_mutex);
+      r2 = get_volume_root_dentry (*vol, dentry, unlock_fh_mutex);
       if (r2 != ZFS_OK)
 	{
 	  /* *VOL is the volume under *VD so we may lock it.  */

@@ -632,7 +632,7 @@ zfs_open_retry:
 
   cap->fh = *fh;
   cap->flags = flags & O_ACCMODE;
-  r = get_capability (cap, &icap, &vol, &dentry, &vd);
+  r = get_capability (cap, &icap, &vol, &dentry, &vd, true);
   if (r != ZFS_OK)
     return r;
 
@@ -1920,7 +1920,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   cap.flags = O_RDONLY;
 
   /* Open directory.  */
-  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL);
+  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, true);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -2003,7 +2003,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   cap.flags = O_RDONLY;
 
   /* Open directory.  */
-  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL);
+  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, true);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
