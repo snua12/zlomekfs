@@ -185,6 +185,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #define zfsd_cond_signal(C) pthread_cond_signal (C)
 #define zfsd_cond_broadcast(C) pthread_cond_broadcast (C)
 #define CHECK_MUTEX_LOCKED(M)
+#define CHECK_MUTEX_UNLOCKED(M)
 
 #endif
 
