@@ -305,6 +305,10 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
   if (VARRAY_USED (*blocks) == 0)
     return ZFS_OK;
 
+  r = refresh_master_fh (&cap->fh);
+  if (r != ZFS_OK)
+    return r;
+
   r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
