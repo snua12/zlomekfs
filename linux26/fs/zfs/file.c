@@ -174,7 +174,7 @@ static int zfs_readpage(struct file *file, struct page *page)
 	kaddr = kmap(page);
 
 	error = zfsd_readpage(kaddr, &args);
-	if (error > 0) {
+	if (error >= 0) {
 		if (error < PAGE_CACHE_SIZE)
 			/* Zero the rest of the page. */
 			memset(kaddr + error, 0, PAGE_CACHE_SIZE - error);
