@@ -570,7 +570,7 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 
       offset += count;
       count += index;
-      for (index = 0; index < count; index = i + 1)
+      for (index = 0, i = 0; index < count; index = i + 1)
 	{
 	  for (i = index; i < count; i++)
 	    if (buf[i] == '\n')
@@ -894,6 +894,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
       volume vol;
       node nod;
 
+      master_name = NULL;
       for (i = 0; i < VARRAY_USED (data.hierarchy); i++)
 	{
 	  master_name = VARRAY_ACCESS (data.hierarchy, i, char *);
