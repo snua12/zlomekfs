@@ -357,7 +357,7 @@ mark_all_volumes (void)
 void
 destroy_invalid_volumes (void)
 {
-  void **slot;
+  void **slot, **slot2;
   bool master_marked;
 
   zfsd_mutex_lock (&vd_mutex);
@@ -380,7 +380,24 @@ destroy_invalid_volumes (void)
 	  if (master_marked)
 	    volume_destroy ((volume) *slot);
 	  else
-	    zfsd_mutex_unlock (&vol->mutex);
+	    {
+	      if (vol->slaves)
+		{
+		  /* Delete the marked "slaves".  */
+		  zfsd_mutex_lock (&node_mutex);
+		  HTAB_FOR_EACH_SLOT (vol->slaves, slot2)
+		    {
+		      node nod = (node) *slot2;
+
+		      zfsd_mutex_lock (&nod->mutex);
+		      if (nod->marked)
+			htab_clear_slot (vol->slaves, slot2);
+		      zfsd_mutex_unlock (&nod->mutex);
+		    }
+		  zfsd_mutex_unlock (&node_mutex);
+		}
+	      zfsd_mutex_unlock (&vol->mutex);
+	    }
 	}
     }
   zfsd_mutex_unlock (&volume_mutex);
