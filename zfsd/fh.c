@@ -493,6 +493,9 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->name = xstrdup (name);
   virtual_dir_set_fattr (vd);
 
+  zfsd_mutex_init (&vd->mutex);
+  zfsd_mutex_lock (&vd->mutex);
+  
   varray_create (&vd->subdirs, sizeof (virtual_dir), 16);
   vd->subdir_index = VARRAY_USED (parent->subdirs);
   VARRAY_PUSH (parent->subdirs, vd, virtual_dir);
@@ -603,6 +606,8 @@ virtual_root_create ()
   root->vol = NULL;
   virtual_dir_set_fattr (root);
 
+  zfsd_mutex_init (&root->mutex);
+
   /* Insert the root into hash table.  */
   slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), INSERT);
@@ -674,17 +679,13 @@ virtual_mountpoint_create (volume vol)
   /* Create the components of the path.  */
   zfsd_mutex_lock (&vd_mutex);
   vd = root;
+  zfsd_mutex_lock (&root->mutex);
   for (i = 0; i < VARRAY_USED (subpath); i++)
     {
-      struct virtual_dir_def tmp_vd;
-
       parent = vd;
-      zfsd_mutex_lock (&parent->mutex);
       s = VARRAY_ACCESS (subpath, i, char *);
 
-      tmp_vd.parent = parent;
-      tmp_vd.name = s;
-      vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
+      vd = vd_lookup_name (parent, s);
       if (!vd)
 	vd = virtual_dir_create (parent, s);
 #ifdef ENABLE_CHECKING
@@ -696,6 +697,7 @@ virtual_mountpoint_create (volume vol)
   varray_destroy (&subpath);
   vd->vol = vol;
   vol->root_vd = vd;
+  zfsd_mutex_unlock (&vd->mutex);
 
   /* Increase the count of volumes in subtree.  */
   for (tmp = vd; tmp; tmp = tmp->parent)
