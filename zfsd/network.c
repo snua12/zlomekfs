@@ -127,6 +127,8 @@ init_fd_data (int fd)
     = create_alloc_pool ("waiting4reply_data",
 			 sizeof (waiting4reply_data), 30,
 			 &network_fd_data[fd].mutex);
+  network_fd_data[fd].waiting4reply_heap
+    = fibheap_new (30, &network_fd_data[fd].mutex);
   network_fd_data[fd].waiting4reply
     = htab_create (30, waiting4reply_hash, waiting4reply_eq,
 		   NULL, &network_fd_data[fd].mutex);
@@ -177,6 +179,7 @@ close_active_fd (int i)
       semaphore_up (&data->t->sem, 1);
     });
   htab_destroy (network_fd_data[fd].waiting4reply);
+  fibheap_delete (network_fd_data[fd].waiting4reply_heap);
   free_alloc_pool (network_fd_data[fd].waiting4reply_pool);
 }
 
@@ -249,6 +252,8 @@ send_request (thread *t, uint32_t request_id, int fd)
     abort ();
 #endif
   *slot = wd;
+  wd->node = fibheap_insert (network_fd_data[fd].waiting4reply_heap,
+			     (fibheapkey_t) time (NULL), wd);
 
   /* Send the request.  */
   network_fd_data[fd].last_use = time (NULL);
@@ -256,6 +261,7 @@ send_request (thread *t, uint32_t request_id, int fd)
     {
       t->retval = ZFS_CONNECTION_CLOSED;
       htab_clear_slot (network_fd_data[fd].waiting4reply, slot);
+      fibheap_delete_node (network_fd_data[fd].waiting4reply_heap, wd->node);
       pool_free (network_fd_data[fd].waiting4reply_pool, wd);
       zfsd_mutex_unlock (&network_fd_data[fd].mutex);
       return;
@@ -498,6 +504,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    t = data->t;
 	    t->dc_reply = *dc;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
+	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
 	    pool_free (fd_data->waiting4reply_pool, data);
 	    zfsd_mutex_unlock (&fd_data->mutex);
 
@@ -581,11 +588,36 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
   while (get_running ())
     {
+      fibheapkey_t threshold = (fibheapkey_t) time (NULL) - REQUEST_TIMEOUT;
+
       zfsd_mutex_lock (&active_mutex);
       for (i = 0; i < nactive; i++)
 	{
+	  zfsd_mutex_lock (&active[i]->mutex);
+	  /* Timeout requests.  */
+	  while (fibheap_min_key (active[i]->waiting4reply_heap) < threshold)
+	    {
+	      waiting4reply_data *data;
+	      void **slot;
+
+	      data = fibheap_extract_min (active[i]->waiting4reply_heap);
+	      slot = htab_find_slot_with_hash (active[i]->waiting4reply,
+					       &data->request_id,
+					       WAITING4REPLY_HASH (data->request_id),
+					       NO_INSERT);
+#ifdef ENABLE_CHECKING
+	      if (!slot || !*slot)
+		abort ();
+#endif
+	      data->t->retval = ZFS_REQUEST_TIMEOUT;
+	      htab_clear_slot (active[i]->waiting4reply, slot);
+	      pool_free (active[i]->waiting4reply_pool, data);
+	      semaphore_up (&data->t->sem, 1);
+	    }
+
 	  pfd[i].fd = active[i]->fd;
 	  pfd[i].events = CAN_READ;
+	  zfsd_mutex_unlock (&active[i]->mutex);
 	}
       if (accept_connections)
 	{
@@ -597,7 +629,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
       message (2, stderr, "Polling %d sockets\n", n + accept_connections);
       zfsd_mutex_lock (&main_network_thread_in_syscall);
       zfsd_mutex_unlock (&active_mutex);
-      r = poll (pfd, n + accept_connections, -1);
+      r = poll (pfd, n + accept_connections, 1000000);
       zfsd_mutex_unlock (&main_network_thread_in_syscall);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
 
@@ -954,6 +986,7 @@ network_cleanup ()
 
 	  data->t->retval = ZFS_EXITING;
 	  htab_clear_slot (fd_data->waiting4reply, slot);
+	  fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
 	  pool_free (fd_data->waiting4reply_pool, data);
 	  semaphore_up (&data->t->sem, 1);
 	});

@@ -28,6 +28,9 @@
    If it is unused for longer time it is removed.  */
 #define MAX_INTERNAL_DENTRY_UNUSED_TIME 30
 
+/* Timeout in seconds for request.  */
+#define REQUEST_TIMEOUT 15
+
 /* The time between two attempts to connect to node in seconds.  */
 #define NODE_CONNECT_VISCOSITY 10
 

@@ -57,6 +57,7 @@
 #define ZFS_COULD_NOT_AUTH	-153	/* Could not authenticate with node.  */
 #define ZFS_CONNECTION_CLOSED	-154	/* Connection closed while waiting for
 					   reply.  */
+#define ZFS_REQUEST_TIMEOUT	-155	/* Request has timed out.  */
 
 typedef enum direction_def
 {

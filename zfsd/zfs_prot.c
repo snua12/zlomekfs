@@ -630,6 +630,9 @@ zfs_strerror (int32_t errnum)
       case ZFS_CONNECTION_CLOSED:
 	return "Connection closed";
 
+      case ZFS_REQUEST_TIMEOUT:
+	return "Request timed out";
+
       default:
 	return "UNKNOWN error code";
     }

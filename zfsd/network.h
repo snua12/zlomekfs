@@ -28,6 +28,7 @@
 #include "constant.h"
 #include "data-coding.h"
 #include "hashtab.h"
+#include "fibheap.h"
 #include "alloc-pool.h"
 #include "thread.h"
 #include "node.h"
@@ -55,6 +56,7 @@ typedef struct network_fd_data_def
   pthread_mutex_t mutex;
   htab_t waiting4reply;		/* table of waiting4reply_data */
   alloc_pool waiting4reply_pool;/* pool of waiting4reply_data */
+  fibheap waiting4reply_heap;	/* heap for waiting4reply_data */
   int fd;			/* file descriptor of the socket */
   unsigned int read;		/* number of bytes already read */
 

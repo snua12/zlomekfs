@@ -27,6 +27,7 @@
 #include "pthread.h"
 #include "queue.h"
 #include "semaphore.h"
+#include "fibheap.h"
 #include "data-coding.h"
 #include "zfs_prot.h"
 
@@ -122,6 +123,7 @@ typedef struct waiting4reply_data_def
 {
   uint32_t request_id;
   thread *t;
+  fibnode node;
 } waiting4reply_data;
 
 /* Type of a routine started in a new thread.  */
