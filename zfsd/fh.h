@@ -61,11 +61,12 @@ typedef struct volume_def *volume;
 #define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))
 
 /* Return true if FH1 and FH2 are the same.  */
-#define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
-			     && (FH1).dev == (FH2).dev		\
-			     && (FH1).vid == (FH2).vid		\
-			     && GET_SID (FH1) == GET_SID (FH2)	\
-			     && GET_CONFLICT (FH1) == GET_CONFLICT (FH2))
+#define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino			\
+			     && (FH1).dev == (FH2).dev			\
+			     && (FH1).vid == (FH2).vid			\
+			     && GET_SID (FH1) == GET_SID (FH2)		\
+			     && GET_CONFLICT (FH1) == GET_CONFLICT (FH2)\
+			     && (FH1).gen == (FH2).gen)
 
 /* Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
@@ -305,7 +306,7 @@ extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
 extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,
-				   char *name, fattr *attr);
+				   char *name, fattr *attr, metadata *meta);
 extern virtual_dir vd_lookup (zfs_fh *fh);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);

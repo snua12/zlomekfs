@@ -246,6 +246,7 @@ recursive_unlink (char *path, uint32_t vid)
   volume vol;
   internal_dentry dentry;
   zfs_fh fh;
+  metadata meta;
   bool r;
   struct stat st;
 
@@ -318,6 +319,7 @@ out:
   fh.vid = vid;
   fh.dev = st.st_dev;
   fh.ino = st.st_ino;
+  get_metadata (volume_lookup (vid), &fh, &meta);
 
   zfsd_mutex_lock (&fh_mutex);
   dentry = dentry_lookup (&fh);
@@ -456,7 +458,8 @@ fattr_from_struct_stat (fattr *attr, struct stat *st)
    and its attributes to ATTR.  */
 
 static int32_t
-get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
+get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
+		       metadata *meta)
 {
   struct stat st;
   char *path;
@@ -480,6 +483,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 
   local_fh->dev = st.st_dev;
   local_fh->ino = st.st_ino;
+  get_metadata (volume_lookup (local_fh->vid), local_fh, meta);
   fattr_from_struct_stat (attr, &st);
 
   return ZFS_OK;
@@ -538,6 +542,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
 			bool unlock_fh_mutex)
 {
   zfs_fh local_fh, master_fh;
+  metadata meta;
   uint32_t vid;
   fattr attr;
   int32_t r;
@@ -559,7 +564,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
 
   if (vol->local_path)
     {
-      r = get_volume_root_local (vol, &local_fh, &attr);
+      r = get_volume_root_local (vol, &local_fh, &attr, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_fh);
     }
@@ -583,7 +588,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       return ENOENT;
     }
 
-  get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr);
+  get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr, &meta);
 
   if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
@@ -996,7 +1001,8 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
    and store it to FH.  */
 
 int32_t
-local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
+local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
+	      metadata *meta)
 {
   char *path;
   int32_t r;
@@ -1019,6 +1025,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
+  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
 
   return ZFS_OK;
 }
@@ -1081,6 +1088,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   virtual_dir pvd;
   dir_op_res master_res;
   zfs_fh tmp_fh;
+  metadata meta;
   int32_t r, r2;
   int retry = 0;
 
@@ -1238,7 +1246,7 @@ zfs_lookup_retry:
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_lookup (res, idir, name, vol);
+      r = local_lookup (res, idir, name, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
@@ -1263,7 +1271,7 @@ zfs_lookup_retry:
       internal_dentry dentry;
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
-			   &res->attr);
+			   &res->attr, &meta);
       release_dentry (dentry);
     }
 
@@ -1285,7 +1293,7 @@ zfs_lookup_retry:
 
 int32_t
 local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
-	     volume vol)
+	     volume vol, metadata *meta)
 {
   char *path;
   int32_t r;
@@ -1315,6 +1323,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
+  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
 
   return ZFS_OK;
 }
@@ -1380,6 +1389,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   virtual_dir pvd;
   dir_op_res master_res;
   zfs_fh tmp_fh;
+  metadata meta;
   int32_t r, r2;
   int retry = 0;
 
@@ -1429,7 +1439,7 @@ zfs_mkdir_retry:
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_mkdir (res, idir, name, attr, vol);
+      r = local_mkdir (res, idir, name, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
@@ -1454,7 +1464,7 @@ zfs_mkdir_retry:
       internal_dentry dentry;
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
-			   &res->attr);
+			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
@@ -2588,7 +2598,7 @@ zfs_readlink_retry:
 
 int32_t
 local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
-	       sattr *attr, volume vol)
+	       sattr *attr, volume vol, metadata *meta)
 {
   char *path;
   int32_t r;
@@ -2618,6 +2628,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
+  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
 
   return ZFS_OK;
 }
@@ -2685,6 +2696,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   virtual_dir pvd;
   dir_op_res master_res;
   zfs_fh tmp_fh;
+  metadata meta;
   int32_t r, r2;
   int retry = 0;
 
@@ -2735,7 +2747,7 @@ zfs_symlink_retry:
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_symlink (res, idir, name, to, attr, vol);
+      r = local_symlink (res, idir, name, to, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
@@ -2760,7 +2772,7 @@ zfs_symlink_retry:
       internal_dentry dentry;
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
-			   &res->attr);
+			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
@@ -2791,7 +2803,7 @@ zfs_symlink_retry:
 
 int32_t
 local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
-	     ftype type, uint32_t rdev, volume vol)
+	     ftype type, uint32_t rdev, volume vol, metadata *meta)
 {
   char *path;
   int32_t r;
@@ -2821,6 +2833,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
+  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
 
   return ZFS_OK;
 }
@@ -2891,6 +2904,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   virtual_dir pvd;
   dir_op_res master_res;
   zfs_fh tmp_fh;
+  metadata meta;
   int32_t r, r2;
   int retry = 0;
 
@@ -2940,7 +2954,7 @@ zfs_mknod_retry:
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_mknod (res, idir, name, attr, type, rdev, vol);
+      r = local_mknod (res, idir, name, attr, type, rdev, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
@@ -2965,7 +2979,7 @@ zfs_mknod_retry:
       internal_dentry dentry;
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
-			   &res->attr);
+			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))

@@ -42,6 +42,7 @@
 #include "zfs_prot.h"
 #include "file.h"
 #include "dir.h"
+#include "metadata.h"
 
 /* Queue of file handles.  */
 queue update_queue;
@@ -653,6 +654,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
   internal_dentry dir;
   fattr *local_attr;
   sattr sa;
+  metadata meta;
   int32_t r, r2;
   read_link_res link_to;
   create_res cr_res;
@@ -699,7 +701,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    sa.mtime = (zfs_time) -1;
 
 	    r = local_create (&cr_res, &fd, dir, name,
-			      O_CREAT | O_WRONLY | O_TRUNC, &sa, vol);
+			      O_CREAT | O_WRONLY | O_TRUNC, &sa, vol, &meta);
 	    if (r == ZFS_OK)
 	      {
 		close (fd);
@@ -717,6 +719,8 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    sa.mtime = (zfs_time) -1;
 
 	    r = local_setattr (local_attr, dentry, &sa, vol);
+	    if (r == ZFS_OK)
+	      meta = dentry->fh->meta;
 	  }
 	break;
 
@@ -745,7 +749,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    sa.atime = (zfs_time) -1;
 	    sa.mtime = (zfs_time) -1;
 
-	    r = local_mkdir (&res, dir, name, &sa, vol);
+	    r = local_mkdir (&res, dir, name, &sa, vol, &meta);
 	    if (r == ZFS_OK)
 	      {
 		*local_fh = res.file;
@@ -761,6 +765,8 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    sa.mtime = (zfs_time) -1;
 
 	    r = local_setattr (local_attr, dentry, &sa, vol);
+	    if (r == ZFS_OK)
+	      meta = dentry->fh->meta;
 	  }
 	break;
 
@@ -792,7 +798,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	sa.atime = (zfs_time) -1;
 	sa.mtime = (zfs_time) -1;
 
-	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol);
+	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
 	if (r == ZFS_OK)
 	  {
 	    *local_fh = res.file;
@@ -820,7 +826,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	sa.mtime = (zfs_time) -1;
 
 	r = local_mknod (&res, dir, name, &sa, remote_attr->type,
-			 remote_attr->rdev, vol);
+			 remote_attr->rdev, vol, &meta);
 	if (r == ZFS_OK)
 	  {
 	    *local_fh = res.file;
@@ -846,7 +852,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	}
 
       dentry = get_dentry (local_fh, remote_fh, vol, dir, name->str,
-			   local_attr);
+			   local_attr, &meta);
       if (dir)
 	release_dentry (dir);
       zfsd_mutex_unlock (&fh_mutex);
@@ -885,6 +891,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   internal_dentry dentry;
   fattr *local_attr;
   sattr sa;
+  metadata meta;
   int32_t r, r2;
   read_link_res link_to;
   create_res cr_res;
@@ -916,7 +923,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.mtime = (zfs_time) -1;
 
 	r = local_create (&cr_res, &fd, dir, name,
-			  O_CREAT | O_WRONLY | O_TRUNC, &sa, vol);
+			  O_CREAT | O_WRONLY | O_TRUNC, &sa, vol, &meta);
 	if (r == ZFS_OK)
 	  {
 	    close (fd);
@@ -933,7 +940,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.atime = (zfs_time) -1;
 	sa.mtime = (zfs_time) -1;
 
-	r = local_mkdir (&res, dir, name, &sa, vol);
+	r = local_mkdir (&res, dir, name, &sa, vol, &meta);
 	if (r == ZFS_OK)
 	  {
 	    *local_fh = res.file;
@@ -961,7 +968,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.atime = (zfs_time) -1;
 	sa.mtime = (zfs_time) -1;
 
-	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol);
+	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
 	free (link_to.path.str);
 	if (r == ZFS_OK)
 	  {
@@ -981,7 +988,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.mtime = (zfs_time) -1;
 
 	r = local_mknod (&res, dir, name, &sa, remote_attr->type,
-			 remote_attr->rdev, vol);
+			 remote_attr->rdev, vol, &meta);
 	if (r == ZFS_OK)
 	  {
 	    *local_fh = res.file;
@@ -999,7 +1006,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	abort ();
 
       dentry = get_dentry (local_fh, remote_fh, vol, dir, name->str,
-			   local_attr);
+			   local_attr, &meta);
       release_dentry (dir);
       zfsd_mutex_unlock (&fh_mutex);
 
@@ -1034,6 +1041,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   internal_dentry dentry, parent;
   filldir_htab_entries local_entries, remote_entries;
   dir_op_res local_res, remote_res;
+  metadata meta;
   dir_entry *entry;
   void **slot, **slot2;
 
@@ -1187,7 +1195,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
-	  r = local_lookup (&local_res, dir, &entry->name, vol);
+	  r = local_lookup (&local_res, dir, &entry->name, vol, &meta);
 	  if (r != ZFS_OK)
 	    goto out;
 
@@ -1204,7 +1212,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	    abort ();
 
 	  dentry = get_dentry (&local_res.file, &remote_res.file, vol,
-			       dir, entry->name.str, &local_res.attr);
+			       dir, entry->name.str, &local_res.attr, &meta);
 	  release_dentry (dir);
 
 	  if (UPDATE_P (dentry, remote_res.attr))

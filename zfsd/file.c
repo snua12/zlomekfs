@@ -292,7 +292,7 @@ remote_close (internal_cap cap, internal_dentry dentry, volume vol)
 
 int32_t
 local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
-	      uint32_t flags, sattr *attr, volume vol)
+	      uint32_t flags, sattr *attr, volume vol, metadata  *meta)
 {
   char *path;
   int32_t r;
@@ -325,6 +325,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
 
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
+  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
 
   return ZFS_OK;
 }
@@ -392,6 +393,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   internal_dentry idir;
   virtual_dir pvd;
   zfs_fh tmp_fh;
+  metadata meta;
   int32_t r, r2;
   int fd;
   int retry = 0;
@@ -446,7 +448,7 @@ zfs_create_retry:
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_create (res, &fd, idir, name, flags, attr, vol);
+      r = local_create (res, &fd, idir, name, flags, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
@@ -472,7 +474,7 @@ zfs_create_retry:
       internal_dentry dentry;
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
-			   &res->attr);
+			   &res->attr, &meta);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry,
 					      flags & O_ACCMODE);
 

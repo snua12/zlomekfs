@@ -79,6 +79,7 @@ int main (int argc, char **argv)
 	printf (" modified");
       printf ("\n");
 
+      printf ("  Generation: %" PRIu64 "\n", meta.gen);
       printf ("  Local version: %" PRIu64 "\n", meta.local_version);
       printf ("  Master version: %" PRIu64 "\n", meta.master_version);
     }

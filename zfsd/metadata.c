@@ -106,12 +106,14 @@ metadata_decode (void *x)
   m->flags = le_to_u32 (m->flags);
   m->dev = le_to_u32 (m->dev);
   m->ino = le_to_u32 (m->ino);
+  m->gen = le_to_u32 (m->gen);
   m->local_version = le_to_u64 (m->local_version);
   m->master_version = le_to_u64 (m->master_version);
   m->master_fh.sid = le_to_u32 (m->master_fh.sid);
   m->master_fh.vid = le_to_u32 (m->master_fh.vid);
   m->master_fh.dev = le_to_u32 (m->master_fh.dev);
   m->master_fh.ino = le_to_u32 (m->master_fh.ino);
+  m->master_fh.gen = le_to_u32 (m->master_fh.gen);
 }
 
 /* Encode element X of the hash file.  */
@@ -124,12 +126,14 @@ metadata_encode (void *x)
   m->flags = u32_to_le (m->flags);
   m->dev = u32_to_le (m->dev);
   m->ino = u32_to_le (m->ino);
+  m->gen = u32_to_le (m->gen);
   m->local_version = u64_to_le (m->local_version);
   m->master_version = u64_to_le (m->master_version);
   m->master_fh.sid = u32_to_le (m->master_fh.sid);
   m->master_fh.vid = u32_to_le (m->master_fh.vid);
   m->master_fh.dev = u32_to_le (m->master_fh.dev);
   m->master_fh.ino = u32_to_le (m->master_fh.ino);
+  m->master_fh.ino = u32_to_le (m->master_fh.gen);
 }
 
 /* Build path to file with global metadata of type TYPE for volume VOL.  */
@@ -164,7 +168,7 @@ static char *
 build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
 			unsigned int tree_depth)
 {
-  char name[17];
+  char name[2 * 8 + 1];
   char tree[2 * MAX_METADATA_TREE_DEPTH + 1];
   char *path;
   varray v;
@@ -1128,6 +1132,7 @@ init_metadata_for_created_volume_root (volume vol)
       meta.flags = 0;
       meta.dev = st.st_dev;
       meta.ino = st.st_ino;
+      meta.gen = 1;
       meta.local_version = 1;
       meta.master_version = 1;
       zfs_fh_undefine (meta.master_fh);
@@ -1177,7 +1182,8 @@ init_metadata (volume vol, internal_fh fh)
       fh->meta.flags = METADATA_COMPLETE;
       fh->meta.dev = fh->local_fh.dev;
       fh->meta.ino = fh->local_fh.ino;
-      fh->meta.local_version = 0;
+      fh->meta.gen = 1;
+      fh->meta.local_version = 1;
       fh->meta.master_version = 0;
       zfs_fh_undefine (fh->meta.master_fh);
     }
@@ -1185,6 +1191,65 @@ init_metadata (volume vol, internal_fh fh)
   set_attr_version (&fh->attr, &fh->meta);
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  return true;
+}
+
+/* Get metadata for file handle FH on volume VOL.
+   Store the metadata to META and update FH->GEN.  */
+
+bool
+get_metadata (volume vol, zfs_fh *fh, metadata *meta)
+{
+  if (!vol)
+    return false;
+#ifdef ENABLE_CHECKING
+  if (!vol->metadata)
+    abort ();
+  if (!vol->local_path)
+    abort ();
+  if (!meta)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (!hashfile_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
+      if (fd < 0)
+	{
+	  vol->delete_p = true;
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return false;
+	}
+    }
+
+  meta->dev = fh->dev;
+  meta->ino = fh->ino;
+  if (!hfile_lookup (vol->metadata, meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      zfsd_mutex_unlock (&vol->mutex);
+      return false;
+    }
+
+  if (meta->slot_status != VALID_SLOT)
+    {
+      meta->slot_status = VALID_SLOT;
+      meta->flags = METADATA_COMPLETE;
+      meta->dev = fh->dev;
+      meta->ino = fh->ino;
+      meta->gen = 1;
+      meta->local_version = 1;
+      meta->master_version = 0;
+      zfs_fh_undefine (meta->master_fh);
+    }
+  fh->gen = meta->gen;
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   return true;
 }
 
@@ -1371,11 +1436,13 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
       meta.flags = METADATA_COMPLETE;
       meta.dev = dev;
       meta.ino = ino;
+      meta.gen = 1;
       meta.local_version = 1;
       meta.master_version = 0;
     }
 
   meta.flags = 0;
+  meta.gen++;
   meta.local_version++;
   if (!hfile_insert (vol->metadata, &meta))
     {

@@ -34,6 +34,7 @@
 #include "zfs_prot.h"
 #include "volume.h"
 #include "fibheap.h"
+#include "metadata.h"
 
 /* Data for file descriptor.  */
 typedef struct internal_fd_data_def
@@ -69,7 +70,7 @@ extern int32_t remote_close (internal_cap cap, internal_dentry dentry,
 			     volume vol);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
 			     string *name, uint32_t flags, sattr *attr,
-			     volume vol);
+			     volume vol, metadata *meta);
 extern int32_t remote_create (create_res *res, internal_dentry dir,
 			      string *name, uint32_t flags, sattr *attr,
 			      volume vol);

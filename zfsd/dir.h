@@ -27,6 +27,7 @@
 #include "zfs_prot.h"
 #include "volume.h"
 #include "zfs_prot.h"
+#include "metadata.h"
 
 /* Function called to add one path to list of hardlinks.  */
 typedef bool (*fill_hardlink_f) (char *path, hardlinks_res *res,
@@ -57,12 +58,12 @@ extern int32_t local_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
 extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
 extern int32_t zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int32_t local_lookup (dir_op_res *res, internal_dentry dir,
-			     string *name, volume vol);
+			     string *name, volume vol, metadata *meta);
 extern int32_t remote_lookup (dir_op_res *res, internal_dentry dir,
 			      string *name, volume vol);
 extern int32_t zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 extern int32_t local_mkdir (dir_op_res *res, internal_dentry dir, string *name,
-			    sattr *attr, volume vol);
+			    sattr *attr, volume vol, metadata *meta);
 extern int32_t remote_mkdir (dir_op_res *res, internal_dentry dir, string *name,
 			     sattr *attr, volume vol);
 extern int32_t zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name,
@@ -81,14 +82,15 @@ extern int32_t remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh,
 extern int32_t zfs_readlink (read_link_res *res, zfs_fh *fh);
 extern int32_t local_symlink (dir_op_res *res, internal_dentry dir,
 			      string *name, string *to, sattr *attr,
-			      volume vol);
+			      volume vol, metadata *meta);
 extern int32_t remote_symlink (dir_op_res *res, internal_dentry dir,
 			       string *name, string *to, sattr *attr,
 			       volume vol);
 extern int32_t zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name,
 			    string *to, sattr *attr);
 extern int32_t local_mknod (dir_op_res *res, internal_dentry dir, string *name,
-			    sattr *attr, ftype type, uint32_t rdev, volume vol);
+			    sattr *attr, ftype type, uint32_t rdev, volume vol,
+			    metadata *meta);
 extern int32_t remote_mknod (dir_op_res *res, internal_dentry dir, string *name,
 			     sattr *attr, ftype type, uint32_t rdev,
 			     volume vol);

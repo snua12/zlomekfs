@@ -51,6 +51,7 @@ typedef struct metadata_def
   uint32_t flags;		/* see METADATA_* below */
   uint32_t dev;			/* device of the file */
   uint32_t ino;			/* inode of the file */
+  uint32_t gen;			/* generation of the file */
   uint64_t local_version;	/* local version (is it needed?) */
   uint64_t master_version;	/* version on server/version got from server */
   zfs_fh master_fh;		/* master file handle */
@@ -80,6 +81,7 @@ extern bool append_interval (volume vol, internal_fh fh,
 			     uint64_t start, uint64_t end);
 extern void set_attr_version (fattr *attr, metadata *meta);
 extern bool init_metadata (volume vol, internal_fh fh);
+extern bool get_metadata (volume vol, zfs_fh *fh, metadata *meta);
 extern bool flush_metadata (volume vol, internal_fh fh);
 extern bool set_metadata (volume vol, internal_fh fh, uint32_t flags,
 			  uint64_t local_version, uint64_t master_version);

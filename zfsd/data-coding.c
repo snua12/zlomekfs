@@ -424,7 +424,8 @@ decode_zfs_fh (DC *dc, zfs_fh *fh)
   return (decode_uint32_t (dc, &fh->sid)
 	  && decode_uint32_t (dc, &fh->vid)
 	  && decode_uint32_t (dc, &fh->dev)
-	  && decode_uint32_t (dc, &fh->ino));
+	  && decode_uint32_t (dc, &fh->ino)
+	  && decode_uint32_t (dc, &fh->gen));
 }
 
 bool
@@ -433,7 +434,8 @@ encode_zfs_fh (DC *dc, zfs_fh *fh)
   return (encode_uint32_t (dc, fh->sid)
 	  && encode_uint32_t (dc, fh->vid)
 	  && encode_uint32_t (dc, fh->dev)
-	  && encode_uint32_t (dc, fh->ino));
+	  && encode_uint32_t (dc, fh->ino)
+	  && encode_uint32_t (dc, fh->gen));
 }
 
 bool

@@ -110,6 +110,7 @@ typedef struct zfs_fh_def
   uint32_t vid;		/* Volume ID.  */
   uint32_t dev;		/* Device ... */
   uint32_t ino;		/* ... and inode number of the file.  */
+  uint32_t gen;		/* Generation of the file.  */
 } zfs_fh;
 
 #define GET_SID(FH) ((FH).sid & UINT32_C(0x7fffffff))

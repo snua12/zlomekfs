@@ -45,7 +45,7 @@
 #include "dir.h"
 
 /* File handle of ZFS root.  */
-zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
+zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
 
 /* Static undefined ZFS file handle.  */
 zfs_fh undefined_fh;
@@ -369,7 +369,8 @@ internal_fh_eq (const void *xx, const void *yy)
   zfs_fh *y = (zfs_fh *) yy;
 
   return (x->ino == y->ino && x->dev == y->dev
-	  && x->vid == y->vid && x->sid == y->sid);
+	  && x->vid == y->vid && x->sid == y->sid
+	  && x->gen == y->gen);
 }
 
 /* Set array of lock info for current thread to LI. */
@@ -525,7 +526,8 @@ internal_dentry_eq (const void *xx, const void *yy)
   zfs_fh *y = (zfs_fh *) yy;
 
   return (x->ino == y->ino && x->dev == y->dev
-	  && x->vid == y->vid && x->sid == y->sid);
+	  && x->vid == y->vid && x->sid == y->sid
+	  && x->gen == y->gen);
 }
 
 /* Compare two internal file handles XX and YY whether they have same parent
@@ -578,6 +580,11 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 		      virtual_dir *vdp, bool delete_volume_p)
 {
   hash_t hash = ZFS_FH_HASH (fh);
+
+#ifdef ENABLE_CHECKING
+  if (fh->gen == 0)
+    abort ();
+#endif
 
   if (VIRTUAL_FH_P (*fh))
     {
@@ -741,6 +748,11 @@ dentry_lookup (zfs_fh *fh)
   internal_dentry dentry;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
+
+#ifdef ENABLE_CHECKING
+  if (fh->gen == 0)
+    abort ();
+#endif
 
   dentry = (internal_dentry) htab_find_with_hash (dentry_htab, fh,
 						  ZFS_FH_HASH (fh));
@@ -1051,7 +1063,7 @@ clear_meta (internal_fh fh)
 
 static internal_fh
 internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
-		    volume vol, unsigned int level)
+		    metadata *meta, volume vol, unsigned int level)
 {
   internal_fh fh;
   void **slot;
@@ -1104,22 +1116,15 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
     {
-      if (!init_metadata (vol, fh))
-	{
-	  vol->delete_p = true;
-	  clear_meta (fh);
-	}
-      else
-	{
-	  if (fh->meta.local_version == 0)
-	    {
-	      /* There is no need to flush metadata for file whose metadata
-		 was initialized automatically so just change the local
-		 version in file handle.  When the metadata will be modified
-		 they will be flushed.  */
-	      fh->meta.local_version = 1;
-	    }
-	}
+#ifdef ENABLE_CHECKING
+      if (local_fh->dev != meta->dev
+	  || local_fh->ino != meta->ino
+	  || local_fh->gen != meta->gen)
+	abort ();
+      if (meta->slot_status != VALID_SLOT)
+	abort ();
+#endif
+      fh->meta = *meta;
     }
   else
     clear_meta (fh);
@@ -1210,11 +1215,11 @@ print_fh_htab (FILE *f)
     {
       internal_fh fh = (internal_fh) *slot;
 
-      fprintf (f, "[%u,%u,%u,%u] ", fh->local_fh.sid, fh->local_fh.vid,
-	       fh->local_fh.dev, fh->local_fh.ino);
-      fprintf (f, "[%u,%u,%u,%u] ", fh->meta.master_fh.sid,
+      fprintf (f, "[%u,%u,%u,%u,%u] ", fh->local_fh.sid, fh->local_fh.vid,
+	       fh->local_fh.dev, fh->local_fh.ino, fh->local_fh.gen);
+      fprintf (f, "[%u,%u,%u,%u,%u] ", fh->meta.master_fh.sid,
 	       fh->meta.master_fh.vid, fh->meta.master_fh.dev,
-	       fh->meta.master_fh.ino);
+	       fh->meta.master_fh.ino, fh->meta.master_fh.gen);
       fprintf (f, "L%d ", fh->level);
       fprintf (f, "\n");
     });
@@ -1303,7 +1308,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
 static internal_dentry
 internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 			internal_dentry parent, char *name, fattr *attr,
-			unsigned int level)
+			metadata *meta, unsigned int level)
 {
   internal_dentry dentry;
   internal_fh fh;
@@ -1329,7 +1334,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 				   ZFS_FH_HASH (local_fh), INSERT);
   if (!*slot)
     {
-      fh = internal_fh_create (local_fh, master_fh, attr, vol, level);
+      fh = internal_fh_create (local_fh, master_fh, attr, meta, vol, level);
     }
   else
     {
@@ -1378,8 +1383,8 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
    LOCAL_FH, master file handle to MASTER_FH and attributes to ATTR.  */
 
 internal_dentry
-get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
-	    volume vol, internal_dentry dir, char *name, fattr *attr)
+get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
+	    internal_dentry dir, char *name, fattr *attr, metadata *meta)
 {
   internal_dentry dentry;
 
@@ -1457,7 +1462,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	      vol = volume_lookup (vid);
 	    }
 	  dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
-					   attr, level);
+					   attr, meta, level);
 	}
       else
 	{
@@ -1470,7 +1475,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
     }
   else
     dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
-				     attr, LEVEL_UNLOCKED);
+				     attr, meta, LEVEL_UNLOCKED);
 
   if (!dir)
     vol->root_dentry = dentry;
@@ -1808,7 +1813,7 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
 
   conflict = internal_dentry_create (&conflict_fh, &undefined_fh, vol,
 				     NULL, this_node->name, &conflict_attr,
-				     LEVEL_UNLOCKED);
+				     NULL, LEVEL_UNLOCKED);
   swp = conflict->name;
   conflict->name = dentry->name;
   dentry->name = swp;
@@ -1832,7 +1837,8 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
 
   remote = internal_dentry_create (&dentry->fh->meta.master_fh,
 				   &dentry->fh->meta.master_fh, vol, conflict,
-				   nod->name, remote_attr, LEVEL_UNLOCKED);
+				   nod->name, remote_attr, NULL,
+				   LEVEL_UNLOCKED);
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&conflict->fh->mutex);
   zfsd_mutex_unlock (&remote->fh->mutex);
@@ -1957,7 +1963,8 @@ virtual_dir_eq (const void *xx, const void *yy)
     abort ();
 #endif
   return (x->ino == y->ino && x->dev == y->dev
-	  && x->vid == y->vid && x->sid == y->sid);
+	  && x->vid == y->vid && x->sid == y->sid
+	  /* && x->gen == y->gen */);
 }
 
 /* Compare two virtual directories XX and YY whether they have same parent
@@ -2001,6 +2008,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->fh.vid = VOLUME_ID_VIRTUAL;
   vd->fh.dev = VIRTUAL_DEVICE;
   vd->fh.ino = last_virtual_ino;
+  vd->fh.gen = 1;
   vd->parent = parent;
   vd->name = xstrdup (name);
   vd->vol = NULL;
