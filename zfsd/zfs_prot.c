@@ -301,18 +301,15 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&fd_data->mutex);
   nod = node_lookup_name (args->node.str);
+  zfsd_mutex_unlock (&node_mutex);
   if (nod)
     {
-      zfsd_mutex_lock (&nod->mutex);
-      zfsd_mutex_unlock (&node_mutex);
       /* FIXME: do the key authorization */
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_IN_PROGRESS;
       encode_status (dc, ZFS_OK);
       zfsd_mutex_unlock (&nod->mutex);
     }
-  else
-    zfsd_mutex_unlock (&node_mutex);
 
   if (!nod)
     {
@@ -340,10 +337,9 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&fd_data->mutex);
   nod = node_lookup (fd_data->sid);
+  zfsd_mutex_unlock (&node_mutex);
   if (nod)
     {
-      zfsd_mutex_lock (&nod->mutex);
-      zfsd_mutex_unlock (&node_mutex);
       /* FIXME: verify the authentication data */
       authenticated = true;
       if (authenticated)
@@ -354,8 +350,6 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 	}
       zfsd_mutex_unlock (&nod->mutex);
     }
-  else
-    zfsd_mutex_unlock (&node_mutex);
 
   if (!authenticated)
     {
@@ -400,6 +394,8 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
 {									\
   server_thread_data *td = &t->u.server;				\
   int fd;								\
+									\
+  CHECK_MUTEX_LOCKED (&nod->mutex);					\
 									\
   fd = node_connect_and_authenticate (t, nod);				\
   if (fd < 0)								\

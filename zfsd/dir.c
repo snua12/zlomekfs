@@ -145,7 +145,9 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 
       t = (thread *) pthread_getspecific (server_thread_key);
       args.vid = vol->id;
+      zfsd_mutex_lock (&vol->master->mutex);	/* FIXME: temporary */
       r = zfs_proc_volume_root_client (t, &args, vol->master);
+      zfsd_mutex_unlock (&vol->master->mutex);	/* FIXME: temporary */
       if (r == ZFS_OK)
 	{
 	  if (!decode_zfs_fh (&t->u.server.dc, remote_fh)
@@ -333,6 +335,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
     return ENOENT;
 
   r = zfs_proc_lookup_client (t, &args, nod);
+  zfsd_mutex_unlock (&nod->mutex);
   if (r == ZFS_OK)
     {
       if (!decode_dir_op_res (&t->u.server.dc, res)

@@ -357,7 +357,9 @@ fake_config ()
 
   get_node_name ();
 
+  zfsd_mutex_lock (&node_mutex);
   nod = node_create (1, "orion");
+  zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (1);
@@ -374,8 +376,11 @@ fake_config ()
     volume_set_local_info (vol, "/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume2", "/volume2", nod);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&nod->mutex);
 
+  zfsd_mutex_lock (&node_mutex);
   nod = node_create (2, "sabbath");
+  zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (3);
@@ -392,8 +397,11 @@ fake_config ()
     volume_set_local_info (vol, "/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume4", "/volume2/sabbath/volume4", nod);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&nod->mutex);
 
+  zfsd_mutex_lock (&node_mutex);
   nod = node_create (3, "jaro");
+  zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (5);
@@ -410,6 +418,7 @@ fake_config ()
     volume_set_local_info (vol, "home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume6", "/volume6", nod);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&nod->mutex);
 
   debug_virtual_tree ();
 }
@@ -436,6 +445,7 @@ test_zfs (thread *t)
 
       message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_root_client (t, NULL, nod);
+      zfsd_mutex_unlock (&nod->mutex);
 
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/subdir/file");

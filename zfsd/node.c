@@ -102,7 +102,15 @@ node_eq_name (const void *x, const void *y)
 node
 node_lookup (unsigned int id)
 {
-  return (node) htab_find_with_hash (node_htab, &id, HASH_NODE_ID (id));
+  node nod;
+
+  CHECK_MUTEX_LOCKED (&node_mutex);
+
+  nod = (node) htab_find_with_hash (node_htab, &id, HASH_NODE_ID (id));
+  if (nod)
+    zfsd_mutex_lock (&nod->mutex);
+
+  return nod;
 }
 
 /* Return the node whose name is NAME.  */
@@ -110,8 +118,16 @@ node_lookup (unsigned int id)
 node
 node_lookup_name (char *name)
 {
-  return (node) htab_find_with_hash (node_htab_name, name,
-				     HASH_NODE_NAME (name));
+  node nod;
+
+  CHECK_MUTEX_LOCKED (&node_mutex);
+
+  nod = (node) htab_find_with_hash (node_htab_name, name,
+				    HASH_NODE_NAME (name));
+  if (nod)
+    zfsd_mutex_lock (&nod->mutex);
+
+  return nod;
 }
 
 /* Create new node with ID and NAME and insert it to hash table.  */
@@ -122,8 +138,9 @@ node_create (unsigned int id, char *name)
   node nod;
   void **slot;
 
+  CHECK_MUTEX_LOCKED (&node_mutex);
+
   nod = (node) xmalloc (sizeof (struct node_def));
-  pthread_mutex_init (&nod->mutex, NULL);
   nod->id = id;
   nod->name = xstrdup (name);
   nod->flags = 0;
@@ -138,7 +155,9 @@ node_create (unsigned int id, char *name)
   if (strcmp (name, node_name) == 0)
     this_node = nod;
 
-  zfsd_mutex_lock (&node_mutex);
+  pthread_mutex_init (&nod->mutex, NULL);
+  zfsd_mutex_lock (&nod->mutex);
+
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
@@ -158,7 +177,6 @@ node_create (unsigned int id, char *name)
   slot = htab_find_slot_with_hash (node_htab_name, nod->name,
 				   NODE_HASH_NAME (nod), INSERT);
   *slot = nod;
-  zfsd_mutex_unlock (&node_mutex);
 
   return nod;
 }
@@ -368,7 +386,8 @@ node_connect_and_authenticate (thread *t, node nod)
   server_thread_data *td = &t->u.server;
   int fd;
 
-  zfsd_mutex_lock (&nod->mutex);
+  CHECK_MUTEX_LOCKED (&nod->mutex);
+
   if (!node_connected_p (nod))
     {
       time_t now;
@@ -378,7 +397,6 @@ node_connect_and_authenticate (thread *t, node nod)
       if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
 	{
 	  td->retval = ZFS_COULD_NOT_CONNECT;
-	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
       nod->last_connect = now;
@@ -387,7 +405,6 @@ node_connect_and_authenticate (thread *t, node nod)
       if (fd < 0)
 	{
 	  td->retval = ZFS_COULD_NOT_CONNECT;
-	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
       add_fd_to_active (fd);
@@ -396,14 +413,12 @@ node_connect_and_authenticate (thread *t, node nod)
       if (!node_authenticate (t, nod))
 	{
 	  td->retval = ZFS_COULD_NOT_AUTH;
-	  zfsd_mutex_unlock (&nod->mutex);
 	  return -1;
 	}
     }
   else
     fd = nod->fd;
 
-  zfsd_mutex_unlock (&nod->mutex);
   return fd;
 }
 
