@@ -1902,7 +1902,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
     {
       volume vol;
 
-      message (4, stderr, "FH %p DELETE, by %lu\n", (void *) fh,
+      message (4, stderr, "FH %p DELETE, by %lu\n", (void *) dentry->fh,
 	 (unsigned long) pthread_self ());
 
       vol = volume_lookup (tmp_fh.vid);
