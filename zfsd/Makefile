@@ -32,8 +32,8 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 .PHONY: all install uninstall clean distclean
 
 PACKAGE = zfsd
-OBJECTS = alloc-pool.o client.o config.o constant.o \
-          crc32.o dir.o file.o fh.o hashtab.o interval.o \
+OBJECTS = alloc-pool.o client.o config.o constant.o crc32.o \
+          data-coding.o dir.o file.o fh.o hashtab.o interval.o \
           log.o memory.o node.o queue.o server.o \
           splay-tree.o thread.o varray.o volume.o zfsd.o
 
@@ -73,6 +73,7 @@ client.o: client.c client.h system.h log.h memory.h thread.h
 config.o: config.c config.h system.h log.h memory.h
 constant.o: constant.c constant.h system.h
 crc32.o: crc32.c crc32.h system.h
+data-coding.o: data-coding.c data-coding.h system.h
 dir.o: dir.c dir.h system.h fh.h hashtab.h
 fh.o: fh.c fh.h system.h
 file.o: file.c file.h system.h fh.h
