@@ -76,6 +76,7 @@ internal_fh_hash (const void *x)
 }
 
 /* Hash function for internal_fh X, computed from parent_fh and name.  */
+
 static hash_t
 internal_fh_hash_name (const void *x)
 {
@@ -389,6 +390,8 @@ virtual_dir_destroy (virtual_dir vd)
     }
 }
 
+/* Create the virtual root directory.  */
+
 virtual_dir
 virtual_root_create ()
 {
@@ -416,6 +419,23 @@ virtual_root_create ()
 
   return root;
 }
+
+/* Destroy virtual root directory.  */
+
+void
+virtual_root_destroy (virtual_dir root)
+{
+  free (root->virtual_fh->name);
+#ifdef ENABLE_CHECKING
+  if (VARRAY_USED (root->subdirs))
+    message (2, stderr, "Subdirs remaining in ROOT.\n");
+#endif
+  varray_destroy (&root->subdirs);
+  pool_free (fh_pool, root->virtual_fh);
+  pool_free (virtual_dir_pool, root);
+}
+
+/* Create the virtual mountpoint.  */
 
 virtual_dir
 virtual_mountpoint_create (volume vol)
@@ -473,19 +493,6 @@ virtual_mountpoint_create (volume vol)
     }
 
   return vd;
-}
-
-void
-virtual_root_destroy (virtual_dir root)
-{
-  free (root->virtual_fh->name);
-#ifdef ENABLE_CHECKING
-  if (VARRAY_USED (root->subdirs))
-    message (2, stderr, "Subdirs remaining in ROOT.\n");
-#endif
-  varray_destroy (&root->subdirs);
-  pool_free (fh_pool, root->virtual_fh);
-  pool_free (virtual_dir_pool, root);
 }
 
 /* Initialize data structures in FH.C.  */
