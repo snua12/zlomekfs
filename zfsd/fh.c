@@ -109,7 +109,7 @@ internal_fh_del (void *x)
 /* Find the internal file handle or virtual directory for zfs_fh FH
    and set *VOLP, *IFHP and VDP according to it.  */
 
-int
+bool
 fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
   hash_t hash = ZFS_FH_HASH (fh);
@@ -125,7 +125,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
       *volp = vd->vol;
       *ifhp = NULL;
       *vdp = vd;
-      return 1;
+      return true;
     }
   else
     {
@@ -134,19 +134,19 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 
       vol = volume_lookup (fh->vid);
       if (!vol || !VOLUME_ACTIVE_P (vol))
-	return 0;
+	return false;
 
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
       if (!ifh)
-	return 0;
+	return false;
 
       *volp = vol;
       *ifhp = ifh;
       *vdp = NULL;
-      return 1;
+      return true;
     }
 
-  return 0;
+  return false;
 }
 
 /* Return the virtual directory for NAME in virtual directory PARENT.  */

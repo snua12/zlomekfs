@@ -258,7 +258,7 @@ read_private_key (const char *filename)
   return 1;
 }
 
-static int
+static bool
 read_local_config (const char *path)
 {
   char *volumes;
@@ -269,7 +269,7 @@ read_local_config (const char *path)
     {
       message (0, stderr,
 	       "The directory with configuration of local node is not specified in configuration file.\n");
-      return 0;
+      return false;
     }
   message (2, stderr, "Reading configuration of local node\n");
 
@@ -308,14 +308,14 @@ read_local_config (const char *path)
     }
 
   free (volumes);
-  return 1;
+  return true;
 }
 
-static int
+static bool
 read_cluster_config (const char *path)
 {
 
-  return 1;
+  return true;
 }
 
 /* Invalidate configuration.  */
@@ -329,26 +329,26 @@ invalidate_config ()
 /* Verify configuration, fix what can be fixed. Return false if there remains
    something which can't be fixed.  */
 
-static int
+static bool
 fix_config ()
 {
 
-  return 1;
+  return true;
 }
 
 /* Initialize data structures which are needed for reading configuration.  */
 
-int
+bool
 init_config ()
 {
 
-  return 1;
+  return true;
 }
 
 /* Read configuration from FILE and using this information read configuration
    of node and cluster.  Return true on success.  */
 
-int
+bool
 read_config (const char *file)
 {
   FILE *f;
@@ -363,7 +363,7 @@ read_config (const char *file)
   if (!f)
     {
       message (-1, stderr, "%s: %s\n", file, strerror (errno));
-      return 0;
+      return false;
     }
 
   message (2, stderr, "Reading configuration file '%s'\n", file);
@@ -414,7 +414,7 @@ read_config (const char *file)
 		{
 		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
 			   file, line_num, key);
-		  return 0;
+		  return false;
 		}
 	    }
 	  else
@@ -437,7 +437,7 @@ read_config (const char *file)
 		{
 		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
 			   file, line_num, key);
-		  return 0;
+		  return false;
 		}
 	    }
 	}
@@ -448,26 +448,26 @@ read_config (const char *file)
     {
       message (-1, stderr,
 	       "Node name was not autodetected nor defined in configuration file.\n");
-      return 0;
+      return false;
     }
 
   if (!private_key)
     private_key = xstrconcat (3, node_config, "/", node_name);
   if (!read_private_key (private_key))
-    return 0;
+    return false;
 
   invalidate_config ();
 
   if (!read_local_config (node_config))
-    return 0;
+    return false;
 
   /* TODO: FIXME: cluster configuration is always in the same
      ZFS directory so the parameter should not be needed.  */
   if (!read_cluster_config (cluster_config))
-    return 0;
+    return false;
 
   if (!fix_config ())
-    return 0;
+    return false;
 
-  return 1;
+  return true;
 }

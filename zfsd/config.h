@@ -39,6 +39,6 @@ extern char *cluster_config;
 extern pthread_rwlock_t lock_config;
 
 extern void get_node_name ();
-extern int read_config (const char *file);
+extern bool read_config (const char *file);
 
 #endif

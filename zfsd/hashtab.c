@@ -128,7 +128,7 @@ htab_find_empty_slot (htab_t htab, hash_t hash)
 
 /* Expand the hash table HTAB.  */
 
-static int
+static bool
 htab_expand (htab_t htab)
 {
   void **new_table;
@@ -142,7 +142,7 @@ htab_expand (htab_t htab)
   new_size = get_higher_prime (htab->size + 1);
   new_table = (void **) xcalloc (new_size, sizeof (void *));
   if (!new_table)
-    return 0;
+    return false;
   htab->table = new_table;
   htab->size = new_size;
 
@@ -159,7 +159,7 @@ htab_expand (htab_t htab)
       }
 
   free (old_table);
-  return 1;
+  return true;
 }
 
 /* Create the hash table data structure with SIZE elements, hash function
