@@ -322,6 +322,25 @@ debug_volumes (void)
   print_volumes (stderr);
 }
 
+/* Mark all volumes.  */
+
+void
+mark_all_volumes (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&volume_mutex);
+  HTAB_FOR_EACH_SLOT (volume_htab, slot)
+    {
+      volume vol = (volume) *slot;
+
+      zfsd_mutex_lock (&vol->mutex);
+      vol->marked = true;
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+  zfsd_mutex_unlock (&volume_mutex);
+}
+
 /* Delete all volumes.  */
 
 void
