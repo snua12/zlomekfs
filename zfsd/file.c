@@ -668,6 +668,139 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   return r;
 }
 
+/* Read COUNT bytes from offset OFFSET from local file with capability CAP
+   and file handle FH on volume VOL.
+   Store data to DC.  */
+
+static int
+local_read (DC *dc, internal_cap cap, internal_fh fh, uint64_t offset,
+	    unsigned int count, volume vol)
+{
+  data_buffer buf;
+  int r;
+
+  if (!capability_opened_p (cap))
+    {
+      r = capability_open (cap, 0, fh, vol);
+      if (r != ZFS_OK)
+	return r;
+    }
+
+  r = lseek (cap->fd, offset, SEEK_SET);
+  if (r < 0)
+    {
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      return errno;
+    }
+
+  r = read (cap->fd, buf.buf, count);
+  if (r < 0)
+    {
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      return errno;
+    }
+
+  buf.len = r;
+  encode_status (dc, ZFS_OK);
+  encode_data_buffer (dc, &buf);
+
+  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+  return ZFS_OK;
+}
+
+/* Read COUNT bytes from offset OFFSET from remote file with capability CAP
+   on volume VOL.
+   Store data to DC.  */
+
+static int
+remote_read (DC *dc, internal_cap cap, uint64_t offset,
+	     unsigned int count, volume vol)
+{
+  read_args args;
+  thread *t;
+  int32_t r;
+
+  args.file = cap->master_cap;
+  args.offset = offset;
+  args.count = count;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_read_client (t, &args, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      encode_status (dc, ZFS_OK);
+      memcpy (dc->current, t->dc.current,
+	      t->dc.max_length - t->dc.cur_length);
+      dc->current += t->dc.max_length - t->dc.cur_length;
+      dc->cur_length += t->dc.max_length - t->dc.cur_length;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r != ZFS_OK)
+    encode_status (dc, r);
+
+  return r;
+}
+
+/* Read COUNT bytes from file CAP at offset OFFSET.  */
+
+int
+zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
+{
+  volume vol;
+  internal_cap icap;
+  internal_fh ifh;
+  int r;
+
+  if (count > ZFS_MAXDATA)
+    {
+      encode_status (dc, EINVAL);
+      return EINVAL;
+    }
+
+  if (VIRTUAL_FH_P (cap->fh))
+    {
+      encode_status (dc, EISDIR);
+      return EISDIR;
+    }
+
+  r = find_capability (cap, &icap, &vol, &ifh, NULL);
+  if (r != ZFS_OK)
+    {
+      encode_status (dc, r);
+      return r;
+    }
+
+  if (ifh->attr.type == FT_DIR)
+    {
+      zfsd_mutex_unlock (&ifh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&icap->mutex);
+      encode_status (dc, EISDIR);
+      return EISDIR;
+    }
+
+  if (vol->local_path)
+    r = local_read (dc, icap, ifh, offset, count, vol);
+  else if (vol->master != this_node)
+    r = remote_read (dc, icap, offset, count, vol);
+  else
+    abort ();
+  zfsd_mutex_unlock (&ifh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&icap->mutex);
+
+  return r;
+}
+
 /* Initialize data structures in FILE.C.  */
 
 void

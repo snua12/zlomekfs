@@ -259,15 +259,14 @@ zfs_proc_unlink_server (dir_op_args *args, thread *t)
   free (args->name.str);
 }
 
-/* read_res zfs_proc_read (read_args); */
+/* data_buffer zfs_proc_read (read_args); */
 
 void
 zfs_proc_read_server (read_args *args, thread *t)
 {
   DC *dc = &t->dc;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  zfs_read (dc, &args->file, args->offset, args->count);
 }
 
 /* write_res zfs_proc_write (write_args); */
