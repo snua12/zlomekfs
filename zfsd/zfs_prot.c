@@ -600,6 +600,43 @@ zfs_proc_md5sum_server (md5sum_args *args, thread *t,
     encode_md5sum_res (dc, &md5);
 }
 
+/* hardlinks_res zfs_proc_hardlinks (hardlinks_args); */
+
+void
+zfs_proc_hardlinks_server (hardlinks_args *args, thread *t,
+			   ATTRIBUTE_UNUSED bool map_id)
+{
+  DC *dc = &t->dc;
+  int32_t r;
+  char *old_pos, *cur_pos;
+  unsigned int old_len, cur_len;
+  hardlinks_res res;
+
+  res.start = args->start;
+  res.n = 0;
+  res.buffer = dc;
+
+  old_pos = dc->current;
+  old_len = dc->cur_length;
+  encode_status (dc, ZFS_OK);
+  encode_hardlinks_res (dc, &res);
+
+  r = zfs_hardlinks (&res, &args->fh, args->start, &fill_hardlink_encode);
+
+  cur_pos = dc->current;
+  cur_len = dc->cur_length;
+  dc->current = old_pos;
+  dc->cur_length = old_len;
+
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    {
+      encode_hardlinks_res (dc, &res);
+      dc->current = cur_pos;
+      dc->cur_length = cur_len;
+    }
+}
+
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\

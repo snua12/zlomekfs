@@ -1,5 +1,5 @@
 /* Data coding functions (encoding and decoding requests and replies).
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -251,5 +251,9 @@ extern bool decode_md5sum_args (DC *dc, md5sum_args *args);
 extern bool encode_md5sum_args (DC *dc, md5sum_args *args);
 extern bool decode_md5sum_res (DC *dc, md5sum_res *res);
 extern bool encode_md5sum_res (DC *dc, md5sum_res *res);
+extern bool decode_hardlinks_args (DC *dc, hardlinks_args *args);
+extern bool encode_hardlinks_args (DC *dc, hardlinks_args *args);
+extern bool decode_hardlinks_res (DC *dc, hardlinks_res *res);
+extern bool encode_hardlinks_res (DC *dc, hardlinks_res *res);
 
 #endif

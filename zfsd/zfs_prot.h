@@ -300,6 +300,19 @@ typedef struct md5sum_res_def
   unsigned char md5sum[ZFS_MAX_MD5_CHUNKS][MD5_SIZE];
 } md5sum_res;
 
+typedef struct hardlinks_args_def
+{
+  zfs_fh fh;
+  uint32_t start;
+} hardlinks_args;
+
+typedef struct hardlinks_res_def
+{
+  uint32_t start;
+  uint32_t n;
+  void *buffer;			/* For internal use in zfsd.  */
+} hardlinks_res;
+
 typedef union call_args_def
 {
   char null;
@@ -325,6 +338,7 @@ typedef union call_args_def
   auth_stage1_args auth_stage1;
   auth_stage2_args auth_stage2;
   md5sum_args md5sum;
+  hardlinks_args hardlinks;
 } call_args;
 
 /* Mapping file type -> file mode.  */

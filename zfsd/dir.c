@@ -36,6 +36,8 @@
 #include "memory.h"
 #include "thread.h"
 #include "varray.h"
+#include "string-list.h"
+#include "data-coding.h"
 #include "volume.h"
 #include "network.h"
 #include "zfs_prot.h"
@@ -2916,6 +2918,257 @@ zfs_mknod_retry:
       r = refresh_path (dir);
       if (r == ZFS_OK)
 	goto zfs_mknod_retry;
+    }
+
+  return r;
+}
+
+/* Encode one hardlink PATH to DC RES->BUFFER.  */
+
+bool
+fill_hardlink_encode (char *path, hardlinks_res *res, uint32_t *writtenp)
+{
+  DC *dc = (DC *) res->buffer;
+  char *old_pos;
+  unsigned int old_len;
+  string str;
+
+  /* Try to encode PATH to DC.  */
+  old_pos = dc->current;
+  old_len = dc->cur_length;
+  str.str = path;
+  str.len = strlen (path);
+  if (!encode_zfs_path (dc, &str)
+      || *writtenp + dc->cur_length - old_len > ZFS_MAXDATA)
+    {
+      /* There is not enough space in DC to encode PATH.  */
+      dc->current = old_pos;
+      dc->cur_length = old_len;
+      return false;
+    }
+  else
+    {
+      res->n++;
+      *writtenp += dc->cur_length - old_len;
+    }
+  return true;
+}
+
+/* Add one hardlink PATH to string list RES->BUFFER.  */
+
+bool
+fill_hardlink_string_list (char *path, hardlinks_res *res,
+			   ATTRIBUTE_UNUSED uint32_t *writtenp)
+{
+  string_list sl = (string_list) res->buffer;
+
+  string_list_insert (sl, path, true);
+
+  return true;
+}
+
+/* Get local list of hardlinks for file DENTRY on volume VOL
+   starting at index START and return the list in RES.
+   Use FILL_HARDLINK to add one path to result.  */
+
+int32_t
+local_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
+		 uint32_t start, fill_hardlink_f fill_hardlink)
+{
+  uint32_t written = 0;
+  char *path;
+  
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  zfsd_mutex_unlock (&vol->mutex);
+
+  if (dentry->fh->hardlinks)
+    {
+      uint32_t i;
+
+      if (start > string_list_size (dentry->fh->hardlinks))
+	start = string_list_size (dentry->fh->hardlinks);
+
+      res->start = start;
+      for (i = start; i > 0; i--)
+	{
+	  path = string_list_element (dentry->fh->hardlinks, i - 1);
+	  if (!(*fill_hardlink) (path, res, &written))
+	    break;
+	}
+    }
+  else
+    {
+      res->start = 1;
+      path = build_relative_path (dentry);
+      (*fill_hardlink) (path, res, &written);
+      free (path);
+    }
+
+  release_dentry (dentry);
+
+  return ZFS_OK;
+}
+
+/* Get remote list of hardlinks for file DENTRY on volume VOL
+   starting at index START and return the list in RES.
+   Use FILL_HARDLINK to add one path to result.  */
+
+int32_t
+remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
+		  uint32_t start, fill_hardlink_f fill_hardlink)
+{
+  hardlinks_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dentry->fh->master_fh))
+    abort ();
+#endif
+
+  args.fh = dentry->fh->master_fh;
+  args.start = start;
+
+  release_dentry (dentry);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_hardlinks_client (t, &args, nod, &fd);
+
+  if (r == ZFS_OK)
+    {
+      if (fill_hardlink == &fill_hardlink_encode)
+	{
+	  DC *dc = (DC *) res->buffer;
+
+	  if (!decode_hardlinks_res (&t->dc_reply, res))
+	    r = ZFS_INVALID_REPLY;
+	  else if (t->dc_reply.max_length > t->dc_reply.cur_length)
+	    {
+	      memcpy (dc->current, t->dc_reply.current,
+		      t->dc_reply.max_length - t->dc_reply.cur_length);
+	      dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
+	      dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
+	    }
+	}
+      else if (fill_hardlink == &fill_hardlink_string_list)
+	{
+	  if (!decode_hardlinks_res (&t->dc_reply, res))
+	    r = ZFS_INVALID_REPLY;
+	  else
+	    {
+	      uint32_t i;
+	      string_list sl = (string_list) res->buffer;
+	      string str;
+
+	      for (i = 0; i < res->n; i++)
+		{
+		  if (decode_zfs_path (&t->dc_reply, &str))
+		    {
+		      string_list_insert (sl, str.str, false);
+		    }
+		  else
+		    {
+		      res->n = i;
+		      r = ZFS_INVALID_REPLY;
+		      break;
+		    }
+		}
+	      if (!finish_decoding (&t->dc_reply))
+		r = ZFS_INVALID_REPLY;
+	    }
+	}
+      else
+	abort ();
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (&t->dc_reply, fd);
+  return r;
+}
+
+/* Get list of hardlinks for file FH starting at index START
+   and return the list in RES.
+   Use FILL_HARDLINK to add one path to result.  */
+
+int32_t
+zfs_hardlinks (hardlinks_res *res, zfs_fh *fh, uint32_t start,
+	       fill_hardlink_f fill_hardlink)
+{
+  volume vol;
+  internal_dentry dentry;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
+  int retry = 0;
+
+  if (VIRTUAL_FH_P (*fh))
+    return EINVAL;
+
+zfs_hardlinks_retry:
+
+  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vol->local_path)
+    {
+      if (vol->master != this_node)
+	{
+	  r = remote_hardlinks (res, dentry, vol, start, fill_hardlink);
+	  if (r < ZFS_OK && r != ZFS_STALE)
+	    {
+	      r2 = zfs_fh_lookup (&tmp_fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+
+	      r = local_hardlinks (res, dentry, vol, start, fill_hardlink);
+	    }
+	}
+      else
+	{
+	  r = local_hardlinks (res, dentry, vol, start, fill_hardlink);
+	}
+    }
+  else if (vol->master != this_node)
+    r = remote_hardlinks (res, dentry, vol, start, fill_hardlink);
+  else
+    abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  internal_dentry_unlock (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  if (r == ZFS_STALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (fh);
+      if (r == ZFS_OK)
+	goto zfs_hardlinks_retry;
     }
 
   return r;

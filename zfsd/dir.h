@@ -28,6 +28,10 @@
 #include "volume.h"
 #include "zfs_prot.h"
 
+/* Function called to add one path to list of hardlinks.  */
+typedef bool (*fill_hardlink_f) (char *path, hardlinks_res *res,
+				 uint32_t *writtenp);
+
 extern char *build_local_path (volume vol, internal_dentry dentry);
 extern char *build_local_path_name (volume vol, internal_dentry dentry,
 				    char *name);
@@ -89,6 +93,18 @@ extern int32_t remote_mknod (dir_op_res *res, internal_dentry dir, string *name,
 			     volume vol);
 extern int32_t zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name,
 			  sattr *attr, ftype type, uint32_t rdev);
+extern bool fill_hardlink_encode (char *path, hardlinks_res *res,
+				  uint32_t *writtenp);
+extern bool fill_hardlink_string_list (char *path, hardlinks_res *res,
+				       uint32_t *writtenp);
+extern int32_t local_hardlinks (hardlinks_res *res, internal_dentry dentry,
+				volume vol, uint32_t start,
+				fill_hardlink_f fill_hardlink);
+extern int32_t remote_hardlinks (hardlinks_res *res, internal_dentry dentry,
+				 volume vol, uint32_t start,
+				 fill_hardlink_f fill_hardlink);
+extern int32_t zfs_hardlinks (hardlinks_res *res, zfs_fh *fh, uint32_t start,
+			      fill_hardlink_f fill_hardlink);
 extern int32_t refresh_path (zfs_fh *fh);
 extern int32_t refresh_master_fh (zfs_fh *fh);
 

@@ -1,5 +1,5 @@
 /* ZFS protocol - definitions of ZFS procedures.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -72,4 +72,6 @@ DEFINE_ZFS_PROC (20, AUTH_STAGE1, auth_stage1, auth_stage1_args,
 DEFINE_ZFS_PROC (21, AUTH_STAGE2, auth_stage2, auth_stage2_args,
 		 AUTHENTICATION_IN_PROGRESS)
 DEFINE_ZFS_PROC (22, MD5SUM, md5sum, md5sum_args,
+		 AUTHENTICATION_FINISHED)
+DEFINE_ZFS_PROC (23, HARDLINKS, hardlinks, hardlinks_args,
 		 AUTHENTICATION_FINISHED)
