@@ -90,7 +90,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
   pthread_mutex_unlock (&volume_mutex);
 }
 
-/* attr_res zfs_proc_getattr (zfs_fh); */
+/* fattr zfs_proc_getattr (zfs_fh); */
 
 void
 zfs_proc_getattr_server (zfs_fh *args, thread *t)
@@ -101,7 +101,7 @@ zfs_proc_getattr_server (zfs_fh *args, thread *t)
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
-/* attr_res zfs_proc_setattr (sattr_args); */
+/* fattr zfs_proc_setattr (sattr_args); */
 
 void
 zfs_proc_setattr_server (sattr_args *args, thread *t)
