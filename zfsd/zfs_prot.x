@@ -285,58 +285,64 @@ program ZFS_PROGRAM {
     void
     ZFSPROC_NULL(void) = 0;
 
-    attr_res
-    ZFSPROC_GETATTR(zfs_fh) = 1;
+    zfs_fh
+    ZFSPROC_ROOT(void) = 1;
+
+    zfs_fh
+    ZFSPROC_VOLUME_ROOT(unsigned int) = 2;
 
     attr_res
-    ZFSPROC_SETATTR(sattr_args) = 2;
+    ZFSPROC_GETATTR(zfs_fh) = 3;
+
+    attr_res
+    ZFSPROC_SETATTR(sattr_args) = 4;
 
     dir_op_res
-    ZFSPROC_LOOKUP(dir_op_args) = 3;
+    ZFSPROC_LOOKUP(dir_op_args) = 5;
 
     open_res
-    ZFSPROC_OPEN_BY_NAME(open_name_args) = 4;
+    ZFSPROC_OPEN_BY_NAME(open_name_args) = 6;
 
     open_res
-    ZFSPROC_OPEN_BY_FD(zfs_fh) = 5;
+    ZFSPROC_OPEN_BY_FD(zfs_fh) = 7;
 
     int
-    ZFSPROC_CLOSE(zfs_fh) = 6;
+    ZFSPROC_CLOSE(zfs_fh) = 8;
 
     read_dir_res
-    ZFSPROC_READDIR(read_dir_args) = 7;
+    ZFSPROC_READDIR(read_dir_args) = 9;
     
     dir_op_res
-    ZFSPROC_MKDIR(open_name_args) = 8;
+    ZFSPROC_MKDIR(open_name_args) = 10;
     
     int
-    ZFSPROC_RMDIR(dir_op_args) = 9;
+    ZFSPROC_RMDIR(dir_op_args) = 11;
 
     int
-    ZFSPROC_RENAME(rename_args) = 10;
+    ZFSPROC_RENAME(rename_args) = 12;
 
     int
-    ZFSPROC_LINK(link_args) = 11;
+    ZFSPROC_LINK(link_args) = 13;
 
     int 
-    ZFSPROC_UNLINK(dir_op_args) = 12;
+    ZFSPROC_UNLINK(dir_op_args) = 14;
 
     read_res
-    ZFSPROC_READ(read_args) = 13;
+    ZFSPROC_READ(read_args) = 15;
 
     write_res
-    ZFSPROC_WRITE(write_args) = 14;
+    ZFSPROC_WRITE(write_args) = 16;
     
     read_link_res
-    ZFSPROC_READLINK(zfs_fh) = 15;
+    ZFSPROC_READLINK(zfs_fh) = 17;
 
     int
-    ZFSPROC_SYMLINK(symlink_args) = 16;
+    ZFSPROC_SYMLINK(symlink_args) = 18;
 
     int
-    ZFSPROC_MKNOD(mknod_args) = 17;
+    ZFSPROC_MKNOD(mknod_args) = 19;
 
-    /* ??? ZFSPROC_STATVOLUME???(???) = 18;*/
+    /* ??? ZFSPROC_STATVOLUME???(???) = 20;*/
 #if 0
 CODA:
 	"vget        ",   /* 22 */
