@@ -826,13 +826,13 @@ cleanup_zfs_prot_c (void)
 
 #ifdef ENABLE_STATISTICS
   printf ("Call statistics:\n");
-  printf ("%-12s%15s%15s\n", "Function", "From kernel", "From network");
+  printf ("%-16s%15s%15s\n", "Function", "From kernel", "From network");
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   if (call_statistics[CALL_FROM_KERNEL][NUMBER] > 0			\
       || call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)		\
     {									\
-      printf ("%-12s%15" PRIu64 "%15" PRIu64 "\n", #FUNCTION,		\
+      printf ("%-16s%15" PRIu64 "%15" PRIu64 "\n", #FUNCTION,		\
 	      call_statistics[CALL_FROM_KERNEL][NUMBER],		\
 	      call_statistics[CALL_FROM_NETWORK][NUMBER]);		\
     }
