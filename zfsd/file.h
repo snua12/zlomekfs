@@ -122,7 +122,8 @@ extern int32_t full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 extern int32_t full_remote_write_dentry (uint32_t *rcount, void *buffer,
 					 zfs_cap *cap, internal_cap icap,
 					 internal_dentry dentry, volume vol,
-					 uint64_t offset, uint32_t count);
+					 uint64_t offset, uint32_t count,
+					 uint64_t *version_increase);
 extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
 extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);
 extern void remote_reread_config (string *path, node nod);

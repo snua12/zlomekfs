@@ -2719,7 +2719,8 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 int32_t
 full_remote_write_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			  internal_cap icap, internal_dentry dentry,
-			  volume vol, uint64_t offset, uint32_t count)
+			  volume vol, uint64_t offset, uint32_t count,
+			  uint64_t *version_increase)
 {
   write_args args;
   write_res res;
@@ -2753,6 +2754,8 @@ full_remote_write_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
       if (res.written == 0)
 	break;
+
+      (*version_increase)++;
     }
 
   *rcount = total;

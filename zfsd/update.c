@@ -400,10 +400,11 @@ reintegrate_file_blocks (zfs_cap *cap)
   uint64_t offset;
   uint32_t count;
   int32_t r, r2;
+  uint64_t version_increase;
 
   TRACE ("");
 
-  r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -411,6 +412,19 @@ reintegrate_file_blocks (zfs_cap *cap)
     abort ();
 #endif
 
+  r = remote_reintegrate (dentry, 1, vol);
+  if (r == ZFS_BUSY)
+    RETURN_INT (ZFS_OK);
+  if (r != ZFS_OK)
+    RETURN_INT (r);
+
+  r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  version_increase = 0;
   for (offset = 0; offset < dentry->fh->attr.size; )
     {
       char buf[ZFS_MAXDATA];
@@ -437,7 +451,7 @@ reintegrate_file_blocks (zfs_cap *cap)
       if (count > 0)
 	{
 	  r = full_remote_write_dentry (&count, buf, cap, icap, dentry, vol,
-					offset, count);
+					offset, count, &version_increase);
 	  if (r != ZFS_OK)
 	    break;
 	}
@@ -450,7 +464,27 @@ reintegrate_file_blocks (zfs_cap *cap)
       else
 	break;
     }
+
   zfsd_mutex_unlock (&fh_mutex);
+  remote_reintegrate (dentry, 0, vol);
+
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (version_increase)
+    {
+      dentry->fh->meta.master_version += version_increase;
+      if (dentry->fh->meta.local_version < dentry->fh->meta.master_version
+	  || (dentry->fh->meta.local_version == dentry->fh->meta.master_version
+	      && interval_tree_min (dentry->fh->modified)))
+	dentry->fh->meta.local_version = dentry->fh->meta.master_version + 1;
+
+      if (!flush_metadata (vol, &dentry->fh->meta))
+	MARK_VOLUME_DELETE (vol);
+    }
 
   if (dentry->fh->modified->deleted)
     {
@@ -461,7 +495,7 @@ reintegrate_file_blocks (zfs_cap *cap)
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  RETURN_INT (ZFS_OK);
+  RETURN_INT (r);
 }
 
 /* Return true if file *DENTRYP on volume *VOLP with file handle FH should
