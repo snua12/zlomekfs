@@ -2256,13 +2256,10 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  hardlink_list_destroy (hl);
 	  return false;
 	}
-      entry = hl->first;
       if (meta.slot_status != VALID_SLOT)
 	{
 	  meta.slot_status = VALID_SLOT;
 	  meta.flags = METADATA_COMPLETE;
-	  if (entry->name.len == 0)
-	    meta.flags |= METADATA_SHADOW;
 	  meta.dev = fh->dev;
 	  meta.ino = fh->ino;
 	  meta.gen = 1;
@@ -2270,6 +2267,12 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  meta.master_version = vol->is_copy ? 0 : 1;
 	  zfs_fh_undefine (meta.master_fh);
 	}
+
+      entry = hl->first;
+      if (entry->name.len == 0)
+	meta.flags |= METADATA_SHADOW;
+      else
+	meta.flags &= ~METADATA_SHADOW;
 
       meta.parent_dev = entry->parent_dev;
       meta.parent_ino = entry->parent_ino;
