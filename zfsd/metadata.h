@@ -120,7 +120,7 @@ extern void set_attr_version (fattr *attr, metadata *meta);
 extern bool lookup_metadata (volume vol, zfs_fh *fh, metadata *meta,
 			     bool insert);
 extern bool get_metadata (volume vol, zfs_fh *fh, metadata *meta);
-extern bool flush_metadata (volume vol, internal_fh fh);
+extern bool flush_metadata (volume vol, metadata *meta);
 extern bool set_metadata (volume vol, internal_fh fh, uint32_t flags,
 			  uint64_t local_version, uint64_t master_version);
 extern bool set_metadata_flags (volume vol, internal_fh fh, uint32_t flags);

@@ -1616,14 +1616,13 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
   return true;
 }
 
-/* Write the metadata for file handle FH on volume VOL to list file.
+/* Write the metadata META to list file on volume VOL.
    Return false on file error.  */
 
 bool
-flush_metadata (volume vol, internal_fh fh)
+flush_metadata (volume vol, metadata *meta)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (!hashfile_opened_p (vol->metadata))
     {
@@ -1634,10 +1633,9 @@ flush_metadata (volume vol, internal_fh fh)
 	return false;
     }
 
-  if (!hfile_insert (vol->metadata, &fh->meta))
+  if (!hfile_insert (vol->metadata, meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
       return false;
     }
 
@@ -1686,7 +1684,7 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
 
   set_attr_version (&fh->attr, &fh->meta);
 
-  return flush_metadata (vol, fh);
+  return flush_metadata (vol, &fh->meta);
 }
 
 /* Set metadata flags FLAGS for file handle FH on volume VOL.
@@ -1704,7 +1702,7 @@ set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
   fh->meta.flags = flags;
   set_attr_version (&fh->attr, &fh->meta);
 
-  return flush_metadata (vol, fh);
+  return flush_metadata (vol, &fh->meta);
 }
 
 /* Set master_fh to MASTER_FH in metadata for file handle FH on volume VOL
@@ -1772,7 +1770,7 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
 
   fh->meta.master_fh = *master_fh;
-  return flush_metadata (vol, fh);
+  return flush_metadata (vol, &fh->meta);
 }
 
 /* Increase the local version for file FH on volume VOL.
@@ -1789,7 +1787,7 @@ inc_local_version (volume vol, internal_fh fh)
     fh->meta.master_version = fh->meta.local_version;
   set_attr_version (&fh->attr, &fh->meta);
 
-  return flush_metadata (vol, fh);
+  return flush_metadata (vol, &fh->meta);
 }
 
 /* Delete all metadata files for file on volume VOL with device DEV
