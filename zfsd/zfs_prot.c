@@ -654,6 +654,8 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   uint32_t req_id;							\
 									\
+  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);			\
+									\
   zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
@@ -663,7 +665,10 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   encode_request_id (&t->dc_call, req_id);				\
   encode_function (&t->dc_call, NUMBER);				\
   if (!encode_##ARGS (&t->dc_call, args))				\
-    return ZFS_REQUEST_TOO_LONG;					\
+    {									\
+      zfsd_mutex_unlock (&network_fd_data[fd].mutex);			\
+      return ZFS_REQUEST_TOO_LONG;					\
+    }									\
   finish_encoding (&t->dc_call);					\
 									\
   send_request (t, req_id, fd);						\
