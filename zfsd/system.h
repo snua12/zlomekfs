@@ -33,12 +33,25 @@
 #define _THREAD_SAFE
 #endif
 
+/* bool type and constants.  */
+#ifndef bool
+#define bool char
+#endif
+#ifndef true
+#define true 1
+#endif
+#ifndef false
+#define false 0
+#endif
+
+/* We want print format specifiers from <inttypes.h>  */
 #ifdef __cplusplus
 #define __STDC_FORMAT_MACROS
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #endif
 
+/* Offset of field in structure relative to structure's beginning.  */
 #ifndef offsetof
 #define offsetof(TYPE, MEMBER)  ((unsigned long) &((TYPE *) 0)->MEMBER)
 #endif
