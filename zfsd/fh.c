@@ -924,6 +924,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->owner = 0;
   fh->fd = -1;
   fh->generation = 0;
+  fh->flags = 0;
 
   if (fh->attr.type == FT_DIR)
     varray_create (&fh->subdentries, sizeof (internal_dentry), 16);

@@ -918,6 +918,34 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   if (attr->type == FT_REG)
     {
       /* Schedule update of regular file.  */
+
+      zfsd_mutex_lock (&running_mutex);
+      if (update_pool.main_thread == 0)
+	{
+	  /* Update threads are not running.  */
+	  zfsd_mutex_unlock (&running_mutex);
+	  return ZFS_OK;
+	}
+      zfsd_mutex_unlock (&running_mutex);
+
+      r2 = zfs_fh_lookup (fh, NULL, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      if (dentry->fh->flags)
+	{
+	  dentry->fh->flags |= IFH_UPDATE;
+	}
+      else
+	{
+	  dentry->fh->flags |= IFH_UPDATE;
+	  zfsd_mutex_lock (&update_queue.mutex);
+	  queue_put (&update_queue, &dentry->fh->local_fh);
+	  zfsd_mutex_unlock (&update_queue.mutex);
+	}
+      release_dentry (dentry);
     }
 
   if (attr->type != FT_DIR)

@@ -174,7 +174,14 @@ struct internal_fh_def
 
   /* Generation of open file descriptor.  */
   unsigned int generation;
+
+  /* Flags, see IFH_* below.  */
+  unsigned int flags;
 };
+
+/* Internal file handle flags.  */
+#define IFH_UPDATE	1
+#define IFH_REINTEGRATE	2
 
 /* Internal directory entry.  */
 struct internal_dentry_def
