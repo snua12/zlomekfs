@@ -270,7 +270,7 @@ cleanup_unused_fhs ()
 /* Main function of thread freeing file handles unused for a long time.  */
 
 void *
-cleanup_fh_thread_main (void *)
+cleanup_fh_thread_main (ATTRIBUTE_UNUSED void *data)
 {
   thread_disable_signals ();
 
