@@ -28,6 +28,80 @@
 #include "file.h"
 #include "dir.h"
 
+void
+fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
+{
+  switch (st->st_mode & S_IFMT)
+    {
+      case S_IFSOCK:
+	attr->type = FT_SOCK;
+	break;
+
+      case S_IFLNK:
+	attr->type = FT_LNK;
+	break;
+
+      case S_IFREG:
+	attr->type = FT_REG;
+	break;
+
+      case S_IFBLK:
+	attr->type = FT_BLK;
+	break;
+
+      case S_IFDIR:
+	attr->type = FT_DIR;
+	break;
+
+      case S_IFCHR:
+	attr->type = FT_CHR;
+	break;
+
+      case S_IFIFO:
+	attr->type = FT_FIFO;
+	break;
+
+      default:
+	attr->type = FT_BAD;
+	break;
+    }
+
+  attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
+  attr->nlink = st->st_nlink;
+  attr->uid = st->st_uid;  /* FIXME: translate UID */
+  attr->gid = st->st_gid;  /* FIXME: translate GID */
+  attr->rdev = st->st_rdev;
+  attr->size = st->st_size;
+  attr->blocks = st->st_blocks;
+  attr->blksize = st->st_blksize;
+  attr->generation = 0;	/* FIXME? how? */
+  attr->fversion = 0;		/* FIXME */
+  attr->sid = this_node->id;
+  attr->vid = vol->id;
+  attr->fsid = st->st_dev;
+  attr->fileid = st->st_ino;
+  attr->atime = st->st_atime;
+  attr->mtime = st->st_mtime;
+  attr->ctime = st->st_ctime;
+
+}
+
+/* Get attributes of local file PATH on volume VOL and store them to ATTR.  */
+
+int
+local_getattr (fattr *attr, char *path, volume vol)
+{
+  struct stat st;
+  int r;
+
+  r = lstat (path, &st);
+  if (r != 0)
+    return errno;
+
+  fattr_from_struct_stat (attr, &st, vol);
+  return ZFS_OK;
+}
+
 /* Get attributes for file with handle FH and store them to FA.  */
 
 int
@@ -43,7 +117,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   if (vd)
     {
-      memcpy (fa, &vd->attr, sizeof (fattr));
+      *fa = vd->attr;
     }
   else /* if (ifh) */
     {
@@ -94,8 +168,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
       fa->mode = st.st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
       fa->nlink = st.st_nlink;
-      fa->uid = st.st_uid;  /* FIXME: tarnslate UID */
-      fa->gid = st.st_gid;  /* FIXME: tarnslate GID */
+      fa->uid = st.st_uid;  /* FIXME: translate UID */
+      fa->gid = st.st_gid;  /* FIXME: translate GID */
       fa->rdev = st.st_rdev;
       fa->size = st.st_size;
       fa->blocks = st.st_blocks;
@@ -127,6 +201,7 @@ int
 zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
 		  sattr *attr)
 {
+#if 0
   int r;
 
   if (!(flags & O_CREAT))
@@ -141,6 +216,7 @@ zfs_open_by_name (zfs_fh *fh, zfs_fh *dir, const char *name, int flags,
     {
       /* FIXME: finish */
     }
+#endif
   return ZFS_OK;
 }
 
