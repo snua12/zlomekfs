@@ -247,8 +247,7 @@ virtual_dir_eq (const void *xx, const void *yy)
 /* Create a new virtual directory NAME in virtual directory PARENT.  */
 
 virtual_dir
-virtual_dir_create (virtual_dir parent, const char *name, volume vol,
-		    internal_fh real_fh)
+virtual_dir_create (virtual_dir parent, const char *name)
 {
   virtual_dir vd;
   internal_fh fh;
@@ -288,27 +287,14 @@ virtual_dir_create (virtual_dir parent, const char *name, volume vol,
 
   vd->active = 0;
   vd->total = 0;
+  vd->vol = NULL;
   
-  vd->vol = vol;
-  if (vol)
-    {
-      virtual_dir tmp;
-      int active = VOLUME_ACTIVE_P (vol);
-
-      for (tmp = vd; tmp; tmp = tmp->parent)
-	{
-	  if (active)
-	    tmp->active++;
-	  tmp->total++;
-	}
-    }
-
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (virtual_dir_htab, vd, NO_INSERT);
+  slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot (virtual_dir_htab, vd, INSERT);
+  slot = htab_find_slot (virtual_dir_htab, &fh->client_fh, INSERT);
   *slot = vd;
 
   return vd;
@@ -337,7 +323,7 @@ virtual_dir_destroy (virtual_dir vd)
       if (vd->total == 0)
 	{
 #ifdef ENABLE_CHECKING
-	  if (vd->subdirs.nused)
+	  if (VARRAY_USED (vd->subdirs))
 	    message (2, stderr, "Subdirs remaining in ROOT.\n");
 #endif
 	  varray_destroy (&vd->subdirs);
@@ -420,27 +406,73 @@ virtual_root_create ()
   fh->fd = -1;
   
   root->virtual_fh = fh;
+  root->real_fh = NULL;
   root->parent = NULL;
   varray_create (&root->subdirs, sizeof (internal_fh), 16);
   root->subdir_index = 0;
   root->active = 1;
   root->total = 1;
-#if 0
-  if (vol)
-    {
-      /* vyplni se az se bude pristupovat na volume */
-      root->virtual_fh->server_fh = file handle na volume;
-
-
-      root->real_fh = file handle na lokalni disk;
-      root->vol = vol;
-    }
-#else
-  root->real_fh = NULL;
   root->vol = NULL;
-#endif
 
   return root;
+}
+
+virtual_dir
+virtual_mountpoint_create (volume vol)
+{
+  varray subpath;
+  virtual_dir vd, parent, tmp;
+  char *s;
+  unsigned int i;
+  int active;
+
+  varray_create (&subpath, sizeof (char *), 16);
+
+  /* Split the path.  */
+  s = vol->mountpoint;
+  while (*s != 0)
+    {
+      while (*s == '/')
+	s++;
+      
+      if (*s == 0)
+	break;
+
+      VARRAY_PUSH (subpath, s, char *);
+      while (*s != 0 && *s != '/')
+	s++;
+    }
+
+  /* Create the components of the path.  */
+  vd = root;
+  for (i = 0; i < VARRAY_USED (subpath); i++)
+    {
+      internal_fh fh;
+      struct internal_fh_def tmp_fh;
+
+      parent = vd;
+      s = VARRAY_ACCESS (subpath, i, char *);
+
+      tmp_fh.parent = parent->virtual_fh;
+      tmp_fh.name = s;
+      fh = (internal_fh) htab_find (fh_htab_name, &tmp_fh);
+      if (!VIRTUAL_FH_P (fh->client_fh))
+	vd = virtual_dir_create (parent, s);
+      else
+	vd = fh->vd;
+    }
+  vd->vol = vol;
+
+  /* Increase the count of volumes in subtree.  */
+  active = VOLUME_ACTIVE_P (vol);
+  for (tmp = vd; tmp; tmp = tmp->parent)
+    {
+      if (active)
+	tmp->active++;
+      tmp->total++;
+    }
+
+  return vd;
 }
 
 void
@@ -448,7 +480,7 @@ virtual_root_destroy (virtual_dir root)
 {
   free (root->virtual_fh->name);
 #ifdef ENABLE_CHECKING
-  if (root->subdirs.nused)
+  if (VARRAY_USED (root->subdirs))
     message (2, stderr, "Subdirs remaining in ROOT.\n");
 #endif
   varray_destroy (&root->subdirs);
