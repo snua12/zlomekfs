@@ -1664,6 +1664,7 @@ zfs_read_retry:
 	    {
 	      r = local_read (rcount, buffer, dentry, offset, count, vol);
 	    }
+#if 0
 	  else if (covered)
 	    {
 	      release_dentry (dentry);
@@ -1683,6 +1684,28 @@ zfs_read_retry:
 					  true, rcount, buffer, offset, count);
 		}
 	    }
+#else
+	  else
+	    {
+	      release_dentry (dentry);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
+
+	      r = update_file_blocks (&tmp_cap, &blocks,
+				      false, rcount, buffer, offset, count);
+	      if (r == ZFS_OK)
+		{
+		  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
+					       NULL, false);
+#ifdef ENABLE_CHECKING
+		  if (r2 != ZFS_OK)
+		    abort ();
+#endif
+
+		  r = local_read (rcount, buffer, dentry, offset, count, vol);
+		}
+	    }
+#endif
 
 	  varray_destroy (&blocks);
 	}

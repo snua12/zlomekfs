@@ -341,6 +341,11 @@ update_file_blocks (zfs_cap *cap, varray *blocks,
   int32_t r, r2;
   unsigned int i;
 
+#ifdef ENABLE_CHECKING
+  if (fill_buffer)
+    abort ();
+#endif
+
   if (VARRAY_USED (*blocks) == 0)
     return ZFS_OK;
 
