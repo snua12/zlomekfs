@@ -167,7 +167,10 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
     sa.size = INTERVAL_END (n);
 
   if (sa.size == (*dentryp)->fh->attr.size)
-    RETURN_INT (ZFS_OK);
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ZFS_OK);
+    }
 
   r = local_setattr (&fa, *dentryp, &sa, *volp);
   if (r != ZFS_OK)
