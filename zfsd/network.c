@@ -252,8 +252,10 @@ node_connect (node nod)
   addr = NULL;
   if ((err = getaddrinfo (nod->name, NULL, NULL, &addr)) != 0)
     {
+#ifdef ENABLE_CHECKING
       if (addr)
 	abort ();
+#endif
       message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
       return -1;
     }
