@@ -322,10 +322,18 @@ internal_fh_destroy (internal_fh fh, volume vol)
 
   if (fh->attr.type == FT_DIR)
     {
-#ifdef ENABLE_CHECKING
-      if (VARRAY_USED (fh->dentries))
-	abort ();
-#endif
+      int i;
+
+      /* Destroy subtree first.  */
+      for (i = VARRAY_USED (fh->dentries) - 1; i >= 0; i--)
+	{
+	  internal_fh sfh;
+
+	  sfh = VARRAY_ACCESS (fh->dentries, (unsigned int) i, internal_fh);
+	  zfsd_mutex_lock (&sfh->mutex);
+	  internal_fh_destroy (sfh, vol);
+	}
+
       varray_destroy (&fh->dentries);
     }
 
