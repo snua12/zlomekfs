@@ -491,6 +491,7 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
 
   path = build_local_path (vol, dentry);
   r = local_getattr_path (attr, path);
+  set_attr_version (attr, &dentry->fh->meta);
   free (path);
 
   return r;
@@ -576,14 +577,14 @@ zfs_getattr_retry:
     }
 
   if (vol->local_path)
-    r = local_getattr (&dentry->fh->attr, dentry, vol);
+    r = local_getattr (fa, dentry, vol);
   else if (vol->master != this_node)
-    r = remote_getattr (&dentry->fh->attr, dentry, vol);
+    r = remote_getattr (fa, dentry, vol);
   else
     abort ();
 
   if (r == ZFS_OK)
-    *fa = dentry->fh->attr;
+    dentry->fh->attr = *fa;
 
   zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
@@ -653,6 +654,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 
   path = build_local_path (vol, dentry);
   r = local_setattr_path (fa, path, sa);
+  set_attr_version (fa, &dentry->fh->meta);
   free (path);
 
   return r;
@@ -990,9 +992,13 @@ zfs_lookup_retry:
 					       vol, idir, name->str,
 					       &res->attr);
 	    }
-	  else if (zfs_fh_undefined (dentry->fh->master_fh))
+	  else
 	    {
-	      dentry->fh->master_fh = master_res.file;
+	      if (zfs_fh_undefined (dentry->fh->master_fh))
+		dentry->fh->master_fh = master_res.file;
+
+	      set_attr_version (&res->attr, &dentry->fh->meta);
+	      dentry->fh->attr = res->attr;
 	    }
 	}
       else
