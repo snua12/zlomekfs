@@ -57,7 +57,7 @@ hardlink_list_create (unsigned int nelem, pthread_mutex_t *mutex)
   hl->mutex = mutex;
 
   /* Create varray.  */
-  varray_create (&hl->array, sizeof (char *), nelem);
+  varray_create (&hl->array, sizeof (hardlink_list_entry), nelem);
 
   /* Create hashtab.  */
   hl->htab = htab_create (nelem, hardlink_list_hash, hardlink_list_eq, NULL,
