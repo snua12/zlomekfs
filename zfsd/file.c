@@ -488,7 +488,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
     zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
-  if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
+  if (LOCAL_VOLUME_ROOT_P (idir) && strncmp (name->str, ".zfs", 5) == 0)
     {
       release_dentry (idir);
       zfsd_mutex_unlock (&vol->mutex);
@@ -1311,7 +1311,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	      cookie = de->d_off;
 
 	      /* Hide ".zfs" in the root of the volume.  */
-	      if (!dentry->parent
+	      if (LOCAL_VOLUME_ROOT_P (dentry)
 		  && strncmp (de->d_name, ".zfs", 5) == 0)
 		continue;
 

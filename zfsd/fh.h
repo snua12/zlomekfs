@@ -64,6 +64,12 @@ typedef struct volume_def *volume;
 #define REGULAR_FH_P(FH) ((FH).sid != NODE_NONE				\
 			  && (FH).vid != VOLUME_ID_VIRTUAL)
 
+/* Is DENTRY a local volume root?  */
+#define LOCAL_VOLUME_ROOT_P(DENTRY)					\
+  ((DENTRY)->parent == NULL						\
+   || ((DENTRY)->parent->parent == NULL					\
+       && CONFLICT_DIR_P ((DENTRY)->parent->fh->local_fh)))
+
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
 			     ? memset (&(FH), -1, sizeof (zfs_fh))	\
