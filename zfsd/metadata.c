@@ -313,7 +313,7 @@ remove_file_and_path (char *file, unsigned int tree_depth)
 /* Is the hash file HFILE opened?  */
 
 static bool
-metadata_opened_p (hfile_t hfile)
+hashfile_opened_p (hfile_t hfile)
 {
   CHECK_MUTEX_LOCKED (hfile->mutex);
 
@@ -1104,7 +1104,7 @@ init_metadata_for_created_volume_root (volume vol)
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     return false;
 
-  if (!metadata_opened_p (vol->metadata))
+  if (!hashfile_opened_p (vol->metadata))
     {
       int fd;
 
@@ -1153,7 +1153,7 @@ init_metadata (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (!metadata_opened_p (vol->metadata))
+  if (!hashfile_opened_p (vol->metadata))
     {
       int fd;
 
@@ -1197,7 +1197,7 @@ flush_metadata (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (!metadata_opened_p (vol->metadata))
+  if (!hashfile_opened_p (vol->metadata))
     {
       int fd;
 
@@ -1348,7 +1348,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
       free (path);
     }
 
-  if (!metadata_opened_p (vol->metadata))
+  if (!hashfile_opened_p (vol->metadata))
     {
       int fd;
 
