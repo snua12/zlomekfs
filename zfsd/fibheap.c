@@ -178,39 +178,28 @@ fibheap_extract_min (fibheap heap)
   return ret;
 }
 
-/* Replace both the KEY and the DATA associated with NODE.  */
-void *
-fibheap_replace_key_data (fibheap heap, fibnode node, fibheapkey_t key,
-			  void *data)
+/* Replace the KEY associated with NODE.  */
+fibnode
+fibheap_replace_key (fibheap heap, fibnode node, fibheapkey_t key)
 {
-  void *odata;
-  fibheapkey_t okey;
   fibnode y;
 
   CHECK_MUTEX_LOCKED (heap->mutex);
 
-  /* If we wanted to, we could actually do a real increase by redeleting and
-     inserting. However, this would require O (log n) time. So just bail out
-     for now.  */
   if (key > node->key)
-    {
-      fibheap_delete_node (heap, node);
-      fibheap_insert (heap, key, data);
-    }
+    return fibheap_insert (heap, key, fibheap_delete_node (heap, node));
 
-  odata = node->data;
-  okey = node->key;
-  node->data = data;
+  if (key == node->key)
+    return node;
+
   node->key = key;
   y = node->parent;
-
-  if (okey == key)
-    return odata;
 
   /* These two compares are specifically <= 0 to make sure that in the case
      of equality, a node we replaced the data on, becomes the new min.  This
      is needed so that delete's call to extractmin gets the right node.  */
-  if (y != NULL && node->key <= y->key)
+  if (y != NULL)
+    if (node->key <= y->key)
     {
       fibheap_cut (heap, node, y);
       fibheap_cascading_cut (heap, y);
@@ -219,23 +208,7 @@ fibheap_replace_key_data (fibheap heap, fibnode node, fibheapkey_t key,
   if (node->key <= heap->min->key)
     heap->min = node;
 
-  return odata;
-}
-
-/* Replace the DATA associated with NODE.  */
-void *
-fibheap_replace_data (fibheap heap, fibnode node, void *data)
-{
-  return fibheap_replace_key_data (heap, node, node->key, data);
-}
-
-/* Replace the KEY associated with NODE.  */
-fibheapkey_t
-fibheap_replace_key (fibheap heap, fibnode node, fibheapkey_t key)
-{
-  int okey = node->key;
-  fibheap_replace_key_data (heap, node, key, node->data);
-  return okey;
+  return node;
 }
 
 /* Delete NODE from HEAP.  */
@@ -350,7 +323,7 @@ fibheap_rem_root (fibheap heap, fibnode node)
 static void
 fibheap_consolidate (fibheap heap)
 {
-#define D (1 + 8 * sizeof (long))
+#define D ((int) (1 + 8 * sizeof (long)))
   fibnode a[D];
   fibnode w;
   fibnode y;
