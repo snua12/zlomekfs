@@ -6103,7 +6103,7 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
 {
   volume vol;
   internal_dentry dentry;
-  int32_t r;
+  int32_t r, r2;
 
   TRACE ("");
 
@@ -6122,7 +6122,16 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
     RETURN_INT (r);
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
-    r = local_reintegrate_set (dentry, version, vol);
+    {
+      r = local_reintegrate_set (dentry, version, vol);
+
+      r2 = zfs_fh_lookup (fh, NULL, &dentry, NULL, true);
+      if (r2 == ZFS_OK)
+	{
+	  /* Finish reintegrating. */
+	  r2 = local_reintegrate (dentry, 0);
+	}
+    }
   else if (vol->master != this_node)
     r = remote_reintegrate_set (dentry, version, NULL, vol);
   else
