@@ -141,6 +141,7 @@ typedef struct data_coding_def
 
 #include "zfs_prot.h"
 
+extern void dc_init (DC *dc);
 extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
 extern void print_dc (DC *dc, FILE *f);

@@ -30,6 +30,14 @@
 #include "util.h"
 #include "zfs_prot.h"
 
+/* Initialize a data coding buffer DC.  */
+
+void
+dc_init (DC *dc)
+{
+  dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
+}
+
 /* Return a new data coding buffer.  */
 
 DC *
