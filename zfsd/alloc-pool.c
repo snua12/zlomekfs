@@ -245,8 +245,8 @@ pool_free (alloc_pool pool, void *ptr)
   if (pool->id != ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr)->id)
     abort ();
 
-  /* Mark the element to be free.  */
-  ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr)->id = 0;
+  /* Mark the element to be free and the value to be invalid.  */
+  memset (ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr), 0, pool->elt_size);
 #endif
 
   header = (alloc_pool_list) ptr;
