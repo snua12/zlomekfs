@@ -27,6 +27,7 @@
 #include "pthread.h"
 #include "cap.h"
 #include "crc32.h"
+#include "md5.h"
 #include "alloc-pool.h"
 #include "hashtab.h"
 #include "fh.h"
@@ -94,8 +95,15 @@ internal_cap_lookup (zfs_cap *cap)
 static void
 internal_cap_compute_verify (internal_cap cap)
 {
-  /* FIXME: generate real verify; temporarily clear it to make valgrind happy */
-  memset (cap->local_cap.verify, 0, sizeof (cap->local_cap.verify));
+  MD5Context ctx;
+
+  MD5Init (&ctx);
+  MD5Update (&ctx, (unsigned char *) &cap->local_cap.fh,
+	     sizeof (cap->local_cap.fh));
+  MD5Update (&ctx, (unsigned char *) &cap->local_cap.flags,
+	     sizeof (cap->local_cap.flags));
+  MD5Update (&ctx, (unsigned char *) cap->random, sizeof (cap->random));
+  MD5Final (cap->local_cap.verify, &ctx);
 }
 
 /* Verify capability CAP by comparing with ICAP.  */
