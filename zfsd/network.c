@@ -910,16 +910,13 @@ send_oneway_request (thread *t, int fd)
       return;
     }
 
-  t->retval = ZFS_OK;
-
   /* Send the request.  */
   fd_data_a[fd].last_use = time (NULL);
   if (!full_write (fd, t->dc_call->buffer, t->dc_call->cur_length))
-    {
-      t->retval = ZFS_CONNECTION_CLOSED;
-      zfsd_mutex_unlock (&fd_data_a[fd].mutex);
-      return;
-    }
+    t->retval = ZFS_CONNECTION_CLOSED;
+  else
+    t->retval = ZFS_OK;
+
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
 }
 
