@@ -119,11 +119,18 @@ retry_open:
 
       zfsd_mutex_lock (&opened_mutex);
       fd_data = (internal_fd_data_t *) fibheap_extract_min (opened);
-      if (fd_data && fd_data->fd >= 0)
+#ifdef ENABLE_CHECKING
+      if (!fd_data && fibheap_size (opened) > 0)
+	abort ();
+#endif
+      if (fd_data)
 	{
 	  zfsd_mutex_lock (&fd_data->mutex);
 	  fd_data->heap_node = NULL;
-	  close_local_fd (fd_data->fd);
+	  if (fd_data->fd >= 0)
+	    close_local_fd (fd_data->fd);
+	  else
+	    zfsd_mutex_unlock (&fd_data->mutex);
 	}
       zfsd_mutex_unlock (&opened_mutex);
       if (fd_data)
@@ -1308,16 +1315,19 @@ cleanup_file_c ()
       internal_fd_data_t *fd_data;
 
       zfsd_mutex_lock (&opened_mutex);
-      fd_data = (internal_fd_data_t *) fibheap_min (opened);
+      fd_data = (internal_fd_data_t *) fibheap_extract_min (opened);
 #ifdef ENABLE_CHECKING
       if (!fd_data && fibheap_size (opened) > 0)
 	abort ();
 #endif
-      if (fd_data && fd_data->fd >= 0)
+      if (fd_data)
 	{
 	  zfsd_mutex_lock (&fd_data->mutex);
 	  fd_data->heap_node = NULL;
-	  close_local_fd (fd_data->fd);
+	  if (fd_data->fd >= 0)
+	    close_local_fd (fd_data->fd);
+	  else
+	    zfsd_mutex_unlock (&fd_data->mutex);
 	}
       zfsd_mutex_unlock (&opened_mutex);
     }

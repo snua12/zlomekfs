@@ -280,7 +280,6 @@ close_metadata_fd (int fd)
   CHECK_MUTEX_LOCKED (&metadata_mutex);
   CHECK_MUTEX_LOCKED (&metadata_fd_data[fd].mutex);
 
-  message (2, stderr, "Closing FD %d\n", fd);
 #ifdef ENABLE_CHECKING
   if (metadata_fd_data[fd].fd < 0)
     abort ();
@@ -295,6 +294,8 @@ close_metadata_fd (int fd)
     }
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
 }
+
+/* Open metadata file PATHNAME with open flags FLAGS and mode MODE.  */
 
 static int
 open_metadata (const char *pathname, int flags, mode_t mode)
@@ -311,6 +312,10 @@ retry_open:
 
       zfsd_mutex_lock (&metadata_mutex);
       fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
+#ifdef ENABLE_CHECKING
+      if (!fd_data && fibheap_size (metadata_heap) > 0)
+	abort ();
+#endif
       if (fd_data)
 	{
 	  zfsd_mutex_lock (&fd_data->mutex);
@@ -835,15 +840,19 @@ cleanup_metadata_c ()
       metadata_fd_data_t *fd_data;
 
       zfsd_mutex_lock (&metadata_mutex);
-      fd_data = (metadata_fd_data_t *) fibheap_min (metadata_heap);
+      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
 #ifdef ENABLE_CHECKING
       if (!fd_data && fibheap_size (metadata_heap) > 0)
 	abort ();
 #endif
-      if (fd_data && fd_data->fd >= 0)
+      if (fd_data)
 	{
 	  zfsd_mutex_lock (&fd_data->mutex);
-	  close_metadata_fd (fd_data->fd);
+	  fd_data->heap_node = NULL;
+	  if (fd_data->fd >= 0)
+	    close_metadata_fd (fd_data->fd);
+	  else
+	    zfsd_mutex_unlock (&fd_data->mutex);
 	}
       zfsd_mutex_unlock (&metadata_mutex);
     }
