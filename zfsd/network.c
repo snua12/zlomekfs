@@ -496,7 +496,8 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
 
       if (!decode_data_buffer (t->dc_reply, &ping_res)
 	  || !finish_decoding (t->dc_reply)
-	  || ping_res.len != ping_args.len)
+	  || ping_res.len != ping_args.len
+	  || memcmp (ping_res.buf, ping_args.buf, ping_args.len) != 0)
 	{
 	  *r = ZFS_INVALID_REPLY;
 	  return false;
