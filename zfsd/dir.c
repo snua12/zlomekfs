@@ -4432,7 +4432,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   if (shadow_path.str == NULL)
     {
       free (path.str);
-      return ZFS_METADATA_ERROR;
+      return false;
     }
 
   r = recursive_unlink (&path, vid, true);
