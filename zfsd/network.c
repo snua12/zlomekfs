@@ -22,6 +22,7 @@
 #include "data-coding.h"
 #include <stdlib.h>
 #include <pthread.h>
+#include <signal.h>
 #include "constant.h"
 #include "server.h"
 #include "log.h"
@@ -136,12 +137,11 @@ server_worker (void *data)
 #include "data-coding.h"
 #include "memory.h"
 #include "node.h"
+#include "hashtab.h"
+#include "alloc-pool.h"
 
 /* Thread ID of the main server thread (thread receiving data from sockets).  */
 pthread_t main_server_thread;
-
-/* Key for server thread specific data.  */
-pthread_key_t server_thread_key;
 
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
@@ -155,6 +155,66 @@ static server_fd_data_t **active;
 /* Number of active file descriptors.  */
 static int nactive;
 
+/* Mutex for accessing active and nactive.  */
+static pthread_mutex_t active_mutex;
+
+/* Hash function for request ID.  */
+#define WAITING4REPLY_HASH(REQUEST_ID) (REQUEST_ID)
+
+/* Hash function for waiting4reply_data.  */
+
+static hash_t
+waiting4reply_hash (const void *xx)
+{
+  const waiting4reply_data *x = (waiting4reply_data *) xx;
+
+  return WAITING4REPLY_HASH(x->request_id);
+}
+
+/* Return true when waiting4reply_data XX is data for request ID *YY.  */
+
+static int
+waiting4reply_eq (const void *xx, const void *yy)
+{
+  const waiting4reply_data *x = (waiting4reply_data *) xx;
+  const unsigned int id = *(unsigned int *) yy;
+
+  return WAITING4REPLY_HASH(x->request_id) == id;
+}
+
+/* Initialize data for file descriptor FD and add it to ACTIVE.  */
+
+static void
+init_fd_data (int fd)
+{
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&active_mutex) == 0)
+    abort ();
+  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
+    abort ();
+#endif
+  /* Set the server's data.  */
+  active[nactive] = &server_fd_data[fd];
+  nactive++;
+  server_fd_data[fd].fd = fd;
+  server_fd_data[fd].read = 0;
+  if (server_fd_data[fd].ndc == 0)
+    {
+      dc_create (&server_fd_data[fd].dc[0], ZFS_MAX_REQUEST_LEN);
+      server_fd_data[fd].ndc++;
+    }
+  server_fd_data[fd].last_use = time (NULL);
+  server_fd_data[fd].generation++;
+  server_fd_data[fd].busy = 0;
+
+  server_fd_data[fd].waiting4reply_pool
+    = create_alloc_pool ("waiting4reply_data",
+			 sizeof (waiting4reply_data), 30);
+  server_fd_data[fd].waiting4reply
+    = htab_create (30, waiting4reply_hash, waiting4reply_eq,
+		   NULL);
+}
+
 /* Close an active file descriptor on index I in ACTIVE.  */
 
 static void
@@ -162,8 +222,12 @@ close_active_fd (int i)
 {
   int fd = active[i]->fd;
   int j;
+  void **slot;
 
+  message (2, stderr, "Closing FD %d\n", fd);
 #ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&active_mutex) == 0)
+    abort ();
   if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
     abort ();
 #endif
@@ -175,21 +239,274 @@ close_active_fd (int i)
     dc_destroy (&server_fd_data[fd].dc[j]);
   server_fd_data[fd].ndc = 0;
   server_fd_data[fd].fd = -1;
+  HTAB_FOR_EACH_SLOT (server_fd_data[fd].waiting4reply, slot,
+    {
+      waiting4reply_data *data = *(waiting4reply_data **) slot;
+
+      data->t->u.server.retval = ZFS_CONNECTION_CLOSED;
+      pthread_mutex_unlock (&data->t->mutex);
+    });
+  htab_destroy (server_fd_data[fd].waiting4reply);
+  free_alloc_pool (server_fd_data[fd].waiting4reply_pool);
 }
 
 /* Initialize server thread T.  */
 
-static void
+void
 server_worker_init (thread *t)
 {
+  dc_create (&t->u.server.dc_call, ZFS_MAX_REQUEST_LEN);
 }
 
 /* Cleanup server thread DATA.  */
 
-static void
+void
 server_worker_cleanup (void *data)
 {
-  /*thread *t = (thread *) data;*/
+  thread *t = (thread *) data;
+
+  dc_destroy (&t->u.server.dc_call);
+}
+
+/* Authenticate connection with node NOD on socket FD.  */
+
+static bool
+node_authenticate (node nod, int fd)
+{
+  auth_stage1_args args1;
+  auth_stage2_args args2;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+
+#if 0
+  /* FIXME: really do authentication; currently the functions are empty.  */
+  if (zfs_proc_auth_stage1_client (t, &args1, nod) != ZFS_OK)
+    goto node_authenticate_error;
+
+  if (zfs_proc_auth_stage2_client (t, &args2, nod) != ZFS_OK)
+    goto node_authenticate_error;
+#endif
+  
+  nod->auth = AUTHENTICATION_DONE;
+  return true;
+
+node_authenticate_error:
+  nod->fd = -1;
+  nod->auth = AUTHENTICATION_NONE;
+  nod->conn = CONNECTION_NONE;
+  close (fd);
+  return false;
+}
+
+/* Connect to node NOD, return open file descriptor.  */
+
+static int
+node_connect (node nod)
+{
+  struct addrinfo *addr, *a;
+  int s;
+  int err;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+
+  /* Lookup the IP address.  */
+  if ((err = getaddrinfo (nod->name, NULL, NULL, &addr)) != 0)
+    {
+      message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
+      return -1;
+    }
+
+  for (a = addr; a; a = a->ai_next)
+    {
+      switch (a->ai_family)
+	{
+	  case AF_INET:
+	    if (a->ai_socktype == SOCK_STREAM
+		&& a->ai_protocol == IPPROTO_TCP)
+	      {
+		s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (s < 0)
+		  {
+		    message (-1, stderr, "socket(): %s\n", strerror (errno));
+		    break;
+		  }
+
+		/* Connect the server socket to ZFS_PORT.  */
+		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
+		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
+		  goto node_connected;
+	      }
+	    break;
+
+	  case AF_INET6:
+	    if (a->ai_socktype == SOCK_STREAM
+		&& a->ai_protocol == IPPROTO_TCP)
+	      {
+		s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+		if (s < 0)
+		  {
+		    message (-1, stderr, "socket(): %s\n", strerror (errno));
+		    break;
+		  }
+
+		/* Connect the server socket to ZFS_PORT.  */
+		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
+		  = htons (ZFS_PORT);
+		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
+		  goto node_connected;
+	      }
+	    break;
+	}
+    }
+
+  message (-1, stderr, "Could not connect to %s\n", nod->name);
+  close (s);
+  freeaddrinfo (addr);
+  return -1;
+
+node_connected: 
+  freeaddrinfo (addr);
+  nod->fd = s;
+  nod->auth = AUTHENTICATION_NONE;
+  nod->conn = CONNECTION_FAST; /* FIXME */
+  message (2, stderr, "FD %d connected to %s\n", s, nod->name);
+  return s;
+}
+
+/* Safely write LEN bytes to file descriptor FD data from buffer BUF.  */
+
+static bool
+safe_write (int fd, char *buf, size_t len)
+{
+  ssize_t w;
+  unsigned int written;
+
+  if (verbose >= 2)
+    {
+      size_t i;
+
+      message (2, stderr, "Sending request:\n");
+      for (i = 0; i < len; i++)
+	fprintf (stderr, "%02x ", buf[i]);
+      fprintf (stderr, "\n");
+    }
+
+  for (written = 0; written < len; written += w)
+    {
+      w = write (fd, buf + written, len - written);
+      if (w <= 0)
+	return false;
+    }
+
+  return true;
+}
+
+/* Helper function for sending request.  Send request with request id REQUEST_ID
+   using data in thread T to connected socket FD and wait for reply.
+   It expects server_fd_data[fd].mutex to be locked.  */
+
+static void
+really_send_request (thread *t, int fd, uint32_t request_id)
+{
+  server_thread_data *td = &t->u.server;
+  void **slot;
+  waiting4reply_data *wd;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
+    abort ();
+#endif
+
+  /* Here, server_fd_data[fd].mutex is locked.  */
+
+  /* Add the tread to the table of waiting threads.  */
+  wd = ((waiting4reply_data *)
+	pool_alloc (server_fd_data[fd].waiting4reply_pool));
+  wd->request_id = request_id;
+  wd->t = t;
+#ifdef ENABLE_CHECKING
+  slot = htab_find_slot_with_hash (server_fd_data[fd].waiting4reply,
+				   &request_id,
+				   WAITING4REPLY_HASH (request_id), NO_INSERT);
+  if (slot)
+    abort ();
+#endif
+  slot = htab_find_slot_with_hash (server_fd_data[fd].waiting4reply,
+				   &request_id,
+				   WAITING4REPLY_HASH (request_id), INSERT);
+  *slot = wd;
+
+  /* Send the request.  */
+  if (!safe_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
+    {
+      pthread_mutex_unlock (&server_fd_data[fd].mutex);
+      td->retval = ZFS_CONNECTION_CLOSED;
+      htab_clear_slot (server_fd_data[fd].waiting4reply, slot);
+      return;
+    }
+  pthread_mutex_unlock (&server_fd_data[fd].mutex);
+
+  /* Wait for reply.  */
+  pthread_mutex_lock (&t->mutex);
+  
+  /* Decode return value.  */
+  if (!decode_status (&td->dc, &td->retval))
+    td->retval = ZFS_INVALID_REPLY;
+}
+
+/* Send request with request id REQUEST_ID using data in thread T to node NOD
+   and wait for reply.  Try to connect to node NOD if not connected.  */
+
+void
+send_request (thread *t, uint32_t request_id, node nod)
+{
+  server_thread_data *td = &t->u.server;
+  int fd;
+
+  pthread_mutex_lock (&nod->mutex);
+  fd = nod->fd;
+  if (fd >= 0)
+    {
+      pthread_mutex_lock (&server_fd_data[fd].mutex);
+      if (nod->generation == server_fd_data[fd].generation)
+	{
+	  pthread_mutex_unlock (&nod->mutex);
+	  really_send_request (t, fd, request_id);
+	  return;
+	}
+      pthread_mutex_unlock (&server_fd_data[fd].mutex);
+    }
+
+  fd = node_connect (nod);
+  if (fd < 0)
+    {
+      td->retval = ZFS_COULD_NOT_CONNECT;
+      pthread_mutex_unlock (&nod->mutex);
+      return;
+    }
+
+  pthread_mutex_lock (&active_mutex);
+  pthread_mutex_lock (&server_fd_data[fd].mutex);
+  init_fd_data (fd);
+  pthread_kill (main_server_thread, SIGUSR1);
+  nod->generation = server_fd_data[fd].generation;
+  pthread_mutex_unlock (&active_mutex);
+
+  if (!node_authenticate (nod, fd))
+    {
+      td->retval = ZFS_COULD_NOT_AUTH;
+      pthread_mutex_unlock (&nod->mutex);
+      return;
+    }
+  
+  pthread_mutex_unlock (&nod->mutex);
+  really_send_request (t, fd, request_id);
 }
 
 /* Send a reply.  */
@@ -197,23 +514,18 @@ server_worker_cleanup (void *data)
 static void
 send_reply (server_thread_data *td)
 {
+  message (2, stderr, "sending reply\n");
+  pthread_mutex_lock (&td->fd_data->mutex);
+
   /* Send a reply if we have not closed the file descriptor
      and we have not reopened it.  */
   if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
     {
-      ssize_t w;
-      unsigned int written;
-
-      pthread_mutex_lock (&td->fd_data->mutex);
-      for (written = 0; written < td->dc.cur_length; written += w)
+      if (!safe_write (td->fd_data->fd, td->dc.buffer, td->dc.cur_length))
 	{
-	  w = write (td->fd_data->fd, td->dc.buffer + written,
-		     td->dc.cur_length - written);
-	  if (w <= 0)
-	    break;
 	}
-      pthread_mutex_unlock (&td->fd_data->mutex);
     }
+  pthread_mutex_unlock (&td->fd_data->mutex);
 }
 
 /* Send error reply with error status STATUS.  */
@@ -257,7 +569,7 @@ server_worker (void *data)
       if (t->state == THREAD_DYING)
 	return data;
 
-      if (!decode_uint32_t (&td->dc, &request_id))
+      if (!decode_request_id (&td->dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
 	  goto out;
@@ -275,11 +587,9 @@ server_worker (void *data)
 	  goto out;
 	}
 
+      message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
 	{
-      /* 1. decode request */
-      /* 2. call appropriate routine */
-      /* 3. encode reply */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
 	  case ZFS_PROC_##NAME:						\
 	    if (!decode_##ARGS_TYPE (&td->dc, &td->args.FUNCTION)	\
@@ -306,6 +616,7 @@ server_worker (void *data)
 out:
       fd_data = td->fd_data;
       pthread_mutex_lock (&fd_data->mutex);
+      fd_data->busy--;
       if (running)
 	{
 	  if (fd_data->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)
@@ -319,12 +630,6 @@ out:
 	      /* Free the buffer.  */
 	      dc_destroy (&td->dc);
 	    }
-	}
-      else
-	{
-	  fd_data->busy--;
-	  if (fd_data->busy == 0 && fd_data->fd >= 0)
-	    close_active_fd (fd_data->fd);
 	}
       pthread_mutex_unlock (&fd_data->mutex);
 
@@ -372,7 +677,38 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
       case DIR_REPLY:
 	/* Dispatch reply.  */
 
-	/* FIXME: finish */
+	if (1)
+	  {
+	    uint32_t request_id;
+	    void **slot;
+	    waiting4reply_data *data;
+
+	    if (!decode_request_id (dc, &request_id))
+	      {
+		/* TODO: log too short packet.  */
+		break;
+	      }
+	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
+					     &request_id,
+					     WAITING4REPLY_HASH (request_id),
+					     NO_INSERT);
+	    if (!slot)
+	      {
+		/* TODO: log request was not found.  */
+		message (1, stderr, "Request ID %d has not been found.\n",
+			 request_id);
+		break;
+	      }
+
+	    data = *(waiting4reply_data **) slot;
+	    data->t->u.server.dc = *dc;
+	    htab_clear_slot (fd_data->waiting4reply, slot);
+
+	    /* Let the thread run again.  */
+	    pthread_mutex_unlock (&data->t->mutex);
+	    pool_free (fd_data->waiting4reply_pool, data);
+	  }
 	break;
 
       case DIR_REQUEST:
@@ -416,9 +752,6 @@ create_server_threads ()
 {
   int i;
 
-  if (pthread_key_create (&server_thread_key, NULL))
-    return 0;
-  
   /* FIXME: read the numbers from configuration.  */
   thread_pool_create (&server_pool, 256, 4, 16);
 
@@ -426,7 +759,7 @@ create_server_threads ()
   pthread_mutex_lock (&server_pool.empty.mutex);
   for (i = 0; i < /* FIXME: */ 10; i++)
     {
-      create_idle_thread (&server_pool, server_worker, NULL);
+      create_idle_thread (&server_pool, server_worker, server_worker_init);
     }
   pthread_mutex_unlock (&server_pool.empty.mutex);
   pthread_mutex_unlock (&server_pool.idle.mutex);
@@ -505,14 +838,12 @@ server_main (void * ATTRIBUTE_UNUSED data)
   time_t now;
   static char dummy[ZFS_MAXDATA];
 
-  nactive = 0;
-  active = (server_fd_data_t **) xmalloc (getdtablesize ()
-				       * sizeof (server_fd_data_t));
   pfd = (struct pollfd *) xmalloc (getdtablesize () * sizeof (struct pollfd));
   accept_connections = 1;
 
   while (running)
     {
+      pthread_mutex_lock (&active_mutex);
       for (i = 0; i < nactive; i++)
 	{
 	  pfd[i].fd = active[i]->fd;
@@ -523,8 +854,12 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	  pfd[nactive].fd = main_socket;
 	  pfd[nactive].events = CAN_READ;
 	}
+      n = nactive;
+      pthread_mutex_unlock (&active_mutex);
 
-      r = poll (pfd, nactive + 1, -1);
+      message (2, stderr, "Polling %d sockets\n", n + accept_connections);
+      r = poll (pfd, n + accept_connections, -1);
+      message (2, stderr, "Poll returned %d\n", r);
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, server_main exiting\n", strerror (errno));
@@ -533,14 +868,22 @@ server_main (void * ATTRIBUTE_UNUSED data)
 
       if (!running)
 	{
+	  message (2, stderr, "Terminating\n");
 	  close (main_socket);
 	  accept_connections = 0;
 
 	  /* Close idle file descriptors and free their memory.  */
-	  for (i = 0; i < nactive; i++)
+	  pthread_mutex_lock (&active_mutex);
+	  for (i = nactive - 1; i >= 0; i--)
 	    {
-	      /* FIXME */
+	      server_fd_data_t *fd_data = active[i];
+
+	      pthread_mutex_lock (&fd_data->mutex);
+	      if (fd_data->busy == 0)
+		close_active_fd (i);
+	      pthread_mutex_unlock (&fd_data->mutex);
 	    }
+	  pthread_mutex_unlock (&active_mutex);
 	  return NULL;
 	}
 
@@ -549,24 +892,22 @@ server_main (void * ATTRIBUTE_UNUSED data)
 
       now = time (NULL);
 
-      /* Remember the number of active file descriptors because nactive may
-	 change until the end of the body of "while (running)" loop.  */
-      n = nactive;
-
       /* Decrease the number of (unprocessed) sockets with events
 	 if there were events on main socket.  */
-      if (pfd[nactive].revents)
+      if (pfd[n].revents)
 	r--;
 
-      for (i = n - 1; i >= 0 && r > 0; i--)
+      pthread_mutex_lock (&active_mutex);
+      for (i = nactive - 1; i >= 0 && r > 0; i--)
 	{
 	  server_fd_data_t *fd_data = &server_fd_data[pfd[i].fd];
 
+	  message (2, stderr, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
 	  if (pfd[i].revents & CANNOT_RW)
 	    {
-	      pthread_mutex_lock (&active[i]->mutex);
+	      pthread_mutex_lock (&fd_data->mutex);
 	      close_active_fd (i);
-	      pthread_mutex_unlock (&active[i]->mutex);
+	      pthread_mutex_unlock (&fd_data->mutex);
 	    }
 	  else if (pfd[i].revents & CAN_READ)
 	    {
@@ -585,11 +926,11 @@ server_main (void * ATTRIBUTE_UNUSED data)
 
 		  r = read (fd_data->fd, fd_data->dc[0].buffer + fd_data->read,
 			    4 - fd_data->read);
-		  if (r < 0)
+		  if (r <= 0)
 		    {
-		      pthread_mutex_lock (&active[i]->mutex);
+		      pthread_mutex_lock (&fd_data->mutex);
 		      close_active_fd (i);
-		      pthread_mutex_unlock (&active[i]->mutex);
+		      pthread_mutex_unlock (&fd_data->mutex);
 		    }
 		  else
 		    fd_data->read += r;
@@ -617,11 +958,11 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		      r = read (fd_data->fd, dummy, l);
 		    }
 
-		  if (r < 0)
+		  if (r <= 0)
 		    {
-		      pthread_mutex_lock (&active[i]->mutex);
+		      pthread_mutex_lock (&fd_data->mutex);
 		      close_active_fd (i);
-		      pthread_mutex_unlock (&active[i]->mutex);
+		      pthread_mutex_unlock (&fd_data->mutex);
 		    }
 		  else
 		    {
@@ -635,6 +976,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 			  pthread_mutex_lock (&fd_data->mutex);
 			  generation = fd_data->generation;
 			  dc = &fd_data->dc[0];
+			  fd_data->read = 0;
 			  fd_data->busy++;
 			  fd_data->ndc--;
 			  if (fd_data->ndc > 0)
@@ -667,6 +1009,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	      struct sockaddr_in ca;
 	      socklen_t ca_len;
 
+retry_accept:
 	      s = accept (main_socket, (struct sockaddr *) &ca, &ca_len);
 
 	      if ((s < 0 && errno == EMFILE)
@@ -688,15 +1031,21 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		  if (index == -1)
 		    {
 		      /* All file descriptors are busy so close the new one.  */
+		      message (2, stderr, "All filedescriptors are busy.\n");
 		      if (s > 0)
 			close (s);
+		      pthread_mutex_unlock (&active_mutex);
+		      continue;
 		    }
 		  else
 		    {
+		      server_fd_data_t *fd_data = active[index];
+
 		      /* Close file descriptor unused for the longest time.  */
-		      pthread_mutex_lock (&active[index]->mutex);
+		      pthread_mutex_lock (&fd_data->mutex);
 		      close_active_fd (index);
-		      pthread_mutex_unlock (&active[index]->mutex);
+		      pthread_mutex_unlock (&fd_data->mutex);
+		      goto retry_accept;
 		    }
 		}
 
@@ -711,21 +1060,14 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		}
 	      else
 		{
-		  /* Set the server's data.  */
-		  active[nactive]->fd = s;
-		  active[nactive]->read = 0;
-		  if (active[nactive]->ndc == 0)
-		    {
-		      dc_create (&active[nactive]->dc[0], ZFS_MAX_REQUEST_LEN);
-		      active[nactive]->ndc++;
-		    }
-		  active[nactive]->last_use = now;
-		  active[nactive]->generation++;
-		  active[nactive]->busy = 0;
-		  nactive++;
+		  message (2, stderr, "accepted FD %d\n", s);
+		  pthread_mutex_lock (&server_fd_data[s].mutex);
+		  init_fd_data (s);
+		  pthread_mutex_unlock (&server_fd_data[s].mutex);
 		}
 	    }
 	}
+      pthread_mutex_unlock (&active_mutex);
     }
 
   return NULL;
@@ -795,6 +1137,12 @@ server_init_fd_data ()
 {
   int i, n;
 
+  if (pthread_mutex_init (&active_mutex, NULL))
+    {
+      message (-1, stderr, "pthread_mutex_init() failed\n");
+      return 0;
+    }
+
   n = getdtablesize ();
   server_fd_data = (server_fd_data_t *) xcalloc (n, sizeof (server_fd_data_t));
   for (i = 0; i < n; i++)
@@ -802,9 +1150,12 @@ server_init_fd_data ()
       {
 	message (-1, stderr, "pthread_mutex_init() failed\n");
 	free (server_fd_data);
-	close (main_socket);
 	return 0;
       }
+
+  nactive = 0;
+  active = (server_fd_data_t **) xmalloc (getdtablesize ()
+					  * sizeof (server_fd_data_t));
 
   return 1;
 }
