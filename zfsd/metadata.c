@@ -2359,33 +2359,6 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, uint32_t old_parent_dev,
   return true;
 }
 
-/* Delete a hardlink [PARENT_DEV, PARENT_INO, NAME] from hardlink list for
-   file handle FH on volume VOL.
-   Return false on file error.  */
-
-bool
-metadata_hardlink_delete (volume vol, zfs_fh *fh, uint32_t parent_dev,
-			  uint32_t parent_ino, char *name)
-{
-  hardlink_list hl;
-  metadata meta;
-
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
-  hl = hardlink_list_create (2, NULL);
-  if (!read_hardlinks (vol, fh, &meta, hl))
-    {
-      hardlink_list_destroy (hl);
-      return false;
-    }
-
-  if (hardlink_list_delete (hl, parent_dev, parent_ino, name))
-    return write_hardlinks (vol, fh, hl);
-
-  hardlink_list_destroy (hl);
-  return true;
-}
-
 /* Return the number of hardlinks of file FH on volume VOL.  */
 
 unsigned int
