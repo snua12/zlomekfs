@@ -57,7 +57,7 @@ static htab_t virtual_dir_htab_name;
   (crc32_update (crc32_string ((VD)->name),				\
 		 &(VD)->parent->fh, sizeof (zfs_fh)))
 
-/* Hash function for internal file handle X, computed from client_fh.  */
+/* Hash function for internal file handle X, computed from local_fh.  */
 
 hash_t
 internal_fh_hash (const void *x)
@@ -78,7 +78,7 @@ internal_fh_hash_name (const void *x)
 int
 internal_fh_eq (const void *xx, const void *yy)
 {
-  zfs_fh *x = &((internal_fh) xx)->client_fh;
+  zfs_fh *x = &((internal_fh) xx)->local_fh;
   zfs_fh *y = (zfs_fh *) yy;
 
   return (x->ino == y->ino && x->dev == y->dev
@@ -183,7 +183,7 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
 /* Create a new internal file handle and store it to hash tables.  */
 
 internal_fh
-internal_fh_create (zfs_fh *client_fh, zfs_fh *server_fh, internal_fh parent,
+internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
 		    volume vol, const char *name)
 {
   internal_fh fh;
@@ -191,19 +191,19 @@ internal_fh_create (zfs_fh *client_fh, zfs_fh *server_fh, internal_fh parent,
 
   /* Create a new internal file handle.  */
   fh = (internal_fh) pool_alloc (fh_pool);
-  fh->client_fh = *client_fh;
-  fh->server_fh = *server_fh;
+  fh->local_fh = *local_fh;
+  fh->master_fh = *master_fh;
   fh->parent = parent;
   fh->name = xstrdup (name);
   fh->fd = -1;
 
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->client_fh,
+  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->client_fh,
+  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), INSERT);
   *slot = fh;
 
@@ -238,7 +238,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
       htab_clear_slot (vol->fh_htab_name, slot);
     }
 
-  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->client_fh,
+  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
@@ -260,10 +260,10 @@ print_fh_htab (FILE *f, htab_t htab)
     {
       internal_fh fh = (internal_fh) *slot;
 
-      fprintf (f, "[%u,%u,%u,%u] ", fh->client_fh.sid, fh->client_fh.vid,
-	       fh->client_fh.dev, fh->client_fh.ino);
-      fprintf (f, "[%u,%u,%u,%u] ", fh->server_fh.sid, fh->server_fh.vid,
-	       fh->server_fh.dev, fh->server_fh.ino);
+      fprintf (f, "[%u,%u,%u,%u] ", fh->local_fh.sid, fh->local_fh.vid,
+	       fh->local_fh.dev, fh->local_fh.ino);
+      fprintf (f, "[%u,%u,%u,%u] ", fh->master_fh.sid, fh->master_fh.vid,
+	       fh->master_fh.dev, fh->master_fh.ino);
       fprintf (f, "'%s'", fh->name);
       fprintf (f, "\n");
     });

@@ -41,7 +41,7 @@ struct volume_def
   zfs_fh root_fh;		/* file handle of the remote root.  */
   virtual_dir root_vd;		/* virtual directory for the mountpoint */
   htab_t fh_htab;		/* hash table of used file handles,
-				   searched by client_fh */
+				   searched by local_fh */
   htab_t fh_htab_name;		/* hash table of used file handles,
 				   searched by(parent_fh, name) */
 };

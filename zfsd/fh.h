@@ -55,14 +55,14 @@ typedef struct volume_def *volume;
 			     && (FH1).sid == (FH2).sid)
 
 
-/* Hash function for internal_fh FH, computed from client_fh.  */
+/* Hash function for internal_fh FH, computed from local_fh.  */
 #define INTERNAL_FH_HASH(FH)						\
-  (crc32_buffer (&(FH)->client_fh, sizeof (zfs_fh)))
+  (crc32_buffer (&(FH)->local_fh, sizeof (zfs_fh)))
 
 /* Hash function for internal_fh FH, computed from parent_fh and name.  */
 #define INTERNAL_FH_HASH_NAME(FH)					\
   (crc32_update (crc32_string ((FH)->name),				\
-		 &(FH)->parent->client_fh, sizeof (zfs_fh)))
+		 &(FH)->parent->local_fh, sizeof (zfs_fh)))
 
 /* Destroy the virtual mountpoint of volume VOL.  */
 #define virtual_mountpoint_destroy(VOL) (virtual_dir_destroy ((VOL)->root_vd))
@@ -77,10 +77,10 @@ typedef struct virtual_dir_def *virtual_dir;
 struct internal_fh_def
 {
   /* File handle for client, key for hash table.  */
-  zfs_fh client_fh;
+  zfs_fh local_fh;
 
   /* File handle for server.  */
-  zfs_fh server_fh;
+  zfs_fh master_fh;
 
   /* Pointer to file handle of the parent directory.  */
   internal_fh parent;
@@ -143,7 +143,7 @@ extern int fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
 extern internal_fh fh_lookup_name (volume vol, internal_fh parent,
 				   const char *name);
-extern internal_fh internal_fh_create (zfs_fh *client_fh, zfs_fh *server_fh,
+extern internal_fh internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh,
 				       internal_fh parent, volume vol,
 				       const char *name);
 extern void internal_fh_destroy (internal_fh fh, volume vol);
