@@ -1251,6 +1251,106 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   return r;
 }
 
+/* Synchronize file DENTRY with file handle FH on volume VOL
+   with the remote file with attributes ATTR.
+   HOW describe what needs to be done.  */
+
+static int32_t
+synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
+		  int how)
+{
+  internal_dentry parent, conflict, dentry2;
+  bool want_conflict;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  if (dentry->fh->attr.type == FT_REG)
+    {
+      if ((how & (IFH_UPDATE | IFH_REINTEGRATE)) == IFH_UPDATE
+	  || (how & (IFH_UPDATE | IFH_REINTEGRATE)) == IFH_REINTEGRATE)
+	{
+	  /* Schedule update or reintegration of regular file.  */
+
+	  zfsd_mutex_lock (&running_mutex);
+	  if (update_pool.main_thread == 0)
+	    {
+	      /* Update threads are not running.  */
+	      zfsd_mutex_unlock (&running_mutex);
+	    }
+	  else
+	    {
+	      zfsd_mutex_unlock (&running_mutex);
+
+	      if (dentry->fh->flags)
+		{
+		  dentry->fh->flags |= how & (IFH_UPDATE | IFH_REINTEGRATE);
+		}
+	      else
+		{
+		  dentry->fh->flags |= how & (IFH_UPDATE | IFH_REINTEGRATE);
+		  zfsd_mutex_lock (&update_queue.mutex);
+		  queue_put (&update_queue, &dentry->fh->local_fh);
+		  zfsd_mutex_unlock (&update_queue.mutex);
+		}
+	    }
+	}
+    }
+
+  want_conflict = (dentry->fh->attr.version > dentry->fh->meta.master_version
+		   && attr->version > dentry->fh->meta.master_version);
+
+  conflict = dentry->parent;
+  acquire_dentry (conflict);
+  if (CONFLICT_DIR_P (conflict->fh->local_fh))
+    {
+      if (want_conflict)
+	{
+	  release_dentry (dentry);
+	  dentry2 = conflict_remote_dentry (conflict);
+	  if (dentry2)
+	    {
+	      dentry2->fh->attr = *attr;
+	      release_dentry (dentry2);
+	    }
+	  release_dentry (conflict);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	}
+      else
+	{
+	  release_dentry (dentry);
+	  cancel_conflict (vol, conflict);
+	}
+    }
+  else
+    {
+      parent = conflict;
+      if (want_conflict)
+	{
+	  string name;
+	  
+	  xstringdup (&name, &dentry->name);
+	  release_dentry (dentry);
+	  conflict = create_conflict (vol, parent, &name, fh,
+				      &dentry->fh->attr);
+	  free (name.str);
+	  add_file_to_conflict_dir (vol, conflict, true,
+				    &dentry->fh->meta.master_fh, attr, NULL);
+	  release_dentry (conflict);
+	}
+      else
+	release_dentry (dentry);
+
+      release_dentry (parent);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+
+  return ZFS_OK;
+}
+
 /* Update the directory DIR on volume VOL with file handle FH,
    set attributes according to ATTR.  */
 
