@@ -22,9 +22,14 @@
 #define DATA_CODING_H
 
 #include "system.h"
-#include <inttypes.h>
-#include <netinet/in.h>
-#include <stdio.h>
+
+#ifdef __KERNEL__
+# include <linux/types.h>
+# undef current
+#else
+# include <inttypes.h>
+# include <netinet/in.h>
+#endif
 
 /* Maximal length of request / reply.  */
 #define DC_SIZE 8888
@@ -144,7 +149,9 @@ typedef struct data_coding_def
 extern void dc_init (DC *dc);
 extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
+#ifndef __KERNEL__
 extern void print_dc (DC *dc, FILE *f);
+#endif
 extern void debug_dc (DC *dc);
 extern void start_encoding (DC *dc);
 extern unsigned int finish_encoding (DC *dc);

@@ -22,7 +22,13 @@
 #define ZFS_PROT_H
 
 #include "system.h"
-#include <inttypes.h>
+
+#ifdef __KERNEL__
+# include <linux/types.h>
+#else
+# include <inttypes.h>
+#endif
+
 #include "md5.h"
 #include "memory.h"
 

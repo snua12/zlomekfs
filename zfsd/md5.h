@@ -27,7 +27,12 @@
 #define MD5_H
 
 #include "system.h"
-#include <inttypes.h>
+
+#ifdef __KERNEL__
+# include <linux/types.h>
+#else
+# include <inttypes.h>
+#endif
 
 /* Size of MD5 hash.  */
 #define MD5_SIZE 16

@@ -22,8 +22,15 @@
 #define MEMORY_H
 
 #include "system.h"
-#include <stddef.h>
-#include <inttypes.h>
+
+#ifdef __KERNEL__
+# include <linux/stddef.h>
+# include <linux/types.h>
+#else
+# include <stddef.h>
+# include <inttypes.h>
+#endif 
+
 #include "varray.h"
 
 /* String type.  */
