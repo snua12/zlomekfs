@@ -381,7 +381,7 @@ destroy_invalid_volumes (void)
 /* Delete all volumes.  */
 
 void
-delete_all_volumes (void)
+destroy_all_volumes (void)
 {
   void **slot;
 
@@ -415,6 +415,6 @@ initialize_volume_c (void)
 void
 cleanup_volume_c (void)
 {
-  delete_all_volumes ();
+  destroy_all_volumes ();
   zfsd_mutex_destroy (&volume_mutex);
 }

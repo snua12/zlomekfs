@@ -485,7 +485,7 @@ init_config (void)
   return true;
 
 out:
-  delete_all_volumes ();
+  destroy_all_volumes ();
   return false;
 }
 
