@@ -34,7 +34,7 @@ extern char *build_local_path_name (volume vol, internal_dentry dentry,
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
 							internal_dentry *dir);
-extern int32_t update_volume_root (volume vol, internal_dentry *dentry);
+extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentry);
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
 extern int32_t local_getattr_path (fattr *attr, char *path, volume vol);
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);

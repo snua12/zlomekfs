@@ -278,7 +278,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
     return r;
 
   if (*vd && *vol)
-    update_volume_root (*vol, dentry);
+    get_volume_root_dentry (*vol, dentry);
 
   if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
@@ -384,7 +384,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     }
 
   if (vd && *vd && *vol)
-    update_volume_root (*vol, dentry);
+    get_volume_root_dentry (*vol, dentry);
 
   *icapp = icap;
   return ZFS_OK;

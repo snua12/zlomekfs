@@ -91,7 +91,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t, bool map_id)
     }
   else
     {
-      r = update_volume_root (vol, &dentry);
+      r = get_volume_root_dentry (vol, &dentry);
       zfsd_mutex_unlock (&vol->mutex);
       encode_status (dc, r);
       if (r == ZFS_OK)

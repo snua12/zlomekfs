@@ -148,7 +148,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
     }
   else
     {
-      int32_t r = update_volume_root (pvd->vol, dir);
+      int32_t r = get_volume_root_dentry (pvd->vol, dir);
       if (r != ZFS_OK)
 	{
 	  zfsd_mutex_unlock (&pvd->vol->mutex);
@@ -311,7 +311,7 @@ get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
    it to IFH.  */
 
 int32_t
-update_volume_root (volume vol, internal_dentry *dentry)
+get_volume_root_dentry (volume vol, internal_dentry *dentry)
 {
   zfs_fh local_fh, master_fh;
   fattr attr;
@@ -502,7 +502,7 @@ zfs_getattr_retry:
     {
       if (vol)
 	{
-	  r = update_volume_root (vol, &dentry);
+	  r = get_volume_root_dentry (vol, &dentry);
 	  zfsd_mutex_unlock (&vd->mutex);
 	  if (r != ZFS_OK)
 	    {
@@ -836,7 +836,7 @@ zfs_lookup_retry:
       /* !vd */
       if (vol)
 	{
-	  r = update_volume_root (vol, &idir);
+	  r = get_volume_root_dentry (vol, &idir);
 	  if (r != ZFS_OK)
 	    {
 	      zfsd_mutex_unlock (&vol->mutex);
@@ -1639,7 +1639,7 @@ zfs_link_retry:
     }
   else if (vd1)
     {
-      r = update_volume_root (vol, &dentry1);
+      r = get_volume_root_dentry (vol, &dentry1);
       if (r != ZFS_OK)
 	{
 	  zfsd_mutex_unlock (&vd_mutex);
