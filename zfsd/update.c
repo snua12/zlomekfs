@@ -654,10 +654,10 @@ move_to_shadow (volume vol, internal_dentry dentry)
   fh = dentry->fh->local_fh;
   vid = vol->id;
   release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-
   shadow_path = get_shadow_path (vol, &fh, true);
+  zfsd_mutex_unlock (&vol->mutex);
+
   if (!recursive_unlink (shadow_path, vid, true))
     {
       free (path);
