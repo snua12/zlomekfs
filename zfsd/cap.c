@@ -74,6 +74,9 @@ internal_cap_compute_verify (internal_cap cap)
 static int32_t
 verify_capability (zfs_cap *cap, internal_cap icap)
 {
+  if (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0)
+    return ZFS_OK;
+
   if (verbose >= 3)
     {
       fprintf (stderr, "Using verify ");
@@ -82,9 +85,7 @@ verify_capability (zfs_cap *cap, internal_cap icap)
       print_hex_buffer (icap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
     }
 
-  return (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0
-	  ? ZFS_OK
-	  : EBADF);
+  return EBADF;
 }
 
 /* Lock dentry *DENTRYP on volume *VOLP with capability *ICAPP and virtual
