@@ -1039,10 +1039,9 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&vd->mutex);
-#ifdef ENABLE_CHECKING
+
   if (cookie > 0)
-    abort ();
-#endif
+    return true;
 
   switch (cookie)
     {
@@ -1084,7 +1083,7 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 	    zfsd_mutex_unlock (&svd->mutex);
 
 	  }
-	if (i == VARRAY_USED (vd->subdirs))
+	if (i >= VARRAY_USED (vd->subdirs))
 	  list->eof = 1;
 	break;
     }
@@ -1134,8 +1133,10 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
       if (r != ZFS_OK)
 	return r;
 
+      list->eof = 0;
       if (cookie < 0)
 	cookie = 0;
+
       r = lseek (dentry->fh->fd, cookie, SEEK_SET);
       if (r < 0)
 	{
