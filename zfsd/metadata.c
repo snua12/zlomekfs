@@ -2289,7 +2289,7 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (!lookup_metadata (vol, fh, meta, true))
+  if (!lookup_metadata (vol, fh, meta, false))
     return false;
 
   if (meta->slot_status != VALID_SLOT)
