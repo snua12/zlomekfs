@@ -186,13 +186,17 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 									else {
 										struct inode *inode;
 
-										inode = zfs_ilookup(zfs_sb, &args.fh);
-										if (inode)
-											make_bad_inode(inode);
-									}
+										TRACE("%u: invalidate [sid: %u, vid: %u, dev: %u, ino: %u, gen: %u]", current->pid, args.fh.sid, args.fh.vid, args.fh.dev, args.fh.ino, args.fh.gen);
 
-									break;
+										inode = zfs_ilookup(zfs_sb, &args.fh);
+										if (inode) {
+											TRACE("%u: %p invalidated", current->pid, inode);
+											make_bad_inode(inode);
+										} else
+											TRACE("%u: no inode invalidated", current->pid);
+									}
 								}
+								break;
 							default:
 								error = -EINVAL;
 								break;
