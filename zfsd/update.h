@@ -80,7 +80,8 @@ extern thread_pool update_pool;
 
 extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 				     uint64_t end, varray *blocks);
-extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks);
+extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks,
+				   bool conflict_p);
 extern int32_t reintegrate_file_blocks (zfs_cap *cap);
 extern int32_t update_fh_if_needed (volume *volp, internal_dentry *dentryp,
 				    zfs_fh *fh);

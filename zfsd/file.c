@@ -2028,6 +2028,8 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	    }
 	  else
 	    {
+	      bool conflict_p;
+
 	      if (icap->master_busy == 0)
 		{
 		  r = cond_remote_open (&tmp_cap, icap, &dentry, &vol);
@@ -2037,11 +2039,14 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 		  icap->master_close_p = true;
 		}
 
+	      conflict_p = (dentry->parent != NULL
+			    && CONFLICT_DIR_P (dentry->parent->fh->local_fh));
+
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 
-	      r = update_file_blocks (&tmp_cap, &blocks);
+	      r = update_file_blocks (&tmp_cap, &blocks, conflict_p);
 	      if (r == ZFS_OK)
 		{
 		  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
@@ -2658,7 +2663,7 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
       r = remote_read (&res, icap, dentry, offset + total, count - total, vol);
       if (r != ZFS_OK)
 	RETURN_INT (r);
-      if (res.version != *version)
+      if (version && res.version != *version)
 	{
 	  *version = res.version;
 	  RETURN_INT (ZFS_CHANGED);

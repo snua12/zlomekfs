@@ -77,11 +77,12 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
 }
 
 /* Update BLOCKS (described in ARGS) of local file CAP from remote file,
-   start searching in BLOCKS at index INDEX.  */
+   start searching in BLOCKS at index INDEX.
+   CONFLICT_P says whether the file is in conflict.  */
 
 static int32_t
 update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
-		      unsigned int *index)
+		      unsigned int *index, bool conflict_p)
 {
   bool flush;
   volume vol;
@@ -239,7 +240,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	      r = full_remote_read (&remote_md5.length[i], buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i],
-				    &version);
+				    conflict_p ? NULL : &version);
 	      if (r == ZFS_CHANGED)
 		goto changed;
 	      if (r != ZFS_OK)
@@ -256,7 +257,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 
 	      r = full_remote_read (&remote_md5.length[i], buf2, cap,
 				    remote_md5.offset[i], remote_md5.length[i],
-				    &version);
+				    conflict_p ? NULL : &version);
 	      if (r == ZFS_CHANGED)
 		goto changed;
 	      if (r != ZFS_OK)
@@ -377,10 +378,11 @@ changed:
   RETURN_INT (r);
 }
 
-/* Update BLOCKS of local file CAP from remote file.  */
+/* Update BLOCKS of local file CAP from remote file.  CONFLICT_P says
+   whether the file is in conflict.  */
 
 int32_t
-update_file_blocks (zfs_cap *cap, varray *blocks)
+update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 {
   md5sum_args args;
   volume vol;
@@ -395,7 +397,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
     RETURN_INT (ZFS_OK);
 
   args.count = 0;
-  args.ignore_changes = 0;
+  args.ignore_changes = conflict_p;
   index = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
     {
@@ -418,7 +420,8 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 	    {
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
-		  r = update_file_blocks_1 (&args, cap, blocks, &index);
+		  r = update_file_blocks_1 (&args, cap, blocks, &index,
+					    conflict_p);
 		  if (r != ZFS_OK)
 		    RETURN_INT (r);
 		  args.count = 0;
@@ -435,7 +438,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 
   if (args.count > 0)
     {
-      r = update_file_blocks_1 (&args, cap, blocks, &index);
+      r = update_file_blocks_1 (&args, cap, blocks, &index, conflict_p);
       if (r != ZFS_OK)
 	RETURN_INT (r);
     }
@@ -731,7 +734,9 @@ update_file (zfs_fh *fh)
       zfsd_mutex_unlock (&fh_mutex);
       get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
       release_dentry (dentry);
-      r = update_file_blocks (&cap, &blocks);
+      r = update_file_blocks (&cap, &blocks,
+			      (what & (IFH_UPDATE | IFH_REINTEGRATE))
+			      == (IFH_UPDATE | IFH_REINTEGRATE));
       varray_destroy (&blocks);
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
