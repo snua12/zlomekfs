@@ -554,6 +554,189 @@ out:
   return r;
 }
 
+/* Update generic file DENTRY with file handle FH on volume VOL if needed.  */
+
+int32_t
+update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh)
+{
+  int32_t r, r2;
+  fattr remote_attr;
+  int how;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+
+  r = ZFS_OK;
+  if ((*volp)->master != this_node)
+    {
+      how = update_p (volp, dentryp, fh, &remote_attr);
+      if (how)
+	{
+	  r = update (*volp, *dentryp, fh, &remote_attr, how);
+
+	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+	  if (r2 != ZFS_OK)
+	    return r2;
+
+	  if (r != ZFS_OK)
+	    {
+	      internal_dentry_unlock (*volp, *dentryp);
+	      return r;
+	    }
+	}
+    }
+
+  return r;
+}
+
+/* Update generic file DENTRY on volume VOL if needed.
+   DENTRY and DENTRY2 are locked before and after this macro.
+   DENTRY2 might be deleted in update.  */
+
+int32_t
+update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
+		       internal_dentry *dentry2p, zfs_fh *fh, zfs_fh *fh2)
+{
+  int32_t r, r2;
+  fattr remote_attr;
+  int how;
+
+  r = ZFS_OK;
+  if ((*volp)->master != this_node)
+    {
+#ifdef ENABLE_CHECKING
+      if (fh->sid != fh2->sid
+	  || fh->vid != fh2->vid
+	  || fh->dev != fh2->dev)
+	abort ();
+#endif
+
+      if (fh2->ino != fh->ino)
+	release_dentry (*dentry2p);
+
+      how = update_p (volp, dentryp, fh, &remote_attr);
+      if (how)
+	{
+	  r = update (*volp, *dentryp, fh, &remote_attr, how);
+
+	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+	  if (r2 != ZFS_OK)
+	    {
+	      if (fh2->ino != fh->ino)
+		{
+		  r = zfs_fh_lookup_nolock (fh2, volp, dentryp, NULL, false);
+		  if (r == ZFS_OK)
+		    internal_dentry_unlock (*volp, *dentryp);
+		}
+	      return r2;
+	    }
+
+	  if (r != ZFS_OK)
+	    {
+	      internal_dentry_unlock (*volp, *dentryp);
+	      if (fh2->ino != fh->ino)
+		{
+		  r2 = zfs_fh_lookup_nolock (fh2, volp, dentry2p, NULL, false);
+		  if (r2 == ZFS_OK)
+		    internal_dentry_unlock (*volp, *dentry2p);
+		}
+	      return r;
+	    }
+
+	  if (fh2->ino != fh->ino)
+	    {
+	      *dentry2p = dentry_lookup (fh2);
+	      if (!*dentry2p)
+		{
+		  internal_dentry_unlock (*volp, *dentryp);
+		  return ZFS_STALE;
+		}
+	    }
+	  else
+	    *dentry2p = *dentryp;
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
+	  zfsd_mutex_unlock (&(*volp)->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+
+	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+
+	  if (fh2->ino != fh->ino)
+	    {
+	      *dentry2p = dentry_lookup (fh2);
+#ifdef ENABLE_CHECKING
+	      if (!*dentry2p)
+		abort ();
+#endif
+	    }
+	  else
+	    *dentry2p = *dentryp;
+	}
+    }
+
+  return r;
+}
+
+/* Update generic file DENTRY on volume VOL associated with capability ICAP
+   if needed.  */
+
+int32_t
+update_cap_if_needed (internal_cap *icapp, volume *volp,
+		      internal_dentry *dentryp, virtual_dir *vdp,
+		      zfs_cap *cap)
+{
+  int32_t r, r2;
+  fattr remote_attr;
+  zfs_fh tmp_fh;
+  int how;
+
+  r = ZFS_OK;
+  if ((*volp)->master != this_node)
+    {
+      tmp_fh = (*dentryp)->fh->local_fh;
+      how = update_p (volp, dentryp, &tmp_fh, &remote_attr);
+      if (how)
+	{
+	  r = update (*volp, *dentryp, &tmp_fh, &remote_attr, how);
+
+	  if (VIRTUAL_FH_P (cap->fh))
+	    zfsd_mutex_lock (&vd_mutex);
+	  r2 = find_capability_nolock (cap, icapp, volp, dentryp, vdp, false);
+	  if (r2 != ZFS_OK)
+	    {
+	      if (VIRTUAL_FH_P (cap->fh))
+		zfsd_mutex_unlock (&vd_mutex);
+	      return r2;
+	    }
+
+	  if (r != ZFS_OK)
+	    {
+	      internal_cap_unlock (*volp, *dentryp, *vdp);
+	      return r;
+	    }
+
+	  if (*vdp)
+	    {
+	      zfsd_mutex_unlock (&(*vdp)->mutex);
+	      zfsd_mutex_unlock (&vd_mutex);
+	    }
+#ifdef ENABLE_CHECKING
+	  if (!*vdp && VIRTUAL_FH_P (cap->fh))
+	    abort ();
+#endif
+	}
+    }
+
+  return r;
+}
+
 /* Return true if file *DENTRYP on volume *VOLP with file handle FH should
    be updated.  Store remote attributes to ATTR.  */
 

@@ -791,7 +791,9 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, dentry, tmp_fh);
+      r = update_fh_if_needed (&vol, &dentry, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_getattr (fa, dentry, vol);
     }
   else if (vol->master != this_node)
@@ -993,7 +995,9 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, dentry, tmp_fh);
+      r = update_fh_if_needed (&vol, &dentry, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_setattr (fa, dentry, sa, vol);
     }
   else if (vol->master != this_node)
@@ -1351,7 +1355,9 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_lookup (res, idir, name, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -1564,7 +1570,9 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_mkdir (res, idir, name, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -1768,7 +1776,9 @@ zfs_rmdir (zfs_fh *dir, string *name)
   path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_rmdir (&st, &path, idir, name, vol);
     }
   else if (vol->master != this_node)
@@ -2139,9 +2149,17 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
-      UPDATE_FH_IF_NEEDED_2 (vol, to_dentry, from_dentry, tmp_to, tmp_from);
+      r = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
+				 &tmp_to, &tmp_from);
+      if (r != ZFS_OK)
+	return r;
       if (tmp_from.ino != tmp_to.ino)
-	UPDATE_FH_IF_NEEDED_2 (vol, from_dentry, to_dentry, tmp_from, tmp_to);
+	{
+	  r = update_fh_if_needed_2 (&vol, &from_dentry, &to_dentry,
+				     &tmp_from, &tmp_to);
+	  if (r != ZFS_OK)
+	    return r;
+	}
       r = local_rename (&st_old, &st_new, &path, from_dentry, from_name,
 			to_dentry, to_name, vol);
     }
@@ -2473,9 +2491,17 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
-      UPDATE_FH_IF_NEEDED_2 (vol, dir_dentry, from_dentry, tmp_dir, tmp_from);
+      r = update_fh_if_needed_2 (&vol, &dir_dentry, &from_dentry,
+				 &tmp_dir, &tmp_from);
+      if (r != ZFS_OK)
+	return r;
       if (tmp_from.ino != tmp_dir.ino)
-	UPDATE_FH_IF_NEEDED_2 (vol, from_dentry, dir_dentry, tmp_from, tmp_dir);
+	{
+	  r = update_fh_if_needed_2 (&vol, &from_dentry, &dir_dentry,
+				     &tmp_from, &tmp_dir);
+	  if (r != ZFS_OK)
+	    return r;
+	}
       r = local_link (from_dentry, dir_dentry, name, vol);
     }
   else if (vol->master != this_node)
@@ -2696,7 +2722,9 @@ zfs_unlink (zfs_fh *dir, string *name)
   path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_unlink (&st, &path, idir, name, vol);
     }
   else if (vol->master != this_node)
@@ -3160,7 +3188,9 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_symlink (res, idir, name, to, attr, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -3387,7 +3417,9 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_mknod (res, idir, name, attr, type, rdev, vol, &meta);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);

@@ -487,7 +487,9 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   exists = false;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      if (r != ZFS_OK)
+	return r;
       r = local_create (res, &fd, idir, name, flags, attr, vol, &meta, &exists);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -728,7 +730,9 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   flags &= ~O_ACCMODE;
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      UPDATE_CAP_IF_NEEDED (icap, vol, dentry, vd, tmp_cap);
+      r = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap);
+      if (r != ZFS_OK)
+	return r;
 
       if (vol->master != this_node)
 	{
