@@ -1,6 +1,6 @@
 /*
    File operations.
-   Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -38,7 +38,7 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 	read_args args;
 	int error;
 
-	TRACE("zfs: read: '%s': %lld\n", file->f_dentry->d_name.name, *off);
+	TRACE("'%s': %lld", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
 	args.offset = *off;
@@ -60,7 +60,7 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 	write_args args;
 	int error;
 
-	TRACE("zfs: write: '%s': %lld\n", file->f_dentry->d_name.name, *off);
+	TRACE("'%s': %lld", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
 	args.offset = *off;
@@ -88,7 +88,7 @@ int zfs_open(struct inode *inode, struct file *file)
 	open_args args;
 	int error;
 
-	TRACE("zfs: open: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	if ((file->f_flags & O_CREAT) && dentry->d_fsdata) {
 		file->private_data = dentry->d_fsdata;
@@ -119,7 +119,7 @@ int zfs_release(struct inode *inode, struct file *file)
 {
 	int error;
 
-	TRACE("zfs: release: '%s'\n", file->f_dentry->d_name.name);
+	TRACE("'%s'", file->f_dentry->d_name.name);
 
 	error = zfsd_close(CAP(file->private_data));
 
@@ -134,7 +134,7 @@ static int zfs_readpage(struct file *file, struct page *page)
 	read_args args;
 	int error = 0;
 
-	TRACE("zfs: readpage: '%s': %lu\n", file->f_dentry->d_name.name, page->index);
+	TRACE("'%s': %lu", file->f_dentry->d_name.name, page->index);
 
 	if (PageUptodate(page))
 		goto out;

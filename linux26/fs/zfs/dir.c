@@ -1,6 +1,6 @@
 /*
    Directory operations.
-   Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -33,7 +33,7 @@ static int zfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 	read_dir_args args;
 	int error;
 
-	TRACE("zfs: readdir: '%s'\n", file->f_dentry->d_name.name);
+	TRACE("'%s'", file->f_dentry->d_name.name);
 
 	if (file->f_pos == -1)
 		return 0;

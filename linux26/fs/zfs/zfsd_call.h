@@ -1,6 +1,6 @@
 /*
-   ZFSd operations.
-   Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
+   Functions to call ZFSd.
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 

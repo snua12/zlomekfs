@@ -1,6 +1,6 @@
 /*
    Inode operations.
-   Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -129,7 +129,7 @@ struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 {
 	struct inode *inode;
 
-	TRACE("zfs: iget: %u\n", fh->ino);
+	TRACE("%u", fh->ino);
 
 	inode = iget5_locked(sb, HASH(fh), zfs_test_inode, zfs_set_inode, fh);
 
@@ -146,7 +146,7 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 	struct inode *inode = dentry->d_inode;
 	fattr attr;
 
-	TRACE("zfs: d_revalidate: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	if (!inode)
 		return 1;
@@ -176,7 +176,7 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 	struct inode *inode;
 	int error;
 
-	TRACE("zfs: create: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	args.where.dir = ZFS_I(dir)->fh;
 	args.where.name.str = (char *)dentry->d_name.name;
@@ -224,7 +224,7 @@ static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struc
 	struct inode *inode;
 	int error;
 
-	TRACE("zfs: lookup: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	if (dentry->d_name.len > ZFS_MAXNAMELEN)
 		return ERR_PTR(-ENAMETOOLONG);
@@ -259,7 +259,7 @@ static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry 
 	link_args args;
 	int error;
 
-	TRACE("zfs: link: '%s' -> '%s'\n", dst_dentry->d_name.name, src_dentry->d_name.name);
+	TRACE("'%s' -> '%s'", dst_dentry->d_name.name, src_dentry->d_name.name);
 
 	args.from = ZFS_I(inode)->fh;
 	args.to.dir = ZFS_I(dir)->fh;
@@ -292,7 +292,7 @@ static int zfs_unlink(struct inode *dir, struct dentry *dentry)
 	dir_op_args args;
 	int error;
 
-	TRACE("zfs: unlink: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	args.dir = ZFS_I(dir)->fh;
 	args.name.str = (char *)dentry->d_name.name;
@@ -320,7 +320,7 @@ static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old
 	struct inode *inode;
 	int error;
 
-	TRACE("zfs: symlink: '%s' -> '%s'\n", dentry->d_name.name, old_name);
+	TRACE("'%s' -> '%s'", dentry->d_name.name, old_name);
 
 	if (strlen(old_name) > ZFS_MAXPATHLEN)
 		return -ENAMETOOLONG;
@@ -365,7 +365,7 @@ static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 	struct inode *inode;
 	int error;
 
-	TRACE("zfs: mkdir: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	args.where.dir = ZFS_I(dir)->fh;
 	args.where.name.str = (char *)dentry->d_name.name;
@@ -406,7 +406,7 @@ static int zfs_rmdir(struct inode *dir, struct dentry *dentry)
 	dir_op_args args;
 	int error;
 
-	TRACE("zfs: rmdir: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	args.dir = ZFS_I(dir)->fh;
 	args.name.str = (char *)dentry->d_name.name;
@@ -434,7 +434,7 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 	struct inode *inode;
 	int error;
 
-	TRACE("zfs: mknod: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	args.where.dir = ZFS_I(dir)->fh;
 	args.where.name.str = (char *)dentry->d_name.name;
@@ -475,7 +475,7 @@ static int zfs_rename(struct inode *old_dir, struct dentry *old_dentry, struct i
 	rename_args args;
 	int error;
 
-	TRACE("zfs: rename: '%s' -> '%s'\n", old_dentry->d_name.name, new_dentry->d_name.name);
+	TRACE("'%s' -> '%s'", old_dentry->d_name.name, new_dentry->d_name.name);
 
 	args.from.dir = ZFS_I(old_dir)->fh;
 	args.from.name.str = (char *)old_dentry->d_name.name;
@@ -510,7 +510,7 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 	sattr_args args;
 	int error;
 
-	TRACE("zfs: setattr: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	args.file = ZFS_I(inode)->fh;
 	zfs_iattr_to_sattr(&args.attr, iattr);
@@ -533,7 +533,7 @@ static int zfs_readlink(struct dentry *dentry, char __user *buf, int buflen)
 	read_link_res res;
 	int error;
 
-	TRACE("zfs: readlink: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	error = zfsd_readlink(&res, &ZFS_I(inode)->fh);
 	if (error) {
@@ -551,7 +551,7 @@ static int zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
 	read_link_res res;
 	int error;
 
-	TRACE("zfs: follow_link: '%s'\n", dentry->d_name.name);
+	TRACE("'%s'", dentry->d_name.name);
 
 	error = zfsd_readlink(&res, &ZFS_I(inode)->fh);
 	if (error) {

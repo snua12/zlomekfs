@@ -1,6 +1,6 @@
 /*
    Module definitions.
-   Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -34,12 +34,12 @@
 #include "zfs_prot.h"
 
 
-#define ERROR(x...) printk(KERN_ERR x)
-#define WARN(x...) printk(KERN_WARNING x)
-#define INFO(x...) printk(KERN_INFO x)
+#define ERROR(format, ...) printk(KERN_ERR "zfs: " format "\n", ##__VA_ARGS__)
+#define WARN(format, ...) printk(KERN_WARNING "zfs: " format "\n", ##__VA_ARGS__)
+#define INFO(format, ...) printk(KERN_INFO "zfs: " format "\n", ##__VA_ARGS__)
 
 #ifdef DEBUG
-# define TRACE(x...) printk(KERN_INFO x)
+# define TRACE(format, ...) printk(KERN_INFO "zfs: %s(): " format "\n", __func__, ##__VA_ARGS__)
 #else
 # define TRACE(...)
 #endif
@@ -72,6 +72,9 @@ extern struct channel {
 	struct semaphore request_id_lock;
 	uint32_t request_id;
 
+	struct semaphore req_pending_count;
+					/* count of requests in the req_pending
+					   queue */
 	struct semaphore req_pending_lock;
 	struct list_head req_pending;	/* queue of requests which have been
 					   prepared but not sent to zfsd yet */
@@ -81,17 +84,12 @@ extern struct channel {
 					/* hashtable of requests which have
 					   been sent to zfsd but corresponding
 					   response has not been received */
-
-	wait_queue_head_t waitq;	/* wait queue of zfsd threads which
-					   want to receive request but none
-					   is prepared */
 } channel;
 
 enum request_state {REQ_PENDING, REQ_PROCESSING, REQ_DEQUEUED};
 
 struct request {
 	struct semaphore lock;
-	struct semaphore wake_up_lock;
 	enum request_state state;
 	unsigned int id;		/* unique request id */
 	DC *dc;				/* the message */

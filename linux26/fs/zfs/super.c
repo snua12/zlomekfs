@@ -1,6 +1,6 @@
 /*
    Superblock operations.
-   Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -51,14 +51,14 @@ static struct inode *zfs_alloc_inode(struct super_block *sb)
 	if (!ei)
 		return NULL;
 
-	TRACE("zfs: alloc_inode: %p\n", &ei->vfs_inode);
+	TRACE("%p", &ei->vfs_inode);
 
 	return &ei->vfs_inode;
 }
 
 static void zfs_destroy_inode(struct inode *inode)
 {
-	TRACE("zfs: destroy_inode: %p\n", inode);
+	TRACE("%p", inode);
 
 	kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
 }
@@ -88,7 +88,12 @@ static int zfs_init_inodecache(void)
 static void zfs_destroy_inodecache(void)
 {
 	if (kmem_cache_destroy(zfs_inode_cachep))
-		INFO("zfs_inode_cache: not all structures were freed\n");
+		INFO("zfs_inode_cache: not all structures were freed");
+}
+
+static void zfs_put_super(struct super_block *sb)
+{
+	INFO("UMOUNT");
 }
 
 static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
@@ -103,6 +108,7 @@ static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
 static struct super_operations zfs_super_operations = {
 	.alloc_inode    = zfs_alloc_inode,
 	.destroy_inode  = zfs_destroy_inode,
+	.put_super	= zfs_put_super,
 	.statfs		= zfs_statfs,
 };
 
@@ -115,10 +121,10 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 	struct inode *root_inode;
 	int error;
 
-	TRACE("zfs: fill_super\n");
+	INFO("MOUNT");
 
 	if (!channel.connected) {
-		ERROR("zfs: zfsd has not opened communication device\n");
+		ERROR("zfsd has not opened communication device");
 		return -EIO;
 	}
 
@@ -161,16 +167,18 @@ static int __init zfs_init(void)
 {
 	int error;
 
+	INFO("INIT");
+
 	error = register_chrdev(ZFS_CHARDEV_MAJOR, "zfs", &zfs_chardev_file_operations);
 	if (error) {
-		ERROR("zfs: unable to register chardev major %d!\n", ZFS_CHARDEV_MAJOR);
+		ERROR("unable to register chardev major %d!", ZFS_CHARDEV_MAJOR);
 		return error;
 	}
 
 	error = zfs_init_inodecache();
 	if (error) {
 		unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
-		ERROR("zfs: unable to create zfs inode cache\n");
+		ERROR("unable to create zfs inode cache!");
 		return error;
 	}
 
@@ -178,7 +186,7 @@ static int __init zfs_init(void)
 	if (error) {
 		zfs_destroy_inodecache();
 		unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
-		ERROR("zfs: unable to register filesystem!\n");
+		ERROR("unable to register filesystem!");
 		return error;
 	}
 
@@ -189,6 +197,8 @@ static int __init zfs_init(void)
 
 static void __exit zfs_exit(void)
 {
+	INFO("EXIT");
+
 	unregister_filesystem(&zfs_type);
 	zfs_destroy_inodecache();
 	unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
