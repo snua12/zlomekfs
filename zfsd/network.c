@@ -892,6 +892,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	    }
 	  pthread_mutex_unlock (&active_mutex);
 	  free (pfd);
+	  message (2, stderr, "Terminating...\n");
 	  return NULL;
 	}
 
@@ -1179,6 +1180,13 @@ server_init_fd_data ()
 int
 server_cleanup ()
 {
-  /* TODO: kill threads and wait 4 threads to die.  */
+  /* TODO: for each thread waiting for reply do:
+     set retval to indicate we are exiting
+     unlock the thread	*/
+
+  pthread_kill (&server_regulator_data.thread_id, SIGUSR1);
+  thread_pool_destroy (&server_pool);
+
+  message (2, stderr, "Idle server threads were terminated\n");
   return 0;
 }
