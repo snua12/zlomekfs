@@ -301,12 +301,13 @@ node_has_valid_fd (node nod)
   return true;
 }
 
-/* Return true if current node is connected to master of volume VOL.  */
+/* Return the speed of connection between current node and master
+   of volume VOL.  */
 
-bool
+connection_speed 
 volume_master_connected (volume vol)
 {
-  bool r;
+  connection_speed speed;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -317,15 +318,21 @@ volume_master_connected (volume vol)
   if (!node_has_valid_fd (vol->master))
     {
       zfsd_mutex_unlock (&vol->master->mutex);
-      return false;
+      return CONNECTION_SPEED_NONE;
     }
 
-  r = (fd_data_a[vol->master->fd].auth == AUTHENTICATION_FINISHED);
+  if (fd_data_a[vol->master->fd].auth != AUTHENTICATION_FINISHED)
+    {
+      zfsd_mutex_unlock (&fd_data_a[vol->master->fd].mutex);
+      zfsd_mutex_unlock (&vol->master->mutex);
+      return CONNECTION_SPEED_NONE;
+    }
 
+  speed = fd_data_a[vol->master->fd].speed;
   zfsd_mutex_unlock (&fd_data_a[vol->master->fd].mutex);
   zfsd_mutex_unlock (&vol->master->mutex);
 
-  return r;
+  return speed;
 }
 
 /* Connect to node NOD, return open file descriptor.  */
