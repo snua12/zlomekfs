@@ -1629,6 +1629,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 	{
 	  string name;
 
+	  /* Create a modify-modify or an attr-attr conflict.  */
 	  xstringdup (&name, &dentry->name);
 	  release_dentry (dentry);
 	  conflict = create_conflict (vol, parent, &name, fh,
@@ -2156,6 +2157,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		abort ();
 #endif
 
+	      /* Create a create-create or an attr-attr conflict.  */
 	      conflict = create_conflict (vol, dir, &entry->name,
 					  &local_res.file, &local_res.attr);
 	      add_file_to_conflict_dir (vol, conflict, true, &local_res.file,
@@ -2202,6 +2204,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    abort ();
 #endif
 
+	  /* Create a modify-delete conflict.  */
 	  remote_res.file.sid = dir->fh->meta.master_fh.sid;
 	  conflict = create_conflict (vol, dir, &entry->name, &local_res.file,
 				      &local_res.attr);
@@ -2388,6 +2391,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	      {
 		if (!ZFS_FH_EQ (meta.master_fh, res.file))
 		  {
+		    /* Create a create-create conflict.  */
 		    conflict = create_conflict (vol, dir, &entry->name,
 						&local_res.file,
 						&local_res.attr);
