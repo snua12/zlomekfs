@@ -137,8 +137,8 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   pool->size = max_threads;
   pool->unaligned_array = xmalloc (max_threads * sizeof (padded_thread) + 255);
   pool->threads = (padded_thread *) ALIGN_PTR_256 (pool->unaligned_array);
-  queue_create (&pool->idle, max_threads);
-  queue_create (&pool->empty, max_threads);
+  queue_create (&pool->idle, sizeof (size_t), max_threads);
+  queue_create (&pool->empty, sizeof (size_t), max_threads);
 
   zfsd_mutex_lock (&pool->empty.mutex);
   for (i = 0; i < max_threads; i++)
@@ -146,7 +146,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
       zfsd_mutex_init (&pool->threads[i].t.mutex);
       set_thread_state (&pool->threads[i].t, THREAD_DEAD);
       pool->threads[i].t.index = i;
-      queue_put (&pool->empty, i);
+      queue_put (&pool->empty, &i);
     }
   zfsd_mutex_unlock (&pool->empty.mutex);
 }
@@ -171,8 +171,6 @@ thread_pool_destroy (thread_pool *pool)
   /* Some thread may have these mutexes locked, wait for it to unlock them.  */
   zfsd_mutex_lock (&pool->idle.mutex);
   zfsd_mutex_lock (&pool->empty.mutex);
-  zfsd_mutex_unlock (&pool->empty.mutex);
-  zfsd_mutex_unlock (&pool->idle.mutex);
 
   for (i = 0; i < pool->size; i++)
     {
@@ -191,18 +189,21 @@ int
 create_idle_thread (thread_pool *pool, thread_start start,
 		    thread_initialize init)
 {
-  size_t index = queue_get (&pool->empty);
-  thread *t = &pool->threads[index].t;
+  size_t index;
+  thread *t;
   int r;
 
   CHECK_MUTEX_LOCKED (&pool->idle.mutex);
   CHECK_MUTEX_LOCKED (&pool->empty.mutex);
 
+  queue_get (&pool->empty, &index);
+  t = &pool->threads[index].t;
+
   r = semaphore_init (&t->sem, 0);
   if (r != 0)
     {
       t->state = THREAD_DEAD;
-      queue_put (&pool->empty, index);
+      queue_put (&pool->empty, &index);
       message (-1, stderr, "semaphore_init() failed\n");
       return r;
     }
@@ -215,13 +216,13 @@ create_idle_thread (thread_pool *pool, thread_start start,
       if (init)
 	(*init) (t);
 
-      queue_put (&pool->idle, index);
+      queue_put (&pool->idle, &index);
     }
   else
     {
       semaphore_destroy (&t->sem);
       t->state = THREAD_DEAD;
-      queue_put (&pool->empty, index);
+      queue_put (&pool->empty, &index);
       message (-1, stderr, "pthread_create() failed\n");
     }
 
@@ -234,12 +235,15 @@ create_idle_thread (thread_pool *pool, thread_start start,
 int
 destroy_idle_thread (thread_pool *pool)
 {
-  size_t index = queue_get (&pool->idle);
-  thread *t = &pool->threads[index].t;
+  size_t index;
+  thread *t;
   int r;
 
   CHECK_MUTEX_LOCKED (&pool->idle.mutex);
   CHECK_MUTEX_LOCKED (&pool->empty.mutex);
+
+  queue_get (&pool->idle, &index);
+  t = &pool->threads[index].t;
 
   set_thread_state (t, THREAD_DYING);
   semaphore_up (&t->sem, 1);
@@ -248,7 +252,7 @@ destroy_idle_thread (thread_pool *pool)
     {
       semaphore_destroy (&t->sem);
       set_thread_state (t, THREAD_DEAD);
-      queue_put (&pool->empty, index);
+      queue_put (&pool->empty, &index);
     }
   else
     {

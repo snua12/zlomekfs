@@ -1,5 +1,5 @@
-/* Cyclic queue datatype.
-   Copyright (C) 2003 Josef Zlomek
+/* Dynamic queue datatype.
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -24,21 +24,28 @@
 #include "system.h"
 #include <stddef.h>
 #include "pthread.h"
+#include "alloc-pool.h"
+
+typedef struct queue_node_def
+{
+  struct queue_node_def *next;	/* next node in the chain */
+  char data[1];			/* data */
+} *queue_node;
 
 typedef struct queue_def
 {
   pthread_mutex_t mutex;	/* mutex for accessing the queue */
   pthread_cond_t non_empty;	/* cond. var. for waiting while (nelem == 0) */
-  size_t *queue;		/* the queue itself */
-  size_t size;			/* size of the queue */
-  size_t nelem;			/* number of elements in the queue */
-  size_t start;			/* start of the queue */
-  size_t end;			/* end of the queue */
+  alloc_pool pool;		/* alloc pool for elements of the queue */
+  unsigned int nelem;		/* number of elements in the queue */
+  unsigned int size;		/* size of an element */
+  queue_node first;		/* first node of the queue */
+  queue_node last;		/* last node of the queue */
 } queue;
 
-extern void queue_create (queue *q, size_t size);
+extern void queue_create (queue *q, size_t size, size_t num);
 extern void queue_destroy (queue *q);
-extern void queue_put (queue *q, size_t elem);
-extern size_t queue_get (queue *q);
+extern void queue_put (queue *q, void *elem);
+extern void queue_get (queue *q, void *elem);
 
 #endif

@@ -211,7 +211,7 @@ out:
       zfsd_mutex_lock (&kernel_pool.idle.mutex);
       if (get_thread_state (t) == THREAD_BUSY)
 	{
-	  queue_put (&kernel_pool.idle, t->index);
+	  queue_put (&kernel_pool.idle, &t->index);
 	  set_thread_state (t, THREAD_IDLE);
 	}
       else
@@ -257,7 +257,7 @@ kernel_dispatch (DC *dc)
 	thread_pool_regulate (&kernel_pool, kernel_worker, NULL);
 
 	/* Select an idle thread and forward the request to it.  */
-	index = queue_get (&kernel_pool.idle);
+	queue_get (&kernel_pool.idle, &index);
 #ifdef ENABLE_CHECKING
 	if (get_thread_state (&kernel_pool.threads[index].t) == THREAD_BUSY)
 	  abort ();

@@ -432,7 +432,7 @@ out:
       zfsd_mutex_lock (&network_pool.idle.mutex);
       if (get_thread_state (t) == THREAD_BUSY)
 	{
-	  queue_put (&network_pool.idle, t->index);
+	  queue_put (&network_pool.idle, &t->index);
 	  set_thread_state (t, THREAD_IDLE);
 	}
       else
@@ -522,7 +522,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	thread_pool_regulate (&network_pool, network_worker, NULL);
 
 	/* Select an idle thread and forward the request to it.  */
-	index = queue_get (&network_pool.idle);
+	queue_get (&network_pool.idle, &index);
 #ifdef ENABLE_CHECKING
 	if (get_thread_state (&network_pool.threads[index].t) == THREAD_BUSY)
 	  abort ();

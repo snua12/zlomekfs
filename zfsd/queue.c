@@ -25,10 +25,11 @@
 #include "log.h"
 #include "memory.h"
 
-/* Initialize queue Q to be a queue with at most SIZE elements.  */
+/* Initialize queue Q to be a queue with elements of size SIZE.
+   Alloc queue nodes in chunks of NUM nodes.  */
 
 void
-queue_create (queue *q, size_t size)
+queue_create (queue *q, size_t size, size_t num)
 {
 #ifdef ENABLE_CHECKING
   if (size == 0)
@@ -37,11 +38,12 @@ queue_create (queue *q, size_t size)
 
   zfsd_mutex_init (&q->mutex);
   zfsd_cond_init (&q->non_empty);
-  q->queue = (size_t *) xmalloc (size * sizeof (size_t));
-  q->size = size;
+  q->pool = create_alloc_pool ("queue_node", sizeof (void *) + size, num,
+			       &q->mutex);
   q->nelem = 0;
-  q->start = 0;
-  q->end = 0;
+  q->size = size;
+  q->first = NULL;
+  q->last = NULL;
 }
 
 /* Destroy the queue Q.  */
@@ -49,44 +51,57 @@ queue_create (queue *q, size_t size)
 void
 queue_destroy (queue *q)
 {
+  CHECK_MUTEX_LOCKED (&q->mutex);
 #ifdef ENABLE_CHECKING
   if (q->size == 0)
     abort ();
 #endif
 
   q->size = 0;
+  free_alloc_pool (q->pool);
   zfsd_cond_destroy (&q->non_empty);
+  zfsd_mutex_unlock (&q->mutex);
   zfsd_mutex_destroy (&q->mutex);
-  free (q->queue);
 }
 
 /* Put an element ELEM to the queue Q.  */
 
 void
-queue_put (queue *q, size_t elem)
+queue_put (queue *q, void *elem)
 {
+  queue_node node;
+
   CHECK_MUTEX_LOCKED (&q->mutex);
 #ifdef ENABLE_CHECKING
   if (q->size == 0)
     abort ();
-  if (q->nelem == q->size)
-    abort ();
 #endif
 
-  q->queue[q->end] = elem;
-  q->end++;
-  if (q->end == q->size)
-    q->end = 0;
+  node = (queue_node) pool_alloc (q->pool);
+  node->next = NULL;
+  memcpy (node->data, elem, q->size);
+
+  if (q->last)
+    {
+      q->last->next = node;
+      q->last = node;
+    }
+  else
+    {
+      q->first = node;
+      q->last = node;
+    }
+
   q->nelem++;
   zfsd_cond_signal (&q->non_empty);
 }
 
-/* Get an element from the queue Q.  */
+/* Get an element from the queue Q and store it to ELEM.  */
 
-size_t
-queue_get (queue *q)
+void
+queue_get (queue *q, void *elem)
 {
-  size_t r;
+  queue_node node;
 
   CHECK_MUTEX_LOCKED (&q->mutex);
 #ifdef ENABLE_CHECKING
@@ -97,11 +112,16 @@ queue_get (queue *q)
   while (q->nelem == 0)
     zfsd_cond_wait (&q->non_empty, &q->mutex);
 
-  r = q->queue[q->start];
-  q->start++;
-  if (q->start == q->size)
-    q->start = 0;
-  q->nelem--;
+  node = q->first;
+#ifdef ENABLE_CHECKING
+  if (!node)
+    abort ();
+#endif
 
-  return r;
+  if (q->first == q->last)
+    q->last = NULL;
+
+  q->first = q->first->next;
+  q->nelem--;
+  memcpy (elem, node->data, q->size);
 }
