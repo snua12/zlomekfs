@@ -1000,8 +1000,9 @@ load_interval_trees (volume vol, internal_fh fh)
 bool
 save_interval_trees (volume vol, internal_fh fh)
 {
-  CHECK_MUTEX_LOCKED (&fh->mutex);
   bool r = true;
+
+  CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (fh->updated)
     r &= free_interval_tree (vol, fh, INTERVAL_TREE_UPDATED);
