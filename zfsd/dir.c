@@ -4413,8 +4413,8 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 {
   string path;
   string shadow_path;
-  uint32_t vid;
   metadata meta_old, meta_new;
+  uint32_t vid;
   int32_t r;
 
   TRACE ("");
@@ -4463,13 +4463,11 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
    on volume VOL to shadow.  */
 
 static bool
-move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
-		metadata *meta)
+move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 {
-  struct stat parent_st;
   string path;
   string shadow_path;
-  string file_name;
+  metadata meta_old, meta_new;
   uint32_t vid;
   int32_t r;
 
@@ -4498,21 +4496,6 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  if (rename (path.str, shadow_path.str) != 0)
-    {
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-
-  r = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-  if (r == ZFS_OK)
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      internal_dentry_destroy (dir, false, true);
-      zfsd_mutex_unlock (&fh_mutex);
-    }
-
   vol = volume_lookup (vid);
   if (!vol)
     {
@@ -4521,29 +4504,11 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  file_name_from_path (&file_name, &shadow_path);
-  file_name.str[-1] = 0;
-  if (lstat (shadow_path.str[0] ? shadow_path.str : "/", &parent_st) != 0)
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-  file_name.str[-1] = '/';
+  r = local_rename_base (&meta_old, &meta_new, false, &path, &shadow_path,
+			 vol);
+  if (r != ZFS_OK)
+    return false;
 
-  if (!metadata_hardlink_set (vol, fh, meta, parent_st.st_dev,
-			      parent_st.st_ino, &file_name))
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-
-  zfsd_mutex_unlock (&vol->mutex);
-  free (path.str);
-  free (shadow_path.str);
   return true;
 }
 
@@ -4875,7 +4840,7 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
     }
   else
     {
-      if (!move_to_shadow (vol, fh, dir, name, &meta))
+      if (!move_to_shadow (vol, fh, dir, name))
 	return ZFS_UPDATE_FAILED;
     }
 
