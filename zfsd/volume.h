@@ -40,8 +40,7 @@ struct volume_def
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
 
-  zfs_fh local_root_fh;		/* file handle of local root.  */
-  zfs_fh master_root_fh;	/* file handle of root on master node.  */
+  internal_fh root_fh;		/* file handle of root on underlying FS.  */
   virtual_dir root_vd;		/* virtual directory for the mountpoint */
   htab_t fh_htab;		/* hash table of used file handles,
 				   searched by local_fh */

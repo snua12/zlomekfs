@@ -93,8 +93,7 @@ volume_create (unsigned int id)
   vol->flags = 0;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
-  vol->local_root_fh = root_fh;
-  vol->master_root_fh = root_fh;
+  vol->root_fh = NULL;
   vol->root_vd = NULL;
 
   zfsd_mutex_init (&vol->mutex);

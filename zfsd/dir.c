@@ -251,17 +251,18 @@ update_volume_root (volume vol, internal_fh *ifh)
   if (r != ZFS_OK)
     return r;
 
-  if (!ZFS_FH_EQ (vol->local_root_fh, local_fh)
-      || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
+  if (vol->root_fh == NULL
+      || !ZFS_FH_EQ (vol->root_fh->local_fh, local_fh)
+      || !ZFS_FH_EQ (vol->root_fh->master_fh, master_fh))
     {
       /* FIXME? delete only FHs which are not open now?  */
       htab_empty (vol->fh_htab_name);
       htab_empty (vol->fh_htab);
 
-      vol->local_root_fh = local_fh;
-      vol->master_root_fh = master_fh;
-      *ifh = internal_fh_create (&local_fh, &master_fh, NULL, vol, "", &attr);
+      vol->root_fh = internal_fh_create (&local_fh, &master_fh, NULL,
+					 vol, "", &attr);
     }
+  *ifh = vol->root_fh;
 
   return r;
 }
