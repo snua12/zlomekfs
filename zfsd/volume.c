@@ -77,6 +77,22 @@ volume_lookup (uint32_t id)
   return vol;
 }
 
+/* Return the volume with volume ID == ID.  */
+
+volume
+volume_lookup_nolock (uint32_t id)
+{
+  volume vol;
+
+  CHECK_MUTEX_LOCKED (&volume_mutex);
+
+  vol = (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
+  if (vol)
+    zfsd_mutex_lock (&vol->mutex);
+
+  return vol;
+}
+
 /* Create volume structure and fill it with information.  */
 
 volume
@@ -124,15 +140,15 @@ volume_destroy (volume vol)
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  virtual_mountpoint_destroy (vol);
-
   if (vol->root_dentry)
     {
       zfsd_mutex_lock (&fh_mutex);
       zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-      internal_dentry_destroy (vol->root_dentry);
+      internal_dentry_destroy (vol->root_dentry, false);
       zfsd_mutex_unlock (&fh_mutex);
     }
+
+  virtual_mountpoint_destroy (vol);
 
   if (vol->metadata)
     close_volume_metadata (vol);
@@ -152,6 +168,39 @@ volume_destroy (volume vol)
   free (vol->mountpoint);
   free (vol->name);
   free (vol);
+}
+
+/* Destroy volume VOL and free memory associated with it.
+   Destroy dentries while volume_mutex is unlocked.
+   This function expects fh_mutex to be locked.  */
+
+void
+volume_delete (volume vol)
+{
+  uint32_t vid = vol->id;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  /* Destroy dentries on volume.  */
+  if (vol->root_dentry)
+    {
+      internal_dentry dentry;
+
+      dentry = vol->root_dentry;
+      zfsd_mutex_lock (&dentry->fh->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
+      internal_dentry_destroy (dentry, true);
+    }
+  else
+    zfsd_mutex_unlock (&vol->mutex);
+
+  /* Destroy volume.  */
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_lookup_nolock (vid);
+  if (vol)
+    volume_destroy (vol);
+  zfsd_mutex_unlock (&volume_mutex);
 }
 
 /* Set the information common for all volume types.  */

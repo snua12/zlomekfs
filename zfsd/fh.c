@@ -276,7 +276,7 @@ cleanup_unused_dentries ()
 		  continue;
 		}
 
-	      internal_dentry_destroy (dentry);
+	      internal_dentry_destroy (dentry, true);
 	      zfsd_mutex_unlock (&fh_mutex);
 	    }
 	}
@@ -447,6 +447,12 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	      zfsd_mutex_unlock (&fh_mutex);
 	      return ENOENT;
 	    }
+	  if (vol->flags & VOLUME_DELETE)
+	    {
+	      volume_delete (vol);
+	      zfsd_mutex_unlock (&fh_mutex);
+	      return ENOENT;
+	    }
 
 	  if (!volume_active_p (vol))
 	    {
@@ -529,7 +535,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 	    vid = vol->id;
 	  zfsd_mutex_unlock (&vol->mutex);
 
-	  internal_dentry_destroy (dentry);
+	  internal_dentry_destroy (dentry, true);
 
 	  if (dir)
 	    {
@@ -751,7 +757,7 @@ internal_dentry_unlock (internal_dentry dentry)
       dentry->fh->owner = 0;
       if (dentry->deleted)
 	{
-	  internal_dentry_destroy (dentry);
+	  internal_dentry_destroy (dentry, true);
 	}
       else
 	{
@@ -1240,10 +1246,11 @@ internal_dentry_move (internal_dentry dentry, volume vol,
   return true;
 }
 
-/* Destroy internal dentry DENTRY.  */
+/* Destroy internal dentry DENTRY.  Clear vol->root_dentry if
+   CLEAR_VOLUME_ROOT.  */
 
 void
-internal_dentry_destroy (internal_dentry dentry)
+internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
 {
   zfs_fh tmp_fh;
   void **slot;
@@ -1265,7 +1272,7 @@ internal_dentry_destroy (internal_dentry dentry)
 	  subdentry = VARRAY_TOP (dentry->fh->subdentries, internal_dentry);
 	  zfsd_mutex_lock (&subdentry->fh->mutex);
 	  zfsd_mutex_unlock (&dentry->fh->mutex);
-	  internal_dentry_destroy (subdentry);
+	  internal_dentry_destroy (subdentry, false);
 
 	  tmp1 = dentry_lookup (&tmp_fh);
 	  tmp2 = tmp1;
@@ -1375,6 +1382,17 @@ internal_dentry_destroy (internal_dentry dentry)
 	  cleanup_dentry_insert_node (dentry->parent);
 	}
       zfsd_mutex_unlock (&dentry->parent->fh->mutex);
+    }
+  else if (clear_volume_root)
+    {
+      volume vol;
+
+      vol = volume_lookup (dentry->fh->local_fh.vid);
+      if (vol)
+	{
+	  vol->root_dentry = NULL;
+	  zfsd_mutex_unlock (&vol->mutex);
+	}
     }
 
   slot = htab_find_slot_with_hash (dentry_htab, &dentry->fh->local_fh,

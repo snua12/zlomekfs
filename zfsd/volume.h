@@ -71,6 +71,7 @@ extern pthread_mutex_t volume_mutex;
 extern volume volume_lookup (uint32_t id);
 extern volume volume_create (uint32_t id);
 extern void volume_destroy (volume vol);
+extern void volume_delete (volume vol);
 extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);
 extern bool volume_set_local_info (volume vol, const char *local_path,

@@ -183,7 +183,7 @@ out:
   zfsd_mutex_lock (&fh_mutex);
   dentry = dentry_lookup (&fh);
   if (dentry)
-    internal_dentry_destroy (dentry);
+    internal_dentry_destroy (dentry, true);
   zfsd_mutex_unlock (&fh_mutex);
 
   return r;
@@ -436,6 +436,18 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   vid = vol->id;
+
+  if (vol->flags & VOLUME_DELETE)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_lock (&fh_mutex);
+      vol = volume_lookup (vid);
+      if (vol)
+	volume_delete (vol);
+      zfsd_mutex_unlock (&fh_mutex);
+      return ENOENT;
+    }
+
   local_fhp = (vol->local_path ? &local_fh : NULL);
   master_fhp = (vol->master != this_node ? &master_fh : NULL);
   zfsd_mutex_unlock (&vol->mutex);
