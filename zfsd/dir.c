@@ -3180,30 +3180,54 @@ zfs_hardlinks_retry:
   return r;
 }
 
-/* Recursively refresh path to DIR on volume VOL and lookup NAME.
+/* Recursively refresh path to DIR on volume VOL and lookup ENTRY.
    Store result of REMOTE_LOOKUP to RES (unused).  */
 
 static int32_t
-refresh_path_1 (dir_op_res *res, internal_dentry dir, char *name, volume vol)
+refresh_path_1 (dir_op_res *res, internal_dentry dir, string *entry,
+		volume vol)
 {
+  internal_dentry parent;
+  zfs_fh fh;
+  string name;
   int32_t r;
-  string s;
 
-  if (dir == NULL)
-    return ENOENT;
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  s.str = name;
-  s.len = strlen (name);
-
-  zfsd_mutex_lock (&dir->fh->mutex);
-  r = remote_lookup (res, dir, &s, vol);
+  fh = dir->fh->local_fh;
+  r = remote_lookup (res, dir, entry, vol);
   if (r == ZFS_STALE)
     {
-      r = refresh_path_1 (res, dir->parent, dir->name, vol);
+      r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL);
+      if (r != ZFS_OK)
+	return r;
+
+      parent = dir->parent;
+      if (!parent)
+	{
+	  release_dentry (dir);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ENOENT;
+	}
+
+      zfsd_mutex_lock (&parent->fh->mutex);
+      xmkstring (&name, dir->name);
+      release_dentry (dir);
+      zfsd_mutex_unlock (&fh_mutex);
+
+      r = refresh_path_1 (res, parent, &name, vol);
+
+      free (name.str);
       if (r == ZFS_OK)
-	r = remote_lookup (res, dir, &s, vol);
+	{
+	  r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  r = remote_lookup (res, dir, entry, vol);
+	}
     }
-  release_dentry (dir);
 
   return r;
 }
@@ -3214,21 +3238,34 @@ int32_t
 refresh_path (zfs_fh *fh)
 {
   dir_op_res res;
-  internal_dentry dentry;
+  internal_dentry dentry, parent;
   volume vol;
+  string name;
   int32_t r;
 
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
-  r = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
   if (r != ZFS_OK)
     return r;
 
-  r = refresh_path_1 (&res, dentry->parent, dentry->name, vol);
+  parent = dentry->parent;
+  if (!parent)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&fh_mutex);
+      return ENOENT;
+    }
 
+  zfsd_mutex_lock (&parent->fh->mutex);
+  xmkstring (&name, dentry->name);
   release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  r = refresh_path_1 (&res, parent, &name, vol);
+
+  free (name.str);
 
   return r;
 }
