@@ -33,6 +33,10 @@ print_modetype (uint32_t mode)
   printf (" Mode: ");
   switch (GET_MODETYPE_TYPE (mode))
     {
+      default:
+	printf ("X");
+	break;
+
       case FT_BAD:
 	printf ("x");
 	break;
