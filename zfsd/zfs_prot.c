@@ -508,12 +508,13 @@ zfs_proc_mknod_server (mknod_args *args, DC *dc,
   free (args->where.name.str);
 }
 
-/* ? zfs_proc_auth_stage1 (auth_stage1_args); */
+/* auth_stage1_res zfs_proc_auth_stage1 (auth_stage1_args); */
 
 void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
 			     ATTRIBUTE_UNUSED bool map_id)
 {
+  auth_stage1_res res;
   network_thread_data *t_data = (network_thread_data *) data;
   fd_data_t *fd_data = t_data->fd_data;
   node nod;
@@ -526,8 +527,12 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
       zfsd_cond_broadcast (&fd_data->cond);
-      encode_status (dc, ZFS_OK);
       zfsd_mutex_unlock (&nod->mutex);
+
+      encode_status (dc, ZFS_OK);
+      res.node.str = this_node->name;
+      res.node.len = strlen (this_node->name);
+      encode_auth_stage1_res (dc, &res);
     }
 
   if (!nod)
@@ -564,6 +569,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
 	{
 	  fd_data->auth = AUTHENTICATION_FINISHED;
 	  fd_data->conn = CONNECTION_ESTABLISHED;
+	  fd_data->speed = args->speed;
 	  zfsd_cond_broadcast (&fd_data->cond);
 	  encode_status (dc, ZFS_OK);
 	  update_node_fd (nod, fd_data->fd, fd_data->generation, false);

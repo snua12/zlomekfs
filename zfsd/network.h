@@ -44,14 +44,6 @@ typedef enum connection_status_def
   CONNECTION_ESTABLISHED
 } connection_status;
 
-/* Connection speed.  */
-typedef enum connection_speed_def
-{
-  CONNECTION_SPEED_NONE,
-  CONNECTION_SPEED_SLOW,
-  CONNECTION_SPEED_FAST
-} connection_speed;
-
 /* Status of authentication.  */
 typedef enum authentication_status_def
 {

@@ -37,7 +37,6 @@
 #define ZFS_MAXPATHLEN 1023
 #define ZFS_MAXNAMELEN 255
 #define ZFS_MAXNODELEN 256
-#define ZFS_AUTH_LEN 16
 #define ZFS_VERIFY_LEN MD5_SIZE
 #define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (MD5_SIZE + 2 * sizeof (uint64_t)))
 #define ZFS_MAX_DIR_ENTRIES (ZFS_MAXDATA / (4 * sizeof (uint32_t)))
@@ -95,6 +94,15 @@ typedef enum ftype_def
   FT_FIFO,
   FT_LAST_AND_UNUSED
 } ftype;
+
+/* Connection speed.  */
+typedef enum connection_speed_def
+{
+  CONNECTION_SPEED_NONE = 0,
+  CONNECTION_SPEED_SLOW,
+  CONNECTION_SPEED_FAST,
+  CONNECTION_SPEED_LAST_AND_UNUSED
+} connection_speed;
 
 typedef struct zfs_fh_def
 {
@@ -288,14 +296,17 @@ typedef struct mknod_args_def
 
 typedef struct auth_stage1_args_def
 {
-  char auth[ZFS_AUTH_LEN];
   nodename node;
-  /* uint32_t speed; */
 } auth_stage1_args;
+
+typedef struct auth_stage1_res_def
+{
+  nodename node;
+} auth_stage1_res;
 
 typedef struct auth_stage2_args_def
 {
-  char auth[ZFS_AUTH_LEN];
+  connection_speed speed;
 } auth_stage2_args;
 
 typedef struct md5sum_args_def

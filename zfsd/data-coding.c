@@ -395,6 +395,30 @@ encode_ftype (DC *dc, ftype type)
 }
 
 bool
+decode_connection_speed (DC *dc, connection_speed *speed)
+{
+  uchar speed_val;
+  bool r;
+
+  r = decode_uchar (dc, &speed_val);
+  if (r)
+    {
+      if (speed_val >= CONNECTION_SPEED_LAST_AND_UNUSED)
+	r = false;
+      else
+	*speed = (connection_speed) speed_val;
+    }
+
+  return r;
+}
+
+bool
+encode_connection_speed (DC *dc, connection_speed speed)
+{
+  return encode_uchar (dc, (uchar) speed);
+}
+
+bool
 decode_zfs_fh (DC *dc, zfs_fh *fh)
 {
   return (decode_uint32_t (dc, &fh->sid)
@@ -878,27 +902,37 @@ encode_mknod_args (DC *dc, mknod_args *args)
 bool
 decode_auth_stage1_args (DC *dc, auth_stage1_args *args)
 {
-  return (decode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN)
-	  && decode_nodename (dc, &args->node));
+  return decode_nodename (dc, &args->node);
 }
 
 bool
 encode_auth_stage1_args (DC *dc, auth_stage1_args *args)
 {
-  return (encode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN)
-	  && encode_nodename (dc, &args->node));
+  return encode_nodename (dc, &args->node);
+}
+
+bool
+decode_auth_stage1_res (DC *dc, auth_stage1_res *res)
+{
+  return decode_nodename (dc, &res->node);
+}
+
+bool
+encode_auth_stage1_res (DC *dc, auth_stage1_res *res)
+{
+  return encode_nodename (dc, &res->node);
 }
 
 bool
 decode_auth_stage2_args (DC *dc, auth_stage2_args *args)
 {
-  return decode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN);
+  return decode_connection_speed (dc, &args->speed);
 }
 
 bool
 encode_auth_stage2_args (DC *dc, auth_stage2_args *args)
 {
-  return encode_fixed_buffer (dc, &args->auth, ZFS_AUTH_LEN);
+  return encode_connection_speed (dc, args->speed);
 }
 
 bool

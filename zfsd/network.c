@@ -561,6 +561,7 @@ static int
 node_authenticate (thread *t, node nod, authentication_status auth)
 {
   auth_stage1_args args1;
+  auth_stage1_res res1;
   auth_stage2_args args2;
   int32_t r;
   uint32_t sid;
@@ -638,7 +639,20 @@ again:
 	if (r != ZFS_OK)
 	  goto node_authenticate_error;
 
-	nod = node_lookup (sid);
+	if (!decode_auth_stage1_res (t->dc_reply, &res1))
+	  {
+	    r = ZFS_COULD_NOT_AUTH;
+	    goto node_authenticate_error;
+	  }
+	if (!finish_decoding (t->dc_reply))
+	  {
+	    free (res1.node.str);
+	    r = ZFS_COULD_NOT_AUTH;
+	    goto node_authenticate_error;
+	  }
+
+	nod = node_lookup_name (res1.node.str);
+	free (res1.node.str);
 	if (!nod)
 	  {
 	    r = ZFS_CONNECTION_CLOSED;
@@ -647,6 +661,11 @@ again:
 	if (!node_has_valid_fd (nod))
 	  {
 	    r = ZFS_CONNECTION_CLOSED;
+	    goto node_authenticate_error;
+	  }
+	if (nod->id != sid)
+	  {
+	    r = ZFS_COULD_NOT_AUTH;
 	    goto node_authenticate_error;
 	  }
 	if (fd != nod->fd)
