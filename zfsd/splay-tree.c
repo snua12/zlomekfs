@@ -406,7 +406,7 @@ splay_tree_predecessor (sp, key)
   if (sp->root->key < key)
     return sp->root;
 
-  /* Otherwise, find the leftmost element of the right subtree.  */
+  /* Otherwise, find the rightmost element of the left subtree.  */
   node = sp->root->left;
   if (node)
     while (node->right)
@@ -437,7 +437,7 @@ splay_tree_successor (sp, key)
   if (sp->root->key > key)
     return sp->root;
 
-  /* Otherwise, find the rightmost element of the left subtree.  */
+  /* Otherwise, find the leftmost element of the right subtree.  */
   node = sp->root->right;
   if (node)
     while (node->left)
