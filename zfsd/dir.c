@@ -1188,7 +1188,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       vol2 = vol1;
     }
 
-  zfsd_mutex_unlock (&volume_mutex);
   /* Check validity of the operation.  */
   if (vd1)
     {
@@ -1248,7 +1247,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     }
 
   zfsd_mutex_unlock (&ifh1->mutex);
-  zfsd_mutex_unlock (&ifh2->mutex);
+  if (ifh2 != ifh1)
+    zfsd_mutex_unlock (&ifh2->mutex);
   zfsd_mutex_unlock (&vol2->mutex);
 
   return r;
@@ -1915,7 +1915,6 @@ zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
 
 	  internal_fh_destroy (ifh, vol);
 	}
-      zfsd_mutex_unlock (&ifh->mutex);
     }
 
   zfsd_mutex_unlock (&idir->mutex);

@@ -293,12 +293,14 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       else
 	ifh = internal_fh_create (&res->file, &res->file, idir,
 				  vol, name->str, &res->attr);
-      get_capability_no_fh_lookup (&res->cap, ifh);
+      icap = get_capability_no_fh_lookup (&res->cap, ifh);
 
       zfsd_mutex_unlock (&ifh->mutex);
       zfsd_mutex_unlock (&icap->mutex);
     }
 
+  zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   return r;
 }
 
