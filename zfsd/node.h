@@ -71,6 +71,7 @@ extern node node_create (uint32_t id, string *name);
 extern node node_create_wrapper (uint32_t id, char *name);
 extern node try_create_node (uint32_t id, string *name);
 extern void node_destroy (node nod);
+extern void mark_all_nodes (void);
 extern void initialize_node_c (void);
 extern void cleanup_node_c (void);
 

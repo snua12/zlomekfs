@@ -287,6 +287,25 @@ node_destroy (node nod)
   free (nod);
 }
 
+/* Mark all nodes.  */
+
+void
+mark_all_nodes (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&node_mutex);
+  HTAB_FOR_EACH_SLOT (node_htab, slot)
+    {
+      node nod = (node) *slot;
+
+      zfsd_mutex_lock (&nod->mutex);
+      nod->marked = true;
+      zfsd_mutex_unlock (&nod->mutex);
+    }
+  zfsd_mutex_unlock (&node_mutex);
+}
+
 /* Initialize data structures in NODE.C.  */
 
 void
