@@ -506,6 +506,7 @@ flush_interval_tree_1 (interval_tree tree, char *path)
   zfsd_mutex_lock (&metadata_mutex);
   zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
   init_interval_fd (tree);
+  zfsd_mutex_unlock (&metadata_mutex);
 
   free (new_path);
   free (path);
@@ -819,6 +820,92 @@ append_interval (volume vol, internal_fh fh, interval_tree_purpose purpose,
 
   zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
   return r;
+}
+
+/* Init metadata for file handle FH on volume VOL and store them to DATA.
+   Return false on file error.  */
+
+bool
+init_metadata (volume vol, internal_fh fh, metadata *data)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (!list_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_list_file (vol);
+      if (fd < 0)
+	return false;
+    }
+
+  data->dev = fh->local_fh.dev;
+  data->ino = fh->local_fh.ino;
+  if (!hfile_lookup (vol->metadata, data))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  if (data->slot_status != VALID_SLOT)
+    {
+      data->slot_status = VALID_SLOT;
+      data->flags = METADATA_COMPLETE;
+      data->dev = fh->local_fh.dev;
+      data->ino = fh->local_fh.ino;
+      data->local_version = 1;
+      data->master_version = 0;
+    }
+
+  if (!init_interval_tree (vol, fh, INTERVAL_TREE_UPDATED))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      return false;
+    }
+  if (!init_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
+      close_interval_file (fh->updated);
+      interval_tree_destroy (fh->updated);
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
+  zfsd_mutex_unlock (&metadata_fd_data[fh->modified->fd].mutex);
+  return true;
+}
+
+/* Write the metadata DATA for file handle FH on volume VOL to list file.  */
+
+bool
+update_metadata (volume vol, internal_fh fh, metadata *data)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (!list_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_list_file (vol);
+      if (fd < 0)
+	return false;
+    }
+
+  if (!hfile_insert (vol->metadata, data))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  return true;
 }
 
 /* Initialize data structures in METADATA.C.  */
