@@ -1,5 +1,5 @@
 /* Metadata management functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -965,7 +965,8 @@ init_metadata (volume vol, internal_fh fh)
   return true;
 }
 
-/* Write the metadata for file handle FH on volume VOL to list file.  */
+/* Write the metadata for file handle FH on volume VOL to list file.
+   Return false on file error.  */
 
 bool
 flush_metadata (volume vol, internal_fh fh)
@@ -994,7 +995,7 @@ flush_metadata (volume vol, internal_fh fh)
 }
 
 /* Set metadata (FLAGS, LOCAL_VERSION, MASTER_VERSION) for file handle FH
-   on volume VOL.  */
+   on volume VOL.  Return false on file error.  */
 
 bool
 set_metadata (volume vol, internal_fh fh, uint32_t flags,
@@ -1028,6 +1029,24 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
   set_attr_version (&fh->attr, &fh->meta);
 
   return flush_metadata (vol, fh);
+}
+
+/* Set metadata flags FLAGS for file handle FH on volume VOL.
+   Return false on file error.  */
+
+bool
+set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (fh->meta.flags == flags)
+    return true;
+
+  fh->meta.flags = flags;
+  set_attr_version (&fh->attr, &fh->meta);
+  
+  return flush_metadata (vol,fh);
 }
 
 /* Delete all metadata files for local file PATH on volume VOL.  */
