@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include "pthread.h"
 #include "zfs_prot.h"
-#include "fh.h"
 
 /* Number of random bytes used to compute VERIFY.  */
 #define CAP_RANDOM_LEN 16
@@ -37,7 +36,9 @@
 /* Return true if the ZFS capability CAP is undefined.  */
 #define zfs_cap_undefined(CAP) ((CAP).flags == UINT32_MAX)
 
-typedef struct internal_cap_def
+typedef struct internal_cap_def *internal_cap;
+
+struct internal_cap_def
 {
   pthread_mutex_t mutex;
 
@@ -46,6 +47,9 @@ typedef struct internal_cap_def
 
   /* Capability for server.  */
   zfs_cap master_cap;
+
+  /* Next capability for the ZFS file handle in the chain.  */
+  internal_cap next;
 
   /* Random bytes.  */
   char random[CAP_RANDOM_LEN];
@@ -58,10 +62,9 @@ typedef struct internal_cap_def
 
   /* Generation of open file descriptor.  */
   unsigned int generation;
-} *internal_cap;
+};
 
-/* Mutex for cap_pool and cap_htab.  */
-extern pthread_mutex_t cap_mutex;
+#include "fh.h"
 
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int32_t get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
@@ -73,9 +76,8 @@ extern int32_t find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 extern int32_t find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 				       volume *vol, internal_dentry *dentry,
 				       virtual_dir *vd);
-extern int32_t put_capability (internal_cap cap, internal_dentry dentry);
-extern void print_capabilities (FILE *f);
-extern void debug_capabilities ();
+extern int32_t put_capability (internal_cap cap, internal_fh fh,
+			       virtual_dir vd);
 
 extern void initialize_cap_c ();
 extern void cleanup_cap_c ();

@@ -30,6 +30,7 @@
 #include <errno.h>
 #include "pthread.h"
 #include "fh.h"
+#include "cap.h"
 #include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"
@@ -116,7 +117,8 @@ cleanup_dentry_insert_node (internal_dentry dentry)
     {
       fibheapkey_t key;
 
-      key = dentry->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use;
+      key = ((dentry->fh->cap && dentry->next == dentry)
+	     ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use);
       dentry->heap_node = fibheap_insert (cleanup_dentry_heap, key, dentry);
     }
   zfsd_mutex_unlock (&cleanup_dentry_mutex);
@@ -142,7 +144,7 @@ cleanup_dentry_update_node (internal_dentry dentry)
 	{
 	  fibheapkey_t key;
 
-	  key = (dentry->ncap > 0
+	  key = ((dentry->fh->cap && dentry->next == dentry)
 		 ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use);
 	  fibheap_replace_key (cleanup_dentry_heap, dentry->heap_node, key);
 	}
@@ -254,9 +256,9 @@ cleanup_unused_dentries ()
 		      /* We may have looked DENTRY up again
 			 so we may have updated LAST_USE
 			 or there are capabilities associated with
-			 the file handle.  */
+			 the file handle and this is its only dentry.  */
 		      if ((fibheapkey_t) dentry->last_use >= threshold
-			  || dentry->ncap > 0)
+			  || (dentry->fh->cap && dentry->next == dentry))
 			{
 			  /* Reinsert the file handle to heap.  */
 			  zfsd_mutex_lock (&dentry->fh->mutex);
@@ -538,6 +540,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->local_fh = *local_fh;
   fh->master_fh = *master_fh;
   fh->attr = *attr;
+  fh->cap = NULL;
   fh->ndentries = 0;
   fh->updated = NULL;
   fh->modified = NULL;
@@ -579,6 +582,7 @@ static void
 internal_fh_destroy (internal_fh fh, volume vol)
 {
   void **slot;
+  internal_cap cap, next;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
@@ -587,6 +591,14 @@ internal_fh_destroy (internal_fh fh, volume vol)
   if (fh->ndentries != 0)
     abort ();
 #endif
+
+  /* Destroy capabilities associated with file handle.  */
+  for (cap = fh->cap; cap; cap = next)
+    {
+      next = cap->next;
+      cap->busy = 1;
+      put_capability (cap, fh, NULL);
+    }
 
   if (fh->attr.type == FT_DIR)
     varray_destroy (&fh->subdentries);
@@ -662,7 +674,6 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->name = xstrdup (name);
   dentry->next = dentry;
   dentry->prev = dentry;
-  dentry->ncap = 0;
   dentry->last_use = time (NULL);
   dentry->heap_node = NULL;
 
@@ -702,6 +713,16 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
       dentry->prev = old;
       old->next->prev = dentry;
       old->next = dentry;
+
+      if (parent)
+	{
+	  /* Lower the fibheap keys if they are FIBHEAPKEY_MAX.  */
+	  if (dentry->heap_node->key == FIBHEAPKEY_MAX)
+	    cleanup_dentry_update_node (dentry);
+	  for (old = dentry->next; old != dentry; old = old->next)
+	    if (old->heap_node->key == FIBHEAPKEY_MAX)
+	      cleanup_dentry_update_node (old);
+	}
     }
   *slot = dentry;
 
@@ -741,7 +762,6 @@ internal_dentry_link (internal_fh fh, volume vol,
   fh->ndentries++;
   dentry->next = dentry;
   dentry->prev = dentry;
-  dentry->ncap = 0;
   dentry->last_use = time (NULL);
   dentry->heap_node = NULL;
 
@@ -1029,7 +1049,10 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->fh.ino = last_virtual_ino;
   vd->parent = parent;
   vd->name = xstrdup (name);
+  vd->vol = NULL;
+  vd->cap = NULL;
   virtual_dir_set_fattr (vd);
+  vd->n_mountpoints = 0;
 
   zfsd_mutex_init (&vd->mutex);
   zfsd_mutex_lock (&vd->mutex);
@@ -1039,9 +1062,6 @@ virtual_dir_create (virtual_dir parent, const char *name)
   VARRAY_PUSH (parent->subdirs, vd, virtual_dir);
   vd->parent->attr.nlink++;
   vd->parent->attr.ctime = vd->parent->attr.mtime = time (NULL);
-
-  vd->n_mountpoints = 0;
-  vd->vol = NULL;
 
   slot = htab_find_slot_with_hash (vd_htab, &vd->fh,
 				   VIRTUAL_DIR_HASH (vd), INSERT);
@@ -1082,6 +1102,13 @@ virtual_dir_destroy (virtual_dir vd)
       if (vd->n_mountpoints == 0)
 	{
 	  virtual_dir top;
+
+	  /* Destroy capability associated with virtual directroy.  */
+	  if (vd->cap)
+	    {
+	      vd->cap->busy = 1;
+	      put_capability (vd->cap, NULL, vd);
+	    }
 
 #ifdef ENABLE_CHECKING
 	  if (VARRAY_USED (vd->subdirs))
@@ -1137,9 +1164,10 @@ virtual_root_create ()
   root->name = xstrdup ("");
   varray_create (&root->subdirs, sizeof (virtual_dir), 16);
   root->subdir_index = 0;
-  root->n_mountpoints = 1;
   root->vol = NULL;
+  root->cap = NULL;
   virtual_dir_set_fattr (root);
+  root->n_mountpoints = 1;
 
   zfsd_mutex_init (&root->mutex);
 
@@ -1159,7 +1187,12 @@ virtual_root_destroy (virtual_dir root)
 {
   void **slot;
 
-  free (root->name);
+  /* Destroy capability associated with virtual directroy.  */
+  if (root->cap)
+    {
+      root->cap->busy = 1;
+      put_capability (root->cap, NULL, root);
+    }
 
 #ifdef ENABLE_CHECKING
   if (VARRAY_USED (root->subdirs))
@@ -1175,6 +1208,7 @@ virtual_root_destroy (virtual_dir root)
     abort ();
 #endif
   htab_clear_slot (vd_htab, slot);
+  free (root->name);
   pool_free (vd_pool, root);
   zfsd_mutex_unlock (&vd_mutex);
 }

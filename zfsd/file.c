@@ -76,7 +76,6 @@ init_cap_fd_data (internal_cap cap)
     abort ();
 #endif
   CHECK_MUTEX_LOCKED (&opened_mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
   CHECK_MUTEX_LOCKED (&internal_fd_data[cap->fd].mutex);
 
   internal_fd_data[cap->fd].fd = cap->fd;
@@ -158,8 +157,6 @@ retry_open:
 bool
 capability_opened_p (internal_cap cap)
 {
-  CHECK_MUTEX_LOCKED (&cap->mutex);
-
   if (cap->fd < 0)
     return false;
 
@@ -184,8 +181,6 @@ capability_opened_p (internal_cap cap)
 int32_t
 local_close (internal_cap cap)
 {
-  CHECK_MUTEX_LOCKED (&cap->mutex);
-
   if (cap->fd >= 0)
     {
       zfsd_mutex_lock (&opened_mutex);
@@ -212,7 +207,6 @@ remote_close (internal_cap cap, volume vol)
   node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
     abort ();
@@ -248,7 +242,6 @@ capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
 {
   char *path;
 
-  CHECK_MUTEX_LOCKED (&cap->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -400,10 +393,14 @@ zfs_create_retry:
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir);
-      zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
-	return r;
+	{
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return r;
+	}
     }
+  if (VIRTUAL_FH_P (*dir))
+    zfsd_mutex_unlock (&vd_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
@@ -522,7 +519,6 @@ zfs_create_retry:
 	}
 
       release_dentry (dentry);
-      zfsd_mutex_unlock (&icap->mutex);
     }
 
   release_dentry (idir);
@@ -549,7 +545,6 @@ local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&icap->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   r = capability_open (icap, flags, dentry, vol);
@@ -576,7 +571,6 @@ remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
   node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&icap->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_fh_undefined (dentry->fh->master_fh))
@@ -647,14 +641,11 @@ zfs_open_retry:
     {
       /* We are opening virtual directory.  */
       memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
-      zfsd_mutex_unlock (&icap->mutex);
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
-  if (vd)
-    zfsd_mutex_unlock (&vd->mutex);
 
   if (vol->local_path)
     {
@@ -704,8 +695,12 @@ zfs_open_retry:
   else
     abort ();
 
-  zfsd_mutex_unlock (&icap->mutex);
+  if (r != ZFS_OK)
+    put_capability (icap, dentry->fh, vd);
+
   release_dentry (dentry);
+  if (vd)
+    zfsd_mutex_unlock (&vd->mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -732,35 +727,22 @@ zfs_close (zfs_cap *cap)
 
 zfs_close_retry:
 
-  zfsd_mutex_lock (&volume_mutex);
-  if (VIRTUAL_FH_P (cap->fh))
-    zfsd_mutex_lock (&vd_mutex);
-  zfsd_mutex_lock (&cap_mutex);
-  r = find_capability_nolock (cap, &icap, &vol, &dentry, &vd);
-  zfsd_mutex_unlock (&volume_mutex);
-  if (VIRTUAL_FH_P (cap->fh))
-    zfsd_mutex_unlock (&vd_mutex);
+  r = find_capability (cap, &icap, &vol, &dentry, &vd);
   if (r != ZFS_OK)
-    {
-      zfsd_mutex_unlock (&cap_mutex);
-      return r;
-    }
+    return r;
 
   if (!dentry)
     {
-      put_capability (icap, dentry);
-      zfsd_mutex_unlock (&cap_mutex);
+      put_capability (icap, NULL, vd);
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
-  if (vd)
-    zfsd_mutex_unlock (&vd->mutex);
 
-  if (icap->busy == 1)
+  if (vol->local_path)
     {
-      if (vol->local_path)
+      if (icap->busy == 1)
 	{
 	  if (vol->master != this_node)
 	    {
@@ -768,23 +750,23 @@ zfs_close_retry:
 		  && !save_interval_trees (vol, dentry->fh))
 		vol->flags |= VOLUME_DELETE;
 	    }
-	  zfsd_mutex_unlock (&vol->mutex);
 	  r = local_close (icap);
 	}
-      else if (vol->master != this_node)
-	r = remote_close (icap, vol);
       else
-	abort ();
-    }
-  else
-    {
+	r = ZFS_OK;
       zfsd_mutex_unlock (&vol->mutex);
-      r = ZFS_OK;
     }
+  else if (vol->master != this_node)
+    r = remote_close (icap, vol);
+  else
+    abort ();
 
-  put_capability (icap, dentry);
+  if (r == ZFS_OK)
+    put_capability (icap, dentry->fh, vd);
+
   release_dentry (dentry);
-  zfsd_mutex_unlock (&cap_mutex);
+  if (vd)
+    zfsd_mutex_unlock (&vd->mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1008,7 +990,6 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
   int32_t r, pos;
   struct dirent *de;
 
-  CHECK_MUTEX_LOCKED (&cap->mutex);
   if (vol)
     CHECK_MUTEX_LOCKED (&vol->mutex);
   if (dentry)
@@ -1123,7 +1104,6 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
   node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
     abort ();
@@ -1273,9 +1253,7 @@ zfs_readdir_retry:
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
-  zfsd_mutex_lock (&cap_mutex);
   r = find_capability_nolock (cap, &icap, &vol, &dentry, &vd);
-  zfsd_mutex_unlock (&cap_mutex);
   zfsd_mutex_unlock (&volume_mutex);
   if (r == ZFS_OK)
     {
@@ -1288,7 +1266,6 @@ zfs_readdir_retry:
 	    }
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&icap->mutex);
 	  return ENOTDIR;
 	}
     }
@@ -1328,7 +1305,6 @@ zfs_readdir_retry:
     }
   else
     abort ();
-  zfsd_mutex_unlock (&icap->mutex);
 
   /* Cleanup decoded directory entries on error.  */
   if (r != ZFS_OK && list->n > 0)
@@ -1372,7 +1348,6 @@ local_read (uint32_t *rcount, void *buffer, internal_cap cap,
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   if (!capability_opened_p (cap))
@@ -1421,7 +1396,6 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
   node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
     abort ();
@@ -1523,7 +1497,6 @@ zfs_read_retry:
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_unlock (&icap->mutex);
       return EISDIR;
     }
 
@@ -1567,7 +1540,6 @@ zfs_read_retry:
 	    {
 	      r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
 	      release_dentry (dentry);
-	      zfsd_mutex_unlock (&icap->mutex);
 	    }
 	  else if (covered)
 	    {
@@ -1590,7 +1562,6 @@ zfs_read_retry:
 		}
 	      else
 		{
-		  zfsd_mutex_unlock (&icap->mutex);
 		  release_dentry (dentry);
 		}
 	    }
@@ -1601,14 +1572,12 @@ zfs_read_retry:
 	{
 	  r = local_read (rcount, buffer, icap, dentry, offset, count, vol);
 	  release_dentry (dentry);
-	  zfsd_mutex_unlock (&icap->mutex);
 	}
     }
   else if (vol->master != this_node)
     {
       r = remote_read (rcount, buffer, icap, offset, count, vol);
       release_dentry (dentry);
-      zfsd_mutex_unlock (&icap->mutex);
     }
   else
     abort ();
@@ -1634,7 +1603,6 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   if (!capability_opened_p (cap))
@@ -1678,7 +1646,6 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
   node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
     abort ();
@@ -1799,7 +1766,6 @@ zfs_write_retry:
     }
 
   release_dentry (dentry);
-  zfsd_mutex_unlock (&icap->mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {

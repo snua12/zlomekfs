@@ -92,6 +92,7 @@ typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
 
 #include "volume.h"
+#include "cap.h"
 #include "metadata.h"
 
 /* Internal information about file handle.  */
@@ -113,6 +114,9 @@ struct internal_fh_def
 
   /* Contained directory entries (of type 'struct internal_dentry_def *').  */
   varray subdentries;
+
+  /* Chain of capabilities associated with this file handle.  */
+  internal_cap cap;
 
   /* Number of directory entries associated with this file handle.  */
   unsigned int ndentries;
@@ -146,9 +150,6 @@ struct internal_dentry_def
   /* Index of this dentry in parent's list of directory entries.  */
   unsigned int dentry_index;
 
-  /* Number of capabilities associated with this dentry.  */
-  unsigned int ncap;
-
   /* Last use of this dentry.  */
   time_t last_use;
 
@@ -172,6 +173,9 @@ struct virtual_dir_def
 
   /* Volume which is mounted here.  */
   volume vol;
+
+  /* Capability associated with this virtual directory.  */
+  internal_cap cap;
 
   /* Directory attributes.  */
   fattr attr;

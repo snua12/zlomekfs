@@ -44,53 +44,8 @@
 /* Allocation pool for capabilities.  */
 static alloc_pool cap_pool;
 
-/* Hash table of capabilities.  */
-static htab_t cap_htab;
-
-/* Mutex for cap_pool and cap_htab.  */
-pthread_mutex_t cap_mutex;
-
-#define ZFS_CAP_HASH(CAP)						\
-  (crc32_update (crc32_buffer (&(CAP).fh, sizeof (zfs_fh)),		\
-		 &(CAP).flags, sizeof ((CAP).flags)))
-
-#define INTERNAL_CAP_HASH(CAP) ZFS_CAP_HASH ((CAP)->local_cap)
-
-/* Hash function for internal capability X.  */
-
-static hash_t
-internal_cap_hash (const void *x)
-{
-  return INTERNAL_CAP_HASH ((internal_cap) x);
-}
-
-/* Compare an internal capability XX with client's capability YY.  */
-
-static int
-internal_cap_eq (const void *xx, const void *yy)
-{
-  zfs_cap *x = &((internal_cap) xx)->local_cap;
-  zfs_cap *y = (zfs_cap *) yy;
-
-  return (ZFS_FH_EQ (x->fh, y->fh) && x->flags == x->flags);
-}
-
-/* Find capability for internal file handle FH and open flags FLAGS.  */
-
-internal_cap
-internal_cap_lookup (zfs_cap *cap)
-{
-  internal_cap icap;
-
-  CHECK_MUTEX_LOCKED (&cap_mutex);
-
-  icap = (internal_cap) htab_find_with_hash (cap_htab, cap,
-					    ZFS_CAP_HASH (*cap));
-  if (icap)
-    zfsd_mutex_lock (&icap->mutex);
-
-  return icap;
-}
+/* Mutex for cap_pool.  */
+static pthread_mutex_t cap_mutex;
 
 /* Compute VERIFY for capability CAP.  */
 
@@ -132,48 +87,41 @@ verify_capability (zfs_cap *cap, internal_cap icap)
 	  : EBADF);
 }
 
-/* Create a new capability for internal dentry DENTRY with open flags FLAGS.  */
+/* Create a new capability for file handle fh with open flags FLAGS.  */
 
 static internal_cap
-internal_cap_create_dentry (internal_dentry dentry, uint32_t flags)
+internal_cap_create_fh (internal_fh fh, uint32_t flags)
 {
   internal_cap cap;
-  void **slot;
 
-  CHECK_MUTEX_LOCKED (&cap_mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in get_capability().  */
-  if (dentry->fh->attr.type == FT_DIR && flags != O_RDONLY)
+  if (fh->attr.type == FT_DIR && flags != O_RDONLY)
     abort ();
 #endif
 
+  zfsd_mutex_lock (&cap_mutex);
   cap = (internal_cap) pool_alloc (cap_pool);
+  zfsd_mutex_unlock (&cap_mutex);
 
   if (!full_read (fd_urandom, cap->random, CAP_RANDOM_LEN))
     {
+      zfsd_mutex_lock (&cap_mutex);
       pool_free (cap_pool, cap);
+      zfsd_mutex_unlock (&cap_mutex);
       return NULL;
     }
-  cap->local_cap.fh = dentry->fh->local_fh;
+  cap->local_cap.fh = fh->local_fh;
+  cap->master_cap.fh = fh->master_fh;
   cap->local_cap.flags = flags;
-  cap->master_cap.fh = dentry->fh->master_fh;
   cap->master_cap.flags = flags;
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;
-  dentry->ncap++;
   internal_cap_compute_verify (cap);
-  zfsd_mutex_init (&cap->mutex);
-  zfsd_mutex_lock (&cap->mutex);
-
-  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
-				   INTERNAL_CAP_HASH (cap), INSERT);
-#ifdef ENABLE_CHECKING
-  if (*slot)
-    abort ();
-#endif
-  *slot = cap;
+  cap->next = fh->cap;
+  fh->cap = cap;
 
   return cap;
 }
@@ -184,20 +132,23 @@ static internal_cap
 internal_cap_create_vd (virtual_dir vd, uint32_t flags)
 {
   internal_cap cap;
-  void **slot;
 
-  CHECK_MUTEX_LOCKED (&cap_mutex);
+  CHECK_MUTEX_LOCKED (&vd->mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in get_capability().  */
   if (flags != O_RDONLY)
     abort ();
 #endif
 
+  zfsd_mutex_lock (&cap_mutex);
   cap = (internal_cap) pool_alloc (cap_pool);
+  zfsd_mutex_unlock (&cap_mutex);
 
   if (!full_read (fd_urandom, cap->random, CAP_RANDOM_LEN))
     {
+      zfsd_mutex_lock (&cap_mutex);
       pool_free (cap_pool, cap);
+      zfsd_mutex_unlock (&cap_mutex);
       return NULL;
     }
   cap->local_cap.fh = vd->fh;
@@ -208,51 +159,75 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   cap->fd = -1;
   cap->generation = 0;
   internal_cap_compute_verify (cap);
-  zfsd_mutex_init (&cap->mutex);
-  zfsd_mutex_lock (&cap->mutex);
-
-  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
-				   INTERNAL_CAP_HASH (cap), INSERT);
-#ifdef ENABLE_CHECKING
-  if (*slot)
-    abort ();
-#endif
-  *slot = cap;
+  cap->next = NULL;
+  vd->cap = cap;
 
   return cap;
 }
 
-/* Destroy capability CAP associated with internal dentry DENTRY.  */
+/* Destroy capability CAP associated with internal file handle FH.  */
 
 static void
-internal_cap_destroy (internal_cap cap, internal_dentry dentry)
+internal_cap_destroy_fh (internal_cap cap, internal_fh fh)
 {
-  void **slot;
+  internal_cap icap, prev;
 
-  CHECK_MUTEX_LOCKED (&cap_mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
-
-  if (dentry)
-    {
-      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-      dentry->ncap--;
-    }
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (fh->cap == NULL)
+    abort ();
+#endif
 
   if (cap->fd >= 0)
     local_close (cap);
 
-  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
-				   INTERNAL_CAP_HASH (cap), NO_INSERT);
+  if (cap == fh->cap)
+    {
+      icap = cap;
+      fh->cap = cap->next;
+    }
+  else
+    {
+      for (prev = fh->cap, icap = prev->next; icap; icap = icap->next)
+	{
+	  if (icap == cap)
+	    {
+	      prev->next = cap->next;
+	      break;
+	    }
+	  prev = icap;
+	}
+
 #ifdef ENABLE_CHECKING
-  if (!slot)
+      if (icap == NULL)
+	abort ();
+#endif
+    }
+
+  zfsd_mutex_lock (&cap_mutex);
+  pool_free (cap_pool, cap);
+  zfsd_mutex_unlock (&cap_mutex);
+}
+
+/* Destroy capability CAP associated with virtual directory VD.  */
+
+static void
+internal_cap_destroy_vd (internal_cap cap, virtual_dir vd)
+{
+  CHECK_MUTEX_LOCKED (&vd->mutex);
+#ifdef ENABLE_CHECKING
+  if (vd->cap != cap)
     abort ();
 #endif
 
-  htab_clear_slot (cap_htab, slot);
-  zfsd_mutex_unlock (&cap->mutex);
-  zfsd_mutex_destroy (&cap->mutex);
+  if (cap->fd >= 0)
+    local_close (cap);
+
+  zfsd_mutex_lock (&cap_mutex);
   pool_free (cap_pool, cap);
+  zfsd_mutex_unlock (&cap_mutex);
+
+  vd->cap = NULL;
 }
 
 /* Get an internal capability CAP and store it to ICAPP. Store capability's
@@ -286,20 +261,31 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
       release_dentry (*dentry);
       if (*vd)
 	zfsd_mutex_unlock (&(*vd)->mutex);
-      if (*vol)
-	zfsd_mutex_unlock (&(*vol)->mutex);
+      zfsd_mutex_unlock (&(*vol)->mutex);
       return EISDIR;
     }
 
-  zfsd_mutex_lock (&cap_mutex);
-  icap = internal_cap_lookup (cap);
-  if (icap)
-    icap->busy++;
-  else if (vd && *vd)
-    icap = internal_cap_create_vd (*vd, cap->flags);
+  if (vd && *vd)
+    {
+      if ((*vd)->cap)
+	{
+	  icap = (*vd)->cap;
+	  icap->busy++;
+	}
+      else
+	icap = internal_cap_create_vd (*vd, cap->flags);
+    }
   else
-    icap = internal_cap_create_dentry (*dentry, cap->flags);
-  zfsd_mutex_unlock (&cap_mutex);
+    {
+      for (icap = (*dentry)->fh->cap; icap; icap = icap->next)
+	if (icap->local_cap.flags == cap->flags)
+	  break;
+
+      if (icap)
+	icap->busy++;
+      else
+	icap = internal_cap_create_fh ((*dentry)->fh, cap->flags);
+    }
 
   *icapp = icap;
   return ZFS_OK;
@@ -313,13 +299,16 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry)
 {
   internal_cap icap;
 
-  zfsd_mutex_lock (&cap_mutex);
-  icap = internal_cap_lookup (cap);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  for (icap = dentry->fh->cap; icap; icap = icap->next)
+    if (icap->local_cap.flags == cap->flags)
+      break;
+
   if (icap)
     icap->busy++;
   else
-    icap = internal_cap_create_dentry (dentry, cap->flags);
-  zfsd_mutex_unlock (&cap_mutex);
+    icap = internal_cap_create_fh (dentry->fh, cap->flags);
 
   return icap;
 }
@@ -337,14 +326,12 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
-  zfsd_mutex_lock (&cap_mutex);
 
   r = find_capability_nolock (cap, icapp, vol, dentry, vd);
 
   zfsd_mutex_unlock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_unlock (&vd_mutex);
-  zfsd_mutex_unlock (&cap_mutex);
 
   return r;
 }
@@ -364,84 +351,58 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   CHECK_MUTEX_LOCKED (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     CHECK_MUTEX_LOCKED (&vd_mutex);
-  CHECK_MUTEX_LOCKED (&cap_mutex);
 
-  icap = internal_cap_lookup (cap);
+  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd);
+  if (r != ZFS_OK)
+    return r;
+
+  if (vd && *vd && *vol)
+    get_volume_root_dentry (*vol, dentry);
+
+  if (vd && *vd)
+    {
+      icap = (*vd)->cap;
+    }
+  else
+    {
+      for (icap = (*dentry)->fh->cap; icap; icap = icap->next)
+	if (icap->local_cap.flags == cap->flags)
+	  break;
+    }
+
   if (!icap)
     return EBADF;
 
   r = verify_capability (cap, icap);
   if (r != ZFS_OK)
-    {
-      zfsd_mutex_unlock (&icap->mutex);
-      return r;
-    }
-
-  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd);
-  if (r != ZFS_OK)
-    {
-      internal_cap_destroy (icap, NULL);
-      return r;
-    }
-
-  if (vd && *vd && *vol)
-    get_volume_root_dentry (*vol, dentry);
+    return r;
 
   *icapp = icap;
   return ZFS_OK;
 }
 
-/* Decrease the number of users of capability CAP and destroy the capability
-   when the number of users becomes 0.  */
+/* Decrease the number of users of capability CAP associated with
+   file handle FH or virtual directory VD
+   and destroy the capability when the number of users becomes 0.  */
 
 int32_t
-put_capability (internal_cap cap, internal_dentry dentry)
+put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 {
-  CHECK_MUTEX_LOCKED (&cap_mutex);
-  CHECK_MUTEX_LOCKED (&cap->mutex);
+  if (fh)
+    CHECK_MUTEX_LOCKED (&fh->mutex);
+  if (vd)
+    CHECK_MUTEX_LOCKED (&vd->mutex);
 
   cap->busy--;
   if (cap->busy == 0)
-    internal_cap_destroy (cap, dentry);
-  else
-    zfsd_mutex_unlock (&cap->mutex);
+    {
+      if (vd)
+	internal_cap_destroy_vd (cap, vd);
+      else
+	internal_cap_destroy_fh (cap, fh);
+    }
 
   return ZFS_OK;
-}
-
-/* Print capabalities to file F.  */
-
-void
-print_capabilities (FILE *f)
-{
-  void **slot;
-
-  HTAB_FOR_EACH_SLOT (cap_htab, slot,
-    {
-      internal_cap cap = (internal_cap) *slot;
-
-      fprintf (f, "[%u,%u,%u,%u] ",
-	       cap->local_cap.fh.sid, cap->local_cap.fh.vid,
-	       cap->local_cap.fh.dev, cap->local_cap.fh.ino);
-      print_hex_buffer (cap->local_cap.verify, ZFS_VERIFY_LEN, f);
-
-      if (!zfs_cap_undefined (cap->master_cap))
-	{
-	  fprintf (f, "[%u,%u,%u,%u] ",
-		   cap->master_cap.fh.sid, cap->master_cap.fh.vid,
-		   cap->master_cap.fh.dev, cap->master_cap.fh.ino);
-	  print_hex_buffer (cap->master_cap.verify, ZFS_VERIFY_LEN, f);
-	}
-      fprintf (f, "\n");
-    });
-}
-
-/* Print capabalities to STDERR.  */
-
-void
-debug_capabilities ()
-{
-  print_capabilities (stderr);
 }
 
 /* Initialize data structures in CAP.C.  */
@@ -452,8 +413,6 @@ initialize_cap_c ()
   zfsd_mutex_init (&cap_mutex);
   cap_pool = create_alloc_pool ("cap_pool", sizeof (struct internal_cap_def),
 				250, &cap_mutex);
-  cap_htab = htab_create (200, internal_cap_hash, internal_cap_eq, NULL,
-			  &cap_mutex);
 }
 
 /* Destroy data structures in CAP.C.  */
@@ -461,18 +420,7 @@ initialize_cap_c ()
 void
 cleanup_cap_c ()
 {
-  void **slot;
-
   zfsd_mutex_lock (&cap_mutex);
-  HTAB_FOR_EACH_SLOT (cap_htab, slot,
-    {
-      internal_cap cap = (internal_cap) *slot;
-
-      zfsd_mutex_lock (&cap->mutex);
-      internal_cap_destroy (cap, NULL);
-    });
-  htab_destroy (cap_htab);
-
 #ifdef ENABLE_CHECKING
   if (cap_pool->elts_free < cap_pool->elts_allocated)
     message (2, stderr, "Memory leak (%u elements) in cap_pool.\n",
