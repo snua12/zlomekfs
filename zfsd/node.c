@@ -177,7 +177,7 @@ node_destroy (node nod)
   if (pthread_mutex_trylock (&nod->mutex) == 0)
     abort ();
 #endif
-  
+
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -317,7 +317,7 @@ node_connect (node nod)
   freeaddrinfo (addr);
   return -1;
 
-node_connected: 
+node_connected:
   freeaddrinfo (addr);
   server_fd_data[s].auth = AUTHENTICATION_NONE;
   server_fd_data[s].conn = CONNECTION_FAST; /* FIXME */

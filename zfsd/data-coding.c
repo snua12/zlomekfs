@@ -33,7 +33,7 @@
 void
 dc_create (DC *dc, unsigned int size)
 {
-  dc->unaligned = (char *) xmalloc (size + 15); 
+  dc->unaligned = (char *) xmalloc (size + 15);
   dc->buffer = (char *) ALIGN_PTR_16 (dc->unaligned);
   dc->size = size;
 #ifdef ENABLE_CHECKING

@@ -293,7 +293,7 @@ send_request (thread *t, uint32_t request_id, int fd)
       td->retval = ZFS_EXITING;
       return;
     }
-  
+
   /* Add the tread to the table of waiting threads.  */
   wd = ((waiting4reply_data *)
 	pool_alloc (server_fd_data[fd].waiting4reply_pool));
@@ -324,7 +324,7 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   /* Wait for reply.  */
   semaphore_down (&t->sem, 1);
-  
+
   /* Decode return value.  */
   if (!decode_status (&td->dc, &td->retval))
     td->retval = ZFS_INVALID_REPLY;
@@ -465,7 +465,7 @@ server_worker (void *data)
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
-		
+
 	  default:
 	    send_error_reply (td, request_id, ZFS_UNKNOWN_FUNCTION);
 	    goto out;
@@ -600,7 +600,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
       default:
 	/* This case never happens, it is caught in the beginning of this
-	   function. It is here to make compiler happy.  */ 
+	   function. It is here to make compiler happy.  */
 	abort ();
     }
 }

@@ -139,7 +139,7 @@ client_worker (void *data)
   return data;
 }
 
-/* Create client threads and related threads.  */ 
+/* Create client threads and related threads.  */
 
 void
 create_client_threads ()

@@ -110,7 +110,7 @@ struct virtual_dir_def
 
   /* Directory name.  */
   char *name;
-  
+
   /* Volume which is mounted here.  */
   volume vol;
 

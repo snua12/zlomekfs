@@ -422,7 +422,7 @@ read_config_file (const char *file)
 	  else
 	    {
 	      /* Configuration options which may have no value.  */
-	      
+
 	      /* Configuration options which require a value.  */
 	      if (strncasecmp (key, "nodename", 9) == 0
 		  || strncasecmp (key, "privatekey", 11) == 0

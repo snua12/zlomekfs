@@ -127,7 +127,7 @@ bool
 fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
   hash_t hash = ZFS_FH_HASH (fh);
- 
+
   if (fh->vid == VOLUME_ID_VIRTUAL)
     {
       virtual_dir vd;
@@ -174,7 +174,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 
 /* Return the virtual directory for NAME in virtual directory PARENT.  */
 
-virtual_dir 
+virtual_dir
 vd_lookup_name (virtual_dir parent, const char *name)
 {
   virtual_dir vd;
@@ -448,7 +448,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
 
   vd->n_mountpoints = 0;
   vd->vol = NULL;
-  
+
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
 				   VIRTUAL_DIR_HASH (vd), NO_INSERT);
@@ -596,7 +596,7 @@ virtual_mountpoint_create (volume vol)
     {
       while (*s == '/')
 	s++;
-      
+
       if (*s == 0)
 	break;
 
@@ -676,7 +676,7 @@ print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
 
   for (i = 0; i < indent; i++)
     fputc (' ', f);
-    
+
   fprintf (f, "'%s'", vd->name);
   if (vd->vol)
     fprintf (f, "; VOLUME = '%s'", vd->vol->name);
@@ -733,7 +733,7 @@ void
 cleanup_fh_c ()
 {
   virtual_root_destroy (root);
-  
+
   /* Data structures for file handles.  */
   zfsd_mutex_lock (&fh_pool_mutex);
 #ifdef ENABLE_CHECKING

@@ -1,4 +1,4 @@
-/* A splay-tree datatype.  
+/* A splay-tree datatype.
    Copyright 1998, 1999, 2000, 2002 Free Software Foundation, Inc.
    Contributed by Mark Mitchell (mark@markmitchell.com).
 
@@ -25,7 +25,7 @@
 /* For an easily readable description of splay-trees, see:
 
      Lewis, Harry R. and Denenberg, Larry.  Data Structures and Their
-     Algorithms.  Harper-Collins, Inc.  1991.  
+     Algorithms.  Harper-Collins, Inc.  1991.
 
    The major feature of splay trees is that all basic tree operations
    are amortized O(log n) time for a tree with n nodes.  */

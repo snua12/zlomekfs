@@ -256,7 +256,7 @@ cleanup_cap_c ()
   HTAB_FOR_EACH_SLOT (cap_htab, slot,
     {
       internal_cap cap = (internal_cap) *slot;
-      
+
       zfsd_mutex_lock (&cap->mutex);
       internal_cap_destroy (cap);
     });

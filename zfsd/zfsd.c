@@ -278,7 +278,7 @@ static void
 test_interval ()
 {
   interval_tree t;
-  
+
   t = interval_tree_create (6);
   interval_tree_insert (t, 0, 4);
   interval_tree_insert (t, 10, 15);
@@ -307,7 +307,7 @@ initialize_data_structures ()
 {
   if (pthread_key_create (&server_thread_key, NULL))
     return false;
-  
+
   /* Initialize main thread data.  */
   semaphore_init (&main_thread_data.sem, 0);
   server_worker_init (&main_thread_data);
@@ -451,10 +451,10 @@ main (int argc, char **argv)
   test_interval ();
   test_splay ();
 #endif
-  
+
   if (!initialize_data_structures ())
     die ();
-  
+
 #ifdef TEST
   fake_config ();
 #else

@@ -58,7 +58,7 @@ struct zfs_fh
 #endif
 };
 
-/* Timeval.  */ 
+/* Timeval.  */
 struct zfs_time
 {
   unsigned sec;			/* seconds */
@@ -324,10 +324,10 @@ program ZFS_PROGRAM {
 
     read_dir_res
     ZFSPROC_READDIR(read_dir_args) = 9;
-    
+
     dir_op_res
     ZFSPROC_MKDIR(open_name_args) = 10;
-    
+
     int
     ZFSPROC_RMDIR(dir_op_args) = 11;
 
@@ -337,7 +337,7 @@ program ZFS_PROGRAM {
     int
     ZFSPROC_LINK(link_args) = 13;
 
-    int 
+    int
     ZFSPROC_UNLINK(dir_op_args) = 14;
 
     read_res
@@ -345,7 +345,7 @@ program ZFS_PROGRAM {
 
     write_res
     ZFSPROC_WRITE(write_args) = 16;
-    
+
     read_link_res
     ZFSPROC_READLINK(zfs_fh) = 17;
 

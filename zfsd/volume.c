@@ -121,7 +121,7 @@ volume_destroy (volume vol)
   if (pthread_mutex_trylock (&volume_mutex) == 0)
     abort ();
 #endif
-  
+
   virtual_mountpoint_destroy (vol);
 
   zfsd_mutex_lock (&vol->fh_mutex);

@@ -111,7 +111,7 @@ crc32_update (unsigned int crc, const void *buf, size_t len)
 
   while (len--)
     crc = CRC32_NEXT (crc, s);
-  
+
   return crc ^ 0xffffffff;
 }
 
@@ -125,7 +125,7 @@ crc32_buffer (const void *buf, size_t len)
 
   while (len--)
     crc = CRC32_NEXT (crc, s);
-  
+
   return crc ^ 0xffffffff;
 }
 

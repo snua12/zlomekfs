@@ -110,7 +110,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   volume vol;
   internal_fh ifh;
   virtual_dir vd;
-  
+
   /* Lookup the FH.  */
   if (!fh_lookup (fh, &vol, &ifh, &vd))
     return ESTALE;

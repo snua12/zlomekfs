@@ -60,7 +60,7 @@ typedef struct varray_def
 
 /* Access the top element of variable-sized array VA.  */
 #define VARRAY_TOP(VA, T) (((T *) (VA).array)[(VA).nused - 1])
-  
+
 /* Empty the variable-sized array VA.  */
 #define VARRAY_CLEAR(VA) ((VA).nused = 0)
 

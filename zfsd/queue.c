@@ -73,7 +73,7 @@ queue_put (queue *q, size_t elem)
   if (q->nelem == q->size)
     abort ();
 #endif
-  
+
   q->queue[q->end] = elem;
   q->end++;
   if (q->end == q->size)
@@ -95,7 +95,7 @@ queue_get (queue *q)
   if (q->size == 0)
     abort ();
 #endif
- 
+
   while (q->nelem == 0)
     zfsd_cond_wait (&q->non_empty, &q->mutex);
 

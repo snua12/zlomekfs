@@ -61,7 +61,7 @@ typedef struct internal_fd_data_def
   unsigned int generation;	/* generation of open file descriptor */
   int busy;			/* number of threads using file descriptor */
 } internal_fd_data_t;
- 
+
 /* Mutex for cap_pool and cap_htab.  */
 extern pthread_mutex_t cap_mutex;
 
