@@ -417,6 +417,86 @@ interval_tree_intersection_varray (interval_tree tree, varray src,
     }
 }
 
+/* Add the parts of interval [START, END) which are not in TREE
+   to varray DEST.  */
+
+static void
+interval_tree_complement_1 (interval_tree tree, uint64_t start, uint64_t end,
+			    varray *dest)
+{
+  interval_tree_node node;
+  uint64_t last;
+
+  node = splay_tree_lookup (tree->splay, start);
+  if (node)
+    {
+      last = INTERVAL_END (node);
+    }
+  else
+    {
+      node = splay_tree_predecessor (tree->splay, start);
+      if (node && INTERVAL_END (node) > start)
+	last = INTERVAL_END (node);
+      else
+	last = start;
+    }
+  node = splay_tree_successor (tree->splay, start);
+
+  while (last < end)
+    {
+      interval *x;
+
+      VARRAY_EMPTY_PUSH (*dest, interval);
+      x = &VARRAY_TOP (*dest, interval);
+      x->start = last;
+
+      if (node)
+	{
+	  x->end = INTERVAL_START (node);
+	  last = INTERVAL_END (node);
+	  node = splay_tree_successor (tree->splay, INTERVAL_START (node));
+	}
+      else
+	{
+	  x->end = end;
+	  break;
+	}
+    }
+}
+
+/* Store the parts of interval [START, END) which are not in TREE
+   to varray DEST.  */
+
+void
+interval_tree_complement (interval_tree tree, uint64_t start, uint64_t end,
+			  varray *dest)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  varray_create (dest, sizeof (interval), 4);
+  interval_tree_complement_1 (tree, start, end, dest);
+}
+
+/* Store the intersection of intervals in varray SRC with interval tree TREE
+   to varray DEST.  */
+
+void
+interval_tree_complement_varray (interval_tree tree, varray src, varray *dest)
+{
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  varray_create (dest, sizeof (interval), 16);
+  for (i = 0; i < VARRAY_USED (src); i++)
+    {
+      interval *x;
+
+      x = &VARRAY_ACCESS (src, i, interval);
+      interval_tree_complement_1 (tree, x->start, x->end, dest);
+    }
+}
+
 /* Print the interval in NODE to file DATA.  */
 static int
 print_interval_tree_node (splay_tree_node node, void *data)

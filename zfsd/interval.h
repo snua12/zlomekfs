@@ -83,6 +83,10 @@ extern void interval_tree_intersection (interval_tree tree, uint64_t start,
 					uint64_t end, varray *dest);
 extern void interval_tree_intersection_varray (interval_tree tree, varray src,
 					       varray *dest);
+extern void interval_tree_complement (interval_tree tree, uint64_t start,
+				      uint64_t end, varray *dest);
+extern void interval_tree_complement_varray (interval_tree tree, varray src,
+					     varray *dest);
 extern void print_interval_tree (FILE *f, interval_tree tree);
 extern void debug_interval_tree (interval_tree tree);
 
