@@ -442,7 +442,7 @@ int
 decode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (decode_zfs_fh (dc, &args->dir)
-	  && decode_uint32_t (dc, &args->cookie)
+	  && decode_int32_t (dc, &args->cookie)
 	  && decode_uint32_t (dc, &args->count));
 }
 
@@ -450,11 +450,39 @@ int
 encode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (encode_zfs_fh (dc, &args->dir)
-	  && encode_uint32_t (dc, args->cookie)
+	  && encode_int32_t (dc, args->cookie)
 	  && encode_uint32_t (dc, args->count));
 }
 
-/* FIXME: reply of readdir */
+int
+decode_dir_entry (DC *dc, dir_entry *entry)
+{
+  return (decode_zfs_fh (dc, &entry->fh)
+	  && decode_filename (dc, &entry->name)
+	  && decode_int32_t (dc, &entry->cookie));
+}
+
+int
+encode_dir_entry (DC *dc, dir_entry *entry)
+{
+  return (encode_zfs_fh (dc, &entry->fh)
+	  && encode_filename (dc, &entry->name)
+	  && encode_int32_t (dc, entry->cookie));
+}
+
+int
+decode_dir_list (DC *dc, dir_list *list)
+{
+  return (decode_uint32_t (dc, &list->n)
+	  && decode_char (dc, &list->eof));
+}
+
+int
+encode_dir_list (DC *dc, dir_list *list)
+{
+  return (encode_uint32_t (dc, list->n)
+	  && encode_char (dc, list->eof));
+}
 
 int
 decode_rename_args (DC *dc, rename_args *args)

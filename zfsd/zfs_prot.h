@@ -119,22 +119,22 @@ typedef struct open_res_def open_res;
 
 struct read_dir_args_def {
 	zfs_fh dir;
-	unsigned int cookie;
+	int cookie;
 	unsigned int count;
 };
 typedef struct read_dir_args_def read_dir_args;
 
-struct entry_def {
+struct dir_entry_def {
 	zfs_fh fh;
 	filename name;
-	unsigned int cookie;
-	struct entry_def *next_entry;
+	int cookie;
 };
-typedef struct entry_def entry;
+typedef struct dir_entry_def dir_entry;
 
 struct dir_list_def {
-	entry *entries;
+	unsigned int n;
 	char eof;
+	/* dir_entry dir_entries[];  */
 };
 typedef struct dir_list_def dir_list;
 

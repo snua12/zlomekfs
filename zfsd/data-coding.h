@@ -186,7 +186,10 @@ extern int decode_open_res (DC *dc, open_res *res);
 extern int encode_open_res (DC *dc, open_res *res);
 extern int decode_read_dir_args (DC *dc, read_dir_args *args);
 extern int encode_read_dir_args (DC *dc, read_dir_args *args);
-/* FIXME: reply of readdir */
+extern int decode_dir_entry (DC *dc, dir_entry *entry);
+extern int encode_dir_entry (DC *dc, dir_entry *entry);
+extern int decode_dir_list (DC *dc, dir_list *list);
+extern int encode_dir_list (DC *dc, dir_list *list);
 extern int decode_rename_args (DC *dc, rename_args *args);
 extern int encode_rename_args (DC *dc, rename_args *args);
 extern int decode_link_args (DC *dc, link_args *args);
