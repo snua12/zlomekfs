@@ -1614,88 +1614,100 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   if (r == ZFS_OK)
     {
-      if (sa->size != (uint64_t) -1)
-	{
-	  if (!inc_local_version (vol, dentry->fh))
-	    MARK_VOLUME_DELETE (vol);
-
-	  if (dentry->fh->updated)
-	    {
-	      interval_tree_delete (dentry->fh->updated, fa->size, UINT64_MAX);
-	      if (dentry->fh->updated->deleted)
-		{
-		  if (!flush_interval_tree (vol, dentry->fh,
-					    METADATA_TYPE_UPDATED))
-		    MARK_VOLUME_DELETE (vol);
-		}
-	    }
-	  if (dentry->fh->modified)
-	    {
-	      interval_tree_delete (dentry->fh->modified, fa->size, UINT64_MAX);
-	      if (dentry->fh->modified->deleted)
-		{
-		  if (!flush_interval_tree (vol, dentry->fh,
-					    METADATA_TYPE_MODIFIED))
-		    MARK_VOLUME_DELETE (vol);
-		}
-	    }
-	}
-
-      /* Update cached file attributes.  */
       if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
-	set_attr_version (fa, &dentry->fh->meta);
-      dentry->fh->attr = *fa;
-
-      if (dentry->parent)
 	{
-	  conflict = dentry->parent;
-	  acquire_dentry (conflict);
-	  if (CONFLICT_DIR_P (conflict->fh->local_fh))
+	  if (sa->size != (uint64_t) -1)
 	    {
-	      other = conflict_other_dentry (conflict, dentry);
-#ifdef ENABLE_CHECKING
-	      if (!other)
-		abort ();
-#endif
+	      if (!inc_local_version (vol, dentry->fh))
+		MARK_VOLUME_DELETE (vol);
 
-	      if (METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr)
-		  && METADATA_ATTR_EQ_P (dentry->fh->attr, other->fh->attr))
+	      if (dentry->fh->updated)
 		{
-		  dentry->fh->meta.modetype
-		    = GET_MODETYPE (dentry->fh->attr.mode,
-				    dentry->fh->attr.type);
-		  dentry->fh->meta.uid = dentry->fh->attr.uid;
-		  dentry->fh->meta.gid = dentry->fh->attr.gid;
-		  if (!flush_metadata (vol, &dentry->fh->meta))
-		    MARK_VOLUME_DELETE (vol);
-
-		  release_dentry (dentry);
-		  release_dentry (other);
-		  if (try_resolve_conflict (vol, conflict))
+		  interval_tree_delete (dentry->fh->updated, fa->size,
+					UINT64_MAX);
+		  if (dentry->fh->updated->deleted)
 		    {
-		      zfsd_mutex_unlock (&fh_mutex);
+		      if (!flush_interval_tree (vol, dentry->fh,
+						METADATA_TYPE_UPDATED))
+			MARK_VOLUME_DELETE (vol);
+		    }
+		}
+	      if (dentry->fh->modified)
+		{
+		  interval_tree_delete (dentry->fh->modified, fa->size,
+					UINT64_MAX);
+		  if (dentry->fh->modified->deleted)
+		    {
+		      if (!flush_interval_tree (vol, dentry->fh,
+						METADATA_TYPE_MODIFIED))
+			MARK_VOLUME_DELETE (vol);
+		    }
+		}
+	    }
 
-		      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL,
-						 false);
+	  /* Update cached file attributes.  */
+	  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+	    set_attr_version (fa, &dentry->fh->meta);
+	  dentry->fh->attr = *fa;
+
+	  if (dentry->parent)
+	    {
+	      conflict = dentry->parent;
+	      acquire_dentry (conflict);
+	      if (CONFLICT_DIR_P (conflict->fh->local_fh))
+		{
+		  other = conflict_other_dentry (conflict, dentry);
 #ifdef ENABLE_CHECKING
-		      if (r2 != ZFS_OK)
-			abort ();
+		  if (!other)
+		    abort ();
 #endif
+
+		  if (METADATA_ATTR_CHANGE_P (dentry->fh->meta,
+					      dentry->fh->attr)
+		      && METADATA_ATTR_EQ_P (dentry->fh->attr,
+					     other->fh->attr))
+		    {
+		      dentry->fh->meta.modetype
+			= GET_MODETYPE (dentry->fh->attr.mode,
+					dentry->fh->attr.type);
+		      dentry->fh->meta.uid = dentry->fh->attr.uid;
+		      dentry->fh->meta.gid = dentry->fh->attr.gid;
+		      if (!flush_metadata (vol, &dentry->fh->meta))
+			MARK_VOLUME_DELETE (vol);
+
+		      release_dentry (dentry);
+		      release_dentry (other);
+		      if (try_resolve_conflict (vol, conflict))
+			{
+			  zfsd_mutex_unlock (&fh_mutex);
+
+			  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry,
+						     NULL, false);
+#ifdef ENABLE_CHECKING
+			  if (r2 != ZFS_OK)
+			    abort ();
+#endif
+			}
+		      else
+			{
+			  dentry = conflict_other_dentry (conflict, other);
+			  release_dentry (conflict);
+			}
 		    }
 		  else
 		    {
-		      dentry = conflict_other_dentry (conflict, other);
+		      release_dentry (other);
 		      release_dentry (conflict);
 		    }
 		}
 	      else
-		{
-		  release_dentry (other);
-		  release_dentry (conflict);
-		}
+		release_dentry (conflict);
 	    }
-	  else
-	    release_dentry (conflict);
+	}
+      else
+	{
+	  /* Update cached file attributes.  */
+	  dentry->fh->attr = *fa;
 	}
 
       if (!request_from_this_node ())
