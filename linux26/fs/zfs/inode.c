@@ -168,7 +168,6 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 	if (error)
 		return error;
 
-	/* FIXME: how to give CAPs to ->open(), when 2 threads create the same file in the same time (they share the same dentry) */
 	dentry->d_fsdata = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
 	if (!dentry->d_fsdata)
 		return -ENOMEM;
