@@ -157,6 +157,12 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       local_md5.size = fa.size;
       interval_tree_delete (dentry->fh->updated, local_md5.size, UINT64_MAX);
       interval_tree_delete (dentry->fh->modified, local_md5.size, UINT64_MAX);
+      if (local_md5.size > remote_md5.size)
+	{
+	  if (!append_interval (vol, dentry->fh, METADATA_TYPE_UPDATED,
+				remote_md5.size, local_md5.size))
+	    MARK_VOLUME_DELETE (vol);
+	}
 
       if (flush || dentry->fh->updated->deleted)
 	{
