@@ -24,11 +24,6 @@
 #include "system.h"
 #include <inttypes.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #define ZFS_PORT 12323
 #define ZFS_MAXDATA 8192
 #define ZFS_MAXPATHLEN 1023
@@ -296,15 +291,16 @@ enum function_number_def
 };
 #undef DEFINE_ZFS_PROC
 
+struct thread_def;
+struct node_def;
+
 /* Function headers.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
-  extern int zfs_proc_##FUNCTION##_client (ARGS_TYPE *args, DC *dc);	\
+  extern int zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
+					   ARGS_TYPE *args,		\
+					   struct node_def *nod);	\
   extern int zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -20,10 +20,12 @@
 
 #include "system.h"
 #include <pthread.h>
+#include <inttypes.h>
 #include "zfs_prot.h"
 #include "data-coding.h"
 #include "thread.h"
 #include "server.h"
+#include "node.h"
 
 /* FIXME: These are some temporary dummy functions to make linker happy.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
@@ -38,15 +40,22 @@ zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc)			\
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
 int									\
-zfs_proc_##FUNCTION##_client (ARGS_TYPE *args, node *nod)		\
+zfs_proc_##FUNCTION##_client (thread *t, ARGS_TYPE *args, node nod)	\
 {									\
-  thread *t = (thread *) pthread_getspecific (server_thread_key);	\
   server_thread_data *td = &t->u.server;				\
+  static uint32_t request_id;						\
 									\
+  start_encoding (&td->dc);						\
+  encode_direction (&td->dc, DIR_REQUEST);				\
+  encode_request_id (&td->dc, request_id++);				\
+  encode_function (&td->dc, NUMBER);					\
   if (!encode_##ARGS_TYPE (&td->dc, args))				\
     return ZFS_REQUEST_TOO_LONG;					\
+  finish_encoding (&td->dc);						\
 									\
-  send_request (d, nod);						\
+  send_request (td, nod);						\
 									\
-  return d->retval;							\
+  return td->retval;							\
 }
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
