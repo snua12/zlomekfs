@@ -815,7 +815,7 @@ filldir_encode (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
 
 bool
 filldir_array (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
-		dir_list *list, ATTRIBUTE_UNUSED readdir_data *data)
+	       dir_list *list, ATTRIBUTE_UNUSED readdir_data *data)
 {
   dir_entry *entries = (dir_entry *) list->buffer;
 
