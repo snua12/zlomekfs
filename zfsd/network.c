@@ -195,6 +195,30 @@ server_worker_cleanup (void *data)
   free (t->u.server.reply);
 }
 
+/* Send a reply.  */
+
+static void
+send_reply (server_thread_data *td)
+{
+  /* Send a reply if we have not closed the file descriptor
+     and we have not reopened it.  */
+  if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
+    {
+      ssize_t w;
+      unsigned int written;
+
+      pthread_mutex_lock (&td->fd_data->mutex);
+      for (written = 0; written < td->dc.cur_length; written += w)
+	{
+	  w = write (td->fd_data->fd, td->dc.buffer + written,
+		     td->dc.cur_length - written);
+	  if (w <= 0)
+	    break;
+	}
+      pthread_mutex_unlock (&td->fd_data->mutex);
+    }
+}
+
 /* Send error reply with error status STATUS.  */
 
 static void
@@ -205,7 +229,7 @@ send_error_reply (server_thread_data *td, uint32_t request_id, int status)
   encode_request_id (&td->dc, request_id);
   encode_status (&td->dc, status);
   finish_encoding (&td->dc);
-  /* TODO: send reply.  */
+  send_reply (td);
 }
 
 /* The main function of the server thread.  */
@@ -237,7 +261,10 @@ server_worker (void *data)
 	return data;
 
       if (!decode_uint32_t (&td->dc, &request_id))
-	goto out;
+	{
+	  /* TODO: log too short packet.  */
+	  goto out;
+	}
 
       if (td->dc.max_length > td->dc.size)
 	{
@@ -248,12 +275,6 @@ server_worker (void *data)
       if (!decode_function (&td->dc, &fn))
 	{
 	  send_error_reply (td, request_id, ZFS_INVALID_REQUEST);
-	  goto out;
-	}
-
-      if (fn >= ZFS_PROC_LAST_AND_UNUSED)
-	{
-	  send_error_reply (td, request_id, ZFS_UNKNOWN_FUNCTION);
 	  goto out;
 	}
 
@@ -270,8 +291,12 @@ server_worker (void *data)
 		send_error_reply (td, request_id, ZFS_INVALID_REQUEST);	\
 		goto out;						\
 	      }								\
+	    start_encoding (&td->dc);					\
+	    encode_direction (&td->dc, DIR_REPLY);			\
+	    encode_request_id (&td->dc, request_id);			\
 	    zfs_proc_##FUNCTION##_server (&td->args.FUNCTION, &td->dc);	\
-	    /* TODO: send reply.  */					\
+	    finish_encoding (&td->dc);					\
+	    send_reply (td);						\
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -281,15 +306,9 @@ server_worker (void *data)
 	    goto out;
 	}
 
-      /* TODO: process the request */
+out:
       fd_data = td->fd_data;
       pthread_mutex_lock (&fd_data->mutex);
-      if (fd_data->fd >= 0 && fd_data->generation == td->generation)
-	{
-	  /* 4. send a reply */
-	}
-
-out:
       if (running)
 	{
 	  if (fd_data->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)
@@ -347,7 +366,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
   if (!decode_direction (dc, &dir))
     {
-      /* Invalid direction, FIXME: log it.  */
+      /* Invalid direction or packet too short, FIXME: log it.  */
       return;
     }
 
@@ -483,7 +502,8 @@ static void *
 server_main (void * ATTRIBUTE_UNUSED data)
 {
   struct pollfd *pfd;
-  int i, n, r;
+  int i, n;
+  ssize_t r;
   int accept_connections;
   time_t now;
   static char dummy[ZFS_MAXDATA];
