@@ -38,13 +38,12 @@ static thread_pool server_pool;
 static pthread_t server_regulator;
 
 /* Local function prototypes.  */
-static int server_thread_create ();
 static void *server_worker (void *data);
 static void server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp);
-static void * server_pool_regulator (void *data);
+static void *server_pool_regulator (void *data);
 
 /* Function which receives a RPC request and passes it to some server thread.
-   it also regulates the number of server threads.  */
+   It also regulates the number of server threads.  */
 
 static void
 server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
@@ -54,7 +53,7 @@ server_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
   pthread_mutex_lock (&server_pool.idle.mutex);
 
   /* Regulate the number of threads.  */
-  thread_pool_regulate (&server_pool, server_thread_create);
+  thread_pool_regulate (&server_pool, server_worker, NULL);
 
   /* Select an idle thread and forward the request to it.  */
   index = queue_get (&server_pool.idle);
@@ -101,47 +100,12 @@ server_worker (void *data)
 	    abort ();
 #endif
 	  pthread_mutex_unlock (&server_pool.idle.mutex);
-	  return data;
+	  break;
 	}
       pthread_mutex_unlock (&server_pool.idle.mutex);
     }
-}
 
-/* Create a new server thread.  It expects SERVER_POLL.EMPTY.MUTEX and
-   SERVER_POOL.IDLE.MUTEX to be locked.  */
-
-static int
-server_thread_create ()
-{
-  size_t index = queue_get (&server_pool.empty);
-  thread *t = &server_pool.threads[index].t;
-  int r;
-
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_pool.idle.mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&server_pool.empty.mutex) == 0)
-    abort ();
-#endif
-
-  pthread_mutex_init (&t->mutex, NULL);
-  pthread_mutex_lock (&t->mutex);
-  t->state = THREAD_IDLE;
-  r = pthread_create (&t->thread_id, NULL, server_worker, t);
-  if (r == 0)
-    {
-      queue_put (&server_pool.idle, index);
-    }
-  else
-    {
-      pthread_mutex_unlock (&t->mutex);
-      pthread_mutex_destroy (&t->mutex);
-      t->state = THREAD_DEAD;
-      queue_put (&server_pool.empty, index);
-      message (-1, stderr, "pthread_create() failed\n");
-    }
-
-  return r;
+  return data;
 }
 
 /* Main function of thread which periodically regulates the number of
@@ -153,7 +117,7 @@ server_pool_regulator (void *data)
   while (1)
     {
       pthread_mutex_lock (&server_pool.idle.mutex);
-      thread_pool_regulate (&server_pool, server_thread_create);
+      thread_pool_regulate (&server_pool, server_worker, NULL);
       pthread_mutex_unlock (&server_pool.idle.mutex);
       sleep (60);	/* FIXME: Read the number from configuration.  */
     }
@@ -171,7 +135,7 @@ create_server_pool ()
   pthread_mutex_lock (&server_pool.empty.mutex);
   for (i = 0; i < /* FIXME: */ 10; i++)
     {
-      server_thread_create ();
+      create_idle_thread (&server_pool, server_worker, NULL);
     }
   pthread_mutex_unlock (&server_pool.empty.mutex);
   pthread_mutex_unlock (&server_pool.idle.mutex);
@@ -201,7 +165,7 @@ register_server ()
 		     IPPROTO_UDP))
     {
       message (-1, stderr,
-	       "unable to register (ZFS_PROGRAM<%d>, ZFS_VERSION<%d>, udp).",
+	       "unable to register (ZFS_PROGRAM<%d>, ZFS_VERSION<%d>, udp).\n",
 	       ZFS_PROGRAM, ZFS_VERSION);
       return;
     }
@@ -216,7 +180,7 @@ register_server ()
 		     IPPROTO_TCP))
     {
       message (-1, stderr,
-	       "unable to register (ZFS_PROGRAM<%d>, ZFS_VERSION<%d>, tcp).",
+	       "unable to register (ZFS_PROGRAM<%d>, ZFS_VERSION<%d>, tcp).\n",
 	       ZFS_PROGRAM, ZFS_VERSION);
       return;
     }

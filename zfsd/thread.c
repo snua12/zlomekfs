@@ -50,11 +50,92 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
     }
 }
 
+/* Create a new idle thread in thread pool POOL and start a routine START in it.
+   This function expects SERVER_POLL.EMPTY.MUTEX and SERVER_POOL.IDLE.MUTEX
+   to be locked.  */
+
+int
+create_idle_thread (thread_pool *pool, thread_start start,
+		    thread_initialize init)
+{
+  size_t index = queue_get (&pool->empty);
+  thread *t = &pool->threads[index].t;
+  int r;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
+    abort ();
+  if (pthread_mutex_trylock (&pool->empty.mutex) == 0)
+    abort ();
+#endif
+
+  pthread_mutex_init (&t->mutex, NULL);
+  pthread_mutex_lock (&t->mutex);
+  t->state = THREAD_IDLE;
+  r = pthread_create (&t->thread_id, NULL, start, t);
+  if (r == 0)
+    {
+      /* Call the initializer before we put the thread to the idle queue.  */
+      if (init)
+	(*init) (t);
+
+      queue_put (&pool->idle, index);
+    }
+  else
+    {
+      pthread_mutex_unlock (&t->mutex);
+      pthread_mutex_destroy (&t->mutex);
+      t->state = THREAD_DEAD;
+      queue_put (&pool->empty, index);
+      message (-1, stderr, "pthread_create() failed\n");
+    }
+
+  return r;
+}
+
+/* Destroy an idle thread in thread pool POOL.  This function expects
+   SERVER_POLL.EMPTY.MUTEX and SERVER_POOL.IDLE.MUTEX to be locked.  */
+
+int
+destroy_idle_thread (thread_pool *pool)
+{
+  size_t index = queue_get (&pool->idle);
+  thread *t = &pool->threads[index].t;
+  int r;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
+    abort ();
+  if (pthread_mutex_trylock (&pool->empty.mutex) == 0)
+    abort ();
+#endif
+
+  t->state = THREAD_DYING;
+  pthread_mutex_unlock (&t->mutex);
+  r = pthread_join (t->thread_id, NULL);
+  if (r == 0)
+    {
+      /* Thread left the mutex locked.  */
+      pthread_mutex_unlock (&t->mutex);
+      pthread_mutex_destroy (&t->mutex);
+
+      t->state = THREAD_DEAD;
+      queue_put (&pool->empty, index);
+    }
+  else
+    {
+      message (-1, stderr, "pthread_join() failed\n");
+    }
+
+  return r;
+}
+
 /* Kill/create threads when there are too many or not enough idle threads.
    It expects SERVER_POOL.IDLE.MUTEX to be locked.  */
 
 void
-thread_pool_regulate (thread_pool *pool, thread_start start)
+thread_pool_regulate (thread_pool *pool, thread_start start,
+		      thread_initialize init)
 {
 #ifdef ENABLE_CHECKING
   if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
@@ -67,22 +148,7 @@ thread_pool_regulate (thread_pool *pool, thread_start start)
       pthread_mutex_lock (&pool->empty.mutex);
       while (pool->idle.nelem > pool->max_spare_threads)
 	{
-	  size_t index = queue_get (&pool->idle);
-	  pool->threads[index].t.state = THREAD_DYING;
-	  pthread_mutex_unlock (&pool->threads[index].t.mutex);
-	  if (pthread_join (pool->threads[index].t.thread_id, NULL) == 0)
-	    {
-	      /* Thread left the mutex locked.  */
-	      pthread_mutex_unlock (&pool->threads[index].t.mutex);
-	      pthread_mutex_destroy (&pool->threads[index].t.mutex);
-
-	      pool->threads[index].t.state = THREAD_DEAD;
-	      queue_put (&pool->empty, index);
-	    }
-	  else
-	    {
-	      message (-1, stderr, "pthread_join() failed\n");
-	    }
+	  destroy_idle_thread (pool);
 	}
       pthread_mutex_unlock (&pool->empty.mutex);
     }
@@ -94,7 +160,7 @@ thread_pool_regulate (thread_pool *pool, thread_start start)
       while (pool->idle.nelem < pool->max_spare_threads
 	     && pool->idle.nelem < pool->idle.size)
 	{
-	  (*start) ();
+	  create_idle_thread (pool, start, init);
 	}
       pthread_mutex_unlock (&pool->empty.mutex);
     }

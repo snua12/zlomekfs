@@ -86,12 +86,19 @@ typedef struct thread_pool_def {
   queue empty;			/* queue of empty thread slots */
 } thread_pool;
 
-/* Routine for starting threads of particular type.  */
-typedef int (*thread_start) ();
+/* Type of a routine started in a new thread.  */
+typedef void *(*thread_start) (void *);
+
+/* Type of thread initializer.  */
+typedef void (*thread_initialize) (thread *);
 
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
 				size_t max_spare_threads);
-extern void thread_pool_regulate (thread_pool *pool, thread_start start);
+extern int create_idle_thread (thread_pool *pool, thread_start start,
+			       thread_initialize init);
+extern int destroy_idle_thread (thread_pool *pool);
+extern void thread_pool_regulate (thread_pool *pool, thread_start start,
+				  thread_initialize init);
 
 #endif
