@@ -909,6 +909,10 @@ void
 recycle_dc_to_fd_data (DC *dc, fd_data_t *fd_data)
 {
   CHECK_MUTEX_LOCKED (&fd_data->mutex);
+#ifdef ENABLE_CHECKING
+  if (dc == NULL)
+    abort ();
+#endif
 
   if (fd_data->fd >= 0 && fd_data->ndc < MAX_FREE_DCS)
     {
@@ -928,6 +932,11 @@ recycle_dc_to_fd_data (DC *dc, fd_data_t *fd_data)
 void
 recycle_dc_to_fd (DC *dc, int fd)
 {
+#ifdef ENABLE_CHECKING
+  if (dc == NULL)
+    abort ();
+#endif
+
   if (fd < 0)
     dc_destroy (dc);
   else
