@@ -608,7 +608,7 @@ again:
 
 	zfsd_mutex_unlock (&nod->mutex);
 	fd_data_a[fd].auth = AUTHENTICATION_FINISHED;
-	fd_data_a[fd].conn = CONNECTION_FAST;
+	fd_data_a[fd].conn = CONNECTION_ESTABLISHED;
 	if (r >= ZFS_ERROR_HAS_DC_REPLY)
 	  recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[fd]);
 	zfsd_cond_broadcast (&fd_data_a[fd].cond);
