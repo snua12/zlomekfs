@@ -2365,24 +2365,50 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    }
 	  else
 	    {
-	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+	      if (local_res.attr.version == meta.master_version)
+		{
+		  /* Local file was not modified and remote file has
+		     different file handle, i.e. remote file was deleted
+		     and then created/linked/moved. Because local file
+		     was not modified, we can delete it too.  */
+
+		  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
-	      if (r2 != ZFS_OK)
-		abort ();
+		  if (r2 != ZFS_OK)
+		    abort ();
 #endif
 
-	      /* Create a create-create conflict.  */
-	      have_conflicts = true;
-	      conflict = create_conflict (vol, dir, &entry->name,
-					  &local_res.file, &local_res.attr);
-	      add_file_to_conflict_dir (vol, conflict, true, &local_res.file,
-					&local_res.attr, &meta);
-	      add_file_to_conflict_dir (vol, conflict, true, &remote_res.file,
-					&remote_res.attr, NULL);
-	      release_dentry (conflict);
-	      release_dentry (dir);
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&fh_mutex);
+		  r = delete_tree_name (dir, &entry->name, vol, true, false,
+					true);
+		  if (r != ZFS_OK)
+		    goto out;
+
+		  htab_clear_slot (local_entries.htab, slot);
+		  continue;
+		}
+	      else
+		{
+		  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+		  if (r2 != ZFS_OK)
+		    abort ();
+#endif
+
+		  /* Create a modify-create conflict.  */
+		  have_conflicts = true;
+		  conflict = create_conflict (vol, dir, &entry->name,
+					      &local_res.file, &local_res.attr);
+		  add_file_to_conflict_dir (vol, conflict, true,
+					    &local_res.file, &local_res.attr,
+					    &meta);
+		  add_file_to_conflict_dir (vol, conflict, true,
+					    &remote_res.file, &remote_res.attr,
+					    NULL);
+		  release_dentry (conflict);
+		  release_dentry (dir);
+		  zfsd_mutex_unlock (&vol->mutex);
+		  zfsd_mutex_unlock (&fh_mutex);
+		}
 	    }
 	  htab_clear_slot (local_entries.htab, slot);
 	  htab_clear_slot (remote_entries.htab, slot2);
