@@ -648,7 +648,21 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
     {
       r = get_volume_root_local (vol, &local_fh, &attr, &meta);
       if (r == ZFS_OK)
-	zfs_fh_undefine (master_fh);
+	{
+	  zfs_fh_undefine (master_fh);
+	  if (vol->master != this_node && zfs_fh_undefined (meta.master_fh))
+	    {
+	      fattr remote_attr;
+
+	      zfsd_mutex_lock (&fh_mutex);
+	      vol = volume_lookup (vid);
+	      zfsd_mutex_unlock (&fh_mutex);
+	      if (!vol)
+		return ENOENT;
+
+	      get_volume_root_remote (vol, &master_fh, &remote_attr);
+	    }
+	}
     }
   else if (vol->master != this_node)
     {
