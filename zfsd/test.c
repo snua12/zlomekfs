@@ -53,7 +53,7 @@ fake_config ()
 
   set_node_name ();
   set_default_uid_gid ();
-  set_string (&kernel_file_name, "/home/zlomj9am/kernel");
+  set_string (&kernel_file_name, "/dev/zfs");
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (1, "orion");
