@@ -173,6 +173,51 @@ build_relative_path (string *dst, internal_dentry dentry)
   TRACE ("%s", dst->str);
 }
 
+/* Return a path of file NAME in directory DENTRY relative to volume root.  */
+
+void
+build_relative_path_name (string *dst, internal_dentry dentry, string *name)
+{
+  internal_dentry tmp;
+  unsigned int n;
+  varray v;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+    abort ();
+#endif
+
+  /* Count the number of strings which will be concatenated.  */
+  n = 2;
+  for (tmp = dentry; tmp; tmp = tmp->parent)
+    if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
+      n += 2;
+
+  varray_create (&v, sizeof (string), n);
+  VARRAY_USED (v) = n;
+  n--;
+  VARRAY_ACCESS (v, n, string) = *name;
+  n--;
+  VARRAY_ACCESS (v, n, string).str = "/";
+  VARRAY_ACCESS (v, n, string).len = 1;
+  for (tmp = dentry; tmp->parent; tmp = tmp->parent)
+    if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
+      {
+	n--;
+	VARRAY_ACCESS (v, n, string) = tmp->name;
+	n--;
+	VARRAY_ACCESS (v, n, string).str = "/";
+	VARRAY_ACCESS (v, n, string).len = 1;
+      }
+
+  xstringconcat_varray (dst, &v);
+  varray_destroy (&v);
+  TRACE ("%s", dst->str);
+}
+
 /* Return a pointer into PATH where path relative to volume root starts.  */
 
 void

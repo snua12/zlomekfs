@@ -36,6 +36,8 @@ extern void build_local_path (string *dst, volume vol, internal_dentry dentry);
 extern void build_local_path_name (string *dst, volume vol,
 				   internal_dentry dentry, string *name);
 extern void build_relative_path (string *dst, internal_dentry dentry);
+extern void build_relative_path_name (string *dst, internal_dentry dentry,
+				      string *name);
 extern void local_path_to_relative_path (string *dst, volume vol, string *path);
 extern void file_name_from_path (string *dst, string *path);
 extern int32_t recursive_unlink (string *path, uint32_t vid,
