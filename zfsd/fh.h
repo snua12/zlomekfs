@@ -49,12 +49,6 @@ typedef struct volume_def *volume;
 /* Is the FH virtual?  */
 #define VIRTUAL_FH_P(FH) ((FH).vid == VIRTUAL_DEVICE)
 
-/* Is FH the virtual root?  */
-#define VIRTUAL_ROOT_P(FH) ((FH).ino == ROOT_INODE		\
-			    && (FH).dev == VIRTUAL_DEVICE	\
-			    && (FH).vid == VOLUME_ID_NONE	\
-			    && (FH).sid == NODE_ANY)
-
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
 			     ? memset (&(FH), -1, sizeof (zfs_fh))	\
