@@ -21,9 +21,6 @@
 #ifndef ZFSD_H
 #define ZFSD_H
 
-/* Name of the configuration file.  */
-extern char *config_file;
-
 extern void terminate (void);
 
 #endif
