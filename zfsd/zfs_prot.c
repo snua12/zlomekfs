@@ -236,9 +236,11 @@ void
 zfs_proc_unlink_server (dir_op_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_rmdir (&args->dir, &args->name);
+  encode_status (dc, r);
+  free (args->name.str);
 }
 
 /* read_res zfs_proc_read (read_args); */

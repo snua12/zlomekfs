@@ -257,6 +257,96 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   return r;
 }
 
+/* Delete local file NAME from directory DIR on volume VOL.  */
+
+static int
+local_unlink (internal_fh dir, string *name, volume vol)
+{
+  char *path;
+  int r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  path = build_local_path_name (vol, dir, name->str);
+  r = unlink (path);
+  free (path);
+  if (r != 0)
+    return errno;
+
+  return ZFS_OK;
+}
+
+/* Delete remote file NAME from directory DIR on volume VOL.  */
+
+static int
+remote_unlink (internal_fh dir, string *name, volume vol)
+{
+  dir_op_args args;
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
+  args.dir = dir->master_fh;
+  args.name = *name;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_unlink_client (t, &args, vol->master);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Remove directory NAME from directory DIR.  */
+
+int
+zfs_unlink (zfs_fh *dir, string *name)
+{
+  volume vol;
+  internal_fh idir;
+  int r = ZFS_OK;
+
+  /* Virtual directory tree is read only for users.  */
+  if (VIRTUAL_FH_P (*dir))
+    return EROFS;
+
+  /* Lookup the file.  */
+  if (!fh_lookup (dir, &vol, &idir, NULL))
+    return ESTALE;
+
+  if (vol->local_path)
+    r = local_unlink (idir, name, vol);
+  else if (vol->master != this_node)
+    r = remote_unlink (idir, name, vol);
+  else
+    abort ();
+
+  /* Delete the internal file handle of the deleted directory.  */
+  if (r == ZFS_OK)
+    {
+      internal_fh ifh;
+
+      ifh = fh_lookup_name (vol, idir, name->str);
+      if (ifh)
+	internal_fh_destroy (ifh, vol);
+    }
+
+  zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  return r;
+}
+
 /*****************************************************************************/
 
 int
