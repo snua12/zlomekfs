@@ -547,13 +547,18 @@ reintegrate_file_blocks (zfs_cap *cap)
   if (version_increase)
     {
       dentry->fh->meta.master_version += version_increase;
-      if (dentry->fh->meta.local_version < dentry->fh->meta.master_version
-	  || (dentry->fh->meta.local_version == dentry->fh->meta.master_version
-	      && interval_tree_min (dentry->fh->modified)))
+      if (interval_tree_min (dentry->fh->modified))
 	{
-	  dentry->fh->meta.local_version = dentry->fh->meta.master_version + 1;
-	  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+	  if (dentry->fh->meta.local_version <= dentry->fh->meta.master_version)
+	    dentry->fh->meta.local_version
+	      = dentry->fh->meta.master_version + 1;
 	}
+      else
+	{
+	  if (dentry->fh->meta.local_version < dentry->fh->meta.master_version)
+	    dentry->fh->meta.local_version = dentry->fh->meta.master_version;
+	}
+      set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
 
       if (!flush_metadata (vol, &dentry->fh->meta))
 	MARK_VOLUME_DELETE (vol);
