@@ -362,16 +362,7 @@ update_p (internal_dentry dentry, volume vol)
   if (r != ZFS_OK)
     return false;
 
-  /* Update the file if local file was not modified and
-     remote file was modified since we updated it last time
-     OR the file has not been completelly updated
-     and local or remote file was not modified (i.e. handle
-     partially updated file).  */
-  return ((dentry->fh->attr.version == dentry->fh->meta.master_version
-	   && attr.version > dentry->fh->meta.master_version)
-	  || (!(dentry->fh->meta.flags & METADATA_COMPLETE)
-	      && (dentry->fh->attr.version == dentry->fh->meta.master_version
-		  || attr.version == dentry->fh->meta.master_version)));
+  return UPDATE_P (dentry, attr);
 }
 
 /* Schedule update of regular file DENTRY on volume VOL.  */
