@@ -41,7 +41,21 @@ enum ftype
 /* File handle.  */
 struct zfs_fh
 {
+#ifndef RPC
+  /* Server ID.  */
+  unsigned int sid;
+
+  /* Volume ID.  */
+  unsigned int vid;
+
+  /* Device ... */
+  unsigned int dev;
+
+  /* ... and inode number of the file.  */
+  unsigned int ino;
+#else
   opaque data[ZFS_FHSIZE];	/* file handle data */
+#endif
 };
 
 /* Timeval.  */ 
@@ -110,7 +124,6 @@ switch (int status)
 struct sattr_args
 {
   zfs_fh file;			/* handle of file */
-  unsigned valid;		/* flags which parts of sattr are valid */
   sattr attributes;		/* file attributes */
 };
 
@@ -165,7 +178,7 @@ struct read_dir_args
 };
 
 /* Reply of readdir.  */
-#if 1
+#if 0
 struct entry
 {
   zfs_fh fh;			/* handle of file */
