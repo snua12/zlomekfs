@@ -442,7 +442,7 @@ reintegrate_file_blocks (zfs_cap *cap)
 
   TRACE ("");
 
-  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+  r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -455,11 +455,12 @@ reintegrate_file_blocks (zfs_cap *cap)
     {
       zfs_cap master_cap;
 
+      zfsd_mutex_unlock (&fh_mutex);
       r = remote_open (&master_cap, icap, cap->flags, dentry, vol);
       if (r != ZFS_OK)
 	return r;
 
-      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+      r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -468,6 +469,8 @@ reintegrate_file_blocks (zfs_cap *cap)
       icap->master_cap = master_cap;
     }
 
+  if (dentry->fh->attr.size == 0)
+    zfsd_mutex_unlock (&fh_mutex);
   for (offset = 0; offset < dentry->fh->attr.size; )
     {
       char buf[ZFS_MAXDATA];
@@ -486,6 +489,7 @@ reintegrate_file_blocks (zfs_cap *cap)
 	       ? INTERVAL_END (node) - INTERVAL_START (node) : ZFS_MAXDATA);
 
       r = full_local_read_dentry (&count, buf, cap, dentry, offset, count);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	break;
 
@@ -621,7 +625,7 @@ update_file (zfs_fh *fh)
       goto out2;
     }
 
-  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
+  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -632,6 +636,7 @@ update_file (zfs_fh *fh)
       MARK_VOLUME_DELETE (vol);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       r = ZFS_METADATA_ERROR;
       goto out2;
     }
@@ -640,6 +645,7 @@ update_file (zfs_fh *fh)
     {
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       r = reintegrate_file_blocks (&cap);
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
@@ -651,6 +657,7 @@ update_file (zfs_fh *fh)
   if (r == ZFS_OK && (dentry->fh->flags & IFH_UPDATE))
     {
       zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
       release_dentry (dentry);
       r = update_file_blocks (&cap, &blocks);

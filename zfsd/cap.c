@@ -427,10 +427,10 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
       r2 = get_volume_root_dentry (*vol, dentry, unlock_fh_mutex);
       if (r2 != ZFS_OK)
 	{
-	  /* *VOL is the volume under *VD so we may lock it.  */
-	  zfsd_mutex_lock (&volume_mutex);
-	  zfsd_mutex_lock (&(*vol)->mutex);
-	  zfsd_mutex_unlock (&volume_mutex);
+	  zfsd_mutex_unlock (&(*vd)->mutex);
+	  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+	  if (r != ZFS_OK)
+	    return r;
 	}
     }
 
