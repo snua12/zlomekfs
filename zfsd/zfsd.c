@@ -160,6 +160,16 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
     }
 }
 
+/** \fn static void hup_sighandler (ATTRIBUTE_UNUSED int signum)
+    \brief Signal handler for SIGHUP.
+    \param signum Number of the received signal.  */
+
+static void
+hup_sighandler (ATTRIBUTE_UNUSED int signum)
+{
+  add_reread_config_request (&invalid_string, 0);
+}
+
 /* Empty signal handler, used to break poll and other syscalls.  */
 
 static void
@@ -202,6 +212,12 @@ init_sig_handlers (void)
   sigaction (SIGXCPU, &sig, NULL);
   sigaction (SIGXFSZ, &sig, NULL);
   sigaction (SIGSYS, &sig, NULL);
+
+  /* Set the signal handler for rereading local volume info.  */
+  sigfillset (&sig.sa_mask);
+  sig.sa_handler = hup_sighandler;
+  sig.sa_flags = SA_RESTART;
+  sigaction (SIGHUP, &sig, NULL);
 
   /* Set the signal handler for terminating poll().  */
   sigfillset (&sig.sa_mask);

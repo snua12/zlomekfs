@@ -348,10 +348,11 @@ init_this_node (void)
 
 /** \fn static bool read_local_volume_info (string *path)
     \brief Read local info about volumes.
-    \param path Path where local configuration is stored.  */
+    \param path Path where local configuration is stored.
+    \param reread True if we are rereading the local volume info.  */
 
 static bool 
-read_local_volume_info (string *path)
+read_local_volume_info (string *path, bool reread)
 {
   int line_num;
   char *file;
@@ -406,8 +407,18 @@ read_local_volume_info (string *path)
 	    {
 	      zfsd_mutex_lock (&fh_mutex);
 	      zfsd_mutex_lock (&volume_mutex);
-	      vol = volume_lookup_nolock (id);
-	      if (!vol)
+	      if (reread)
+		{
+		  vol = volume_lookup_nolock (id);
+		  if (!vol)
+		    {
+		      zfsd_mutex_unlock (&volume_mutex);
+		      zfsd_mutex_unlock (&fh_mutex);
+		      continue;
+		    }
+		  vol->marked = false;
+		}
+	      else
 		vol = volume_create (id);
 	      zfsd_mutex_unlock (&volume_mutex);
 
@@ -434,6 +445,23 @@ read_local_volume_info (string *path)
 
   free (file);
   fclose (f);
+  return true;
+}
+
+/** \fn static bool reread_local_volume_info (string *path)
+    \brief Reread local info about volumes.
+    \param path Path where local configuration is stored.  */
+
+static bool 
+reread_local_volume_info (string *path)
+{
+  mark_all_volumes ();
+
+  if (!read_local_volume_info (path, true))
+    return false;
+
+  delete_dentries_of_marked_volumes ();
+
   return true;
 }
 
@@ -510,7 +538,7 @@ read_local_cluster_config (string *path)
 
   init_this_node ();
 
-  if (!read_local_volume_info (path))
+  if (!read_local_volume_info (path, false))
     return false;
 
   return true;
@@ -1636,9 +1664,6 @@ reread_volume_list (void)
   if (r != ZFS_OK)
     return false;
 
-  if (!read_local_volume_info (&local_config))
-    return false;
-
   mark_all_volumes ();
 
   if (!read_volume_list (&config_dir_res.file))
@@ -2155,6 +2180,19 @@ config_reader (void *data)
 
       while (get_reread_config_request (&relative_path, &from_sid))
 	{
+	  terminate ();
+	  break;
+	  if (relative_path.str == NULL)
+	    {
+	      /* The daemon received SIGHUP, reread the local volume info.  */
+	      if (!reread_local_volume_info (&local_config))
+		{
+		  terminate ();
+		  break;
+		}
+	      continue;
+	    }
+
 	  /* First send the reread_config request to slave nodes.  */
 	  vol = volume_lookup (VOLUME_ID_CONFIG);
 	  if (!vol)
