@@ -502,9 +502,12 @@ do_tests (void *data)
 
       if (r == ZFS_OK)
 	{
-	  write_args writea; writea.data.buf = writea.data.real_buffer;
+	  write_args writea;
 	  write_res writer;
-	  data_buffer data; data.buf = data.real_buffer;
+	  data_buffer data;
+
+	  writea.data.buf = writea.data.real_buffer;
+	  data.buf = data.real_buffer;
 
 	  writea.cap = cap;
 	  writea.offset = 0;
