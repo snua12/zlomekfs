@@ -106,9 +106,9 @@ string_list_destroy (string_list sl)
 }
 
 /* Insert string STR to string list SL.  If COPY is true make a copy of the
-   string.  */
+   string.  Return true if STR was really inserted.  */
 
-void
+bool
 string_list_insert (string_list sl, char *str, bool copy)
 {
   string_list_entry entry;
@@ -119,7 +119,7 @@ string_list_insert (string_list sl, char *str, bool copy)
   slot = htab_find_slot_with_hash (sl->htab, str, STRING_LIST_HASH (str),
 				   INSERT);
   if (*slot)
-    return;
+    return false;
 
   zfsd_mutex_lock (&string_list_mutex);
   entry = (string_list_entry) pool_alloc (string_list_pool);
@@ -132,6 +132,8 @@ string_list_insert (string_list sl, char *str, bool copy)
 
   VARRAY_PUSH (sl->array, entry, string_list_entry);
   *slot = entry;
+
+  return true;
 }
 
 /* Return true if string STR is a member of string list SL.  */
@@ -144,9 +146,10 @@ string_list_member (string_list sl, char *str)
   return (htab_find_with_hash (sl->htab, str, STRING_LIST_HASH (str)) != NULL);
 }
 
-/* Delete string STR from string list SL.  */
+/* Delete string STR from string list SL.  Return true if STR was really
+   deleted.  */
 
-void
+bool
 string_list_delete (string_list sl, char *str)
 {
   string_list_entry del, last;
@@ -157,7 +160,7 @@ string_list_delete (string_list sl, char *str)
   slot = htab_find_slot_with_hash (sl->htab, str, STRING_LIST_HASH (str),
 				   NO_INSERT);
   if (!slot)
-    return;
+    return false;
 
   del = (string_list_entry) *slot;
   last = VARRAY_TOP (sl->array, string_list_entry);
@@ -174,6 +177,8 @@ string_list_delete (string_list sl, char *str)
   pool_free (string_list_pool, del);
   zfsd_mutex_unlock (&string_list_mutex);
   htab_clear_slot (sl->htab, slot);
+
+  return true;
 }
 
 /* Return the number of strings in string list SL.  */
