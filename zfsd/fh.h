@@ -106,6 +106,9 @@ struct internal_fh_def
   /* Index in parent's list of directory entries.  */
   unsigned int dentry_index;
 
+  /* Number of capabilities associated with this file handle.  */
+  unsigned int ncap;
+
   /* Last use of this FH.  */
   time_t last_use;
 };
