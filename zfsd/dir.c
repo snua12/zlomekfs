@@ -3371,7 +3371,9 @@ local_reintegrate_del (volume vol, internal_dentry dentry, bool destroy_p)
 {
   metadata meta;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   if (destroy_p
       || metadata_n_hardlinks (vol, &dentry->fh->local_fh, &meta) > 1)
