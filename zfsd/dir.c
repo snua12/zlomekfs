@@ -2880,7 +2880,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
     {
       node nod;
 
-      nod = node_lookup (fh->sid);
+      nod = node_lookup (fh->ino);
       if (!nod)
 	return ESTALE;
 

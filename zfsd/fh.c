@@ -1903,18 +1903,19 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
       if (flags & CONFLICT_REMOTE_EXISTS)
 	{
 	  dentry->name = xstrdup (nod->name);
-	  tmp_fh.sid = nod->id;
 	  name = xstrconcat (2, this_node->name, ".not_exist");
+	  tmp_fh.sid = this_node->id;
+	  tmp_fh.ino = nod->id;
 	}
       else
 	{
 	  dentry->name = xstrdup (this_node->name);
-	  tmp_fh.sid = this_node->id;
 	  name = xstrconcat (2, nod->name, ".not_exist");
+	  tmp_fh.sid = nod->id;
+	  tmp_fh.ino = this_node->id;
 	}
       tmp_fh.vid = VOLUME_ID_VIRTUAL;
-      tmp_fh.dev = tmp_fh.sid;
-      tmp_fh.ino = tmp_fh.sid;
+      tmp_fh.dev = VIRTUAL_DEVICE;
       tmp_fh.gen = 1;
       tmp_attr.dev = tmp_fh.dev;
       tmp_attr.ino = tmp_fh.ino;
