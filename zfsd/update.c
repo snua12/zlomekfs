@@ -233,8 +233,12 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 				   remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
 		return r;
-	      if (count != remote_md5.length[i])
-		abort (); /* FIXME */
+
+	      /* Copy the part which was not written from local file
+		 because local file was truncated meanwhile.  */
+	      if (count < remote_md5.length[i])
+		memcpy (buf + count, buf2 + count,
+			remote_md5.length[i] - count);
 
 	      /* Update the blocks in buffer BUF.  */
 	      for (; (j < VARRAY_USED (*blocks)
@@ -262,9 +266,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 	      if (r != ZFS_OK)
 		return r;
 	    }
-
-	  if (count != remote_md5.length[i])
-	    abort ();	/* FIXME */
 
 	  /* Add the interval to UPDATED.  */
 	  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
