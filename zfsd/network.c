@@ -454,7 +454,7 @@ again:
   fd = nod->fd;
   zfsd_mutex_unlock (&nod->mutex);
   nod = NULL;
-    
+
   switch (network_fd_data[fd].conn)
     {
       case CONNECTION_NONE:
@@ -1143,7 +1143,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		  close_active_fd (i);
 		  zfsd_mutex_unlock (&fd_data->mutex);
 		}
-	      
+
 	      zfsd_mutex_lock (&fd_data->mutex);
 	      fd_data->conn = CONNECTION_ACTIVE;
 	      zfsd_cond_broadcast (&fd_data->cond);
