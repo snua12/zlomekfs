@@ -926,13 +926,13 @@ filldir_encode (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
   entry.name.len = name_len;
 
   /* Try to encode ENTRY to DC.  */
-  old_pos = dc->current;
+  old_pos = dc->cur_pos;
   old_len = dc->cur_length;
   if (!encode_dir_entry (dc, &entry)
       || data->written + dc->cur_length - old_len > data->count)
     {
       /* There is not enough space in DC to encode ENTRY.  */
-      dc->current = old_pos;
+      dc->cur_pos = old_pos;
       dc->cur_length = old_len;
       return false;
     }
@@ -1346,9 +1346,9 @@ remote_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 	    r = ZFS_INVALID_REPLY;
 	  else if (t->dc_reply->max_length > t->dc_reply->cur_length)
 	    {
-	      memcpy (dc->current, t->dc_reply->current,
+	      memcpy (dc->cur_pos, t->dc_reply->cur_pos,
 		      t->dc_reply->max_length - t->dc_reply->cur_length);
-	      dc->current += t->dc_reply->max_length - t->dc_reply->cur_length;
+	      dc->cur_pos += t->dc_reply->max_length - t->dc_reply->cur_length;
 	      dc->cur_length += t->dc_reply->max_length - t->dc_reply->cur_length;
 	    }
 	}
@@ -1692,7 +1692,7 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 	  || t->dc_reply->cur_length + *rcount != t->dc_reply->max_length)
 	r = ZFS_INVALID_REPLY;
       else
-	memcpy (buffer, t->dc_reply->current, *rcount);
+	memcpy (buffer, t->dc_reply->cur_pos, *rcount);
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {

@@ -3035,7 +3035,7 @@ fill_hardlink_encode (char *path, hardlinks_res *res, uint32_t *writtenp)
   string str;
 
   /* Try to encode PATH to DC.  */
-  old_pos = dc->current;
+  old_pos = dc->cur_pos;
   old_len = dc->cur_length;
   str.str = path;
   str.len = strlen (path);
@@ -3043,7 +3043,7 @@ fill_hardlink_encode (char *path, hardlinks_res *res, uint32_t *writtenp)
       || *writtenp + dc->cur_length - old_len > ZFS_MAXDATA)
     {
       /* There is not enough space in DC to encode PATH.  */
-      dc->current = old_pos;
+      dc->cur_pos = old_pos;
       dc->cur_length = old_len;
       return false;
     }
@@ -3154,9 +3154,9 @@ remote_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
 	    r = ZFS_INVALID_REPLY;
 	  else if (t->dc_reply->max_length > t->dc_reply->cur_length)
 	    {
-	      memcpy (dc->current, t->dc_reply->current,
+	      memcpy (dc->cur_pos, t->dc_reply->cur_pos,
 		      t->dc_reply->max_length - t->dc_reply->cur_length);
-	      dc->current += t->dc_reply->max_length - t->dc_reply->cur_length;
+	      dc->cur_pos += t->dc_reply->max_length - t->dc_reply->cur_length;
 	      dc->cur_length += t->dc_reply->max_length - t->dc_reply->cur_length;
 	    }
 	}

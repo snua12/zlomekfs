@@ -65,7 +65,7 @@ dc_destroy (DC *dc)
 void
 print_dc (DC *dc, FILE *f)
 {
-  fprintf (f, "Cur.pos    = %d\n", dc->current - dc->buffer);
+  fprintf (f, "Cur.pos    = %d\n", dc->cur_pos - dc->buffer);
   fprintf (f, "Cur.length = %d\n", dc->cur_length);
   fprintf (f, "Max.length = %d\n", dc->max_length);
   fprintf (f, "Data: ");
@@ -89,7 +89,7 @@ debug_dc (DC *dc)
 void
 start_encoding (DC *dc)
 {
-  dc->current = dc->buffer;
+  dc->cur_pos = dc->buffer;
   dc->cur_length = 0;
   dc->max_length = DC_SIZE;
   encode_uint32_t (dc, 0);
@@ -110,7 +110,7 @@ finish_encoding (DC *dc)
 bool
 start_decoding (DC *dc)
 {
-  dc->current = dc->buffer;
+  dc->cur_pos = dc->buffer;
   dc->max_length = 4;
   dc->cur_length = 0;
   decode_uint32_t (dc, (uint32_t *) &dc->max_length);
@@ -137,9 +137,9 @@ decode_##T (DC *dc, T *ret)					\
   if (dc->cur_length > dc->max_length)				\
     return false;						\
 								\
-  dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
-  *ret = F (dc->current);					\
-  dc->current += S;						\
+  dc->cur_pos = (char *) ALIGN_PTR_##S (dc->cur_pos);		\
+  *ret = F (dc->cur_pos);					\
+  dc->cur_pos += S;						\
 								\
   return true;							\
 }
@@ -163,13 +163,13 @@ encode_##T (DC *dc, T val)					\
     }								\
 								\
   /* Clear bytes which are before the aligned offset.  */	\
-  s = dc->current;						\
-  dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
-  while (s < dc->current)					\
+  s = dc->cur_pos;						\
+  dc->cur_pos = (char *) ALIGN_PTR_##S (dc->cur_pos);		\
+  while (s < dc->cur_pos)					\
     *s++ = 0;							\
 								\
-  *(T *) dc->current = F (val);					\
-  dc->current += S;						\
+  *(T *) dc->cur_pos = F (val);					\
+  dc->cur_pos += S;						\
 								\
   return true;							\
 }
@@ -206,8 +206,8 @@ decode_data_buffer (DC *dc, data_buffer *data)
   if (dc->cur_length > dc->max_length)
     return false;
 
-  data->buf = dc->current;
-  dc->current += data->len;
+  data->buf = dc->cur_pos;
+  dc->cur_pos += data->len;
 
   return true;
 }
@@ -228,9 +228,9 @@ encode_data_buffer (DC *dc, data_buffer *data)
       return false;
     }
 
-  if (dc->current != data->buf)
-    memcpy (dc->current, data->buf, data->len);
-  dc->current += data->len;
+  if (dc->cur_pos != data->buf)
+    memcpy (dc->cur_pos, data->buf, data->len);
+  dc->cur_pos += data->len;
 
   return true;
 }
@@ -242,8 +242,8 @@ decode_fixed_buffer (DC *dc, void *buf, int len)
   if (dc->cur_length > dc->max_length)
     return false;
 
-  memcpy (buf, dc->current, len);
-  dc->current += len;
+  memcpy (buf, dc->cur_pos, len);
+  dc->cur_pos += len;
 
   return true;
 }
@@ -260,8 +260,8 @@ encode_fixed_buffer (DC *dc, void *buf, int len)
       return false;
     }
 
-  memcpy (dc->current, buf, len);
-  dc->current += len;
+  memcpy (dc->cur_pos, buf, len);
+  dc->cur_pos += len;
 
   return true;
 }
@@ -280,9 +280,9 @@ decode_string (DC *dc, string *str, uint32_t max_len)
     return false;
 
   str->str = (char *) xmalloc (str->len + 1);
-  memcpy (str->str, dc->current, str->len);
+  memcpy (str->str, dc->cur_pos, str->len);
   str->str[str->len] = 0;
-  dc->current += str->len;
+  dc->cur_pos += str->len;
 
   return true;
 }
@@ -303,8 +303,8 @@ encode_string (DC *dc, string *str)
       return false;
     }
 
-  memcpy (dc->current, str->str, str->len);
-  dc->current += str->len;
+  memcpy (dc->cur_pos, str->str, str->len);
+  dc->cur_pos += str->len;
 
   return true;
 }

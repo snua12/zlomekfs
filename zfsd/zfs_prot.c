@@ -272,7 +272,7 @@ zfs_proc_readdir_server (read_dir_args *args, DC *dc,
   list.eof = 0;
   list.buffer = dc;
 
-  old_pos = dc->current;
+  old_pos = dc->cur_pos;
   old_len = dc->cur_length;
   encode_status (dc, ZFS_OK);
   encode_dir_list (dc, &list);
@@ -280,16 +280,16 @@ zfs_proc_readdir_server (read_dir_args *args, DC *dc,
   r = zfs_readdir (&list, &args->cap, args->cookie, args->count,
 		   &filldir_encode);
 
-  cur_pos = dc->current;
+  cur_pos = dc->cur_pos;
   cur_len = dc->cur_length;
-  dc->current = old_pos;
+  dc->cur_pos = old_pos;
   dc->cur_length = old_len;
 
   encode_status (dc, r);
   if (r == ZFS_OK)
     {
       encode_dir_list (dc, &list);
-      dc->current = cur_pos;
+      dc->cur_pos = cur_pos;
       dc->cur_length = cur_len;
     }
 }
@@ -394,12 +394,12 @@ zfs_proc_read_server (read_args *args, DC *dc,
   uint32_t count;
   char *buffer;
 
-  old_pos = dc->current;
+  old_pos = dc->cur_pos;
   old_len = dc->cur_length;
   encode_status (dc, ZFS_OK);
   encode_uint32_t (dc, 0);
-  buffer = dc->current;
-  dc->current = old_pos;
+  buffer = dc->cur_pos;
+  dc->cur_pos = old_pos;
   dc->cur_length = old_len;
 
   r = zfs_read (&count, buffer, &args->cap, args->offset, args->count, true);
@@ -407,7 +407,7 @@ zfs_proc_read_server (read_args *args, DC *dc,
   if (r == ZFS_OK)
     {
       encode_uint32_t (dc, count);
-      dc->current += count;
+      dc->cur_pos += count;
       dc->cur_length += count;
     }
 }
@@ -614,23 +614,23 @@ zfs_proc_hardlinks_server (hardlinks_args *args, DC *dc,
   res.n = 0;
   res.buffer = dc;
 
-  old_pos = dc->current;
+  old_pos = dc->cur_pos;
   old_len = dc->cur_length;
   encode_status (dc, ZFS_OK);
   encode_hardlinks_res (dc, &res);
 
   r = zfs_hardlinks (&res, &args->fh, args->start, &fill_hardlink_encode);
 
-  cur_pos = dc->current;
+  cur_pos = dc->cur_pos;
   cur_len = dc->cur_length;
-  dc->current = old_pos;
+  dc->cur_pos = old_pos;
   dc->cur_length = old_len;
 
   encode_status (dc, r);
   if (r == ZFS_OK)
     {
       encode_hardlinks_res (dc, &res);
-      dc->current = cur_pos;
+      dc->cur_pos = cur_pos;
       dc->cur_length = cur_len;
     }
 }
