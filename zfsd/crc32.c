@@ -103,11 +103,25 @@ const unsigned int crc32_table[256] = {
 /* Update 32-bit CRC value with buffer BUF of length LEN.  */
 
 unsigned int
-crc32 (unsigned int crc, const void *buf, size_t len)
+crc32_update (unsigned int crc, const void *buf, size_t len)
 {
   const char *s = (const char *) buf;
 
   crc ^= 0xffffffff;
+
+  while (len--)
+    crc = CRC32_NEXT (crc, s);
+  
+  return crc ^ 0xffffffff;
+}
+
+/* Compute 32-bit CRC value for buffer BUF of length LEN.  */
+
+unsigned int
+crc32_buffer (const void *buf, size_t len)
+{
+  const char *s = (const char *) buf;
+  unsigned int crc = 0xffffffff;
 
   while (len--)
     crc = CRC32_NEXT (crc, s);
@@ -120,7 +134,7 @@ crc32 (unsigned int crc, const void *buf, size_t len)
 unsigned int
 crc32_string (const char *s)
 {
-  unsigned long crc = 0xffffffff;
+  unsigned int crc = 0xffffffff;
 
   while (*s)
     crc = CRC32_NEXT (crc, s);

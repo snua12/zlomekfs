@@ -30,7 +30,8 @@
 /* Table used for computing 32-bit CRC.  */
 extern const unsigned int crc32_table[256];
 
-extern unsigned int crc32 (unsigned int crc, const void *buf, size_t len);
+extern unsigned int crc32_update (unsigned int crc, const void *buf, size_t len);
+extern unsigned int crc32_buffer (const void *buf, size_t len);
 extern unsigned int crc32_string (const char *s);
 
 #endif
