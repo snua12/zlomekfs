@@ -648,7 +648,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	    {
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
-	      return ZFS_STALE;
+	      return ESTALE;
 	    }
 	}
 
