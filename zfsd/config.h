@@ -23,7 +23,7 @@
 
 #include "system.h"
 #include <stdio.h>
-#include <netinet/in.h>
+#include <inttypes.h>
 #include "pthread.h"
 #include "memory.h"
 #include "thread.h"
@@ -43,7 +43,8 @@ extern pthread_rwlock_t lock_config;
 
 extern void set_node_name (void);
 extern void set_default_uid_gid (void);
-extern void add_reread_config_request (string *relative_path);
+extern void add_reread_config_request (string *relative_path,
+				       uint32_t from_sid);
 extern bool read_cluster_config (void);
 extern bool read_config_file (const char *file);
 

@@ -75,6 +75,9 @@ struct reread_config_request_def
 
   /* Path relative to root of config volume.  */
   string relative_path;
+
+  /* Node which the request came from.  */
+  uint32_t from_sid;
 };
 
 /* First and last element of the chain of requests for rereading
@@ -1761,10 +1764,11 @@ out:
   return false;
 }
 
-/* Add request to reread config file RELATIVE_PATH to queue.  */
+/* Add request to reread config file RELATIVE_PATH to queue.
+   The request came from node FROM_SID.  */
 
 void
-add_reread_config_request (string *relative_path)
+add_reread_config_request (string *relative_path, uint32_t from_sid)
 {
   reread_config_request node;
 
@@ -1775,6 +1779,7 @@ add_reread_config_request (string *relative_path)
   node = (reread_config_request) pool_alloc (reread_config_pool);
   node->next = NULL;
   node->relative_path = *relative_path;
+  node->from_sid = from_sid;
 
   if (reread_config_last)
     reread_config_last->next = node;
@@ -1786,10 +1791,11 @@ add_reread_config_request (string *relative_path)
 }
 
 /* Get a request to reread config from queue and store the relative path of
-   the file to be reread to RELATIVE_PATH.  */
+   the file to be reread to RELATIVE_PATH and the node ID which the request came
+   from to FROM_SID.  */
 
 static bool
-get_reread_config_request (string *relative_path)
+get_reread_config_request (string *relative_path, uint32_t *from_sid)
 {
   zfsd_mutex_lock (&reread_config_mutex);
   if (reread_config_first == NULL)
@@ -1799,6 +1805,7 @@ get_reread_config_request (string *relative_path)
     }
 
   *relative_path = reread_config_first->relative_path;
+  *from_sid = reread_config_first->from_sid;
 
   reread_config_first = reread_config_first->next;
   if (!reread_config_first)
@@ -1910,6 +1917,7 @@ config_reader (void *data)
   while (1)
     {
       string relative_path;
+      uint32_t from_sid;
 
       /* Wait until we are notified.  */
       semaphore_down (&t->sem, 1);
@@ -1921,7 +1929,7 @@ config_reader (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
-      while (get_reread_config_request (&relative_path))
+      while (get_reread_config_request (&relative_path, &from_sid))
 	{
 	  if (!reread_config_file (&relative_path))
 	    terminate ();
