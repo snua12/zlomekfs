@@ -417,16 +417,16 @@ update_file (zfs_fh *fh)
 
   cap.fh = *fh;
   cap.flags = O_RDONLY;
-  r = get_capability (&cap, &icap, &vol, &dentry, NULL, false);
+  r = get_capability (&cap, &icap, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
     return r;
 
   if (!(vol->local_path && vol->master != this_node))
     {
-      r = ZFS_UPDATE_FAILED;
-      goto out;
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_UPDATE_FAILED;
     }
-  zfsd_mutex_unlock (&fh_mutex);
 
   r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, NULL, &cap);
   if (r != ZFS_OK)
