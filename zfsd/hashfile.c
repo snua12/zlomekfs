@@ -420,10 +420,6 @@ hfile_insert (hfile_t hfile, void *x)
   if (!offset)
     return false;
 
-  status = le_to_u32 (*(uint32_t *) hfile->element);
-  if (status == VALID_SLOT)
-    return true;
-
   *(uint32_t *) x = VALID_SLOT;
 
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
