@@ -489,11 +489,10 @@ open_list_file (volume vol)
 }
 
 /* Open and initialize file descriptor for interval of type TYPE for
-   file handle FH on volume VOL.  Store the name of interval file to PATHP.  */
+   file handle FH on volume VOL.  */
 
 static int
-open_interval_file (volume vol, internal_fh fh, metadata_type type,
-		    char **pathp)
+open_interval_file (volume vol, internal_fh fh, metadata_type type)
 {
   interval_tree tree;
   char *path;
@@ -539,7 +538,6 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type,
   init_interval_fd (tree);
   zfsd_mutex_unlock (&metadata_mutex);
 
-  *pathp = path;
   return fd;
 }
 
@@ -1001,7 +999,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 
   if (!interval_opened_p (tree))
     {
-      if (open_interval_file (vol, fh, type, &path) < 0)
+      if (open_interval_file (vol, fh, type) < 0)
 	return false;
     }
 
@@ -1011,6 +1009,8 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 
   zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
 
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
   delete_useless_interval_file (vol, fh, type, tree, path);
   free (path);
 
