@@ -2775,16 +2775,20 @@ int32_t
 zfs_unlink (zfs_fh *dir, string *name)
 {
   volume vol;
+  internal_dentry dentry, parent, other;
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
+  fattr fa;
+  sattr sa;
   string path;
   zfs_fh tmp_fh;
   int32_t r, r2;
+  int what_to_do = 0;
 
   TRACE ("");
 
-  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -2812,7 +2816,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -2834,8 +2838,164 @@ zfs_unlink (zfs_fh *dir, string *name)
 
   path.str = NULL;
   path.len = 0;
-  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+  if (CONFLICT_DIR_P (idir->fh->local_fh))
     {
+      dentry = dentry_lookup_name (NULL, idir, name);
+      if (!dentry)
+	{
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = ENOENT;
+	}
+      else if (dentry->fh->attr.mode == FT_DIR)
+	{
+	  release_dentry (dentry);
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = EISDIR;
+	}
+      else
+	{
+	  string name2;
+
+	  other = conflict_other_dentry (idir, dentry);
+#ifdef ENABLE_CHECKING
+	  if (!other)
+	    abort ();
+#endif
+
+	  if (dentry->fh->local_fh.sid == this_node->id)
+	    {
+	      if (NON_EXIST_FH_P (dentry->fh->local_fh))
+		{
+		  what_to_do = 7;
+		  release_dentry (idir);
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  zfsd_mutex_unlock (&vol->mutex);
+		  zfsd_mutex_unlock (&fh_mutex);
+		}
+	      else if (NON_EXIST_FH_P (other->fh->local_fh))
+		{
+		  what_to_do = 3;
+		  parent = idir->parent;
+		  acquire_dentry (parent);
+		  xstringdup (&name2, &idir->name);
+		  release_dentry (idir);
+
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  r = local_unlink (&st, &path, parent, &name2, vol);
+		  free (name2.str);
+		}
+	      else /* Both DENTRY and OTHER are regular dentries.  */
+		{
+		  if (ZFS_FH_EQ (dentry->fh->meta.master_fh,
+				 other->fh->local_fh))
+		    {
+		      /* Conflict is on metadata (mode, UID, GID).  */
+		      what_to_do = 5;
+		      release_dentry (idir);
+
+		      sa.mode = (dentry->fh->attr.mode != other->fh->attr.mode
+				 ? other->fh->attr.mode : (uint32_t) -1);
+		      sa.uid = (dentry->fh->attr.uid != other->fh->attr.uid
+				? other->fh->attr.uid : (uint32_t) -1);
+		      sa.gid = (dentry->fh->attr.gid != other->fh->attr.gid
+				? other->fh->attr.gid : (uint32_t) -1);
+		      sa.size = (uint64_t) -1;
+		      sa.atime = (zfs_time) -1;
+		      sa.mtime = (zfs_time) -1;
+		      release_dentry (other);
+		      r = local_setattr (&fa, dentry, &sa, vol);
+		    }
+		  else
+		    {
+		      /* Conflict is on versions.  */
+		      what_to_do = 3;
+		      parent = idir->parent;
+		      acquire_dentry (parent);
+		      xstringdup (&name2, &idir->name);
+		      release_dentry (idir);
+
+		      release_dentry (dentry);
+		      release_dentry (other);
+		      r = local_unlink (&st, &path, parent, &name2, vol);
+		      free (name2.str);
+		    }
+		}
+	    }
+	  else
+	    {
+	      if (NON_EXIST_FH_P (dentry->fh->local_fh))
+		{
+		  what_to_do = 8;
+		  release_dentry (idir);
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  zfsd_mutex_unlock (&vol->mutex);
+		  zfsd_mutex_unlock (&fh_mutex);
+		}
+	      else if (NON_EXIST_FH_P (other->fh->local_fh))
+		{
+		  what_to_do = 4;
+		  parent = idir->parent;
+		  acquire_dentry (parent);
+		  xstringdup (&name2, &idir->name);
+		  release_dentry (idir);
+		  zfsd_mutex_unlock (&fh_mutex);
+
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  r = remote_unlink (parent, &name2, vol);
+		  free (name2.str);
+		}
+	      else /* Both DENTRY and OTHER are regular dentries.  */
+		{
+		  if (ZFS_FH_EQ (dentry->fh->meta.master_fh,
+				 other->fh->local_fh))
+		    {
+		      /* Conflict is on metadata (mode, UID, GID).  */
+		      what_to_do = 6;
+		      release_dentry (idir);
+		      zfsd_mutex_unlock (&fh_mutex);
+
+		      sa.mode = (dentry->fh->attr.mode != other->fh->attr.mode
+				 ? other->fh->attr.mode : (uint32_t) -1);
+		      sa.uid = (dentry->fh->attr.uid != other->fh->attr.uid
+				? other->fh->attr.uid : (uint32_t) -1);
+		      sa.gid = (dentry->fh->attr.gid != other->fh->attr.gid
+				? other->fh->attr.gid : (uint32_t) -1);
+		      sa.size = (uint64_t) -1;
+		      sa.atime = (zfs_time) -1;
+		      sa.mtime = (zfs_time) -1;
+		      release_dentry (other);
+		      r = remote_setattr (&fa, dentry, &sa, vol);
+		    }
+		  else
+		    {
+		      /* Conflict is on versions.  */
+		      what_to_do = 4;
+		      parent = idir->parent;
+		      acquire_dentry (parent);
+		      xstringdup (&name2, &idir->name);
+		      release_dentry (idir);
+		      zfsd_mutex_unlock (&fh_mutex);
+
+		      release_dentry (dentry);
+		      release_dentry (other);
+		      r = remote_unlink (parent, &name2, vol);
+		      free (name2.str);
+		    }
+		}
+	    }
+	}
+    }
+  else if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+    {
+      what_to_do = 1;
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
       if (r != ZFS_OK)
 	return r;
@@ -2843,6 +3003,7 @@ zfs_unlink (zfs_fh *dir, string *name)
     }
   else if (vol->master != this_node)
     {
+      what_to_do = 2;
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_unlink (idir, name, vol);
     }
@@ -2858,50 +3019,196 @@ zfs_unlink (zfs_fh *dir, string *name)
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &idir, name, &tmp_fh);
+      internal_dentry parent, dentry;
+      string filename;
+      struct stat parent_st;
+      metadata meta;
 
-      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+      switch (what_to_do)
 	{
-	  string filename;
-	  struct stat parent_st;
-	  metadata meta;
+	  default:
+	    break;
 
-	  if (vol->master != this_node)
-	    {
-	      if (!add_journal_entry_st (vol, idir->fh, &st, name,
-					 JOURNAL_OPERATION_DEL))
-		MARK_VOLUME_DELETE (vol);
-	    }
+	  case 1:
+	    /* Deleted a local file.  */
+	    delete_dentry (&vol, &idir, name, &tmp_fh);
+
+	    if (vol->master != this_node)
+	      {
+		if (!add_journal_entry_st (vol, idir->fh, &st, name,
+					   JOURNAL_OPERATION_DEL))
+		  MARK_VOLUME_DELETE (vol);
+	      }
 
 #ifdef ENABLE_CHECKING
-	  if (path.str == NULL)
-	    abort ();
+	    if (path.str == NULL)
+	      abort ();
 #endif
 
-	  file_name_from_path (&filename, &path);
-	  filename.str[-1] = 0;
-	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
-	    {
-	      meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					    zfs_mode_to_ftype (st.st_mode));
-	      meta.uid = map_uid_node2zfs (st.st_uid);
-	      meta.gid = map_gid_node2zfs (st.st_gid);
-	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
-				    parent_st.st_dev, parent_st.st_ino,
-				    &filename))
-		MARK_VOLUME_DELETE (vol);
-	    }
-	  filename.str[-1] = '/';
+	    file_name_from_path (&filename, &path);
+	    filename.str[-1] = 0;
+	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
+	      {
+		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					      zfs_mode_to_ftype (st.st_mode));
+		meta.uid = map_uid_node2zfs (st.st_uid);
+		meta.gid = map_gid_node2zfs (st.st_gid);
+		if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
+				      parent_st.st_dev, parent_st.st_ino,
+				      &filename))
+		  MARK_VOLUME_DELETE (vol);
+	      }
+	    filename.str[-1] = '/';
 
-	  if (!inc_local_version (vol, idir->fh))
-	    MARK_VOLUME_DELETE (vol);
+	    if (!inc_local_version (vol, idir->fh))
+	      MARK_VOLUME_DELETE (vol);
+	    break;
+
+	  case 2:
+	    /* Deleted a remote file.  */
+	    delete_dentry (&vol, &idir, name, &tmp_fh);
+	    break;
+
+	  case 3:
+	    /* Resolved conflict: deleted local file.  */
+	    parent = idir->parent;
+	    acquire_dentry (parent);
+
+	    if (!add_journal_entry_st (vol, parent->fh, &st, &idir->name,
+				       JOURNAL_OPERATION_DEL))
+	      MARK_VOLUME_DELETE (vol);
+
+#ifdef ENABLE_CHECKING
+	    if (path.str == NULL)
+	      abort ();
+#endif
+	    file_name_from_path (&filename, &path);
+	    filename.str[-1] = 0;
+	    if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
+	      {
+		meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					      zfs_mode_to_ftype (st.st_mode));
+		meta.uid = map_uid_node2zfs (st.st_uid);
+		meta.gid = map_gid_node2zfs (st.st_gid);
+		if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
+				      parent_st.st_dev, parent_st.st_ino,
+				      &filename))
+		  MARK_VOLUME_DELETE (vol);
+	      }
+	    filename.str[-1] = '/';
+
+	    if (!inc_local_version (vol, parent->fh))
+	      MARK_VOLUME_DELETE (vol);
+
+	    release_dentry (parent);
+	    zfsd_mutex_unlock (&vol->mutex);
+	    internal_dentry_destroy (idir, true);
+	    zfsd_mutex_unlock (&fh_mutex);
+	    goto out;
+
+	  case 4:
+	    /* Resolved conflict: deleted remote file.  */
+	    delete_dentry (&vol, &idir, name, &tmp_fh);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+#ifdef ENABLE_CHECKING
+	    else
+	      abort ();
+#endif
+	    break;
+
+	  case 5:
+	    /* Resolved conflict: set local metadata.  */
+	    dentry = conflict_local_dentry (idir);
+	    other = conflict_remote_dentry (idir);
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+
+	    set_attr_version (&fa, &dentry->fh->meta);
+	    dentry->fh->attr = fa;
+	    if (dentry->fh->attr.mode == other->fh->attr.mode
+		&& dentry->fh->attr.uid == other->fh->attr.uid
+		&& dentry->fh->attr.gid == other->fh->attr.gid)
+	      {
+		dentry->fh->meta.modetype = GET_MODETYPE (fa.mode, fa.type);
+		dentry->fh->meta.uid = fa.uid;
+		dentry->fh->meta.gid = fa.gid;
+		if (!flush_metadata (vol, &dentry->fh->meta))
+		  MARK_VOLUME_DELETE (vol);
+	      }
+	    release_dentry (dentry);
+	    release_dentry (other);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+	    break;
+
+	  case 6:
+	    /* Resolved conflict: set remote metadata.  */
+	    dentry = dentry_lookup_name (NULL, idir, name);
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+	    dentry->fh->attr = fa;
+	    release_dentry (dentry);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+	    break;
+
+	  case 7:
+	    /* Resolved conflict: deleted local non-existing file.  */
+	    zfsd_mutex_unlock (&vol->mutex);
+	    internal_dentry_destroy (idir, true);
+	    zfsd_mutex_unlock (&fh_mutex);
+	    goto out;
+
+	  case 8:
+	    /* Resolved conflict: deleted remote non-existing file.  */
+	    dentry = conflict_local_dentry (idir);
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+	    parent = idir->parent;
+	    acquire_dentry (parent);
+
+	    /* Add the local file to journal so that it could be
+	       reintegrated.  */
+	    if (!add_journal_entry (vol, parent->fh, &dentry->fh->local_fh,
+				    &dentry->fh->meta.master_fh, &idir->name,
+				    JOURNAL_OPERATION_ADD))
+	      MARK_VOLUME_DELETE (vol);
+	    release_dentry (dentry);
+	    release_dentry (parent);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+	    break;
 	}
     }
 
+  internal_dentry_unlock (vol, idir);
+
+out:
   if (path.str)
     free (path.str);
-
-  internal_dentry_unlock (vol, idir);
 
   return r;
 }
