@@ -1524,6 +1524,228 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
   return ZFS_OK;
 }
 
+/* Discard changes to local file LOCAL which is in conflict with REMOTE
+   on volume VOL.  CONFLICT_FH is a file handle of the cnflict directory
+   containing these two files.  */
+
+int32_t
+resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
+				internal_dentry remote, volume vol)
+{
+  internal_dentry conflict;
+  sattr sa;
+  fattr fa;
+  int32_t r, r2;
+  uint64_t version;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&local->fh->mutex);
+  CHECK_MUTEX_LOCKED (&remote->fh->mutex);
+
+  /* Synchronize the attributes if necessary.  */
+  if (METADATA_ATTR_CHANGE_P (local->fh->meta, local->fh->attr)
+      && METADATA_ATTR_CHANGE_P (local->fh->meta, remote->fh->attr))
+    {
+      sa.mode = (local->fh->attr.mode != remote->fh->attr.mode
+		 ? remote->fh->attr.mode : (uint32_t) -1);
+      sa.uid = (local->fh->attr.uid != remote->fh->attr.uid
+		? remote->fh->attr.uid : (uint32_t) -1);
+      sa.gid = (local->fh->attr.gid != remote->fh->attr.gid
+		? remote->fh->attr.gid : (uint32_t) -1);
+      sa.size = (uint64_t) -1;
+      sa.atime = (zfs_time) -1;
+      sa.mtime = (zfs_time) -1;
+      release_dentry (remote);
+      r = local_setattr (&fa, local, &sa, vol);
+      if (r != ZFS_OK)
+	return r;
+
+      r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+      local = conflict_local_dentry (conflict);
+      remote = conflict_other_dentry (conflict, local);
+      release_dentry (conflict);
+#ifdef ENABLE_CHECKING
+      if (!local)
+	abort ();
+      if (!remote)
+	abort ();
+#endif
+
+      set_attr_version (&fa, &local->fh->meta);
+      local->fh->attr = fa;
+      local->fh->meta.modetype = GET_MODETYPE (fa.mode, fa.type);
+      local->fh->meta.uid = fa.uid;
+      local->fh->meta.gid = fa.gid;
+      if (!flush_metadata (vol, &local->fh->meta))
+	MARK_VOLUME_DELETE (vol);
+    }
+  zfsd_mutex_unlock (&fh_mutex);
+
+  version = (local->fh->attr.version > remote->fh->attr.version
+	     ? local->fh->attr.version + 1 : remote->fh->attr.version + 1);
+  release_dentry (remote);
+
+  /* Update the interval trees.  */
+  if (!load_interval_trees (vol, local->fh))
+    goto out;
+
+  interval_tree_sub (local->fh->updated, local->fh->modified);
+  interval_tree_empty (local->fh->modified);
+  if (local->fh->interval_tree_users > 1)
+    {
+      if (!flush_interval_tree (vol, local->fh, METADATA_TYPE_UPDATED))
+	goto out_save;
+
+      if (!flush_interval_tree (vol, local->fh, METADATA_TYPE_MODIFIED))
+	goto out_save;
+    }
+
+  if (!save_interval_trees (vol, local->fh))
+    goto out;
+
+  /* Update local and remote version.  */
+  r = local_reintegrate_set (local, version, vol);
+  if (r != ZFS_OK)
+    return r;
+
+  r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+  remote = conflict_remote_dentry (conflict);
+  release_dentry (conflict);
+
+  r = remote_reintegrate_set (remote, version, NULL, vol);
+  return r;
+
+out_save:
+  save_interval_trees (vol, local->fh);
+
+out:
+  release_dentry (local);
+  zfsd_mutex_unlock (&vol->mutex);
+  return ZFS_METADATA_ERROR;
+}
+
+/* Discard changes to local file LOCAL which is in conflict with REMOTE
+   on volume VOL.  CONFLICT_FH is a file handle of the cnflict directory
+   containing these two files.  */
+
+int32_t
+resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
+				 internal_dentry remote, volume vol)
+{
+  internal_dentry conflict;
+  sattr sa;
+  fattr fa;
+  int32_t r, r2;
+  uint64_t version;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&local->fh->mutex);
+  CHECK_MUTEX_LOCKED (&remote->fh->mutex);
+
+  /* Synchronize the attributes if necessary.  */
+  if (METADATA_ATTR_CHANGE_P (local->fh->meta, local->fh->attr)
+      && METADATA_ATTR_CHANGE_P (local->fh->meta, remote->fh->attr))
+    {
+      sa.mode = (local->fh->attr.mode != remote->fh->attr.mode
+		 ? local->fh->attr.mode : (uint32_t) -1);
+      sa.uid = (local->fh->attr.uid != remote->fh->attr.uid
+		? local->fh->attr.uid : (uint32_t) -1);
+      sa.gid = (local->fh->attr.gid != remote->fh->attr.gid
+		? local->fh->attr.gid : (uint32_t) -1);
+      sa.size = (uint64_t) -1;
+      sa.atime = (zfs_time) -1;
+      sa.mtime = (zfs_time) -1;
+      release_dentry (remote);
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_setattr (&fa, local, &sa, vol);
+      if (r != ZFS_OK)
+	return r;
+
+      r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+      local = conflict_local_dentry (conflict);
+      remote = conflict_other_dentry (conflict, local);
+      release_dentry (conflict);
+#ifdef ENABLE_CHECKING
+      if (!local)
+	abort ();
+      if (!remote)
+	abort ();
+#endif
+
+      remote->fh->attr = fa;
+      local->fh->meta.modetype = GET_MODETYPE (fa.mode, fa.type);
+      local->fh->meta.uid = fa.uid;
+      local->fh->meta.gid = fa.gid;
+      if (!flush_metadata (vol, &local->fh->meta))
+	MARK_VOLUME_DELETE (vol);
+    }
+  zfsd_mutex_unlock (&fh_mutex);
+
+  version = (local->fh->attr.version > remote->fh->attr.version
+	     ? local->fh->attr.version : remote->fh->attr.version + 1);
+  release_dentry (remote);
+
+  /* Update the interval trees.  */
+  if (!load_interval_trees (vol, local->fh))
+    goto out;
+
+  interval_tree_add (local->fh->modified, local->fh->updated);
+  interval_tree_empty (local->fh->updated);
+  if (local->fh->interval_tree_users > 1)
+    {
+      if (!flush_interval_tree (vol, local->fh, METADATA_TYPE_UPDATED))
+	goto out_save;
+
+      if (!flush_interval_tree (vol, local->fh, METADATA_TYPE_MODIFIED))
+	goto out_save;
+    }
+
+  if (!save_interval_trees (vol, local->fh))
+    goto out;
+
+  return ZFS_OK;
+
+  /* Update local and remote version.  */
+  r = local_reintegrate_set (local, version + 1, vol);
+  if (r != ZFS_OK)
+    return r;
+
+  r2 = zfs_fh_lookup_nolock (conflict_fh, &vol, &conflict, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+  remote = conflict_remote_dentry (conflict);
+  release_dentry (conflict);
+
+  r = remote_reintegrate_set (remote, version, NULL, vol);
+  return r;
+
+out_save:
+  save_interval_trees (vol, local->fh);
+
+out:
+  release_dentry (local);
+  zfsd_mutex_unlock (&vol->mutex);
+  return ZFS_METADATA_ERROR;
+}
+
 /* Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
    and remote file handle REMOTE_FH in directory DIR with file handle DIR_FH
    on volume VOL.  Store the info about deleted file into RES.  */
