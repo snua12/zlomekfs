@@ -1082,7 +1082,6 @@ network_cleanup ()
       zfsd_mutex_unlock (&fd_data->mutex);
     }
 
-  pthread_kill (network_regulator_data.thread_id, SIGUSR1);
   thread_pool_destroy (&network_pool);
   network_destroy_fd_data ();
 }

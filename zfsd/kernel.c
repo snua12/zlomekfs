@@ -455,7 +455,6 @@ client_start ()
 void
 client_cleanup ()
 {
-  pthread_kill (client_regulator_data.thread_id, SIGUSR1);
   thread_pool_destroy (&client_pool);
   zfsd_mutex_destroy (&client_data.mutex);
 }
