@@ -246,7 +246,8 @@ fattr_from_struct_stat (fattr *attr, struct stat *st)
   attr->version = 0;
   attr->dev = st->st_dev;
   attr->ino = st->st_ino;
-  attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
+  attr->mode = st->st_mode & (S_IRWXU | S_IRWXG | S_IRWXO
+			      | S_ISUID | S_ISGID | S_ISVTX);
   attr->nlink = st->st_nlink;
   attr->uid = map_uid_node2zfs (st->st_uid);
   attr->gid = map_gid_node2zfs (st->st_gid);
