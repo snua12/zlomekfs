@@ -131,7 +131,7 @@ zfs_proc_lookup_server (dir_op_args *args, thread *t)
   free (args->name.str);
 }
 
-/* open_res zfs_proc_open_by_name (open_name_args); */
+/* zfs_fh zfs_proc_open_by_name (open_name_args); */
 
 void
 zfs_proc_open_by_name_server (open_name_args *args, thread *t)
@@ -142,7 +142,7 @@ zfs_proc_open_by_name_server (open_name_args *args, thread *t)
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
 }
 
-/* open_res zfs_proc_open_by_fd (zfs_fh); */
+/* zfs_fh zfs_proc_open_by_fd (zfs_fh); */
 
 void
 zfs_proc_open_by_fd_server (zfs_fh *args, thread *t)

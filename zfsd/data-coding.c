@@ -528,18 +528,6 @@ encode_open_name_args (DC *dc, open_name_args *args)
 }
 
 bool
-decode_open_res (DC *dc, open_res *res)
-{
-  return decode_zfs_fh (dc, &res->file);
-}
-
-bool
-encode_open_res (DC *dc, open_res *res)
-{
-  return encode_zfs_fh (dc, &res->file);
-}
-
-bool
 decode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (decode_zfs_fh (dc, &args->dir)

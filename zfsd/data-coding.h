@@ -210,8 +210,6 @@ extern bool decode_dir_op_res (DC *dc, dir_op_res *res);
 extern bool encode_dir_op_res (DC *dc, dir_op_res *res);
 extern bool decode_open_name_args (DC *dc, open_name_args *args);
 extern bool encode_open_name_args (DC *dc, open_name_args *args);
-extern bool decode_open_res (DC *dc, open_res *res);
-extern bool encode_open_res (DC *dc, open_res *res);
 extern bool decode_read_dir_args (DC *dc, read_dir_args *args);
 extern bool encode_read_dir_args (DC *dc, read_dir_args *args);
 extern bool decode_dir_entry (DC *dc, dir_entry *entry);

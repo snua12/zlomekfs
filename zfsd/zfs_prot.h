@@ -155,11 +155,6 @@ typedef struct open_name_args_def
   sattr attr;
 } open_name_args;
 
-typedef struct open_res_def
-{
-  zfs_fh file;
-} open_res;
-
 typedef struct read_dir_args_def
 {
   zfs_fh dir;
