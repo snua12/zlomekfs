@@ -152,10 +152,10 @@ internal_cap_destroy (internal_cap cap)
     abort ();
 #endif
 
+  htab_clear_slot (cap_htab, slot);
   zfsd_mutex_unlock (&cap->mutex);
   pthread_mutex_destroy (&cap->mutex);
   pool_free (cap_pool, *slot);
-  htab_clear_slot (cap_htab, slot);
 }
 
 /* Get a capability for internal file handle FH with open mode MODE.  Create
