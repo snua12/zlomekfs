@@ -469,12 +469,11 @@ reintegrate_file_blocks (zfs_cap *cap)
       icap->master_cap = master_cap;
     }
 
-  if (dentry->fh->attr.size == 0)
-    zfsd_mutex_unlock (&fh_mutex);
   for (offset = 0; offset < dentry->fh->attr.size; )
     {
       char buf[ZFS_MAXDATA];
 
+      CHECK_MUTEX_LOCKED (&fh_mutex);
       CHECK_MUTEX_LOCKED (&vol->mutex);
       CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -490,7 +489,6 @@ reintegrate_file_blocks (zfs_cap *cap)
 
       r = full_local_read_dentry (&count, buf, cap, dentry, vol, offset,
 				  count);
-      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	break;
 
@@ -510,6 +508,7 @@ reintegrate_file_blocks (zfs_cap *cap)
       else
 	break;
     }
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (dentry->fh->modified->deleted)
     {

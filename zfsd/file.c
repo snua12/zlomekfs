@@ -2565,17 +2565,19 @@ full_remote_write_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
   int32_t r, r2;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   for (total = 0; total < count; total += res.written)
     {
+      zfsd_mutex_unlock (&fh_mutex);
       args.offset = offset + total;
       args.data.len = count - total;
       args.data.buf = (char *) buffer + total;
       r = remote_write (&res, icap, dentry, &args, vol);
 
-      r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
+      r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
