@@ -60,7 +60,7 @@ queue_destroy (queue *q)
 
 /* Put an element ELEM to the queue Q.  */
 
-inline void
+void
 queue_put (queue *q, size_t elem)
 {
 #ifdef ENABLE_CHECKING
@@ -79,7 +79,7 @@ queue_put (queue *q, size_t elem)
 
 /* Get an element from the queue Q.  */
 
-inline size_t
+size_t
 queue_get (queue *q)
 {
   size_t r;

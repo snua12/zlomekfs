@@ -37,7 +37,7 @@ typedef struct queue_def
 
 extern void queue_create (queue *q, size_t size);
 extern void queue_destroy (queue *q);
-extern inline void queue_put (queue *q, size_t elem);
-extern inline size_t queue_get (queue *q);
+extern void queue_put (queue *q, size_t elem);
+extern size_t queue_get (queue *q);
 
 #endif
