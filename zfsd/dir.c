@@ -3218,6 +3218,7 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, string *entry,
       if (!parent)
 	{
 	  release_dentry (dir);
+	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
 	  return ENOENT;
 	}
@@ -3265,6 +3266,7 @@ refresh_path (zfs_fh *fh)
   if (!parent)
     {
       release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
       return ENOENT;
     }

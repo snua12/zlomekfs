@@ -600,6 +600,8 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	    {
 	      if (vol->n_locked_fhs == 0)
 		volume_delete (vol);
+	      else
+		zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 	      return ENOENT;
 	    }
