@@ -2313,11 +2313,11 @@ local_rename_base (metadata *meta_old, metadata *meta_new, bool same_dir,
     {
       /* TO_PATH does not exist.  */
       r = rename (from_path->str, to_path->str);
-      free (from_path->str);
-      free (to_path->str);
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
+	  free (from_path->str);
+	  free (to_path->str);
 	  return errno;
 	}
 
@@ -2327,11 +2327,11 @@ local_rename_base (metadata *meta_old, metadata *meta_new, bool same_dir,
     {
       /* TO_PATH exists.  */
       r = rename (from_path->str, to_path->str);
-      free (from_path->str);
-      free (to_path->str);
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
+	  free (from_path->str);
+	  free (to_path->str);
 	  return errno;
 	}
 
@@ -2373,6 +2373,8 @@ local_rename_base (metadata *meta_old, metadata *meta_new, bool same_dir,
     MARK_VOLUME_DELETE (vol);
 
   zfsd_mutex_unlock (&vol->mutex);
+  free (from_path->str);
+  free (to_path->str);
   return ZFS_OK;
 }
 
