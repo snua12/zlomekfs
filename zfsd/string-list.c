@@ -105,8 +105,11 @@ string_list_destroy (string_list sl)
   free (sl);
 }
 
+/* Insert string STR to string list SL.  If COPY is true make a copy of the
+   string.  */
+
 void
-string_list_insert (string_list sl, char *str)
+string_list_insert (string_list sl, char *str, bool copy)
 {
   string_list_entry entry;
   void **slot;
@@ -122,7 +125,10 @@ string_list_insert (string_list sl, char *str)
   entry = (string_list_entry) pool_alloc (string_list_pool);
   zfsd_mutex_unlock (&string_list_mutex);
   entry->index = VARRAY_USED (sl->array);
-  entry->str = xstrdup (str);
+  if (copy)
+    entry->str = xstrdup (str);
+  else
+    entry->str = str;
   VARRAY_PUSH (sl->array, entry, string_list_entry);
 
   *slot = entry;
