@@ -816,8 +816,7 @@ retry_accept:
       network_fd_data_t *fd_data = active[i];
 
       zfsd_mutex_lock (&fd_data->mutex);
-      if (fd_data->busy == 0)
-	close_active_fd (i);
+      close_active_fd (i);
       zfsd_mutex_unlock (&fd_data->mutex);
     }
   zfsd_mutex_unlock (&active_mutex);

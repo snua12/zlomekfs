@@ -417,8 +417,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	}
     }
 
-  if (kernel_data.busy == 0)
-    close (kernel_file);
+  close (kernel_file);
   message (2, stderr, "Terminating...\n");
   return NULL;
 }
