@@ -1780,6 +1780,8 @@ resolve_conflict_delete_local_file (dir_op_res *res, internal_dentry dir,
 	abort ();
 #endif
       r = remote_file_info (&info, remote_fh, vol);
+      if (r == ZFS_OK)
+	free (info.path.str);
     }
   else
     r = ENOENT;
