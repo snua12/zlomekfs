@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "pthread.h"
 #include "journal.h"
@@ -282,6 +283,47 @@ journal_delete_entry (journal_t journal, journal_entry entry)
   htab_clear_slot (journal->htab, slot);
 
   return true;
+}
+
+/* Print the journal JOURNAL to file F.  */
+
+void
+print_journal (FILE *f, journal_t journal)
+{
+  journal_entry entry;
+
+  for (entry = journal->first; entry; entry = entry->next)
+    {
+      switch (entry->oper)
+	{
+	  case JOURNAL_OPERATION_ADD:
+	    fprintf (f, "  ADD");
+	    break;
+
+	  case JOURNAL_OPERATION_DEL:
+	    fprintf (f, "  DEL");
+	    break;
+
+	  default:
+	    fprintf (f, "  ???");
+	    break;
+	}
+
+      fprintf (f, " %s %" PRIu32 ",%" PRIu32 ",%" PRIu32,
+	       entry->name.str, entry->dev, entry->ino, entry->gen);
+      fprintf (f, " [%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%"
+	       PRIu32 "]\n", entry->master_fh.sid, entry->master_fh.vid,
+	       entry->master_fh.dev, entry->master_fh.ino,
+	       entry->master_fh.gen);
+    }
+}
+
+/* Print the journal JOURNAL to STDERR.  */
+
+void
+debug_journal (journal_t journal)
+{
+  print_journal (stderr, journal);
 }
 
 /* Initialize data structures in JOURNAL.C.  */

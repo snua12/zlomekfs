@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <stdio.h>
 #include "pthread.h"
 #include "memory.h"
 #include "hashtab.h"
@@ -88,6 +89,8 @@ extern bool journal_insert (journal_t journal, zfs_fh *local_fh,
 extern bool journal_member (journal_t journal, zfs_fh *local_fh, char *name);
 extern bool journal_delete (journal_t journal, zfs_fh *local_fh, char *name);
 extern bool journal_delete_entry (journal_t journal, journal_entry entry);
+extern void print_journal (FILE *f, journal_t journal);
+extern void debug_journal (journal_t journal);
 
 extern void initialize_journal_c (void);
 extern void cleanup_journal_c (void);
