@@ -290,3 +290,21 @@ set_string (string *dst, const char *src)
     }
   memcpy (dst->str, src, dst->len + 1);
 }
+
+/* Append "/" and NAME of length LEN to PATH and store it to DST.  */ 
+
+void
+append_file_name (string *dst, string *path, const char *name, unsigned int len)
+{
+  dst->len = path->len + 1 + len;
+  dst->str = (char *) malloc (dst->len + 1);
+  if (!dst->str)
+    {
+      message (-1, stderr, "Not enough memory.\n");
+      abort ();
+    }
+
+  memcpy (dst->str, path->str, path->len);
+  dst->str[path->len] = '/';
+  memcpy (dst->str + path->len + 1, name, len + 1);
+}
