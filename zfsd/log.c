@@ -57,7 +57,7 @@ internal_error(char *format, ...)
   va_start(va, format);
   fprintf(stderr, "\nInternal error");
   vfprintf(stderr, format, va);
-  fprintf(stderr, ".\n");
+  fprintf(stderr, "\n");
   va_end(va);
 
   exit (EXIT_FAILURE);
@@ -74,5 +74,5 @@ verbose_abort(const char *file, int line)
 void
 fatal_sighandler(int signum)
 {
-  internal_error(": Caught %s", strsignal(signum));
+  internal_error(": %s", strsignal(signum));
 }
