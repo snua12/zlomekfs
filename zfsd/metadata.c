@@ -684,7 +684,7 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	if (i != metadata_tree_depth)
 	  {
 	    char *old_path;
-	    
+
 	    old_path = build_interval_path (vol, &fh->local_fh, purpose, i);
 	    rename (old_path, path);
 	    free (old_path);
@@ -1048,7 +1048,7 @@ set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
 
   fh->meta.flags = flags;
   set_attr_version (&fh->attr, &fh->meta);
-  
+
   return flush_metadata (vol, fh);
 }
 

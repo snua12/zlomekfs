@@ -568,7 +568,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   int retry = 0;
 
 zfs_getattr_retry:
-  
+
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd);
   if (r != ZFS_OK)
@@ -2705,7 +2705,7 @@ retry_lookup:
 	      if (r == ZFS_OK)
 		goto retry_lookup;
 	    }
-	  
+
 	  release_dentry (dentry->parent);
 	  if (r != ZFS_OK)
 	    return r;

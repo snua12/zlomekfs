@@ -441,7 +441,7 @@ hfile_insert (hfile_t hfile, void *x)
     goto hfile_insert_error;
 
   return true;
-    
+
 hfile_insert_error:
   if (status == DELETED_SLOT)
     hfile->n_deleted++;
@@ -490,7 +490,7 @@ hfile_delete (hfile_t hfile, void *x)
     goto hfile_delete_error;
 
   return true;
-    
+
 hfile_delete_error:
   hfile->n_deleted--;
 

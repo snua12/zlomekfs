@@ -2170,7 +2170,7 @@ remote_md5sum_retry:
   zfsd_mutex_unlock (&node_mutex);
   zfsd_mutex_unlock (&vol->mutex);
   r = zfs_proc_md5sum_client (t, args, nod, &fd);
-  
+
   if (r == ZFS_OK)
     {
       if (!decode_md5sum_res (&t->dc_reply, res)

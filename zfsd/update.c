@@ -795,7 +795,7 @@ update_directory (internal_dentry dir, volume vol, fattr *attr)
       htab_clear_slot (local_entries.htab, slot);
     });
 
-  HTAB_FOR_EACH_SLOT (remote_entries.htab, slot, 
+  HTAB_FOR_EACH_SLOT (remote_entries.htab, slot,
     {
       /* Create file.  */
 
