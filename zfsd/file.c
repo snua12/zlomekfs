@@ -219,6 +219,9 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
       return ZFS_OK;
     }
 
+  if (errno == ENOENT || errno == ENOTDIR)
+    return ESTALE;
+
   return errno;
 }
 
@@ -573,6 +576,7 @@ local_open (uint32_t flags, internal_dentry dentry, volume vol)
     zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
+
   return r;
 }
 

@@ -685,6 +685,9 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   r = local_getattr_path (attr, path);
   free (path);
 
+  if (r == ENOENT || r == ENOTDIR)
+    return ESTALE;
+
   return r;
 }
 
@@ -881,6 +884,9 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   zfsd_mutex_unlock (&fh_mutex);
   r = local_setattr_path (fa, path, sa);
   free (path);
+
+  if (r == ENOENT || r == ENOTDIR)
+    return ESTALE;
 
   return r;
 }
@@ -2667,7 +2673,11 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   r = readlink (path, buf, ZFS_MAXDATA);
   free (path);
   if (r < 0)
-    return errno;
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
+      return errno;
+    }
 
   buf[r] = 0;
   res->path.str = (char *) xmemdup (buf, r + 1);
