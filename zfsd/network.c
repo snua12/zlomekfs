@@ -1034,7 +1034,7 @@ server_start ()
 /* Initialize information about network file descriptors.  */
 
 bool
-server_init_fd_data ()
+init_server_fd_data ()
 {
   int i;
 

@@ -111,7 +111,7 @@ extern bool create_server_threads ();
 extern void register_server ();
 #else
 extern bool server_start ();
-extern bool server_init_fd_data ();
+extern bool init_server_fd_data ();
 #endif
 extern void server_cleanup ();
 
