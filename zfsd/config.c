@@ -2038,7 +2038,7 @@ read_global_cluster_config (void)
 {
   semaphore_init (&config_reader_data.sem, 0);
   network_worker_init (&config_reader_data);
-  config_reader_data.from_sid = this_node->id;
+  config_reader_data.from_sid = 0;
   config_reader_data.state = THREAD_BUSY;
 
   reading_cluster_config = true;
