@@ -786,8 +786,8 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
    comparing the files.  */
 
 static int32_t
-file_is_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
-		  zfs_fh *remote_fh, fattr *remote_attr, bool *same)
+files_are_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
+		    zfs_fh *remote_fh, fattr *remote_attr, bool *same)
 {
   internal_dentry dir;
   volume vol;
@@ -1132,9 +1132,9 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		{
 		  bool same;
 
-		  r = file_is_the_same (fh, &entry->name, &local_res.attr,
-					&remote_res.file, &remote_res.attr,
-					&same);
+		  r = files_are_the_same (fh, &entry->name, &local_res.attr,
+					  &remote_res.file, &remote_res.attr,
+					  &same);
 		  if (r != ZFS_OK)
 		    goto out;
 
@@ -1575,8 +1575,54 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 	    }
 	}
 
+      if (!dentry->fh->journal->first)
+	{
+	  uint64_t version;
+
+	  /* If the journal is empty set the local and remote version.  */
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = remote_getattr (&res.attr, dentry, vol);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	  if (r != ZFS_OK)
+	    goto out;
+
+	  zfsd_mutex_unlock (&fh_mutex);
+	  if (!lookup_metadata (vol, &dentry->fh->local_fh, &dentry->fh->meta,
+				false))
+	    {
+	      vol->delete_p = true;
+	      goto out2;
+	    }
+
+	  if (dentry->fh->meta.local_version > res.attr.version)
+	    version = dentry->fh->meta.local_version;
+	  else
+	    version = res.attr.version;
+
+	  if (dentry->fh->meta.slot_status != VALID_SLOT)
+	    goto out2;
+
+	  dentry->fh->meta.local_version = version;
+	  dentry->fh->meta.master_version = version;
+	  if (!flush_metadata (vol, &dentry->fh->meta))
+	    vol->delete_p = true;
+
+	  r = remote_reintegrate_set (&dentry->fh->meta.master_fh, version + 1,
+				      dentry, vol);
+
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
 out:
       zfsd_mutex_unlock (&fh_mutex);
+out2:
       if (flush_journal)
 	{
 	  if (!write_journal (vol, dentry->fh))
