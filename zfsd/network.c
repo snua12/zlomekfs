@@ -921,7 +921,7 @@ retry_accept:
 	      s = accept (main_socket, (struct sockaddr *) &ca, &ca_len);
 
 	      if ((s < 0 && errno == EMFILE)
-		  || (s >= 0 && nactive == max_network_sockets))
+		  || (s >= 0 && nactive >= max_network_sockets))
 		{
 		  time_t oldest = 0;
 		  int index = -1;
@@ -940,7 +940,7 @@ retry_accept:
 		    {
 		      /* All file descriptors are busy so close the new one.  */
 		      message (2, stderr, "All filedescriptors are busy.\n");
-		      if (s > 0)
+		      if (s >= 0)
 			close (s);
 		      zfsd_mutex_unlock (&active_mutex);
 		      continue;
