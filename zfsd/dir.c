@@ -1870,7 +1870,7 @@ zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr)
   internal_fh idir;
   virtual_dir pvd;
   int r;
-  int retry;
+  int retry = 0;
 
 zfs_symlink_retry:
 
@@ -2013,7 +2013,7 @@ zfs_mknod (zfs_fh *dir, string *name, sattr *attr, ftype type,
   internal_fh idir;
   virtual_dir pvd;
   int r;
-  int retry;
+  int retry = 0;
 
 zfs_mknod_retry:
 
