@@ -123,6 +123,8 @@ extern void virtual_dir_destroy (virtual_dir vd);
 extern virtual_dir virtual_root_create ();
 extern void virtual_root_destroy (virtual_dir root);
 extern virtual_dir virtual_mountpoint_create (volume vol);
+extern void print_virtual_tree (FILE *f);
+extern void debug_virtual_tree ();
 extern void initialize_fh_c ();
 extern void cleanup_fh_c ();
 
