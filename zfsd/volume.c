@@ -341,6 +341,43 @@ mark_all_volumes (void)
   zfsd_mutex_unlock (&volume_mutex);
 }
 
+/* Delete invalid volumes.  */
+
+void
+destroy_invalid_volumes (void)
+{
+  void **slot;
+  bool master_marked;
+
+  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&fh_mutex);
+  zfsd_mutex_lock (&volume_mutex);
+  HTAB_FOR_EACH_SLOT (volume_htab, slot)
+    {
+      volume vol = (volume) *slot;
+
+      zfsd_mutex_lock (&vol->mutex);
+      if (vol->marked || vol->master == NULL)
+	volume_destroy ((volume) *slot);
+      else
+	{
+	  zfsd_mutex_lock (&node_mutex);
+	  zfsd_mutex_lock (&vol->master->mutex);
+	  master_marked = vol->master->marked;
+	  zfsd_mutex_unlock (&vol->master->mutex);
+	  zfsd_mutex_unlock (&node_mutex);
+	  if (master_marked)
+	    volume_destroy ((volume) *slot);
+	  else
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
+    }
+  htab_destroy (volume_htab);
+  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
+}
+
 /* Delete all volumes.  */
 
 void
