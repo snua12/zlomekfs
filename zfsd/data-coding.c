@@ -1191,8 +1191,7 @@ encode_reintegrate_set_args (DC *dc, reintegrate_set_args *args)
 bool
 decode_invalidate_args (DC *dc, invalidate_args *args)
 {
-  return (decode_zfs_fh (dc, &args->fh)
-	  && decode_uint32_t (dc, &args->ino));
+  return decode_zfs_fh (dc, &args->fh);
 }
 
 #else
@@ -1200,8 +1199,7 @@ decode_invalidate_args (DC *dc, invalidate_args *args)
 bool
 encode_invalidate_args (DC *dc, invalidate_args *args)
 {
-  return (encode_zfs_fh (dc, &args->fh)
-	  && encode_uint32_t (dc, args->ino));
+  return encode_zfs_fh (dc, &args->fh);
 }
 
 #endif

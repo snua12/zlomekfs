@@ -4155,7 +4155,6 @@ local_invalidate (internal_dentry dentry)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   args.fh = dentry->fh->local_fh;
-  args.ino = dentry->fh->attr.ino;
   release_dentry (dentry);
 
   t = (thread *) pthread_getspecific (thread_data_key);

@@ -355,7 +355,6 @@ typedef struct reintegrate_set_args_def
 typedef struct invalidate_args_def
 {
   zfs_fh fh;
-  uint32_t ino;
 } invalidate_args;
 
 typedef union call_args_def
@@ -388,6 +387,7 @@ typedef union call_args_def
   reintegrate_add_args reintegrate_add;
   reintegrate_del_args reintegrate_del;
   reintegrate_set_args reintegrate_set;
+  invalidate_args invalidate;
 } call_args;
 
 /* Mapping file type -> file mode.  */
