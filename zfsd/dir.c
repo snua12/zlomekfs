@@ -1865,17 +1865,24 @@ int32_t
 zfs_rmdir (zfs_fh *dir, string *name)
 {
   volume vol;
+  internal_dentry dentry, parent, other;
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
+  fattr fa;
+  sattr sa;
   string path;
   zfs_fh tmp_fh;
+  zfs_fh local_fh;
+  zfs_fh remote_fh;
+  zfs_fh parent_fh;
+  dir_op_res res;
   int32_t r, r2;
   int what_to_do = 0;
 
   TRACE ("");
 
-  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1903,7 +1910,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
   if (pvd)
     {
-      r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
+      r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
       zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
@@ -1925,7 +1932,120 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
   path.str = NULL;
   path.len = 0;
-  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
+  if (CONFLICT_DIR_P (idir->fh->local_fh))
+    {
+      dentry = dentry_lookup_name (NULL, idir, name);
+      if (!dentry)
+	{
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = ENOENT;
+	}
+      else if (dentry->fh->attr.mode != FT_DIR)
+	{
+	  release_dentry (dentry);
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = ENOTDIR;
+	}
+      else
+	{
+	  string name2;
+
+	  other = conflict_other_dentry (idir, dentry);
+#ifdef ENABLE_CHECKING
+	  if (!other)
+	    abort ();
+#endif
+
+	  if (dentry->fh->local_fh.sid == this_node->id)
+	    {
+	      /* "Deleting" local directory.  */
+
+	      if (!ZFS_FH_EQ (dentry->fh->meta.master_fh, other->fh->local_fh))
+		{
+		  /* Conflict is on file handles.  */
+		  what_to_do = 3;
+		  parent = idir->parent;
+		  acquire_dentry (parent);
+		  xstringdup (&name2, &idir->name);
+		  release_dentry (idir);
+
+		  local_fh = dentry->fh->local_fh;
+		  remote_fh = dentry->fh->meta.master_fh;
+		  parent_fh = parent->fh->local_fh;
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  r = resolve_conflict_delete_local (&res, parent, &parent_fh,
+						     &name2, &local_fh,
+						     &remote_fh, vol);
+		  free (name2.str);
+		}
+	      else
+		{
+		  /* Conflict is on attributes (mode, UID, GID).  */
+		  what_to_do = 5;
+		  release_dentry (idir);
+
+		  sa.mode = (dentry->fh->attr.mode != other->fh->attr.mode
+			     ? other->fh->attr.mode : (uint32_t) -1);
+		  sa.uid = (dentry->fh->attr.uid != other->fh->attr.uid
+			    ? other->fh->attr.uid : (uint32_t) -1);
+		  sa.gid = (dentry->fh->attr.gid != other->fh->attr.gid
+			    ? other->fh->attr.gid : (uint32_t) -1);
+		  sa.size = (uint64_t) -1;
+		  sa.atime = (zfs_time) -1;
+		  sa.mtime = (zfs_time) -1;
+		  release_dentry (other);
+		  r = local_setattr (&fa, dentry, &sa, vol);
+		}
+	    }
+	  else
+	    {
+	      /* "Deleting" remote directory.  */
+
+	      if (!ZFS_FH_EQ (dentry->fh->meta.master_fh, other->fh->local_fh))
+		{
+		  /* Conflict is on file handles.  */
+		  what_to_do = 4;
+		  parent = idir->parent;
+		  acquire_dentry (parent);
+		  xstringdup (&name2, &idir->name);
+		  release_dentry (idir);
+		  zfsd_mutex_unlock (&fh_mutex);
+
+		  remote_fh = dentry->fh->local_fh;
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  r = resolve_conflict_delete_remote (vol, parent, &name2,
+						      &remote_fh);
+		  free (name2.str);
+		}
+	      else
+		{
+		  /* Conflict is on metadata (mode, UID, GID).  */
+		  what_to_do = 6;
+		  release_dentry (idir);
+		  zfsd_mutex_unlock (&fh_mutex);
+
+		  sa.mode = (dentry->fh->attr.mode != other->fh->attr.mode
+			     ? other->fh->attr.mode : (uint32_t) -1);
+		  sa.uid = (dentry->fh->attr.uid != other->fh->attr.uid
+			    ? other->fh->attr.uid : (uint32_t) -1);
+		  sa.gid = (dentry->fh->attr.gid != other->fh->attr.gid
+			    ? other->fh->attr.gid : (uint32_t) -1);
+		  sa.size = (uint64_t) -1;
+		  sa.atime = (zfs_time) -1;
+		  sa.mtime = (zfs_time) -1;
+		  release_dentry (other);
+		  r = remote_setattr (&fa, dentry, &sa, vol);
+		}
+	    }
+	}
+    }
+  else if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       what_to_do = 1;
       r = update_fh_if_needed (&vol, &idir, &tmp_fh);
@@ -1999,11 +2119,112 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	    /* Deleted a remote directory.  */
 	    delete_dentry (&vol, &idir, name, &tmp_fh);
 	    break;
+
+	  case 3:
+	    /* Resolved conflict: deleted local directory.  */
+	    parent = idir->parent;
+	    acquire_dentry (parent);
+
+	    if (!inc_local_version (vol, parent->fh))
+	      MARK_VOLUME_DELETE (vol);
+
+	    release_dentry (parent);
+	    zfsd_mutex_unlock (&vol->mutex);
+	    internal_dentry_destroy (idir, true);
+	    zfsd_mutex_unlock (&fh_mutex);
+	    goto out;
+
+	  case 4:
+	    /* Resolved conflict: deleted remote directory.  */
+	    delete_dentry (&vol, &idir, name, &tmp_fh);
+
+	    dentry = conflict_local_dentry (idir);
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+	    parent = idir->parent;
+	    acquire_dentry (parent);
+
+	    /* Add the local directory to journal so that it could be
+	       reintegrated.  */
+	    if (!add_journal_entry (vol, parent->fh, &dentry->fh->local_fh,
+				    &dentry->fh->meta.master_fh, &idir->name,
+				    JOURNAL_OPERATION_ADD))
+	      MARK_VOLUME_DELETE (vol);
+	    release_dentry (dentry);
+	    release_dentry (parent);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+#ifdef ENABLE_CHECKING
+	    else
+	      abort ();
+#endif
+	    break;
+
+	  case 5:
+	    /* Resolved conflict: set local metadata.  */
+	    dentry = conflict_local_dentry (idir);
+	    other = conflict_other_dentry (idir, dentry);
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+
+	    set_attr_version (&fa, &dentry->fh->meta);
+	    dentry->fh->attr = fa;
+	    if (METADATA_ATTR_EQ_P (dentry->fh->attr, other->fh->attr))
+	      {
+		dentry->fh->meta.modetype = GET_MODETYPE (fa.mode, fa.type);
+		dentry->fh->meta.uid = fa.uid;
+		dentry->fh->meta.gid = fa.gid;
+		if (!flush_metadata (vol, &dentry->fh->meta))
+		  MARK_VOLUME_DELETE (vol);
+	      }
+	    release_dentry (dentry);
+	    release_dentry (other);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+	    break;
+
+	  case 6:
+	    /* Resolved conflict: set remote metadata.  */
+	    dentry = dentry_lookup_name (NULL, idir, name);
+#ifdef ENABLE_CHECKING
+	    if (!dentry)
+	      abort ();
+#endif
+	    dentry->fh->attr = fa;
+	    release_dentry (dentry);
+
+	    other = conflict_other_dentry (idir, dentry);
+	    other->fh->meta.modetype = GET_MODETYPE (fa.mode, fa.type);
+	    other->fh->meta.uid = fa.uid;
+	    other->fh->meta.gid = fa.gid;
+	    if (!flush_metadata (vol, &other->fh->meta))
+	      MARK_VOLUME_DELETE (vol);
+	    release_dentry (other);
+
+	    if (try_resolve_conflict (vol, idir))
+	      {
+		zfsd_mutex_unlock (&fh_mutex);
+		goto out;
+	      }
+	    break;
 	}
     }
 
   internal_dentry_unlock (vol, idir);
 
+out:
   if (path.str)
     free (path.str);
 
