@@ -503,6 +503,7 @@ retry_remote_lookup:
   get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
   release_dentry (dentry);
   r = update_file_blocks (&cap, &blocks);
+  varray_destroy (&blocks);
 
   r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
