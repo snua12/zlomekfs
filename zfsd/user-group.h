@@ -25,14 +25,18 @@
 #include <inttypes.h>
 #include "hashtab.h"
 
-typedef struct user_def {
+/* Description of ZFS user.  */
+typedef struct user_def
+{
   uint32_t id;			/* user ID */
   uint32_t gid;			/* group ID of default group */
   char *name;			/* name of the user */
   htab_t groups;		/* list of groups user is in */
 } *user;
 
-typedef struct group_def {
+/* Description of ZFS group.  */
+typedef struct group_def
+{
   uint32_t id;			/* group ID */
   char *name;			/* name of the group */
 } *group;
