@@ -1652,6 +1652,59 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
   RETURN_VOID;
 }
 
+/** \fn static int32_t lookup_remote_dentry_in_the_same_place
+        (dir_op_res *res, zfs_fh *fh, internal_dentry *dentryp, volume *volp)
+    \brief Lookup the remote file which is in the same place as the local file.
+    \param res Buffer for result of directory operation.
+    \param fh File handle of the file.
+    \param dentryp Dentry of the file.
+    \param volp Volume which the file is on.  */
+
+static int32_t
+lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
+					internal_dentry *dentryp, volume *volp)
+{
+  internal_dentry parent;
+  string name;
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
+    abort ();
+#endif
+
+  if (LOCAL_VOLUME_ROOT_P (*dentryp))
+    {
+      release_dentry (*dentryp);
+      zfsd_mutex_unlock (&fh_mutex);
+
+      r = get_volume_root_remote (*volp, &res->file, &res->attr);
+    }
+  else
+    {
+      xstringdup (&name, &(*dentryp)->name);
+      parent = (*dentryp)->parent;
+      acquire_dentry (parent);
+      release_dentry (*dentryp);
+      zfsd_mutex_unlock (&fh_mutex);
+
+      r = remote_lookup (res, parent, &name, *volp);
+      free (name.str);
+    }
+
+  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  RETURN_INT (r);
+}
+
 /* Synchronize file DENTRY with file handle FH on volume VOL
    with the remote file with attributes ATTR.
    WHAT are the flags saying what needs to be done.  */
