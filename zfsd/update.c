@@ -437,6 +437,13 @@ update_file (zfs_fh *fh)
   TRACE ("");
 
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+  if (r == ZFS_STALE)
+    {
+      r = refresh_fh (fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
+    }
   if (r != ZFS_OK)
     return r;
 
