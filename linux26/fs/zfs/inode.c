@@ -121,6 +121,7 @@ static int zfs_test_inode(struct inode *inode, void *data)
 static int zfs_set_inode(struct inode *inode, void *data)
 {
 	ZFS_I(inode)->fh = *(zfs_fh *)data;
+	ZFS_I(inode)->flags = 0;
 
 	return 0;
 }
@@ -138,9 +139,10 @@ struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 
 	inode = iget5_locked(sb, HASH(fh), zfs_test_inode, zfs_set_inode, fh);
 
-	if (inode && (inode->i_state & I_NEW)) {
+	if (inode) {
 		zfs_fill_inode(inode, attr);
-		unlock_new_inode(inode);
+		if(inode->i_state & I_NEW)
+			unlock_new_inode(inode);
 	}
 
 	return inode;
@@ -149,23 +151,19 @@ struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 {
 	struct inode *inode = dentry->d_inode;
-	fattr attr;
 
 	TRACE("'%s'", dentry->d_name.name);
 
 	if (!inode)
 		return 1;
 
-	if (is_bad_inode(inode))
-		return 0;
+	if ((ZFS_I(inode)->flags & NEED_REVALIDATE) || time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
+		fattr attr;
 
-	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
-		/* The dentry is too old, so revalidate it. */
-		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh)
-		    || (attr.version != inode->i_version)) {
-			make_bad_inode(dentry->d_inode);
+		ZFS_I(inode)->flags &= ~NEED_REVALIDATE;
+
+		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh))
 			return 0;
-		}
 
 		zfs_attr_to_iattr(inode, &attr);
 		dentry->d_time = jiffies;
@@ -205,8 +203,8 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 
 	error = zfsd_create(&res, &args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -248,8 +246,8 @@ static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struc
 		if (!inode)
 			return ERR_PTR(-ENOMEM);
 	} else if (error != -ENOENT) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return ERR_PTR(error);
 	} else
 		inode = NULL;
@@ -279,10 +277,8 @@ static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry 
 	if (error) {
 		if (error == -ESTALE) {
 			/* We do not know which one (dir or inode) is bad, so invalidate both. */
-			if (!IS_ROOT_INODE(dir))
-				make_bad_inode(dir);
-			if (!IS_ROOT_INODE(inode))
-				make_bad_inode(inode);
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
+			ZFS_I(inode)->flags |= NEED_REVALIDATE;
 		}
 		return error;
 	}
@@ -312,8 +308,8 @@ static int zfs_unlink(struct inode *dir, struct dentry *dentry)
 
 	error = zfsd_unlink(&args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -354,8 +350,8 @@ static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old
 
 	error = zfsd_symlink(&res, &args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -395,8 +391,8 @@ static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 
 	error = zfsd_mkdir(&res, &args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -426,8 +422,8 @@ static int zfs_rmdir(struct inode *dir, struct dentry *dentry)
 
 	error = zfsd_rmdir(&args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -465,8 +461,8 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 
 	error = zfsd_mknod(&res, &args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(dir))
-			make_bad_inode(dir);
+		if (error == -ESTALE)
+			ZFS_I(dir)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -499,10 +495,8 @@ static int zfs_rename(struct inode *old_dir, struct dentry *old_dentry, struct i
 	error = zfsd_rename(&args);
 	if (error) {
 		if (error == -ESTALE) {
-			if (!IS_ROOT_INODE(old_dir))
-				make_bad_inode(old_dir);
-			if (!IS_ROOT_INODE(new_dir))
-				make_bad_inode(new_dir);
+			ZFS_I(old_dir)->flags |= NEED_REVALIDATE;
+			ZFS_I(new_dir)->flags |= NEED_REVALIDATE;
 		}
 		return error;
 	}
@@ -531,8 +525,8 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 
 	error = zfsd_setattr(&attr, &args);
 	if (error) {
-		if ((error == -ESTALE) && !IS_ROOT_INODE(inode))
-			make_bad_inode(inode);
+		if (error == -ESTALE)
+			ZFS_I(inode)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -552,7 +546,7 @@ static int zfs_readlink(struct dentry *dentry, char __user *buf, int buflen)
 	error = zfsd_readlink(&res, &ZFS_I(inode)->fh);
 	if (error) {
 		if (error == -ESTALE)
-			make_bad_inode(inode);
+			ZFS_I(inode)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 
@@ -570,7 +564,7 @@ static int zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
 	error = zfsd_readlink(&res, &ZFS_I(inode)->fh);
 	if (error) {
 		if (error == -ESTALE)
-			make_bad_inode(inode);
+			ZFS_I(inode)->flags |= NEED_REVALIDATE;
 		return error;
 	}
 

@@ -49,7 +49,7 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 		*off += error;
 		inode->i_atime = CURRENT_TIME;
 	} else if (error == -ESTALE)
-		make_bad_inode(inode);
+		ZFS_I(inode)->flags |= NEED_REVALIDATE;
 
 	return error;
 }
@@ -76,7 +76,7 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 			inode->i_ctime = CURRENT_TIME;
 		}
 	} else if (error == -ESTALE)
-		make_bad_inode(inode);
+		ZFS_I(inode)->flags |= NEED_REVALIDATE;
 
 	return error;
 }
@@ -105,8 +105,8 @@ int zfs_open(struct inode *inode, struct file *file)
 		error = zfsd_open(cap, &args);
 		if (error) {
 			kfree(cap);
-			if ((error == -ESTALE) && !IS_ROOT_INODE(inode))
-				make_bad_inode(inode);
+			if (error == -ESTALE)
+				ZFS_I(inode)->flags |= NEED_REVALIDATE;
 			return error;
 		}
 
@@ -156,7 +156,7 @@ static int zfs_readpage(struct file *file, struct page *page)
 
 		error = 0;
 	} else if (error == -ESTALE)
-		make_bad_inode(file->f_dentry->d_inode);
+		ZFS_I(file->f_dentry->d_inode)->flags |= NEED_REVALIDATE;
 
 	kunmap(kaddr);
 

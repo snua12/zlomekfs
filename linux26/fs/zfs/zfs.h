@@ -53,9 +53,6 @@
 /* Maximum age of dentry in seconds after that revalidation is requered. */
 #define ZFS_DENTRY_MAXAGE 10
 
-/* Is INODE root inode? */
-#define IS_ROOT_INODE(inode) (inode == inode->i_sb->s_root->d_inode)
-
 #define CAP(p) ((zfs_cap *)p)
 #define COOKIE(p) ((int32_t *)&((zfs_cap *)p)[1])
 
@@ -66,11 +63,15 @@
 /* ZFS super block. */
 extern struct super_block *zfs_sb;
 
-/* ZFS inode. */
+/* ZFS inode info flags. */
+#define NEED_REVALIDATE 0x01
+
+/* ZFS inode info. */
 #define ZFS_I(inode) ((struct zfs_inode_info *)inode)
 struct zfs_inode_info {
 	struct inode vfs_inode;
 	zfs_fh fh;
+	int flags;
 };
 
 /* Size of hash table of processing requests. */
