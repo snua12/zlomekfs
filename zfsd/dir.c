@@ -447,13 +447,15 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry)
       vol->root_dentry = internal_dentry_create (&local_fh, &master_fh, vol,
 						 NULL, "", &attr);
     }
-  else if (zfs_fh_undefined (vol->root_dentry->fh->master_fh))
+  else
     {
       zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-      vol->root_dentry->fh->master_fh = master_fh;
+      if (zfs_fh_undefined (vol->root_dentry->fh->master_fh))
+	vol->root_dentry->fh->master_fh = master_fh;
+
+      set_attr_version (&attr, vol->root_dentry->fh->meta);
+      vol->root_dentry->fh->attr = attr;
     }
-  else
-    zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
 
   *dentry = vol->root_dentry;
   return ZFS_OK;
