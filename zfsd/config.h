@@ -33,7 +33,7 @@ extern char *kernel_file_name;
 /* Directory with node configuration.  */
 extern char *node_config;
 
-/* Direcotry with cluster configuration.  */
+/* Directory with cluster configuration.  */
 extern char *cluster_config;
 
 /* RW-lock for access to configuration.  */
