@@ -1546,7 +1546,10 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
 
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     {
-      r = read_conflict_dir (list, dentry, cookie, &data, vol, filldir);
+      if (!read_conflict_dir (list, dentry, cookie, &data, vol, filldir))
+	r = (list->n == 0) ? EINVAL : ZFS_OK;
+      else
+	r = ZFS_OK;
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
