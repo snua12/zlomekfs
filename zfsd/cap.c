@@ -219,9 +219,9 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (!fh_lookup (&cap->fh, vol, ifh, vd))
     return ESTALE;
 
-  if (vd)
+  if (*vd)
     {
-      if (vol)
+      if (*vol)
 	{
 	  int r;
 
