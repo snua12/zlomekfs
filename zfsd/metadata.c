@@ -417,36 +417,26 @@ retry_open:
 }
 
 /* Open metadata file of type TYPE for file handle FH on volume VOL
-   with open flags FLAGS and mode MODE.
-   Store the path to PATHP.  */
+   with path PATH, open flags FLAGS and mode MODE.  */
 
 static int
-open_fh_metadata (char **pathp, volume vol, internal_fh fh, metadata_type type,
+open_fh_metadata (char *path, volume vol, internal_fh fh, metadata_type type,
 		  int flags, mode_t mode)
 {
-  char *path;
   int fd;
   unsigned int i;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
   fd = open_metadata (path, flags, mode);
   if (fd < 0)
     {
       if (errno != ENOENT)
-	{
-	  free (path);
-	  *pathp = NULL;
-	  return -1;
-	}
+	return -1;
 
       if (!create_path_for_file (path, S_IRWXU))
 	{
-	  free (path);
-	  *pathp = NULL;
 	  if (errno == ENOENT)
 	    errno = 0;
 	  return -1;
@@ -465,7 +455,6 @@ open_fh_metadata (char **pathp, volume vol, internal_fh fh, metadata_type type,
       fd = open_metadata (path, flags, mode);
     }
 
-  *pathp = path;
   return fd;
 }
 
@@ -768,7 +757,9 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 	abort ();
     }
 
-  fd = open_fh_metadata (&path, vol, fh, type, O_RDONLY, 0);
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
+  fd = open_fh_metadata (path, vol, fh, type, O_RDONLY, 0);
   if (fd < 0)
     {
       if (errno != ENOENT)
