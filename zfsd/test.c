@@ -589,7 +589,7 @@ do_tests (void *data)
     }
 
 out:
-  message (2, stderr, "TESTS FINISHED\n");
+  message (1, stderr, "TESTS FINISHED\n");
   return NULL;
 }
 
