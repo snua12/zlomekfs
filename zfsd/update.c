@@ -343,7 +343,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
     {
       zfs_cap master_cap;
 
-      r = remote_open (&master_cap, icap, O_RDWR, dentry, vol);
+      r = remote_open (&master_cap, icap, cap->flags, dentry, vol);
       if (r != ZFS_OK)
 	return r;
 
