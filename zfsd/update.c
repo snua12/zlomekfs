@@ -512,7 +512,12 @@ update_file (zfs_fh *fh)
   switch (dentry->fh->flags & (IFH_UPDATE | IFH_REINTEGRATE))
     {
       default:
+	/* The dentry may have been destroyed and recreated so the flags are
+	   reset.  */
+	printf ("%d\n", dentry->fh->flags);
 	abort ();
+	release_dentry (dentry);
+	return ZFS_OK;
 
       case IFH_UPDATE:
 	cap.flags = O_RDONLY;
@@ -2850,7 +2855,7 @@ update_start (void)
 {
   queue_create (&update_queue, sizeof (zfs_fh), 250);
 
-  if (!thread_pool_create (&update_pool, 16, 4, 8, update_main,
+  if (!thread_pool_create (&update_pool, 6, 2, 4, update_main,
 			   update_worker, update_worker_init))
     {
       zfsd_mutex_lock (&update_queue.mutex);
