@@ -96,6 +96,7 @@ extern void close_network_fd (int fd);
 extern bool node_has_valid_fd (node nod);
 extern int node_connect_and_authenticate (thread *t, node nod,
 					  authentication_status auth);
+extern bool request_from_this_node ();
 extern void recycle_dc_to_fd_data (DC *dc, network_fd_data_t *fd_data);
 extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);

@@ -635,6 +635,22 @@ node_connect_and_authenticate (thread *t, node nod, authentication_status auth)
   return fd;
 }
 
+/* Return true if current request came from this node.  */
+
+bool
+request_from_this_node ()
+{
+  thread *t;
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+#ifdef ENABLE_CHECKING
+  if (t == NULL)
+    abort ();
+#endif
+
+  return t->from_sid == this_node->id;
+}
+
 /* Put DC back to file descriptor data FD_DATA.  */
 
 void
