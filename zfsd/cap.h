@@ -49,9 +49,6 @@ struct internal_cap_def
   /* Next capability for the ZFS file handle in the chain.  */
   internal_cap next;
 
-  /* Random bytes.  */
-  char random[CAP_RANDOM_LEN];
-
   /* Number of clients using this capability.  */
   unsigned int busy;
 

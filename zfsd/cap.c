@@ -47,21 +47,28 @@ static alloc_pool cap_pool;
 /* Mutex for cap_pool.  */
 static pthread_mutex_t cap_mutex;
 
-/* Compute VERIFY for capability CAP.  */
+/** \fn static bool internal_cap_compute_verify (internal_cap cap)
+    \brief Compute the verification for the capability and return true on
+    success.
+    \param cap Capability which the verification should be computed for.  */
 
-static void
+static bool
 internal_cap_compute_verify (internal_cap cap)
 {
   MD5Context ctx;
+  unsigned char random[CAP_RANDOM_LEN];
 
   TRACE ("");
+
+  if (!full_read (fd_urandom, random, sizeof (random)))
+    RETURN_BOOL (false);
 
   MD5Init (&ctx);
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.fh,
 	     sizeof (cap->local_cap.fh));
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.flags,
 	     sizeof (cap->local_cap.flags));
-  MD5Update (&ctx, (unsigned char *) cap->random, sizeof (cap->random));
+  MD5Update (&ctx, random, sizeof (random));
   MD5Final ((unsigned char *) cap->local_cap.verify, &ctx);
 
   if (verbose >= 3)
@@ -70,7 +77,7 @@ internal_cap_compute_verify (internal_cap cap)
       print_hex_buffer (cap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
     }
 
-  RETURN_VOID;
+  RETURN_BOOL (true);
 }
 
 /* Verify capability CAP by comparing with ICAP.  */
@@ -232,21 +239,20 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
   cap = (internal_cap) pool_alloc (cap_pool);
   zfsd_mutex_unlock (&cap_mutex);
 
-  if (!full_read (fd_urandom, cap->random, CAP_RANDOM_LEN))
+  cap->local_cap.fh = fh->local_fh;
+  cap->local_cap.flags = flags;
+  if (!internal_cap_compute_verify (cap))
     {
       zfsd_mutex_lock (&cap_mutex);
       pool_free (cap_pool, cap);
       zfsd_mutex_unlock (&cap_mutex);
       RETURN_PTR (NULL);
     }
-  cap->local_cap.fh = fh->local_fh;
-  cap->local_cap.flags = flags;
   zfs_fh_undefine (cap->master_cap.fh);
   zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
   cap->master_busy = 0;
   cap->master_close_p = false;
-  internal_cap_compute_verify (cap);
   cap->next = fh->cap;
   fh->cap = cap;
 
@@ -272,21 +278,20 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   cap = (internal_cap) pool_alloc (cap_pool);
   zfsd_mutex_unlock (&cap_mutex);
 
-  if (!full_read (fd_urandom, cap->random, CAP_RANDOM_LEN))
+  cap->local_cap.fh = vd->fh;
+  cap->local_cap.flags = flags;
+  if (!internal_cap_compute_verify (cap))
     {
       zfsd_mutex_lock (&cap_mutex);
       pool_free (cap_pool, cap);
       zfsd_mutex_unlock (&cap_mutex);
       RETURN_PTR (NULL);
     }
-  cap->local_cap.fh = vd->fh;
-  cap->local_cap.flags = flags;
   zfs_fh_undefine (cap->master_cap.fh);
   zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
   cap->master_busy = 0;
   cap->master_close_p = false;
-  internal_cap_compute_verify (cap);
   cap->next = NULL;
   vd->cap = cap;
 
