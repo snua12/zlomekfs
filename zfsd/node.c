@@ -322,6 +322,27 @@ mark_all_nodes (void)
   zfsd_mutex_unlock (&node_mutex);
 }
 
+/* Destroy invalid nodes.  */
+
+void
+destroy_invalid_nodes (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&node_mutex);
+  HTAB_FOR_EACH_SLOT (node_htab, slot)
+    {
+      node nod = (node) *slot;
+
+      zfsd_mutex_lock (&nod->mutex);
+      if (nod->marked)
+	node_destroy (nod);
+      else
+	zfsd_mutex_unlock (&nod->mutex);
+    }
+  zfsd_mutex_unlock (&node_mutex);
+}
+
 /* Initialize data structures in NODE.C.  */
 
 void
