@@ -25,11 +25,16 @@
 #include <time.h>
 #include "constant.h"
 #include "data-coding.h"
+#include "hashtab.h"
+#include "alloc-pool.h"
+#include "node.h"
 
 /* Data for a server socket.  */
 typedef struct server_fd_data_def
 {
   pthread_mutex_t mutex;
+  htab_t waiting4reply;		/* table of waiting4reply_data */
+  alloc_pool waiting4reply_pool;/* pool of waiting4reply_data */
   int fd;			/* file descriptor of the socket */
   unsigned int read;		/* number of bytes already read */
 
@@ -42,9 +47,28 @@ typedef struct server_fd_data_def
   int busy;			/* number of threads using file descriptor */
 } server_fd_data_t;
 
+/* Additional data for a server thread.  */
+typedef struct server_thread_data_def
+{
+#ifdef RPC
+  /* Parameters passed to zfs_program_1 */
+  struct svc_req *rqstp;
+  SVCXPRT *transp;
+#else
+  server_fd_data_t *fd_data;	/* passed from main server thread */
+  DC dc;			/* buffer for request to this server */
+  DC dc_call;			/* buffer for request for remote server */
+  unsigned int generation;	/* generation of file descriptor */
+  int index;			/* index of FD in array "active" */
+  call_args args;		/* union for decoded call arguments.  */
+  int retval;			/* return value for request.  */
+#endif
+} server_thread_data;
+
 #define SERVER_ANY 0
 
 #ifndef RPC
+
 /* Thread ID of the main server thread (thread receiving data from sockets).  */
 extern pthread_t main_server_thread;
 
@@ -53,6 +77,7 @@ extern pthread_key_t server_thread_key;
 
 #endif
 
+extern void send_request (server_thread_data *td, node nod);
 extern int create_server_threads ();
 #ifdef RPC
 extern void register_server ();

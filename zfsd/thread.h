@@ -41,25 +41,6 @@ typedef enum thread_state_def
   THREAD_BUSY		/* thread is working */
 } thread_state;
 
-/* Forward declarations.  */
-struct server_fd_data_def;
-
-/* Additional data for a server thread.  */
-typedef struct server_thread_data_def
-{
-#ifdef RPC
-  /* Parameters passed to zfs_program_1 */
-  struct svc_req *rqstp;
-  SVCXPRT *transp;
-#else
-  call_args args;		/* Union for decoded call arguments.  */
-  server_fd_data_t *fd_data;	/* passed from main server thread */
-  DC dc;			/* data coding buffer */
-  char *reply;			/* buffer for reply */
-  unsigned int generation;	/* generation of file descriptor */
-#endif
-} server_thread_data;
-
 /* Additional data for a client thread.  */
 typedef struct client_thread_data_def
 {
@@ -100,7 +81,8 @@ typedef union padded_thread_def
 } padded_thread;
 
 /* Definition of thread pool.  */
-typedef struct thread_pool_def {
+typedef struct thread_pool_def
+{
   size_t min_spare_threads;	/* minimal number of spare threads */
   size_t max_spare_threads;	/* maximal number of spare threads */
   size_t size;			/* total number of slots for threads */
@@ -109,6 +91,13 @@ typedef struct thread_pool_def {
   queue idle;			/* queue of idle threads */
   queue empty;			/* queue of empty thread slots */
 } thread_pool;
+
+/* Description of thread waiting for reply.  */
+typedef struct waiting4reply_data_def
+{
+  unsigned int request_id;
+  thread *t;
+} waiting4reply_data;
 
 /* Type of a routine started in a new thread.  */
 typedef void *(*thread_start) (void *);
