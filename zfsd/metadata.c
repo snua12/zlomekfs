@@ -2801,7 +2801,6 @@ get_shadow_path (volume vol, zfs_fh *fh, bool create)
 	  if (errno == ENOENT)
 	    errno = 0;
 	}
-      unlink (path);
     }
   else
     {
