@@ -134,6 +134,9 @@ int main (int argc, char **argv)
 
       printf ("\n%s:\n", argv[i]);
 
+      if (meta.slot_status != VALID_SLOT)
+	continue;
+
       printf (" Flags:");
       if (meta.flags & METADATA_COMPLETE)
 	printf (" complete");
