@@ -47,6 +47,8 @@ all: $(PACKAGE)
 clean:
 	-rm -f $(PACKAGE) *.o core *.core
 	-rm -f Makefile.zfs_prot zfs_prot.h zfs_prot_*
+distclean: clean
+	-rm -f Makefile.dep
 
 $(PACKAGE): $(OBJECTS) $(RPC_OBJECTS)
 	$(LINK) $(OBJECTS) $(RPC_OBJECTS) $(LIBS)
@@ -66,26 +68,7 @@ zfs_prot_clnt.o: zfs_prot_clnt.c
 zfs_prot_svc.o: zfs_prot_svc.c
 zfs_prot_server.o: zfs_prot_server.c
 zfs_prot_xdr.o: zfs_prot_xdr.c
-  
-# Dependencies:
-alloc-pool.o: alloc-pool.c alloc-pool.h system.h log.h memory.h
-client.o: client.c client.h system.h log.h memory.h thread.h
-config.o: config.c config.h system.h log.h memory.h
-constant.o: constant.c constant.h system.h
-crc32.o: crc32.c crc32.h system.h
-data-coding.o: data-coding.c data-coding.h system.h
-dir.o: dir.c dir.h system.h fh.h hashtab.h
-fh.o: fh.c fh.h system.h
-file.o: file.c file.h system.h fh.h
-hashtab.o: hashtab.c hashtab.h system.h log.h memory.h
-interval.o: interval.c interval.h system.h log.h memory.h splay-tree.h
-log.o: log.c log.h system.h
-memory.o: memory.c memory.h system.h log.h
-node.o: node.c node.h system.h memory.h
-queue.o: queue.c queue.h system.h log.h memory.h
-server.o: server.c server.h system.h log.h thread.h zfs_prot.h
-splay-tree.o: splay-tree.c splay-tree.h system.h alloc-pool.h log.h memory.h
-thread.o: thread.c thread.h system.h log.h memory.h
-varray.o: varray.c varray.h system.h log.h memory.h
-volume.o: volume.c volume.h system.h memory.h
-zfsd.o: zfsd.c zfsd.h system.h client.h config.h log.h memory.h server.h
+
+ZFS_PROT_H = zfs_prot.h
+
+include ./Makefile.dep
