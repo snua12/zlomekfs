@@ -693,8 +693,17 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	}
 
       acquire_dentry (dentry);
+
       if (volp)
-	*volp = vol;
+	{
+	  if (CONFLICT_DIR_P (*fh) && !volume_master_connected (vol))
+	    {
+	      cancel_conflict (vol, dentry);
+	      RETURN_INT (ESTALE);
+	    }
+
+	  *volp = vol;
+	}
       *dentryp = dentry;
       if (vdp)
 	*vdp = NULL;
