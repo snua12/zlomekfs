@@ -2144,6 +2144,161 @@ out:
   return r;
 }
 
+static int32_t
+reintegrate_deleted_fh (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
+{
+  file_info_res info;
+  zfs_fh file_fh;
+  zfs_fh fh;
+  volume vol;
+  journal_t journal;
+  journal_entry entry, next;
+  int32_t r;
+  bool flush_journal;
+  bool defined_master_fh;
+  bool local_exists;
+
+  fh.dev = entry->dev;
+  fh.ino = entry->ino;
+  fh.gen = entry->gen;
+  journal = journal_create (10, NULL);
+
+  vol = volume_lookup (vid);
+#ifdef ENABLE_CHECKING
+  if (!vol)
+    abort ();
+#endif
+  if (!read_journal (vol, &fh, journal))
+    {
+      journal_destroy (journal);
+      MARK_VOLUME_DELETE (vol);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_OK;
+    }
+  zfsd_mutex_unlock (&vol->mutex);
+
+  defined_master_fh = !zfs_fh_undefined (dir_entry->master_fh);
+  flush_journal = false;
+  for (entry = journal->first; entry; entry = next)
+    {
+      next = entry->next;
+
+      switch (entry->oper)
+	{
+	  case JOURNAL_OPERATION_ADD:
+	    if (!journal_delete_entry (journal, entry))
+	      abort ();
+	    flush_journal = true;
+	    break;
+
+	  case JOURNAL_OPERATION_DEL:
+	    /* Process subtree if possible.  */
+	    vol = volume_lookup (vid);
+#ifdef ENABLE_CHECKING
+	    if (!vol)
+	      abort ();
+#endif
+	    file_fh.dev = entry->dev;
+	    file_fh.ino = entry->ino;
+	    file_fh.gen = entry->gen;
+	    r = local_file_info (&info, &file_fh, vol);
+	    zfsd_mutex_unlock (&vol->mutex);
+	    local_exists = (r == ZFS_OK);
+	    if (r == ZFS_OK)
+	      free (info.path.str);
+	    else
+	      {
+		r = reintegrate_deleted_fh (res, vid, entry);
+		if (r != ZFS_OK)
+		  goto out;
+	      }
+
+	    if (defined_master_fh)
+	      {
+		vol = volume_lookup (vid);
+#ifdef ENABLE_CHECKING
+		if (!vol)
+		  abort ();
+#endif
+		r = remote_lookup_zfs_fh (res, &dir_entry->master_fh,
+					  &entry->name, vol);
+	      }
+	    else
+	      r = ENOENT;
+
+	    if (r == ZFS_OK)
+	      {
+		if (ZFS_FH_EQ (res->file, entry->master_fh))
+		  {
+		    bool destroy;
+
+		    vol = volume_lookup (vid);
+#ifdef ENABLE_CHECKING
+		    if (!vol)
+		      abort ();
+#endif
+		    destroy = (!local_exists
+			       && entry->master_version == res->attr.version);
+		    r = remote_reintegrate_del_zfs_fh (vol, &entry->master_fh,
+						       &dir_entry->master_fh,
+						       &entry->name, destroy);
+		    if (r == ZFS_OK)
+		      {
+			if (!journal_delete_entry (journal, entry))
+			  abort ();
+			flush_journal = true;
+		      }
+		    else if (r != ENOENT && r != ESTALE)
+		      goto out;
+		  }
+		else
+		  {
+		    /* There is another file with NAME so the original file
+		       must have been already deleted.  */
+		    if (!journal_delete_entry (journal, entry))
+		      abort ();
+		    flush_journal = true;
+		  }
+	      }
+	    else if (r == ENOENT || r == ESTALE)
+	      {
+		/* Nothing to do.  */
+
+		if (!journal_delete_entry (journal, entry))
+		  abort ();
+		flush_journal = true;
+	      }
+	    else
+	      {
+		message (0, stderr, "Reintegrate lookup error: %d\n", r);
+		goto out;
+	      }
+
+	    break;
+
+	  default:
+	    abort ();
+	}
+    }
+  r = ZFS_OK;
+
+out:
+  if (flush_journal)
+    {
+      vol = volume_lookup (vid);
+#ifdef ENABLE_CHECKING
+      if (!vol)
+	abort ();
+#endif
+      if (!write_journal (vol, &fh, journal))
+	MARK_VOLUME_DELETE (vol);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+
+  journal_destroy (journal);
+  return r;
+}
+
 /* Reintegrate journal for directory DIR on volume VOL with file handle FH.
    Update version of remote directrory in ATTR.  */
 
@@ -2156,9 +2311,11 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   dir_op_res local_res;
   dir_op_res res;
   metadata meta;
+  zfs_fh file_fh;
   file_info_res info;
   bool flush_journal;
   bool local_volume_root;
+  bool local_exists;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -2376,7 +2533,24 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
 	  case JOURNAL_OPERATION_DEL:
 	    zfsd_mutex_unlock (&fh_mutex);
+
+	    file_fh.dev = entry->dev;
+	    file_fh.ino = entry->ino;
+	    file_fh.gen = entry->gen;
+	    r = local_file_info (&info, &file_fh, vol);
+	    local_exists = (r == ZFS_OK);
+	    if (r == ZFS_OK)
+	      free (info.path.str);
+
 	    r = remote_lookup (&res, dir, &entry->name, vol);
+
+	    if (!local_exists)
+	      {
+		r2 = reintegrate_deleted_fh (&local_res, fh->vid, entry);
+		if (r2 != ZFS_OK)
+		  goto out;
+	      }
+
 	    r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	    if (r2 != ZFS_OK)
@@ -2387,17 +2561,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	      {
 		if (ZFS_FH_EQ (res.file, entry->master_fh))
 		  {
-		    zfs_fh file_fh;
-
-		    file_fh.dev = entry->dev;
-		    file_fh.ino = entry->ino;
-		    file_fh.gen = entry->gen;
-		    zfsd_mutex_unlock (&fh_mutex);
-		    r = local_file_info (&info, &file_fh, vol);
-		    if (r == ZFS_OK)
-		      free (info.path.str);
-
-		    if (r != ZFS_OK
+		    if (!local_exists
 			&& res.attr.type == FT_REG
 			&& entry->master_version != res.attr.version)
 		      {
@@ -2417,18 +2581,10 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 						  &local_res.file, &res.attr,
 						  NULL);
 			release_dentry (conflict);
-			release_dentry (dir);
-			zfsd_mutex_unlock (&vol->mutex);
-
-			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
-						   false);
-#ifdef ENABLE_CHECKING
-			if (r2 != ZFS_OK)
-			  abort ();
-#endif
 		      }
 		    else
 		      {
+			zfsd_mutex_unlock (&fh_mutex);
 			r = remote_reintegrate_del (vol, &entry->master_fh,
 						    dir, &entry->name,
 						    r != ZFS_OK, fh);
