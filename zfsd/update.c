@@ -394,6 +394,8 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
 
   if (dentry->fh->meta.flags & METADATA_COMPLETE)
     {
+      dentry->fh->flags &= ~IFH_UPDATE;
+
       r = remote_close (icap, dentry, vol);
       if (r != ZFS_OK)
 	return r;
