@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _FH_H
-#define _FH_H
+#ifndef FH_H
+#define FH_H
 
 typedef struct svc_fh
 {

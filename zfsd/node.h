@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _NODE_H
-#define _NODE_H
+#ifndef NODE_H
+#define NODE_H
 
 #include "system.h"
 #include <netdb.h>

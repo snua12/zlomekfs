@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _SYSTEM_H
-#define _SYSTEM_H
+#ifndef SYSTEM_H
+#define SYSTEM_H
 
 #define _GNU_SOURCE
 

@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _MEMORY_H
-#define _MEMORY_H
+#ifndef MEMORY_H
+#define MEMORY_H
 
 #include "system.h"
 #include <stddef.h>

@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _VOLUME_H
-#define _VOLUME_H
+#ifndef VOLUME_H
+#define VOLUME_H
 
 #include "system.h"
 #include <stdint.h>

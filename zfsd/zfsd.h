@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _ZFSD_H
-#define _ZFSD_H
+#ifndef ZFSD_H
+#define ZFSD_H
 
 /* Name of the configuration file.  */
 extern char *config_file;

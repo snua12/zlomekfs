@@ -18,8 +18,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef _DIR_H
-#define _DIR_H
+#ifndef DIR_H
+#define DIR_H
 
 #include "fh.h"
 #include "hashtab.h"
