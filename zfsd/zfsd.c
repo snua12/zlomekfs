@@ -116,6 +116,13 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
     }
 }
 
+/* Empty signal handler, used to break poll.  */
+
+static void
+dummy_sighandler (int signum)
+{
+}
+
 /* Initialize signal handlers.  */
 
 static void
@@ -143,6 +150,12 @@ init_sig_handlers ()
   sigaction (SIGXCPU, &sig, NULL);
   sigaction (SIGXFSZ, &sig, NULL);
   sigaction (SIGSYS, &sig, NULL);
+
+  /* Set the signal handler for terminating poll().  */
+  sigfillset (&sig.sa_mask);
+  sig.sa_handler = dummy_sighandler;
+  sig.sa_flags = SA_RESTART;
+  sigaction (SIGUSR1, &sig, NULL);
 
   /* Ignore SIGPIPE.  */
   sigemptyset (&sig.sa_mask);
@@ -295,6 +308,7 @@ initialize_data_structures ()
   
   /* Initialize main thread data.  */
   pthread_mutex_init (&main_thread_data.mutex, NULL);
+  pthread_mutex_lock (&main_thread_data.mutex);
   server_worker_init (&main_thread_data);
   pthread_setspecific (server_thread_key, &main_thread_data);
 
@@ -303,6 +317,7 @@ initialize_data_structures ()
   initialize_node_c ();
   initialize_volume_c ();
   initialize_zfs_prot_c ();
+  return true;
 }
 
 /* Destroy data structures.  */
@@ -311,8 +326,8 @@ void
 cleanup_data_structures ()
 {
   /* Destroy main thread data.  */
-  server_worker_cleanup (&main_thread);
-  pthread_mutex_destroy (&main_thread.mutex);
+  server_worker_cleanup (&main_thread_data);
+  pthread_mutex_destroy (&main_thread_data.mutex);
 
   /* Destroy data structures in other modules.  */
   cleanup_zfs_prot_c ();
@@ -378,14 +393,22 @@ void
 test_zfs (thread *t)
 {
   zfs_fh fh;
+  int test = 0;
 
   if (strcmp (node_name, "orion") == 0)
     {
+      message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_null_client (t, NULL, node_lookup (2));
+
+      message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_root_client (t, NULL, node_lookup (2));
+
+      message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n",
 	      zfs_extended_lookup (&fh, &root_fh,
 				   xstrdup ("/volume1/subdir/file")));
+
+      message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n",
 	      zfs_extended_lookup (&fh, &root_fh,
 				   xstrdup ("/volume1/volume3/subdir/file")));
@@ -463,7 +486,7 @@ main (int argc, char **argv)
   server_start ();
 
 #ifdef TEST
-  test_zfs ();
+  test_zfs (&main_thread_data);
 #else
   if (!read_cluster_config ())
     {
