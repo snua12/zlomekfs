@@ -44,6 +44,9 @@ extern int max_nfd;
 /* Maximal number of network sockets.  */
 extern int max_network_sockets;
 
+/* Maximal number of file descriptors for local files.  */
+extern int max_local_fds;
+
 extern void init_constants ();
 
 #endif

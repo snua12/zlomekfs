@@ -28,6 +28,9 @@ int max_nfd;
 /* Maximal number of network sockets.  */
 int max_network_sockets;
 
+/* Maximal number of file descriptors for local files.  */
+int max_local_fds;
+
 /* Initialize the constants */
 
 void
@@ -35,4 +38,5 @@ init_constants ()
 {
   max_nfd = getdtablesize ();
   max_network_sockets = max_nfd / 3;
+  max_local_fds = max_nfd / 3;
 }
