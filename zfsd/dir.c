@@ -318,7 +318,7 @@ remote_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
 {
   dir_op_args args;
   thread *t;
-  node n;
+  node nod;
   int32_t r;
 
   args.dir = dir->master_fh;
@@ -327,12 +327,12 @@ remote_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
   t = (thread *) pthread_getspecific (server_thread_key);
 
   zfsd_mutex_lock (&node_mutex);
-  n = node_lookup (dir->master_fh.sid);
+  nod = node_lookup (dir->master_fh.sid);
   zfsd_mutex_unlock (&node_mutex);
-  if (!n)
+  if (!nod)
     return ENOENT;
 
-  r = zfs_proc_lookup_client (t, &args, n);
+  r = zfs_proc_lookup_client (t, &args, nod);
   if (r == ZFS_OK)
     {
       if (!decode_dir_op_res (&t->u.server.dc, res)

@@ -80,10 +80,10 @@ node_hash_name (const void *x)
 static int
 node_eq (const void *x, const void *y)
 {
-  node n = (node) x;
+  node nod = (node) x;
   unsigned int id = *(unsigned int *) y;
 
-  return n->id == id;
+  return nod->id == id;
 }
 
 /* Compare a name of node X with string Y.  */
@@ -91,10 +91,10 @@ node_eq (const void *x, const void *y)
 static int
 node_eq_name (const void *x, const void *y)
 {
-  node n = (node) x;
+  node nod = (node) x;
   char *s = (char *) y;
 
-  return (strcmp (n->name, s) == 0);
+  return (strcmp (nod->name, s) == 0);
 }
 
 /* Return the node with id ID.  */
