@@ -1289,50 +1289,6 @@ differ:
   RETURN_INT (ZFS_OK);
 }
 
-/** \fn static void set_metadata_attr (metadata *meta, zfs_fh *fh, fattr *attr)
-    \brief Set mode, UID and GID in metadata according to attributes.
-    \param meta Metadata which should be updated.
-    \param fh File handle of the file.
-    \param attr Attributes of the file.  */
-
-static void
-set_metadata_attr (metadata *meta, zfs_fh *fh, fattr *attr)
-{
-  volume vol;
-  internal_dentry dentry;
-  int32_t r2;
-
-  TRACE ("");
-
-  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL, false);
-  if (r2 == ZFS_OK)
-    {
-      dentry->fh->meta.modetype = GET_MODETYPE (attr->mode, attr->type);
-      dentry->fh->meta.uid = attr->uid;
-      dentry->fh->meta.gid = attr->gid;
-      *meta = dentry->fh->meta;
-    }
-  else
-    {
-      vol = volume_lookup (fh->vid);
-#ifdef ENABLE_CHECKING
-      if (!vol)
-	abort ();
-#endif
-      dentry = NULL;
-      meta->modetype = GET_MODETYPE (attr->mode, attr->type);
-      meta->uid = attr->uid;
-      meta->gid = attr->gid;
-    }
-
-  if (!flush_metadata (vol, meta))
-    MARK_VOLUME_DELETE (vol);
-
-  if (dentry)
-    release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-}
-
 /* Synchronize attributes of local file LOCAL_FH with attributes LOCAL_ATTR
    and attributes of remote file REMOTE_FH with attributes REMOTE_ATTR.
    LOCAL_CHANGED and REMOTE_CHANGED specify which attributes have changed.  */
@@ -1761,7 +1717,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 		  int what, bool same_place)
 {
   dir_op_res res;
-  internal_dentry parent, conflict, other;
+  internal_dentry parent, conflict;
   bool local_changed, remote_changed;
   bool attr_conflict, data_conflict;
   int32_t r;
