@@ -70,12 +70,6 @@ htab_t dentry_htab;
 /* Hash table of used dentries, searched by (parent->fh->local_fh, name).  */
 htab_t dentry_htab_name;
 
-/* Mutes for file handles and dentries.  */
-pthread_mutex_t fh_mutex;
-
-/* Key for array of locked file handles.  */
-static pthread_key_t lock_info_key;
-
 /* Allocation pool for virtual directories ("mountpoints").  */
 static alloc_pool vd_pool;
 
@@ -85,8 +79,11 @@ htab_t vd_htab;
 /* Hash table of virtual directories, searched by (parent->fh, name).  */
 static htab_t vd_htab_name;
 
-/* Mutex for virtual directories.  */
-pthread_mutex_t vd_mutex;
+/* Mutes for file handles, dentries and virtual directories.  */
+pthread_mutex_t fh_mutex;
+
+/* Key for array of locked file handles.  */
+static pthread_key_t lock_info_key;
 
 /* Heap holding internal file handles will be automatically freed
    when unused for a long time.  */
@@ -575,21 +572,15 @@ int32_t
 zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	       virtual_dir *vdp, bool delete_volume_p)
 {
-  int32_t res;
+  int32_t r;
 
   TRACE ("");
 
-  if (VIRTUAL_FH_P (*fh))
-    zfsd_mutex_lock (&vd_mutex);
-
-  res = zfs_fh_lookup_nolock (fh, volp, dentryp, vdp, delete_volume_p);
-
-  if (VIRTUAL_FH_P (*fh))
-    zfsd_mutex_unlock (&vd_mutex);
-  else if (res == ZFS_OK)
+  r = zfs_fh_lookup_nolock (fh, volp, dentryp, vdp, delete_volume_p);
+  if (r == ZFS_OK)
     zfsd_mutex_unlock (&fh_mutex);
 
-  return res;
+  return r;
 }
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
@@ -611,15 +602,17 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
     abort ();
 #endif
 
+  zfsd_mutex_lock (&fh_mutex);
   if (VIRTUAL_FH_P (*fh))
     {
       virtual_dir vd;
 
-      CHECK_MUTEX_LOCKED (&vd_mutex);
-
       vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, hash);
       if (!vd)
-	return ENOENT;
+	{
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ENOENT;
+	}
 
       zfsd_mutex_lock (&vd->mutex);
 #ifdef ENABLE_CHECKING
@@ -643,8 +636,6 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
     {
       volume vol = NULL;
       internal_dentry dentry;
-
-      zfsd_mutex_lock (&fh_mutex);
 
       if (volp)
 	{
@@ -736,7 +727,7 @@ vd_lookup (zfs_fh *fh)
   virtual_dir vd;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
 
   vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, ZFS_FH_HASH (fh));
   if (vd)
@@ -760,7 +751,7 @@ vd_lookup_name (virtual_dir parent, string *name)
   struct virtual_dir_def tmp_vd;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
   tmp_vd.parent = parent;
@@ -2711,7 +2702,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   void **slot;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
   last_virtual_ino++;
@@ -2771,7 +2762,7 @@ virtual_dir_destroy (virtual_dir vd)
   unsigned int count;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vd->mutex);
 
   /* Check the path to root.  */
@@ -2856,7 +2847,7 @@ virtual_root_create (void)
 
   TRACE ("");
 
-  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&fh_mutex);
   root = (virtual_dir) pool_alloc (vd_pool);
   root->fh = root_fh;
   root->parent = NULL;
@@ -2877,7 +2868,7 @@ virtual_root_create (void)
   slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), INSERT);
   *slot = root;
-  zfsd_mutex_unlock (&vd_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   return root;
 }
@@ -2891,7 +2882,7 @@ virtual_root_destroy (virtual_dir root)
 
   TRACE ("");
 
-  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&root->mutex);
 
   /* Destroy capability associated with virtual directroy.  */
@@ -2918,7 +2909,7 @@ virtual_root_destroy (virtual_dir root)
   zfsd_mutex_unlock (&root->mutex);
   zfsd_mutex_destroy (&root->mutex);
   pool_free (vd_pool, root);
-  zfsd_mutex_unlock (&vd_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 }
 
 /* Create the virtual mountpoint for volume VOL.  */
@@ -2932,7 +2923,7 @@ virtual_mountpoint_create (volume vol)
   unsigned int i;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   mountpoint = (char *) xmemdup (vol->mountpoint.str, vol->mountpoint.len + 1);
@@ -3000,7 +2991,7 @@ void
 virtual_mountpoint_destroy (volume vol)
 {
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (vol->root_vd)
@@ -3079,7 +3070,7 @@ initialize_fh_c (void)
 {
   zfs_fh_undefine (undefined_fh);
 
-  /* Data structures for file handles and dentries.  */
+  /* Data structures for file handles, dentries and virtual directories.  */
   zfsd_mutex_init (&fh_mutex);
   pthread_key_create (&lock_info_key, NULL);
   fh_pool = create_alloc_pool ("fh_pool", sizeof (struct internal_fh_def),
@@ -3087,21 +3078,18 @@ initialize_fh_c (void)
   dentry_pool = create_alloc_pool ("dentry_pool",
 				   sizeof (struct internal_dentry_def),
 				   1023, &fh_mutex);
+  vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
+			       127, &fh_mutex);
   fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq, NULL,
 			 &fh_mutex);
   dentry_htab = htab_create (250, internal_dentry_hash, internal_dentry_eq,
 			     NULL, &fh_mutex);
   dentry_htab_name = htab_create (250, internal_dentry_hash_name,
 				  internal_dentry_eq_name, NULL, &fh_mutex);
-
-  /* Data structures for virtual directories.  */
-  zfsd_mutex_init (&vd_mutex);
-  vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
-			       127, &vd_mutex);
   vd_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq, NULL,
-			 &vd_mutex);
+			 &fh_mutex);
   vd_htab_name = htab_create (100, virtual_dir_hash_name, virtual_dir_eq_name,
-			      NULL, &vd_mutex);
+			      NULL, &fh_mutex);
 
   /* Data structures for cleanup of file handles.  */
   zfsd_mutex_init (&cleanup_dentry_mutex);
@@ -3124,7 +3112,7 @@ cleanup_fh_c (void)
 
   wait_for_thread_to_die (&cleanup_dentry_thread, NULL);
 
-  /* Data structures for file handles and dentries.  */
+  /* Data structures for file handles, dentries and virtual directories.  */
   zfsd_mutex_lock (&fh_mutex);
 #ifdef ENABLE_CHECKING
   if (fh_pool->elts_free < fh_pool->elts_allocated)
@@ -3133,28 +3121,21 @@ cleanup_fh_c (void)
   if (dentry_pool->elts_free < dentry_pool->elts_allocated)
     message (2, stderr, "Memory leak (%u elements) in dentry_pool.\n",
 	     dentry_pool->elts_allocated - dentry_pool->elts_free);
-#endif
-  htab_destroy (fh_htab);
-  htab_destroy (dentry_htab);
-  htab_destroy (dentry_htab_name);
-  free_alloc_pool (fh_pool);
-  free_alloc_pool (dentry_pool);
-  zfsd_mutex_unlock (&fh_mutex);
-  zfsd_mutex_destroy (&fh_mutex);
-  pthread_key_delete (lock_info_key);
-
-  /* Data structures for virtual directories.  */
-  zfsd_mutex_lock (&vd_mutex);
-  htab_destroy (vd_htab_name);
-  htab_destroy (vd_htab);
-#ifdef ENABLE_CHECKING
   if (vd_pool->elts_free < vd_pool->elts_allocated)
     message (2, stderr, "Memory leak (%u elements) in vd_pool.\n",
 	     vd_pool->elts_allocated - vd_pool->elts_free);
 #endif
+  htab_destroy (fh_htab);
+  htab_destroy (dentry_htab);
+  htab_destroy (dentry_htab_name);
+  htab_destroy (vd_htab_name);
+  htab_destroy (vd_htab);
+  free_alloc_pool (fh_pool);
+  free_alloc_pool (dentry_pool);
   free_alloc_pool (vd_pool);
-  zfsd_mutex_unlock (&vd_mutex);
-  zfsd_mutex_destroy (&vd_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_destroy (&fh_mutex);
+  pthread_key_delete (lock_info_key);
 
   /* Data structures for cleanup of file handles.  */
   zfsd_mutex_lock (&cleanup_dentry_mutex);

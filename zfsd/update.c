@@ -848,15 +848,9 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
 	{
 	  r = update (*volp, *dentryp, &tmp_fh, &remote_attr, how);
 
-	  if (VIRTUAL_FH_P (cap->fh))
-	    zfsd_mutex_lock (&vd_mutex);
 	  r2 = find_capability_nolock (cap, icapp, volp, dentryp, vdp, false);
 	  if (r2 != ZFS_OK)
-	    {
-	      if (VIRTUAL_FH_P (cap->fh))
-		zfsd_mutex_unlock (&vd_mutex);
-	      return r2;
-	    }
+	    return r2;
 
 	  if (r != ZFS_OK)
 	    {
@@ -865,10 +859,7 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
 	    }
 
 	  if (*vdp)
-	    {
-	      zfsd_mutex_unlock (&(*vdp)->mutex);
-	      zfsd_mutex_unlock (&vd_mutex);
-	    }
+	    zfsd_mutex_unlock (&(*vdp)->mutex);
 #ifdef ENABLE_CHECKING
 	  if (!*vdp && VIRTUAL_FH_P (cap->fh))
 	    abort ();

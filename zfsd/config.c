@@ -497,7 +497,7 @@ init_config (void)
   volume vol;
   node nod;
 
-  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup_nolock (VOLUME_ID_CONFIG);
   if (!vol)
@@ -505,7 +505,7 @@ init_config (void)
       message (0, stderr, "Config volume (ID == %" PRIu32 " does not exist.\n",
 	       VOLUME_ID_CONFIG);
       zfsd_mutex_unlock (&volume_mutex);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       goto out;
     }
 
@@ -518,7 +518,7 @@ init_config (void)
 
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&volume_mutex);
-  zfsd_mutex_unlock (&vd_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   return true;
 
 out:
@@ -738,7 +738,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 
 	  if (nod)
 	    {
-	      zfsd_mutex_lock (&vd_mutex);
+	      zfsd_mutex_lock (&fh_mutex);
 	      zfsd_mutex_lock (&volume_mutex);
 	      vol = volume_lookup_nolock (d->vid);
 	      if (!vol)
@@ -751,7 +751,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 	      volume_set_common_info (vol, d->name, d->mountpoint, nod);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&volume_mutex);
-	      zfsd_mutex_unlock (&vd_mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
 
 	      /* Continue reading the file because we need to read the list
 		 of nodes whose master is local node.  */
@@ -899,7 +899,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 	    goto out;
 	  zfsd_mutex_unlock (&nod->mutex);
 
-	  zfsd_mutex_lock (&vd_mutex);
+	  zfsd_mutex_lock (&fh_mutex);
 	  zfsd_mutex_lock (&volume_mutex);
 	  vol = volume_lookup_nolock (vid);
 	  if (!vol)
@@ -910,7 +910,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 		{
 		  zfsd_mutex_unlock (&vol->mutex);
 		  zfsd_mutex_unlock (&volume_mutex);
-		  zfsd_mutex_unlock (&vd_mutex);
+		  zfsd_mutex_unlock (&fh_mutex);
 		  goto out;
 		}
 	      if (vol->slaves)
@@ -919,7 +919,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 	  volume_set_common_info (vol, name, mountpoint, nod);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&volume_mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
 	}
     }
 
@@ -991,7 +991,7 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	  xstringdup (&saved_name, &parts[1]);
 	  xstringdup (&saved_mountpoint, &parts[2]);
 
-	  zfsd_mutex_lock (&vd_mutex);
+	  zfsd_mutex_lock (&fh_mutex);
 	  zfsd_mutex_lock (&volume_mutex);
 	  vol = volume_lookup_nolock (vid);
 #ifdef ENABLE_CHECKING
@@ -1007,7 +1007,7 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	  vol->marked = true;
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&volume_mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
 	}
       else
 	{

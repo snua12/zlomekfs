@@ -290,14 +290,11 @@ extern zfs_fh undefined_fh;
 /* Hash table of used dentries, searched by fh->local_fh.  */
 extern htab_t dentry_htab;
 
-/* Mutes for file handles and dentries.  */
-extern pthread_mutex_t fh_mutex;
-
 /* Hash table of virtual directories, searched by fh.  */
 extern htab_t vd_htab;
 
-/* Mutex for virtual directories.  */
-extern pthread_mutex_t vd_mutex;
+/* Mutes for file handles, dentries and virtual directories.  */
+extern pthread_mutex_t fh_mutex;
 
 /* Thread ID of thread freeing dentries unused for a long time.  */
 extern pthread_t cleanup_dentry_thread;

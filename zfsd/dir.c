@@ -410,7 +410,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
   virtual_dir vd;
 
   TRACE ("");
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&pvd->mutex);
 #ifdef ENABLE_CHECKING
   if (pvd->vol)
@@ -1320,8 +1320,6 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
     return r;
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r == ZFS_STALE)
     {
@@ -1335,11 +1333,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (pvd)
     {
@@ -1358,7 +1352,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  if (vol)
 	    zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
 	  return ZFS_OK;
 	}
       else if (strcmp (name->str, "..") == 0)
@@ -1369,7 +1363,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  if (vol)
 	    zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&pvd->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
 	  return ZFS_OK;
 	}
 
@@ -1390,7 +1384,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	      zfsd_mutex_lock (&vol->mutex);
 	      zfsd_mutex_unlock (&volume_mutex);
 	      zfsd_mutex_unlock (&vd->mutex);
-	      zfsd_mutex_unlock (&vd_mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
 
 	      r = get_volume_root_dentry (vol, &idir, true);
 	      if (r != ZFS_OK)
@@ -1414,12 +1408,12 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	    }
 	  else
 	    {
-	      zfsd_mutex_unlock (&vd_mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
 	      zfsd_mutex_unlock (&vd->mutex);
 	    }
 	  return ZFS_OK;
 	}
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
 
       /* !vd */
       zfsd_mutex_unlock (&pvd->mutex);
@@ -1709,8 +1703,6 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
     return r;
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r == ZFS_STALE)
     {
@@ -1724,16 +1716,12 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -1930,8 +1918,6 @@ zfs_rmdir (zfs_fh *dir, string *name)
     return r;
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r == ZFS_STALE)
     {
@@ -1945,16 +1931,12 @@ zfs_rmdir (zfs_fh *dir, string *name)
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -2433,8 +2415,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
     return r;
 
   /* Lookup TO_DIR.  */
-  if (VIRTUAL_FH_P (*to_dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
   if (r == ZFS_STALE)
     {
@@ -2448,17 +2428,13 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*to_dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (vd)
     {
       r = validate_operation_on_virtual_directory (vd, to_name, &to_dentry,
 						   EROFS);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -2485,8 +2461,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   zfsd_mutex_unlock (&vol->mutex);
 
   /* Lookup FROM_DIR.  */
-  if (VIRTUAL_FH_P (*from_dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd, true);
   if (r == ZFS_STALE)
     {
@@ -2500,17 +2474,13 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*from_dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (vd)
     {
       r = validate_operation_on_virtual_directory (vd, from_name, &from_dentry,
 						   EROFS);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -2874,8 +2844,6 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   zfsd_mutex_unlock (&vol->mutex);
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd, true);
   if (r == ZFS_STALE)
     {
@@ -2889,17 +2857,13 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (vd)
     {
       r = validate_operation_on_virtual_directory (vd, name, &dir_dentry,
 						   EROFS);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -3157,8 +3121,6 @@ zfs_unlink (zfs_fh *dir, string *name)
     return r;
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r == ZFS_STALE)
     {
@@ -3172,16 +3134,12 @@ zfs_unlink (zfs_fh *dir, string *name)
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, ZFS_OK);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -3973,8 +3931,6 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
     return r;
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r == ZFS_STALE)
     {
@@ -3988,16 +3944,12 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -4221,8 +4173,6 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
     return r;
 
   /* Lookup DIR.  */
-  if (VIRTUAL_FH_P (*dir))
-    zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
   if (r == ZFS_STALE)
     {
@@ -4236,16 +4186,12 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
       r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd, true);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (*dir))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (pvd)
     {
       r = validate_operation_on_virtual_directory (pvd, name, &idir, EROFS);
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -5092,7 +5038,7 @@ local_invalidate (internal_dentry dentry, bool volume_root_p)
     {
       volume vol;
 
-      zfsd_mutex_lock (&vd_mutex);
+      zfsd_mutex_lock (&fh_mutex);
       vol = volume_lookup (args.fh.vid);
       if (vol)
 	{
@@ -5101,7 +5047,7 @@ local_invalidate (internal_dentry dentry, bool volume_root_p)
 	  zfsd_mutex_unlock (&vol->root_vd->mutex);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
-      zfsd_mutex_unlock (&vd_mutex);
+      zfsd_mutex_unlock (&fh_mutex);
     }
 
   t = (thread *) pthread_getspecific (thread_data_key);

@@ -198,7 +198,6 @@ volume_destroy (volume vol)
 {
   void **slot;
 
-  CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -272,14 +271,12 @@ volume_delete (volume vol)
 
   /* Destroy volume.  */
   zfsd_mutex_unlock (&fh_mutex);
-  zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup_nolock (vid);
   if (vol)
     volume_destroy (vol);
   zfsd_mutex_unlock (&volume_mutex);
-  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Set the information common for all volume types.  */
@@ -288,7 +285,7 @@ void
 volume_set_common_info (volume vol, string *name, string *mountpoint,
 			node master)
 {
-  CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -446,7 +443,6 @@ destroy_invalid_volume_1 (volume vol)
   void **slot;
   bool master_marked;
 
-  CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -491,7 +487,6 @@ destroy_invalid_volume (uint32_t vid)
 {
   volume vol;
 
-  zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup_nolock (vid);
@@ -499,7 +494,6 @@ destroy_invalid_volume (uint32_t vid)
     destroy_invalid_volume_1 (vol);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Delete invalid volumes.  */
@@ -509,7 +503,6 @@ destroy_invalid_volumes (void)
 {
   void **slot;
 
-  zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot)
@@ -521,7 +514,6 @@ destroy_invalid_volumes (void)
     }
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Delete all volumes.  */
@@ -531,7 +523,6 @@ destroy_all_volumes (void)
 {
   void **slot;
 
-  zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot)
@@ -543,7 +534,6 @@ destroy_all_volumes (void)
     }
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Initialize data structures in VOLUME.C.  */

@@ -138,11 +138,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
-      if (VIRTUAL_FH_P (tmp_cap->fh))
-	zfsd_mutex_lock (&vd_mutex);
       r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, true);
-      if (VIRTUAL_FH_P (tmp_cap->fh) && vdp && !*vdp)
-	zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -168,12 +164,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       if (vdp && *vdp)
 	zfsd_mutex_unlock (&(*vdp)->mutex);
 
-      if (VIRTUAL_FH_P (tmp_cap->fh))
-	zfsd_mutex_lock (&vd_mutex);
       r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, false);
-      /* Following condition should not be needed.  */
-      if (VIRTUAL_FH_P (tmp_cap->fh) && vdp && !*vdp)
-	zfsd_mutex_unlock (&vd_mutex);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
 	abort ();
@@ -192,11 +183,10 @@ internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
   if (vd)
-    {
-      CHECK_MUTEX_LOCKED (&vd_mutex);
-      CHECK_MUTEX_LOCKED (&vd->mutex);
-    }
+    CHECK_MUTEX_LOCKED (&vd->mutex);
+#endif
 
   if (vd)
     {
@@ -211,7 +201,6 @@ internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
 	}
       else
 	zfsd_mutex_unlock (&vd->mutex);
-      zfsd_mutex_unlock (&vd_mutex);
     }
 
   internal_dentry_unlock (vol, dentry);
@@ -411,9 +400,6 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
       && cap->flags != O_RDONLY)
     return EISDIR;
 
-  if (VIRTUAL_FH_P (cap->fh))
-    zfsd_mutex_lock (&vd_mutex);
-
   r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
   if (r == ZFS_STALE)
     {
@@ -427,15 +413,9 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
       r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
     }
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (cap->fh))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
-  if (vd && *vd)
-    zfsd_mutex_unlock (&vd_mutex);
-  else if (unlock_fh_mutex)
+  if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
 
   if (vd && *vd && *vol)
@@ -532,14 +512,8 @@ find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 
   TRACE ("");
 
-  if (VIRTUAL_FH_P (cap->fh))
-    zfsd_mutex_lock (&vd_mutex);
-
   r = find_capability_nolock (cap, icapp, vol, dentry, vd, delete_volume_p);
-
-  if (VIRTUAL_FH_P (cap->fh))
-    zfsd_mutex_unlock (&vd_mutex);
-  if (r == ZFS_OK && dentry && *dentry)
+  if (r == ZFS_OK)
     zfsd_mutex_unlock (&fh_mutex);
 
   return r;
@@ -561,10 +535,6 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   int32_t r;
 
   TRACE ("");
-#ifdef ENABLE_CHECKING
-  if (VIRTUAL_FH_P (cap->fh))
-    CHECK_MUTEX_LOCKED (&vd_mutex);
-#endif
 
   r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
   if (r == ZFS_STALE)
@@ -585,13 +555,14 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     {
       int32_t r2;
 
+      zfsd_mutex_unlock (&fh_mutex);
       r2 = get_volume_root_dentry (*vol, dentry, false);
       if (r2 != ZFS_OK)
 	{
-	  /* *VOL is the volume under *VD so we may lock it.  */
-	  zfsd_mutex_lock (&volume_mutex);
-	  zfsd_mutex_lock (&(*vol)->mutex);
-	  zfsd_mutex_unlock (&volume_mutex);
+	  zfsd_mutex_unlock (&(*vd)->mutex);
+	  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+	  if (r != ZFS_OK)
+	    return r;
 	}
     }
 
@@ -621,12 +592,10 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 
 out:
   if (*dentry)
-    {
-      release_dentry (*dentry);
-      zfsd_mutex_unlock (&fh_mutex);
-    }
+    release_dentry (*dentry);
   if (vd && *vd)
     zfsd_mutex_unlock (&(*vd)->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   if (*vol)
     zfsd_mutex_unlock (&(*vol)->mutex);
 
