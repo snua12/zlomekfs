@@ -1457,9 +1457,20 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
 	  sdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh, attr,
 					      meta);
-	  release_dentry (dentry);
-	  acquire_dentry (sdentry);
-	  return sdentry;
+	  if (try_resolve_conflict (dentry))
+	    {
+	      dentry = dentry_lookup_name (dir, name);
+#ifdef ENABLE_CHECKING
+	      if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
+		abort ();
+#endif
+	    }
+	  else
+	    {
+	      release_dentry (dentry);
+	      acquire_dentry (sdentry);
+	      return sdentry;
+	    }
 	}
     }
   else
@@ -1580,8 +1591,8 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 					&tmp_attr, NULL);
 
 	      zfsd_mutex_unlock (&(*volp)->mutex);
-	      try_resolve_conflict (dentry);
-	      release_dentry (dentry);
+	      if (!try_resolve_conflict (dentry))
+		release_dentry (dentry);
 	    }
 	  else
 	    {
@@ -1642,7 +1653,8 @@ internal_dentry_link (internal_dentry orig, volume vol,
 	  release_dentry (orig);
 	  dentry = add_file_to_conflict_dir (vol, conflict, true, &tmp_fh,
 					     &tmp_attr, &meta);
-	  release_dentry (conflict);
+	  if (!try_resolve_conflict (conflict))
+	    release_dentry (conflict);
 	  acquire_dentry (orig);
 	  return dentry;
 	}
@@ -1735,7 +1747,8 @@ internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
       tmp_attr.gid = sdentry->fh->attr.gid;
       add_file_to_conflict_dir (vol, dentry, false, &tmp_fh, &tmp_attr, NULL);
 
-      release_dentry (dentry);
+      if (!try_resolve_conflict (dentry))
+	release_dentry (dentry);
       dentry = sdentry;
     }
   else

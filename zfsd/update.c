@@ -1666,7 +1666,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			add_file_to_conflict_dir (vol, conflict, false,
 						  &local_res.file, &res.attr,
 						  NULL);
-			release_dentry (conflict);
+			if (!try_resolve_conflict (conflict))
+			  release_dentry (conflict);
 		      }
 		  }
 		else if (r == ENOENT || r == ESTALE)
