@@ -339,6 +339,12 @@ interval_tree_write (interval_tree tree, int fd)
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
+  if (!tree->splay->root)
+    {
+      /* The tree is empty.  */
+      return true;
+    }
+
   data.n = 0;
   r = interval_tree_write_1 (tree->splay->root, fd, &data);
   if (!r)
