@@ -1884,6 +1884,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
   dentry->prev = dentry;
   dentry->last_use = time (NULL);
   dentry->heap_node = NULL;
+  dentry->users = 0;
   dentry->deleted = false;
 
   dentry_update_cleanup_node (dentry);
