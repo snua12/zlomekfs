@@ -634,6 +634,16 @@ read_node_list (zfs_fh *config_dir)
 				process_line_node, NULL);
 }
 
+/* Data for process_line_volume_hierarchy.  */
+typedef struct volume_hierarchy_data_def
+{
+  varray hierarchy;
+  uint32_t vid;
+  uint32_t depth;
+  string *name;
+  string *mountpoint;
+} volume_hierarchy_data;
+
 /* Process line LINE number LINE_NUM of volume hierarchy file FILE_NAME
    and update hierarchy DATA.  */
 
@@ -642,36 +652,163 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 			       ATTRIBUTE_UNUSED unsigned int line_num,
 			       void *data)
 {
-  varray *hierarchy = (varray *) data;
+  volume_hierarchy_data *d = (volume_hierarchy_data *) data;
   char *name;
-  unsigned int i;
+  uint32_t i;
+  volume vol;
+  node nod;
+  string str;
+  void **slot;
 
   for (i = 0; line[i] == ' '; i++)
     ;
   if (line[i] == 0)
     return 0;
 
-  /* Free superfluous records.  */
-  while (VARRAY_USED (*hierarchy) > i)
+  if (d->depth == 0)
     {
-      name = VARRAY_TOP (*hierarchy, char *);
-      if (name)
-	free (name);
-      VARRAY_POP (*hierarchy);
+      /* Free superfluous records.  */
+      while (VARRAY_USED (d->hierarchy) > i)
+	{
+	  name = VARRAY_TOP (d->hierarchy, char *);
+	  if (name)
+	    free (name);
+	  VARRAY_POP (d->hierarchy);
+	}
+
+      if (strncmp (line + i, node_name.str, node_name.len + 1) == 0)
+	{
+	  char *master_name = NULL;
+
+	  /* We are processing the local node.  */
+
+	  d->depth = i + 1;
+	  while (VARRAY_USED (d->hierarchy) > 0)
+	    {
+	      master_name = VARRAY_TOP (d->hierarchy, char *);
+	      if (master_name)
+		break;
+	      VARRAY_POP (d->hierarchy);
+	    }
+
+	  if (master_name)
+	    {
+	      str.str = master_name;
+	      str.len = strlen (master_name);
+	      nod = node_lookup_name (&str);
+	      if (nod)
+		zfsd_mutex_unlock (&nod->mutex);
+	    }
+	  else
+	    nod = this_node;
+
+	  if (nod)
+	    {
+	      zfsd_mutex_lock (&vd_mutex);
+	      vol = volume_lookup (d->vid);
+	      if (!vol)
+		{
+		  zfsd_mutex_lock (&volume_mutex);
+		  vol = volume_create (d->vid);
+		  zfsd_mutex_unlock (&volume_mutex);
+		}
+	      else
+		{
+		  vol->marked = false;
+		  if (vol->slaves)
+		    htab_empty (vol->slaves);
+		}
+	      volume_set_common_info (vol, d->name, d->mountpoint, nod);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&vd_mutex);
+
+	      /* Continue reading the file because we need to read the list
+		 of nodes whose master is local node.  */
+	      if (vol->slaves)
+		return 0;
+	    }
+
+	  return 1;
+	}
+
+      /* Add missing empty records.  */
+      while (VARRAY_USED (d->hierarchy) < i)
+	VARRAY_PUSH (d->hierarchy, NULL, char *);
+
+      name = xstrdup (line + i);
+      VARRAY_PUSH (d->hierarchy, name, char *);
+    }
+  else
+    {
+      /* We have created/updated the volume, read the list of nodes whose
+	 master is local node.  */
+
+      if (i < d->depth)
+	{
+	  /* The subtree of local node has been processed, stop reading the
+	     file.  */
+	  return 1;
+	}
+
+      /* Free superfluous records.  */
+      while (VARRAY_USED (d->hierarchy) > i)
+	{
+	  name = VARRAY_TOP (d->hierarchy, char *);
+	  if (name)
+	    free (name);
+	  VARRAY_POP (d->hierarchy);
+	}
+
+      /* Push missing empty records.  */
+      while (VARRAY_USED (d->hierarchy) < i)
+	VARRAY_PUSH (d->hierarchy, NULL, char *);
+
+      name = xstrdup (line + i);
+      VARRAY_PUSH (d->hierarchy, name, char *);
+
+      /* All records in hierarchy upto current node must be NULL so that
+	 local node would be master of current node.  */
+      for (i = d->depth; i < VARRAY_USED (d->hierarchy) - 1; i++)
+	if (VARRAY_ACCESS (d->hierarchy, i, char *) != NULL)
+	  {
+	    /* The current node is not direct descendant of local node
+	       so continue reading the file.  */
+	    return 0;
+	  }
+
+      vol = volume_lookup (d->vid);
+      if (!vol)
+	{
+	  /* Volume was destroyed meanwhile.  */
+	  return 1;
+	}
+#ifdef ENABLE_CHECKING
+      if (!vol->slaves)
+	abort ();
+#endif
+
+      str.str = line + i;
+      str.len = strlen (line + i);
+      nod = node_lookup_name (&str);
+      if (!nod)
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return 0;
+	}
+      if (vol->master == nod)
+	{
+	  zfsd_mutex_unlock (&nod->mutex);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return 0;
+	}
+
+      slot = htab_find_slot_with_hash (vol->slaves, nod, NODE_HASH_NAME (nod),
+				       INSERT);
+      *slot = nod;
+      zfsd_mutex_unlock (&nod->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
     }
 
-  /* Are we processing the local node?  */
-  if (strncmp (line + i, node_name.str, node_name.len + 1) == 0)
-    return 1;
-
-  /* Add missing empty records.  */
-  while (VARRAY_USED (*hierarchy) < i)
-    {
-      VARRAY_PUSH (*hierarchy, NULL, char *);
-    }
-
-  name = xstrdup (line + i);
-  VARRAY_PUSH (*hierarchy, name, char *);
   return 0;
 }
 
@@ -682,74 +819,34 @@ static void
 read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 		       string *name, string *mountpoint)
 {
+  volume_hierarchy_data data;
   dir_op_res file_res;
-  varray hierarchy;
   char *file_name, *master_name;
-  string str;
   int32_t r;
-  volume vol;
-  node nod;
 
   r = zfs_extended_lookup (&file_res, volume_hierarchy_dir, name->str);
   if (r != ZFS_OK)
     return;
 
-  varray_create (&hierarchy, sizeof (char *), 4);
+  varray_create (&data.hierarchy, sizeof (char *), 4);
+  data.vid = vid;
+  data.depth = 0;
+  data.name = name;
+  data.mountpoint = mountpoint;
+
   file_name = xstrconcat (2, "config/volume/", name->str);
-  if (!process_file_by_lines (&file_res.file, file_name,
-			      process_line_volume_hierarchy, &hierarchy))
-    {
-      free (file_name);
-      goto out;
-    }
+  process_file_by_lines (&file_res.file, file_name,
+			 process_line_volume_hierarchy, &data);
   free (file_name);
 
-  master_name = NULL;
-  while (VARRAY_USED (hierarchy) > 0)
+  while (VARRAY_USED (data.hierarchy) > 0)
     {
-      master_name = VARRAY_TOP (hierarchy, char *);
-      if (master_name)
-	break;
-      VARRAY_POP (hierarchy);
-    }
-
-  if (master_name)
-    {
-      str.str = master_name;
-      str.len = strlen (master_name);
-      nod = node_lookup_name (&str);
-      if (nod)
-	zfsd_mutex_unlock (&nod->mutex);
-    }
-  else
-    nod = this_node;
-
-  if (nod)
-    {
-      zfsd_mutex_lock (&vd_mutex);
-      vol = volume_lookup (vid);
-      if (!vol)
-	{
-	  zfsd_mutex_lock (&volume_mutex);
-	  vol = volume_create (vid);
-	  zfsd_mutex_unlock (&volume_mutex);
-	}
-      else
-	vol->marked = false;
-      volume_set_common_info (vol, name, mountpoint, nod);
-      zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_unlock (&vd_mutex);
-    }
-
-out:
-  while (VARRAY_USED (hierarchy) > 0)
-    {
-      master_name = VARRAY_TOP (hierarchy, char *);
+      master_name = VARRAY_TOP (data.hierarchy, char *);
       if (master_name)
 	free (master_name);
-      VARRAY_POP (hierarchy);
+      VARRAY_POP (data.hierarchy);
     }
-  varray_destroy (&hierarchy);
+  varray_destroy (&data.hierarchy);
 }
 
 /* Saved information about config volume because we need to update it after
