@@ -1306,7 +1306,7 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
    its file handle and attributes to RES.  */
 
 int32_t
-remote_lookup_fh (dir_op_res *res, zfs_fh *dir, string *name, volume vol)
+remote_lookup_zfs_fh (dir_op_res *res, zfs_fh *dir, string *name, volume vol)
 {
   dir_op_args args;
   thread *t;

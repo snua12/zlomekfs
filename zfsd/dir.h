@@ -67,8 +67,8 @@ extern int32_t local_lookup (dir_op_res *res, internal_dentry dir,
 			     string *name, volume vol, metadata *meta);
 extern int32_t remote_lookup (dir_op_res *res, internal_dentry dir,
 			      string *name, volume vol);
-extern int32_t remote_lookup_fh (dir_op_res *res, zfs_fh *dir, string *name,
-				 volume vol);
+extern int32_t remote_lookup_zfs_fh (dir_op_res *res, zfs_fh *dir,
+				     string *name, volume vol);
 extern int32_t zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 extern int32_t local_mkdir (dir_op_res *res, internal_dentry dir, string *name,
 			    sattr *attr, volume vol, metadata *meta);
