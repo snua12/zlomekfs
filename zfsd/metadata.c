@@ -470,7 +470,7 @@ create_path_for_file (string *file, unsigned int mode, volume vol)
 		  MARK_VOLUME_DELETE (vol);
 		  return false;
 		}
-	      
+
 	      name.str = end + 1;
 	      name.len = strlen (end + 1);
 	      hl = hardlink_list_create (1, NULL);

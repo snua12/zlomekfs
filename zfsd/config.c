@@ -1682,7 +1682,7 @@ reread_group_mapping (uint32_t sid)
   return true;
 }
 
-/* Reread configuration file RELATIVE_PATH.  */ 
+/* Reread configuration file RELATIVE_PATH.  */
 
 static bool
 reread_config_file (string *relative_path)
@@ -1948,7 +1948,7 @@ config_reader (void *data)
     }
   t->state = THREAD_IDLE;
   zfsd_mutex_unlock (&t->mutex);
-  
+
   /* Reread parts of configuration when notified.  */
   varray_create (&v, sizeof (uint32_t), 4);
   while (1)

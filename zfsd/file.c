@@ -556,7 +556,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {

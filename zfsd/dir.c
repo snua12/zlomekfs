@@ -2069,7 +2069,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
@@ -2319,7 +2319,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, false))
     {
@@ -2927,7 +2927,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (to_dentry, to_name->str, true))
     {
@@ -2979,7 +2979,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (from_dentry, from_name->str, true))
     {
@@ -3364,7 +3364,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (dir_dentry, name->str, true))
     {
@@ -3649,7 +3649,7 @@ zfs_unlink (zfs_fh *dir, string *name)
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, false))
     {
@@ -4443,7 +4443,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
@@ -4695,7 +4695,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
       zfsd_mutex_unlock (&vol->mutex);
       return ENOTDIR;
     }
-  
+
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
