@@ -184,7 +184,7 @@ node_create (uint32_t id, string *name)
 #endif
   *slot = nod;
 
-  slot = htab_find_slot_with_hash (node_htab_name, nod->name.str,
+  slot = htab_find_slot_with_hash (node_htab_name, &nod->name,
 				   NODE_HASH_NAME (nod), INSERT);
 #ifdef ENABLE_CHECKING
   if (*slot)
