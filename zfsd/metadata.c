@@ -780,6 +780,84 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   return flush_interval_tree_1 (tree, path);
 }
 
+/* Flush the interval tree of purpose PURPOSE for file handle FH on volume VOL
+   to file and free the interval tree.  */
+
+bool
+free_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
+{
+  char *path;
+  interval_tree tree, *treep;
+  bool r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  switch (purpose)
+    {
+      case INTERVAL_TREE_UPDATED:
+	tree = fh->updated;
+	treep = &fh->updated;
+	break;
+
+      case INTERVAL_TREE_MODIFIED:
+	tree = fh->modified;
+	treep = &fh->modified;
+	break;
+    }
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  close_interval_file (tree);
+  path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
+
+  switch (purpose)
+    {
+      case INTERVAL_TREE_UPDATED:
+	if (tree->size == 1
+	    && INTERVAL_START (tree->splay->root) == 0
+	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
+	  {
+	    fh->meta.flags |= METADATA_COMPLETE;
+	    if (unlink (path) < 0)
+	      {
+		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		return false;
+	      }
+	    return true;
+	  }
+	else
+	  {
+	    fh->meta.flags &= ~METADATA_COMPLETE;
+	  }
+	break;
+
+      case INTERVAL_TREE_MODIFIED:
+	if (tree->size == 0)
+	  {
+	    fh->meta.flags &= ~METADATA_MODIFIED;
+	    if (unlink (path) < 0)
+	      {
+		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		return false;
+	      }
+	    return true;
+	  }
+	else
+	  {
+	    fh->meta.flags |= METADATA_MODIFIED;
+	  }
+	break;
+    }
+
+  r = flush_interval_tree_1 (tree, path);
+  close_interval_file (tree);
+  interval_tree_destroy (tree);
+  *treep = NULL;
+
+  return r;
+}
+
 /* Write the interval [START, END) to the end of interval file of purpose
    PURPOSE for file handle FH on volume VOL.  Open the interval file for
    appending when it is not opened.  */

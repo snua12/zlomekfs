@@ -58,6 +58,8 @@ extern bool init_interval_tree (volume vol, internal_fh fh,
 				interval_tree_purpose purpose);
 extern bool flush_interval_tree (volume vol, internal_fh fh,
 				 interval_tree_purpose purpose);
+extern bool free_interval_tree (volume vol, internal_fh fh,
+				interval_tree_purpose purpose);
 extern bool append_interval (volume vol, internal_fh fh,
 			     interval_tree_purpose purpose,
 			     uint64_t start, uint64_t end);
