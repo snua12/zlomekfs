@@ -38,6 +38,7 @@
 #include "memory.h"
 #include "network.h"
 #include "varray.h"
+#include "metadata.h"
 #include "zfs_prot.h"
 #include "user-group.h"
 
@@ -535,6 +536,10 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 #endif
   *slot = fh;
 
+  if (!init_metadata (vol, fh)
+      || !update_metadata (vol, fh))
+    vol->flags |= VOLUME_DELETE;
+
   return fh;
 }
 
@@ -563,6 +568,10 @@ internal_fh_destroy (internal_fh fh, volume vol)
     abort ();
 #endif
   htab_clear_slot (vol->fh_htab, slot);
+
+  if (!(vol->flags & VOLUME_DELETE)
+      && !update_metadata (vol, fh))
+    vol->flags |= VOLUME_DELETE;
 
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
