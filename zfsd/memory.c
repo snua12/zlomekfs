@@ -218,6 +218,42 @@ xstrconcat_varray (varray *va)
   return r;
 }
 
+/* Return a concatenation of strings stored in varray.  */
+void
+xstringconcat_varray (string *dst, varray *va)
+{
+  unsigned int i, n;
+  size_t len;
+  char *d;
+
+  n = VARRAY_USED (*va);
+
+  /* Compute the final length and lengths of all input strings.  */
+  len = 0;
+  for (i = 0; i < n; i++)
+    len += VARRAY_ACCESS (*va, i, string).len;
+
+  dst->len = len;
+  dst->str = (char *) malloc (len + 1);
+  if (!dst->str)
+    {
+      message (-1, stderr, "Not enough memory.\n");
+      abort ();
+    }
+
+  /* Concatenate the strings.  */
+  d = dst->str;
+  for (i = 0; i < n; i++)
+    {
+      string *str;
+
+      str = &VARRAY_ACCESS (*va, i, string);
+      memcpy (d, str->str, str->len);
+      d += str->len;
+    }
+  *d = 0;
+}
+
 /* Set *DESTP to a new string SRC whose length is LENGTH.  */
 
 void

@@ -50,6 +50,7 @@ extern void xstringdup (string *dest, string *src);
 extern void *xmemdup (const void *src, size_t n) ATTRIBUTE_MALLOC;
 extern char *xstrconcat (unsigned int n, ...) ATTRIBUTE_MALLOC;
 extern char *xstrconcat_varray (varray *va) ATTRIBUTE_MALLOC;
+extern void xstringconcat_varray (string *dst, varray *va);
 extern void set_string_with_length (char **destp, const char *src, int len);
 extern void set_string (char **destp, const char *src);
 
