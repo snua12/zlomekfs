@@ -2721,11 +2721,11 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
       && hl->first == NULL)
     {
 #ifdef ENABLE_CHECKING
-  if ((meta.flags & METADATA_SHADOW) != 0)
-    abort ();
+      if ((meta.flags & METADATA_SHADOW) != 0)
+	abort ();
 #endif
       hardlink_list_destroy (hl);
-      xstringdup (path, &vol->local_path);
+      get_shadow_path (path, vol, fh, false);
       return;
     }
 
