@@ -67,7 +67,7 @@ extern pthread_mutex_t cap_mutex;
 
 extern internal_cap internal_cap_lookup (internal_fh fh, unsigned int mode);
 extern internal_cap get_capability (internal_fh fh, unsigned int mode);
-extern void put_capability (internal_cap cap);
+extern int put_capability (zfs_cap *cap);
 extern void initialize_cap_c ();
 extern void cleanup_cap_c ();
 
