@@ -71,15 +71,10 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   varray_destroy (&tmp);
 }
 
-/* Update BLOCKS (described in ARGS) of local file CAP from remote file.
-   If FILL_BUFFER is true, copy up to COUNT bytes from file offset OFFSET
-   to BUFFER and store the number of bytes copied to RCOUNT like we were
-   reading from file.  */
+/* Update BLOCKS (described in ARGS) of local file CAP from remote file.  */
 
 static int32_t
-update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
-		      bool fill_buffer, uint32_t *rcount, void *buffer,
-		      uint64_t offset, uint32_t count)
+update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 {
   bool flush;
   volume vol;
@@ -198,9 +193,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	  || memcmp (local_md5.md5sum[i], remote_md5.md5sum[i], MD5_SIZE) != 0)
 	{
 	  uint32_t count;
-	  data_buffer data;
-	  char tmp_buf[ZFS_MAXDATA];
-	  char *buf;
+	  char buf[ZFS_MAXDATA];
+	  char buf2[ZFS_MAXDATA];
 
 	  while (j < VARRAY_USED (*blocks)
 		 && (VARRAY_ACCESS (*blocks, j, interval).end
@@ -213,11 +207,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 		  <= VARRAY_ACCESS (*blocks, j, interval).end))
 	    {
 	      /* MD5 block is not larger than the block to be updated.  */
-
-	      if (fill_buffer)
-		buf = (char *) buffer + remote_md5.offset[i] - offset;
-	      else
-		buf = tmp_buf;
 
 	      r = full_remote_read (&remote_md5.length[i], buf, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
@@ -233,25 +222,17 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	    {
 	      /* MD5 block is larger than block(s) to be updated.  */
 
-	      if (fill_buffer)
-		buf = (char *) buffer + remote_md5.offset[i] - offset;
-	      else
-		{
-		  buf = data.real_buffer;
-
-		  r = full_local_read (&count, buf, cap,
-				       remote_md5.offset[i],
-				       remote_md5.length[i]);
-		  if (r != ZFS_OK)
-		    return r;
-		  if (count != remote_md5.length[i])
-		    abort (); /* FIXME */
-		}
-
-	      r = full_remote_read (&remote_md5.length[i], tmp_buf, cap,
+	      r = full_remote_read (&remote_md5.length[i], buf2, cap,
 				    remote_md5.offset[i], remote_md5.length[i]);
 	      if (r != ZFS_OK)
 		return r;
+
+	      r = full_local_read (&count, buf, cap,
+				   remote_md5.offset[i], remote_md5.length[i]);
+	      if (r != ZFS_OK)
+		return r;
+	      if (count != remote_md5.length[i])
+		abort (); /* FIXME */
 
 	      /* Update the blocks in buffer BUF.  */
 	      for (; (j < VARRAY_USED (*blocks)
@@ -269,7 +250,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 		    end = remote_md5.offset[i] + remote_md5.length[i];
 
 		  memcpy (buf + start - remote_md5.offset[i],
-			  tmp_buf + start - remote_md5.offset[i],
+			  buf2 + start - remote_md5.offset[i],
 			  end - start);
 		}
 
@@ -315,24 +296,13 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  if (fill_buffer)
-    {
-      *rcount = (remote_md5.offset[remote_md5.count - 1]
-		 + remote_md5.length[remote_md5.count - 1]) - offset;
-    }
-
   return ZFS_OK;
 }
 
-/* Update BLOCKS of file CAP.
-   If FILL_BUFFER is true, copy up to COUNT bytes from file offset OFFSET
-   to BUFFER and store the number of bytes copied to RCOUNT like we were
-   reading from file.  */
+/* Update BLOCKS of local file CAP from remote file.  */
 
 int32_t
-update_file_blocks (zfs_cap *cap, varray *blocks,
-		    bool fill_buffer, uint32_t *rcount, void *buffer,
-		    uint64_t offset, uint32_t count)
+update_file_blocks (zfs_cap *cap, varray *blocks)
 {
   md5sum_args args;
   volume vol;
@@ -340,11 +310,6 @@ update_file_blocks (zfs_cap *cap, varray *blocks,
   internal_dentry dentry;
   int32_t r, r2;
   unsigned int i;
-
-#ifdef ENABLE_CHECKING
-  if (fill_buffer)
-    abort ();
-#endif
 
   if (VARRAY_USED (*blocks) == 0)
     return ZFS_OK;
@@ -402,9 +367,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks,
 	    {
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
-		  r = update_file_blocks_1 (&args, cap, blocks,
-					    fill_buffer, rcount, buffer,
-					    offset, count);
+		  r = update_file_blocks_1 (&args, cap, blocks);
 		  if (r != ZFS_OK)
 		    return r;
 		  args.count = 0;
@@ -421,8 +384,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks,
 
   if (args.count > 0)
     {
-      r = update_file_blocks_1 (&args, cap, blocks,
-				fill_buffer, rcount, buffer, offset, count);
+      r = update_file_blocks_1 (&args, cap, blocks);
       if (r != ZFS_OK)
 	return r;
     }
@@ -537,7 +499,7 @@ retry_remote_lookup:
   zfsd_mutex_unlock (&vol->mutex);
   get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
   release_dentry (dentry);
-  r = update_file_blocks (&cap, &blocks, false, NULL, NULL, 0, 0);
+  r = update_file_blocks (&cap, &blocks);
 
   r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING

@@ -1633,13 +1633,11 @@ zfs_read_retry:
 	  uint64_t end;
 	  uint64_t offset2;
 	  unsigned int i;
-	  bool covered;
 	  bool complete;
 
 	  align_range (offset, count, &start, &end);
 	  get_blocks_for_updating (dentry->fh, start, end, &blocks);
 
-	  covered = false;
 	  complete = true;
 	  offset2 = offset + count;
 	  for (i = 0; i < VARRAY_USED (blocks); i++)
@@ -1651,48 +1649,27 @@ zfs_read_retry:
 		  && offset < VARRAY_ACCESS (blocks, i, interval).end)
 		{
 		  complete = false;
-		  if (VARRAY_ACCESS (blocks, i, interval).start < offset2
-		      && offset2 <= VARRAY_ACCESS (blocks, i, interval).end)
-		    covered = true;
+		  break;
 		}
 	      else if (VARRAY_ACCESS (blocks, i, interval).start < offset2
 		       && offset2 <= VARRAY_ACCESS (blocks, i, interval).end)
-		complete = false;
+		{
+		  complete = false;
+		  break;
+		}
 	    }
 
 	  if (complete)
 	    {
 	      r = local_read (rcount, buffer, dentry, offset, count, vol);
 	    }
-#if 0
-	  else if (covered)
-	    {
-	      release_dentry (dentry);
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&fh_mutex);
-
-	      *rcount = 0;
-	      r = update_file_blocks (&tmp_cap, &blocks,
-				      true, rcount, buffer, offset, count);
-	    }
-	  else
-	    {
-	      r = local_read (rcount, buffer, dentry, offset, count, vol);
-	      if (r == ZFS_OK)
-		{
-		  r = update_file_blocks (&tmp_cap, &blocks,
-					  true, rcount, buffer, offset, count);
-		}
-	    }
-#else
 	  else
 	    {
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 
-	      r = update_file_blocks (&tmp_cap, &blocks,
-				      false, rcount, buffer, offset, count);
+	      r = update_file_blocks (&tmp_cap, &blocks);
 	      if (r == ZFS_OK)
 		{
 		  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
@@ -1705,7 +1682,6 @@ zfs_read_retry:
 		  r = local_read (rcount, buffer, dentry, offset, count, vol);
 		}
 	    }
-#endif
 
 	  varray_destroy (&blocks);
 	}
