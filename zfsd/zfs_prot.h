@@ -10,8 +10,20 @@ extern "C" {
 
 #define ZFS_PORT 12323
 #define ZFS_MAXDATA 8192
-#define ZFS_MAXPATHLEN 1024
+#define ZFS_MAXPATHLEN 1023
 #define ZFS_MAXNAMELEN 255
+
+struct data_buffer_def {
+	unsigned int len;
+	char buf[ZFS_MAXDATA];
+};
+typedef struct data_buffer_def data_buffer;
+
+struct string_def {
+	unsigned int len;
+	char *buf;
+};
+typedef struct string_def string;
 
 enum ftype_def {
 	FT_BAD = 0,
@@ -71,9 +83,9 @@ struct sattr_def {
 };
 typedef struct sattr_def sattr;
 
-typedef char *filename;
+typedef string filename;
 
-typedef char *zfs_path;
+typedef string zfs_path;
 
 struct sattr_args_def {
 	zfs_fh file;
@@ -101,7 +113,7 @@ struct open_name_args_def {
 typedef struct open_name_args_def open_name_args;
 
 struct open_res_def {
-	zfs_fh fh;
+	zfs_fh file;
 };
 typedef struct open_res_def open_res;
 
@@ -151,20 +163,14 @@ struct read_args_def {
 typedef struct read_args_def read_args;
 
 struct read_res_def {
-	struct {
-		unsigned int data_len;
-		char *data_val;
-	} data;
+	data_buffer data;
 };
 typedef struct read_res_def read_res;
 
 struct write_args_def {
 	zfs_fh file;
 	uint64_t offset;
-	struct {
-		unsigned int data_len;
-		char *data_val;
-	} data;
+	data_buffer data;
 };
 typedef struct write_args_def write_args;
 
@@ -174,10 +180,7 @@ struct write_res_def {
 typedef struct write_res_def write_res;
 
 struct read_link_res_def {
-	int status;
-	union {
-		zfs_path path;
-	} read_link_res_u;
+	zfs_path path;
 };
 typedef struct read_link_res_def read_link_res;
 
