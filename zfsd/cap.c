@@ -50,7 +50,7 @@ pthread_mutex_t cap_mutex;
 
 #define ZFS_CAP_HASH(CAP)						\
   (crc32_update (crc32_buffer (&(CAP).fh, sizeof (zfs_fh)),		\
-		 &(CAP).mode, sizeof ((CAP).mode)))
+		 &(CAP).flags, sizeof ((CAP).flags)))
 
 #define INTERNAL_CAP_HASH(CAP) ZFS_CAP_HASH ((CAP)->local_cap)
 
@@ -70,13 +70,13 @@ internal_cap_eq (const void *xx, const void *yy)
   zfs_cap *x = &((internal_cap) xx)->local_cap;
   zfs_cap *y = (zfs_cap *) yy;
 
-  return (ZFS_FH_EQ (x->fh, y->fh) && x->mode == x->mode);
+  return (ZFS_FH_EQ (x->fh, y->fh) && x->flags == x->flags);
 }
 
-/* Find capability for internal file handle FH and open mode MODE.  */
+/* Find capability for internal file handle FH and open flags FLAGS.  */
 
 internal_cap
-internal_cap_lookup (internal_fh fh, unsigned int mode)
+internal_cap_lookup (internal_fh fh, unsigned int flags)
 {
   zfs_cap tmp_cap;
   internal_cap cap;
@@ -84,7 +84,7 @@ internal_cap_lookup (internal_fh fh, unsigned int mode)
   CHECK_MUTEX_LOCKED (&cap_mutex);
 
   tmp_cap.fh = fh->local_fh;
-  tmp_cap.mode = mode;
+  tmp_cap.flags = flags;
   cap = (internal_cap) htab_find_with_hash (cap_htab, &tmp_cap,
 					    ZFS_CAP_HASH (tmp_cap));
   if (cap)
@@ -93,10 +93,10 @@ internal_cap_lookup (internal_fh fh, unsigned int mode)
   return cap;
 }
 
-/* Create a new capability for internal file handle FH with open mode MODE.  */
+/* Create a new capability for internal file handle FH with open flags FLAGS.  */
 
 static internal_cap
-internal_cap_create (internal_fh fh, unsigned int mode)
+internal_cap_create (internal_fh fh, unsigned int flags)
 {
   internal_cap cap;
   void **slot;
@@ -104,7 +104,7 @@ internal_cap_create (internal_fh fh, unsigned int mode)
   CHECK_MUTEX_LOCKED (&cap_mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in ZFS "open".  */
-  if (fh->attr.type == FT_DIR && mode != O_RDONLY)
+  if (fh->attr.type == FT_DIR && flags != O_RDONLY)
     abort ();
 #endif
 
@@ -117,8 +117,8 @@ internal_cap_create (internal_fh fh, unsigned int mode)
     }
   cap->local_cap.fh = fh->local_fh;
   cap->master_cap.fh = fh->master_fh;
-  cap->local_cap.mode = mode;
-  cap->master_cap.mode = mode;
+  cap->local_cap.flags = flags;
+  cap->master_cap.flags = flags;
   cap->busy = 1;
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
@@ -159,25 +159,25 @@ internal_cap_destroy (internal_cap cap)
   pool_free (cap_pool, *slot);
 }
 
-/* Get a capability for internal file handle FH with open mode MODE.  Create
-   a new one if it does not exist.  */
+/* Get a capability for internal file handle FH with open flags FLAGS.
+   Create a new one if it does not exist.  */
 
 internal_cap
-get_capability (internal_fh fh, unsigned int mode)
+get_capability (internal_fh fh, unsigned int flags)
 {
   internal_cap cap;
 
 #ifdef ENABLE_CHECKING
-  if (mode & ~O_ACCMODE)
+  if (flags & ~O_ACCMODE)
     abort ();
 #endif
 
   zfsd_mutex_lock (&cap_mutex);
-  cap = internal_cap_lookup (fh, mode);
+  cap = internal_cap_lookup (fh, flags);
   if (cap)
     cap->busy++;
   else
-    cap = internal_cap_create (fh, mode);
+    cap = internal_cap_create (fh, flags);
   zfsd_mutex_unlock (&cap_mutex);
 
   return cap;

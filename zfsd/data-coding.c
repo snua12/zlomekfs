@@ -357,7 +357,7 @@ bool
 decode_zfs_cap (DC *dc, zfs_cap *cap)
 {
   return (decode_zfs_fh (dc, &cap->fh)
-	  && decode_uint32_t (dc, &cap->mode)
+	  && decode_uint32_t (dc, &cap->flags)
 	  && decode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
 }
 
@@ -365,7 +365,7 @@ bool
 encode_zfs_cap (DC *dc, zfs_cap *cap)
 {
   return (encode_zfs_fh (dc, &cap->fh)
-	  && encode_uint32_t (dc, cap->mode)
+	  && encode_uint32_t (dc, cap->flags)
 	  && encode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
 }
 
