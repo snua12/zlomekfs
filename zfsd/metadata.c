@@ -273,6 +273,35 @@ create_path_for_file (char *file, unsigned int mode)
   return false;
 }
 
+/* Remove file FILE and its path upto depth TREE_DEPTH if it is empty.  */
+
+static bool
+remove_file_and_path (char *file, unsigned int tree_depth)
+{
+  char *end;
+
+  if (unlink (file) < 0 && errno != ENOENT)
+    return false;
+
+  for (end = file; *end; end++)
+    ;
+  for (; tree_depth > 0; tree_depth--)
+    {
+      while (*end != '/')
+	end--;
+      *end = 0;
+
+      if (rmdir (file) < 0)
+	{
+	  if (errno == ENOENT || errno == ENOTEMPTY)
+	    return true;
+	  return false;
+	}
+    }
+
+  return true;
+}
+
 /* Is the hash file HFILE for list of file handles opened?  */
 
 static bool
@@ -572,11 +601,9 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 				     fh->meta.flags | METADATA_COMPLETE))
 	      vol->delete_p = true;
 
-	    if (unlink (path) < 0 && errno != ENOENT)
-	      {
-		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		vol->delete_p = true;
-	      }
+	    if (!remove_file_and_path (path, metadata_tree_depth))
+	      vol->delete_p = true;
+
 	    return true;
 	  }
 	else
@@ -594,11 +621,9 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 				     fh->meta.flags & ~METADATA_MODIFIED))
 	      vol->delete_p = true;
 
-	    if (unlink (path) < 0 && errno != ENOENT)
-	      {
-		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		vol->delete_p = true;
-	      }
+	    if (!remove_file_and_path (path, metadata_tree_depth))
+	      vol->delete_p = true;
+
 	    return true;
 	  }
 	else
@@ -668,7 +693,7 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
   if (!interval_tree_write (tree, fd))
     {
       close (fd);
-      unlink (new_path);
+      remove_file_and_path (new_path, metadata_tree_depth);
       free (new_path);
       free (path);
       return false;
@@ -1263,10 +1288,12 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
       path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_UPDATED, i);
-      unlink (path);
+      if (!remove_file_and_path (path, i))
+	vol->delete_p = true;
       free (path);
       path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_MODIFIED, i);
-      unlink (path);
+      if (!remove_file_and_path (path, i))
+	vol->delete_p = true;
       free (path);
     }
 
@@ -1474,7 +1501,8 @@ delete_hardlinks_fh (volume vol, zfs_fh *fh)
       char *file;
 
       file = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS, i);
-      unlink (file);
+      if (!remove_file_and_path (file, metadata_tree_depth))
+	vol->delete_p = true;
       free (file);
     }
 }
