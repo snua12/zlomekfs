@@ -47,7 +47,7 @@ typedef splay_tree_node interval_tree_node;
 #define INTERVAL_START(NODE) ((NODE)->key)
 #define INTERVAL_END(NODE) ((NODE)->value)
 
-extern interval_tree interval_tree_create (unsigned preferred_size,
+extern interval_tree interval_tree_create (unsigned int preferred_size,
 					   pthread_mutex_t *mutex);
 extern void interval_tree_destroy (interval_tree tree);
 extern interval_tree_node interval_tree_insert (interval_tree tree,

@@ -52,7 +52,7 @@ typedef struct interval_def
 /* Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
 
 interval_tree
-interval_tree_create (unsigned preferred_size, pthread_mutex_t *mutex)
+interval_tree_create (unsigned int preferred_size, pthread_mutex_t *mutex)
 {
   interval_tree t;
 
