@@ -462,6 +462,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 int32_t
 local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 {
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
   if (sa->mode != (uint32_t) -1)
     {
       if (chmod (path, sa->mode) != 0)

@@ -310,6 +310,9 @@ remote_create (create_res *res, internal_fh dir, string *name,
   int32_t r;
   int fd;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+
   args.where.dir = dir->master_fh;
   args.where.name = *name;
   args.flags = flags;
@@ -456,6 +459,10 @@ local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 {
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&icap->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
   r = capability_open (icap, flags, dentry, vol);
   zfsd_mutex_unlock (&vol->mutex);
   if (r != ZFS_OK)
@@ -477,6 +484,9 @@ remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags, volume vol)
   int32_t r;
   int fd;
   node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&icap->mutex);
 
   args.file = icap->master_cap.fh;
   args.flags = icap->master_cap.flags | flags;
@@ -770,6 +780,13 @@ local_readdir (DC *dc, internal_cap cap, internal_dentry dentry,
   int32_t r, pos;
   struct dirent *de;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+  if (dentry)
+    CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  if (vd)
+    CHECK_MUTEX_LOCKED (&vd->mutex);
+
   if (vd)
     {
       if (!read_virtual_dir (dc, vd, data))
@@ -858,6 +875,9 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   int32_t r;
   int fd;
   node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
 
   args.cap = cap->master_cap;
   args.cookie = data->cookie;
@@ -1019,6 +1039,10 @@ local_read (DC *dc, internal_cap cap, internal_dentry dentry, uint64_t offset,
   data_buffer buf;
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
   if (!capability_opened_p (cap))
     {
       r = capability_open (cap, 0, dentry, vol);
@@ -1065,6 +1089,9 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   int32_t r;
   int fd;
   node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
 
   args.cap = cap->master_cap;
   args.offset = offset;
@@ -1169,6 +1196,10 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 {
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
   if (!capability_opened_p (cap))
     {
       r = capability_open (cap, 0, dentry, vol);
@@ -1208,6 +1239,9 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
   int32_t r;
   int fd;
   node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
 
   args->cap = cap->master_cap;
   t = (thread *) pthread_getspecific (thread_data_key);
