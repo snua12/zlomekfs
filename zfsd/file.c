@@ -428,7 +428,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   if (r != ZFS_OK)
     {
       close (*fdp);
-      if (!*exists)
+      if (exists && !*exists)
 	unlink (path.str);
       free (path.str);
       RETURN_INT (r);
