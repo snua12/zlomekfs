@@ -42,6 +42,7 @@
 #include "server.h"
 #include "zfsd.h"
 #include "constant.h"
+#include "random.h"
 
 #ifdef TEST
 #include "dir.h"
