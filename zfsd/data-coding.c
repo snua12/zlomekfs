@@ -148,7 +148,7 @@ print_dc (DC *dc, FILE *f)
   fprintf (f, "Cur.pos    = %d\n", dc->cur_pos - dc->buffer);
   fprintf (f, "Cur.length = %d\n", dc->cur_length);
   fprintf (f, "Max.length = %d\n", dc->max_length);
-  fprintf (f, "Data: ");
+  fprintf (f, "Data:\n");
   print_hex_buffer (dc->buffer,
 		    (dc->max_length == DC_SIZE
 		     ? dc->cur_length : dc->max_length),
