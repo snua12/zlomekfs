@@ -23,21 +23,23 @@
 #ifndef _ZFS_H
 #define _ZFS_H
 
+#include <linux/kernel.h>
+#include <linux/fs.h>
 #include <linux/types.h>
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <asm/semaphore.h>
 
-#include "zfsd/constant.h"
-#include "zfsd/data-coding.h"
+#include "constant.h"
+#include "data-coding.h"
+#include "zfs_prot.h"
 
-
-#define ZFS_DEBUG
 
 #define ERROR(x...) printk(KERN_ERR x)
 #define WARN(x...) printk(KERN_WARNING x)
+#define INFO(x...) printk(KERN_INFO x)
 
-#ifdef ZFS_DEBUG
+#ifdef DEBUG
 #define TRACE(x...) printk(KERN_INFO x)
 #else
 #define TRACE(...)
@@ -48,28 +50,40 @@
 
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 
+#define ZFS_I(inode) ((struct zfs_inode_info *)inode)
+struct zfs_inode_info {
+	struct inode vfs_inode;
+	zfs_fh fh;
+};
+
 #define REQ_PROCESSING_TABSIZE 32
 #define INDEX(key) (key % REQ_PROCESSING_TABSIZE)
-
 extern struct channel {
 	struct semaphore lock;
 	int connected;
+
+	struct semaphore request_id_lock;
 	uint32_t request_id;
 
+	struct semaphore req_pending_lock;
 	struct list_head req_pending;	/* queue of requests which have been
 					   prepared but not sent to zfsd yet */
+
+	struct semaphore req_processing_lock;
 	struct list_head req_processing[REQ_PROCESSING_TABSIZE];
 					/* hashtable of requests which have
 					   been sent to zfsd but corresponding
 					   response has not been received */
+
 	wait_queue_head_t waitq;	/* wait queue of zfsd threads which
 					   want to receive request but none
 					   is prepared */
 } channel;
 
-enum request_state {REQ_PENDING, REQ_PROCESSING, REQ_REPLY};
+enum request_state {REQ_PENDING, REQ_PROCESSING, REQ_DEQUEUED};
 
 struct request {
+	struct semaphore lock;
 	enum request_state state;
 	uint32_t id;			/* unique request id */
 	DC *dc;				/* the message */

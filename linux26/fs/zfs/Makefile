@@ -3,4 +3,8 @@
 #
 
 obj-$(CONFIG_ZFS_FS) += zfs.o
-zfs-objs := chardev.o dir.o file.o inode.o module.o zfsdcall.o zfsd/data-coding.o
+zfs-objs := chardev.o data-coding.o dir.o file.o inode.o super.o zfs_prot.o zfsd_call.o
+
+# If you want debugging output, please uncomment the following line.
+
+# EXTRA_CFLAGS += -DDEBUG

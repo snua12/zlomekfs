@@ -1,5 +1,5 @@
 /*
-   Superblock and inode operations.
+   Inode operations.
    Copyright (C) 2004 Antonin Prukl, Miroslav Rudisin, Martin Zlomek
 
    This file is part of ZFS.
@@ -20,183 +20,317 @@
    or download it from http://www.gnu.org/licenses/gpl.html
  */
 
-#include <linux/module.h>
 #include <linux/fs.h>
-#include <linux/pagemap.h>
-#include <linux/backing-dev.h>
+#include <linux/kdev_t.h>
 #include <linux/errno.h>
 
 #include "zfs.h"
+#include "zfs_prot.h"
+#include "zfsd_call.h"
 
 
-#if 0
-struct address_space_operations {
-	int (*writepage)(struct page *page, struct writeback_control *wbc);
-	int (*readpage)(struct file *, struct page *);
-	int (*sync_page)(struct page *);
+static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
+{
+	inode->i_ino = attr->ino;
+	inode->i_version = attr->version;
+	inode->i_mode = attr->mode | ftype2mode[attr->type];
+	inode->i_nlink = attr->nlink;
+	inode->i_uid = attr->uid;
+	inode->i_gid = attr->gid;
+	inode->i_rdev = attr->rdev;
+	inode->i_size = attr->size;
+	inode->i_blocks = attr->blocks;
+	inode->i_blksize = attr->blksize;
+	inode->i_atime.tv_sec = attr->atime;
+	inode->i_atime.tv_nsec = 0;
+	inode->i_mtime.tv_sec = attr->mtime;
+	inode->i_mtime.tv_nsec = 0;
+	inode->i_ctime.tv_sec = attr->ctime;
+	inode->i_ctime.tv_nsec = 0;
+}
 
-	/* Write back some dirty pages from this mapping. */
-	int (*writepages)(struct address_space *, struct writeback_control *);
+static struct inode_operations zfs_file_inode_operations, zfs_dir_inode_operations;
+extern struct file_operations zfs_file_operations, zfs_dir_operations;
 
-	/* Set a page dirty */
-	int (*set_page_dirty)(struct page *page);
+static void zfs_fill_inode(struct inode *inode, fattr *attr)
+{
+	zfs_attr_to_iattr(inode, attr);
+	switch (inode->i_mode & S_IFMT) {
+		case S_IFREG:
+			inode->i_op = &zfs_file_inode_operations;
+			inode->i_fop = &zfs_file_operations;
+			break;
+		case S_IFDIR:
+			inode->i_op = &zfs_dir_inode_operations;
+			inode->i_fop = &zfs_dir_operations;
+			break;
+		case S_IFLNK:
+//			inode->i_op = &zfs_symlink_inode_operations;
+//			inode->i_data.a_ops = &zfs_symlink_aops;
+//			inode->i_mapping = &inode->i_data;
+			break;
+		default:
+			init_special_inode(inode, inode->i_mode, huge_decode_dev(inode->i_rdev));
+			break;
+	}
+}
 
-	int (*readpages)(struct file *filp, struct address_space *mapping,
-			 struct list_head *pages, unsigned nr_pages);
-
-	/*
-	 * ext3 requires that a successful prepare_write() call be followed
-	 * by a commit_write() call - they must be balanced
-	 */
-	int (*prepare_write)(struct file *, struct page *, unsigned, unsigned);
-	int (*commit_write)(struct file *, struct page *, unsigned, unsigned);
-	/* Unfortunately this kludge is needed for FIBMAP. Don't use it */
-	sector_t (*bmap)(struct address_space *, sector_t);
-	int (*invalidatepage) (struct page *, unsigned long);
-	int (*releasepage) (struct page *, int);
-	int (*direct_IO)(int, struct kiocb *, const struct iovec *iov,
-			 loff_t offset, unsigned long nr_segs);
-};
-#endif
-
-static struct address_space_operations zfs_address_space_operations = {
-	.readpage       = simple_readpage,
-	.prepare_write  = simple_prepare_write,
-	.commit_write   = simple_commit_write
-};
-
-#if 0
-struct backing_dev_info {
-	unsigned long ra_pages; /* max readahead in PAGE_CACHE_SIZE units */
-	unsigned long state;    /* Always use atomic bitops on this */
-	int memory_backed;      /* Cannot clean pages with writepage */
-	congested_fn *congested_fn; /* Function pointer if device is md/dm */
-	void *congested_data;   /* Pointer to aux data for congested func */
-	void (*unplug_io_fn)(struct backing_dev_info *);
-	void *unplug_io_data;
-};
-#endif
-
-static struct backing_dev_info zfs_backing_dev_info = {
-	.ra_pages       = 0,    /* No readahead */
-	.memory_backed  = 1,    /* Does not contribute to dirty memory */
-};
-
-extern struct inode_operations zfs_file_inode_operations, zfs_dir_inode_operations;
-extern struct file_operations zfs_file_operations;
-
-struct inode *zfs_get_inode(struct super_block *sb, int mode, dev_t dev)
+static struct inode *zfs_iget(struct super_block *sb, fattr *attr)
 {
 	struct inode *inode;
 
 	inode = new_inode(sb);
-	if (inode) {
-		inode->i_mode = mode;
-		inode->i_uid = current->fsuid;
-		inode->i_gid = current->fsgid;
-		inode->i_blksize = PAGE_CACHE_SIZE;
-		inode->i_blocks = 0;
-		inode->i_mapping->a_ops = &zfs_address_space_operations;
-		inode->i_mapping->backing_dev_info = &zfs_backing_dev_info;
-		inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
-		switch (mode & S_IFMT) {
-			default:
-				init_special_inode(inode, mode, dev);
-				break;
-			case S_IFREG:
-				inode->i_op = &zfs_file_inode_operations;
-				inode->i_fop = &zfs_file_operations;
-				break;
-			case S_IFDIR:
-				inode->i_op = &zfs_dir_inode_operations;
-				inode->i_fop = &simple_dir_operations;
+	if (inode)
+		zfs_fill_inode(inode, attr);
 
-				/* directory inodes start off with i_nlink == 2 (for "." entry) */
-				inode->i_nlink++;
-				break;
-			case S_IFLNK:
-				inode->i_op = &page_symlink_inode_operations;
-				break;
-		}
-	}
+	TRACE("zfs: iget: %x\n", inode);
 
 	return inode;
 }
 
-#if 0
-/*
- * NOTE: write_inode, delete_inode, clear_inode, put_inode can be called
- * without the big kernel lock held in all filesystems.
- */
-struct super_operations {
-	struct inode *(*alloc_inode)(struct super_block *sb);
-	void (*destroy_inode)(struct inode *);
-
-	void (*read_inode) (struct inode *);
-
-	void (*dirty_inode) (struct inode *);
-	void (*write_inode) (struct inode *, int);
-	void (*put_inode) (struct inode *);
-	void (*drop_inode) (struct inode *);
-	void (*delete_inode) (struct inode *);
-	void (*put_super) (struct super_block *);
-	void (*write_super) (struct super_block *);
-	int (*sync_fs)(struct super_block *sb, int wait);
-	void (*write_super_lockfs) (struct super_block *);
-	void (*unlockfs) (struct super_block *);
-	int (*statfs) (struct super_block *, struct kstatfs *);
-	int (*remount_fs) (struct super_block *, int *, char *);
-	void (*clear_inode) (struct inode *);
-	void (*umount_begin) (struct super_block *);
-
-	int (*show_options)(struct seq_file *, struct vfsmount *);
-};
-#endif
-
-static struct super_operations zfs_super_operations = {
-	.drop_inode	= generic_delete_inode,
-	.statfs		= simple_statfs,
-};
-
-static int zfs_fill_super(struct super_block *sb, void *data, int silent)
+int zfs_inode(struct inode **inode, struct super_block *sb, zfs_fh *fh)
 {
-	struct inode *root;
+	fattr attr;
+	int error;
 
-/*
-	if (!channel.connected) {
-		ERROR("zfs: zfsd has not opened communication device\n");
-		return -EINVAL;
-	}
-*/
+	error = zfsd_getattr(&attr, fh);
+	if (error)
+		return error;
 
-	sb->s_blocksize = PAGE_CACHE_SIZE;
-	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
-	sb->s_magic = ZFS_MAGIC;
-	sb->s_op = &zfs_super_operations;
-
-	/* TODO: zfsd_root_lookup or something */
-
-	root = zfs_get_inode(sb, S_IFDIR | 0755, 0);
-	if (!root)
-		return -ENOMEM;
-
-	sb->s_root = d_alloc_root(root);
-	if (!sb->s_root)
+	*inode = zfs_iget(sb, &attr);
+	if (!*inode)
 		return -ENOMEM;
 
 	return 0;
 }
 
-static struct super_block *zfs_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
+#if 0 /* RAMFS */
+static int
+ramfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 {
-	return get_sb_single(fs_type, flags, data, zfs_fill_super);
+	struct inode * inode = ramfs_get_inode(dir->i_sb, mode, dev);
+	int error = -ENOSPC;
+
+	if (inode) {
+		if (dir->i_mode & S_ISGID) {
+			inode->i_gid = dir->i_gid;
+			if (S_ISDIR(mode))
+				inode->i_mode |= S_ISGID;
+		}
+		d_instantiate(dentry, inode);
+		dget(dentry);	/* Extra count - pin the dentry in core */
+		error = 0;
+	}
+	return error;
 }
 
-struct file_system_type zfs_type = {
-	.owner		= THIS_MODULE,
-	.name		= "zfs",
-	.get_sb		= zfs_get_sb,
-	.kill_sb	= kill_litter_super,
-	.fs_flags	= 0,
+static int ramfs_mkdir(struct inode * dir, struct dentry * dentry, int mode)
+{
+	int retval = ramfs_mknod(dir, dentry, mode | S_IFDIR, 0);
+	if (!retval)
+		dir->i_nlink++;
+	return retval;
+}
+
+static int ramfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
+{
+	return ramfs_mknod(dir, dentry, mode | S_IFREG, 0);
+}
+
+static int ramfs_symlink(struct inode * dir, struct dentry *dentry, const char * symname)
+{
+	struct inode *inode;
+	int error = -ENOSPC;
+
+	inode = ramfs_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
+	if (inode) {
+		int l = strlen(symname)+1;
+		error = page_symlink(inode, symname, l);
+		if (!error) {
+			if (dir->i_mode & S_ISGID)
+				inode->i_gid = dir->i_gid;
+			d_instantiate(dentry, inode);
+			dget(dentry);
+		} else
+			iput(inode);
+	}
+	return error;
+}
+#endif
+
+static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
+{
+	TRACE("zfs: create\n");
+
+	return 0;
+}
+
+static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struct nameidata *nd)
+{
+	TRACE("zfs: lookup\n");
+
+	return NULL;
+}
+
+static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry *dst_dentry)
+{
+	TRACE("zfs: link\n");
+
+	return 0;
+}
+
+static int zfs_unlink(struct inode *dir, struct dentry *dentry)
+{
+	TRACE("zfs: unlink\n");
+
+	return 0;
+}
+
+static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old_name)
+{
+	TRACE("zfs: symlink\n");
+
+	return 0;
+}
+
+static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
+{
+	TRACE("zfs: mkdir\n");
+
+	return 0;
+}
+
+static int zfs_rmdir(struct inode *dir, struct dentry *dentry)
+{
+	TRACE("zfs: rmdir\n");
+
+	return 0;
+}
+
+static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
+{
+	TRACE("zfs: mknod\n");
+
+	return 0;
+}
+
+static int zfs_rename (struct inode *old_dir, struct dentry *old_dentry, struct inode *new_dir, struct dentry *new_dentry)
+{
+	TRACE("zfs: rename\n");
+
+	return 0;
+}
+
+static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
+{
+	TRACE("zfs: setattr\n");
+
+	return 0;
+}
+
+static int zfs_getattr(struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat)
+{
+	TRACE("zfs: getattr\n");
+
+	return 0;
+}
+
+static struct inode_operations zfs_dir_inode_operations = {
+	.create         = zfs_create,
+	.lookup         = zfs_lookup,
+	.link           = zfs_link,
+	.unlink         = zfs_unlink,
+	.symlink        = zfs_symlink,
+	.mkdir          = zfs_mkdir,
+	.rmdir          = zfs_rmdir,
+	.mknod          = zfs_mknod,
+	.rename         = zfs_rename,
+	.setattr        = zfs_setattr,
+	.getattr        = zfs_getattr,
 };
 
+static struct inode_operations zfs_file_inode_operations = {
+	.setattr        = zfs_setattr,
+	.getattr        = zfs_getattr,
+};
+
+#if 0
+struct inode_operations {
+	int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
+	struct dentry * (*lookup) (struct inode *,struct dentry *, struct nameidata *);
+	int (*link) (struct dentry *,struct inode *,struct dentry *);
+	int (*unlink) (struct inode *,struct dentry *);
+	int (*symlink) (struct inode *,struct dentry *,const char *);
+	int (*mkdir) (struct inode *,struct dentry *,int);
+	int (*rmdir) (struct inode *,struct dentry *);
+	int (*mknod) (struct inode *,struct dentry *,int,dev_t);
+	int (*rename) (struct inode *, struct dentry *,
+		       struct inode *, struct dentry *);
+	int (*readlink) (struct dentry *, char __user *,int);
+	int (*follow_link) (struct dentry *, struct nameidata *);
+	void (*truncate) (struct inode *);
+	int (*permission) (struct inode *, int, struct nameidata *);
+	int (*setattr) (struct dentry *, struct iattr *);
+	int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
+	int (*setxattr) (struct dentry *, const char *,const void *,size_t,int);
+	ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t);
+	ssize_t (*listxattr) (struct dentry *, char *, size_t);
+	int (*removexattr) (struct dentry *, const char *);
+};
+
+struct inode {
+	struct hlist_node       i_hash;
+	struct list_head        i_list;
+	struct list_head        i_dentry;
+	unsigned long           i_ino;
+	atomic_t                i_count;
+	umode_t                 i_mode;
+	unsigned int            i_nlink;
+	uid_t                   i_uid;
+	gid_t                   i_gid;
+	dev_t                   i_rdev;
+	loff_t                  i_size;
+	struct timespec         i_atime;
+	struct timespec         i_mtime;
+	struct timespec         i_ctime;
+	unsigned int            i_blkbits;
+	unsigned long           i_blksize;
+	unsigned long           i_version;
+	unsigned long           i_blocks;
+	unsigned short          i_bytes;
+	spinlock_t              i_lock; /* i_blocks, i_bytes, maybe i_size */
+	struct semaphore        i_sem;
+	struct rw_semaphore     i_alloc_sem;
+	struct inode_operations *i_op;
+	struct file_operations  *i_fop; /* former ->i_op->default_file_ops */
+	struct super_block      *i_sb;
+	struct file_lock        *i_flock;
+	struct address_space    *i_mapping;
+	struct address_space    i_data;
+	struct dquot            *i_dquot[MAXQUOTAS];
+	/* These three should probably be a union */
+	struct list_head        i_devices;
+	struct pipe_inode_info  *i_pipe;
+	struct block_device     *i_bdev;
+	struct cdev             *i_cdev;
+	int                     i_cindex;
+
+	unsigned long           i_dnotify_mask; /* Directory notify events */
+	struct dnotify_struct   *i_dnotify; /* for directory notifications */
+
+	unsigned long           i_state;
+
+	unsigned int            i_flags;
+	unsigned char           i_sock;
+
+	atomic_t                i_writecount;
+	void                    *i_security;
+	__u32                   i_generation;
+        union {
+		                void            *generic_ip;
+				        } u;
+#ifdef __NEED_I_SIZE_ORDERED
+	        seqcount_t              i_size_seqcount;
+#endif
+};
+#endif
