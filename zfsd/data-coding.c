@@ -73,7 +73,7 @@ finish_encoding (DC *dc)
 
 /* Initialize DC to start decoding of PTR.  Return true on success.  */
 
-int
+bool
 start_decoding (DC *dc)
 {
   dc->current = dc->buffer;
@@ -85,7 +85,7 @@ start_decoding (DC *dc)
 
 /* Return true if all data has been read from encoded buffer.  */
 
-int
+bool
 finish_decoding (DC *dc)
 {
   return dc->cur_length == dc->max_length;
@@ -95,26 +95,26 @@ finish_decoding (DC *dc)
    Call F to transform little endian to cpu endian.
    Return true on success.  */
 #define DECODE_SIMPLE_TYPE(T, S, F)				\
-int								\
+bool								\
 decode_##T (DC *dc, T *ret)					\
 {								\
   /* Advance and check the length.  */				\
   dc->cur_length = ALIGN_##S (dc->cur_length) + S;		\
   if (dc->cur_length > dc->max_length)				\
-    return 0;							\
+    return false;						\
 								\
   dc->current = (char *) ALIGN_PTR_##S (dc->current);		\
   *ret = F (dc->current);					\
   dc->current += S;						\
 								\
-  return 1;							\
+  return true;							\
 }
 
 /* Encode a value VAL of type T and size S to DC.
    Call F to transform cpu endian to little endian.
    Return true on success.  */
 #define ENCODE_SIMPLE_TYPE(T, S, F)				\
-int								\
+bool								\
 encode_##T (DC *dc, T val)					\
 {								\
   int prev = dc->cur_length;					\
@@ -125,7 +125,7 @@ encode_##T (DC *dc, T val)					\
   if (dc->cur_length > dc->max_length)				\
     {								\
       dc->cur_length = prev;					\
-      return 0;							\
+      return false;						\
     }								\
 								\
   /* Clear bytes which are before the aligned offset.  */	\
@@ -137,7 +137,7 @@ encode_##T (DC *dc, T val)					\
   *(T *) dc->current = F (val);					\
   dc->current += S;						\
 								\
-  return 1;							\
+  return true;							\
 }
 
 typedef unsigned char uchar;
@@ -160,101 +160,103 @@ ENCODE_SIMPLE_TYPE (uint32_t, 4, u32_to_le)
 ENCODE_SIMPLE_TYPE (int64_t, 8, i64_to_le)
 ENCODE_SIMPLE_TYPE (uint64_t, 8, u32_to_le)
 
-int
+bool
 decode_data_buffer (DC *dc, data_buffer *data)
 {
-  if ((decode_uint32_t (dc, &data->len)) == 0)
-    return 0;
+  if (!decode_uint32_t (dc, &data->len))
+    return false;
 
   if (data->len > ZFS_MAXDATA)
-    return 0;
+    return false;
 
   dc->cur_length += data->len;
   if (dc->cur_length > dc->max_length)
-    return 0;
+    return false;
 
   memcpy (data->buf, dc->current, data->len);
   dc->current += data->len;
 
-  return 1;
+  return true;
 }
 
-int
+bool
 encode_data_buffer (DC *dc, data_buffer *data)
 {
   int prev;
 
-  if ((encode_uint32_t (dc, data->len)) == 0)
-    return 0;
+  if (!encode_uint32_t (dc, data->len))
+    return false;
 
   prev = dc->cur_length;
   dc->cur_length += data->len;
   if (dc->cur_length > dc->max_length)
     {
       dc->cur_length = prev;
-      return 0;
+      return false;
     }
 
   memcpy (dc->current, data->buf, data->len);
   dc->current += data->len;
 
-  return 1;
+  return true;
 }
 
-int
+bool
 decode_string (DC *dc, string *str, uint32_t max_len)
 {
-  if ((decode_uint32_t (dc, &str->len)) == 0)
-    return 0;
+  if (!decode_uint32_t (dc, &str->len))
+    return false;
 
   if (str->len > max_len)
-    return 0;
+    return false;
 
   dc->cur_length += str->len;
   if (dc->cur_length > dc->max_length)
-    return 0;
+    return false;
 
   str->buf = (char *) xmalloc (str->len + 1);
   memcpy (str->buf, dc->current, str->len);
   str->buf[str->len] = 0;
   dc->current += str->len;
 
-  return 1;
+  return true;
 }
 
-int
+bool
 encode_string (DC *dc, string *str)
 {
   int prev;
 
-  if ((encode_uint32_t (dc, str->len)) == 0)
-    return 0;
+  if (!encode_uint32_t (dc, str->len))
+    return false;
 
   prev = dc->cur_length;
   dc->cur_length += str->len;
   if (dc->cur_length > dc->max_length)
     {
       dc->cur_length = prev;
-      return 0;
+      return false;
     }
 
   memcpy (dc->current, str->buf, str->len);
   dc->current += str->len;
 
-  return 1;
+  return true;
 }
 
-int decode_void (DC *dc, void *v)
+bool
+decode_void (DC *dc, void *v)
 {
-  return 1;
+  return true;
 }
 
-int encode_void (DC *dc, void *v)
+bool
+encode_void (DC *dc, void *v)
 {
-  return 1;
+  return true;
 }
 
-int
+bool
 decode_direction (DC *dc, direction *dir)
 {
   uchar dir_val;
@@ -264,7 +266,7 @@ decode_direction (DC *dc, direction *dir)
   if (r)
     {
       if (dir_val >= DIR_LAST_AND_UNUSED)
-	r = 0;
+	r = false;
       else
 	*dir = (direction) dir_val;
     }
@@ -272,13 +274,13 @@ decode_direction (DC *dc, direction *dir)
   return r;
 }
 
-int
+bool
 encode_direction (DC *dc, direction dir)
 {
   return encode_uchar (dc, (uchar) dir);
 }
 
-int
+bool
 decode_ftype (DC *dc, ftype *type)
 {
   uchar type_val;
@@ -288,7 +290,7 @@ decode_ftype (DC *dc, ftype *type)
   if (r)
     {
       if (type_val >= FT_LAST_AND_UNUSED)
-	r = 0;
+	r = false;
       else
 	*type = (ftype) type_val;
     }
@@ -296,13 +298,13 @@ decode_ftype (DC *dc, ftype *type)
   return r;
 }
 
-int
+bool
 encode_ftype (DC *dc, ftype type)
 {
   return encode_uchar (dc, (uchar) type);
 }
 
-int
+bool
 decode_zfs_fh (DC *dc, zfs_fh *fh)
 {
   return (decode_uint32_t (dc, &fh->sid)
@@ -311,7 +313,7 @@ decode_zfs_fh (DC *dc, zfs_fh *fh)
 	  && decode_uint32_t (dc, &fh->ino));
 }
 
-int
+bool
 encode_zfs_fh (DC *dc, zfs_fh *fh)
 {
   return (encode_uint32_t (dc, fh->sid)
@@ -320,7 +322,7 @@ encode_zfs_fh (DC *dc, zfs_fh *fh)
 	  && encode_uint32_t (dc, fh->ino));
 }
 
-int
+bool
 decode_zfs_time (DC *dc, zfs_time *time)
 {
   return (decode_uint32_t (dc, &time->sec)
@@ -328,14 +330,14 @@ decode_zfs_time (DC *dc, zfs_time *time)
 
 }
 
-int
+bool
 encode_zfs_time (DC *dc, zfs_time *time)
 {
   return (encode_uint32_t (dc, time->sec)
 	  && encode_uint32_t (dc, time->usec));
 }
 
-int
+bool
 decode_fattr (DC *dc, fattr *attr)
 {
   return (decode_ftype (dc, &attr->type)
@@ -358,7 +360,7 @@ decode_fattr (DC *dc, fattr *attr)
 	  && decode_zfs_time (dc, &attr->ctime));
 }
 
-int
+bool
 encode_fattr (DC *dc, fattr *attr)
 {
   return (encode_ftype (dc, attr->type)
@@ -381,7 +383,7 @@ encode_fattr (DC *dc, fattr *attr)
 	  && encode_zfs_time (dc, &attr->ctime));
 }
 
-int
+bool
 decode_sattr (DC *dc, sattr *attr)
 {
   return (decode_uint32_t (dc, &attr->mode)
@@ -392,7 +394,7 @@ decode_sattr (DC *dc, sattr *attr)
 	  && decode_zfs_time (dc, &attr->mtime));
 }
 
-int
+bool
 encode_sattr (DC *dc, sattr *attr)
 {
   return (encode_uint32_t (dc, attr->mode)
@@ -403,85 +405,85 @@ encode_sattr (DC *dc, sattr *attr)
 	  && encode_zfs_time (dc, &attr->mtime));
 }
 
-int
+bool
 decode_filename (DC *dc, string *str)
 {
   return decode_string (dc, str, ZFS_MAXNAMELEN);
 }
 
-int
+bool
 encode_filename (DC *dc, string *str)
 {
   return encode_string (dc, str);
 }
 
-int
+bool
 decode_zfs_path (DC *dc, string *str)
 {
   return decode_string (dc, str, ZFS_MAXPATHLEN);
 }
 
-int
+bool
 encode_zfs_path (DC *dc, string *str)
 {
   return encode_string (dc, str);
 }
 
-int
+bool
 decode_volume_root_args (DC *dc, volume_root_args *args)
 {
   return decode_uint32_t (dc, &args->vid);
 }
 
-int
+bool
 encode_volume_root_args (DC *dc, volume_root_args *args)
 {
   return encode_uint32_t (dc, args->vid);
 }
 
-int
+bool
 decode_sattr_args (DC *dc, sattr_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
 	  && decode_sattr (dc, &args->attributes));
 }
 
-int
+bool
 encode_sattr_args (DC *dc, sattr_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
 	  && encode_sattr (dc, &args->attributes));
 }
 
-int
+bool
 decode_dir_op_args (DC *dc, dir_op_args *args)
 {
   return (decode_zfs_fh (dc, &args->dir)
 	  && decode_filename (dc, &args->name));
 }
 
-int
+bool
 encode_dir_op_args (DC *dc, dir_op_args *args)
 {
   return (encode_zfs_fh (dc, &args->dir)
 	  && encode_filename (dc, &args->name));
 }
 
-int
+bool
 decode_dir_op_res (DC *dc, dir_op_res *res)
 {
   return (decode_zfs_fh (dc, &res->file)
 	  && decode_fattr (dc, &res->attributes));
 }
 
-int
+bool
 encode_dir_op_res (DC *dc, dir_op_res *res)
 {
   return (encode_zfs_fh (dc, &res->file)
 	  && encode_fattr (dc, &res->attributes));
 }
 
-int
+bool
 decode_open_name_args (DC *dc, open_name_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
@@ -489,7 +491,7 @@ decode_open_name_args (DC *dc, open_name_args *args)
 	  && decode_sattr (dc, &args->attributes));
 }
 
-int
+bool
 encode_open_name_args (DC *dc, open_name_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
@@ -497,19 +499,19 @@ encode_open_name_args (DC *dc, open_name_args *args)
 	  && encode_sattr (dc, &args->attributes));
 }
 
-int
+bool
 decode_open_res (DC *dc, open_res *res)
 {
   return decode_zfs_fh (dc, &res->file);
 }
 
-int
+bool
 encode_open_res (DC *dc, open_res *res)
 {
   return encode_zfs_fh (dc, &res->file);
 }
 
-int
+bool
 decode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (decode_zfs_fh (dc, &args->dir)
@@ -517,7 +519,7 @@ decode_read_dir_args (DC *dc, read_dir_args *args)
 	  && decode_uint32_t (dc, &args->count));
 }
 
-int
+bool
 encode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (encode_zfs_fh (dc, &args->dir)
@@ -525,7 +527,7 @@ encode_read_dir_args (DC *dc, read_dir_args *args)
 	  && encode_uint32_t (dc, args->count));
 }
 
-int
+bool
 decode_dir_entry (DC *dc, dir_entry *entry)
 {
   return (decode_zfs_fh (dc, &entry->fh)
@@ -533,7 +535,7 @@ decode_dir_entry (DC *dc, dir_entry *entry)
 	  && decode_int32_t (dc, &entry->cookie));
 }
 
-int
+bool
 encode_dir_entry (DC *dc, dir_entry *entry)
 {
   return (encode_zfs_fh (dc, &entry->fh)
@@ -541,49 +543,49 @@ encode_dir_entry (DC *dc, dir_entry *entry)
 	  && encode_int32_t (dc, entry->cookie));
 }
 
-int
+bool
 decode_dir_list (DC *dc, dir_list *list)
 {
   return (decode_uint32_t (dc, &list->n)
 	  && decode_char (dc, &list->eof));
 }
 
-int
+bool
 encode_dir_list (DC *dc, dir_list *list)
 {
   return (encode_uint32_t (dc, list->n)
 	  && encode_char (dc, list->eof));
 }
 
-int
+bool
 decode_rename_args (DC *dc, rename_args *args)
 {
   return (decode_dir_op_args (dc, &args->from)
 	  && decode_dir_op_args (dc, &args->to));
 }
 
-int
+bool
 encode_rename_args (DC *dc, rename_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
 	  && encode_dir_op_args (dc, &args->to));
 }
 
-int
+bool
 decode_link_args (DC *dc, link_args *args)
 {
   return (decode_zfs_fh (dc, &args->from)
 	  && decode_dir_op_args (dc, &args->to));
 }
 
-int
+bool
 encode_link_args (DC *dc, link_args *args)
 {
   return (decode_zfs_fh (dc, &args->from)
 	  && decode_dir_op_args (dc, &args->to));
 }
 
-int
+bool
 decode_read_args (DC *dc, read_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
@@ -591,7 +593,7 @@ decode_read_args (DC *dc, read_args *args)
 	  && decode_uint32_t (dc, &args->count));
 }
 
-int
+bool
 encode_read_args (DC *dc, read_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
@@ -599,19 +601,19 @@ encode_read_args (DC *dc, read_args *args)
 	  && encode_uint32_t (dc, args->count));
 }
 
-int
+bool
 decode_read_res (DC *dc, read_res *res)
 {
   return (decode_data_buffer (dc, &res->data));
 }
 
-int
+bool
 encode_read_res (DC *dc, read_res *res)
 {
   return (encode_data_buffer (dc, &res->data));
 }
 
-int
+bool
 decode_write_args (DC *dc, write_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
@@ -619,7 +621,7 @@ decode_write_args (DC *dc, write_args *args)
 	  && decode_data_buffer (dc, &args->data));
 }
 
-int
+bool
 encode_write_args (DC *dc, write_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
@@ -627,31 +629,31 @@ encode_write_args (DC *dc, write_args *args)
 	  && encode_data_buffer (dc, &args->data));
 }
 
-int
+bool
 decode_write_res (DC *dc, write_res *res)
 {
   return decode_uint32_t (dc, &res->written);
 }
 
-int
+bool
 encode_write_res (DC *dc, write_res *res)
 {
   return encode_uint32_t (dc, res->written);
 }
 
-int
+bool
 decode_read_link_res (DC *dc, read_link_res *res)
 {
   return decode_zfs_path (dc, &res->path);
 }
 
-int
+bool
 encode_read_link_res (DC *dc, read_link_res *res)
 {
   return encode_zfs_path (dc, &res->path);
 }
 
-int
+bool
 decode_symlink_args (DC *dc, symlink_args *args)
 {
   return (decode_dir_op_args (dc, &args->from)
@@ -659,7 +661,7 @@ decode_symlink_args (DC *dc, symlink_args *args)
 	  && decode_sattr (dc, &args->attributes));
 }
 
-int
+bool
 encode_symlink_args (DC *dc, symlink_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
@@ -667,7 +669,7 @@ encode_symlink_args (DC *dc, symlink_args *args)
 	  && encode_sattr (dc, &args->attributes));
 }
 
-int
+bool
 decode_mknod_args (DC *dc, mknod_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
@@ -675,7 +677,7 @@ decode_mknod_args (DC *dc, mknod_args *args)
 	  && decode_uint32_t (dc, &args->rdev));
 }
 
-int
+bool
 encode_mknod_args (DC *dc, mknod_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
