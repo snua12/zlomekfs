@@ -79,12 +79,13 @@ node_create(char *name)
 
 /* Create volume structure and fill it with information.  */
 volume
-volume_create(char *name)
+volume_create(unsigned id)
 {
   volume vol;
 
   vol = (volume) xmalloc(sizeof(volume));
-  vol->name = xstrdup(name);
+  vol->id = id;
+  vol->name = NULL;
   vol->master = NULL;
   vol->mountpoint = NULL;
   vol->flags = 0;
@@ -348,7 +349,9 @@ read_local_config(const char *path)
 	  line_num++;
 	  if (split_and_trim(line, 3, parts) == 3)
 	    {
-	      
+	      /* 0 ... ID
+		 1 ... localpath
+		 2 ... sizelimit */
 	    }
 	  else
 	    {
@@ -481,6 +484,8 @@ read_config(const char *file)
     }
   fclose(f);
 
+  if (!private_key)
+    private_key = xstrconcat(3, node_config, "/", node_name);
   if (!read_private_key(private_key))
     return 0;
 

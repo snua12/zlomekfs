@@ -55,13 +55,14 @@ typedef struct node_def
 /* Volume description.  */
 typedef struct volume_def
 {
+  unsigned id;		/* ID of the volume */
   char *name;		/* name of the volume */
   node master;		/* master node for the volume */
   char *mountpoint;	/* "mountpoint" for the volume on the cluster fs */
   int flags;		/* see VOLUME_* below */
   
-  char *localpath;
-  uint64_t size_limit;
+  char *localpath;	/* directory with local copy of volume */
+  uint64_t size_limit;	/* size limit for copy of volume */
 } *volume;
 
 #define VOLUME_ID_NONE    0	/* ID of the non-existing 'root' volume */
