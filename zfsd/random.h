@@ -21,6 +21,9 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
+/* Return a pseudo-random number from range 0..NUM-1 */
+#define RANDOM(NUM) (random () % NUM)
+
 /* File descriptor for /dev/random.  */
 extern int fd_random;
 
