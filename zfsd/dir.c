@@ -1726,6 +1726,13 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (idir->fh->attr.type != FT_DIR)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
@@ -1967,6 +1974,13 @@ zfs_rmdir (zfs_fh *dir, string *name)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (idir->fh->attr.type != FT_DIR)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, false))
     {
@@ -2513,6 +2527,13 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (to_dentry->fh->attr.type != FT_DIR)
+    {
+      release_dentry (to_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (to_dentry, to_name->str, true))
     {
@@ -2558,6 +2579,13 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (from_dentry->fh->attr.type != FT_DIR)
+    {
+      release_dentry (from_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (from_dentry, from_name->str, true))
     {
@@ -2895,6 +2923,13 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (dir_dentry->fh->attr.type != FT_DIR)
+    {
+      release_dentry (dir_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (dir_dentry, name->str, true))
     {
@@ -3198,6 +3233,13 @@ zfs_unlink (zfs_fh *dir, string *name)
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (idir->fh->attr.type != FT_DIR)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, false))
     {
@@ -3982,6 +4024,13 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (idir->fh->attr.type != FT_DIR)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
@@ -4225,6 +4274,13 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   else
     zfsd_mutex_unlock (&fh_mutex);
 
+  if (idir->fh->attr.type != FT_DIR)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ENOTDIR;
+    }
+  
   /* Hide special dirs in the root of the volume.  */
   if (SPECIAL_DIR_P (idir, name->str, true))
     {
