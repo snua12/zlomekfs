@@ -5,7 +5,10 @@ use strict;
 my @dep;
 my $f;
 
-system ("make clean");
+if (-f "Makefile.dep")
+{
+  system ("make clean");
+}
 open (FO, ">Makefile.dep");
 
 foreach $f (sort <*.h>)
