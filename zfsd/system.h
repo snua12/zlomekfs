@@ -21,6 +21,8 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+#ifndef __KERNEL__
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -33,6 +35,8 @@
 #define _THREAD_SAFE
 #endif
 
+#endif /* !__KERNEL__ */
+
 /* bool type and constants.  */
 #ifndef bool
 #define bool char
@@ -43,6 +47,8 @@
 #ifndef false
 #define false 0
 #endif
+
+#ifndef __KERNEL__
 
 /* We want print format specifiers from <inttypes.h>  */
 #ifdef __cplusplus
@@ -75,6 +81,8 @@
 #define VALGRIND_MAKE_READABLE(x,y)
 #define VALGRIND_DISCARD(x)
 #endif
+
+#endif /* !__KERNEL__ */
 
 /* Definitions of some GCC attributes.  */
 #ifdef __GNUC__

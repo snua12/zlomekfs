@@ -18,7 +18,15 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef __KERNEL__
+#ifdef __KERNEL__
+# include <linux/errno.h>
+# include <linux/stat.h>
+# include <asm/semaphore.h>
+# include "zfs.h"
+# include "data-coding.h"
+# include "zfs_prot.h"
+# include "zfsd_call.h"
+#else
 # include "system.h"
 # include <inttypes.h>
 # include <string.h>
@@ -40,9 +48,6 @@
 # include "volume.h"
 # include "log.h"
 # include "user-group.h"
-#else
-# include <linux/stat.h>
-# include "zfs_prot.h"
 #endif
 
 /* Mapping file type -> file mode.  */
@@ -821,16 +826,7 @@ cleanup_zfs_prot_c (void)
 #endif
 }
 
-#else	/* __KERNEL__ */
-
-#include <linux/errno.h>
-#include <asm/semaphore.h>
-
-#include "zfs.h"
-#include "data-coding.h"
-#include "zfs_prot.h"
-#include "zfsd_call.h"
-
+#else  /* !__KERNEL__ */
 
 static int zfs_error(int error)
 {

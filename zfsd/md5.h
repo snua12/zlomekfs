@@ -37,6 +37,8 @@
 /* Size of MD5 hash.  */
 #define MD5_SIZE 16
 
+#ifndef __KERNEL__
+
 typedef struct MD5Context_def
 {
   uint32_t buf[4];
@@ -50,5 +52,7 @@ extern void MD5Update (MD5Context *ctx, unsigned char const *buf,
 extern void MD5Final (unsigned char digest[MD5_SIZE], MD5Context *ctx);
 extern void MD5HexFinal (unsigned char digest[MD5_SIZE * 2], MD5Context *ctx);
 extern void MD5Transform (uint32_t buf[4], uint32_t const in[16]);
+
+#endif
 
 #endif /* !MD5_H */

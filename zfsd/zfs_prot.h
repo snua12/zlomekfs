@@ -400,6 +400,16 @@ struct node_def;
 
 #include "data-coding.h"
 /* Function headers.  */
+
+#ifdef __KERNEL__
+
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+  extern int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+
+#else /* __KERNEL__ */
+
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
 					    DC *dc, void *data,		\
@@ -415,15 +425,6 @@ struct node_def;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
-#ifdef __KERNEL__
-
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
-  extern int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args);
-#include "zfs_prot.def"
-#undef DEFINE_ZFS_PROC
-
-#endif
-
 /* Call statistics.  */
 #define CALL_FROM_KERNEL	0
 #define CALL_FROM_NETWORK	1
@@ -432,5 +433,7 @@ extern uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
 extern char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c (void);
 extern void cleanup_zfs_prot_c (void);
+
+#endif /* !__KERNEL__ */
 
 #endif
