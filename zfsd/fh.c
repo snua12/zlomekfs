@@ -1174,7 +1174,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
       if (fh->attr.type == FT_DIR)
 	{
 	  fh->journal = journal_create (5, &fh->mutex);
-	  if (!read_journal (vol, fh))
+	  if (!read_journal (vol, &fh->local_fh, fh->journal))
 	    MARK_VOLUME_DELETE (vol);
 	}
     }

@@ -2155,7 +2155,7 @@ out:
 out2:
   if (flush_journal)
     {
-      if (!write_journal (vol, dir->fh))
+      if (!write_journal (vol, &dir->fh->local_fh, dir->fh->journal))
 	MARK_VOLUME_DELETE (vol);
     }
 

@@ -2813,11 +2813,11 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
     hardlink_list_destroy (hl);
 }
 
-/* Write the journal for file handle FH on volume VOL to file PATH
+/* Write the journal JOURNAL for file handle FH on volume VOL to file PATH
    or delete the file if the journal is empty.  */
 
 static bool
-flush_journal (volume vol, internal_fh fh, string *path)
+flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
 {
   journal_entry entry;
   string new_path;
@@ -2826,11 +2826,10 @@ flush_journal (volume vol, internal_fh fh, string *path)
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  close_journal_file (fh->journal);
+  close_journal_file (journal);
 
-  if (fh->journal->first == NULL)
+  if (journal->first == NULL)
     {
       bool r;
 
@@ -2840,7 +2839,7 @@ flush_journal (volume vol, internal_fh fh, string *path)
     }
 
   append_string (&new_path, path, ".new", 4);
-  fd = open_fh_metadata (&new_path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  fd = open_fh_metadata (&new_path, vol, fh, METADATA_TYPE_JOURNAL,
 			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
 
   if (fd < 0)
@@ -2856,7 +2855,7 @@ flush_journal (volume vol, internal_fh fh, string *path)
     abort ();
 #endif
 
-  for (entry = fh->journal->first; entry; entry = entry->next)
+  for (entry = journal->first; entry; entry = entry->next)
     {
       uint32_t dev;
       uint32_t ino;
@@ -2901,10 +2900,10 @@ flush_journal (volume vol, internal_fh fh, string *path)
   return true;
 }
 
-/* Read journal for file handle FH on volume VOL.  */
+/* Read journal for file handle FH on volume VOL to JOURNAL.  */
 
 bool
-read_journal (volume vol, internal_fh fh)
+read_journal (volume vol, zfs_fh *fh, journal_t journal)
 {
   int fd;
   string path;
@@ -2912,16 +2911,14 @@ read_journal (volume vol, internal_fh fh)
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!fh->journal)
+  if (!journal)
     abort ();
 #endif
 
-  build_fh_metadata_path (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL,
 			  metadata_tree_depth);
-  fd = open_fh_metadata (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
-			 O_RDONLY, 0);
+  fd = open_fh_metadata (&path, vol, fh, METADATA_TYPE_JOURNAL, O_RDONLY, 0);
   if (fd < 0)
     {
       free (path.str);
@@ -2976,26 +2973,27 @@ read_journal (volume vol, internal_fh fh)
 
       if (oper < JOURNAL_OPERATION_LAST_AND_UNUSED)
 	{
-	  journal_insert (fh->journal, &local_fh, &master_fh, &name,
+	  journal_insert (journal, &local_fh, &master_fh, &name,
 			  (journal_operation_t) oper, false);
 	}
     }
 
   fclose (f);
-  return flush_journal (vol, fh, &path);
+  return flush_journal (vol, fh, journal, &path);
 }
 
-/* Write the journal for file handle FH on volume VOL to appropriate file.  */
+/* Write the journal JOURNAL for file handle FH on volume VOL
+   to appropriate file.  */
 
 bool
-write_journal (volume vol, internal_fh fh)
+write_journal (volume vol, zfs_fh *fh, journal_t journal)
 {
   string path;
 
-  build_fh_metadata_path (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL,
 			  metadata_tree_depth);
 
-  return flush_journal (vol, fh, &path);
+  return flush_journal (vol, fh, journal, &path);
 }
 
 /* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH
