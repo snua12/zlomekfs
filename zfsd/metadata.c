@@ -1046,7 +1046,22 @@ set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
   fh->meta.flags = flags;
   set_attr_version (&fh->attr, &fh->meta);
   
-  return flush_metadata (vol,fh);
+  return flush_metadata (vol, fh);
+}
+
+/* Increase the local version for file FH on volume VOL.
+   Return false on file error.  */
+
+bool
+inc_local_version (volume vol, internal_fh fh)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  fh->meta.local_version++;
+  set_attr_version (&fh->attr, &fh->meta);
+
+  return flush_metadata (vol, fh);
 }
 
 /* Delete all metadata files for local file PATH on volume VOL.  */

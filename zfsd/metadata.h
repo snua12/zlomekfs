@@ -70,6 +70,7 @@ extern bool flush_metadata (volume vol, internal_fh fh);
 extern bool set_metadata (volume vol, internal_fh fh, uint32_t flags,
 			  uint64_t local_version, uint64_t master_version);
 extern bool set_metadata_flags (volume vol, internal_fh fh, uint32_t flags);
+extern bool inc_local_version (volume vol, internal_fh fh);
 extern bool delete_metadata (volume vol, uint32_t dev, uint32_t ino);
 extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
