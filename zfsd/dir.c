@@ -1206,8 +1206,8 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
   return ZFS_OK;
 }
 
-/* Lookup file handle of local file NAME in directory DIR on volume VOL
-   and store it to FH.  */
+/* Lookup local file NAME in directory DIR on volume VOL and store
+   its file handle and attributes to RES.  */
 
 int32_t
 local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
@@ -1253,8 +1253,8 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   return ZFS_OK;
 }
 
-/* Lookup file handle of remote file NAME in directory DIR on volume VOL
-   and store it to FH.  */
+/* Lookup remote file NAME in directory DIR on volume VOL and store
+   its file handle and attributes to RES.  */
 
 int32_t
 remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
@@ -1302,7 +1302,8 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   return r;
 }
 
-/* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
+/* Lookup file NAME in directory DIR and store its file handle and attributes
+   to RES.  */
 
 int32_t
 zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
