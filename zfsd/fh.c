@@ -131,7 +131,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
   hash_t hash = ZFS_FH_HASH (fh);
 
-  if (fh->vid == VOLUME_ID_VIRTUAL)
+  if (VIRTUAL_FH_P (*fh))
     {
       virtual_dir vd;
 
