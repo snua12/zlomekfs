@@ -391,7 +391,7 @@ fake_config ()
 void
 test_zfs (thread *t)
 {
-  zfs_fh fh;
+  dir_op_res res;
   int test = 0;
 
   if (strcmp (node_name, "orion") == 0)
@@ -411,12 +411,12 @@ test_zfs (thread *t)
 
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/subdir/file");
-      printf ("%d\n", zfs_extended_lookup (&fh, &root_fh, str));
+      printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
 
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/volume3/subdir/file");
-      printf ("%d\n", zfs_extended_lookup (&fh, &root_fh, str));
+      printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
     }
 }

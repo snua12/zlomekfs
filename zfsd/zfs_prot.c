@@ -62,7 +62,7 @@ zfs_proc_root_server (void *args, thread *t)
   encode_zfs_fh (dc, &root_fh);
 }
 
-/* zfs_fh zfs_proc_volume_root (volume_root_args); */
+/* dir_op_res zfs_proc_volume_root (volume_root_args); */
 
 void
 zfs_proc_volume_root_server (volume_root_args *args, thread *t)
@@ -83,7 +83,10 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
       r = update_volume_root (vol, &ifh);
       encode_status (dc, r);
       if (r == ZFS_OK)
-	encode_zfs_fh (dc, &vol->local_root_fh);
+	{
+	  encode_zfs_fh (dc, &ifh->local_fh);
+	  encode_fattr (dc, &ifh->attr);
+	}
     }
   zfsd_mutex_unlock (&volume_mutex);
 }
@@ -120,13 +123,13 @@ void
 zfs_proc_lookup_server (dir_op_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
-  zfs_fh fh;
+  dir_op_res res;
   int32_t r;
 
-  r = zfs_lookup (&fh, &args->dir, args->name.str);
+  r = zfs_lookup (&res, &args->dir, args->name.str);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    encode_zfs_fh (dc, &fh);
+    encode_dir_op_res (dc, &res);
 
   free (args->name.str);
 }
