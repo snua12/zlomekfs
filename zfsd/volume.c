@@ -423,7 +423,6 @@ destroy_all_volumes (void)
       zfsd_mutex_lock (&vol->mutex);
       volume_destroy ((volume) *slot);
     }
-  htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vd_mutex);
@@ -444,5 +443,8 @@ void
 cleanup_volume_c (void)
 {
   destroy_all_volumes ();
+  zfsd_mutex_lock (&volume_mutex);
+  htab_destroy (volume_htab);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_destroy (&volume_mutex);
 }
