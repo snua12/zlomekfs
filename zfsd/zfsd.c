@@ -69,11 +69,7 @@ exit_sighandler (int signum)
 {
   running = 0;
 
-  /* Temporay code (until end of function): */
-  if (pthread_self () != main_thread)
-    pthread_kill (main_thread, signum);
-  else
-    exit (EXIT_SUCCESS);
+  pthread_kill (main_server_thread, SIGUSR1);
 }
 
 /* Report the fatal signal.  */
@@ -327,6 +323,7 @@ cleanup_data_structures ()
 {
   /* Destroy main thread data.  */
   server_worker_cleanup (&main_thread_data);
+  pthread_mutex_unlock (&main_thread_data.mutex);
   pthread_mutex_destroy (&main_thread_data.mutex);
 
   /* Destroy data structures in other modules.  */
@@ -334,6 +331,8 @@ cleanup_data_structures ()
   cleanup_volume_c ();
   cleanup_node_c ();
   cleanup_fh_c ();
+
+  free (node_name);
 }
 
 #ifdef TEST
@@ -504,7 +503,7 @@ main (int argc, char **argv)
   pthread_join (main_server_thread, NULL);
 #endif
 
-  /* FIXME: kill threads.  */
+  client_cleanup ();
   server_cleanup ();
 
   cleanup_data_structures ();
