@@ -19,37 +19,34 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <pthread.h>
 #include "zfs_prot.h"
+#include "data-coding.h"
+#include "thread.h"
+#include "server.h"
 
 /* FIXME: These are some temporary dummy functions to make linker happy.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
 int									\
 zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc)			\
 {									\
+  /* return zfs_##FUNCTION## (args, dc); */				\
   return ZFS_OK;							\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
-#if 0
-zfs_proc_null
-zfs_proc_root
-zfs_proc_volume_root
-zfs_proc_getattr
-zfs_proc_setattr
-zfs_proc_lookup
-zfs_proc_open_by_name
-zfs_proc_open_by_fd
-zfs_proc_close
-zfs_proc_readdir
-zfs_proc_mkdir
-zfs_proc_rmdir
-zfs_proc_rename
-zfs_proc_link
-zfs_proc_unlink
-zfs_proc_read
-zfs_proc_write
-zfs_proc_readlink
-zfs_proc_symlink
-zfs_proc_mknod
-#endif
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
+int									\
+zfs_proc_##FUNCTION##_client (ARGS_TYPE *args, node *nod)		\
+{									\
+  thread *t = (thread *) pthread_getspecific (server_thread_key);	\
+  server_thread_data *td = &t->u.server;				\
+									\
+  if (!encode_##ARGS_TYPE (&td->dc, args))				\
+    return ZFS_REQUEST_TOO_LONG;					\
+									\
+  send_request (d, nod);						\
+									\
+  return d->retval;							\
+}
