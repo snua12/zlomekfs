@@ -180,14 +180,14 @@ typedef struct open_fh_args_def
 typedef struct read_dir_args_def
 {
   zfs_cap dir;
-  unsigned int cookie;
+  int cookie;
   unsigned int count;
 } read_dir_args;
 
 typedef struct dir_entry_def
 {
   unsigned int ino;
-  unsigned int cookie;
+  int cookie;
   filename name;
 } dir_entry;
 
