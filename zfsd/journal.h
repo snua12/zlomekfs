@@ -31,7 +31,8 @@
 
 /* Hash function for journal entry J.  */
 #define JOURNAL_HASH(J)							    \
-  (crc32_update (crc32_update (crc32_update (crc32_string ((J)->name.str),  \
+  (crc32_update (crc32_update (crc32_update (crc32_buffer ((J)->name.str,   \
+							   (J)->name.len),  \
 					     &(J)->dev, sizeof (uint32_t)), \
 			       &(J)->ino, sizeof (uint32_t)),		    \
 		 &(J)->gen, sizeof (uint32_t)))
