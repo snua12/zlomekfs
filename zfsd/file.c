@@ -1686,6 +1686,7 @@ zfs_write (write_res *res, write_args *args)
   internal_cap icap;
   internal_dentry dentry;
   int32_t r;
+  bool local = false;
   int retry = 0;
 
   if (args->data.len > ZFS_MAXDATA)
@@ -1708,14 +1709,23 @@ zfs_write_retry:
 #endif
 
   if (vol->local_path)
-    r = local_write (res, icap, dentry, args->offset, &args->data, vol);
+    {
+      r = local_write (res, icap, dentry, args->offset, &args->data, vol);
+      local = true;
+    }
   else if (vol->master != this_node)
     r = remote_write (res, icap, args, vol);
   else
     abort ();
 
-  if (r == ZFS_OK)
+  release_dentry (dentry);
+
+  if (r == ZFS_OK && local)
     {
+      r = find_capability (&args->cap, &icap, &vol, &dentry, NULL);
+      if (r != ZFS_OK)
+	return r;
+
       if (vol->local_path)
 	{
 	  if (!set_metadata_flags (vol, dentry->fh,
@@ -1761,9 +1771,10 @@ zfs_write_retry:
 		}
 	    }
 	}
-    }
 
-  release_dentry (dentry);
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
 
   if (r == ZFS_STALE && retry < 1)
     {
