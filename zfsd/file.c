@@ -199,6 +199,14 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
     abort ();
 #endif
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   /* Some flags were specified so close the file descriptor first.  */
   if (flags)
     local_close (dentry->fh);
@@ -379,8 +387,17 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   bool existed;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
@@ -1542,9 +1559,9 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	    {
 	      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 
-	      /* Comment from glibc: On some systems getdents fails with ENOENT when
-		 open directory has been rmdir'd already.  POSIX.1 requires that we
-		 treat this condition like normal EOF.  */
+	      /* Comment from glibc: On some systems getdents fails with ENOENT
+		 when open directory has been rmdir'd already.  POSIX.1
+		 requires that we treat this condition like normal EOF.  */
 	      if (r < 0 && errno == ENOENT)
 		r = 0;
 

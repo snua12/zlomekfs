@@ -1249,6 +1249,14 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   build_local_path (&path, vol, dentry);
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
@@ -1469,6 +1477,14 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   build_local_path (&path, vol, dentry);
   release_dentry (dentry);
@@ -1798,6 +1814,14 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
@@ -2209,6 +2233,14 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
@@ -2470,6 +2502,14 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
@@ -3058,6 +3098,16 @@ local_rename (metadata *meta_old, metadata *meta_new,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (from_dir);
+      if (to_dir->fh != from_dir->fh)
+	release_dentry (to_dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   build_local_path_name (&from_path, vol, from_dir, from_name);
   build_local_path_name (&to_path, vol, to_dir, to_name);
   shadow = (to_dir->fh->meta.flags & METADATA_SHADOW_TREE) != 0;
@@ -3516,6 +3566,16 @@ local_link (metadata *meta, internal_dentry from, internal_dentry dir,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (from);
+      if (dir->fh != from->fh)
+	release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   build_local_path (&from_path, vol, from);
   build_local_path_name (&to_path, vol, dir, name);
   release_dentry (from);
@@ -3864,6 +3924,14 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
@@ -4442,6 +4510,14 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (file);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   build_local_path (&path, vol, file);
   release_dentry (file);
   zfsd_mutex_unlock (&vol->mutex);
@@ -4476,6 +4552,14 @@ local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
@@ -4667,6 +4751,14 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
@@ -4934,6 +5026,14 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
+
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
@@ -5197,6 +5297,12 @@ local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
     abort ();
 #endif
 
+  if (vol->local_path.str == NULL)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      RETURN_INT (ESTALE);
+    }
+
   get_local_path_from_metadata (&path, vol, fh);
   if (!path.str)
     RETURN_INT (ESTALE);
@@ -5314,6 +5420,14 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   if (dir->fh->level == LEVEL_UNLOCKED)
     abort ();
 #endif
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_BOOL (false);
+    }
 
   build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
@@ -5490,6 +5604,14 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     abort ();
 #endif
 
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_BOOL (false);
+    }
+
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
@@ -5657,6 +5779,14 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
   if (dir->fh->level == LEVEL_UNLOCKED)
     abort ();
 #endif
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   meta.modetype = GET_MODETYPE (0, FT_BAD);
   n = metadata_n_hardlinks (vol, fh, &meta);
@@ -5963,6 +6093,12 @@ local_reintegrate_del_fh (zfs_fh *fh)
   if (!vol)
     RETURN_INT (ESTALE);
 
+  if (vol->local_path.str == NULL)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      RETURN_INT (ESTALE);
+    }
+
   meta.modetype = GET_MODETYPE (0, FT_BAD);
   if (!lookup_metadata (vol, fh, &meta, false))
     {
@@ -6016,6 +6152,14 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
   if (r2 != ZFS_OK)
     abort ();
 #endif
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   meta.modetype = GET_MODETYPE (0, FT_BAD);
   if (destroy_p
@@ -6089,6 +6233,14 @@ local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   if (dir->fh->level == LEVEL_UNLOCKED)
     abort ();
 #endif
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ESTALE);
+    }
 
   r = local_lookup (&res, dir, name, vol, &meta);
 
@@ -6373,6 +6525,13 @@ local_reintegrate_ver (internal_dentry dentry, uint64_t version_inc,
 #ifdef ENABLE_CHECKING
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
+
+  if (vol->local_path.str == NULL)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      RETURN_INT (ESTALE);
+    }
 
   dentry->fh->meta.local_version += version_inc;
   if (!vol->is_copy)

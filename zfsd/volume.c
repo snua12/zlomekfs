@@ -153,15 +153,12 @@ volume_create (uint32_t id)
   vol->id = id;
   vol->master = NULL;
   vol->slaves = NULL;
-  vol->name.str = NULL;
-  vol->name.len = 0;
-  vol->mountpoint.str = NULL;
-  vol->mountpoint.len = 0;
+  vol->name = invalid_string;
+  vol->mountpoint = invalid_string;
   vol->delete_p = false;
   vol->marked = false;
   vol->n_locked_fhs = 0;
-  vol->local_path.str = NULL;
-  vol->local_path.len = 0;
+  vol->local_path = invalid_string;
   vol->size_limit = VOLUME_NO_LIMIT;
   vol->last_conflict_ino = 0;
   vol->root_dentry = NULL;
@@ -487,13 +484,14 @@ mark_all_volumes (void)
 }
 
 /** \fn static void delete_dentries_of_marked_volume (volume vol)
-    \brief Delete all dentries of marked volume.
+    \brief Delete all dentries of marked volume and clear local path.
     \param vol Volume on which the dentries will be deleted.  */
 
 static void
 delete_dentries_of_marked_volume (volume vol)
 {
   internal_dentry dentry;
+  uint32_t vid;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -504,10 +502,21 @@ delete_dentries_of_marked_volume (volume vol)
       return;
     }
 
+  vid = vol->id;
   dentry = vol->root_dentry;
   zfsd_mutex_lock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
   internal_dentry_destroy (dentry, true, false, true);
+
+  vol = volume_lookup (vid);
+  if (vol)
+    {
+      vol->local_path = invalid_string;
+      close_volume_metadata (vol);
+      vol->delete_p = false;
+      vol->marked = false;
+      zfsd_mutex_unlock (&vol->mutex);
+    }
 }
 
 /** \fn static void delete_dentries_of_marked_volumes (void)
