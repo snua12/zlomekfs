@@ -48,6 +48,10 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 	if (error > 0) {
 		*off += error;
 		inode->i_atime = CURRENT_TIME;
+		if (*off > i_size_read(inode)) {
+			i_size_write(inode, *off);
+			inode->i_ctime = CURRENT_TIME;
+		}
 	} else if (error == -ESTALE)
 		ZFS_I(inode)->flags |= NEED_REVALIDATE;
 
