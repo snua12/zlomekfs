@@ -487,6 +487,8 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
   unsigned long delta;
   int i;
 
+  CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
+
   /* Initialize ping buffer.  */
   ping_args.len = 0;
   ping_args.buf = NULL;
