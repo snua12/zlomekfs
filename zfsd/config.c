@@ -1490,7 +1490,7 @@ read_config_file (const char *file)
     }
 
   if (!private_key.str)
-    append_file_name (&private_key, &node_config, node_name.str, node_name.len);
+    append_file_name (&private_key, &node_config, "node_key", 8);
   if (!read_private_key (&private_key))
     return false;
   return true;
