@@ -112,6 +112,8 @@ extern int32_t local_reintegrate_add (volume vol, internal_dentry dir,
 extern int32_t remote_reintegrate_add (volume vol, internal_dentry dir,
 				       string *name, zfs_fh *fh);
 extern int32_t zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name);
+extern int32_t local_reintegrate_del_base (zfs_fh *fh, string *name,
+					   bool destroy_p, zfs_fh *dir_fh);
 extern int32_t local_reintegrate_del (volume vol, zfs_fh *fh,
 				      internal_dentry dir, string *name,
 				      bool destroy_p, zfs_fh *dir_fh);

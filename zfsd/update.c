@@ -1921,23 +1921,7 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
     {
       /* Remote file exists.  */
 
-      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-      if (r2 != ZFS_OK)
-	abort ();
-#endif
-
-      meta.modetype = GET_MODETYPE (0, FT_BAD);
-      if (metadata_n_hardlinks (vol, &res->file, &meta) > 1)
-	{
-	  if (delete_tree_name (dir, name, vol, false) != ZFS_OK)
-	    return ZFS_UPDATE_FAILED;
-	}
-      else
-	{
-	  if (!move_to_shadow (vol, local_fh, dir, name, &meta))
-	    return ZFS_UPDATE_FAILED;
-	}
+      return local_reintegrate_del_base (&res->file, name, false, dir_fh);
     }
   else if (r == ENOENT || r == ESTALE)
     {

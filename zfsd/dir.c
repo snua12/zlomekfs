@@ -4719,6 +4719,40 @@ local_reintegrate_del_fh (zfs_fh *fh)
   return r;
 }
 
+/* If DESTROY_P delete local file NAME with file handle FH and its subtree
+   from directory DIR_FH, otherwise move it to shadow.  */
+
+int32_t
+local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
+			    zfs_fh *dir_fh)
+{
+  volume vol;
+  internal_dentry dir;
+  metadata meta;
+  int32_t r;
+
+  r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+  if (r != ZFS_OK)
+    abort ();
+#endif
+
+  meta.modetype = GET_MODETYPE (0, FT_BAD);
+  if (destroy_p
+      || metadata_n_hardlinks (vol, fh, &meta) > 1)
+    {
+      if (delete_tree_name (dir, name, vol, true) != ZFS_OK)
+	return ZFS_UPDATE_FAILED;
+    }
+  else
+    {
+      if (!move_to_shadow (vol, fh, dir, name, &meta))
+	return ZFS_UPDATE_FAILED;
+    }
+
+  return ZFS_OK;
+}
+
 /* If DESTROY_P delete local file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
@@ -4726,8 +4760,8 @@ int32_t
 local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
 		       string *name, bool destroy_p, zfs_fh *dir_fh)
 {
-  metadata meta;
   dir_op_res res;
+  metadata meta;
   int32_t r;
 
   TRACE ("");
@@ -4752,26 +4786,7 @@ local_reintegrate_del (volume vol, zfs_fh *fh, internal_dentry dir,
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r != ZFS_OK)
-    abort ();
-#endif
-
-  meta.modetype = GET_MODETYPE (0, FT_BAD);
-  if (destroy_p
-      || metadata_n_hardlinks (vol, &res.file, &meta) > 1)
-    {
-      if (delete_tree_name (dir, name, vol, true) != ZFS_OK)
-	return ZFS_UPDATE_FAILED;
-    }
-  else
-    {
-      if (!move_to_shadow (vol, &res.file, dir, name, &meta))
-	return ZFS_UPDATE_FAILED;
-    }
-
-  return ZFS_OK;
+  return local_reintegrate_del_base (&res.file, name, destroy_p, dir_fh);
 }
 
 /* Delete remote file FH from shadow.  */
