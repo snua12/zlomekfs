@@ -452,7 +452,7 @@ read_config (const char *file)
     }
   fclose (f);
 
-  if (!nodename || !*nodename)
+  if (!node_name || !*node_name)
     {
       message (-1, stderr,
 	       "Node name was not autodetected nor defined in configuration file.\n");
