@@ -5248,7 +5248,7 @@ local_reintegrate (internal_dentry dentry, char status)
 /* Acquire (STATUS != 0) or release (STATUS == 0) the privilege to reintegrate
    remote file DENTRY on volume VOL.  */
 
-static int32_t
+int32_t
 remote_reintegrate (internal_dentry dentry, char status, volume vol)
 {
   reintegrate_args args;

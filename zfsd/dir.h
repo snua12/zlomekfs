@@ -112,6 +112,8 @@ extern int32_t zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name,
 extern int32_t local_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t remote_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t zfs_file_info (file_info_res *res, zfs_fh *fh);
+extern int32_t remote_reintegrate (internal_dentry dentry, char status,
+				   volume vol);
 extern int32_t zfs_reintegrate (zfs_fh *fh, char status);
 extern int32_t local_reintegrate_add (volume vol, internal_dentry dir,
 				      string *name, zfs_fh *fh,
