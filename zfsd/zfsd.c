@@ -419,11 +419,15 @@ main (int argc, char **argv)
     die ();
 #endif
 
+  printf ("sizeof (pthread_mutex_t) = %u\n", sizeof (pthread_mutex_t));
+  printf ("sizeof (pthread_cond_t) = %u\n", sizeof (pthread_cond_t));
   printf ("sizeof (thread) = %u\n", sizeof (thread));
   printf ("sizeof (padded_thread) = %u\n", sizeof (padded_thread));
   printf ("sizeof (internal_fh) = %u\n", sizeof (struct internal_fh_def));
   printf ("sizeof (internal_dentry) = %u\n", sizeof (struct internal_dentry_def));
   printf ("sizeof (virtual_dir) = %u\n", sizeof (struct virtual_dir_def));
+  printf ("sizeof (fattr) = %u\n", sizeof (fattr));
+  printf ("sizeof (varray) = %u\n", sizeof (varray));
   printf ("sizeof (metadata) = %u\n", sizeof (metadata));
   printf ("sizeof (fh_mapping) = %u\n", sizeof (fh_mapping));
 
