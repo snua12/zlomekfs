@@ -2231,6 +2231,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   void **slot, **slot2;
   file_info_res info;
   fh_mapping map;
+  bool have_conflicts;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -2273,6 +2274,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       RETURN_INT (r);
     }
 
+  have_conflicts = false;
   HTAB_FOR_EACH_SLOT (local_entries.htab, slot)
     {
       entry = (dir_entry *) *slot;
@@ -2369,7 +2371,8 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		abort ();
 #endif
 
-	      /* Create a create-create or an attr-attr conflict.  */
+	      /* Create a create-create conflict.  */
+	      have_conflicts = true;
 	      conflict = create_conflict (vol, dir, &entry->name,
 					  &local_res.file, &local_res.attr);
 	      add_file_to_conflict_dir (vol, conflict, true, &local_res.file,
@@ -2418,6 +2421,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 #endif
 
 	      /* Create a modify-delete conflict.  */
+	      have_conflicts = true;
 	      remote_res.file.sid = dir->fh->meta.master_fh.sid;
 	      conflict = create_conflict (vol, dir, &entry->name, &local_res.file,
 					  &local_res.attr);
@@ -2523,7 +2527,7 @@ out:
     abort ();
 #endif
 
-  if (!dir->fh->journal->first)
+  if (!dir->fh->journal->first && !have_conflicts)
     {
       if (!set_metadata (vol, dir->fh, r == ZFS_OK ? METADATA_COMPLETE : 0,
 			 attr->version, attr->version))
