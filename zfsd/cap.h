@@ -30,6 +30,12 @@
 /* Number of random bytes used to compute VERIFY.  */
 #define CAP_RANDOM_LEN 16
 
+/* Mark the ZFS capability CAP to be undefined.  */
+#define zfs_cap_undefine(CAP) ((CAP).flags = UINT32_MAX)
+
+/* Return true if the ZFS capability CAP is undefined.  */
+#define zfs_cap_undefined(CAP) ((CAP).flags == UINT32_MAX)
+
 typedef struct internal_cap_def
 {
   pthread_mutex_t mutex;

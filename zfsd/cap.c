@@ -155,8 +155,8 @@ internal_cap_create_dentry (internal_dentry dentry, uint32_t flags)
       return NULL;
     }
   cap->local_cap.fh = dentry->fh->local_fh;
-  cap->master_cap.fh = dentry->fh->master_fh;
   cap->local_cap.flags = flags;
+  cap->master_cap.fh = dentry->fh->master_fh;
   cap->master_cap.flags = flags;
   cap->busy = 1;
   cap->fd = -1;
@@ -200,9 +200,9 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
       return NULL;
     }
   cap->local_cap.fh = vd->fh;
-  cap->master_cap.fh = vd->fh;
   cap->local_cap.flags = flags;
-  cap->master_cap.flags = flags;
+  zfs_fh_undefine (cap->master_cap.fh);
+  zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;

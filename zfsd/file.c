@@ -205,6 +205,12 @@ remote_close (internal_cap cap, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_cap_undefined (cap->master_cap))
+    abort ();
+  if (zfs_fh_undefined (cap->master_cap.fh))
+    abort ();
+#endif
 
   t = (thread *) pthread_getspecific (thread_data_key);
 
@@ -316,6 +322,10 @@ remote_create (create_res *res, internal_fh dir, string *name,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.where.dir = dir->master_fh;
   args.where.name = *name;
@@ -419,12 +429,20 @@ zfs_create_retry:
 
 	  internal_dentry_destroy (dentry, vol);
 	}
-      dentry = internal_dentry_create (&res->file, &res->file, vol,
-				       idir, name->str, &res->attr);
+      if (vol->local_path)
+	dentry = internal_dentry_create (&res->file, &undefined_fh, vol,
+					 idir, name->str, &res->attr);
+      else
+	dentry = internal_dentry_create (&res->file, &res->file, vol,
+					 idir, name->str, &res->attr);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry);
 
       if (vol->local_path)
 	{
+	  /* Remote file is not open.  */
+	  zfs_fh_undefine (icap->master_cap.fh);
+	  zfs_cap_undefine (icap->master_cap);
+
 	  if (vol->master != this_node)
 	    {
 	      if (load_interval_trees (vol, dentry->fh))
@@ -433,7 +451,6 @@ zfs_create_retry:
 		  icap->fd = fd;
 		  memcpy (res->cap.verify, icap->local_cap.verify,
 			  ZFS_VERIFY_LEN);
-		  memset (&icap->master_cap, -1, sizeof (icap->master_cap));
 
 		  zfsd_mutex_lock (&opened_mutex);
 		  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
@@ -509,11 +526,12 @@ local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
   return ZFS_OK;
 }
 
-/* Open remote file for capability ICAP with open flags FLAGS on volume VOL.
-   Store ZFS capability to CAP.  */
+/* Open remote file for capability ICAP (whose internal dentry is DENTRY)
+   with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
 static int32_t
-remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags, volume vol)
+remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
+	     internal_dentry dentry, volume vol)
 {
   open_args args;
   thread *t;
@@ -523,6 +541,15 @@ remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&icap->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dentry->fh->master_fh))
+    abort ();
+#endif
+
+  /* Initialize capability.  */
+  icap->master_cap.fh = dentry->fh->master_fh;
+  icap->master_cap.flags = icap->local_cap.flags;
 
   args.file = icap->master_cap.fh;
   args.flags = icap->master_cap.flags | flags;
@@ -595,6 +622,10 @@ zfs_open_retry:
 
   if (vol->local_path)
     {
+      /* Remote file is not open.  */
+      zfs_fh_undefine (icap->master_cap.fh);
+      zfs_cap_undefine (icap->master_cap);
+
       if (vol->master != this_node)
 	{
 	  if (dentry->fh->attr.type != FT_REG
@@ -604,7 +635,6 @@ zfs_open_retry:
 	      if (r == ZFS_OK)
 		{
 		  memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
-		  memset (&icap->master_cap, -1, sizeof (icap->master_cap));
 		}
 	      else
 		{
@@ -631,7 +661,7 @@ zfs_open_retry:
     }
   else if (vol->master != this_node)
     {
-      r = remote_open (cap, icap, flags & ~O_ACCMODE, vol);
+      r = remote_open (cap, icap, flags & ~O_ACCMODE, dentry, vol);
       if (r == ZFS_OK)
 	{
 	  memcpy (icap->master_cap.verify, cap->verify, ZFS_VERIFY_LEN);
@@ -960,6 +990,12 @@ remote_readdir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_cap_undefined (cap->master_cap))
+    abort ();
+  if (zfs_fh_undefined (cap->master_cap.fh))
+    abort ();
+#endif
 
   args.cap = cap->master_cap;
   args.cookie = data->cookie;
@@ -1171,6 +1207,12 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_cap_undefined (cap->master_cap))
+    abort ();
+  if (zfs_fh_undefined (cap->master_cap.fh))
+    abort ();
+#endif
 
   args.cap = cap->master_cap;
   args.offset = offset;
@@ -1422,6 +1464,12 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_cap_undefined (cap->master_cap))
+    abort ();
+  if (zfs_fh_undefined (cap->master_cap.fh))
+    abort ();
+#endif
 
   args->cap = cap->master_cap;
   t = (thread *) pthread_getspecific (thread_data_key);
@@ -1696,6 +1744,13 @@ remote_md5sum_retry:
   r = find_capability (&args->cap, &icap, &vol, &dentry, NULL);
   if (r != ZFS_OK)
     return r;
+
+#ifdef ENABLE_CHECKING
+  if (zfs_cap_undefined (icap->master_cap))
+    abort ();
+  if (zfs_fh_undefined (icap->master_cap.fh))
+    abort ();
+#endif
 
   if (dentry->fh->attr.type != FT_REG)
     {

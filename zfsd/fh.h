@@ -36,6 +36,7 @@ typedef struct volume_def *volume;
 #include "fibheap.h"
 #include "interval.h"
 #include "zfs_prot.h"
+#include "util.h"
 
 #define VIRTUAL_DEVICE 0	/* Device number of device with virtual
 				   directories */
@@ -49,6 +50,14 @@ typedef struct volume_def *volume;
 			    && (FH).dev == VIRTUAL_DEVICE	\
 			    && (FH).vid == VOLUME_ID_NONE	\
 			    && (FH).sid == NODE_ANY)
+
+/* Mark the ZFS file handle FH to be undefined.  */
+#define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
+			     ? memset (&(FH), -1, sizeof (zfs_fh))	\
+			     : (abort (), (void *) 0))
+
+/* Return true if the ZFS file handle FH is undefined.  */
+#define zfs_fh_undefined(FH) (bytecmp (&(FH), -1, sizeof (zfs_fh)))
 
 /* Hash function for zfs_fh FH.  */
 #define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))
@@ -179,6 +188,9 @@ struct virtual_dir_def
 
 /* File handle of ZFS root.  */
 extern zfs_fh root_fh;
+
+/* Static undefined ZFS file handle.  */
+extern zfs_fh undefined_fh;
 
 /* Hash table of virtual directories, searched by fh.  */
 extern htab_t vd_htab;

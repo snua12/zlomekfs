@@ -45,6 +45,9 @@
 /* File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
 
+/* Static undefined ZFS file handle.  */
+zfs_fh undefined_fh;
+
 /* The virtual directory root.  */
 static virtual_dir root;
 
@@ -1301,6 +1304,8 @@ debug_virtual_tree ()
 void
 initialize_fh_c ()
 {
+  zfs_fh_undefine (undefined_fh);
+
   /* Data structures for file handles.  */
   zfsd_mutex_init (&fh_pool_mutex);
   fh_pool = create_alloc_pool ("fh_pool", sizeof (struct internal_fh_def),

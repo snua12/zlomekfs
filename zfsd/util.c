@@ -165,6 +165,7 @@ bytecmp (const void *p, int byte, size_t len)
 {
   const unsigned char *s;
 
+  byte = (unsigned int) byte & 255;
   for (s = (const unsigned char *) p; len-- > 0; s++)
     if (*s != byte)
       return false;

@@ -250,14 +250,10 @@ get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
 	  r = get_volume_root_local (vol, local_fh, attr);
 	  if (r != ZFS_OK)
 	    return r;
+	}
 
-	  if (master_fh)
-	    memcpy (master_fh, local_fh, sizeof (zfs_fh));
-	}
-      else if (master_fh)
-	{
-	  r = get_volume_root_local (vol, master_fh, attr);
-	}
+      if (master_fh)
+	zfs_fh_undefine (*master_fh);
     }
   else if (vol->local_path)
     {
@@ -272,11 +268,21 @@ get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
 	    {
 	      fattr tmp;
 	      r = get_volume_root_remote (vol, master_fh, &tmp);
+	      if (r < ZFS_OK)
+		{
+		  zfs_fh_undefine (*master_fh);
+		  r = ZFS_OK;
+		}
 	    }
 	}
       else if (master_fh)
 	{
 	  r = get_volume_root_remote (vol, master_fh, attr);
+	  if (r < ZFS_OK)
+	    {
+	      zfs_fh_undefine (*master_fh);
+	      r = ZFS_OK;
+	    }
 	}
     }
   else
@@ -318,17 +324,23 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry)
 
   if (vol->root_dentry == NULL
       || !ZFS_FH_EQ (vol->root_dentry->fh->local_fh, local_fh)
-      || !ZFS_FH_EQ (vol->root_dentry->fh->master_fh, master_fh))
+      || (!ZFS_FH_EQ (vol->root_dentry->fh->master_fh, master_fh)
+	  && !zfs_fh_undefined (vol->root_dentry->fh->master_fh)))
     {
-      /* FIXME? delete only FHs which are not open now?  */
       if (vol->root_dentry)
 	{
 	  zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
+	  /* FIXME? delete only FHs which are not open now?  */
 	  internal_dentry_destroy (vol->root_dentry, vol);
 	}
 
       vol->root_dentry = internal_dentry_create (&local_fh, &master_fh, vol,
 						 NULL, "", &attr);
+    }
+  else if (zfs_fh_undefined (vol->root_dentry->fh->master_fh))
+    {
+      zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
+      vol->root_dentry->fh->master_fh = master_fh;
     }
   else
     zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
@@ -448,6 +460,10 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
 
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dentry->fh->master_fh))
+    abort ();
+#endif
 
   t = (thread *) pthread_getspecific (thread_data_key);
 
@@ -609,6 +625,10 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
 
   CHECK_MUTEX_LOCKED (&fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (fh->master_fh))
+    abort ();
+#endif
 
   args.file = fh->master_fh;
   args.attr = *sa;
@@ -751,6 +771,10 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
 
   CHECK_MUTEX_LOCKED (&dir->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.dir = dir->master_fh;
   args.name = *name;
@@ -864,6 +888,7 @@ zfs_lookup_retry:
   if (vol->local_path)
     {
       r = local_lookup (res, idir, name, vol);
+#if 0
       if (r == ZFS_OK)
 	{
 	  if (vol->master == this_node)
@@ -871,6 +896,9 @@ zfs_lookup_retry:
 	  else
 	    r = remote_lookup (&master_res, idir->fh, name, vol);
 	}
+#else
+      zfs_fh_undefine (master_res.file);
+#endif
     }
   else if (vol->master != this_node)
     {
@@ -892,12 +920,17 @@ zfs_lookup_retry:
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
-	      || !ZFS_FH_EQ (dentry->fh->master_fh, master_res.file))
+	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
+		  && !zfs_fh_undefined (dentry->fh->master_fh)))
 	    {
 	      internal_dentry_destroy (dentry, vol);
 	      dentry = internal_dentry_create (&res->file, &master_res.file,
 					       vol, idir, name->str,
 					       &res->attr);
+	    }
+	  else if (zfs_fh_undefined (dentry->fh->master_fh))
+	    {
+	      dentry->fh->master_fh = master_res.file;
 	    }
 	}
       else
@@ -969,6 +1002,10 @@ remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.where.dir = dir->master_fh;
   args.where.name = *name;
@@ -1049,6 +1086,7 @@ zfs_mkdir_retry:
   if (vol->local_path)
     {
       r = local_mkdir (res, idir, name, attr, vol);
+#if 0
       if (r == ZFS_OK)
 	{
 	  if (vol->master == this_node)
@@ -1056,6 +1094,9 @@ zfs_mkdir_retry:
 	  else
 	    r = remote_mkdir (&master_res, idir->fh, name, attr, vol);
 	}
+#else
+      zfs_fh_undefine (master_res.file);
+#endif
     }
   else if (vol->master != this_node)
     {
@@ -1141,6 +1182,10 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.dir = dir->master_fh;
   args.name = *name;
@@ -1276,6 +1321,12 @@ remote_rename (internal_fh from_dir, string *from_name,
   CHECK_MUTEX_LOCKED (&from_dir->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (from_dir->master_fh))
+    abort ();
+  if (zfs_fh_undefined (to_dir->master_fh))
+    abort ();
+#endif
 
   args.from.dir = from_dir->master_fh;
   args.from.name = *from_name;
@@ -1512,6 +1563,12 @@ remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&from->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (from->master_fh))
+    abort ();
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.from = from->master_fh;
   args.to.dir = dir->master_fh;
@@ -1756,6 +1813,10 @@ remote_unlink (internal_fh dir, string *name, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.dir = dir->master_fh;
   args.name = *name;
@@ -1889,6 +1950,10 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (fh->master_fh))
+    abort ();
+#endif
 
   t = (thread *) pthread_getspecific (thread_data_key);
 
@@ -2002,6 +2067,10 @@ remote_symlink (internal_fh dir, string *name, string *to, sattr *attr,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.from.dir = dir->master_fh;
   args.from.name = *name;
@@ -2150,6 +2219,10 @@ remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (dir->master_fh))
+    abort ();
+#endif
 
   args.where.dir = dir->master_fh;
   args.where.name = *name;
