@@ -1407,10 +1407,10 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
       if (parent)
 	{
 	  /* Lower the fibheap keys if they are FIBHEAPKEY_MAX.  */
-	  if (dentry->heap_node->key == FIBHEAPKEY_MAX)
+	  if (dentry->heap_node && dentry->heap_node->key == FIBHEAPKEY_MAX)
 	    dentry_update_cleanup_node (dentry);
 	  for (old = dentry->next; old != dentry; old = old->next)
-	    if (old->heap_node->key == FIBHEAPKEY_MAX)
+	    if (old->heap_node && old->heap_node->key == FIBHEAPKEY_MAX)
 	      dentry_update_cleanup_node (old);
 	}
     }
