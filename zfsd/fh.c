@@ -127,19 +127,27 @@ cleanup_dentry_insert_node (internal_dentry dentry)
 static void
 cleanup_dentry_update_node (internal_dentry dentry)
 {
+  time_t new_time;
+
 #ifdef ENABLE_CHECKING
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
-  zfsd_mutex_lock (&cleanup_dentry_mutex);
-  if (dentry->heap_node)
+  new_time = time (NULL);
+  if (dentry->last_use != new_time)
     {
-      fibheapkey_t key;
+      dentry->last_use = new_time;
+      zfsd_mutex_lock (&cleanup_dentry_mutex);
+      if (dentry->heap_node)
+	{
+	  fibheapkey_t key;
 
-      key = dentry->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use;
-      fibheap_replace_key (cleanup_dentry_heap, dentry->heap_node, key);
+	  key = (dentry->ncap > 0
+		 ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use);
+	  fibheap_replace_key (cleanup_dentry_heap, dentry->heap_node, key);
+	}
+      zfsd_mutex_unlock (&cleanup_dentry_mutex);
     }
-  zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
 
 /* Delete IFH->HEAP_NODE from CLEANUP_FH_HEAP and set it to NULL.  */
@@ -448,7 +456,6 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	}
 
       zfsd_mutex_lock (&dentry->fh->mutex);
-      dentry->last_use = time (NULL);
       cleanup_dentry_update_node (dentry);
 
       *volp = vol;
@@ -497,7 +504,6 @@ dentry_lookup_name (volume vol, internal_dentry parent, const char *name)
   if (dentry)
     {
       zfsd_mutex_lock (&dentry->fh->mutex);
-      dentry->last_use = time (NULL);
       cleanup_dentry_update_node (dentry);
     }
 
