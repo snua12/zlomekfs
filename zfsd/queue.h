@@ -41,11 +41,13 @@ typedef struct queue_def
   unsigned int size;		/* size of an element */
   queue_node first;		/* first node of the queue */
   queue_node last;		/* last node of the queue */
+  bool exiting;			/* is the program going to exit? */
 } queue;
 
 extern void queue_create (queue *q, size_t size, size_t num);
 extern void queue_destroy (queue *q);
 extern void queue_put (queue *q, void *elem);
-extern void queue_get (queue *q, void *elem);
+extern bool queue_get (queue *q, void *elem);
+extern void queue_exiting (queue *q);
 
 #endif
