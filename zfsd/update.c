@@ -2147,6 +2147,9 @@ out:
   return r;
 }
 
+/* Reintegrate journal of deleted directory DIR_ENTRY on volume VID.
+   Use RES for lookups.  */
+
 static int32_t
 reintegrate_deleted_fh (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
 {
@@ -2161,9 +2164,11 @@ reintegrate_deleted_fh (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
   bool defined_master_fh;
   bool local_exists;
 
-  fh.dev = entry->dev;
-  fh.ino = entry->ino;
-  fh.gen = entry->gen;
+  TRACE ("");
+
+  fh.dev = dir_entry->dev;
+  fh.ino = dir_entry->ino;
+  fh.gen = dir_entry->gen;
   journal = journal_create (10, NULL);
 
   vol = volume_lookup (vid);
