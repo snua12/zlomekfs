@@ -37,8 +37,8 @@ dc_create (void)
 {
   DC *dc;
 
-  dc = xmalloc (sizeof (DC));
-  dc->buffer = ALIGN_PTR_16 (dc->data);
+  dc = (DC *) xmalloc (sizeof (DC));
+  dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
 
   return dc;
 }
