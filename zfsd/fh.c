@@ -2934,6 +2934,7 @@ virtual_mountpoint_create (volume vol)
   unsigned int i;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   mountpoint = (char *) xmemdup (vol->mountpoint.str, vol->mountpoint.len + 1);
@@ -2957,7 +2958,6 @@ virtual_mountpoint_create (volume vol)
     }
 
   /* Create the components of the path.  */
-  zfsd_mutex_lock (&vd_mutex);
   vd = root;
   zfsd_mutex_lock (&root->mutex);
   for (i = 0; i < VARRAY_USED (subpath); i++)
@@ -2990,7 +2990,6 @@ virtual_mountpoint_create (volume vol)
       tmp->n_mountpoints++;
       zfsd_mutex_unlock (&tmp->mutex);
     }
-  zfsd_mutex_unlock (&vd_mutex);
 
   free (mountpoint);
 
