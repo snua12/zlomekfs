@@ -536,7 +536,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 #endif
   *slot = fh;
 
-  if (vol->local_path)
+  if (vol->local_path
+      && (fh->attr.type == FT_REG || fh->attr.type == FT_DIR))
     {
       if (!init_metadata (vol, fh))
 	vol->flags |= VOLUME_DELETE;
@@ -571,7 +572,8 @@ internal_fh_destroy (internal_fh fh, volume vol)
 #endif
   htab_clear_slot (vol->fh_htab, slot);
 
-  if (vol->local_path)
+  if (vol->local_path
+      && (fh->attr.type == FT_REG || fh->attr.type == FT_DIR))
     {
       if (!flush_metadata (vol, fh))
 	vol->flags |= VOLUME_DELETE;
