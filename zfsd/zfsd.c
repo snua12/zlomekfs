@@ -349,6 +349,7 @@ initialize_data_structures (void)
     return false;
 
   /* Initialize data structures in other modules.  */
+  initialize_config_c ();
   if (!initialize_random_c ())
     return false;
 
