@@ -232,7 +232,7 @@ out:
 
   pthread_cleanup_pop (1);
 
-  return data;
+  return NULL;
 }
 
 /* Function which gets a request and passes it to some kernel thread.
