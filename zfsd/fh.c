@@ -1576,6 +1576,7 @@ internal_dentry_link (internal_fh fh, volume vol,
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
   if (parent)
     CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
