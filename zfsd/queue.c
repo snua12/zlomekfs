@@ -36,7 +36,7 @@ queue_create (queue *q, size_t size)
 #endif
 
   pthread_rwlock_init (&q->lock, NULL);
-  q->queue = xmalloc (size * sizeof (size_t));
+  q->queue = (size_t *) xmalloc (size * sizeof (size_t));
   q->size = size;
   q->nelem = 0;
   q->start = 0;
