@@ -457,6 +457,7 @@ hfile_insert (hfile_t hfile, void *x)
       return false;
     }
 
+  status = le_to_u32 (*(uint32_t *) hfile->element);
   *(uint32_t *) x = u32_to_le (VALID_SLOT);
 
   if ((uint64_t) lseek (hfile->fd, offset, SEEK_SET) != offset)
