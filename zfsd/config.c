@@ -50,6 +50,9 @@ char *node_name;
 /* Length of host name of local node.  */
 unsigned int node_name_len;
 
+/* Depth of directory tree for saving metadata about files.  */
+unsigned int metadata_tree_depth = 1;
+
 /* Directory with node configuration. */
 char *node_config;
 
@@ -492,6 +495,21 @@ read_config_file (const char *file)
 		    {
 		      message (0, stderr, "Not an unsigned number: %s\n",
 			       value);
+		    }
+		}
+	      else if (strncasecmp (key, "metadatatreedepth", 18) == 0)
+		{
+		  if (sscanf (value, "%u", &metadata_tree_depth) != 1)
+		    {
+		      message (0, stderr, "Not an unsigned number: %s\n",
+			       value);
+		    }
+		  else
+		    {
+		      if (metadata_tree_depth > 6)
+			metadata_tree_depth = 6;
+		      message (1, stderr, "MetadataTreeDepth = %u\n",
+			       metadata_tree_depth);
 		    }
 		}
 	      else
