@@ -189,14 +189,13 @@ waiting4reply_eq (const void *xx, const void *yy)
 static void
 init_fd_data (int fd)
 {
+  CHECK_MUTEX_LOCKED (&active_mutex);
+  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&active_mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
-    abort ();
   if (fd < 0)
     abort ();
 #endif
+
   /* Set the server's data.  */
   active[nactive] = &server_fd_data[fd];
   nactive++;
@@ -225,9 +224,8 @@ init_fd_data (int fd)
 void
 close_server_fd (int fd)
 {
+  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
 #ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
-    abort ();
   if (fd < 0)
     abort ();
 #endif
@@ -247,12 +245,9 @@ close_active_fd (int i)
   int j;
   void **slot;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&active_mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&active_mutex);
+  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
+
   close_server_fd (fd);
   nactive--;
   if (i < nactive)
@@ -283,10 +278,7 @@ send_request (thread *t, uint32_t request_id, int fd)
   void **slot;
   waiting4reply_data *wd;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[fd].mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&server_fd_data[fd].mutex);
 
   if (!running)
     {

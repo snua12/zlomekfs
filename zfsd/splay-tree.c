@@ -229,10 +229,7 @@ splay_tree_create (unsigned preferred_size,
 void
 splay_tree_destroy (splay_tree sp)
 {
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   if (sp->root)
     splay_tree_destroy_helper (sp, sp->root);
@@ -247,10 +244,7 @@ splay_tree_destroy (splay_tree sp)
 splay_tree_node
 splay_tree_insert (splay_tree sp, splay_tree_key key, splay_tree_value value)
 {
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   splay_tree_splay (sp, key);
 
@@ -297,10 +291,7 @@ splay_tree_insert (splay_tree sp, splay_tree_key key, splay_tree_value value)
 void
 splay_tree_delete (splay_tree sp, splay_tree_key key)
 {
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   splay_tree_splay (sp, key);
 
@@ -342,10 +333,7 @@ splay_tree_delete (splay_tree sp, splay_tree_key key)
 splay_tree_node
 splay_tree_lookup (splay_tree sp, splay_tree_key key)
 {
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   splay_tree_splay (sp, key);
 
@@ -362,10 +350,7 @@ splay_tree_max (splay_tree sp)
 {
   splay_tree_node n = sp->root;
 
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   if (!n)
     return NULL;
@@ -383,10 +368,7 @@ splay_tree_min (splay_tree sp)
 {
   splay_tree_node n = sp->root;
 
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   if (!n)
     return NULL;
@@ -405,10 +387,7 @@ splay_tree_predecessor (splay_tree sp, splay_tree_key key)
 {
   splay_tree_node node;
 
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   /* If the tree is empty, there is certainly no predecessor.  */
   if (!sp->root)
@@ -439,10 +418,7 @@ splay_tree_successor (splay_tree sp, splay_tree_key key)
 {
   splay_tree_node node;
 
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   /* If the tree is empty, there is certainly no successor.  */
   if (!sp->root)
@@ -473,10 +449,7 @@ splay_tree_successor (splay_tree sp, splay_tree_key key)
 int
 splay_tree_foreach (splay_tree sp, splay_tree_foreach_fn fn, void *data)
 {
-#ifdef ENABLE_CHECKING
-  if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (sp->mutex);
 
   if (sp->root)
     return splay_tree_foreach_helper (sp, sp->root, fn, data);

@@ -100,12 +100,8 @@ create_idle_thread (thread_pool *pool, thread_start start,
   thread *t = &pool->threads[index].t;
   int r;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&pool->empty.mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&pool->idle.mutex);
+  CHECK_MUTEX_LOCKED (&pool->empty.mutex);
 
   r = semaphore_init (&t->sem, 0);
   if (r != 0)
@@ -147,12 +143,8 @@ destroy_idle_thread (thread_pool *pool)
   thread *t = &pool->threads[index].t;
   int r;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&pool->empty.mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&pool->idle.mutex);
+  CHECK_MUTEX_LOCKED (&pool->empty.mutex);
 
   t->state = THREAD_DYING;
   semaphore_up (&t->sem, 1);
@@ -178,10 +170,7 @@ void
 thread_pool_regulate (thread_pool *pool, thread_start start,
 		      thread_initialize init)
 {
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&pool->idle.mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&pool->idle.mutex);
 
   zfsd_mutex_lock (&pool->empty.mutex);
 

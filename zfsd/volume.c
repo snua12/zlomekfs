@@ -117,10 +117,7 @@ volume_destroy (volume vol)
 {
   void **slot;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&volume_mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&volume_mutex);
 
   virtual_mountpoint_destroy (vol);
 

@@ -171,12 +171,8 @@ node_destroy (node nod)
 {
   void **slot;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&node_mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&node_mutex);
+  CHECK_MUTEX_LOCKED (&nod->mutex);
 
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
@@ -205,10 +201,8 @@ node_destroy (node nod)
 void
 node_update_fd (node nod, int fd, unsigned int generation)
 {
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&nod->mutex);
+
   if (nod->fd >= 0 && nod->fd != fd)
     {
       zfsd_mutex_lock (&server_fd_data[nod->fd].mutex);
@@ -227,10 +221,7 @@ node_update_fd (node nod, int fd, unsigned int generation)
 bool
 node_connected_p (node nod)
 {
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&nod->mutex);
 
   if (nod->fd < 0)
     return false;
@@ -254,10 +245,7 @@ node_connect (node nod)
   int s;
   int err;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&nod->mutex);
 
   /* Lookup the IP address.  */
   addr = NULL;
@@ -334,18 +322,13 @@ node_authenticate (thread *t, node nod)
   auth_stage1_args args1;
   auth_stage2_args args2;
 
+  CHECK_MUTEX_LOCKED (&nod->mutex);
+  CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
+  
   memset (&args1, 0, sizeof (args1));
   memset (&args2, 0, sizeof (args2));
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
 
   /* FIXME: really do authentication; currently the functions are empty.  */
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
-    abort ();
-#endif
   args1.node.len = node_name_len;
   args1.node.str = node_name;
   if (zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd) != ZFS_OK)
@@ -353,10 +336,7 @@ node_authenticate (thread *t, node nod)
   if (!node_connected_p (nod))
     goto node_authenticate_error;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
   server_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
 
   if (zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd) != ZFS_OK)
@@ -364,10 +344,7 @@ node_authenticate (thread *t, node nod)
   if (!node_connected_p (nod))
     goto node_authenticate_error;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&server_fd_data[nod->fd].mutex);
   server_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
   return true;
 

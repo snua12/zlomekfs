@@ -64,12 +64,20 @@
     pthread_cond_signal (C);						\
   } while (0)
 
+/* Check whether the mutex M is locked.  */
+#define CHECK_MUTEX_LOCKED(M)						\
+  do {									\
+    if ((M) && pthread_mutex_trylock (M) == 0)				\
+      abort ();								\
+  } while (0)
+
 #else
 
 #define zfsd_mutex_lock(M) pthread_mutex_lock (M)
 #define zfsd_mutex_unlock(M) pthread_mutex_unlock (M)
 #define zfsd_cond_wait(C, M) pthread_cond_wait (C, M)
 #define zfsd_cond_signal(C) pthread_cond_signal (C)
+#define CHECK_MUTEX_LOCKED(M)
 
 #endif
 

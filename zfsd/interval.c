@@ -55,10 +55,7 @@ interval_tree_create (unsigned preferred_size, pthread_mutex_t *mutex)
 void
 interval_tree_destroy (interval_tree tree)
 {
-#ifdef ENABLE_CHECKING
-  if (tree->mutex && pthread_mutex_trylock (tree->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (tree->mutex);
 
   splay_tree_destroy (tree->splay);
   free (tree);
@@ -71,10 +68,7 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
 {
   splay_tree_node node, prev, next;
 
-#ifdef ENABLE_CHECKING
-  if (tree->mutex && pthread_mutex_trylock (tree->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (tree->mutex);
 
   if ((node = splay_tree_lookup (tree->splay, start)) != NULL)
     {
@@ -150,10 +144,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 {
   splay_tree_node node, prev, next;
 
-#ifdef ENABLE_CHECKING
-  if (tree->mutex && pthread_mutex_trylock (tree->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (tree->mutex);
 
   if ((node = splay_tree_lookup (tree->splay, start)) != NULL)
     {

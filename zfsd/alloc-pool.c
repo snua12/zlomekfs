@@ -146,10 +146,8 @@ free_alloc_pool (alloc_pool pool)
 #ifdef ENABLE_CHECKING
   if (!pool)
     abort ();
-
-  if (pool->mutex && pthread_mutex_trylock (pool->mutex) == 0)
-    abort ();
 #endif
+  CHECK_MUTEX_LOCKED (pool->mutex);
 
   /* Free each block allocated to the pool.  */
   for (block = pool->block_list; block != NULL; block = next_block)
@@ -172,10 +170,8 @@ pool_alloc (alloc_pool pool)
 #ifdef ENABLE_CHECKING
   if (!pool)
     abort ();
-
-  if (pool->mutex && pthread_mutex_trylock (pool->mutex) == 0)
-    abort ();
 #endif
+  CHECK_MUTEX_LOCKED (pool->mutex);
 
   /* If there are no more free elements, make some more!.  */
   if (!pool->free_list)
@@ -240,8 +236,7 @@ pool_free (alloc_pool pool, void *ptr)
   if (!ptr)
     abort ();
 
-  if (pool->mutex && pthread_mutex_trylock (pool->mutex) == 0)
-    abort ();
+  CHECK_MUTEX_LOCKED (pool->mutex);
 
   /* Check whether the PTR was allocated from POOL.  */
   if (pool->id != ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr)->id)

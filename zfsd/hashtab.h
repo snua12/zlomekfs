@@ -118,10 +118,7 @@ extern void **htab_find_slot_with_hash (htab_t htab, const void *elem,
 
 /* Loop through all valid SLOTs of hash table HTAB.  */
 #define HTAB_FOR_EACH_SLOT(HTAB, SLOT, CODE)			\
-  if ((HTAB)->mutex						\
-      && pthread_mutex_trylock ((HTAB)->mutex) == 0)		\
-      abort ();							\
-								\
+  CHECK_MUTEX_LOCKED ((HTAB)->mutex);				\
   for ((SLOT) = (HTAB)->table;					\
        (SLOT) < (HTAB)->table + (HTAB)->size;			\
        (SLOT)++)						\

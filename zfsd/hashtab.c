@@ -190,10 +190,7 @@ htab_destroy (htab_t htab)
 {
   unsigned int i;
 
-#ifdef ENABLE_CHECKING
-  if (htab->mutex && pthread_mutex_trylock (htab->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (htab->mutex);
 
   if (htab->del_f)
     {
@@ -212,10 +209,7 @@ htab_empty (htab_t htab)
 {
   unsigned int i;
 
-#ifdef ENABLE_CHECKING
-  if (htab->mutex && pthread_mutex_trylock (htab->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (htab->mutex);
 
   if (htab->del_f)
     {
@@ -233,10 +227,8 @@ htab_empty (htab_t htab)
 void
 htab_clear_slot (htab_t htab, void **slot)
 {
+  CHECK_MUTEX_LOCKED (htab->mutex);
 #ifdef ENABLE_CHECKING
-  if (htab->mutex && pthread_mutex_trylock (htab->mutex) == 0)
-    abort ();
-
   if (slot < htab->table || slot >= htab->table + htab->size
       || *slot == EMPTY_ENTRY || *slot == DELETED_ENTRY)
     abort ();
@@ -268,10 +260,7 @@ htab_find_with_hash (htab_t htab, const void *elem, hash_t hash)
   unsigned int step;
   void *entry;
 
-#ifdef ENABLE_CHECKING
-  if (htab->mutex && pthread_mutex_trylock (htab->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (htab->mutex);
 
   size = htab->size;
   index = hash % size;
@@ -316,10 +305,7 @@ htab_find_slot_with_hash (htab_t htab, const void *elem, hash_t hash,
   unsigned int step;
   void **first_deleted_slot;
 
-#ifdef ENABLE_CHECKING
-  if (htab->mutex && pthread_mutex_trylock (htab->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (htab->mutex);
 
   if (insert == INSERT && htab->size * 2 <= htab->n_elements * 3)
     htab_expand (htab);

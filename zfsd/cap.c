@@ -80,10 +80,7 @@ internal_cap_lookup (internal_fh fh, unsigned int mode)
   zfs_cap tmp_cap;
   internal_cap cap;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&cap_mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&cap_mutex);
 
   tmp_cap.fh = fh->local_fh;
   tmp_cap.mode = mode;
@@ -103,10 +100,8 @@ internal_cap_create (internal_fh fh, unsigned int mode)
   internal_cap cap;
   void **slot;
 
+  CHECK_MUTEX_LOCKED (&cap_mutex);
 #ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&cap_mutex) == 0)
-    abort ();
-
   /* This should be handled in ZFS "open".  */
   if (fh->attr.type == FT_DIR && mode != O_RDONLY)
     abort ();
@@ -147,12 +142,9 @@ internal_cap_destroy (internal_cap cap)
 {
   void **slot;
 
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&cap_mutex) == 0)
-    abort ();
-  if (pthread_mutex_trylock (&cap->mutex) == 0)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&cap_mutex);
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+
   slot = htab_find_slot_with_hash (cap_htab, cap, INTERNAL_CAP_HASH (cap),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING

@@ -65,9 +65,8 @@ queue_destroy (queue *q)
 void
 queue_put (queue *q, size_t elem)
 {
+  CHECK_MUTEX_LOCKED (&q->mutex);
 #ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&q->mutex) == 0)
-    abort ();
   if (q->size == 0)
     abort ();
   if (q->nelem == q->size)
@@ -89,9 +88,8 @@ queue_get (queue *q)
 {
   size_t r;
 
+  CHECK_MUTEX_LOCKED (&q->mutex);
 #ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&q->mutex) == 0)
-    abort ();
   if (q->size == 0)
     abort ();
 #endif
