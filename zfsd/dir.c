@@ -2470,6 +2470,67 @@ remote_rename (internal_dentry from_dir, string *from_name,
   return r;
 }
 
+/* Move the dentry for FROM_NAME in FROM_DIR to TO_NAME in TO_DIR
+   on volume VOL.  File handle of FROM_DIR is FROM_FH, file handle of TO_DIR
+   if TO_FH.  META_OLD is the metadata of overwritten file, METADATA_NEW
+   is the metadata of the moved file.  Add neccessary records to journals
+   and increase versions of directories.  */
+
+static void
+zfs_rename_finish (internal_dentry *from_dir, string *from_name,
+		   internal_dentry *to_dir, string *to_name, volume *vol,
+		   zfs_fh *from_fh, zfs_fh *to_fh,
+		   metadata *meta_old, metadata *meta_new)
+{
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&(*vol)->mutex);
+#ifdef ENABLE_CHECKING
+  if (*from_dir)
+    CHECK_MUTEX_LOCKED (&(*from_dir)->fh->mutex);
+  if (*to_dir)
+    CHECK_MUTEX_LOCKED (&(*to_dir)->fh->mutex);
+#endif
+
+  /* Move the dentry if it exists.  */
+  if (*from_dir && *to_dir)
+    {
+      internal_dentry_move (from_dir, from_name, to_dir, to_name, vol,
+			    from_fh, to_fh);
+    }
+
+  if (*from_dir && INTERNAL_FH_HAS_LOCAL_PATH ((*from_dir)->fh)
+      && !((*from_dir)->fh->meta.flags & METADATA_SHADOW_TREE))
+    {
+      if ((*vol)->master != this_node)
+	{
+	  if (!add_journal_entry_meta (*vol, (*from_dir)->fh, meta_new,
+				       from_name, JOURNAL_OPERATION_DEL))
+	    MARK_VOLUME_DELETE (*vol);
+	}
+
+      if (!inc_local_version (*vol, (*from_dir)->fh))
+	MARK_VOLUME_DELETE (*vol);
+    }
+
+  if (*to_dir && INTERNAL_FH_HAS_LOCAL_PATH ((*to_dir)->fh)
+      && !((*to_dir)->fh->meta.flags & METADATA_SHADOW_TREE))
+    {
+      if ((*vol)->master != this_node)
+	{
+	  if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_old,
+				       to_name, JOURNAL_OPERATION_DEL))
+	    MARK_VOLUME_DELETE (*vol);
+
+	  if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_new,
+				       to_name, JOURNAL_OPERATION_ADD))
+	    MARK_VOLUME_DELETE (*vol);
+	}
+
+      if (!inc_local_version (*vol, (*to_dir)->fh))
+	MARK_VOLUME_DELETE (*vol);
+    }
+}
+
 /* Rename file FROM_NAME in directory FROM_DIR to file TO_NAME
    in directory TO_DIR.  */
 
@@ -2694,36 +2755,10 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       else
 	from_dentry = to_dentry;
 
-      /* Move the dentry if it exists.  */
-      internal_dentry_move (&from_dentry, from_name, &to_dentry, to_name,
-			    &vol, &tmp_from, &tmp_to);
+      zfs_rename_finish (&from_dentry, from_name, &to_dentry, to_name, &vol,
+			 &tmp_from, &tmp_to, &meta_old, &meta_new);
 
-      if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
-	{
-	  if (vol->master != this_node)
-	    {
-	      if (meta_old.slot_status == VALID_SLOT)
-		{
-		  if (!add_journal_entry_meta (vol, to_dentry->fh, &meta_old,
-					     to_name, JOURNAL_OPERATION_DEL))
-		    MARK_VOLUME_DELETE (vol);
-		}
-
-	      if (!add_journal_entry_meta (vol, from_dentry->fh, &meta_new,
-					   from_name, JOURNAL_OPERATION_DEL))
-		MARK_VOLUME_DELETE (vol);
-	      if (!add_journal_entry_meta (vol, to_dentry->fh, &meta_new,
-					   to_name, JOURNAL_OPERATION_ADD))
-		MARK_VOLUME_DELETE (vol);
-	    }
-
-	  if (!inc_local_version (vol, from_dentry->fh))
-	    MARK_VOLUME_DELETE (vol);
-	  if (!inc_local_version (vol, to_dentry->fh))
-	    MARK_VOLUME_DELETE (vol);
-	}
-
-      if (to_dentry != from_dentry)
+      if (tmp_from.ino != tmp_to.ino)
 	release_dentry (from_dentry);
     }
 
