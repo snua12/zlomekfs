@@ -36,7 +36,9 @@ extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							internal_dentry *dir);
 extern int32_t update_volume_root (volume vol, internal_dentry *dentry);
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
-extern int32_t local_getattr (fattr *attr, char *path, volume vol);
+extern int32_t local_getattr_path (fattr *attr, char *path, volume vol);
+extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
+extern int32_t remote_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
 extern int32_t local_setattr_path (fattr *fa, char *path, sattr *sa,
 				   volume vol);

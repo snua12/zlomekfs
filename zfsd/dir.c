@@ -409,7 +409,7 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
 /* Get attributes of local file PATH on volume VOL and store them to ATTR.  */
 
 int32_t
-local_getattr (fattr *attr, char *path, volume vol)
+local_getattr_path (fattr *attr, char *path, volume vol)
 {
   struct stat st;
   int32_t r;
@@ -424,6 +424,62 @@ local_getattr (fattr *attr, char *path, volume vol)
   return ZFS_OK;
 }
 
+/* Get attributes of local file DENTRY on volume VOL
+   and store them to ATTR.  */
+
+int32_t
+local_getattr (fattr *attr, internal_dentry dentry, volume vol)
+{
+  char *path;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  path = build_local_path (vol, dentry);
+  r = local_getattr_path (attr, path, vol);
+  free (path);
+
+  return r;
+}
+
+/* Get attributes of remote file DENTRY on volume VOL
+   and store them to ATTR.  */
+
+int32_t
+remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
+{
+  thread *t;
+  int32_t r;
+  int fd;
+
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_getattr_client (t, &dentry->fh->master_fh, vol->master, &fd);
+  if (r == ZFS_OK)
+    {
+      if (!decode_fattr (&t->dc_reply, attr)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (&t->dc_reply, fd);
+
+  return r;
+}
+
 /* Get attributes for file with handle FH and store them to FA.  */
 
 int32_t
@@ -433,25 +489,55 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   internal_dentry dentry;
   virtual_dir vd;
   int32_t r;
+  int retry = 0;
 
+zfs_getattr_retry:
+  
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, &vd);
   if (r != ZFS_OK)
     return r;
 
-  /* TODO: Update file and fattr.  */
+  if (!dentry)
+    {
+      if (vol)
+	{
+	  r = update_volume_root (vol, &dentry);
+	  zfsd_mutex_unlock (&vd->mutex);
+	  if (r != ZFS_OK)
+	    {
+	      zfsd_mutex_unlock (&vol->mutex);
+	      return r;
+	    }
+	}
+      else
+	{
+	  *fa = vd->attr;
+	  zfsd_mutex_unlock (&vd->mutex);
+	  return ZFS_OK;
+	}
+    }
 
-  if (vd)
-    {
-      *fa = vd->attr;
-      zfsd_mutex_unlock (&vd->mutex);
-    }
-  else /* if (dentry) */
-    {
-      *fa = dentry->fh->attr;
-      zfsd_mutex_unlock (&dentry->fh->mutex);
-    }
+  if (vol->local_path)
+    r = local_getattr (&dentry->fh->attr, dentry, vol);
+  else if (vol->master != this_node)
+    r = remote_getattr (&dentry->fh->attr, dentry, vol);
+  else
+    abort ();
+
+  if (r == ZFS_OK)
+    *fa = dentry->fh->attr;
+
+  zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  if (r == ESTALE && retry < 1)
+    {
+      retry++;
+      r = refresh_path (fh);
+      if (r == ZFS_OK)
+	goto zfs_getattr_retry;
+    }
 
   return ZFS_OK;
 }
@@ -494,7 +580,7 @@ local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
     }
 
   if (fa)
-    return local_getattr (fa, path, vol);
+    return local_getattr_path (fa, path, vol);
   return ZFS_OK;
 }
 
@@ -646,7 +732,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
-  r = local_getattr (&res->attr, path, vol);
+  r = local_getattr_path (&res->attr, path, vol);
   free (path);
   if (r != ZFS_OK)
     return r;
