@@ -1482,7 +1482,7 @@ init_metadata_for_created_volume_root (volume vol)
    and update FH->GEN.  Insert the metadata to hash file if INSERT is true and
    the metadata was not found.  */
 
-static bool
+bool
 lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
