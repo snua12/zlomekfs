@@ -424,7 +424,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	      && fd_data->dc[0]->max_length <= DC_SIZE)
 	    fd_data->dc[0]->max_length = 12;
 	}
-	
+
       /* Dispatch the packet.  */
       zfsd_mutex_lock (&fd_data->mutex);
       if (kernel_dispatch (fd_data))

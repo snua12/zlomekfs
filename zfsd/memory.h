@@ -29,7 +29,7 @@
 #else
 # include <stddef.h>
 # include <inttypes.h>
-#endif 
+#endif
 
 #include "varray.h"
 

@@ -304,7 +304,7 @@ node_has_valid_fd (node nod)
 /* Return the speed of connection between current node and master
    of volume VOL.  */
 
-connection_speed 
+connection_speed
 volume_master_connected (volume vol)
 {
   connection_speed speed;

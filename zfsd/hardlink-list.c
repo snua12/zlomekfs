@@ -84,7 +84,7 @@ hardlink_list_destroy (hardlink_list hl)
   while (VARRAY_USED (hl->array) > 0)
     {
       hardlink_list_entry del;
-      
+
       del = VARRAY_TOP (hl->array, hardlink_list_entry);
       VARRAY_POP (hl->array);
 

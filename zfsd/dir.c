@@ -1657,7 +1657,7 @@ zfs_rmdir_retry:
 	  for (; *slash != '/'; slash--)
 	    ;
 	  *slash = 0;
-	  
+
 	  if (lstat (path, &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
@@ -1988,7 +1988,7 @@ zfs_rename_retry:
 	  if (!inc_local_version (vol, to_dentry->fh))
 	    vol->delete_p = true;
 	}
-      
+
       if (to_dentry != from_dentry)
 	release_dentry (from_dentry);
     }
@@ -2439,7 +2439,7 @@ zfs_unlink_retry:
 	  for (; *slash != '/'; slash--)
 	    ;
 	  *slash = 0;
-	  
+
 	  if (lstat (path, &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,

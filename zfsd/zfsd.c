@@ -484,7 +484,7 @@ main (int argc, char **argv)
     }
 
   fd_data_shutdown ();
-  
+
   if (update_started)
     update_cleanup ();
   if (network_started)
