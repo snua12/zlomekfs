@@ -1389,7 +1389,7 @@ close_journal_file (journal_t journal)
 
 /* Initialize interval tree of type TYPE for file handle FH on volume VOL.  */
 
-bool
+static bool
 init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   int fd;
@@ -1500,7 +1500,7 @@ flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
 /* Flush the interval tree of type TYPE for file handle FH on volume VOL
    to file and free the interval tree.  */
 
-bool
+static bool
 free_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   string path;
