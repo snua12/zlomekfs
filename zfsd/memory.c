@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #include "log.h"
 #include "memory.h"
+#include "varray.h"
 
 /* Similar to CALLOC but always returns valid pointer.  */
 void *
@@ -116,24 +117,46 @@ xmemdup (const void *src, size_t n)
 
 /* Return a concatenation of N strings.  */
 char *
-xstrconcat (int n, ...)
+xstrconcat (unsigned int n, ...)
 {
   va_list va;
-  int i;
-  size_t len;
-  char *r, *s, *d;
-  int l[n];
+  unsigned int i;
+  char *s;
+  varray v;
 
-  /* Compute the final length.  */
-  len = 0;
+  /* Store the arguments to varray V.  */
+  varray_create (&v, sizeof (char *), n);
   va_start (va, n);
   for (i = 0; i < n; i++)
     {
       s = va_arg (va, char *);
-      l[i] = strlen (s);
-      len += l[i];
+      VARRAY_PUSH (v, s, char *);
     }
   va_end (va);
+
+  return xstrconcat_varray (&v);
+}
+
+/* Return a concatenation of strings stored in varray.  */
+char *
+xstrconcat_varray (varray *va)
+{
+  varray v;
+  unsigned int i, n;
+  size_t l, len;
+  char *r, *s, *d;
+
+  n = VARRAY_USED (*va);
+
+  /* Compute the final length and lengths of all input strings.  */
+  len = 0;
+  varray_create (&v, sizeof (size_t), n);
+  for (i = 0; i < n; i++)
+    {
+      l = strlen (VARRAY_ACCESS (*va, i, char *));
+      VARRAY_PUSH (v, l, size_t);
+      len += l;
+    }
 
   r = (char *) malloc (len + 1);
   if (!r)
@@ -144,15 +167,14 @@ xstrconcat (int n, ...)
 
   /* Concatenate the strings.  */
   d = r;
-  va_start (va, n);
   for (i = 0; i < n; i++)
     {
-      s = va_arg (va, char *);
-      memcpy (d, s, l[i]);
-      d += l[i];
+      s = VARRAY_ACCESS (*va, i, char *);
+      l = VARRAY_ACCESS (v, i, size_t);
+      memcpy (d, s, l);
+      d += l;
     }
   *d = 0;
-  va_end (va);
 
   return r;
 }
