@@ -32,16 +32,6 @@ full_read (int fd, char *buf, size_t len)
   ssize_t r;
   unsigned int total_read;
 
-  if (verbose >= 2)
-    {
-      size_t i;
-
-      message (2, stderr, "Reading data from %d to %p:\n", fd, buf);
-      for (i = 0; i < len; i++)
-	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
-      fprintf (stderr, "\n");
-    }
-
   for (total_read = 0; total_read < len; total_read += r)
     {
       r = read (fd, buf + total_read, len - total_read);
@@ -50,6 +40,16 @@ full_read (int fd, char *buf, size_t len)
 	  message (2, stderr, "reading data FAILED\n");
 	  return false;
 	}
+    }
+
+  if (verbose >= 3)
+    {
+      size_t i;
+
+      message (3, stderr, "Reading data from %d to %p:\n", fd, buf);
+      for (i = 0; i < len; i++)
+	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
+      fprintf (stderr, "\n");
     }
 
   message (2, stderr, "reading data SUCCEDED\n");
@@ -64,11 +64,11 @@ full_write (int fd, char *buf, size_t len)
   ssize_t w;
   unsigned int total_written;
 
-  if (verbose >= 2)
+  if (verbose >= 3)
     {
       size_t i;
 
-      message (2, stderr, "Writing data to %d from %p:\n", fd, buf);
+      message (3, stderr, "Writing data to %d from %p:\n", fd, buf);
       for (i = 0; i < len; i++)
 	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
       fprintf (stderr, "\n");
