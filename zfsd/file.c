@@ -1,5 +1,5 @@
 /* File operations.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003-2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -66,24 +66,24 @@ static alloc_pool dir_entry_pool;
 /* Mutex protecting DIR_ENTRY_POOL.  */
 static pthread_mutex_t dir_entry_mutex;
 
-/* Initialize data for file descriptor of capability CAP.  */
+/* Initialize data for file descriptor of file handle FH.  */
 
 static void
-init_cap_fd_data (internal_cap cap)
+init_fh_fd_data (internal_fh fh)
 {
 #ifdef ENABLE_CHECKING
-  if (cap->fd < 0)
+  if (fh->fd < 0)
     abort ();
 #endif
   CHECK_MUTEX_LOCKED (&opened_mutex);
-  CHECK_MUTEX_LOCKED (&internal_fd_data[cap->fd].mutex);
+  CHECK_MUTEX_LOCKED (&internal_fd_data[fh->fd].mutex);
 
-  internal_fd_data[cap->fd].fd = cap->fd;
-  internal_fd_data[cap->fd].generation++;
-  cap->generation = internal_fd_data[cap->fd].generation;
-  internal_fd_data[cap->fd].heap_node
+  internal_fd_data[fh->fd].fd = fh->fd;
+  internal_fd_data[fh->fd].generation++;
+  fh->generation = internal_fd_data[fh->fd].generation;
+  internal_fd_data[fh->fd].heap_node
     = fibheap_insert (opened, (fibheapkey_t) time (NULL),
-		      &internal_fd_data[cap->fd]);
+		      &internal_fd_data[fh->fd]);
 }
 
 /* Close file descriptor FD of local file.  */
@@ -151,32 +151,32 @@ retry_open:
   return fd;
 }
 
-/* If local file for capability CAP is opened return true and lock
-   INTERNAL_FD_DATA[CAP->FD].MUTEX.  */
+/* If local file for file handle FH is opened return true and lock
+   INTERNAL_FD_DATA[FH->FD].MUTEX.  */
 
 static bool
-capability_opened_p (internal_cap cap)
+capability_opened_p (internal_fh fh)
 {
-  if (cap->fd < 0)
+  if (fh->fd < 0)
     return false;
 
   zfsd_mutex_lock (&opened_mutex);
-  zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
-  if (cap->generation != internal_fd_data[cap->fd].generation)
+  zfsd_mutex_lock (&internal_fd_data[fh->fd].mutex);
+  if (fh->generation != internal_fd_data[fh->fd].generation)
     {
-      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      zfsd_mutex_unlock (&internal_fd_data[fh->fd].mutex);
       zfsd_mutex_unlock (&opened_mutex);
       return false;
     }
 
-  internal_fd_data[cap->fd].heap_node
-    = fibheap_replace_key (opened, internal_fd_data[cap->fd].heap_node,
+  internal_fd_data[fh->fd].heap_node
+    = fibheap_replace_key (opened, internal_fd_data[fh->fd].heap_node,
 			   (fibheapkey_t) time (NULL));
   zfsd_mutex_unlock (&opened_mutex);
   return true;
 }
 
-/* Open local file for capability CAP (whose internal file handle is FH)
+/* Open local file for capability CAP associated with dentry DENTRY
    with additional FLAGS on volume VOL.  */
 
 static int32_t
@@ -192,21 +192,21 @@ capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
     abort ();
 #endif
 
-  /* Some flags were specified so close the capability first.  */
+  /* Some flags were specified so close the file descriptor first.  */
   if (flags)
-    local_close (cap);
+    local_close (dentry->fh);
 
-  else if (capability_opened_p (cap))
+  else if (capability_opened_p (dentry->fh))
     return ZFS_OK;
 
   path = build_local_path (vol, dentry);
-  cap->fd = safe_open (path, cap->local_cap.flags | flags, 0);
+  dentry->fh->fd = safe_open (path, O_RDWR | flags, 0);
   free (path);
-  if (cap->fd >= 0)
+  if (dentry->fh->fd >= 0)
     {
       zfsd_mutex_lock (&opened_mutex);
-      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
-      init_cap_fd_data (cap);
+      zfsd_mutex_lock (&internal_fd_data[dentry->fh->fd].mutex);
+      init_fh_fd_data (dentry->fh);
       zfsd_mutex_unlock (&opened_mutex);
       return ZFS_OK;
     }
@@ -214,21 +214,23 @@ capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
   return errno;
 }
 
-/* Close local file for internal capability CAP on volume VOL.  */
+/* Close local file for internal file handle FH.  */
 
 int32_t
-local_close (internal_cap cap)
+local_close (internal_fh fh)
 {
-  if (cap->fd >= 0)
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (fh->fd >= 0)
     {
       zfsd_mutex_lock (&opened_mutex);
-      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
-      if (cap->generation == internal_fd_data[cap->fd].generation)
-	close_local_fd (cap->fd);
+      zfsd_mutex_lock (&internal_fd_data[fh->fd].mutex);
+      if (fh->generation == internal_fd_data[fh->fd].generation)
+	close_local_fd (fh->fd);
       else
-	zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+	zfsd_mutex_unlock (&internal_fd_data[fh->fd].mutex);
       zfsd_mutex_unlock (&opened_mutex);
-      cap->fd = -1;
+      fh->fd = -1;
     }
 
   return ZFS_OK;
@@ -296,7 +298,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   path = build_local_path_name (vol, dir, name->str);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
-  r = safe_open (path, flags, attr->mode);
+  r = safe_open (path, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
     {
       free (path);
@@ -476,14 +478,14 @@ zfs_create_retry:
 	    {
 	      if (load_interval_trees (vol, dentry->fh))
 		{
-		  local_close (icap);
-		  icap->fd = fd;
+		  local_close (dentry->fh);
+		  dentry->fh->fd = fd;
 		  memcpy (res->cap.verify, icap->local_cap.verify,
 			  ZFS_VERIFY_LEN);
 
 		  zfsd_mutex_lock (&opened_mutex);
 		  zfsd_mutex_lock (&internal_fd_data[fd].mutex);
-		  init_cap_fd_data (icap);
+		  init_fh_fd_data (dentry->fh);
 		  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 		  zfsd_mutex_unlock (&opened_mutex);
 		}
@@ -491,19 +493,19 @@ zfs_create_retry:
 		{
 		  vol->flags |= VOLUME_DELETE;
 		  r = ZFS_METADATA_ERROR;
-		  local_close (icap);
+		  local_close (dentry->fh);
 		  close (fd);
 		}
 	    }
 	  else
 	    {
-	      local_close (icap);
-	      icap->fd = fd;
+	      local_close (dentry->fh);
+	      dentry->fh->fd = fd;
 	      memcpy (res->cap.verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
 
 	      zfsd_mutex_lock (&opened_mutex);
 	      zfsd_mutex_lock (&internal_fd_data[fd].mutex);
-	      init_cap_fd_data (icap);
+	      init_fh_fd_data (dentry->fh);
 	      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 	      zfsd_mutex_unlock (&opened_mutex);
 	    }
@@ -546,7 +548,7 @@ local_open (internal_cap icap, uint32_t flags,
 
   r = capability_open (icap, flags, dentry, vol);
   if (r == ZFS_OK)
-    zfsd_mutex_unlock (&internal_fd_data[icap->fd].mutex);
+    zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   return r;
@@ -775,7 +777,7 @@ zfs_close_retry:
 		vol->flags |= VOLUME_DELETE;
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
-	  r = local_close (icap);
+	  r = local_close (dentry->fh);
 	}
       else
 	{
@@ -1059,19 +1061,19 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 
       if (cookie < 0)
 	cookie = 0;
-      r = lseek (cap->fd, cookie, SEEK_SET);
+      r = lseek (dentry->fh->fd, cookie, SEEK_SET);
       if (r < 0)
 	{
-	  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+	  zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
 	  return errno;
 	}
 
       while (1)
 	{
-	  r = getdents (cap->fd, (struct dirent *) buf, ZFS_MAXDATA);
+	  r = getdents (dentry->fh->fd, (struct dirent *) buf, ZFS_MAXDATA);
 	  if (r <= 0)
 	    {
-	      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+	      zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
 
 	      /* Comment from glibc: On some systems getdents fails with ENOENT when
 		 open directory has been rmdir'd already.  POSIX.1 requires that we
@@ -1122,7 +1124,7 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 	      if (!(*filldir) (de->d_ino, cookie, de->d_name,
 			       strlen (de->d_name), list, data))
 		{
-		  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+		  zfsd_mutex_unlock (&internal_fd_data[dentry->fh->fd].mutex);
 		  return ZFS_OK;
 		}
 	    }
@@ -1444,7 +1446,7 @@ local_read (uint32_t *rcount, void *buffer, internal_cap cap,
       return r;
     }
 
-  fd = cap->fd;
+  fd = dentry->fh->fd;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -1709,7 +1711,7 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
       return r;
     }
 
-  fd = cap->fd;
+  fd = dentry->fh->fd;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -1957,7 +1959,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
       zfsd_mutex_unlock (&vol->mutex);
       if (r != ZFS_OK)
 	{
-	  local_close (icap);
+	  local_close (dentry->fh);
 	  put_capability (icap, dentry->fh, NULL);
 	  release_dentry (dentry);
 	  return r;
@@ -1974,7 +1976,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
   /* Close directory.  */
   zfsd_mutex_unlock (&vol->mutex);
-  r = local_close (icap);
+  r = local_close (dentry->fh);
   put_capability (icap, dentry->fh, NULL);
   release_dentry (dentry);
   return r;

@@ -1,5 +1,5 @@
 /* File handle functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003-2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -909,6 +909,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->level = LEVEL_UNLOCKED;
   fh->users = 0;
   fh->owner = 0;
+  fh->fd = -1;
+  fh->generation = 0;
 
   if (fh->attr.type == FT_DIR)
     varray_create (&fh->subdentries, sizeof (internal_dentry), 16);

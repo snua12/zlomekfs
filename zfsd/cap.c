@@ -1,5 +1,5 @@
 /* Capability functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003-2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -195,8 +195,6 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
   cap->busy = 1;
-  cap->fd = -1;
-  cap->generation = 0;
   internal_cap_compute_verify (cap);
   cap->next = fh->cap;
   fh->cap = cap;
@@ -234,8 +232,6 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   zfs_fh_undefine (cap->master_cap.fh);
   zfs_cap_undefine (cap->master_cap);
   cap->busy = 1;
-  cap->fd = -1;
-  cap->generation = 0;
   internal_cap_compute_verify (cap);
   cap->next = NULL;
   vd->cap = cap;
@@ -243,69 +239,63 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   return cap;
 }
 
-/* Destroy capability CAP associated with internal file handle FH.  */
+/* Destroy capability CAP associated with internal file handle FH or
+   virtual directory VD.  */
 
 static void
-internal_cap_destroy_fh (internal_cap cap, internal_fh fh)
+internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
 {
-  internal_cap icap, prev;
-
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  if (vd)
+    {
+      CHECK_MUTEX_LOCKED (&vd->mutex);
 #ifdef ENABLE_CHECKING
-  if (fh->cap == NULL)
-    abort ();
+      if (vd->cap != cap)
+	abort ();
 #endif
 
-  if (cap->fd >= 0)
-    local_close (cap);
-
-  if (cap == fh->cap)
-    {
-      icap = cap;
-      fh->cap = cap->next;
+      vd->cap = NULL;
     }
   else
     {
-      for (prev = fh->cap, icap = prev->next; icap; icap = icap->next)
+      internal_cap icap, prev;
+
+      CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+      if (fh->cap == NULL)
+	abort ();
+#endif
+
+      if (cap == fh->cap)
 	{
-	  if (icap == cap)
+	  icap = cap;
+	  fh->cap = cap->next;
+	}
+      else
+	{
+	  for (prev = fh->cap, icap = prev->next; icap; icap = icap->next)
 	    {
-	      prev->next = cap->next;
-	      break;
+	      if (icap == cap)
+		{
+		  prev->next = cap->next;
+		  break;
+		}
+	      prev = icap;
 	    }
-	  prev = icap;
 	}
 
 #ifdef ENABLE_CHECKING
       if (icap == NULL)
 	abort ();
 #endif
+
     }
 
-  zfsd_mutex_lock (&cap_mutex);
-  pool_free (cap_pool, cap);
-  zfsd_mutex_unlock (&cap_mutex);
-}
-
-/* Destroy capability CAP associated with virtual directory VD.  */
-
-static void
-internal_cap_destroy_vd (internal_cap cap, virtual_dir vd)
-{
-  CHECK_MUTEX_LOCKED (&vd->mutex);
-#ifdef ENABLE_CHECKING
-  if (vd->cap != cap)
-    abort ();
-#endif
-
-  if (cap->fd >= 0)
-    local_close (cap);
+  if (fh && !fh->cap)
+    local_close (fh);
 
   zfsd_mutex_lock (&cap_mutex);
   pool_free (cap_pool, cap);
   zfsd_mutex_unlock (&cap_mutex);
-
-  vd->cap = NULL;
 }
 
 /* Get an internal capability CAP and store it to ICAPP. Store capability's
@@ -527,12 +517,7 @@ put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 
   cap->busy--;
   if (cap->busy == 0)
-    {
-      if (vd)
-	internal_cap_destroy_vd (cap, vd);
-      else
-	internal_cap_destroy_fh (cap, fh);
-    }
+    internal_cap_destroy (cap, fh, vd);
 
   return ZFS_OK;
 }

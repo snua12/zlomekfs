@@ -1,5 +1,5 @@
 /* File operations.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003-2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -64,7 +64,7 @@ typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
 			   readdir_data *data);
 
 #include "cap.h"
-extern int32_t local_close (internal_cap cap);
+extern int32_t local_close (internal_fh fh);
 extern int32_t remote_close (internal_cap cap, internal_dentry dentry,
 			     volume vol);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,

@@ -1,5 +1,5 @@
 /* Capability functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003-2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -54,12 +54,6 @@ struct internal_cap_def
 
   /* Number of clients using this capability.  */
   unsigned int busy;
-
-  /* Open file descriptor.  */
-  int fd;
-
-  /* Generation of open file descriptor.  */
-  unsigned int generation;
 };
 
 #include "fh.h"

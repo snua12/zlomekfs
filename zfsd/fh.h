@@ -1,5 +1,5 @@
 /* File handle functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003-2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -162,6 +162,12 @@ struct internal_fh_def
 
   /* Owner of the file handle if level == LEVEL_EXCLUSIVE.  */
   pthread_t owner;
+
+  /* Open file descriptor.  */
+  int fd;
+
+  /* Generation of open file descriptor.  */
+  unsigned int generation;
 };
 
 /* Internal directory entry.  */
