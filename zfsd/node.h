@@ -38,7 +38,7 @@ typedef struct node_def
   pthread_mutex_t mutex;
   uint32_t id;			/* ID of the node */
   string name;			/* name of the node */
-				/* public key */
+  string host_name;		/* DNS name or IP address of the node */
   time_t last_connect;		/* last attemp to connect to node */
   int fd;			/* file descriptor */
   unsigned int generation;	/* generation of open file descriptor */
@@ -58,8 +58,14 @@ typedef struct node_def
 /* Mutex for table of nodes.  */
 extern pthread_mutex_t node_mutex;
 
-/* The host name of local node.  */
+/* ID of this node.  */
+extern uint32_t this_node_id;
+
+/* The name of local node.  */
 extern string node_name;
+
+/* The host name of local node.  */
+extern string node_host_name;
 
 /* Description of local node.  */
 extern node this_node;
@@ -67,9 +73,9 @@ extern node this_node;
 /* Function prototypes.  */
 extern node node_lookup (uint32_t id);
 extern node node_lookup_name (string *name);
-extern node node_create (uint32_t id, string *name);
-extern node node_create_wrapper (uint32_t id, char *name);
-extern node try_create_node (uint32_t id, string *name);
+extern node node_create (uint32_t id, string *name, string *host_name);
+extern node node_create_wrapper (uint32_t id, char *name, char *host_name);
+extern node try_create_node (uint32_t id, string *name, string *host_name);
 extern void node_destroy (node nod);
 extern void mark_all_nodes (void);
 extern void initialize_node_c (void);

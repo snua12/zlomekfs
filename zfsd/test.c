@@ -59,7 +59,7 @@ fake_config (void)
   set_str (&kernel_file_name, "/dev/zfs");
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create_wrapper (1, "orion");
+  nod = node_create_wrapper (1, "orion", "orion");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&vd_mutex);
@@ -100,7 +100,7 @@ fake_config (void)
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create_wrapper (2, "artax");
+  nod = node_create_wrapper (2, "artax", "artax");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&vd_mutex);
@@ -153,7 +153,7 @@ fake_config (void)
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create_wrapper (3, "find");
+  nod = node_create_wrapper (3, "find", "find");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&vd_mutex);

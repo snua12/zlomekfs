@@ -43,8 +43,14 @@ static htab_t node_htab_name;
 /* Mutex for table of nodes.  */
 pthread_mutex_t node_mutex;
 
-/* The host name of local node.  */
+/* ID of this node.  */
+uint32_t this_node_id;
+
+/* The name of local node.  */
 string node_name;
+
+/* The host name of local node.  */
+string node_host_name;
 
 /* Description of local node.  */
 node this_node;
@@ -136,7 +142,7 @@ node_lookup_name (string *name)
 /* Create new node with ID and NAME and insert it to hash table.  */
 
 node
-node_create (uint32_t id, string *name)
+node_create (uint32_t id, string *name, string *host_name)
 {
   node nod;
   void **slot;
@@ -146,6 +152,7 @@ node_create (uint32_t id, string *name)
   nod = (node) xmalloc (sizeof (struct node_def));
   nod->id = id;
   xstringdup (&nod->name, name);
+  xstringdup (&nod->host_name, host_name);
   nod->last_connect = 0;
   nod->fd = -1;
   nod->generation = 0;
@@ -198,14 +205,17 @@ node_create (uint32_t id, string *name)
 /* Wrapper for node_create.  */
 
 node
-node_create_wrapper (uint32_t id, char *name)
+node_create_wrapper (uint32_t id, char *name, char *host_name)
 {
   string name_str;
+  string host_name_str;
   node nod;
 
-  xmkstring (&name_str, name);
-  nod = node_create (id, &name_str);
-  free (name_str.str);
+  name_str.str = name;
+  name_str.len = strlen (name);
+  host_name_str.str = host_name;
+  host_name_str.len = strlen (host_name);
+  nod = node_create (id, &name_str, &host_name_str);
 
   return nod;
 }
@@ -213,7 +223,7 @@ node_create_wrapper (uint32_t id, char *name)
 /* Create node NAME with ID if ID and NAME does not exist.  */
 
 node
-try_create_node (uint32_t id, string *name)
+try_create_node (uint32_t id, string *name, string *host_name)
 {
   void **slot, **slot2;
   node nod;
@@ -238,7 +248,7 @@ try_create_node (uint32_t id, string *name)
       return NULL;
     }
 
-  nod = node_create (id, name);
+  nod = node_create (id, name, host_name);
   zfsd_mutex_unlock (&node_mutex);
   return nod;
 }
@@ -283,6 +293,7 @@ node_destroy (node nod)
 
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_destroy (&nod->mutex);
+  free (nod->host_name.str);
   free (nod->name.str);
   free (nod);
 }

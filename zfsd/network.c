@@ -364,7 +364,7 @@ node_connect (node nod)
 
   /* Lookup the IP address.  */
   addr = NULL;
-  if ((err = getaddrinfo (nod->name.str, NULL, NULL, &addr)) != 0)
+  if ((err = getaddrinfo (nod->host_name.str, NULL, NULL, &addr)) != 0)
     {
 #ifdef ENABLE_CHECKING
       if (addr)
@@ -478,7 +478,8 @@ node_connect (node nod)
     }
 
   freeaddrinfo (addr);
-  message (-1, stderr, "Could not connect to %s\n", nod->name.str);
+  message (-1, stderr, "Could not connect to %s (%s)\n", nod->name.str,
+	   nod->host_name.str);
   return -1;
 
 node_connected:
@@ -705,7 +706,8 @@ again:
 
 	/* FIXME: really do authentication */
 
-	message (2, stderr, "FD %d connected to %s\n", fd, nod->name.str);
+	message (2, stderr, "FD %d connected to node %s (%s)\n", fd,
+		 nod->name.str, nod->host_name.str);
 	zfsd_mutex_unlock (&nod->mutex);
 	fd_data_a[fd].auth = AUTHENTICATION_STAGE_1;
 	if (r >= ZFS_ERROR_HAS_DC_REPLY)

@@ -60,9 +60,6 @@ string node_config;
 /* File with private key.  */
 static string private_key;
 
-/* ID of this node.  */
-static uint32_t this_node_id;
-
 /* Process one line of configuration file.  Return the length of value.  */
 
 static int
@@ -264,9 +261,8 @@ set_node_name (void)
   if (uname (&un) != 0)
     return;
 
-  node_name.len = strlen (un.nodename);
-  set_string_with_length (&node_name, un.nodename, node_name.len);
-  message (1, stderr, "Autodetected node name: '%s'\n", node_name.str);
+  set_str (&node_host_name, un.nodename);
+  message (1, stderr, "Autodetected node name: '%s'\n", un.nodename);
 }
 
 /* Set default node UID to UID of user NAME.  Return true on success.  */
@@ -323,6 +319,8 @@ read_local_cluster_config (string *path)
   char *file;
   FILE *f;
   int line_num;
+  string parts[3];
+  char line[LINE_SIZE + 1];
 
   if (path->str == 0)
     {
@@ -334,7 +332,7 @@ read_local_cluster_config (string *path)
   message (2, stderr, "Reading configuration of local node\n");
 
   /* Read ID of local node.  */
-  file = xstrconcat (2, path->str, "/node_id");
+  file = xstrconcat (2, path->str, "/this_node");
   f = fopen (file, "rt");
   if (!f)
     {
@@ -342,22 +340,45 @@ read_local_cluster_config (string *path)
       free (file);
       return false;
     }
-  if (fscanf (f, "%" PRIu32, &this_node_id) != 1)
+  if (!fgets (line, sizeof (line), f))
     {
-      message (0, stderr, "%s: Could not read node ID\n", file);
+      message (0, stderr, "%s: Could not read a line\n", file);
       free (file);
       fclose (f);
       return false;
     }
-  fclose (f);
-  if (this_node_id == 0 || this_node_id == (uint32_t) -1)
+  if (split_and_trim (line, 2, parts) == 2)
     {
-      message (0, stderr, "%s: Node ID must not be 0 or %" PRIu32, file,
-	       (uint32_t) -1);
-      free (file);
-      return false;
+      if (sscanf (parts[0].str, "%" PRIu32, &this_node_id) != 1)
+	{
+	  message (0, stderr, "%s: Could not read node ID\n", file);
+	  free (file);
+	  fclose (f);
+	  return false;
+	}
+      if (this_node_id == 0 || this_node_id == (uint32_t) -1)
+	{
+	  message (0, stderr, "%s: Node ID must not be 0 or %" PRIu32, file,
+		   (uint32_t) -1);
+	  free (file);
+	  fclose (f);
+	  return false;
+	}
+      if (parts[1].len == 0)
+	{
+	  message (0, stderr, "%s: Node name must not be empty\n", file);
+	  free (file);
+	  fclose (f);
+	  return false;
+	}
+      xstringdup (&node_name, &parts[1]);
+    }
+  else
+    {
+      message (0, stderr, "%s:1: Wrong format of line\n", file);
     }
   free (file);
+  fclose (f);
 
   /* Read local info about volumes.  */
   file = xstrconcat (2, path->str, "/volume_info");
@@ -373,9 +394,6 @@ read_local_cluster_config (string *path)
       line_num = 0;
       while (!feof (f))
 	{
-	  string parts[3];
-	  char line[LINE_SIZE + 1];
-
 	  if (!fgets (line, sizeof (line), f))
 	    break;
 
@@ -456,7 +474,7 @@ init_config (void)
     }
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (this_node_id, &node_name);
+  nod = node_create (this_node_id, &node_name, &node_host_name);
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
 
@@ -555,11 +573,11 @@ static int
 process_line_node (char *line, char *file_name, unsigned int line_num,
 		   ATTRIBUTE_UNUSED void *data)
 {
-  string parts[2];
+  string parts[3];
   uint32_t sid;
   node nod;
 
-  if (split_and_trim (line, 2, parts) == 2)
+  if (split_and_trim (line, 3, parts) == 3)
     {
       if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
 	{
@@ -576,9 +594,14 @@ process_line_node (char *line, char *file_name, unsigned int line_num,
 	  message (0, stderr, "%s:%u: Node name must not be empty\n",
 		   file_name, line_num);
 	}
+      else if (parts[2].len == 0)
+	{
+	  message (0, stderr, "%s:%u: Host name must not be empty\n",
+		   file_name, line_num);
+	}
       else
 	{
-	  nod = try_create_node (sid, &parts[1]);
+	  nod = try_create_node (sid, &parts[1], &parts[2]);
 	  if (nod)
 	    zfsd_mutex_unlock (&nod->mutex);
 	}
@@ -634,7 +657,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
       VARRAY_POP (*hierarchy);
     }
 
-  /* Are we processing local node?  */
+  /* Are we processing the local node?  */
   if (strncmp (line + i, node_name.str, node_name.len + 1) == 0)
     return 1;
 
@@ -1341,11 +1364,10 @@ read_config_file (const char *file)
 	    {
 	      /* Configuration options which may have a value.  */
 
-	      if (strncasecmp (key, "nodename", 9) == 0)
+	      if (strncasecmp (key, "hostname", 9) == 0)
 		{
-		  node_name.len = value_len;
-		  set_string_with_length (&node_name, value, value_len);
-		  message (1, stderr, "NodeName = '%s'\n", value);
+		  set_string_with_length (&node_host_name, value, value_len);
+		  message (1, stderr, "HostName = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "privatekey", 11) == 0)
 		{
@@ -1446,10 +1468,10 @@ read_config_file (const char *file)
     }
   fclose (f);
 
-  if (node_name.len == 0)
+  if (node_host_name.len == 0)
     {
       message (-1, stderr,
-	       "Node name was not autodetected nor defined in configuration file.\n");
+	       "Host name was not autodetected nor defined in configuration file.\n");
       return false;
     }
 
@@ -1501,7 +1523,9 @@ read_cluster_config (void)
 void
 cleanup_config_c (void)
 {
-  free (node_name.str);
+  if (node_name.str)
+    free (node_name.str);
+  free (node_host_name.str);
   free (kernel_file_name.str);
   free (node_config.str);
 }
