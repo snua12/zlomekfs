@@ -128,12 +128,13 @@
 
 typedef struct data_coding_def
 {
-  char *unaligned;
-  char *buffer;
-  char *current;
-  unsigned int max_length;
-  unsigned int cur_length;
-  unsigned int size;
+  char *unaligned;		/* pointer allocated by malloc */
+  char *buffer;			/* previous pointer aligned to 16 */
+  char *current;		/* current position to buffer while
+				   encoding/decoding */
+  unsigned int max_length;	/* maximal valid position to buffer */ 
+  unsigned int cur_length;	/* current position to buffer */
+  unsigned int size;		/* size of buffer */
 } DC;
 
 #include "zfs_prot.h"
