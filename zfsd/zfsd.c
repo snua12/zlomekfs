@@ -441,6 +441,7 @@ main (int argc, char **argv)
   printf ("sizeof (padded_thread) = %u\n", sizeof (padded_thread));
   printf ("sizeof (internal_fh) = %u\n", sizeof (struct internal_fh_def));
   printf ("sizeof (internal_dentry) = %u\n", sizeof (struct internal_dentry_def));
+  printf ("sizeof (internal_cap) = %u\n", sizeof (struct internal_cap_def));
   printf ("sizeof (virtual_dir) = %u\n", sizeof (struct virtual_dir_def));
   printf ("sizeof (fattr) = %u\n", sizeof (fattr));
   printf ("sizeof (varray) = %u\n", sizeof (varray));
