@@ -1745,17 +1745,26 @@ lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/* Synchronize file DENTRY with file handle FH on volume VOL
-   with the remote file with attributes ATTR.
-   WHAT are the flags saying what needs to be done.  */
+/** \fn static int32_t synchronize_file (volume vol, internal_dentry dentry,
+        zfs_fh *fh, fattr *attr, int what, bool same_place)
+    \brief Synchronize the local file with the remote file.
+    \param vol Volume which the file is on.
+    \param dentry Dentry of the file.
+    \param fh File handle of the file.
+    \param attr Remote attributes.
+    \param what Flags saying what needs to be done.
+    \param same_place True if the remote attributes are for the file in the
+	   same place as the local file.  */
 
 static int32_t
 synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
-		  int what)
+		  int what, bool same_place)
 {
+  dir_op_res res;
   internal_dentry parent, conflict, other;
   bool local_changed, remote_changed;
   bool attr_conflict, data_conflict;
+  int32_t r;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1766,8 +1775,6 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
     abort ();
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
-  if (dentry->fh->level == LEVEL_UNLOCKED)
-    abort ();
 #endif
 
   local_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr);
@@ -1775,12 +1782,13 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 
   if (local_changed ^ remote_changed)
     {
-      int32_t r;
-
       r = synchronize_attributes (&vol, &dentry, fh, attr, local_changed,
 				  remote_changed);
       if (r != ZFS_OK)
 	RETURN_INT (r);
+
+      if (!dentry)
+	RETURN_INT (ZFS_OK);
     }
 
   if (dentry->fh->attr.type == FT_REG
@@ -1789,71 +1797,86 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
       schedule_update_or_reintegration (vol, dentry);
     }
 
+  if (!same_place)
+    {
+#ifdef ENABLE_CHECKING
+      if (dentry->fh->level == LEVEL_UNLOCKED)
+	abort ();
+#endif
+
+      r = lookup_remote_dentry_in_the_same_place (&res, fh, &dentry, &vol);
+      if (r != ZFS_OK)
+	RETURN_INT (r);
+
+      if (!ZFS_FH_EQ (dentry->fh->meta.master_fh, res.file))
+	{
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  RETURN_INT (ZFS_OK);
+	}
+
+      attr = &res.attr;
+      remote_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, *attr);
+    }
+
   attr_conflict = local_changed && remote_changed;
-  data_conflict = (dentry->fh->attr.version > dentry->fh->meta.master_version
+  data_conflict = (dentry->fh->attr.type == FT_REG
+		   && dentry->fh->attr.version > dentry->fh->meta.master_version
 		   && attr->version > dentry->fh->meta.master_version);
 
   conflict = dentry->parent;
   if (conflict)
     acquire_dentry (conflict);
-  if (conflict && CONFLICT_DIR_P (conflict->fh->local_fh))
-    {
-      other = conflict_other_dentry (conflict, dentry);
-#ifdef ENABLE_CHECKING
-      if (!other)
-	abort ();
-#endif
 
-      if (ZFS_FH_EQ (dentry->fh->meta.master_fh, other->fh->local_fh))
+  if (attr_conflict || data_conflict)
+    {
+      string name;
+      fattr local_attr;
+      zfs_fh master_fh;
+
+      if (conflict && CONFLICT_DIR_P (conflict->fh->local_fh))
 	{
-	  release_dentry (dentry);
-	  if (!attr_conflict && !data_conflict)
-	    {
-	      release_dentry (other);
-	      cancel_conflict (vol, conflict);
-	    }
-	  else
-	    {
-	      other->fh->attr = *attr;
-	      release_dentry (other);
-	      release_dentry (conflict);
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&fh_mutex);
-	    }
+	  xstringdup (&name, &conflict->name);
+	  parent = conflict->parent;
+	  if (parent)
+	    acquire_dentry (parent);
+	  release_dentry (conflict);
 	}
       else
 	{
-	  release_dentry (dentry);
-	  release_dentry (other);
-	  release_dentry (conflict);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&fh_mutex);
-	}
-    }
-  else
-    {
-      parent = conflict;
-      if (attr_conflict)
-	{
-	  string name;
-
-	  /* Create an attr-attr conflict.  */
 	  xstringdup (&name, &dentry->name);
-	  release_dentry (dentry);
-	  conflict = create_conflict (vol, parent, &name, fh,
-				      &dentry->fh->attr);
-	  free (name.str);
-	  add_file_to_conflict_dir (vol, conflict, true,
-				    &dentry->fh->meta.master_fh, attr, NULL);
-	  release_dentry (conflict);
+	  parent = conflict;
 	}
-      else
-	release_dentry (dentry);
+
+      /* Create an attr-attr or modify-modify conflict.  */
+      local_attr = dentry->fh->attr;
+      master_fh = dentry->fh->meta.master_fh;
+      release_dentry (dentry);
+      conflict = create_conflict (vol, parent, &name, fh, &local_attr);
+      free (name.str);
+      add_file_to_conflict_dir (vol, conflict, true, &master_fh, attr, NULL);
+      release_dentry (conflict);
 
       if (parent)
 	release_dentry (parent);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
+    }
+  else
+    {
+      release_dentry (dentry);
+      if (conflict && CONFLICT_DIR_P (conflict->fh->local_fh))
+	{
+	  cancel_conflict (vol, conflict);
+	}
+      else
+	{
+	  if (conflict)
+	    release_dentry (conflict);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	}
     }
 
   RETURN_INT (ZFS_OK);
@@ -2235,6 +2258,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
   internal_dentry conflict;
+  internal_dentry dentry;
   filldir_htab_entries local_entries, remote_entries;
   dir_op_res local_res, remote_res;
   metadata meta;
@@ -2330,7 +2354,6 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  if (ZFS_FH_EQ (meta.master_fh, remote_res.file))
 	    {
 	      bool same;
-	      bool local_changed, remote_changed;
 
 	      r = files_are_the_same (fh, &entry->name, &local_res.attr,
 				      &remote_res.file, &remote_res.attr,
@@ -2361,46 +2384,21 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		  continue;
 		}
 
-	      local_changed = METADATA_ATTR_CHANGE_P (meta, local_res.attr);
-	      if (local_changed
-		  && METADATA_ATTR_EQ_P (local_res.attr, remote_res.attr))
-		{
-		  set_metadata_attr (&meta, &local_res.file, &local_res.attr);
-		  local_changed = false;
-		}
-	      remote_changed = METADATA_ATTR_CHANGE_P (meta, remote_res.attr);
-	      want_conflict = local_changed && remote_changed;
-
-	      if (local_changed ^ remote_changed)
-		{
-		  internal_dentry dentry;
-
-		  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
-		  if (r2 != ZFS_OK)
-		    abort ();
+	      if (r2 != ZFS_OK)
+		abort ();
 #endif
-		  dentry = get_dentry (&local_res.file, &remote_res.file,
-				       vol, dir, &entry->name, &local_res.attr,
-				       &meta);
-		  release_dentry (dir);
+	      dentry = get_dentry (&local_res.file, &remote_res.file, vol,
+				   dir, &entry->name, &local_res.attr, &meta);
+	      release_dentry (dir);
 
-		  r = synchronize_attributes (&vol, &dentry, &local_res.file,
-					      &remote_res.attr, local_changed,
-					      remote_changed);
-		  if (r != ZFS_OK)
-		    goto out;
-
-		  if (dentry)
-		    {
-		      release_dentry (dentry);
-		      zfsd_mutex_unlock (&vol->mutex);
-		      zfsd_mutex_unlock (&fh_mutex);
-		    }
-		}
+	      r = synchronize_file (vol, dentry, &local_res.file,
+				    &remote_res.attr, IFH_METADATA, true);
+	      if (r != ZFS_OK)
+		goto out;
 	    }
-
-	  if (want_conflict)
+	  else
 	    {
 	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -3210,13 +3208,13 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	abort ();
 
       case FT_REG:
-	r = synchronize_file (vol, dentry, fh, attr, how);
+	r = synchronize_file (vol, dentry, fh, attr, how, false);
 	break;
 
       case FT_DIR:
 	if (how & IFH_METADATA)
 	  {
-	    r = synchronize_file (vol, dentry, fh, attr, how);
+	    r = synchronize_file (vol, dentry, fh, attr, how, false);
 	    if (r != ZFS_OK)
 	      RETURN_INT (r);
 
@@ -3253,7 +3251,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
       case FT_CHR:
       case FT_SOCK:
       case FT_FIFO:
-	r = synchronize_file (vol, dentry, fh, attr, how);
+	r = synchronize_file (vol, dentry, fh, attr, how, false);
 	break;
     }
 
