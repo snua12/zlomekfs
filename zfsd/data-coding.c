@@ -31,6 +31,7 @@
 # include <string.h>
 # include <stdio.h>
 # include <stdlib.h>
+# include "log.h"
 # include "util.h"
 #endif
 
@@ -38,6 +39,14 @@
 #include "md5.h"
 #include "memory.h"
 #include "zfs_prot.h"
+
+/* Initialize a data coding buffer DC.  */
+
+void
+dc_init (DC *dc)
+{
+  dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
+}
 
 /* Return a new data coding buffer.  */
 
