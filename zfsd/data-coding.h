@@ -29,6 +29,7 @@
 #else
 # include <inttypes.h>
 # include <netinet/in.h>
+# include <stdio.h>
 #endif
 
 /* Maximal length of request / reply.  */
@@ -151,8 +152,8 @@ extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
 #ifndef __KERNEL__
 extern void print_dc (DC *dc, FILE *f);
-#endif
 extern void debug_dc (DC *dc);
+#endif
 extern void start_encoding (DC *dc);
 extern unsigned int finish_encoding (DC *dc);
 extern bool start_decoding (DC *dc);

@@ -59,6 +59,7 @@ dc_destroy (DC *dc)
   free (dc);
 }
 
+#ifndef __KERNEL__
 /* Print DC to file F.  */
 
 void
@@ -81,6 +82,7 @@ debug_dc (DC *dc)
 {
   print_dc (dc, stderr);
 }
+#endif
 
 /* Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
 
