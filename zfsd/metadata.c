@@ -2089,7 +2089,7 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
   if (!lookup_metadata (vol, fh, meta, false))
     return false;
 
-  if (meta.slot_status != VALID_SLOT)
+  if (meta->slot_status != VALID_SLOT)
     return true;
 
   if (meta->name[0] == 0)
