@@ -305,9 +305,13 @@ void
 zfs_proc_symlink_server (symlink_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_symlink (&args->from.dir, &args->from.name, &args->to, &args->attr);
+  encode_status (dc, r);
+
+  free (args->from.name.str);
+  free (args->to.str);
 }
 
 /* void zfs_proc_mknod (mknod_args); */
