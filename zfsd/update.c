@@ -121,13 +121,14 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
      truncate local file.  */
   if (local_md5.size != remote_md5.size)
     {
+      fattr fa;
       sattr sa;
 
       memset (&sa, -1, sizeof (sattr));
       sa.size = (remote_md5.offset[remote_md5.count - 1]
 		 + remote_md5.length[remote_md5.count - 1]);
 
-      r = local_setattr (&dentry->fh->attr, dentry, &sa, vol);
+      r = local_setattr (&fa, dentry, &sa, vol);
       if (r != ZFS_OK)
 	return r;
 
@@ -137,6 +138,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 	abort ();
 #endif
 
+      dentry->fh->attr.size = fa.size;
       flush = (local_md5.size < remote_md5.size
 	       && (dentry->fh->meta.flags & METADATA_COMPLETE));
 
