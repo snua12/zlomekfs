@@ -354,7 +354,7 @@ out:
 bool
 recursive_unlink (char *path, uint32_t vid, bool shadow)
 {
-  char *slash;
+  char *filename;
   struct stat parent_st;
 
 #ifdef ENABLE_CHECKING
@@ -369,22 +369,17 @@ recursive_unlink (char *path, uint32_t vid, bool shadow)
     }
   else
     {
-      for (slash = path; *slash; slash++)
-	;
-      for (; *slash != '/'; slash--)
-	;
-      *slash = 0;
-
-      if (lstat (path, &parent_st) != 0
+      filename = file_name_from_path (path);
+      filename[-1] = 0;
+      if (lstat (path[0] ? path : "/", &parent_st) != 0
 	  && errno != ENOENT)
 	{
 	  return false;
 	}
-
-      *slash = '/';
+      filename[-1] = '/';
     }
 
-  return recursive_unlink_1 (path, slash + 1, vid, &parent_st);
+  return recursive_unlink_1 (path, filename, vid, &parent_st);
 }
 
 /* Check whether we can perform file system change operation on NAME in
@@ -1743,7 +1738,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
-	  char *slash;
+	  char *filename;
 	  struct stat parent_st;
 
 	  if (vol->master != this_node)
@@ -1757,20 +1752,17 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	  if (path == NULL)
 	    abort ();
 #endif
-	  for (slash = path; *slash; slash++)
-	    ;
-	  for (; *slash != '/'; slash--)
-	    ;
-	  *slash = 0;
 
+	  filename = file_name_from_path (path);
+	  filename[-1] = 0;
 	  if (lstat (path, &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
-				    slash + 1))
+				    filename))
 		vol->delete_p = true;
 	    }
-	  *slash = '/';
+	  filename[-1] = '/';
 
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
@@ -2111,7 +2103,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
 	  if (path)
 	    {
-	      char *slash;
+	      char *filename;
 	      struct stat parent_st;
 
 	      if (vol->master != this_node)
@@ -2122,20 +2114,16 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 		    vol->delete_p = true;
 		}
 
-	      for (slash = path; *slash; slash++)
-		;
-	      for (; *slash != '/'; slash--)
-		;
-	      *slash = 0;
-
+	      filename = file_name_from_path (path);
+	      filename[-1] = 0;
 	      if (lstat (path, &parent_st) == 0)
 		{
 		  if (!delete_metadata (vol, st_old.st_dev, st_old.st_ino,
 					parent_st.st_dev, parent_st.st_ino,
-					slash + 1))
+					filename))
 		    vol->delete_p = true;
 		}
-	      *slash = '/';
+	      filename[-1] = '/';
 	    }
 
 	  fh.dev = st_new.st_dev;
@@ -2620,7 +2608,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
-	  char *slash;
+	  char *filename;
 	  struct stat parent_st;
 
 	  if (vol->master != this_node)
@@ -2634,20 +2622,17 @@ zfs_unlink (zfs_fh *dir, string *name)
 	  if (path == NULL)
 	    abort ();
 #endif
-	  for (slash = path; *slash; slash++)
-	    ;
-	  for (; *slash != '/'; slash--)
-	    ;
-	  *slash = 0;
 
+	  filename = file_name_from_path (path);
+	  filename[-1] = 0;
 	  if (lstat (path, &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
-				    slash + 1))
+				    filename))
 		vol->delete_p = true;
 	    }
-	  *slash = '/';
+	  filename[-1] = '/';
 
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
