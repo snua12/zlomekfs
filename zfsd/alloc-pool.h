@@ -28,6 +28,8 @@
 #include "system.h"
 #include <stddef.h>
 
+typedef unsigned long ALLOC_POOL_ID_TYPE;
+
 typedef struct alloc_pool_list_def
 {
   struct alloc_pool_list_def *next;
@@ -36,6 +38,9 @@ typedef struct alloc_pool_list_def
 typedef struct alloc_pool_def
 {
   char *name;
+#ifdef ENABLE_CHECKING
+  ALLOC_POOL_ID_TYPE id;
+#endif
   size_t elts_per_block;
   alloc_pool_list free_list;
   size_t elts_allocated;

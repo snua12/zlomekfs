@@ -1,5 +1,6 @@
 /* Functions to support a pool of allocatable objects.
-   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+   Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2003
+   Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
    Some modifications:
@@ -31,6 +32,21 @@
 #define align_four(x) (((x+3) >> 2) << 2)
 #define align_eight(x) (((x+7) >> 3) << 3)
 
+#ifdef ENABLE_CHECKING
+
+/* Last used ID.  */
+static ALLOC_POOL_ID_TYPE last_id;
+
+/* The size of ID, aligned to be a multiple of eight.  */
+#define ID_SIZE (align_eight (sizeof (ALLOC_POOL_ID_TYPE)))
+
+#else
+
+/* We do not use IDs when checking is disabled.  */
+#define ID_SIZE 0
+
+#endif
+
 /* Create a pool of things of size SIZE, with NUM in each block we
    allocate.  */
 
@@ -51,10 +67,13 @@ create_alloc_pool (const char *name, size_t size, size_t num)
   size = align_four (size);
 
 #ifdef ENABLE_CHECKING
+  /* Add the size of ID aligned to a multiple of 8.  */
+  size += ID_SIZE;
+#endif
+
   /* Um, we can't really allocate 0 elements per block.  */
   if (num == 0)
     abort ();
-#endif
 
   /* Find the size of the pool structure, and the name.  */
   pool_size = sizeof (struct alloc_pool_def);
@@ -76,6 +95,16 @@ create_alloc_pool (const char *name, size_t size, size_t num)
   pool->elts_free = 0;
   pool->blocks_allocated = 0;
   pool->block_list = NULL;
+
+#ifdef ENABLE_CHECKING
+  /* Increase the last used ID and use it for this pool.
+     ID == 0 is used for free elements of pool so skip it.  */
+  last_id++;
+  if (last_id == 0)
+    last_id++;
+
+  pool->id = last_id;
+#endif
 
   return (pool);
 }
@@ -131,13 +160,17 @@ pool_alloc (alloc_pool pool)
 
       /* Now put the actual block pieces onto the free list.  */
       for (i = 0; i < pool->elts_per_block; i++, block += pool->elt_size)
-      {
-        header = (alloc_pool_list) block;
-        header->next = pool->free_list;
-        pool->free_list = header;
-      }
+	{
+#ifdef ENABLE_CHECKING
+	  /* Mark the element to be free.  */
+	  *((ALLOC_POOL_ID_TYPE *) block) = 0;
+#endif
+	  header = (alloc_pool_list) (block + ID_SIZE);
+	  header->next = pool->free_list;
+	  pool->free_list = header;
+	}
       /* Also update the number of elements we have free/allocated, and
-         increment the allocated block count.  */
+	 increment the allocated block count.  */
       pool->elts_allocated += pool->elts_per_block;
       pool->elts_free += pool->elts_per_block;
       pool->blocks_allocated += 1;
@@ -147,6 +180,12 @@ pool_alloc (alloc_pool pool)
   header = pool->free_list;
   pool->free_list = header->next;
   pool->elts_free--;
+
+#ifdef ENABLE_CHECKING
+  /* Set the ID for element.  */
+  *((ALLOC_POOL_ID_TYPE *) (((char *) header) - ID_SIZE)) = pool->id;
+#endif
+
   return ((void *) header);
 }
 
@@ -160,9 +199,12 @@ pool_free (alloc_pool pool, void *ptr)
   if (!ptr)
     abort ();
 
-  /* Check if we free more than we allocated, which is Bad (TM).  */
-  if (pool->elts_free + 1 > pool->elts_allocated)
+  /* Check whether the PTR was allocated from POOL.  */
+  if (pool->id != *((ALLOC_POOL_ID_TYPE *) (((char *) ptr) - ID_SIZE)))
     abort ();
+
+  /* Mark the element to be free.  */
+  *((ALLOC_POOL_ID_TYPE *) (((char *) ptr) - ID_SIZE)) = 0;
 #endif
 
   header = (alloc_pool_list) ptr;
