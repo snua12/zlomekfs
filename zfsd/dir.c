@@ -2707,7 +2707,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	    {
 	      /* "Deleting" remote directory.  */
 
-	      if (!ZFS_FH_EQ (dentry->fh->meta.master_fh, other->fh->local_fh))
+	      if (!ZFS_FH_EQ (other->fh->meta.master_fh, dentry->fh->local_fh))
 		{
 		  /* Conflict is on file handles.  */
 		  what_to_do = 4;
@@ -4175,8 +4175,8 @@ zfs_unlink (zfs_fh *dir, string *name)
 		}
 	      else /* Both DENTRY and OTHER are regular dentries.  */
 		{
-		  if (!ZFS_FH_EQ (dentry->fh->meta.master_fh,
-				 other->fh->local_fh))
+		  if (!ZFS_FH_EQ (other->fh->meta.master_fh,
+				  dentry->fh->local_fh))
 		    {
 		      /* Conflict is on file handles.  */
 		      what_to_do = 4;
