@@ -1,5 +1,5 @@
 /* Disjoint interval tree datatype.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -77,6 +77,8 @@ extern interval_tree_node interval_tree_predecessor (interval_tree tree,
 						     uint64_t key);
 extern interval_tree_node interval_tree_successor (interval_tree tree,
 						   uint64_t key);
+extern bool interval_tree_covered (interval_tree tree, uint64_t start,
+				   uint64_t end);
 extern bool interval_tree_read (interval_tree tree, int fd, uint64_t n);
 extern bool interval_tree_write (interval_tree tree, int fd);
 extern void interval_tree_intersection (interval_tree tree, uint64_t start,

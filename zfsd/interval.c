@@ -250,6 +250,24 @@ interval_tree_successor (interval_tree tree, uint64_t key)
   return splay_tree_successor (tree->splay, key);
 }
 
+/* Return true if interval [START, END) is covered by the tree TREE.  */
+
+bool
+interval_tree_covered (interval_tree tree, uint64_t start, uint64_t end)
+{
+  interval_tree_node node;
+
+  node = splay_tree_lookup (tree->splay, start);
+  if (!node)
+    {
+      node = splay_tree_predecessor (tree->splay, start);
+      if (!node)
+	return false;
+    }
+
+  return (end <= INTERVAL_END (node));
+}
+
 /* Read N intervals of interval tree TREE from file descriptor FD.
    Position in FD should be at the beginning.  */
 
