@@ -1975,11 +1975,10 @@ inc_local_version (volume vol, internal_fh fh)
    and inode INO and hardlink [PARENT_DEV, PARENT_INO, NAME].  */
 
 bool
-delete_metadata (volume vol, uint32_t dev, uint32_t ino,
+delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
 		 uint32_t parent_dev, uint32_t parent_ino, string *name)
 {
   fh_mapping map;
-  metadata meta;
   zfs_fh fh;
   string path;
   int i;
@@ -2008,7 +2007,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 
 	  hardlink_list_delete (hl, parent_dev, parent_ino, name);
 	  if (hl->first)
-	    return write_hardlinks (vol, &fh, &meta, hl);
+	    return write_hardlinks (vol, &fh, meta, hl);
 	  else
 	    {
 	      hardlink_list_destroy (hl);
@@ -2044,38 +2043,38 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 	return false;
     }
 
-  meta.dev = dev;
-  meta.ino = ino;
-  if (!hfile_lookup (vol->metadata, &meta))
+  meta->dev = dev;
+  meta->ino = ino;
+  if (!hfile_lookup (vol->metadata, meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       return false;
     }
-  if (meta.slot_status != VALID_SLOT)
+  if (meta->slot_status != VALID_SLOT)
     {
-      meta.slot_status = VALID_SLOT;
-      meta.flags = METADATA_COMPLETE;
-      meta.dev = dev;
-      meta.ino = ino;
-      meta.gen = 1;
-      meta.local_version = 1;
-      meta.master_version = vol->is_copy ? 0 : 1;
-      zfs_fh_undefine (meta.master_fh);
-      meta.parent_dev = (uint32_t) -1;
-      meta.parent_ino = (uint32_t) -1;
-      memset (meta.name, 0, METADATA_NAME_SIZE);
+      meta->slot_status = VALID_SLOT;
+      meta->flags = METADATA_COMPLETE;
+      meta->dev = dev;
+      meta->ino = ino;
+      meta->gen = 1;
+      meta->local_version = 1;
+      meta->master_version = vol->is_copy ? 0 : 1;
+      zfs_fh_undefine (meta->master_fh);
+      meta->parent_dev = (uint32_t) -1;
+      meta->parent_ino = (uint32_t) -1;
+      memset (meta->name, 0, METADATA_NAME_SIZE);
     }
 
-  map.master_fh = meta.master_fh;
+  map.master_fh = meta->master_fh;
 
-  meta.flags = 0;
-  meta.gen++;
-  meta.local_version++;
+  meta->flags = 0;
+  meta->gen++;
+  meta->local_version++;
   if (!vol->is_copy)
-    meta.master_version = meta.local_version;
-  zfs_fh_undefine (meta.master_fh);
+    meta->master_version = meta->local_version;
+  zfs_fh_undefine (meta->master_fh);
 
-  if (!hfile_insert (vol->metadata, &meta, false))
+  if (!hfile_insert (vol->metadata, meta, false))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
       return false;
@@ -2687,7 +2686,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
 	abort ();
 #endif
 
-      if (!delete_metadata (vol, fh->dev, fh->ino, 0, 0, NULL))
+      if (!delete_metadata (vol, &meta, fh->dev, fh->ino, 0, 0, NULL))
 	vol->delete_p = true;
     }
 

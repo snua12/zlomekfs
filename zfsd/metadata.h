@@ -135,9 +135,9 @@ extern bool set_metadata_master_fh (volume vol, internal_fh fh,
 extern bool delete_metadata_of_created_file (volume vol, zfs_fh *fh,
 					     metadata *meta);
 extern bool inc_local_version (volume vol, internal_fh fh);
-extern bool delete_metadata (volume vol, uint32_t dev, uint32_t ino,
-			     uint32_t parent_dev, uint32_t parent_ino,
-			     string *name);
+extern bool delete_metadata (volume vol, metadata *meta, uint32_t dev,
+			     uint32_t ino, uint32_t parent_dev,
+			     uint32_t parent_ino, string *name);
 extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
 extern bool init_hardlinks (volume vol, zfs_fh *fh, metadata *meta,

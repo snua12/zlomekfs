@@ -295,7 +295,7 @@ out:
 
       if (r == ZFS_OK)
 	{
-	  if (!delete_metadata (vol, st.st_dev, st.st_ino,
+	  if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
 				parent_st->st_dev, parent_st->st_ino, name))
 	    vol->delete_p = true;
 	}
@@ -1816,6 +1816,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	{
 	  string filename;
 	  struct stat parent_st;
+	  metadata meta;
 
 	  if (vol->master != this_node)
 	    {
@@ -1833,7 +1834,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	  filename.str[-1] = 0;
 	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	    {
-	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
+	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
 				    &filename))
 		vol->delete_p = true;
@@ -2229,9 +2230,9 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	      filename.str[-1] = 0;
 	      if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 		{
-		  if (!delete_metadata (vol, st_old.st_dev, st_old.st_ino,
-					parent_st.st_dev, parent_st.st_ino,
-					&filename))
+		  if (!delete_metadata (vol, &meta, st_old.st_dev,
+					st_old.st_ino, parent_st.st_dev,
+					parent_st.st_ino, &filename))
 		    vol->delete_p = true;
 		}
 	      filename.str[-1] = '/';
@@ -2765,6 +2766,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	{
 	  string filename;
 	  struct stat parent_st;
+	  metadata meta;
 
 	  if (vol->master != this_node)
 	    {
@@ -2782,7 +2784,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	  filename.str[-1] = 0;
 	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	    {
-	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
+	      if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
 				    &filename))
 		vol->delete_p = true;
