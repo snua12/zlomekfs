@@ -174,7 +174,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
     {
       prev = splay_tree_predecessor (tree->splay, start);
 
-      if (prev)
+      if (prev && start < INTERVAL_END (prev))
 	{
 	  tree->deleted = true;
 	  if (INTERVAL_END (prev) > end)
@@ -197,7 +197,7 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
   while (1)
     {
       next = splay_tree_successor (tree->splay, start);
-      if (!next)
+      if (!next || INTERVAL_START (next) >= end)
 	break;
 
       tree->deleted = true;
