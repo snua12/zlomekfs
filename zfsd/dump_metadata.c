@@ -69,7 +69,7 @@ int main (int argc, char **argv)
       if (meta.flags & METADATA_MODIFIED)
 	printf (" modified");
       printf ("\n");
-      
+
       printf ("  Local version: %" PRIu64 "\n", meta.local_version);
       printf ("  Master version: %" PRIu64 "\n", meta.master_version);
     }

@@ -2202,7 +2202,7 @@ local_unlink (struct stat *st, char **pathp,
       return errno;
     }
   r = unlink (path);
-  
+
   if (r != 0)
     {
       free (path);
@@ -2994,7 +2994,7 @@ local_hardlinks (hardlinks_res *res, internal_dentry dentry, volume vol,
 {
   uint32_t written = 0;
   char *path;
-  
+
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   zfsd_mutex_unlock (&vol->mutex);

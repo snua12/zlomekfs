@@ -1342,7 +1342,7 @@ update_worker (void *data)
 	}
       zfsd_mutex_unlock (&update_pool.idle.mutex);
     }
-  
+
   pthread_cleanup_pop (1);
 
   return NULL;
