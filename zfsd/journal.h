@@ -82,6 +82,7 @@ typedef struct journal_def
 } *journal_t;
 
 extern journal_t journal_create (unsigned int nelem, pthread_mutex_t *mutex);
+extern void journal_empty (journal_t journal);
 extern void journal_destroy (journal_t journal);
 extern bool journal_insert (journal_t journal, zfs_fh *local_fh,
 			    zfs_fh *master_fh, string *name,

@@ -75,6 +75,29 @@ journal_create (unsigned int nelem, pthread_mutex_t *mutex)
   return journal;
 }
 
+/* Empty the journal JOURNAL.  */
+
+void
+journal_empty (journal_t journal)
+{
+  journal_entry entry, next;
+
+  CHECK_MUTEX_LOCKED (journal->mutex);
+
+  zfsd_mutex_lock (&journal_mutex);
+  for (entry = journal->first; entry; entry = next)
+    {
+      next = entry->next;
+      free (entry->name.str);
+      pool_free (journal_pool, entry);
+    }
+  zfsd_mutex_unlock (&journal_mutex);
+
+  journal->first = NULL;
+  journal->last = NULL;
+  htab_empty (journal->htab);
+}
+
 /* Destroy journal JOURNAL.  */
 
 void
