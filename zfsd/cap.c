@@ -354,6 +354,38 @@ internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
   zfsd_mutex_unlock (&cap_mutex);
 }
 
+/* Destroy all unused capabilities associated with file handle FH.  */
+
+void
+destroy_unused_capabilities (internal_fh fh)
+{
+  internal_cap cap, next;
+  internal_cap *prevp;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  prevp = &fh->cap;
+  for (cap = fh->cap; cap; cap = next)
+    {
+      next = cap->next;
+
+      if (cap->busy == 0)
+	{
+	  zfsd_mutex_lock (&cap_mutex);
+	  pool_free (cap_pool, cap);
+	  zfsd_mutex_unlock (&cap_mutex);
+
+	  *prevp = next;
+	}
+      else
+	prevp = &cap->next;
+    }
+
+  if (fh->cap == NULL)
+    local_close (fh);
+}
+
 /* Get an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal file handle IFH and virtual directory to VD.
    Create a new internal capability if it does not exist.  */
@@ -618,7 +650,10 @@ put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 
   cap->busy--;
   if (cap->busy == 0)
-    internal_cap_destroy (cap, fh, vd);
+    {
+      if (!fh || fh->users == 0)
+	internal_cap_destroy (cap, fh, vd);
+    }
 
   return ZFS_OK;
 }

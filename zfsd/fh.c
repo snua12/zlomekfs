@@ -921,6 +921,7 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
   if (dentry->fh->users == 0)
     {
       dentry->fh->level = LEVEL_UNLOCKED;
+      destroy_unused_capabilities (dentry->fh);
       if (dentry->deleted)
 	{
 	  internal_dentry_destroy (dentry, true);
