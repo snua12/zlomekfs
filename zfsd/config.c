@@ -573,7 +573,6 @@ process_line_node (char *line, char *file_name, unsigned int line_num)
       message (0, stderr, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
-
 }
 
 /* Read list of nodes from CONFIG_DIR/node_list.  */
@@ -590,6 +589,60 @@ read_node_list (zfs_fh *config_dir)
 
   return process_file_by_lines (&node_list_res.file, "config/node_list",
 				process_line_node);
+}
+
+/* Process line LINE number LINE_NUM from file FILE_NAME.  */
+
+static void
+process_line_volume (char *line, char *file_name, unsigned int line_num)
+{
+  string parts[3];
+  uint32_t vid;
+
+  if (split_and_trim (line, 3, parts) == 3)
+    {
+      if (sscanf (parts[0].str, "%" PRIu32, &vid) != 1)
+	{
+	  message (0, stderr, "%s:%u: Wrong format of line\n",
+		   file_name, line_num);
+	}
+      else if (vid == 0 || vid == (uint32_t) -1)
+	{
+	  message (0, stderr, "%s:%u: Volume ID must not be 0 or %" PRIu32 "\n",
+		   file_name, line_num, (uint32_t) -1);
+	}
+      else if (parts[2].str[0] != '/')
+	{
+	  message (0, stderr,
+		   "%s:%d: Volume mountpoint must be an absolute path\n",
+		   file_name, line_num);
+	}
+      else
+	{
+	  /* TODO: process volume */
+	}
+    }
+  else
+    {
+      message (0, stderr, "%s:%u: Wrong format of line\n",
+	       file_name, line_num);
+    }
+}
+
+/* Read list of volumes from CONFIG_DIR/volume_list.  */
+
+static bool
+read_volume_list (zfs_fh *config_dir)
+{
+  dir_op_res volume_list_res;
+  int32_t r;
+
+  r = zfs_extended_lookup (&volume_list_res, config_dir, "volume_list");
+  if (r != ZFS_OK)
+    return false;
+
+  return process_file_by_lines (&volume_list_res.file, "config/volume_list",
+				process_line_volume);
 }
 
 /* Has the config reader already terminated?  */
@@ -614,6 +667,9 @@ config_reader (void *data)
     goto out;
 
   if (!read_node_list (&config_dir_res.file))
+    goto out;
+
+  if (!read_volume_list (&config_dir_res.file))
     goto out;
 
   config_reader_terminated = true;
