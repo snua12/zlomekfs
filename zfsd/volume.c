@@ -24,9 +24,11 @@
 #include "pthread.h"
 #include "fh.h"
 #include "hashtab.h"
+#include "hashfile.h"
 #include "memory.h"
 #include "volume.h"
 #include "network.h"
+#include "metadata.h"
 
 /* Hash table of volumes.  */
 static htab_t volume_htab;
@@ -95,6 +97,7 @@ volume_create (uint32_t id)
   vol->size_limit = VOLUME_NO_LIMIT;
   vol->root_dentry = NULL;
   vol->root_vd = NULL;
+  vol->metadata = NULL;
 
   zfsd_mutex_init (&vol->mutex);
   zfsd_mutex_lock (&vol->mutex);
@@ -140,6 +143,9 @@ volume_destroy (volume vol)
   htab_destroy (vol->dentry_htab);
   htab_destroy (vol->fh_htab);
 
+  if (vol->metadata)
+    close_volume_metadata (vol);
+
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -175,13 +181,15 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
 
 /* Set the information for a volume with local copy.  */
 
-void
+bool
 volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   set_string (&vol->local_path, local_path);
   vol->size_limit = size_limit;
+
+  return init_volume_metadata (vol);
 }
 
 /* Return true when volume VOL is accessible.  */

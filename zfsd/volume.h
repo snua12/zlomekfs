@@ -25,6 +25,7 @@
 #include <inttypes.h>
 #include "pthread.h"
 #include "hashtab.h"
+#include "hashfile.h"
 #include "fh.h"
 #include "node.h"
 
@@ -49,6 +50,7 @@ struct volume_def
 				   searched by fh->local_fh.  */
   htab_t dentry_htab_name;	/* hash table of used dentries,
 				   searched by (parent->fh->local_fh, name) */
+  hfile_t metadata;		/* hash file with metadata */
 };
 
 /* Predefined volume IDs.  */
@@ -72,7 +74,7 @@ extern volume volume_create (uint32_t id);
 extern void volume_destroy (volume vol);
 extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);
-extern void volume_set_local_info (volume vol, const char *local_path,
+extern bool volume_set_local_info (volume vol, const char *local_path,
 				   uint64_t size_limit);
 extern bool volume_active_p (volume vol);
 extern void initialize_volume_c ();
