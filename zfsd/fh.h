@@ -47,7 +47,7 @@ typedef struct volume_def *volume;
 #define MAX_LOCKED_FILE_HANDLES 2
 
 /* Is the FH virtual?  */
-#define VIRTUAL_FH_P(FH) ((FH).vid == VIRTUAL_DEVICE)
+#define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL)
 
 /* Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
