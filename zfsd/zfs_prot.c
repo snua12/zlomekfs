@@ -355,8 +355,8 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&fd_data->mutex);
   nod = node_lookup_name (args->node.str);
+  zfsd_mutex_lock (&fd_data->mutex);
   zfsd_mutex_unlock (&node_mutex);
   if (nod)
     {
@@ -391,8 +391,8 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
   bool authenticated = false;
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&fd_data->mutex);
   nod = node_lookup (fd_data->sid);
+  zfsd_mutex_lock (&fd_data->mutex);
   zfsd_mutex_unlock (&node_mutex);
   if (nod)
     {
