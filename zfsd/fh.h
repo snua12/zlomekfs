@@ -86,7 +86,8 @@ typedef struct volume_def *volume;
 /* True if file handle FH has a local path.  */
 #define INTERNAL_FH_HAS_LOCAL_PATH(FH)					\
   (GET_SID ((FH)->local_fh) == this_node->id				\
-   && GET_CONFLICT ((FH)->local_fh) == 0)
+   && GET_CONFLICT ((FH)->local_fh) == 0				\
+   && (FH)->local_fh.vid != VOLUME_ID_VIRTUAL)
 
 /* "Lock" level of the file handle or virtual directory.  */
 #define LEVEL_UNLOCKED	0
