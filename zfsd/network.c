@@ -152,6 +152,10 @@ close_active_fd (int i)
   int j;
   void **slot;
 
+#ifdef ENABLE_CHECKING
+  if (active[i]->fd < 0)
+    abort ();
+#endif
   CHECK_MUTEX_LOCKED (&active_mutex);
   CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
