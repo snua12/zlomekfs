@@ -591,8 +591,7 @@ out:
 bool
 delete_tree (internal_dentry dentry, volume vol)
 {
-  char *path, *slash;
-  struct stat parent_st;
+  char *path;
   uint32_t vid;
   bool r;
 
@@ -606,21 +605,7 @@ delete_tree (internal_dentry dentry, volume vol)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  for (slash = path; *slash; slash++)
-    ;
-  for (; *slash != '/'; slash--)
-    ;
-  *slash = 0;
-
-  if (lstat (path, &parent_st) != 0
-      && errno != ENOENT)
-    {
-      free (path);
-      return false;
-    }
-
-  *slash = '/';
-  r = recursive_unlink (path, slash + 1, vid, &parent_st);
+  r = recursive_unlink (path, vid);
   free (path);
 
   return r;
@@ -631,8 +616,7 @@ delete_tree (internal_dentry dentry, volume vol)
 bool
 delete_tree_name (internal_dentry dir, char *name, volume vol)
 {
-  char *path, *slash;
-  struct stat parent_st;
+  char *path;
   uint32_t vid;
   bool r;
 
@@ -646,21 +630,7 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  for (slash = path; *slash; slash++)
-    ;
-  for (; *slash != '/'; slash--)
-    ;
-  *slash = 0;
-
-  if (lstat (path, &parent_st) != 0
-      && errno != ENOENT)
-    {
-      free (path);
-      return false;
-    }
-
-  *slash = '/';
-  r = recursive_unlink (path, slash + 1, vid, &parent_st);
+  r = recursive_unlink (path, vid);
   free (path);
 
   return r;

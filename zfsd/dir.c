@@ -237,10 +237,11 @@ local_path_to_relative_path (volume vol, char *path)
   return path + i;
 }
 
-/* Recursively unlink the file FILE with path PATH on volume with ID == VID.  */
+/* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
 
-bool
-recursive_unlink (char *path, char *name, uint32_t vid, struct stat *parent_st)
+static bool
+recursive_unlink_1 (char *path, char *name, uint32_t vid,
+		    struct stat *parent_st)
 {
   volume vol;
   internal_dentry dentry;
@@ -284,7 +285,7 @@ recursive_unlink (char *path, char *name, uint32_t vid, struct stat *parent_st)
 	    continue;
 
 	  new_path = xstrconcat (3, path, "/", de->d_name);
-	  r = recursive_unlink (new_path, de->d_name, vid, &st);
+	  r = recursive_unlink_1 (new_path, de->d_name, vid, &st);
 	  free (new_path);
 	  if (!r)
 	    {
@@ -327,6 +328,35 @@ out:
   zfsd_mutex_unlock (&fh_mutex);
 
   return r;
+}
+
+/* Recursivelly unlink the file PATH on volume with ID == VID.  */
+
+bool
+recursive_unlink (char *path, uint32_t vid)
+{
+  char *slash;
+  struct stat parent_st;
+
+#ifdef ENABLE_CHECKING
+  if (path[0] != '/')
+    abort ();
+#endif
+
+  for (slash = path; *slash; slash++)
+    ;
+  for (; *slash != '/'; slash--)
+    ;
+  *slash = 0;
+
+  if (lstat (path, &parent_st) != 0
+      && errno != ENOENT)
+    {
+      return false;
+    }
+
+  *slash = '/';
+  return recursive_unlink_1 (path, slash + 1, vid, &parent_st);
 }
 
 /* Check whether we can perform file system change operation on NAME in
