@@ -1374,6 +1374,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	}
       release_dentry (dentry);
     }
+  else
+    {
+      delete_dentry (&vol, &idir, name, &tmp_fh);
+    }
 
   internal_dentry_unlock (vol, idir);
 
