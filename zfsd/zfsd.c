@@ -23,30 +23,92 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <signal.h>
 #include <errno.h>
 #include <sys/mman.h>
-#include "alloc-pool.h"
-#include "hashtab.h"
+#include <signal.h>
+#include <ucontext.h>
+#include "memory.h"
 #include "config.h"
 #include "fh.h"
 #include "log.h"
-#include "memory.h"
 #include "node.h"
 #include "volume.h"
+#include "thread.h"
 #include "client.h"
 #include "server.h"
 #include "zfsd.h"
+
+#include "dir.h"
 
 /* Name of the configuration file.  */
 char *config_file = "/etc/zfs/config";
 
 /* Local function prototypes.  */
+static void exit_sighandler (int signum);
+static void fatal_sigaction (int signum, siginfo_t *info, void *data);
 static void init_sig_handlers ();
 static void usage (int exitcode) ATTRIBUTE_NORETURN;
 static void version (int exitcode) ATTRIBUTE_NORETURN;
 static void process_arguments (int argc, char **argv);
 static void die () ATTRIBUTE_NORETURN;
+
+#ifndef SI_FROMKERNEL
+#define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
+#endif
+
+/* Signal handler for terminating zfsd.  */
+
+static void
+exit_sighandler (int signum)
+{
+  running = 0;
+
+  /* Temporay code (until end of function): */
+  if (pthread_self () != main_thread)
+    pthread_kill (main_thread, signum);
+  else
+    exit (EXIT_SUCCESS);
+}
+
+/* Report the fatal signal.  */
+
+static void
+fatal_sigaction (int signum, siginfo_t *info, void *data)
+{
+  /* Process only signals which are from kernel.  */
+  if (SI_FROMKERNEL (info))
+    {
+      ucontext_t *context = (ucontext_t *) data;
+
+      switch (signum)
+	{
+	  case SIGBUS:
+	  case SIGSEGV:
+#if defined(__i386__)
+	    internal_error ("%s at %p when accessing %p", strsignal (signum),
+			    context->uc_mcontext.gregs[REG_EIP],
+			    info->si_addr);
+#elif defined(__x86_64__)
+	    internal_error ("%s at %p when accessing %p", strsignal (signum),
+			    context->uc_mcontext.gregs[REG_RIP],
+			    info->si_addr);
+#else
+	    internal_error ("%s when accessing %p", strsignal (signum),
+			    info->si_addr);
+#endif
+	    break;
+
+	  case SIGILL:
+	  case SIGFPE:
+	    internal_error ("%s at %p", strsignal (signum), info->si_addr);
+	    break;
+
+	  default:
+	    internal_error ("%s", strsignal (signum));
+	    break;
+	}
+    }
+}
 
 /* Initialize signal handlers.  */
 
@@ -55,10 +117,18 @@ init_sig_handlers ()
 {
   struct sigaction sig;
 
+  /* Set the signal handler for terminating zfsd.  */
+  sigfillset (&sig.sa_mask);
+  sig.sa_handler = exit_sighandler;
+  sig.sa_flags = 0;
+  sigaction (SIGINT, &sig, NULL);
+  sigaction (SIGQUIT, &sig, NULL);
+  sigaction (SIGTERM, &sig, NULL);
+
   /* Set the signal handler for fatal errors.  */
   sigfillset (&sig.sa_mask);
-  sig.sa_handler = fatal_sighandler;
-  sig.sa_flags = 0;
+  sig.sa_sigaction = fatal_sigaction;
+  sig.sa_flags = SA_SIGINFO;
   sigaction (SIGILL, &sig, NULL);
   sigaction (SIGBUS, &sig, NULL);
   sigaction (SIGFPE, &sig, NULL);
@@ -66,7 +136,6 @@ init_sig_handlers ()
   sigaction (SIGSEGV, &sig, NULL);
   sigaction (SIGXCPU, &sig, NULL);
   sigaction (SIGXFSZ, &sig, NULL);
-  sigaction (SIGSEGV, &sig, NULL);
   sigaction (SIGSYS, &sig, NULL);
 
   /* Ignore SIGPIPE.  */
@@ -168,6 +237,7 @@ process_arguments (int argc, char **argv)
     usage (EXIT_FAILURE);
 }
 
+#if 0
 #include "splay-tree.h"
 static void
 test_splay ()
@@ -198,6 +268,7 @@ test_interval ()
   interval_tree_insert (t, 60, 65);
   debug_interval_tree (t);
 }
+#endif
 
 /* Write a message and exit.  */
 
@@ -228,6 +299,65 @@ cleanup_data_structures ()
   cleanup_fh_c ();
 }
 
+/* Testing configuration until configuration reading is programmed.  */
+
+void
+fake_config ()
+{
+  node n;
+  volume v;
+
+  set_string (&node_name, "orion");
+
+  n = node_create (1, "orion");
+  n->flags |= NODE_LOCAL;
+  n->status = CONNECTION_FAST;
+
+  v = volume_create (1);
+  volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
+  volume_set_common_info (v, "volume1", "/volume1", n);
+
+  v = volume_create (2);
+  volume_set_local_info (v, "/.zfs/dir2", VOLUME_NO_LIMIT);
+  volume_set_common_info (v, "volume2", "/volume2", n);
+
+  n = node_create (2, "sabbath");
+  n->flags |= NODE_LOCAL;
+
+  v = volume_create (3);
+  volume_set_common_info (v, "volume3", "/volume1/volume3", n);
+
+  v = volume_create (4);
+  volume_set_common_info (v, "volume4", "/volume2/sabbath/volume4", n);
+
+  n = node_create (3, "jaro");
+  n->flags |= NODE_LOCAL;
+
+  v = volume_create (5);
+  volume_set_common_info (v, "volume5", "/jaro/volume5", n);
+
+  v = volume_create (6);
+  volume_set_common_info (v, "volume6", "/volume6", n);
+
+  debug_virtual_tree ();
+}
+
+/* Test functions accessing ZFS.  */
+void
+test_zfs ()
+{
+  svc_fh fh;
+
+  printf ("%d\n",
+	  zfs_extended_lookup (&fh, &root_fh,
+			       xstrdup ("/volume1/subdir/file")));
+}
+
+static void
+daemon_mode ()
+{
+}
+
 /* Entry point of ZFS daemon.  */
 
 int
@@ -244,8 +374,13 @@ main (int argc, char **argv)
   
   initialize_data_structures ();
   
+#if 0
   if (!read_config (config_file))
     die ();
+#else
+  fake_config ();
+  test_zfs ();
+#endif
 
 #if 0
   /* Temporarily disable because it needs root privileges.  */
@@ -256,6 +391,11 @@ main (int argc, char **argv)
       die ();
     }
 #endif
+
+  daemon_mode ();
+
+  /* Remember the thread ID of this thread.  */
+  main_thread = pthread_self ();
 
   /* Make the connection with kernel.  */
   if (!initialize_client ())
@@ -269,9 +409,17 @@ main (int argc, char **argv)
 
   /* Register the ZFS protocol RPC server, register_server never returns (unless
      error occurs).  */
+#ifdef RPC
   register_server ();
+#else
+  server_start ();
+
+  pthread_join (main_server_thread, NULL);
+
+#endif
 
   /* FIXME: kill threads.  */
+  server_cleanup ();
 
   cleanup_data_structures ();
 
