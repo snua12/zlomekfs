@@ -1175,6 +1175,7 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 	    {
 	      uint32_t i;
 
+	      list->eof = tmp.eof;
 	      for (i = 0; i < tmp.n; i++)
 		{
 		  filldir_htab_entries *entries
