@@ -617,31 +617,73 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
 {
   int fd;
   unsigned int i;
+  struct stat st;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   fd = open_metadata (path, flags, mode);
-  if (fd < 0 && ((flags & O_ACCMODE) != O_RDONLY))
+  if (fd < 0)
     {
       if (errno != ENOENT)
 	return -1;
 
-      if (!create_path_for_file (path, S_IRWXU))
+      if ((flags & O_ACCMODE) != O_RDONLY)
 	{
-	  if (errno == ENOENT)
-	    errno = 0;
-	  return -1;
+	  if (!create_path_for_file (path, S_IRWXU))
+	    {
+	      if (errno == ENOENT)
+		errno = 0;
+	      return -1;
+	    }
+
+	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+	    if (i != metadata_tree_depth)
+	      {
+		char *old_path;
+
+		old_path = build_fh_metadata_path (vol, fh, type, i);
+		if (rename (old_path, path) == 0)
+		  {
+		    free (old_path);
+		    break;
+		  }
+		free (old_path);
+	      }
 	}
+      else
+	{
+	  bool created = false;
 
-      for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
-	if (i != metadata_tree_depth)
-	  {
-	    char *old_path;
+	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+	    if (i != metadata_tree_depth)
+	      {
+		char *old_path;
 
-	    old_path = build_fh_metadata_path (vol, fh, type, i);
-	    rename (old_path, path);
-	    free (old_path);
-	  }
+		old_path = build_fh_metadata_path (vol, fh, type, i);
+		if (stat (old_path, &st) == 0
+		    && (st.st_mode & S_IFMT) == S_IFREG)
+		  {
+		    if (!created)
+		      {
+			if (!create_path_for_file (path, S_IRWXU))
+			  {
+			    if (errno == ENOENT)
+			      errno = 0;
+			    free (old_path);
+			    return -1;
+			  }
+			created = true;
+		      }
+		    
+		    if (rename (old_path, path) == 0)
+		      {
+			free (old_path);
+			break;
+		      }
+		  }
+		free (old_path);
+	      }
+	}
 
       fd = open_metadata (path, flags, mode);
     }
