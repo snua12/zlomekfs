@@ -452,6 +452,7 @@ test_zfs (thread *t)
 {
   dir_op_res res;
   int test = 0;
+  string rmdir_name = {3, "dir"};
 
   if (strcmp (node_name, "orion") == 0)
     {
@@ -478,6 +479,16 @@ test_zfs (thread *t)
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/volume3/subdir/file");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
+      free (str);
+
+      message (2, stderr, "TEST %d\n", ++test);
+      str = xstrdup ("/volume1/volume3/subdir");
+      printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
+      free (str);
+
+      message (2, stderr, "TEST %d\n", ++test);
+      str = xstrdup ("/volume1/volume3/subdir/dir");
+      printf ("%d\n", zfs_rmdir (&res.file, &rmdir_name));
       free (str);
     }
 }
