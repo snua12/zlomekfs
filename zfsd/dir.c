@@ -1053,13 +1053,11 @@ zfs_rmdir (zfs_fh *dir, string *name)
       internal_fh ifh;
 
       ifh = fh_lookup_name (vol, idir, name->str);
-      zfsd_mutex_unlock (&idir->mutex);
       if (ifh)
 	internal_fh_destroy (ifh, vol);
     }
-  else
-    zfsd_mutex_unlock (&idir->mutex);
 
+  zfsd_mutex_unlock (&idir->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
   return r;

@@ -331,7 +331,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
 
   if (fh->parent)
     {
-      zfsd_mutex_lock (&fh->parent->mutex);
+      CHECK_MUTEX_LOCKED (&fh->parent->mutex);
 
       /* Remove FH from parent's directory entries.  */
       top = VARRAY_TOP (fh->parent->dentries, internal_fh);
@@ -347,8 +347,6 @@ internal_fh_destroy (internal_fh fh, volume vol)
 	abort ();
 #endif
       htab_clear_slot (vol->fh_htab_name, slot);
-
-      zfsd_mutex_unlock (&fh->parent->mutex);
     }
 
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
