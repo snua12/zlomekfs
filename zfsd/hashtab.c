@@ -28,12 +28,6 @@
 #include "log.h"
 #include "memory.h"
 
-/* Value for empty hash table entry.  */
-#define EMPTY_ENTRY ((void *) 0)
-
-/* Value for deleted hash table entry.  */
-#define DELETED_ENTRY ((void *) 1)
-
 /* These are primes that are the highest primes lower than some power of 2.  */
 static const unsigned int primes[] = {
   7,

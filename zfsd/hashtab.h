@@ -80,6 +80,13 @@ extern void **htab_find_slot (htab_t htab, const void *elem,
 extern void **htab_find_slot_with_hash (htab_t htab, const void *elem,
 					hash_t hash, enum insert insert);
 
+/* Value for empty hash table entry.  */
+#define EMPTY_ENTRY ((void *) 0)
+
+/* Value for deleted hash table entry.  */
+#define DELETED_ENTRY ((void *) 1)
+
+/* Loop through all valid SLOTs of hash table HTAB.  */
 #define FOR_EACH_SLOT(HTAB,SLOT)				\
   for ((SLOT) = (HTAB)->table;					\
        (SLOT) < (HTAB)->table + (HTAB)->size;			\
