@@ -179,7 +179,7 @@ typedef struct open_fh_args_def
 
 typedef struct read_dir_args_def
 {
-  zfs_cap dir;
+  zfs_cap cap;
   int cookie;
   unsigned int count;
 } read_dir_args;
@@ -217,14 +217,14 @@ typedef struct link_args_def
 
 typedef struct read_args_def
 {
-  zfs_cap file;
+  zfs_cap cap;
   uint64_t offset;
   unsigned int count;
 } read_args;
 
 typedef struct write_args_def
 {
-  zfs_cap file;
+  zfs_cap cap;
   uint64_t offset;
   data_buffer data;
 } write_args;

@@ -536,7 +536,7 @@ read_remote_dir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
 
   /* FIXME: if we can;t connect but we are in virtual directory, list the
      virtual directory. */
-  args.dir = cap->master_cap;
+  args.cap = cap->master_cap;
   args.cookie = data->cookie;
   args.count = data->count;
   t = (thread *) pthread_getspecific (thread_data_key);
@@ -720,7 +720,7 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   thread *t;
   int32_t r;
 
-  args.file = cap->master_cap;
+  args.cap = cap->master_cap;
   args.offset = offset;
   args.count = count;
   t = (thread *) pthread_getspecific (thread_data_key);
