@@ -117,6 +117,7 @@ node_create (unsigned int id, char *name)
   void **slot;
 
   nod = (node) xmalloc (sizeof (struct node_def));
+  pthread_mutex_init (&nod->mutex, NULL);
   nod->id = id;
   nod->name = xstrdup (name);
   nod->flags = 0;
@@ -174,6 +175,8 @@ node_destroy (node nod)
 #ifdef ENABLE_CHECKING
   if (pthread_mutex_trylock (&node_mutex) == 0)
     abort ();
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
 #endif
   
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
@@ -192,6 +195,8 @@ node_destroy (node nod)
 #endif
   htab_clear_slot (node_htab_name, slot);
 
+  pthread_mutex_unlock (&nod->mutex);
+  pthread_mutex_destroy (&nod->mutex);
   free (nod->name);
   free (nod);
 }
@@ -215,7 +220,13 @@ cleanup_node_c ()
   void **slot;
 
   pthread_mutex_lock (&node_mutex);
-  HTAB_FOR_EACH_SLOT (node_htab, slot, node_destroy ((node) *slot));
+  HTAB_FOR_EACH_SLOT (node_htab, slot,
+    {
+      node nod = (node) *slot;
+
+      pthread_mutex_lock (&nod->mutex);
+      node_destroy (nod);
+    });
   htab_destroy (node_htab);
   htab_destroy (node_htab_name);
   pthread_mutex_unlock (&node_mutex);
