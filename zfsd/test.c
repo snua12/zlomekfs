@@ -71,7 +71,7 @@ fake_config (void)
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  vol = volume_create (1);
+  vol = volume_create (11);
   volume_set_common_info_wrapper (vol, "volume1", "/volume1", nod);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
@@ -90,7 +90,7 @@ fake_config (void)
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  vol = volume_create (2);
+  vol = volume_create (12);
   volume_set_common_info_wrapper (vol, "volume2", "/volume2", nod);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
@@ -114,7 +114,7 @@ fake_config (void)
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  vol = volume_create (3);
+  vol = volume_create (13);
   volume_set_common_info_wrapper (vol, "volume3", "/volume1/volume3", nod);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
@@ -146,7 +146,7 @@ fake_config (void)
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  vol = volume_create (4);
+  vol = volume_create (14);
   volume_set_common_info_wrapper (vol, "volume4", "/volume2/artax/volume4",
 				  nod);
   zfsd_mutex_unlock (&volume_mutex);
@@ -172,7 +172,7 @@ fake_config (void)
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  vol = volume_create (5);
+  vol = volume_create (15);
   volume_set_common_info_wrapper (vol, "volume5", "/other/volume5", nod);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
@@ -192,7 +192,7 @@ fake_config (void)
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  vol = volume_create (6);
+  vol = volume_create (16);
   volume_set_common_info_wrapper (vol, "volume6", "/volume6", nod);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
