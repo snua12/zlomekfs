@@ -21,6 +21,7 @@
 #include "system.h"
 #include <stdlib.h>
 #include <pthread.h>
+#include "constant.h"
 #include "client.h"
 #include "log.h"
 #include "memory.h"
@@ -73,8 +74,7 @@ client_dispatch ()
 static void
 client_worker_init (thread *t)
 {
-  /* FIXME: use some macro MAX_REQUEST_SIZE or so... */
-  t->u.client.buffer = (char *) xmalloc (8888);
+  t->u.client.buffer = (char *) xmalloc (ZFS_MAX_REQUEST_LEN);
 }
 
 /* Cleanup client thread DATA.  */
