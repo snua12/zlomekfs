@@ -1986,6 +1986,49 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
   RETURN_VOID;
 }
 
+/* Destroy subdentries of dentry DENTRY.  Invalidate the dentries in kernel
+   if INVALIDATE.  Return true if DENTRY still exists.  */
+
+static bool
+internal_dentry_destroy_subdentries (internal_dentry dentry, zfs_fh *tmp_fh,
+				     bool invalidate)
+{
+  TRACE ("%p", (void *) dentry);
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dentry->fh->attr.type != FT_DIR)
+    abort ();
+#endif
+
+  while (VARRAY_USED (dentry->fh->subdentries) > 0)
+    {
+      internal_dentry subdentry;
+      internal_dentry tmp1, tmp2;
+
+      subdentry = VARRAY_TOP (dentry->fh->subdentries, internal_dentry);
+      zfsd_mutex_lock (&subdentry->fh->mutex);
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+      internal_dentry_destroy (subdentry, false, invalidate);
+
+      tmp1 = dentry_lookup (tmp_fh);
+      tmp2 = tmp1;
+      do
+	{
+	  if (tmp2 == dentry)
+	    break;
+	  tmp2 = tmp2->next;
+	}
+      while (tmp2 != tmp1);
+
+      /* DENTRY could not be found, it is already deleted.  */
+      if (tmp2 != dentry)
+	RETURN_BOOL (false);
+    }
+
+  RETURN_BOOL (true);
+}
+
 /* Destroy internal dentry DENTRY.  Clear vol->root_dentry if
    CLEAR_VOLUME_ROOT.  Invalidate the dentry in kernel if INVALIDATE.  */
 
@@ -2005,33 +2048,9 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
   if (dentry->fh->attr.type == FT_DIR)
     {
       /* Destroy subtree first.  */
-      while (VARRAY_USED (dentry->fh->subdentries))
-	{
-	  internal_dentry subdentry;
-	  internal_dentry tmp1, tmp2;
-
-	  subdentry = VARRAY_TOP (dentry->fh->subdentries, internal_dentry);
-	  zfsd_mutex_lock (&subdentry->fh->mutex);
-	  zfsd_mutex_unlock (&dentry->fh->mutex);
-	  internal_dentry_destroy (subdentry, false, invalidate);
-
-	  tmp1 = dentry_lookup (&tmp_fh);
-	  tmp2 = tmp1;
-	  do
-	    {
-	      if (tmp2 == dentry)
-		break;
-	      tmp2 = tmp2->next;
-	    }
-	  while (tmp2 != tmp1);
-
-	  /* DENTRY could not be found, it is already deleted.  */
-	  if (tmp2 != dentry)
-	    RETURN_VOID;
-	}
+      if (!internal_dentry_destroy_subdentries (dentry, &tmp_fh, invalidate))
+	RETURN_VOID;
     }
-
-  /* At this point, DENTRY is always a leaf.  */
 
 #ifdef ENABLE_CHECKING
   if (dentry->fh->level != LEVEL_UNLOCKED && dentry->deleted)
@@ -2102,8 +2121,15 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
   /* Mark DENTRY as deleted and wake up other threads trying to delete it.  */
   dentry->deleted = true;
   zfsd_cond_broadcast (&dentry->fh->cond);
-
   dentry_update_cleanup_node (dentry);
+
+  if (dentry->fh->attr.type == FT_DIR)
+    {
+      /* New subdentries may have been added while we were waiting until
+	 the dentry is unlocked.  */
+      if (!internal_dentry_destroy_subdentries (dentry, &tmp_fh, invalidate))
+	abort ();
+    }
 
   if (dentry->parent)
     {
