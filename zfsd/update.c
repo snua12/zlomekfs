@@ -941,7 +941,7 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 int32_t
 update_cap_if_needed (internal_cap *icapp, volume *volp,
 		      internal_dentry *dentryp, virtual_dir *vdp,
-		      zfs_cap *cap, int what)
+		      zfs_cap *cap, bool put_cap, int what)
 {
   int32_t r, r2;
   fattr remote_attr;
@@ -968,6 +968,8 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
 
 	  if (r != ZFS_OK)
 	    {
+	      if (put_cap)
+		put_capability (*icapp, (*dentryp)->fh, *vdp);
 	      internal_cap_unlock (*volp, *dentryp, *vdp);
 	      RETURN_INT (r);
 	    }

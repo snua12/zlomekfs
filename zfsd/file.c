@@ -903,7 +903,7 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   flags &= ~O_ACCMODE;
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      r = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap,
+      r = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap, true,
 				IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
@@ -1111,16 +1111,9 @@ zfs_close (zfs_cap *cap)
       && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
     {
       r2 = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap,
-				 IFH_REINTEGRATE);
+				 r == ZFS_OK, IFH_REINTEGRATE);
       if (r2 != ZFS_OK)
-	{
-	  r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry,
-				       &vd, false);
-#ifdef ENABLE_CHECKING
-	  if (r2 != ZFS_OK)
-	    abort ();
-#endif
-	}
+	RETURN_INT (r);
     }
 
   if (r == ZFS_OK)
