@@ -2422,7 +2422,7 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
       && meta.name[0] == 0)
     {
       hardlink_list_destroy (hl);
-      return get_shadow_path (vol, fh, false);
+      return NULL;
     }
 
   path = NULL;
