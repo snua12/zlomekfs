@@ -287,19 +287,10 @@ debug_volumes (void)
   print_volumes (stderr);
 }
 
-/* Initialize data structures in VOLUME.C.  */
+/* Delete all volumes.  */
 
 void
-initialize_volume_c (void)
-{
-  zfsd_mutex_init (&volume_mutex);
-  volume_htab = htab_create (200, volume_hash, volume_eq, NULL, &volume_mutex);
-}
-
-/* Destroy data structures in VOLUME.C.  */
-
-void
-cleanup_volume_c (void)
+delete_all_volumes (void)
 {
   void **slot;
 
@@ -315,7 +306,24 @@ cleanup_volume_c (void)
     }
   htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
-  zfsd_mutex_destroy (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vd_mutex);
+}
+
+/* Initialize data structures in VOLUME.C.  */
+
+void
+initialize_volume_c (void)
+{
+  zfsd_mutex_init (&volume_mutex);
+  volume_htab = htab_create (200, volume_hash, volume_eq, NULL, &volume_mutex);
+}
+
+/* Destroy data structures in VOLUME.C.  */
+
+void
+cleanup_volume_c (void)
+{
+  delete_all_volumes ();
+  zfsd_mutex_destroy (&volume_mutex);
 }
