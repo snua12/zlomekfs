@@ -1144,6 +1144,7 @@ inc_local_version (volume vol, internal_fh fh)
 bool
 delete_metadata (volume vol, uint32_t dev, uint32_t ino)
 {
+  metadata meta;
   zfs_fh fh;
   int i;
 
@@ -1163,6 +1164,44 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino)
       unlink (file);
       free (file);
     }
+
+  if (!list_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_list_file (vol);
+      if (fd < 0)
+	return false;
+    }
+
+  meta.dev = dev;
+  meta.ino = ino;
+  if (!hfile_lookup (vol->metadata, &meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+  if (meta.slot_status != VALID_SLOT)
+    {
+      meta.slot_status = VALID_SLOT;
+      meta.flags = METADATA_COMPLETE;
+      meta.dev = dev;
+      meta.ino = ino;
+      meta.local_version = 1;
+      meta.master_version = 0;
+    }
+
+  meta.flags = 0;
+  meta.local_version++;
+  if (!hfile_insert (vol->metadata, &meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 
   return true;
 }
