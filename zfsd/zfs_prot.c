@@ -674,6 +674,7 @@ zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
 
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
+#define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 int32_t									\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
@@ -703,9 +704,11 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
 
 /* Call remote FUNCTION with ARGS on node NOD using data structures in thread T
    and return its error code, store file descriptor connected to NOD to FD.  */
+#define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 int32_t									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
@@ -724,9 +727,11 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
 
 /* Call FUNCTION in kernel with ARGS using data structures in thread T
    and return its error code.  */
+#define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 int32_t									\
 zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
@@ -741,6 +746,7 @@ zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_KERNEL
 
 /* Return string describing error code.  */
 
@@ -829,6 +835,7 @@ cleanup_zfs_prot_c (void)
   printf ("Call statistics:\n");
   printf ("%-16s%15s%15s\n", "Function", "From kernel", "From network");
 
+#define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   if (call_statistics[CALL_FROM_KERNEL][NUMBER] > 0			\
       || call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)		\
@@ -839,6 +846,7 @@ cleanup_zfs_prot_c (void)
     }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_SERVER
 
 #endif
 }
@@ -878,6 +886,7 @@ static int zfs_error(int error)
 
 /* Call ZFSd FUNCTION with ARGS using data structures in DC
    and return its error code. */
+#define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)	\
 int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 {								\
@@ -912,5 +921,6 @@ int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 }
 # include "zfs_prot.def"
 # undef DEFINE_ZFS_PROC
+# undef ZFS_CALL_CLIENT
 
 #endif  /* __KERNEL__ */

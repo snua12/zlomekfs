@@ -27,16 +27,17 @@
    AUTH = level of authentication needed to process the function
 */
 
-#ifndef __KERNEL__
+#if defined (ZFS_CALL_SERVER) || defined (ZFS_CALL_CLIENT)
+# ifndef __KERNEL__
 DEFINE_ZFS_PROC (0, NULL, null, void,
 		 AUTHENTICATION_NONE)
-#endif
+# endif
 DEFINE_ZFS_PROC (1, ROOT, root, void,
 		 AUTHENTICATION_FINISHED)
-#ifndef __KERNEL__
+# ifndef __KERNEL__
 DEFINE_ZFS_PROC (2, VOLUME_ROOT, volume_root, volume_root_args,
 		 AUTHENTICATION_FINISHED)
-#endif
+# endif
 DEFINE_ZFS_PROC (3, GETATTR, getattr, zfs_fh,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (4, SETATTR, setattr, sattr_args,
@@ -71,7 +72,7 @@ DEFINE_ZFS_PROC (18, SYMLINK, symlink, symlink_args,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (19, MKNOD, mknod, mknod_args,
 		 AUTHENTICATION_FINISHED)
-#ifndef __KERNEL__
+# ifndef __KERNEL__
 DEFINE_ZFS_PROC (20, AUTH_STAGE1, auth_stage1, auth_stage1_args,
 		 AUTHENTICATION_NONE)
 DEFINE_ZFS_PROC (21, AUTH_STAGE2, auth_stage2, auth_stage2_args,
@@ -88,4 +89,5 @@ DEFINE_ZFS_PROC (26, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
 		 AUTHENTICATION_FINISHED)
 DEFINE_ZFS_PROC (27, REINTEGRATE_SET, reintegrate_set, reintegrate_set_args,
 		 AUTHENTICATION_FINISHED)
+# endif
 #endif

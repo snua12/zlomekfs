@@ -389,12 +389,18 @@ extern unsigned int ftype2mode[FT_LAST_AND_UNUSED];
 /* Function numbers.  */
 enum function_number_def
 {
+#define ZFS_CALL_CLIENT
+#define ZFS_CALL_SERVER
+#define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   ZFS_PROC_##NAME = NUMBER,
 #include "zfs_prot.def"
   ZFS_PROC_LAST_AND_UNUSED
 };
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_KERNEL
+#undef ZFS_CALL_SERVER
+#undef ZFS_CALL_CLIENT
 
 struct thread_def;
 struct node_def;
@@ -404,27 +410,43 @@ struct node_def;
 
 #ifdef __KERNEL__
 
+#define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
 
 #else /* __KERNEL__ */
 
+#define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
 					    DC *dc, void *data,		\
-					    bool map_id);		\
+					    bool map_id);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_SERVER
+
+#define ZFS_CALL_CLIENT
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern int32_t zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
 					       ARGS *args,		\
 					       struct node_def *nod,	\
 					       int *fd);		\
-  extern int32_t zfs_proc_##FUNCTION##_kernel (struct thread_def *t,	\
-					       ARGS *args);		\
   extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
 						 ARGS *args, int fd);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
+
+#define ZFS_CALL_KERNEL
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+  extern int32_t zfs_proc_##FUNCTION##_kernel (struct thread_def *t,	\
+					       ARGS *args);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_KERNEL
 
 /* Call statistics.  */
 #define CALL_FROM_KERNEL	0

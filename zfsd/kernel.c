@@ -205,6 +205,7 @@ kernel_worker (void *data)
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
 	{
+#define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 	  case ZFS_PROC_##NAME:						\
 	    if (!decode_##ARGS (t->u.kernel.dc,				\
@@ -226,6 +227,7 @@ kernel_worker (void *data)
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_SERVER
 
 	  default:
 	    send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
