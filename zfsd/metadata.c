@@ -1478,6 +1478,17 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
       close (fd);
     }
 
+  switch (type)
+    {
+      case METADATA_TYPE_UPDATED:
+      case METADATA_TYPE_MODIFIED:
+	interval_tree_delete (*treep, fh->attr.size, UINT64_MAX);
+	break;
+
+      default:
+	abort ();
+    }
+
   RETURN_BOOL (flush_interval_tree_1 (vol, fh, type, &path));
 }
 
