@@ -711,6 +711,13 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
   varray_destroy (&hierarchy);
 }
 
+/* Saved information about config volume because we need to update it after
+   information about every volume was read.  */
+
+static uint32_t saved_vid;
+static string saved_name;
+static string saved_mountpoint;
+
 /* Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
@@ -739,6 +746,12 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	  message (0, stderr,
 		   "%s:%d: Volume mountpoint must be an absolute path\n",
 		   file_name, line_num);
+	}
+      else if (vid == VOLUME_ID_CONFIG && saved_vid == 0)
+	{
+	  saved_vid = vid;
+	  xstringdup (&saved_name, &parts[1]);
+	  xstringdup (&saved_mountpoint, &parts[2]);
 	}
       else
 	{
@@ -772,9 +785,21 @@ read_volume_list (zfs_fh *config_dir)
   if (r != ZFS_OK)
     return false;
 
-  return process_file_by_lines (&volume_list_res.file, "config/volume",
-				process_line_volume,
-				&volume_hierarchy_res.file);
+  saved_vid = 0;
+  if (!process_file_by_lines (&volume_list_res.file, "config/volume",
+			      process_line_volume,
+			      &volume_hierarchy_res.file))
+    return false;
+
+  if (saved_vid == VOLUME_ID_CONFIG)
+    {
+      read_volume_hierarchy (&volume_hierarchy_res.file, saved_vid,
+			     &saved_name, &saved_mountpoint);
+      free (saved_name.str);
+      free (saved_mountpoint.str);
+    }
+
+  return true;
 }
 
 /* Has the config reader already terminated?  */
