@@ -298,14 +298,17 @@ remote_close (internal_cap cap, internal_dentry dentry, volume vol)
   return r;
 }
 
-/* Create local file NAME in directory DIR with open flags FLAGS,
+/* Create local file NAME in directory DIR on volume VOL with open flags FLAGS,
    set file attributes according to ATTR.  Store the newly opened file
-   descriptor to FDP.  */
+   descriptor to FDP, create results to RES and metadata to META.
+   If file already exists set EXISTS.  */
 
 int32_t
 local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
-	      uint32_t flags, sattr *attr, volume vol, metadata  *meta)
+	      uint32_t flags, sattr *attr, volume vol, metadata *meta,
+	      bool *exists)
 {
+  struct stat st;
   string path;
   int32_t r;
 
@@ -321,6 +324,9 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
+  if (exists)
+    *exists = (lstat (path.str, &st) == 0);
+    
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = safe_open (path.str, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
@@ -414,6 +420,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   metadata meta;
   int32_t r, r2;
   int fd;
+  bool exists;
 
   TRACE ("");
 
@@ -474,10 +481,11 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   if (r != ZFS_OK)
     return r;
 
+  exists = false;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_create (res, &fd, idir, name, flags, attr, vol, &meta);
+      r = local_create (res, &fd, idir, name, flags, attr, vol, &meta, &exists);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
@@ -515,10 +523,13 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 
 	  if (vol->master != this_node)
 	    {
-	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name,
-				      JOURNAL_OPERATION_ADD))
-		vol->delete_p = true;
+	      if (!exists)
+		{
+		  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
+					  &dentry->fh->meta.master_fh, name,
+					  JOURNAL_OPERATION_ADD))
+		    vol->delete_p = true;
+		}
 	    }
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;

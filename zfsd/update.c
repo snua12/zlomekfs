@@ -915,7 +915,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 
       case FT_REG:
 	r = local_create (&cr_res, &fd, dir, name,
-			  O_CREAT | O_WRONLY | O_TRUNC, &sa, vol, &meta);
+			  O_CREAT | O_WRONLY | O_TRUNC, &sa, vol, &meta, NULL);
 	if (r == ZFS_OK)
 	  {
 	    close (fd);

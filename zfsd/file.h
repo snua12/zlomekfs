@@ -70,7 +70,7 @@ extern int32_t remote_close (internal_cap cap, internal_dentry dentry,
 			     volume vol);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
 			     string *name, uint32_t flags, sattr *attr,
-			     volume vol, metadata *meta);
+			     volume vol, metadata *meta, bool *exists);
 extern int32_t remote_create (create_res *res, internal_dentry dir,
 			      string *name, uint32_t flags, sattr *attr,
 			      volume vol);
