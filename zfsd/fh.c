@@ -1944,8 +1944,16 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
     }
 
   /* Let other threads waiting for DENTRY to finish using DENTRY.  */
-  zfsd_mutex_unlock (&dentry->fh->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      local_invalidate (dentry);
+    }
+  else
+    {
+      zfsd_mutex_unlock (&dentry->fh->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
 
   /* Because FH could not be destroyed yet we can lock it again.  */
   zfsd_mutex_lock (&fh_mutex);
@@ -1983,6 +1991,8 @@ create_conflict (volume vol, internal_dentry dir, string *name,
   if (!dir)
     abort ();
 #endif
+
+again:
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -2052,7 +2062,19 @@ create_conflict (volume vol, internal_dentry dir, string *name,
       zfsd_mutex_unlock (&nod->mutex);
 
       internal_dentry_add_to_dir (conflict, dentry);
-      release_dentry (dentry);
+
+      /* Invalidate DENTRY.  */
+      tmp_fh = dir->fh->local_fh;
+      release_dentry (dir);
+      release_dentry (conflict);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      local_invalidate (dentry);
+
+      /* This succeeds because DIR was locked so it can't have been
+	 deleted meanwhile.  */
+      zfs_fh_lookup_nolock (&tmp_fh, &vol, &dir, NULL, false);
+      goto again;
     }
 
   return conflict;
