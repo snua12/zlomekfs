@@ -2422,7 +2422,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
       if (!zfs_fh_undefined (meta.master_fh))
 	{
-	  if ((meta.flags & METADATA_MODIFIED_TREE) == 0)
+	  if (local_res.attr.version == meta.master_version)
 	    {
 	      vol = volume_lookup (fh->vid);
 #ifdef ENABLE_CHECKING
