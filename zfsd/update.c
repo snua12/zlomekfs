@@ -528,7 +528,7 @@ update_file (zfs_fh *fh)
   varray blocks;
   volume vol;
   internal_dentry dentry;
-  internal_cap icap;
+  internal_cap icap = NULL;
   zfs_cap cap;
   int32_t r, r2;
   int what;
@@ -590,7 +590,7 @@ update_file (zfs_fh *fh)
   cap.fh = *fh;
   r = get_capability (&cap, &icap, &vol, &dentry, NULL, false, false);
   if (r != ZFS_OK)
-    RETURN_INT (r);
+    goto out2;
 
   r = cond_remote_open (&cap, icap, &dentry, &vol);
   if (r != ZFS_OK)
@@ -672,7 +672,8 @@ out2:
 out:
   if (opened_remote)
     cond_remote_close (&cap, icap, &dentry, &vol);
-  put_capability (icap, dentry->fh, NULL);
+  if (icap)
+    put_capability (icap, dentry->fh, NULL);
   internal_dentry_unlock (vol, dentry);
   RETURN_INT (r);
 }
