@@ -1847,7 +1847,9 @@ read_hardlinks (hardlink_list hl, int fd)
   fclose (f);
 }
 
-/* Write list of hardlinks from hardlink list HL to file PATH.  */
+/* Write list of hardlinks for file handle FH on volume VOL
+   from hardlink list HL to file PATH.
+   Return false on file error.  */
 
 static bool
 write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
@@ -1954,6 +1956,10 @@ init_hardlinks (volume vol, internal_fh fh)
 
   return true;
 }
+
+/* Flush the hardlink list HL for file handle HL on volume VOL
+   either to file PATH or to metadata file if possible.
+   Return false on file error.  */
 
 static bool
 flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
@@ -2116,8 +2122,8 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
   return true;
 }
 
-/* Write list of hardlinks for file handle FH on volume VOL to file.
-   If there is only one hardlink delete the file with the list.
+/* Flush the hardlink list for file handle HL on volume VOL
+   either to special file or to metadata file if possible.
    Return false on file error.  */
 
 static bool
@@ -2190,6 +2196,10 @@ flush_hardlinks (volume vol, internal_fh fh)
   return true;
 }
 
+/* Insert a hardlink [PARENT_DEV, PARENT_INO, NAME] to hardlink list for
+   file handle FH on volume VOL.
+   Return false on file error.  */
+
 bool
 metadata_hardlink_insert (volume vol, internal_fh fh, uint32_t parent_dev,
 			  uint32_t parent_ino, char *name)
@@ -2206,6 +2216,11 @@ metadata_hardlink_insert (volume vol, internal_fh fh, uint32_t parent_dev,
 
   return true;
 }
+
+/* Replace a hardlink [OLD_PARENT_DEV, OLD_PARENT_INO, OLD_NAME] by
+   [NEW_PARENT_DEV, NEW_PARENT_INO, NEW_NAME] in hardlink list for file
+   handle FH on volume VOL.
+   Return false on file error.  */
 
 bool
 metadata_hardlink_replace (volume vol, internal_fh fh, uint32_t old_parent_dev,
@@ -2231,6 +2246,10 @@ metadata_hardlink_replace (volume vol, internal_fh fh, uint32_t old_parent_dev,
 
   return true;
 }
+
+/* Delete a hardlink [PARENT_DEV, PARENT_INO, NAME] from hardlink list for
+   file handle FH on volume VOL.
+   Return false on file error.  */
 
 bool
 metadata_hardlink_delete (volume vol, internal_fh fh, uint32_t parent_dev,
