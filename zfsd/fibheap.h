@@ -24,7 +24,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-/*! Fibonacci heaps are somewhat complex, but, there's an article in
+/* Fibonacci heaps are somewhat complex, but, there's an article in
    DDJ that explains them pretty well:
 
    http://www.ddj.com/articles/1997/9701/9701o/9701o.htm?topic=algoritms
@@ -50,10 +50,12 @@
 #include "pthread.h"
 #include "alloc-pool.h"
 
+/*! Type of Fibonacci heap key.  */
 typedef uint32_t fibheapkey_t;
 #define FIBHEAPKEY_MIN 0
 #define FIBHEAPKEY_MAX ((fibheapkey_t) -1)
 
+/*! Node of Fibonacci heap.  */
 typedef struct fibnode_def
 {
   struct fibnode_def *parent;
@@ -66,6 +68,7 @@ typedef struct fibnode_def
   unsigned int mark : 1;
 } *fibnode;
 
+/* Fibonacci heap.  */
 typedef struct fibheap_def
 {
   unsigned int nodes;

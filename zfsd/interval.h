@@ -33,25 +33,25 @@
 /*! The interval tree.  */
 typedef struct interval_tree_def
 {
-  /* Mutex for this interval tree.  */
+  /*! Mutex for this interval tree.  */
   pthread_mutex_t *mutex;
 
-  /* The underlying splay tree.  */
+  /*! The underlying splay tree.  */
   splay_tree splay;
 
-  /* Preferred size of block for alloc pool.  */
+  /*! Preferred size of block for alloc pool.  */
   unsigned int preferred_size;
 
-  /* Number of intervals in tree.  */
+  /*! Number of intervals in tree.  */
   unsigned int size;
 
-  /* File descriptor associated with the tree.  */
+  /*! File descriptor associated with the tree.  */
   int fd;
 
-  /* Generation of opened file descriptor.  */
+  /*! Generation of opened file descriptor.  */
   unsigned int generation;
 
-  /* Was some interval deleted from the tree?
+  /*! Was some interval deleted from the tree?
      Used to decide whether to flush the tree or not.  */
   bool deleted;
 } *interval_tree;
@@ -59,10 +59,10 @@ typedef struct interval_tree_def
 /*! Structure of an interval used by interval_tree_read/interval_tree_write.  */
 typedef struct interval_def
 {
-  /* Start of interval.  */
+  /*! Start of interval.  */
   uint64_t start;
 
-  /* End of interval.  */
+  /*! End of interval.  */
   uint64_t end;
 } interval;
 

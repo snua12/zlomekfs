@@ -26,6 +26,7 @@
 #include "system.h"
 #include <stddef.h>
 
+/*! CRC32 iterator. */
 #define CRC32_NEXT(CRC, STR)					\
    (crc32_table[((CRC) ^ *(STR)++) & 0xff] ^ ((CRC) >> 8))
 

@@ -148,61 +148,61 @@ struct internal_fh_def
   pthread_mutex_t mutex;
   pthread_cond_t cond;
 
-  /* File handle for client, key for hash table.  */
+  /*! File handle for client, key for hash table.  */
   zfs_fh local_fh;
 
-  /* Number of directory entries associated with this file handle.  */
+  /*! Number of directory entries associated with this file handle.  */
   unsigned int ndentries;
 
-  /* File attributes.  */
+  /*! File attributes.  */
   fattr attr;
 
-  /* Metadata.  */
+  /*! Metadata.  */
   metadata meta;
 
-  /* Contained directory entries (of type 'struct internal_dentry_def *').  */
+  /*! Contained directory entries (of type 'struct internal_dentry_def *').  */
   varray subdentries;
 
-  /* Chain of capabilities associated with this file handle.  */
+  /*! Chain of capabilities associated with this file handle.  */
   internal_cap cap;
 
-  /* Updated intervals.  */
+  /*! Updated intervals.  */
   interval_tree updated;
 
-  /* Modified intervals.  */
+  /*! Modified intervals.  */
   interval_tree modified;
 
-  /* Journal for a directory.  */
+  /*! Journal for a directory.  */
   journal_t journal;
 
-  /* Number of users of interval trees.  */
+  /*! Number of users of interval trees.  */
   unsigned int interval_tree_users;
 
-  /* "Lock" level of the file handle.  */
+  /*! "Lock" level of the file handle.  */
   unsigned int level;
 
-  /* Number of current users of the file handle.  */
+  /*! Number of current users of the file handle.  */
   unsigned int users;
 
-  /* Lock ID which will be assigned next.  */
+  /*! Lock ID which will be assigned next.  */
   unsigned int id2assign;
 
-  /* Lock ID which will run next.  */
+  /*! Lock ID which will run next.  */
   unsigned int id2run;
 
-  /* Open file descriptor.  */
+  /*! Open file descriptor.  */
   int fd;
 
-  /* Generation of open file descriptor.  */
+  /*! Generation of open file descriptor.  */
   unsigned int generation;
 
-  /* Flags, see IFH_* below.  */
+  /*! Flags, see IFH_* below.  */
   unsigned int flags;
 
-  /* Node which is reintegrating this file.  */
+  /*! Node which is reintegrating this file.  */
   uint32_t reintegrating_sid;
 
-  /* Generation of socket to node which is reintegrating this file.  */
+  /*! Generation of socket to node which is reintegrating this file.  */
   unsigned int reintegrating_generation;
 };
 
@@ -214,11 +214,11 @@ struct internal_fh_def
 #define IFH_ENQUEUED	8
 #define IFH_REINTEGRATING 16
 
-/*! Information about locked dentries.  */
+/*! Information about locked dentries by current thread.  */
 typedef struct lock_info_def
 {
-  internal_dentry dentry;
-  unsigned int level;
+  internal_dentry dentry;	/*!< Locked dentry */
+  unsigned int level;		/*!< Lock level */
 } lock_info;
 
 /*! Internal directory entry.  */
@@ -227,32 +227,32 @@ struct internal_dentry_def
   /* Mutex is not needed here because we can use FH->MUTEX
      because FH is constant for each internal dentry.  */
 
-  /* Internal file handle associated with this dentry.  */
+  /*! Internal file handle associated with this dentry.  */
   internal_fh fh;
 
-  /* Pointer to internal dentry of the parent directory.  */
+  /*! Pointer to internal dentry of the parent directory.  */
   internal_dentry parent;
 
-  /* File name.  */
+  /*! File name.  */
   string name;
 
-  /* Pointers to next and previous dentry with the same file handle,
+  /*! Pointers to next and previous dentry with the same file handle,
      making a cyclic double linked chain.  */
   internal_dentry next, prev;
 
-  /* Index of this dentry in parent's list of directory entries.  */
+  /*! Index of this dentry in parent's list of directory entries.  */
   unsigned int dentry_index;
 
-  /* Last use of this dentry.  */
+  /*! Last use of this dentry.  */
   time_t last_use;
 
-  /* Heap node whose data is this dentry.  */
+  /*! Heap node whose data is this dentry.  */
   fibnode heap_node;
 
-  /* Number of current users of the file handle.  */
+  /*! Number of current users of the file handle.  */
   unsigned int users;
 
-  /* Is dentry marked to be deleted?  */
+  /*! Is dentry marked to be deleted?  */
   bool deleted;
 };
 
@@ -266,40 +266,40 @@ struct virtual_dir_def
 
   pthread_mutex_t mutex;
 
-  /* Handle of this node.  */
+  /*! Handle of this node.  */
   zfs_fh fh;
 
-  /* Pointer to parent virtual directory.  */
+  /*! Pointer to parent virtual directory.  */
   virtual_dir parent;
 
-  /* Directory name.  */
+  /*! Directory name.  */
   string name;
 
-  /* Volume which is mounted here.  */
+  /*! Volume which is mounted here.  */
   volume vol;
 
-  /* Capability associated with this virtual directory.  */
+  /*! Capability associated with this virtual directory.  */
   internal_cap cap;
 
-  /* Directory attributes.  */
+  /*! Directory attributes.  */
   fattr attr;
 
-  /* Virtual subdirectories (of type 'struct virtual_dir_def *').  */
+  /*! Virtual subdirectories (of type 'struct virtual_dir_def *').  */
   varray subdirs;
 
-  /* Index in parent's list of subdirectories.  */
+  /*! Index in parent's list of subdirectories.  */
   unsigned int subdir_index;
 
-  /* Total number of mountpoints in subtree (including current node).  */
+  /*! Total number of mountpoints in subtree (including current node).  */
   unsigned int n_mountpoints;
 
-  /* Is the virtual directory busy?  If it is it can't be deleted.  */
+  /*! Is the virtual directory busy?  If it is it can't be deleted.  */
   bool busy;
 
-  /* Number of current users of the virtual directory.  */
+  /*! Number of current users of the virtual directory.  */
   unsigned int users;
 
-  /* Number of mountpoints to be deleted.  */
+  /*! Number of mountpoints to be deleted.  */
   unsigned int deleted;
 };
 

@@ -43,9 +43,9 @@
 typedef struct internal_fd_data_def
 {
   pthread_mutex_t mutex;
-  int fd;			/* file descriptor */
-  unsigned int generation;	/* generation of open file descriptor */
-  fibnode heap_node;		/* node of heap whose data is this structure  */
+  int fd;			/*!< file descriptor */
+  unsigned int generation;	/*!< generation of open file descriptor */
+  fibnode heap_node;		/*!< node of heap whose data is this structure  */
 } internal_fd_data_t;
 
 /*! Data for supplementary functions of readdir.  */

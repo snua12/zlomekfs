@@ -29,11 +29,11 @@
 #include "memory.h"
 #include "varray.h"
 
-/*!! \var string empty_string
+/*! \var string empty_string
     Empty string.  */
 string empty_string = { 0, "" };
 
-/*!! \var string invalid_string
+/*! \var string invalid_string
     Invalid string.  */
 string invalid_string = { 0, NULL };
 

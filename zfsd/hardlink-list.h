@@ -41,30 +41,30 @@
 typedef struct hardlink_list_entry_def *hardlink_list_entry;
 struct hardlink_list_entry_def
 {
-  /* Next and previous entry in the doubly linked chain.  */
+  /*! Next and previous entry in the doubly linked chain.  */
   hardlink_list_entry next;
   hardlink_list_entry prev;
 
-  /* Device of parent directory.  */
+  /*! Device of parent directory.  */
   uint32_t parent_dev;
 
-  /* Inode of parent directory.  */
+  /*! Inode of parent directory.  */
   uint32_t parent_ino;
 
-  /* File name.  */
+  /*! File name.  */
   string name;
 };
 
 /*! Definition of the hashed variable-sized array.  */
 typedef struct hardlink_list_def
 {
-  /* Hash table.  */
+  /*! Hash table.  */
   htab_t htab;
 
-  /* Mutex which must be locked when accessing the hardlink list.  */
+  /*! Mutex which must be locked when accessing the hardlink list.  */
   pthread_mutex_t *mutex;
 
-  /* First and last node of the doubly-linked chain.  */
+  /*! First and last node of the doubly-linked chain.  */
   hardlink_list_entry first;
   hardlink_list_entry last;
 } *hardlink_list;

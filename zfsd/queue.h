@@ -30,20 +30,20 @@
 
 typedef struct queue_node_def
 {
-  struct queue_node_def *next;	/* next node in the chain */
-  char data[1];			/* data */
+  struct queue_node_def *next;	/*!< next node in the chain */
+  char data[1];			/*!< data */
 } *queue_node;
 
 typedef struct queue_def
 {
-  pthread_mutex_t *mutex;	/* mutex for accessing the queue */
-  pthread_cond_t non_empty;	/* cond. var. for waiting while (nelem == 0) */
-  alloc_pool pool;		/* alloc pool for elements of the queue */
-  unsigned int nelem;		/* number of elements in the queue */
-  unsigned int size;		/* size of an element */
-  queue_node first;		/* first node of the queue */
-  queue_node last;		/* last node of the queue */
-  volatile bool exiting;	/* is the program going to exit? */
+  pthread_mutex_t *mutex;	/*!< mutex for accessing the queue */
+  pthread_cond_t non_empty;	/*!< cond. var. for waiting while (nelem == 0) */
+  alloc_pool pool;		/*!< alloc pool for elements of the queue */
+  unsigned int nelem;		/*!< number of elements in the queue */
+  unsigned int size;		/*!< size of an element */
+  queue_node first;		/*!< first node of the queue */
+  queue_node last;		/*!< last node of the queue */
+  volatile bool exiting;	/*!< is the program going to exit? */
 } queue;
 
 extern void queue_create (queue *q, size_t size, size_t num,

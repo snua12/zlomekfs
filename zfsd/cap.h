@@ -40,24 +40,25 @@
 
 typedef struct internal_cap_def *internal_cap;
 
+/*! In-memory capability structure.  */
 struct internal_cap_def
 {
-  /* Capability for client.  */
+  /*! Capability for client.  */
   zfs_cap local_cap;
 
-  /* Capability for server.  */
+  /*! Capability for server.  */
   zfs_cap master_cap;
 
-  /* Next capability for the ZFS file handle in the chain.  */
+  /*! Next capability for the ZFS file handle in the chain.  */
   internal_cap next;
 
-  /* Number of clients using this capability.  */
+  /*! Number of clients using this capability.  */
   unsigned int busy;
 
-  /* Number of clients using the remote capability.  */
+  /*! Number of clients using the remote capability.  */
   unsigned int master_busy;
 
-  /* Close master capability in zfs_close.  */
+  /*! Close master capability in zfs_close.  */
   bool master_close_p;
 };
 

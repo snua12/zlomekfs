@@ -55,25 +55,25 @@ extern unsigned int metadata_tree_depth;
 /*!Type of metadata.  */
 typedef enum metadata_type_def
 {
-  /* Generic metadata hashed by local file handle.  */
+  /*! Generic metadata hashed by local file handle.  */
   METADATA_TYPE_METADATA,
 
-  /* Mapping of master file handle to local file handle.  */
+  /*! Mapping of master file handle to local file handle.  */
   METADATA_TYPE_FH_MAPPING,
 
-  /* Intervals updated from master node.  */
+  /*! Intervals updated from master node.  */
   METADATA_TYPE_UPDATED,
 
-  /* Intervals modified by local node.  */
+  /*! Intervals modified by local node.  */
   METADATA_TYPE_MODIFIED,
 
-  /* List of hardlinks for file handle.  */
+  /*! List of hardlinks for file handle.  */
   METADATA_TYPE_HARDLINKS,
 
-  /* Journal of modifications of a directory.  */
+  /*! Journal of modifications of a directory.  */
   METADATA_TYPE_JOURNAL,
 
-  /* File which is not accessible in the directory tree yet.  */
+  /*! File which is not accessible in the directory tree yet.  */
   METADATA_TYPE_SHADOW
 } metadata_type;
 
@@ -84,35 +84,35 @@ typedef enum metadata_type_def
 /*! Metadata for file.  */
 typedef struct metadata_def
 {
-  uint32_t slot_status;		/* status of slot (empty, deleted, valid) */
-  uint32_t flags;		/* see METADATA_* below */
-  uint32_t dev;			/* device of the file */
-  uint32_t ino;			/* inode of the file */
-  uint32_t gen;			/* generation of the file */
-  zfs_fh master_fh;		/* master file handle */
-  uint64_t local_version;	/* local version (is it needed?) */
-  uint64_t master_version;	/* version on server/version got from server */
-  uint32_t modetype;		/* original access rights and file type */
-  uint32_t uid;			/* original owner */
-  uint32_t gid;			/* original group */
-  uint32_t parent_dev;		/* device of the parent of the file */
-  uint32_t parent_ino;		/* inode of the parent of the file */
-  char name[METADATA_NAME_SIZE];/* file name */
+  uint32_t slot_status;		/*!< status of slot (empty, deleted, valid) */
+  uint32_t flags;		/*!< see METADATA_* below */
+  uint32_t dev;			/*!< device of the file */
+  uint32_t ino;			/*!< inode of the file */
+  uint32_t gen;			/*!< generation of the file */
+  zfs_fh master_fh;		/*!< master file handle */
+  uint64_t local_version;	/*!< local version (is it needed?) */
+  uint64_t master_version;	/*!< version on server/version got from server */
+  uint32_t modetype;		/*!< original access rights and file type */
+  uint32_t uid;			/*!< original owner */
+  uint32_t gid;			/*!< original group */
+  uint32_t parent_dev;		/*!< device of the parent of the file */
+  uint32_t parent_ino;		/*!< inode of the parent of the file */
+  char name[METADATA_NAME_SIZE];/*!< file name */
 } metadata;
 
 /*! File handle mapping.  */
 typedef struct fh_mapping_def
 {
-  uint32_t slot_status;		/* status of slot (empty, deleted, valid) */
-  zfs_fh master_fh;		/* master file handle */
-  zfs_fh local_fh;		/* local file handle */
+  uint32_t slot_status;		/*!< status of slot (empty, deleted, valid) */
+  zfs_fh master_fh;		/*!< master file handle */
+  zfs_fh local_fh;		/*!< local file handle */
 } fh_mapping;
 
-#define METADATA_COMPLETE	1	/* file is complete */
-#define METADATA_UPDATED_TREE	2	/* file has an updated interval tree */
-#define METADATA_MODIFIED_TREE	4	/* file has a modified interval tree */
-#define METADATA_SHADOW		16	/* file is in shadow */
-#define METADATA_SHADOW_TREE	32	/* dir is a part of shadow tree */
+#define METADATA_COMPLETE	1	/*!< file is complete */
+#define METADATA_UPDATED_TREE	2	/*!< file has an updated interval tree */
+#define METADATA_MODIFIED_TREE	4	/*!< file has a modified interval tree */
+#define METADATA_SHADOW		16	/*!< file is in shadow */
+#define METADATA_SHADOW_TREE	32	/*!< dir is a part of shadow tree */
 
 #include "volume.h"
 #include "fh.h"

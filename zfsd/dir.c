@@ -293,7 +293,7 @@ parent_exists (string *path, struct stat *st)
   RETURN_INT (ZFS_OK);
 }
 
-/*!! Increase the local version of a file handle.
+/*! Increase the local version of a file handle.
     \param fh ZFS file handle whose version will be increased.  */
 
 static bool

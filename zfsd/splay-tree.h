@@ -73,13 +73,13 @@ typedef void (*splay_tree_deallocate_fn) (void *, void *);
 /*! The nodes in the splay tree.  */
 struct splay_tree_node_s
 {
-  /* The key.  */
+  /*! The key.  */
   splay_tree_key key;
 
-  /* The value.  */
+  /*! The value.  */
   splay_tree_value value;
 
-  /* The left and right children, respectively.  */
+  /*! The left and right children, respectively.  */
   splay_tree_node left;
   splay_tree_node right;
 };
@@ -87,16 +87,16 @@ struct splay_tree_node_s
 /*! The splay tree itself.  */
 struct splay_tree_s
 {
-  /* Mutex for this splay tree.  */
+  /*! Mutex for this splay tree.  */
   pthread_mutex_t *mutex;
 
-  /* The root of the tree.  */
+  /*! The root of the tree.  */
   splay_tree_node root;
 
-  /* The deallocate-value function.  NULL if no cleanup is necessary.  */
+  /*! The deallocate-value function.  NULL if no cleanup is necessary.  */
   splay_tree_delete_value_fn delete_value;
 
-  /* Alloc pool for splay_tree_node.  */
+  /*! Alloc pool for splay_tree_node.  */
   alloc_pool pool;
 };
 typedef struct splay_tree_s *splay_tree;

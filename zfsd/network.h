@@ -63,24 +63,24 @@ typedef struct fd_data_def
   pthread_mutex_t mutex;
   pthread_cond_t cond;
 
-  htab_t waiting4reply;		/* table of waiting4reply_data */
-  alloc_pool waiting4reply_pool;/* pool of waiting4reply_data */
-  fibheap waiting4reply_heap;	/* heap for waiting4reply_data */
-  int fd;			/* file descriptor of the socket */
-  unsigned int read;		/* number of bytes already read */
+  htab_t waiting4reply;		/*!< table of waiting4reply_data */
+  alloc_pool waiting4reply_pool;/*!< pool of waiting4reply_data */
+  fibheap waiting4reply_heap;	/*!< heap for waiting4reply_data */
+  int fd;			/*!< file descriptor of the socket */
+  unsigned int read;		/*!< number of bytes already read */
 
   /* Unused data coding buffers for the file descriptor.  */
   DC *dc[MAX_FREE_DCS];
   int ndc;
 
-  time_t last_use;		/* time of last use of the socket */
-  unsigned int generation;	/* generation of open file descriptor */
-  connection_status conn;	/* status of connection with remote node */
-  connection_speed speed;	/* speed of connection with remote node */
-  authentication_status auth;	/* status of authentication with remote node */
-  unsigned int sid;		/* ID of node which wants to connect */
-  unsigned int busy;		/* number of threads using file descriptor */
-  bool close;			/* close the fd when possile */
+  time_t last_use;		/*!< time of last use of the socket */
+  unsigned int generation;	/*!< generation of open file descriptor */
+  connection_status conn;	/*!< status of connection with remote node */
+  connection_speed speed;	/*!< speed of connection with remote node */
+  authentication_status auth;	/*!< status of authentication with remote node */
+  unsigned int sid;		/*!< ID of node which wants to connect */
+  unsigned int busy;		/*!< number of threads using file descriptor */
+  bool close;			/*!< close the fd when possile */
 } fd_data_t;
 
 /*! Pool of network threads.  */

@@ -74,13 +74,13 @@ char *config_node;
 typedef struct reread_config_request_def *reread_config_request;
 struct reread_config_request_def
 {
-  /* Next element in the chain.  */
+  /*! Next element in the chain.  */
   reread_config_request next;
 
-  /* Path relative to root of config volume.  */
+  /*! Path relative to root of config volume.  */
   string relative_path;
 
-  /* Node which the request came from.  */
+  /*! Node which the request came from.  */
   uint32_t from_sid;
 };
 
@@ -103,10 +103,10 @@ process_line (const char *file, const int line_num, char *line, char **key,
 {
   char *dest;
   enum automata_states {
-    STATE_NORMAL,		/* outside quotes and not after backslash */
-    STATE_QUOTED,		/* inside quotes and not after backslash  */
-    STATE_BACKSLASH,		/* outside quotes and after backslash */
-    STATE_QUOTED_BACKSLASH	/* inside quotes and after backslash */
+    STATE_NORMAL,		/*!< outside quotes and not after backslash */
+    STATE_QUOTED,		/*!< inside quotes and not after backslash  */
+    STATE_BACKSLASH,		/*!< outside quotes and after backslash */
+    STATE_QUOTED_BACKSLASH	/*!< inside quotes and after backslash */
   } state;
 
   /* Skip white spaces.  */
@@ -348,7 +348,7 @@ init_this_node (void)
   zfsd_mutex_unlock (&node_mutex);
 }
 
-/*!! Read local info about volumes.
+/*! Read local info about volumes.
     \param path Path where local configuration is stored.
     \param reread True if we are rereading the local volume info.  */
 
@@ -449,7 +449,7 @@ read_local_volume_info (string *path, bool reread)
   return true;
 }
 
-/*!! Reread local info about volumes.
+/*! Reread local info about volumes.
     \param path Path where local configuration is stored.  */
 
 static bool 

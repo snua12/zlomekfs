@@ -31,28 +31,31 @@
 #include <stddef.h>
 #include "pthread.h"
 
+/*! Type of ID of the alloc pool.  */
 typedef unsigned long ALLOC_POOL_ID_TYPE;
 
+/* Structure chaining free elements.  */
 typedef struct alloc_pool_list_def
 {
-  struct alloc_pool_list_def *next;
+  struct alloc_pool_list_def *next;	/*!< Pointer to next element. */
 } *alloc_pool_list;
 
+/* Definition of alloc pool.  */
 typedef struct alloc_pool_def
 {
-  char *name;
-  pthread_mutex_t *mutex;
+  char *name;				/*!< Name of the pool. */
+  pthread_mutex_t *mutex;		/*!< Mutex. */
 #ifdef ENABLE_CHECKING
-  ALLOC_POOL_ID_TYPE id;
+  ALLOC_POOL_ID_TYPE id;		/*!< ID. */
 #endif
-  size_t elts_per_block;
-  alloc_pool_list free_list;
-  size_t elts_allocated;
-  size_t elts_free;
-  size_t blocks_allocated;
-  alloc_pool_list block_list;
-  size_t block_size;
-  size_t elt_size;
+  size_t elts_per_block;		/*!< Elements per block. */
+  alloc_pool_list free_list;		/*!< List of free elements. */
+  size_t elts_allocated;		/*!< Number of allocated elements. */
+  size_t elts_free;			/*!< Number of free elements. */
+  size_t blocks_allocated;		/*!< Number of allocated blocks. */
+  alloc_pool_list block_list;		/*!< List of blocks. */
+  size_t block_size;			/*!< Size of block. */
+  size_t elt_size;			/*!< Size of element. */
 } *alloc_pool;
 
 extern alloc_pool create_alloc_pool (const char *name, size_t size, size_t num,

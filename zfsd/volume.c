@@ -366,7 +366,7 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
   volume_set_common_info (vol, &name_str, &mountpoint_str, master);
 }
 
-/*!! Set the information for a volume with local copy.
+/*! Set the information for a volume with local copy.
     \param volp Volume.
     \param local_path Local path to the volume.
     \param size_limit Size limit for the volume.  */
@@ -412,7 +412,7 @@ volume_set_local_info (volume *volp, string *local_path, uint64_t size_limit)
   return init_volume_metadata (vol);
 }
 
-/*!! Set the information for a volume with local copy.
+/*! Set the information for a volume with local copy.
     \param volp Volume.
     \param local_path Local path to the volume.
     \param size_limit Size limit for the volume.  */

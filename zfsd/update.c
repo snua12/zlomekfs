@@ -83,7 +83,7 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   RETURN_VOID;
 }
 
-/*!! Clear the tree of updated intervals and set version of file.
+/*! Clear the tree of updated intervals and set version of file.
     \param fh File handle of the file.
     \param version New version of the file.  */
 
@@ -139,7 +139,7 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
   RETURN_INT (r);
 }
 
-/*!! Truncate the local file according to the remote size but do not
+/*! Truncate the local file according to the remote size but do not
     get rid of local modifications of the file.
     \param volp Volume which the file is on.
     \param dentryp Dentry of the file.
@@ -1595,7 +1595,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   RETURN_INT (r);
 }
 
-/*!! Schedule update or reintegration of a regular file if volume master
+/*! Schedule update or reintegration of a regular file if volume master
     is connected via a fast link and the update threads are running.
     \param vol Volume the file is on.
     \param dentry The dentry of the file.  */
@@ -1638,7 +1638,7 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
   RETURN_VOID;
 }
 
-/*!! Lookup the remote file which is in the same place as the local file.
+/*! Lookup the remote file which is in the same place as the local file.
     \param res Buffer for result of directory operation.
     \param fh File handle of the file.
     \param dentryp Dentry of the file.
@@ -1701,7 +1701,7 @@ lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/*!! Synchronize the local file with the remote file.
+/*! Synchronize the local file with the remote file.
     \param vol Volume which the file is on.
     \param dentry Dentry of the file.
     \param fh File handle of the file.

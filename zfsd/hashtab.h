@@ -52,28 +52,28 @@ typedef void (*htab_del) (void *x);
 /*! Hash table datatype.  */
 typedef struct htab_def
 {
-  /* Table itself.  */
+  /*! Table itself.  */
   void **table;
 
-  /* Size of the table (number of the entries).  */
+  /*! Size of the table (number of the entries).  */
   unsigned int size;
 
-  /* Current number of elements including deleted elements.  */
+  /*! Current number of elements including deleted elements.  */
   unsigned int n_elements;
 
-  /* Current number of deleted elements.  */
+  /*! Current number of deleted elements.  */
   unsigned int n_deleted;
 
-  /* Hash function.  */
+  /*! Hash function.  */
   htab_hash hash_f;
 
-  /* Compare function.  */
+  /*! Compare function.  */
   htab_eq eq_f;
 
-  /* Cleanup function.  */
+  /*! Cleanup function.  */
   htab_del del_f;
 
-  /* Mutex which must be locked when accessing the table.  */
+  /*! Mutex which must be locked when accessing the table.  */
   pthread_mutex_t *mutex;
 } *htab_t;
 

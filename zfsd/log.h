@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include "pthread.h"
 
+/*! Redefine abort to be the verbose abort.  */
 #define abort() verbose_abort(__FILE__, __LINE__)
 
 #ifdef ENABLE_CHECKING
@@ -38,7 +39,7 @@
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
 
-/*! Print the function name and return value.  */
+/*! Print the function name and return integer value.  */
 #define RETURN_INT(RETVAL)						\
   do {									\
     int32_t _r = (int32_t) (RETVAL);					\
@@ -46,12 +47,14 @@
     return _r;								\
   } while (0)
 
+/*! Print the function name and return pointervalue.  */
 #define RETURN_PTR(RETVAL)						\
   do {									\
     TRACE ("return %p", (void *) (RETVAL));				\
     return (RETVAL);							\
   } while (0)
 
+/*! Print the function name and return bool value.  */
 #define RETURN_BOOL(RETVAL)						\
   do {									\
     bool _r = (RETVAL);							\
@@ -59,6 +62,7 @@
     return _r;								\
   } while (0)
 
+/*! Print the function name.  */
 #define RETURN_VOID							\
   do {									\
     TRACE ("return");							\

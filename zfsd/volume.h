@@ -43,32 +43,32 @@ struct volume_def
 #endif
 
   pthread_mutex_t mutex;
-  uint32_t id;			/* ID of the volume */
-  node master;			/* master node of the volume */
-  htab_t slaves;		/* nodes whose master is this node */
-  string name;			/* name of the volume */
-  string mountpoint;		/* "mountpoint" of the volume on cluster fs */
+  uint32_t id;			/*!< ID of the volume */
+  node master;			/*!< master node of the volume */
+  htab_t slaves;		/*!< nodes whose master is this node */
+  string name;			/*!< name of the volume */
+  string mountpoint;		/*!< "mountpoint" of the volume on cluster fs */
 
-  bool delete_p;		/* Shall the volume be deleted? */
-  bool marked;			/* Is the volume marked?  */
-  bool is_copy;			/* Is the volume a copy of remote volume?  */
-  unsigned int n_locked_fhs;	/* number of locked file handles */
+  bool delete_p;		/*!< Shall the volume be deleted? */
+  bool marked;			/*!< Is the volume marked?  */
+  bool is_copy;			/*!< Is the volume a copy of remote volume?  */
+  unsigned int n_locked_fhs;	/*!< number of locked file handles */
 
-  string local_path;		/* directory with local copy of volume */
-  uint64_t size_limit;		/* size limit of a copy of the volume */
+  string local_path;		/*!< directory with local copy of volume */
+  uint64_t size_limit;		/*!< size limit of a copy of the volume */
 
-  uint32_t last_conflict_ino;	/* the inode number of conflict dir
-				   assigned for the last time */
-  internal_dentry root_dentry;	/* dentry of root on underlying FS.  */
-  virtual_dir root_vd;		/* virtual directory for the mountpoint */
-  hfile_t metadata;		/* hash file with metadata */
-  hfile_t fh_mapping;		/* hash file with master_fh -> local_fh
-				   mapping */
+  uint32_t last_conflict_ino;	/*!< the inode number of conflict dir
+				     assigned for the last time */
+  internal_dentry root_dentry;	/*!< dentry of root on underlying FS.  */
+  virtual_dir root_vd;		/*!< virtual directory for the mountpoint */
+  hfile_t metadata;		/*!< hash file with metadata */
+  hfile_t fh_mapping;		/*!< hash file with master_fh -> local_fh
+				     mapping */
 };
 
 /*! Predefined volume IDs.  */
-#define VOLUME_ID_VIRTUAL 0	/* ID of the non-existing 'root' volume */
-#define VOLUME_ID_CONFIG  1	/* ID of 'config' volume */
+#define VOLUME_ID_VIRTUAL 0	/*!< ID of the non-existing 'root' volume */
+#define VOLUME_ID_CONFIG  1	/*!< ID of 'config' volume */
 
 /*! Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0

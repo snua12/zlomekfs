@@ -56,9 +56,9 @@ unsigned int metadata_tree_depth = 1;
 typedef struct metadata_fd_data_def
 {
   pthread_mutex_t mutex;
-  int fd;			/* file descriptor */
-  unsigned int generation;	/* generation of open file descriptor */
-  fibnode heap_node;		/* node of heap whose data is this structure  */
+  int fd;			/*!< file descriptor */
+  unsigned int generation;	/*!< generation of open file descriptor */
+  fibnode heap_node;		/*!< node of heap whose data is this structure  */
 } metadata_fd_data_t;
 
 /*! The array of data for each file descriptor.  */

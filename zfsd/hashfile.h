@@ -50,46 +50,46 @@ typedef void (*hfile_encode) (void *x);
 /*! Hash table datatype.  */
 typedef struct hfile_def
 {
-  /* Mutex which must be locked when accessing the table.  */
+  /*! Mutex which must be locked when accessing the table.  */
   pthread_mutex_t *mutex;
 
-  /* Temporary buffer for one element.  */
+  /*! Temporary buffer for one element.  */
   char *element;
 
-  /* Size of the whole element.  */
+  /*! Size of the whole element.  */
   unsigned int element_size;
 
-  /* Size if the base of the element.  */
+  /*! Size if the base of the element.  */
   unsigned int base_size;
 
-  /* Size of the table (number of the entries).  */
+  /*! Size of the table (number of the entries).  */
   unsigned int size;
 
-  /* Current number of elements including deleted elements.  */
+  /*! Current number of elements including deleted elements.  */
   unsigned int n_elements;
 
-  /* Current number of deleted elements.  */
+  /*! Current number of deleted elements.  */
   unsigned int n_deleted;
 
-  /* Hash function.  */
+  /*! Hash function.  */
   hfile_hash hash_f;
 
-  /* Compare function.  */
+  /*! Compare function.  */
   hfile_eq eq_f;
 
-  /* Decode function.  */
+  /*! Decode function.  */
   hfile_decode decode_f;
 
-  /* Encode function.  */
+  /*! Encode function.  */
   hfile_encode encode_f;
 
-  /* File name of the hash file.  */
+  /*! File name of the hash file.  */
   char *file_name;
 
-  /* File descriptor for the hash file.  */
+  /*! File descriptor for the hash file.  */
   int fd;
 
-  /* Generation of file descriptor.  */
+  /*! Generation of file descriptor.  */
   unsigned int generation;
 } *hfile_t;
 

@@ -38,13 +38,13 @@ typedef struct node_def
 #endif
 
   pthread_mutex_t mutex;
-  uint32_t id;			/* ID of the node */
-  string name;			/* name of the node */
-  string host_name;		/* DNS name or IP address of the node */
-  time_t last_connect;		/* last attemp to connect to node */
-  int fd;			/* file descriptor */
-  unsigned int generation;	/* generation of open file descriptor */
-  bool marked;			/* Is the node marked?  */
+  uint32_t id;			/*!< ID of the node */
+  string name;			/*!< name of the node */
+  string host_name;		/*!< DNS name or IP address of the node */
+  time_t last_connect;		/*!< last attemp to connect to node */
+  int fd;			/*!< file descriptor */
+  unsigned int generation;	/*!< generation of open file descriptor */
+  bool marked;			/*!< Is the node marked?  */
 
   /* Tables for mapping between ZFS IDs and node IDs.  */
   htab_t map_uid_to_node;

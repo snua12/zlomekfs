@@ -28,16 +28,16 @@
 /*! Definition of the variable-sized array.  */
 typedef struct varray_def
 {
-  /* Total number of elements allocated.  */
+  /*! Total number of elements allocated.  */
   unsigned int nelem;
 
-  /* The number of elements used.  */
+  /*! The number of elements used.  */
   unsigned int nused;
 
-  /* Size of an element.  */
+  /*! Size of an element.  */
   unsigned int size;
 
-  /* The array itself.  */
+  /*! The array itself.  */
   void *array;
 } varray;
 
