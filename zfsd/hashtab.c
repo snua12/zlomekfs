@@ -129,7 +129,7 @@ htab_find_empty_slot (htab_t htab, hash_t hash)
 
 /* Expand the hash table HTAB.  */
 
-static void
+void
 htab_expand (htab_t htab)
 {
   void **new_table;
@@ -140,7 +140,7 @@ htab_expand (htab_t htab)
   old_size = htab->size;
 
   /* Get next prime number from table.  */
-  new_size = get_higher_prime (htab->size + 1);
+  new_size = get_higher_prime ((htab->n_elements - htab->n_deleted) * 2 + 1);
   new_table = (void **) xcalloc (new_size, sizeof (void *));
   htab->table = new_table;
   htab->size = new_size;
