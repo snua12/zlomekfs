@@ -433,11 +433,19 @@ struct node_def;
   extern int32_t zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
 					       ARGS *args,		\
 					       struct node_def *nod,	\
-					       int *fd);		\
+					       int *fd);
+#include "zfs_prot.def"
+#undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
+
+#define ZFS_CALL_CLIENT
+#define ZFS_CALL_KERNEL
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
 						 ARGS *args, int fd);
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_CLIENT
 
 #define ZFS_CALL_KERNEL

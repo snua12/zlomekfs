@@ -675,6 +675,7 @@ zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define ZFS_CALL_CLIENT
+#define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 int32_t									\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
@@ -704,6 +705,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_CLIENT
 
 /* Call remote FUNCTION with ARGS on node NOD using data structures in thread T
