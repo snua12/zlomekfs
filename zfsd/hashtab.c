@@ -23,7 +23,6 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include "hashtab.h"
 #include "log.h"
