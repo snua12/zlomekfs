@@ -137,17 +137,18 @@ create_server_threads ()
 void
 register_server ()
 {
-  SVCXPRT *transp;
+  SVCXPRT *udp;
+  SVCXPRT *tcp;
 
   pmap_unset (ZFS_PROGRAM, ZFS_VERSION);
 
-  transp = svcudp_create (RPC_ANYSOCK);
-  if (transp == NULL)
+  udp = svcudp_create (RPC_ANYSOCK);
+  if (udp == NULL)
     {
       message (-1, stderr, "cannot create udp service.\n");
       return;
     }
-  if (!svc_register (transp, ZFS_PROGRAM, ZFS_VERSION, server_dispatch,
+  if (!svc_register (udp, ZFS_PROGRAM, ZFS_VERSION, server_dispatch,
 		     IPPROTO_UDP))
     {
       message (-1, stderr,
@@ -156,13 +157,13 @@ register_server ()
       return;
     }
 
-  transp = svctcp_create (RPC_ANYSOCK, 0, 0);
-  if (transp == NULL)
+  tcp = svctcp_create (RPC_ANYSOCK, 0, 0);
+  if (tcp == NULL)
     {
       message (-1, stderr, "cannot create tcp service.\n");
       return;
     }
-  if (!svc_register (transp, ZFS_PROGRAM, ZFS_VERSION, server_dispatch,
+  if (!svc_register (tcp, ZFS_PROGRAM, ZFS_VERSION, server_dispatch,
 		     IPPROTO_TCP))
     {
       message (-1, stderr,
@@ -171,6 +172,13 @@ register_server ()
       return;
     }
 
-  svc_run ();
+/*  svc_run ();*/
   message (-1, stderr, "svc_run returned.\n");
+
+#if 0
+  /* This does not help :-( */
+  svc_destroy (udp);
+  svc_destroy (tcp);
+  svc_unregister (ZFS_PROGRAM, ZFS_VERSION);
+#endif
 }
