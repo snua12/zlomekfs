@@ -30,6 +30,9 @@
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 volatile int running = 1;
 
+/* Key for server thread specific data.  */
+pthread_key_t server_thread_key;
+
 /* Initialize POOL to be a thread pool of MAX_THREADS threads with
    MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
 
@@ -55,6 +58,16 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
       queue_put (&pool->empty, i);
     }
   pthread_mutex_unlock (&pool->empty.mutex);
+}
+
+/* Destroy thread pool POOL - terminate idle threads, wait for active threads to
+   finish, free memory associated with thread pool.  */
+
+void
+thread_pool_destroy (thread_pool *pool)
+{
+  /* TODO: write it */
+
 }
 
 /* Create a new idle thread in thread pool POOL and start a routine START in it.
