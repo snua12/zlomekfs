@@ -151,7 +151,7 @@ metadata_encode (void *x)
 static hashval_t
 fh_mapping_hash (const void *x)
 {
-  return FH_MAPPING_HASH (*(metadata *) x);
+  return FH_MAPPING_HASH (*(fh_mapping *) x);
 }
 
 /* Compare element X of hash file with possible element Y.  */
