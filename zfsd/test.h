@@ -25,6 +25,6 @@
 #include "thread.h"
 
 extern void fake_config ();
-extern void test_zfs (thread *t);
+extern void test_zfs ();
 
 #endif

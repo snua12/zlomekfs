@@ -36,7 +36,11 @@
 #include "dir.h"
 #include "file.h"
 #include "thread.h"
+#include "network.h"
 #include "zfs_prot.h"
+
+/* Data for testing thread.  */
+static thread testing_thread_data;
 
 /* Testing configuration until configuration reading is programmed.  */
 
@@ -161,6 +165,9 @@ walk_dir (zfs_fh *dir, char *path)
   DC dc;
   int32_t r;
 
+  if (!get_running ())
+    return ZFS_EXITING;
+
   r = zfs_open_by_fh (&cap, dir, O_RDONLY);
   if (r == ZFS_OK)
     {
@@ -174,6 +181,9 @@ walk_dir (zfs_fh *dir, char *path)
       dc_create (&dc, ZFS_MAX_REQUEST_LEN);
 
       do {
+	if (!get_running ())
+	  return ZFS_EXITING;
+
 	start_encoding (&dc);
 	encode_direction (&dc, DIR_REPLY);
 	encode_request_id (&dc, 1234567890);
@@ -218,6 +228,9 @@ walk_dir (zfs_fh *dir, char *path)
 			&& entry.name.str[2] == 0)))
 	      continue;
 
+	    if (!get_running ())
+	      return ZFS_EXITING;
+
 	    r = zfs_lookup (&res, dir, &entry.name);
 	    if (r != ZFS_OK)
 	      {
@@ -235,6 +248,9 @@ walk_dir (zfs_fh *dir, char *path)
 		new_path = xstrconcat (3, path, entry.name.str, "/");
 		r = walk_dir (&res.file, new_path);
 		free (new_path);
+
+		if (!get_running ())
+		  return ZFS_EXITING;
 	      }
 	    else
 	      message (0, stderr, "%s%s\n", path, entry.name.str);
@@ -257,8 +273,8 @@ walk_dir (zfs_fh *dir, char *path)
 
 /* Test functions accessing ZFS.  */
 
-void
-test_zfs (thread *t)
+static void*
+do_tests (void *data)
 {
   dir_op_res res;
   dir_op_res res2;
@@ -266,6 +282,10 @@ test_zfs (thread *t)
   int test = 0;
   string rmdir_name = {3, "dir"};
   sattr attr = {0755, 0, 0, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
+  thread *t = (thread *) data;
+
+  thread_disable_signals ();
+  pthread_setspecific (thread_data_key, data);
 
   if (0)
     {
@@ -273,11 +293,14 @@ test_zfs (thread *t)
       test_interval ();
     }
 
-  if (strcmp (node_name, "orion") == 0)
+  do
     {
       node nod;
       char *str;
       int r;
+
+      if (!get_running ())
+	break;
 
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
@@ -285,32 +308,53 @@ test_zfs (thread *t)
       message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_null_client (t, NULL, nod);
 
+      if (!get_running ())
+	break;
+
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
       zfsd_mutex_unlock (&node_mutex);
       message (2, stderr, "TEST %d\n", ++test);
       zfs_proc_root_client (t, NULL, nod);
 
+      if (!get_running ())
+	break;
+
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/subdir/file");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
+
+      if (!get_running ())
+	break;
 
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/volume3/subdir/file");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
 
+      if (!get_running ())
+	break;
+
       message (2, stderr, "TEST %d\n", ++test);
       str = xstrdup ("/volume1/volume3/subdir");
       printf ("%d\n", zfs_extended_lookup (&res, &root_fh, str));
       free (str);
 
+      if (!get_running ())
+	break;
+
       message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n", zfs_mkdir (&res2, &res.file, &rmdir_name, &attr));
 
+      if (!get_running ())
+	break;
+
       message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n", zfs_rmdir (&res.file, &rmdir_name));
+
+      if (!get_running ())
+	break;
 
       message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n", r = zfs_open_by_fh (&cap, &res.file, O_RDONLY));
@@ -321,9 +365,39 @@ test_zfs (thread *t)
 	  printf ("%d\n", zfs_close (&cap));
 	}
 
+      if (!get_running ())
+	break;
+
       message (0, stderr, "Walking through directory structure:\n");
       walk_dir (&root_fh, "/");
     }
+  while (0);
 
   message (2, stderr, "TESTS FINISHED\n");
+  return data;
+}
+
+/* Create a thread which tests ZFS.  */
+
+void
+test_zfs ()
+{
+  if (get_running ()
+      && strcmp (node_name, "orion") == 0)
+    {
+      pthread_t id;
+
+      /* Initialize testing thread data.  */
+      semaphore_init (&testing_thread_data.sem, 0);
+      network_worker_init (&testing_thread_data);
+
+      if (pthread_create (&id, NULL, do_tests, &testing_thread_data))
+	message (-1, stderr, "pthread_create() failed\n");
+      else
+	pthread_join (id, NULL);
+
+      /* Destroy main thread data.  */
+      network_worker_cleanup (&testing_thread_data);
+      semaphore_destroy (&testing_thread_data.sem);
+    }
 }

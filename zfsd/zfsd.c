@@ -51,9 +51,6 @@
 /* Name of the configuration file.  */
 char *config_file = "/etc/zfs/config";
 
-/* Data for main thread.  */
-thread main_thread_data;
-
 /* Local function prototypes.  */
 static void terminate ();
 static void exit_sighandler (int signum);
@@ -86,6 +83,7 @@ terminate ()
 static void
 exit_sighandler (int signum)
 {
+  message (2, stderr, "Entering exit_sighandler\n");
   zfsd_mutex_lock (&running_mutex);
   running = false;
 
@@ -100,6 +98,7 @@ exit_sighandler (int signum)
     thread_terminate_blocking_syscall (network_regulator_data.thread_id,
 				       &network_regulator_data.in_syscall);
   zfsd_mutex_unlock (&running_mutex);
+  message (2, stderr, "Leaving exit_sighandler\n");
 }
 
 /* Report the fatal signal.  */
@@ -307,11 +306,6 @@ initialize_data_structures ()
   if (pthread_key_create (&thread_data_key, NULL))
     return false;
 
-  /* Initialize main thread data.  */
-  semaphore_init (&main_thread_data.sem, 0);
-  network_worker_init (&main_thread_data);
-  pthread_setspecific (thread_data_key, &main_thread_data);
-
   /* Initialize data structures in other modules.  */
   if (!initialize_random_c ())
     return false;
@@ -330,10 +324,6 @@ initialize_data_structures ()
 void
 cleanup_data_structures ()
 {
-  /* Destroy main thread data.  */
-  network_worker_cleanup (&main_thread_data);
-  semaphore_destroy (&main_thread_data.sem);
-
   /* Destroy data structures in other modules.  */
   cleanup_zfs_prot_c ();
   cleanup_volume_c ();
@@ -410,7 +400,7 @@ main (int argc, char **argv)
   if (network_start ())
     {
 #ifdef TEST
-      test_zfs (&main_thread_data);
+      test_zfs ();
 #else
       if (!read_cluster_config ())
 	terminate ();
