@@ -2398,6 +2398,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		      free (info.path.str);
 
 		    if (r != ZFS_OK
+			&& res.attr.type == FT_REG
 			&& entry->master_version != res.attr.version)
 		      {
 			/* File does not exist on local and was modified
