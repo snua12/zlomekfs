@@ -1625,9 +1625,6 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 	    }
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
-	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
-			     dentry->fh->meta.local_version + 1, 0))
-	    vol->delete_p = true;
 	}
       release_dentry (dentry);
     }
@@ -3254,9 +3251,6 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 	    }
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
-	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
-			     dentry->fh->meta.local_version + 1, 0))
-	    vol->delete_p = true;
 	}
       release_dentry (dentry);
     }
@@ -3493,9 +3487,6 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 		vol->delete_p = true;
 	    }
 	  if (!inc_local_version (vol, idir->fh))
-	    vol->delete_p = true;
-	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
-			     dentry->fh->meta.local_version + 1, 0))
 	    vol->delete_p = true;
 	}
       release_dentry (dentry);

@@ -554,9 +554,6 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	    }
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
-	  if (!set_metadata (vol, dentry->fh, dentry->fh->meta.flags,
-			     dentry->fh->meta.local_version + 1, 0))
-	    vol->delete_p = true;
 
 	  if (vol->master != this_node)
 	    {
