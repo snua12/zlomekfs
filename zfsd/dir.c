@@ -3638,7 +3638,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
   if (meta.flags & METADATA_SHADOW)
     {
-      if (!move_from_shadow (vol, fh, dir, name))
+      if (!move_from_shadow (vol, fh, dir, name, &meta))
 	return ZFS_UPDATE_FAILED;
     }
   else
@@ -3901,7 +3901,7 @@ local_reintegrate_del (volume vol, internal_dentry dir, string *name,
     }
   else
     {
-      if (!move_to_shadow (vol, &res.file, dir, name))
+      if (!move_to_shadow (vol, &res.file, dir, name, &meta))
 	return ZFS_UPDATE_FAILED;
     }
 
