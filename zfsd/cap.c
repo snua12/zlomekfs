@@ -33,6 +33,7 @@
 #include "dir.h"
 #include "log.h"
 #include "random.h"
+#include "volume.h"
 #include "util.h"
 #include "zfs_prot.h"
 
@@ -288,6 +289,8 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
 int
 put_capability (internal_cap cap)
 {
+  CHECK_MUTEX_LOCKED (&cap->mutex);
+
   cap->busy--;
   if (cap->busy == 0)
     internal_cap_destroy (cap);
