@@ -23,14 +23,17 @@
 
 #include "system.h"
 #include <netdb.h>
+#include <rpc/rpc.h>
 
 /* Node description.  */
 typedef struct node_def
 {
+  unsigned int id;		/* ID of the node */
   char *name;			/* name of the node */
   struct sockaddr_in addr;	/* address */
 				/* public key */
   int flags;			/* see NODE_* below */
+  CLIENT *clnt;			/* RPC client */
 } *node;
 
 /* Node flags.  */
