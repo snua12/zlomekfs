@@ -981,6 +981,55 @@ flush_metadata (volume vol, internal_fh fh)
   return true;
 }
 
+/* Delete all metadata files for local file PATH on volume VOL.  */
+
+bool
+delete_metadata (volume vol, uint32_t dev, uint32_t ino)
+{
+  zfs_fh fh;
+  metadata meta;
+  int i;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  fh.dev = dev;
+  fh.ino = ino;
+  meta.dev = dev;
+  meta.ino = ino;
+
+  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+    {
+      char *file;
+
+      file = build_interval_path (vol, &fh, INTERVAL_TREE_UPDATED, i);
+      unlink (file);
+      free (file);
+      file = build_interval_path (vol, &fh, INTERVAL_TREE_MODIFIED, i);
+      unlink (file);
+      free (file);
+    }
+
+  if (!list_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_list_file (vol);
+      if (fd < 0)
+	return false;
+    }
+
+  if (!hfile_delete (vol->metadata, &meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+
+  return true;
+}
+
 /* Load interval trees for file handle FH on volume VOL.
    Return false on file error.  */
 
