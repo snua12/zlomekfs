@@ -189,6 +189,7 @@ pool_alloc (alloc_pool pool)
 #endif
 	  header = (alloc_pool_list) USER_PTR_FROM_ALLOCATION_OBJECT_PTR (block);
 	  header->next = pool->free_list;
+	  VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (block, pool->elt_size));
 	  pool->free_list = header;
 	}
       /* Also update the number of elements we have free/allocated, and
@@ -200,12 +201,18 @@ pool_alloc (alloc_pool pool)
 
   /* Pull the first free element from the free list, and return it.  */
   header = pool->free_list;
+  VALGRIND_DISCARD (VALGRIND_MAKE_READABLE (header, sizeof (void *)));
   pool->free_list = header->next;
+  VALGRIND_MAKE_WRITABLE (header, pool->elt_size - DATA_OFFSET);
   pool->elts_free--;
 
 #ifdef ENABLE_CHECKING
   /* Set the ID for element.  */
+  VALGRIND_DISCARD (VALGRIND_MAKE_WRITABLE (ALLOCATION_OBJECT_PTR_FROM_USER_PTR
+					    (header), sizeof (pool->id)));
   ALLOCATION_OBJECT_PTR_FROM_USER_PTR (header)->id = pool->id;
+  VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (ALLOCATION_OBJECT_PTR_FROM_USER_PTR
+					    (header), sizeof (pool->id)));
 #endif
 
   message (4, stderr, "POOL ALLOC %s %p %p\n", pool->name, (void *) pool,
@@ -234,15 +241,22 @@ pool_free (alloc_pool pool, void *ptr)
   CHECK_MUTEX_LOCKED (pool->mutex);
 
   /* Check whether the PTR was allocated from POOL.  */
+  VALGRIND_DISCARD (VALGRIND_MAKE_READABLE (ALLOCATION_OBJECT_PTR_FROM_USER_PTR
+					    (ptr), sizeof (pool->id)));
   if (pool->id != ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr)->id)
     abort ();
+  VALGRIND_DISCARD (VALGRIND_MAKE_NOACCESS (ALLOCATION_OBJECT_PTR_FROM_USER_PTR
+					    (ptr), sizeof (pool->id)));
 
+#ifndef ENABLE_VALGRIND_CHECKING
   /* Mark the element to be free and the value to be invalid.  */
   memset (ALLOCATION_OBJECT_PTR_FROM_USER_PTR (ptr), 0, pool->elt_size);
+#endif
 #endif
 
   header = (alloc_pool_list) ptr;
   header->next = pool->free_list;
+  VALGRIND_MAKE_NOACCESS (header, pool->elt_size - DATA_OFFSET);
   pool->free_list = header;
   pool->elts_free++;
 }
