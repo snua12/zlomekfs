@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "pthread.h"
+#include "memory.h"
 
 /* Type of hash value.  */
 typedef unsigned int hashval_t;

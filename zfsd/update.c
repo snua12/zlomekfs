@@ -559,7 +559,7 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!((*volp)->local_path && (*volp)->master != this_node))
+  if (!((*volp)->local_path.str && (*volp)->master != this_node))
     abort ();
 #endif
 
@@ -605,7 +605,7 @@ out:
 bool
 delete_tree (internal_dentry dentry, volume vol)
 {
-  char *path;
+  string path;
   uint32_t vid;
   bool r;
 
@@ -613,14 +613,14 @@ delete_tree (internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  path = build_local_path (vol, dentry);
+  build_local_path (&path, vol, dentry);
   vid = vol->id;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = recursive_unlink (path, vid, false);
-  free (path);
+  r = recursive_unlink (&path, vid, false);
+  free (path.str);
 
   return r;
 }
@@ -628,9 +628,9 @@ delete_tree (internal_dentry dentry, volume vol)
 /* Delete file NAME in directory DIR on volume VOL.  */
 
 bool
-delete_tree_name (internal_dentry dir, char *name, volume vol)
+delete_tree_name (internal_dentry dir, string *name, volume vol)
 {
-  char *path;
+  string path;
   uint32_t vid;
   bool r;
 
@@ -638,14 +638,14 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  path = build_local_path_name (vol, dir, name);
+  build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (path, vid, false);
-  free (path);
+  r = recursive_unlink (&path, vid, false);
+  free (path.str);
 
   return r;
 }
@@ -655,8 +655,8 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
 bool
 move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 {
-  char *path;
-  char *shadow_path;
+  string path;
+  string shadow_path;
   uint32_t vid;
   uint32_t new_parent_dev;
   uint32_t new_parent_ino;
@@ -665,49 +665,49 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
   new_parent_dev = dir->fh->local_fh.dev;
   new_parent_ino = dir->fh->local_fh.ino;
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
-  shadow_path = get_shadow_path (vol, fh, false);
+  get_shadow_path (&shadow_path, vol, fh, false);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (!recursive_unlink (path, vid, false))
+  if (!recursive_unlink (&path, vid, false))
     {
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
-  if (rename (shadow_path, path) != 0)
+  if (rename (shadow_path.str, path.str) != 0)
     {
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
   vol = volume_lookup (vid);
   if (!vol)
     {
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
-  if (!metadata_hardlink_replace (vol, fh, 0, 0, "", new_parent_dev,
-				  new_parent_ino, name->str))
+  if (!metadata_hardlink_replace (vol, fh, 0, 0, &empty_string, new_parent_dev,
+				  new_parent_ino, name))
     {
       zfsd_mutex_unlock (&vol->mutex);
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
   zfsd_mutex_unlock (&vol->mutex);
-  free (path);
-  free (shadow_path);
+  free (path.str);
+  free (shadow_path.str);
   return true;
 }
 
@@ -717,55 +717,55 @@ bool
 move_to_shadow (volume vol, internal_dentry dentry)
 {
   zfs_fh fh;
-  char *path;
-  char *shadow_path;
+  string path;
+  string shadow_path;
   uint32_t vid;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  path = build_local_path (vol, dentry);
+  build_local_path (&path, vol, dentry);
   fh = dentry->fh->local_fh;
   vid = vol->id;
   release_dentry (dentry);
   zfsd_mutex_unlock (&fh_mutex);
-  shadow_path = get_shadow_path (vol, &fh, true);
+  get_shadow_path (&shadow_path, vol, &fh, true);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (!recursive_unlink (shadow_path, vid, true))
+  if (!recursive_unlink (&shadow_path, vid, true))
     {
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
-  if (rename (path, shadow_path) != 0)
+  if (rename (path.str, shadow_path.str) != 0)
     {
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
   vol = volume_lookup (vid);
   if (!vol)
     {
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
 
   if (!metadata_hardlink_set_shadow (vol, &fh))
     {
       zfsd_mutex_unlock (&vol->mutex);
-      free (path);
-      free (shadow_path);
+      free (path.str);
+      free (shadow_path.str);
       return false;
     }
   
   zfsd_mutex_unlock (&vol->mutex);
-  free (path);
-  free (shadow_path);
+  free (path.str);
+  free (shadow_path.str);
   return true;
 }
 
@@ -980,7 +980,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	  zfsd_mutex_lock (&fh_mutex);
 	}
 
-      dentry = get_dentry (local_fh, remote_fh, vol, dir, name->str,
+      dentry = get_dentry (local_fh, remote_fh, vol, dir, name,
 			   local_attr, &meta);
       if (dir)
 	release_dentry (dir);
@@ -1134,7 +1134,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	abort ();
 
-      dentry = get_dentry (local_fh, remote_fh, vol, dir, name->str,
+      dentry = get_dentry (local_fh, remote_fh, vol, dir, name,
 			   local_attr, &meta);
       release_dentry (dir);
       zfsd_mutex_unlock (&fh_mutex);
@@ -1286,7 +1286,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	parent_fh = dir->parent->fh->local_fh;
       zfsd_mutex_unlock (&dir->parent->fh->mutex);
 
-      xmkstring (&name, dir->name);
+      xstringdup (&name, &dir->name);
       remote_fh = dir->fh->meta.master_fh;
 
       r = update_local_fh (dir, &name, vol, &parent_fh,
@@ -1401,7 +1401,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    abort ();
 
 	  dentry = get_dentry (&local_res.file, &remote_res.file, vol,
-			       dir, entry->name.str, &local_res.attr, &meta);
+			       dir, &entry->name, &local_res.attr, &meta);
 	  release_dentry (dir);
 
 	  if (UPDATE_P (dentry, remote_res.attr))
@@ -1428,7 +1428,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
-	  if (!delete_tree_name (dir, entry->name.str, vol))
+	  if (!delete_tree_name (dir, &entry->name, vol))
 	    goto out;
 	}
       htab_clear_slot (local_entries.htab, slot);
@@ -1557,8 +1557,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		    if (local_res.attr.type != FT_DIR
 			|| res.attr.type != FT_DIR)
 		      {
-			conflict = create_conflict (vol, dentry,
-						    entry->name.str,
+			conflict = create_conflict (vol, dentry, &entry->name,
 						    &local_res.file,
 						    &local_res.attr);
 			add_file_to_conflict_dir (vol, conflict, true,
@@ -1636,6 +1635,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			release_dentry (dentry);
 			zfsd_mutex_unlock (&fh_mutex);
 			r = remote_file_info (&info, &entry->master_fh, vol);
+			if (r == ZFS_OK)
+			  free (info.path.str);
 
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
@@ -1670,8 +1671,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			       This can happen when we linked/renamed a file
 			       while master has deleted it.
 			       In this situation, delete the local file.  */
-			    b = delete_tree_name (dentry, entry->name.str,
-						  vol);
+			    b = delete_tree_name (dentry, &entry->name, vol);
 			    r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						       false);
 #ifdef ENABLE_CHECKING
@@ -1721,6 +1721,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			file_fh.gen = entry->gen;
 			zfsd_mutex_unlock (&fh_mutex);
 			r = local_file_info (&info, &file_fh, vol);
+			if (r == ZFS_OK)
+			  free (info.path.str);
 
 			r = remote_reintegrate_del (vol, dentry, &entry->name,
 						    r != ZFS_OK);
@@ -1741,8 +1743,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		    else
 		      {
 			local_res.file.sid = this_node->id;
-			conflict = create_conflict (vol, dentry,
-						    entry->name.str,
+			conflict = create_conflict (vol, dentry, &entry->name,
 						    &res.file, &res.attr);
 			add_file_to_conflict_dir (vol, conflict, true,
 						  &res.file, &res.attr, NULL);

@@ -217,49 +217,44 @@ fh_mapping_encode (void *x)
 
 /* Build path to file with global metadata of type TYPE for volume VOL.  */
 
-static char *
-build_metadata_path (volume vol, metadata_type type)
+static void
+build_metadata_path (string *path, volume vol, metadata_type type)
 {
-  char *path;
-
 #ifdef ENABLE_CHECKING
-  if (vol->local_path == NULL)
+  if (vol->local_path.str == NULL)
     abort ();
 #endif
 
   switch (type)
     {
       case METADATA_TYPE_METADATA:
-	path = xstrconcat (2, vol->local_path, "/.zfs/metadata");
+	append_string (path, &vol->local_path, "/.zfs/metadata", 14);
 	break;
 
       case METADATA_TYPE_FH_MAPPING:
-	path = xstrconcat (2, vol->local_path, "/.zfs/fh_mapping");
+	append_string (path, &vol->local_path, "/.zfs/fh_mapping", 16);
 	break;
 
       default:
 	abort ();
     }
-
-  return path;
 }
 
 /* Build path to file with metadata of type TYPE for file handle FH
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
 
-static char *
-build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
-			unsigned int tree_depth)
+static void
+build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
+			metadata_type type, unsigned int tree_depth)
 {
   char name[2 * 8 + 1];
   char tree[2 * MAX_METADATA_TREE_DEPTH + 1];
-  char *path;
   varray v;
   unsigned int i;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (vol->local_path == NULL)
+  if (vol->local_path.str == NULL)
     abort ();
   if (tree_depth > MAX_METADATA_TREE_DEPTH)
     abort ();
@@ -278,58 +273,69 @@ build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
     }
   tree[2 * tree_depth] = 0;
 
-  varray_create (&v, sizeof (char *), 5);
-  VARRAY_PUSH (v, vol->local_path, char *);
-  VARRAY_PUSH (v, "/.zfs/", char *);
-  VARRAY_PUSH (v, tree, char *);
-  VARRAY_PUSH (v, name, char *);
+  varray_create (&v, sizeof (string), 5);
+  VARRAY_USED (v) = 5;
+  VARRAY_ACCESS (v, 0, string) = vol->local_path;
+  VARRAY_ACCESS (v, 1, string).str = "/.zfs/";
+  VARRAY_ACCESS (v, 1, string).len = 6;
+  VARRAY_ACCESS (v, 2, string).str = tree;
+  VARRAY_ACCESS (v, 2, string).len = 2 * tree_depth;
+  VARRAY_ACCESS (v, 3, string).str = name;
+  VARRAY_ACCESS (v, 3, string).len = 16;
   switch (type)
     {
       case METADATA_TYPE_UPDATED:
-	VARRAY_PUSH (v, ".updated", char *);
+	VARRAY_ACCESS (v, 4, string).str = ".updated";
+	VARRAY_ACCESS (v, 4, string).len = 8;
 	break;
 
       case METADATA_TYPE_MODIFIED:
-	VARRAY_PUSH (v, ".modified", char *);
+	VARRAY_ACCESS (v, 4, string).str = ".modified";
+	VARRAY_ACCESS (v, 4, string).len = 9;
 	break;
 
       case METADATA_TYPE_HARDLINKS:
-	VARRAY_PUSH (v, ".hardlinks", char *);
+	VARRAY_ACCESS (v, 4, string).str = ".hardlinks";
+	VARRAY_ACCESS (v, 4, string).len = 10;
 	break;
 
       case METADATA_TYPE_JOURNAL:
-	VARRAY_PUSH (v, ".journal", char *);
+	VARRAY_ACCESS (v, 4, string).str = ".journal";
+	VARRAY_ACCESS (v, 4, string).len = 8;
 	break;
 
       case METADATA_TYPE_SHADOW:
-	VARRAY_PUSH (v, ".shadow", char *);
+	VARRAY_ACCESS (v, 4, string).str = ".shadow";
+	VARRAY_ACCESS (v, 4, string).len = 7;
 	break;
 
       default:
 	abort ();
     }
 
-  path = xstrconcat_varray (&v);
+  xstringconcat_varray (path, &v);
   varray_destroy (&v);
-
-  return path;
 }
 
 /* Create a full path to file FILE with access rights MODE.
    Return true if path exists at the end of this function.  */
 
 static bool
-create_path_for_file (char *file, unsigned int mode)
+create_path_for_file (string *file, unsigned int mode)
 {
   struct stat st;
   char *last;
   char *end;
 
-  for (last = file; *last; last++)
+#ifdef ENABLE_CHECKING
+  if (file->len == 0)
+    abort ();
+#endif
+
+  for (last = file->str + file->len - 1; last != file->str && *last != '/';
+       last--)
     ;
-  for (last--; last != file && *last != '/'; last--)
-    ;
-  if (last == file)
+  if (last == file->str)
     return false;
 
   *last = 0;
@@ -337,7 +343,7 @@ create_path_for_file (char *file, unsigned int mode)
   /* Find the first existing directory.  */
   for (end = last;;)
     {
-      if (lstat (file, &st) == 0)
+      if (lstat (file->str, &st) == 0)
 	{
 	  if ((st.st_mode & S_IFMT) != S_IFDIR)
 	    return false;
@@ -345,9 +351,9 @@ create_path_for_file (char *file, unsigned int mode)
 	  break;
 	}
 
-      for (; end != file && *end != '/'; end--)
+      for (; end != file->str && *end != '/'; end--)
 	;
-      if (end == file)
+      if (end == file->str)
 	return false;
 
       *end = 0;
@@ -360,7 +366,7 @@ create_path_for_file (char *file, unsigned int mode)
 	{
 	  *end = '/';
 
-	  if (mkdir (file, mode) != 0)
+	  if (mkdir (file->str, mode) != 0)
 	    return false;
 
 	  for (end++; end < last && *end; end++)
@@ -379,22 +385,21 @@ create_path_for_file (char *file, unsigned int mode)
 /* Remove file FILE and its path upto depth TREE_DEPTH if it is empty.  */
 
 static bool
-remove_file_and_path (char *file, unsigned int tree_depth)
+remove_file_and_path (string *file, unsigned int tree_depth)
 {
   char *end;
 
-  if (unlink (file) < 0 && errno != ENOENT)
+  if (unlink (file->str) < 0 && errno != ENOENT)
     return false;
 
-  for (end = file; *end; end++)
-    ;
+  end = file->str + file->len;
   for (; tree_depth > 0; tree_depth--)
     {
       while (*end != '/')
 	end--;
       *end = 0;
 
-      if (rmdir (file) < 0)
+      if (rmdir (file->str) < 0)
 	{
 	  if (errno == ENOENT || errno == ENOTEMPTY)
 	    return true;
@@ -616,7 +621,7 @@ retry_open:
    with path PATH, open flags FLAGS and mode MODE.  */
 
 static int
-open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
+open_fh_metadata (string *path, volume vol, zfs_fh *fh, metadata_type type,
 		  int flags, mode_t mode)
 {
   int fd;
@@ -625,7 +630,7 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  fd = open_metadata (path, flags, mode);
+  fd = open_metadata (path->str, flags, mode);
   if (fd < 0)
     {
       if (errno != ENOENT)
@@ -643,15 +648,15 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
 	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
 	    if (i != metadata_tree_depth)
 	      {
-		char *old_path;
+		string old_path;
 
-		old_path = build_fh_metadata_path (vol, fh, type, i);
-		if (rename (old_path, path) == 0)
+		build_fh_metadata_path (&old_path, vol, fh, type, i);
+		if (rename (old_path.str, path->str) == 0)
 		  {
-		    free (old_path);
+		    free (old_path.str);
 		    break;
 		  }
-		free (old_path);
+		free (old_path.str);
 	      }
 	}
       else
@@ -661,10 +666,10 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
 	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
 	    if (i != metadata_tree_depth)
 	      {
-		char *old_path;
+		string old_path;
 
-		old_path = build_fh_metadata_path (vol, fh, type, i);
-		if (stat (old_path, &st) == 0
+		build_fh_metadata_path (&old_path, vol, fh, type, i);
+		if (stat (old_path.str, &st) == 0
 		    && (st.st_mode & S_IFMT) == S_IFREG)
 		  {
 		    if (!created)
@@ -673,23 +678,23 @@ open_fh_metadata (char *path, volume vol, zfs_fh *fh, metadata_type type,
 			  {
 			    if (errno == ENOENT)
 			      errno = 0;
-			    free (old_path);
+			    free (old_path.str);
 			    return -1;
 			  }
 			created = true;
 		      }
 		    
-		    if (rename (old_path, path) == 0)
+		    if (rename (old_path.str, path->str) == 0)
 		      {
-			free (old_path);
+			free (old_path.str);
 			break;
 		      }
 		  }
-		free (old_path);
+		free (old_path.str);
 	      }
 	}
 
-      fd = open_metadata (path, flags, mode);
+      fd = open_metadata (path->str, flags, mode);
     }
 
   return fd;
@@ -740,17 +745,17 @@ static int
 open_interval_file (volume vol, internal_fh fh, metadata_type type)
 {
   interval_tree tree;
-  char *path;
+  string path;
   int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
-  fd = open_fh_metadata (path, vol, &fh->local_fh, type,
+  build_fh_metadata_path (&path, vol, &fh->local_fh, type,
+			  metadata_tree_depth);
+  fd = open_fh_metadata (&path, vol, &fh->local_fh, type,
 			 O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-  free (path);
+  free (path.str);
   if (fd < 0)
     return fd;
 
@@ -793,17 +798,17 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
 static int
 open_journal_file (volume vol, internal_fh fh)
 {
-  char *path;
+  string path;
   int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
-				 metadata_tree_depth);
-  fd = open_fh_metadata (path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  build_fh_metadata_path (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+			  metadata_tree_depth);
+  fd = open_fh_metadata (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
 			 O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-  free (path);
+  free (path.str);
   if (fd < 0)
     return fd;
 
@@ -830,7 +835,7 @@ open_journal_file (volume vol, internal_fh fh)
 
 static bool
 delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
-			      interval_tree tree, char *path)
+			      interval_tree tree, string *path)
 {
   switch (type)
     {
@@ -888,10 +893,10 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 
 static bool
 flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
-		       char *path)
+		       string *path)
 {
   interval_tree tree;
-  char *new_path;
+  string new_path;
   int fd;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -917,31 +922,31 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
 
   if (delete_useless_interval_file (vol, fh, type, tree, path))
     {
-      free (path);
+      free (path->str);
       return true;
     }
 
-  new_path = xstrconcat (2, path, ".new");
-  fd = open_fh_metadata (new_path, vol, &fh->local_fh, type,
+  append_string (&new_path, path, ".new", 4);
+  fd = open_fh_metadata (&new_path, vol, &fh->local_fh, type,
 			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
 
   if (fd < 0)
     {
-      free (new_path);
-      free (path);
+      free (new_path.str);
+      free (path->str);
       return false;
     }
 
   if (!interval_tree_write (tree, fd))
     {
       close (fd);
-      remove_file_and_path (new_path, metadata_tree_depth);
-      free (new_path);
-      free (path);
+      remove_file_and_path (&new_path, metadata_tree_depth);
+      free (new_path.str);
+      free (path->str);
       return false;
     }
 
-  rename (new_path, path);
+  rename (new_path.str, path->str);
   tree->deleted = false;
 
 #ifdef ENABLE_CHECKING
@@ -955,8 +960,8 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
   zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
   zfsd_mutex_unlock (&metadata_mutex);
 
-  free (new_path);
-  free (path);
+  free (new_path.str);
+  free (path->str);
   return true;
 }
 
@@ -967,30 +972,30 @@ init_volume_metadata (volume vol)
 {
   hashfile_header header;
   int fd;
-  char *path;
+  string path;
   struct stat st;
   bool insert_volume_root;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (vol->local_path == NULL)
+  if (vol->local_path.str == NULL)
     abort ();
 #endif
 
-  path = build_metadata_path (vol, METADATA_TYPE_METADATA);
+  build_metadata_path (&path, vol, METADATA_TYPE_METADATA);
   vol->metadata = hfile_create (sizeof (metadata),
 				offsetof (metadata, parent_dev), 32,
 				metadata_hash, metadata_eq, metadata_decode,
-				metadata_encode, path, &vol->mutex);
-  insert_volume_root = (lstat (vol->local_path, &st) < 0);
+				metadata_encode, path.str, &vol->mutex);
+  insert_volume_root = (lstat (vol->local_path.str, &st) < 0);
 
-  if (!create_path_for_file (path, S_IRWXU))
+  if (!create_path_for_file (&path, S_IRWXU))
     {
-      free (path);
+      free (path.str);
       close_volume_metadata (vol);
       return false;
     }
-  free (path);
+  free (path.str);
 
   fd = open_hash_file (vol, METADATA_TYPE_METADATA);
   if (fd < 0)
@@ -1059,12 +1064,12 @@ init_volume_metadata (volume vol)
 	}
     }
 
-  path = build_metadata_path (vol, METADATA_TYPE_FH_MAPPING);
+  build_metadata_path (&path, vol, METADATA_TYPE_FH_MAPPING);
   vol->fh_mapping = hfile_create (sizeof (fh_mapping), sizeof (fh_mapping),
 				  32, fh_mapping_hash,
 				  fh_mapping_eq, fh_mapping_decode,
-				  fh_mapping_encode, path, &vol->mutex);
-  free (path);
+				  fh_mapping_encode, path.str, &vol->mutex);
+  free (path.str);
 
   fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
   if (fd < 0)
@@ -1215,7 +1220,7 @@ bool
 init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   int fd;
-  char *path;
+  string path;
   struct stat st;
   interval_tree *treep;
 
@@ -1247,14 +1252,14 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 	abort ();
     }
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
-  fd = open_fh_metadata (path, vol, &fh->local_fh, type, O_RDONLY, 0);
+  build_fh_metadata_path (&path, vol, &fh->local_fh, type,
+			  metadata_tree_depth);
+  fd = open_fh_metadata (&path, vol, &fh->local_fh, type, O_RDONLY, 0);
   if (fd < 0)
     {
       if (errno != ENOENT)
 	{
-	  free (path);
+	  free (path.str);
 	  return false;
 	}
 
@@ -1264,25 +1269,25 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
     {
       if (fstat (fd, &st) < 0)
 	{
-	  message (2, stderr, "%s: fstat: %s\n", path, strerror (errno));
+	  message (2, stderr, "%s: fstat: %s\n", path.str, strerror (errno));
 	  close (fd);
-	  free (path);
+	  free (path.str);
 	  return false;
 	}
 
       if ((st.st_mode & S_IFMT) != S_IFREG)
 	{
-	  message (2, stderr, "%s: Not a regular file\n", path);
+	  message (2, stderr, "%s: Not a regular file\n", path.str);
 	  close (fd);
-	  free (path);
+	  free (path.str);
 	  return false;
 	}
 
       if (st.st_size % sizeof (interval) != 0)
 	{
-	  message (2, stderr, "%s: Interval list is not aligned\n", path);
+	  message (2, stderr, "%s: Interval list is not aligned\n", path.str);
 	  close (fd);
-	  free (path);
+	  free (path.str);
 	  return false;
 	}
 
@@ -1292,14 +1297,14 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 	  interval_tree_destroy (*treep);
 	  *treep = NULL;
 	  close (fd);
-	  free (path);
+	  free (path.str);
 	  return false;
 	}
 
       close (fd);
     }
 
-  return flush_interval_tree_1 (vol, fh, type, path);
+  return flush_interval_tree_1 (vol, fh, type, &path);
 }
 
 /* Flush the interval tree of type TYPE for file handle FH on volume VOL
@@ -1308,12 +1313,12 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 bool
 flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
-  char *path;
+  string path;
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
+  build_fh_metadata_path (&path, vol, &fh->local_fh, type,
+			  metadata_tree_depth);
 
-  return flush_interval_tree_1 (vol, fh, type, path);
+  return flush_interval_tree_1 (vol, fh, type, &path);
 }
 
 /* Flush the interval tree of type TYPE for file handle FH on volume VOL
@@ -1322,7 +1327,7 @@ flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
 bool
 free_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
-  char *path;
+  string path;
   interval_tree tree, *treep;
   bool r;
 
@@ -1347,10 +1352,10 @@ free_interval_tree (volume vol, internal_fh fh, metadata_type type)
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
+  build_fh_metadata_path (&path, vol, &fh->local_fh, type,
+			  metadata_tree_depth);
 
-  r = flush_interval_tree_1 (vol, fh, type, path);
+  r = flush_interval_tree_1 (vol, fh, type, &path);
   close_interval_file (tree);
   interval_tree_destroy (tree);
   *treep = NULL;
@@ -1368,7 +1373,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 {
   interval_tree tree;
   interval i;
-  char *path;
+  string path;
   bool r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1403,10 +1408,10 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 
   zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
-  delete_useless_interval_file (vol, fh, type, tree, path);
-  free (path);
+  build_fh_metadata_path (&path, vol, &fh->local_fh, type,
+			  metadata_tree_depth);
+  delete_useless_interval_file (vol, fh, type, tree, &path);
+  free (path.str);
 
   return r;
 }
@@ -1432,7 +1437,7 @@ init_metadata_for_created_volume_root (volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (lstat (vol->local_path, &st) < 0)
+  if (lstat (vol->local_path.str, &st) < 0)
     return false;
 
   if ((st.st_mode & S_IFMT) != S_IFDIR)
@@ -1491,7 +1496,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 #ifdef ENABLE_CHECKING
   if (!vol->metadata)
     abort ();
-  if (!vol->local_path)
+  if (!vol->local_path.str)
     abort ();
 #endif
 
@@ -1797,11 +1802,11 @@ inc_local_version (volume vol, internal_fh fh)
 
 bool
 delete_metadata (volume vol, uint32_t dev, uint32_t ino,
-		 uint32_t parent_dev, uint32_t parent_ino, char *name)
+		 uint32_t parent_dev, uint32_t parent_ino, string *name)
 {
   metadata meta;
   zfs_fh fh;
-  char *path;
+  string path;
   int i;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1810,16 +1815,16 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   fh.ino = ino;
 
   /* Delete hardlink.  */
-  if (name)
+  if (name && name->str)
     {
       hardlink_list hl;
       int fd;
 
-      path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_HARDLINKS,
-				     metadata_tree_depth);
-      fd = open_fh_metadata (path, vol, &fh, METADATA_TYPE_HARDLINKS,
+      build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_HARDLINKS,
+			      metadata_tree_depth);
+      fd = open_fh_metadata (&path, vol, &fh, METADATA_TYPE_HARDLINKS,
 			     O_RDONLY, S_IRUSR | S_IWUSR);
-      free (path);
+      free (path.str);
       if (fd >= 0)
 	{
 	  hl = hardlink_list_create (2, NULL);
@@ -1839,18 +1844,18 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   /* Delete interval files and journal.  */
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
-      path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_UPDATED, i);
-      if (!remove_file_and_path (path, i))
+      build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_UPDATED, i);
+      if (!remove_file_and_path (&path, i))
 	vol->delete_p = true;
-      free (path);
-      path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_MODIFIED, i);
-      if (!remove_file_and_path (path, i))
+      free (path.str);
+      build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_MODIFIED, i);
+      if (!remove_file_and_path (&path, i))
 	vol->delete_p = true;
-      free (path);
-      path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_JOURNAL, i);
-      if (!remove_file_and_path (path, i))
+      free (path.str);
+      build_fh_metadata_path (&path, vol, &fh, METADATA_TYPE_JOURNAL, i);
+      if (!remove_file_and_path (&path, i))
 	vol->delete_p = true;
-      free (path);
+      free (path.str);
     }
 
   /* Update metadata.  */
@@ -1978,12 +1983,12 @@ delete_hardlinks_file (volume vol, zfs_fh *fh)
 
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
-      char *file;
+      string file;
 
-      file = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS, i);
-      if (!remove_file_and_path (file, metadata_tree_depth))
+      build_fh_metadata_path (&file, vol, fh, METADATA_TYPE_HARDLINKS, i);
+      if (!remove_file_and_path (&file, metadata_tree_depth))
 	vol->delete_p = true;
-      free (file);
+      free (file.str);
     }
 }
 
@@ -2004,27 +2009,26 @@ read_hardlinks_file (hardlink_list hl, int fd)
     {
       uint32_t parent_dev;
       uint32_t parent_ino;
-      uint32_t name_len;
-      char *name;
+      string name;
 
       if (fread (&parent_dev, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
 	  || fread (&parent_ino, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
-	  || fread (&name_len, 1, sizeof (uint32_t), f) != sizeof (uint32_t))
+	  || fread (&name.len, 1, sizeof (uint32_t), f) != sizeof (uint32_t))
 	break;
 
       parent_dev = le_to_u32 (parent_dev);
       parent_ino = le_to_u32 (parent_ino);
-      name_len = le_to_u32 (name_len);
-      name = (char *) xmalloc (name_len + 1);
+      name.len = le_to_u32 (name.len);
+      name.str = (char *) xmalloc (name.len + 1);
 
-      if (fread (name, 1, name_len + 1, f) != name_len + 1)
+      if (fread (name.str, 1, name.len + 1, f) != name.len + 1)
 	{
-	  free (name);
+	  free (name.str);
 	  break;
 	}
-      name[name_len] = 0;
+      name.str[name.len] = 0;
 
-      hardlink_list_insert (hl, parent_dev, parent_ino, name, false);
+      hardlink_list_insert (hl, parent_dev, parent_ino, &name, false);
     }
 
   fclose (f);
@@ -2037,19 +2041,19 @@ static bool
 write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
 {
   hardlink_list_entry entry;
-  char *path, *new_path;
+  string path, new_path;
   int fd;
   FILE *f;
 
-  path = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS,
-				 metadata_tree_depth);
-  new_path = xstrconcat (2, path, ".new");
-  fd = open_fh_metadata (new_path, vol, fh, METADATA_TYPE_HARDLINKS,
+  build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_HARDLINKS,
+			  metadata_tree_depth);
+  append_string (&new_path, &path, ".new", 4);
+  fd = open_fh_metadata (&new_path, vol, fh, METADATA_TYPE_HARDLINKS,
 			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
   if (fd < 0)
     {
-      free (new_path);
-      free (path);
+      free (new_path.str);
+      free (path.str);
       return false;
     }
 
@@ -2075,17 +2079,17 @@ write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
 	      != entry->name.len + 1))
 	{
 	  fclose (f);
-	  unlink (new_path);
-	  free (new_path);
-	  free (path);
+	  unlink (new_path.str);
+	  free (new_path.str);
+	  free (path.str);
 	  return false;
 	}
     }
 
   fclose (f);
-  rename (new_path, path);
-  free (new_path);
-  free (path);
+  rename (new_path.str, path.str);
+  free (new_path.str);
+  free (path.str);
   return true;
 }
 
@@ -2095,6 +2099,8 @@ write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
 static bool
 read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 {
+  string name;
+
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!lookup_metadata (vol, fh, meta, false))
@@ -2112,12 +2118,14 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 	abort ();
 #endif
 
+      name.str = meta->name;
+      name.len = strlen (meta->name);
       hardlink_list_insert (hl, meta->parent_dev, meta->parent_ino,
-			    meta->name, true);
+			    &name, true);
     }
   else
     {
-      char *path;
+      string path;
       int fd;
 
 #ifdef ENABLE_CHECKING
@@ -2126,11 +2134,11 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 	abort ();
 #endif
 
-      path = build_fh_metadata_path (vol, fh, METADATA_TYPE_HARDLINKS,
-				     metadata_tree_depth);
-      fd = open_fh_metadata (path, vol, fh, METADATA_TYPE_HARDLINKS,
+      build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_HARDLINKS,
+			      metadata_tree_depth);
+      fd = open_fh_metadata (&path, vol, fh, METADATA_TYPE_HARDLINKS,
 			     O_RDONLY, S_IRUSR | S_IWUSR);
-      free (path);
+      free (path.str);
 
       if (fd >= 0)
 	read_hardlinks_file (hl, fd);
@@ -2302,7 +2310,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 
 bool
 metadata_hardlink_insert (volume vol, zfs_fh *fh, uint32_t parent_dev,
-			  uint32_t parent_ino, char *name)
+			  uint32_t parent_ino, string *name)
 {
   hardlink_list hl;
   metadata meta;
@@ -2330,9 +2338,9 @@ metadata_hardlink_insert (volume vol, zfs_fh *fh, uint32_t parent_dev,
 
 bool
 metadata_hardlink_replace (volume vol, zfs_fh *fh, uint32_t old_parent_dev,
-			   uint32_t old_parent_ino, char *old_name,
+			   uint32_t old_parent_ino, string *old_name,
 			   uint32_t new_parent_dev, uint32_t new_parent_ino,
-			   char *new_name)
+			   string *new_name)
 {
   hardlink_list hl;
   metadata meta;
@@ -2369,7 +2377,7 @@ metadata_hardlink_set_shadow (volume vol, zfs_fh *fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   hl = hardlink_list_create (2, NULL);
-  hardlink_list_insert (hl, 0, 0, "", true);
+  hardlink_list_insert (hl, 0, 0, &empty_string, true);
 
   return write_hardlinks (vol, fh, hl);
 }
@@ -2400,14 +2408,13 @@ metadata_n_hardlinks (volume vol, zfs_fh *fh, metadata *meta)
 
 /* Return a local path for file handle FH on volume VOL.  */
 
-char *
-get_local_path_from_metadata (volume vol, zfs_fh *fh)
+void
+get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
 {
   metadata meta;
   hardlink_list hl;
   hardlink_list_entry entry, next;
-  char *parent_path;
-  char *path;
+  string parent_path;
   struct stat st;
   bool flush;
 
@@ -2419,7 +2426,9 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
     {
       vol->delete_p = true;
       hardlink_list_destroy (hl);
-      return NULL;
+      path->str = NULL;
+      path->len = 0;
+      return;
     }
 
   /* Check for volume root.  */
@@ -2429,7 +2438,8 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
       && hl->first == NULL)
     {
       hardlink_list_destroy (hl);
-      return xstrdup (vol->local_path);
+      xstringdup (path, &vol->local_path);
+      return;
     }
 
   /* Check for shadow file.  */
@@ -2438,10 +2448,13 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
       && meta.name[0] == 0)
     {
       hardlink_list_destroy (hl);
-      return NULL;
+      path->str = NULL;
+      path->len = 0;
+      return;
     }
 
-  path = NULL;
+  path->str = NULL;
+  path->len = 0;
   flush = false;
   for (entry = hl->first; entry; entry = next)
     {
@@ -2451,24 +2464,26 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 
       parent_fh.dev = entry->parent_dev;
       parent_fh.ino = entry->parent_ino;
-      parent_path = get_local_path_from_metadata (vol, &parent_fh);
-      if (parent_path == NULL)
+      get_local_path_from_metadata (&parent_path, vol, &parent_fh);
+      if (parent_path.str == NULL)
 	{
 	  flush |= hardlink_list_delete_entry (hl, entry);
 	}
       else
 	{
-	  path = xstrconcat (3, parent_path, "/", entry->name.str);
-	  free (parent_path);
+	  append_file_name (path, &parent_path, entry->name.str,
+			    entry->name.len);
+	  free (parent_path.str);
 
-	  if (lstat (path, &st) != 0
+	  if (lstat (path->str, &st) != 0
 	      || st.st_dev != fh->dev
 	      || st.st_ino != fh->ino)
 	    {
 	      flush |= hardlink_list_delete_entry (hl, entry);
 
-	      free (path);
-	      path = NULL;
+	      free (path->str);
+	      path->str = NULL;
+	      path->len = 0;
 	    }
 	  else
 	    break;
@@ -2478,7 +2493,7 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
   if (hl->first == NULL)
     {
 #ifdef ENABLE_CHECKING
-      if (path)
+      if (path->str)
 	abort ();
 #endif
 
@@ -2491,25 +2506,27 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
       if (!write_hardlinks (vol, fh, hl))
 	{
 	  vol->delete_p = true;
-	  if (path)
-	    free (path);
-	  return NULL;
+	  if (path->str)
+	    {
+	      free (path->str);
+	      path->str = NULL;
+	      path->len = 0;
+	    }
+	  return;
 	}
     }
   else
     hardlink_list_destroy (hl);
-
-  return path;
 }
 
 /* Write the journal for file handle FH on volume VOL to file PATH
    or delete the file if the journal is empty.  */
 
 static bool
-flush_journal (volume vol, internal_fh fh, char *path)
+flush_journal (volume vol, internal_fh fh, string *path)
 {
   journal_entry entry;
-  char *new_path;
+  string new_path;
   int fd;
   FILE *f;
 
@@ -2523,18 +2540,18 @@ flush_journal (volume vol, internal_fh fh, char *path)
       bool r;
 
       r = remove_file_and_path (path, metadata_tree_depth);
-      free (path);
+      free (path->str);
       return r;
     }
 
-  new_path = xstrconcat (2, path, ".new");
-  fd = open_fh_metadata (new_path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  append_string (&new_path, path, ".new", 4);
+  fd = open_fh_metadata (&new_path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
 			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
 
   if (fd < 0)
     {
-      free (new_path);
-      free (path);
+      free (new_path.str);
+      free (path->str);
       return false;
     }
 
@@ -2574,18 +2591,18 @@ flush_journal (volume vol, internal_fh fh, char *path)
 	      != sizeof (master_fh)))
 	{
 	  fclose (f);
-	  unlink (new_path);
-	  free (new_path);
-	  free (path);
+	  unlink (new_path.str);
+	  free (new_path.str);
+	  free (path->str);
 	  return false;
 	}
     }
 
   fclose (f);
-  rename (new_path, path);
+  rename (new_path.str, path->str);
 
-  free (new_path);
-  free (path);
+  free (new_path.str);
+  free (path->str);
   return true;
 }
 
@@ -2595,7 +2612,7 @@ bool
 read_journal (volume vol, internal_fh fh)
 {
   int fd;
-  char *path;
+  string path;
   FILE *f;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -2605,13 +2622,13 @@ read_journal (volume vol, internal_fh fh)
     abort ();
 #endif
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
-				 metadata_tree_depth);
-  fd = open_fh_metadata (path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  build_fh_metadata_path (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+			  metadata_tree_depth);
+  fd = open_fh_metadata (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
 			 O_RDONLY, 0);
   if (fd < 0)
     {
-      free (path);
+      free (path.str);
       if (errno != ENOENT)
 	return false;
 
@@ -2629,8 +2646,7 @@ read_journal (volume vol, internal_fh fh)
       zfs_fh local_fh;
       zfs_fh master_fh;
       uint32_t oper;
-      uint32_t name_len;
-      char *name;
+      string name;
 
       if (fread (&local_fh.dev, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
 	  || (fread (&local_fh.ino, 1, sizeof (uint32_t), f)
@@ -2638,24 +2654,24 @@ read_journal (volume vol, internal_fh fh)
 	  || (fread (&local_fh.gen, 1, sizeof (uint32_t), f)
 	      != sizeof (uint32_t))
 	  || fread (&oper, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
-	  || fread (&name_len, 1, sizeof (uint32_t), f) != sizeof (uint32_t))
+	  || fread (&name.len, 1, sizeof (uint32_t), f) != sizeof (uint32_t))
 	break;
 
       local_fh.dev = le_to_u32 (local_fh.dev);
       local_fh.ino = le_to_u32 (local_fh.ino);
       local_fh.gen = le_to_u32 (local_fh.gen);
       oper = le_to_u32 (oper);
-      name_len = le_to_u32 (name_len);
-      name = (char *) xmalloc (name_len + 1);
+      name.len = le_to_u32 (name.len);
+      name.str = (char *) xmalloc (name.len + 1);
 
-      if ((fread (name, 1, name_len + 1, f) != name_len + 1)
+      if ((fread (name.str, 1, name.len + 1, f) != name.len + 1)
 	  || (fread (&master_fh, 1, sizeof (master_fh), f)
 	      != sizeof (master_fh)))
 	{
-	  free (name);
+	  free (name.str);
 	  break;
 	}
-      name[name_len] = 0;
+      name.str[name.len] = 0;
       master_fh.sid = le_to_u32 (master_fh.sid);
       master_fh.vid = le_to_u32 (master_fh.vid);
       master_fh.dev = le_to_u32 (master_fh.dev);
@@ -2664,13 +2680,13 @@ read_journal (volume vol, internal_fh fh)
 
       if (oper < JOURNAL_OPERATION_LAST_AND_UNUSED)
 	{
-	  journal_insert (fh->journal, &local_fh, &master_fh, name,
+	  journal_insert (fh->journal, &local_fh, &master_fh, &name,
 			  (journal_operation_t) oper, false);
 	}
     }
 
   fclose (f);
-  return flush_journal (vol, fh, path);
+  return flush_journal (vol, fh, &path);
 }
 
 /* Write the journal for file handle FH on volume VOL to appropriate file.  */
@@ -2678,12 +2694,12 @@ read_journal (volume vol, internal_fh fh)
 bool
 write_journal (volume vol, internal_fh fh)
 {
-  char *path;
+  string path;
 
-  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
-				 metadata_tree_depth);
+  build_fh_metadata_path (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+			  metadata_tree_depth);
 
-  return flush_journal (vol, fh, path);
+  return flush_journal (vol, fh, &path);
 }
 
 /* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH
@@ -2691,11 +2707,10 @@ write_journal (volume vol, internal_fh fh)
 
 bool
 add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
-		   zfs_fh *master_fh, char *name, journal_operation_t oper)
+		   zfs_fh *master_fh, string *name, journal_operation_t oper)
 {
   char buffer[DC_SIZE];
   char *end;
-  uint32_t len;
   uint32_t tmp32;
   zfs_fh tmp_fh;
   bool r;
@@ -2705,7 +2720,7 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 #ifdef ENABLE_CHECKING
   if (!fh->journal)
     abort ();
-  if (!vol->local_path || !vol->is_copy)
+  if (!vol->local_path.str || !vol->is_copy)
     abort ();
 #endif
 
@@ -2715,9 +2730,8 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 	return false;
     }
 
-  len = strlen (name);
 #ifdef ENABLE_CHECKING
-  if (len + 1 + 5 * sizeof (uint32_t) + sizeof (master_fh) > DC_SIZE)
+  if (name->len + 1 + 5 * sizeof (uint32_t) + sizeof (master_fh) > DC_SIZE)
     abort ();
 #endif
 
@@ -2739,12 +2753,12 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
   memcpy (end, &tmp32, sizeof (uint32_t));
   end += sizeof (uint32_t);
 
-  tmp32 = u32_to_le (len);
+  tmp32 = u32_to_le (name->len);
   memcpy (end, &tmp32, sizeof (uint32_t));
   end += sizeof (uint32_t);
 
-  memcpy (end, name, len + 1);
-  end += len + 1;
+  memcpy (end, name->str, name->len + 1);
+  end += name->len + 1;
 
   tmp_fh.sid = u32_to_le (master_fh->sid);
   tmp_fh.vid = u32_to_le (master_fh->vid);
@@ -2769,8 +2783,8 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
    and operation OPER to journal for file handle FH on volume VOL.  */
 
 bool
-add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
-		      journal_operation_t oper)
+add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
+		      string *name, journal_operation_t oper)
 {
   metadata meta;
   zfs_fh local_fh;
@@ -2778,7 +2792,7 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!vol->local_path || !vol->is_copy)
+  if (!vol->local_path.str || !vol->is_copy)
     abort ();
 #endif
 
@@ -2798,17 +2812,16 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
 /* Return path to shadow file FH on volume VOL.
    If CREATE is true we are going to "create" a shadow file.  */
 
-char *
-get_shadow_path (volume vol, zfs_fh *fh, bool create)
+void
+get_shadow_path (string *path, volume vol, zfs_fh *fh, bool create)
 {
   unsigned int i;
-  char *path;
   struct stat st;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  path = build_fh_metadata_path (vol, fh, METADATA_TYPE_SHADOW,
-				 metadata_tree_depth);
+  build_fh_metadata_path (path, vol, fh, METADATA_TYPE_SHADOW,
+			  metadata_tree_depth);
   if (create)
     {
       if (!create_path_for_file (path, S_IRWXU))
@@ -2819,16 +2832,16 @@ get_shadow_path (volume vol, zfs_fh *fh, bool create)
     }
   else
     {
-      if (lstat (path, &st) != 0)
+      if (lstat (path->str, &st) != 0)
 	{
 	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
 	    if (i != metadata_tree_depth)
 	      {
-		char *old_path;
+		string old_path;
 
-		old_path = build_fh_metadata_path (vol, fh,
-						   METADATA_TYPE_SHADOW, i);
-		if (stat (old_path, &st) == 0)
+		build_fh_metadata_path (&old_path, vol, fh,
+					METADATA_TYPE_SHADOW, i);
+		if (stat (old_path.str, &st) == 0)
 		  {
 		    if (!create)
 		      {
@@ -2836,24 +2849,22 @@ get_shadow_path (volume vol, zfs_fh *fh, bool create)
 			  {
 			    if (errno == ENOENT)
 			      errno = 0;
-			    free (old_path);
-			    return path;
+			    free (old_path.str);
+			    return;
 			  }
 			create = true;
 		      }
 
-		    if (rename (old_path, path) == 0)
+		    if (rename (old_path.str, path->str) == 0)
 		      {
-			free (old_path);
-			return path;
+			free (old_path.str);
+			return;
 		      }
 		  }
-		free (old_path);
+		free (old_path.str);
 	      }
 	}
     }
-
-  return path;
 }
 
 /* Initialize data structures in METADATA.C.  */

@@ -37,7 +37,7 @@ typedef struct node_def
 
   pthread_mutex_t mutex;
   uint32_t id;			/* ID of the node */
-  char *name;			/* name of the node */
+  string name;			/* name of the node */
 				/* public key */
   int flags;			/* see NODE_* below */
   time_t last_connect;		/* last attemp to connect to node */
@@ -70,7 +70,7 @@ extern node this_node;
 
 /* Function prototypes.  */
 extern node node_lookup (uint32_t id);
-extern node node_lookup_name (char *name);
+extern node node_lookup_name (string *name);
 extern node node_create (uint32_t id, char *name);
 extern void node_destroy (node nod);
 extern void initialize_node_c (void);

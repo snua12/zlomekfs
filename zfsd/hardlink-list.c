@@ -101,7 +101,7 @@ hardlink_list_destroy (hardlink_list hl)
 
 bool
 hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
-		      uint32_t parent_ino, char *name, bool copy)
+		      uint32_t parent_ino, string *name, bool copy)
 {
   hardlink_list_entry entry;
   void **slot;
@@ -113,8 +113,7 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
   zfsd_mutex_unlock (&hardlink_list_mutex);
   entry->parent_dev = parent_dev;
   entry->parent_ino = parent_ino;
-  entry->name.str = name;
-  entry->name.len = strlen (name);
+  entry->name = *name;
 
   slot = htab_find_slot_with_hash (hl->htab, entry,
 				   HARDLINK_LIST_HASH (entry), INSERT);
@@ -128,13 +127,13 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
 	{
 	  /* If we shall not copy NAME the NAME is dynamically allocated
 	     and caller does not free it so we have to free it now.  */
-	  free (name);
+	  free (name->str);
 	}
       return false;
     }
 
   if (copy)
-    entry->name.str = (char *) xmemdup (name, entry->name.len + 1);
+    entry->name.str = (char *) xmemdup (name->str, entry->name.len + 1);
 
   *slot = entry;
   entry->next = NULL;
@@ -153,7 +152,7 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
 
 bool
 hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
-		      uint32_t parent_ino, char *name)
+		      uint32_t parent_ino, string *name)
 {
   struct hardlink_list_entry_def entry;
 
@@ -161,8 +160,7 @@ hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 
   entry.parent_dev = parent_dev;
   entry.parent_ino = parent_ino;
-  entry.name.str = name;
-  entry.name.len = strlen (name);
+  entry.name = *name;
   return (htab_find_with_hash (hl->htab, &entry, HARDLINK_LIST_HASH (&entry))
 	  != NULL);
 }
@@ -172,7 +170,7 @@ hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 
 bool
 hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
-		      uint32_t parent_ino, char *name)
+		      uint32_t parent_ino, string *name)
 {
   struct hardlink_list_entry_def entry;
   hardlink_list_entry del;
@@ -182,8 +180,7 @@ hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
 
   entry.parent_dev = parent_dev;
   entry.parent_ino = parent_ino;
-  entry.name.str = name;
-  entry.name.len = strlen (name);
+  entry.name = *name;
   slot = htab_find_slot_with_hash (hl->htab, &entry,
 				   HARDLINK_LIST_HASH (&entry), NO_INSERT);
   if (!slot)

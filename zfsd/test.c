@@ -113,7 +113,7 @@ fake_config (void)
 	volume_delete (vol);
     }
 #ifdef TEST_UPDATE
-  else if (this_node && strcmp (this_node->name, "orion") == 0)
+  else if (this_node && strcmp (this_node->name.str, "orion") == 0)
     /* FIXME: race condition?  */
     {
       if (volume_set_local_info (vol, "/.zfs/vol3", VOLUME_NO_LIMIT))

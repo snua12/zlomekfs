@@ -47,7 +47,7 @@ struct volume_def
   bool is_copy;			/* Is the volume a copy of remote volume?  */
   unsigned int n_locked_fhs;	/* number of locked file handles */
 
-  char *local_path;		/* directory with local copy of volume */
+  string local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
 
   uint32_t last_conflict_ino;	/* the inode number of conflict dir

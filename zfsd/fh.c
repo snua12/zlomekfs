@@ -110,7 +110,7 @@ pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
 /* Hash function for virtual_dir VD, computed from (parent->fh, name).  */
 #define VIRTUAL_DIR_HASH_NAME(VD)					\
-  (crc32_update (crc32_string ((VD)->name),				\
+  (crc32_update (crc32_buffer ((VD)->name.str, (VD)->name.len),		\
 		 &(VD)->parent->fh, sizeof (zfs_fh)))
 
 static internal_dentry make_space_in_conflict_dir (volume *volp,
@@ -540,7 +540,8 @@ internal_dentry_eq_name (const void *xx, const void *yy)
   internal_dentry y = (internal_dentry) yy;
 
   return (x->parent == y->parent
-  	  && strcmp (x->name, y->name) == 0);
+	  && x->name.len == y->name.len
+  	  && strcmp (x->name.str, y->name.str) == 0);
 }
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
@@ -643,7 +644,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	    abort ();
 #endif
 
-	  if (!vol->local_path && !volume_master_connected (vol))
+	  if (!vol->local_path.str && !volume_master_connected (vol))
 	    {
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
@@ -661,7 +662,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 
       acquire_dentry (dentry);
 #ifdef ENABLE_CHECKING
-      if (volp && vol->local_path && vol->master == this_node
+      if (volp && vol->local_path.str && vol->master == this_node
 	  && !zfs_fh_undefined (dentry->fh->meta.master_fh))
 	abort ();
 #endif
@@ -725,7 +726,7 @@ vd_lookup (zfs_fh *fh)
 /* Return the virtual directory for NAME in virtual directory PARENT.  */
 
 virtual_dir
-vd_lookup_name (virtual_dir parent, const char *name)
+vd_lookup_name (virtual_dir parent, string *name)
 {
   virtual_dir vd;
   struct virtual_dir_def tmp_vd;
@@ -734,7 +735,7 @@ vd_lookup_name (virtual_dir parent, const char *name)
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
   tmp_vd.parent = parent;
-  tmp_vd.name = (char *) name;
+  tmp_vd.name = *name;
 
   vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
   if (vd)
@@ -774,7 +775,7 @@ dentry_lookup (zfs_fh *fh)
 /* Return the internal dentry for NAME in directory PARENT.  */
 
 internal_dentry
-dentry_lookup_name (internal_dentry parent, const char *name)
+dentry_lookup_name (internal_dentry parent, string *name)
 {
   struct internal_dentry_def tmp;
   internal_dentry dentry;
@@ -783,7 +784,7 @@ dentry_lookup_name (internal_dentry parent, const char *name)
   CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
   tmp.parent = parent;
-  tmp.name = (char *) name;
+  tmp.name = *name;
 
   dentry = (internal_dentry) htab_find (dentry_htab_name, &tmp);
   if (dentry)
@@ -1238,7 +1239,7 @@ print_subdentries (FILE *f, internal_dentry dentry)
       subdentry = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
 
       fprintf (f, "%s [%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32 ",%" PRIu32
-	       "]\n", subdentry->name, subdentry->fh->local_fh.sid,
+	       "]\n", subdentry->name.str, subdentry->fh->local_fh.sid,
 	       subdentry->fh->local_fh.vid, subdentry->fh->local_fh.dev,
 	       subdentry->fh->local_fh.ino, subdentry->fh->local_fh.gen);
     }
@@ -1326,7 +1327,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
 
 static internal_dentry
 internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
-			internal_dentry parent, char *name, fattr *attr,
+			internal_dentry parent, string *name, fattr *attr,
 			metadata *meta, unsigned int level)
 {
   internal_dentry dentry;
@@ -1342,7 +1343,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
   dentry = (internal_dentry) pool_alloc (dentry_pool);
   dentry->parent = NULL;
-  dentry->name = xstrdup (name);
+  xstringdup (&dentry->name, name);
   dentry->next = dentry;
   dentry->prev = dentry;
   dentry->last_use = time (NULL);
@@ -1440,7 +1441,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
 internal_dentry
 get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
-	    internal_dentry dir, char *name, fattr *attr, metadata *meta)
+	    internal_dentry dir, string *name, fattr *attr, metadata *meta)
 {
   internal_dentry dentry;
 
@@ -1557,7 +1558,8 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
    on volume VOL.  */
 
 void
-delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
+delete_dentry (volume *volp, internal_dentry *dirp, string *name,
+	       zfs_fh *dir_fh)
 {
   internal_dentry dentry;
   int32_t r2;
@@ -1581,7 +1583,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 
 	  release_dentry (*dirp);
 	  
-	  sdentry = dentry_lookup_name (dentry, this_node->name);
+	  sdentry = dentry_lookup_name (dentry, &this_node->name);
 	  if (sdentry)
 	    {
 	      tmp_fh.sid = this_node->id;
@@ -1629,7 +1631,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 
 internal_dentry
 internal_dentry_link (internal_dentry orig, volume vol,
-		      internal_dentry parent, char *name)
+		      internal_dentry parent, string *name)
 {
   internal_dentry dentry, conflict, old;
   void **slot;
@@ -1670,7 +1672,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
 
   dentry = (internal_dentry) pool_alloc (dentry_pool);
   dentry->parent = NULL;
-  dentry->name = xstrdup (name);
+  xstringdup (&dentry->name, name);
   dentry->fh = orig->fh;
   orig->fh->ndentries++;
   dentry->next = dentry;
@@ -1708,8 +1710,8 @@ internal_dentry_link (internal_dentry orig, volume vol,
    of TO_DIR with name TO_NAME on volume VOL.  */
 
 void
-internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
-		      internal_dentry to_dir, char *to_name)
+internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
+		      internal_dentry to_dir, string *to_name)
 {
   internal_dentry dentry, dentry2, sdentry;
   zfs_fh tmp_fh;
@@ -1739,7 +1741,7 @@ internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
   /* Delete DENTRY from FROM_DIR's directory entries.  */
   if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
-      sdentry = dentry_lookup_name (dentry, this_node->name);
+      sdentry = dentry_lookup_name (dentry, &this_node->name);
 #ifdef ENABLE_CHECKING
       if (!sdentry)
 	abort ();
@@ -1769,8 +1771,8 @@ internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
 
       if (!CONFLICT_DIR_P (dentry->fh->local_fh))
 	{
-	  free (dentry->name);
-	  dentry->name = xstrdup (this_node->name);
+	  free (dentry->name.str);
+	  xstringdup (&dentry->name, &this_node->name);
 	}
 
       sdentry = make_space_in_conflict_dir (&vol, &dentry2, true,
@@ -1792,8 +1794,8 @@ internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
     }
   else
     {
-      free (dentry->name);
-      dentry->name = xstrdup (to_name);
+      free (dentry->name.str);
+      xstringdup (&dentry->name, to_name);
       internal_dentry_add_to_dir (to_dir, dentry);
     }
 
@@ -1977,7 +1979,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   else
     zfsd_mutex_unlock (&dentry->fh->mutex);
 
-  free (dentry->name);
+  free (dentry->name.str);
   pool_free (dentry_pool, dentry);
 }
 
@@ -1987,8 +1989,8 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
    and attributes and return it.  */
 
 internal_dentry
-create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
-		 fattr *attr)
+create_conflict (volume vol, internal_dentry dir, string *name,
+		 zfs_fh *local_fh, fattr *attr)
 {
   zfs_fh tmp_fh;
   fattr tmp_attr;
@@ -2059,13 +2061,13 @@ create_conflict (volume vol, internal_dentry dir, char *name, zfs_fh *local_fh,
 
   if (dentry)
     {
-      free (dentry->name);
+      free (dentry->name.str);
       nod = node_lookup (local_fh->sid);
 #ifdef ENABLE_CHECKING
       if (!nod)
 	abort ();
 #endif
-      dentry->name = xstrdup (nod->name);
+      xstringdup (&dentry->name, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
 
       internal_dentry_add_to_dir (conflict, dentry);
@@ -2151,7 +2153,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
   zfs_fh tmp_fh;
   internal_dentry dentry;
   node nod;
-  char *name;
+  string *name;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -2187,12 +2189,12 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 
       if (fh->sid == this_node->id)
 	{
-	  name = this_node->name;
+	  name = &this_node->name;
 	  master_fh = &undefined_fh;
 	}
       else
 	{
-	  name = nod->name;
+	  name = &nod->name;
 	  master_fh = fh;
 	}
 
@@ -2203,13 +2205,13 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
     {
       if (fh->sid == this_node->id)
 	{
-	  name = this_node->name;
+	  name = &this_node->name;
 	  tmp_fh.sid = this_node->id;
 	  tmp_fh.ino = nod->id;
 	}
       else
 	{
-	  name = nod->name;
+	  name = &nod->name;
 	  tmp_fh.sid = nod->id;
 	  tmp_fh.ino = this_node->id;
 	}
@@ -2225,7 +2227,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
       attr->uid = attr->uid;
       attr->gid = attr->gid;
       attr->rdev = 0;
-      attr->size = strlen (name);
+      attr->size = name->len;
       attr->blocks = 0;
       attr->blksize = 4096;
       attr->atime = time (NULL);
@@ -2246,7 +2248,7 @@ bool
 try_resolve_conflict (internal_dentry conflict)
 {
   internal_dentry dentry1, dentry2, parent;
-  char *swp;
+  string swp;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
@@ -2423,7 +2425,8 @@ virtual_dir_eq_name (const void *xx, const void *yy)
 #endif
 
   return (x->parent == y->parent
-	  && strcmp (x->name, y->name) == 0);
+	  && x->name.len == y->name.len
+	  && strcmp (x->name.str, y->name.str) == 0);
 }
 
 /* Create a new virtual directory NAME in virtual directory PARENT.  */
@@ -2449,7 +2452,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->fh.ino = last_virtual_ino;
   vd->fh.gen = 1;
   vd->parent = parent;
-  vd->name = xstrdup (name);
+  xmkstring (&vd->name, name);
   vd->vol = NULL;
   vd->cap = NULL;
   virtual_dir_set_fattr (vd);
@@ -2559,7 +2562,7 @@ virtual_dir_destroy (virtual_dir vd)
 	    abort ();
 #endif
 	  htab_clear_slot (vd_htab, slot);
-	  free (vd->name);
+	  free (vd->name.str);
 	  zfsd_mutex_unlock (&vd->mutex);
 	  zfsd_mutex_destroy (&vd->mutex);
 	  pool_free (vd_pool, vd);
@@ -2581,7 +2584,7 @@ virtual_root_create (void)
   root = (virtual_dir) pool_alloc (vd_pool);
   root->fh = root_fh;
   root->parent = NULL;
-  root->name = xstrdup ("");
+  xmkstring (&root->name, "");
   varray_create (&root->subdirs, sizeof (virtual_dir), 16);
   root->subdir_index = 0;
   root->vol = NULL;
@@ -2633,7 +2636,7 @@ virtual_root_destroy (virtual_dir root)
     abort ();
 #endif
   htab_clear_slot (vd_htab, slot);
-  free (root->name);
+  free (root->name.str);
   zfsd_mutex_unlock (&root->mutex);
   zfsd_mutex_destroy (&root->mutex);
   pool_free (vd_pool, root);
@@ -2653,7 +2656,7 @@ virtual_mountpoint_create (volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   mountpoint = xstrdup (vol->mountpoint);
-  varray_create (&subpath, sizeof (char *), 16);
+  varray_create (&subpath, sizeof (string), 8);
 
   /* Split the path.  */
   s = mountpoint;
@@ -2678,10 +2681,14 @@ virtual_mountpoint_create (volume vol)
   zfsd_mutex_lock (&root->mutex);
   for (i = 0; i < VARRAY_USED (subpath); i++)
     {
+      string str;
+
       parent = vd;
       s = VARRAY_ACCESS (subpath, i, char *);
 
-      vd = vd_lookup_name (parent, s);
+      str.str = s;
+      str.len = strlen (s);
+      vd = vd_lookup_name (parent, &str);
       if (!vd)
 	vd = virtual_dir_create (parent, s);
 #ifdef ENABLE_CHECKING
@@ -2753,7 +2760,7 @@ print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
   for (i = 0; i < indent; i++)
     fputc (' ', f);
 
-  fprintf (f, "'%s'", vd->name);
+  fprintf (f, "'%s'", vd->name.str);
   if (vd->vol)
     fprintf (f, "; VOLUME = '%s'", vd->vol->name);
   fputc ('\n', f);

@@ -56,7 +56,7 @@ node this_node;
 #define NODE_HASH(NODE) ((NODE)->id)
 
 /* Hash function for node name.  */
-#define HASH_NODE_NAME(NAME) crc32_string (NAME)
+#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
 
 /* Hash function for node NODE, computed from its name.  */
 #define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
@@ -94,9 +94,10 @@ static int
 node_eq_name (const void *x, const void *y)
 {
   node nod = (node) x;
-  char *s = (char *) y;
+  string *s = (string *) y;
 
-  return (strcmp (nod->name, s) == 0);
+  return (nod->name.len == s->len
+	  && strcmp (nod->name.str, s->str) == 0);
 }
 
 /* Return the node with id ID.  */
@@ -118,13 +119,13 @@ node_lookup (uint32_t id)
 /* Return the node whose name is NAME.  */
 
 node
-node_lookup_name (char *name)
+node_lookup_name (string *name)
 {
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
   nod = (node) htab_find_with_hash (node_htab_name, name,
-				    HASH_NODE_NAME (name));
+				    HASH_NODE_NAME (*name));
   if (nod)
     zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
@@ -144,7 +145,7 @@ node_create (uint32_t id, char *name)
 
   nod = (node) xmalloc (sizeof (struct node_def));
   nod->id = id;
-  nod->name = xstrdup (name);
+  xmkstring (&nod->name, name);
   nod->flags = 0;
   nod->last_connect = 0;
   nod->fd = -1;
@@ -183,7 +184,7 @@ node_create (uint32_t id, char *name)
 #endif
   *slot = nod;
 
-  slot = htab_find_slot_with_hash (node_htab_name, nod->name,
+  slot = htab_find_slot_with_hash (node_htab_name, nod->name.str,
 				   NODE_HASH_NAME (nod), INSERT);
 #ifdef ENABLE_CHECKING
   if (*slot)
@@ -213,7 +214,7 @@ node_destroy (node nod)
 #endif
   htab_clear_slot (node_htab, slot);
 
-  slot = htab_find_slot_with_hash (node_htab_name, nod->name,
+  slot = htab_find_slot_with_hash (node_htab_name, &nod->name,
 				   NODE_HASH_NAME (nod), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
@@ -234,7 +235,7 @@ node_destroy (node nod)
 
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_destroy (&nod->mutex);
-  free (nod->name);
+  free (nod->name.str);
   free (nod);
 }
 

@@ -517,13 +517,14 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
   fd_data_t *fd_data = t_data->fd_data;
   node nod;
 
-  nod = node_lookup_name (args->node.str);
+  nod = node_lookup_name (&args->node);
   zfsd_mutex_lock (&fd_data->mutex);
   if (nod)
     {
       /* FIXME: do the key authorization */
 
-      message (2, stderr, "FD %d connected to %s\n", fd_data->fd, nod->name);
+      message (2, stderr, "FD %d connected to %s\n", fd_data->fd,
+	       nod->name.str);
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
       zfsd_cond_broadcast (&fd_data->cond);
@@ -531,9 +532,9 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
       zfsd_mutex_unlock (&nod->mutex);
 
       encode_status (dc, ZFS_OK);
-      res.node.str = this_node->name;
-      res.node.len = strlen (this_node->name);
+      xstringdup (&res.node, &this_node->name);
       encode_auth_stage1_res (dc, &res);
+      free (res.node.str);
     }
 
   if (!nod)

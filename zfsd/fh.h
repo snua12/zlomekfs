@@ -29,6 +29,7 @@ typedef struct volume_def *volume;
 #include <stdio.h>
 #include <time.h>
 #include "pthread.h"
+#include "memory.h"
 #include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"
@@ -87,7 +88,7 @@ typedef struct volume_def *volume;
 
 /* Hash function for internal dentry D, computed from parent->fh and name.  */
 #define INTERNAL_DENTRY_HASH_NAME(D)					\
-  (crc32_update (crc32_string ((D)->name),				\
+  (crc32_update (crc32_buffer ((D)->name.str, (D)->name.len),		\
 		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
 /* True if file handle FH has a local path.  */
@@ -188,14 +189,14 @@ struct internal_dentry_def
   /* Mutex is not needed here because we can use FH->MUTEX
      because FH is constant for each internal dentry.  */
 
+  /* Internal file handle associated with this dentry.  */
+  internal_fh fh;
+
   /* Pointer to internal dentry of the parent directory.  */
   internal_dentry parent;
 
   /* File name.  */
-  char *name;
-
-  /* Internal file handle associated with this dentry.  */
-  internal_fh fh;
+  string name;
 
   /* Pointers to next and previous dentry with the same file handle,
      making a cyclic double linked chain.  */
@@ -231,7 +232,7 @@ struct virtual_dir_def
   virtual_dir parent;
 
   /* Directory name.  */
-  char *name;
+  string name;
 
   /* Volume which is mounted here.  */
   volume vol;
@@ -297,14 +298,14 @@ extern void acquire_dentry (internal_dentry dentry);
 extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,
-				   char *name, fattr *attr, metadata *meta);
-extern void delete_dentry (volume *volp, internal_dentry *dirp, char *name,
+				   string *name, fattr *attr, metadata *meta);
+extern void delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 			   zfs_fh *dir_fh);
 extern virtual_dir vd_lookup (zfs_fh *fh);
-extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
+extern virtual_dir vd_lookup_name (virtual_dir parent, string *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);
 extern internal_dentry dentry_lookup_name (internal_dentry parent,
-					   const char *name);
+					   string *name);
 extern int32_t internal_dentry_lock (unsigned int level, volume *volp,
 				     internal_dentry *dentryp, zfs_fh *tmp_fh);
 extern void internal_dentry_unlock (volume vol, internal_dentry dentry);
@@ -320,14 +321,14 @@ extern void debug_subdentries (internal_dentry dentry);
 
 extern internal_dentry internal_dentry_link (internal_dentry orig, volume vol,
 					     internal_dentry parent,
-					     char *name);
+					     string *name);
 extern void internal_dentry_move (volume vol, internal_dentry from_dir,
-				  char *from_name, internal_dentry to_dir,
-				  char *to_name);
+				  string *from_name, internal_dentry to_dir,
+				  string *to_name);
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
 extern internal_dentry create_conflict (volume vol, internal_dentry dir,
-					char *name, zfs_fh *local_fh,
+					string *name, zfs_fh *local_fh,
 					fattr *attr);
 extern internal_dentry add_file_to_conflict_dir (volume vol,
 						 internal_dentry conflict,

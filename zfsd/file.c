@@ -181,7 +181,7 @@ capability_opened_p (internal_fh fh)
 static int32_t
 capability_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
-  char *path;
+  string path;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -206,10 +206,10 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
   else
     flags |= O_RDWR;
 
-  path = build_local_path (vol, dentry);
+  build_local_path (&path, vol, dentry);
   zfsd_mutex_unlock (&fh_mutex);
-  dentry->fh->fd = safe_open (path, flags, 0);
-  free (path);
+  dentry->fh->fd = safe_open (path.str, flags, 0);
+  free (path.str);
   if (dentry->fh->fd >= 0)
     {
       zfsd_mutex_lock (&opened_mutex);
@@ -297,7 +297,7 @@ int32_t
 local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
 	      uint32_t flags, sattr *attr, volume vol, metadata  *meta)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -306,24 +306,24 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
-  r = safe_open (path, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
+  r = safe_open (path.str, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
     {
-      free (path);
+      free (path.str);
       if (errno == ENOENT || errno == ENOTDIR)
 	return ESTALE;
       return errno;
     }
   *fdp = r;
 
-  r = local_setattr_path (&res->attr, path, attr);
-  free (path);
+  r = local_setattr_path (&res->attr, &path, attr);
+  free (path.str);
   if (r != ZFS_OK)
     {
       close (*fdp);
@@ -489,7 +489,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       internal_cap icap;
       internal_dentry dentry;
 
-      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
 			   &res->attr, &meta);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry,
 					      flags & O_ACCMODE);
@@ -503,7 +503,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name->str,
+				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
 		vol->delete_p = true;
 	    }
@@ -1078,8 +1078,8 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
 	    svd = VARRAY_ACCESS (vd->subdirs, i, virtual_dir);
 	    zfsd_mutex_lock (&svd->mutex);
 	    cookie--;
-	    if (!(*filldir) (svd->fh.ino, cookie, svd->name,
-			     strlen (svd->name), list, data))
+	    if (!(*filldir) (svd->fh.ino, cookie, svd->name.str,
+			     svd->name.len, list, data))
 	      {
 		zfsd_mutex_unlock (&svd->mutex);
 		return false;
@@ -1151,8 +1151,8 @@ read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
 	    dentry = VARRAY_ACCESS (idir->fh->subdentries, i, internal_dentry);
 	    zfsd_mutex_lock (&dentry->fh->mutex);
 	    cookie++;
-	    if (!(*filldir) (dentry->fh->local_fh.ino, cookie, dentry->name,
-			     strlen (dentry->name), list, data))
+	    if (!(*filldir) (dentry->fh->local_fh.ino, cookie,
+			     dentry->name.str, dentry->name.len, list, data))
 	      {
 		zfsd_mutex_unlock (&dentry->fh->mutex);
 		return false;
@@ -1259,6 +1259,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	      if (vd)
 		{
 		  virtual_dir svd;
+		  string name;
 
 		  /* Hide "." and "..".  */
 		  if (de->d_name[0] == '.'
@@ -1269,7 +1270,9 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
 		  /* Hide files which have the same name like some virtual
 		     directory.  */
-		  svd = vd_lookup_name (vd, de->d_name);
+		  name.str = de->d_name;
+		  name.len = strlen (de->d_name);
+		  svd = vd_lookup_name (vd, &name);
 		  if (svd)
 		    {
 		      zfsd_mutex_unlock (&svd->mutex);

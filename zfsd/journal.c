@@ -103,7 +103,7 @@ journal_destroy (journal_t journal)
 
 bool
 journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
-		char *name, journal_operation_t oper, bool copy)
+		string *name, journal_operation_t oper, bool copy)
 {
   journal_entry entry;
   void **slot;
@@ -116,8 +116,7 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
   entry->dev = local_fh->dev;
   entry->ino = local_fh->ino;
   entry->gen = local_fh->gen;
-  entry->name.str = name;
-  entry->name.len = strlen (name);
+  entry->name = *name;
 
   slot = htab_find_slot_with_hash (journal->htab, entry, JOURNAL_HASH (entry),
 				   INSERT);
@@ -150,7 +149,7 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
 	    {
 	      /* If we shall not copy NAME the NAME is dynamically allocated
 		 and caller does not free it so we have to free it now.  */
-	      free (name);
+	      free (name->str);
 	    }
 	  return true;
 	}
@@ -179,7 +178,7 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
   entry->oper = oper;
   entry->master_fh = *master_fh;
   if (copy)
-    entry->name.str = (char *) xmemdup (name, entry->name.len + 1);
+    entry->name.str = (char *) xmemdup (name->str, entry->name.len + 1);
 
   *slot = entry;
   entry->next = NULL;
@@ -196,7 +195,7 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
    of journal JOURNAL.  */
 
 bool
-journal_member (journal_t journal, zfs_fh *local_fh, char *name)
+journal_member (journal_t journal, zfs_fh *local_fh, string *name)
 {
   struct journal_entry_def entry;
 
@@ -205,8 +204,7 @@ journal_member (journal_t journal, zfs_fh *local_fh, char *name)
   entry.dev = local_fh->dev;
   entry.ino = local_fh->ino;
   entry.gen = local_fh->gen;
-  entry.name.str = name;
-  entry.name.len = strlen (name);
+  entry.name = *name;
   return (htab_find_with_hash (journal->htab, &entry, JOURNAL_HASH (&entry))
 	  != NULL);
 }
@@ -215,7 +213,7 @@ journal_member (journal_t journal, zfs_fh *local_fh, char *name)
    Return true if it was really deleted.  */
 
 bool
-journal_delete (journal_t journal, zfs_fh *local_fh, char *name)
+journal_delete (journal_t journal, zfs_fh *local_fh, string *name)
 {
   struct journal_entry_def entry;
   journal_entry del;
@@ -226,8 +224,7 @@ journal_delete (journal_t journal, zfs_fh *local_fh, char *name)
   entry.dev = local_fh->dev;
   entry.ino = local_fh->ino;
   entry.gen = local_fh->gen;
-  entry.name.str = name;
-  entry.name.len = strlen (name);
+  entry.name = *name;
   slot = htab_find_slot_with_hash (journal->htab, &entry, JOURNAL_HASH (&entry),
 				   NO_INSERT);
   if (!slot)

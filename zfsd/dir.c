@@ -45,13 +45,12 @@
 
 /* Return the local path of file for dentry DENTRY on volume VOL.  */
 
-char *
-build_local_path (volume vol, internal_dentry dentry)
+void
+build_local_path (string *dst, volume vol, internal_dentry dentry)
 {
   internal_dentry tmp;
   unsigned int n;
   varray v;
-  char *r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -67,7 +66,7 @@ build_local_path (volume vol, internal_dentry dentry)
     if (!CONFLICT_DIR_P (tmp->fh->local_fh))
       n += 2;
 
-  varray_create (&v, sizeof (char *), n);
+  varray_create (&v, sizeof (string), n);
   VARRAY_USED (v) = n;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
@@ -75,27 +74,26 @@ build_local_path (volume vol, internal_dentry dentry)
 	n += 2;
 
       n--;
-      VARRAY_ACCESS (v, n, char *) = tmp->name;
+      VARRAY_ACCESS (v, n, string) = tmp->name;
       n--;
-      VARRAY_ACCESS (v, n, char *) = "/";
+      VARRAY_ACCESS (v, n, string).str = "/";
+      VARRAY_ACCESS (v, n, string).len = 1;
     }
-  VARRAY_ACCESS (v, 0, char *) = vol->local_path;
+  VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
-  r = xstrconcat_varray (&v);
+  xstringconcat_varray (dst, &v);
   varray_destroy (&v);
-
-  return r;
 }
 
 /* Return the local path of file NAME in directory DENTRY on volume VOL.  */
 
-char *
-build_local_path_name (volume vol, internal_dentry dentry, char *name)
+void
+build_local_path_name (string *dst, volume vol, internal_dentry dentry,
+		       string *name)
 {
   internal_dentry tmp;
   unsigned int n;
   varray v;
-  char *r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -111,84 +109,86 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
     if (!CONFLICT_DIR_P (tmp->fh->local_fh))
       n += 2;
 
-  varray_create (&v, sizeof (char *), n);
+  varray_create (&v, sizeof (string), n);
   VARRAY_USED (v) = n;
   n--;
-  VARRAY_ACCESS (v, n, char *) = (char *) name;
+  VARRAY_ACCESS (v, n, string) = *name;
   n--;
-  VARRAY_ACCESS (v, n, char *) = "/";
+  VARRAY_ACCESS (v, n, string).str = "/";
+  VARRAY_ACCESS (v, n, string).len = 1;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
       if (CONFLICT_DIR_P (tmp->fh->local_fh))
 	n += 2;
 
       n--;
-      VARRAY_ACCESS (v, n, char *) = tmp->name;
+      VARRAY_ACCESS (v, n, string) = tmp->name;
       n--;
-      VARRAY_ACCESS (v, n, char *) = "/";
+      VARRAY_ACCESS (v, n, string).str = "/";
+      VARRAY_ACCESS (v, n, string).len = 1;
     }
-  VARRAY_ACCESS (v, 0, char *) = vol->local_path;
+  VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
-  r = xstrconcat_varray (&v);
+  xstringconcat_varray (dst, &v);
   varray_destroy (&v);
-
-  return r;
 }
 
 /* Return a pointer into PATH where path relative to volume root starts.  */
 
-char *
-local_path_to_relative_path (volume vol, char *path)
+static void
+local_path_to_relative_path (string *dst, volume vol, string *path)
 {
-  int i;
-
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (path == NULL)
-    return path;
+  if (path->str == NULL)
+    {
+      dst->str = NULL;
+      dst->len = 0;
+      return;
+    }
 
-  for (i = 0; path[i] && vol->local_path[i] == path[i]; i++)
-    ;
 #ifdef ENABLE_CHECKING
-  /* Now we should be at the end of VOL->LOCAL_PATH.  */
-  if (vol->local_path[i])
+  if (path->len < vol->local_path.len)
+    abort ();
+  if (memcmp (path->str, vol->local_path.str, vol->local_path.len) != 0)
     abort ();
 #endif
-  return path + i;
+
+  dst->len = path->len - vol->local_path.len;
+  dst->str = (char *) xmemdup (path->str + vol->local_path.len, dst->len + 1);
 }
 
 /* Return short file name from the path PATH.  */
 
-char *
-file_name_from_path (char *path)
+static void
+file_name_from_path (string *dst, string *path)
 {
 #ifdef ENABLE_CHECKING
-  if (path[0] != '/')
+  if (path->str[0] != '/')
     abort ();
 #endif
 
-  while (*path)
-    path++;
-  while (*path != '/')
-    path--;
+  for (dst->str = path->str + path->len; *dst->str != '/'; dst->str--)
+    ;
+  dst->str++;
 
-  return path + 1;
+  dst->len = path->str + path->len - dst->str;
 }
 
 /* Check whether parent of file PATH exists and return ESTALE if it does not
    exist.  */
 
-int32_t
-parent_exists (char *path)
+static int32_t
+parent_exists (string *path)
 {
   struct stat st;
   int32_t r;
-  char *file;
+  string file;
 
-  file = file_name_from_path (path);
-  file[-1] = 0;
-  r = lstat (path[0] ? path : "/", &st);
-  file[-1] = '/';
+  file_name_from_path (&file, path);
+  file.str[-1] = 0;
+  r = lstat (path->str[0] ? path->str : "/", &st);
+  file.str[-1] = '/';
 
   if (r != 0)
     {
@@ -203,7 +203,7 @@ parent_exists (char *path)
 /* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
 
 static bool
-recursive_unlink_1 (char *path, char *name, uint32_t vid,
+recursive_unlink_1 (string *path, string *name, uint32_t vid,
 		    struct stat *parent_st)
 {
   volume vol;
@@ -213,12 +213,12 @@ recursive_unlink_1 (char *path, char *name, uint32_t vid,
   bool r;
   struct stat st;
 
-  if (lstat (path, &st) != 0)
+  if (lstat (path->str, &st) != 0)
     return errno == ENOENT;
 
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     {
-      if (unlink (path) != 0)
+      if (unlink (path->str) != 0)
 	{
 	  r = errno == ENOENT;
 	  goto out;
@@ -229,7 +229,7 @@ recursive_unlink_1 (char *path, char *name, uint32_t vid,
       DIR *d;
       struct dirent *de;
 
-      d = opendir (path);
+      d = opendir (path->str);
       if (!d)
 	{
 	  r = errno == ENOENT;
@@ -238,7 +238,9 @@ recursive_unlink_1 (char *path, char *name, uint32_t vid,
 
       while ((de = readdir (d)) != NULL)
 	{
-	  char *new_path;
+	  string new_path;
+	  string new_name;
+	  unsigned int len;
 
 	  /* Skip "." and "..".  */
 	  if (de->d_name[0] == '.'
@@ -247,9 +249,12 @@ recursive_unlink_1 (char *path, char *name, uint32_t vid,
 		      && de->d_name[2] == 0)))
 	    continue;
 
-	  new_path = xstrconcat (3, path, "/", de->d_name);
-	  r = recursive_unlink_1 (new_path, de->d_name, vid, &st);
-	  free (new_path);
+	  len = strlen (de->d_name);
+	  append_file_name (&new_path, path, de->d_name, len);
+	  new_name.str = new_path.str + new_path.len - len;
+	  new_name.len = len;
+	  r = recursive_unlink_1 (&new_path, &new_name, vid, &st);
+	  free (new_path.str);
 	  if (!r)
 	    {
 	      closedir (d);
@@ -258,7 +263,7 @@ recursive_unlink_1 (char *path, char *name, uint32_t vid,
 	}
       closedir (d);
 
-      if (rmdir (path) != 0)
+      if (rmdir (path->str) != 0)
 	{
 	  r = errno == ENOENT;
 	  goto out;
@@ -297,13 +302,13 @@ out:
    SHADOW is true when the PATH is in shadow.  */
 
 bool
-recursive_unlink (char *path, uint32_t vid, bool shadow)
+recursive_unlink (string *path, uint32_t vid, bool shadow)
 {
-  char *filename;
+  string filename;
   struct stat parent_st;
 
 #ifdef ENABLE_CHECKING
-  if (path[0] != '/')
+  if (path->str[0] != '/')
     abort ();
 #endif
 
@@ -314,17 +319,17 @@ recursive_unlink (char *path, uint32_t vid, bool shadow)
     }
   else
     {
-      filename = file_name_from_path (path);
-      filename[-1] = 0;
-      if (lstat (path[0] ? path : "/", &parent_st) != 0
+      file_name_from_path (&filename, path);
+      filename.str[-1] = 0;
+      if (lstat (path->str[0] ? path->str : "/", &parent_st) != 0
 	  && errno != ENOENT)
 	{
 	  return false;
 	}
-      filename[-1] = '/';
+      filename.str[-1] = '/';
     }
 
-  return recursive_unlink_1 (path, filename, vid, &parent_st);
+  return recursive_unlink_1 (path, &filename, vid, &parent_st);
 }
 
 /* Check whether we can perform file system change operation on NAME in
@@ -345,7 +350,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
     CHECK_MUTEX_LOCKED (&pvd->vol->mutex);
 #endif
 
-  vd = vd_lookup_name (pvd, name->str);
+  vd = vd_lookup_name (pvd, name);
   if (vd)
     {
       /* Virtual directory tree is read only for users.  */
@@ -473,7 +478,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
   local_fh->sid = this_node->id;	/* FIXME: race condition? */
   local_fh->vid = vol->id;
 
-  path = xstrdup (vol->local_path);
+  path = xstrdup (vol->local_path.str);
   zfsd_mutex_unlock (&vol->mutex);
   if (stat (path, &st) != 0)
     {
@@ -566,7 +571,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       return ENOENT;
     }
 
-  if (vol->local_path)
+  if (vol->local_path.str)
     {
       r = get_volume_root_local (vol, &local_fh, &attr, &meta);
       if (r == ZFS_OK)
@@ -606,7 +611,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       return ENOENT;
     }
 
-  get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr, &meta);
+  get_dentry (&local_fh, &master_fh, vol, NULL, &empty_string, &attr, &meta);
 
   if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
@@ -618,12 +623,12 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
 /* Get attributes of local file PATH and store them to ATTR.  */
 
 int32_t
-local_getattr_path (fattr *attr, char *path)
+local_getattr_path (fattr *attr, string *path)
 {
   struct stat st;
   int32_t r;
 
-  r = lstat (path, &st);
+  r = lstat (path->str, &st);
   if (r != 0)
     return errno;
 
@@ -637,19 +642,19 @@ local_getattr_path (fattr *attr, char *path)
 int32_t
 local_getattr (fattr *attr, internal_dentry dentry, volume vol)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  path = build_local_path (vol, dentry);
+  build_local_path (&path, vol, dentry);
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  r = local_getattr_path (attr, path);
-  free (path);
+  r = local_getattr_path (attr, &path);
+  free (path.str);
 
   if (r == ENOENT || r == ENOTDIR)
     return ESTALE;
@@ -797,24 +802,24 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
    reget attributes and store them to FA.  */
 
 int32_t
-local_setattr_path (fattr *fa, char *path, sattr *sa)
+local_setattr_path (fattr *fa, string *path, sattr *sa)
 {
   if (sa->size != (uint64_t) -1)
     {
-      if (truncate (path, sa->size) != 0)
+      if (truncate (path->str, sa->size) != 0)
 	return errno;
     }
 
   if (sa->mode != (uint32_t) -1)
     {
       sa->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
-      if (chmod (path, sa->mode) != 0)
+      if (chmod (path->str, sa->mode) != 0)
 	return errno;
     }
 
   if (sa->uid != (uint32_t) -1 || sa->gid != (uint32_t) -1)
     {
-      if (lchown (path, map_uid_zfs2node (sa->uid),
+      if (lchown (path->str, map_uid_zfs2node (sa->uid),
 		  map_gid_zfs2node (sa->gid)) != 0)
 	return errno;
     }
@@ -825,7 +830,7 @@ local_setattr_path (fattr *fa, char *path, sattr *sa)
 
       t.actime = sa->atime;
       t.modtime = sa->mtime;
-      if (utime (path, &t) != 0)
+      if (utime (path->str, &t) != 0)
 	return errno;
     }
 
@@ -838,19 +843,19 @@ local_setattr_path (fattr *fa, char *path, sattr *sa)
 int32_t
 local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  path = build_local_path (vol, dentry);
+  build_local_path (&path, vol, dentry);
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  r = local_setattr_path (fa, path, sa);
-  free (path);
+  r = local_setattr_path (fa, &path, sa);
+  free (path.str);
 
   if (r == ENOENT || r == ENOTDIR)
     return ESTALE;
@@ -1025,7 +1030,7 @@ int32_t
 local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
 	      metadata *meta)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1035,20 +1040,20 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (path);
+  r = parent_exists (&path);
   if (r != ZFS_OK)
     {
-      free (path);
+      free (path.str);
       return r;
     }
 
-  r = local_getattr_path (&res->attr, path);
-  free (path);
+  r = local_getattr_path (&res->attr, &path);
+  free (path.str);
   if (r != ZFS_OK)
     return r;
 
@@ -1178,7 +1183,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	  return ZFS_OK;
 	}
 
-      vd = vd_lookup_name (pvd, name->str);
+      vd = vd_lookup_name (pvd, name);
       if (vd)
 	{
 	  if (vol)
@@ -1278,7 +1283,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	{
 	  internal_dentry dentry;
 
-	  dentry = dentry_lookup_name (idir, name->str);
+	  dentry = dentry_lookup_name (idir, name);
 	  if (dentry)
 	    {
 	      res->file = dentry->fh->local_fh;
@@ -1336,7 +1341,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
     {
       internal_dentry dentry;
 
-      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
 			   &res->attr, &meta);
       release_dentry (dentry);
     }
@@ -1353,7 +1358,7 @@ int32_t
 local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 	     volume vol, metadata *meta)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1363,23 +1368,23 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
-  r = mkdir (path, attr->mode);
+  r = mkdir (path.str, attr->mode);
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       if (errno == ENOENT || errno == ENOTDIR)
 	return ESTALE;
       return errno;
     }
 
-  r = local_setattr_path (&res->attr, path, attr);
-  free (path);
+  r = local_setattr_path (&res->attr, &path, attr);
+  free (path.str);
   if (r != ZFS_OK)
     return r;
 
@@ -1534,14 +1539,14 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
     {
       internal_dentry dentry;
 
-      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
 			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name->str,
+				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
 		vol->delete_p = true;
 	    }
@@ -1563,39 +1568,39 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
    store the stat structure of NAME to ST and path to PATHP.  */
 
 static int32_t
-local_rmdir (struct stat *st, char **pathp,
+local_rmdir (struct stat *st, string *pathp,
 	     internal_dentry dir, string *name, volume vol)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (path);
+  r = parent_exists (&path);
   if (r != ZFS_OK)
     {
-      free (path);
+      free (path.str);
       return r;
     }
 
-  r = lstat (path, st);
+  r = lstat (path.str, st);
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       return errno;
     }
-  r = rmdir (path);
+  r = rmdir (path.str);
 
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       return errno;
     }
 
@@ -1653,7 +1658,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
-  char *path = NULL;
+  string path;
   zfs_fh tmp_fh;
   int32_t r, r2;
 
@@ -1705,6 +1710,8 @@ zfs_rmdir (zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
+  path.str = NULL;
+  path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
@@ -1727,43 +1734,43 @@ zfs_rmdir (zfs_fh *dir, string *name)
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &idir, name->str, &tmp_fh);
+      delete_dentry (&vol, &idir, name, &tmp_fh);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
-	  char *filename;
+	  string filename;
 	  struct stat parent_st;
 
 	  if (vol->master != this_node)
 	    {
-	      if (!add_journal_entry_st (vol, idir->fh, &st, name->str,
+	      if (!add_journal_entry_st (vol, idir->fh, &st, name,
 					 JOURNAL_OPERATION_DEL))
 		vol->delete_p = true;
 	    }
 
 #ifdef ENABLE_CHECKING
-	  if (path == NULL)
+	  if (path.str == NULL)
 	    abort ();
 #endif
 
-	  filename = file_name_from_path (path);
-	  filename[-1] = 0;
-	  if (lstat (path[0] ? path : "/", &parent_st) == 0)
+	  file_name_from_path (&filename, &path);
+	  filename.str[-1] = 0;
+	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
-				    filename))
+				    &filename))
 		vol->delete_p = true;
 	    }
-	  filename[-1] = '/';
+	  filename.str[-1] = '/';
 
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	}
     }
 
-  if (path)
-    free (path);
+  if (path.str)
+    free (path.str);
 
   internal_dentry_unlock (vol, idir);
 
@@ -1777,11 +1784,11 @@ zfs_rmdir (zfs_fh *dir, string *name)
    to ST_NEW.  */
 
 static int32_t
-local_rename (struct stat *st_old, struct stat *st_new, char **pathp,
+local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
 	      internal_dentry from_dir, string *from_name,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
-  char *path1, *path2;
+  string path1, path2;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
@@ -1789,59 +1796,60 @@ local_rename (struct stat *st_old, struct stat *st_new, char **pathp,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
 
-  path1 = build_local_path_name (vol, from_dir, from_name->str);
-  path2 = build_local_path_name (vol, to_dir, to_name->str);
+  build_local_path_name (&path1, vol, from_dir, from_name);
+  build_local_path_name (&path2, vol, to_dir, to_name);
   release_dentry (from_dir);
   if (to_dir->fh != from_dir->fh)
     release_dentry (to_dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (path1);
+  r = parent_exists (&path1);
   if (r != ZFS_OK)
     {
-      free (path1);
-      free (path2);
+      free (path1.str);
+      free (path2.str);
       return r;
     }
   if (to_dir != from_dir)
     {
-      r = parent_exists (path2);
+      r = parent_exists (&path2);
       if (r != ZFS_OK)
 	{
-	  free (path1);
-	  free (path2);
+	  free (path1.str);
+	  free (path2.str);
 	  return r;
 	}
     }
 
-  r = lstat (path1, st_new);
+  r = lstat (path1.str, st_new);
   if (r != 0)
     {
-      free (path1);
-      free (path2);
+      free (path1.str);
+      free (path2.str);
       return errno;
     }
 
-  r = lstat (path2, st_old);
+  r = lstat (path2.str, st_old);
   if (r != 0)
     {
       /* PATH2 does not exist.  */
-      r = rename (path1, path2);
-      free (path1);
-      free (path2);
+      r = rename (path1.str, path2.str);
+      free (path1.str);
+      free (path2.str);
       if (r != 0)
 	return errno;
-      *pathp = NULL;
+      pathp->str = NULL;
+      pathp->len = 0;
     }
   else
     {
       /* PATH2 exists.  */
-      r = rename (path1, path2);
-      free (path1);
+      r = rename (path1.str, path2.str);
+      free (path1.str);
       if (r != 0)
 	{
-	  free (path2);
+	  free (path2.str);
 	  return errno;
 	}
       *pathp = path2;
@@ -1911,7 +1919,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   internal_dentry from_dentry, to_dentry;
   virtual_dir vd;
   struct stat st_old, st_new;
-  char *path = NULL;
+  string path;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
 
@@ -2043,7 +2051,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
       for (tmp = to_dentry; tmp; tmp = tmp->parent)
 	if (tmp->parent == from_dentry
-	    && strcmp (tmp->name, from_name->str) == 0)
+	    && strcmp (tmp->name.str, from_name->str) == 0)
 	  {
 	    release_dentry (from_dentry);
 	    release_dentry (to_dentry);
@@ -2052,7 +2060,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	    return EINVAL;
 	  }
       if (from_dentry->parent == to_dentry
-	  && strcmp (from_dentry->name, to_name->str) == 0)
+	  && strcmp (from_dentry->name.str, to_name->str) == 0)
 	{
 	  release_dentry (from_dentry);
 	  release_dentry (to_dentry);
@@ -2069,6 +2077,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   if (r != ZFS_OK)
     return r;
 
+  path.str = NULL;
+  path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       UPDATE_FH_IF_NEEDED_2 (vol, to_dentry, from_dentry, tmp_to, tmp_from);
@@ -2093,7 +2103,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &to_dentry, to_name->str, &tmp_to);
+      delete_dentry (&vol, &to_dentry, to_name, &tmp_to);
 
       if (tmp_from.ino != tmp_to.ino)
 	{
@@ -2107,36 +2117,35 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	from_dentry = to_dentry;
 
       /* Move the dentry if it exists.  */
-      internal_dentry_move (vol, from_dentry, from_name->str, to_dentry,
-			    to_name->str);
+      internal_dentry_move (vol, from_dentry, from_name, to_dentry,
+			    to_name);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
 	  zfs_fh fh;
 
-	  if (path)
+	  if (path.str)
 	    {
-	      char *filename;
+	      string filename;
 	      struct stat parent_st;
 
 	      if (vol->master != this_node)
 		{
 		  if (!add_journal_entry_st (vol, to_dentry->fh, &st_old,
-					     to_name->str,
-					     JOURNAL_OPERATION_DEL))
+					     to_name, JOURNAL_OPERATION_DEL))
 		    vol->delete_p = true;
 		}
 
-	      filename = file_name_from_path (path);
-	      filename[-1] = 0;
-	      if (lstat (path[0] ? path : "/", &parent_st) == 0)
+	      file_name_from_path (&filename, &path);
+	      filename.str[-1] = 0;
+	      if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 		{
 		  if (!delete_metadata (vol, st_old.st_dev, st_old.st_ino,
 					parent_st.st_dev, parent_st.st_ino,
-					filename))
+					&filename))
 		    vol->delete_p = true;
 		}
-	      filename[-1] = '/';
+	      filename.str[-1] = '/';
 	    }
 
 	  fh.dev = st_new.st_dev;
@@ -2144,19 +2153,19 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	  if (!metadata_hardlink_replace (vol, &fh,
 					  from_dentry->fh->local_fh.dev,
 					  from_dentry->fh->local_fh.ino,
-					  from_name->str,
+					  from_name,
 					  to_dentry->fh->local_fh.dev,
 					  to_dentry->fh->local_fh.ino,
-					  to_name->str))
+					  to_name))
 	    vol->delete_p = true;
 
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry_st (vol, from_dentry->fh, &st_new,
-					 from_name->str, JOURNAL_OPERATION_DEL))
+					 from_name, JOURNAL_OPERATION_DEL))
 		vol->delete_p = true;
 	      if (!add_journal_entry_st (vol, to_dentry->fh, &st_new,
-					 to_name->str, JOURNAL_OPERATION_ADD))
+					 to_name, JOURNAL_OPERATION_ADD))
 		vol->delete_p = true;
 	    }
 
@@ -2170,8 +2179,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	release_dentry (from_dentry);
     }
 
-  if (path)
-    free (path);
+  if (path.str)
+    free (path.str);
 
   internal_dentry_unlock (vol, to_dentry);
   if (tmp_from.ino != tmp_to.ino)
@@ -2191,7 +2200,7 @@ static int32_t
 local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
 {
   struct stat st;
-  char *path1, *path2;
+  string path1, path2;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&from->fh->mutex);
@@ -2199,27 +2208,27 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
 
-  path1 = build_local_path (vol, from);
-  path2 = build_local_path_name (vol, dir, name->str);
+  build_local_path (&path1, vol, from);
+  build_local_path_name (&path2, vol, dir, name);
   release_dentry (from);
   if (dir->fh != from->fh)
     release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = lstat (path1, &st);
+  r = lstat (path1.str, &st);
   if (r != 0)
     {
-      free (path1);
-      free (path2);
+      free (path1.str);
+      free (path2.str);
       if (errno == ENOENT || errno == ENOTDIR)
 	return ESTALE;
       return errno;
     }
 
-  r = link (path1, path2);
-  free (path1);
-  free (path2);
+  r = link (path1.str, path2.str);
+  free (path1.str);
+  free (path2.str);
   if (r != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
@@ -2423,7 +2432,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &dir_dentry, name->str, &tmp_dir);
+      delete_dentry (&vol, &dir_dentry, name, &tmp_dir);
 
       if (tmp_from.ino != tmp_dir.ino)
 	{
@@ -2436,21 +2445,20 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       else
 	from_dentry = dir_dentry;
 
-      internal_dentry_link (from_dentry, vol, dir_dentry, name->str);
+      internal_dentry_link (from_dentry, vol, dir_dentry, name);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
 	{
 	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh,
 					 dir_dentry->fh->local_fh.dev,
-					 dir_dentry->fh->local_fh.ino, 
-					 name->str))
+					 dir_dentry->fh->local_fh.ino, name))
 	    vol->delete_p = true;
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, dir_dentry->fh,
 				      &from_dentry->fh->local_fh,
 				      &from_dentry->fh->meta.master_fh,
-				      name->str, JOURNAL_OPERATION_ADD))
+				      name, JOURNAL_OPERATION_ADD))
 		vol->delete_p = true;
 	    }
 	  if (!inc_local_version (vol, dir_dentry->fh))
@@ -2476,39 +2484,39 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
    Store the stat structure of NAME to ST and path to PATHP.  */
 
 static int32_t
-local_unlink (struct stat *st, char **pathp,
+local_unlink (struct stat *st, string *pathp,
 	      internal_dentry dir, string *name, volume vol)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (path);
+  r = parent_exists (&path);
   if (r != ZFS_OK)
     {
-      free (path);
+      free (path.str);
       return r;
     }
 
-  r = lstat (path, st);
+  r = lstat (path.str, st);
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       return errno;
     }
-  r = unlink (path);
+  r = unlink (path.str);
 
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       return errno;
     }
 
@@ -2566,7 +2574,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
-  char *path = NULL;
+  string path;
   zfs_fh tmp_fh;
   int32_t r, r2;
 
@@ -2618,6 +2626,8 @@ zfs_unlink (zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
+  path.str = NULL;
+  path.len = 0;
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
@@ -2640,43 +2650,43 @@ zfs_unlink (zfs_fh *dir, string *name)
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      delete_dentry (&vol, &idir, name->str, &tmp_fh);
+      delete_dentry (&vol, &idir, name, &tmp_fh);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
-	  char *filename;
+	  string filename;
 	  struct stat parent_st;
 
 	  if (vol->master != this_node)
 	    {
-	      if (!add_journal_entry_st (vol, idir->fh, &st, name->str,
+	      if (!add_journal_entry_st (vol, idir->fh, &st, name,
 					 JOURNAL_OPERATION_DEL))
 		vol->delete_p = true;
 	    }
 
 #ifdef ENABLE_CHECKING
-	  if (path == NULL)
+	  if (path.str == NULL)
 	    abort ();
 #endif
 
-	  filename = file_name_from_path (path);
-	  filename[-1] = 0;
-	  if (lstat (path[0] ? path : "/", &parent_st) == 0)
+	  file_name_from_path (&filename, &path);
+	  filename.str[-1] = 0;
+	  if (lstat (path.str[0] ? path.str : "/", &parent_st) == 0)
 	    {
 	      if (!delete_metadata (vol, st.st_dev, st.st_ino,
 				    parent_st.st_dev, parent_st.st_ino,
-				    filename))
+				    &filename))
 		vol->delete_p = true;
 	    }
-	  filename[-1] = '/';
+	  filename.str[-1] = '/';
 
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
 	}
     }
 
-  if (path)
-    free (path);
+  if (path.str)
+    free (path.str);
 
   internal_dentry_unlock (vol, idir);
 
@@ -2688,7 +2698,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 int32_t
 local_readlink (read_link_res *res, internal_dentry file, volume vol)
 {
-  char *path;
+  string path;
   char buf[ZFS_MAXDATA + 1];
   int32_t r;
 
@@ -2696,12 +2706,12 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 
-  path = build_local_path (vol, file);
+  build_local_path (&path, vol, file);
   release_dentry (file);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  r = readlink (path, buf, ZFS_MAXDATA);
-  free (path);
+  r = readlink (path.str, buf, ZFS_MAXDATA);
+  free (path.str);
   if (r < 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
@@ -2722,7 +2732,7 @@ int32_t
 local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
 		     volume vol)
 {
-  char *path;
+  string path;
   char buf[ZFS_MAXDATA + 1];
   int32_t r;
 
@@ -2730,12 +2740,12 @@ local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
-  r = readlink (path, buf, ZFS_MAXDATA);
-  free (path);
+  r = readlink (path.str, buf, ZFS_MAXDATA);
+  free (path.str);
   if (r < 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
@@ -2858,8 +2868,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
       if (!nod)
 	return ESTALE;
 
-      res->path.len = strlen (nod->name);
-      res->path.str = (char *) xmemdup (nod->name, res->path.len);
+      xstringdup (&res->path, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
 
       return ZFS_OK;
@@ -2909,7 +2918,7 @@ int32_t
 local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 	       sattr *attr, volume vol, metadata *meta)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -2919,27 +2928,27 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (path);
+  r = parent_exists (&path);
   if (r != ZFS_OK)
     {
-      free (path);
+      free (path.str);
       return r;
     }
 
-  r = symlink (to->str, path);
+  r = symlink (to->str, path.str);
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       return errno;
     }
 
-  r = local_setattr_path (&res->attr, path, attr);
-  free (path);
+  r = local_setattr_path (&res->attr, &path, attr);
+  free (path.str);
   if (r != ZFS_OK)
     return r;
 
@@ -3096,14 +3105,14 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
     {
       internal_dentry dentry;
 
-      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
 			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name->str,
+				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
 		vol->delete_p = true;
 	    }
@@ -3129,7 +3138,7 @@ int32_t
 local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 	     ftype type, uint32_t rdev, volume vol, metadata *meta)
 {
-  char *path;
+  string path;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -3139,23 +3148,23 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
-  path = build_local_path_name (vol, dir, name->str);
+  build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
-  r = mknod (path, attr->mode | ftype2mode[type], rdev);
+  r = mknod (path.str, attr->mode | ftype2mode[type], rdev);
   if (r != 0)
     {
-      free (path);
+      free (path.str);
       if (errno == ENOENT || errno == ENOTDIR)
 	return ESTALE;
       return errno;
     }
 
-  r = local_setattr_path (&res->attr, path, attr);
-  free (path);
+  r = local_setattr_path (&res->attr, &path, attr);
+  free (path.str);
   if (r != ZFS_OK)
     return r;
 
@@ -3315,14 +3324,14 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
     {
       internal_dentry dentry;
 
-      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
+      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
 			   &res->attr, &meta);
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name->str,
+				      &dentry->fh->meta.master_fh, name,
 				      JOURNAL_OPERATION_ADD))
 		vol->delete_p = true;
 	    }
@@ -3345,20 +3354,20 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 int32_t
 local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 {
-  char *path;
+  string path;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (!vol->local_path)
+  if (!vol->local_path.str)
     abort ();
 #endif
 
-  path = get_local_path_from_metadata (vol, fh);
-  if (!path)
+  get_local_path_from_metadata (&path, vol, fh);
+  if (!path.str)
     return ESTALE;
 
-  xmkstring (&res->path, local_path_to_relative_path (vol, path));
-  free (path);
+  local_path_to_relative_path (&res->path, vol, &path);
+  free (path.str);
 
   return ZFS_OK;
 }
@@ -3423,7 +3432,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   if (!vol)
     return ESTALE;
 
-  if (vol->local_path)
+  if (vol->local_path.str)
     {
       r = local_file_info (res, fh, vol);
       zfsd_mutex_unlock (&vol->mutex);
@@ -3475,116 +3484,116 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
     }
   else
     {
-      char *old_path, *old_name;
-      char *new_path, *new_name;
+      string old_path, new_path;
+      string old_name, new_name;
       fattr attr;
       uint32_t vid;
       uint32_t new_parent_dev;
       uint32_t new_parent_ino;
       struct stat old_parent_st;
 
-      new_path = build_local_path_name (vol, dir, name->str);
+      build_local_path_name (&new_path, vol, dir, name);
       vid = vol->id;
       new_parent_dev = dir->fh->local_fh.dev;
       new_parent_ino = dir->fh->local_fh.ino;
       release_dentry (dir);
       zfsd_mutex_unlock (&fh_mutex);
 
-      old_path = get_local_path_from_metadata (vol, fh);
+      get_local_path_from_metadata (&old_path, vol, fh);
       zfsd_mutex_unlock (&vol->mutex);
-      if (!old_path)
+      if (!old_path.str)
 	{
-	  free (new_path);
+	  free (new_path.str);
 	  return ENOENT;
 	}
 
-      if (!recursive_unlink (new_path, vid, false))
+      if (!recursive_unlink (&new_path, vid, false))
 	{
-	  free (old_path);
-	  free (new_path);
+	  free (old_path.str);
+	  free (new_path.str);
 	  return ZFS_UPDATE_FAILED;
 	}
 
-      r = local_getattr_path (&attr, old_path);
+      r = local_getattr_path (&attr, &old_path);
       if (r != ZFS_OK)
 	{
-	  free (old_path);
-	  free (new_path);
+	  free (old_path.str);
+	  free (new_path.str);
 	  return r;
 	}
 
-      new_name = file_name_from_path (new_path);
+      file_name_from_path (&new_name, &new_path);
       if (attr.type == FT_DIR)
 	{
-	  old_name = file_name_from_path (old_path);
-	  old_name[-1] = 0;
-	  if (lstat (old_path[0] ? old_path : "/", &old_parent_st) != 0)
+	  file_name_from_path (&old_name, &old_path);
+	  old_name.str[-1] = 0;
+	  if (lstat (old_path.str[0] ? old_path.str : "/", &old_parent_st) != 0)
 	    {
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return errno;
 	    }
-	  old_name[-1] = '/';
+	  old_name.str[-1] = '/';
 
-	  if (rename (old_path, new_path) != 0)
+	  if (rename (old_path.str, new_path.str) != 0)
 	    {
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return errno;
 	    }
 
 	  vol = volume_lookup (vid);
 	  if (!vol)
 	    {
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return ESTALE;
 	    }
 
 	  if (!metadata_hardlink_replace (vol, fh, old_parent_st.st_dev,
-					  old_parent_st.st_ino, old_name,
+					  old_parent_st.st_ino, &old_name,
 					  new_parent_dev, new_parent_ino,
-					  new_name))
+					  &new_name))
 	    {
 	      vol->delete_p = true;
 	      zfsd_mutex_unlock (&vol->mutex);
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return ZFS_UPDATE_FAILED;
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
-	  free (old_path);
-	  free (new_path);
+	  free (old_path.str);
+	  free (new_path.str);
 	}
       else
 	{
-	  if (link (old_path, new_path) != 0)
+	  if (link (old_path.str, new_path.str) != 0)
 	    {
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return errno;
 	    }
 
 	  vol = volume_lookup (vid);
 	  if (!vol)
 	    {
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return ENOENT;
 	    }
 
 	  if (!metadata_hardlink_insert (vol, fh, new_parent_dev,
-					 new_parent_ino, new_name))
+					 new_parent_ino, &new_name))
 	    {
 	      vol->delete_p = true;
 	      zfsd_mutex_unlock (&vol->mutex);
-	      free (old_path);
-	      free (new_path);
+	      free (old_path.str);
+	      free (new_path.str);
 	      return ZFS_UPDATE_FAILED;
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
-	  free (old_path);
-	  free (new_path);
+	  free (old_path.str);
+	  free (new_path.str);
 	}
     }
 
@@ -3662,7 +3671,7 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (vol->local_path.str)
     r = local_reintegrate_add (vol, idir, name, fh);
   else if (vol->master != this_node)
     {
@@ -3676,7 +3685,7 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   idir = dentry_lookup (dir);
   if (idir)
     {
-      dentry = dentry_lookup_name (idir, name->str);
+      dentry = dentry_lookup_name (idir, name);
       release_dentry (idir);
       if (dentry)
 	internal_dentry_destroy (dentry, true);
@@ -3782,9 +3791,9 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path)
+  if (vol->local_path.str)
     {
-      dentry = dentry_lookup_name (idir, name->str);
+      dentry = dentry_lookup_name (idir, name);
       release_dentry (idir);
       if (!dentry)
 	{
@@ -3803,7 +3812,7 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
       r2 = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
       if (r2 == ZFS_OK)
 	{
-	  dentry = dentry_lookup_name (idir, name->str);
+	  dentry = dentry_lookup_name (idir, name);
 	  release_dentry (idir);
 	  zfsd_mutex_unlock (&vol->mutex);
 

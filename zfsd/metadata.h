@@ -129,31 +129,33 @@ extern bool set_metadata_master_fh (volume vol, internal_fh fh,
 extern bool inc_local_version (volume vol, internal_fh fh);
 extern bool delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 			     uint32_t parent_dev, uint32_t parent_ino,
-			     char *name);
+			     string *name);
 extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
 extern bool init_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
 			    hardlink_list hl);
 extern bool metadata_hardlink_insert (volume vol, zfs_fh *fh,
 				      uint32_t parent_dev, uint32_t parent_ino,
-				      char *name);
+				      string *name);
 extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh,
 				       uint32_t old_parent_dev,
-				       uint32_t old_parent_ino, char *old_name,
+				       uint32_t old_parent_ino,
+				       string *old_name,
 				       uint32_t new_parent_dev,
-				       uint32_t new_parent_ino, char *new_name);
+				       uint32_t new_parent_ino,
+				       string *new_name);
 extern bool metadata_hardlink_set_shadow (volume vol, zfs_fh *fh);
 extern unsigned int metadata_n_hardlinks (volume vol, zfs_fh *fh,
 					  metadata *meta);
-extern char *get_local_path_from_metadata (volume vol, zfs_fh *fh);
+extern void get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh);
 extern bool read_journal (volume vol, internal_fh fh);
 extern bool write_journal (volume vol, internal_fh fh);
 extern bool add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
-			       zfs_fh *master_fh, char *name,
+			       zfs_fh *master_fh, string *name,
 			       journal_operation_t oper);
 extern bool add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
-				  char *name, journal_operation_t oper);
-extern char *get_shadow_path (volume vol, zfs_fh *fh, bool create);
+				  string *name, journal_operation_t oper);
+extern void get_shadow_path (string *path, volume vol, zfs_fh *fh, bool create);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);

@@ -32,12 +32,10 @@
 #include "zfs_prot.h"
 #include "metadata.h"
 
-extern char *build_local_path (volume vol, internal_dentry dentry);
-extern char *build_local_path_name (volume vol, internal_dentry dentry,
-				    char *name);
-extern char *local_path_to_relative_path (volume vol, char *path);
-extern char *file_name_from_path (char *path);
-extern bool recursive_unlink (char *path, uint32_t vid, bool shadow);
+extern void build_local_path (string *dst, volume vol, internal_dentry dentry);
+extern void build_local_path_name (string *dst, volume vol,
+				   internal_dentry dentry, string *name);
+extern bool recursive_unlink (string *path, uint32_t vid, bool shadow);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
 							internal_dentry *dir);
@@ -48,11 +46,11 @@ extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 				       fattr *attr);
 extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentry,
 				       bool unlock_fh_mutex);
-extern int32_t local_getattr_path (fattr *attr, char *path);
+extern int32_t local_getattr_path (fattr *attr, string *path);
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t remote_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
-extern int32_t local_setattr_path (fattr *fa, char *path, sattr *sa);
+extern int32_t local_setattr_path (fattr *fa, string *path, sattr *sa);
 extern int32_t local_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
 			      volume vol);
 extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);

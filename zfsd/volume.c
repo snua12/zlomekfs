@@ -110,7 +110,8 @@ volume_create (uint32_t id)
   vol->mountpoint = NULL;
   vol->delete_p = false;
   vol->n_locked_fhs = 0;
-  vol->local_path = NULL;
+  vol->local_path.str = NULL;
+  vol->local_path.len = 0;
   vol->size_limit = VOLUME_NO_LIMIT;
   vol->last_conflict_ino = 0;
   vol->root_dentry = NULL;
@@ -170,8 +171,8 @@ volume_destroy (volume vol)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_destroy (&vol->mutex);
 
-  if (vol->local_path)
-    free (vol->local_path);
+  if (vol->local_path.str)
+    free (vol->local_path.str);
   free (vol->mountpoint);
   free (vol->name);
   free (vol);
@@ -241,7 +242,7 @@ volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  set_str (&vol->local_path, local_path);
+  set_string (&vol->local_path, local_path);
   vol->size_limit = size_limit;
 
   return init_volume_metadata (vol);
