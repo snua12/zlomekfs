@@ -1261,6 +1261,52 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
   return ret;
 }
 
+/* Invalidate configuration.  */
+
+static void
+invalidate_config (void)
+{
+  mark_all_nodes ();
+  mark_all_volumes ();
+  mark_all_users ();
+  mark_all_groups ();
+  mark_user_mapping (NULL);
+  mark_group_mapping (NULL);
+  if (this_node)
+    {
+      zfsd_mutex_lock (&this_node->mutex);
+      mark_user_mapping (this_node);
+      mark_group_mapping (this_node);
+      zfsd_mutex_unlock (&this_node->mutex);
+    }
+}
+
+/* Verify configuration, fix what can be fixed. Return false if there remains
+   something which can't be fixed.  */
+
+static bool
+fix_config (void)
+{
+  if (this_node == NULL || this_node->marked)
+    return false;
+
+  destroy_invalid_volumes ();
+  destroy_invalid_nodes ();
+
+  destroy_invalid_user_mapping (NULL);
+  destroy_invalid_group_mapping (NULL);
+
+  zfsd_mutex_lock (&this_node->mutex);
+  destroy_invalid_user_mapping (this_node);
+  destroy_invalid_group_mapping (this_node);
+  zfsd_mutex_unlock (&this_node->mutex);
+
+  destroy_invalid_users ();
+  destroy_invalid_groups ();
+
+  return true;
+}
+
 /* Has the config reader already terminated?  */
 static volatile bool reading_cluster_config;
 
@@ -1420,48 +1466,19 @@ read_global_cluster_config (void)
   return config_reader_data.retval == ZFS_OK;
 }
 
-/* Invalidate configuration.  */
+/* Read configuration of the cluster - nodes, volumes, ... */
 
-static void
-invalidate_config (void)
+bool
+read_cluster_config (void)
 {
-  mark_all_nodes ();
-  mark_all_volumes ();
-  mark_all_users ();
-  mark_all_groups ();
-  mark_user_mapping (NULL);
-  mark_group_mapping (NULL);
-  if (this_node)
-    {
-      zfsd_mutex_lock (&this_node->mutex);
-      mark_user_mapping (this_node);
-      mark_group_mapping (this_node);
-      zfsd_mutex_unlock (&this_node->mutex);
-    }
-}
-
-/* Verify configuration, fix what can be fixed. Return false if there remains
-   something which can't be fixed.  */
-
-static bool
-fix_config (void)
-{
-  if (this_node == NULL || this_node->marked)
+  if (!read_local_cluster_config (&node_config))
     return false;
 
-  destroy_invalid_volumes ();
-  destroy_invalid_nodes ();
+  if (!init_config ())
+    return false;
 
-  destroy_invalid_user_mapping (NULL);
-  destroy_invalid_group_mapping (NULL);
-
-  zfsd_mutex_lock (&this_node->mutex);
-  destroy_invalid_user_mapping (this_node);
-  destroy_invalid_group_mapping (this_node);
-  zfsd_mutex_unlock (&this_node->mutex);
-
-  destroy_invalid_users ();
-  destroy_invalid_groups ();
+  if (!read_global_cluster_config ())
+    return false;
 
   return true;
 }
@@ -1642,23 +1659,6 @@ read_config_file (const char *file)
     append_file_name (&private_key, &node_config, "node_key", 8);
   if (!read_private_key (&private_key))
     return false;
-  return true;
-}
-
-/* Read configuration of the cluster - nodes, volumes, ... */
-
-bool
-read_cluster_config (void)
-{
-  if (!read_local_cluster_config (&node_config))
-    return false;
-
-  if (!init_config ())
-    return false;
-
-  if (!read_global_cluster_config ())
-    return false;
-
   return true;
 }
 
