@@ -60,6 +60,7 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
 {
   varray tmp;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
   if (!fh->updated)
@@ -86,6 +87,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
   int32_t r;
   unsigned int i, j;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (!REGULAR_FH_P (cap->fh))
     abort ();
@@ -316,6 +318,8 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   int32_t r, r2;
   unsigned int i;
 
+  TRACE ("");
+
   if (VARRAY_USED (*blocks) == 0)
     return ZFS_OK;
 
@@ -433,6 +437,8 @@ update_file (zfs_fh *fh)
   zfs_cap cap;
   int32_t r, r2;
   fattr attr;
+
+  TRACE ("");
 
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r != ZFS_OK)
@@ -556,6 +562,7 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -609,6 +616,7 @@ delete_tree (internal_dentry dentry, volume vol)
   uint32_t vid;
   bool r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -634,6 +642,7 @@ delete_tree_name (internal_dentry dir, string *name, volume vol)
   uint32_t vid;
   bool r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -661,6 +670,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   uint32_t new_parent_dev;
   uint32_t new_parent_ino;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -720,6 +730,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   string shadow_path;
   uint32_t vid;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -760,7 +771,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
       free (shadow_path.str);
       return false;
     }
-  
+
   zfsd_mutex_unlock (&vol->mutex);
   free (path.str);
   free (shadow_path.str);
@@ -786,6 +797,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
   create_res cr_res;
   dir_op_res res;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1024,6 +1036,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   dir_op_res res;
   int fd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1140,6 +1153,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   int32_t r, r2;
   read_link_res link_to;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1205,6 +1219,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   dir_entry *entry;
   void **slot, **slot2;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1460,6 +1475,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
   int32_t r, r2;
   bool b;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1497,7 +1513,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 	  switch (entry->oper)
 	    {
 	      case JOURNAL_OPERATION_ADD:
-		/* Check whether local file still exists.  */ 
+		/* Check whether local file still exists.  */
 		r = local_lookup (&local_res, dentry, &entry->name, vol,
 				  &meta);
 		r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
@@ -1794,6 +1810,8 @@ int32_t
 update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 {
   int32_t r;
+
+  TRACE ("");
 
   if (dentry->fh->attr.type != attr->type)
     {

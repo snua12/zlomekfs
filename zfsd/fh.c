@@ -148,6 +148,8 @@ dentry_key (internal_dentry dentry)
 static bool
 dentry_should_have_cleanup_node (internal_dentry dentry)
 {
+  TRACE ("");
+
   /* Root dentry can't be deleted.  */
   if (!dentry->parent)
     return false;
@@ -184,6 +186,7 @@ dentry_should_have_cleanup_node (internal_dentry dentry)
 static void
 dentry_update_cleanup_node (internal_dentry dentry)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
@@ -392,6 +395,7 @@ set_lock_info (lock_info *li)
 {
   int i;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (pthread_setspecific (lock_info_key, li))
     abort ();
@@ -415,6 +419,7 @@ set_owned (internal_fh fh, unsigned int level)
   lock_info *li;
   int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -452,6 +457,7 @@ clear_owned (internal_fh fh)
   lock_info *li;
   int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -487,6 +493,7 @@ is_owned (internal_fh fh)
   lock_info *li;
   int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -512,6 +519,7 @@ get_level (internal_fh fh)
   lock_info *li;
   int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
@@ -568,6 +576,8 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 {
   int32_t res;
 
+  TRACE ("");
+
   if (VIRTUAL_FH_P (*fh))
     zfsd_mutex_lock (&vd_mutex);
 
@@ -594,6 +604,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 {
   hash_t hash = ZFS_FH_HASH (fh);
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (fh->gen == 0)
     abort ();
@@ -694,6 +705,8 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 void
 acquire_dentry (internal_dentry dentry)
 {
+  TRACE ("");
+
   zfsd_mutex_lock (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (dentry->deleted)
@@ -707,6 +720,7 @@ acquire_dentry (internal_dentry dentry)
 void
 release_dentry (internal_dentry dentry)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   dentry_update_cleanup_node (dentry);
@@ -720,6 +734,7 @@ vd_lookup (zfs_fh *fh)
 {
   virtual_dir vd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
 
   vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, ZFS_FH_HASH (fh));
@@ -743,6 +758,7 @@ vd_lookup_name (virtual_dir parent, string *name)
   virtual_dir vd;
   struct virtual_dir_def tmp_vd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
@@ -769,6 +785,7 @@ dentry_lookup (zfs_fh *fh)
 {
   internal_dentry dentry;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
 
 #ifdef ENABLE_CHECKING
@@ -792,6 +809,7 @@ dentry_lookup_name (internal_dentry parent, string *name)
   struct internal_dentry_def tmp;
   internal_dentry dentry;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
@@ -815,6 +833,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
   int32_t r;
   bool wait_for_locked;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (volp == NULL)
     abort ();
@@ -880,6 +899,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 void
 internal_dentry_unlock (volume vol, internal_dentry dentry)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -926,6 +946,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
 {
   int32_t r, r2;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   /* internal_dentry_lock2 should be used only by zfs_link and zfs_rename
      thus the files should be on the same device.  */
@@ -1036,6 +1057,7 @@ out2:
 bool
 set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1054,6 +1076,7 @@ set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 static void
 clear_meta (internal_fh fh)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   memset (&fh->meta, 0, offsetof (metadata, master_fh));
@@ -1071,6 +1094,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   internal_fh fh;
   void **slot;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -1153,6 +1177,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
   void **slot;
   internal_cap cap, next;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1195,6 +1220,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
 static void
 internal_fh_destroy_stage2 (internal_fh fh)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1272,6 +1298,7 @@ internal_dentry_add_to_dir (internal_dentry parent, internal_dentry dentry)
 {
   void **slot;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (!parent)
     abort ();
@@ -1307,6 +1334,7 @@ internal_dentry_del_from_dir (internal_dentry dentry)
   internal_dentry top;
   void **slot;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -1346,6 +1374,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   internal_fh fh;
   void **slot;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -1457,6 +1486,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 {
   internal_dentry dentry;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
@@ -1577,6 +1607,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
   int32_t r2;
   zfs_fh tmp_fh;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dirp)->fh->mutex);
@@ -1594,7 +1625,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 	  internal_dentry sdentry;
 
 	  release_dentry (*dirp);
-	  
+
 	  sdentry = dentry_lookup_name (dentry, &this_node->name);
 	  if (sdentry)
 	    {
@@ -1648,6 +1679,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
   internal_dentry dentry, conflict, old;
   void **slot;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&orig->fh->mutex);
@@ -1729,6 +1761,7 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
   zfs_fh tmp_fh;
   fattr tmp_attr;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
@@ -1759,7 +1792,7 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
 	abort ();
 #endif
       internal_dentry_del_from_dir (sdentry);
-      
+
       tmp_fh.sid = sdentry->fh->local_fh.sid;
       tmp_attr.uid = sdentry->fh->attr.uid;
       tmp_attr.gid = sdentry->fh->attr.gid;
@@ -1823,6 +1856,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root)
   zfs_fh tmp_fh;
   void **slot;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -2009,6 +2043,7 @@ create_conflict (volume vol, internal_dentry dir, string *name,
   internal_dentry conflict, dentry;
   node nod;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   /* Two directories can't be in conflict, neither the volume root can.  */
   if (!dir)
@@ -2101,6 +2136,7 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
   internal_dentry dentry;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*conflictp)->fh->mutex);
@@ -2167,6 +2203,7 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
   node nod;
   string *name;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
@@ -2262,6 +2299,7 @@ try_resolve_conflict (internal_dentry conflict)
   internal_dentry dentry1, dentry2, parent;
   string swp;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2450,6 +2488,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   static uint32_t last_virtual_ino;
   void **slot;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
@@ -2509,6 +2548,7 @@ virtual_dir_destroy (virtual_dir vd)
   void **slot;
   unsigned int count;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&vd->mutex);
 
@@ -2592,6 +2632,8 @@ virtual_root_create (void)
   virtual_dir root;
   void **slot;
 
+  TRACE ("");
+
   zfsd_mutex_lock (&vd_mutex);
   root = (virtual_dir) pool_alloc (vd_pool);
   root->fh = root_fh;
@@ -2624,6 +2666,8 @@ void
 virtual_root_destroy (virtual_dir root)
 {
   void **slot;
+
+  TRACE ("");
 
   zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&root->mutex);
@@ -2665,6 +2709,7 @@ virtual_mountpoint_create (volume vol)
   char *s, *mountpoint;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   mountpoint = xstrdup (vol->mountpoint);
@@ -2733,6 +2778,7 @@ virtual_mountpoint_create (volume vol)
 void
 virtual_mountpoint_destroy (volume vol)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
 
   zfsd_mutex_lock (&vol->root_vd->mutex);
@@ -2744,6 +2790,8 @@ virtual_mountpoint_destroy (volume vol)
 void
 virtual_dir_set_fattr (virtual_dir vd)
 {
+  TRACE ("");
+
   vd->attr.dev = vd->fh.dev;
   vd->attr.ino = vd->fh.ino;
   vd->attr.version = 0;

@@ -71,6 +71,7 @@ static pthread_mutex_t dir_entry_mutex;
 static void
 init_fh_fd_data (internal_fh fh)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (fh->fd < 0)
     abort ();
@@ -91,6 +92,7 @@ init_fh_fd_data (internal_fh fh)
 static void
 close_local_fd (int fd)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
@@ -120,6 +122,8 @@ static int
 safe_open (const char *pathname, uint32_t flags, uint32_t mode)
 {
   int fd;
+
+  TRACE ("");
 
 retry_open:
   fd = open (pathname, flags, mode);
@@ -157,6 +161,8 @@ retry_open:
 static bool
 capability_opened_p (internal_fh fh)
 {
+  TRACE ("");
+
   if (fh->fd < 0)
     return false;
 
@@ -183,6 +189,7 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   string path;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -230,6 +237,7 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
 int32_t
 local_close (internal_fh fh)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   if (fh->fd >= 0)
@@ -259,6 +267,7 @@ remote_close (internal_cap cap, internal_dentry dentry, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
@@ -300,6 +309,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -350,6 +360,7 @@ remote_create (create_res *res, internal_dentry dir, string *name,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -403,6 +414,8 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
   metadata meta;
   int32_t r, r2;
   int fd;
+
+  TRACE ("");
 
   /* When O_CREAT is NOT set the function zfs_open is called.
      Force O_CREAT to be set here.  */
@@ -570,6 +583,7 @@ local_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -596,6 +610,7 @@ remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -651,6 +666,8 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   zfs_cap tmp_cap, remote_cap;
   int32_t r, r2;
   bool remote_call = false;
+
+  TRACE ("");
 
   /* When O_CREAT is set the function zfs_create is called.
      The flag is superfluous here.  */
@@ -793,6 +810,8 @@ zfs_close (zfs_cap *cap)
   virtual_dir vd;
   zfs_cap tmp_cap;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (&cap->fh, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
@@ -1041,6 +1060,7 @@ read_virtual_dir (dir_list *list, virtual_dir vd, int32_t cookie,
   uint32_t ino;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&vd->mutex);
 
@@ -1106,6 +1126,7 @@ read_conflict_dir (dir_list *list, internal_dentry idir, int32_t cookie,
   uint32_t ino;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
@@ -1181,6 +1202,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   int32_t r, pos;
   struct dirent *de;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (vol)
     CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1307,6 +1329,7 @@ remote_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
@@ -1464,6 +1487,7 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   zfs_cap tmp_cap;
   int32_t r, r2;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (list->n != 0
       || list->eof != 0
@@ -1589,6 +1613,7 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
   int fd;
   bool regular_file;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1644,6 +1669,7 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_cap_undefined (cap->master_cap))
@@ -1731,6 +1757,8 @@ zfs_read (uint32_t *rcount, void *buffer,
   internal_dentry dentry;
   zfs_cap tmp_cap;
   int32_t r, r2;
+
+  TRACE ("");
 
   if (count > ZFS_MAXDATA)
     return EINVAL;
@@ -1878,6 +1906,7 @@ local_write (write_res *res, internal_dentry dentry,
   int32_t r;
   int fd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -1971,6 +2000,8 @@ zfs_write (write_res *res, write_args *args)
   internal_dentry dentry;
   zfs_cap tmp_cap;
   int32_t r, r2;
+
+  TRACE ("");
 
   if (args->data.len > ZFS_MAXDATA)
     return EINVAL;
@@ -2116,6 +2147,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   volume vol;
   dir_list list;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (!REGULAR_FH_P (*fh))
     abort ();
@@ -2201,6 +2233,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   readdir_data data;
   zfs_cap remote_cap;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (!REGULAR_FH_P (*fh))
     abort ();
@@ -2304,6 +2337,8 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
   uint32_t total;
   int32_t r;
 
+  TRACE ("");
+
   for (total = 0; total < count; total += n_read)
     {
       r = find_capability (cap, &icap, &vol, &dentry, NULL, false);
@@ -2344,6 +2379,8 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
   uint32_t n_read;
   uint32_t total;
   int32_t r;
+
+  TRACE ("");
 
   for (total = 0; total < count; total += n_read)
     {
@@ -2428,6 +2465,8 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   uint32_t total;
   uint32_t count;
 
+  TRACE ("");
+
   zfsd_mutex_lock (&fh_mutex);
   dentry = dentry_lookup (&args->cap.fh);
   zfsd_mutex_unlock (&fh_mutex);
@@ -2481,6 +2520,8 @@ remote_md5sum (md5sum_res *res, md5sum_args *args)
   thread *t;
   int32_t r;
   int fd;
+
+  TRACE ("");
 
   r = find_capability (&args->cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING

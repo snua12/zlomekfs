@@ -52,6 +52,7 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
   unsigned int n;
   varray v;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -95,6 +96,7 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
   unsigned int n;
   varray v;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -138,6 +140,7 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
 static void
 local_path_to_relative_path (string *dst, volume vol, string *path)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (path->str == NULL)
@@ -163,6 +166,7 @@ local_path_to_relative_path (string *dst, volume vol, string *path)
 static void
 file_name_from_path (string *dst, string *path)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (path->str[0] != '/')
     abort ();
@@ -184,6 +188,8 @@ parent_exists (string *path)
   struct stat st;
   int32_t r;
   string file;
+
+  TRACE ("%s", path->str);
 
   file_name_from_path (&file, path);
   file.str[-1] = 0;
@@ -212,6 +218,8 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
   metadata meta;
   bool r;
   struct stat st;
+
+  TRACE ("%s", path->str);
 
   if (lstat (path->str, &st) != 0)
     return errno == ENOENT;
@@ -307,6 +315,7 @@ recursive_unlink (string *path, uint32_t vid, bool shadow)
   string filename;
   struct stat parent_st;
 
+  TRACE ("%s", path->str);
 #ifdef ENABLE_CHECKING
   if (path->str[0] != '/')
     abort ();
@@ -343,6 +352,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 {
   virtual_dir vd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&pvd->mutex);
 #ifdef ENABLE_CHECKING
@@ -388,6 +398,8 @@ int32_t
 validate_operation_on_zfs_fh (zfs_fh *fh, uint32_t conflict_error,
 			      uint32_t non_exist_error)
 {
+  TRACE ("");
+
   if (!request_from_this_node ())
     {
       if (CONFLICT_DIR_P (*fh))
@@ -411,6 +423,8 @@ validate_operation_on_zfs_fh (zfs_fh *fh, uint32_t conflict_error,
 static void
 fattr_from_struct_stat (fattr *attr, struct stat *st)
 {
+  TRACE ("");
+
   attr->version = 0;
   attr->dev = st->st_dev;
   attr->ino = st->st_ino;
@@ -473,6 +487,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr,
   struct stat st;
   char *path;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   local_fh->sid = this_node->id;	/* FIXME: race condition? */
@@ -510,6 +525,7 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   args.vid = vol->id;
@@ -556,6 +572,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
   fattr attr;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   vid = vol->id;
@@ -628,6 +645,8 @@ local_getattr_path (fattr *attr, string *path)
   struct stat st;
   int32_t r;
 
+  TRACE ("");
+
   r = lstat (path->str, &st);
   if (r != 0)
     return errno;
@@ -645,6 +664,7 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -674,6 +694,7 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -719,6 +740,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   virtual_dir vd;
   zfs_fh tmp_fh;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (fh, ZFS_OK, ZFS_OK);
   if (r != ZFS_OK)
@@ -804,6 +827,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 int32_t
 local_setattr_path (fattr *fa, string *path, sattr *sa)
 {
+  TRACE ("");
+
   if (sa->size != (uint64_t) -1)
     {
       if (truncate (path->str, sa->size) != 0)
@@ -846,6 +871,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -875,6 +901,7 @@ remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -922,6 +949,8 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   virtual_dir vd;
   zfs_fh tmp_fh;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (fh, EROFS, EROFS);
   if (r != ZFS_OK)
@@ -1002,6 +1031,8 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
   string str;
   int32_t r;
 
+  TRACE ("");
+
   res->file = *dir;
   while (*path)
     {
@@ -1033,6 +1064,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1076,6 +1108,7 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -1124,6 +1157,8 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
@@ -1361,6 +1396,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1408,6 +1444,7 @@ remote_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -1458,6 +1495,8 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
@@ -1574,6 +1613,7 @@ local_rmdir (struct stat *st, string *pathp,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -1619,6 +1659,7 @@ remote_rmdir (internal_dentry dir, string *name, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -1661,6 +1702,8 @@ zfs_rmdir (zfs_fh *dir, string *name)
   string path;
   zfs_fh tmp_fh;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
@@ -1791,6 +1834,7 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
   string path1, path2;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1871,6 +1915,7 @@ remote_rename (internal_dentry from_dir, string *from_name,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1922,6 +1967,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   string path;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (from_dir, EROFS, EINVAL);
   if (r != ZFS_OK)
@@ -2203,6 +2250,7 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
   string path1, path2;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&from->fh->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -2251,6 +2299,7 @@ remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&from->fh->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -2297,6 +2346,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   virtual_dir vd;
   zfs_fh tmp_from, tmp_dir;
   int32_t r, r2;
+
+  TRACE ("");
 
   if (VIRTUAL_FH_P (*from))
     return EROFS;
@@ -2490,6 +2541,7 @@ local_unlink (struct stat *st, string *pathp,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -2535,6 +2587,7 @@ remote_unlink (internal_dentry dir, string *name, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2577,6 +2630,8 @@ zfs_unlink (zfs_fh *dir, string *name)
   string path;
   zfs_fh tmp_fh;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
@@ -2702,6 +2757,7 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   char buf[ZFS_MAXDATA + 1];
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
@@ -2736,6 +2792,7 @@ local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
   char buf[ZFS_MAXDATA + 1];
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -2771,6 +2828,7 @@ remote_readlink (read_link_res *res, internal_dentry file, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2818,6 +2876,7 @@ remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   zfsd_mutex_lock (&node_mutex);
@@ -2856,6 +2915,8 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   internal_dentry dentry;
   zfs_fh tmp_fh;
   int32_t r, r2;
+
+  TRACE ("");
 
   if (VIRTUAL_FH_P (*fh) || CONFLICT_DIR_P (*fh))
     return EINVAL;
@@ -2921,6 +2982,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -2972,6 +3034,7 @@ remote_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -3024,6 +3087,8 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
@@ -3141,6 +3206,7 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   string path;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -3189,6 +3255,7 @@ remote_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -3243,6 +3310,8 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   zfs_fh tmp_fh;
   metadata meta;
   int32_t r, r2;
+
+  TRACE ("");
 
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
@@ -3356,6 +3425,7 @@ local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 {
   string path;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (!vol->local_path.str)
@@ -3382,6 +3452,7 @@ remote_file_info (file_info_res *res, zfs_fh *fh, volume vol)
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (zfs_fh_undefined (*fh))
@@ -3425,6 +3496,8 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   zfs_fh tmp_fh;
   int32_t r;
 
+  TRACE ("");
+
   if (!REGULAR_FH_P (*fh))
     return EINVAL;
 
@@ -3464,6 +3537,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
   int32_t r;
   unsigned int n;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -3613,6 +3687,7 @@ remote_reintegrate_add (volume vol, internal_dentry dir, string *name,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -3653,6 +3728,8 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   volume vol;
   internal_dentry idir, dentry;
   int32_t r;
+
+  TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
     return EINVAL;
@@ -3709,6 +3786,7 @@ local_reintegrate_del (volume vol, internal_dentry dir, string *name,
   dir_op_res res;
   int32_t r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
@@ -3757,6 +3835,7 @@ remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -3798,6 +3877,8 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   internal_dentry idir;
   int32_t r, r2;
   zfs_fh tmp_fh;
+
+  TRACE ("");
 
   if (!REGULAR_FH_P (*dir))
     return EINVAL;
@@ -3852,6 +3933,7 @@ int32_t
 local_reintegrate_set (zfs_fh *fh, uint64_t version, internal_dentry dentry,
 		       volume vol)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (dentry)
@@ -3909,6 +3991,7 @@ remote_reintegrate_set (zfs_fh *fh, uint64_t version, internal_dentry dentry,
   int fd;
   node nod = vol->master;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (dentry)
@@ -3955,6 +4038,8 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
   internal_dentry dentry;
   int32_t r;
 
+  TRACE ("");
+
   if (!REGULAR_FH_P (*fh))
     return EINVAL;
 
@@ -3984,6 +4069,8 @@ refresh_fh (zfs_fh *fh)
   file_info_res info;
   dir_op_res res;
   int32_t r;
+
+  TRACE ("");
 
   if (!REGULAR_FH_P (*fh))
     return EINVAL;

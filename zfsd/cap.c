@@ -54,6 +54,8 @@ internal_cap_compute_verify (internal_cap cap)
 {
   MD5Context ctx;
 
+  TRACE ("");
+
   MD5Init (&ctx);
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.fh,
 	     sizeof (cap->local_cap.fh));
@@ -74,6 +76,8 @@ internal_cap_compute_verify (internal_cap cap)
 static int32_t
 verify_capability (zfs_cap *cap, internal_cap icap)
 {
+  TRACE ("");
+
   if (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0)
     return ZFS_OK;
 
@@ -100,6 +104,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
   int32_t r;
   bool wait_for_locked;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (volp == NULL)
     abort ();
@@ -183,6 +188,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 void
 internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
@@ -218,6 +224,7 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
 {
   internal_cap cap;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in get_capability().  */
@@ -255,6 +262,7 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
 {
   internal_cap cap;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vd->mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in get_capability().  */
@@ -291,6 +299,8 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
 static void
 internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
 {
+  TRACE ("");
+
   if (vd)
     {
       CHECK_MUTEX_LOCKED (&vd->mutex);
@@ -356,6 +366,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
   internal_cap icap;
   int32_t r;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (cap->flags & ~O_ACCMODE)
     abort ();
@@ -456,6 +467,7 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry,
 {
   internal_cap icap;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   for (icap = dentry->fh->cap; icap; icap = icap->next)
@@ -486,6 +498,8 @@ find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 {
   int32_t r;
 
+  TRACE ("");
+
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
 
@@ -514,6 +528,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   internal_cap icap;
   int32_t r;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (VIRTUAL_FH_P (cap->fh))
     CHECK_MUTEX_LOCKED (&vd_mutex);
@@ -593,6 +608,7 @@ out:
 int32_t
 put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (fh)
     CHECK_MUTEX_LOCKED (&fh->mutex);

@@ -220,6 +220,7 @@ fh_mapping_encode (void *x)
 static void
 build_metadata_path (string *path, volume vol, metadata_type type)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (vol->local_path.str == NULL)
     abort ();
@@ -252,6 +253,7 @@ build_fh_metadata_path (string *path, volume vol, zfs_fh *fh,
   varray v;
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (vol->local_path.str == NULL)
@@ -327,6 +329,7 @@ create_path_for_file (string *file, unsigned int mode)
   char *last;
   char *end;
 
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (file->len == 0)
     abort ();
@@ -389,6 +392,8 @@ remove_file_and_path (string *file, unsigned int tree_depth)
 {
   char *end;
 
+  TRACE ("");
+
   if (unlink (file->str) < 0 && errno != ENOENT)
     return false;
 
@@ -415,6 +420,7 @@ remove_file_and_path (string *file, unsigned int tree_depth)
 static bool
 hashfile_opened_p (hfile_t hfile)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (hfile->mutex);
 
   if (hfile->fd < 0)
@@ -441,6 +447,7 @@ hashfile_opened_p (hfile_t hfile)
 static bool
 interval_opened_p (interval_tree tree)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   if (tree->fd < 0)
@@ -467,6 +474,7 @@ interval_opened_p (interval_tree tree)
 static bool
 journal_opened_p (journal_t journal)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (journal->mutex);
 
   if (journal->fd < 0)
@@ -494,6 +502,7 @@ journal_opened_p (journal_t journal)
 static void
 init_hashfile_fd (hfile_t hfile)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (hfile->fd < 0)
     abort ();
@@ -515,6 +524,7 @@ init_hashfile_fd (hfile_t hfile)
 static void
 init_interval_fd (interval_tree tree)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (tree->fd < 0)
     abort ();
@@ -536,6 +546,7 @@ init_interval_fd (interval_tree tree)
 static void
 init_journal_fd (journal_t journal)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (journal->fd < 0)
     abort ();
@@ -557,6 +568,7 @@ init_journal_fd (journal_t journal)
 static void
 close_metadata_fd (int fd)
 {
+  TRACE ("");
 #ifdef ENABLE_CHECKING
   if (fd < 0)
     abort ();
@@ -585,6 +597,8 @@ static int
 open_metadata (const char *pathname, int flags, mode_t mode)
 {
   int fd;
+
+  TRACE ("");
 
 retry_open:
   fd = open (pathname, flags, mode);
@@ -628,6 +642,7 @@ open_fh_metadata (string *path, volume vol, zfs_fh *fh, metadata_type type,
   unsigned int i;
   struct stat st;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   fd = open_metadata (path->str, flags, mode);
@@ -683,7 +698,7 @@ open_fh_metadata (string *path, volume vol, zfs_fh *fh, metadata_type type,
 			  }
 			created = true;
 		      }
-		    
+
 		    if (rename (old_path.str, path->str) == 0)
 		      {
 			free (old_path.str);
@@ -708,6 +723,7 @@ open_hash_file (volume vol, metadata_type type)
   hfile_t hfile;
   int fd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   switch (type)
@@ -748,6 +764,7 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   string path;
   int fd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -801,6 +818,7 @@ open_journal_file (volume vol, internal_fh fh)
   string path;
   int fd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -837,6 +855,8 @@ static bool
 delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 			      interval_tree tree, string *path)
 {
+  TRACE ("");
+
   switch (type)
     {
       case METADATA_TYPE_UPDATED:
@@ -899,6 +919,7 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
   string new_path;
   int fd;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -976,6 +997,7 @@ init_volume_metadata (volume vol)
   struct stat st;
   bool insert_volume_root;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (vol->local_path.str == NULL)
@@ -1137,6 +1159,7 @@ init_volume_metadata (volume vol)
 static void
 close_hash_file (hfile_t hfile)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (hfile->mutex);
 
   if (hfile->fd >= 0)
@@ -1157,6 +1180,7 @@ close_hash_file (hfile_t hfile)
 void
 close_volume_metadata (volume vol)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (vol->metadata)
@@ -1179,6 +1203,7 @@ close_volume_metadata (volume vol)
 void
 close_interval_file (interval_tree tree)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   if (tree->fd >= 0)
@@ -1199,6 +1224,7 @@ close_interval_file (interval_tree tree)
 void
 close_journal_file (journal_t journal)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (journal->mutex);
 
   if (journal->fd >= 0)
@@ -1224,6 +1250,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
   struct stat st;
   interval_tree *treep;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1315,6 +1342,8 @@ flush_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
   string path;
 
+  TRACE ("");
+
   build_fh_metadata_path (&path, vol, &fh->local_fh, type,
 			  metadata_tree_depth);
 
@@ -1331,6 +1360,7 @@ free_interval_tree (volume vol, internal_fh fh, metadata_type type)
   interval_tree tree, *treep;
   bool r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1376,6 +1406,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
   string path;
   bool r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1421,6 +1452,8 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 void
 set_attr_version (fattr *attr, metadata *meta)
 {
+  TRACE ("");
+
   attr->version = meta->local_version;
   if (meta->flags & METADATA_MODIFIED)
     attr->version++;
@@ -1435,6 +1468,7 @@ init_metadata_for_created_volume_root (volume vol)
   struct stat st;
   metadata meta;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (lstat (vol->local_path.str, &st) < 0)
@@ -1492,6 +1526,7 @@ init_metadata_for_created_volume_root (volume vol)
 bool
 lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (!vol->metadata)
@@ -1549,6 +1584,8 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 bool
 get_metadata (volume vol, zfs_fh *fh, metadata *meta)
 {
+  TRACE ("");
+
   if (!vol)
     return false;
 
@@ -1575,6 +1612,7 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
 bool
 get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!hashfile_opened_p (vol->fh_mapping))
@@ -1629,6 +1667,7 @@ get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh, fh_mapping *map)
 bool
 flush_metadata (volume vol, metadata *meta)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!hashfile_opened_p (vol->metadata))
@@ -1659,6 +1698,7 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
 {
   bool modified;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1700,6 +1740,7 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
 bool
 set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1720,6 +1761,7 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 {
   fh_mapping map;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1786,6 +1828,7 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
 bool
 inc_local_version (volume vol, internal_fh fh)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1809,6 +1852,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   string path;
   int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   fh.dev = dev;
@@ -1915,6 +1959,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 bool
 load_interval_trees (volume vol, internal_fh fh)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1947,6 +1992,7 @@ save_interval_trees (volume vol, internal_fh fh)
 {
   bool r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -1979,6 +2025,7 @@ delete_hardlinks_file (volume vol, zfs_fh *fh)
 {
   unsigned int i;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
@@ -1998,6 +2045,8 @@ static void
 read_hardlinks_file (hardlink_list hl, int fd)
 {
   FILE *f;
+
+  TRACE ("");
 
   f = fdopen (fd, "rb");
 #ifdef ENABLE_CHECKING
@@ -2044,6 +2093,8 @@ write_hardlinks_file (volume vol, zfs_fh *fh, hardlink_list hl)
   string path, new_path;
   int fd;
   FILE *f;
+
+  TRACE ("");
 
   build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_HARDLINKS,
 			  metadata_tree_depth);
@@ -2101,6 +2152,7 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 {
   string name;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (!lookup_metadata (vol, fh, meta, false))
@@ -2156,6 +2208,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 {
   metadata meta;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (hl->first
@@ -2315,6 +2368,7 @@ metadata_hardlink_insert (volume vol, zfs_fh *fh, uint32_t parent_dev,
   hardlink_list hl;
   metadata meta;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   hl = hardlink_list_create (2, NULL);
@@ -2346,6 +2400,7 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, uint32_t old_parent_dev,
   metadata meta;
   bool flush;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   hl = hardlink_list_create (2, NULL);
@@ -2374,6 +2429,7 @@ metadata_hardlink_set_shadow (volume vol, zfs_fh *fh)
 {
   hardlink_list hl;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   hl = hardlink_list_create (2, NULL);
@@ -2391,6 +2447,7 @@ metadata_n_hardlinks (volume vol, zfs_fh *fh, metadata *meta)
   unsigned int n;
   hardlink_list hl;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   hl = hardlink_list_create (2, NULL);
@@ -2418,6 +2475,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
   struct stat st;
   bool flush;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   /* Get hardlink list.  */
@@ -2530,6 +2588,7 @@ flush_journal (volume vol, internal_fh fh, string *path)
   int fd;
   FILE *f;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
@@ -2615,6 +2674,7 @@ read_journal (volume vol, internal_fh fh)
   string path;
   FILE *f;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2715,6 +2775,7 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
   zfs_fh tmp_fh;
   bool r;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -2818,6 +2879,7 @@ get_shadow_path (string *path, volume vol, zfs_fh *fh, bool create)
   unsigned int i;
   struct stat st;
 
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   build_fh_metadata_path (path, vol, fh, METADATA_TYPE_SHADOW,
