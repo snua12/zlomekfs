@@ -300,8 +300,6 @@ ENCODE_SIMPLE_TYPE (int64_t, 8, i64_to_le)
 #endif
 ENCODE_SIMPLE_TYPE (uint64_t, 8, u64_to_le)
 
-#ifndef __KERNEL__
-
 bool
 decode_data_buffer (DC *dc, data_buffer *data)
 {
@@ -320,8 +318,6 @@ decode_data_buffer (DC *dc, data_buffer *data)
 
   return true;
 }
-
-#endif
 
 bool
 encode_data_buffer (DC *dc, data_buffer *data)
@@ -900,7 +896,21 @@ encode_read_args (DC *dc, read_args *args)
 	  && encode_uint32_t (dc, args->count));
 }
 
+bool
+decode_read_res (DC *dc, read_res *res)
+{
+  return (decode_data_buffer (dc, &res->data)
+	  && decode_uint64_t (dc, &res->version));
+}
+
 #ifndef __KERNEL__
+
+bool
+encode_read_res (DC *dc, read_res *res)
+{
+  return (encode_data_buffer (dc, &res->data)
+	  && encode_uint64_t (dc, res->version));
+}
 
 bool
 decode_write_args (DC *dc, write_args *args)
@@ -923,7 +933,8 @@ encode_write_args (DC *dc, write_args *args)
 bool
 decode_write_res (DC *dc, write_res *res)
 {
-  return decode_uint32_t (dc, &res->written);
+  return (decode_uint32_t (dc, &res->written)
+	  && decode_uint64_t (dc, &res->version));
 }
 
 #ifndef __KERNEL__
@@ -931,7 +942,8 @@ decode_write_res (DC *dc, write_res *res)
 bool
 encode_write_res (DC *dc, write_res *res)
 {
-  return encode_uint32_t (dc, res->written);
+  return (encode_uint32_t (dc, res->written)
+	  && encode_uint64_t (dc, res->version));
 }
 
 #endif

@@ -1808,8 +1808,8 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
    Store data to BUFFER and count to RCOUNT.  */
 
 static int32_t
-local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
-	    uint64_t offset, uint32_t count, volume vol)
+local_read (read_res *res, internal_dentry dentry, uint64_t offset,
+	    uint32_t count, volume vol)
 {
   int32_t r;
   int fd;
@@ -1821,6 +1821,7 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   regular_file = dentry->fh->attr.type == FT_REG;
+  res->version = dentry->fh->attr.version;
   r = capability_open (&fd, 0, dentry, vol);
   if (r != ZFS_OK)
     RETURN_INT (r);
@@ -1835,27 +1836,25 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
 	}
     }
 
-  r = read (fd, buffer, count);
+  r = read (fd, res->data.buf, count);
   if (r < 0)
     {
       zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
       RETURN_INT (errno);
     }
 
-  *rcount = r;
+  res->data.len = r;
 
   zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
   RETURN_INT (ZFS_OK);
 }
 
 /* Read COUNT bytes from offset OFFSET of remote file with capability CAP
-   of dentry DENTRY on volume VOL.
-   Store data to BUFFER and count to RCOUNT.  */
+   of dentry DENTRY on volume VOL.  */
 
 static int32_t
-remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
-	     internal_dentry dentry, uint64_t offset, uint32_t count,
-	     volume vol)
+remote_read (read_res *res, internal_cap cap, internal_dentry dentry,
+	     uint64_t offset, uint32_t count, volume vol)
 {
   read_args args;
   thread *t;
@@ -1887,11 +1886,16 @@ remote_read (uint32_t *rcount, void *buffer, internal_cap cap,
 
   if (r == ZFS_OK)
     {
-      if (!decode_uint32_t (t->dc_reply, rcount)
-	  || t->dc_reply->cur_length + *rcount != t->dc_reply->max_length)
+      void *buffer = res->data.buf;
+
+      if (!decode_read_res (t->dc_reply, res)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
       else
-	memcpy (buffer, t->dc_reply->cur_pos, *rcount);
+	{
+	  memcpy (buffer, res->data.buf, res->data.len);
+	  res->data.buf = buffer;
+	}
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1938,13 +1942,12 @@ align_range (uint64_t offset, uint32_t count, uint64_t *start, uint64_t *end)
 		   ? ZFS_UPDATED_BLOCK_SIZE : count);
 }
 
-/* Read COUNT bytes from file CAP at offset OFFSET, sotre the count of bytes
-   read to RCOUNT and the data to BUFFER.  If UPDATE is true update the
-   local file on copied volume.  */
+/* Read COUNT bytes from file CAP at offset OFFSET, store the results to RES.
+   If UPDATE is true update the local file on copied volume.  */
 
 int32_t
-zfs_read (uint32_t *rcount, void *buffer,
-	  zfs_cap *cap, uint64_t offset, uint32_t count, bool update)
+zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
+	  bool update)
 {
   volume vol;
   internal_cap icap;
@@ -1985,7 +1988,7 @@ zfs_read (uint32_t *rcount, void *buffer,
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-	r = local_read (rcount, buffer, dentry, offset, count, vol);
+	r = local_read (res, dentry, offset, count, vol);
       else if (dentry->fh->attr.type == FT_REG && update)
 	{
 	  varray blocks;
@@ -2021,7 +2024,7 @@ zfs_read (uint32_t *rcount, void *buffer,
 
 	  if (complete)
 	    {
-	      r = local_read (rcount, buffer, dentry, offset, count, vol);
+	      r = local_read (res, dentry, offset, count, vol);
 	    }
 	  else
 	    {
@@ -2048,7 +2051,7 @@ zfs_read (uint32_t *rcount, void *buffer,
 		    abort ();
 #endif
 
-		  r = local_read (rcount, buffer, dentry, offset, count, vol);
+		  r = local_read (res, dentry, offset, count, vol);
 		}
 	    }
 
@@ -2060,7 +2063,7 @@ out_update:
 	  switch (dentry->fh->attr.type)
 	    {
 	      case FT_REG:
-		r = local_read (rcount, buffer, dentry, offset, count, vol);
+		r = local_read (res, dentry, offset, count, vol);
 		break;
 
 	      case FT_BLK:
@@ -2070,11 +2073,10 @@ out_update:
 		if (!zfs_cap_undefined (icap->master_cap))
 		  {
 		    zfsd_mutex_unlock (&fh_mutex);
-		    r = remote_read (rcount, buffer, icap, dentry, offset,
-				     count, vol);
+		    r = remote_read (res, icap, dentry, offset, count, vol);
 		  }
 		else
-		  r = local_read (rcount, buffer, dentry, offset, count, vol);
+		  r = local_read (res, dentry, offset, count, vol);
 		break;
 
 	      default:
@@ -2085,7 +2087,7 @@ out_update:
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      r = remote_read (rcount, buffer, icap, dentry, offset, count, vol);
+      r = remote_read (res, icap, dentry, offset, count, vol);
     }
   else
     abort ();
@@ -2196,6 +2198,7 @@ zfs_write (write_res *res, write_args *args)
   internal_dentry dentry;
   zfs_cap tmp_cap;
   int32_t r, r2;
+  bool remote_call = false;
 
   TRACE ("");
 
@@ -2247,6 +2250,7 @@ zfs_write (write_res *res, write_args *args)
 		  {
 		    zfsd_mutex_unlock (&fh_mutex);
 		    r = remote_write (res, icap, dentry, args, vol);
+		    remote_call = true;
 		  }
 		else
 		  r = local_write (res, dentry, args->offset, &args->data, vol);
@@ -2261,6 +2265,7 @@ zfs_write (write_res *res, write_args *args)
     {
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_write (res, icap, dentry, args, vol);
+      remote_call = true;
     }
   else
     abort ();
@@ -2324,6 +2329,13 @@ zfs_write (write_res *res, write_args *args)
 
 	      varray_destroy (&blocks);
 	    }
+	}
+
+      if (!remote_call)
+	{
+	  /* Version of remote files is already initialized when decoding
+	     reply of remote call.  */
+	  res->version = dentry->fh->attr.version;
 	}
     }
 
@@ -2531,16 +2543,16 @@ int32_t
 full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 		 uint64_t offset, uint32_t count)
 {
+  read_res res;
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
-  uint32_t n_read;
   uint32_t total;
   int32_t r;
 
   TRACE ("");
 
-  for (total = 0; total < count; total += n_read)
+  for (total = 0; total < count; total += res.data.len)
     {
       r = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -2554,12 +2566,12 @@ full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 	abort ();
 #endif
 
-      r = local_read (&n_read, (char *) buffer + total, dentry,
-		      offset + total, count - total, vol);
+      res.data.buf = (char *) buffer + total;
+      r = local_read (&res, dentry, offset + total, count - total, vol);
       if (r != ZFS_OK)
 	RETURN_INT (r);
 
-      if (n_read == 0)
+      if (res.data.len == 0)
 	break;
     }
 
@@ -2576,8 +2588,8 @@ full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			internal_dentry dentry, volume vol, uint64_t offset,
 			uint32_t count)
 {
+  read_res res;
   internal_cap icap;
-  uint32_t n_read;
   uint32_t total;
   int32_t r, r2;
 
@@ -2586,10 +2598,10 @@ full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  for (total = 0; total < count; total += n_read)
+  for (total = 0; total < count; total += res.data.len)
     {
-      r = local_read (&n_read, (char *) buffer + total, dentry,
-		      offset + total, count - total, vol);
+      res.data.buf = (char *) buffer + total;
+      r = local_read (&res, dentry, offset + total, count - total, vol);
 
       r2 = find_capability_nolock (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -2603,7 +2615,7 @@ full_local_read_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
       if (r != ZFS_OK)
 	RETURN_INT (r);
 
-      if (n_read == 0)
+      if (res.data.len == 0)
 	break;
     }
 
@@ -2619,16 +2631,16 @@ int32_t
 full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 		  uint64_t offset, uint32_t count)
 {
+  read_res res;
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
-  uint32_t n_read;
   uint32_t total;
   int32_t r;
 
   TRACE ("");
 
-  for (total = 0; total < count; total += n_read)
+  for (total = 0; total < count; total += res.data.len)
     {
       r = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -2642,12 +2654,12 @@ full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 	abort ();
 #endif
 
-      r = remote_read (&n_read, (char *) buffer + total, icap, dentry,
-		       offset + total, count - total, vol);
+      res.data.buf = (char *) buffer + total;
+      r = remote_read (&res, icap, dentry, offset + total, count - total, vol);
       if (r != ZFS_OK)
 	RETURN_INT (r);
 
-      if (n_read == 0)
+      if (res.data.len == 0)
 	break;
     }
 
@@ -2754,6 +2766,7 @@ full_remote_write_dentry (uint32_t *rcount, void *buffer, zfs_cap *cap,
 int32_t
 local_md5sum (md5sum_res *res, md5sum_args *args)
 {
+  read_res rres;
   internal_dentry dentry;
   uint32_t i;
   MD5Context context;
@@ -2774,20 +2787,21 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   res->size = dentry->fh->attr.size;
   release_dentry (dentry);
 
+  rres.data.buf = buf;
   for (i = 0; i < args->count; i++)
     {
       MD5Init (&context);
       for (total = 0; total < args->length[i]; total += count)
 	{
-	  r = zfs_read (&count, buf, &args->cap, args->offset[i] + total,
+	  r = zfs_read (&rres, &args->cap, args->offset[i] + total,
 			args->length[i] - total, false);
 	  if (r != ZFS_OK)
 	    RETURN_INT (r);
 
-	  if (count == 0)
+	  if (rres.data.len == 0)
 	    break;
 
-	  MD5Update (&context, buf, count);
+	  MD5Update (&context, buf, rres.data.len);
 	}
 
       if (total > 0)

@@ -544,9 +544,10 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 		       int (*process) (char *, char *, unsigned int, void *),
 		       void *data)
 {
+  read_res res;
   char buf[ZFS_MAXDATA];
   unsigned int index, i, line_num;
-  uint32_t count;
+  uint32_t end;
   uint64_t offset;
   zfs_cap cap;
   int32_t r;
@@ -560,19 +561,19 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
   offset = 0;
   for (;;)
     {
-      r = zfs_read (&count, buf + index, &cap, offset, ZFS_MAXDATA - index,
-		    true);
+      res.data.buf = buf + index;
+      r = zfs_read (&res, &cap, offset, ZFS_MAXDATA - index, true);
       if (r != ZFS_OK)
 	return false;
 
-      if (count == 0)
+      if (res.data.len == 0)
 	break;
 
-      offset += count;
-      count += index;
-      for (index = 0, i = 0; index < count; index = i + 1)
+      offset += res.data.len;
+      end = index + res.data.len;
+      for (index = 0, i = 0; index < end; index = i + 1)
 	{
-	  for (i = index; i < count; i++)
+	  for (i = index; i < end; i++)
 	    if (buf[i] == '\n')
 	      {
 		buf[i] = 0;
@@ -581,7 +582,7 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 		line_num++;
 		break;
 	      }
-	  if (i == count)
+	  if (i == end)
 	    break;
 	}
 
@@ -592,13 +593,13 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 	}
       if (index > 0)
 	{
-	  memmove (buf, buf + index, count - index);
-	  index = count - index;
+	  memmove (buf, buf + index, end - index);
+	  index = end - index;
 	}
       else
 	{
 	  /* The read block does not contain new line.  */
-	  index = count;
+	  index = end;
 	}
     }
 

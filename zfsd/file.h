@@ -103,8 +103,8 @@ extern int32_t remote_readdir (dir_list *list, internal_cap cap,
 			       filldir_f filldir);
 extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
 			    uint32_t count, filldir_f filldir);
-extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
-			 uint64_t offset, uint32_t count, bool update);
+extern int32_t zfs_read (read_res *res, zfs_cap *cap, uint64_t offset,
+			 uint32_t count, bool update);
 extern int32_t zfs_write (write_res *res, write_args *args);
 
 extern int32_t full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries);

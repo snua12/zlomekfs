@@ -219,9 +219,7 @@ extern bool encode_uint64_t (DC *dc, uint64_t val);
 #define decode_zfs_time(DC, T) decode_uint32_t ((DC), (T))
 #define encode_zfs_time(DC, T) encode_uint32_t ((DC), *(T))
 
-#ifndef __KERNEL__
 extern bool decode_data_buffer (DC *dc, data_buffer *data);
-#endif
 extern bool encode_data_buffer (DC *dc, data_buffer *data);
 extern bool decode_fixed_buffer (DC *dc, void *buf, int len);
 extern bool encode_fixed_buffer (DC *dc, void *buf, int len);
@@ -303,7 +301,9 @@ extern bool encode_link_args (DC *dc, link_args *args);
 extern bool decode_read_args (DC *dc, read_args *args);
 #endif
 extern bool encode_read_args (DC *dc, read_args *args);
+extern bool decode_read_res (DC *dc, read_res *res);
 #ifndef __KERNEL__
+extern bool encode_read_res (DC *dc, read_res *res);
 extern bool decode_write_args (DC *dc, write_args *args);
 #endif
 extern bool encode_write_args (DC *dc, write_args *args);

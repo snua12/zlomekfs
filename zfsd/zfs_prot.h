@@ -264,6 +264,12 @@ typedef struct read_args_def
   uint32_t count;
 } read_args;
 
+typedef struct read_res_def
+{
+  data_buffer data;
+  uint64_t version;
+} read_res;
+
 typedef struct write_args_def
 {
   zfs_cap cap;
@@ -274,6 +280,7 @@ typedef struct write_args_def
 typedef struct write_res_def
 {
   uint32_t written;
+  uint64_t version;
 } write_res;
 
 typedef struct read_link_res_def

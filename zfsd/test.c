@@ -576,13 +576,13 @@ do_tests (void *data)
 	    {
 	      write_args writea;
 	      write_res writer;
-	      data_buffer data;
+	      read_res readr;
 
 	      writea.data.buf = buffer;
-	      data.buf = buffer;
+	      readr.data.buf = buffer;
 
 	      message (1, stderr, "TEST READ\n");
-	      r = zfs_read (&data.len, data.buf, &cap, 16, 16, true);
+	      r = zfs_read (&readr, &cap, 16, 16, true);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
@@ -602,10 +602,11 @@ do_tests (void *data)
 		goto out;
 
 	      message (1, stderr, "TEST READ\n");
-	      r = zfs_read (&data.len, data.buf, &cap, 0, 4, true);
+	      r = zfs_read (&readr, &cap, 0, 4, true);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 	      if (r == ZFS_OK
-		  && (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0))
+		  && (readr.data.len != 4
+		      || memcmp (readr.data.buf, "abcd", 4) != 0))
 		message (1, stderr, "FAILURE\n");
 
 	      if (!get_running ())

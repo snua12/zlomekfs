@@ -352,35 +352,30 @@ zfs_proc_unlink_server (dir_op_args *args, DC *dc,
   encode_status (dc, r);
 }
 
-/* data_buffer zfs_proc_read (read_args); */
+/* read_res zfs_proc_read (read_args); */
 
 void
 zfs_proc_read_server (read_args *args, DC *dc,
 		      ATTRIBUTE_UNUSED void *data,
 		      ATTRIBUTE_UNUSED bool map_id)
 {
+  read_res res;
   int32_t r;
   char *old_pos;
   unsigned int old_len;
-  uint32_t count;
-  char *buffer;
 
   old_pos = dc->cur_pos;
   old_len = dc->cur_length;
   encode_status (dc, ZFS_OK);
   encode_uint32_t (dc, 0);
-  buffer = dc->cur_pos;
+  res.data.buf = dc->cur_pos;
   dc->cur_pos = old_pos;
   dc->cur_length = old_len;
 
-  r = zfs_read (&count, buffer, &args->cap, args->offset, args->count, true);
+  r = zfs_read (&res, &args->cap, args->offset, args->count, true);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      encode_uint32_t (dc, count);
-      dc->cur_pos += count;
-      dc->cur_length += count;
-    }
+    encode_read_res (dc, &res);
 }
 
 /* write_res zfs_proc_write (write_args); */
