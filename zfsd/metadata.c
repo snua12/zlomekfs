@@ -2367,8 +2367,7 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
       parent_path = get_local_path_from_metadata (vol, &parent_fh);
       if (parent_path == NULL)
 	{
-	  flush |= hardlink_list_delete (hl, entry->parent_dev,
-					 entry->parent_ino, entry->name.str);
+	  flush |= hardlink_list_delete_entry (hl, entry);
 	}
       else
 	{
@@ -2377,9 +2376,7 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 	      || st.st_ino != fh->ino)
 	    {
 	      free (parent_path);
-	      flush |= hardlink_list_delete (hl, entry->parent_dev,
-					     entry->parent_ino,
-					     entry->name.str);
+	      flush |= hardlink_list_delete_entry (hl, entry);
 	    }
 	  else
 	    {
