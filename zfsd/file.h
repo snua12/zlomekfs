@@ -71,7 +71,7 @@ extern bool filldir_encode (uint32_t ino, int32_t cookie, char *name,
 			    readdir_data *data);
 extern bool filldir_array (uint32_t ino, int32_t cookie, char *name,
 			   uint32_t name_len, dir_list *list,
-			   readdir_data *data);
+			   ATTRIBUTE_UNUSED readdir_data *data);
 extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
 			    uint32_t count, filldir_f filldir);
 extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
