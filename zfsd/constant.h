@@ -37,9 +37,6 @@
 /* Maximal number of free data buffers for an active file descriptor.  */
 #define MAX_FREE_BUFFERS_PER_ACTIVE_FD 8
 
-/* Maximal length of request / reply.  */
-#define ZFS_MAX_REQUEST_LEN 8888
-
 /* Maximal value for MetadataTreeDepth.  */
 #define MAX_METADATA_TREE_DEPTH 6
 
