@@ -36,8 +36,8 @@
 /*! String type.  */
 typedef struct string_def
 {
-  uint32_t len;
-  char *str;
+  uint32_t len;		/*! Length of the string.  */
+  char *str;		/*! The string itself.  */
 } string;
 
 #ifndef __KERNEL__

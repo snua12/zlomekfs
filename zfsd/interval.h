@@ -66,8 +66,15 @@ typedef struct interval_def
   uint64_t end;
 } interval;
 
+/*! Splay tree node.  */
 typedef splay_tree_node interval_tree_node;
+
+/*! Start of the interval.
+    \param NODE Node holding the interval.  */
 #define INTERVAL_START(NODE) ((NODE)->key)
+
+/*! End of the interval.
+    \param NODE Node holding the interval.  */
 #define INTERVAL_END(NODE) ((NODE)->value)
 
 extern interval_tree interval_tree_create (unsigned int preferred_size,
