@@ -94,6 +94,12 @@ struct internal_fh_def
 
   /* Open file descriptor.  */
   int fd;
+
+  /* Directory entries (of type 'struct internal_fh_def *').  */
+  varray dentries;
+
+  /* Index in parent's list of directory entries.  */
+  unsigned int dentry_index;
 };
 
 /* Structure of a virtual directory (element of mount tree).  */
@@ -114,7 +120,7 @@ struct virtual_dir_def
   /* Directory attributes.  */
   fattr attr;
 
-  /* Subdirectories (of type 'struct internal_fh_def *').  */
+  /* Subdirectories (of type 'struct virtual_dir_def *').  */
   varray subdirs;
 
   /* Index in parent's list of subdirectories.  */

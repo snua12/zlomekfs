@@ -227,6 +227,11 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
   fh->fd = -1;
   fh->attr = *attr;
 
+  if (fh->attr.type == FT_DIR)
+    varray_create (&fh->dentries, sizeof (internal_fh), 16);
+  fh->dentry_index = VARRAY_USED (parent->dentries);
+  VARRAY_PUSH (parent->dentries, fh, internal_fh);
+
   zfsd_mutex_lock (&vol->fh_mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
@@ -260,7 +265,25 @@ void
 internal_fh_destroy (internal_fh fh, volume vol)
 {
   void **slot;
+  internal_fh top;
 
+  if (fh->attr.type == FT_DIR)
+    {
+#ifdef ENABLE_CHECKING
+      if (VARRAY_USED (fh->dentries))
+	abort ();
+      varray_destroy (&fh->dentries);
+#endif
+    }
+
+  /* Remove FH from parent's directory entries.  */
+  top = VARRAY_TOP (fh->parent->dentries, internal_fh);
+  VARRAY_ACCESS (fh->parent->dentries, fh->dentry_index, internal_fh)
+    = top;
+  VARRAY_POP (fh->parent->dentries);
+  top->dentry_index = fh->dentry_index;
+
+  zfsd_mutex_lock (&vol->fh_mutex);
   if (fh->parent)
     {
       slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
@@ -278,9 +301,12 @@ internal_fh_destroy (internal_fh fh, volume vol)
     abort ();
 #endif
   htab_clear_slot (vol->fh_htab, slot);
+  zfsd_mutex_unlock (&vol->fh_mutex);
 
   free (fh->name);
+  zfsd_mutex_lock (&fh_pool_mutex);
   pool_free (fh_pool, fh);
+  zfsd_mutex_unlock (&fh_pool_mutex);
 }
 
 /* Print the contents of hash table HTAB to file F.  */
