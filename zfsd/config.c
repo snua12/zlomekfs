@@ -138,7 +138,7 @@ set_string(char **destp, char *src, int len)
   return 1;
 }
 
-enum automaton_states {
+enum automata_states {
   STATE_NORMAL,			/* outside quotes and not after backslash */
   STATE_QUOTED,			/* inside quotes and not after backslash  */
   STATE_BACKSLASH,		/* outside quotes and after backslash */
@@ -153,7 +153,7 @@ process_line(char *file, int line_num, char *line)
   char *key;
   char *val;
   char *dest;
-  enum automaton_states state;
+  enum automata_states state;
 
   /* Skip white spaces.  */
   while (*line == ' ' || *line == '\t')
@@ -183,7 +183,7 @@ process_line(char *file, int line_num, char *line)
   val = line;
   dest = line;
 
-  /* Finite automaton.  */
+  /* Finite automata.  */
   state = STATE_NORMAL;
   while (*line != 0)
     {
