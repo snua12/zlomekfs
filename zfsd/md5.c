@@ -13,7 +13,7 @@
    needed on buffers full of bytes, and then call MD5Final, which
    will fill a supplied 16-byte array with the digest.
 
-   The functions  MD5HexDigit and MD5HexFinal, 
+   The functions MD5HexDigit and MD5HexFinal, 
    the BIG x LITTLE ENDIAN detection fixed
    and other minor changes
    by Josef Zlomek <josef.zlomek@email.cz> in 2001.
@@ -26,8 +26,6 @@
 #include <inttypes.h>
 #include <string.h>		/* for memcpy() */
 #include "md5.h"
-
-#ifdef OFTPD_USERS		/* this is here only for my ftp server */
 
 #if BYTE_ORDER == LITTLE_ENDIAN
 #define byteReverse(buf, len)	/* Nothing */
@@ -52,7 +50,7 @@ byteReverse (unsigned char *buf, unsigned longs)
 /* Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
    initialization constants.  */
 void
-MD5Init (struct MD5Context *ctx)
+MD5Init (MD5Context *ctx)
 {
   ctx->buf[0] = 0x67452301;
   ctx->buf[1] = 0xefcdab89;
@@ -66,7 +64,7 @@ MD5Init (struct MD5Context *ctx)
 /* Update context to reflect the concatenation of another buffer full
    of bytes.  */
 void
-MD5Update (struct MD5Context *ctx, unsigned char const *buf, unsigned len)
+MD5Update (MD5Context *ctx, unsigned char const *buf, unsigned int len)
 {
   uint32_t t;
 
@@ -114,7 +112,7 @@ MD5Update (struct MD5Context *ctx, unsigned char const *buf, unsigned len)
 /* Final wrapup - pad to 64-byte boundary with the bit pattern 
  * 1 0* (64-bit count of bits processed, MSB-first).  */
 void
-MD5Final (unsigned char digest[16], struct MD5Context *ctx)
+MD5Final (unsigned char digest[16], MD5Context *ctx)
 {
   unsigned count;
   unsigned char *p;
@@ -168,7 +166,7 @@ MD5HexDigit (int c)
 }
 
 void
-MD5HexFinal (unsigned char digest[32], struct MD5Context *ctx)
+MD5HexFinal (unsigned char digest[32], MD5Context *ctx)
 {
   unsigned count;
   unsigned char *p;
@@ -317,5 +315,3 @@ MD5Transform (uint32_t buf[4], uint32_t const in[16])
   buf[2] += c;
   buf[3] += d;
 }
-
-#endif

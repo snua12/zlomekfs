@@ -29,18 +29,18 @@
 #include "system.h"
 #include <inttypes.h>
 
-struct MD5Context
+typedef struct MD5Context_def
 {
   uint32_t buf[4];
   uint32_t bits[2];
   unsigned char in[64];
-};
+} MD5Context;
 
-void MD5Init (struct MD5Context *context);
-void MD5Update (struct MD5Context *context, unsigned char const *buf,
-		unsigned len);
-void MD5Final (unsigned char digest[16], struct MD5Context *context);
-void MD5HexFinal (unsigned char digest[32], struct MD5Context *context);
-void MD5Transform (uint32_t buf[4], uint32_t const in[16]);
+extern void MD5Init (MD5Context *ctx);
+extern void MD5Update (MD5Context *ctx, unsigned char const *buf,
+		       unsigned int len);
+extern void MD5Final (unsigned char digest[16], MD5Context *ctx);
+extern void MD5HexFinal (unsigned char digest[32], MD5Context *ctx);
+extern void MD5Transform (uint32_t buf[4], uint32_t const in[16]);
 
 #endif /* !MD5_H */
