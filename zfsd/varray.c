@@ -64,6 +64,6 @@ varray_grow (varray *va, unsigned int nelem)
 void
 varray_check_failed (unsigned int index, const char *file, int line)
 {
-  internal_error (" at %s:%d: Element %u out of bounds", file, line, index);
+  internal_error ("Element %u out of bounds, at %s:%d", index, file, line);
 }
 #endif
