@@ -287,7 +287,7 @@ cleanup_unused_dentries ()
 
 /* Main function of thread freeing file handles unused for a long time.  */
 
-void *
+static void *
 cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
 {
   thread_disable_signals ();
@@ -1985,7 +1985,8 @@ initialize_fh_c ()
   /* Data structures for cleanup of file handles.  */
   zfsd_mutex_init (&cleanup_dentry_mutex);
   cleanup_dentry_heap = fibheap_new (1020, &cleanup_dentry_mutex);
-  if (pthread_create (&cleanup_dentry_thread, NULL, cleanup_dentry_thread_main, NULL))
+  if (pthread_create (&cleanup_dentry_thread, NULL, cleanup_dentry_thread_main,
+		      NULL))
     {
       message (-1, stderr, "pthread_create() failed\n");
     }
