@@ -80,6 +80,7 @@ hardlink_list_destroy (hardlink_list hl)
 {
   CHECK_MUTEX_LOCKED (hl->mutex);
 
+  zfsd_mutex_lock (&hardlink_list_mutex);
   while (VARRAY_USED (hl->array) > 0)
     {
       hardlink_list_entry del;
@@ -88,10 +89,9 @@ hardlink_list_destroy (hardlink_list hl)
       VARRAY_POP (hl->array);
 
       free (del->name);
-      zfsd_mutex_lock (&hardlink_list_mutex);
       pool_free (hardlink_list_pool, del);
-      zfsd_mutex_unlock (&hardlink_list_mutex);
     }
+  zfsd_mutex_unlock (&hardlink_list_mutex);
 
   varray_destroy (&hl->array);
   htab_destroy (hl->htab);

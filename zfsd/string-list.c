@@ -77,6 +77,7 @@ string_list_destroy (string_list sl)
 {
   CHECK_MUTEX_LOCKED (sl->mutex);
 
+  zfsd_mutex_lock (&string_list_mutex);
   while (VARRAY_USED (sl->array))
     {
       string_list_entry del;
@@ -85,10 +86,9 @@ string_list_destroy (string_list sl)
       VARRAY_POP (sl->array);
 
       free (del->str);
-      zfsd_mutex_lock (&string_list_mutex);
       pool_free (string_list_pool, del);
-      zfsd_mutex_unlock (&string_list_mutex);
     }
+  zfsd_mutex_unlock (&string_list_mutex);
 
   varray_destroy (&sl->array);
   htab_destroy (sl->htab);
