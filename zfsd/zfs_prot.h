@@ -58,7 +58,7 @@ typedef struct data_buffer_def
 typedef struct string_def
 {
   unsigned int len;
-  char *buf;
+  char *str;
 } string;
 
 typedef enum ftype_def

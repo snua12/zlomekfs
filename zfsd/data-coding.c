@@ -245,9 +245,9 @@ decode_string (DC *dc, string *str, uint32_t max_len)
   if (dc->cur_length > dc->max_length)
     return false;
 
-  str->buf = (char *) xmalloc (str->len + 1);
-  memcpy (str->buf, dc->current, str->len);
-  str->buf[str->len] = 0;
+  str->str = (char *) xmalloc (str->len + 1);
+  memcpy (str->str, dc->current, str->len);
+  str->str[str->len] = 0;
   dc->current += str->len;
 
   return true;
@@ -269,7 +269,7 @@ encode_string (DC *dc, string *str)
       return false;
     }
 
-  memcpy (dc->current, str->buf, str->len);
+  memcpy (dc->current, str->str, str->len);
   dc->current += str->len;
 
   return true;
