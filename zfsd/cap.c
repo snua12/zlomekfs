@@ -361,7 +361,11 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
     abort ();
 #endif
 
-  if (VIRTUAL_FH_P (cap->fh) && cap->flags != O_RDONLY)
+  if (NON_EXIST_FH_P (cap->fh))
+    return EINVAL;
+
+  if ((VIRTUAL_FH_P (cap->fh) || CONFLICT_DIR_P (cap->fh))
+      && cap->flags != O_RDONLY)
     return EISDIR;
 
   if (VIRTUAL_FH_P (cap->fh))

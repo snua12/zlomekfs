@@ -2377,7 +2377,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
     return r;
 
   /* Lookup FROM.  */
-  if (VIRTUAL_FH_P (*from))
+  if (!REGULAR_FH_P (*from))
     return EPERM;
 
   r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
@@ -2892,7 +2892,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  if (VIRTUAL_FH_P (*fh))
+  if (VIRTUAL_FH_P (*fh) || CONFLICT_DIR_P (*fh))
     return EINVAL;
 
   if (NON_EXIST_FH_P (*fh))
@@ -3469,10 +3469,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   internal_dentry dentry;
   int32_t r;
 
-  if (VIRTUAL_FH_P (*fh))
-    return EINVAL;
-
-  if (CONFLICT_DIR_P (*fh))
+  if (!REGULAR_FH_P (*fh))
     return EINVAL;
 
   vol = volume_lookup (fh->vid);
@@ -3699,10 +3696,10 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   internal_dentry idir, dentry;
   int32_t r;
 
-  if (VIRTUAL_FH_P (*fh))
+  if (!REGULAR_FH_P (*fh))
     return EINVAL;
 
-  if (VIRTUAL_FH_P (*dir))
+  if (!REGULAR_FH_P (*dir))
     return EINVAL;
 
   r = validate_operation_on_zfs_fh (fh, true, EINVAL);
@@ -3833,7 +3830,7 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   internal_dentry idir, dentry;
   int32_t r, r2;
 
-  if (VIRTUAL_FH_P (*dir))
+  if (!REGULAR_FH_P (*dir))
     return EINVAL;
 
   r = validate_operation_on_zfs_fh (dir, true, EINVAL);
@@ -3897,11 +3894,8 @@ refresh_fh (zfs_fh *fh)
   dir_op_res res;
   int32_t r;
 
-  if (VIRTUAL_FH_P (*fh))
-    return ESTALE;
-
-  if (NON_EXIST_FH_P (*fh))
-    return ESTALE;
+  if (!REGULAR_FH_P (*fh))
+    return EINVAL;
 
   r = zfs_file_info (&info, fh);
   if (r != ZFS_OK)

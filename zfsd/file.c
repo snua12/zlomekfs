@@ -1732,7 +1732,7 @@ zfs_read (uint32_t *rcount, void *buffer,
   if (count > ZFS_MAXDATA)
     return EINVAL;
 
-  if (VIRTUAL_FH_P (cap->fh))
+  if (!REGULAR_FH_P (cap->fh))
     return EISDIR;
 
   if (cap->flags != O_RDONLY && cap->flags != O_RDWR)
@@ -1972,7 +1972,7 @@ zfs_write (write_res *res, write_args *args)
   if (args->data.len > ZFS_MAXDATA)
     return EINVAL;
 
-  if (VIRTUAL_FH_P (args->cap.fh))
+  if (!REGULAR_FH_P (args->cap.fh))
     return EISDIR;
 
   if (args->cap.flags != O_WRONLY && args->cap.flags != O_RDWR)
@@ -2114,7 +2114,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   dir_list list;
 
 #ifdef ENABLE_CHECKING
-  if (VIRTUAL_FH_P (*fh))
+  if (!REGULAR_FH_P (*fh))
     abort ();
 #endif
 
@@ -2199,7 +2199,7 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   zfs_cap remote_cap;
 
 #ifdef ENABLE_CHECKING
-  if (VIRTUAL_FH_P (*fh))
+  if (!REGULAR_FH_P (*fh))
     abort ();
 #endif
 
