@@ -67,7 +67,7 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
 #endif
 
   interval_tree_complement (fh->updated, start, end, &tmp);
-  interval_tree_complement_varray (fh->updated, &tmp, blocks);
+  interval_tree_complement_varray (fh->modified, &tmp, blocks);
   varray_destroy (&tmp);
 }
 
