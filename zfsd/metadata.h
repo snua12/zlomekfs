@@ -129,6 +129,7 @@ extern ftype zfs_mode_to_ftype (uint32_t mode);
 extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);
+extern void close_journal_file (journal_t journal);
 extern bool init_interval_tree (volume vol, internal_fh fh,
 				metadata_type type);
 extern bool flush_interval_tree (volume vol, internal_fh fh,
