@@ -145,6 +145,9 @@ network_worker (void *data)
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
 pthread_t main_network_thread;
 
+/* This mutex is locked when main network thread is in poll.  */
+pthread_mutex_t main_network_thread_in_poll;
+
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
 
@@ -279,7 +282,7 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);
 
-  if (!running)
+  if (!get_running ())
     {
       t->retval = ZFS_EXITING;
       return;
@@ -334,7 +337,7 @@ add_fd_to_active (int fd)
   zfsd_mutex_lock (&active_mutex);
   zfsd_mutex_lock (&network_fd_data[fd].mutex);
   init_fd_data (fd);
-  pthread_kill (main_network_thread, SIGUSR1);	/* terminate poll */
+  thread_terminate_poll (main_network_thread, &main_network_thread_in_poll);
   zfsd_mutex_unlock (&active_mutex);
 }
 
@@ -401,6 +404,8 @@ network_worker (void *data)
   network_fd_data_t *fd_data;
   uint32_t request_id;
   uint32_t fn;
+
+  thread_disable_signals ();
 
   pthread_cleanup_push (network_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
@@ -472,7 +477,7 @@ network_worker (void *data)
 out:
       zfsd_mutex_lock (&fd_data->mutex);
       fd_data->busy--;
-      if (running)
+      if (get_running ())
 	{
 	  if (fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
 	    {
@@ -698,10 +703,12 @@ network_main (void * ATTRIBUTE_UNUSED data)
   time_t now;
   static char dummy[ZFS_MAXDATA];
 
+  thread_disable_signals ();
+
   pfd = (struct pollfd *) xmalloc (max_nfd * sizeof (struct pollfd));
   accept_connections = 1;
 
-  while (running)
+  while (get_running ())
     {
       zfsd_mutex_lock (&active_mutex);
       for (i = 0; i < nactive; i++)
@@ -715,18 +722,21 @@ network_main (void * ATTRIBUTE_UNUSED data)
 	  pfd[nactive].events = CAN_READ;
 	}
       n = nactive;
-      zfsd_mutex_unlock (&active_mutex);
 
       message (2, stderr, "Polling %d sockets\n", n + accept_connections);
+      zfsd_mutex_lock (&main_network_thread_in_poll);
+      zfsd_mutex_unlock (&active_mutex);
       r = poll (pfd, n + accept_connections, -1);
+      zfsd_mutex_unlock (&main_network_thread_in_poll);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
+
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, network_main exiting\n", strerror (errno));
 	  break;
 	}
 
-      if (!running)
+      if (!get_running ())
 	{
 	  message (2, stderr, "Terminating\n");
 	  break;

@@ -26,6 +26,9 @@
 /* Thread ID of the main client thread (thread receiving data from socket).  */
 extern pthread_t main_client_thread;
 
+/* This mutex is locked when main client thread is in poll.  */
+extern pthread_mutex_t main_client_thread_in_poll;
+
 extern bool create_client_threads ();
 extern bool client_start ();
 extern void client_cleanup ();

@@ -30,11 +30,11 @@
 #include "network.h"
 #include "zfs_prot.h"
 
-/* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-extern volatile bool running;
-
 /* Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
+
+/* Mutex protecting RUNNING flag.  */
+extern pthread_mutex_t running_mutex;
 
 /* State of the thread.  */
 typedef enum thread_state_def
@@ -126,6 +126,9 @@ typedef struct thread_pool_regulator_data_def
   thread_initialize init;	/* initialization routine */
 } thread_pool_regulator_data;
 
+extern bool get_running ();
+extern void set_running (bool value);
+extern void thread_terminate_poll (pthread_t thread, pthread_mutex_t *mutex);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,
@@ -135,6 +138,7 @@ extern void thread_pool_destroy (thread_pool *pool);
 extern int create_idle_thread (thread_pool *pool, thread_start start,
 			       thread_initialize init);
 extern int destroy_idle_thread (thread_pool *pool);
+extern void thread_disable_signals ();
 extern void thread_pool_regulate (thread_pool *pool, thread_start start,
 				  thread_initialize init);
 extern void thread_pool_create_regulator (thread_pool_regulator_data *data,

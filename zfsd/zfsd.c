@@ -56,6 +56,7 @@ char *config_file = "/etc/zfs/config";
 thread main_thread_data;
 
 /* Local function prototypes.  */
+static void terminate ();
 static void exit_sighandler (int signum);
 static void fatal_sigaction (int signum, siginfo_t *info, void *data);
 static void init_sig_handlers ();
@@ -68,15 +69,27 @@ static void die () ATTRIBUTE_NORETURN;
 #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 #endif
 
+/* Make zfsd to terminate.  */
+
+static void
+terminate ()
+{
+  sigset_t mask, old_mask;
+
+  sigfillset (&mask);
+  pthread_sigmask (SIG_SETMASK, &mask, &old_mask);
+  exit_sighandler (0);
+  pthread_sigmask (SIG_SETMASK, &old_mask, NULL);
+}
+
 /* Signal handler for terminating zfsd.  */
 
 static void
 exit_sighandler (int signum)
 {
-  running = false;
-
-  pthread_kill (main_client_thread, SIGUSR1);
-  pthread_kill (main_network_thread, SIGUSR1);
+  set_running (false);
+  thread_terminate_poll (main_client_thread, &main_client_thread_in_poll);
+  thread_terminate_poll (main_network_thread, &main_network_thread_in_poll);
 }
 
 /* Report the fatal signal.  */
@@ -132,6 +145,14 @@ static void
 init_sig_handlers ()
 {
   struct sigaction sig;
+
+  /* Remember the thread ID of this thread.  */
+  main_thread = pthread_self ();
+
+  /* Initialize the mutexes which are used with signal handlers.  */
+  zfsd_mutex_init (&running_mutex);
+  zfsd_mutex_init (&main_client_thread_in_poll);
+  zfsd_mutex_init (&main_network_thread_in_poll);
 
   /* Set the signal handler for terminating zfsd.  */
   sigfillset (&sig.sa_mask);
@@ -507,9 +528,6 @@ main (int argc, char **argv)
 
   daemon_mode ();
 
-  /* Remember the thread ID of this thread.  */
-  main_thread = pthread_self ();
-
   /* Initialize information about network file descriptors.  */
   if (!init_network_fd_data ())
     die ();
@@ -522,7 +540,7 @@ main (int argc, char **argv)
 
   /* Make the connection with kernel and start main client thread.  */
   if (!client_start ())
-    exit_sighandler (0);
+    terminate ();
   
   /* Register the ZFS protocol RPC server, register_server never returns (unless
      error occurs).  */
@@ -535,13 +553,13 @@ main (int argc, char **argv)
       test_zfs (&main_thread_data);
 #else
       if (!read_cluster_config ())
-	exit_sighandler (0);
+	terminate ();
 #endif
 
       pthread_join (main_network_thread, NULL);
     }
   else
-    running = false;
+    terminate ();
 #endif
 
   client_cleanup ();

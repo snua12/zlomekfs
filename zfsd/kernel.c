@@ -66,6 +66,9 @@ typedef struct client_fd_data_def
 /* Thread ID of the main client thread (thread receiving data from sockets).  */
 pthread_t main_client_thread;
 
+/* This mutex is locked when main client thread is in poll.  */
+pthread_mutex_t main_client_thread_in_poll;
+
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
 
@@ -123,6 +126,8 @@ client_worker (void *data)
   thread *t = (thread *) data;
   uint32_t request_id;
   uint32_t fn;
+
+  thread_disable_signals ();
 
   pthread_cleanup_push (client_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
@@ -187,7 +192,7 @@ client_worker (void *data)
 
 out:
       zfsd_mutex_lock (&client_data.mutex);
-      if (running)
+      if (get_running ())
 	{
 	  if (client_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
 	    {
@@ -307,21 +312,26 @@ client_main (void * ATTRIBUTE_UNUSED data)
   ssize_t r;
   static char dummy[ZFS_MAXDATA];
 
-  while (running)
+  thread_disable_signals ();
+
+  while (get_running ())
     {
       pfd.fd = main_socket;
       pfd.events = CAN_READ;
 
       message (2, stderr, "Polling\n");
+      zfsd_mutex_lock (&main_client_thread_in_poll);
       r = poll (&pfd, 1, -1);
+      zfsd_mutex_unlock (&main_client_thread_in_poll);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
+
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, client_main exiting\n", strerror (errno));
 	  break;
 	}
 
-      if (!running)
+      if (!get_running ())
 	{
 	  message (2, stderr, "Terminating\n");
 	  break;

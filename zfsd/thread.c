@@ -21,6 +21,7 @@
 #include "system.h"
 #include <stddef.h>
 #include <unistd.h>
+#include <signal.h>
 #include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
@@ -44,10 +45,50 @@ pthread_mutex_t zfsd_mutex_initializer
 #endif
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-volatile bool running = true;
+static volatile bool running = true;
+
+/* Mutex protecting RUNNING.  */
+pthread_mutex_t running_mutex;
 
 /* Key for thread specific data.  */
 pthread_key_t thread_data_key;
+
+/* Get value of RUNNING flag.  */
+
+bool
+get_running ()
+{
+  bool value;
+
+  zfsd_mutex_lock (&running_mutex);
+  value = running;
+  zfsd_mutex_unlock (&running_mutex);
+
+  return value;
+}
+
+/* Set RUNNING flag to VALUE.  */
+
+void
+set_running (bool value)
+{
+  zfsd_mutex_lock (&running_mutex);
+  running = value;
+  zfsd_mutex_unlock (&running_mutex);
+}
+
+/* Terminate poll in THREAD.  Poll is being executed when MUTEX is locked.  */
+
+void
+thread_terminate_poll (pthread_t thread, pthread_mutex_t *mutex)
+{
+  while (pthread_mutex_trylock (mutex) != 0)
+    {
+      usleep (1);
+      pthread_kill (thread, SIGUSR1);
+    }
+  pthread_mutex_unlock (mutex);
+}
 
 /* Get state of thread T.  */
 
@@ -208,6 +249,20 @@ destroy_idle_thread (thread_pool *pool)
   return r;
 }
 
+/* Disable receiving signals by calling thread.  */
+
+void
+thread_disable_signals ()
+{
+  sigset_t mask;
+
+  sigemptyset (&mask);
+  sigaddset (&mask, SIGINT);
+  sigaddset (&mask, SIGQUIT);
+  sigaddset (&mask, SIGTERM);
+  pthread_sigmask (SIG_BLOCK, &mask, NULL);
+}
+
 /* Kill/create threads when there are too many or not enough idle threads.
    It expects NETWORK_POOL.IDLE.MUTEX to be locked.  */
 
@@ -245,10 +300,12 @@ thread_pool_regulator (void *data)
 {
   thread_pool_regulator_data *d = (thread_pool_regulator_data *) data;
 
-  while (running)
+  thread_disable_signals ();
+
+  while (get_running ())
     {
       sleep (THREAD_POOL_REGULATOR_INTERVAL);
-      if (!running)
+      if (!get_running ())
 	return NULL;
       zfsd_mutex_lock (&d->pool->idle.mutex);
       thread_pool_regulate (d->pool, d->start, d->init);
