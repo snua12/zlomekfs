@@ -41,8 +41,7 @@ typedef enum connection_status_def
   CONNECTION_CONNECTING,
   CONNECTION_ACTIVE,
   CONNECTION_PASSIVE,
-  CONNECTION_SLOW,
-  CONNECTION_FAST
+  CONNECTION_ESTABLISHED
 } connection_status;
 
 /* Status of authentication.  */

@@ -563,7 +563,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
       if (authenticated)
 	{
 	  fd_data->auth = AUTHENTICATION_FINISHED;
-	  fd_data->conn = CONNECTION_FAST;
+	  fd_data->conn = CONNECTION_ESTABLISHED;
 	  zfsd_cond_broadcast (&fd_data->cond);
 	  encode_status (dc, ZFS_OK);
 	  update_node_fd (nod, fd_data->fd, fd_data->generation, false);

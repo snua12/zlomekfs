@@ -510,10 +510,6 @@ again:
 	t->retval = ZFS_COULD_NOT_CONNECT;
 	goto again;
 
-      case CONNECTION_SLOW:
-      case CONNECTION_FAST:
-	return fd;
-
       case CONNECTION_PASSIVE:
 	while (fd_data_a[fd].conn == CONNECTION_PASSIVE)
 	  {
@@ -527,6 +523,9 @@ again:
 	if (fd_data_a[fd].auth >= auth)
 	  return fd;
 	break;
+
+      case CONNECTION_ESTABLISHED:
+	return fd;
     }
 
   switch (fd_data_a[fd].auth)
