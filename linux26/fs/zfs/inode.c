@@ -23,6 +23,9 @@
 #include <linux/fs.h>
 #include <linux/kdev_t.h>
 #include <linux/errno.h>
+#include <linux/string.h>
+#include <linux/time.h>
+#include <linux/stat.h>
 
 #include "zfs.h"
 #include "zfs_prot.h"
@@ -31,8 +34,10 @@
 
 static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
 {
+//	= attr->dev;
+//	= attr->ino;
 	inode->i_version = attr->version;
-	inode->i_mode = attr->mode | ftype2mode[attr->type];
+	inode->i_mode = ftype2mode[attr->type] | attr->mode;
 	inode->i_nlink = attr->nlink;
 	inode->i_uid = attr->uid;
 	inode->i_gid = attr->gid;
@@ -41,11 +46,8 @@ static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
 	inode->i_blocks = attr->blocks;
 	inode->i_blksize = attr->blksize;
 	inode->i_atime.tv_sec = attr->atime;
-	inode->i_atime.tv_nsec = 0;
 	inode->i_mtime.tv_sec = attr->mtime;
-	inode->i_mtime.tv_nsec = 0;
 	inode->i_ctime.tv_sec = attr->ctime;
-	inode->i_ctime.tv_nsec = 0;
 }
 
 static struct inode_operations zfs_file_inode_operations, zfs_dir_inode_operations;
@@ -74,15 +76,34 @@ static void zfs_fill_inode(struct inode *inode, fattr *attr)
 	}
 }
 
-static struct inode *zfs_iget(struct super_block *sb, fattr *attr)
+static int zfs_test_inode(struct inode *inode, void *data)
+{
+	return memcmp(&ZFS_I(inode)->fh, (zfs_fh *)data, sizeof(zfs_fh));
+}
+
+static int zfs_set_inode(struct inode *inode, void *data)
+{
+	ZFS_I(inode)->fh = *(zfs_fh *)data;
+
+	return 0;
+}
+
+static struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 {
 	struct inode *inode;
+	unsigned long hashval = HASH(fh);
 
-	inode = new_inode(sb);
-	if (inode)
+	TRACE("zfs: iget\n");
+
+	inode = iget5_locked(sb, hashval, zfs_test_inode, zfs_set_inode, fh);
+
+	if (inode) {
+		if (inode->i_state & I_NEW) {
+			inode->i_ino = hashval;
+			unlock_new_inode(inode);
+		}
 		zfs_fill_inode(inode, attr);
-
-	TRACE("zfs: iget: %p\n", inode);
+	}
 
 	return inode;
 }
@@ -96,7 +117,7 @@ int zfs_inode(struct inode **inode, struct super_block *sb, zfs_fh *fh)
 	if (error)
 		return error;
 
-	*inode = zfs_iget(sb, &attr);
+	*inode = zfs_iget(sb, fh, &attr);
 	if (!*inode)
 		return -ENOMEM;
 
@@ -220,18 +241,35 @@ static int zfs_rename (struct inode *old_dir, struct dentry *old_dentry, struct 
 	return 0;
 }
 
-static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
+static void zfs_iattr_to_sattr(sattr *attr, struct iattr *iattr)
 {
-	TRACE("zfs: setattr\n");
-
-	return 0;
+	attr->mode = iattr->ia_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	attr->uid = iattr->ia_uid;
+	attr->gid = iattr->ia_gid;
+	attr->size = iattr->ia_size;
+	attr->atime = iattr->ia_atime.tv_sec;
+	attr->mtime = iattr->ia_mtime.tv_sec;
 }
 
-static int zfs_getattr(struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat)
+static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 {
-	TRACE("zfs: getattr\n");
+	fattr attr;
+	sattr_args args;
+	int error;
 
-	return 0;
+	TRACE("zfs: setattr\n");
+
+	args.file = ZFS_I(dentry->d_inode)->fh;
+	zfs_iattr_to_sattr(&args.attr, iattr);
+
+	error = zfsd_setattr(&attr, &args);
+
+	if (!error) {
+		dentry->d_inode->i_ctime = CURRENT_TIME;
+		zfs_attr_to_iattr(dentry->d_inode, &attr);
+	}
+
+	return error;
 }
 
 static struct inode_operations zfs_dir_inode_operations = {
@@ -245,91 +283,9 @@ static struct inode_operations zfs_dir_inode_operations = {
 	.mknod          = zfs_mknod,
 	.rename         = zfs_rename,
 	.setattr        = zfs_setattr,
-	.getattr        = zfs_getattr,
 };
 
 static struct inode_operations zfs_file_inode_operations = {
 	.setattr        = zfs_setattr,
-	.getattr        = zfs_getattr,
 };
 
-#if 0
-struct inode_operations {
-	int (*create) (struct inode *,struct dentry *,int, struct nameidata *);
-	struct dentry * (*lookup) (struct inode *,struct dentry *, struct nameidata *);
-	int (*link) (struct dentry *,struct inode *,struct dentry *);
-	int (*unlink) (struct inode *,struct dentry *);
-	int (*symlink) (struct inode *,struct dentry *,const char *);
-	int (*mkdir) (struct inode *,struct dentry *,int);
-	int (*rmdir) (struct inode *,struct dentry *);
-	int (*mknod) (struct inode *,struct dentry *,int,dev_t);
-	int (*rename) (struct inode *, struct dentry *,
-		       struct inode *, struct dentry *);
-	int (*readlink) (struct dentry *, char __user *,int);
-	int (*follow_link) (struct dentry *, struct nameidata *);
-	void (*truncate) (struct inode *);
-	int (*permission) (struct inode *, int, struct nameidata *);
-	int (*setattr) (struct dentry *, struct iattr *);
-	int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
-	int (*setxattr) (struct dentry *, const char *,const void *,size_t,int);
-	ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t);
-	ssize_t (*listxattr) (struct dentry *, char *, size_t);
-	int (*removexattr) (struct dentry *, const char *);
-};
-
-struct inode {
-	struct hlist_node       i_hash;
-	struct list_head        i_list;
-	struct list_head        i_dentry;
-	unsigned long           i_ino;
-	atomic_t                i_count;
-	umode_t                 i_mode;
-	unsigned int            i_nlink;
-	uid_t                   i_uid;
-	gid_t                   i_gid;
-	dev_t                   i_rdev;
-	loff_t                  i_size;
-	struct timespec         i_atime;
-	struct timespec         i_mtime;
-	struct timespec         i_ctime;
-	unsigned int            i_blkbits;
-	unsigned long           i_blksize;
-	unsigned long           i_version;
-	unsigned long           i_blocks;
-	unsigned short          i_bytes;
-	spinlock_t              i_lock; /* i_blocks, i_bytes, maybe i_size */
-	struct semaphore        i_sem;
-	struct rw_semaphore     i_alloc_sem;
-	struct inode_operations *i_op;
-	struct file_operations  *i_fop; /* former ->i_op->default_file_ops */
-	struct super_block      *i_sb;
-	struct file_lock        *i_flock;
-	struct address_space    *i_mapping;
-	struct address_space    i_data;
-	struct dquot            *i_dquot[MAXQUOTAS];
-	/* These three should probably be a union */
-	struct list_head        i_devices;
-	struct pipe_inode_info  *i_pipe;
-	struct block_device     *i_bdev;
-	struct cdev             *i_cdev;
-	int                     i_cindex;
-
-	unsigned long           i_dnotify_mask; /* Directory notify events */
-	struct dnotify_struct   *i_dnotify; /* for directory notifications */
-
-	unsigned long           i_state;
-
-	unsigned int            i_flags;
-	unsigned char           i_sock;
-
-	atomic_t                i_writecount;
-	void                    *i_security;
-	__u32                   i_generation;
-        union {
-		                void            *generic_ip;
-				        } u;
-#ifdef __NEED_I_SIZE_ORDERED
-	        seqcount_t              i_size_seqcount;
-#endif
-};
-#endif

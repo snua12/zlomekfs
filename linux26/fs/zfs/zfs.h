@@ -49,6 +49,9 @@
 
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 
+#define ROTATE_LEFT(x, nbites) ((x << nbites) | (x >> (32 - nbites)))
+#define HASH(fh) (ROTATE_LEFT(fh->sid, 24) ^ fh->dev ^ fh->ino)
+
 #define ZFS_I(inode) ((struct zfs_inode_info *)inode)
 struct zfs_inode_info {
 	struct inode vfs_inode;

@@ -24,6 +24,8 @@
 #include <linux/errno.h>
 
 #include "zfs.h"
+#include "zfs_prot.h"
+#include "zfsd_call.h"
 
 
 static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff_t *off)
@@ -42,58 +44,48 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 
 int zfs_open(struct inode *inode, struct file *file)
 {
-	TRACE("zfs: open\n");
+	zfs_cap *cap;
+	open_args args;
+	int error;
+
+	TRACE("zfs: open: %p\n", inode);
+
+	cap = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
+	if (!cap)
+		return -ENOMEM;
+
+	args.file = ZFS_I(inode)->fh;
+	args.flags = file->f_flags;
+
+	error = zfsd_open(cap, &args);
+	if (error) {
+		kfree(cap);
+		return error;
+	}
+
+	file->private_data = cap;
 
 	return 0;
 }
 
 int zfs_release(struct inode *inode, struct file *file)
 {
-	TRACE("zfs: release\n");
+	int error;
 
-	return 0;
+	TRACE("zfs: release: %p\n", inode);
+
+	error = zfsd_close(file->private_data);
+
+	kfree(file->private_data);
+
+	return error;
 }
 
 struct file_operations zfs_file_operations = {
 	.llseek         = generic_file_llseek,
 	.read           = zfs_read,
 	.write          = zfs_write,
-//	.mmap           = zfs_file_mmap,
 	.open           = zfs_open,
-//	.flush          = zfs_flush,
 	.release        = zfs_release,
-//	.fsync          = zfs_fsync,
 };
 
-
-#if 0
-/*
- * NOTE:
- * read, write, poll, fsync, readv, writev can be called
- *   without the big kernel lock held in all filesystems.
- */
-struct file_operations {
-	struct module *owner;
-	loff_t (*llseek) (struct file *, loff_t, int);
-	ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
-	ssize_t (*aio_read) (struct kiocb *, char __user *, size_t, loff_t);
-	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
-	ssize_t (*aio_write) (struct kiocb *, const char __user *, size_t, loff_t);
-	int (*readdir) (struct file *, void *, filldir_t);
-	unsigned int (*poll) (struct file *, struct poll_table_struct *);
-	int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
-	int (*mmap) (struct file *, struct vm_area_struct *);
-	int (*open) (struct inode *, struct file *);
-	int (*flush) (struct file *);
-	int (*release) (struct inode *, struct file *);
-	int (*fsync) (struct file *, struct dentry *, int datasync);
-	int (*aio_fsync) (struct kiocb *, int datasync);
-	int (*fasync) (int, struct file *, int);
-	int (*lock) (struct file *, int, struct file_lock *);
-	ssize_t (*readv) (struct file *, const struct iovec *, unsigned long, loff_t *);
-	ssize_t (*writev) (struct file *, const struct iovec *, unsigned long, loff_t *);
-	ssize_t (*sendfile) (struct file *, loff_t *, size_t, read_actor_t, void __user *);
-	ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
-	unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
-};
-#endif

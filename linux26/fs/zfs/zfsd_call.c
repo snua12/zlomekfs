@@ -20,6 +20,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html
  */
 
+#include <linux/smp_lock.h>
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
@@ -105,13 +106,14 @@ int zfsd_root(zfs_fh *fh)
 
 	error = zfs_proc_root_zfsd(&dc, NULL);
 
-	if (!error) {
-		if (!decode_zfs_fh(dc, fh)
-		    || !finish_decoding(dc))
-			error = -EPROTO;
-	}
+	if (!error
+	    && (!decode_zfs_fh(dc, fh)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
 
 	dc_put(dc);
+
+	TRACE("zfs: zfsd_root: %d\n", error);
 
 	return error;
 }
@@ -129,13 +131,113 @@ int zfsd_getattr(fattr *attr, zfs_fh *fh)
 
 	error = zfs_proc_getattr_zfsd(&dc, fh);
 
-	if (!error) {
-		if (!decode_fattr(dc, attr)
-		    || !finish_decoding(dc))
-			error = -EPROTO;
-	}
+	if (!error
+	    && (!decode_fattr(dc, attr)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
 
 	dc_put(dc);
+
+	TRACE("zfs: zfsd_getattr: %d\n", error);
+
+	return error;
+}
+
+int zfsd_setattr(fattr *attr, sattr_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs: zfsd_setattr\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_setattr_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_fattr(dc, attr)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs: zfsd_setattr: %d\n", error);
+
+	return error;
+}
+
+int zfsd_open(zfs_cap *cap, open_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs: zfsd_open\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_open_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_zfs_cap(dc, cap)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs: zfsd_open: %d\n", error);
+
+	return error;
+}
+
+int zfsd_close(zfs_cap *cap)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs: zfsd_close\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_close_zfsd(&dc, cap);
+
+	if (!error
+	    && !finish_decoding(dc))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs: zfsd_close: %d\n", error);
+
+	return error;
+}
+
+int zfsd_readdir(dir_list *list, read_dir_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs: zfsd_readdir\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_readdir_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_dir_list(dc, list)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs: zfsd_readdir: %d\n", error);
 
 	return error;
 }

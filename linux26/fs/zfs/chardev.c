@@ -145,6 +145,11 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 				req->state = REQ_DEQUEUED;
 				dc_put(req->dc);
 				req->dc = dc;
+
+				/* FIXME: a better synchronization is realy acceptable */
+				while (list_entry(req->waitq.task_list.next, wait_queue_t, task_list)->task->state != TASK_INTERRUPTIBLE)
+					schedule();
+
 				wake_up(&req->waitq);
 				up(&req->lock);
 
