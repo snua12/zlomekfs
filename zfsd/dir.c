@@ -29,9 +29,127 @@
 #include "dir.h"
 #include "log.h"
 #include "memory.h"
+#include "thread.h"
 #include "varray.h"
 #include "volume.h"
 #include "zfs_prot.h"
+
+/* Store the local file handle of root of volume VOL to LOCAL_FH.  */
+
+static int
+get_volume_root_local (volume vol, zfs_fh *local_fh)
+{
+  /* The volume (or its copy) is located on this node.  */
+  if (vol->local_path)
+    {
+      struct stat st;
+
+      if (stat (vol->local_path, &st) != 0)
+	return errno;
+
+      local_fh->sid = this_node->id;
+      local_fh->vid = vol->id;
+      local_fh->dev = st.st_dev;
+      local_fh->ino = st.st_ino;
+    }
+  else
+    abort ();
+
+  return ZFS_OK;
+}
+
+/* Store the remote file handle of root of volume VOL to REMOTE_FH.  */
+
+static int
+get_volume_root_remote (volume vol, zfs_fh *remote_fh)
+{
+  int32_t r;
+
+  /* The volume is completelly remote or we have a copy of the volume.
+     Call the remote function only when we need the file handle.  */
+  if (vol->master != this_node)
+    {
+      volume_root_args args;
+      thread *t;
+
+      t = (thread *) pthread_getspecific (server_thread_key);
+      args.vid = vol->id;
+      r = zfs_proc_volume_root_client (t, &args, vol->master);
+      if (r == ZFS_OK)
+	{
+	  if (!decode_zfs_fh (&t->u.server.dc_call, remote_fh)
+	      || !finish_decoding (&t->u.server.dc_call))
+	    return ZFS_INVALID_REPLY;
+	}
+    }
+  else
+    abort ();
+
+  return r;
+}
+
+/* Get file handle of root of volume VOL, store the local file handle to
+   LOCAL_FH and master's file handle to MASTER_FH, if defined.  */
+
+int
+get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh)
+{
+  int32_t r = ZFS_OK;
+
+  if (vol->master == this_node)
+    {
+      /* The volume is managed by this node.  */
+      if (local_fh)
+	{
+	  r = get_volume_root_local (vol, local_fh);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  if (master_fh)
+	    memcpy (master_fh, local_fh, sizeof (zfs_fh));
+	}
+      else if (master_fh)
+	{
+	  r = get_volume_root_local (vol, master_fh);
+	}
+    }
+  else if (vol->local_path)
+    {
+      /* There is a copy of volume on this node.  */
+      if (local_fh)
+	{
+	  r = get_volume_root_local (vol, local_fh);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  if (master_fh)
+	    r = get_volume_root_remote (vol, master_fh);
+	}
+      else if (master_fh)
+	{
+	  r = get_volume_root_remote (vol, master_fh);
+	}
+    }
+  else
+    {
+      /* The volume is completelly remote.  */
+      if (local_fh)
+	{
+	  r = get_volume_root_remote (vol, local_fh);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  if (master_fh)
+	    memcpy (master_fh, local_fh, sizeof (zfs_fh));
+	}
+      else if (master_fh)
+	{
+	  r = get_volume_root_remote (vol, master_fh);
+	}
+    }
+
+  return r;
+}
 
 /* Lookup NAME in directory DIR and store it to FH. Return 0 on success.  */
 
@@ -134,8 +252,8 @@ local_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
   if (lstat (path, &st) != 0)
     return errno;
 
-  fh->sid = dir->client_fh.sid;
-  fh->vid = dir->client_fh.vid;
+  fh->sid = dir->local_fh.sid;
+  fh->vid = dir->local_fh.vid;
   fh->dev = st.st_dev;
   fh->ino = st.st_ino;
 
@@ -150,33 +268,23 @@ remote_lookup (zfs_fh *fh, internal_fh dir, const char *name, volume vol,
 }
 
 static void
-update_root (volume vol, internal_fh *ifh)
+update_volume_root (volume vol, internal_fh *ifh)
 {
-  zfs_fh new_root;
+  zfs_fh local_fh, master_fh;
 
-  new_root.sid = vol->master->id;
-  new_root.vid = vol->id;
-  new_root.dev = 1;
-  new_root.ino = 1;
-  
-  /* FIXME: */
-  if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
-    {
-      /* get local root zfs_fh */
-    }
-  else
-    {
-      /* get remote root zfs_fh */
-    }
+  if (get_volume_root (vol, &local_fh, &master_fh) != ZFS_OK)
+    return;
 
-  if (!ZFS_FH_EQ (vol->root_fh, new_root))
+  if (!ZFS_FH_EQ (vol->local_root_fh, local_fh)
+      || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
     {
+      /* FIXME? delete only FHs which are not open now?  */
       htab_empty (vol->fh_htab_name);
       htab_empty (vol->fh_htab);
 
-      vol->root_fh = new_root;
-      *ifh = internal_fh_create (/*FIXME*/&vol->root_fh, &vol->root_fh, NULL,
-				 vol, "");
+      vol->local_root_fh = local_fh;
+      vol->master_root_fh = master_fh;
+      *ifh = internal_fh_create (&local_fh, &master_fh, NULL, vol, "");
     }
 }
 
@@ -193,10 +301,10 @@ zfs_lookup (zfs_fh *fh, zfs_fh *dir, const char *name)
   if (!fh_lookup (dir, &vol, &idir, &pvd))
     return ESTALE;
 
-  /* FIXME: update_directory - pokud to je mountpoint, zepta se na root_fh a
-     pripadne zaktualizuje, upravi idir*/
   if (pvd && pvd->vol)
-    update_root (pvd->vol, &idir);
+    update_volume_root (pvd->vol, &idir);
+
+  /* TODO: update directory */
 
   if (idir)
     {
