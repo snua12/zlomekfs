@@ -40,6 +40,8 @@ typedef struct string_def
 
 #ifndef __KERNEL__
 
+extern string empty_string;
+
 extern void *xcalloc (size_t nmemb, size_t size) ATTRIBUTE_MALLOC;
 extern void *xmalloc (size_t size) ATTRIBUTE_MALLOC;
 extern void *xrealloc (void *ptr, size_t size) ATTRIBUTE_MALLOC;

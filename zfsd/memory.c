@@ -27,6 +27,8 @@
 #include "memory.h"
 #include "varray.h"
 
+string empty_string = { 0, "" };
+
 /* Similar to CALLOC but always returns valid pointer.  */
 void *
 xcalloc (size_t nmemb, size_t size)
