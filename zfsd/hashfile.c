@@ -220,11 +220,13 @@ hfile_expand (hfile_t hfile)
   hashfile_header header;
   char buffer[HFILE_BUFFER_SIZE];
 
-  if (2 * hfile->n_elements >= hfile->size)
+  if (2 * (hfile->n_elements - hfile->n_deleted) >= hfile->size)
     new_size = 2 * hfile->size;
   else if (8 * (hfile->n_elements - hfile->n_deleted) <= hfile->size
 	   && hfile->size > 32)
     new_size = hfile->size / 2;
+  else if (2 * hfile->n_elements >= hfile->size)
+    new_size = hfile->size;
   else
     return true;
 
