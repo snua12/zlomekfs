@@ -3158,41 +3158,6 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
   return true;
 }
 
-/* Add a journal entry for file with stat result ST, name NAME
-   and operation OPER to journal for file handle FH on volume VOL.  */
-
-bool
-add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
-		      string *name, journal_operation_t oper)
-{
-  metadata meta;
-  zfs_fh local_fh;
-
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!vol->local_path.str || !vol->is_copy)
-    abort ();
-#endif
-
-  local_fh.dev = st->st_dev;
-  local_fh.ino = st->st_ino;
-  meta.flags = METADATA_COMPLETE;
-  meta.modetype = GET_MODETYPE (GET_MODE (st->st_mode),
-				zfs_mode_to_ftype (st->st_mode));
-  meta.uid = map_uid_node2zfs (st->st_uid);
-  meta.gid = map_gid_node2zfs (st->st_gid);
-  if (!lookup_metadata (vol, &local_fh, &meta, true))
-    return false;
-
-#ifdef ENABLE_CHECKING
-  if (meta.slot_status != VALID_SLOT)
-    abort ();
-#endif
-
-  return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
-}
-
 /* Add a journal entry for file with metadata META, name NAME
    and operation OPER to journal for file handle FH on volume VOL.  */
 

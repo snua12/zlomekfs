@@ -184,8 +184,6 @@ extern bool write_journal (volume vol, zfs_fh *fh, journal_t journal);
 extern bool add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 			       zfs_fh *master_fh, string *name,
 			       journal_operation_t oper);
-extern bool add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
-				  string *name, journal_operation_t oper);
 extern bool add_journal_entry_meta (volume vol, internal_fh fh, metadata *meta,
 				    string *name, journal_operation_t oper);
 extern bool create_shadow_path (string *path, volume vol, zfs_fh *fh,
