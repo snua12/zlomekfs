@@ -2051,7 +2051,6 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
 
 	      vol = volume_lookup (tmp_fh.vid);
 	      conflict = dentry_lookup (&tmp_fh);
-	      zfsd_mutex_unlock (&fh_mutex);
 
 #ifdef ENABLE_CHECKING
 	      if (!vol)
