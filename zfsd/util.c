@@ -62,7 +62,8 @@ full_read (int fd, void *buf, size_t len)
 
   if (verbose >= 3)
     {
-      message (3, stderr, "Reading data from %d to %p:\n", fd, buf);
+      message (3, stderr, "Reading data of length %u from %d to %p:\n",
+	       len, fd, buf);
       print_hex_buffer ((char *) buf, len, stderr);
     }
 
@@ -79,7 +80,8 @@ full_write (int fd, void *buf, size_t len)
 
   if (verbose >= 3)
     {
-      message (3, stderr, "Writing data to %d from %p:\n", fd, buf);
+      message (3, stderr, "Writing data of length %u to %d from %p:\n",
+	       len, fd, buf);
       print_hex_buffer ((char *) buf, len, stderr);
     }
 
