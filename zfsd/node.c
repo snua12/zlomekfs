@@ -178,24 +178,20 @@ node_create (unsigned int id, char *name)
   zfsd_mutex_init (&nod->mutex);
   zfsd_mutex_lock (&nod->mutex);
 
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
-				   NO_INSERT);
-  if (slot)
-    abort ();
-#endif
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   INSERT);
-  *slot = nod;
-
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (node_htab_name, nod->name,
-				   NODE_HASH_NAME (nod), NO_INSERT);
-  if (slot)
+  if (*slot)
     abort ();
 #endif
+  *slot = nod;
+
   slot = htab_find_slot_with_hash (node_htab_name, nod->name,
 				   NODE_HASH_NAME (nod), INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
   *slot = nod;
 
   return nod;

@@ -165,14 +165,12 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
-				   INTERNAL_CAP_HASH (cap), NO_INSERT);
-  if (slot)
-    abort ();
-#endif
   slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
 				   INTERNAL_CAP_HASH (cap), INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
   *slot = cap;
 
   return cap;
@@ -211,14 +209,12 @@ internal_cap_create_vd (virtual_dir vd, unsigned int flags)
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
-				   INTERNAL_CAP_HASH (cap), NO_INSERT);
-  if (slot)
-    abort ();
-#endif
   slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
 				   INTERNAL_CAP_HASH (cap), INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
   *slot = cap;
 
   return cap;

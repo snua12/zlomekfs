@@ -738,22 +738,19 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->n_mountpoints = 0;
   vd->vol = NULL;
 
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (vd_htab, &vd->fh,
-				   VIRTUAL_DIR_HASH (vd), NO_INSERT);
-  if (slot)
-    abort ();
-#endif
   slot = htab_find_slot_with_hash (vd_htab, &vd->fh,
 				   VIRTUAL_DIR_HASH (vd), INSERT);
-  *slot = vd;
-
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (vd_htab_name, vd, NO_INSERT);
-  if (slot)
+  if (*slot)
     abort ();
 #endif
+  *slot = vd;
+
   slot = htab_find_slot (vd_htab_name, vd, INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
   *slot = vd;
 
   return vd;

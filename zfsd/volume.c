@@ -105,15 +105,12 @@ volume_create (unsigned int id)
 				   internal_fh_eq_name, NULL, &vol->mutex);
 
 
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
-				   NO_INSERT);
-  if (slot)
-    abort ();
-#endif
-
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
   *slot = vol;
 
   return vol;

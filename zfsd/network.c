@@ -333,16 +333,13 @@ send_request (thread *t, uint32_t request_id, int fd)
 	pool_alloc (network_fd_data[fd].waiting4reply_pool));
   wd->request_id = request_id;
   wd->t = t;
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (network_fd_data[fd].waiting4reply,
-				   &request_id,
-				   WAITING4REPLY_HASH (request_id), NO_INSERT);
-  if (slot)
-    abort ();
-#endif
   slot = htab_find_slot_with_hash (network_fd_data[fd].waiting4reply,
 				   &request_id,
 				   WAITING4REPLY_HASH (request_id), INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
   *slot = wd;
 
   /* Send the request.  */
