@@ -896,6 +896,9 @@ decode_md5sum_res (DC *dc, md5sum_res *res)
   if (res->count > ZFS_MAX_MD5_CHUNKS)
     return false;
 
+  if (!decode_uint64_t (dc, &res->size))
+    return false;
+
   for (i = 0; i < res->count; i++)
     if (!decode_uint64_t (dc, &res->offset[i]))
       return false;
@@ -922,6 +925,7 @@ encode_md5sum_res (DC *dc, md5sum_res *res)
 #endif
 
   encode_uint32_t (dc, res->count);
+  encode_uint64_t (dc, res->size);
 
   for (i = 0; i < res->count; i++)
     encode_uint64_t (dc, res->offset[i]);

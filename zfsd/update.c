@@ -117,13 +117,9 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
     abort ();
 #endif
 
-  /* If remote file is shorter truncate local file.  */
-  if (local_md5.count > remote_md5.count
-      || (local_md5.count == remote_md5.count
-	  && ((local_md5.offset[local_md5.count - 1]
-	       + local_md5.length[local_md5.count - 1])
-	      < (remote_md5.offset[remote_md5.count - 1]
-		 + remote_md5.length[remote_md5.count - 1]))))
+  /* If the size of remote file differs from the size of local file
+     truncate local file.  */
+  if (local_md5.size != remote_md5.size)
     {
       sattr sa;
 
@@ -135,20 +131,23 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
       if (r != ZFS_OK)
 	return r;
 
-      local_md5.count = remote_md5.count;
-
       r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
 	abort ();
 #endif
+
+      local_md5.size = remote_md5.size;
+      interval_tree_delete (dentry->fh->updated, local_md5.size, UINT64_MAX);
+      interval_tree_delete (dentry->fh->modified, local_md5.size, UINT64_MAX);
+
+      if (local_md5.count > remote_md5.count)
+	local_md5.count = remote_md5.count;
     }
   else
     {
       zfsd_mutex_unlock (&fh_mutex);
     }
-
-  /* DENTRY->FH->MUTEX is still locked.  */
 
   /* Delete the same blocks from MODIFIED interval tree and add them to
      UPDATED interval tree.  */

@@ -2243,6 +2243,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 int32_t
 local_md5sum (md5sum_res *res, md5sum_args *args)
 {
+  internal_dentry dentry;
   uint32_t i;
   MD5Context context;
   unsigned char buf[ZFS_MAXDATA];
@@ -2250,7 +2251,16 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   uint32_t total;
   uint32_t count;
 
+  r = zfs_fh_lookup (&args->cap.fh, NULL, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r != ZFS_OK)
+    abort ();
+#endif
+
   res->count = 0;
+  res->size = dentry->fh->attr.size;
+  release_dentry (dentry);
+
   for (i = 0; i < args->count; i++)
     {
       MD5Init (&context);
