@@ -53,12 +53,12 @@ typedef enum thread_state_def
 } thread_state;
 
 /* Additional data for a network thread.  */
-struct network_fd_data_def;
+struct fd_data_def;
 typedef struct network_thread_data_def
 {
   DC dc;				/* buffer for request to this node */
   call_args args;			/* union for decoded call arguments */
-  struct network_fd_data_def *fd_data;	/* passed from main network thread */
+  struct fd_data_def *fd_data;		/* passed from main network thread */
   unsigned int generation;		/* generation of file descriptor */
   unsigned int index;			/* index of FD in array "active" */
 } network_thread_data;

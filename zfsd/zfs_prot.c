@@ -514,7 +514,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
 			     ATTRIBUTE_UNUSED bool map_id)
 {
   network_thread_data *t_data = (network_thread_data *) data;
-  network_fd_data_t *fd_data = t_data->fd_data;
+  fd_data_t *fd_data = t_data->fd_data;
   node nod;
 
   nod = node_lookup_name (args->node.str);
@@ -549,7 +549,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
 			     ATTRIBUTE_UNUSED bool map_id)
 {
   network_thread_data *t_data = (network_thread_data *) data;
-  network_fd_data_t *fd_data = t_data->fd_data;
+  fd_data_t *fd_data = t_data->fd_data;
   node nod;
   bool authenticated = false;
 
@@ -652,7 +652,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   uint32_t req_id;							\
 									\
-  CHECK_MUTEX_LOCKED (&network_fd_data[fd].mutex);			\
+  CHECK_MUTEX_LOCKED (&fd_data[fd].mutex);			\
 									\
   zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
@@ -664,7 +664,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   encode_function (&t->dc_call, NUMBER);				\
   if (!encode_##ARGS (&t->dc_call, args))				\
     {									\
-      zfsd_mutex_unlock (&network_fd_data[fd].mutex);			\
+      zfsd_mutex_unlock (&fd_data[fd].mutex);			\
       return ZFS_REQUEST_TOO_LONG;					\
     }									\
   finish_encoding (&t->dc_call);					\

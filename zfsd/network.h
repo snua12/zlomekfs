@@ -55,8 +55,9 @@ typedef enum authentication_status_def
   AUTHENTICATION_FINISHED
 } authentication_status;
 
-/* Data for a network socket.  */
-typedef struct network_fd_data_def
+/* Data for a file descriptor used to communicate with other nodes
+   or kernel.  */
+typedef struct fd_data_def
 {
   pthread_mutex_t mutex;
   pthread_cond_t cond;
@@ -77,16 +78,16 @@ typedef struct network_fd_data_def
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
   unsigned int busy;		/* number of threads using file descriptor */
-  unsigned int flags;		/* See NETWORK_FD_* below */
-} network_fd_data_t;
+  unsigned int flags;		/* See FD_FLAG_* below */
+} fd_data_t;
 
-#define NETWORK_FD_CLOSE 1
+#define FD_FLAG_CLOSE 1
 
 /* Pool of network threads.  */
 extern thread_pool network_pool;
 
 /* The array of data for each file descriptor.  */
-extern network_fd_data_t *network_fd_data;
+extern fd_data_t *fd_data;
 
 struct thread_def;
 
@@ -98,7 +99,7 @@ extern bool volume_master_connected (volume vol);
 extern int node_connect_and_authenticate (thread *t, node nod,
 					  authentication_status auth);
 extern bool request_from_this_node ();
-extern void recycle_dc_to_fd_data (DC *dc, network_fd_data_t *fd_data);
+extern void recycle_dc_to_fd_data (DC *dc, fd_data_t *fd_data);
 extern void recycle_dc_to_fd (DC *dc, int fd);
 extern void network_worker_init (struct thread_def *t);
 extern void network_worker_cleanup (void *data);
