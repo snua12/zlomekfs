@@ -1519,6 +1519,41 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
   return true;
 }
 
+/* Find metadata for file handle FH on volume VOL and store it to META.
+   Do not initialize metadata if it is not in the hash file.  */
+
+bool
+find_metadata (volume vol, zfs_fh *fh, metadata *meta)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (!vol->metadata)
+    abort ();
+  if (!vol->local_path)
+    abort ();
+#endif
+
+  if (!hashfile_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
+      if (fd < 0)
+	return false;
+    }
+
+  meta->dev = fh->dev;
+  meta->ino = fh->ino;
+  if (!hfile_lookup (vol->metadata, meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  return true;
+}
+
 /* Get file handle mapping for master file handle MASTER_FH on volume VOL
    and store it to MAP.  */
 
