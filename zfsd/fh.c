@@ -479,6 +479,7 @@ virtual_dir_destroy (virtual_dir vd)
 	    abort ();
 #endif
 	  htab_clear_slot (virtual_dir_htab, slot);
+	  free (vd->name);
 	}
     }
   pthread_mutex_unlock (&virtual_dir_mutex);
