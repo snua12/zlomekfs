@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include "pthread.h"
@@ -134,4 +135,172 @@ create_path_for_file (char *file, unsigned int mode)
     }
 
   return false;
+}
+
+/* Flush interval tree TREE to file name PATH.  */
+
+static bool
+flush_interval_tree_1 (interval_tree tree, char *path)
+{
+  char *new_path;
+  int fd;
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  new_path = xstrconcat (2, path, ".new");
+  fd = open (new_path, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
+  if (fd < 0)
+    {
+      free (new_path);
+      free (path);
+      return false;
+    }
+
+  if (!interval_tree_write (tree, fd))
+    {
+      close (fd);
+      unlink (new_path);
+      free (new_path);
+      free (path);
+      return false;
+    }
+
+  close (fd);	/* FIXME: do not close but set the info about fd in the tree*/
+  rename (new_path, path);
+
+  free (new_path);
+  free (path);
+  return true;
+}
+
+/* Initialize interval tree of purpose PURPOSE for file handle FH
+   on volume VOL.  */
+
+bool
+init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
+{
+  unsigned int i;
+  int fd;
+  char *path;
+  struct stat st;
+  interval_tree *treep;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+  
+  path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
+  fd = open (path, O_RDONLY);
+  if (fd < 0)
+    {
+      if (errno != ENOENT)
+	{
+	  free (path);
+	  return false;
+	}
+
+      if (!create_path_for_file (path, S_IRWXU))
+	{
+	  free (path);
+	  return false;
+	}
+
+      for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+	if (i != metadata_tree_depth)
+	  {
+	    char *old_path = build_metadata_path (vol, fh, purpose, i);
+	    rename (old_path, path);
+	  }
+
+      fd = open (path, O_RDONLY);
+    }
+
+  switch (purpose)
+    {
+      case INTERVAL_TREE_UPDATED:
+	treep = &fh->updated;
+	break;
+
+      case INTERVAL_TREE_MODIFIED:
+	treep = &fh->modified;
+	break;
+    }
+
+  if (fd < 0)
+    {
+      if (errno != ENOENT)
+	{
+	  free (path);
+	  return false;
+	}
+
+      *treep = interval_tree_create (62, &fh->mutex);
+    }
+  else
+    {
+      if (fstat (fd, &st) < 0)
+	{
+	  message (2, stderr, "%s: fstat: %s\n", path, strerror (errno));
+	  close (fd);
+	  free (path);
+	  return false;
+	}
+
+      if ((st.st_mode & S_IFMT) != S_IFREG)
+	{
+	  message (2, stderr, "%s: Not a regular file\n", path);
+	  close (fd);
+	  free (path);
+	  return false;
+	}
+
+      if (st.st_size % sizeof (interval) != 0)
+	{
+	  message (2, stderr, "%s: Interval list is not aligned\n", path);
+	  close (fd);
+	  free (path);
+	  return false;
+	}
+
+      *treep = interval_tree_create (62, &fh->mutex);
+      if (!interval_tree_read (*treep, fd, st.st_size / sizeof (interval)))
+	{
+	  interval_tree_destroy (*treep);
+	  *treep = NULL;
+	  close (fd);
+	  free (path);
+	  return false;
+	}
+
+      close (fd);
+    }
+
+  return flush_interval_tree_1 (*treep, path);
+}
+
+/* Flush the interval tree of purpose PURPOSE for file handle FH on volume VOL
+   to file.  */
+
+bool
+flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
+{
+  char *path;
+  interval_tree tree;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  switch (purpose)
+    {
+      case INTERVAL_TREE_UPDATED:
+	tree = fh->updated;
+	break;
+
+      case INTERVAL_TREE_MODIFIED:
+	tree = fh->modified;
+	break;
+    }
+
+  path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
+  /* TODO: Close fd if opened.  */
+  return flush_interval_tree_1 (tree, path);
 }
