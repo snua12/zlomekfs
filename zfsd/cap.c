@@ -221,26 +221,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
     return ESTALE;
 
   if (*vd && *vol)
-    {
-      int r;
-
-      r = update_volume_root (*vol, ifh);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&(*vol)->mutex);
-	  zfsd_mutex_unlock (&(*vd)->mutex);
-	  return r;
-	}
-      zfsd_mutex_unlock (&(*vd)->mutex);
-      *vd = NULL;
-    }
-  
-  if (*vd && cap->flags != O_RDONLY)
-    {
-      zfsd_mutex_unlock (&(*vol)->mutex);
-      zfsd_mutex_unlock (&(*vd)->mutex);
-      return EISDIR;
-    }
+    update_volume_root (*vol, ifh);
 
   icap = internal_cap_lookup (cap);
   if (icap)
@@ -277,18 +258,7 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
     }
 
   if (*vd && *vol)
-    {
-      int r;
-
-      r = update_volume_root (*vol, ifh);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&icap->mutex);
-	  zfsd_mutex_unlock (&(*vol)->mutex);
-	  zfsd_mutex_unlock (&(*vd)->mutex);
-	  return r;
-	}
-    }
+    update_volume_root (*vol, ifh);
 
   *icapp = icap;
   return ZFS_OK;
@@ -319,18 +289,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     }
 
   if (*vd && *vol)
-    {
-      int r;
-
-      r = update_volume_root (*vol, ifh);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&icap->mutex);
-	  zfsd_mutex_unlock (&(*vol)->mutex);
-	  zfsd_mutex_unlock (&(*vd)->mutex);
-	  return r;
-	}
-    }
+    update_volume_root (*vol, ifh);
 
   *icapp = icap;
   return ZFS_OK;

@@ -266,7 +266,7 @@ zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
   if (r != ZFS_OK)
     return r;
 
-  if (vd)
+  if (!ifh)
     {
       zfsd_mutex_unlock (&icap->mutex);
       if (vol)
@@ -274,6 +274,8 @@ zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
+  if (vd)
+    zfsd_mutex_unlock (&vd->mutex);
 
   r = open_capability (cap, icap, flags & ~O_ACCMODE, ifh, vol);
   zfsd_mutex_unlock (&icap->mutex);
@@ -425,7 +427,7 @@ read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
 		return false;
 	      }
 	    zfsd_mutex_unlock (&svd->mutex);
-	    
+
 	  }
 	if (i == VARRAY_USED (vd->subdirs))
 	  data->list.eof = 1;
@@ -482,7 +484,7 @@ read_local_dir (DC *dc, internal_cap cap, internal_fh fh, virtual_dir vd,
 	     treat this condition like normal EOF.  */
 	  if (r < 0 && errno == ENOENT)
 	    r = 0;
-	  
+
 	  if (r == 0)
 	    {
 	      data->list.eof = 1;
@@ -591,7 +593,10 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
       if (ifh && ifh->attr.type != FT_DIR)
 	{
 	  if (vd)
-	    zfsd_mutex_unlock (&vd->mutex);
+	    {
+	      zfsd_mutex_unlock (&vd->mutex);
+	      zfsd_mutex_unlock (&vd_mutex);
+	    }
 	  zfsd_mutex_unlock (&ifh->mutex);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&icap->mutex);
@@ -633,7 +638,13 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   else if (vol->master != this_node)
     {
       r = read_remote_dir (dc, icap, &data, vol);
-      zfsd_mutex_unlock (&ifh->mutex);
+      if (vd)
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	}
+      if (ifh)
+	zfsd_mutex_unlock (&ifh->mutex);
       zfsd_mutex_unlock (&vol->mutex);
     }
   else
