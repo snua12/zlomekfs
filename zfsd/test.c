@@ -535,7 +535,8 @@ do_tests (void *data)
 	  decode_status (&dc, &status);
 	  decode_data_buffer (&dc, &data);
 	  dc_destroy (&dc);
-	  if (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0)
+	  if (r == ZFS_OK
+	      && (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0))
 	    message (1, stderr, "FAILURE\n");
 
 	  if (!get_running ())
