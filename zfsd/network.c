@@ -193,6 +193,28 @@ update_node_fd (node nod, int fd, unsigned int generation, bool active)
     }
 }
 
+/* Wake all threads waiting for reply on file descriptor with fd_data FD_DATA
+   and set return value to RETVAL.  */
+
+static void
+wake_all_threads (fd_data_t *fd_data, int32_t retval)
+{
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&fd_data->mutex);
+
+  HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot,
+    {
+      waiting4reply_data *data = *(waiting4reply_data **) slot;
+
+      data->t->retval = retval;
+      htab_clear_slot (fd_data->waiting4reply, slot);
+      fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
+      pool_free (fd_data->waiting4reply_pool, data);
+      semaphore_up (&data->t->sem, 1);
+    });
+}
+
 /* Close file descriptor FD and update its fd_data.  */
 
 void
@@ -206,6 +228,7 @@ close_network_fd (int fd)
 
   message (2, stderr, "Closing FD %d\n", fd);
   close (fd);
+  wake_all_threads (&fd_data[fd], ZFS_CONNECTION_CLOSED);
   fd_data[fd].generation++;
   fd_data[fd].conn = CONNECTION_NONE;
   fd_data[fd].auth = AUTHENTICATION_NONE;
@@ -220,7 +243,6 @@ close_active_fd (int i)
 {
   int fd = active[i]->fd;
   int j;
-  void **slot;
 
 #ifdef ENABLE_CHECKING
   if (active[i]->fd < 0)
@@ -237,13 +259,6 @@ close_active_fd (int i)
     dc_destroy (&fd_data[fd].dc[j]);
   fd_data[fd].ndc = 0;
   fd_data[fd].fd = -1;
-  HTAB_FOR_EACH_SLOT (fd_data[fd].waiting4reply, slot,
-    {
-      waiting4reply_data *data = *(waiting4reply_data **) slot;
-
-      data->t->retval = ZFS_CONNECTION_CLOSED;
-      semaphore_up (&data->t->sem, 1);
-    });
   htab_destroy (fd_data[fd].waiting4reply);
   fibheap_delete (fd_data[fd].waiting4reply_heap);
   free_alloc_pool (fd_data[fd].waiting4reply_pool);
@@ -1417,22 +1432,11 @@ fd_data_shutdown ()
   for (; i >= 0; i--)
     {
       fd_data_t *fd_data = active[i];
-      void **slot;
 
       zfsd_mutex_lock (&fd_data->mutex);
-      HTAB_FOR_EACH_SLOT (fd_data->waiting4reply, slot,
-	{
-	  waiting4reply_data *data = *(waiting4reply_data **) slot;
-
-	  data->t->retval = ZFS_EXITING;
-	  htab_clear_slot (fd_data->waiting4reply, slot);
-	  fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
-	  pool_free (fd_data->waiting4reply_pool, data);
-	  semaphore_up (&data->t->sem, 1);
-	});
+      wake_all_threads (fd_data, ZFS_EXITING);
       zfsd_mutex_unlock (&fd_data->mutex);
     }
-
 }
 
 /* Destroy information about file descriptors.  */
