@@ -21,7 +21,7 @@
 CC = gcc
 LD = $(CC)
 DEFS = -DENABLE_CHECKING -DENABLE_VALGRIND_CHECKING -DENABLE_STATISTICS -DTEST -DTEST_UPDATE
-CFLAGS = -g -W -Wall -pedantic -std=gnu99
+CFLAGS = -g -W -Wall -std=gnu99
 LDFLAGS =
 LIBS = -lpthread
 COMPILE = $(CC) $(DEFS) $(CFLAGS)
