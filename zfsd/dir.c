@@ -3403,20 +3403,29 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       zfs_rename_journal (from_dentry, from_name, to_dentry, to_name, vol,
 			  &meta_old, &meta_new);
 
-      r2 = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
-				 &tmp_to, &tmp_from, IFH_REINTEGRATE);
-      if (r2 == ZFS_OK && tmp_from.ino != tmp_to.ino)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
-	  r2 = update_fh_if_needed_2 (&vol, &from_dentry, &to_dentry,
-				     &tmp_from, &tmp_to, IFH_REINTEGRATE);
-	}
-      if (r2 != ZFS_OK)
-	{
-	  r2 = zfs_fh_lookup_nolock (&tmp_to, &vol, &to_dentry, NULL, false);
-#ifdef ENABLE_CHECKING
+	  r2 = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
+				      &tmp_to, &tmp_from, IFH_REINTEGRATE);
+	  if (r2 == ZFS_OK && tmp_from.ino != tmp_to.ino)
+	    {
+	      r2 = update_fh_if_needed_2 (&vol, &from_dentry, &to_dentry,
+					  &tmp_from, &tmp_to, IFH_REINTEGRATE);
+	    }
 	  if (r2 != ZFS_OK)
-	    abort ();
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_to, &vol, &to_dentry, NULL,
+					 false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
 #endif
+	    }
+	  else
+	    {
+	      if (tmp_from.ino != tmp_to.ino)
+		release_dentry (from_dentry);
+	    }
 	}
       else
 	{
@@ -3789,15 +3798,24 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       internal_dentry_link (from_dentry, vol, dir_dentry, name);
       zfs_link_journal (dir_dentry, name, vol, &meta);
 
-      r2 = update_fh_if_needed_2 (&vol, &dir_dentry, &from_dentry,
-				  &tmp_dir, &tmp_from, IFH_REINTEGRATE);
-      if (r2 != ZFS_OK)
+      if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
-	  r2 = zfs_fh_lookup_nolock (&tmp_dir, &vol, &dir_dentry, NULL, false);
-#ifdef ENABLE_CHECKING
+	  r2 = update_fh_if_needed_2 (&vol, &dir_dentry, &from_dentry,
+				      &tmp_dir, &tmp_from, IFH_REINTEGRATE);
 	  if (r2 != ZFS_OK)
-	    abort ();
+	    {
+	      r2 = zfs_fh_lookup_nolock (&tmp_dir, &vol, &dir_dentry, NULL,
+					 false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
 #endif
+	    }
+	  else
+	    {
+	      if (dir_dentry != from_dentry)
+		release_dentry (from_dentry);
+	    }
 	}
       else
 	{
