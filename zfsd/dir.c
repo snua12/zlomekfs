@@ -3132,9 +3132,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 	    set_attr_version (&fa, &dentry->fh->meta);
 	    dentry->fh->attr = fa;
-	    if (dentry->fh->attr.mode == other->fh->attr.mode
-		&& dentry->fh->attr.uid == other->fh->attr.uid
-		&& dentry->fh->attr.gid == other->fh->attr.gid)
+	    if (METADATA_ATTR_EQ_P (dentry->fh->attr, other->fh->attr))
 	      {
 		dentry->fh->meta.modetype = GET_MODETYPE (fa.mode, fa.type);
 		dentry->fh->meta.uid = fa.uid;
