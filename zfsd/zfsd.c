@@ -38,7 +38,10 @@
 #include "server.h"
 #include "zfsd.h"
 
+#define TEST
+#ifdef TEST
 #include "dir.h"
+#endif
 
 /* Name of the configuration file.  */
 char *config_file = "/etc/zfs/config";
@@ -299,6 +302,8 @@ cleanup_data_structures ()
   cleanup_fh_c ();
 }
 
+#ifdef TEST
+
 /* Testing configuration until configuration reading is programmed.  */
 
 void
@@ -349,6 +354,8 @@ test_zfs ()
 			       xstrdup ("/volume1/subdir/file")));
 }
 
+#endif
+
 static void
 daemon_mode ()
 {
@@ -370,12 +377,11 @@ main (int argc, char **argv)
   
   initialize_data_structures ();
   
-#if 0
+#ifdef TEST
+  fake_config ();
+#else
   if (!read_config (config_file))
     die ();
-#else
-  fake_config ();
-  test_zfs ();
 #endif
 
   printf ("sizeof (thread) = %d\n", sizeof (thread));
@@ -416,6 +422,10 @@ main (int argc, char **argv)
   register_server ();
 #else
   server_start ();
+
+#ifdef TEST
+  test_zfs ();
+#endif
 
   pthread_join (main_server_thread, NULL);
 
