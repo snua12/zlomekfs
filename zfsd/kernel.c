@@ -96,6 +96,7 @@ close_kernel_fd (void)
   if (kernel_fd < 0)
     return;
 
+  mounted = false;
   close (kernel_fd);
   zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
   wake_all_threads (&fd_data_a[kernel_fd], ZFS_CONNECTION_CLOSED);
