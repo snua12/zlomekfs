@@ -494,15 +494,6 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool conflict_p)
 	RETURN_INT (r);
     }
 
-  r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
-#ifdef ENABLE_CHECKING
-  if (r2 != ZFS_OK)
-    abort ();
-#endif
-
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-
   RETURN_INT (ZFS_OK);
 }
 
