@@ -45,6 +45,9 @@
 #include "hashfile.h"
 #include "zfs_prot.h"
 
+/* Depth of directory tree for saving metadata about files.  */
+unsigned int metadata_tree_depth = 1;
+
 /* Data for file descriptor.  */
 typedef struct metadata_fd_data_def
 {

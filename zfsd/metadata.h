@@ -25,6 +25,9 @@
 #include <inttypes.h>
 #include "zfs_prot.h"
 
+/* Depth of directory tree for saving metadata about files.  */
+extern unsigned int metadata_tree_depth;
+
 /*Type of metadata.  */
 typedef enum metadata_type_def
 {

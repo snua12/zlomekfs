@@ -33,9 +33,6 @@ extern char *kernel_file_name;
 /* The host name of local node.  */
 extern string node_name;
 
-/* Depth of directory tree for saving metadata about files.  */
-extern unsigned int metadata_tree_depth;
-
 /* Directory with node configuration.  */
 extern char *node_config;
 

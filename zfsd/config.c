@@ -34,6 +34,7 @@
 #include "constant.h"
 #include "log.h"
 #include "memory.h"
+#include "metadata.h"
 #include "user-group.h"
 
 #ifdef BUFSIZ
@@ -47,9 +48,6 @@ char *kernel_file_name;
 
 /* The host name of local node.  */
 string node_name;
-
-/* Depth of directory tree for saving metadata about files.  */
-unsigned int metadata_tree_depth = 1;
 
 /* Directory with node configuration. */
 char *node_config;
