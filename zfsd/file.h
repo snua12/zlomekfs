@@ -55,11 +55,11 @@ extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 			 uint64_t offset, uint32_t count, bool update);
 extern int32_t zfs_write (write_res *res, write_args *args);
 
-extern int32_t full_local_read (int32_t *rcount, void *buffer, zfs_cap *cap,
+extern int32_t full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				uint64_t offset, uint32_t count);
-extern int32_t full_remote_read (int32_t *rcount, void *buffer, zfs_cap *cap,
+extern int32_t full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				 uint64_t offset, uint32_t count);
-extern int32_t full_local_write (int32_t *rcount, void *buffer, zfs_cap *cap,
+extern int32_t full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 				 uint64_t offset, uint32_t count);
 extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
 extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);

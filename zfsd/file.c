@@ -1389,8 +1389,8 @@ zfs_write_retry:
    read to RCOUNT.  */
 
 int32_t
-full_local_read (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
-		 uint32_t count)
+full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
+		 uint64_t offset, uint32_t count)
 {
   volume vol;
   internal_cap icap;
@@ -1430,8 +1430,8 @@ full_local_read (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
    read to RCOUNT.  */
 
 int32_t
-full_remote_read (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
-		  uint32_t count)
+full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
+		  uint64_t offset, uint32_t count)
 {
   volume vol;
   internal_cap icap;
@@ -1470,8 +1470,8 @@ full_remote_read (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
    CAP starting at OFFSET.  Store the number of bytes read to RCOUNT.  */
 
 int32_t
-full_local_write (int32_t *rcount, void *buffer, zfs_cap *cap, uint64_t offset,
-		 uint32_t count)
+full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
+		  uint64_t offset, uint32_t count)
 {
   volume vol;
   internal_cap icap;
