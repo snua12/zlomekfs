@@ -310,8 +310,6 @@ fake_config ()
   set_string (&node_name, "orion");
 
   n = node_create (1, "orion");
-  n->flags |= NODE_LOCAL;
-  n->conn = CONNECTION_FAST;
 
   v = volume_create (1);
   volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
@@ -322,7 +320,6 @@ fake_config ()
   volume_set_common_info (v, "volume2", "/volume2", n);
 
   n = node_create (2, "sabbath");
-  n->flags |= NODE_LOCAL;
 
   v = volume_create (3);
   volume_set_common_info (v, "volume3", "/volume1/volume3", n);
@@ -331,7 +328,6 @@ fake_config ()
   volume_set_common_info (v, "volume4", "/volume2/sabbath/volume4", n);
 
   n = node_create (3, "jaro");
-  n->flags |= NODE_LOCAL;
 
   v = volume_create (5);
   volume_set_common_info (v, "volume5", "/jaro/volume5", n);
@@ -381,6 +377,9 @@ main (int argc, char **argv)
   fake_config ();
   test_zfs ();
 #endif
+
+  printf ("sizeof (thread) = %d\n", sizeof (thread));
+  printf ("sizeof (padded_thread) = %d\n", sizeof (padded_thread));
 
 #if 0
   /* Temporarily disable because it needs root privileges.  */
