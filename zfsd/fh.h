@@ -335,6 +335,8 @@ extern internal_dentry add_file_to_conflict_dir (volume vol,
 						 bool exists, zfs_fh *fh,
 						 fattr *attr, metadata *meta);
 extern bool try_resolve_conflict (internal_dentry conflict);
+extern internal_dentry conflict_local_dentry (internal_dentry conflict);
+extern internal_dentry conflict_remote_dentry (internal_dentry conflict);
 
 extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);
 extern void virtual_dir_destroy (virtual_dir vd);

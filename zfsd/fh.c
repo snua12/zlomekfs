@@ -2356,6 +2356,60 @@ try_resolve_conflict (internal_dentry conflict)
   return false;
 }
 
+/* Return the local dentry in conflict dir CONFLICT.  */
+
+internal_dentry
+conflict_local_dentry (internal_dentry conflict)
+{
+  internal_dentry dentry;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!CONFLICT_DIR_P (conflict->fh->local_fh))
+    abort ();
+#endif
+
+  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+    {
+      dentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
+      acquire_dentry (dentry);
+      if (dentry->fh->local_fh.sid == this_node->id)
+	return dentry;
+      release_dentry (dentry);
+    }
+
+  return NULL;
+}
+
+/* Return the remote dentry in conflict dir CONFLICT.  */
+
+internal_dentry
+conflict_remote_dentry (internal_dentry conflict)
+{
+  internal_dentry dentry;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!CONFLICT_DIR_P (conflict->fh->local_fh))
+    abort ();
+#endif
+
+  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+    {
+      dentry = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
+      acquire_dentry (dentry);
+      if (dentry->fh->local_fh.sid != this_node->id)
+	return dentry;
+      release_dentry (dentry);
+    }
+
+  return NULL;
+}
+
 /* Hash function for virtual_dir X, computed from FH.  */
 
 static hash_t
