@@ -440,7 +440,8 @@ node_authenticate (thread *t, node nod)
   auth_stage1_args args1;
   auth_stage2_args args2;
 
-  printf ("z\n");
+  memset (&args1, 0, sizeof (args1));
+  memset (&args2, 0, sizeof (args2));
 #ifdef ENABLE_CHECKING
   if (pthread_mutex_trylock (&nod->mutex) == 0)
     abort ();
@@ -479,6 +480,7 @@ node_authenticate (thread *t, node nod)
   return true;
 
 node_authenticate_error:
+  message (2, stderr, "not auth\n");
   pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
   close_server_fd (nod->fd);
   pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
