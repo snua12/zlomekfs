@@ -414,14 +414,6 @@ virtual_dir_eq_name (const void *xx, const void *yy)
 	  && strcmp (x->name, y->name) == 0);
 }
 
-/* Free the virtual firectory X.  */
-
-void
-virtual_dir_del (void *x)
-{
-  pool_free (vd_pool, x);
-}
-
 /* Create a new virtual directory NAME in virtual directory PARENT.  */
 
 virtual_dir
@@ -522,6 +514,7 @@ virtual_dir_destroy (virtual_dir vd)
 #endif
 	  htab_clear_slot (vd_htab, slot);
 	  free (vd->name);
+	  pool_free (vd_pool, vd);
 	}
     }
   zfsd_mutex_unlock (&vd_mutex);
@@ -578,6 +571,7 @@ virtual_root_destroy (virtual_dir root)
     abort ();
 #endif
   htab_clear_slot (vd_htab, slot);
+  pool_free (vd_pool, root);
   zfsd_mutex_unlock (&vd_mutex);
 }
 
@@ -723,8 +717,8 @@ initialize_fh_c ()
   zfsd_mutex_init (&vd_mutex);
   vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
 			       127, &vd_mutex);
-  vd_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq,
-			 virtual_dir_del, &vd_mutex);
+  vd_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq, NULL,
+			 &vd_mutex);
   vd_htab_name = htab_create (100, virtual_dir_hash_name, virtual_dir_eq_name,
 			      NULL, &vd_mutex);
 
