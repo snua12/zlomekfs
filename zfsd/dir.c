@@ -57,6 +57,10 @@ build_local_path (volume vol, internal_dentry dentry)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+    abort ();
+#endif
 
   /* Count the number of strings which will be concatenated.  */
   n = 1;
@@ -93,6 +97,10 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+    abort ();
+#endif
 
   /* Count the number of strings which will be concatenated.  */
   n = 3;
