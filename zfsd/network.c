@@ -808,6 +808,8 @@ server_init_fd_data ()
 	close (main_socket);
 	return 0;
       }
+
+  return 1;
 }
 
 #endif
