@@ -62,30 +62,9 @@ pthread_t main_thread;
 /*! Name of the configuration file.  */
 static char *config_file;
 
-/*! Local function prototypes.  */
-static void exit_sighandler (int signum);
-static void fatal_sigaction (int signum, siginfo_t *info, void *data);
-static void init_sig_handlers (void);
-static void version (int exitcode) ATTRIBUTE_NORETURN;
-static void process_arguments (int argc, char **argv);
-static void die (void) ATTRIBUTE_NORETURN;
-
 #ifndef SI_FROMKERNEL
 #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 #endif
-
-/*! Make zfsd to terminate.  */
-
-void
-terminate (void)
-{
-  sigset_t mask, old_mask;
-
-  sigfillset (&mask);
-  pthread_sigmask (SIG_SETMASK, &mask, &old_mask);
-  exit_sighandler (0);
-  pthread_sigmask (SIG_SETMASK, &old_mask, NULL);
-}
 
 /*! Signal handler for terminating zfsd.  */
 
@@ -288,7 +267,7 @@ usage (void)
 
 /*! Display the version, exit the program with exit code EXITCODE.  */
 
-static void
+static void ATTRIBUTE_NORETURN
 version (int exitcode)
 {
   printf ("zfsd 0.1.0\n");
@@ -370,9 +349,22 @@ process_arguments (int argc, char **argv)
     }
 }
 
+/*! Make zfsd to terminate.  */
+
+void
+terminate (void)
+{
+  sigset_t mask, old_mask;
+
+  sigfillset (&mask);
+  pthread_sigmask (SIG_SETMASK, &mask, &old_mask);
+  exit_sighandler (0);
+  pthread_sigmask (SIG_SETMASK, &old_mask, NULL);
+}
+
 /*! Write a message and exit.  */
 
-static void
+static void ATTRIBUTE_NORETURN
 die (void)
 {
   message (-2, stderr, "ZFSD could not be started.\n");
