@@ -490,7 +490,8 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 	  zfsd_mutex_lock (&fh_mutex);
 	  dentry = dentry_lookup (&fh);
 	  if (dentry)
-	    internal_dentry_destroy (dentry, true, true);
+	    internal_dentry_destroy (dentry, true, true,
+				     dentry->parent == NULL);
 	  zfsd_mutex_unlock (&fh_mutex);
 	  if (!dentry)
 	    local_invalidate_fh (&fh);
@@ -2824,7 +2825,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
 	    release_dentry (parent);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (idir, true, true);
+	    internal_dentry_destroy (idir, true, true, idir->parent == NULL);
 	    zfsd_mutex_unlock (&fh_mutex);
 	    goto out;
 
@@ -4306,7 +4307,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 
 	    release_dentry (parent);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (idir, true, true);
+	    internal_dentry_destroy (idir, true, true, idir->parent == NULL);
 	    zfsd_mutex_unlock (&fh_mutex);
 	    goto out;
 
@@ -4404,7 +4405,7 @@ zfs_unlink (zfs_fh *dir, string *name)
 	  case 7:
 	    /* Resolved conflict: deleted local non-existing file.  */
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (idir, true, true);
+	    internal_dentry_destroy (idir, true, true, idir->parent == NULL);
 	    zfsd_mutex_unlock (&fh_mutex);
 	    goto out;
 
@@ -6153,7 +6154,7 @@ remote_reintegrate_del_fh (zfs_fh *fh)
   zfsd_mutex_lock (&fh_mutex);
   dentry = dentry_lookup (fh);
   if (dentry)
-    internal_dentry_destroy (dentry, true, true);
+    internal_dentry_destroy (dentry, true, true, dentry->parent == NULL);
   zfsd_mutex_unlock (&fh_mutex);
 
   RETURN_INT (r);

@@ -335,7 +335,8 @@ cleanup_unused_dentries (void)
 		  continue;
 		}
 
-	      internal_dentry_destroy (dentry, true, false);
+	      internal_dentry_destroy (dentry, true, false,
+				       dentry->parent == NULL);
 	      zfsd_mutex_unlock (&fh_mutex);
 	    }
 	}
@@ -1056,7 +1057,7 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
       if (dentry->deleted)
 	{
 	  abort ();
-	  internal_dentry_destroy (dentry, true, true);
+	  internal_dentry_destroy (dentry, true, true, dentry->parent == NULL);
 	}
       else
 	{
@@ -1739,7 +1740,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	  zfsd_mutex_unlock (&vol->mutex);
 
 	  level = get_level (dentry);
-	  internal_dentry_destroy (dentry, true, true);
+	  internal_dentry_destroy (dentry, true, true, dentry->parent == NULL);
 
 	  if (dir)
 	    {
@@ -1816,7 +1817,8 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 	  tmp_fh = dentry->fh->local_fh;
 	  release_dentry (dentry);
 
-	  internal_dentry_destroy (subdentry, true, true);
+	  internal_dentry_destroy (subdentry, true, true,
+				   subdentry->parent == NULL);
 
 	  dentry = dentry_lookup (&tmp_fh);
 	  *volp = volume_lookup (tmp_fh.vid);
@@ -1831,7 +1833,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 	  release_dentry (*dirp);
 	  zfsd_mutex_unlock (&(*volp)->mutex);
 
-	  internal_dentry_destroy (dentry, true, true);
+	  internal_dentry_destroy (dentry, true, true, dentry->parent == NULL);
 	}
 
       zfsd_mutex_unlock (&fh_mutex);
@@ -1940,9 +1942,10 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 
   if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
-      internal_dentry conflict;
+      internal_dentry conflict, parent;
 
       conflict = dentry;
+      parent = conflict->parent;
       internal_dentry_del_from_dir (conflict);
       dentry = conflict_local_dentry (conflict);
 #ifdef ENABLE_CHECKING
@@ -1962,7 +1965,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 	release_dentry (*to_dirp);
       zfsd_mutex_unlock (&(*volp)->mutex);
 
-      internal_dentry_destroy (conflict, false, true);
+      internal_dentry_destroy (conflict, false, true, parent == NULL);
 
       *volp = volume_lookup (to_fh->vid);
       *to_dirp = dentry_lookup (to_fh);
@@ -2007,7 +2010,7 @@ internal_dentry_destroy_subdentries (internal_dentry dentry, zfs_fh *tmp_fh,
       subdentry = VARRAY_TOP (dentry->fh->subdentries, internal_dentry);
       zfsd_mutex_lock (&subdentry->fh->mutex);
       zfsd_mutex_unlock (&dentry->fh->mutex);
-      internal_dentry_destroy (subdentry, false, invalidate);
+      internal_dentry_destroy (subdentry, false, invalidate, false);
 
       tmp1 = dentry_lookup (tmp_fh);
       /* DENTRY could not be found, it is already deleted.  */
@@ -2031,12 +2034,17 @@ internal_dentry_destroy_subdentries (internal_dentry dentry, zfs_fh *tmp_fh,
   RETURN_BOOL (true);
 }
 
-/* Destroy internal dentry DENTRY.  Clear vol->root_dentry if
-   CLEAR_VOLUME_ROOT.  Invalidate the dentry in kernel if INVALIDATE.  */
+/** \fn void internal_dentry_destroy (internal_dentry dentry,
+	bool clear_volume_root, bool invalidate, bool volume_root_p)
+    \brief Destroy internal dentry.
+    \param dentry Dentry which shall be destroyed.
+    \param clear_volume_root Flag whether the volume root shall be cleared.
+    \param invalidate Flag whether the dentry shall be invalidated.
+    \param volume_root_p Flag whether the dentry was the volume root.  */
 
 void
 internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
-			 bool invalidate)
+			 bool invalidate, bool volume_root_p)
 {
   zfs_fh tmp_fh;
   void **slot;
@@ -2187,7 +2195,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
   if (invalidate)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      local_invalidate (dentry, dentry->parent == NULL);
+      local_invalidate (dentry, volume_root_p);
     }
   else
     {
@@ -2251,7 +2259,7 @@ again:
 	  release_dentry (dir);
 	  zfsd_mutex_unlock (&vol->mutex);
 
-	  internal_dentry_destroy (dentry, true, true);
+	  internal_dentry_destroy (dentry, true, true, dentry->parent == NULL);
 	  dentry = NULL;
 	  zfsd_mutex_unlock (&fh_mutex);
 
@@ -2392,7 +2400,8 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
 	      release_dentry (*conflictp);
 	      zfsd_mutex_unlock (&(*volp)->mutex);
 
-	      internal_dentry_destroy (dentry, true, true);
+	      internal_dentry_destroy (dentry, true, true,
+				       dentry->parent == NULL);
 
 	      *volp = volume_lookup (tmp_fh.vid);
 	      *conflictp = dentry_lookup (&tmp_fh);
@@ -2528,7 +2537,8 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
     {
       case 0:
 	zfsd_mutex_unlock (&vol->mutex);
-	internal_dentry_destroy (conflict, true, true);
+	internal_dentry_destroy (conflict, true, true,
+				 conflict->parent == NULL);
 	RETURN_BOOL (true);
 
       case 1:
@@ -2562,20 +2572,23 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 		  }
 		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
-		internal_dentry_destroy (conflict, false, true);
+		internal_dentry_destroy (conflict, false, true,
+					 parent == NULL);
 	      }
 	    else
 	      {
 		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
-		internal_dentry_destroy (conflict, true, true);
+		internal_dentry_destroy (conflict, true, true,
+					 conflict->parent == NULL);
 	      }
 	  }
 	else if (NON_EXIST_FH_P (dentry->fh->local_fh))
 	  {
 	    release_dentry (dentry);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (conflict, true, true);
+	    internal_dentry_destroy (conflict, true, true,
+				     conflict->parent == NULL);
 	  }
 #ifdef ENABLE_CHECKING
 	else
@@ -2651,7 +2664,8 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 
 		release_dentry (dentry);
 		zfsd_mutex_unlock (&vol->mutex);
-		internal_dentry_destroy (conflict, false, true);
+		internal_dentry_destroy (conflict, false, true,
+					 parent == NULL);
 		RETURN_BOOL (true);
 	      }
 	    else
@@ -2667,7 +2681,8 @@ try_resolve_conflict (volume vol, internal_dentry conflict)
 	    release_dentry (dentry);
 	    release_dentry (dentry2);
 	    zfsd_mutex_unlock (&vol->mutex);
-	    internal_dentry_destroy (conflict, true, true);
+	    internal_dentry_destroy (conflict, true, true,
+				     conflict->parent == NULL);
 	    RETURN_BOOL (true);
 	  }
 	release_dentry (dentry);
@@ -2804,7 +2819,7 @@ cancel_conflict (volume vol, internal_dentry conflict)
     release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  internal_dentry_destroy (conflict, false, true);
+  internal_dentry_destroy (conflict, false, true, parent == NULL);
   zfsd_mutex_unlock (&fh_mutex);
 
   RETURN_VOID;

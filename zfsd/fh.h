@@ -365,7 +365,8 @@ extern void internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 				  internal_dentry *to_dirp, string *to_name,
 				  volume *volp, zfs_fh *from_fh, zfs_fh *to_fh);
 extern void internal_dentry_destroy (internal_dentry dentry,
-				     bool clear_volume_root, bool invalidate);
+				     bool clear_volume_root, bool invalidate,
+				     bool volume_root_p);
 extern internal_dentry create_conflict (volume vol, internal_dentry dir,
 					string *name, zfs_fh *local_fh,
 					fattr *attr);
