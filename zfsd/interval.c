@@ -52,6 +52,8 @@ interval_tree_create (unsigned int preferred_size, pthread_mutex_t *mutex)
   t->splay = splay_tree_create (preferred_size, NULL, NULL);
   t->preferred_size = preferred_size;
   t->size = 0;
+  t->fd = -1;
+  t->generation = 0;
   return t;
 }
 

@@ -41,6 +41,12 @@ typedef struct interval_tree_def
 
   /* Number of intervals in tree.  */
   unsigned size;
+
+  /* File descriptor associated with the tree.  */
+  int fd;
+
+  /* Generation of opened file descriptor.  */
+  unsigned int generation;
 } *interval_tree;
 
 /* Structure of an interval used by interval_tree_read/interval_tree_write.  */
