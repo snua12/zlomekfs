@@ -609,15 +609,13 @@ update_file (internal_dentry dentry, volume vol, bool schedule)
 	return update_directory (dentry, vol, schedule);
 
       case FT_LNK:
-	fh = dentry->fh->local_fh;
 	r = remote_readlink (&link_to, dentry->fh, vol);
-	release_dentry (dentry);
 	if (r != ZFS_OK)
-	  return r;
-
-	r = zfs_fh_lookup (&fh, &vol, &dentry, NULL);
-	if (r != ZFS_OK)
-	  return r;
+	  {
+	    release_dentry (dentry);
+	    zfsd_mutex_unlock (&vol->mutex);
+	    return r;
+	  }
 
 	dir = dentry->parent;
 	xmkstring (&name, dentry->name);

@@ -2034,7 +2034,6 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 
   path = build_local_path (vol, file);
-  zfsd_mutex_unlock (&vol->mutex);
   r = readlink (path, buf, ZFS_MAXDATA);
   free (path);
   if (r < 0)
@@ -2055,7 +2054,6 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
   thread *t;
   int32_t r;
   int fd;
-  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
@@ -2067,10 +2065,9 @@ remote_readlink (read_link_res *res, internal_fh fh, volume vol)
   t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  zfsd_mutex_unlock (&vol->mutex);
-  r = zfs_proc_readlink_client (t, &fh->master_fh, nod, &fd);
+  r = zfs_proc_readlink_client (t, &fh->master_fh, vol->master, &fd);
 
   if (r == ZFS_OK)
     {
@@ -2121,6 +2118,7 @@ zfs_readlink_retry:
     abort ();
 
   release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
