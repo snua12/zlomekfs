@@ -30,7 +30,7 @@
 #include "zfs_prot.h"
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-extern int running;
+extern volatile int running;
 
 /* State of the thread.  */
 typedef enum thread_state_def
