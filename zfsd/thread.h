@@ -30,7 +30,7 @@
 /* State of the thread.  */
 typedef enum thread_state_def
 {
-  THREAD_NONE,		/* thread is not created */
+  THREAD_DEAD,		/* thread is not created */
   THREAD_DYING,		/* thread is dying */
   THREAD_IDLE,		/* thread is idle */
   THREAD_BUSY		/* thread is working */
@@ -51,7 +51,10 @@ typedef struct thread_def
   thread_state state;
 
   /* The sequential number of the thread.  */
-  size_t id;
+  size_t index;
+
+  /* The ID of the thread which is set by pthread_create.  */
+  pthread_t thread_id;
 
   /* Mutex used to stop an idle thread.  */
   pthread_mutex_t mutex;
@@ -63,7 +66,7 @@ typedef struct thread_def
     client_thread_data client;
     update_thread_data update;
 #endif
-  };
+  } u;
 } thread;
 
 /* Thread datatype padded to 256 bytes to avoid cache ping pong.  */

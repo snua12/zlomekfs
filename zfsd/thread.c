@@ -44,8 +44,8 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 
   for (i = 0; i < max_threads; i++)
     {
-      pool->threads[i].t.state = THREAD_NONE;
-      pool->threads[i].t.id = i;
+      pool->threads[i].t.state = THREAD_DEAD;
+      pool->threads[i].t.index = i;
       queue_put (&pool->empty, i);
     }
 }
