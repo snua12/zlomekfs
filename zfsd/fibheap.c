@@ -186,11 +186,11 @@ fibheap_replace_key (fibheap heap, fibnode node, fibheapkey_t key)
 
   CHECK_MUTEX_LOCKED (heap->mutex);
 
-  if (key > node->key)
-    return fibheap_insert (heap, key, fibheap_delete_node (heap, node));
-
   if (key == node->key)
     return node;
+
+  if (key > node->key)
+    return fibheap_insert (heap, key, fibheap_delete_node (heap, node));
 
   node->key = key;
   y = node->parent;
