@@ -1494,9 +1494,25 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	    MARK_VOLUME_DELETE (vol);
 
 	  if (dentry->fh->updated)
-	    interval_tree_delete (dentry->fh->updated, fa->size, UINT64_MAX);
+	    {
+	      interval_tree_delete (dentry->fh->updated, fa->size, UINT64_MAX);
+	      if (dentry->fh->updated->deleted)
+		{
+		  if (!flush_interval_tree (vol, dentry->fh,
+					    METADATA_TYPE_UPDATED))
+		    MARK_VOLUME_DELETE (vol);
+		}
+	    }
 	  if (dentry->fh->modified)
-	    interval_tree_delete (dentry->fh->modified, fa->size, UINT64_MAX);
+	    {
+	      interval_tree_delete (dentry->fh->modified, fa->size, UINT64_MAX);
+	      if (dentry->fh->modified->deleted)
+		{
+		  if (!flush_interval_tree (vol, dentry->fh,
+					    METADATA_TYPE_MODIFIED))
+		    MARK_VOLUME_DELETE (vol);
+		}
+	    }
 	}
 
       /* Update cached file attributes.  */
