@@ -100,7 +100,7 @@ zfs_proc_getattr_server (zfs_fh *args, thread *t)
   r = zfs_getattr (&fa, args);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    encode_fattr (dc, &fh);
+    encode_fattr (dc, &fa);
 }
 
 /* fattr zfs_proc_setattr (sattr_args); */
