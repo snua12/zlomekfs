@@ -76,8 +76,11 @@ fake_config (void)
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     {
-      if (volume_set_local_info_wrapper (vol, "/.zfs/dir1", VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+      if (volume_set_local_info_wrapper (&vol, "/.zfs/dir1", VOLUME_NO_LIMIT))
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
@@ -92,8 +95,11 @@ fake_config (void)
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     {
-      if (volume_set_local_info_wrapper (vol, "/.zfs/dir2", VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+      if (volume_set_local_info_wrapper (&vol, "/.zfs/dir2", VOLUME_NO_LIMIT))
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
@@ -113,17 +119,23 @@ fake_config (void)
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     {
-      if (volume_set_local_info_wrapper (vol, "/home/zlomj9am/.zfs/dir1",
+      if (volume_set_local_info_wrapper (&vol, "/home/zlomj9am/.zfs/dir1",
 					 VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
 #ifdef TEST_UPDATE
   else if (this_node && strcmp (this_node->name.str, "orion") == 0)
     {
-      if (volume_set_local_info_wrapper (vol, "/.zfs/vol3", VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+      if (volume_set_local_info_wrapper (&vol, "/.zfs/vol3", VOLUME_NO_LIMIT))
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
@@ -140,9 +152,12 @@ fake_config (void)
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     {
-      if (volume_set_local_info_wrapper (vol, "/home/zlomj9am/.zfs/dir2",
+      if (volume_set_local_info_wrapper (&vol, "/home/zlomj9am/.zfs/dir2",
 					 VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
@@ -162,9 +177,12 @@ fake_config (void)
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     {
-      if (volume_set_local_info_wrapper (vol, "/home/joe/.zfs/dir1",
+      if (volume_set_local_info_wrapper (&vol, "/home/joe/.zfs/dir1",
 					 VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
@@ -179,17 +197,23 @@ fake_config (void)
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     {
-      if (volume_set_local_info_wrapper (vol, "/home/joe/.zfs/dir2",
+      if (volume_set_local_info_wrapper (&vol, "/home/joe/.zfs/dir2",
 					 VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }
 #ifdef TEST_UPDATE
   else if (this_node && strcmp (this_node->name.str, "orion") == 0)
     {
-      if (volume_set_local_info_wrapper (vol, "/.zfs/vol6", VOLUME_NO_LIMIT))
-	zfsd_mutex_unlock (&vol->mutex);
+      if (volume_set_local_info_wrapper (&vol, "/.zfs/vol6", VOLUME_NO_LIMIT))
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
       else
 	volume_delete (vol);
     }

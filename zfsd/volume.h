@@ -84,9 +84,9 @@ extern void volume_set_common_info (volume vol, string *name,
 				    string *mountpoint, node master);
 extern void volume_set_common_info_wrapper (volume vol, char *name,
 					    char *mountpoint, node master);
-extern bool volume_set_local_info (volume vol, string *local_path,
+extern bool volume_set_local_info (volume *volp, string *local_path,
 				   uint64_t size_limit);
-extern bool volume_set_local_info_wrapper (volume vol, char *local_path,
+extern bool volume_set_local_info_wrapper (volume *volp, char *local_path,
 					   uint64_t size_limit);
 extern void mark_all_volumes (void);
 extern void destroy_marked_volume (uint32_t vid);

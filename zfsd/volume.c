@@ -370,8 +370,11 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
 /* Set the information for a volume with local copy.  */
 
 bool
-volume_set_local_info (volume vol, string *local_path, uint64_t size_limit)
+volume_set_local_info (volume *volp, string *local_path, uint64_t size_limit)
 {
+  volume vol = *volp;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   set_string (&vol->local_path, local_path);
@@ -383,14 +386,14 @@ volume_set_local_info (volume vol, string *local_path, uint64_t size_limit)
 /* Wrapper for volume_set_local_info.  */
 
 bool
-volume_set_local_info_wrapper (volume vol, char *local_path,
+volume_set_local_info_wrapper (volume *volp, char *local_path,
 			       uint64_t size_limit)
 {
   string local_path_str;
 
   local_path_str.str = local_path;
   local_path_str.len = strlen (local_path);
-  return volume_set_local_info (vol, &local_path_str, size_limit);
+  return volume_set_local_info (volp, &local_path_str, size_limit);
 }
 
 /* Print the information about volume VOL to file F.  */

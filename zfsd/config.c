@@ -409,8 +409,11 @@ read_local_volume_info (string *path)
 	      vol = volume_create (id);
 	      zfsd_mutex_unlock (&volume_mutex);
 
-	      if (volume_set_local_info (vol, &parts[1], size_limit))
-		zfsd_mutex_unlock (&vol->mutex);
+	      if (volume_set_local_info (&vol, &parts[1], size_limit))
+		{
+		  if (vol)
+		    zfsd_mutex_unlock (&vol->mutex);
+		}
 	      else
 		{
 		  message (0, stderr, "Could not set local information"
@@ -426,6 +429,7 @@ read_local_volume_info (string *path)
 		   line_num);
 	}
     }
+
   free (file);
   fclose (f);
   return true;
@@ -586,13 +590,24 @@ init_config_volume (void)
 
 	      /* Recreate the directory where config volume is cached.  */
 	      recursive_unlink (&path, VOLUME_ID_VIRTUAL, false, false, false);
+	      zfsd_mutex_lock (&fh_mutex);
 	      vol = volume_lookup (VOLUME_ID_CONFIG);
 #ifdef ENABLE_CHECKING
 	      if (!vol)
 		abort ();
 #endif
-	      volume_set_local_info (vol, &path, vol->size_limit);
-	      zfsd_mutex_unlock (&vol->mutex);
+	      if (volume_set_local_info (&vol, &path, vol->size_limit))
+		{
+		  if (vol)
+		    zfsd_mutex_unlock (&vol->mutex);
+		}
+	      else
+		{
+		  zfsd_mutex_unlock (&vol->mutex);
+		  message (0, stderr, "Could not initialize config volume.\n");
+		  goto out_fh;
+		}
+	      zfsd_mutex_unlock (&fh_mutex);
 
 	      free (config_node);
 	      config_node = NULL;
@@ -619,6 +634,8 @@ out_usage:
 
 out:
   zfsd_mutex_unlock (&volume_mutex);
+
+out_fh:
   zfsd_mutex_unlock (&fh_mutex);
   destroy_all_volumes ();
   return false;
