@@ -23,6 +23,9 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "zfs_prot.h"
 #include "hardlink-list.h"
 #include "journal.h"
@@ -142,6 +145,8 @@ extern bool write_journal (volume vol, internal_fh fh);
 extern bool add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 			       zfs_fh *master_fh, char *name,
 			       journal_operation_t oper);
+extern bool add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
+				  char *name, journal_operation_t oper);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);

@@ -2766,6 +2766,27 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
   return true;
 }
 
+/* Add a journal entry for file with stat result ST, name NAME
+   and operation OPER to journal for file handle FH on volume VOL.  */
+
+bool
+add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
+		      journal_operation_t oper)
+{
+  metadata meta;
+  zfs_fh local_fh;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  local_fh.dev = st->st_dev;
+  local_fh.ino = st->st_ino;
+  if (!lookup_metadata (vol, &local_fh, &meta))
+    return false;
+
+  return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
+}
+
 /* Initialize data structures in METADATA.C.  */
 
 void
