@@ -157,3 +157,17 @@ full_mkdir (char *path, unsigned int mode)
 
   return false;
 }
+
+/* Return true if all LEN bytes of buffer P are equal to BYTE.  */
+
+bool
+bytecmp (const void *p, int byte, size_t len)
+{
+  const unsigned char *s;
+
+  for (s = (const unsigned char *) p; len-- > 0; s++)
+    if (*s != byte)
+      return false;
+
+  return true;
+}
