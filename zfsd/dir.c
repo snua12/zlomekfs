@@ -4547,11 +4547,13 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
 /* Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
 
 static bool
-move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
+move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
+		  zfs_fh *dir_fh)
 {
   string path;
-  string shadow_path;
+  string shadow_path, shadow_name;
   metadata meta_old, meta_new;
+  internal_dentry dentry, parent;
   uint32_t vid;
   int32_t r;
 
@@ -4591,11 +4593,52 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 
   r = local_rename_base (&meta_old, &meta_new, &shadow_path, &path,
 			 vol, false);
+  if (r != ZFS_OK)
+    {
+      free (shadow_path.str);
+      free (path.str);
+      return false;
+    }
+  zfsd_mutex_unlock (&vol->mutex);
+
+  if (dir_fh)
+    {
+      r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r != ZFS_OK)
+	abort ();
+#endif
+
+      delete_dentry (&vol, &dir, name, dir_fh);
+
+      parent = NULL;
+      dentry = dentry_lookup (fh);
+      if (dentry)
+	{
+#ifdef ENABLE_CHECKING
+	  if (!dentry->parent)
+	    abort ();
+#endif
+
+	  parent = dentry->parent;
+	  acquire_dentry (parent);
+	  release_dentry (dentry);
+
+	  file_name_from_path (&shadow_name, &shadow_path);
+	}
+
+      zfs_rename_finish (&parent, &shadow_name, &dir, name, &vol,
+			 NULL, dir_fh, &meta_old, &meta_new);
+
+      if (parent)
+	release_dentry (parent);
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+
   free (shadow_path.str);
   free (path.str);
-  if (r != ZFS_OK)
-    return false;
-
   return true;
 }
 
@@ -4658,11 +4701,11 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 
 int32_t
 local_reintegrate_add (volume vol, internal_dentry dir, string *name,
-		       zfs_fh *fh)
+		       zfs_fh *fh, zfs_fh *dir_fh)
 {
   metadata meta;
   metadata meta_old, meta_new;
-  int32_t r;
+  int32_t r, r2;
   unsigned int n;
 
   TRACE ("");
@@ -4682,22 +4725,20 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
   if (meta.flags & METADATA_SHADOW)
     {
-      if (!move_from_shadow (vol, fh, dir, name))
+      if (!move_from_shadow (vol, fh, dir, name, dir_fh))
 	return ZFS_UPDATE_FAILED;
     }
   else
     {
       string old_path, new_path;
-      string new_name;
+      string old_name;
       fattr attr;
+      zfs_fh old_fh;
+      internal_dentry old_dentry;
       uint32_t vid;
-      uint32_t new_parent_dev;
-      uint32_t new_parent_ino;
 
       build_local_path_name (&new_path, vol, dir, name);
       vid = vol->id;
-      new_parent_dev = dir->fh->local_fh.dev;
-      new_parent_ino = dir->fh->local_fh.ino;
       release_dentry (dir);
       zfsd_mutex_unlock (&fh_mutex);
 
@@ -4725,7 +4766,6 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  return r;
 	}
 
-      file_name_from_path (&new_name, &new_path);
       if (attr.type == FT_DIR)
 	{
 	  vol = volume_lookup (vid);
@@ -4738,18 +4778,83 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
 	  r = local_rename_base (&meta_old, &meta_new, &old_path, &new_path,
 				 vol, false);
+	  if (r != ZFS_OK)
+	    {
+	      free (old_path.str);
+	      free (new_path.str);
+	      return r;
+	    }
+
+	  if (dir_fh)
+	    {
+	      file_name_from_path (&old_name, &old_path);
+	      old_name.str[-1] = 0;
+	      r = refresh_local_path (&old_fh, vol, &old_path);
+
+	      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+
+	      delete_dentry (&vol, &dir, name, dir_fh);
+
+	      if (r == ZFS_OK)
+		old_dentry = dentry_lookup (&old_fh);
+	      else
+		old_dentry = NULL;
+
+	      zfs_rename_finish (&old_dentry, &old_name, &dir, name, &vol,
+				 &old_fh, dir_fh, &meta_old, &meta_new);
+
+	      if (old_dentry)
+		release_dentry (old_dentry);
+	      release_dentry (dir);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
+	    }
+
 	  free (old_path.str);
 	  free (new_path.str);
-	  if (r != ZFS_OK)
-	    return r;
 	}
       else
 	{
 	  r = local_link_base (&meta, &old_path, &new_path, fh);
+	  if (r != ZFS_OK)
+	    {
+	      free (old_path.str);
+	      free (new_path.str);
+	      return r;
+	    }
+
+	  if (dir_fh)
+	    {
+	      r = refresh_local_path (&old_fh, vol, &old_path);
+
+	      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
+		abort ();
+#endif
+
+	      delete_dentry (&vol, &dir, name, dir_fh);
+
+	      if (r == ZFS_OK)
+		old_dentry = dentry_lookup (&old_fh);
+	      else
+		old_dentry = NULL;
+
+	      zfs_link_finish (old_dentry, dir, name, vol, &meta);
+
+	      if (old_dentry)
+		release_dentry (old_dentry);
+	      release_dentry (dir);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
+	    }
+
 	  free (old_path.str);
 	  free (new_path.str);
-	  if (r != ZFS_OK)
-	    return r;
 	}
     }
 
@@ -4761,11 +4866,11 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
 int32_t
 remote_reintegrate_add (volume vol, internal_dentry dir, string *name,
-			zfs_fh *fh)
+			zfs_fh *fh, zfs_fh *dir_fh)
 {
   reintegrate_add_args args;
   thread *t;
-  int32_t r;
+  int32_t r, r2;
   int fd;
   node nod = vol->master;
 
@@ -4798,6 +4903,22 @@ remote_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (t->dc_reply, fd);
+
+  if (dir_fh)
+    {
+      /* Delete the dentry in place of NAME in DIR.  */
+      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      delete_dentry (&vol, &dir, name, dir_fh);
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+
   return r;
 }
 
@@ -4851,25 +4972,20 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
     return r;
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
-    r = local_reintegrate_add (vol, idir, name, fh);
+    r = local_reintegrate_add (vol, idir, name, fh, &tmp_fh);
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      r = remote_reintegrate_add (vol, idir, name, fh);
+      r = remote_reintegrate_add (vol, idir, name, fh, &tmp_fh);
     }
   else
     abort ();
 
-  r2 = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, false);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
 #endif
-
-  if (r == ZFS_OK)
-    {
-      delete_dentry (&vol, &idir, name, &tmp_fh);
-    }
 
   internal_dentry_unlock (vol, idir);
 

@@ -2103,7 +2103,8 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
       if (map.slot_status == VALID_SLOT)
 	{
-	  r = local_reintegrate_add (vol, dir, &entry->name, &map.local_fh);
+	  r = local_reintegrate_add (vol, dir, &entry->name, &map.local_fh,
+				     NULL);
 	  if (r != ZFS_OK)
 	    goto out;
 	}
@@ -2320,7 +2321,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 			zfsd_mutex_unlock (&fh_mutex);
 			r = remote_reintegrate_add (vol, dir,
 						    &entry->name,
-						    &entry->master_fh);
+						    &entry->master_fh, NULL);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL,
 						   false);
 #ifdef ENABLE_CHECKING
