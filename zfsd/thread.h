@@ -51,6 +51,7 @@ typedef struct server_thread_data_def
   struct svc_req *rqstp;
   SVCXPRT *transp;
 #else
+  call_args args;		/* Union for decoded call arguments.  */
   server_fd_data_t *fd_data;	/* passed from main server thread */
   char *original;		/* malloc()d pointer to request */
   char *aligned;		/* aligned pointer to request */
