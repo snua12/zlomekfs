@@ -261,7 +261,7 @@ static int
 node_connect (node nod)
 {
   struct addrinfo *addr, *a;
-  int s;
+  int s = -1;
   int err;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);

@@ -463,7 +463,6 @@ network_worker (void *data)
 {
   thread *t = (thread *) data;
   network_thread_data *td = &t->u.network;
-  network_fd_data_t *fd_data;
   uint32_t request_id;
   uint32_t fn;
 
@@ -505,12 +504,11 @@ network_worker (void *data)
 	}
 
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
-      fd_data = td->fd_data;
       switch (fn)
 	{
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		      \
 	  case ZFS_PROC_##NAME:						      \
-	    if (fd_data->auth < AUTH)					      \
+	    if (td->fd_data->auth < AUTH)					      \
 	      {								      \
 		send_error_reply (t, request_id, ZFS_INVALID_AUTH_LEVEL);     \
 		goto out;						      \
@@ -537,10 +535,10 @@ network_worker (void *data)
 	}
 
 out:
-      zfsd_mutex_lock (&fd_data->mutex);
-      fd_data->busy--;
-      recycle_dc_to_network_fd (&t->dc, fd_data);
-      zfsd_mutex_unlock (&fd_data->mutex);
+      zfsd_mutex_lock (&td->fd_data->mutex);
+      td->fd_data->busy--;
+      recycle_dc_to_network_fd (&t->dc, td->fd_data);
+      zfsd_mutex_unlock (&td->fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
       zfsd_mutex_lock (&network_pool.idle.mutex);
