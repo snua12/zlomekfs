@@ -65,14 +65,7 @@ int main (int argc, char **argv)
       close (fd);
 
       printf ("%s:\n", argv[i]);
-
-      for (node = interval_tree_min (tree); node;
-	   node = interval_tree_successor (tree, INTERVAL_END (node)))
-	{
-	  printf (" %" PRIu64 " - %" PRIu64 "\n", INTERVAL_START (node),
-		  INTERVAL_END (node));
-	}
-
+      print_interval_tree (stdout, tree);
       interval_tree_destroy (tree);
     }
 
