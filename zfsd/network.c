@@ -955,6 +955,7 @@ send_oneway_request (thread *t, int fd)
 {
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
+  t->dc_reply = NULL;
   if (thread_pool_terminate_p (&network_pool))
     {
       t->retval = ZFS_EXITING;
@@ -987,6 +988,7 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
+  t->dc_reply = NULL;
   if (thread_pool_terminate_p (&network_pool))
     {
       t->retval = ZFS_EXITING;
