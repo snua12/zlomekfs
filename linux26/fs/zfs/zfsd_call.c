@@ -280,6 +280,31 @@ int zfsd_unlink(dir_op_args *args)
 	return error;
 }
 
+int zfsd_symlink(dir_op_res *res, symlink_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_symlink\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_symlink_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_dir_op_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_symlink: %d\n", error);
+
+	return error;
+}
+
 int zfsd_mkdir(dir_op_res *res, mkdir_args *args)
 {
 	DC *dc;
@@ -374,6 +399,31 @@ int zfsd_rename(rename_args *args)
 	dc_put(dc);
 
 	TRACE("zfs:  zfsd_rename: %d\n", error);
+
+	return error;
+}
+
+int zfsd_readlink(read_link_res *res, zfs_fh *fh)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_readlink\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_readlink_zfsd(&dc, fh);
+
+	if (!error
+	    && (!decode_read_link_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_readlink: %d\n", error);
 
 	return error;
 }

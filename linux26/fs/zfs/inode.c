@@ -37,7 +37,7 @@ static void zfs_iattr_to_sattr(sattr *attr, struct iattr *iattr)
 {
 	unsigned int valid = iattr->ia_valid;
 
-	attr->mode = (valid & ATTR_MODE) ? (iattr->ia_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX)) : -1;
+	attr->mode = (valid & ATTR_MODE) ? (iattr->ia_mode & S_IALLUGO) : -1;
 	attr->uid = (valid & ATTR_UID) ? iattr->ia_uid : -1;
 	attr->gid = (valid & ATTR_GID) ? iattr->ia_gid : -1;
 	attr->size = (valid & ATTR_SIZE) ? iattr->ia_size : -1;
@@ -87,8 +87,8 @@ static ftype zfs_mode_to_ftype(int mode)
 	}
 }
 
-static struct inode_operations zfs_file_inode_operations, zfs_dir_inode_operations;
-extern struct file_operations zfs_file_operations, zfs_dir_operations;
+static struct inode_operations zfs_dir_inode_operations, zfs_file_inode_operations, zfs_symlink_inode_operations;
+extern struct file_operations zfs_dir_operations, zfs_file_operations;
 
 static void zfs_fill_inode(struct inode *inode, fattr *attr)
 {
@@ -103,9 +103,7 @@ static void zfs_fill_inode(struct inode *inode, fattr *attr)
 			inode->i_fop = &zfs_dir_operations;
 			break;
 		case S_IFLNK:
-//			inode->i_op = &zfs_symlink_inode_operations;
-//			inode->i_data.a_ops = &zfs_symlink_aops;
-//			inode->i_mapping = &inode->i_data;
+			inode->i_op = &zfs_symlink_inode_operations;
 			break;
 		default:
 			init_special_inode(inode, inode->i_mode, huge_decode_dev(inode->i_rdev));
@@ -154,7 +152,7 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 	args.where.name.str = (char *)dentry->d_name.name;
 	args.where.name.len = dentry->d_name.len;
 	args.flags = nd->intent.open.flags;
-	args.attr.mode = mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	args.attr.mode = mode & S_IALLUGO;
 	args.attr.uid = current->fsuid;
 	if (dir->i_mode & S_ISGID)
 		args.attr.gid = dir->i_gid;
@@ -273,7 +271,42 @@ static int zfs_unlink(struct inode *dir, struct dentry *dentry)
 
 static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old_name)
 {
-	TRACE("zfs: symlink\n");
+	symlink_args args;
+	dir_op_res res;
+	struct inode *inode;
+	int error;
+
+	TRACE("zfs: symlink: '%s' -> '%s'\n", dentry->d_name.name, old_name);
+
+	if (strlen(old_name) > ZFS_MAXPATHLEN)
+		return -ENAMETOOLONG;
+
+	args.from.dir = ZFS_I(dir)->fh;
+	args.from.name.str = (char *)dentry->d_name.name;
+	args.from.name.len = dentry->d_name.len;
+	args.to.str = (char *)old_name;
+	args.to.len = strlen(old_name);
+	args.attr.mode = -1;
+	args.attr.uid = current->fsuid;
+	if (dir->i_mode & S_ISGID)
+		args.attr.gid = dir->i_gid;
+	else
+		args.attr.gid = current->fsgid;
+	args.attr.size = -1;
+	args.attr.atime = -1;
+	args.attr.mtime = -1;
+
+	error = zfsd_symlink(&res, &args);
+	if (error)
+		return error;
+
+	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+	if (!inode)
+		return -ENOMEM;
+
+	d_instantiate(dentry, inode);
+
+	dir->i_mtime = dir->i_ctime = CURRENT_TIME;
 
 	return 0;
 }
@@ -290,7 +323,7 @@ static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 	args.where.dir = ZFS_I(dir)->fh;
 	args.where.name.str = (char *)dentry->d_name.name;
 	args.where.name.len = dentry->d_name.len;
-	args.attr.mode = mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	args.attr.mode = mode & S_IALLUGO;
 	args.attr.uid = current->fsuid;
 	if (dir->i_mode & S_ISGID) {
 		args.attr.gid = dir->i_gid;
@@ -353,7 +386,7 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 	args.where.dir = ZFS_I(dir)->fh;
 	args.where.name.str = (char *)dentry->d_name.name;
 	args.where.name.len = dentry->d_name.len;
-	args.attr.mode = mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+	args.attr.mode = mode & S_IALLUGO;
 	args.attr.uid = current->fsuid;
 	args.attr.gid = current->fsgid;
 	args.attr.size = -1;
@@ -426,6 +459,34 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 	return 0;
 }
 
+static int zfs_readlink(struct dentry *dentry, char __user *buf, int buflen)
+{
+	read_link_res res;
+	int error;
+
+	TRACE("zfs: readlink: '%s'\n", dentry->d_name.name);
+
+	error = zfsd_readlink(&res, &ZFS_I(dentry->d_inode)->fh);
+	if (error)
+		return error;
+
+	return vfs_readlink(dentry, buf, buflen, res.path.str);
+}
+
+static int zfs_follow_link (struct dentry *dentry, struct nameidata *nd)
+{
+	read_link_res res;
+	int error;
+
+	TRACE("zfs: follow_link: '%s'\n", dentry->d_name.name);
+
+	error = zfsd_readlink(&res, &ZFS_I(dentry->d_inode)->fh);
+	if (error)
+		return error;
+
+	return vfs_follow_link(nd, res.path.str);
+}
+
 static struct inode_operations zfs_dir_inode_operations = {
 	.create         = zfs_create,
 	.lookup         = zfs_lookup,
@@ -440,6 +501,12 @@ static struct inode_operations zfs_dir_inode_operations = {
 };
 
 static struct inode_operations zfs_file_inode_operations = {
+	.setattr        = zfs_setattr,
+};
+
+static struct inode_operations zfs_symlink_inode_operations = {
+	.readlink       = zfs_readlink,
+	.follow_link    = zfs_follow_link,
 	.setattr        = zfs_setattr,
 };
 
