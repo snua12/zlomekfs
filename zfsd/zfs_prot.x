@@ -64,6 +64,8 @@ struct fattr
   uint64_t size;	/* total size in bytes */
   uint64_t blocks;	/* number of blocks allocated */
   unsigned blksize;	/* filesystem block size */
+  unsigned generation;	/* generation number of file */
+  uint64_t fversion;	/* version number of file */
   unsigned sid;		/* server id */
   unsigned fsid;	/* device number */
   unsigned fileid;	/* inode number */
@@ -76,6 +78,8 @@ struct fattr
 struct sattr
 {
   unsigned mode;	/* protection mode */
+  unsigned uid;		/* owner user id */
+  unsigned gid;		/* owner group id */
 };
 
 typedef string filename<ZFS_MAXNAMELEN>;
@@ -91,13 +95,62 @@ switch (int status)
     void;
 };
 
+/* Arguments of remote read.  */
+struct readargs {
+  zfs_fh file;		/* handle for file */
+  uint64_t offset;	/* byte offset in file */
+  unsigned count;	/* number of bytes to be read */
+};
+
+/* Reply of remote read.  */
+struct readokres {
+  opaque data<ZFS_MAXDATA>;
+};
+
+union readres
+switch (int status)
+{
+  case 0:
+    readokres reply;
+  default:
+    void;
+};
+
+/* Arguments of remote write. */
+struct writeargs {
+  zfs_fh file;		/* handle for file */
+  uint64_t offset;	/* byte offset in file */
+  unsigned count;	/* number of bytes to be read */
+  opaque data<ZFS_MAXDATA>;
+};
+
 program ZFS_PROGRAM {
   version ZFS_VERSION {
     
-    /* Does no work.  */
     void
     ZFSPROC_NULL(void) = 0;
 
+    attrstat
+    ZFSPROC_GETATTR(zfs_fh) = 1;
+
+    /* ??? ZFSPROC_OPEN(???) = 2;*/
+
+    readres
+    NFSPROC_READ(readargs) = 3;
+
+    /* ??? ZFSPROC_WRITE(???) = 4;*/
+    /* ??? ZFSPROC_CLOSE(???) = 5;*/ 
+    /* ??? ZFSPROC_LOOKUP(???) = 6;*/
+    /* ??? ZFSPROC_SETATTR(???) = 7;*/
+    /* ??? ZFSPROC_READLINK(???) = 7;*/
+    /* ??? ZFSPROC_REMOVE(???) = 7;*/
+    /* ??? ZFSPROC_RENAME(???) = 7;*/
+    /* ??? ZFSPROC_LINK(???) = 7;*/
+    /* ??? ZFSPROC_SYMLINK(???) = 7;*/
+    /* ??? ZFSPROC_MKDIR(???) = 7;*/
+    /* ??? ZFSPROC_RMDIR(???) = 7;*/
+    /* ??? ZFSPROC_READDIR(???) = 7;*/
+    /* ??? ZFSPROC_STATVOLUME???(???) = 7;*/
 
   } = 1;
 } = 0x335a4653;
