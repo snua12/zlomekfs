@@ -3106,11 +3106,11 @@ write_journal (volume vol, zfs_fh *fh, journal_t journal)
 }
 
 /* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH,
-   master version MASTER_VERSION and operation OPER to journal for file
+   master version MASTER_VERSION and operation OPER to journal JOURNAL for file
    handle FH on volume VOL.  */
 
 bool
-add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
+add_journal_entry (volume vol, journal_t journal, zfs_fh *fh, zfs_fh *local_fh,
 		   zfs_fh *master_fh, uint64_t master_version, string *name,
 		   journal_operation_t oper)
 {
@@ -3123,17 +3123,17 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!fh->journal)
+  if (!journal)
     abort ();
   if (!vol->local_path.str || !vol->is_copy)
     abort ();
 #endif
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
-  if (!journal_opened_p (fh->journal))
+  if (!journal_opened_p (journal))
     {
-      if (open_journal_file (vol, fh->journal, &fh->local_fh) < 0)
+      if (open_journal_file (vol, journal, fh) < 0)
 	return false;
     }
 
@@ -3179,29 +3179,28 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
   memcpy (end, &tmp64, sizeof (uint64_t));
   end += sizeof (uint64_t);
 
-  r = full_write (fh->journal->fd, buffer, end - buffer);
-  zfsd_mutex_unlock (&metadata_fd_data[fh->journal->fd].mutex);
+  r = full_write (journal->fd, buffer, end - buffer);
+  zfsd_mutex_unlock (&metadata_fd_data[journal->fd].mutex);
 
   if (!r)
     return false;
 
-  journal_insert (fh->journal, local_fh, master_fh, master_version, name,
+  journal_insert (journal, local_fh, master_fh, master_version, name,
 		  oper, true);
 
   return true;
 }
 
 /* Add a journal entry for file with metadata META, name NAME
-   and operation OPER to journal for file handle FH on volume VOL.  */
+   and operation OPER to journal JOURNAL for file handle FH on volume VOL.  */
 
 bool
-add_journal_entry_meta (volume vol, internal_fh fh, metadata *meta,
-			string *name, journal_operation_t oper)
+add_journal_entry_meta (volume vol, journal_t journal, zfs_fh *fh,
+			metadata *meta, string *name, journal_operation_t oper)
 {
   zfs_fh local_fh;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
   if (!vol->local_path.str || !vol->is_copy)
     abort ();
@@ -3213,7 +3212,7 @@ add_journal_entry_meta (volume vol, internal_fh fh, metadata *meta,
   local_fh.ino = meta->ino;
   local_fh.gen = meta->gen;
 
-  return add_journal_entry (vol, fh, &local_fh, &meta->master_fh,
+  return add_journal_entry (vol, journal, fh, &local_fh, &meta->master_fh,
 			    meta->master_version, name, oper);
 }
 
