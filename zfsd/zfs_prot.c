@@ -29,6 +29,13 @@
 #include "node.h"
 #include "dir.h"
 #include "volume.h"
+#include "log.h"
+
+/* Request ID for next call.  */
+static volatile uint32_t request_id;
+
+/* Mutex for accessing request_id.  */
+static pthread_mutex_t request_id_mutex;
 
 /* void zfs_proc_null (void) */
 
@@ -243,19 +250,36 @@ int									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS_TYPE *args, node nod)	\
 {									\
   server_thread_data *td = &t->u.server;				\
-  static uint32_t request_id;						\
+  uint32_t req_id;							\
 									\
+  pthread_mutex_lock (&request_id_mutex);				\
+  req_id = request_id++;						\
+  pthread_mutex_unlock (&request_id_mutex);				\
+  message (2, stderr, "sending request: ID=%u fn=%u\n", req_id,		\
+	   NUMBER);							\
   start_encoding (&td->dc_call);					\
   encode_direction (&td->dc_call, DIR_REQUEST);				\
-  encode_request_id (&td->dc_call, request_id++);			\
+  encode_request_id (&td->dc_call, req_id);				\
   encode_function (&td->dc_call, NUMBER);				\
   if (!encode_##ARGS_TYPE (&td->dc_call, args))				\
     return ZFS_REQUEST_TOO_LONG;					\
   finish_encoding (&td->dc_call);					\
 									\
-  send_request (td, nod);						\
+  send_request (t, req_id, nod);					\
 									\
   return td->retval;							\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
+
+void
+initialize_zfs_prot_c ()
+{
+  pthread_mutex_init (&request_id_mutex, NULL);
+}
+
+void
+cleanup_zfs_prot_c ()
+{
+  pthread_mutex_destroy (&request_id_mutex);
+}
