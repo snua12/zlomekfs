@@ -45,6 +45,7 @@ typedef struct server_fd_data_def
   time_t last_use;		/* time of last use of the socket */
   unsigned int generation;	/* generation of open file descriptor */
   authentication_status auth;	/* status of authentication with remote node */
+  unsigned int sid;		/* ID of node which wants to connect */
   int busy;			/* number of threads using file descriptor */
 } server_fd_data_t;
 
