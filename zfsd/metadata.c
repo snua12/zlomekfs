@@ -183,27 +183,28 @@ build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
     }
   tree[2 * tree_depth] = 0;
 
-  varray_create (&v, sizeof (char *), 4);
+  varray_create (&v, sizeof (char *), 5);
   VARRAY_PUSH (v, vol->local_path, char *);
+  VARRAY_PUSH (v, "/.zfs/", char *);
+  VARRAY_PUSH (v, tree, char *);
+  VARRAY_PUSH (v, name, char *);
   switch (type)
     {
       case METADATA_TYPE_UPDATED:
-	VARRAY_PUSH (v, "/.zfs/updated/", char *);
+	VARRAY_PUSH (v, ".updated", char *);
 	break;
 
       case METADATA_TYPE_MODIFIED:
-	VARRAY_PUSH (v, "/.zfs/modified/", char *);
+	VARRAY_PUSH (v, ".modified", char *);
 	break;
 
       case METADATA_TYPE_HARDLINKS:
-	VARRAY_PUSH (v, "/.zfs/hardlinks/", char *);
+	VARRAY_PUSH (v, ".hardlinks", char *);
 	break;
 
       default:
 	abort ();
     }
-  VARRAY_PUSH (v, tree, char *);
-  VARRAY_PUSH (v, name, char *);
 
   path = xstrconcat_varray (&v);
   varray_destroy (&v);
