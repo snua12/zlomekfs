@@ -42,6 +42,7 @@ extern int zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 extern int zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr);
 extern int zfs_rmdir (zfs_fh *dir, string *name);
+extern int zfs_link (zfs_fh *from, zfs_fh *dir, string *name);
 extern int zfs_unlink (zfs_fh *dir, string *name);
 extern int zfs_readlink (read_link_res *res, zfs_fh *fh);
 extern int zfs_symlink (zfs_fh *dir, string *name, string *to, sattr *attr);

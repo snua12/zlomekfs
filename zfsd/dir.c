@@ -481,7 +481,6 @@ local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 
   if (fa)
     return local_getattr (fa, path, vol);
-
   return ZFS_OK;
 }
 
@@ -1051,6 +1050,188 @@ zfs_rmdir (zfs_fh *dir, string *name)
     zfsd_mutex_unlock (&idir->mutex);
 
   zfsd_mutex_unlock (&vol->mutex);
+
+  return r;
+}
+
+/* Link local file FROM to be a file with NAME in directory DIR
+   on volume VOL.  */
+
+static int
+local_link (internal_fh from, internal_fh dir, string *name, volume vol)
+{
+  char *path1, *path2;
+  int r;
+
+  CHECK_MUTEX_LOCKED (&from->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  path1 = build_local_path (vol, from);
+  path2 = build_local_path_name (vol, dir, name->str);
+  r = link (path1, path2);
+  free (path1);
+  free (path2);
+  if (r != 0)
+    return errno;
+
+  return ZFS_OK;
+}
+
+/* Link remote file FROM to be a file with NAME in directory DIR
+   on volume VOL.  */
+
+static int
+remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
+{
+  link_args args;
+  thread *t;
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&from->mutex);
+  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  args.from = from->master_fh;
+  args.to.dir = dir->master_fh;
+  args.to.name = *name;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_link_client (t, &args, vol->master);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Link file FROM to be a file with NAME in directory DIR.  */
+
+int
+zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
+{
+  volume vol1 = NULL, vol2 = NULL;
+  internal_fh ifh1 = NULL, ifh2 = NULL;
+  virtual_dir vd1 = NULL, vd2 = NULL;
+  int r = ZFS_OK;
+
+  /* Lookup FROM.  */
+  zfsd_mutex_lock (&volume_mutex);
+  zfsd_mutex_lock (&vd_mutex);
+  if (!fh_lookup_nolock (from, &vol1, &ifh1, &vd1))
+    {
+      zfsd_mutex_unlock (&volume_mutex);
+      zfsd_mutex_unlock (&vd_mutex);
+      return ESTALE;
+    }
+  if (!vol1)
+    {
+      r = EROFS;
+      goto zfs_link_error_unlock_volume;
+    }
+  /* Because LINK operation is allowed only within same volume
+     we may unlock VOL1.  Moreover we have to do so to avoid deadlock.  */
+  zfsd_mutex_unlock (&vol1->mutex);
+
+  /* Lookup DIR.  */
+  if (!fh_lookup_nolock (dir, &vol2, &ifh2, &vd2))
+    {
+      r = ESTALE;
+      goto zfs_link_error_unlock_volume;
+    }
+  zfsd_mutex_unlock (&volume_mutex);
+  if (!vol2)
+    {
+      r = EROFS;
+      goto zfs_link_error_unlock_vd;
+    }
+  if (vol1 != vol2)
+    {
+      r = EXDEV;
+      goto zfs_link_error_unlock_vd;
+    }
+
+  /* Check validity of the operation.  */
+  if (vd1 && vd1->vol)
+    {
+      r = update_volume_root (vd1->vol, &ifh1);
+      if (r == ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&vd1->mutex);
+	  vd1 = NULL;
+	}
+    }
+  if (vd1)
+    {
+      r = EROFS;
+      goto zfs_link_error_unlock_vd;
+    }
+  if (vd2)
+    {
+      r = validate_operation_on_virtual_directory (vd2, name, &ifh2);
+      if (r != ZFS_OK)
+	goto zfs_link_error_unlock_vd;
+      zfsd_mutex_unlock (&vd2->mutex);
+      vd2 = NULL;
+    }
+  zfsd_mutex_unlock (&vd_mutex);
+  if (ifh1->master_fh.dev != ifh2->master_fh.dev)
+    {
+      r = EXDEV;
+      goto zfs_link_error;
+    }
+
+  if (vol1->local_path)
+    r = local_link (ifh1, ifh2, name, vol1);
+  else if (vol1->master != this_node)
+    r = remote_link (ifh1, ifh2, name, vol1);
+  else
+    abort ();
+
+  if (r == ZFS_OK)
+    {
+      internal_fh ifh;
+
+      /* Delete internal file handle in htab because it is outdated.  */
+      ifh = fh_lookup_name (vol2, ifh2, name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  internal_fh_destroy (ifh, vol2);
+	}
+      zfsd_mutex_unlock (&ifh->mutex);
+    }
+
+  zfsd_mutex_unlock (&ifh1->mutex);
+  zfsd_mutex_unlock (&ifh2->mutex);
+  zfsd_mutex_unlock (&vol2->mutex);
+
+  return r;
+
+zfs_link_error_unlock_volume:
+  zfsd_mutex_unlock (&volume_mutex);
+
+zfs_link_error_unlock_vd:
+  zfsd_mutex_unlock (&vd_mutex);
+
+zfs_link_error:
+  if (ifh1)
+    zfsd_mutex_unlock (&ifh1->mutex);
+  if (ifh2)
+    zfsd_mutex_unlock (&ifh2->mutex);
+  if (vd1)
+    zfsd_mutex_unlock (&vd1->mutex);
+  if (vd2)
+    zfsd_mutex_unlock (&vd2->mutex);
+  if (vol2)
+    zfsd_mutex_unlock (&vol2->mutex);
 
   return r;
 }

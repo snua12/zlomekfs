@@ -241,9 +241,11 @@ void
 zfs_proc_link_server (link_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_link (&args->from, &args->to.dir, &args->to.name);
+  encode_status (dc, r);
+  free (args->to.name.str);
 }
 
 /* void zfs_proc_unlink (dir_op_args); */
