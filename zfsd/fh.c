@@ -1589,9 +1589,6 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
     dentry = internal_dentry_create (local_fh, master_fh, vol, dir, name,
 				     attr, meta, LEVEL_UNLOCKED);
 
-  if (!dir)
-    vol->root_dentry = dentry;
-
   return dentry;
 }
 
@@ -2070,8 +2067,6 @@ again:
 
   conflict = internal_dentry_create (&tmp_fh, &undefined_fh, vol, dir,
 				     name, &tmp_attr, NULL, LEVEL_UNLOCKED);
-/*  if (!dir)
-    vol->root_dentry = conflict;*/
 
   if (dentry)
     {
