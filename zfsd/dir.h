@@ -37,7 +37,6 @@ extern char *build_local_path_name (volume vol, internal_dentry dentry,
 				    char *name);
 extern char *local_path_to_relative_path (volume vol, char *path);
 extern char *file_name_from_path (char *path);
-extern int32_t parent_exists (char *path);
 extern bool recursive_unlink (char *path, uint32_t vid, bool shadow);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
