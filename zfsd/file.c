@@ -1179,6 +1179,21 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 		      break;
 		    }
 
+		  entries->last_cookie = entry->cookie;
+
+		  /* Do not add "." and "..".  */
+		  if (entry->name.str[0] == '.'
+		      && (entry->name.str[1] == 0
+			  || (entry->name.str[1] == '.'
+			      && entry->name.str[2] == 0)))
+		    {
+		      free (entry->name.str);
+		      zfsd_mutex_lock (&dir_entry_mutex);
+		      pool_free (dir_entry_pool, entry);
+		      zfsd_mutex_unlock (&dir_entry_mutex);
+		      continue;
+		    }
+
 		  slot = htab_find_slot_with_hash (entries->htab, entry,
 						   FILLDIR_HTAB_HASH (entry),
 						   INSERT);
@@ -1190,7 +1205,6 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 
 		  *slot = entry;
 		  list->n++;
-		  entries->last_cookie = entry->cookie;
 		}
 	      if (!finish_decoding (&t->dc_reply))
 		r = ZFS_INVALID_REPLY;
