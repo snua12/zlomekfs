@@ -30,9 +30,9 @@
 
 /* Hash function for hardlink list entry H.  */
 #define HARDLINK_LIST_HASH(H)						\
-  (crc32_update (crc32_update (crc32_string ((H).name),			\
-		 &(H).parent_dev, sizeof (uint32_t)),			\
-   &(H).parent_ino, sizeof (uint32_t)))
+  (crc32_update (crc32_update (crc32_string ((H)->name),		\
+		 &(H)->parent_dev, sizeof (uint32_t)),			\
+   &(H)->parent_ino, sizeof (uint32_t)))
 
 /* Definition of the hashed variable-sized array.  */
 typedef struct hardlink_list_def
@@ -61,7 +61,7 @@ typedef struct hardlink_list_entry_def
 
   /* File name.  */
   char *name;
-} hardlink_list_entry;
+} *hardlink_list_entry;
 
 extern hardlink_list hardlink_list_create (unsigned int nelem,
 					   pthread_mutex_t *mutex);
@@ -73,7 +73,10 @@ extern bool hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 extern bool hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, char *name);
 extern unsigned int hardlink_list_size (hardlink_list hl);
-extern hardlink_list_entry *hardlink_list_element (hardlink_list hl,
-						   unsigned int index);
+extern hardlink_list_entry hardlink_list_element (hardlink_list hl,
+						  unsigned int index);
+
+extern void initialize_hardlink_list_c (void);
+extern void cleanup_hardlink_list_c (void);
 
 #endif

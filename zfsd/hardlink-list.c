@@ -24,13 +24,20 @@
 #include "hardlink-list.h"
 #include "memory.h"
 #include "crc32.h"
+#include "alloc-pool.h"
+
+/* Alloc pool of hardlink_list_entry.  */
+static alloc_pool hardlink_list_pool;
+
+/* Mutex protecting hardlink_list_pool.  */
+static pthread_mutex_t hardlink_list_mutex;
 
 /* Return hash value for hardlink X.  */
 
 static hash_t
 hardlink_list_hash (const void *x)
 {
-  return HARDLINK_LIST_HASH (*(const hardlink_list_entry *) x);
+  return HARDLINK_LIST_HASH ((const hardlink_list_entry) x);
 }
 
 /* Compare hardlinks X and Y.  */
@@ -38,8 +45,8 @@ hardlink_list_hash (const void *x)
 static int
 hardlink_list_eq (const void *x, const void *y)
 {
-  const hardlink_list_entry *h1 = (const hardlink_list_entry *) x;
-  const hardlink_list_entry *h2 = (const hardlink_list_entry *) y;
+  const hardlink_list_entry h1 = (const hardlink_list_entry) x;
+  const hardlink_list_entry h2 = (const hardlink_list_entry) y;
 
   return (h1->parent_ino == h2->parent_ino
 	  && h1->parent_dev == h2->parent_dev
@@ -75,8 +82,15 @@ hardlink_list_destroy (hardlink_list hl)
 
   while (VARRAY_USED (hl->array) > 0)
     {
-      free (VARRAY_TOP (hl->array, hardlink_list_entry).name);
+      hardlink_list_entry del;
+      
+      del = VARRAY_TOP (hl->array, hardlink_list_entry);
       VARRAY_POP (hl->array);
+
+      free (del->name);
+      zfsd_mutex_lock (&hardlink_list_mutex);
+      pool_free (hardlink_list_pool, del);
+      zfsd_mutex_unlock (&hardlink_list_mutex);
     }
 
   varray_destroy (&hl->array);
@@ -92,23 +106,26 @@ bool
 hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
 		      uint32_t parent_ino, char *name, bool copy)
 {
-  hardlink_list_entry *entry;
+  hardlink_list_entry entry;
   void **slot;
 
   CHECK_MUTEX_LOCKED (hl->mutex);
 
-  VARRAY_EMPTY_PUSH (hl->array);
-  entry = &VARRAY_TOP (hl->array, hardlink_list_entry);
-  entry->index = VARRAY_USED (hl->array) - 1;
+  zfsd_mutex_lock (&hardlink_list_mutex);
+  entry = (hardlink_list_entry) pool_alloc (hardlink_list_pool);
+  zfsd_mutex_unlock (&hardlink_list_mutex);
   entry->parent_dev = parent_dev;
   entry->parent_ino = parent_ino;
   entry->name = name;
 
   slot = htab_find_slot_with_hash (hl->htab, entry,
-				   HARDLINK_LIST_HASH (*entry), INSERT);
+				   HARDLINK_LIST_HASH (entry), INSERT);
   if (*slot)
     {
-      VARRAY_POP (hl->array);
+      zfsd_mutex_lock (&hardlink_list_mutex);
+      pool_free (hardlink_list_pool, entry);
+      zfsd_mutex_unlock (&hardlink_list_mutex);
+
       if (!copy)
 	{
 	  /* If we shall not copy NAME the NAME is dynamically allocated
@@ -118,8 +135,11 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
       return false;
     }
 
+  entry->index = VARRAY_USED (hl->array);
   if (copy)
     entry->name = xstrdup (name);
+
+  VARRAY_PUSH (hl->array, entry, hardlink_list_entry);
   *slot = entry;
 
   return true;
@@ -132,14 +152,14 @@ bool
 hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 		      uint32_t parent_ino, char *name)
 {
-  hardlink_list_entry entry;
+  struct hardlink_list_entry_def entry;
 
   CHECK_MUTEX_LOCKED (hl->mutex);
 
   entry.parent_dev = parent_dev;
   entry.parent_ino = parent_ino;
   entry.name = name;
-  return (htab_find_with_hash (hl->htab, &entry, HARDLINK_LIST_HASH (entry))
+  return (htab_find_with_hash (hl->htab, &entry, HARDLINK_LIST_HASH (&entry))
 	  != NULL);
 }
 
@@ -150,8 +170,8 @@ bool
 hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
 		      uint32_t parent_ino, char *name)
 {
-  hardlink_list_entry entry;
-  hardlink_list_entry *del, *last;
+  struct hardlink_list_entry_def entry;
+  hardlink_list_entry del, last;
   void **slot;
 
   CHECK_MUTEX_LOCKED (hl->mutex);
@@ -160,23 +180,25 @@ hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
   entry.parent_ino = parent_ino;
   entry.name = name;
   slot = htab_find_slot_with_hash (hl->htab, &entry,
-				   HARDLINK_LIST_HASH (entry), NO_INSERT);
+				   HARDLINK_LIST_HASH (&entry), NO_INSERT);
   if (!slot)
     return false;
 
-  del = (hardlink_list_entry *) *slot;
-  htab_clear_slot (hl->htab, slot);
-  free (del->name);
-
-  last = &VARRAY_TOP (hl->array, hardlink_list_entry);
+  del = (hardlink_list_entry) *slot;
+  last = VARRAY_TOP (hl->array, hardlink_list_entry);
   if (del != last)
     {
-      unsigned int index = del->index;
-      VARRAY_ACCESS (hl->array, index, hardlink_list_entry)
+      VARRAY_ACCESS (hl->array, del->index, hardlink_list_entry)
 	= VARRAY_ACCESS (hl->array, last->index, hardlink_list_entry);
-      del->index = index;
+      last->index = del->index;
     }
   VARRAY_POP (hl->array);
+
+  free (del->name);
+  zfsd_mutex_lock (&hardlink_list_mutex);
+  pool_free (hardlink_list_pool, del);
+  zfsd_mutex_unlock (&hardlink_list_mutex);
+  htab_clear_slot (hl->htab, slot);
 
   return true;
 }
@@ -193,10 +215,38 @@ hardlink_list_size (hardlink_list hl)
 
 /* Get element of the hardlink list HL at index INDEX.  */
 
-hardlink_list_entry *
+hardlink_list_entry
 hardlink_list_element (hardlink_list hl, unsigned int index)
 {
   CHECK_MUTEX_LOCKED (hl->mutex);
 
-  return &VARRAY_ACCESS (hl->array, index, hardlink_list_entry);
+  return VARRAY_ACCESS (hl->array, index, hardlink_list_entry);
+}
+
+/* Initialize data structures in HARDLINK-LIST.C.  */
+
+void
+initialize_hardlink_list_c (void)
+{
+  zfsd_mutex_init (&hardlink_list_mutex);
+  hardlink_list_pool
+    = create_alloc_pool ("hardlink_list_pool",
+			 sizeof (struct hardlink_list_entry_def),
+			 1020, &hardlink_list_mutex);
+}
+
+/* Destroy data structures in HARDLINK-LIST.C.  */
+
+void
+cleanup_hardlink_list_c (void)
+{
+  zfsd_mutex_lock (&hardlink_list_mutex);
+#ifdef ENABLE_CHECKING
+  if (hardlink_list_pool->elts_free < hardlink_list_pool->elts_allocated)
+    message (2, stderr, "Memory leak (%u elements) in hardlink_list_pool.\n",
+	     hardlink_list_pool->elts_allocated - hardlink_list_pool->elts_free);
+#endif
+  free_alloc_pool (hardlink_list_pool);
+  zfsd_mutex_unlock (&hardlink_list_mutex);
+  zfsd_mutex_destroy (&hardlink_list_mutex);
 }

@@ -33,6 +33,7 @@
 #include "semaphore.h"
 #include "log.h"
 #include "string-list.h"
+#include "hardlink-list.h"
 #include "config.h"
 #include "thread.h"
 #include "kernel.h"
@@ -349,6 +350,7 @@ initialize_data_structures (void)
   if (!initialize_random_c ())
     return false;
 
+  initialize_hardlink_list_c ();
   initialize_string_list_c ();
   initialize_metadata_c ();
   initialize_fh_c ();
@@ -376,6 +378,7 @@ cleanup_data_structures (void)
   cleanup_fh_c ();
   cleanup_metadata_c ();
   cleanup_string_list_c ();
+  cleanup_hardlink_list_c ();
   cleanup_random_c ();
 
   free (node_name.str);
