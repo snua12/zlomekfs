@@ -35,7 +35,7 @@ queue_create (queue *q, size_t size)
     abort ();
 #endif
 
-  pthread_rwlock_init (&q->lock, NULL);
+  pthread_mutex_init (&q->mutex, NULL);
   q->queue = (size_t *) xmalloc (size * sizeof (size_t));
   q->size = size;
   q->nelem = 0;
@@ -54,7 +54,7 @@ queue_destroy (queue *q)
 #endif
 
   q->size = 0;
-  pthread_rwlock_destroy (&q->lock);
+  pthread_mutex_destroy (&q->mutex);
   free (q->queue);
 }
 

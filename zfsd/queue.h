@@ -27,7 +27,7 @@
 
 typedef struct queue_def
 {
-  pthread_rwlock_t lock;	/* lock for accessing the queue */
+  pthread_mutex_t mutex;	/* mutex for accessing the queue */
   size_t *queue;		/* the queue itself */
   size_t size;			/* size of the queue */
   size_t nelem;			/* number of elements in the queue */
