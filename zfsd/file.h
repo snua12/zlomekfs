@@ -46,6 +46,7 @@ extern int zfs_open_by_fh (zfs_cap *cap, zfs_fh *fh, unsigned int flags);
 extern int zfs_close (zfs_cap *cap);
 extern int zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count);
 extern int zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count);
+extern int zfs_write (write_res *res, write_args *args);
 extern void initialize_file_c ();
 extern void cleanup_file_c ();
 

@@ -668,7 +668,7 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   return r;
 }
 
-/* Read COUNT bytes from offset OFFSET from local file with capability CAP
+/* Read COUNT bytes from offset OFFSET of local file with capability CAP
    and file handle FH on volume VOL.
    Store data to DC.  */
 
@@ -708,7 +708,7 @@ local_read (DC *dc, internal_cap cap, internal_fh fh, uint64_t offset,
   return ZFS_OK;
 }
 
-/* Read COUNT bytes from offset OFFSET from remote file with capability CAP
+/* Read COUNT bytes from offset OFFSET of remote file with capability CAP
    on volume VOL.
    Store data to DC.  */
 
@@ -792,6 +792,112 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
     r = local_read (dc, icap, ifh, offset, count, vol);
   else if (vol->master != this_node)
     r = remote_read (dc, icap, offset, count, vol);
+  else
+    abort ();
+  zfsd_mutex_unlock (&ifh->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&icap->mutex);
+
+  return r;
+}
+
+/* Write DATA to offset OFFSET of local file with capability CAP
+   and file handle FH on volume VOL.  */
+
+static int
+local_write (write_res *res, internal_cap cap, internal_fh fh, uint64_t offset,
+	      data_buffer *data, volume vol)
+{
+  int r;
+
+  if (!capability_opened_p (cap))
+    {
+      r = capability_open (cap, 0, fh, vol);
+      if (r != ZFS_OK)
+	return r;
+    }
+
+  r = lseek (cap->fd, offset, SEEK_SET);
+  if (r < 0)
+    {
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      return errno;
+    }
+
+  r = write (cap->fd, data->buf, data->len);
+  if (r < 0)
+    {
+      zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+      return errno;
+    }
+  res->written = r;
+
+  zfsd_mutex_unlock (&internal_fd_data[cap->fd].mutex);
+  return ZFS_OK;
+}
+
+/* Write to remote file with capability CAP on volume VOL.  */
+
+static int
+remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
+{
+  thread *t;
+  int32_t r;
+
+  args->cap = cap->master_cap;
+  t = (thread *) pthread_getspecific (thread_data_key);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  r = zfs_proc_write_client (t, args, vol->master);
+
+  if (r == ZFS_OK)
+    {
+      if (decode_write_res (&t->dc, res)
+	  || !finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc))
+	return ZFS_INVALID_REPLY;
+    }
+
+  return r;
+}
+
+/* Write to file.  */
+
+int
+zfs_write (write_res *res, write_args *args)
+{
+  volume vol;
+  internal_cap icap;
+  internal_fh ifh;
+  int r;
+
+  if (args->data.len > ZFS_MAXDATA)
+    return EINVAL;
+
+  if (VIRTUAL_FH_P (args->cap.fh))
+    return EISDIR;
+
+  r = find_capability (&args->cap, &icap, &vol, &ifh, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+#ifdef ENABLE_CHECKING
+  /* We did not allow directory to be opened for writing so there should be
+     no capability for writing to directory.  */
+  if (ifh->attr.type == FT_DIR)
+    abort ();
+#endif
+
+  if (vol->local_path)
+    r = local_write (res, icap, ifh, args->offset, &args->data, vol);
+  else if (vol->master != this_node)
+    r = remote_write (res, icap, args, vol);
   else
     abort ();
   zfsd_mutex_unlock (&ifh->mutex);

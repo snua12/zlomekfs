@@ -275,9 +275,13 @@ void
 zfs_proc_write_server (write_args *args, thread *t)
 {
   DC *dc = &t->dc;
+  write_res res;
+  int32_t r;
 
-  /* TODO: write the function */
-  encode_status (dc, ZFS_UNKNOWN_FUNCTION);
+  r = zfs_write (&res, args);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
+    encode_write_res (dc, &res);
 }
 
 /* read_link_res zfs_proc_readlink (zfs_fh); */
