@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <stddef.h>
+#include <unistd.h>
 #include "memory.h"
 #include "log.h"
 #include "queue.h"
@@ -163,5 +164,35 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
 	  create_idle_thread (pool, start, init);
 	}
       pthread_mutex_unlock (&pool->empty.mutex);
+    }
+}
+
+static void *
+thread_pool_regulator (void *data)
+{
+  thread_pool_regulator_data *d;
+
+  while (1)
+    {
+      /* FIXME: Read the number from configuration.  */
+      sleep (60);
+      pthread_mutex_lock (&d->pool->idle.mutex);
+      thread_pool_regulate (d->pool, d->start, d->init);
+      pthread_mutex_unlock (&d->pool->idle.mutex);
+    }
+}
+
+void
+thread_pool_create_regulator (thread_pool_regulator_data *data,
+			      thread_pool *pool, thread_start start,
+			      thread_initialize init)
+{
+  data->pool = pool;
+  data->start = start;
+  data->init = init;
+  if (pthread_create (&data->thread_id, NULL, thread_pool_regulator,
+		      (void *) data))
+    {
+      message (-1, stderr, "pthread_create() failed\n");
     }
 }
