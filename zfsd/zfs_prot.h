@@ -97,7 +97,7 @@ typedef struct zfs_cap_def
 {
   zfs_fh fh;
   unsigned int flags;
-  unsigned char verify[ZFS_VERIFY_LEN];
+  char verify[ZFS_VERIFY_LEN];
 } zfs_cap;
 
 typedef unsigned int zfs_time;
