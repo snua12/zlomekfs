@@ -1767,6 +1767,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 		      internal_dentry *to_dirp, string *to_name, volume *volp,
 		      zfs_fh *from_fh, zfs_fh *to_fh)
 {
+  zfs_fh tmp_fh;
   internal_dentry dentry;
 #ifdef ENABLE_CHECKING
   internal_dentry tmp;
@@ -1810,6 +1811,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
       free (dentry->name.str);
       xstringdup (&dentry->name, to_name);
       internal_dentry_add_to_dir (*to_dirp, dentry);
+      tmp_fh = dentry->fh->local_fh;
       release_dentry (dentry);
 
       release_dentry (*from_dirp);
@@ -1825,6 +1827,8 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 	*from_dirp = dentry_lookup (from_fh);
       else
 	*from_dirp = *to_dirp;
+
+      local_invalidate_fh (&tmp_fh);
     }
   else
     {
@@ -1832,7 +1836,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
       free (dentry->name.str);
       xstringdup (&dentry->name, to_name);
       internal_dentry_add_to_dir (*to_dirp, dentry);
-      release_dentry (dentry);
+      local_invalidate (dentry, dentry->parent == NULL);
     }
 }
 
