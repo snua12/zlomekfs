@@ -85,6 +85,10 @@ fake_config ()
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
     volume_set_local_info (vol, "/home/joe/.zfs/dir1", VOLUME_NO_LIMIT);
+#ifdef TEST_UPDATE
+  if (this_node && strcmp (this_node->name, "orion") == 0)
+    volume_set_local_info (vol, "/.zfs/vol3", VOLUME_NO_LIMIT);
+#endif
   volume_set_common_info (vol, "volume3", "/volume1/volume3", nod);
   zfsd_mutex_unlock (&vol->mutex);
 
