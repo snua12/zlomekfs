@@ -729,6 +729,9 @@ map_uid_zfs2node (uint32_t uid)
 {
   id_mapping map;
 
+  if (uid == (uint32_t) -1)
+    return uid;
+
   zfsd_mutex_lock (&this_node->mutex);
   map = (id_mapping) htab_find_with_hash (this_node->map_uid_to_node, &uid,
 					  USER_ID_HASH (uid));
@@ -758,6 +761,9 @@ uint32_t
 map_uid_node2zfs (uint32_t uid)
 {
   id_mapping map;
+
+  if (uid == (uint32_t) -1)
+    return uid;
 
   zfsd_mutex_lock (&this_node->mutex);
   map = (id_mapping) htab_find_with_hash (this_node->map_uid_to_zfs, &uid,
@@ -789,6 +795,9 @@ map_gid_zfs2node (uint32_t gid)
 {
   id_mapping map;
 
+  if (gid == (uint32_t) -1)
+    return gid;
+
   zfsd_mutex_lock (&this_node->mutex);
   map = (id_mapping) htab_find_with_hash (this_node->map_gid_to_node, &gid,
 					  GROUP_ID_HASH (gid));
@@ -818,6 +827,9 @@ uint32_t
 map_gid_node2zfs (uint32_t gid)
 {
   id_mapping map;
+
+  if (gid == (uint32_t) -1)
+    return gid;
 
   zfsd_mutex_lock (&this_node->mutex);
   map = (id_mapping) htab_find_with_hash (this_node->map_gid_to_zfs, &gid,
