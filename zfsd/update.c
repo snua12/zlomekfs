@@ -1864,7 +1864,7 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	      }
 	    else if (r == ENOENT || r == ESTALE)
 	      {
-		if (zfs_fh_undefined (entry->master_fh))
+		if (zfs_fh_undefined (meta.master_fh))
 		  {
 		    internal_dentry subdentry;
 
