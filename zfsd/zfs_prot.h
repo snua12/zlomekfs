@@ -174,11 +174,11 @@ typedef struct volume_root_args_def
   uint32_t vid;
 } volume_root_args;
 
-typedef struct sattr_args_def
+typedef struct setattr_args_def
 {
   zfs_fh file;
   sattr attr;
-} sattr_args;
+} setattr_args;
 
 typedef struct dir_op_args_def
 {
@@ -371,7 +371,7 @@ typedef union call_args_def
   char root;
   volume_root_args volume_root;
   zfs_fh getattr;
-  sattr_args setattr;
+  setattr_args setattr;
   dir_op_args lookup;
   create_args create;
   open_args open;

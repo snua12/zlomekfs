@@ -1357,7 +1357,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 int32_t
 remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
-  sattr_args args;
+  setattr_args args;
   thread *t;
   int32_t r;
   int fd;

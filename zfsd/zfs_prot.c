@@ -128,10 +128,10 @@ zfs_proc_getattr_server (zfs_fh *args, DC *dc,
     }
 }
 
-/* fattr zfs_proc_setattr (sattr_args); */
+/* fattr zfs_proc_setattr (setattr_args); */
 
 void
-zfs_proc_setattr_server (sattr_args *args, DC *dc,
+zfs_proc_setattr_server (setattr_args *args, DC *dc,
 			 ATTRIBUTE_UNUSED void *data, bool map_id)
 {
   int32_t r;

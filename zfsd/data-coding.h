@@ -258,9 +258,9 @@ extern bool decode_nodename (DC *dc, string *str);
 extern bool encode_nodename (DC *dc, string *str);
 extern bool decode_volume_root_args (DC *dc, volume_root_args *args);
 extern bool encode_volume_root_args (DC *dc, volume_root_args *args);
-extern bool decode_sattr_args (DC *dc, sattr_args *args);
+extern bool decode_setattr_args (DC *dc, setattr_args *args);
 #endif
-extern bool encode_sattr_args (DC *dc, sattr_args *args);
+extern bool encode_setattr_args (DC *dc, setattr_args *args);
 #ifndef __KERNEL__
 extern bool decode_dir_op_args (DC *dc, dir_op_args *args);
 #endif

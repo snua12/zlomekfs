@@ -671,7 +671,7 @@ encode_volume_root_args (DC *dc, volume_root_args *args)
 }
 
 bool
-decode_sattr_args (DC *dc, sattr_args *args)
+decode_setattr_args (DC *dc, setattr_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
 	  && decode_sattr (dc, &args->attr));
@@ -680,7 +680,7 @@ decode_sattr_args (DC *dc, sattr_args *args)
 #endif
 
 bool
-encode_sattr_args (DC *dc, sattr_args *args)
+encode_setattr_args (DC *dc, setattr_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
 	  && encode_sattr (dc, &args->attr));

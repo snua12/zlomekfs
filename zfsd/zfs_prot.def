@@ -41,7 +41,7 @@ DEFINE_ZFS_PROC (2, VOLUME_ROOT, volume_root, volume_root_args,
 # endif
 DEFINE_ZFS_PROC (3, GETATTR, getattr, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-DEFINE_ZFS_PROC (4, SETATTR, setattr, sattr_args,
+DEFINE_ZFS_PROC (4, SETATTR, setattr, setattr_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 DEFINE_ZFS_PROC (5, LOOKUP, lookup, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
