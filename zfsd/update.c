@@ -1514,6 +1514,51 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   RETURN_INT (r);
 }
 
+/** \fn static void schedule_update_or_reintegration
+        (volume vol, internal_dentry dentry)
+    \brief Schedule update or reintegration of a regular file if volume master
+    is connected via a fast link and the update threads are running.
+    \param vol Volume the file is on.
+    \param dentry The dentry of the file.  */
+
+static void
+schedule_update_or_reintegration (volume vol, internal_dentry dentry)
+{
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dentry->fh->attr.type != FT_REG)
+    abort ();
+#endif
+
+  if (volume_master_connected (vol) == CONNECTION_SPEED_FAST)
+    {
+      /* Schedule update or reintegration of regular file.  */
+
+      zfsd_mutex_lock (&running_mutex);
+      if (update_pool.main_thread == 0)
+	{
+	  /* Update threads are not running.  */
+	  zfsd_mutex_unlock (&running_mutex);
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&running_mutex);
+
+	  if (!(dentry->fh->flags & IFH_ENQUEUED))
+	    {
+	      dentry->fh->flags |= IFH_ENQUEUED;
+	      zfsd_mutex_lock (&update_queue_mutex);
+	      queue_put (&update_queue, &dentry->fh->local_fh);
+	      zfsd_mutex_unlock (&update_queue_mutex);
+	    }
+	}
+    }
+
+  RETURN_VOID;
+}
+
 /* Synchronize file DENTRY with file handle FH on volume VOL
    with the remote file with attributes ATTR.
    WHAT are the flags saying what needs to be done.  */
@@ -1552,32 +1597,10 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 	RETURN_INT (r);
     }
 
-  if (dentry->fh->attr.type == FT_REG)
+  if (dentry->fh->attr.type == FT_REG
+      && (what & (IFH_UPDATE | IFH_REINTEGRATE)) != 0)
     {
-      if ((what & (IFH_UPDATE | IFH_REINTEGRATE)) != 0
-	  && volume_master_connected (vol) == CONNECTION_SPEED_FAST)
-	{
-	  /* Schedule update or reintegration of regular file.  */
-
-	  zfsd_mutex_lock (&running_mutex);
-	  if (update_pool.main_thread == 0)
-	    {
-	      /* Update threads are not running.  */
-	      zfsd_mutex_unlock (&running_mutex);
-	    }
-	  else
-	    {
-	      zfsd_mutex_unlock (&running_mutex);
-
-	      if (!(dentry->fh->flags & IFH_ENQUEUED))
-		{
-		  dentry->fh->flags |= IFH_ENQUEUED;
-		  zfsd_mutex_lock (&update_queue_mutex);
-		  queue_put (&update_queue, &dentry->fh->local_fh);
-		  zfsd_mutex_unlock (&update_queue_mutex);
-		}
-	    }
-	}
+      schedule_update_or_reintegration (vol, dentry);
     }
 
   attr_conflict = local_changed && remote_changed;
