@@ -37,6 +37,7 @@
 #include "volume.h"
 #include "network.h"
 #include "zfs_prot.h"
+#include "user-group.h"
 
 /* Return the local path of file for file handle FH on volume VOL.  */
 
@@ -386,8 +387,8 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
 
   attr->mode = st->st_mode & (S_IRWXU | S_ISUID | S_ISGID | S_ISVTX);
   attr->nlink = st->st_nlink;
-  attr->uid = st->st_uid;  /* FIXME: translate UID */
-  attr->gid = st->st_gid;  /* FIXME: translate GID */
+  attr->uid = map_uid_node2zfs (st->st_uid);
+  attr->gid = map_gid_node2zfs (st->st_gid);
   attr->rdev = st->st_rdev;
   attr->size = st->st_size;
   attr->blocks = st->st_blocks;
@@ -467,7 +468,8 @@ local_setattr_path (fattr *fa, char *path, sattr *sa, volume vol)
 
   if (sa->uid != (unsigned int) -1 || sa->gid != (unsigned int) -1)
     {
-      if (lchown (path, sa->uid, sa->gid) != 0)
+      if (lchown (path, map_uid_zfs2node (sa->uid),
+		  map_gid_zfs2node (sa->gid)) != 0)
 	return errno;
     }
 

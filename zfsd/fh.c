@@ -38,6 +38,7 @@
 #include "network.h"
 #include "varray.h"
 #include "zfs_prot.h"
+#include "user-group.h"
 
 /* File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE};
@@ -964,8 +965,8 @@ virtual_dir_set_fattr (virtual_dir vd)
   vd->attr.type = FT_DIR;
   vd->attr.mode = S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
   vd->attr.nlink = 2;
-  vd->attr.uid = 0; /* FIXME? */
-  vd->attr.gid = 0; /* FIXME? */
+  vd->attr.uid = DEFAULT_ZFS_UID;
+  vd->attr.gid = DEFAULT_ZFS_GID;
   vd->attr.rdev = 0;
   vd->attr.size = 0;
   vd->attr.blocks = 0;
