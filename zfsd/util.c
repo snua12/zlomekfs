@@ -64,7 +64,6 @@ full_read (int fd, void *buf, size_t len)
       print_hex_buffer ((char *) buf, len, stderr);
     }
 
-  message (2, stderr, "reading data SUCCEDED\n");
   return true;
 }
 
@@ -93,6 +92,5 @@ full_write (int fd, void *buf, size_t len)
 	}
     }
 
-  message (2, stderr, "writing data SUCCEDED\n");
   return true;
 }
