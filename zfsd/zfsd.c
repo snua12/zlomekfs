@@ -441,16 +441,23 @@ main (int argc, char **argv)
   init_constants ();
   init_sig_handlers ();
 
+#ifndef TEST
+  config_file = xstrdup ("/etc/zfs/config");
+#endif
   process_arguments (argc, argv);
 
   if (!initialize_data_structures ())
-    die ();
+    {
+#ifndef TEST
+      free (config_file);
+#endif
+      die ();
+    }
   set_lock_info (li);
 
 #ifdef TEST
   fake_config ();
 #else
-  config_file = xstrdup ("/etc/zfs/config");
   if (!read_config_file (config_file))
     {
       free (config_file);
