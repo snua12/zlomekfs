@@ -755,13 +755,14 @@ server_main (void * ATTRIBUTE_UNUSED data)
       if (r < 0 && errno != EINTR)
 	{
 	  message (-1, stderr, "%s, server_main exiting\n", strerror (errno));
-	  free (pfd);
-	  return NULL;
+	  goto server_main_out;
 	}
 
       if (!running)
 	{
 	  message (2, stderr, "Terminating\n");
+
+server_main_out:
 	  close (main_socket);
 	  accept_connections = 0;
 
