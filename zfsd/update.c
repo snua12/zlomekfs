@@ -1340,6 +1340,17 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
     abort ();
 #endif
 
+  if (local_changed && METADATA_ATTR_EQ_P ((*dentryp)->fh->attr, *attr))
+    {
+      (*dentryp)->fh->meta.modetype = GET_MODETYPE (attr->mode, attr->type);
+      (*dentryp)->fh->meta.uid = attr->uid;
+      (*dentryp)->fh->meta.gid = attr->gid;
+      if (!flush_metadata (*volp, &(*dentryp)->fh->meta))
+	MARK_VOLUME_DELETE (*volp);
+
+      RETURN_INT (ZFS_OK);
+    }
+
   sa.size = (uint64_t) -1;
   sa.atime = (zfs_time) -1;
   sa.mtime = (zfs_time) -1;
