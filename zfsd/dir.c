@@ -5148,11 +5148,11 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
   volume vol;
   internal_dentry dir;
   metadata meta;
-  int32_t r;
+  int32_t r, r2;
 
-  r = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
-  if (r != ZFS_OK)
+  if (r2 != ZFS_OK)
     abort ();
 #endif
 
@@ -5165,6 +5165,40 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
     }
   else
     {
+      /* If file is a directory try to delete it.  It succeeds only if
+	 the directory is empty.  Otherwise move the directory to shadow.  */
+      if (GET_MODETYPE_TYPE (meta.modetype) == FT_DIR)
+	{
+	  r = local_rmdir (&meta, dir, name, vol);
+
+	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	  if (r == ZFS_OK)
+	    {
+	      delete_dentry (&vol, &dir, name, dir_fh);
+	      zfsd_mutex_unlock (&fh_mutex);
+
+	      if (vol->master != this_node
+		  && !SPECIAL_DIR_P (dir, name->str, true)
+		  && !(dir->fh->meta.flags & METADATA_SHADOW_TREE))
+		{
+		  if (!add_journal_entry_meta (vol, dir->fh, &meta, name,
+					       JOURNAL_OPERATION_DEL))
+		    MARK_VOLUME_DELETE (vol);
+		}
+
+	      if (!inc_local_version (vol, dir->fh))
+		MARK_VOLUME_DELETE (vol);
+
+	      release_dentry (dir);
+	      zfsd_mutex_unlock (&vol->mutex);
+
+	      return ZFS_OK;
+	    }
+	}
       if (!move_to_shadow (vol, fh, dir, name, dir_fh, journal))
 	return ZFS_UPDATE_FAILED;
     }
