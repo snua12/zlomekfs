@@ -2516,6 +2516,34 @@ conflict_remote_dentry (internal_dentry conflict)
   return NULL;
 }
 
+/* Return the other dentry in cronflict dir CONFLICT than DENTRY.  */
+
+internal_dentry
+conflict_other_dentry (internal_dentry conflict, internal_dentry dentry)
+{
+  internal_dentry other;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!CONFLICT_DIR_P (conflict->fh->local_fh))
+    abort ();
+#endif
+
+  for (i = 0; i < VARRAY_USED (conflict->fh->subdentries); i++)
+    {
+      other = VARRAY_ACCESS (conflict->fh->subdentries, i, internal_dentry);
+      if (other != dentry)
+	{
+	  acquire_dentry (other);
+	  return other;
+	}
+    }
+
+  return NULL;
+}
+
 /* Cancel the CONFLICT on volume VOL.  */
 
 void
