@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 #include "pthread.h"
 #include "log.h"
 
@@ -50,7 +52,8 @@ full_read (int fd, char *buf, size_t len)
       r = read (fd, buf + total_read, len - total_read);
       if (r <= 0)
 	{
-	  message (2, stderr, "reading data FAILED\n");
+	  message (2, stderr, "reading data FAILED: %d (%s)\n",
+		   errno, strerror (errno));
 	  return false;
 	}
     }
@@ -84,7 +87,8 @@ full_write (int fd, char *buf, size_t len)
       w = write (fd, buf + total_written, len - total_written);
       if (w <= 0)
 	{
-	  message (2, stderr, "writing data FAILED\n");
+	  message (2, stderr, "writing data FAILED: %d (%s)\n",
+		   errno, strerror (errno));
 	  return false;
 	}
     }
