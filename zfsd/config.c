@@ -514,8 +514,8 @@ read_local_cluster_config (string *path)
 	}
       if (this_node_id == 0 || this_node_id == (uint32_t) -1)
 	{
-	  message (0, stderr, "%s: Node ID must not be 0 or %" PRIu32, file,
-		   (uint32_t) -1);
+	  message (0, stderr, "%s: Node ID must not be 0 or %" PRIu32 "\n",
+		   file, (uint32_t) -1);
 	  free (file);
 	  fclose (f);
 	  return false;
@@ -2098,7 +2098,7 @@ config_reader (void *data)
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "volume_root(): %s", zfs_strerror (r));
+      message (0, stderr, "volume_root(): %s\n", zfs_strerror (r));
       goto out;
     }
 
@@ -2112,7 +2112,7 @@ config_reader (void *data)
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "volume_root(): %s", zfs_strerror (r));
+      message (0, stderr, "volume_root(): %s\n", zfs_strerror (r));
       goto out;
     }
 
