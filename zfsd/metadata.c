@@ -63,7 +63,8 @@ metadata_fd_data_t *metadata_fd_data;
 /* Array of opened metadata file descriptors.  */
 static fibheap metadata_heap;
 
-/* Mutex protecting access to METADATA.  */
+/* Mutex protecting access to data structures used for opening/closing
+   metadata files.  */
 static pthread_mutex_t metadata_mutex;
 
 /* Hash function for metadata M.  */
