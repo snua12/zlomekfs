@@ -1045,7 +1045,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dir->fh) && vol->master != this_node))
     abort ();
   if (attr->type != dir->fh->attr.type && !dir->parent)
     abort ();
