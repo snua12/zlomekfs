@@ -958,7 +958,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 			 process_line_volume_hierarchy, &data);
   free (file_name);
 
-  /* Set the common volume info for volumes which were not listed in volume
+  /* Set the common volume info for nodes which were not listed in volume
      hierarchy.  */
   if (VARRAY_USED (data.hierarchy) > 0)
     {
