@@ -99,6 +99,16 @@ extern bool move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir,
 			      string *name, metadata *meta);
 extern bool move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir,
 			    string *name, metadata *meta);
+extern int32_t resolve_conflict_delete_local_file (dir_op_res *res,
+						   internal_dentry dir,
+						   zfs_fh *dir_fh, string *name,
+						   zfs_fh *local_fh,
+						   zfs_fh *remote_fh,
+						   volume vol);
+extern int32_t resolve_conflict_delete_remote_file (volume vol,
+						    internal_dentry dir,
+						    string *name,
+						    zfs_fh *remote_fh);
 extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
 		       fattr *attr, int how);
 

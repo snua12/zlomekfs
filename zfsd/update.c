@@ -1524,6 +1524,116 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
   return ZFS_OK;
 }
 
+/* Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
+   and remote file handle REMOTE_FH in directory DIR with file handle DIR_FH
+   on volume VOL.  Store the info about deleted file into RES.  */
+
+int32_t
+resolve_conflict_delete_local_file (dir_op_res *res, internal_dentry dir,
+				    zfs_fh *dir_fh, string *name,
+				    zfs_fh *local_fh, zfs_fh *remote_fh,
+				    volume vol)
+{
+  file_info_res info;
+  metadata meta;
+  int32_t r, r2;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  r = local_lookup (res, dir, name, vol, &meta);
+  if (r != ZFS_OK)
+    return r;
+
+  if (!ZFS_FH_EQ (res->file, *local_fh))
+    return ENOENT;
+
+  if (!zfs_fh_undefined (*remote_fh))
+    {
+      vol = volume_lookup (remote_fh->vid);
+#ifdef ENABLE_CHECKING
+      if (!vol)
+	abort ();
+#endif
+      r = remote_file_info (&info, remote_fh, vol);
+    }
+  else
+    r = ENOENT;
+
+  if (r == ZFS_OK)
+    {
+      /* Remote file exists.  */
+
+      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      if (metadata_n_hardlinks (vol, &res->file, &meta) > 1)
+	{
+	  if (delete_tree_name (dir, name, vol, false) != ZFS_OK)
+	    return ZFS_UPDATE_FAILED;
+	}
+      else
+	{
+	  if (!move_to_shadow (vol, local_fh, dir, name, &meta))
+	    return ZFS_UPDATE_FAILED;
+	}
+    }
+  else if (r == ENOENT || r == ESTALE)
+    {
+      /* Remote file does not exist.  */
+
+      r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      if (delete_tree_name (dir, name, vol, false) != ZFS_OK)
+	return ZFS_UPDATE_FAILED;
+      return ZFS_OK;
+    }
+  else
+    {
+      message (0, stderr,
+	       "Resolve: file info error: %d (%s)\n", r, zfs_strerror (r));
+    }
+
+  return r;
+}
+
+/* Resolve conflict by deleting remote file NAME with file handle REMOTE_FH
+   in directory DIR on volume VOL.  */
+
+int32_t
+resolve_conflict_delete_remote_file (volume vol, internal_dentry dir,
+				     string *name, zfs_fh *remote_fh)
+{
+  fh_mapping map;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (*remote_fh))
+    abort ();
+#endif
+
+  if (!get_fh_mapping_for_master_fh (vol, remote_fh, &map))
+    {
+      MARK_VOLUME_DELETE (vol);
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_METADATA_ERROR;
+    }
+
+  return remote_reintegrate_del (vol, remote_fh, dir, name,
+				 map.slot_status != VALID_SLOT);
+}
+
 /* Update the directory DIR on volume VOL with file handle FH,
    set attributes according to ATTR.  */
 
