@@ -453,7 +453,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry)
       if (zfs_fh_undefined (vol->root_dentry->fh->master_fh))
 	vol->root_dentry->fh->master_fh = master_fh;
 
-      set_attr_version (&attr, vol->root_dentry->fh->meta);
+      set_attr_version (&attr, &vol->root_dentry->fh->meta);
       vol->root_dentry->fh->attr = attr;
     }
 
