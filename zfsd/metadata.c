@@ -2720,6 +2720,10 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
       && meta.name[0] == 0
       && hl->first == NULL)
     {
+#ifdef ENABLE_CHECKING
+  if ((meta.flags & METADATA_SHADOW) != 0)
+    abort ();
+#endif
       hardlink_list_destroy (hl);
       xstringdup (path, &vol->local_path);
       return;
@@ -2730,11 +2734,18 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
       && meta.parent_ino == 0
       && meta.name[0] == 0)
     {
+#ifdef ENABLE_CHECKING
+      if ((meta.flags & METADATA_SHADOW) == 0)
+	abort ();
+#endif
       hardlink_list_destroy (hl);
-      path->str = NULL;
-      path->len = 0;
+      xstringdup (path, &vol->local_path);
       return;
     }
+#ifdef ENABLE_CHECKING
+  if ((meta.flags & METADATA_SHADOW) != 0)
+    abort ();
+#endif
 
   path->str = NULL;
   path->len = 0;
