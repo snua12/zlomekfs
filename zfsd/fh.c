@@ -1607,7 +1607,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, char *name, zfs_fh *dir_fh)
 
 	  internal_dentry_destroy (dentry, true);
 
-	  if (CONFLICT_DIR_P (dir_fh))
+	  if (CONFLICT_DIR_P (*dir_fh))
 	    {
 	      *dirp = dentry_lookup (dir_fh);
 	      if (!try_resolve_conflict (*dirp))
