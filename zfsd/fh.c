@@ -456,6 +456,10 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	      zfsd_mutex_unlock (&fh_mutex);
 	      return ENOENT;
 	    }
+#ifdef ENABLE_CHECKING
+	  if (!delete_volume_p && vol->n_locked_fhs == 0)
+	    abort ();
+#endif
 
 	  if (!volume_active_p (vol))
 	    {
