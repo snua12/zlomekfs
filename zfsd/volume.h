@@ -32,6 +32,11 @@
 /* Volume description.  */
 struct volume_def
 {
+#ifdef ENABLE_CHECKING
+  long unused0;
+  long unused1;
+#endif
+
   pthread_mutex_t mutex;
   uint32_t id;			/* ID of the volume */
   char *name;			/* name of the volume */

@@ -165,6 +165,11 @@ struct internal_dentry_def
 /* Structure of a virtual directory (element of mount tree).  */
 struct virtual_dir_def
 {
+#ifdef ENABLE_CHECKING
+  long unused0;
+  long unused1;
+#endif
+
   pthread_mutex_t mutex;
 
   /* Handle of this node.  */
