@@ -176,6 +176,40 @@ capability_opened_p (internal_cap cap)
   return true;
 }
 
+/* Open local file for capability CAP (whose internal file handle is FH)
+   with additional FLAGS on volume VOL.  */
+
+static int32_t
+capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
+		 volume vol)
+{
+  char *path;
+
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (flags & O_CREAT)
+    abort ();
+#endif
+
+  if (capability_opened_p (cap))
+    return ZFS_OK;
+
+  path = build_local_path (vol, dentry);
+  cap->fd = safe_open (path, cap->local_cap.flags | flags, 0);
+  free (path);
+  if (cap->fd >= 0)
+    {
+      zfsd_mutex_lock (&opened_mutex);
+      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
+      init_cap_fd_data (cap);
+      zfsd_mutex_unlock (&opened_mutex);
+      return ZFS_OK;
+    }
+
+  return errno;
+}
+
 /* Close local file for internal capability CAP on volume VOL.  */
 
 int32_t
@@ -236,40 +270,6 @@ remote_close (internal_cap cap, internal_dentry dentry, volume vol)
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (&t->dc_reply, fd);
   return r;
-}
-
-/* Open local file for capability CAP (whose internal file handle is FH)
-   with additional FLAGS on volume VOL.  */
-
-static int32_t
-capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
-		 volume vol)
-{
-  char *path;
-
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-#ifdef ENABLE_CHECKING
-  if (flags & O_CREAT)
-    abort ();
-#endif
-
-  if (capability_opened_p (cap))
-    return ZFS_OK;
-
-  path = build_local_path (vol, dentry);
-  cap->fd = safe_open (path, cap->local_cap.flags | flags, 0);
-  free (path);
-  if (cap->fd >= 0)
-    {
-      zfsd_mutex_lock (&opened_mutex);
-      zfsd_mutex_lock (&internal_fd_data[cap->fd].mutex);
-      init_cap_fd_data (cap);
-      zfsd_mutex_unlock (&opened_mutex);
-      return ZFS_OK;
-    }
-
-  return errno;
 }
 
 /* Create local file NAME in directory DIR with open flags FLAGS,
