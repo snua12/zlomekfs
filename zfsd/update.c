@@ -1495,7 +1495,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 			sa.mtime = local_res.attr.mtime;
 			zfsd_mutex_unlock (&fh_mutex);
 			r = remote_mknod (&res, dentry, &entry->name, &sa,
-					  FT_REG, 0, vol);
+					  local_res.attr.type, 0, vol);
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
 #ifdef ENABLE_CHECKING
