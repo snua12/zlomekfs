@@ -1009,15 +1009,14 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 
 /* Create local generic file NAME in directory DIR on volume VOL with remote
    file REMOTE_FH and remote attributes REMOTE_ATTR.  DIR_FH is a file handle
-   of the directory.
-   Store created local file handle to LOCAL_FH.  */
+   of the directory.  */
 
 static int32_t
 create_local_fh (internal_dentry dir, string *name, volume vol,
-		 zfs_fh *dir_fh, zfs_fh *local_fh, zfs_fh *remote_fh,
-		 fattr *remote_attr)
+		 zfs_fh *dir_fh, zfs_fh *remote_fh, fattr *remote_attr)
 {
   internal_dentry dentry;
+  zfs_fh *local_fh;
   fattr *local_attr;
   sattr sa;
   metadata meta;
@@ -1031,6 +1030,14 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  sa.mode = remote_attr->mode;
+  sa.uid = remote_attr->uid;
+  sa.gid = remote_attr->gid;
+  sa.size = (uint64_t) -1;
+  sa.atime = remote_attr->atime;
+  sa.mtime = remote_attr->mtime;
+
+  local_fh = &res.file;
   local_attr = &res.attr;
   switch (remote_attr->type)
     {
@@ -1045,36 +1052,18 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	break;
 
       case FT_REG:
-	sa.mode = remote_attr->mode;
-	sa.uid = remote_attr->uid;
-	sa.gid = remote_attr->gid;
-	sa.size = (uint64_t) -1;
-	sa.atime = (zfs_time) -1;
-	sa.mtime = (zfs_time) -1;
-
 	r = local_create (&cr_res, &fd, dir, name,
 			  O_CREAT | O_WRONLY | O_TRUNC, &sa, vol, &meta);
 	if (r == ZFS_OK)
 	  {
 	    close (fd);
-	    *local_fh = cr_res.file;
+	    local_fh = &cr_res.file;
 	    local_attr = &cr_res.attr;
 	  }
 	break;
 
       case FT_DIR:
-	sa.mode = remote_attr->mode;
-	sa.uid = remote_attr->uid;
-	sa.gid = remote_attr->gid;
-	sa.size = (uint64_t) -1;
-	sa.atime = (zfs_time) -1;
-	sa.mtime = (zfs_time) -1;
-
 	r = local_mkdir (&res, dir, name, &sa, vol, &meta);
-	if (r == ZFS_OK)
-	  {
-	    *local_fh = res.file;
-	  }
 	break;
 
       case FT_LNK:
@@ -1091,37 +1080,15 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	  abort ();
 #endif
 
-	sa.mode = (uint32_t) -1;
-	sa.uid = remote_attr->uid;
-	sa.gid = remote_attr->gid;
-	sa.size = (uint64_t) -1;
-	sa.atime = (zfs_time) -1;
-	sa.mtime = (zfs_time) -1;
-
 	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
-	if (r == ZFS_OK)
-	  {
-	    *local_fh = res.file;
-	  }
 	break;
 
       case FT_BLK:
       case FT_CHR:
       case FT_SOCK:
       case FT_FIFO:
-	sa.mode = remote_attr->mode;
-	sa.uid = remote_attr->uid;
-	sa.gid = remote_attr->gid;
-	sa.size = (uint64_t) -1;
-	sa.atime = (zfs_time) -1;
-	sa.mtime = (zfs_time) -1;
-
 	r = local_mknod (&res, dir, name, &sa, remote_attr->type,
 			 remote_attr->rdev, vol, &meta);
-	if (r == ZFS_OK)
-	  {
-	    *local_fh = res.file;
-	  }
 	break;
     }
 
@@ -1452,7 +1419,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
       if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	abort ();
 
-      r = create_local_fh (dir, &entry->name, vol, fh, &local_res.file,
+      r = create_local_fh (dir, &entry->name, vol, fh,
 			   &remote_res.file, &remote_res.attr);
       if (r != ZFS_OK)
 	goto out;
