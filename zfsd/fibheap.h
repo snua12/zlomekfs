@@ -71,7 +71,7 @@ typedef struct fibheap_def
   alloc_pool pool;
 } *fibheap;
 
-extern fibheap fibheap_new (pthread_mutex_t *mutex);
+extern fibheap fibheap_new (unsigned int block_size, pthread_mutex_t *mutex);
 extern fibnode fibheap_insert (fibheap, fibheapkey_t, void *);
 extern int fibheap_empty (fibheap);
 extern fibheapkey_t fibheap_min_key (fibheap);

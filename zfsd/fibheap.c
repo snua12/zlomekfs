@@ -46,7 +46,7 @@ static fibnode fibnode_remove (fibnode);
 
 /* Create a new fibonacci heap.  */
 fibheap
-fibheap_new (pthread_mutex_t *mutex, unsigned int block_size)
+fibheap_new (unsigned int block_size, pthread_mutex_t *mutex)
 {
   fibheap heap;
 
@@ -161,7 +161,8 @@ fibheap_extract_min (fibheap heap)
 
 /* Replace both the KEY and the DATA associated with NODE.  */
 void *
-fibheap_replace_key_data (fibheap heap, fibnode node, fibheapkey_t key, void *data)
+fibheap_replace_key_data (fibheap heap, fibnode node, fibheapkey_t key,
+			  void *data)
 {
   void *odata;
   fibheapkey_t okey;
