@@ -484,57 +484,6 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
   return r;
 }
 
-/* Get file handle of root of volume with id VID, store the local file handle
-   to LOCAL_FH and master's file handle to MASTER_FH, if defined.  */
-
-static int32_t
-get_volume_root (uint32_t vid, zfs_fh *local_fh, zfs_fh *master_fh,
-		 fattr *attr)
-{
-  volume vol;
-  int32_t r;
-
-  if (local_fh)
-    {
-      vol = volume_lookup (vid);
-      if (!vol)
-	return ENOENT;
-
-      r = get_volume_root_local (vol, local_fh, attr);
-      if (r != ZFS_OK)
-	return r;
-
-      if (master_fh)
-	{
-	  fattr tmp;
-
-	  vol = volume_lookup (vid);
-	  if (!vol)
-	    return ENOENT;
-
-	  r = get_volume_root_remote (vol, master_fh, &tmp);
-	  if (r < ZFS_OK)
-	    {
-	      zfs_fh_undefine (*master_fh);
-	      r = ZFS_OK;
-	    }
-
-	}
-    }
-  else if (master_fh)
-    {
-      vol = volume_lookup (vid);
-      if (!vol)
-	return ENOENT;
-
-      r = get_volume_root_remote (vol, master_fh, attr);
-      if (r != ZFS_OK)
-	return r;
-    }
-
-  return ZFS_OK;
-}
-
 /* Update root of volume VOL, create an internal file handle for it and store
    it to IFH.  */
 
@@ -543,7 +492,6 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
 			bool unlock_fh_mutex)
 {
   zfs_fh local_fh, master_fh;
-  zfs_fh *local_fhp, *master_fhp;
   uint32_t vid;
   fattr attr;
   int32_t r;
@@ -563,11 +511,21 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       return ENOENT;
     }
 
-  local_fhp = (vol->local_path ? &local_fh : NULL);
-  master_fhp = (vol->master != this_node ? &master_fh : NULL);
-  zfsd_mutex_unlock (&vol->mutex);
+  if (vol->local_path)
+    {
+      r = get_volume_root_local (vol, &local_fh, &attr);
+      if (r == ZFS_OK)
+	zfs_fh_undefine (master_fh);
+    }
+  else if (vol->master != this_node)
+    {
+      r = get_volume_root_remote (vol, &master_fh, &attr);
+      if (r == ZFS_OK)
+	local_fh = master_fh;
+    }
+  else
+    abort ();
 
-  r = get_volume_root (vid, local_fhp, master_fhp, &attr);
   if (r != ZFS_OK)
     return r;
 
@@ -578,12 +536,6 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       zfsd_mutex_unlock (&fh_mutex);
       return ENOENT;
     }
-
-  if (local_fhp && !master_fhp)
-    zfs_fh_undefine (master_fh);
-
-  if (!local_fhp && master_fhp)
-    local_fh = master_fh;
 
   *dentry = get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr);
 
