@@ -156,7 +156,8 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 
 	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
 		/* The dentry is too old, so revalidate it. */
-		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh)) {
+		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh)
+		    || attr.version != inode->i_version) {
 			make_bad_inode(dentry->d_inode);
 			return 0;
 		}
