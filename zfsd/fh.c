@@ -1482,47 +1482,46 @@ internal_dentry
 get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	    internal_dentry dir, string *name, fattr *attr, metadata *meta)
 {
-  internal_dentry dentry;
+  internal_dentry dentry, subdentry;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (dir)
-    {
-      dentry = dentry_lookup_name (dir, name);
-      if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
-	{
-	  internal_dentry sdentry;
-
-	  sdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh, attr,
-					      meta);
-	  if (try_resolve_conflict (dentry))
-	    {
-	      dentry = dentry_lookup_name (dir, name);
-#ifdef ENABLE_CHECKING
-	      if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
-		abort ();
-#endif
-	    }
-	  else
-	    {
-	      release_dentry (dentry);
-	      acquire_dentry (sdentry);
-	      return sdentry;
-	    }
-	}
-    }
+    dentry = dentry_lookup_name (dir, name);
   else
     {
       dentry = vol->root_dentry;
       if (dentry)
+	acquire_dentry (dentry);
+    }
+
+  if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
+    {
+      subdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh,
+					    attr, meta);
+      if (try_resolve_conflict (dentry))
 	{
-	  acquire_dentry (dentry);
+	  if (dir)
+	    dentry = dentry_lookup_name (dir, name);
+	  else
+	    {
+	      dentry = vol->root_dentry;
+	      if (dentry)
+		acquire_dentry (dentry);
+	    }
+
 #ifdef ENABLE_CHECKING
-	  if (!REGULAR_FH_P (dentry->fh->local_fh))
+	  if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
 	    abort ();
 #endif
+	}
+      else
+	{
+	  release_dentry (dentry);
+	  acquire_dentry (subdentry);
+	  return subdentry;
 	}
     }
 
