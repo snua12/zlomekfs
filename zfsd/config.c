@@ -916,9 +916,32 @@ process_line_volume (char *line, char *file_name, unsigned int line_num,
 	}
       else if (vid == VOLUME_ID_CONFIG && saved_vid == 0)
 	{
+	  volume vol;
+	  string str;
+
 	  saved_vid = vid;
 	  xstringdup (&saved_name, &parts[1]);
 	  xstringdup (&saved_mountpoint, &parts[2]);
+
+	  zfsd_mutex_lock (&vd_mutex);
+	  zfsd_mutex_lock (&volume_mutex);
+	  vol = volume_lookup_nolock (vid);
+#ifdef ENABLE_CHECKING
+	  if (!vol)
+	    abort ();
+	  else
+#endif
+	    {
+	      vol->marked = false;
+	      if (vol->slaves)
+		htab_empty (vol->slaves);
+	    }
+	  str.str = "/config";
+	  str.len = strlen ("/config");
+	  volume_set_common_info (vol, &parts[1], &str, this_node);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&volume_mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
 	}
       else
 	{
