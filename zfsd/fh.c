@@ -1154,6 +1154,13 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
       fh->meta = *meta;
       set_attr_version (&fh->attr, &fh->meta);
       attr->version = fh->attr.version;
+
+      if (fh->attr.type == FT_DIR)
+	{
+	  fh->journal = journal_create (5, &fh->mutex);
+	  if (!read_journal (vol, fh))
+	    vol->delete_p = true;
+	}
     }
   else
     clear_meta (fh);
@@ -1433,14 +1440,6 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
 	{
-	  if (fh->attr.type == FT_DIR
-	      && !fh->journal)
-	    {
-	      fh->journal = journal_create (5, &fh->mutex);
-	      if (!read_journal (vol, fh))
-		vol->delete_p = true;
-	    }
-
 	  if (!metadata_hardlink_insert (vol, &fh->local_fh,
 					 parent->fh->local_fh.dev,
 					 parent->fh->local_fh.ino, name))
