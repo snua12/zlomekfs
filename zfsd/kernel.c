@@ -20,6 +20,13 @@
 
 #include "system.h"
 #include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/poll.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
 #include <signal.h>
 #include "pthread.h"
 #include "constant.h"
@@ -31,6 +38,7 @@
 #include "memory.h"
 #include "thread.h"
 #include "zfs_prot.h"
+#include "config.h"
 
 /* Pool of client threads.  */
 static thread_pool client_pool;
@@ -38,12 +46,6 @@ static thread_pool client_pool;
 /* Data for client pool regulator.  */
 thread_pool_regulator_data client_regulator_data;
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/poll.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
 #include <time.h>
 #include "memory.h"
 #include "node.h"
@@ -69,8 +71,8 @@ pthread_t main_client_thread;
 /* This mutex is locked when main client thread is in poll.  */
 pthread_mutex_t main_client_thread_in_syscall;
 
-/* File descriptor of the main (i.e. listening) socket.  */
-static int main_socket;
+/* File descriptor of file communicating with kernel.  */
+static int kernel_file;
 
 client_fd_data_t client_data;
 
@@ -81,7 +83,7 @@ send_reply (thread *t)
 {
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&client_data.mutex);
-  if (!full_write (main_socket, t->dc.buffer, t->dc.cur_length))
+  if (!full_write (kernel_file, t->dc.buffer, t->dc.cur_length))
     {
     }
   zfsd_mutex_unlock (&client_data.mutex);
@@ -316,7 +318,7 @@ client_main (void * ATTRIBUTE_UNUSED data)
 
   while (get_running ())
     {
-      pfd.fd = main_socket;
+      pfd.fd = kernel_file;
       pfd.events = CAN_READ;
 
       message (2, stderr, "Polling\n");
@@ -412,7 +414,7 @@ client_main (void * ATTRIBUTE_UNUSED data)
     }
 
   if (client_data.busy == 0)
-    close (main_socket);
+    close (kernel_file);
   message (2, stderr, "Terminating...\n");
   return NULL;
 }
@@ -430,12 +432,18 @@ client_start ()
   zfsd_mutex_init (&client_data.mutex);
 
   /* Open connection with kernel.  */
+  kernel_file = open (kernel_file_name, O_RDWR);
+  if (kernel_file < 0)
+    {
+      message (-1, stderr, "open(): %s\n", strerror (errno));
+      return false;
+    }
 
   /* Create the main client thread.  */
   if (pthread_create (&main_client_thread, NULL, client_main, NULL))
     {
       message (-1, stderr, "pthread_create() failed\n");
-      close (main_socket);
+      close (kernel_file);
       return false;
     }
 

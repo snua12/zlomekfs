@@ -341,6 +341,7 @@ cleanup_data_structures ()
   cleanup_random_c ();
 
   free (node_name);
+  free (kernel_file_name);
 }
 
 static void

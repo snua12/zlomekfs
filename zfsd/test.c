@@ -42,6 +42,7 @@ fake_config ()
   volume vol;
 
   get_node_name ();
+  set_string (&kernel_file_name, "/.zfs/kernel");
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (1, "orion");

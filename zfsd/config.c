@@ -37,6 +37,9 @@
 #define LINE_SIZE 2048
 #endif
 
+/* File used to communicate with kernel.  */
+char *kernel_file_name;
+
 /* The host name of local node.  */
 char *node_name;
 

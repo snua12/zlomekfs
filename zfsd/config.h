@@ -26,6 +26,9 @@
 #include <netinet/in.h>
 #include "pthread.h"
 
+/* File used to communicate with kernel.  */
+extern char *kernel_file_name;
+
 /* The host name of local node.  */
 extern char *node_name;
 
