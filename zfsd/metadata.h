@@ -23,8 +23,6 @@
 
 #include "system.h"
 #include <inttypes.h>
-#include "volume.h"
-#include "fh.h"
 
 /* Purpose of the interval tree.  */
 typedef enum interval_tree_purpose_def
@@ -50,6 +48,9 @@ typedef struct metadata_def
 #define METADATA_COMPLETE	1	/* file is complete */
 #define METADATA_MODIFIED	2	/* file is modified */
 
+#include "volume.h"
+#include "fh.h"
+
 extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);
@@ -60,8 +61,8 @@ extern bool flush_interval_tree (volume vol, internal_fh fh,
 extern bool append_interval (volume vol, internal_fh fh,
 			     interval_tree_purpose purpose,
 			     uint64_t start, uint64_t end);
-extern bool init_metadata (volume vol, internal_fh fh, metadata *data);
-extern bool update_metadata (volume vol, internal_fh fh, metadata *data);
+extern bool init_metadata (volume vol, internal_fh fh);
+extern bool update_metadata (volume vol, internal_fh fh);
 
 extern void initialize_metadata_c ();
 extern void cleanup_metadata_c ();

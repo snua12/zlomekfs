@@ -83,6 +83,7 @@ typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
 
 #include "volume.h"
+#include "metadata.h"
 
 /* Internal information about file handle.  */
 struct internal_fh_def
@@ -97,6 +98,9 @@ struct internal_fh_def
 
   /* File attributes.  */
   fattr attr;
+
+  /* Metadata.  */
+  metadata meta;
 
   /* Contained directory entries (of type 'struct internal_dentry_def *').  */
   varray subdentries;
