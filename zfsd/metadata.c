@@ -1136,13 +1136,13 @@ init_metadata_for_created_volume_root (volume vol)
       meta.local_version = 1;
       meta.master_version = 1;
       zfs_fh_undefine (meta.master_fh);
-    }
 
-  if (!hfile_insert (vol->metadata, &meta))
-    {
-      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      close_volume_metadata (vol);
-      return false;
+      if (!hfile_insert (vol->metadata, &meta))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+	  close_volume_metadata (vol);
+	  return false;
+	}
     }
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
@@ -1200,6 +1200,14 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
       meta->local_version = 1;
       meta->master_version = 0;
       zfs_fh_undefine (meta->master_fh);
+
+      if (!hfile_insert (vol->metadata, meta))
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+	  close_volume_metadata (vol);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return false;
+	}
     }
   fh->gen = meta->gen;
 
