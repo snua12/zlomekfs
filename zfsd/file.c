@@ -311,6 +311,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   struct stat st;
   string path;
   int32_t r;
+  bool existed;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -324,9 +325,10 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
+  existed = (lstat (path.str, &st) == 0);
   if (exists)
-    *exists = (lstat (path.str, &st) == 0);
-    
+    *exists = existed;
+
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = safe_open (path.str, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
@@ -351,7 +353,18 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
-  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
+
+  vol = volume_lookup (res->file.vid);
+#ifdef ENABLE_CHECKING
+  if (!vol)
+    abort ();
+#endif
+
+  if (!lookup_metadata (vol, &res->file, meta, true))
+    vol->delete_p = true;
+  else if (!existed && !delete_master_fh_of_created_file (vol, meta))
+    vol->delete_p = true;
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }

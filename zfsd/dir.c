@@ -1443,7 +1443,18 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
-  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
+
+  vol = volume_lookup (res->file.vid);
+#ifdef ENABLE_CHECKING
+  if (!vol)
+    abort ();
+#endif
+
+  if (!lookup_metadata (vol, &res->file, meta, true))
+    vol->delete_p = true;
+  else if (!delete_master_fh_of_created_file (vol, meta))
+    vol->delete_p = true;
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
@@ -3059,7 +3070,18 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
-  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
+
+  vol = volume_lookup (res->file.vid);
+#ifdef ENABLE_CHECKING
+  if (!vol)
+    abort ();
+#endif
+
+  if (!lookup_metadata (vol, &res->file, meta, true))
+    vol->delete_p = true;
+  else if (!delete_master_fh_of_created_file (vol, meta))
+    vol->delete_p = true;
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
@@ -3285,7 +3307,18 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   free (path.str);
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
-  get_metadata (volume_lookup (res->file.vid), &res->file, meta);
+
+  vol = volume_lookup (res->file.vid);
+#ifdef ENABLE_CHECKING
+  if (!vol)
+    abort ();
+#endif
+
+  if (!lookup_metadata (vol, &res->file, meta, true))
+    vol->delete_p = true;
+  else if (!delete_master_fh_of_created_file (vol, meta))
+    vol->delete_p = true;
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
