@@ -125,7 +125,7 @@ internal_cap_create (internal_fh fh, unsigned int mode)
   cap->master_cap.mode = mode;
   cap->busy = 1;
   pthread_mutex_init (&cap->mutex, NULL);
-  pthread_mutex_lock (&cap->mutex);
+  zfsd_mutex_lock (&cap->mutex);
 
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (cap_htab, &cap->local_cap,
