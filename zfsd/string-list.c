@@ -71,7 +71,7 @@ string_list_create (unsigned int nelem, pthread_mutex_t *mutex)
   sl->mutex = mutex;
 
   /* Create varray.  */
-  varray_create (&sl->array, sizeof (char *), nelem);
+  varray_create (&sl->array, sizeof (string_list_entry), nelem);
 
   /* Create hashtab.  */
   sl->htab = htab_create (nelem, string_list_hash, string_list_eq, NULL,
@@ -206,7 +206,7 @@ string_list_element (string_list sl, unsigned int index)
 {
   CHECK_MUTEX_LOCKED (sl->mutex);
 
-  return VARRAY_ACCESS (sl->array, index, char *);
+  return VARRAY_ACCESS (sl->array, index, string_list_entry);
 }
 
 /* Initialize data structures in STRING-LIST.C.  */
