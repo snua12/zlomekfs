@@ -1819,7 +1819,7 @@ internal_dentry_move (internal_dentry *from_dirp, string *from_name,
 	release_dentry (*to_dirp);
       zfsd_mutex_unlock (&(*volp)->mutex);
 
-      internal_dentry_destroy (dentry, false, true);
+      internal_dentry_destroy (conflict, false, true);
 
       *volp = volume_lookup (to_fh->vid);
       *to_dirp = dentry_lookup (to_fh);
