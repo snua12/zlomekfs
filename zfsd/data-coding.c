@@ -49,6 +49,12 @@ dc_init (DC *dc)
   dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
 }
 
+#if defined(__KERNEL__) && defined(DEBUG)
+
+static int allocated;
+
+#endif
+
 /* Return a new data coding buffer.  */
 
 DC *
@@ -58,8 +64,10 @@ dc_create (void)
 
 #ifdef __KERNEL__
   dc = (DC *) vmalloc (sizeof (DC));
-  if (dc)
+  if (dc) {
+    TRACE("zfs: dc_create: %d DCs allocated\n", ++allocated);
     dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
+  }
 #else
   dc = (DC *) xmalloc (sizeof (DC));
   dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
@@ -74,6 +82,7 @@ void
 dc_destroy (DC *dc)
 {
 #ifdef __KERNEL__
+  TRACE("zfs: dc_destroy: %d DCs allocated\n", --allocated);
   vfree (dc);
 #else
   free (dc);
