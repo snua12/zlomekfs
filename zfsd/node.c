@@ -49,8 +49,14 @@ string node_name;
 /* Description of local node.  */
 node this_node;
 
+/* Hash function for node ID.  */
+#define HASH_NODE_ID(ID) (ID)
+
 /* Hash function for node NODE, computed from ID.  */
 #define NODE_HASH(NODE) ((NODE)->id)
+
+/* Hash function for node name.  */
+#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
 
 /* Hash function for node NODE, computed from its name.  */
 #define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
@@ -198,6 +204,39 @@ node_create_wrapper (uint32_t id, char *name)
 
   xmkstring (&name_str, name);
   return node_create (id, &name_str);
+}
+
+/* Create node NAME with ID if ID and NAME does not exist.  */
+
+node
+try_create_node (uint32_t id, string *name)
+{
+  void **slot, **slot2;
+  node nod;
+
+  zfsd_mutex_lock (&node_mutex);
+  slot = htab_find_slot_with_hash (node_htab, &id, HASH_NODE_ID (id),
+				   NO_INSERT);
+  slot2 = htab_find_slot_with_hash (node_htab_name, name,
+				    HASH_NODE_NAME (name), NO_INSERT);
+  if (slot && slot2 && *slot == *slot2)
+    {
+      zfsd_mutex_unlock (&node_mutex);
+      return NULL;
+    }
+  if (slot || slot2)
+    {
+      if (slot)
+	message (0, stderr, "Node with ID = %" PRIu32 " already exists\n", id);
+      if (slot2)
+	message (0, stderr, "Node with name = %s already exists\n", name->str);
+      zfsd_mutex_unlock (&node_mutex);
+      return NULL;
+    }
+
+  nod = node_create (id, name);
+  zfsd_mutex_unlock (&node_mutex);
+  return nod;
 }
 
 /* Destroy node NOD and free memory associated with it.

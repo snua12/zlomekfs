@@ -27,12 +27,6 @@
 #include "pthread.h"
 #include "hashtab.h"
 
-/* Hash function for node ID.  */
-#define HASH_NODE_ID(ID) (ID)
-
-/* Hash function for node name.  */
-#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
-
 /* Node description.  */
 typedef struct node_def
 {
@@ -79,6 +73,7 @@ extern node node_lookup (uint32_t id);
 extern node node_lookup_name (string *name);
 extern node node_create (uint32_t id, string *name);
 extern node node_create_wrapper (uint32_t id, char *name);
+extern node try_create_node (uint32_t id, string *name);
 extern void node_destroy (node nod);
 extern void initialize_node_c (void);
 extern void cleanup_node_c (void);
