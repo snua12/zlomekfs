@@ -237,6 +237,24 @@ local_path_to_relative_path (volume vol, char *path)
   return path + i;
 }
 
+/* Return short file name from the path PATH.  */
+
+char *
+file_name_from_path (char *path)
+{
+#ifdef ENABLE_CHECKING
+  if (path[0] != '/')
+    abort ();
+#endif
+
+  while (*path)
+    path++;
+  while (*path != '/')
+    path--;
+
+  return path + 1;
+}
+
 /* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
 
 static bool
