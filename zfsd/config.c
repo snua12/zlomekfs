@@ -1961,6 +1961,7 @@ config_reader (void *data)
 	  vol = volume_lookup (VOLUME_ID_CONFIG);
 	  if (!vol)
 	    {
+	      free (relative_path.str);
 	      terminate ();
 	      break;
 	    }
@@ -1994,6 +1995,7 @@ config_reader (void *data)
 	  /* Then reread the configuration.  */
 	  if (!reread_config_file (&relative_path))
 	    {
+	      free (relative_path.str);
 	      terminate ();
 	      break;
 	    }
