@@ -38,10 +38,10 @@ typedef struct interval_tree_def
   splay_tree splay;
 
   /* Preferred size of block for alloc pool.  */
-  unsigned preferred_size;
+  unsigned int preferred_size;
 
   /* Number of intervals in tree.  */
-  unsigned size;
+  unsigned int size;
 
   /* File descriptor associated with the tree.  */
   int fd;
