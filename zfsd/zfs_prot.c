@@ -517,10 +517,8 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
   network_fd_data_t *fd_data = t_data->fd_data;
   node nod;
 
-  zfsd_mutex_lock (&node_mutex);
   nod = node_lookup_name (args->node.str);
   zfsd_mutex_lock (&fd_data->mutex);
-  zfsd_mutex_unlock (&node_mutex);
   if (nod)
     {
       /* FIXME: do the key authorization */
@@ -554,10 +552,8 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
   node nod;
   bool authenticated = false;
 
-  zfsd_mutex_lock (&node_mutex);
   nod = node_lookup (fd_data->sid);
   zfsd_mutex_lock (&fd_data->mutex);
-  zfsd_mutex_unlock (&node_mutex);
   if (nod)
     {
       /* FIXME: verify the authentication data */

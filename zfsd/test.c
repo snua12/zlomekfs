@@ -352,9 +352,7 @@ do_tests (void *data)
       if (!get_running ())
 	goto out;
 
-      zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
-      zfsd_mutex_unlock (&node_mutex);
       message (1, stderr, "TEST NULL\n");
       r = zfs_proc_null_client (t, NULL, nod, &fd);
       message (1, stderr, "  %s\n", zfs_strerror (r));
@@ -364,9 +362,7 @@ do_tests (void *data)
       if (!get_running ())
 	goto out;
 
-      zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
-      zfsd_mutex_unlock (&node_mutex);
       message (1, stderr, "TEST PING\n");
       ping.buf = ping.real_buffer;
       r = zfs_proc_ping_client (t, &ping, nod, &fd);
@@ -386,9 +382,7 @@ do_tests (void *data)
       if (!get_running ())
 	goto out;
 
-      zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
-      zfsd_mutex_unlock (&node_mutex);
       message (1, stderr, "TEST ROOT\n");
       r = zfs_proc_root_client (t, NULL, nod, &fd);
       message (1, stderr, "  %s\n", zfs_strerror (r));

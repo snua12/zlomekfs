@@ -106,11 +106,11 @@ node_lookup (uint32_t id)
 {
   node nod;
 
-  CHECK_MUTEX_LOCKED (&node_mutex);
-
+  zfsd_mutex_lock (&node_mutex);
   nod = (node) htab_find_with_hash (node_htab, &id, HASH_NODE_ID (id));
   if (nod)
     zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
 
   return nod;
 }
@@ -122,12 +122,12 @@ node_lookup_name (char *name)
 {
   node nod;
 
-  CHECK_MUTEX_LOCKED (&node_mutex);
-
+  zfsd_mutex_lock (&node_mutex);
   nod = (node) htab_find_with_hash (node_htab_name, name,
 				    HASH_NODE_NAME (name));
   if (nod)
     zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
 
   return nod;
 }
