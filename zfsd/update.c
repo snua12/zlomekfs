@@ -125,11 +125,15 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
      truncate local file.  */
   if (local_md5.size != remote_md5.size)
     {
+      interval_tree_node n;
       fattr fa;
       sattr sa;
 
       memset (&sa, -1, sizeof (sattr));
       sa.size = remote_md5.size;
+      n = interval_tree_max (dentry->fh->modified);
+      if (n && sa.size < INTERVAL_END (n))
+	sa.size = INTERVAL_END (n);
 
       r = local_setattr (&fa, dentry, &sa, vol);
       if (r != ZFS_OK)
@@ -145,7 +149,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       flush = (local_md5.size < remote_md5.size
 	       && (dentry->fh->meta.flags & METADATA_COMPLETE));
 
-      local_md5.size = remote_md5.size;
+      local_md5.size = fa.size;
       interval_tree_delete (dentry->fh->updated, local_md5.size, UINT64_MAX);
       interval_tree_delete (dentry->fh->modified, local_md5.size, UINT64_MAX);
 
