@@ -240,16 +240,17 @@ parent_exists (string *path, struct stat *st)
   return ZFS_OK;
 }
 
-/* Recursively unlink the file NAME with path PATH on volume with ID == VID.  */
+/* Recursively unlink the file NAME with path PATH on volume with ID == VID.
+   Store the metadata of deleted file to META.  */
 
 static int32_t
-recursive_unlink_1 (string *path, string *name, uint32_t vid,
+recursive_unlink_1 (metadata *meta, string *path, string *name, uint32_t vid,
 		    struct stat *parent_st, bool destroy_dentry)
 {
   volume vol;
   internal_dentry dentry;
   zfs_fh fh;
-  metadata meta;
+  metadata tmp_meta;
   int32_t r;
   struct stat st;
 
@@ -295,7 +296,7 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
 	  append_file_name (&new_path, path, de->d_name, len);
 	  new_name.str = new_path.str + new_path.len - len;
 	  new_name.len = len;
-	  r = recursive_unlink_1 (&new_path, &new_name, vid, &st, true);
+	  r = recursive_unlink_1 (meta, &new_path, &new_name, vid, &st, true);
 	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    {
@@ -327,19 +328,19 @@ out:
       fh.dev = st.st_dev;
       fh.ino = st.st_ino;
       /* Get FH.GEN.  */
-      meta.modetype = GET_MODETYPE (0, FT_BAD);
-      if (!lookup_metadata (vol, &fh, &meta, false))
+      meta->modetype = GET_MODETYPE (0, FT_BAD);
+      if (!lookup_metadata (vol, &fh, meta, false))
 	MARK_VOLUME_DELETE (vol);
 
       if (r == ZFS_OK)
 	{
 	  /* Delete metadata.  */
-	  meta.flags = 0;
-	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					zfs_mode_to_ftype (st.st_mode));
-	  meta.uid = map_uid_node2zfs (st.st_uid);
-	  meta.gid = map_gid_node2zfs (st.st_gid);
-	  if (!delete_metadata (vol, &meta, st.st_dev, st.st_ino,
+	  tmp_meta.flags = 0;
+	  tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+					    zfs_mode_to_ftype (st.st_mode));
+	  tmp_meta.uid = map_uid_node2zfs (st.st_uid);
+	  tmp_meta.gid = map_gid_node2zfs (st.st_gid);
+	  if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
 				parent_st->st_dev, parent_st->st_ino, name))
 	    MARK_VOLUME_DELETE (vol);
 	}
@@ -361,11 +362,14 @@ out:
   return r;
 }
 
-/* Recursivelly unlink the file PATH on volume with ID == VID.  */
+/* Recursivelly unlink the file PATH on volume with ID == VID.
+   Store the metadata of deleted file to META.  */
 
 int32_t
-recursive_unlink (string *path, uint32_t vid, bool destroy_dentry)
+recursive_unlink (metadata *meta, string *path, uint32_t vid,
+		  bool destroy_dentry)
 {
+  metadata tmp_meta;
   string filename;
   struct stat parent_st;
 
@@ -381,7 +385,8 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry)
     return (errno == ENOENT ? ZFS_OK : errno);
   filename.str[-1] = '/';
 
-  return recursive_unlink_1 (path, &filename, vid, &parent_st, destroy_dentry);
+  return recursive_unlink_1 (meta ? meta : &tmp_meta, path, &filename, vid,
+			     &parent_st, destroy_dentry);
 }
 
 /* Check whether we can perform file system change operation on NAME in
@@ -4562,7 +4567,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  r = recursive_unlink (&path, vid, true);
+  r = recursive_unlink (NULL, &path, vid, true);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -4663,7 +4668,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
     }
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (&shadow_path, vid, true);
+  r = recursive_unlink (NULL, &shadow_path, vid, true);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -4742,7 +4747,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  return ENOENT;
 	}
 
-      r = recursive_unlink (&new_path, vid, true);
+      r = recursive_unlink (NULL, &new_path, vid, true);
       if (r != ZFS_OK)
 	{
 	  free (old_path.str);
@@ -5028,7 +5033,7 @@ local_reintegrate_del_fh (zfs_fh *fh)
   if (shadow_path.str == NULL)
     return ZFS_METADATA_ERROR;
 
-  r = recursive_unlink (&shadow_path, vid, true);
+  r = recursive_unlink (NULL, &shadow_path, vid, true);
   free (shadow_path.str);
 
   return r;
@@ -5056,7 +5061,7 @@ local_reintegrate_del_base (zfs_fh *fh, string *name, bool destroy_p,
   if (destroy_p
       || metadata_n_hardlinks (vol, fh, &meta) > 1)
     {
-      if (delete_tree_name (dir, name, vol, true) != ZFS_OK)
+      if (delete_tree_name (NULL, dir, name, vol, true) != ZFS_OK)
 	return ZFS_UPDATE_FAILED;
     }
   else
