@@ -102,6 +102,7 @@ typedef struct splay_tree_s *splay_tree;
 extern splay_tree splay_tree_create (unsigned, splay_tree_delete_value_fn,
 				     pthread_mutex_t *mutex);
 extern void splay_tree_destroy (splay_tree);
+extern void splay_tree_empty (splay_tree);
 extern splay_tree_node splay_tree_insert (splay_tree, splay_tree_key,
 					  splay_tree_value);
 extern void splay_tree_delete (splay_tree, splay_tree_key);

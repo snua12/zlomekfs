@@ -237,6 +237,18 @@ splay_tree_destroy (splay_tree sp)
   free (sp);
 }
 
+/* Empty SP.  */
+
+void
+splay_tree_empty (splay_tree sp)
+{
+  CHECK_MUTEX_LOCKED (sp->mutex);
+
+  if (sp->root)
+    splay_tree_destroy_helper (sp, sp->root);
+  sp->root = NULL;
+}
+
 /* Insert a new node (associating KEY with DATA) into SP.  If a
    previous node with the indicated KEY exists, its data is replaced
    with the new value.  Returns the new node.  */
