@@ -1864,6 +1864,15 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
   int32_t r;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+    abort ();
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    abort ();
+#endif
 
   if (how & IFH_REINTEGRATE)
     {
