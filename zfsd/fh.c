@@ -1715,64 +1715,81 @@ internal_dentry_link (internal_dentry orig, volume vol,
   return dentry;
 }
 
-/* Move internal dentry for file FROM_NAME in FROM_DIR to be a subdentry
-   of TO_DIR with name TO_NAME on volume VOL.  */
+/* Move internal dentry for file FROM_NAME in *FROM_DIRP to be a subdentry
+   of *TO_DIRP with name TO_NAME on volume *VOLP.  */
 
 void
-internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
-		      internal_dentry to_dir, string *to_name)
+internal_dentry_move (internal_dentry *from_dirp, string *from_name,
+		      internal_dentry *to_dirp, string *to_name, volume *volp,
+		      zfs_fh *from_fh, zfs_fh *to_fh)
 {
-  internal_dentry dentry, sdentry;
+  internal_dentry dentry;
 #ifdef ENABLE_CHECKING
   internal_dentry tmp;
 #endif
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
-  CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*from_dirp)->fh->mutex);
+  CHECK_MUTEX_LOCKED (&(*to_dirp)->fh->mutex);
 
-  dentry = dentry_lookup_name (NULL, from_dir, from_name);
+  dentry = dentry_lookup_name (NULL, *from_dirp, from_name);
   if (!dentry)
     return;
 
 #ifdef ENABLE_CHECKING
   /* Check whether we are not moving DENTRY to its subtree.  */
-  for (tmp = to_dir; tmp; tmp = tmp->parent)
+  for (tmp = *to_dirp; tmp; tmp = tmp->parent)
     if (tmp == dentry)
       abort ();
-#endif
 
-  /* Delete DENTRY from FROM_DIR's directory entries.  */
-  if (CONFLICT_DIR_P (dentry->fh->local_fh))
-    {
-      sdentry = dentry_lookup_name (NULL, dentry, &this_node->name);
-#ifdef ENABLE_CHECKING
-      if (!sdentry)
-	abort ();
-#endif
-      internal_dentry_del_from_dir (sdentry);
-
-      if (!try_resolve_conflict (dentry))
-	release_dentry (dentry);
-      dentry = sdentry;
-    }
-  else
-    internal_dentry_del_from_dir (dentry);
-
-  /* Insert DENTRY to TO_DIR.  */
-#ifdef ENABLE_CHECKING
-  tmp = dentry_lookup_name (NULL, to_dir, to_name);
+  /* There should be no dentry in *TO_DIRP with name TO_NAME.  */
+  tmp = dentry_lookup_name (NULL, *to_dirp, to_name);
   if (tmp)
     abort ();
 #endif
 
-  free (dentry->name.str);
-  xstringdup (&dentry->name, to_name);
-  internal_dentry_add_to_dir (to_dir, dentry);
+  if (CONFLICT_DIR_P (dentry->fh->local_fh))
+    {
+      internal_dentry conflict;
 
-  release_dentry (dentry);
+      conflict = dentry;
+      internal_dentry_del_from_dir (conflict);
+      dentry = conflict_local_dentry (conflict);
+#ifdef ENABLE_CHECKING
+      if (!dentry)
+	abort ();
+#endif
+
+      internal_dentry_del_from_dir (dentry);
+      free (dentry->name.str);
+      xstringdup (&dentry->name, to_name);
+      internal_dentry_add_to_dir (*to_dirp, dentry);
+      release_dentry (dentry);
+
+      release_dentry (*from_dirp);
+      if (*to_dirp != *from_dirp)
+	release_dentry (*to_dirp);
+      zfsd_mutex_unlock (&(*volp)->mutex);
+
+      internal_dentry_destroy (dentry, false);
+
+      *volp = volume_lookup (to_fh->vid);
+      *to_dirp = dentry_lookup (to_fh);
+      if (from_fh->ino != to_fh->ino)
+	*from_dirp = dentry_lookup (from_fh);
+      else
+	*from_dirp = *to_dirp;
+    }
+  else
+    {
+      internal_dentry_del_from_dir (dentry);
+      free (dentry->name.str);
+      xstringdup (&dentry->name, to_name);
+      internal_dentry_add_to_dir (*to_dirp, dentry);
+      release_dentry (dentry);
+    }
 }
 
 /* Destroy internal dentry DENTRY.  Clear vol->root_dentry if

@@ -2196,8 +2196,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	from_dentry = to_dentry;
 
       /* Move the dentry if it exists.  */
-      internal_dentry_move (vol, from_dentry, from_name, to_dentry,
-			    to_name);
+      internal_dentry_move (&from_dentry, from_name, &to_dentry, to_name,
+			    &vol, &tmp_from, &tmp_to);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
