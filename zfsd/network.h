@@ -23,7 +23,7 @@
 
 #include "system.h"
 
-extern void create_server_pool ();
+extern void create_server_threads ();
 extern void register_server ();
 
 #endif
