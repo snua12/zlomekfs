@@ -127,8 +127,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       sattr sa;
 
       memset (&sa, -1, sizeof (sattr));
-      sa.size = (remote_md5.offset[remote_md5.count - 1]
-		 + remote_md5.length[remote_md5.count - 1]);
+      sa.size = remote_md5.size;
 
       r = local_setattr (&fa, dentry, &sa, vol);
       if (r != ZFS_OK)
