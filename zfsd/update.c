@@ -1062,19 +1062,19 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       release_dentry (dir);
       zfsd_mutex_unlock (&vol->mutex);
 
-      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
-      if (!dentry->parent)
+      if (!dir->parent)
 	abort ();
 #endif
-      zfsd_mutex_lock (&dentry->parent->fh->mutex);
+      zfsd_mutex_lock (&dir->parent->fh->mutex);
       parent_fh = dir->parent->fh->local_fh;
-      zfsd_mutex_unlock (&dentry->parent->fh->mutex);
+      zfsd_mutex_unlock (&dir->parent->fh->mutex);
 
-      xmkstring (&name, dentry->name);
-      remote_fh = dentry->fh->meta.master_fh;
+      xmkstring (&name, dir->name);
+      remote_fh = dir->fh->meta.master_fh;
 
       r = update_local_fh (dir, &name, vol, &parent_fh,
 			   fh, &remote_fh, attr);
