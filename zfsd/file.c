@@ -2328,13 +2328,14 @@ remote_md5sum_retry:
   nod = vol->master;
   fh = args->cap.fh;
   args->cap = icap->master_cap;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
   release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
   zfsd_mutex_unlock (&vol->mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
   r = zfs_proc_md5sum_client (t, args, nod, &fd);
 
   if (r == ZFS_OK)
