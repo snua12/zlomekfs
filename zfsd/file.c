@@ -2209,7 +2209,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
   data_buffer data;
   write_res res;
   uint32_t total;
-  uint32_t r, r2;
+  uint32_t r;
 
   for (total = 0; total < count;)
     {
