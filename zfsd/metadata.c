@@ -610,16 +610,38 @@ close_volume_metadata (volume vol)
   zfsd_mutex_lock (&metadata_mutex);
   if (vol->metadata->fd >= 0)
     {
+      zfsd_mutex_lock (&metadata_fd_data[vol->metadata->fd].mutex);
       if (vol->metadata->generation
 	  == metadata_fd_data[vol->metadata->fd].generation)
 	{
-	  zfsd_mutex_lock (&metadata_fd_data[vol->metadata->fd].mutex);
 	  close_metadata_fd (vol->metadata->fd);
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
 	}
     }
   zfsd_mutex_unlock (&metadata_mutex);
   vol->metadata->fd = -1;
   hfile_destroy (vol->metadata);
+}
+
+/* Close file for interval tree TREE.  */
+
+static void
+close_interval_file (interval_tree tree)
+{
+  zfsd_mutex_lock (&metadata_mutex);
+  if (tree->fd >= 0)
+    {
+      zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
+      if (tree->generation == metadata_fd_data[tree->fd].generation)
+	close_metadata_fd (tree->fd);
+      else
+	zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
+      tree->fd = -1;
+    }
+  zfsd_mutex_unlock (&metadata_mutex);
 }
 
 /* Initialize interval tree of purpose PURPOSE for file handle FH
@@ -751,18 +773,7 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 
   CHECK_MUTEX_LOCKED (tree->mutex);
 
-  zfsd_mutex_lock (&metadata_mutex);
-  if (tree->fd >= 0)
-    {
-      zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
-      if (tree->generation == metadata_fd_data[tree->fd].generation)
-	close_metadata_fd (tree->fd);
-      else
-	zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
-      tree->fd = -1;
-    }
-  zfsd_mutex_unlock (&metadata_mutex);
-
+  close_interval_file (tree);
   path = build_interval_path (vol, fh, purpose, metadata_tree_depth);
 
   return flush_interval_tree_1 (tree, path);
