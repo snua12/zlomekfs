@@ -534,8 +534,6 @@ read_remote_dir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
   thread *t;
   int32_t r;
 
-  /* FIXME: if we can;t connect but we are in virtual directory, list the
-     virtual directory. */
   args.cap = cap->master_cap;
   args.cookie = data->cookie;
   args.count = data->count;
