@@ -146,7 +146,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 
       pthread_mutex_lock (&volume_mutex);
       vol = volume_lookup (fh->vid);
-      if (!vol || !VOLUME_ACTIVE_P (vol))
+      if (!vol || !volume_active_p (vol))
 	{
 	  pthread_mutex_unlock (&volume_mutex);
 	  return false;
