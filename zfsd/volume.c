@@ -68,11 +68,11 @@ volume_lookup (uint32_t id)
 {
   volume vol;
 
-  CHECK_MUTEX_LOCKED (&volume_mutex);
-
+  zfsd_mutex_lock (&volume_mutex);
   vol = (volume) htab_find_with_hash (volume_htab, &id, VOLUME_HASH_ID (id));
   if (vol)
     zfsd_mutex_lock (&vol->mutex);
+  zfsd_mutex_unlock (&volume_mutex);
 
   return vol;
 }
@@ -102,14 +102,6 @@ volume_create (uint32_t id)
   zfsd_mutex_init (&vol->mutex);
   zfsd_mutex_lock (&vol->mutex);
 
-  vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
-			      NULL, &vol->mutex);
-  vol->dentry_htab = htab_create (250, internal_dentry_hash,
-				  internal_dentry_eq, NULL, &vol->mutex);
-  vol->dentry_htab_name = htab_create (250, internal_dentry_hash_name,
-				       internal_dentry_eq_name, NULL,
-				       &vol->mutex);
-
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
 #ifdef ENABLE_CHECKING
@@ -136,12 +128,11 @@ volume_destroy (volume vol)
 
   if (vol->root_dentry)
     {
+      zfsd_mutex_lock (&fh_mutex);
       zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-      internal_dentry_destroy (vol->root_dentry, vol);
+      internal_dentry_destroy (vol->root_dentry);
+      zfsd_mutex_unlock (&fh_mutex);
     }
-  htab_destroy (vol->dentry_htab_name);
-  htab_destroy (vol->dentry_htab);
-  htab_destroy (vol->fh_htab);
 
   if (vol->metadata)
     close_volume_metadata (vol);

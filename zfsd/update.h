@@ -45,60 +45,129 @@
        && ((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version  \
 	   || (ATTR).version == (DENTRY)->fh->meta.master_version)))
 
-
-/* Update directory DENTRY on volume VOL if needed.  */
-#define UPDATE_DIR_IF_NEEDED(VOL, DENTRY)				\
+/* Update generic file DENTRY on volume VOL if needed.  */
+#define UPDATE_FH_IF_NEEDED(VOL, DENTRY, FH)				\
   do {									\
     fattr remote_attr;							\
 									\
     if ((VOL)->master != this_node)					\
       {									\
-	if (update_p ((DENTRY), (VOL), &remote_attr))			\
+	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
 	  {								\
-	    zfs_fh fh;							\
+	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
-	    CHECK_MUTEX_LOCKED (&(DENTRY)->fh->mutex);			\
-	    CHECK_MUTEX_LOCKED (&(VOL)->mutex);				\
+	    r2 = zfs_fh_lookup (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
+	      abort ();							\
 									\
-	    fh = (DENTRY)->fh->local_fh;				\
-	    r = update_directory ((DENTRY), (VOL), &remote_attr);	\
 	    if (r != ZFS_OK)						\
-	      return r;							\
-									\
-	    r = zfs_fh_lookup (&fh, &(VOL), &(DENTRY), NULL);		\
-	    if (r != ZFS_OK)						\
-	      return r;							\
+	      {								\
+		internal_dentry_unlock ((DENTRY));			\
+		zfsd_mutex_unlock (&(VOL)->mutex);			\
+		return r;						\
+	      }								\
 	  }								\
       }									\
   } while (0)
 
-/* Update directory DENTRY on volume VOL if needed.
-   Leave DENTRY and VOL unlocked.  */
-#define UPDATE_DIR_IF_NEEDED_AND_UNLOCK(VOL, DENTRY)			\
+/* Update generic file DENTRY on volume VOL if needed.
+   DENTRY and DENTRY2 are locked before and after this macro.
+   DENTRY2 might be deleted in update_fh.  */
+#define UPDATE_FH_IF_NEEDED_2(VOL, DENTRY, DENTRY2, FH, FH2)		\
   do {									\
     fattr remote_attr;							\
 									\
     if ((VOL)->master != this_node)					\
       {									\
-	if (update_p ((DENTRY), (VOL), &remote_attr))			\
-	  {								\
-	    CHECK_MUTEX_LOCKED (&(DENTRY)->fh->mutex);			\
-	    CHECK_MUTEX_LOCKED (&(VOL)->mutex);				\
+	if (ENABLE_CHECKING_VALUE					\
+	    && ((FH).sid != (FH2).sid					\
+		|| (FH).vid != (FH2).vid				\
+		|| (FH).dev != (FH2).dev))				\
+	  abort ();							\
 									\
-	    r = update_directory ((DENTRY), (VOL), &remote_attr);	\
+	if ((FH2).ino != (FH).ino)					\
+	  release_dentry ((DENTRY2));					\
+									\
+	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
+	  {								\
+	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 	    if (r != ZFS_OK)						\
 	      return r;							\
+									\
+	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
+	      abort ();							\
+									\
+	    if (r != ZFS_OK)						\
+	      {								\
+		internal_dentry_unlock ((DENTRY));			\
+		zfsd_mutex_unlock (&(VOL)->mutex);			\
+		zfsd_mutex_unlock (&fh_mutex);				\
+		return r;						\
+	      }								\
+									\
+	    if ((FH2).ino != (FH).ino)					\
+	      {								\
+		(DENTRY2) = dentry_lookup (&(FH2));			\
+		if (!(DENTRY2))						\
+		  {							\
+		    internal_dentry_unlock ((DENTRY));			\
+		    zfsd_mutex_unlock (&(VOL)->mutex);			\
+		    zfsd_mutex_unlock (&fh_mutex);			\
+		    return ZFS_STALE;					\
+		  }							\
+	      }								\
+	    else							\
+	      (DENTRY2) = (DENTRY);					\
+									\
+	    zfsd_mutex_unlock (&fh_mutex);				\
 	  }								\
 	else								\
 	  {								\
 	    zfsd_mutex_unlock (&(DENTRY)->fh->mutex);			\
-	      zfsd_mutex_unlock (&(VOL)->mutex);			\
-	  }								\
+	    zfsd_mutex_unlock (&(VOL)->mutex);				\
+									\
+	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
+	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
+	      abort ();							\
+									\
+	    if ((FH2).ino != (FH).ino)					\
+	      {								\
+		(DENTRY2) = dentry_lookup (&(FH2));			\
+		if (ENABLE_CHECKING_VALUE && !(DENTRY2))		\
+		  abort ();						\
+	      }								\
+	    else							\
+	      (DENTRY2) = (DENTRY);					\
+									\
+	    zfsd_mutex_unlock (&fh_mutex);				\
+          }								\
       }									\
-    else								\
+  } while (0)
+
+/* Update generic file DENTRY on volume VOL associated with capability ICAP
+   if needed.  */
+#define UPDATE_CAP_IF_NEEDED(ICAP, VOL, DENTRY, VD, CAP)		\
+  do {									\
+    fattr remote_attr;							\
+    zfs_fh tmp_fh;							\
+									\
+    if ((VOL)->master != this_node)					\
       {									\
-	zfsd_mutex_unlock (&(DENTRY)->fh->mutex);			\
-	zfsd_mutex_unlock (&(VOL)->mutex);				\
+	tmp_fh = (DENTRY)->fh->local_fh;				\
+	if (update_p (&(DENTRY), &(VOL), &tmp_fh, &remote_attr))	\
+	  {								\
+	    r = update_fh ((DENTRY), (VOL), &tmp_fh, &remote_attr);	\
+	    if (r != ZFS_OK)						\
+	      return r;							\
+									\
+	    r = find_capability (&(CAP), &(ICAP), &(VOL), &(DENTRY),	\
+				 &(VD));				\
+	    if (ENABLE_CHECKING_VALUE && r != ZFS_OK)			\
+	      abort ();							\
+	    if (VD)							\
+	      zfsd_mutex_unlock (&(VD)->mutex);				\
+	  }								\
       }									\
   } while (0)
 
@@ -107,8 +176,9 @@ extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,
 				   void *buffer, uint64_t offset,
 				   internal_cap cap, varray *blocks);
-extern bool update_p (internal_dentry dentry, volume vol, fattr *attr);
-extern int32_t update_directory (internal_dentry dentry, volume vol,
-				 fattr *attr);
+extern bool update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh,
+		      fattr *attr);
+extern int32_t update_fh (internal_dentry dentry, volume vol, zfs_fh *fh,
+			  fattr *attr);
 
 #endif

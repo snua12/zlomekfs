@@ -87,6 +87,84 @@ verify_capability (zfs_cap *cap, internal_cap icap)
 	  : EBADF);
 }
 
+/* Lock dentry *DENTRYP on volume *VOLP with capability *ICAPP and virtual
+   directory *VDP to level LEVEL.
+   Store the local ZFS file handle to TMP_FH.  */
+
+int32_t
+internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
+		   internal_dentry *dentryp, virtual_dir *vdp,
+		   zfs_cap *tmp_cap)
+{
+  if (volp)
+    CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  if (vdp && *vdp)
+    CHECK_MUTEX_LOCKED (&(*vdp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+
+  *tmp_cap = (*icapp)->local_cap;
+  if ((*dentryp)->fh->level != LEVEL_UNLOCKED)
+    {
+      int32_t r;
+
+      /* Mark the dentry so that nobody else can lock dentry before us.  */
+      if (level > (*dentryp)->fh->level)
+	(*dentryp)->fh->level = level;
+
+      if (volp)
+	zfsd_mutex_unlock (&(*volp)->mutex);
+      if (vdp && *vdp)
+	zfsd_mutex_unlock (&(*vdp)->mutex);
+
+      while ((*dentryp)->fh->level != LEVEL_UNLOCKED)
+	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
+      zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
+
+      r = find_capability (tmp_cap, icapp, volp, dentryp, vdp);
+      if (r != ZFS_OK)
+	return r;
+    }
+
+  (*dentryp)->fh->level = level;
+  (*dentryp)->fh->users++;
+  if (vdp && *vdp)
+    {
+      (*vdp)->busy = true;
+      (*vdp)->users++;
+    }
+
+  return ZFS_OK;
+}
+
+/* Unlock dentry DENTRY and virtual directory VD.  */
+
+void
+internal_cap_unlock (internal_dentry dentry, virtual_dir vd)
+{
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  if (vd)
+    {
+      CHECK_MUTEX_LOCKED (&vd_mutex);
+      CHECK_MUTEX_LOCKED (&vd->mutex);
+    }
+
+  internal_dentry_unlock (dentry);
+
+  if (vd)
+    {
+      vd->users--;
+      if (vd->users == 0)
+	{
+	  vd->busy = false;
+	  if (vd->deleted > 0)
+	    virtual_dir_destroy (vd);
+	  else
+	    zfsd_mutex_unlock (&vd->mutex);
+	}
+    }
+}
+
 /* Create a new capability for file handle fh with open flags FLAGS.  */
 
 static internal_cap
@@ -235,8 +313,8 @@ internal_cap_destroy_vd (internal_cap cap, virtual_dir vd)
    Create a new internal capability if it does not exist.  */
 
 int32_t
-get_capability (zfs_cap *cap, internal_cap *icapp,
-		volume *vol, internal_dentry *dentry, virtual_dir *vd)
+get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
+		internal_dentry *dentry, virtual_dir *vd)
 {
   internal_cap icap;
   int32_t r;
@@ -249,12 +327,35 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (VIRTUAL_FH_P (cap->fh) && cap->flags != O_RDONLY)
     return EISDIR;
 
-  r = zfs_fh_lookup (&cap->fh, vol, dentry, vd);
+  if (VIRTUAL_FH_P (cap->fh))
+    zfsd_mutex_lock (&vd_mutex);
+
+  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd);
   if (r != ZFS_OK)
-    return r;
+    {
+      if (VIRTUAL_FH_P (cap->fh))
+	zfsd_mutex_unlock (&vd_mutex);
+      return r;
+    }
+  
+  if (vd && *vd)
+    zfsd_mutex_unlock (&vd_mutex);
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   if (vd && *vd && *vol)
-    get_volume_root_dentry (*vol, dentry);
+    {
+      int32_t r2;
+
+      r2 = get_volume_root_dentry (*vol, dentry, true);
+      if (r2 != ZFS_OK)
+	{
+	  /* *VOL is the volume under *VD so we may lock it.  */
+	  zfsd_mutex_lock (&volume_mutex);
+	  zfsd_mutex_lock (&(*vol)->mutex);
+	  zfsd_mutex_unlock (&volume_mutex);
+	}
+    }
 
   if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
@@ -288,6 +389,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
     }
 
   *icapp = icap;
+  memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
   return ZFS_OK;
 }
 
@@ -295,21 +397,25 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
    DENTRY.  */
 
 internal_cap
-get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry)
+get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry,
+				 uint32_t flags)
 {
   internal_cap icap;
 
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   for (icap = dentry->fh->cap; icap; icap = icap->next)
-    if (icap->local_cap.flags == cap->flags)
+    if (icap->local_cap.flags == flags)
       break;
 
   if (icap)
     icap->busy++;
   else
-    icap = internal_cap_create_fh (dentry->fh, cap->flags);
+    icap = internal_cap_create_fh (dentry->fh, flags);
 
+  /* Set elements of CAP except VERIFY, VERIFY will be set in zfs_create.  */
+  cap->fh = icap->local_cap.fh;
+  cap->flags = icap->local_cap.flags;
   return icap;
 }
 
@@ -318,20 +424,20 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry)
    Create a new internal capability if it does not exist.  */
 
 int32_t
-find_capability (zfs_cap *cap, internal_cap *icapp,
-		 volume *vol, internal_dentry *dentry, virtual_dir *vd)
+find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
+		 internal_dentry *dentry, virtual_dir *vd)
 {
   int32_t r;
 
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
 
   r = find_capability_nolock (cap, icapp, vol, dentry, vd);
 
-  zfsd_mutex_unlock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_unlock (&vd_mutex);
+  if (r == ZFS_OK && dentry && *dentry)
+    zfsd_mutex_unlock (&fh_mutex);
 
   return r;
 }
@@ -348,7 +454,6 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   internal_cap icap;
   int32_t r;
 
-  CHECK_MUTEX_LOCKED (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     CHECK_MUTEX_LOCKED (&vd_mutex);
 
@@ -357,7 +462,18 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     return r;
 
   if (vd && *vd && *vol)
-    get_volume_root_dentry (*vol, dentry);
+    {
+      int32_t r2;
+
+      r2 = get_volume_root_dentry (*vol, dentry, false);
+      if (r2 != ZFS_OK)
+	{
+	  /* *VOL is the volume under *VD so we may lock it.  */
+	  zfsd_mutex_lock (&volume_mutex);
+	  zfsd_mutex_lock (&(*vol)->mutex);
+	  zfsd_mutex_unlock (&volume_mutex);
+	}
+    }
 
   if (vd && *vd)
     {
@@ -385,7 +501,10 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 
 out:
   if (*dentry)
-    release_dentry (*dentry);
+    {
+      release_dentry (*dentry);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
   if (vd && *vd)
     zfsd_mutex_unlock (&(*vd)->mutex);
   if (*vol)

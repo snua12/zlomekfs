@@ -59,6 +59,13 @@
 /* Crash when executing this macro.  */
 #define CRASH (*(char *) 0 = 0)
 
+/* Boolean value whether checking is enabled.  */
+#ifdef ENABLE_CHECKING
+#define ENABLE_CHECKING_VALUE true
+#else
+#define ENABLE_CHECKING_VALUE false
+#endif
+
 /* Definitions of some GCC attributes.  */
 #ifdef __GNUC__
 

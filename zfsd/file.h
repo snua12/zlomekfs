@@ -65,15 +65,17 @@ typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
 
 #include "cap.h"
 extern int32_t local_close (internal_cap cap);
-extern int32_t remote_close (internal_cap cap, volume vol);
+extern int32_t remote_close (internal_cap cap, internal_dentry dentry,
+			     volume vol);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
 			     string *name, uint32_t flags, sattr *attr,
 			     volume vol);
-extern int32_t remote_create (create_res *res, internal_fh dir, string *name,
-			      uint32_t flags, sattr *attr, volume vol);
+extern int32_t remote_create (create_res *res, internal_dentry dir,
+			      string *name, uint32_t flags, sattr *attr,
+			      volume vol);
 extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
 			   uint32_t flags, sattr *attr);
-extern int32_t local_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
+extern int32_t local_open (internal_cap icap, uint32_t flags,
 			   internal_dentry dentry, volume vol);
 extern int32_t remote_open (zfs_cap *cap, internal_cap icap, uint32_t flags,
 			    internal_dentry dentry, volume vol);
@@ -96,7 +98,8 @@ extern int32_t local_readdir (dir_list *list, internal_cap cap,
 			      int32_t cookie, readdir_data *data, volume vol,
 			      filldir_f filldir);
 extern int32_t remote_readdir (dir_list *list, internal_cap cap,
-			       int32_t cookie, readdir_data *data, volume vol,
+			       internal_dentry dentry, int32_t cookie,
+			       readdir_data *data, volume vol,
 			       filldir_f filldir);
 extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
 			    uint32_t count, filldir_f filldir);

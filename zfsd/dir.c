@@ -116,17 +116,15 @@ build_local_path_name (volume vol, internal_dentry dentry, const char *name)
   return r;
 }
 
-/* Recursively unlink the file PATH on volume VOL.  */
+/* Recursively unlink the file PATH on volume with ID == VID.  */
 
 bool
-recursive_unlink (const char *path, volume vol)
+recursive_unlink (const char *path, uint32_t vid)
 {
   internal_dentry dentry;
   zfs_fh fh;
   bool r;
   struct stat st;
-
-  CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (lstat (path, &st) != 0)
     return errno == ENOENT;
@@ -156,7 +154,7 @@ recursive_unlink (const char *path, volume vol)
 	  char *new_path;
 
 	  new_path = xstrconcat (3, path, "/", de->d_name);
-	  r = recursive_unlink (new_path, vol);
+	  r = recursive_unlink (new_path, vid);
 	  free (new_path);
 	  if (!r)
 	    {
@@ -178,16 +176,15 @@ recursive_unlink (const char *path, volume vol)
 out:
   /* Destroy dentry associated with the file.  */
   fh.sid = this_node->id;
-  fh.vid = vol->id;
+  fh.vid = vid;
   fh.dev = st.st_dev;
   fh.ino = st.st_ino;
 
-  dentry = dentry_lookup (vol, &fh);
+  zfsd_mutex_lock (&fh_mutex);
+  dentry = dentry_lookup (&fh);
   if (dentry)
-    {
-      zfsd_mutex_lock (&dentry->fh->mutex);
-      internal_dentry_destroy (dentry, vol);
-    }
+    internal_dentry_destroy (dentry);
+  zfsd_mutex_unlock (&fh_mutex);
 
   return r;
 }
@@ -225,14 +222,13 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
     }
   else
     {
-      int32_t r = get_volume_root_dentry (pvd->vol, dir);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&pvd->vol->mutex);
-	  zfsd_mutex_unlock (&pvd->mutex);
-	  return r;
-	}
+      int32_t r;
+      volume vol = pvd->vol;
+
       zfsd_mutex_unlock (&pvd->mutex);
+      r = get_volume_root_dentry (vol, dir, true);
+      if (r != ZFS_OK)
+	return r;
     }
 
   return ZFS_OK;
@@ -302,17 +298,25 @@ static int32_t
 get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 {
   struct stat st;
+  char *path;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (stat (vol->local_path, &st) != 0)
-    return errno;
+  local_fh->sid = this_node->id;
+  local_fh->vid = vol->id;
+
+  path = xstrdup (vol->local_path);
+  zfsd_mutex_unlock (&vol->mutex);
+  if (stat (path, &st) != 0)
+    {
+      free (path);
+      return errno;
+    }
+  free (path);
 
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     return ENOTDIR;
 
-  local_fh->sid = this_node->id;
-  local_fh->vid = vol->id;
   local_fh->dev = st.st_dev;
   local_fh->ino = st.st_ino;
   fattr_from_struct_stat (attr, &st);
@@ -330,16 +334,20 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   args.vid = vol->id;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_volume_root_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_volume_root_client (t, &args, nod, &fd);
+
   if (r == ZFS_OK)
     {
       if (!decode_zfs_fh (&t->dc_reply, remote_fh)
@@ -361,122 +369,100 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
   return r;
 }
 
-/* Get file handle of root of volume VOL, store the local file handle to
-   LOCAL_FH and master's file handle to MASTER_FH, if defined.  */
+/* Get file handle of root of volume with id VID, store the local file handle
+   to LOCAL_FH and master's file handle to MASTER_FH, if defined.  */
 
 static int32_t
-get_volume_root (volume vol, zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr)
+get_volume_root (uint32_t vid, zfs_fh *local_fh, zfs_fh *master_fh,
+		 fattr *attr)
 {
-  int32_t r = ZFS_OK;
+  volume vol;
+  int32_t r;
 
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
-  if (vol->master == this_node)
+  if (local_fh)
     {
-      /* The volume is managed by this node.  */
-      if (local_fh)
-	{
-	  r = get_volume_root_local (vol, local_fh, attr);
-	  if (r != ZFS_OK)
-	    return r;
-	}
+      vol = volume_lookup (vid);
+      if (!vol)
+	return ENOENT;
+
+      r = get_volume_root_local (vol, local_fh, attr);
+      if (r != ZFS_OK)
+	return r;
 
       if (master_fh)
-	zfs_fh_undefine (*master_fh);
-    }
-  else if (vol->local_path)
-    {
-      /* There is a copy of volume on this node.  */
-      if (local_fh)
 	{
-	  r = get_volume_root_local (vol, local_fh, attr);
-	  if (r != ZFS_OK)
-	    return r;
+	  fattr tmp;
 
-	  if (master_fh)
-	    {
-	      fattr tmp;
-	      r = get_volume_root_remote (vol, master_fh, &tmp);
-	      if (r < ZFS_OK)
-		{
-		  zfs_fh_undefine (*master_fh);
-		  r = ZFS_OK;
-		}
-	    }
-	}
-      else if (master_fh)
-	{
-	  r = get_volume_root_remote (vol, master_fh, attr);
+	  vol = volume_lookup (vid);
+	  if (!vol)
+	    return ENOENT;
+
+	  r = get_volume_root_remote (vol, master_fh, &tmp);
 	  if (r < ZFS_OK)
 	    {
 	      zfs_fh_undefine (*master_fh);
 	      r = ZFS_OK;
 	    }
+
 	}
     }
-  else
+  else if (master_fh)
     {
-      /* The volume is completelly remote.  */
-      if (local_fh)
-	{
-	  r = get_volume_root_remote (vol, local_fh, attr);
-	  if (r != ZFS_OK)
-	    return r;
+      vol = volume_lookup (vid);
+      if (!vol)
+	return ENOENT;
 
-	  if (master_fh)
-	    memcpy (master_fh, local_fh, sizeof (zfs_fh));
-	}
-      else if (master_fh)
-	{
-	  r = get_volume_root_remote (vol, master_fh, attr);
-	}
+      r = get_volume_root_remote (vol, master_fh, attr);
+      if (r != ZFS_OK)
+	return r;
     }
 
-  return r;
+  return ZFS_OK;
 }
 
 /* Update root of volume VOL, create an internal file handle for it and store
    it to IFH.  */
 
 int32_t
-get_volume_root_dentry (volume vol, internal_dentry *dentry)
+get_volume_root_dentry (volume vol, internal_dentry *dentry,
+			bool unlock_fh_mutex)
 {
   zfs_fh local_fh, master_fh;
+  zfs_fh *local_fhp, *master_fhp;
+  uint32_t vid;
   fattr attr;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  r = get_volume_root (vol, &local_fh, &master_fh, &attr);
+  vid = vol->id;
+  local_fhp = (vol->local_path ? &local_fh : NULL);
+  master_fhp = (vol->master != this_node ? &master_fh : NULL);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  r = get_volume_root (vid, local_fhp, master_fhp, &attr);
   if (r != ZFS_OK)
     return r;
 
-  if (vol->root_dentry == NULL
-      || !ZFS_FH_EQ (vol->root_dentry->fh->local_fh, local_fh)
-      || (!ZFS_FH_EQ (vol->root_dentry->fh->master_fh, master_fh)
-	  && !zfs_fh_undefined (vol->root_dentry->fh->master_fh)))
+  zfsd_mutex_lock (&fh_mutex);
+  vol = volume_lookup (vid);
+  if (!vol)
     {
-      if (vol->root_dentry)
-	{
-	  zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-	  /* FIXME? delete only FHs which are not open now?  */
-	  internal_dentry_destroy (vol->root_dentry, vol);
-	}
-
-      vol->root_dentry = internal_dentry_create (&local_fh, &master_fh, vol,
-						 NULL, "", &attr);
-    }
-  else
-    {
-      zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-      if (zfs_fh_undefined (vol->root_dentry->fh->master_fh))
-	vol->root_dentry->fh->master_fh = master_fh;
-
-      set_attr_version (&attr, &vol->root_dentry->fh->meta);
-      vol->root_dentry->fh->attr = attr;
+      zfsd_mutex_unlock (&fh_mutex);
+      return ENOENT;
     }
 
-  *dentry = vol->root_dentry;
+  if (local_fhp && !master_fhp)
+    zfs_fh_undefine (master_fh);
+
+  if (!local_fhp && master_fhp)
+    local_fh = master_fh;
+
+  *dentry = get_dentry (&local_fh, &master_fh, vol, NULL, "", &attr);
+
+  if (unlock_fh_mutex)
+    zfsd_mutex_unlock (&fh_mutex);
+
   return ZFS_OK;
 }
 
@@ -509,8 +495,9 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path (vol, dentry);
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
   r = local_getattr_path (attr, path);
-  set_attr_version (attr, &dentry->fh->meta);
   free (path);
 
   return r;
@@ -522,9 +509,11 @@ local_getattr (fattr *attr, internal_dentry dentry, volume vol)
 int32_t
 remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
 {
+  zfs_fh args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -533,12 +522,17 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
     abort ();
 #endif
 
-  t = (thread *) pthread_getspecific (thread_data_key);
+  args = dentry->fh->master_fh;
 
+  release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_getattr_client (t, &dentry->fh->master_fh, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_getattr_client (t, &args, nod, &fd);
+
   if (r == ZFS_OK)
     {
       if (!decode_fattr (&t->dc_reply, attr)
@@ -553,7 +547,6 @@ remote_getattr (fattr *attr, internal_dentry dentry, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (&t->dc_reply, fd);
-
   return r;
 }
 
@@ -565,7 +558,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   volume vol;
   internal_dentry dentry;
   virtual_dir vd;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_getattr_retry:
@@ -575,17 +569,14 @@ zfs_getattr_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (!dentry)
+  if (vd)
     {
       if (vol)
 	{
-	  r = get_volume_root_dentry (vol, &dentry);
 	  zfsd_mutex_unlock (&vd->mutex);
+	  r = get_volume_root_dentry (vol, &dentry, true);
 	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
-	    }
+	    return r;
 	}
       else
 	{
@@ -595,6 +586,10 @@ zfs_getattr_retry:
 	}
     }
 
+  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     r = local_getattr (fa, dentry, vol);
   else if (vol->master != this_node)
@@ -602,11 +597,23 @@ zfs_getattr_retry:
   else
     abort ();
 
-  if (r == ZFS_OK)
-    dentry->fh->attr = *fa;
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
-  release_dentry (dentry);
+  if (r == ZFS_OK)
+    {
+      /* Update cached file attributes.  */
+      if (vol->local_path)
+	set_attr_version (fa, &dentry->fh->meta);
+      dentry->fh->attr = *fa;
+    }
+
+  internal_dentry_unlock (dentry);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -670,8 +677,9 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   path = build_local_path (vol, dentry);
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
   r = local_setattr_path (fa, path, sa);
-  set_attr_version (fa, &dentry->fh->meta);
   free (path);
 
   return r;
@@ -681,28 +689,33 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
    reget attributes and store them to FA.  */
 
 static int32_t
-remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
+remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
   sattr_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (fh->master_fh))
+  if (zfs_fh_undefined (dentry->fh->master_fh))
     abort ();
 #endif
 
-  args.file = fh->master_fh;
+  args.file = dentry->fh->master_fh;
   args.attr = *sa;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_setattr_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_setattr_client (t, &args, nod, &fd);
+
   if (r == ZFS_OK)
     {
       if (!decode_fattr (&t->dc_reply, fa)
@@ -717,7 +730,6 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa, volume vol)
 
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (&t->dc_reply, fd);
-
   return r;
 }
 
@@ -730,7 +742,8 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   volume vol;
   internal_dentry dentry;
   virtual_dir vd;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_setattr_retry:
@@ -740,17 +753,14 @@ zfs_setattr_retry:
   if (r != ZFS_OK)
     return r;
 
-  if (!dentry)
+  if (vd)
     {
       if (vol)
 	{
-	  r = get_volume_root_dentry (vol, &dentry);
 	  zfsd_mutex_unlock (&vd->mutex);
+	  r = get_volume_root_dentry (vol, &dentry, true);
 	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
-	    }
+	    return r;
 	}
       else
 	{
@@ -759,19 +769,34 @@ zfs_setattr_retry:
 	}
     }
 
+  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     r = local_setattr (fa, dentry, sa, vol);
   else if (vol->master != this_node)
-    r = remote_setattr (fa, dentry->fh, sa, vol);
+    r = remote_setattr (fa, dentry, sa, vol);
   else
     abort ();
 
-  /* Update cached file attributes.  */
-  if (r == ZFS_OK)
-    dentry->fh->attr = *fa;
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
-  release_dentry (dentry);
+  if (r == ZFS_OK)
+    {
+      /* Update cached file attributes.  */
+      if (vol->local_path)
+	set_attr_version (fa, &dentry->fh->meta);
+      dentry->fh->attr = *fa;
+    }
+
+  internal_dentry_unlock (dentry);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -825,14 +850,17 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
+  res->file.sid = dir->fh->local_fh.sid;
+  res->file.vid = dir->fh->local_fh.vid;
+
   path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = local_getattr_path (&res->attr, path);
   free (path);
   if (r != ZFS_OK)
     return r;
 
-  res->file.sid = dir->fh->local_fh.sid;
-  res->file.vid = dir->fh->local_fh.vid;
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
 
@@ -843,28 +871,33 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
    and store it to FH.  */
 
 int32_t
-remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
+remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
 {
   dir_op_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.dir = dir->master_fh;
+  args.dir = dir->fh->master_fh;
   args.name = *name;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_lookup_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_lookup_client (t, &args, nod, &fd);
+
   if (r == ZFS_OK)
     {
       if (!decode_dir_op_res (&t->dc_reply, res)
@@ -891,24 +924,22 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   dir_op_res master_res;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_lookup_retry:
 
   /* Lookup DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
 
   if (pvd)
     {
@@ -954,26 +985,18 @@ zfs_lookup_retry:
 	}
 
       /* !vd */
+      zfsd_mutex_unlock (&pvd->mutex);
       if (vol)
 	{
-	  r = get_volume_root_dentry (vol, &idir);
+	  r = get_volume_root_dentry (vol, &idir, true);
 	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      zfsd_mutex_unlock (&pvd->mutex);
-	      return r;
-	    }
-	  zfsd_mutex_unlock (&pvd->mutex);
+	    return r;
 	}
       else
-	{
-	  zfsd_mutex_unlock (&pvd->mutex);
-	  return ENOENT;
-	}
+	return ENOENT;
     }
-
-  if (!idir)
-    abort ();
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   if (idir->fh->attr.type != FT_DIR)
     {
@@ -1023,21 +1046,31 @@ zfs_lookup_retry:
       return ZFS_OK;
     }
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     {
-      UPDATE_DIR_IF_NEEDED (vol, idir);
+      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_lookup (res, idir, name, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
-      r = remote_lookup (res, idir->fh, name, vol);
+      r = remote_lookup (res, idir, name, vol);
       if (r == ZFS_OK)
 	master_res.file = res->file;
     }
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   if (r == ZFS_OK)
     {
@@ -1048,8 +1081,9 @@ zfs_lookup_retry:
       release_dentry (dentry);
     }
 
-  release_dentry (idir);
+  internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1075,7 +1109,12 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  res->file.sid = dir->fh->local_fh.sid;
+  res->file.vid = dir->fh->local_fh.vid;
+
   path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = mkdir (path, attr->mode);
   if (r != 0)
     {
@@ -1088,8 +1127,6 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   if (r != ZFS_OK)
     return r;
 
-  res->file.sid = dir->fh->local_fh.sid;
-  res->file.vid = dir->fh->local_fh.vid;
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
 
@@ -1100,30 +1137,34 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
    group and permitions according to ATTR.  */
 
 int32_t
-remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
+remote_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 	      volume vol)
 {
   mkdir_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.where.dir = dir->master_fh;
+  args.where.dir = dir->fh->master_fh;
   args.where.name = *name;
   args.attr = *attr;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_mkdir_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_mkdir_client (t, &args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -1152,24 +1193,22 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   internal_dentry idir;
   virtual_dir pvd;
   dir_op_res master_res;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_mkdir_retry:
 
   /* Lookup DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
 
   if (pvd)
     {
@@ -1178,6 +1217,8 @@ zfs_mkdir_retry:
       if (r != ZFS_OK)
 	return r;
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
@@ -1191,21 +1232,31 @@ zfs_mkdir_retry:
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     {
-      UPDATE_DIR_IF_NEEDED (vol, idir);
+      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_mkdir (res, idir, name, attr, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
-      r = remote_mkdir (res, idir->fh, name, attr, vol);
+      r = remote_mkdir (res, idir, name, attr, vol);
       if (r == ZFS_OK)
 	master_res.file = res->file;
     }
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   if (r == ZFS_OK)
     {
@@ -1224,8 +1275,9 @@ zfs_mkdir_retry:
       release_dentry (dentry);
     }
 
-  release_dentry (idir);
+  internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1251,6 +1303,8 @@ local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = lstat (path, st);
   if (r != 0)
     {
@@ -1268,28 +1322,32 @@ local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
 /* Remove remote directory NAME from directory DIR on volume VOL.  */
 
 static int32_t
-remote_rmdir (internal_fh dir, string *name, volume vol)
+remote_rmdir (internal_dentry dir, string *name, volume vol)
 {
   dir_op_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.dir = dir->master_fh;
+  args.dir = dir->fh->master_fh;
   args.name = *name;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_rmdir_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_rmdir_client (t, &args, nod, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1311,24 +1369,22 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_rmdir_retry:
 
   /* Lookup DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
 
   if (pvd)
     {
@@ -1337,6 +1393,8 @@ zfs_rmdir_retry:
       if (r != ZFS_OK)
 	return r;
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
@@ -1346,24 +1404,30 @@ zfs_rmdir_retry:
       return EACCES;
     }
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     {
-      UPDATE_DIR_IF_NEEDED (vol, idir);
+      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_rmdir (&st, idir, name, vol);
     }
   else if (vol->master != this_node)
-    r = remote_rmdir (idir->fh, name, vol);
+    r = remote_rmdir (idir, name, vol);
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      internal_dentry dentry;
-
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	internal_dentry_destroy (dentry, vol);
+      DESTROY_DENTRY (vol, idir, name->str, tmp_fh);
 
       if (vol->local_path)
 	{
@@ -1374,8 +1438,9 @@ zfs_rmdir_retry:
 	}
     }
 
-  release_dentry (idir);
+  internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1404,6 +1469,10 @@ local_rename (internal_dentry from_dir, string *from_name,
 
   path1 = build_local_path_name (vol, from_dir, from_name->str);
   path2 = build_local_path_name (vol, to_dir, to_name->str);
+  release_dentry (from_dir);
+  if (to_dir->fh != from_dir->fh)
+    release_dentry (to_dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = rename (path1, path2);
   free (path1);
   free (path2);
@@ -1417,34 +1486,40 @@ local_rename (internal_dentry from_dir, string *from_name,
    in directory TO_DIR on volume VOL.  */
 
 static int32_t
-remote_rename (internal_fh from_dir, string *from_name,
-	       internal_fh to_dir, string *to_name, volume vol)
+remote_rename (internal_dentry from_dir, string *from_name,
+	       internal_dentry to_dir, string *to_name, volume vol)
 {
   rename_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
-  CHECK_MUTEX_LOCKED (&from_dir->mutex);
-  CHECK_MUTEX_LOCKED (&to_dir->mutex);
+  CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
+  CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (from_dir->master_fh))
+  if (zfs_fh_undefined (from_dir->fh->master_fh))
     abort ();
-  if (zfs_fh_undefined (to_dir->master_fh))
+  if (zfs_fh_undefined (to_dir->fh->master_fh))
     abort ();
 #endif
 
-  args.from.dir = from_dir->master_fh;
+  args.from.dir = from_dir->fh->master_fh;
   args.from.name = *from_name;
-  args.to.dir = to_dir->master_fh;
+  args.to.dir = to_dir->fh->master_fh;
   args.to.name = *to_name;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (from_dir);
+  if (to_dir->fh != from_dir->fh)
+    release_dentry (to_dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_rename_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_rename_client (t, &args, nod, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1465,237 +1540,182 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	    zfs_fh *to_dir, string *to_name)
 {
   volume vol;
-  internal_dentry dentry1, dentry2;
-  virtual_dir vd1, vd2;
-  zfs_fh fh;
-  int32_t r;
+  internal_dentry from_dentry, to_dentry;
+  virtual_dir vd;
+  zfs_fh tmp_from, tmp_to;
+  int32_t r, r2;
   int retry = 0;
 
-  /* Update FROM_DIR.  */
-  r = zfs_fh_lookup (from_dir, &vol, &dentry1, &vd1);
-  if (r != ZFS_OK)
-    return r;
-
-  if (vd1)
-    {
-      if (vol)
-	{
-	  r = get_volume_root_dentry (vol, &dentry1);
-	  zfsd_mutex_unlock (&vd1->mutex);
-	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
-	    }
-	}
-      else
-	{
-	  zfsd_mutex_unlock (&vd1->mutex);
-	  return EROFS;
-	}
-    }
-  fh = dentry1->fh->local_fh;
-
-  if (vol->local_path)
-    {
-      UPDATE_DIR_IF_NEEDED_AND_UNLOCK (vol, dentry1);
-    }
-  else
-    {
-      zfsd_mutex_unlock (&dentry1->fh->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
-    }
-
-  /* Update TO_DIR.  */
-  r = zfs_fh_lookup (to_dir, &vol, &dentry2, &vd2);
-  if (r != ZFS_OK)
-    return r;
-
-  if (vd2)
-    {
-      if (vol)
-	{
-	  r = get_volume_root_dentry (vol, &dentry2);
-	  zfsd_mutex_unlock (&vd2->mutex);
-	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
-	    }
-	}
-      else
-	{
-	  zfsd_mutex_unlock (&vd2->mutex);
-	  return EROFS;
-	}
-    }
-
-  if (vol->local_path && !ZFS_FH_EQ (fh, dentry2->fh->local_fh))
-    {
-      UPDATE_DIR_IF_NEEDED_AND_UNLOCK (vol, dentry2);
-    }
-  else
-    {
-      zfsd_mutex_unlock (&dentry2->fh->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
-    }
-
-zfs_rename_retry:
-
-  /* Lookup FROM_DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
-  zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (from_dir, &vol, &dentry1, &vd1);
+  /* Lookup TO_DIR.  */
+  if (VIRTUAL_FH_P (*to_dir))
+    zfsd_mutex_lock (&vd_mutex);
+  r = zfs_fh_lookup_nolock (to_dir, &vol, &to_dentry, &vd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
-      zfsd_mutex_unlock (&vd_mutex);
+      if (VIRTUAL_FH_P (*to_dir))
+	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
-  if (!vol)
-    {
-      /* FROM_DIR is a virtual directory without volume under it.  */
-      zfsd_mutex_unlock (&vd1->mutex);
-      zfsd_mutex_unlock (&vd_mutex);
-      return EROFS;
-    }
-  /* Temporarily unlock DENTRY1, we are still holding VOL->MUTEX so we are
-     allowed to lock it again.  */
-  if (dentry1)
-    release_dentry (dentry1);
-  /* Similarly, we are holding VD_MUTEX so unlock VD1->MUTEX.  */
-  if (vd1)
-    zfsd_mutex_unlock (&vd1->mutex);
 
-  if (VIRTUAL_FH_P (*to_dir))
+  if (vd)
     {
-      vd2 = vd_lookup (to_dir);
-      if (!vd2)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return ENOENT;
-	}
-      zfsd_mutex_lock (&vd2->mutex);
-      if (vd2->vol != vol)
-	{
-	  r = vd2->vol ? EXDEV : EROFS;
-	  zfsd_mutex_unlock (&vd2->mutex);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return r;
-	}
+      r = validate_operation_on_virtual_directory (vd, to_name, &to_dentry);
+      zfsd_mutex_unlock (&vd_mutex);
+      if (r != ZFS_OK)
+	return r;
     }
   else
-    {
-      vd2 = NULL;
-      if (vol->id != to_dir->vid)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return EXDEV;
-	}
+    zfsd_mutex_unlock (&fh_mutex);
 
-      dentry2 = dentry_lookup (vol, to_dir);
-      if (!dentry2)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return ZFS_STALE;
-	}
-    }
-
-  /* At this point, both file handles are for the same volume.  */
-  if (vd2)
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!to_dentry->parent && strncmp (to_name->str, ".zfs", 5) == 0)
     {
-      r = validate_operation_on_virtual_directory (vd2, to_name, &dentry2);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return r;
-	}
-      release_dentry (dentry2);
-    }
-  if (vd1)
-    {
-      zfsd_mutex_lock (&vd1->mutex);
-      r = validate_operation_on_virtual_directory (vd1, to_name, &dentry1);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return r;
-	}
-      release_dentry (dentry1);
-    }
-  zfsd_mutex_unlock (&vd_mutex);
-
-  /* Hide ".zfs" in root of volumes.  */
-  if ((!dentry1->parent && strncmp (from_name->str, ".zfs", 5) == 0)
-      || (!dentry2->parent && strncmp (to_name->str, ".zfs", 5) == 0))
-    {
+      release_dentry (to_dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
 
-  zfsd_mutex_lock (&dentry1->fh->mutex);
-  if (dentry1 != dentry2)
-    zfsd_mutex_lock (&dentry2->fh->mutex);
+  tmp_to = to_dentry->fh->local_fh;
+  release_dentry (to_dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
-  if (dentry1->fh->local_fh.dev != dentry2->fh->local_fh.dev)
+  /* Lookup FROM_DIR.  */
+  if (VIRTUAL_FH_P (*from_dir))
+    zfsd_mutex_lock (&vd_mutex);
+  r = zfs_fh_lookup_nolock (from_dir, &vol, &from_dentry, &vd);
+  if (r != ZFS_OK)
     {
-      release_dentry (dentry1);
-      release_dentry (dentry2);
-      zfsd_mutex_unlock (&vol->mutex);
-      return EXDEV;
+      if (VIRTUAL_FH_P (*from_dir))
+	zfsd_mutex_unlock (&vd_mutex);
+      return r;
     }
 
+  if (vd)
+    {
+      r = validate_operation_on_virtual_directory (vd, from_name, &from_dentry);
+      zfsd_mutex_unlock (&vd_mutex);
+      if (r != ZFS_OK)
+	return r;
+    }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
+
+  /* Hide ".zfs" in the root of the volume.  */
+  if (!from_dentry->parent && strncmp (from_name->str, ".zfs", 5) == 0)
+    {
+      release_dentry (from_dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EACCES;
+    }
+
+  tmp_from = from_dentry->fh->local_fh;
+  release_dentry (from_dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  /* FROM_DIR and TO_DIR must be on same device.  */
+  if (tmp_from.dev != tmp_to.dev
+      || tmp_from.vid != tmp_to.vid
+      || tmp_from.sid != tmp_to.sid)
+    return EXDEV;
+
+zfs_rename_retry:
+  /* Lookup dentries.  */
+  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  if (tmp_from.ino != tmp_to.ino)
+    {
+      to_dentry = dentry_lookup (&tmp_to);
+      if (!to_dentry)
+	{
+	  release_dentry (from_dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ZFS_STALE;
+	}
+    }
+  else
+    to_dentry = from_dentry;
+
+  zfsd_mutex_unlock (&fh_mutex);
+
+  r = internal_dentry_lock2 (LEVEL_EXCLUSIVE, LEVEL_EXCLUSIVE, &vol,
+			     &from_dentry, &to_dentry, &tmp_from, &tmp_to);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
-    r = local_rename (dentry1, from_name, dentry2, to_name, vol);
+    {
+      UPDATE_FH_IF_NEEDED_2 (vol, to_dentry, from_dentry, tmp_to, tmp_from);
+      if (tmp_from.ino != tmp_to.ino)
+	UPDATE_FH_IF_NEEDED_2 (vol, from_dentry, to_dentry, tmp_from, tmp_to);
+      r = local_rename (from_dentry, from_name, to_dentry, to_name, vol);
+    }
   else if (vol->master != this_node)
-    r = remote_rename (dentry1->fh, from_name, dentry2->fh, to_name, vol);
+    r = remote_rename (from_dentry, from_name, to_dentry, to_name, vol);
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_to, &vol, &to_dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   if (r == ZFS_OK)
     {
       internal_dentry dentry;
 
-      /* Delete the dentry which is in the place where we are moving to.  */
-      dentry = dentry_lookup_name (vol, dentry2, to_name->str);
+      DESTROY_DENTRY (vol, to_dentry, to_name->str, tmp_to);
+
+      if (tmp_from.ino != tmp_to.ino)
+	{
+	  from_dentry = dentry_lookup (&tmp_from);
+#ifdef ENABLE_CHECKING
+	  if (!from_dentry)
+	    abort ();
+#endif
+	}
+      else
+	from_dentry = to_dentry;
+
+      /* Move the dentry if it exists.  */
+      dentry = dentry_lookup_name (from_dentry, from_name->str);
       if (dentry)
 	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  internal_dentry_destroy (dentry, vol);
-	}
-
-      /* Move the dentry.  */
-      dentry = dentry_lookup_name (vol, dentry1, from_name->str);
-      if (!dentry)
-	r = ENOENT;
-      else
-	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  if (!internal_dentry_move (dentry, vol, dentry2, to_name->str))
+	  if (!internal_dentry_move (dentry, vol, to_dentry, to_name->str))
 	    r = EINVAL;
 	  release_dentry (dentry);
 	}
 
       if (vol->local_path)
 	{
-	  if (!inc_local_version (vol, dentry1->fh))
+	  if (!inc_local_version (vol, from_dentry->fh))
 	    vol->flags |= VOLUME_DELETE;
-	  if (!inc_local_version (vol, dentry2->fh))
+	  if (!inc_local_version (vol, to_dentry->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
+  else
+    {
+      if (tmp_from.ino != tmp_to.ino)
+	{
+	  from_dentry = dentry_lookup (&tmp_from);
+#ifdef ENABLE_CHECKING
+	  if (!from_dentry)
+	    abort ();
+#endif
+	}
+      else
+	from_dentry = to_dentry;
+    }
 
-  release_dentry (dentry1);
-  if (dentry1 != dentry2)
-    release_dentry (dentry2);
+  internal_dentry_unlock (to_dentry);
+  if (to_dentry != from_dentry)
+    internal_dentry_unlock (from_dentry);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -1725,6 +1745,10 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
 
   path1 = build_local_path (vol, from);
   path2 = build_local_path_name (vol, dir, name->str);
+  release_dentry (from);
+  if (dir->fh != from->fh)
+    release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = link (path1, path2);
   free (path1);
   free (path2);
@@ -1738,32 +1762,38 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
    on volume VOL.  */
 
 static int32_t
-remote_link (internal_fh from, internal_fh dir, string *name, volume vol)
+remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
 {
   link_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
-  CHECK_MUTEX_LOCKED (&from->mutex);
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&from->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (from->master_fh))
+  if (zfs_fh_undefined (from->fh->master_fh))
     abort ();
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.from = from->master_fh;
-  args.to.dir = dir->master_fh;
+  args.from = from->fh->master_fh;
+  args.to.dir = dir->fh->master_fh;
   args.to.name = *name;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (from);
+  if (dir->fh != from->fh)
+    release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_link_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_link_client (t, &args, nod, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -1782,204 +1812,172 @@ int32_t
 zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 {
   volume vol;
-  internal_dentry dentry1, dentry2;
-  virtual_dir vd1, vd2;
-  int32_t r;
+  internal_dentry from_dentry, dir_dentry;
+  virtual_dir vd;
+  zfs_fh tmp_from, tmp_dir;
+  int32_t r, r2;
   int retry = 0;
 
-  /* Update DIR.  */
-  r = zfs_fh_lookup (dir, &vol, &dentry2, &vd2);
-  if (r != ZFS_OK)
-    return r;
-
-  if (vd2)
-    {
-      if (vol)
-	{
-	  r = get_volume_root_dentry (vol, &dentry2);
-	  zfsd_mutex_unlock (&vd2->mutex);
-	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&vol->mutex);
-	      return r;
-	    }
-	}
-      else
-	{
-	  zfsd_mutex_unlock (&vd2->mutex);
-	  return EROFS;
-	}
-    }
-
-  if (vol->local_path)
-    {
-      UPDATE_DIR_IF_NEEDED_AND_UNLOCK (vol, dentry2);
-    }
-  else
-    {
-      zfsd_mutex_unlock (&dentry2->fh->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
-    }
-
-zfs_link_retry:
-
-  /* Lookup FROM.  */
-  zfsd_mutex_lock (&volume_mutex);
-  zfsd_mutex_lock (&vd_mutex);
-  r = zfs_fh_lookup_nolock (from, &vol, &dentry1, &vd1);
+  /* Lookup DIR.  */
+  if (VIRTUAL_FH_P (*dir))
+    zfsd_mutex_lock (&vd_mutex);
+  r = zfs_fh_lookup_nolock (dir, &vol, &dir_dentry, &vd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
-      zfsd_mutex_unlock (&vd_mutex);
+      if (VIRTUAL_FH_P (*dir))
+	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
-  if (!vol)
+
+  if (vd)
     {
-      /* FROM is a virtual directory without volume under it.  */
-      zfsd_mutex_unlock (&vd1->mutex);
+      r = validate_operation_on_virtual_directory (vd, name, &dir_dentry);
       zfsd_mutex_unlock (&vd_mutex);
-      return EROFS;
-    }
-
-  /* Temporarily unlock DENTRY1, we are still holding VOL->MUTEX so we are
-     allowed to lock it again.  */
-  if (dentry1)
-    release_dentry (dentry1);
-  /* We do not need VD1 to be locked anymore.  */
-  if (vd1)
-    zfsd_mutex_unlock (&vd1->mutex);
-
-  if (VIRTUAL_FH_P (*dir))
-    {
-      vd2 = vd_lookup (dir);
-      if (!vd2)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return ENOENT;
-	}
-      zfsd_mutex_lock (&vd2->mutex);
-      if (vd2->vol != vol)
-	{
-	  r = vd2->vol ? EXDEV : EROFS;
-	  zfsd_mutex_unlock (&vd2->mutex);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return r;
-	}
+      if (r != ZFS_OK)
+	return r;
     }
   else
-    {
-      vd2 = NULL;
-      if (vol->id != dir->vid)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return EXDEV;
-	}
-
-      dentry2 = dentry_lookup (vol, dir);
-      if (!dentry2)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return ZFS_STALE;
-	}
-    }
-
-  /* At this point, both file handles are for the same volume.  */
-
-  if (vd2)
-    {
-      r = validate_operation_on_virtual_directory (vd2, name, &dentry2);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return r;
-	}
-
-      CHECK_MUTEX_LOCKED (&dentry2->fh->mutex);
-
-      if (vd1)
-	dentry1 = dentry2;
-      else if (dentry1 != dentry2)
-	zfsd_mutex_lock (&dentry1->fh->mutex);
-    }
-  else if (vd1)
-    {
-      r = get_volume_root_dentry (vol, &dentry1);
-      if (r != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&vd_mutex);
-	  return EROFS;
-	}
-
-      CHECK_MUTEX_LOCKED (&dentry1->fh->mutex);
-
-      if (dentry1 != dentry2)
-	zfsd_mutex_lock (&dentry2->fh->mutex);
-    }
-  else
-    {
-      zfsd_mutex_lock (&dentry1->fh->mutex);
-      if (dentry1 != dentry2)
-	zfsd_mutex_lock (&dentry2->fh->mutex);
-    }
-  zfsd_mutex_unlock (&vd_mutex);
+    zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
-  if (!dentry2->parent && strncmp (name->str, ".zfs", 5) == 0)
+  if (!dir_dentry->parent && strncmp (name->str, ".zfs", 5) == 0)
     {
-      release_dentry (dentry1);
-      if (dentry1 != dentry2)
-	release_dentry (dentry2);
+      release_dentry (dir_dentry);
       zfsd_mutex_unlock (&vol->mutex);
       return EACCES;
     }
 
-  if (dentry1->fh->local_fh.dev != dentry2->fh->local_fh.dev)
+  tmp_dir = dir_dentry->fh->local_fh;
+  release_dentry (dir_dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  /* Lookup FROM.  */
+  if (VIRTUAL_FH_P (*from))
+    zfsd_mutex_lock (&vd_mutex);
+  r = zfs_fh_lookup_nolock (from, &vol, &from_dentry, &vd);
+  if (r != ZFS_OK)
     {
-      release_dentry (dentry1);
-      release_dentry (dentry2);
-      zfsd_mutex_unlock (&vol->mutex);
-      return EXDEV;
+      if (VIRTUAL_FH_P (*from))
+	zfsd_mutex_unlock (&vd_mutex);
+      return r;
     }
 
+  if (vd)
+    {
+      zfsd_mutex_unlock (&vd_mutex);
+      if (vol)
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  r = get_volume_root_dentry (vol, &from_dentry, true);
+	  if (r != ZFS_OK)
+	    return r;
+	}
+      else
+	{
+	  zfsd_mutex_unlock (&vd->mutex);
+	  return EROFS;
+	}
+    }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
+
+  tmp_from = from_dentry->fh->local_fh;
+  release_dentry (from_dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  /* FROM and DIR must be on same device.  */
+  if (tmp_from.dev != tmp_dir.dev
+      || tmp_from.vid != tmp_dir.vid
+      || tmp_from.sid != tmp_dir.sid)
+    return EXDEV;
+
+zfs_link_retry:
+  /* Lookup dentries.  */
+  r = zfs_fh_lookup_nolock (&tmp_from, &vol, &from_dentry, NULL);
+  if (r != ZFS_OK)
+    return r;
+
+  if (tmp_from.ino != tmp_dir.ino)
+    {
+      dir_dentry = dentry_lookup (&tmp_dir);
+      if (!dir_dentry)
+	{
+	  release_dentry (from_dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ZFS_STALE;
+	}
+    }
+  else
+    dir_dentry = from_dentry;
+
+  zfsd_mutex_unlock (&fh_mutex);
+
+  r = internal_dentry_lock2 (LEVEL_EXCLUSIVE, LEVEL_EXCLUSIVE, &vol,
+			     &from_dentry, &dir_dentry, &tmp_from, &tmp_dir);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
-    r = local_link (dentry1, dentry2, name, vol);
+    {
+      UPDATE_FH_IF_NEEDED_2 (vol, dir_dentry, from_dentry, tmp_dir, tmp_from);
+      if (tmp_from.ino != tmp_dir.ino)
+	UPDATE_FH_IF_NEEDED_2 (vol, from_dentry, dir_dentry, tmp_from, tmp_dir);
+      r = local_link (from_dentry, dir_dentry, name, vol);
+    }
   else if (vol->master != this_node)
-    r = remote_link (dentry1->fh, dentry2->fh, name, vol);
+    r = remote_link (from_dentry, dir_dentry, name, vol);
   else
     abort ();
 
+  r2 = zfs_fh_lookup_nolock (&tmp_dir, &vol, &dir_dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
   if (r == ZFS_OK)
     {
-      internal_dentry dentry;
+      DESTROY_DENTRY (vol, dir_dentry, name->str, tmp_dir);
 
-      /* Delete internal file handle in htab because it is outdated.  */
-      dentry = dentry_lookup_name (vol, dentry2, name->str);
-      if (dentry)
+      if (tmp_from.ino != tmp_dir.ino)
 	{
-	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-
-	  internal_dentry_destroy (dentry, vol);
+	  from_dentry = dentry_lookup (&tmp_from);
+#ifdef ENABLE_CHECKING
+	  if (!from_dentry)
+	    abort ();
+#endif
 	}
-      dentry = internal_dentry_link (dentry1->fh, vol, dentry2, name->str);
-      /* DENTRY->FH->MUTEX is already locked
-	 because DENTRY->FH == DENTRY1->FH.  */
+      else
+	from_dentry = dir_dentry;
+
+      internal_dentry_link (from_dentry->fh, vol, dir_dentry, name->str);
 
       if (vol->local_path)
 	{
-	  if (!inc_local_version (vol, dentry2->fh))
+	  if (!inc_local_version (vol, dir_dentry->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
+  else
+    {
+      if (tmp_from.ino != tmp_dir.ino)
+	{
+	  from_dentry = dentry_lookup (&tmp_from);
+#ifdef ENABLE_CHECKING
+	  if (!from_dentry)
+	    abort ();
+#endif
+	}
+      else
+	from_dentry = dir_dentry;
+    }
 
-  release_dentry (dentry1);
-  if (dentry1 != dentry2)
-    release_dentry (dentry2);
+  internal_dentry_unlock (dir_dentry);
+  if (dir_dentry != from_dentry)
+    internal_dentry_unlock (from_dentry);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2007,6 +2005,8 @@ local_unlink (struct stat *st, internal_dentry dir, string *name, volume vol)
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = lstat (path, st);
   if (r != 0)
     {
@@ -2024,28 +2024,32 @@ local_unlink (struct stat *st, internal_dentry dir, string *name, volume vol)
 /* Delete remote file NAME from directory DIR on volume VOL.  */
 
 static int32_t
-remote_unlink (internal_fh dir, string *name, volume vol)
+remote_unlink (internal_dentry dir, string *name, volume vol)
 {
   dir_op_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.dir = dir->master_fh;
+  args.dir = dir->fh->master_fh;
   args.name = *name;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_unlink_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_unlink_client (t, &args, nod, &fd);
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -2067,24 +2071,22 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_unlink_retry:
 
   /* Lookup DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
 
   if (pvd)
     {
@@ -2093,6 +2095,8 @@ zfs_unlink_retry:
       if (r != ZFS_OK)
 	return r;
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
@@ -2102,24 +2106,30 @@ zfs_unlink_retry:
       return EACCES;
     }
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     {
-      UPDATE_DIR_IF_NEEDED (vol, idir);
+      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_unlink (&st, idir, name, vol);
     }
   else if (vol->master != this_node)
-    r = remote_unlink (idir->fh, name, vol);
+    r = remote_unlink (idir, name, vol);
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      internal_dentry dentry;
-
-      dentry = dentry_lookup_name (vol, idir, name->str);
-      if (dentry)
-	internal_dentry_destroy (dentry, vol);
+      DESTROY_DENTRY (vol, idir, name->str, tmp_fh);
 
       if (vol->local_path)
 	{
@@ -2130,8 +2140,9 @@ zfs_unlink_retry:
 	}
     }
 
-  release_dentry (idir);
+  internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2157,6 +2168,8 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   CHECK_MUTEX_LOCKED (&file->fh->mutex);
 
   path = build_local_path (vol, file);
+  release_dentry (file);
+  zfsd_mutex_unlock (&vol->mutex);
   r = readlink (path, buf, ZFS_MAXDATA);
   free (path);
   if (r < 0)
@@ -2169,28 +2182,75 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   return ZFS_OK;
 }
 
+/* Read remote symlink FILE on volume VOL.  */
+
+int32_t
+remote_readlink (read_link_res *res, internal_dentry file, volume vol)
+{
+  zfs_fh args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&file->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (file->fh->master_fh))
+    abort ();
+#endif
+
+  args = file->fh->master_fh;
+
+  release_dentry (file);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_readlink_client (t, &args, nod, &fd);
+
+  if (r == ZFS_OK)
+    {
+      if (!decode_zfs_path (&t->dc_reply, &res->path))
+	r = ZFS_INVALID_REPLY;
+      else if (!finish_decoding (&t->dc_reply))
+	{
+	  free (res->path.str);
+	  r = ZFS_INVALID_REPLY;
+	}
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (&t->dc_reply, fd);
+  return r;
+}
+
 /* Read remote symlink FH on volume VOL.  */
 
 int32_t
-remote_readlink (read_link_res *res, internal_fh fh, volume vol)
+remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh, volume vol)
 {
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (fh->master_fh))
-    abort ();
-#endif
-
-  t = (thread *) pthread_getspecific (thread_data_key);
 
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_readlink_client (t, &fh->master_fh, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_readlink_client (t, fh, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -2220,7 +2280,8 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
 {
   volume vol;
   internal_dentry dentry;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
   if (VIRTUAL_FH_P (*fh))
@@ -2233,15 +2294,26 @@ zfs_readlink_retry:
   if (r != ZFS_OK)
     return r;
 
+  r = internal_dentry_lock (LEVEL_SHARED, &vol, &dentry, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     r = local_readlink (res, dentry, vol);
   else if (vol->master != this_node)
-    r = remote_readlink (res, dentry->fh, vol);
+    r = remote_readlink (res, dentry, vol);
   else
     abort ();
 
-  release_dentry (dentry);
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  internal_dentry_unlock (dentry);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2267,7 +2339,12 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  res->file.sid = dir->fh->local_fh.sid;
+  res->file.vid = dir->fh->local_fh.vid;
+
   path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = symlink (to->str, path);
   if (r != 0)
     {
@@ -2280,8 +2357,6 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   if (r != ZFS_OK)
     return r;
 
-  res->file.sid = dir->fh->local_fh.sid;
-  res->file.vid = dir->fh->local_fh.vid;
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
 
@@ -2292,31 +2367,35 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
    set its attributes according to ATTR.  */
 
 int32_t
-remote_symlink (dir_op_res *res, internal_fh dir, string *name, string *to,
+remote_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 		sattr *attr, volume vol)
 {
   symlink_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.from.dir = dir->master_fh;
+  args.from.dir = dir->fh->master_fh;
   args.from.name = *name;
   args.to = *to;
   args.attr = *attr;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_symlink_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_symlink_client (t, &args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -2346,24 +2425,22 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   internal_dentry idir;
   virtual_dir pvd;
   dir_op_res master_res;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_symlink_retry:
 
   /* Lookup DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
 
   if (pvd)
     {
@@ -2372,6 +2449,8 @@ zfs_symlink_retry:
       if (r != ZFS_OK)
 	return r;
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
@@ -2386,21 +2465,31 @@ zfs_symlink_retry:
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     {
-      UPDATE_DIR_IF_NEEDED (vol, idir);
+      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_symlink (res, idir, name, to, attr, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
-      r = remote_symlink (res, idir->fh, name, to, attr, vol);
+      r = remote_symlink (res, idir, name, to, attr, vol);
       if (r == ZFS_OK)
 	master_res.file = res->file;
     }
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   if (r == ZFS_OK)
     {
@@ -2419,8 +2508,9 @@ zfs_symlink_retry:
       release_dentry (dentry);
     }
 
-  release_dentry (idir);
+  internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2447,7 +2537,12 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
+  res->file.sid = dir->fh->local_fh.sid;
+  res->file.vid = dir->fh->local_fh.vid;
+
   path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
   r = mknod (path, attr->mode | ftype2mode[type], rdev);
   if (r != 0)
     {
@@ -2460,8 +2555,6 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   if (r != ZFS_OK)
     return r;
 
-  res->file.sid = dir->fh->local_fh.sid;
-  res->file.vid = dir->fh->local_fh.vid;
   res->file.dev = res->attr.dev;
   res->file.ino = res->attr.ino;
 
@@ -2473,32 +2566,36 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
    If device is being created RDEV is its number.  */
 
 int32_t
-remote_mknod (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
+remote_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 	      ftype type, uint32_t rdev, volume vol)
 {
   mknod_args args;
   thread *t;
   int32_t r;
   int fd;
+  node nod = vol->master;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
-  if (zfs_fh_undefined (dir->master_fh))
+  if (zfs_fh_undefined (dir->fh->master_fh))
     abort ();
 #endif
 
-  args.where.dir = dir->master_fh;
+  args.where.dir = dir->fh->master_fh;
   args.where.name = *name;
   args.attr = *attr;
   args.type = type;
   args.rdev = rdev;
-  t = (thread *) pthread_getspecific (thread_data_key);
 
+  release_dentry (dir);
   zfsd_mutex_lock (&node_mutex);
-  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&node_mutex);
-  r = zfs_proc_mknod_client (t, &args, vol->master, &fd);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_mknod_client (t, &args, nod, &fd);
 
   if (r == ZFS_OK)
     {
@@ -2529,24 +2626,22 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   internal_dentry idir;
   virtual_dir pvd;
   dir_op_res master_res;
-  int32_t r;
+  zfs_fh tmp_fh;
+  int32_t r, r2;
   int retry = 0;
 
 zfs_mknod_retry:
 
   /* Lookup DIR.  */
-  zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (*dir))
     zfsd_mutex_lock (&vd_mutex);
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, &pvd);
   if (r != ZFS_OK)
     {
-      zfsd_mutex_unlock (&volume_mutex);
       if (VIRTUAL_FH_P (*dir))
 	zfsd_mutex_unlock (&vd_mutex);
       return r;
     }
-  zfsd_mutex_unlock (&volume_mutex);
 
   if (pvd)
     {
@@ -2555,6 +2650,8 @@ zfs_mknod_retry:
       if (r != ZFS_OK)
 	return r;
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   /* Hide ".zfs" in the root of the volume.  */
   if (!idir->parent && strncmp (name->str, ".zfs", 5) == 0)
@@ -2568,21 +2665,31 @@ zfs_mknod_retry:
   attr->atime = (zfs_time) -1;
   attr->mtime = (zfs_time) -1;
 
+  r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
+  if (r != ZFS_OK)
+    return r;
+
   if (vol->local_path)
     {
-      UPDATE_DIR_IF_NEEDED (vol, idir);
+      UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
       r = local_mknod (res, idir, name, attr, type, rdev, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
     }
   else if (vol->master != this_node)
     {
-      r = remote_mknod (res, idir->fh, name, attr, type, rdev, vol);
+      r = remote_mknod (res, idir, name, attr, type, rdev, vol);
       if (r == ZFS_OK)
 	master_res.file = res->file;
     }
   else
     abort ();
+
+  r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &idir, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
 
   if (r == ZFS_OK)
     {
@@ -2601,8 +2708,9 @@ zfs_mknod_retry:
       release_dentry (dentry);
     }
 
-  release_dentry (idir);
+  internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   if (r == ZFS_STALE && retry < 1)
     {
@@ -2631,12 +2739,12 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, char *name, volume vol)
   s.len = strlen (name);
 
   zfsd_mutex_lock (&dir->fh->mutex);
-  r = remote_lookup (res, dir->fh, &s, vol);
+  r = remote_lookup (res, dir, &s, vol);
   if (r == ZFS_STALE)
     {
       r = refresh_path_1 (res, dir->parent, dir->name, vol);
       if (r == ZFS_OK)
-	r = remote_lookup (res, dir->fh, &s, vol);
+	r = remote_lookup (res, dir, &s, vol);
     }
   release_dentry (dir);
 
@@ -2671,59 +2779,110 @@ refresh_path (zfs_fh *fh)
 /* Refresh master file handles on path to DENTRY on volume VOL.  */
 
 int32_t
-refresh_master_fh (internal_dentry dentry, volume vol)
+refresh_master_fh (zfs_fh *fh)
 {
-  int32_t r;
+  volume vol;
+  internal_dentry dentry;
+  int32_t r, r2;
   int retry = 0;
 
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (VIRTUAL_FH_P (*fh))
+    abort ();
+#endif
 
-  /* Refresh path to DENTRY.  */
+  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  /* Refresh remote path to DENTRY.  */
   if (zfs_fh_undefined (dentry->fh->master_fh))
     {
       if (dentry->parent)
 	{
+	  zfs_fh parent_fh;
+	  internal_dentry parent;
 	  dir_op_res res;
 	  string s;
 
 	  zfsd_mutex_lock (&dentry->parent->fh->mutex);
-	  r = refresh_master_fh (dentry->parent, vol);
+	  parent_fh = dentry->parent->fh->local_fh;
+	  release_dentry (dentry->parent);
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+
+	  r = refresh_master_fh (&parent_fh);
 	  if (r != ZFS_OK)
-	    {
-	      release_dentry (dentry->parent);
-	      return r;
-	    }
+	    return r;
 
 retry_lookup:
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+
 	  s.str = dentry->name;
 	  s.len = strlen (dentry->name);
-	  r = remote_lookup (&res, dentry->parent->fh, &s, vol);
+	  parent = dentry->parent;
+	  zfsd_mutex_lock (&parent->fh->mutex);
+	  parent_fh = parent->fh->local_fh;
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  r = remote_lookup (&res, parent, &s, vol);
+
 	  if (r == ZFS_STALE && retry < 1)
 	    {
 	      retry++;
-	      r = refresh_path (&dentry->parent->fh->local_fh);
+	      r = refresh_path (&parent_fh);
 	      if (r == ZFS_OK)
 		goto retry_lookup;
 	    }
 
-	  release_dentry (dentry->parent);
 	  if (r != ZFS_OK)
 	    return r;
 
+	  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+
 	  dentry->fh->master_fh = res.file;
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
 	}
       else
 	{
 	  fattr fa;
-	  zfs_fh fh;
+	  zfs_fh tmp_fh;
 
-	  r = get_volume_root_remote (vol, &fh, &fa);
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&fh_mutex);
+
+	  r = get_volume_root_remote (vol, &tmp_fh, &fa);
 	  if (r != ZFS_OK)
 	    return r;
 
-	  dentry->fh->master_fh = fh;
+	  r2 = zfs_fh_lookup (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+
+	  dentry->fh->master_fh = tmp_fh;
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
 	}
+    }
+  else
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
     }
 
   return ZFS_OK;

@@ -62,7 +62,7 @@ typedef struct volume_def *volume;
 /* Hash function for zfs_fh FH.  */
 #define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))
 
-/* Compare two zfs_fh FH1 and FH2.  */
+/* Return true if FH1 and FH2 are the same.  */
 #define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino		\
 			     && (FH1).dev == (FH2).dev		\
 			     && (FH1).vid == (FH2).vid		\
@@ -77,14 +77,35 @@ typedef struct volume_def *volume;
   (crc32_update (crc32_string ((D)->name),				\
 		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
-/* Return internal dentry for ZFS file handle FH on volume VOL.  */
-#define dentry_lookup(VOL, FH)						\
-  ((internal_dentry) htab_find_with_hash ((VOL)->dentry_htab, (FH),	\
-					  ZFS_FH_HASH (FH)))
+/* Destroy dentry NAME in directory DIR (whose file handle is DIR_FH)
+   on volume VOL.  */
+#define DESTROY_DENTRY(VOL, DIR, NAME, DIR_FH)				\
+  do {									\
+    internal_dentry dentry;						\
+									\
+    if (ENABLE_CHECKING_VALUE && (DIR)->fh->level == LEVEL_UNLOCKED)	\
+      abort();								\
+									\
+    dentry = dentry_lookup_name ((DIR), (NAME));			\
+    if (dentry)								\
+      {									\
+	release_dentry ((DIR));						\
+	zfsd_mutex_unlock (&(VOL)->mutex);				\
+									\
+	internal_dentry_destroy (dentry);				\
+									\
+	zfsd_mutex_unlock (&fh_mutex);					\
+									\
+	r2 = zfs_fh_lookup_nolock (&(DIR_FH), &(VOL), &(DIR), NULL);	\
+	if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
+	  abort ();							\
+      }									\
+  } while (0)
 
-/* Return virtual directory for ZFS file handle FH on volume VOL.  */
-#define vd_lookup(FH)							\
-  ((virtual_dir) htab_find_with_hash (vd_htab, (FH), ZFS_FH_HASH (FH)))
+/* "Lock" level of the file handle or virtual directory.  */
+#define LEVEL_UNLOCKED	0
+#define LEVEL_SHARED	1
+#define LEVEL_EXCLUSIVE	2
 
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
@@ -104,6 +125,7 @@ struct internal_fh_def
 #endif
 
   pthread_mutex_t mutex;
+  pthread_cond_t cond;
 
   /* File handle for client, key for hash table.  */
   zfs_fh local_fh;
@@ -131,6 +153,15 @@ struct internal_fh_def
 
   /* Modified intervals.  */
   interval_tree modified;
+
+  /* "Lock" level of the file handle.  */
+  unsigned int level;
+
+  /* Number of current users of the file handle.  */
+  unsigned int users;
+
+  /* Owner of the file handle if level == LEVEL_EXCLUSIVE.  */
+  pthread_t owner;
 };
 
 /* Internal directory entry.  */
@@ -160,6 +191,9 @@ struct internal_dentry_def
 
   /* Heap node whose data is this dentry.  */
   fibnode heap_node;
+
+  /* Is dentry marked to be deleted?  */
+  bool deleted;
 };
 
 /* Structure of a virtual directory (element of mount tree).  */
@@ -198,6 +232,15 @@ struct virtual_dir_def
 
   /* Total number of mountpoints in subtree (including current node).  */
   unsigned int n_mountpoints;
+
+  /* Is the virtual directory busy?  If it is it can't be deleted.  */
+  bool busy;
+
+  /* Number of current users of the virtual directory.  */
+  unsigned int users;
+
+  /* Number of mountpoints to be deleted.  */
+  unsigned int deleted;
 };
 
 /* File handle of ZFS root.  */
@@ -205,6 +248,12 @@ extern zfs_fh root_fh;
 
 /* Static undefined ZFS file handle.  */
 extern zfs_fh undefined_fh;
+
+/* Hash table of used dentries, searched by fh->local_fh.  */
+extern htab_t dentry_htab;
+
+/* Mutes for file handles and dentries.  */
+extern pthread_mutex_t fh_mutex;
 
 /* Hash table of virtual directories, searched by fh.  */
 extern htab_t vd_htab;
@@ -218,12 +267,6 @@ extern pthread_t cleanup_dentry_thread;
 /* This mutex is locked when cleanup dentry thread is in sleep.  */
 extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
-extern hash_t internal_fh_hash (const void *x);
-extern hash_t internal_dentry_hash (const void *x);
-extern hash_t internal_dentry_hash_name (const void *x);
-extern int internal_fh_eq (const void *xx, const void *yy);
-extern int internal_dentry_eq (const void *xx, const void *yy);
-extern int internal_dentry_eq_name (const void *xx, const void *yy);
 extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
 			      internal_dentry *dentryp, virtual_dir *vdp);
 extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
@@ -233,9 +276,18 @@ extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 				   volume vol, internal_dentry dir,
 				   char *name, fattr *attr);
+extern virtual_dir vd_lookup (zfs_fh *fh);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
-extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
+extern internal_dentry dentry_lookup (zfs_fh *fh);
+extern internal_dentry dentry_lookup_name (internal_dentry parent,
 					   const char *name);
+extern int32_t internal_dentry_lock (unsigned int level, volume *volp,
+				     internal_dentry *dentryp, zfs_fh *tmp_fh);
+extern void internal_dentry_unlock (internal_dentry dentry);
+extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
+				      volume *volp, internal_dentry *dentry1p,
+				      internal_dentry *dentry2p,
+				      zfs_fh *tmp_fh1, zfs_fh *tmp_fh2);
 extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
 					       zfs_fh *master_fh, volume vol,
 					       internal_dentry parent,
@@ -246,7 +298,7 @@ extern internal_dentry internal_dentry_link (internal_fh fh, volume vol,
 					     char *name);
 extern bool internal_dentry_move (internal_dentry dentry, volume vol,
 				  internal_dentry dir, char *name);
-extern void internal_dentry_destroy (internal_dentry dentry, volume vol);
+extern void internal_dentry_destroy (internal_dentry dentry);
 extern void print_fh_htab (FILE *f, htab_t htab);
 extern void debug_fh_htab (htab_t htab);
 

@@ -82,20 +82,18 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t, bool map_id)
   volume vol;
   internal_dentry dentry;
 
-  zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup (args->vid);
-  zfsd_mutex_unlock (&volume_mutex);
   if (!vol)
     {
       encode_status (dc, ENOENT);
     }
   else
     {
-      r = get_volume_root_dentry (vol, &dentry);
-      zfsd_mutex_unlock (&vol->mutex);
+      r = get_volume_root_dentry (vol, &dentry, true);
       encode_status (dc, r);
       if (r == ZFS_OK)
 	{
+	  zfsd_mutex_unlock (&vol->mutex);
 	  encode_zfs_fh (dc, &dentry->fh->local_fh);
 	  if (map_id)
 	    {

@@ -66,6 +66,8 @@ static pthread_mutex_t metadata_mutex;
 						      sizeof (uint32_t)), \
 					&(M).ino, sizeof (uint32_t)))
 
+static bool init_metadata_for_created_volume_root (volume vol);
+
 /* Hash function for metadata X.  */
 
 static hashval_t
@@ -526,13 +528,20 @@ init_volume_metadata (volume vol)
   int fd;
   char *path;
   struct stat st;
+  bool insert_volume_root;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (!vol->local_path)
+    abort ();
+#endif
 
   path = build_list_path (vol);
   vol->metadata = hfile_create (sizeof (metadata), 256, metadata_hash,
 				metadata_eq, metadata_decode, metadata_encode,
 				path, &vol->mutex);
+  insert_volume_root = (lstat (vol->local_path, &st) < 0);
+
   if (!create_path_for_file (path, S_IRWXU))
     {
       free (path);
@@ -602,6 +611,9 @@ init_volume_metadata (volume vol)
     }
 
   zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+
+  if (insert_volume_root)
+    return init_metadata_for_created_volume_root (vol);
   return true;
 }
 
@@ -629,6 +641,8 @@ close_volume_metadata (volume vol)
   zfsd_mutex_unlock (&metadata_mutex);
   vol->metadata->fd = -1;
   hfile_destroy (vol->metadata);
+  vol->metadata = NULL;
+  vol->flags |= VOLUME_DELETE;
 }
 
 /* Close file for interval tree TREE.  */
@@ -925,6 +939,62 @@ set_attr_version (fattr *attr, metadata *meta)
   attr->version = meta->local_version;
   if (meta->flags & METADATA_MODIFIED)
     attr->version++;
+}
+
+/* Init metadata for root of volume VOL according to ST so that volume root
+   would be updated.  */
+
+static bool
+init_metadata_for_created_volume_root (volume vol)
+{
+  struct stat st;
+  metadata meta;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (lstat (vol->local_path, &st) < 0)
+    return false;
+
+  if ((st.st_mode & S_IFMT) != S_IFDIR)
+    return false;
+
+  if (!list_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_list_file (vol);
+      if (fd < 0)
+	return false;
+    }
+
+  meta.dev = st.st_dev;
+  meta.ino = st.st_ino;
+  if (!hfile_lookup (vol->metadata, &meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  if (meta.slot_status != VALID_SLOT)
+    {
+      meta.slot_status = VALID_SLOT;
+      meta.flags = 0;
+      meta.dev = st.st_dev;
+      meta.ino = st.st_ino;
+      meta.local_version = 1;
+      meta.master_version = 1;
+    }
+
+  if (!hfile_insert (vol->metadata, &meta))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      close_volume_metadata (vol);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+  return true;
 }
 
 /* Init metadata for file handle FH on volume VOL.

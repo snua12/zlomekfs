@@ -31,13 +31,14 @@
 extern char *build_local_path (volume vol, internal_dentry dentry);
 extern char *build_local_path_name (volume vol, internal_dentry dentry,
 				    const char *name);
-extern bool recursive_unlink (const char *path, volume vol);
+extern bool recursive_unlink (const char *path, uint32_t vid);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
 							internal_dentry *dir);
 extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 				       fattr *attr);
-extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentry);
+extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentry,
+				       bool unlock_fh_mutex);
 extern int32_t local_getattr_path (fattr *attr, char *path);
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t remote_getattr (fattr *attr, internal_dentry dentry, volume vol);
@@ -49,12 +50,12 @@ extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
 extern int32_t zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int32_t local_lookup (dir_op_res *res, internal_dentry dir,
 			     string *name, volume vol);
-extern int32_t remote_lookup (dir_op_res *res, internal_fh dir, string *name,
-			      volume vol);
+extern int32_t remote_lookup (dir_op_res *res, internal_dentry dir,
+			      string *name, volume vol);
 extern int32_t zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 extern int32_t local_mkdir (dir_op_res *res, internal_dentry dir, string *name,
 			    sattr *attr, volume vol);
-extern int32_t remote_mkdir (dir_op_res *res, internal_fh dir, string *name,
+extern int32_t remote_mkdir (dir_op_res *res, internal_dentry dir, string *name,
 			     sattr *attr, volume vol);
 extern int32_t zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name,
 			  sattr *attr);
@@ -65,23 +66,27 @@ extern int32_t zfs_link (zfs_fh *from, zfs_fh *dir, string *name);
 extern int32_t zfs_unlink (zfs_fh *dir, string *name);
 extern int32_t local_readlink (read_link_res *res, internal_dentry file,
 			       volume vol);
-extern int32_t remote_readlink (read_link_res *res, internal_fh fh, volume vol);
+extern int32_t remote_readlink (read_link_res *res, internal_dentry file,
+				volume vol);
+extern int32_t remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh,
+				       volume vol);
 extern int32_t zfs_readlink (read_link_res *res, zfs_fh *fh);
 extern int32_t local_symlink (dir_op_res *res, internal_dentry dir,
 			      string *name, string *to, sattr *attr,
 			      volume vol);
-extern int32_t remote_symlink (dir_op_res *res, internal_fh dir, string *name,
-			       string *to, sattr *attr, volume vol);
+extern int32_t remote_symlink (dir_op_res *res, internal_dentry dir,
+			       string *name, string *to, sattr *attr,
+			       volume vol);
 extern int32_t zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name,
 			    string *to, sattr *attr);
 extern int32_t local_mknod (dir_op_res *res, internal_dentry dir, string *name,
 			    sattr *attr, ftype type, uint32_t rdev, volume vol);
-extern int32_t remote_mknod (dir_op_res *res, internal_fh dir, string *name,
+extern int32_t remote_mknod (dir_op_res *res, internal_dentry dir, string *name,
 			     sattr *attr, ftype type, uint32_t rdev,
 			     volume vol);
 extern int32_t zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name,
 			  sattr *attr, ftype type, uint32_t rdev);
 extern int32_t refresh_path (zfs_fh *fh);
-extern int32_t refresh_master_fh (internal_dentry dentry, volume vol);
+extern int32_t refresh_master_fh (zfs_fh *fh);
 
 #endif
