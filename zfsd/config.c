@@ -357,6 +357,12 @@ read_local_cluster_config (const char *path)
 		  message (0, stderr, "%s:%d: Wrong format of line\n", volumes,
 			   line_num);
 		}
+	      else if (id == 0 || id == (uint32_t) -1)
+		{
+		  message (0, stderr,
+			   "%s:%d: Volume ID must not be 0 or %" PRIu32,
+			   volumes, line_num, (uint32_t) -1);
+		}
 	      else if (parts[1].str[0] != '/')
 		{
 		  message (0, stderr,
@@ -371,7 +377,11 @@ read_local_cluster_config (const char *path)
 		  if (volume_set_local_info (vol, &parts[1], size_limit))
 		    zfsd_mutex_unlock (&vol->mutex);
 		  else
-		    volume_delete (vol);
+		    {
+		      message (0, stderr, "Could not set local information"
+			       " about volume with ID = %" PRIu32 "\n", id);
+		      volume_delete (vol);
+		    }
 		  zfsd_mutex_unlock (&volume_mutex);
 		  zfsd_mutex_unlock (&fh_mutex);
 		}
