@@ -2177,7 +2177,10 @@ read_cluster_config (void)
     return false;
 
   if (!read_global_cluster_config ())
-    return false;
+    {
+      message (-1, stderr, "Could not read global configuration\n");
+      return false;
+    }
 
   return true;
 }
