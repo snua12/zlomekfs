@@ -3278,11 +3278,11 @@ zfs_hardlinks_retry:
   return r;
 }
 
-/* Recursively refresh path to DIR on volume VOL and lookup ENTRY.
+/* Recursively refresh path to DENTRY on volume VOL and lookup ENTRY.
    Store result of REMOTE_LOOKUP to RES (unused).  */
 
 static int32_t
-refresh_path_1 (dir_op_res *res, internal_dentry dir, string *entry,
+refresh_path_1 (dir_op_res *res, internal_dentry dentry, string *entry,
 		volume vol)
 {
   internal_dentry parent;
@@ -3291,40 +3291,40 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, string *entry,
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-  fh = dir->fh->local_fh;
-  r = remote_lookup (res, dir, entry, vol);
+  fh = dentry->fh->local_fh;
+  r = remote_lookup (res, dentry, entry, vol);
   if (r == ZFS_STALE)
     {
-      r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL, true);
+      r = zfs_fh_lookup_nolock (&fh, &vol, &dentry, NULL, true);
       if (r != ZFS_OK)
 	return r;
 
-      parent = dir->parent;
+      parent = dentry->parent;
       if (!parent)
 	{
-	  release_dentry (dir);
+	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
 	  return ENOENT;
 	}
 
       zfsd_mutex_lock (&parent->fh->mutex);
-      xmkstring (&name, dir->name);
-      release_dentry (dir);
+      xmkstring (&name, dentry->name);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&fh_mutex);
 
       r = refresh_path_1 (res, parent, &name, vol);
-
       free (name.str);
+
       if (r == ZFS_OK)
 	{
-	  r = zfs_fh_lookup_nolock (&fh, &vol, &dir, NULL, true);
+	  r = zfs_fh_lookup_nolock (&fh, &vol, &dentry, NULL, true);
 	  if (r != ZFS_OK)
 	    return r;
 
-	  r = remote_lookup (res, dir, entry, vol);
+	  r = remote_lookup (res, dentry, entry, vol);
 	}
     }
 
@@ -3364,7 +3364,6 @@ refresh_path (zfs_fh *fh)
   zfsd_mutex_unlock (&fh_mutex);
 
   r = refresh_path_1 (&res, parent, &name, vol);
-
   free (name.str);
 
   return r;
