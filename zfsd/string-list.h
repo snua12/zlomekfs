@@ -52,4 +52,7 @@ extern void string_list_delete (string_list sl, char *str);
 extern unsigned int string_list_size (string_list sl);
 extern char *string_list_element (string_list sl, unsigned int index);
 
+extern void initialize_string_list_c ();
+extern void cleanup_string_list_c ();
+
 #endif
