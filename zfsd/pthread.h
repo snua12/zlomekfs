@@ -41,6 +41,9 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
+    message (4, stderr, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
+	     (void *) M,						\
+	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_mutex_destroy (M)) != 0)				\
       {									\
 	message (2, stderr, "pthread_mutex_destroy: %d = %s\n",		\
