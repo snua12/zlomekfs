@@ -961,6 +961,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.mtime = (zfs_time) -1;
 
 	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol);
+	free (link_to.path.str);
 	if (r == ZFS_OK)
 	  {
 	    *local_fh = res.file;
