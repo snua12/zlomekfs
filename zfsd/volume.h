@@ -48,6 +48,9 @@ typedef struct volume_def
 #define VOLUME_LOCAL	2	/* this volume is located on local node */
 #define VOLUME_COPY	4	/* this is a copy of a volume */
 
+/* Is the volume active (i.e. accessible)?  */
+#define VOLUME_ACTIVE_P(V) ((V)->master->status != CONNECTION_NONE)
+
 /* Function prototypes.  */
 extern volume volume_create (unsigned id);
 
