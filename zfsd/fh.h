@@ -71,11 +71,11 @@ typedef struct volume_def *volume;
 #define dentry_lookup(VOL, FH)						\
   ((internal_dentry) htab_find_with_hash ((VOL)->dentry_htab, (FH),	\
 					  ZFS_FH_HASH (FH)))
-  
+
 /* Return virtual directory for ZFS file handle FH on volume VOL.  */
 #define vd_lookup(FH)							\
   ((virtual_dir) htab_find_with_hash (vd_htab, (FH), ZFS_FH_HASH (FH)))
-  
+
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;

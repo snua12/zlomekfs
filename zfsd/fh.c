@@ -220,7 +220,7 @@ cleanup_unused_dentries ()
 	    {
 	      volume vol;
 	      uint32_t vid;
-	      
+
 	      vid = fh[i].vid;
 	      vol = volume_lookup (vid);
 	      if (vol)

@@ -572,7 +572,7 @@ zfs_strerror (int32_t errnum)
 
       case ZFS_INVALID_REQUEST:
 	return "Invalid request";
-	
+
       case ZFS_UNKNOWN_FUNCTION:
 	return "Unknown function";
 

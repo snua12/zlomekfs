@@ -348,7 +348,7 @@ interval_tree_write (interval_tree tree, int fd)
 {
   interval_tree_write_data data;
   bool r;
-  
+
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   data.n = 0;

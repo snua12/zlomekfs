@@ -36,8 +36,8 @@
    Amortized and real worst case time for operations:
 
    ExtractMin: O(lg n) amortized. O(n) worst case.
-   DecreaseKey: O(1) amortized.  O(lg n) worst case. 
-   Insert: O(2) amortized. O(1) actual.  
+   DecreaseKey: O(1) amortized.  O(lg n) worst case.
+   Insert: O(2) amortized. O(1) actual.
    Union: O(1) amortized. O(1) actual.  */
 
 #ifndef FIBHEAP_H

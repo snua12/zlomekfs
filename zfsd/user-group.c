@@ -430,7 +430,7 @@ user_mapping_create (char *zfs_user, char *node_user, node nod)
 	       node_user, zfs_user, node_user);
       return NULL;
     }
-  
+
   if (nod)
     {
       CHECK_MUTEX_LOCKED (&nod->mutex);
