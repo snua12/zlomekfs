@@ -256,21 +256,21 @@ recursive_unlink_1 (metadata *meta, metadata *meta2, string *path,
 
   TRACE ("%s", path->str);
 
+  vol = volume_lookup (vid);
   if (lstat (path->str, &st) != 0)
-    return (errno == ENOENT ? ZFS_OK : errno);
-
-  if ((st.st_mode & S_IFMT) != S_IFDIR)
     {
-      if (unlink (path->str) != 0)
-	{
-	  r = (errno == ENOENT ? ZFS_OK : errno);
-	  goto out;
-	}
+      if (vol)
+	zfsd_mutex_unlock (&vol->mutex);
+      return (errno == ENOENT ? ZFS_OK : errno);
     }
-  else
+
+  if ((st.st_mode & S_IFMT) == S_IFDIR)
     {
       DIR *d;
       struct dirent *de;
+
+      if (vol)
+	zfsd_mutex_unlock (&vol->mutex);
 
       d = opendir (path->str);
       if (!d)
@@ -307,6 +307,25 @@ recursive_unlink_1 (metadata *meta, metadata *meta2, string *path,
 	}
       closedir (d);
 
+      vol = volume_lookup (vid);
+      if (lstat (path->str, &st) != 0)
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	  return (errno == ENOENT ? ZFS_OK : errno);
+	}
+    }
+
+  if ((st.st_mode & S_IFMT) != S_IFDIR)
+    {
+      if (unlink (path->str) != 0)
+	{
+	  r = (errno == ENOENT ? ZFS_OK : errno);
+	  goto out;
+	}
+    }
+  else
+    {
       if (rmdir (path->str) != 0)
 	{
 	  r = (errno == ENOENT ? ZFS_OK : errno);
@@ -318,9 +337,12 @@ recursive_unlink_1 (metadata *meta, metadata *meta2, string *path,
 
 out:
   if (!destroy_dentry && r != ZFS_OK)
-    return r;
+    {
+      if (vol)
+	zfsd_mutex_unlock (&vol->mutex);
+      return r;
+    }
 
-  vol = volume_lookup (vid);
   if (vol)
     {
       /* Lookup file handle and metadata.  */
