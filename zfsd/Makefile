@@ -46,7 +46,7 @@ all: $(PACKAGE)
 
 clean:
 	-rm -f $(PACKAGE) *.o core *.core
-	-rm -f Makefile.zfs_prot zfs_prot.h zfs_prot_*
+	-rm -f Makefile.zfs_prot zfs_prot_*
 distclean: clean
 	-rm -f Makefile.dep
 
