@@ -106,6 +106,12 @@ typedef union padded_thread_def
   char padding[((sizeof (thread) + 255) / 256) * 256];
 } padded_thread;
 
+/* Type of a routine started in a new thread.  */
+typedef void *(*thread_start) (void *);
+
+/* Type of thread initializer.  */
+typedef void (*thread_initialize) (thread *);
+
 /* Definition of thread pool.  */
 typedef struct thread_pool_def
 {
@@ -116,6 +122,12 @@ typedef struct thread_pool_def
   padded_thread *threads;	/* thread slots, previous pointer aligned */
   queue idle;			/* queue of idle threads */
   queue empty;			/* queue of empty thread slots */
+
+  /* Data for thread pool regulator.  */
+  pthread_t thread_id;		/* thread ID of the regulator */
+  pthread_mutex_t in_syscall;	/* regulator is in blocking syscall */
+  thread_start start;		/* start routine of the worker thread */
+  thread_initialize init;	/* initialization routine */
 } thread_pool;
 
 /* Description of thread waiting for reply.  */
@@ -126,40 +138,19 @@ typedef struct waiting4reply_data_def
   fibnode node;
 } waiting4reply_data;
 
-/* Type of a routine started in a new thread.  */
-typedef void *(*thread_start) (void *);
-
-/* Type of thread initializer.  */
-typedef void (*thread_initialize) (thread *);
-
-/* Data for thread_pool_regulator.  */
-typedef struct thread_pool_regulator_data_def
-{
-  pthread_t thread_id;		/* thread ID of the regulator */
-  pthread_mutex_t in_syscall;	/* regulator is in blocking syscall */
-  thread_pool *pool;		/* thread pool which the regulator regulates */
-  thread_start start;		/* start routine of the worker thread */
-  thread_initialize init;	/* initialization routine */
-} thread_pool_regulator_data;
-
 extern bool get_running ();
 extern void set_running (bool value);
 extern void thread_terminate_blocking_syscall (pthread_t thid, pthread_mutex_t *mutex);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
-extern void thread_pool_create (thread_pool *pool, size_t max_threads,
+extern bool thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
-				size_t max_spare_threads);
+				size_t max_spare_threads,
+				thread_start start, thread_initialize init);
 extern void thread_pool_destroy (thread_pool *pool);
-extern int create_idle_thread (thread_pool *pool, thread_start start,
-			       thread_initialize init);
+extern int create_idle_thread (thread_pool *pool);
 extern int destroy_idle_thread (thread_pool *pool);
 extern void thread_disable_signals ();
-extern void thread_pool_regulate (thread_pool *pool, thread_start start,
-				  thread_initialize init);
-extern void thread_pool_create_regulator (thread_pool_regulator_data *data,
-					  thread_pool *pool,
-					  thread_start start,
-					  thread_initialize init);
+extern void thread_pool_regulate (thread_pool *pool);
 
 #endif

@@ -1,5 +1,5 @@
 /* Network thread functions.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
@@ -75,8 +75,8 @@ typedef struct network_fd_data_def
 
 #define NETWORK_FD_CLOSE 1
 
-/* Data for network pool regulator.  */
-extern thread_pool_regulator_data network_regulator_data;
+/* Pool of network threads.  */
+extern thread_pool network_pool;
 
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
 extern pthread_t main_network_thread;

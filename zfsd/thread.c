@@ -1,5 +1,5 @@
 /* Functions for managing thread pools.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004  Josef Zlomek
 
    This file is part of ZFS.
 
@@ -29,6 +29,8 @@
 #include "log.h"
 #include "queue.h"
 #include "thread.h"
+
+static void *thread_pool_regulator (void *data);
 
 #ifdef ENABLE_CHECKING
 
@@ -126,11 +128,18 @@ set_thread_state (thread *t, thread_state state)
 /* Initialize POOL to be a thread pool of MAX_THREADS threads with
    MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
 
-void
+bool
 thread_pool_create (thread_pool *pool, size_t max_threads,
-		    size_t min_spare_threads, size_t max_spare_threads)
+		    size_t min_spare_threads, size_t max_spare_threads,
+		    thread_start start, thread_initialize init)
 {
   size_t i;
+  int r;
+
+#ifdef ENABLE_CHECKING
+  if (pool->thread_id != 0)
+    abort ();
+#endif
 
   pool->min_spare_threads = min_spare_threads;
   pool->max_spare_threads = max_spare_threads;
@@ -139,6 +148,9 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   pool->threads = (padded_thread *) ALIGN_PTR_256 (pool->unaligned_array);
   queue_create (&pool->idle, sizeof (size_t), max_threads);
   queue_create (&pool->empty, sizeof (size_t), max_threads);
+  pool->start = start;
+  pool->init = init;
+  zfsd_mutex_init (&pool->in_syscall);
 
   zfsd_mutex_lock (&pool->empty.mutex);
   for (i = 0; i < max_threads; i++)
@@ -149,6 +161,33 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
       queue_put (&pool->empty, &i);
     }
   zfsd_mutex_unlock (&pool->empty.mutex);
+
+  /* Create worker threads.  */
+  zfsd_mutex_lock (&pool->idle.mutex);
+  zfsd_mutex_lock (&pool->empty.mutex);
+  for (i = 0; i < min_spare_threads; i++)
+    {
+      r = create_idle_thread (pool);
+      if (r != 0)
+	{
+	  thread_pool_destroy (pool);
+	  return false;
+	}
+    }
+  zfsd_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->idle.mutex);
+
+  /* Create thread pool regulator.  */
+  r = pthread_create (&pool->thread_id, NULL, thread_pool_regulator,
+		      (void *) pool);
+  if (r != 0)
+    {
+      message (-1, stderr, "pthread_create() failed\n");
+      thread_pool_destroy (pool);
+      return false;
+    }
+
+  return true;
 }
 
 /* Destroy thread pool POOL - terminate idle threads, wait for active threads to
@@ -181,13 +220,12 @@ thread_pool_destroy (thread_pool *pool)
   queue_destroy (&pool->idle);
 }
 
-/* Create a new idle thread in thread pool POOL and start a routine START in it.
+/* Create a new idle thread in thread pool POOL.
    This function expects NETWORK_POOL.EMPTY.MUTEX and NETWORK_POOL.IDLE.MUTEX
    to be locked.  */
 
 int
-create_idle_thread (thread_pool *pool, thread_start start,
-		    thread_initialize init)
+create_idle_thread (thread_pool *pool)
 {
   size_t index;
   thread *t;
@@ -209,12 +247,12 @@ create_idle_thread (thread_pool *pool, thread_start start,
     }
 
   t->state = THREAD_IDLE;
-  r = pthread_create (&t->thread_id, NULL, start, t);
+  r = pthread_create (&t->thread_id, NULL, pool->start, t);
   if (r == 0)
     {
       /* Call the initializer before we put the thread to the idle queue.  */
-      if (init)
-	(*init) (t);
+      if (pool->init)
+	(*pool->init) (t);
 
       queue_put (&pool->idle, &index);
     }
@@ -280,8 +318,7 @@ thread_disable_signals ()
    It expects NETWORK_POOL.IDLE.MUTEX to be locked.  */
 
 void
-thread_pool_regulate (thread_pool *pool, thread_start start,
-		      thread_initialize init)
+thread_pool_regulate (thread_pool *pool)
 {
   CHECK_MUTEX_LOCKED (&pool->idle.mutex);
 
@@ -299,7 +336,7 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
 	 && pool->idle.nelem < pool->idle.size)
     {
       message (2, stderr, "Regulating: creating idle thread\n");
-      create_idle_thread (pool, start, init);
+      create_idle_thread (pool);
     }
 
   zfsd_mutex_unlock (&pool->empty.mutex);
@@ -311,48 +348,28 @@ thread_pool_regulate (thread_pool *pool, thread_start start,
 static void *
 thread_pool_regulator (void *data)
 {
-  thread_pool_regulator_data *d = (thread_pool_regulator_data *) data;
+  thread_pool *pool = (thread_pool *) data;
 
   thread_disable_signals ();
 
   while (get_running ())
     {
-      zfsd_mutex_lock (&d->in_syscall);
+      zfsd_mutex_lock (&pool->in_syscall);
       if (get_running ())
 	sleep (THREAD_POOL_REGULATOR_INTERVAL);
-      zfsd_mutex_unlock (&d->in_syscall);
+      zfsd_mutex_unlock (&pool->in_syscall);
       if (!get_running ())
 	break;
-      zfsd_mutex_lock (&d->pool->idle.mutex);
-      thread_pool_regulate (d->pool, d->start, d->init);
-      zfsd_mutex_unlock (&d->pool->idle.mutex);
+      zfsd_mutex_lock (&pool->idle.mutex);
+      thread_pool_regulate (pool);
+      zfsd_mutex_unlock (&pool->idle.mutex);
     }
 
   /* Disable signaling this thread. */
   zfsd_mutex_lock (&running_mutex);
-  d->thread_id = 0;
+  pool->thread_id = 0;
   zfsd_mutex_unlock (&running_mutex);
 
-  zfsd_mutex_destroy (&d->in_syscall);
+  zfsd_mutex_destroy (&pool->in_syscall);
   return NULL;
-}
-
-/* Create a thread regulating the thread pool POOL which uses START to start
-   a new thread and INIT to initialize thread's data. DATA is the structure with
-   additional information for the regulator.  */
-
-void
-thread_pool_create_regulator (thread_pool_regulator_data *data,
-			      thread_pool *pool, thread_start start,
-			      thread_initialize init)
-{
-  data->pool = pool;
-  data->start = start;
-  data->init = init;
-  zfsd_mutex_init (&data->in_syscall);
-  if (pthread_create (&data->thread_id, NULL, thread_pool_regulator,
-		      (void *) data))
-    {
-      message (-1, stderr, "pthread_create() failed\n");
-    }
 }

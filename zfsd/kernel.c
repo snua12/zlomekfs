@@ -32,25 +32,17 @@
 #include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
+#include "hashtab.h"
+#include "alloc-pool.h"
 #include "data-coding.h"
 #include "kernel.h"
 #include "log.h"
+#include "node.h"
 #include "util.h"
 #include "memory.h"
 #include "thread.h"
 #include "zfs_prot.h"
 #include "config.h"
-
-/* Pool of kernel threads (threads communicating with kernel).  */
-static thread_pool kernel_pool;
-
-/* Data for kernel pool regulator.  */
-thread_pool_regulator_data kernel_regulator_data;
-
-#include "memory.h"
-#include "node.h"
-#include "hashtab.h"
-#include "alloc-pool.h"
 
 /* Data for a kernel socket.  */
 typedef struct kernel_fd_data_def
@@ -64,6 +56,9 @@ typedef struct kernel_fd_data_def
   DC dc[MAX_FREE_BUFFERS_PER_ACTIVE_FD];
   int ndc;
 } kernel_fd_data_t;
+
+/* Pool of kernel threads (threads communicating with kernel).  */
+thread_pool kernel_pool;
 
 /* Thread ID of the main kernel thread (thread receiving data from sockets).  */
 pthread_t main_kernel_thread;
@@ -258,7 +253,8 @@ kernel_dispatch (DC *dc)
 	zfsd_mutex_lock (&kernel_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
-	thread_pool_regulate (&kernel_pool, kernel_worker, NULL);
+	if (kernel_pool.idle.nelem == 0)
+	  thread_pool_regulate (&kernel_pool);
 
 	/* Select an idle thread and forward the request to it.  */
 	queue_get (&kernel_pool.idle, &index);
@@ -287,23 +283,9 @@ kernel_dispatch (DC *dc)
 bool
 create_kernel_threads ()
 {
-  int i;
-
   /* FIXME: read the numbers from configuration.  */
-  thread_pool_create (&kernel_pool, 256, 4, 16);
-
-  zfsd_mutex_lock (&kernel_pool.idle.mutex);
-  zfsd_mutex_lock (&kernel_pool.empty.mutex);
-  for (i = 0; i < /* FIXME: */ 5; i++)
-    {
-      create_idle_thread (&kernel_pool, kernel_worker, kernel_worker_init);
-    }
-  zfsd_mutex_unlock (&kernel_pool.empty.mutex);
-  zfsd_mutex_unlock (&kernel_pool.idle.mutex);
-
-  thread_pool_create_regulator (&kernel_regulator_data, &kernel_pool,
-				kernel_worker, kernel_worker_init);
-  return true;
+  return thread_pool_create (&kernel_pool, 256, 4, 16, kernel_worker,
+			     kernel_worker_init);
 }
 
 /* Main function of the main (i.e. listening) kernel thread.  */

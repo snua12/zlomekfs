@@ -46,10 +46,7 @@
 #include "alloc-pool.h"
 
 /* Pool of network threads.  */
-static thread_pool network_pool;
-
-/* Data for network pool regulator.  */
-thread_pool_regulator_data network_regulator_data;
+thread_pool network_pool;
 
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
 pthread_t main_network_thread;
@@ -524,7 +521,8 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	zfsd_mutex_lock (&network_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
-	thread_pool_regulate (&network_pool, network_worker, NULL);
+	if (network_pool.idle.nelem == 0)
+	  thread_pool_regulate (&network_pool);
 
 	/* Select an idle thread and forward the request to it.  */
 	queue_get (&network_pool.idle, &index);
@@ -555,23 +553,9 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 bool
 create_network_threads ()
 {
-  int i;
-
   /* FIXME: read the numbers from configuration.  */
-  thread_pool_create (&network_pool, 256, 4, 16);
-
-  zfsd_mutex_lock (&network_pool.idle.mutex);
-  zfsd_mutex_lock (&network_pool.empty.mutex);
-  for (i = 0; i < /* FIXME: */ 5; i++)
-    {
-      create_idle_thread (&network_pool, network_worker, network_worker_init);
-    }
-  zfsd_mutex_unlock (&network_pool.empty.mutex);
-  zfsd_mutex_unlock (&network_pool.idle.mutex);
-
-  thread_pool_create_regulator (&network_regulator_data, &network_pool,
-				network_worker, network_worker_init);
-  return true;
+  return thread_pool_create (&network_pool, 256, 4, 16, network_worker,
+		      network_worker_init);
 }
 
 /* Main function of the main (i.e. listening) network thread.  */
