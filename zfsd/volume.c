@@ -156,16 +156,6 @@ volume_set_common_info (volume vol, const char *name, const char *mountpoint,
   if (!(master->flags & NODE_LOCAL))
     vol->flags |= VOLUME_COPY;
   virtual_mountpoint_create (vol);
-
-  /* FIXME: */
-  if ((vol->flags & VOLUME_LOCAL) && !(vol->flags & VOLUME_COPY))
-    {
-      /* get local root zfs_fh */
-    }
-  else
-    {
-      /* get remote root zfs_fh */
-    }
 }
 
 /* Set the information for a volume with local copy.  */
