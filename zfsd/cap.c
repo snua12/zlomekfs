@@ -103,7 +103,13 @@ internal_cap_compute_verify (internal_cap cap)
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.flags,
 	     sizeof (cap->local_cap.flags));
   MD5Update (&ctx, (unsigned char *) cap->random, sizeof (cap->random));
-  MD5Final (cap->local_cap.verify, &ctx);
+  MD5Final ((unsigned char *) cap->local_cap.verify, &ctx);
+
+  if (verbose >= 3)
+    {
+      fprintf (stderr, "Created verify ");
+      print_hex_buffer (cap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
+    }
 }
 
 /* Verify capability CAP by comparing with ICAP.  */
@@ -111,6 +117,14 @@ internal_cap_compute_verify (internal_cap cap)
 static int
 verify_capability (zfs_cap *cap, internal_cap icap)
 {
+  if (verbose >= 3)
+    {
+      fprintf (stderr, "Using verify ");
+      print_hex_buffer (cap->verify, ZFS_VERIFY_LEN, stderr);
+      fprintf (stderr, "It should be ");
+      print_hex_buffer (icap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
+    }
+
   return (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0
 	  ? ZFS_OK
 	  : EBADF);
