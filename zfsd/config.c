@@ -237,7 +237,7 @@ split_and_trim (char *line, int n, char **parts)
 }
 
 /* Get the name of local node.  */
-static void
+void
 get_node_name ()
 {
   struct utsname un;
