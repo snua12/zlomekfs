@@ -984,8 +984,9 @@ internal_dentry_lock (unsigned int level, volume *volp,
     {
       zfsd_mutex_unlock (&(*volp)->mutex);
 
-      while ((*dentryp)->fh->id2run != id
-	     || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
+      while (!(*dentryp)->deleted
+	     && ((*dentryp)->fh->id2run != id
+		 || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE))
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 

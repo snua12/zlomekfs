@@ -134,8 +134,9 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       if (vdp && *vdp)
 	zfsd_mutex_unlock (&(*vdp)->mutex);
 
-      while ((*dentryp)->fh->id2run != id
-	     || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
+      while (!(*dentryp)->deleted
+	     && ((*dentryp)->fh->id2run != id
+		 || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE))
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
