@@ -56,6 +56,11 @@ static const unsigned int primes[] = {
   16777213,
   33554393,
   67108859,
+  134217689,
+  268435399,
+  536870909,
+  1073741789,
+  2147483647,
 };
 
 #define N_PRIMES (sizeof(primes) / sizeof(primes[0]))
