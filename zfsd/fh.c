@@ -950,6 +950,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->ndentries = 0;
   fh->updated = NULL;
   fh->modified = NULL;
+  fh->interval_tree_users = 0;
   fh->hardlinks = NULL;
   fh->level = LEVEL_UNLOCKED;
   fh->users = 0;
@@ -1014,6 +1015,8 @@ internal_fh_destroy_stage1 (internal_fh fh)
 
 #ifdef ENABLE_CHECKING
   if (fh->ndentries != 0)
+    abort ();
+  if (fh->interval_tree_users != 0)
     abort ();
 #endif
 
