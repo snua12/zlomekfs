@@ -38,7 +38,7 @@
 #ifndef __KERNEL__
 
 /* The time between two attempts to connect to node in seconds.  */
-#define NODE_CONNECT_VISCOSITY 10
+#define NODE_CONNECT_VISCOSITY 15
 
 /* Maximal value for MetadataTreeDepth.  */
 #define MAX_METADATA_TREE_DEPTH 6
