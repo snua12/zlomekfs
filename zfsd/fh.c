@@ -1616,46 +1616,39 @@ internal_dentry_link (internal_dentry orig, volume vol,
   return dentry;
 }
 
-/* Move internal dentry DENTRY to be a subdentry of DIR with name NAME
-   on volume VOL.  Return true on success.  */
+/* Move internal dentry for file FROM_NAME in FROM_DIR to be a subdentry
+   of TO_DIR with name TO_NAME on volume VOL.  */
 
-bool
-internal_dentry_move (internal_dentry dentry, volume vol,
-		      internal_dentry dir, char *name)
+void
+internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
+		      internal_dentry to_dir, char *to_name)
 {
-  internal_dentry tmp, parent;
-  char *old_name;
+  internal_dentry tmp, dentry;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
-#ifdef ENABLE_CHECKING
-  if (!dentry->parent)
-    abort ();
-#endif
-  CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
+  CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
+  CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
 
-  parent = dentry->parent;
+  dentry = dentry_lookup_name (from_dir, from_name);
+  if (!dentry)
+    return;
 
 #ifdef ENABLE_CHECKING
   /* Check whether we are not moving DENTRY to its subtree.  */
-  for (tmp = dir; tmp; tmp = tmp->parent)
+  for (tmp = to_dir; tmp; tmp = tmp->parent)
     if (tmp == dentry)
       abort ();
 #endif
 
-  /* Delete DENTRY from parent's directory entries.  */
+  /* Delete DENTRY from FROM_DIR's directory entries.  */
   internal_dentry_del_from_dir (dentry);
 
-  old_name = dentry->name;
-  dentry->name = xstrdup (name);
+  free (dentry->name);
+  dentry->name = xstrdup (to_name);
 
   /* Insert DENTRY to DIR.  */
-  internal_dentry_add_to_dir (dir, dentry);
-
-  free (old_name);
-  return true;
+  internal_dentry_add_to_dir (to_dir, dentry);
 }
 
 /* Destroy internal dentry DENTRY.  Clear vol->root_dentry if

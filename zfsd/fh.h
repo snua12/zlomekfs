@@ -321,8 +321,9 @@ extern void debug_subdentries (internal_fh fh);
 extern internal_dentry internal_dentry_link (internal_dentry orig, volume vol,
 					     internal_dentry parent,
 					     char *name);
-extern bool internal_dentry_move (internal_dentry dentry, volume vol,
-				  internal_dentry dir, char *name);
+extern void internal_dentry_move (volume vol, internal_dentry from_dir,
+				  char *from_name, internal_dentry to_dir,
+				  char *to_name);
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
 extern internal_dentry create_conflict (volume vol, internal_dentry dir,

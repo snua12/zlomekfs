@@ -2160,8 +2160,6 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 
   if (r == ZFS_OK)
     {
-      internal_dentry dentry;
-
       delete_dentry (&vol, &to_dentry, to_name->str, &tmp_to);
 
       if (tmp_from.ino != tmp_to.ino)
@@ -2176,13 +2174,8 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	from_dentry = to_dentry;
 
       /* Move the dentry if it exists.  */
-      dentry = dentry_lookup_name (from_dentry, from_name->str);
-      if (dentry)
-	{
-	  if (!internal_dentry_move (dentry, vol, to_dentry, to_name->str))
-	    r = EINVAL;
-	  release_dentry (dentry);
-	}
+      internal_dentry_move (vol, from_dentry, from_name->str, to_dentry,
+			    to_name->str);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
