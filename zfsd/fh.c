@@ -3005,8 +3005,11 @@ virtual_mountpoint_destroy (volume vol)
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vd_mutex);
 
-  zfsd_mutex_lock (&vol->root_vd->mutex);
-  virtual_dir_destroy (vol->root_vd);
+  if (vol->root_vd)
+    {
+      zfsd_mutex_lock (&vol->root_vd->mutex);
+      virtual_dir_destroy (vol->root_vd);
+    }
 }
 
 /* Set the file attributes of virtual directory VD.  */
