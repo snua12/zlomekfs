@@ -1186,3 +1186,22 @@ encode_reintegrate_set_args (DC *dc, reintegrate_set_args *args)
 }
 
 #endif
+
+#ifdef __KERNEL__
+bool
+decode_invalidate_args (DC *dc, invalidate_args *args)
+{
+  return (decode_zfs_fh (dc, &args->fh)
+	  && decode_uint32_t (dc, &args->ino));
+}
+
+#else
+
+bool
+encode_invalidate_args (DC *dc, invalidate_args *args)
+{
+  return (encode_zfs_fh (dc, &args->fh)
+	  && encode_uint32_t (dc, args->ino));
+}
+
+#endif

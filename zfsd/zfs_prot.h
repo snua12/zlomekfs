@@ -352,6 +352,12 @@ typedef struct reintegrate_set_args_def
   uint64_t version;
 } reintegrate_set_args;
 
+typedef struct invalidate_args_def
+{
+  zfs_fh fh;
+  uint32_t ino;
+} invalidate_args;
+
 typedef union call_args_def
 {
   char null;

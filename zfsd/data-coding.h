@@ -341,5 +341,10 @@ extern bool encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args);
 extern bool decode_reintegrate_set_args (DC *dc, reintegrate_set_args *args);
 extern bool encode_reintegrate_set_args (DC *dc, reintegrate_set_args *args);
 #endif
+#ifdef __KERNEL__
+extern bool decode_invalidate_args (DC *dc, invalidate_args *args);
+#else
+extern bool encode_invalidate_args (DC *dc, invalidate_args *args);
+#endif
 
 #endif

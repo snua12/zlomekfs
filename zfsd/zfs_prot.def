@@ -91,3 +91,7 @@ DEFINE_ZFS_PROC (27, REINTEGRATE_SET, reintegrate_set, reintegrate_set_args,
 		 AUTHENTICATION_FINISHED)
 # endif
 #endif
+#if defined (ZFS_CALL_KERNEL)
+DEFINE_ZFS_PROC (28, INVALIDATE, invalidate, invalidate_args,
+		 AUTHENTICATION_NONE)
+#endif
