@@ -251,7 +251,6 @@ close_active_fd (int i)
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
   message (2, stderr, "Closing FD %d\n", fd);
-  printf ("BUSY: %d\n", fd_data_a[fd].busy);
   close (fd);
 
   wake_all_threads (&fd_data_a[fd], ZFS_CONNECTION_CLOSED);
