@@ -51,7 +51,7 @@ DUMP_METADATA = alloc-pool.o constant.o crc32.o dump_metadata.o \
 all: $(BINARIES)
 
 clean:
-	-rm -f $(PACKAGE) *.o core *.core
+	-rm -f $(BINARIES) *.o core *.core
 distclean: clean
 	-rm -f Makefile.dep
 
