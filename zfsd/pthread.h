@@ -41,7 +41,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
-    message (4, stderr, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
+    message (5, stderr, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_mutex_destroy (M)) != 0)				\
@@ -56,7 +56,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
-    message (4, stderr, "MUTEX %p LOCK, by %lu at %s:%d\n",		\
+    message (5, stderr, "MUTEX %p LOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_mutex_lock (M)) != 0)				\
@@ -65,7 +65,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 		 r, strerror (r));					\
 	abort ();							\
       }									\
-    message (4, stderr, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
+    message (5, stderr, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     0; })
@@ -74,7 +74,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
-    message (4, stderr, "MUTEX %p UNLOCK, by %lu at %s:%d\n",		\
+    message (5, stderr, "MUTEX %p UNLOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_mutex_unlock (M)) != 0)				\
@@ -101,7 +101,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
-    message (4, stderr, "COND %p WAIT with MUTEX %p, by %lu at %s:%d\n",\
+    message (5, stderr, "COND %p WAIT with MUTEX %p, by %lu at %s:%d\n",\
 	     (void *) C, (void *) M,					\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_cond_wait (C, M)) != 0)				\
@@ -116,7 +116,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
-    message (4, stderr, "COND %p SIGNAL, by %lu at %s:%d\n",		\
+    message (5, stderr, "COND %p SIGNAL, by %lu at %s:%d\n",		\
 	     (void *) C,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_cond_signal (C)) != 0)				\
@@ -131,7 +131,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int r;								\
 									\
-    message (4, stderr, "COND %p BROADCAST, by %lu at %s:%d\n",		\
+    message (5, stderr, "COND %p BROADCAST, by %lu at %s:%d\n",		\
 	     (void *) C,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((r = pthread_cond_broadcast (C)) != 0)				\
@@ -145,7 +145,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 /* Check whether the mutex M is locked.  */
 #define CHECK_MUTEX_LOCKED(M)						\
   do {									\
-    message (4, stderr, "MUTEX %p TRYLOCK, by %lu at %s:%d\n",		\
+    message (5, stderr, "MUTEX %p TRYLOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((M) && pthread_mutex_trylock (M) == 0)				\
