@@ -373,14 +373,15 @@ send_request (thread *t, uint32_t request_id, int fd)
     td->retval = ZFS_INVALID_REPLY;
 }
 
+/* Add file descriptor FD to the set of active file descriptors.  */
+
 void
-add_fd_to_active (int fd, node nod)
+add_fd_to_active (int fd)
 {
   pthread_mutex_lock (&active_mutex);
   pthread_mutex_lock (&server_fd_data[fd].mutex);
   init_fd_data (fd);
-  pthread_kill (main_server_thread, SIGUSR1);
-  nod->generation = server_fd_data[fd].generation;
+  pthread_kill (main_server_thread, SIGUSR1);	/* terminate poll */
   pthread_mutex_unlock (&active_mutex);
 }
 
