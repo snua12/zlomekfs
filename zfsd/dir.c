@@ -361,12 +361,10 @@ out:
   return r;
 }
 
-/* Recursivelly unlink the file PATH on volume with ID == VID.
-   SHADOW is true when the PATH is in shadow.  */
+/* Recursivelly unlink the file PATH on volume with ID == VID.  */
 
 int32_t
-recursive_unlink (string *path, uint32_t vid, bool shadow,
-		  bool destroy_dentry)
+recursive_unlink (string *path, uint32_t vid, bool destroy_dentry)
 {
   string filename;
   struct stat parent_st;
@@ -377,22 +375,11 @@ recursive_unlink (string *path, uint32_t vid, bool shadow,
     abort ();
 #endif
 
-  if (shadow)
-    {
-      parent_st.st_dev = 0;
-      parent_st.st_ino = 0;
-    }
-  else
-    {
-      file_name_from_path (&filename, path);
-      filename.str[-1] = 0;
-      if (lstat (path->str[0] ? path->str : "/", &parent_st) != 0
-	  && errno != ENOENT)
-	{
-	  return errno;
-	}
-      filename.str[-1] = '/';
-    }
+  file_name_from_path (&filename, path);
+  filename.str[-1] = 0;
+  if (lstat (path->str[0] ? path->str : "/", &parent_st) != 0)
+    return (errno == ENOENT ? ZFS_OK : errno);
+  filename.str[-1] = '/';
 
   return recursive_unlink_1 (path, &filename, vid, &parent_st, destroy_dentry);
 }
@@ -4451,7 +4438,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return ZFS_METADATA_ERROR;
     }
 
-  r = recursive_unlink (&path, vid, false, true);
+  r = recursive_unlink (&path, vid, true);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -4520,7 +4507,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
     }
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (&shadow_path, vid, true, true);
+  r = recursive_unlink (&shadow_path, vid, true);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -4633,7 +4620,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  return ENOENT;
 	}
 
-      r = recursive_unlink (&new_path, vid, false, true);
+      r = recursive_unlink (&new_path, vid, true);
       if (r != ZFS_OK)
 	{
 	  free (old_path.str);
@@ -4872,7 +4859,7 @@ local_reintegrate_del_fh (zfs_fh *fh)
   if (shadow_path.str == NULL)
     return ZFS_METADATA_ERROR;
 
-  r = recursive_unlink (&shadow_path, vid, true, true);
+  r = recursive_unlink (&shadow_path, vid, true);
   free (shadow_path.str);
 
   return r;

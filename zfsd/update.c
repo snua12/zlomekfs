@@ -910,7 +910,7 @@ delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = recursive_unlink (&path, vid, false, destroy_dentry);
+  r = recursive_unlink (&path, vid, destroy_dentry);
   free (path.str);
 
   return r;
@@ -937,7 +937,7 @@ delete_tree_name (internal_dentry dir, string *name, volume vol,
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = recursive_unlink (&path, vid, false, destroy_dentry);
+  r = recursive_unlink (&path, vid, destroy_dentry);
   free (path.str);
 
   return r;
