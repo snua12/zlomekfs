@@ -88,7 +88,7 @@ int zfs_open(struct inode *inode, struct file *file)
 	open_args args;
 	int error;
 
-	TRACE("zfs: open: '%s'\n", file->f_dentry->d_name.name);
+	TRACE("zfs: open: '%s'\n", dentry->d_name.name);
 
 	if ((file->f_flags & O_CREAT) && dentry->d_fsdata) {
 		file->private_data = dentry->d_fsdata;
