@@ -328,7 +328,8 @@ struct node_def;
 /* Function headers.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
-					    struct thread_def *t);	\
+					    struct thread_def *t,	\
+					    bool map_id);		\
   extern int zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
 					   ARGS *args,			\
 					   struct node_def *nod,	\

@@ -498,7 +498,7 @@ network_worker (void *data)
 	    start_encoding (&t->dc);					      \
 	    encode_direction (&t->dc, DIR_REPLY);			      \
 	    encode_request_id (&t->dc, request_id);			      \
-	    zfs_proc_##FUNCTION##_server (&t->args.FUNCTION, t);	      \
+	    zfs_proc_##FUNCTION##_server (&t->args.FUNCTION, t, false);	      \
 	    finish_encoding (&t->dc);					      \
 	    send_reply (t);						      \
 	    break;
