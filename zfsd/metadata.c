@@ -348,6 +348,7 @@ build_shadow_metadata_path (string *path, volume vol, zfs_fh *fh,
 #endif
   char name[METADATA_NAME_SIZE];
   char tree[2 * MAX_METADATA_TREE_DEPTH + 1];
+  char *fh_str;
   varray v;
   unsigned int i;
   unsigned int len;
@@ -363,7 +364,8 @@ build_shadow_metadata_path (string *path, volume vol, zfs_fh *fh,
 	 ? file_name->len : METADATA_NAME_SIZE - (2 * 8 + 2));
   memcpy (name, file_name->str, len);
   name[len++] = '.';
-  sprintf (name + len, "%08X%08X", fh->dev, fh->ino);
+  fh_str = name + len;
+  sprintf (fh_str, "%08X%08X", fh->dev, fh->ino);
   len += 16;
 #ifdef ENABLE_CHECKING
   if (name[len] != 0)
@@ -372,7 +374,7 @@ build_shadow_metadata_path (string *path, volume vol, zfs_fh *fh,
 
   for (i = 0; i < metadata_tree_depth; i++)
     {
-      tree[2 * i] = name[len + 15 - i];
+      tree[2 * i] = fh_str[15 - i];
       tree[2 * i + 1] = '/';
     }
   tree[2 * metadata_tree_depth] = 0;
