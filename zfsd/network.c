@@ -215,7 +215,7 @@ server_worker (void *data)
 {
   thread *t = (thread *) data;
   server_thread_data *td = &t->u.server;
-  server_fd_data_t *d;
+  server_fd_data_t *fd_data;
   uint32_t request_id;
   uint32_t fn;
 
@@ -282,9 +282,9 @@ server_worker (void *data)
 	}
 
       /* TODO: process the request */
-      d = td->fd_data;
-      pthread_mutex_lock (&d->mutex);
-      if (d->fd >= 0 && d->generation == td->generation)
+      fd_data = td->fd_data;
+      pthread_mutex_lock (&fd_data->mutex);
+      if (fd_data->fd >= 0 && fd_data->generation == td->generation)
 	{
 	  /* 4. send a reply */
 	}
@@ -292,11 +292,11 @@ server_worker (void *data)
 out:
       if (running)
 	{
-	  if (d->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)
+	  if (fd_data->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)
 	    {
 	      /* Add the buffer to the queue.  */
-	      d->dc[d->ndc] = td->dc;
-	      d->ndc++;
+	      fd_data->dc[fd_data->ndc] = td->dc;
+	      fd_data->ndc++;
 	    }
 	  else
 	    {
@@ -306,11 +306,11 @@ out:
 	}
       else
 	{
-	  d->busy--;
-	  if (d->busy == 0 && d->fd >= 0)
-	    close_active_fd (d->fd);
+	  fd_data->busy--;
+	  if (fd_data->busy == 0 && fd_data->fd >= 0)
+	    close_active_fd (fd_data->fd);
 	}
-      pthread_mutex_unlock (&d->mutex);
+      pthread_mutex_unlock (&fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
       pthread_mutex_lock (&server_pool.idle.mutex);
@@ -543,7 +543,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 
       for (i = n - 1; i >= 0 && r > 0; i--)
 	{
-	  server_fd_data_t *d = &server_fd_data[pfd[i].fd];
+	  server_fd_data_t *fd_data = &server_fd_data[pfd[i].fd];
 
 	  if (pfd[i].revents & CANNOT_RW)
 	    {
@@ -553,20 +553,21 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	    }
 	  else if (pfd[i].revents & CAN_READ)
 	    {
-	      d->last_use = now;
-	      if (d->read < 4)
+	      fd_data->last_use = now;
+	      if (fd_data->read < 4)
 		{
 		  ssize_t r;
 
-		  pthread_mutex_lock (&d->mutex);
-		  if (d->ndc == 0)
+		  pthread_mutex_lock (&fd_data->mutex);
+		  if (fd_data->ndc == 0)
 		    {
-		      dc_create (&d->dc[0], ZFS_MAX_REQUEST_LEN);
-		      d->ndc++;
+		      dc_create (&fd_data->dc[0], ZFS_MAX_REQUEST_LEN);
+		      fd_data->ndc++;
 		    }
-		  pthread_mutex_unlock (&d->mutex);
+		  pthread_mutex_unlock (&fd_data->mutex);
 
-		  r = read (d->fd, d->dc[0].buffer + d->read, 4 - d->read);
+		  r = read (fd_data->fd, fd_data->dc[0].buffer + fd_data->read,
+			    4 - fd_data->read);
 		  if (r < 0)
 		    {
 		      pthread_mutex_lock (&active[i]->mutex);
@@ -574,28 +575,29 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		      pthread_mutex_unlock (&active[i]->mutex);
 		    }
 		  else
-		    d->read += r;
+		    fd_data->read += r;
 
-		  if (d->read == 4)
+		  if (fd_data->read == 4)
 		    {
-		      start_decoding (&d->dc[0]);
+		      start_decoding (&fd_data->dc[0]);
 		    }
 		}
 	      else
 		{
-		  if (d->dc[0].max_length <= d->dc[0].size)
+		  if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
 		    {
-		      r = read (d->fd, d->dc[0].buffer + d->read,
-				d->dc[0].max_length - d->read);
+		      r = read (fd_data->fd,
+				fd_data->dc[0].buffer + fd_data->read,
+				fd_data->dc[0].max_length - fd_data->read);
 		    }
 		  else
 		    {
 		      int l;
 
-		      l = d->dc[0].max_length - d->read;
+		      l = fd_data->dc[0].max_length - fd_data->read;
 		      if (l > ZFS_MAXDATA)
 			l = ZFS_MAXDATA;
-		      r = read (d->fd, dummy, l);
+		      r = read (fd_data->fd, dummy, l);
 		    }
 
 		  if (r < 0)
@@ -606,24 +608,24 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		    }
 		  else
 		    {
-		      d->read += r;
+		      fd_data->read += r;
 
-		      if (d->dc[0].max_length == d->read)
+		      if (fd_data->dc[0].max_length == fd_data->read)
 			{
 			  unsigned int generation;
 			  DC *dc;
 
-			  pthread_mutex_lock (&d->mutex);
-			  generation = d->generation;
-			  dc = &d->dc[0];
-			  d->busy++;
-			  d->ndc--;
-			  if (d->ndc > 0)
-			    d->dc[0] = d->dc[d->ndc];
-			  pthread_mutex_unlock (&d->mutex);
+			  pthread_mutex_lock (&fd_data->mutex);
+			  generation = fd_data->generation;
+			  dc = &fd_data->dc[0];
+			  fd_data->busy++;
+			  fd_data->ndc--;
+			  if (fd_data->ndc > 0)
+			    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
+			  pthread_mutex_unlock (&fd_data->mutex);
 
 			  /* We have read complete request, dispatch it.  */
-			  server_dispatch (d, dc, generation);
+			  server_dispatch (fd_data, dc, generation);
 			}
 		    }
 		}
