@@ -66,6 +66,12 @@
   (METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, (DENTRY)->fh->attr)	\
    || METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, ATTR))
 
+/* Are metadata in attributes ATTR1 and ATTR2 equal?  */
+#define METADATA_ATTR_EQ_P(ATTR1, ATTR2)				\
+  ((ATTR1).mode == (ATTR2).mode						\
+   && (ATTR1).uid == (ATTR2).uid					\
+   && (ATTR1).gid == (ATTR2).gid)
+
 /* Queue of file handles.  */
 extern queue update_queue;
 
