@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <unistd.h>
+#include "constant.h"
 
 /* Maximal number of file descriptors.  */
 int max_nfd;
