@@ -689,6 +689,14 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
       return ENOENT;
     }
 
+  if (vol->local_path.str)
+    {
+      meta.modetype = GET_MODETYPE (attr.mode, attr.type);
+      meta.uid = attr.uid;
+      meta.gid = attr.gid;
+      if (!lookup_metadata (vol, &local_fh, &meta, true))
+	MARK_VOLUME_DELETE (vol);
+    }
   dentry = get_dentry (&local_fh, &master_fh, vol, NULL, &empty_string, &attr,
 		       &meta);
 
