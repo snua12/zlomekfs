@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/utsname.h>
 #include "pthread.h"
 #include "test.h"
 #include "constant.h"
@@ -51,11 +52,16 @@ static pthread_t test_id;
 void
 fake_config (void)
 {
+  struct utsname un;
   node nod;
   volume vol;
 
-  set_node_name ();
-  xstringdup (&node_name, &node_host_name);
+  if (uname (&un) != 0)
+    abort ();
+
+  set_str (&node_name, un.nodename);
+  message (1, stderr, "Autodetected node name: '%s'\n", un.nodename);
+
   set_default_uid_gid ();
   set_str (&kernel_file_name, "/dev/zfs");
 

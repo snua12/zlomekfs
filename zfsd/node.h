@@ -64,9 +64,6 @@ extern uint32_t this_node_id;
 /* The name of local node.  */
 extern string node_name;
 
-/* The host name of local node.  */
-extern string node_host_name;
-
 /* Description of local node.  */
 extern node this_node;
 

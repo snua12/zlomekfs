@@ -29,7 +29,6 @@
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
-#include <sys/utsname.h>
 #include "pthread.h"
 #include "config.h"
 #include "constant.h"
@@ -286,19 +285,6 @@ split_and_trim (char *line, int n, string *parts)
   return i;
 }
 
-/* Get the name of local node.  */
-void
-set_node_name (void)
-{
-  struct utsname un;
-
-  if (uname (&un) != 0)
-    return;
-
-  set_str (&node_host_name, un.nodename);
-  message (1, stderr, "Autodetected node name: '%s'\n", un.nodename);
-}
-
 /* Set default node UID to UID of user NAME.  Return true on success.  */
 
 static bool
@@ -355,7 +341,7 @@ init_this_node (void)
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (this_node_id, &node_name, &node_host_name);
+  nod = node_create (this_node_id, &node_name, &node_name);
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
 }
@@ -2210,9 +2196,6 @@ read_config_file (const char *file)
   char *key, *value;
   int line_num;
 
-  /* Get the name of local node.  */
-  set_node_name ();
-
   /* Set default local user/group.  */
   set_default_uid_gid ();
 
@@ -2246,12 +2229,7 @@ read_config_file (const char *file)
 	    {
 	      /* Configuration options which may have a value.  */
 
-	      if (strncasecmp (key, "hostname", 9) == 0)
-		{
-		  set_string_with_length (&node_host_name, value, value_len);
-		  message (1, stderr, "HostName = '%s'\n", value);
-		}
-	      else if (strncasecmp (key, "privatekey", 11) == 0)
+	      if (strncasecmp (key, "privatekey", 11) == 0)
 		{
 		  set_string_with_length (&private_key, value, value_len);
 		  message (1, stderr, "PrivateKey = '%s'\n", value);
@@ -2321,8 +2299,7 @@ read_config_file (const char *file)
 	      /* Configuration options which may have no value.  */
 
 	      /* Configuration options which require a value.  */
-	      if (strncasecmp (key, "nodename", 9) == 0
-		  || strncasecmp (key, "privatekey", 11) == 0
+	      if (strncasecmp (key, "privatekey", 11) == 0
 		  || strncasecmp (key, "localconfig", 12) == 0
 		  || strncasecmp (key, "localconfiguration", 19) == 0
 		  || strncasecmp (key, "defaultuser", 12) == 0
@@ -2343,13 +2320,6 @@ read_config_file (const char *file)
 	}
     }
   fclose (f);
-
-  if (node_host_name.len == 0)
-    {
-      message (-1, stderr,
-	       "Host name was not autodetected nor defined in configuration file.\n");
-      return false;
-    }
 
   if (default_node_uid == (uint32_t) -1)
     {
@@ -2403,7 +2373,6 @@ cleanup_config_c (void)
 
   if (node_name.str)
     free (node_name.str);
-  free (node_host_name.str);
   free (kernel_file_name.str);
   free (local_config.str);
 }
