@@ -285,6 +285,7 @@ do_tests (void *data)
   zfs_cap cap;
   string rmdir_name = {3, "dir"};
   sattr sa = {0755, (unsigned int) -1, (unsigned int) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
+  sattr sa_symlink = {(unsigned int) -1, (unsigned int) -1, (unsigned int) -1, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
   fattr fa;
   thread *t = (thread *) data;
   create_res creater;
@@ -445,7 +446,7 @@ do_tests (void *data)
 	break;
 
       message (1, stderr, "TEST SYMLINK\n");
-      r = zfs_symlink (&res.file, &sym, &path, &sa);
+      r = zfs_symlink (&res.file, &sym, &path, &sa_symlink);
       message (1, stderr, "  %s\n", zfs_strerror (r));
 
       if (!get_running ())
