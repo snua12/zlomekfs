@@ -25,6 +25,7 @@
 
 #include "system.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"
