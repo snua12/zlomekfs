@@ -657,13 +657,11 @@ again:
 	  }
 	if (!finish_decoding (t->dc_reply))
 	  {
-	    free (res1.node.str);
 	    r = ZFS_COULD_NOT_AUTH;
 	    goto node_authenticate_error;
 	  }
 
 	nod = node_lookup_name (res1.node.str);
-	free (res1.node.str);
 	if (!nod)
 	  {
 	    r = ZFS_CONNECTION_CLOSED;

@@ -355,20 +355,13 @@ decode_string (DC *dc, string *str, uint32_t max_len)
   if (str->len > max_len)
     return false;
 
-  dc->cur_length += str->len;
+  dc->cur_length += str->len + 1;
   if (dc->cur_length > dc->max_length)
     return false;
 
-#ifdef __KERNEL__
-  str->str = (char *) kmalloc (str->len + 1, GFP_KERNEL);
-  if (!str->str)
-	  return false;
-#else
-  str->str = (char *) xmalloc (str->len + 1);
-#endif
-  memcpy (str->str, dc->cur_pos, str->len);
+  str->str = dc->cur_pos;
   str->str[str->len] = 0;
-  dc->cur_pos += str->len;
+  dc->cur_pos += str->len + 1;
 
   return true;
 }
@@ -382,15 +375,15 @@ encode_string (DC *dc, string *str)
     return false;
 
   prev = dc->cur_length;
-  dc->cur_length += str->len;
+  dc->cur_length += str->len + 1;
   if (dc->cur_length > dc->max_length)
     {
       dc->cur_length = prev;
       return false;
     }
 
-  memcpy (dc->cur_pos, str->str, str->len);
-  dc->cur_pos += str->len;
+  memcpy (dc->cur_pos, str->str, str->len + 1);
+  dc->cur_pos += str->len + 1;
 
   return true;
 }
@@ -670,21 +663,9 @@ encode_dir_op_res (DC *dc, dir_op_res *res)
 bool
 decode_create_args (DC *dc, create_args *args)
 {
-  if (!decode_dir_op_args (dc, &args->where))
-    return false;
-
-  if (!(decode_uint32_t (dc, &args->flags)
-	&& decode_sattr (dc, &args->attr)))
-    {
-#ifdef __KERNEL__
-      kfree (args->where.name.str);
-#else
-      free (args->where.name.str);
-#endif
-      return false;
-    }
-
-  return true;
+  return (decode_dir_op_args (dc, &args->where)
+	  && decode_uint32_t (dc, &args->flags)
+	  && decode_sattr (dc, &args->attr));
 }
 
 bool
@@ -774,20 +755,8 @@ encode_dir_list (DC *dc, dir_list *list)
 bool
 decode_mkdir_args (DC *dc, mkdir_args *args)
 {
-  if (!decode_dir_op_args (dc, &args->where))
-    return false;
-
-  if (!decode_sattr (dc, &args->attr))
-    {
-#ifdef __KERNEL__
-      kfree (args->where.name.str);
-#else
-      free (args->where.name.str);
-#endif
-      return false;
-    }
-
-  return true;
+  return (decode_dir_op_args (dc, &args->where)
+	  && decode_sattr (dc, &args->attr));
 }
 
 bool
@@ -800,20 +769,8 @@ encode_mkdir_args (DC *dc, mkdir_args *args)
 bool
 decode_rename_args (DC *dc, rename_args *args)
 {
-  if (!decode_dir_op_args (dc, &args->from))
-    return false;
-
-  if (!decode_dir_op_args (dc, &args->to))
-    {
-#ifdef __KERNEL__
-      kfree (args->from.name.str);
-#else
-      free (args->from.name.str);
-#endif
-      return false;
-    }
-
-  return true;
+  return (decode_dir_op_args (dc, &args->from)
+	  && decode_dir_op_args (dc, &args->to));
 }
 
 bool
@@ -896,32 +853,9 @@ encode_read_link_res (DC *dc, read_link_res *res)
 bool
 decode_symlink_args (DC *dc, symlink_args *args)
 {
-  if (!decode_dir_op_args (dc, &args->from))
-    return false;
-
-  if (!decode_zfs_path (dc, &args->to))
-    {
-#ifdef __KERNEL__
-      kfree (args->from.name.str);
-#else
-      free (args->from.name.str);
-#endif
-      return false;
-    }
-
-  if (!decode_sattr (dc, &args->attr))
-    {
-#ifdef __KERNEL__
-      kfree (args->from.name.str);
-      kfree (args->to.str);
-#else
-      free (args->from.name.str);
-      free (args->to.str);
-#endif
-      return false;
-    }
-
-  return true;
+  return (decode_dir_op_args (dc, &args->from)
+	  && decode_zfs_path (dc, &args->to)
+	  && decode_sattr (dc, &args->attr));
 }
 
 bool
@@ -935,22 +869,10 @@ encode_symlink_args (DC *dc, symlink_args *args)
 bool
 decode_mknod_args (DC *dc, mknod_args *args)
 {
-  if (!decode_dir_op_args (dc, &args->where))
-    return false;
-
-  if (!(decode_sattr (dc, &args->attr)
-	&& decode_ftype (dc, &args->type)
-	&& decode_uint32_t (dc, &args->rdev)))
-    {
-#ifdef __KERNEL__
-      kfree (args->where.name.str);
-#else
-      free (args->where.name.str);
-#endif
-      return false;
-    }
-
-  return true;
+  return (decode_dir_op_args (dc, &args->where)
+	  && decode_sattr (dc, &args->attr)
+	  && decode_ftype (dc, &args->type)
+	  && decode_uint32_t (dc, &args->rdev));
 }
 
 bool

@@ -2492,13 +2492,11 @@ remote_readlink (read_link_res *res, internal_dentry file, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_path (t->dc_reply, &res->path))
+      if (!decode_zfs_path (t->dc_reply, &res->path)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
-      else if (!finish_decoding (t->dc_reply))
-	{
-	  free (res->path.str);
-	  r = ZFS_INVALID_REPLY;
-	}
+      else
+	xstringdup (&res->path, &res->path);
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
@@ -2533,13 +2531,11 @@ remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_path (t->dc_reply, &res->path))
+      if (!decode_zfs_path (t->dc_reply, &res->path)
+	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
-      else if (!finish_decoding (t->dc_reply))
-	{
-	  free (res->path.str);
-	  r = ZFS_INVALID_REPLY;
-	}
+      else
+	xstringdup (&res->path, &res->path);
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {

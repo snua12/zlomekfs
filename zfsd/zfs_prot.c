@@ -194,8 +194,6 @@ zfs_proc_lookup_server (dir_op_args *args, DC *dc,
 	}
       encode_dir_op_res (dc, &res);
     }
-
-  free (args->name.str);
 }
 
 /* zfs_cap zfs_proc_create (create_args); */
@@ -224,7 +222,6 @@ zfs_proc_create_server (create_args *args, DC *dc,
 	}
       encode_create_res (dc, &res);
     }
-  free (args->where.name.str);
 }
 
 /* zfs_cap zfs_proc_open (open_args); */
@@ -319,8 +316,6 @@ zfs_proc_mkdir_server (mkdir_args *args, DC *dc,
 	}
       encode_dir_op_res (dc, &res);
     }
-
-  free (args->where.name.str);
 }
 
 /* void zfs_proc_rmdir (dir_op_args); */
@@ -334,7 +329,6 @@ zfs_proc_rmdir_server (dir_op_args *args, DC *dc,
 
   r = zfs_rmdir (&args->dir, &args->name);
   encode_status (dc, r);
-  free (args->name.str);
 }
 
 /* void zfs_proc_rename (rename_args); */
@@ -349,8 +343,6 @@ zfs_proc_rename_server (rename_args *args, DC *dc,
   r = zfs_rename (&args->from.dir, &args->from.name,
 		  &args->to.dir, &args->to.name);
   encode_status (dc, r);
-  free (args->from.name.str);
-  free (args->to.name.str);
 }
 
 /* void zfs_proc_link (link_args); */
@@ -364,7 +356,6 @@ zfs_proc_link_server (link_args *args, DC *dc,
 
   r = zfs_link (&args->from, &args->to.dir, &args->to.name);
   encode_status (dc, r);
-  free (args->to.name.str);
 }
 
 /* void zfs_proc_unlink (dir_op_args); */
@@ -378,7 +369,6 @@ zfs_proc_unlink_server (dir_op_args *args, DC *dc,
 
   r = zfs_unlink (&args->dir, &args->name);
   encode_status (dc, r);
-  free (args->name.str);
 }
 
 /* data_buffer zfs_proc_read (read_args); */
@@ -473,9 +463,6 @@ zfs_proc_symlink_server (symlink_args *args, DC *dc,
 	}
       encode_dir_op_res (dc, &res);
     }
-
-  free (args->from.name.str);
-  free (args->to.str);
 }
 
 /* dir_op_res zfs_proc_mknod (mknod_args); */
@@ -504,8 +491,6 @@ zfs_proc_mknod_server (mknod_args *args, DC *dc,
 	}
       encode_dir_op_res (dc, &res);
     }
-
-  free (args->where.name.str);
 }
 
 /* auth_stage1_res zfs_proc_auth_stage1 (auth_stage1_args); */
@@ -545,8 +530,6 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
 	close_network_fd (fd_data->fd);
     }
   zfsd_mutex_unlock (&fd_data->mutex);
-
-  free (args->node.str);
 }
 
 /* ? zfs_proc_auth_stage2 (auth_stage2_args); */
