@@ -83,7 +83,7 @@ hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
   size = hfile->size;
   index = hash % size;
 
-  offset = (uint64_t) index * hfile->element_size + sizeof (hashfile_header);
+  offset = (uint64_t) index * hfile->element_size + hfile->element_size;
   status = hfile_read_slot_status (hfile, offset);
   if (status == (uint32_t) -1)
     return 0;
@@ -103,8 +103,7 @@ hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
       if (index >= size)
 	index -= size;
 
-      offset = ((uint64_t) index * hfile->element_size
-		+ sizeof (hashfile_header));
+      offset = (uint64_t) index * hfile->element_size + hfile->element_size;
       status = hfile_read_slot_status (hfile, offset);
       if (status == (uint32_t) -1)
 	return 0;
@@ -140,7 +139,7 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
   index = hash % size;
   first_deleted_slot = 0;
 
-  offset = (uint64_t) index * hfile->element_size + sizeof (hashfile_header);
+  offset = (uint64_t) index * hfile->element_size + hfile->element_size;
   status = hfile_read_element (hfile, offset);
   if (status == (uint32_t) -1)
     return 0;
@@ -164,8 +163,7 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
       if (index >= size)
 	index -= size;
 
-      offset = ((uint64_t) index * hfile->element_size
-		+ sizeof (hashfile_header));
+      offset = (uint64_t) index * hfile->element_size + hfile->element_size;
       status = hfile_read_element (hfile, offset);
       if (status == (uint32_t) -1)
 	return 0;
@@ -245,7 +243,7 @@ hfile_expand (hfile_t hfile)
     goto hfile_expand_error;
 
   if (ftruncate (hfile->fd, ((uint64_t) hfile->size * hfile->element_size
-			     + sizeof (hashfile_header))) < 0)
+			     + hfile->element_size)) < 0)
     goto hfile_expand_error_with_fd;
 
   header.n_elements = u32_to_le (hfile->n_elements - hfile->n_deleted);
@@ -253,8 +251,8 @@ hfile_expand (hfile_t hfile)
   if (!full_write (hfile->fd, &header, sizeof (header)))
     goto hfile_expand_error_with_fd;
 
-  if ((uint64_t) lseek (old_fd, sizeof (hashfile_header), SEEK_SET)
-      != sizeof (hashfile_header))
+  if ((uint64_t) lseek (old_fd, hfile->element_size, SEEK_SET)
+      != hfile->element_size)
     goto hfile_expand_error_with_fd;
 
   /* Copy elements.  */
