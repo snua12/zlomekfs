@@ -62,7 +62,7 @@ typedef struct kernel_fd_data_def
 thread_pool kernel_pool;
 
 /* File descriptor of file communicating with kernel.  */
-static int kernel_file;
+static int kernel_fd;
 
 /* Data for kernel file descriptor.  */
 kernel_fd_data_t kernel_data;
@@ -74,7 +74,7 @@ send_reply (thread *t)
 {
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&kernel_data.mutex);
-  if (!full_write (kernel_file, t->u.kernel.dc.buffer,
+  if (!full_write (kernel_fd, t->u.kernel.dc.buffer,
 		   t->u.kernel.dc.cur_length))
     {
     }
@@ -307,7 +307,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
   while (!thread_pool_terminate_p (&kernel_pool))
     {
-      pfd.fd = kernel_file;
+      pfd.fd = kernel_fd;
       pfd.events = CAN_READ;
 
       message (2, stderr, "Polling\n");
@@ -407,7 +407,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	}
     }
 
-  close (kernel_file);
+  close (kernel_fd);
   message (2, stderr, "Terminating...\n");
   return NULL;
 }
@@ -418,8 +418,8 @@ bool
 kernel_start ()
 {
   /* Open connection with kernel.  */
-  kernel_file = open (kernel_file_name, O_RDWR);
-  if (kernel_file < 0)
+  kernel_fd = open (kernel_file_name, O_RDWR);
+  if (kernel_fd < 0)
     {
       message (-1, stderr, "%s: open(): %s\n", kernel_file_name,
 	       strerror (errno));
@@ -431,7 +431,7 @@ kernel_start ()
   if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_main,
 			   kernel_worker, kernel_worker_init))
     {
-      close (kernel_file);
+      close (kernel_fd);
       zfsd_mutex_destroy (&kernel_data.mutex);
       return false;
     }
