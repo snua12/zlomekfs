@@ -731,6 +731,8 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 	  vol = volume_create (vid);
 	  zfsd_mutex_unlock (&volume_mutex);
 	}
+      else
+	vol->marked = false;
       volume_set_common_info (vol, name, mountpoint, nod);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&vd_mutex);
@@ -1501,13 +1503,13 @@ read_config_file (const char *file)
 bool
 read_cluster_config (void)
 {
-  invalidate_config ();
-
   if (!read_local_cluster_config (&node_config))
     return false;
 
   if (!init_config ())
     return false;
+
+  invalidate_config ();
 
   if (!read_global_cluster_config ())
     return false;
