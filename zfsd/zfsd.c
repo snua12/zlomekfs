@@ -400,6 +400,7 @@ main (int argc, char **argv)
   bool kernel_started = false;
   bool network_started = false;
   bool update_started = false;
+  int ret = EXIT_SUCCESS;
 
   init_constants ();
   init_sig_handlers ();
@@ -454,12 +455,18 @@ main (int argc, char **argv)
       test_zfs ();
 #else
       if (!read_cluster_config ())
-	terminate ();
+	{
+	  terminate ();
+	  ret = EXIT_FAILURE;
+	}
 #endif
     }
 
   if (!network_started)
-    terminate ();
+    {
+      terminate ();
+      ret = EXIT_FAILURE;
+    }
 
   /* Workaround valgrind bug (PR/77369),
      i.e. prevent from waiting for joinee threads while signal is received.  */
@@ -502,5 +509,5 @@ main (int argc, char **argv)
   cleanup_data_structures ();
   disable_sig_handlers ();
 
-  return EXIT_FAILURE;
+  return ret;
 }
