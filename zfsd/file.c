@@ -900,7 +900,7 @@ zfs_close (zfs_cap *cap)
 	{
 	  r = remote_close (icap, dentry, vol);
 
-	  r2 = find_capability (&tmp_cap, &icap, &vol, &dentry, &vd, true);
+	  r2 = find_capability (&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
 	    abort ();
