@@ -2114,7 +2114,9 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	    /* Deleted a local directory.  */
 	    delete_dentry (&vol, &idir, name, &tmp_fh);
 
-	    if (vol->master != this_node)
+	    if (vol->master != this_node
+		&& !SPECIAL_DIR_P (idir, name->str, true)
+		&& !(idir->fh->meta.flags & METADATA_SHADOW_TREE))
 	      {
 		if (!add_journal_entry_st (vol, idir->fh, &st, name,
 					   JOURNAL_OPERATION_DEL))
@@ -3403,7 +3405,9 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    /* Deleted a local file.  */
 	    delete_dentry (&vol, &idir, name, &tmp_fh);
 
-	    if (vol->master != this_node)
+	    if (vol->master != this_node
+		&& !SPECIAL_DIR_P (idir, name->str, true)
+		&& !(idir->fh->meta.flags & METADATA_SHADOW_TREE))
 	      {
 		if (!add_journal_entry_st (vol, idir->fh, &st, name,
 					   JOURNAL_OPERATION_DEL))
