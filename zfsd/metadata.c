@@ -1650,7 +1650,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 	  read_hardlinks (hl, fd);
 
 	  hardlink_list_delete (hl, parent_dev, parent_ino, name);
-	  if (hardlink_list_size (hl) >= 1)
+	  if (hl->first)
 	    return flush_hardlinks_zfs_fh (vol, &fh, hl, path);
 	  else
 	    delete_hardlinks_file (vol, &fh);
@@ -1854,8 +1854,8 @@ read_hardlinks (hardlink_list hl, int fd)
 static bool
 write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 {
+  hardlink_list_entry entry;
   char *new_path;
-  unsigned int i, n;
   int fd;
   FILE *f;
 
@@ -1874,24 +1874,20 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
     abort ();
 #endif
 
-  n = hardlink_list_size (hl);
-  for (i = 0; i < n; i++)
+  for (entry = hl->first; entry; entry = entry->next)
     {
-      hardlink_list_entry entry;
       uint32_t parent_dev;
       uint32_t parent_ino;
       unsigned int name_len;
-      unsigned int len;
 
-      entry = hardlink_list_element (hl, i);
       parent_dev = u32_to_le (entry->parent_dev);
       parent_ino = u32_to_le (entry->parent_ino);
-      len = strlen (entry->name);
-      name_len = u32_to_le (len);
+      name_len = u32_to_le (entry->name.len);
       if (fwrite (&parent_dev, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
 	  || fwrite (&parent_ino, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
 	  || fwrite (&name_len, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
-	  || fwrite (entry->name, 1, len + 1, f) != len + 1)
+	  || (fwrite (entry->name.str, 1, entry->name.len + 1, f)
+	      != entry->name.len + 1))
 	{
 	  fclose (f);
 	  unlink (new_path);
@@ -1960,14 +1956,13 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (hardlink_list_size (hl) == 0)
+  if (hl->first == NULL)
     abort ();
 #endif
 
-  if (hardlink_list_size (hl) >= 2
-      || (hardlink_list_size (hl) == 1
-	  && (strlen (hardlink_list_element (hl, 0)->name)
-	      >= METADATA_NAME_SIZE)))
+  if (hl->first
+      && (hl->first->next
+	  || hl->first->name.len >= METADATA_NAME_SIZE))
     {
       if (!write_hardlinks (vol, fh, hl, path))
 	{
@@ -2048,11 +2043,9 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 	}
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
     }
-  else if (hardlink_list_size (hl) == 1)
+  else if (hl->first)
     {
       hardlink_list_entry entry;
-      unsigned int len;
-
       if (!hashfile_opened_p (vol->metadata))
 	{
 	  int fd;
@@ -2088,12 +2081,12 @@ flush_hardlinks_zfs_fh (volume vol, zfs_fh *fh, hardlink_list hl, char *path)
 	  zfs_fh_undefine (meta.master_fh);
 	}
 
-      entry = hardlink_list_element (hl, 0);
-      len = strlen (entry->name);
+      entry = hl->first;
       meta.parent_dev = entry->parent_dev;
       meta.parent_ino = entry->parent_ino;
-      memcpy (meta.name, entry->name, len);
-      memset (meta.name + len, 0, METADATA_NAME_SIZE - len);
+      memcpy (meta.name, entry->name.str, entry->name.len);
+      memset (meta.name + entry->name.len, 0,
+	      METADATA_NAME_SIZE - entry->name.len);
 
       hardlink_list_destroy (hl);
       free (path);
@@ -2130,10 +2123,9 @@ flush_hardlinks (volume vol, internal_fh fh)
     abort ();
 #endif
 
-  if (hardlink_list_size (fh->hardlinks) >= 2
-      || (hardlink_list_size (fh->hardlinks) == 1
-	  && (strlen (hardlink_list_element (fh->hardlinks, 0)->name)
-	      >= METADATA_NAME_SIZE)))
+  if (fh->hardlinks->first
+      && (fh->hardlinks->first->next
+	  || fh->hardlinks->first->name.len >= METADATA_NAME_SIZE))
     {
       char *path;
 
@@ -2168,17 +2160,16 @@ flush_hardlinks (volume vol, internal_fh fh)
       memset (fh->meta.name, 0, METADATA_NAME_SIZE);
       return flush_metadata (vol, fh);
     }
-  else if (hardlink_list_size (fh->hardlinks) == 1)
+  else if (fh->hardlinks->first)
     {
       hardlink_list_entry entry;
-      unsigned int len;
 
-      entry = hardlink_list_element (fh->hardlinks, 0);
-      len = strlen (entry->name);
+      entry = fh->hardlinks->first;
       fh->meta.parent_dev = entry->parent_dev;
       fh->meta.parent_ino = entry->parent_ino;
-      memcpy (fh->meta.name, entry->name, len);
-      memset (fh->meta.name + len, 0, METADATA_NAME_SIZE - len);
+      memcpy (fh->meta.name, entry->name.str, entry->name.len);
+      memset (fh->meta.name + entry->name.len, 0,
+	      METADATA_NAME_SIZE - entry->name.len);
       if (!flush_metadata (vol, fh))
 	return false;
 
@@ -2269,9 +2260,9 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 {
   metadata meta;
   hardlink_list hl;
+  hardlink_list_entry entry, next;
   char *parent_path;
   char *path;
-  unsigned int i;
   struct stat st;
   bool flush;
 
@@ -2313,7 +2304,7 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
   if (meta.parent_dev == (uint32_t) -1
       && meta.parent_ino == (uint32_t) -1
       && meta.name[0] == 0
-      && hardlink_list_size (hl) == 0)
+      && hl->first == NULL)
     {
       hardlink_list_destroy (hl);
       return xstrdup (vol->local_path);
@@ -2321,19 +2312,19 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 
   path = NULL;
   flush = false;
-  for (i = hardlink_list_size (hl); i > 0; i--)
+  for (entry = hl->first; entry; entry = next)
     {
-      hardlink_list_entry entry;
       zfs_fh parent_fh;
 
-      entry = hardlink_list_element (hl, i - 1);
+      next = entry->next;
+
       parent_fh.dev = entry->parent_dev;
       parent_fh.ino = entry->parent_ino;
       parent_path = get_local_path_from_metadata (vol, &parent_fh);
       if (parent_path == NULL)
 	{
 	  flush |= hardlink_list_delete (hl, entry->parent_dev,
-					 entry->parent_ino, entry->name);
+					 entry->parent_ino, entry->name.str);
 	}
       else
 	{
@@ -2343,7 +2334,8 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 	    {
 	      free (parent_path);
 	      flush |= hardlink_list_delete (hl, entry->parent_dev,
-					     entry->parent_ino, entry->name);
+					     entry->parent_ino,
+					     entry->name.str);
 	    }
 	  else
 	    {
@@ -2370,7 +2362,7 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 	}
     }
 
-  if (hardlink_list_size (hl) == 0)
+  if (hl->first == NULL)
     {
       hardlink_list_destroy (hl);
 #ifdef ENABLE_CHECKING

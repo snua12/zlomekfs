@@ -24,34 +24,23 @@
 #include "system.h"
 #include <inttypes.h>
 #include "pthread.h"
+#include "memory.h"
 #include "hashtab.h"
-#include "varray.h"
 #include "crc32.h"
 
 /* Hash function for hardlink list entry H.  */
-#define HARDLINK_LIST_HASH(H)						\
-  (crc32_update (crc32_update (crc32_string ((H)->name),		\
-		 &(H)->parent_dev, sizeof (uint32_t)),			\
+#define HARDLINK_LIST_HASH(H)						    \
+  (crc32_update (crc32_update (crc32_buffer ((H)->name.str, (H)->name.len), \
+		 &(H)->parent_dev, sizeof (uint32_t)),			    \
    &(H)->parent_ino, sizeof (uint32_t)))
 
-/* Definition of the hashed variable-sized array.  */
-typedef struct hardlink_list_def
-{
-  /* Hash table.  */
-  htab_t htab;
-
-  /* Variable-length array.  */
-  varray array;
-
-  /* Mutex which must be locked when accessing the hardlink list.  */
-  pthread_mutex_t *mutex;
-} *hardlink_list;
-
 /* Entry of a hardlink list.  */
-typedef struct hardlink_list_entry_def
+typedef struct hardlink_list_entry_def *hardlink_list_entry;
+struct hardlink_list_entry_def
 {
-  /* Index of this struct in the varray.  */
-  unsigned int index;
+  /* Next and previous entry in the doubly linked chain.  */
+  hardlink_list_entry next;
+  hardlink_list_entry prev;
 
   /* Device of parent directory.  */
   uint32_t parent_dev;
@@ -60,8 +49,22 @@ typedef struct hardlink_list_entry_def
   uint32_t parent_ino;
 
   /* File name.  */
-  char *name;
-} *hardlink_list_entry;
+  string name;
+};
+
+/* Definition of the hashed variable-sized array.  */
+typedef struct hardlink_list_def
+{
+  /* Hash table.  */
+  htab_t htab;
+
+  /* Mutex which must be locked when accessing the hardlink list.  */
+  pthread_mutex_t *mutex;
+
+  /* First and last node of the doubly-linked chain.  */
+  hardlink_list_entry first;
+  hardlink_list_entry last;
+} *hardlink_list;
 
 extern hardlink_list hardlink_list_create (unsigned int nelem,
 					   pthread_mutex_t *mutex);
@@ -72,9 +75,6 @@ extern bool hardlink_list_member (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, char *name);
 extern bool hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, char *name);
-extern unsigned int hardlink_list_size (hardlink_list hl);
-extern hardlink_list_entry hardlink_list_element (hardlink_list hl,
-						  unsigned int index);
 
 extern void initialize_hardlink_list_c (void);
 extern void cleanup_hardlink_list_c (void);
