@@ -133,12 +133,12 @@ typedef struct data_coding_def
   char *unaligned;
   char *buffer;
   char *current;
-  int max_length;
-  int cur_length;
-  int size;
+  unsigned int max_length;
+  unsigned int cur_length;
+  unsigned int size;
 } DC;
 
-extern void dc_create (DC *dc, int size);
+extern void dc_create (DC *dc, unsigned int size);
 extern void dc_destroy (DC *dc);
 extern void start_encoding (DC *dc);
 extern int finish_encoding (DC *dc);
@@ -165,6 +165,8 @@ extern int decode_data_buffer (DC *dc, data_buffer *data);
 extern int encode_data_buffer (DC *dc, data_buffer *data);
 extern int decode_string (DC *dc, string *str, uint32_t max_len);
 extern int encode_string (DC *dc, string *str);
+extern int decode_direction (DC *dc, direction *dir);
+extern int encode_direction (DC *dc, direction dir);
 extern int decode_ftype (DC *dc, ftype *type);
 extern int encode_ftype (DC *dc, ftype type);
 extern int decode_zfs_fh (DC *dc, zfs_fh *fh);

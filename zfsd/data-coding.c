@@ -31,7 +31,7 @@
    about it in DC.  */
 
 void
-dc_create (DC *dc, int size)
+dc_create (DC *dc, unsigned int size)
 {
   dc->unaligned = (char *) xmalloc (size + 15); 
   dc->buffer = (char *) ALIGN_PTR_16 (dc->unaligned);
@@ -78,7 +78,7 @@ start_decoding (DC *dc)
   dc->current = dc->buffer;
   dc->max_length = 4;
   dc->cur_length = 0;
-  decode_int32_t (dc, (int32_t *) &dc->max_length);
+  decode_uint32_t (dc, (uint32_t *) &dc->max_length);
   return dc->max_length <= dc->size;
 }
 
@@ -244,6 +244,30 @@ encode_string (DC *dc, string *str)
 }
 
 int
+decode_direction (DC *dc, direction *dir)
+{
+  uchar dir_val;
+  int r;
+
+  r = decode_uchar (dc, &dir_val);
+  if (r)
+    {
+      if (dir_val >= DIR_MAX_AND_UNUSED)
+	r = 0;
+      else
+	*dir = (direction) dir_val;
+    }
+
+  return r;
+}
+
+int
+encode_direction (DC *dc, direction dir)
+{
+  return encode_uchar (dc, (uchar) dir);
+}
+
+int
 decode_ftype (DC *dc, ftype *type)
 {
   uchar type_val;
@@ -252,7 +276,7 @@ decode_ftype (DC *dc, ftype *type)
   r = decode_uchar (dc, &type_val);
   if (r)
     {
-      if (type_val >= 8)
+      if (type_val >= FT_MAX_AND_UNUSED)
 	r = 0;
       else
 	*type = (ftype) type_val;
