@@ -655,7 +655,7 @@ zfs_open_retry:
 
   if (!dentry)
     {
-      /* We are opening pure virtual directory.  */
+      /* We are opening a pure virtual directory.  */
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&vd->mutex);
@@ -797,7 +797,7 @@ zfs_close_retry:
 
   if (!dentry)
     {
-      /* We are closing pure virtual directory.  */
+      /* We are closing a pure virtual directory.  */
       put_capability (icap, NULL, vd);
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
