@@ -30,7 +30,7 @@
 int verbose = 2;
 
 /* Local function prototypes.  */
-static void internal_error (char *format, ...);
+static void internal_error (char *format, ...) ATTRIBUTE_NORETURN;
 
 /* Print message to F if LEVEL > VERBOSE.  */
 void
