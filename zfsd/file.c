@@ -240,7 +240,7 @@ capability_open (internal_cap cap, uint32_t flags, internal_dentry dentry,
   local_close (cap);
 
   path = build_local_path (vol, dentry);
-  cap->fd = open (path, cap->local_cap.flags | flags);
+  cap->fd = safe_open (path, cap->local_cap.flags | flags, 0);
   free (path);
   if (cap->fd >= 0)
     {
