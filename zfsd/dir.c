@@ -873,7 +873,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 /* Set attributes of remote file DENTRY on volume VOL according to SA,
    reget attributes and store them to FA.  */
 
-static int32_t
+int32_t
 remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
   sattr_args args;
