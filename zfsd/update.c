@@ -1606,13 +1606,22 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 	  if (dentry->fh->meta.slot_status != VALID_SLOT)
 	    goto out2;
 
+	  dentry->fh->meta.flags &= ~METADATA_COMPLETE;
 	  dentry->fh->meta.local_version = version;
 	  dentry->fh->meta.master_version = version;
 	  if (!flush_metadata (vol, &dentry->fh->meta))
 	    vol->delete_p = true;
 
-	  r = remote_reintegrate_set (&dentry->fh->meta.master_fh, version + 1,
-				      dentry, vol);
+	  if (version != res.attr.version)
+	    {
+	      r = remote_reintegrate_set (&dentry->fh->meta.master_fh, version,
+					  dentry, vol);
+	    }
+	  else
+	    {
+	      release_dentry (dentry);
+	      zfsd_mutex_unlock (&vol->mutex);
+	    }
 
 	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
