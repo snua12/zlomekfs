@@ -1,3 +1,23 @@
+/* ZFS protocol.
+   Copyright (C) 2003 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
+
+   You should have received a copy of the GNU General Public License along with
+   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
+   or download it from http://www.gnu.org/licenses/gpl.html */
+
 #ifndef ZFS_PROT_H
 #define ZFS_PROT_H
 
@@ -14,10 +34,17 @@ extern "C"
 #define ZFS_MAXPATHLEN 1023
 #define ZFS_MAXNAMELEN 255
 
+/* Error codes.  */
+#define ZFS_OK			0
+#define ZFS_REQUEST_TOO_LONG	-1	/* Request was too long.  */
+#define ZFS_INVALID_REQUEST	-2	/* Request was not well encoded. */
+#define ZFS_UNKNOWN_FUNCTION	-3	/* Unknown function in request.  */
+  
 typedef enum direction_def
 {
-  ZFS_REQUEST,
-  ZFS_REPLY
+  DIR_REQUEST,
+  DIR_REPLY,
+  DIR_MAX_AND_UNUSED
 } direction;
 
 typedef struct data_buffer_def
@@ -41,7 +68,8 @@ typedef enum ftype_def
   FT_BLK,
   FT_CHR,
   FT_SOCK,
-  FT_FIFO
+  FT_FIFO,
+  FT_MAX_AND_UNUSED
 } ftype;
 
 typedef struct zfs_fh_def
