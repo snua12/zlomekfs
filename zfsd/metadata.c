@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include <errno.h>
 #include "pthread.h"
 #include "metadata.h"
@@ -50,7 +51,7 @@ typedef struct metadata_fd_data_def
 metadata_fd_data_t *metadata_fd_data;
 
 /* Array of opened metadata file descriptors.  */
-static fibheap metadata;
+static fibheap metadata_heap;
 
 /* Mutex protecting access to METADATA.  */
 static pthread_mutex_t metadata_mutex;
@@ -105,6 +106,148 @@ build_metadata_path (volume vol, internal_fh fh, interval_tree_purpose purpose,
   varray_destroy (&v);
 
   return path;
+}
+
+/* Is the interval file for interval tree TREE opened?  */
+
+static bool
+interval_opened_p (interval_tree tree)
+{
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  if (tree->fd < 0)
+    return false;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
+  if (tree->generation != metadata_fd_data[tree->fd].generation)
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
+      zfsd_mutex_unlock (&metadata_mutex);
+      return false;
+    }
+
+  metadata_fd_data[tree->fd].heap_node
+    = fibheap_replace_key (metadata_heap, metadata_fd_data[tree->fd].heap_node,
+			   (fibheapkey_t) time (NULL));
+  zfsd_mutex_unlock (&metadata_mutex);
+  return true;
+}
+
+/* Initialize file descriptor for interval tree TREE.  */
+
+static void
+init_interval_fd (interval_tree tree)
+{
+#ifdef ENABLE_CHECKING
+  if (tree->fd < 0)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (tree->mutex);
+  CHECK_MUTEX_LOCKED (&metadata_mutex);
+  CHECK_MUTEX_LOCKED (&metadata_fd_data[tree->fd].mutex);
+
+  metadata_fd_data[tree->fd].fd = tree->fd;
+  metadata_fd_data[tree->fd].generation++;
+  tree->generation = metadata_fd_data[tree->fd].generation;
+  metadata_fd_data[tree->fd].heap_node
+    = fibheap_insert (metadata_heap, (fibheapkey_t) time (NULL),
+		      &metadata_fd_data[tree->fd]);
+}
+
+/* Close file descriptor FD of metadata file.  */
+
+static void
+close_metadata_fd (int fd)
+{
+#ifdef ENABLE_CHECKING
+  if (fd < 0)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (&metadata_mutex);
+  CHECK_MUTEX_LOCKED (&metadata_fd_data[fd].mutex);
+
+  message (2, stderr, "Closing FD %d\n", fd);
+#ifdef ENABLE_CHECKING
+  if (metadata_fd_data[fd].fd < 0)
+    abort ();
+  if (!metadata_fd_data[fd].heap_node)
+    abort ();
+#endif
+  metadata_fd_data[fd].fd = -1;
+  metadata_fd_data[fd].generation++;
+  close (fd);
+  fibheap_delete_node (metadata_heap, metadata_fd_data[fd].heap_node);
+  metadata_fd_data[fd].heap_node = NULL;
+  zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
+}
+
+/* Open and initialize file descriptor for interval of purpose PURPOSE for
+   file handle FH on volume VOL.  */
+
+static int
+open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
+{
+  interval_tree tree;
+  char *path;
+  int fd;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
+retry_open:
+  fd = open (path, O_WRONLY | O_CREAT);
+  if ((fd < 0 && errno == EMFILE)
+      || (fd >= 0
+	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
+    {
+      metadata_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&metadata_mutex);
+      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
+      if (fd_data && fd_data->fd >= 0)
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  close_metadata_fd (fd_data->fd);
+	}
+      zfsd_mutex_unlock (&metadata_mutex);
+      if (fd_data)
+	goto retry_open;
+    }
+
+  free (path);
+  if (fd < 0)
+    return fd;
+
+  if (lseek (fd, 0, SEEK_END))
+    {
+      message (1, stderr, "lseek: %s\n", strerror (errno));
+      close (fd);
+      return -1;
+    }
+
+  switch (purpose)
+    {
+      case INTERVAL_TREE_UPDATED:
+	tree = fh->updated;
+	break;
+
+      case INTERVAL_TREE_MODIFIED:
+	tree = fh->modified;
+	break;
+    }
+
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  tree->fd = fd;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
+  init_interval_fd (tree);
+  zfsd_mutex_unlock (&metadata_mutex);
+
+  return fd;
 }
 
 /* Create a full path to file FILE with access rights MODE.
@@ -168,7 +311,26 @@ flush_interval_tree_1 (interval_tree tree, char *path)
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   new_path = xstrconcat (2, path, ".new");
+retry_open:
   fd = open (new_path, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
+  if ((fd < 0 && errno == EMFILE)
+      || (fd >= 0
+	  && fibheap_size (metadata_heap) >= (unsigned int) max_metadata_fds))
+    {
+      metadata_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&metadata_mutex);
+      fd_data = (metadata_fd_data_t *) fibheap_extract_min (metadata_heap);
+      if (fd_data && fd_data->fd >= 0)
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  close_metadata_fd (fd_data->fd);
+	}
+      zfsd_mutex_unlock (&metadata_mutex);
+      if (fd_data)
+	goto retry_open;
+    }
+
   if (fd < 0)
     {
       free (new_path);
@@ -185,8 +347,16 @@ flush_interval_tree_1 (interval_tree tree, char *path)
       return false;
     }
 
-  close (fd);	/* FIXME: do not close but set the info about fd in the tree*/
   rename (new_path, path);
+
+#ifdef ENABLE_CHECKING
+  if (tree->fd >= 0)
+    abort ();
+#endif
+  tree->fd = fd;
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
+  init_interval_fd (tree);
 
   free (new_path);
   free (path);
@@ -207,7 +377,7 @@ init_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
-  
+
   path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
   fd = open (path, O_RDONLY);
   if (fd < 0)
@@ -320,8 +490,22 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
 	break;
     }
 
+  CHECK_MUTEX_LOCKED (tree->mutex);
+
+  zfsd_mutex_lock (&metadata_mutex);
+  if (tree->fd >= 0)
+    {
+      zfsd_mutex_lock (&metadata_fd_data[tree->fd].mutex);
+      if (tree->generation == metadata_fd_data[tree->fd].generation)
+	close_metadata_fd (tree->fd);
+      else
+	zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
+      tree->fd = -1;
+    }
+  zfsd_mutex_unlock (&metadata_mutex);
+
   path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
-  /* TODO: Close fd if opened.  */
+
   return flush_interval_tree_1 (tree, path);
 }
 
@@ -333,7 +517,7 @@ initialize_metadata_c ()
   int i;
 
   zfsd_mutex_init (&metadata_mutex);
-  metadata = fibheap_new (max_metadata_fds, &metadata_mutex);
+  metadata_heap = fibheap_new (max_metadata_fds, &metadata_mutex);
 
   /* Data for each file descriptor.  */
   metadata_fd_data
@@ -350,22 +534,25 @@ initialize_metadata_c ()
 void
 cleanup_metadata_c ()
 {
-  while (fibheap_size (metadata) > 0)
+  while (fibheap_size (metadata_heap) > 0)
     {
       metadata_fd_data_t *fd_data;
 
       zfsd_mutex_lock (&metadata_mutex);
-      fd_data = (metadata_fd_data_t *) fibheap_min (metadata);
+      fd_data = (metadata_fd_data_t *) fibheap_min (metadata_heap);
 #ifdef ENABLE_CHECKING
-      if (!fd_data && fibheap_size (metadata) > 0)
+      if (!fd_data && fibheap_size (metadata_heap) > 0)
 	abort ();
 #endif
       if (fd_data && fd_data->fd >= 0)
-	/* FIXME: close_local_fd (fd_data->fd) */;
+	{
+	  zfsd_mutex_lock (&fd_data->mutex);
+	  close_metadata_fd (fd_data->fd);
+	}
       zfsd_mutex_unlock (&metadata_mutex);
     }
   zfsd_mutex_lock (&metadata_mutex);
-  fibheap_delete (metadata);
+  fibheap_delete (metadata_heap);
   zfsd_mutex_unlock (&metadata_mutex);
   zfsd_mutex_destroy (&metadata_mutex);
   free (metadata_fd_data);
