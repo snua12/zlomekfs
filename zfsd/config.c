@@ -1764,6 +1764,25 @@ out:
   return false;
 }
 
+/* Add request to reread config file DENTRY to queue.  */
+
+void
+add_reread_config_request_dentry (internal_dentry dentry)
+{
+  string relative_path;
+  thread *t;
+
+  build_relative_path (&relative_path, dentry);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+#ifdef ENABLE_CHECKING
+  if (t == NULL)
+    abort ();
+#endif
+
+  add_reread_config_request (&relative_path, t->from_sid);
+}
+
 /* Add request to reread config file RELATIVE_PATH to queue.
    The request came from node FROM_SID.  */
 
