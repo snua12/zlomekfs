@@ -1488,6 +1488,17 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   if (r == ZFS_OK)
     {
+      if (sa->size != (uint64_t) -1)
+	{
+	  if (!inc_local_version (vol, dentry->fh))
+	    MARK_VOLUME_DELETE (vol);
+
+	  if (dentry->fh->updated)
+	    interval_tree_delete (dentry->fh->updated, fa->size, UINT64_MAX);
+	  if (dentry->fh->modified)
+	    interval_tree_delete (dentry->fh->modified, fa->size, UINT64_MAX);
+	}
+
       /* Update cached file attributes.  */
       if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	set_attr_version (fa, &dentry->fh->meta);
