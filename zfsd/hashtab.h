@@ -1,7 +1,7 @@
 /* Expandable hash table datatype.
    Copyright (C) 2003 Josef Zlomek
-   Inspired with gcc/include/hashtab.h
-   by Vladimir Makarov (vmakarov@cygnus.com)
+   Original version: GCC project, file gcc/include/hashtab.h
+     by Vladimir Makarov (vmakarov@cygnus.com)
 
    This file is part of ZFS.
 
