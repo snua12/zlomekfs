@@ -30,6 +30,7 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <sys/time.h>
 #include "pthread.h"
 #include "constant.h"
 #include "memory.h"
@@ -460,6 +461,85 @@ node_connected:
   return s;
 }
 
+/* Measure connection speed of node with ID SID connected through file
+   descriptor FD.  */
+
+static bool
+node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
+{
+  data_buffer ping_args, ping_res;
+  struct timeval t0, t1;
+  node nod;
+  unsigned long delta;
+  int i;
+
+  /* Initialize ping buffer.  */
+  ping_args.len = 0;
+  ping_args.buf = NULL;
+
+  delta = 0;
+  *r = ZFS_OK;
+  for (i = 0; i < 3; i++)
+    {
+      gettimeofday (&t0, NULL);
+      *r = zfs_proc_ping_client_1 (t, &ping_args, fd);
+      gettimeofday (&t1, NULL);
+      if (*r != ZFS_OK)
+	return false;
+
+      if (!decode_data_buffer (&t->dc_reply, &ping_res)
+	  || !finish_decoding (&t->dc_reply)
+	  || ping_res.len != ping_args.len)
+	{
+	  *r = ZFS_INVALID_REPLY;
+	  return false;
+	}
+
+      nod = node_lookup (sid);
+      if (!nod)
+	{
+	  *r = ZFS_CONNECTION_CLOSED;
+	  return false;
+	}
+      if (!node_has_valid_fd (nod))
+	{
+	  zfsd_mutex_unlock (&nod->mutex);
+	  *r = ZFS_CONNECTION_CLOSED;
+	  return false;
+	}
+      if (fd != nod->fd)
+	{
+	  if (*r >= ZFS_ERROR_HAS_DC_REPLY)
+	    recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[nod->fd]);
+	  zfsd_mutex_unlock (&nod->mutex);
+	  return true;
+	}
+      zfsd_mutex_unlock (&nod->mutex);
+
+      if (t1.tv_sec < t0.tv_sec
+	  || (t1.tv_sec < t0.tv_sec))
+	i--;
+      else
+	{
+	  if (t1.tv_sec - t0.tv_sec > 1)
+	    {
+	      fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
+	      return false;
+	    }
+
+	  delta += (t1.tv_sec - t0.tv_sec) * 1000000 + t1.tv_usec - t0.tv_usec;
+	  if (delta > 30000)	/* FIXME: configuration or defined constant*/
+	    {
+	      fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
+	      return false;
+	    }
+	}
+    }
+
+  fd_data_a[fd].speed = CONNECTION_SPEED_FAST;
+  return false;
+}
+
 /* Authenticate connection with node NOD using data of thread T.
    On success leave NETWORK_FD_DATA[NOD->FD].MUTEX lcoked.  */
 
@@ -536,6 +616,12 @@ again:
     {
       case AUTHENTICATION_NONE:
 	fd_data_a[fd].auth = AUTHENTICATION_Q1;
+
+	if (node_measure_connection_speed (t, fd, sid, &r))
+	  goto again;
+	if (r != ZFS_OK)
+	  goto node_authenticate_error;
+
 	memset (&args1, 0, sizeof (args1));
 	/* FIXME: really do authentication */
 	args1.node = node_name;
