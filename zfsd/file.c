@@ -863,6 +863,15 @@ filldir_htab (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
   dir_entry *entry;
   void **slot;
 
+  entries->last_cookie = cookie;
+
+  /* Do not add "." and "..".  */
+  if (name[0] == '.'
+      && (name[1] == 0
+	  || (name[1] == '.'
+	      && name[2] == 0)))
+    return true;
+
   zfsd_mutex_lock (&dir_entry_mutex);
   entry = (dir_entry *) pool_alloc (dir_entry_pool);
   zfsd_mutex_unlock (&dir_entry_mutex);
@@ -882,7 +891,6 @@ filldir_htab (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
 
   *slot = entry;
   list->n++;
-  entries->last_cookie = cookie;
 
   return true;
 }

@@ -901,6 +901,28 @@ zfs_lookup_retry:
       if (vol)
 	CHECK_MUTEX_LOCKED (&vol->mutex);
 
+      if (strcmp (name->str, ".") == 0)
+	{
+	  res->file = pvd->fh;
+	  res->attr = pvd->attr;
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return ZFS_OK;
+	}
+      else if (strcmp (name->str, "..") == 0)
+	{
+	  vd = pvd->parent ? pvd->parent : pvd;
+	  res->file = vd->fh;
+	  res->attr = vd->attr;
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&pvd->mutex);
+	  zfsd_mutex_unlock (&vd_mutex);
+	  return ZFS_OK;
+	}
+
       vd = vd_lookup_name (pvd, name->str);
       zfsd_mutex_unlock (&vd_mutex);
       if (vd)
@@ -953,6 +975,36 @@ zfs_lookup_retry:
 
   CHECK_MUTEX_LOCKED (&idir->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (strcmp (name->str, ".") == 0)
+    {
+      res->file = idir->fh->local_fh;
+      res->attr = idir->fh->attr;
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_OK;
+    }
+  else if (strcmp (name->str, "..") == 0)
+    {
+      if (idir->parent)
+	{
+	  res->file = idir->parent->fh->local_fh;
+	  res->attr = idir->parent->fh->attr;
+	  release_dentry (idir);
+	  zfsd_mutex_unlock (&vol->mutex);
+	}
+      else
+	{
+	  release_dentry (idir);
+	  /* This is safe because the virtual directory can't be destroyed
+	     while volume is locked.  */
+	  pvd = vol->root_vd->parent ? vol->root_vd->parent : vol->root_vd;
+	  res->file = pvd->fh;
+	  res->attr = pvd->attr;
+	  zfsd_mutex_unlock (&vol->mutex);
+	}
+      return ZFS_OK;
+    }
 
   if (vol->local_path)
     {
