@@ -148,7 +148,7 @@ typedef struct thread_pool_regulator_data_def
 
 extern bool get_running ();
 extern void set_running (bool value);
-extern void thread_terminate_blocking_syscall (pthread_t thread, pthread_mutex_t *mutex);
+extern void thread_terminate_blocking_syscall (pthread_t thid, pthread_mutex_t *mutex);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,

@@ -51,7 +51,7 @@ static pthread_mutex_t request_id_mutex;
 /* void zfs_proc_null (void) */
 
 void
-zfs_proc_null_server (void *args, thread *t)
+zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, thread *t)
 {
   DC *dc = &t->dc;
 
@@ -61,7 +61,7 @@ zfs_proc_null_server (void *args, thread *t)
 /* zfs_fh zfs_proc_root (void); */
 
 void
-zfs_proc_root_server (void *args, thread *t)
+zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, thread *t)
 {
   DC *dc = &t->dc;
 

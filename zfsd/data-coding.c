@@ -162,7 +162,6 @@ encode_##T (DC *dc, T val)					\
   return true;							\
 }
 
-typedef unsigned char uchar;
 
 DECODE_SIMPLE_TYPE (char, 1, *)
 DECODE_SIMPLE_TYPE (uchar, 1, *)
@@ -298,13 +297,13 @@ encode_string (DC *dc, string *str)
 }
 
 bool
-decode_void (DC *dc, void *v)
+decode_void (ATTRIBUTE_UNUSED DC * dc, ATTRIBUTE_UNUSED void *v)
 {
   return true;
 }
 
 bool
-encode_void (DC *dc, void *v)
+encode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED void *v)
 {
   return true;
 }

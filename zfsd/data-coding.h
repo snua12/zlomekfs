@@ -151,7 +151,10 @@ extern int finish_encoding (DC *dc);
 extern bool start_decoding (DC *dc);
 extern bool finish_decoding (DC *dc);
 
+typedef unsigned char uchar;
+
 extern bool decode_char (DC *dc, char *ret);
+extern bool decode_uchar (DC *dc, uchar *ret);
 extern bool decode_int16_t (DC *dc, int16_t *ret);
 extern bool decode_uint16_t (DC *dc, uint16_t *ret);
 extern bool decode_int32_t (DC *dc, int32_t *ret);
@@ -160,6 +163,7 @@ extern bool decode_int64_t (DC *dc, int64_t *ret);
 extern bool decode_uint64_t (DC *dc, uint64_t *ret);
 
 extern bool encode_char (DC *dc, char val);
+extern bool encode_uchar (DC *dc, uchar val);
 extern bool encode_int16_t (DC *dc, int16_t val);
 extern bool encode_uint16_t (DC *dc, uint16_t val);
 extern bool encode_int32_t (DC *dc, int32_t val);

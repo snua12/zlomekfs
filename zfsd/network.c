@@ -718,7 +718,7 @@ register_server ()
 /* Main function of the main (i.e. listening) network thread.  */
 
 static void *
-network_main (void * ATTRIBUTE_UNUSED data)
+network_main (ATTRIBUTE_UNUSED void *data)
 {
   struct pollfd *pfd;
   int i, n;

@@ -304,7 +304,7 @@ create_client_threads ()
 /* Main function of the main (i.e. listening) client thread.  */
 
 static void *
-client_main (void * ATTRIBUTE_UNUSED data)
+client_main (ATTRIBUTE_UNUSED void *data)
 {
   struct pollfd pfd;
   ssize_t r;
@@ -346,8 +346,6 @@ client_main (void * ATTRIBUTE_UNUSED data)
 	{
 	  if (client_data.read < 4)
 	    {
-	      ssize_t r;
-
 	      zfsd_mutex_lock (&client_data.mutex);
 	      if (client_data.ndc == 0)
 		{

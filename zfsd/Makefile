@@ -21,7 +21,7 @@
 CC = g++
 LD = $(CC)
 DEFS = -DENABLE_CHECKING -DTEST
-CFLAGS = -g -Wall -pedantic
+CFLAGS = -g -W -Wall -pedantic
 LDFLAGS =
 LIBS = -lpthread
 COMPILE = $(CC) $(DEFS) $(CFLAGS)

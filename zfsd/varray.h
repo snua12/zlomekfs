@@ -87,7 +87,7 @@ extern void varray_create (varray *va, unsigned int size, unsigned int nelem);
 extern void varray_destroy (varray *va);
 extern void varray_grow (varray *va, unsigned int nelem);
 #ifdef ENABLE_CHECKING
-extern void varray_check_failed (unsigned int index, const char *file,
+extern void varray_check_failed (unsigned int pos, const char *file,
 				 int line) ATTRIBUTE_NORETURN;
 #endif
 

@@ -194,8 +194,6 @@ fibheap_replace_key_data (fibheap heap, fibnode node, fibheapkey_t key,
      for now.  */
   if (key > node->key)
     {
-      void *data = node->data;
-
       fibheap_delete_node (heap, node);
       fibheap_insert (heap, key, data);
     }
@@ -397,7 +395,7 @@ fibheap_consolidate (fibheap heap)
 
 /* Make NODE a child of PARENT.  */
 static void
-fibheap_link (fibheap heap , fibnode node, fibnode parent)
+fibheap_link (ATTRIBUTE_UNUSED fibheap heap, fibnode node, fibnode parent)
 {
   if (parent->child == NULL)
     parent->child = node;

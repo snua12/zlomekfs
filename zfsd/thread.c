@@ -81,7 +81,7 @@ set_running (bool value)
    locking MUTEX.  */
 
 void
-thread_terminate_blocking_syscall (pthread_t thread, pthread_mutex_t *mutex)
+thread_terminate_blocking_syscall (pthread_t thid, pthread_mutex_t *mutex)
 {
   int i;
   unsigned long delay = 1;
@@ -92,7 +92,7 @@ thread_terminate_blocking_syscall (pthread_t thread, pthread_mutex_t *mutex)
       usleep (delay);
       delay *= 500;
       if (pthread_mutex_trylock (mutex) != 0)
-	pthread_kill (thread, SIGUSR1);
+	pthread_kill (thid, SIGUSR1);
       else
 	break;
     }

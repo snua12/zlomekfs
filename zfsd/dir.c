@@ -728,8 +728,6 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       /* !vd */
       if (vol)
 	{
-	  int r;
-
 	  r = update_volume_root (vol, &idir);
 	  if (r != ZFS_OK)
 	    {
@@ -750,8 +748,6 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   if (idir)
     {
-      int r;
-
       CHECK_MUTEX_LOCKED (&idir->mutex);
       CHECK_MUTEX_LOCKED (&vol->mutex);
 

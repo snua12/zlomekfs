@@ -81,7 +81,7 @@ terminate ()
 /* Signal handler for terminating zfsd.  */
 
 static void
-exit_sighandler (int signum)
+exit_sighandler (ATTRIBUTE_UNUSED int signum)
 {
   message (2, stderr, "Entering exit_sighandler\n");
   zfsd_mutex_lock (&running_mutex);
@@ -144,7 +144,7 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
 /* Empty signal handler, used to break poll.  */
 
 static void
-dummy_sighandler (int signum)
+dummy_sighandler (ATTRIBUTE_UNUSED int signum)
 {
 }
 
