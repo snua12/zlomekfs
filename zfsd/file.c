@@ -3004,9 +3004,6 @@ remote_reread_config (string *path, node nod)
   t = (thread *) pthread_getspecific (thread_data_key);
   r = zfs_proc_reread_config_client (t, &args, nod, &fd);
 
-  if (r >= ZFS_ERROR_HAS_DC_REPLY)
-    recycle_dc_to_fd (t->dc_reply, fd);
-
   RETURN_VOID;
 }
 
