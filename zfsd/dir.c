@@ -1302,6 +1302,53 @@ remote_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol)
   return r;
 }
 
+/* Lookup remote file NAME in directory DIR on volume VOL and store
+   its file handle and attributes to RES.  */
+
+int32_t
+remote_lookup_fh (dir_op_res *res, zfs_fh *dir, string *name, volume vol)
+{
+  dir_op_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (zfs_fh_undefined (*dir))
+    abort ();
+#endif
+
+  args.dir = *dir;
+  args.name = *name;
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_lookup_client (t, &args, nod, &fd);
+
+  if (r == ZFS_OK)
+    {
+      if (!decode_dir_op_res (t->dc_reply, res)
+	  || !finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+  else if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
 /* Lookup file NAME in directory DIR and store its file handle and attributes
    to RES.  */
 
