@@ -3589,7 +3589,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   if (!vol)
     return ESTALE;
 
-  if (vol->local_path.str)
+  if (fh->sid == this_node->id)
     {
       r = local_file_info (res, fh, vol);
       zfsd_mutex_unlock (&vol->mutex);
@@ -3833,7 +3833,7 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path.str)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     r = local_reintegrate_add (vol, idir, name, fh);
   else if (vol->master != this_node)
     {
@@ -3983,7 +3983,7 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   if (r != ZFS_OK)
     return r;
 
-  if (vol->local_path.str)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       r = local_reintegrate_del (vol, idir, name, destroy_p, &tmp_fh);
     }
@@ -4021,44 +4021,22 @@ local_reintegrate_set (zfs_fh *fh, uint64_t version, internal_dentry dentry,
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (dentry)
-    CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
-  if (dentry)
+  dentry->fh->meta.local_version = version;
+  if (!vol->is_copy)
+    dentry->fh->meta.master_version = version;
+  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+  if (!flush_metadata (vol, &dentry->fh->meta))
     {
-      dentry->fh->meta.local_version = version;
-      if (!vol->is_copy)
-	dentry->fh->meta.master_version = version;
-      set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
-      if (!flush_metadata (vol, &dentry->fh->meta))
-	{
-	  vol->delete_p = true;
-	  release_dentry (dentry);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  return ZFS_UPDATE_FAILED;
-	}
+      vol->delete_p = true;
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
+      return ZFS_UPDATE_FAILED;
     }
-  else
-    {
-      metadata meta;
-
-      if (!get_metadata (vol, fh, &meta))
-	return ZFS_UPDATE_FAILED;
-
-      meta.local_version = version;
-      if (!vol->is_copy)
-	meta.master_version = version;
-
-      if (!flush_metadata (vol, &meta))
-	{
-	  vol->delete_p = true;
-	  zfsd_mutex_unlock (&vol->mutex);
-	  return ZFS_UPDATE_FAILED;
-	}
-    }
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
@@ -4079,22 +4057,16 @@ remote_reintegrate_set (zfs_fh *fh, uint64_t version, internal_dentry dentry,
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (dentry)
-    {
-      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-	abort ();
-    }
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+    abort ();
 #endif
 
   args.fh = *fh;
   args.version = version;
+  dentry->fh->attr.version = version;
 
-  if (dentry)
-    {
-      dentry->fh->attr.version = version;
-      release_dentry (dentry);
-    }
+  release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&vol->mutex);
@@ -4129,16 +4101,20 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
     return EINVAL;
 
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
-  if (r != ZFS_OK)
+  if (r == ZFS_STALE)
     {
-      vol = volume_lookup (fh->vid);
-      dentry = NULL;
+      r = refresh_fh (fh);
+      if (r != ZFS_OK)
+	return r;
+      r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
     }
+  if (r != ZFS_OK)
+    return r;
 
   if (!vol)
     return ESTALE;
 
-  if (fh->sid == this_node->id)
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     r = local_reintegrate_set (fh, version, dentry, vol);
   else if (vol->master != this_node)
     r = remote_reintegrate_set (fh, version, dentry, vol);
