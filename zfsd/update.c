@@ -178,7 +178,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
     {
       if (local_md5.offset[i] != remote_md5.offset[i])
 	{
-	  abort (); /* FIXME: do not abort, return error only */
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  RETURN_INT (ZFS_UPDATE_FAILED);
@@ -205,7 +204,6 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       if (remote_md5.length[i] > ZFS_MAXDATA
 	  || remote_md5.offset[i] + remote_md5.length[i] > remote_md5.size)
 	{
-	  abort (); /* FIXME: do not abort, return error only */
 	  RETURN_INT (ZFS_UPDATE_FAILED);
 	}
 
