@@ -710,6 +710,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
       case FT_BAD:
 	if (!delete_tree (dentry, vol))
 	  return ZFS_UPDATE_FAILED;
+	r = ZFS_OK;
 	break;
 
       case FT_REG:
@@ -945,6 +946,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	release_dentry (dir);
 	zfsd_mutex_unlock (&vol->mutex);
 	zfsd_mutex_unlock (&fh_mutex);
+	r = ZFS_OK;
 	break;
 
       case FT_REG:
