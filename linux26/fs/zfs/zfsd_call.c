@@ -80,6 +80,7 @@ int send_request(struct request *req) {
 	/* If some error (interrupt or timeout) occurs, remove the request from appropriate queue. */
 	switch (req->state) {
 		case REQ_PENDING:
+			down(&channel.req_pending_count);
 			down(&channel.req_pending_lock);
 			list_del(&req->item);
 			up(&channel.req_pending_lock);

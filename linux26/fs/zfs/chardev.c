@@ -59,6 +59,7 @@ NEXT_REQUEST:
 	req = list_entry(channel.req_pending.next, struct request, item);
 	if (down_trylock(&req->lock)) {
 		up(&channel.req_pending_lock);
+		up(&channel.req_pending_count);
 		goto NEXT_REQUEST;
 	}
 	list_del(&req->item);
