@@ -96,17 +96,23 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 		   internal_dentry *dentryp, virtual_dir *vdp,
 		   zfs_cap *tmp_cap)
 {
+  int32_t r;
+  bool wait_for_locked;
+
   if (volp)
     CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   if (vdp && *vdp)
     CHECK_MUTEX_LOCKED (&(*vdp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (level > LEVEL_EXCLUSIVE)
+    abort ();
+#endif
 
   *tmp_cap = (*icapp)->local_cap;
-  if ((*dentryp)->fh->level != LEVEL_UNLOCKED)
+  wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
+  if (wait_for_locked)
     {
-      int32_t r;
-
       /* Mark the dentry so that nobody else can lock dentry before us.  */
       if (level > (*dentryp)->fh->level)
 	(*dentryp)->fh->level = level;
@@ -116,11 +122,15 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       if (vdp && *vdp)
 	zfsd_mutex_unlock (&(*vdp)->mutex);
 
-      while ((*dentryp)->fh->level != LEVEL_UNLOCKED)
+      while ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
-      r = find_capability (tmp_cap, icapp, volp, dentryp, vdp);
+      if (VIRTUAL_FH_P (tmp_cap->fh))
+	zfsd_mutex_lock (&vd_mutex);
+      r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp);
+      if (VIRTUAL_FH_P (tmp_cap->fh) && vdp && !*vdp)
+	zfsd_mutex_unlock (&vd_mutex);
       if (r != ZFS_OK)
 	return r;
     }
@@ -131,6 +141,26 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     {
       (*vdp)->busy = true;
       (*vdp)->users++;
+    }
+
+  if (!wait_for_locked)
+    {
+      release_dentry (*dentryp);
+      if (volp)
+	zfsd_mutex_unlock (&(*volp)->mutex);
+      if (vdp && *vdp)
+	zfsd_mutex_unlock (&(*vdp)->mutex);
+
+      if (VIRTUAL_FH_P (tmp_cap->fh))
+	zfsd_mutex_lock (&vd_mutex);
+      r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp);
+      /* Following condition should not be needed.  */
+      if (VIRTUAL_FH_P (tmp_cap->fh) && vdp && !*vdp)
+	zfsd_mutex_unlock (&vd_mutex);
+#ifdef ENABLE_CHECKING
+      if (r != ZFS_OK)
+	abort ();
+#endif
     }
 
   return ZFS_OK;

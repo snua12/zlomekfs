@@ -356,6 +356,7 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
 
   release_dentry (*dentryp);
   zfsd_mutex_unlock (&(*volp)->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
   r = refresh_master_fh (fh);
   if (r != ZFS_OK)
@@ -371,7 +372,7 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
   if (r != ZFS_OK)
     goto out;
 
-  r2 = zfs_fh_lookup (fh, volp, dentryp, NULL);
+  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -385,7 +386,7 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
   return UPDATE_P (*dentryp, *attr);
 
 out:
-  r2 = zfs_fh_lookup (fh, volp, dentryp, NULL);
+  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -403,6 +404,7 @@ delete_tree (internal_dentry dentry, volume vol)
   uint32_t vid;
   bool r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -410,6 +412,7 @@ delete_tree (internal_dentry dentry, volume vol)
   vid = vol->id;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   r = recursive_unlink (path, vid);
   free (path);
 
@@ -425,12 +428,14 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
   uint32_t vid;
   bool r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name);
   vid = vol->id;
   release_dentry (dir);
+  zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vol->mutex);
   r = recursive_unlink (path, vid);
   free (path);
@@ -456,6 +461,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
   create_res cr_res;
   dir_op_res res;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
@@ -482,7 +488,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    if (!delete_tree (dentry, vol))
 	      return ZFS_UPDATE_FAILED;
 
-	    r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL);
+	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
 #ifdef ENABLE_CHECKING
 	    if (r2 != ZFS_OK)
 	      abort ();
@@ -529,7 +535,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	    if (!delete_tree (dentry, vol))
 	      return ZFS_UPDATE_FAILED;
 
-	    r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL);
+	    r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
 #ifdef ENABLE_CHECKING
 	    if (r2 != ZFS_OK)
 	      abort ();
@@ -562,11 +568,12 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	break;
 
       case FT_LNK:
+	zfsd_mutex_unlock (&fh_mutex);
 	r = remote_readlink (&link_to, dentry, vol);
 	if (r != ZFS_OK)
 	  return r;
 
-	r2 = zfs_fh_lookup (local_fh, &vol, &dentry, NULL);
+	r2 = zfs_fh_lookup_nolock (local_fh, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -575,7 +582,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	if (!delete_tree (dentry, vol))
 	  return ZFS_UPDATE_FAILED;
 
-	r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL);
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -602,7 +609,7 @@ update_local_fh (internal_dentry dentry, string *name, volume vol,
 	if (!delete_tree (dentry, vol))
 	  return ZFS_UPDATE_FAILED;
 
-	r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL);
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -687,6 +694,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   dir_op_res res;
   int fd;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
@@ -699,6 +707,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       case FT_BAD:
 	release_dentry (dir);
 	zfsd_mutex_unlock (&vol->mutex);
+	zfsd_mutex_unlock (&fh_mutex);
 	break;
 
       case FT_REG:
@@ -736,12 +745,13 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 
       case FT_LNK:
 	release_dentry (dir);
+	zfsd_mutex_unlock (&fh_mutex);
 
 	r = remote_readlink_zfs_fh (&link_to, remote_fh, vol);
 	if (r != ZFS_OK)
 	  return r;
 
-	r2 = zfs_fh_lookup (dir_fh, &vol, &dir, NULL);
+	r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
 	  abort ();
@@ -857,7 +867,6 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       zfsd_mutex_lock (&dentry->parent->fh->mutex);
       parent_fh = dir->parent->fh->local_fh;
       zfsd_mutex_unlock (&dentry->parent->fh->mutex);
-      zfsd_mutex_unlock (&fh_mutex);
 
       xmkstring (&name, dentry->name);
       remote_fh = dentry->fh->master_fh;
@@ -883,6 +892,15 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       sa.size = (uint64_t) -1;
       sa.atime = (zfs_time) -1;
       sa.mtime = (zfs_time) -1;
+
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
 
       r = local_setattr (&dir->fh->attr, dir, &sa, vol);
       if (r != ZFS_OK)
@@ -916,7 +934,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	{
 	  /* Update file.  */
 
-	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
@@ -939,7 +957,6 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	  dentry = get_dentry (&local_res.file, &remote_res.file, vol,
 			       dir, entry->name.str, &local_res.attr);
 	  release_dentry (dir);
-	  zfsd_mutex_unlock (&fh_mutex);
 
 	  if (UPDATE_P (dentry, remote_res.attr))
 	    {
@@ -953,6 +970,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
 	    {
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
 	    }
 
 	  htab_clear_slot (remote_entries.htab, slot2);
@@ -960,7 +978,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       else
 	{
 	  /* Delete file.  */
-	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
+	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
 	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	    abort ();
 
@@ -984,7 +1002,7 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
       if (r != ZFS_OK)
 	goto out;
 
-      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL);
+      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL);
       if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
 	abort ();
 

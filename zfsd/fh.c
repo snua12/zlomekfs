@@ -693,6 +693,9 @@ int32_t
 internal_dentry_lock (unsigned int level, volume *volp,
 		      internal_dentry *dentryp, zfs_fh *tmp_fh)
 {
+  int32_t r;
+  bool wait_for_locked;
+
   if (volp)
     CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
@@ -702,10 +705,9 @@ internal_dentry_lock (unsigned int level, volume *volp,
 #endif
 
   *tmp_fh = (*dentryp)->fh->local_fh;
-  if ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE)
+  wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
+  if (wait_for_locked)
     {
-      int32_t r;
-
       /* Mark the dentry so that nobody else can lock dentry before us.  */
       if (level > (*dentryp)->fh->level)
 	(*dentryp)->fh->level = level;
@@ -717,7 +719,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
-      r = zfs_fh_lookup (tmp_fh, volp, dentryp, NULL);
+      r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL);
       if (r != ZFS_OK)
 	return r;
     }
@@ -730,6 +732,19 @@ internal_dentry_lock (unsigned int level, volume *volp,
   else if ((*dentryp)->fh->owner)
     abort ();
 #endif
+
+  if (!wait_for_locked)
+    {
+      release_dentry (*dentryp);
+      if (volp)
+	zfsd_mutex_unlock (&(*volp)->mutex);
+
+      r = zfs_fh_lookup_nolock (tmp_fh, volp, dentryp, NULL);
+#ifdef ENABLE_CHECKING
+      if (r != ZFS_OK)
+	abort ();
+#endif
+    }
 
   return ZFS_OK;
 }
@@ -807,6 +822,7 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
 
       release_dentry (*dentry1p);
       zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
 
       r = zfs_fh_lookup (tmp_fh2, volp, dentry2p, NULL);
       if (r != ZFS_OK)
@@ -831,6 +847,7 @@ out1:
 
       release_dentry (*dentry2p);
       zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
     }
   else /* if (tmp_fh1->ino > tmp_fh2->ino) */
     {
@@ -842,6 +859,7 @@ out1:
 
       release_dentry (*dentry2p);
       zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
 
       r = zfs_fh_lookup (tmp_fh1, volp, dentry1p, NULL);
       if (r != ZFS_OK)
@@ -866,6 +884,7 @@ out2:
 
       release_dentry (*dentry1p);
       zfsd_mutex_unlock (&(*volp)->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
     }
 
   /* Lookup dentries again.  */
@@ -880,8 +899,6 @@ out2:
   if (!*dentry2p)
     abort ();
 #endif
-
-  zfsd_mutex_unlock (&fh_mutex);
 
   return ZFS_OK;
 }

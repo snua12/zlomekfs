@@ -54,6 +54,8 @@
       {									\
 	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
 	  {								\
+	    zfsd_mutex_unlock (&fh_mutex);				\
+									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
@@ -67,8 +69,6 @@
 		zfsd_mutex_unlock (&fh_mutex);				\
 		return r;						\
 	      }								\
-									\
-	    zfsd_mutex_unlock (&fh_mutex);				\
 	  }								\
       }									\
   } while (0)
@@ -93,6 +93,8 @@
 									\
 	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
 	  {								\
+	    zfsd_mutex_unlock (&fh_mutex);				\
+									\
 	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
 	    if (r != ZFS_OK)						\
 	      return r;							\
@@ -122,13 +124,12 @@
 	      }								\
 	    else							\
 	      (DENTRY2) = (DENTRY);					\
-									\
-	    zfsd_mutex_unlock (&fh_mutex);				\
 	  }								\
 	else								\
 	  {								\
 	    zfsd_mutex_unlock (&(DENTRY)->fh->mutex);			\
 	    zfsd_mutex_unlock (&(VOL)->mutex);				\
+	    zfsd_mutex_unlock (&fh_mutex);				\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL);	\
 	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
@@ -142,8 +143,6 @@
 	      }								\
 	    else							\
 	      (DENTRY2) = (DENTRY);					\
-									\
-	    zfsd_mutex_unlock (&fh_mutex);				\
           }								\
       }									\
   } while (0)
@@ -160,12 +159,18 @@
 	tmp_fh = (DENTRY)->fh->local_fh;				\
 	if (update_p (&(DENTRY), &(VOL), &tmp_fh, &remote_attr))	\
 	  {								\
+	    zfsd_mutex_unlock (&fh_mutex);				\
+									\
 	    r = update_fh ((DENTRY), (VOL), &tmp_fh, &remote_attr);	\
 	    if (r != ZFS_OK)						\
 	      return r;							\
 									\
-	    r = find_capability (&(CAP), &(ICAP), &(VOL), &(DENTRY),	\
+	    if (VIRTUAL_FH_P ((CAP).fh))				\
+	      zfsd_mutex_lock (&vd_mutex);				\
+	    r = find_capability_nolock (&(CAP), &(ICAP), &(VOL), &(DENTRY),\
 				 &(VD));				\
+	    if (VIRTUAL_FH_P ((CAP).fh))				\
+	      zfsd_mutex_unlock (&vd_mutex);				\
 	    if (ENABLE_CHECKING_VALUE && r != ZFS_OK)			\
 	      abort ();							\
 	    if (VD)							\

@@ -183,6 +183,7 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   char *path;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -195,7 +196,10 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
     local_close (dentry->fh);
 
   else if (capability_opened_p (dentry->fh))
-    return ZFS_OK;
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      return ZFS_OK;
+    }
 
   if (dentry->fh->attr.type == FT_DIR)
     flags |= O_RDONLY;
@@ -203,6 +207,7 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
     flags |= O_RDWR;
 
   path = build_local_path (vol, dentry);
+  zfsd_mutex_unlock (&fh_mutex);
   dentry->fh->fd = safe_open (path, flags, 0);
   free (path);
   if (dentry->fh->fd >= 0)
@@ -301,6 +306,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   path = build_local_path_name (vol, dir, name->str);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   r = safe_open (path, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
     {
@@ -442,6 +448,7 @@ zfs_create_retry:
     }
   else if (vol->master != this_node)
     {
+      zfsd_mutex_unlock (&fh_mutex);
       r = remote_create (res, idir, name, flags, attr, vol);
       if (r == ZFS_OK)
 	master_res.file = res->file;
@@ -544,6 +551,7 @@ local_open (uint32_t flags, internal_dentry dentry, volume vol)
 {
   int32_t r;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -650,7 +658,10 @@ zfs_open_retry:
     return r;
 
   if (vd)
-    zfsd_mutex_unlock (&vd->mutex);
+    {
+      zfsd_mutex_unlock (&vd->mutex);
+      zfsd_mutex_unlock (&vd_mutex);
+    }
 
   flags &= ~O_ACCMODE;
   if (vol->local_path)
@@ -679,6 +690,7 @@ zfs_open_retry:
     }
   else if (vol->master != this_node)
     {
+      zfsd_mutex_unlock (&fh_mutex);
       r = remote_open (&remote_cap, icap, flags, dentry, vol);
     }
   else
@@ -765,7 +777,12 @@ zfs_close_retry:
     return r;
 
   if (vd)
-    zfsd_mutex_unlock (&vd->mutex);
+    {
+      zfsd_mutex_unlock (&vd->mutex);
+      zfsd_mutex_unlock (&vd_mutex);
+    }
+  if (dentry)
+    zfsd_mutex_unlock (&fh_mutex);
 
   if (vol->local_path)
     {
@@ -1042,14 +1059,22 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   if (vol)
     CHECK_MUTEX_LOCKED (&vol->mutex);
   if (dentry)
-    CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+    {
+      CHECK_MUTEX_LOCKED (&fh_mutex);
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+    }
   if (vd)
-    CHECK_MUTEX_LOCKED (&vd->mutex);
+    {
+      CHECK_MUTEX_LOCKED (&vd_mutex);
+      CHECK_MUTEX_LOCKED (&vd->mutex);
+    }
 
   if (vd)
     {
       if (!read_virtual_dir (list, vd, cookie, data, filldir))
 	{
+	  if (dentry)
+	    zfsd_mutex_unlock (&fh_mutex);
 	  return (list->n == 0) ? EINVAL : ZFS_OK;
 	}
     }
@@ -1321,23 +1346,20 @@ zfs_readdir_retry:
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
   r = find_capability_nolock (cap, &icap, &vol, &dentry, &vd);
+  if (VIRTUAL_FH_P (cap->fh) && !vd)
+    zfsd_mutex_unlock (&vd_mutex);
   if (r != ZFS_OK)
-    {
-      if (VIRTUAL_FH_P (cap->fh))
-	zfsd_mutex_unlock (&vd_mutex);
-      return r;
-    }
+    return r;
 
   if (dentry)
     {
       zfsd_mutex_unlock (&fh_mutex);
+      if (vd)
+	zfsd_mutex_unlock (&vd_mutex);
       if (dentry->fh->attr.type != FT_DIR)
 	{
 	  if (vd)
-	    {
-	      zfsd_mutex_unlock (&vd->mutex);
-	      zfsd_mutex_unlock (&vd_mutex);
-	    }
+	    zfsd_mutex_unlock (&vd->mutex);
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
@@ -1372,6 +1394,7 @@ zfs_readdir_retry:
 	  zfsd_mutex_unlock (&vd->mutex);
 	  zfsd_mutex_unlock (&vd_mutex);
 	}
+      zfsd_mutex_unlock (&fh_mutex);
       r = remote_readdir (list, icap, dentry, cookie, &data, vol, filldir);
     }
   else
@@ -1435,6 +1458,7 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
   int32_t r;
   int fd;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -1644,6 +1668,7 @@ zfs_read_retry:
 	    {
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
 
 	      r = update_file_blocks (true, rcount, buffer, offset,
 				      icap, &blocks);
@@ -1664,7 +1689,10 @@ zfs_read_retry:
 	r = local_read (rcount, buffer, dentry, offset, count, vol);
     }
   else if (vol->master != this_node)
-    r = remote_read (rcount, buffer, icap, dentry, offset, count, vol);
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_read (rcount, buffer, icap, dentry, offset, count, vol);
+    }
   else
     abort ();
 
@@ -1698,6 +1726,7 @@ local_write (write_res *res, internal_dentry dentry,
   int32_t r;
   int fd;
 
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
@@ -1821,7 +1850,10 @@ zfs_write_retry:
   if (vol->local_path)
     r = local_write (res, dentry, args->offset, &args->data, vol);
   else if (vol->master != this_node)
-    r = remote_write (res, icap, dentry, args, vol);
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      r = remote_write (res, icap, dentry, args, vol);
+    }
   else
     abort ();
 
@@ -1920,7 +1952,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
   cap.flags = O_RDONLY;
 
   /* Open directory.  */
-  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, true);
+  r2 = get_capability (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1928,7 +1960,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
   r = local_open (0, dentry, vol);
 
-  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+  r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
@@ -1939,6 +1971,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
       put_capability (icap, dentry->fh, NULL);
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
       return r;
     }
 
@@ -1964,7 +1997,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 	}
       release_dentry (dentry);
 
-      r2 = find_capability (&cap, &icap, &vol, &dentry, NULL);
+      r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL);
 #ifdef ENABLE_CHECKING
       if (r2 != ZFS_OK)
 	abort ();
@@ -1974,6 +2007,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
   /* Close directory.  */
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   r = local_close (dentry->fh);
   put_capability (icap, dentry->fh, NULL);
   release_dentry (dentry);
