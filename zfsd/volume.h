@@ -22,7 +22,7 @@
 #define VOLUME_H
 
 #include "system.h"
-#include <stdint.h>
+#include <inttypes.h>
 #include "node.h"
 
 /* Volume description.  */

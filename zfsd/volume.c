@@ -19,8 +19,8 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <inttypes.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include "memory.h"
 #include "volume.h"
 

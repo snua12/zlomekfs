@@ -34,7 +34,7 @@
 #define SPLAY_TREE_H
 
 #include "system.h"
-#include <stdint.h>
+#include <inttypes.h>
 #include "alloc-pool.h"
 
 /* Use typedefs for the key and data types to facilitate changing

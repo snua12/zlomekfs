@@ -23,8 +23,8 @@
    already in the tree the intervals are merged into one interval.  */
 
 #include "system.h"
+#include <inttypes.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include "interval.h"
 #include "log.h"

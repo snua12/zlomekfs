@@ -22,7 +22,7 @@
 #define INTERVAL_H
 
 #include "system.h"
-#include <stdint.h>
+#include <inttypes.h>
 #include "splay-tree.h"
 
 /* The interval tree.  */
