@@ -1611,9 +1611,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 			zfsd_mutex_unlock (&fh_mutex);
 
 			/* Set remote metadata. */
-			r = remote_reintegrate_set (&res.file,
-						    meta.master_version,
-						    NULL, vol);
+			r = remote_reintegrate_set (NULL, meta.master_version,
+						    &res.file, vol);
 
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
@@ -1807,8 +1806,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 
 	  if (version != res.attr.version)
 	    {
-	      r = remote_reintegrate_set (&dentry->fh->meta.master_fh, version,
-					  dentry, vol);
+	      r = remote_reintegrate_set (dentry, version, NULL, vol);
 	    }
 	  else
 	    {

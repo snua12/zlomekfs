@@ -4040,10 +4040,12 @@ local_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
   return ZFS_OK;
 }
 
-/* Set version of remote file DENTRY on volume VOL to VERSION.  */
+/* Set version of remote file handle FH with dentry DENTRY on volume VOL
+   to VERSION.  */
 
 int32_t
-remote_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
+remote_reintegrate_set (internal_dentry dentry, uint64_t version, zfs_fh *fh,
+			volume vol)
 {
   reintegrate_set_args args;
   thread *t;
@@ -4054,16 +4056,24 @@ remote_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
-  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
-    abort ();
+  if (dentry)
+    {
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	abort ();
+    }
 #endif
 
-  args.fh = dentry->fh->meta.master_fh;
   args.version = version;
-  dentry->fh->attr.version = version;
+  if (dentry)
+    {
+      args.fh = dentry->fh->meta.master_fh;
+      dentry->fh->attr.version = version;
+      release_dentry (dentry);
+    }
+  else
+    args.fh = *fh;
 
-  release_dentry (dentry);
   zfsd_mutex_lock (&node_mutex);
   zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&vol->mutex);
@@ -4108,13 +4118,10 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
   if (r != ZFS_OK)
     return r;
 
-  if (!vol)
-    return ESTALE;
-
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     r = local_reintegrate_set (dentry, version, vol);
   else if (vol->master != this_node)
-    r = remote_reintegrate_set (dentry, version, vol);
+    r = remote_reintegrate_set (dentry, version, NULL, vol);
   else
     abort ();
 
