@@ -115,10 +115,14 @@ xmkstring (string *dest, const char *s)
   memcpy (dest->str, s, dest->len + 1);
 }
 
-/* Duplicate string SRC and store it to */
+/* Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
+   string structure.  */
 void
 xstringdup (string *dest, string *src)
 {
+  char *old_str;
+
+  old_str = src->str;
   dest->len = src->len;
   dest->str = (char *) malloc (dest->len + 1);
   if (!dest->str)
@@ -126,7 +130,7 @@ xstringdup (string *dest, string *src)
       message (-1, stderr, "Not enough memory.\n");
       abort ();
     }
-  memcpy (dest->str, src->str, dest->len + 1);
+  memcpy (dest->str, old_str, dest->len + 1);
 }
 
 /* Return a copy of memory SRC of size N.  */
