@@ -53,7 +53,7 @@ fake_config ()
 
   set_node_name ();
   set_default_uid_gid ();
-  set_string (&kernel_file_name, "/home/joe/kernel");
+  set_string (&kernel_file_name, "/home/zlomj9am/kernel");
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (1, "orion");
@@ -77,14 +77,14 @@ fake_config ()
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create (2, "find");
+  nod = node_create (2, "artax");
   zfsd_mutex_unlock (&node_mutex);
 
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (3);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
-    volume_set_local_info (vol, "/home/joe/.zfs/dir1", VOLUME_NO_LIMIT);
+    volume_set_local_info (vol, "/home/zlomj9am/.zfs/dir1", VOLUME_NO_LIMIT);
 #ifdef TEST_UPDATE
   if (this_node && strcmp (this_node->name, "orion") == 0)
     volume_set_local_info (vol, "/.zfs/vol3", VOLUME_NO_LIMIT);
@@ -96,7 +96,7 @@ fake_config ()
   vol = volume_create (4);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
-    volume_set_local_info (vol, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
+    volume_set_local_info (vol, "/home/zlomj9am/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume4", "/volume2/find/volume4", nod);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&nod->mutex);
