@@ -32,6 +32,9 @@
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 extern volatile int running;
 
+/* Key for server thread specific data.  */
+extern pthread_key_t server_thread_key;
+
 /* State of the thread.  */
 typedef enum thread_state_def
 {
