@@ -1824,6 +1824,25 @@ add_reread_config_request_name (internal_dentry dir, string *name)
   add_reread_config_request (&relative_path, t->from_sid);
 }
 
+/* Add request to reread config file PATH on volume VOL to queue.  */
+
+void
+add_reread_config_request_local_path (volume vol, string *path)
+{
+  string relative_path;
+  thread *t;
+
+  local_path_to_relative_path (&relative_path, vol, path);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+#ifdef ENABLE_CHECKING
+  if (t == NULL)
+    abort ();
+#endif
+
+  add_reread_config_request (&relative_path, t->from_sid);
+}
+
 /* Add request to reread config file RELATIVE_PATH to queue.
    The request came from node FROM_SID.  */
 
