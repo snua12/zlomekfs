@@ -128,7 +128,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
       pthread_mutex_lock (&virtual_dir_mutex);
       vd = (virtual_dir) htab_find_with_hash (virtual_dir_htab, fh, hash);
       pthread_mutex_unlock (&virtual_dir_mutex);
-      if (!vd || vd->active == 0)
+      if (!vd)
 	return false;
 
       *volp = vd->vol;
@@ -175,10 +175,8 @@ vd_lookup_name (virtual_dir parent, const char *name)
   pthread_mutex_lock (&virtual_dir_mutex);
   vd = (virtual_dir) htab_find (virtual_dir_htab_name, &tmp_vd);
   pthread_mutex_unlock (&virtual_dir_mutex);
-  if (vd && vd->active)
-    return vd;
 
-  return NULL;
+  return vd;
 }
 
 /* Return the internal file handle or virtual directory for NAME in directory
@@ -402,8 +400,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->subdir_index = VARRAY_USED (parent->subdirs);
   VARRAY_PUSH (parent->subdirs, vd, virtual_dir);
 
-  vd->active = 0;
-  vd->total = 0;
+  vd->n_mountpoints = 0;
   vd->vol = NULL;
   
 #ifdef ENABLE_CHECKING
@@ -434,21 +431,14 @@ virtual_dir_destroy (virtual_dir vd)
 {
   virtual_dir parent;
   void **slot;
-  int was_active;
 
-  was_active = VOLUME_ACTIVE_P (vd->vol);
-  
   /* Check the path to root.  */
   pthread_mutex_lock (&virtual_dir_mutex);
   for (; vd; vd = parent)
     {
-      vd->total--;
-      if (was_active)
-	vd->active--;
-
       parent = vd->parent;
-      
-      if (vd->total == 0)
+      vd->n_mountpoints--;
+      if (vd->n_mountpoints == 0)
 	{
 	  virtual_dir top;
 
@@ -500,8 +490,7 @@ virtual_root_create ()
   root->name = xstrdup ("");
   varray_create (&root->subdirs, sizeof (virtual_dir), 16);
   root->subdir_index = 0;
-  root->active = 1;
-  root->total = 1;
+  root->n_mountpoints = 1;
   root->vol = NULL;
 
   /* Insert the root into hash table.  */
@@ -548,7 +537,6 @@ virtual_mountpoint_create (volume vol)
   virtual_dir vd, parent, tmp;
   char *s, *mountpoint;
   unsigned int i;
-  int active;
 
   mountpoint = xstrdup (vol->mountpoint);
   varray_create (&subpath, sizeof (char *), 16);
@@ -595,13 +583,8 @@ virtual_mountpoint_create (volume vol)
   vol->root_vd = vd;
 
   /* Increase the count of volumes in subtree.  */
-  active = VOLUME_ACTIVE_P (vol);
   for (tmp = vd; tmp; tmp = tmp->parent)
-    {
-      if (active)
-	tmp->active++;
-      tmp->total++;
-    }
+    tmp->n_mountpoints++;
   pthread_mutex_unlock (&virtual_dir_mutex);
 
   free (mountpoint);

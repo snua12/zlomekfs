@@ -116,12 +116,8 @@ struct virtual_dir_def
   /* Index in parent's list of subdirectories.  */
   unsigned int subdir_index;
 
-  /* Number of active leaves
-     (i.e. the number of mountpoints of volumes which are VOLUME_ACTIVE_P).  */
-  unsigned int active;
-
-  /* Total number of leaves.  */
-  unsigned int total;
+  /* Total number of mountpoints in subtree (including current node).  */
+  unsigned int n_mountpoints;
   
   /* Volume which is mounted here.  */
   volume vol;
