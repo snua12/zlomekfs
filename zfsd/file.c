@@ -515,6 +515,10 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
      Force O_CREAT to be set here.  */
   flags |= O_CREAT;
 
+  /* With O_APPEND, data are always written to the end of file
+     and lseek has no effect on where the data will be written.  */
+  flags &= ~O_APPEND;
+
   r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
@@ -817,6 +821,10 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   /* When O_CREAT is set the function zfs_create is called.
      The flag is superfluous here.  */
   flags &= ~O_CREAT;
+
+  /* With O_APPEND, data are always written to the end of file
+     and lseek has no effect on where the data will be written.  */
+  flags &= ~O_APPEND;
 
   r = validate_operation_on_zfs_fh (fh, ((flags & O_ACCMODE) == O_RDONLY
 					 ? ZFS_OK : EISDIR), EINVAL);
