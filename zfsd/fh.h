@@ -22,11 +22,11 @@
 #define FH_H
 
 #include "system.h"
+#include <stdio.h>
 #include "alloc-pool.h"
 #include "hashtab.h"
 #include "server.h"
 #include "varray.h"
-#include "volume.h"
 
 #define VIRTUAL_DEVICE 0	/* Device number of device with virtual
 				   directories */
@@ -57,6 +57,8 @@ typedef struct svc_fh_def
   /* ... and inode number of the file.  */
   unsigned int ino;
 } svc_fh;
+
+#include "volume.h"
 
 /* Forward definitions.  */
 struct internal_fh_def;

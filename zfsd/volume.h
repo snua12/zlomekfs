@@ -25,18 +25,22 @@
 #include <inttypes.h>
 #include "node.h"
 
+typedef struct volume_def *volume;
+#include "fh.h"
+
 /* Volume description.  */
-typedef struct volume_def
+struct volume_def
 {
   unsigned id;			/* ID of the volume */
   char *name;			/* name of the volume */
   node master;			/* master node for the volume */
   char *mountpoint;		/* "mountpoint" for the volume on the cluster fs */
+  svc_fh root_fh;		/* File handle of the remote root.  */
   int flags;			/* see VOLUME_* below */
 
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
-} *volume;
+};
 
 /* Predefined volume IDs.  */
 #define VOLUME_ID_NONE    0	/* ID of the non-existing 'root' volume */
@@ -55,7 +59,8 @@ typedef struct volume_def
 #define VOLUME_NO_LIMIT 0
 
 /* Function prototypes.  */
-extern volume volume_create (unsigned id);
+extern volume volume_lookup (unsigned int id);
+extern volume volume_create (unsigned int id);
 extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);
 extern void volume_set_local_info (volume vol, const char *local_path,
