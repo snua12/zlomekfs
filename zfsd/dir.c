@@ -4409,14 +4409,12 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
 /* Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
 
 static bool
-move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
-		  metadata *meta)
+move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 {
   string path;
   string shadow_path;
   uint32_t vid;
-  uint32_t new_parent_dev;
-  uint32_t new_parent_ino;
+  metadata meta_old, meta_new;
   int32_t r;
 
   TRACE ("");
@@ -4426,8 +4424,6 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 
   build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
-  new_parent_dev = dir->fh->local_fh.dev;
-  new_parent_ino = dir->fh->local_fh.ino;
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
   get_local_path_from_metadata (&shadow_path, vol, fh);
@@ -4447,13 +4443,6 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  if (rename (shadow_path.str, path.str) != 0)
-    {
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
-
   vol = volume_lookup (vid);
   if (!vol)
     {
@@ -4462,18 +4451,11 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
       return false;
     }
 
-  if (!metadata_hardlink_set (vol, fh, meta, new_parent_dev, new_parent_ino,
-			      name))
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      free (path.str);
-      free (shadow_path.str);
-      return false;
-    }
+  r = local_rename_base (&meta_old, &meta_new, false, &shadow_path, &path,
+			 vol);
+  if (r != ZFS_OK)
+    return false;
 
-  zfsd_mutex_unlock (&vol->mutex);
-  free (path.str);
-  free (shadow_path.str);
   return true;
 }
 
@@ -4593,7 +4575,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
   if (meta.flags & METADATA_SHADOW)
     {
-      if (!move_from_shadow (vol, fh, dir, name, &meta))
+      if (!move_from_shadow (vol, fh, dir, name))
 	return ZFS_UPDATE_FAILED;
     }
   else
