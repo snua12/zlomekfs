@@ -113,6 +113,25 @@ node_create (unsigned int id, char *name)
   return nod;
 }
 
+void
+node_destroy (node nod)
+{
+  void **slot;
+
+  pthread_mutex_lock (&node_mutex);
+  slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
+				   NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (node_htab, slot);
+  pthread_mutex_unlock (&node_mutex);
+
+  free (nod->name);
+  free (nod);
+}
+
 /* Initialize data structures in NODE.C.  */
 
 void
@@ -127,8 +146,10 @@ initialize_node_c ()
 void
 cleanup_node_c ()
 {
+  void **slot;
+
   pthread_mutex_lock (&node_mutex);
-  /* TODO: destroy nodes.  */
+  HTAB_FOR_EACH_SLOT (node_htab, slot, node_destroy ((node) *slot));
   htab_destroy (node_htab);
   pthread_mutex_unlock (&node_mutex);
   pthread_mutex_destroy (&node_mutex);

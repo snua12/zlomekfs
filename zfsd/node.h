@@ -73,6 +73,7 @@ extern node this_node;
 /* Function prototypes.  */
 extern node node_lookup (unsigned int id);
 extern node node_create (unsigned int id, char *name);
+extern void node_destroy (node nod);
 extern void initialize_node_c ();
 extern void cleanup_node_c ();
 
