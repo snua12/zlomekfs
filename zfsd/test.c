@@ -409,7 +409,7 @@ do_tests (void *data)
 	    break;
 
 	  message (2, stderr, "TEST CLOSE\n");
-	  r = zfs_close (&cap);
+	  r = zfs_close (&creater.cap);
 	  message (2, stderr, "  %s\n", zfs_strerror (r));
 	}
 
@@ -417,7 +417,7 @@ do_tests (void *data)
 	break;
 
       message (2, stderr, "TEST LINK\n");
-      r = zfs_link (&cap.fh, &res.file, &test2);
+      r = zfs_link (&creater.cap.fh, &res.file, &test2);
       message (2, stderr, "  %s\n", zfs_strerror (r));
 
       if (!get_running ())
