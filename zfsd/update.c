@@ -687,7 +687,8 @@ update_file (zfs_fh *fh)
   switch (what & (IFH_UPDATE | IFH_REINTEGRATE))
     {
       default:
-	RETURN_INT (ZFS_OK);
+	r = ZFS_OK;
+	goto out2;
 
       case IFH_UPDATE:
 	cap.flags = O_RDONLY;
