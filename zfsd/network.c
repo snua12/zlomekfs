@@ -276,6 +276,24 @@ node_has_valid_fd (node nod)
   return true;
 }
 
+/* Return true if current node is conencted to node NOD.  */
+
+bool
+node_connected (node nod)
+{
+  bool r;
+
+  if (!node_has_valid_fd (nod))
+    return false;
+
+  r = (network_fd_data[nod->fd].conn == CONNECTION_SLOW
+       || network_fd_data[nod->fd].conn == CONNECTION_FAST);
+
+  zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
+
+  return r;
+}
+
 /* Connect to node NOD, return open file descriptor.  */
 
 static int
