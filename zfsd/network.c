@@ -314,6 +314,32 @@ node_has_valid_fd (node nod)
   return true;
 }
 
+/* If node SID is connected return true and store generation of file descriptor
+   to GENERATION.  Otherwise return false.  */
+
+bool
+node_connected (uint32_t sid, int *generation)
+{
+  node nod;
+
+  nod = node_lookup (sid);
+  if (!nod)
+    return false;
+
+  if (!node_has_valid_fd (nod))
+    {
+      zfsd_mutex_unlock (&nod->mutex);
+      return false;
+    }
+
+  if (generation)
+    *generation = fd_data_a[nod->fd].generation;
+
+  zfsd_mutex_unlock (&fd_data_a[nod->fd].mutex);
+  zfsd_mutex_unlock (&nod->mutex);
+  return true;
+}
+
 /* Return the speed of connection between current node and master
    of volume VOL.  */
 
