@@ -330,6 +330,8 @@ kernel_dispatch (fd_data_t *fd_data)
 
       case DIR_REQUEST:
 	/* Dispatch request.  */
+	fd_data->busy++;
+
 	zfsd_mutex_lock (&kernel_pool.idle.mutex);
 
 	/* Regulate the number of threads.  */
@@ -461,7 +463,6 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 		      fd_data->read = 0;
 		      if (kernel_dispatch (fd_data))
 			{
-			  fd_data->busy++;
 			  fd_data->ndc--;
 			  if (fd_data->ndc > 0)
 			    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
