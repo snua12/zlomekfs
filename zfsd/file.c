@@ -583,6 +583,7 @@ zfs_open_retry:
   if (!dentry)
     {
       /* We are opening virtual directory.  */
+      memcpy (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN);
       zfsd_mutex_unlock (&icap->mutex);
       if (vol)
 	zfsd_mutex_unlock (&vol->mutex);
@@ -788,6 +789,7 @@ read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
   uint32_t ino;
   unsigned int i;
 
+  CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&vd->mutex);
 #ifdef ENABLE_CHECKING
   if (data->cookie > 0)
@@ -813,7 +815,7 @@ read_virtual_dir (DC *dc, virtual_dir vd, readdir_data *data)
 	  ino = vd->fh.ino;
 
 	data->cookie--;
-	if (!filldir (dc, vd->fh.ino, "..", 2, data))
+	if (!filldir (dc, ino, "..", 2, data))
 	  return false;
 	/* Fallthru.  */
 
