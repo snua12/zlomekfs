@@ -195,8 +195,12 @@ extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
 				   const char *name);
 extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
 					       zfs_fh *master_fh, volume vol,
-					       internal_dentry parent, char *name,
+					       internal_dentry parent,
+					       char *name,
 					       fattr *attr);
+extern internal_dentry internal_dentry_link (internal_fh fh, volume vol,
+					     internal_dentry parent,
+					     char *name);
 extern void internal_dentry_destroy (internal_dentry dentry, volume vol);
 extern void print_fh_htab (FILE *f, htab_t htab);
 extern void debug_fh_htab (htab_t htab);

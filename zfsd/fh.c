@@ -672,6 +672,70 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   return dentry;
 }
 
+/* Create a new internal dentry NAME in directory PARENT on volume VOL for
+   internal file handle FH.  */
+
+internal_dentry
+internal_dentry_link (internal_fh fh, volume vol,
+		      internal_dentry parent, char *name)
+{
+  internal_dentry dentry;
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  if (parent)
+    CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+
+  zfsd_mutex_lock (&dentry_pool_mutex);
+  dentry = (internal_dentry) pool_alloc (dentry_pool);
+  zfsd_mutex_unlock (&dentry_pool_mutex);
+  dentry->parent = parent;
+  dentry->name = xstrdup (name);
+  dentry->fh = fh;
+  fh->ndentries++;
+  dentry->next = dentry;
+  dentry->prev = dentry;
+  dentry->ncap = 0;
+  dentry->last_use = time (NULL);
+  dentry->heap_node = NULL;
+
+  if (fh->attr.type == FT_DIR)
+    varray_create (&dentry->dentries, sizeof (dentry), 16);
+
+  if (parent)
+    {
+      cleanup_dentry_insert_node (dentry);
+      dentry->dentry_index = VARRAY_USED (parent->dentries);
+      VARRAY_PUSH (parent->dentries, dentry, internal_dentry);
+      cleanup_dentry_delete_node (parent);
+    }
+
+  slot = htab_find_slot_with_hash (vol->dentry_htab, &fh->local_fh,
+				   INTERNAL_DENTRY_HASH (dentry), INSERT);
+  if (*slot)
+    {
+      internal_dentry old = (internal_dentry) *slot;
+
+      dentry->next = old->next;
+      dentry->prev = old;
+      old->next->prev = dentry;
+      old->next = dentry;
+    }
+  *slot = dentry;
+
+  if (parent)
+    {
+      slot = htab_find_slot (vol->dentry_htab_name, dentry, INSERT);
+#ifdef ENABLE_CHECKING
+      if (*slot)
+	abort ();
+#endif
+      *slot = dentry;
+    }
+
+  return dentry;
+}
+
 /* Destroy internal dentry DENTRY on volume VOL.  */
 
 void
