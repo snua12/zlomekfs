@@ -290,7 +290,7 @@ recursive_unlink (char *path, uint32_t vid)
 
 out:
   /* Destroy dentry associated with the file.  */
-  fh.sid = this_node->id;
+  fh.sid = this_node->id;	/* FIXME: race condition? */
   fh.vid = vid;
   fh.dev = st.st_dev;
   fh.ino = st.st_ino;
@@ -417,7 +417,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  local_fh->sid = this_node->id;
+  local_fh->sid = this_node->id;	/* FIXME: race condition? */
   local_fh->vid = vol->id;
 
   path = xstrdup (vol->local_path);
