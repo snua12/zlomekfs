@@ -6528,7 +6528,7 @@ local_reintegrate_ver (internal_dentry dentry, uint64_t version_inc,
 
   if (vol->local_path.str == NULL)
     {
-      release_dentry (dir);
+      release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       RETURN_INT (ESTALE);
     }
