@@ -301,6 +301,10 @@ build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
 	VARRAY_PUSH (v, ".journal", char *);
 	break;
 
+      case METADATA_TYPE_SHADOW:
+	VARRAY_PUSH (v, ".shadow", char *);
+	break;
+
       default:
 	abort ();
     }
@@ -2099,7 +2103,19 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
   if (meta->slot_status != VALID_SLOT)
     return true;
 
-  if (meta->name[0] == 0)
+  if (meta->name[0] != 0
+      || (meta->parent_dev == 0 && meta->parent_ino == 0))
+    {
+#ifdef ENABLE_CHECKING
+      if (meta->parent_dev == (uint32_t) -1
+	  && meta->parent_ino == (uint32_t) -1)
+	abort ();
+#endif
+
+      hardlink_list_insert (hl, meta->parent_dev, meta->parent_ino,
+			    meta->name, true);
+    }
+  else
     {
       char *path;
       int fd;
@@ -2118,17 +2134,6 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 
       if (fd >= 0)
 	read_hardlinks_file (hl, fd);
-    }
-  else
-    {
-#ifdef ENABLE_CHECKING
-      if (meta->parent_dev == (uint32_t) -1
-	  && meta->parent_ino == (uint32_t) -1)
-	abort ();
-#endif
-
-      hardlink_list_insert (hl, meta->parent_dev, meta->parent_ino,
-			    meta->name, true);
     }
 
   return true;
@@ -2251,10 +2256,13 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  hardlink_list_destroy (hl);
 	  return false;
 	}
+      entry = hl->first;
       if (meta.slot_status != VALID_SLOT)
 	{
 	  meta.slot_status = VALID_SLOT;
 	  meta.flags = METADATA_COMPLETE;
+	  if (entry->name.len == 0)
+	    meta.flags |= METADATA_SHADOW;
 	  meta.dev = fh->dev;
 	  meta.ino = fh->ino;
 	  meta.gen = 1;
@@ -2263,7 +2271,6 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  zfs_fh_undefine (meta.master_fh);
 	}
 
-      entry = hl->first;
       meta.parent_dev = entry->parent_dev;
       meta.parent_ino = entry->parent_ino;
       memcpy (meta.name, entry->name.str, entry->name.len);
@@ -2407,6 +2414,15 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
     {
       hardlink_list_destroy (hl);
       return xstrdup (vol->local_path);
+    }
+
+  /* Check for shadow file.  */
+  if (meta.parent_dev == 0
+      && meta.parent_ino == 0
+      && meta.name[0] == 0)
+    {
+      hardlink_list_destroy (hl);
+      return get_shadow_path (vol, fh, false);
     }
 
   path = NULL;
@@ -2761,6 +2777,68 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
 #endif
 
   return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
+}
+
+/* Return path to shadow file FH on volume VOL.
+   If CREATE is true we are going to "create" a shadow file.  */
+
+char *
+get_shadow_path (volume vol, zfs_fh *fh, bool create)
+{
+  unsigned int i;
+  char *path;
+  struct stat st;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  path = build_fh_metadata_path (vol, fh, METADATA_TYPE_SHADOW,
+				 metadata_tree_depth);
+  if (create)
+    {
+      if (!create_path_for_file (path, S_IRWXU))
+	{
+	  if (errno == ENOENT)
+	    errno = 0;
+	}
+      unlink (path);
+    }
+  else
+    {
+      if (lstat (path, &st) != 0)
+	{
+	  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+	    if (i != metadata_tree_depth)
+	      {
+		char *old_path;
+
+		old_path = build_fh_metadata_path (vol, fh,
+						   METADATA_TYPE_SHADOW, i);
+		if (stat (old_path, &st) == 0)
+		  {
+		    if (!create)
+		      {
+			if (!create_path_for_file (path, S_IRWXU))
+			  {
+			    if (errno == ENOENT)
+			      errno = 0;
+			    free (old_path);
+			    return path;
+			  }
+			create = true;
+		      }
+
+		    if (rename (old_path, path) == 0)
+		      {
+			free (old_path);
+			return path;
+		      }
+		  }
+		free (old_path);
+	      }
+	}
+    }
+
+  return path;
 }
 
 /* Initialize data structures in METADATA.C.  */

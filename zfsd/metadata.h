@@ -52,7 +52,10 @@ typedef enum metadata_type_def
   METADATA_TYPE_HARDLINKS,
 
   /* Journal of modifications of a directory.  */
-  METADATA_TYPE_JOURNAL
+  METADATA_TYPE_JOURNAL,
+
+  /* File which is not accessible in the directory tree yet.  */
+  METADATA_TYPE_SHADOW
 } metadata_type;
 
 /* The size of char array for file name stored in hash table.
@@ -85,6 +88,7 @@ typedef struct fh_mapping_def
 
 #define METADATA_COMPLETE	1	/* file is complete */
 #define METADATA_MODIFIED	2	/* file is modified */
+#define METADATA_SHADOW		4	/* file is not in directory tree */
 
 #include "volume.h"
 #include "fh.h"
@@ -144,6 +148,7 @@ extern bool add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 			       journal_operation_t oper);
 extern bool add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
 				  char *name, journal_operation_t oper);
+extern char *get_shadow_path (volume vol, zfs_fh *fh, bool create);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);

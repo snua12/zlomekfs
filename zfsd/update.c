@@ -606,20 +606,29 @@ delete_tree (internal_dentry dentry, volume vol)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  for (slash = path; *slash; slash++)
-    ;
-  for (; *slash != '/'; slash--)
-    ;
-  *slash = 0;
-
-  if (lstat (path, &parent_st) != 0
-      && errno != ENOENT)
+  if (!dentry->parent
+      && (dentry->fh->meta.flags & METADATA_SHADOW) == METADATA_SHADOW)
     {
-      free (path);
-      return false;
+      parent_st.st_dev = 0;
+      parent_st.st_ino = 0;
     }
+  else
+    {
+      for (slash = path; *slash; slash++)
+	;
+      for (; *slash != '/'; slash--)
+	;
+      *slash = 0;
 
-  *slash = '/';
+      if (lstat (path, &parent_st) != 0
+	  && errno != ENOENT)
+	{
+	  free (path);
+	  return false;
+	}
+
+      *slash = '/';
+    }
   r = recursive_unlink (path, slash + 1, vid, &parent_st);
   free (path);
 
