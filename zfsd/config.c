@@ -818,6 +818,7 @@ config_reader (void *data)
   lock_info li[MAX_LOCKED_FILE_HANDLES];
   dir_op_res config_dir_res;
   int32_t r;
+  volume vol;
 
   thread_disable_signals ();
   pthread_setspecific (thread_data_key, data);
@@ -833,6 +834,28 @@ config_reader (void *data)
 
   if (!read_volume_list (&config_dir_res.file))
     goto out;
+
+  /* Reread the updated configuration about nodes and volumes.  */
+  vol = volume_lookup (VOLUME_ID_CONFIG);
+  if (vol)
+    {
+      if (vol->master != this_node)
+	{
+	  zfsd_mutex_unlock (&vol->mutex);
+
+	  r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
+	  if (r != ZFS_OK)
+	    goto out;
+
+	  if (!read_node_list (&config_dir_res.file))
+	    goto out;
+
+	  if (!read_volume_list (&config_dir_res.file))
+	    goto out;
+	}
+      else
+	zfsd_mutex_unlock (&vol->mutex);
+    }
 
   config_reader_terminated = true;
   pthread_kill (main_thread, SIGUSR1);
