@@ -2378,6 +2378,8 @@ zfs_write (write_res *res, write_args *args)
 					  &blocks);
 
 	      start = args->offset;
+	      if (dentry->fh->attr.size < start)
+		start = dentry->fh->attr.size;
 	      end = args->offset + res->written;
 	      if (dentry->fh->attr.size < end)
 		dentry->fh->attr.size = end;
