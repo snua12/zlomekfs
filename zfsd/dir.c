@@ -153,6 +153,13 @@ recursive_unlink (const char *path, uint32_t vid)
 	{
 	  char *new_path;
 
+	  /* Skip "." and "..".  */
+	  if (de->d_name[0] == '.'
+	      && (de->d_name[1] == 0
+		  || (de->d_name[1] == '.'
+		      && de->d_name[2] == 0)))
+	    continue;
+
 	  new_path = xstrconcat (3, path, "/", de->d_name);
 	  r = recursive_unlink (new_path, vid);
 	  free (new_path);
