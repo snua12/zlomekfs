@@ -5023,6 +5023,29 @@ zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
   return r;
 }
 
+/* Invalidate file handle DENTRY in kernel dentry cache.  */
+
+int32_t
+local_invalidate_fh (zfs_fh *fh)
+{
+  invalidate_args args;
+  thread *t;
+  int32_t r;
+
+  if (!mounted)
+    return ZFS_COULD_NOT_CONNECT;
+
+  args.fh = *fh;
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  if (t == NULL)
+    return ESRCH;
+
+  r = zfs_proc_invalidate_kernel (t, &args);
+
+  return r;
+}
+
 /* Invalidate dentry DENTRY in kernel dentry cache.  */
 
 int32_t
