@@ -132,6 +132,8 @@ htab_find_empty_slot(htab_t htab, hash_t hash)
     }
 }
 
+/* Expand the hash table HTAB.  */
+
 static int
 htab_expand(htab_t htab)
 {
@@ -166,8 +168,11 @@ htab_expand(htab_t htab)
   return 1;
 }
 
+/* Create the hash table data structure with SIZE elements, hash function
+   HASH_F, compare function EQ_F and element cleanup function DEL_F.  */
+
 htab_t
-htab_create(unsigned int size, htab_hash hash, htab_hash hash_f, htab_eq eq_f)
+htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f)
 {
   htab_t htab;
 
@@ -188,25 +193,32 @@ htab_create(unsigned int size, htab_hash hash, htab_hash hash_f, htab_eq eq_f)
   htab->n_deleted = 0;
   htab->hash_f = hash_f;
   htab->eq_f = eq_f;
+  htab->del_f = del_f;
   return htab;
 }
 
+/* Destroy the hash table HTAB.  If the cleanup function is defined
+   it is called for each present element.  */
+
 void
-htab_destroy(htab_t htab, htab_del del_f)
+htab_destroy(htab_t htab)
 {
   unsigned int i;
-  if (del_f)
+  if (htab->del_f)
     {
       for (i = 0; i < htab->size; i++)
 	if (htab->table[i] != EMPTY_ENTRY && htab->table[i] != DELETED_ENTRY)
-	  (*del_f)(htab->table[i]);
+	  (*htab->del_f)(htab->table[i]);
     }
   free(htab->table);
   free(htab);
 }
 
+/* Clear the slot SLOT of the hash table HTAB.  If the cleanup function is
+   defined it is called for the element in slot.  */
+
 void
-htab_clear_slot(htab_t htab, void **slot, htab_del del_f)
+htab_clear_slot(htab_t htab, void **slot)
 {
 #ifdef ENABLE_CHECKING
   if (slot < htab->table || slot >= htab->table + htab->size
@@ -214,18 +226,24 @@ htab_clear_slot(htab_t htab, void **slot, htab_del del_f)
     abort();
 #endif
 
-  if (del_f)
-    (*del_f)(*slot);
+  if (htab->del_f)
+    (*htab->del_f)(*slot);
 
   *slot = DELETED_ENTRY;
   htab->n_deleted++;
 }
+
+/* Similar to HTAB_FIND_SLOT_WITH_HASH but it computes the hash key first.  */
 
 void **
 htab_find_slot(htab_t htab, const void *elem, enum insert insert)
 {
   return htab_find_slot_with_hash(htab, elem, (*htab->hash_f)(elem), insert);
 }
+
+/* Find the slot of hash table HTAB which contains element ELEM with hash key
+   HASH.  The compare function is called for comparion the elements.  If INSERT
+   is true and element is not present in the hash table it is inserted.  */
 
 void **
 htab_find_slot_with_hash(htab_t htab, const void *elem, hash_t hash,

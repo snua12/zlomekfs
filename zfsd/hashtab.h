@@ -64,12 +64,15 @@ typedef struct hash
 
   /* Compare function.  */
   htab_eq eq_f;
+
+  /* Cleanup function.  */
+  htab_del del_f;
 } *htab_t;
 
-extern htab_t htab_create(unsigned int size, htab_hash hash, htab_hash hash_f,
-			  htab_eq eq_f);
-extern void htab_destroy(htab_t htab, htab_del del_f);
-extern void htab_clear_slot(htab_t htab, void **slot, htab_del del_f);
+extern htab_t htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f,
+			  htab_del del_f);
+extern void htab_destroy(htab_t htab);
+extern void htab_clear_slot(htab_t htab, void **slot);
 extern void **htab_find_slot(htab_t htab, const void *elem,
 			     enum insert insert);
 extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
