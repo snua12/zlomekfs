@@ -397,7 +397,8 @@ node_connect (node nod)
       if (addr)
 	abort ();
 #endif
-      message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
+      message (-1, stderr, "getaddrinfo(%s): %s\n", nod->host_name.str,
+	       gai_strerror (err));
       return -1;
     }
 
