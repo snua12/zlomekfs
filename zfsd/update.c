@@ -1622,6 +1622,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
   remote = conflict_remote_dentry (conflict);
   release_dentry (conflict);
 
+  remote->fh->attr.version = version;
   r = remote_reintegrate_set (remote, version, NULL, vol);
   return r;
 
@@ -1719,8 +1720,6 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
   if (!save_interval_trees (vol, local->fh))
     goto out;
 
-  return ZFS_OK;
-
   /* Update local and remote version.  */
   r = local_reintegrate_set (local, version + 1, vol);
   if (r != ZFS_OK)
@@ -1734,6 +1733,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
   remote = conflict_remote_dentry (conflict);
   release_dentry (conflict);
 
+  remote->fh->attr.version = version;
   r = remote_reintegrate_set (remote, version, NULL, vol);
   return r;
 
