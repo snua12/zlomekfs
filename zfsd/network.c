@@ -611,9 +611,9 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		abort ();
 #endif
 	      data->t->retval = ZFS_REQUEST_TIMEOUT;
+	      semaphore_up (&data->t->sem, 1);
 	      htab_clear_slot (active[i]->waiting4reply, slot);
 	      pool_free (active[i]->waiting4reply_pool, data);
-	      semaphore_up (&data->t->sem, 1);
 	    }
 
 	  pfd[i].fd = active[i]->fd;
