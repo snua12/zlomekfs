@@ -34,7 +34,7 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 PACKAGE = zfsd
 OBJECTS = alloc-pool.o client.o config.o crc32.o dir.o file.o fh.o hashtab.o \
           interval.o log.o memory.o node.o queue.o \
-          server.o splay-tree.o thread.o volume.o zfsd.o
+          server.o splay-tree.o thread.o varray.o volume.o zfsd.o
 RPC_OBJECTS = zfs_prot_svc.o zfs_prot_server.o zfs_prot_xdr.o
 
 .c.o:
@@ -79,5 +79,6 @@ queue.o: queue.c queue.h system.h log.h memory.h
 server.o: server.c server.h system.h log.h thread.h zfs_prot.h
 splay-tree.o: splay-tree.c splay-tree.h system.h alloc-pool.h log.h memory.h
 thread.o: thread.c thread.h system.h log.h memory.h
+varray.o: varray.c varray.h system.h log.h memory.h
 volume.o: volume.c volume.h system.h memory.h
 zfsd.o: zfsd.c zfsd.h system.h client.h config.h log.h memory.h server.h
