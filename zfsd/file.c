@@ -322,6 +322,8 @@ cond_remote_close (zfs_cap *cap, internal_cap icap, internal_dentry *dentryp,
 #ifdef ENABLE_CHECKING
   if (icap->master_busy == 0)
     abort ();
+  if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
+    abort ();
   if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
     abort ();
   if (zfs_fh_undefined (icap->master_cap.fh)
@@ -763,6 +765,8 @@ cond_remote_open (zfs_cap *cap, internal_cap icap, internal_dentry *dentryp,
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
+  if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
+    abort ();
   if (zfs_fh_undefined ((*dentryp)->fh->meta.master_fh))
     abort ();
 #endif
