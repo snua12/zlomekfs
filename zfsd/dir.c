@@ -4963,8 +4963,6 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      return r;
 	    }
 
-	  r = refresh_local_path (&old_fh, vol, &old_path);
-
 	  r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r2 != ZFS_OK)
@@ -4973,15 +4971,13 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
 	  delete_dentry (&vol, &dir, name, dir_fh);
 
-	  if (r == ZFS_OK)
+	  old_dentry = dentry_lookup (fh);
+	  if (old_dentry)
 	    {
-	      old_dentry = dentry_lookup (&old_fh);
-	      if (old_dentry)
-		{
-		  internal_dentry_link (old_dentry, vol, dir, name);
-		  release_dentry (old_dentry);
-		}
+	      internal_dentry_link (old_dentry, vol, dir, name);
+	      release_dentry (old_dentry);
 	    }
+
 	  if (journal)
 	    zfs_link_journal (dir, name, vol, &meta);
 
