@@ -158,8 +158,10 @@ int main (int argc, char **argv)
       printf (" Flags:");
       if (meta.flags & METADATA_COMPLETE)
 	printf (" complete");
-      if (meta.flags & METADATA_MODIFIED)
-	printf (" modified");
+      if (meta.flags & METADATA_UPDATED_TREE)
+	printf (" updated_tree");
+      if (meta.flags & METADATA_MODIFIED_TREE)
+	printf (" modified_tree");
       if (meta.flags & METADATA_SHADOW)
 	printf (" shadow");
       if (meta.flags & METADATA_SHADOW_TREE)

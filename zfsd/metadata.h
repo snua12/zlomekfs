@@ -107,9 +107,10 @@ typedef struct fh_mapping_def
 } fh_mapping;
 
 #define METADATA_COMPLETE	1	/* file is complete */
-#define METADATA_MODIFIED	2	/* file is modified */
-#define METADATA_SHADOW		4	/* file is in shadow */
-#define METADATA_SHADOW_TREE	8	/* dir is a part of shadow tree */
+#define METADATA_UPDATED_TREE	2	/* file has an updated interval tree */
+#define METADATA_MODIFIED_TREE	4	/* file has a modified interval tree */
+#define METADATA_SHADOW		16	/* file is in shadow */
+#define METADATA_SHADOW_TREE	32	/* dir is a part of shadow tree */
 
 #include "volume.h"
 #include "fh.h"

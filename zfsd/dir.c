@@ -415,7 +415,7 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
       if (move_to_shadow_p)
 	{
 	  if (metadata_n_hardlinks (vol, &fh, meta) == 1
-	      && ((meta->flags & METADATA_MODIFIED)
+	      && ((meta->flags & METADATA_MODIFIED_TREE)
 		  || (vol->master != this_node
 		      && zfs_fh_undefined (meta->master_fh))))
 	    {

@@ -1107,7 +1107,7 @@ zfs_close (zfs_cap *cap)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
       && dentry->fh->attr.type == FT_REG
-      && (dentry->fh->meta.flags & METADATA_MODIFIED)
+      && (dentry->fh->meta.flags & METADATA_MODIFIED_TREE)
       && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
     {
       r2 = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap,

@@ -975,7 +975,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
 	  {
 	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags | METADATA_COMPLETE))
+				     fh->meta.flags & ~METADATA_UPDATED_TREE))
 	      MARK_VOLUME_DELETE (vol);
 
 	    if (!remove_file_and_path (path, metadata_tree_depth))
@@ -986,7 +986,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	else
 	  {
 	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags & ~METADATA_COMPLETE))
+				     fh->meta.flags | METADATA_UPDATED_TREE))
 	      MARK_VOLUME_DELETE (vol);
 	  }
 	break;
@@ -995,7 +995,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	if (tree->size == 0)
 	  {
 	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags & ~METADATA_MODIFIED))
+				     fh->meta.flags & ~METADATA_MODIFIED_TREE))
 	      MARK_VOLUME_DELETE (vol);
 
 	    if (!remove_file_and_path (path, metadata_tree_depth))
@@ -1006,7 +1006,7 @@ delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
 	else
 	  {
 	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags | METADATA_MODIFIED))
+				     fh->meta.flags | METADATA_MODIFIED_TREE))
 	      MARK_VOLUME_DELETE (vol);
 	  }
 	break;
@@ -1405,7 +1405,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
   switch (type)
     {
       case METADATA_TYPE_UPDATED:
-	if (fh->meta.flags & METADATA_COMPLETE)
+	if (!(fh->meta.flags & METADATA_UPDATED_TREE))
 	  {
 	    fh->updated = interval_tree_create (62, &fh->mutex);
 	    interval_tree_insert (fh->updated, 0, fh->attr.size);
@@ -1415,7 +1415,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 	break;
 
       case METADATA_TYPE_MODIFIED:
-	if (!(fh->meta.flags & METADATA_MODIFIED))
+	if (!(fh->meta.flags & METADATA_MODIFIED_TREE))
 	  {
 	    fh->modified = interval_tree_create (62, &fh->mutex);
 	    RETURN_BOOL (true);
@@ -2103,7 +2103,7 @@ inc_local_version_and_modified (volume vol, internal_fh fh)
   fh->meta.local_version++;
   if (!vol->is_copy)
     fh->meta.master_version = fh->meta.local_version;
-  fh->meta.flags |= METADATA_MODIFIED;
+  fh->meta.flags |= METADATA_MODIFIED_TREE;
   set_attr_version (&fh->attr, &fh->meta);
 
   RETURN_BOOL (flush_metadata (vol, &fh->meta));

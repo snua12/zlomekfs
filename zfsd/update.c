@@ -101,6 +101,7 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
 
   r = ZFS_OK;
 
+  dentry->fh->meta.flags |= METADATA_UPDATED_TREE;
   dentry->fh->meta.flags &= ~METADATA_COMPLETE;
   if (dentry->fh->meta.local_version > dentry->fh->meta.master_version)
     {
@@ -231,7 +232,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       /* Flush the interval tree if the file was complete but now is larger
 	 to clean the complete flag.  */
       flush = (local_md5.size < remote_md5.size
-	       && (dentry->fh->meta.flags & METADATA_COMPLETE));
+	       && !(dentry->fh->meta.flags & METADATA_UPDATED_TREE));
 
       dentry->fh->attr.size = fa.size;
       local_md5.size = fa.size;
@@ -854,6 +855,13 @@ update_file (zfs_fh *fh)
       if (r2 != ZFS_OK)
 	abort ();
 #endif
+
+      if (interval_tree_covered (dentry->fh->updated, 0, attr.size))
+	{
+	  dentry->fh->meta.flags |= METADATA_COMPLETE;
+	  if (!flush_metadata (vol, &dentry->fh->meta))
+	    MARK_VOLUME_DELETE (vol);
+	}
     }
 
   if (!save_interval_trees (vol, dentry->fh))
@@ -867,7 +875,7 @@ update_file (zfs_fh *fh)
      add it to queue again.  */
   if (r == ZFS_OK
       && ((dentry->fh->meta.flags & METADATA_COMPLETE) == 0
-	  || (dentry->fh->meta.flags & METADATA_MODIFIED) != 0))
+	  || (dentry->fh->meta.flags & METADATA_MODIFIED_TREE) != 0))
     {
       zfsd_mutex_lock (&update_queue_mutex);
       queue_put (&update_queue, &dentry->fh->local_fh);
@@ -1476,9 +1484,16 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       if (dentry->fh->attr.type == FT_REG)
 	{
 	  if (remote_attr->size > 0)
-	    flags = dentry->fh->meta.flags & ~METADATA_COMPLETE;
+	    {
+	      flags = ((dentry->fh->meta.flags & ~METADATA_COMPLETE)
+		       | METADATA_UPDATED_TREE);
+	    }
 	  else
-	    flags = dentry->fh->meta.flags | METADATA_COMPLETE;
+	    {
+	      flags = ((dentry->fh->meta.flags | METADATA_COMPLETE)
+		       & ~METADATA_UPDATED_TREE);
+
+	    }
 	}
       else if (dentry->fh->attr.type == FT_DIR)
 	flags = 0;
@@ -1813,6 +1828,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
   local->fh->meta.local_version = version;
   local->fh->meta.master_version = version;
   local->fh->meta.flags &= ~METADATA_COMPLETE;
+  local->fh->meta.flags |= METADATA_UPDATED_TREE;
   set_attr_version (&local->fh->attr, &local->fh->meta);
   if (!flush_metadata (vol, &local->fh->meta))
     MARK_VOLUME_DELETE (vol);
@@ -1946,6 +1962,7 @@ resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
   local->fh->meta.local_version = version + 1;
   local->fh->meta.master_version = version;
   local->fh->meta.flags &= ~METADATA_COMPLETE;
+  local->fh->meta.flags |= METADATA_UPDATED_TREE;
   set_attr_version (&local->fh->attr, &local->fh->meta);
   if (!flush_metadata (vol, &local->fh->meta))
     MARK_VOLUME_DELETE (vol);
@@ -2290,7 +2307,7 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
       if (!zfs_fh_undefined (meta.master_fh))
 	{
-	  if ((meta.flags & METADATA_MODIFIED) == 0)
+	  if ((meta.flags & METADATA_MODIFIED_TREE) == 0)
 	    {
 	      vol = volume_lookup (fh->vid);
 #ifdef ENABLE_CHECKING
@@ -2716,7 +2733,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
 		    meta.master_fh = res.file;
 		    meta.master_version = res.attr.version;
-		    if (meta.flags & METADATA_MODIFIED)
+		    if (meta.flags & METADATA_MODIFIED_TREE)
 		      {
 			if (meta.local_version <= meta.master_version)
 			  meta.local_version = meta.master_version + 1;
