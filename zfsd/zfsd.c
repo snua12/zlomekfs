@@ -416,11 +416,13 @@ main (int argc, char **argv)
     die ();
 #endif
 
-  printf ("sizeof (thread) = %d\n", sizeof (thread));
-  printf ("sizeof (padded_thread) = %d\n", sizeof (padded_thread));
-  printf ("sizeof (internal_fh) = %d\n", sizeof (struct internal_fh_def));
-  printf ("sizeof (internal_dentry) = %d\n", sizeof (struct internal_dentry_def));
-  printf ("sizeof (virtual_dir) = %d\n", sizeof (struct virtual_dir_def));
+  printf ("sizeof (thread) = %lu\n", sizeof (thread));
+  printf ("sizeof (padded_thread) = %lu\n", sizeof (padded_thread));
+  printf ("sizeof (internal_fh) = %lu\n", sizeof (struct internal_fh_def));
+  printf ("sizeof (internal_dentry) = %lu\n", sizeof (struct internal_dentry_def));
+  printf ("sizeof (virtual_dir) = %lu\n", sizeof (struct virtual_dir_def));
+  printf ("sizeof (metadata) = %lu\n", sizeof (metadata));
+  printf ("sizeof (fh_mapping) = %lu\n", sizeof (fh_mapping));
 
 #if 0
   /* Temporarily disable because it needs root privileges.  */
