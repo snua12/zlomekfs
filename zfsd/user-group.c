@@ -21,6 +21,8 @@
 #include "system.h"
 #include <string.h>
 #include <inttypes.h>
+#include <sys/types.h>
+#include <grp.h>
 #include "pthread.h"
 #include "log.h"
 #include "memory.h"
@@ -51,7 +53,7 @@ pthread_mutex_t users_groups_mutex;
 static hash_t
 users_id_hash (const void *x)
 {
-  return USER_ID_HASH (((user) x)->id);
+  return USER_ID_HASH (((user_t) x)->id);
 }
 
 /* Hash function for user X, computed from NAME.  */
@@ -59,7 +61,7 @@ users_id_hash (const void *x)
 static hash_t
 users_name_hash (const void *x)
 {
-  return USER_NAME_HASH (((user) x)->name);
+  return USER_NAME_HASH (((user_t) x)->name);
 }
 
 /* Compare an user X with user ID Y.  */
@@ -67,7 +69,7 @@ users_name_hash (const void *x)
 static int
 users_id_eq (const void *x, const void *y)
 {
-  return ((user) x)->id == *(uint32_t *) y;
+  return ((user_t) x)->id == *(uint32_t *) y;
 }
 
 /* Compare an user X with user name Y.  */
@@ -75,7 +77,7 @@ users_id_eq (const void *x, const void *y)
 static int
 users_name_eq (const void *x, const void *y)
 {
-  return strcmp (((user) x)->name, (const char *) y);
+  return strcmp (((user_t) x)->name, (const char *) y);
 }
 
 /* Hash function for group X, computed from ID.  */
@@ -83,7 +85,7 @@ users_name_eq (const void *x, const void *y)
 static hash_t
 groups_id_hash (const void *x)
 {
-  return USER_ID_HASH (((group) x)->id);
+  return GROUP_ID_HASH (((group_t) x)->id);
 }
 
 /* Hash function for group X, computed from NAME.  */
@@ -91,7 +93,7 @@ groups_id_hash (const void *x)
 static hash_t
 groups_name_hash (const void *x)
 {
-  return USER_NAME_HASH (((group) x)->name);
+  return GROUP_NAME_HASH (((group_t) x)->name);
 }
 
 /* Compare a group X with group ID Y.  */
@@ -99,7 +101,7 @@ groups_name_hash (const void *x)
 static int
 groups_id_eq (const void *x, const void *y)
 {
-  return ((group) x)->id == *(uint32_t *) y;
+  return ((group_t) x)->id == *(uint32_t *) y;
 }
 
 /* Compare a group X with group name Y.  */
@@ -107,15 +109,15 @@ groups_id_eq (const void *x, const void *y)
 static int
 groups_name_eq (const void *x, const void *y)
 {
-  return strcmp (((group) x)->name, (const char *) y);
+  return strcmp (((group_t) x)->name, (const char *) y);
 }
 
 /* Create an user with ID and NAME with default group GID.  */
 
-user
+user_t
 user_create (uint32_t id, char *name, uint32_t gid)
 {
-  user u;
+  user_t u;
   void **slot1;
   void **slot2;
 
@@ -150,7 +152,7 @@ user_create (uint32_t id, char *name, uint32_t gid)
     abort ();
 #endif
 
-  u = (user) xmalloc (sizeof (*u));
+  u = (user_t) xmalloc (sizeof (*u));
   u->id = id;
   u->gid = gid;
   u->name = xstrdup (name);
@@ -173,13 +175,13 @@ set_default_groups ()
 
   HTAB_FOR_EACH_SLOT (users_id, slot,
     {
-      user u = (user) slot;
-      group g;
+      user_t u = (user_t) slot;
+      group_t g;
 
-      g = (group) htab_find_with_hash (groups_id, &u->gid,
-				       GROUP_ID_HASH (u->gid));
+      g = (group_t) htab_find_with_hash (groups_id, &u->gid,
+					 GROUP_ID_HASH (u->gid));
       if (!g)
-	continue;
+      continue;
 
       slot2 = htab_find_slot_with_hash (u->groups, &u->gid,
 					GROUP_ID_HASH (u->gid), INSERT);
@@ -191,7 +193,7 @@ set_default_groups ()
 /* Destroy user U.  */
 
 void
-user_destroy (user u)
+user_destroy (user_t u)
 {
   void **slot;
 
@@ -220,10 +222,10 @@ user_destroy (user u)
 
 /* Create a group with ID and NAME, its list of users is USER_LIST.  */
 
-group
+group_t
 group_create (uint32_t id, char *name, char *user_list)
 {
-  group g;
+  group_t g;
   void **slot1;
   void **slot2;
 
@@ -258,7 +260,7 @@ group_create (uint32_t id, char *name, char *user_list)
     abort ();
 #endif
 
-  g = (group) xmalloc (sizeof (*g));
+  g = (group_t) xmalloc (sizeof (*g));
   g->id = id;
   g->name = xstrdup (name);
   *slot1 = g;
@@ -280,16 +282,16 @@ group_create (uint32_t id, char *name, char *user_list)
 		 || (*user_list >= '0' && *user_list <= '9')
 		 || *user_list == '_' || *user_list == '-')
 	    user_list++;
-	  
+
 	  if (*user_list == ',' || *user_list == 0)
 	    {
-	      user u;
+	      user_t u;
 
 	      if (*user_list == ',')
 		*user_list++ = 0;
 
-	      u = (user) htab_find_with_hash (users_name, name,
-					      USER_NAME_HASH (name));
+	      u = (user_t) htab_find_with_hash (users_name, name,
+						USER_NAME_HASH (name));
 	      if (!u)
 		{
 		  message (1, stderr, "Unknown user: %s\n", name);
@@ -316,7 +318,6 @@ group_create (uint32_t id, char *name, char *user_list)
 		       name);
 	    }
 	}
-      
     }
 
   return g;
@@ -325,7 +326,7 @@ group_create (uint32_t id, char *name, char *user_list)
 /* Destroy group G.  */
 
 void
-group_destroy (group g)
+group_destroy (group_t g)
 {
   void **slot;
 
@@ -381,7 +382,7 @@ cleanup_user_group_c ()
   /* User and group tables.  */
   HTAB_FOR_EACH_SLOT (users_id, slot,
     {
-      user u = (user) *slot;
+      user_t u = (user_t) *slot;
 
       user_destroy (u);
     });
@@ -390,7 +391,7 @@ cleanup_user_group_c ()
 
   HTAB_FOR_EACH_SLOT (users_id, slot,
     {
-      group g = (group) *slot;
+      group_t g = (group_t) *slot;
 
       group_destroy (g);
     });
