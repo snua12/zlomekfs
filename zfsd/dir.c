@@ -291,15 +291,96 @@ parent_exists (string *path, struct stat *st)
   RETURN_INT (ZFS_OK);
 }
 
+/** Increase the local version of a file handle.
+    \param fh ZFS file handle whose version will be increased.  */
+
+static bool
+inc_local_version_fh (zfs_fh *fh)
+{
+  metadata meta;
+  volume vol;
+  internal_dentry dentry;
+
+  TRACE ("");
+
+  zfsd_mutex_lock (&fh_mutex);
+  vol = volume_lookup (fh->vid);
+  if (!vol)
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_BOOL (false);
+    }
+
+  dentry = dentry_lookup (fh);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  if (dentry)
+    {
+      dentry->fh->meta.local_version++;
+      if (!vol->is_copy)
+	dentry->fh->meta.master_version = dentry->fh->meta.local_version;
+      set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+
+      if (!flush_metadata (vol, &dentry->fh->meta))
+	{
+	  MARK_VOLUME_DELETE (vol);
+	  
+	  dentry->fh->meta.local_version--;
+	  if (!vol->is_copy)
+	    dentry->fh->meta.master_version = dentry->fh->meta.local_version;
+	  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  RETURN_BOOL (false);
+	}
+      release_dentry (dentry);
+    }
+  else
+    {
+      meta.modetype = GET_MODETYPE (0, FT_BAD);
+      if (!lookup_metadata (vol, fh, &meta, false))
+	{
+	  MARK_VOLUME_DELETE (vol);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  RETURN_BOOL (false);
+	}
+
+      if (meta.slot_status != VALID_SLOT)
+	{
+	  /* If the metadata for FH did not exist no one uses its version
+	     so it is safe not to increase the version.  */
+	  zfsd_mutex_unlock (&vol->mutex);
+	  RETURN_BOOL (true);
+	}
+
+      meta.local_version++;
+      if (!vol->is_copy)
+	meta.master_version = meta.local_version;
+
+      if (!flush_metadata (vol, &meta))
+	{
+	  MARK_VOLUME_DELETE (vol);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  RETURN_BOOL (false);
+	}
+    }
+
+  zfsd_mutex_unlock (&vol->mutex);
+  RETURN_BOOL (true);
+}
+
 /* Delete the generic file NAME with path PATH on volume VOL.
    Use META for reading and deleting metadata.
    If JOURNAL add a journal entry to journal JOURNAL for directory PARENT_FH.
-   Destroy the dentry of the deleted file if DESTROY_DENTRY.  */
+   Destroy the dentry of the deleted file if DESTROY_DENTRY.
+   \param inc_version_p If true increase the version of parent directory.  */
 
 static int32_t
 recursive_unlink_itself (metadata *meta, string *path, string *name,
 			 volume vol, zfs_fh *parent_fh, journal_t journal,
-			 bool destroy_dentry, bool move_to_shadow_p)
+			 bool destroy_dentry, bool inc_version_p,
+			 bool move_to_shadow_p)
 {
   struct stat st;
   zfs_fh fh;
@@ -395,8 +476,13 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 
 	  if (vol->id == VOLUME_ID_CONFIG)
 	    add_reread_config_request_local_path (vol, path);
+	  zfsd_mutex_unlock (&vol->mutex);
+
+	  if (inc_version_p)
+	    inc_local_version_fh (parent_fh);
 	}
-      zfsd_mutex_unlock (&vol->mutex);
+      else
+	zfsd_mutex_unlock (&vol->mutex);
 
       if (destroy_dentry)
 	{
@@ -422,7 +508,7 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 static int32_t
 recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 			   zfs_fh *fh, bool destroy_dentry, bool journal_p,
-			   bool move_to_shadow_p)
+			   bool inc_version_p, bool move_to_shadow_p)
 {
   struct stat st;
   zfs_fh sub_fh;
@@ -504,7 +590,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 	  append_file_name (&new_path, path, de->d_name, len);
 	  r = recursive_unlink_contents (meta, &new_path, fh, &sub_fh,
 					 destroy_dentry, journal_p,
-					 move_to_shadow_p);
+					 inc_version_p, move_to_shadow_p);
 	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    {
@@ -579,7 +665,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
       new_name.len = len;
       r = recursive_unlink_itself (meta, &new_path, &new_name, vol,
 				   fh, journal, destroy_dentry,
-				   move_to_shadow_p);
+				   inc_version_p, move_to_shadow_p);
       free (new_path.str);
       if (r != ZFS_OK)
 	break;
@@ -612,7 +698,7 @@ recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 static int32_t
 recursive_unlink_start (metadata *meta, string *path, string *name,
 			zfs_fh *parent_fh, bool destroy_dentry, bool journal_p,
-			bool move_to_shadow_p)
+			bool inc_version_p, bool move_to_shadow_p)
 {
   struct stat st;
   zfs_fh fh;
@@ -653,7 +739,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
 
       r = recursive_unlink_contents (meta, path, parent_fh, &fh,
 				     destroy_dentry, journal_p,
-				     move_to_shadow_p);
+				     inc_version_p, move_to_shadow_p);
       if (r != ZFS_OK)
 	RETURN_INT (r);
     }
@@ -698,7 +784,8 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
     }
 
   r = recursive_unlink_itself (meta, path, name, vol, parent_fh,
-			       journal, destroy_dentry, move_to_shadow_p);
+			       journal, destroy_dentry, inc_version_p,
+			       move_to_shadow_p);
 
   if (journal)
     {
@@ -731,6 +818,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
   struct stat st;
   volume vol;
   zfs_fh fh;
+  bool inc_version_p = journal_p;
 
   TRACE ("%s", path->str);
 #ifdef ENABLE_CHECKING
@@ -772,7 +860,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
     }
 
   RETURN_INT (recursive_unlink_start (&meta, path, &filename, &fh,
-				      destroy_dentry, journal_p,
+				      destroy_dentry, journal_p, inc_version_p,
 				      move_to_shadow_p));
 }
 
