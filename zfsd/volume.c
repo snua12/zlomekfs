@@ -386,17 +386,20 @@ volume_set_local_info (volume *volp, string *local_path, uint64_t size_limit)
       uint32_t vid;
       internal_dentry dentry;
 
-      /* We are changing the local path, so delete all dentries.  */
-      vid = vol->id;
-      dentry = vol->root_dentry;
-      zfsd_mutex_lock (&dentry->fh->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
-      internal_dentry_destroy (dentry, true, false, true);
-      *volp = vol = volume_lookup (vid);
-      if (!vol)
+      if (vol->root_dentry)
 	{
-	  /* The volume was destroyed.  */
-	  return true;
+	  /* We are changing the local path, so delete all dentries.  */
+	  vid = vol->id;
+	  dentry = vol->root_dentry;
+	  zfsd_mutex_lock (&dentry->fh->mutex);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  internal_dentry_destroy (dentry, true, false, true);
+	  *volp = vol = volume_lookup (vid);
+	  if (!vol)
+	    {
+	      /* The volume was destroyed.  */
+	      return true;
+	    }
 	}
 
       set_string (&vol->local_path, local_path);
@@ -502,21 +505,24 @@ delete_dentries_of_marked_volume (volume vol)
       return;
     }
 
-  vid = vol->id;
-  dentry = vol->root_dentry;
-  zfsd_mutex_lock (&dentry->fh->mutex);
-  zfsd_mutex_unlock (&vol->mutex);
-  internal_dentry_destroy (dentry, true, false, true);
-
-  vol = volume_lookup (vid);
-  if (vol)
+  if (vol->root_dentry)
     {
-      vol->local_path = invalid_string;
-      close_volume_metadata (vol);
-      vol->delete_p = false;
-      vol->marked = false;
+      vid = vol->id;
+      dentry = vol->root_dentry;
+      zfsd_mutex_lock (&dentry->fh->mutex);
       zfsd_mutex_unlock (&vol->mutex);
+      internal_dentry_destroy (dentry, true, false, true);
+
+      vol = volume_lookup (vid);
+      if (!vol)
+	return;
     }
+
+  vol->local_path = invalid_string;
+  close_volume_metadata (vol);
+  vol->delete_p = false;
+  vol->marked = false;
+  zfsd_mutex_unlock (&vol->mutex);
 }
 
 /** \fn static void delete_dentries_of_marked_volumes (void)
