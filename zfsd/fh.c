@@ -116,6 +116,9 @@ internal_fh_del (void *x)
 {
   internal_fh fh = (internal_fh) x;
 
+  if (fh->attr.type == FT_DIR)
+    varray_destroy (&fh->dentries);
+
   free (fh->name);
   pool_free (fh_pool, x);
 }
@@ -160,7 +163,6 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 	  zfsd_mutex_unlock (&vol->mutex);
 	  return false;
 	}
-
 
       ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
       /* FIXME: Temporarily unlock it here.  */
