@@ -963,6 +963,8 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 	{
 	  r = update (*volp, *dentryp, fh, &remote_attr, how & what);
 
+	  CHECK_MUTEX_UNLOCKED (&fh_mutex);
+
 	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 	  if (r2 != ZFS_OK)
 	    RETURN_INT (r2);
