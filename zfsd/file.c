@@ -2251,7 +2251,9 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   uint32_t total;
   uint32_t count;
 
+  zfsd_mutex_lock (&fh_mutex);
   dentry = dentry_lookup (&args->cap.fh);
+  zfsd_mutex_unlock (&fh_mutex);
   if (!dentry)
     return ZFS_STALE;
 
