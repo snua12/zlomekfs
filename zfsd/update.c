@@ -2416,6 +2416,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   bool flush_journal;
   bool local_volume_root;
   bool local_exists;
+  uint64_t version_increase;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -2434,6 +2435,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 
   local_volume_root = LOCAL_VOLUME_ROOT_P (dir);
   flush_journal = false;
+  version_increase = 0;
   for (entry = dir->fh->journal->first; entry; entry = next)
     {
       next = entry->next;
@@ -2515,6 +2517,8 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		    if (r != ZFS_OK)
 		      continue;
 
+		    version_increase++;
+
 		    /* Update local metadata.  */
 		    subdentry = dentry_lookup (&local_res.file);
 		    if (subdentry)
@@ -2578,6 +2582,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 #endif
 			if (r == ZFS_OK)
 			  {
+			    version_increase++;
 			    if (!journal_delete_entry (dir->fh->journal,
 						       entry))
 			      abort ();
@@ -2685,6 +2690,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 #endif
 			if (r == ZFS_OK)
 			  {
+			    version_increase++;
 			    if (!journal_delete_entry (dir->fh->journal,
 						       entry))
 			      abort ();
@@ -2721,7 +2727,7 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	}
     }
 
-  if (!dir->fh->journal->first && flush_journal)
+  if (version_increase != 0)
     {
       uint64_t version;
       unsigned long delay, range;
@@ -2772,20 +2778,44 @@ reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	}
       else
 	{
-	  if (dir->fh->meta.local_version > attr->version)
-	    version = dir->fh->meta.local_version;
-	  else
-	    version = attr->version;
+	  if (attr->version == dir->fh->meta.master_version + version_increase)
+	    {
+	      if (dir->fh->meta.local_version > attr->version)
+		version = dir->fh->meta.local_version;
+	      else
+		version = attr->version;
 
-	  dir->fh->meta.flags &= ~METADATA_COMPLETE;
-	  dir->fh->meta.local_version = version;
-	  dir->fh->meta.master_version = version;
+	      dir->fh->meta.local_version = version;
+	      dir->fh->meta.master_version = version;
+	    }
+	  else
+	    {
+	      version = attr->version;
+	      dir->fh->meta.master_version += version_increase;
+	      if (dir->fh->journal->first)
+		{
+		  if (dir->fh->meta.local_version
+		      <= dir->fh->meta.master_version)
+		    dir->fh->meta.local_version
+		      = dir->fh->meta.master_version + 1;
+		  if (dir->fh->meta.local_version <= version)
+		    dir->fh->meta.local_version = version + 1;
+		}
+	      else
+		{
+		  if (dir->fh->meta.local_version
+		      < dir->fh->meta.master_version)
+		    dir->fh->meta.local_version = dir->fh->meta.master_version;
+		  if (dir->fh->meta.local_version < version)
+		    dir->fh->meta.local_version = version;
+		}
+	    }
 	  set_attr_version (&dir->fh->attr, &dir->fh->meta);
 	  if (!flush_metadata (vol, &dir->fh->meta))
 	    MARK_VOLUME_DELETE (vol);
 	}
 
-      /* Wee need to call following call even if VERSION == ATTR->VERSION
+      /* We need to call following call even if VERSION == ATTR->VERSION
 	 because we need to release the right to reintegrate the dir.  */
       r = remote_reintegrate_set (dir, version, NULL, vol);
       if (r == ZFS_OK)
@@ -2861,10 +2891,9 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	    r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 	    if (r != ZFS_OK)
 	      RETURN_INT (r);
-
 	  }
 
-	if (how & (IFH_UPDATE | IFH_REINTEGRATE))
+	if (how & IFH_UPDATE)
 	  {
 	    r = update_dir (vol, dentry, fh, attr);
 	  }
