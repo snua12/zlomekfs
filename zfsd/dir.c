@@ -199,6 +199,9 @@ local_path_to_relative_path (volume vol, char *path)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
+  if (path == NULL)
+    return path;
+
   for (i = 0; vol->local_path[i] == path[i]; i++)
     ;
 #ifdef ENABLE_CHECKING
