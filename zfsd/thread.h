@@ -67,6 +67,11 @@ typedef struct thread_def
   /* Semaphore used to stop an idle thread.  */
   semaphore sem;
 
+  DC dc;			/* buffer for request to this node */
+  DC dc_call;			/* buffer for request for remote node */
+  call_args args;		/* union for decoded call arguments.  */
+  int retval;			/* return value for request.  */
+
   /* Additional data for each subtype.  */
   union {
     network_thread_data server;

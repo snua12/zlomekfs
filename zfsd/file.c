@@ -198,13 +198,13 @@ remote_setattr (fattr *fa, internal_fh fh, sattr *sa)
   zfsd_mutex_unlock (&nod->mutex);
   if (r == ZFS_OK)
     {
-      if (!decode_fattr (&t->u.server.dc, fa)
-	  || !finish_decoding (&t->u.server.dc))
+      if (!decode_fattr (&t->dc, fa)
+	  || !finish_decoding (&t->dc))
 	return ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->u.server.dc))
+      if (!finish_decoding (&t->dc))
 	return ZFS_INVALID_REPLY;
     }
 

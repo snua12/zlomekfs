@@ -78,12 +78,8 @@ typedef struct network_thread_data_def
   SVCXPRT *transp;
 #else
   network_fd_data_t *fd_data;	/* passed from main network thread */
-  DC dc;			/* buffer for request to this node */
-  DC dc_call;			/* buffer for request for remote node */
   unsigned int generation;	/* generation of file descriptor */
   unsigned int index;		/* index of FD in array "active" */
-  call_args args;		/* union for decoded call arguments.  */
-  int retval;			/* return value for request.  */
 #endif
 } network_thread_data;
 

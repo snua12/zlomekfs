@@ -152,14 +152,14 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
       zfsd_mutex_unlock (&vol->master->mutex);	/* FIXME: temporary */
       if (r == ZFS_OK)
 	{
-	  if (!decode_zfs_fh (&t->u.server.dc, remote_fh)
-	      || !decode_fattr (&t->u.server.dc, attr)
-	      || !finish_decoding (&t->u.server.dc))
+	  if (!decode_zfs_fh (&t->dc, remote_fh)
+	      || !decode_fattr (&t->dc, attr)
+	      || !finish_decoding (&t->dc))
 	    return ZFS_INVALID_REPLY;
 	}
       else if (r >= ZFS_LAST_DECODED_ERROR)
 	{
-	  if (!finish_decoding (&t->u.server.dc))
+	  if (!finish_decoding (&t->dc))
 	    return ZFS_INVALID_REPLY;
 	}
     }
@@ -338,13 +338,13 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   zfsd_mutex_unlock (&vol->master->mutex);
   if (r == ZFS_OK)
     {
-      if (!decode_dir_op_res (&t->u.server.dc, res)
-	  || !finish_decoding (&t->u.server.dc))
+      if (!decode_dir_op_res (&t->dc, res)
+	  || !finish_decoding (&t->dc))
 	return ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->u.server.dc))
+      if (!finish_decoding (&t->dc))
 	return ZFS_INVALID_REPLY;
     }
 
@@ -483,7 +483,7 @@ remote_rmdir (internal_fh dir, string *name, volume vol)
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->u.server.dc))
+      if (!finish_decoding (&t->dc))
 	return ZFS_INVALID_REPLY;
     }
 

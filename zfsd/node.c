@@ -383,7 +383,6 @@ node_authenticate_error:
 int
 node_connect_and_authenticate (thread *t, node nod)
 {
-  network_thread_data *td = &t->u.server;
   int fd;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
@@ -396,7 +395,7 @@ node_connect_and_authenticate (thread *t, node nod)
       now = time (NULL);
       if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
 	{
-	  td->retval = ZFS_COULD_NOT_CONNECT;
+	  t->retval = ZFS_COULD_NOT_CONNECT;
 	  return -1;
 	}
       nod->last_connect = now;
@@ -404,7 +403,7 @@ node_connect_and_authenticate (thread *t, node nod)
       fd = node_connect (nod);
       if (fd < 0)
 	{
-	  td->retval = ZFS_COULD_NOT_CONNECT;
+	  t->retval = ZFS_COULD_NOT_CONNECT;
 	  return -1;
 	}
       add_fd_to_active (fd);
@@ -412,7 +411,7 @@ node_connect_and_authenticate (thread *t, node nod)
 
       if (!node_authenticate (t, nod))
 	{
-	  td->retval = ZFS_COULD_NOT_AUTH;
+	  t->retval = ZFS_COULD_NOT_AUTH;
 	  return -1;
 	}
     }

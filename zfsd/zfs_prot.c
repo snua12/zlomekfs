@@ -46,7 +46,7 @@ static pthread_mutex_t request_id_mutex;
 void
 zfs_proc_null_server (void *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   encode_status (dc, ZFS_OK);
 }
@@ -56,7 +56,7 @@ zfs_proc_null_server (void *args, thread *t)
 void
 zfs_proc_root_server (void *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   encode_status (dc, ZFS_OK);
   encode_zfs_fh (dc, &root_fh);
@@ -67,7 +67,7 @@ zfs_proc_root_server (void *args, thread *t)
 void
 zfs_proc_volume_root_server (volume_root_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   int32_t r;
   volume vol;
   internal_fh ifh;
@@ -97,7 +97,7 @@ zfs_proc_volume_root_server (volume_root_args *args, thread *t)
 void
 zfs_proc_getattr_server (zfs_fh *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   int32_t r;
   fattr fa;
 
@@ -112,7 +112,7 @@ zfs_proc_getattr_server (zfs_fh *args, thread *t)
 void
 zfs_proc_setattr_server (sattr_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   int32_t r;
   fattr fa;
 
@@ -127,7 +127,7 @@ zfs_proc_setattr_server (sattr_args *args, thread *t)
 void
 zfs_proc_lookup_server (dir_op_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   dir_op_res res;
   int32_t r;
 
@@ -144,7 +144,7 @@ zfs_proc_lookup_server (dir_op_args *args, thread *t)
 void
 zfs_proc_open_by_name_server (open_name_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -155,7 +155,7 @@ zfs_proc_open_by_name_server (open_name_args *args, thread *t)
 void
 zfs_proc_open_by_fh_server (open_fh_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -166,7 +166,7 @@ zfs_proc_open_by_fh_server (open_fh_args *args, thread *t)
 void
 zfs_proc_close_server (zfs_cap *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -177,7 +177,7 @@ zfs_proc_close_server (zfs_cap *args, thread *t)
 void
 zfs_proc_readdir_server (read_dir_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -188,7 +188,7 @@ zfs_proc_readdir_server (read_dir_args *args, thread *t)
 void
 zfs_proc_mkdir_server (open_name_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -199,7 +199,7 @@ zfs_proc_mkdir_server (open_name_args *args, thread *t)
 void
 zfs_proc_rmdir_server (dir_op_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   int32_t r;
 
   r = zfs_rmdir (&args->dir, &args->name);
@@ -212,7 +212,7 @@ zfs_proc_rmdir_server (dir_op_args *args, thread *t)
 void
 zfs_proc_rename_server (rename_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -223,7 +223,7 @@ zfs_proc_rename_server (rename_args *args, thread *t)
 void
 zfs_proc_link_server (link_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -234,7 +234,7 @@ zfs_proc_link_server (link_args *args, thread *t)
 void
 zfs_proc_unlink_server (dir_op_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -245,7 +245,7 @@ zfs_proc_unlink_server (dir_op_args *args, thread *t)
 void
 zfs_proc_read_server (read_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -256,7 +256,7 @@ zfs_proc_read_server (read_args *args, thread *t)
 void
 zfs_proc_write_server (write_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -267,7 +267,7 @@ zfs_proc_write_server (write_args *args, thread *t)
 void
 zfs_proc_readlink_server (zfs_fh *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -278,7 +278,7 @@ zfs_proc_readlink_server (zfs_fh *args, thread *t)
 void
 zfs_proc_symlink_server (symlink_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -289,7 +289,7 @@ zfs_proc_symlink_server (symlink_args *args, thread *t)
 void
 zfs_proc_mknod_server (mknod_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
 
   /* TODO: write the function */
   encode_status (dc, ZFS_UNKNOWN_FUNCTION);
@@ -300,7 +300,7 @@ zfs_proc_mknod_server (mknod_args *args, thread *t)
 void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   network_fd_data_t *fd_data = t->u.server.fd_data;
   node nod;
 
@@ -335,7 +335,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
 void
 zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 {
-  DC *dc = &t->u.server.dc;
+  DC *dc = &t->dc;
   network_fd_data_t *fd_data = t->u.server.fd_data;
   node nod;
   bool authenticated = false;
@@ -372,24 +372,23 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 int								\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
-  network_thread_data *td = &t->u.server;				\
   uint32_t req_id;							\
 									\
   zfsd_mutex_lock (&request_id_mutex);				\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
-  start_encoding (&td->dc_call);					\
-  encode_direction (&td->dc_call, DIR_REQUEST);				\
-  encode_request_id (&td->dc_call, req_id);				\
-  encode_function (&td->dc_call, NUMBER);				\
-  if (!encode_##ARGS (&td->dc_call, args))				\
+  start_encoding (&t->dc_call);					\
+  encode_direction (&t->dc_call, DIR_REQUEST);				\
+  encode_request_id (&t->dc_call, req_id);				\
+  encode_function (&t->dc_call, NUMBER);				\
+  if (!encode_##ARGS (&t->dc_call, args))				\
     return ZFS_REQUEST_TOO_LONG;					\
-  finish_encoding (&td->dc_call);					\
+  finish_encoding (&t->dc_call);					\
 									\
   send_request (t, req_id, fd);						\
 									\
-  return td->retval;							\
+  return t->retval;							\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -398,14 +397,13 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 int									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
 {									\
-  network_thread_data *td = &t->u.server;				\
   int fd;								\
 									\
   CHECK_MUTEX_LOCKED (&nod->mutex);					\
 									\
   fd = node_connect_and_authenticate (t, nod);				\
   if (fd < 0)								\
-    return td->retval;							\
+    return t->retval;							\
 									\
   return zfs_proc_##FUNCTION##_client_1 (t, args, fd);			\
 }

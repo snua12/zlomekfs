@@ -260,7 +260,7 @@ close_active_fd (int i)
     {
       waiting4reply_data *data = *(waiting4reply_data **) slot;
 
-      data->t->u.server.retval = ZFS_CONNECTION_CLOSED;
+      data->t->retval = ZFS_CONNECTION_CLOSED;
       semaphore_up (&data->t->sem, 1);
     });
   htab_destroy (network_fd_data[fd].waiting4reply);
@@ -274,7 +274,6 @@ close_active_fd (int i)
 void
 send_request (thread *t, uint32_t request_id, int fd)
 {
-  network_thread_data *td = &t->u.server;
   void **slot;
   waiting4reply_data *wd;
 
@@ -282,11 +281,11 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   if (!running)
     {
-      td->retval = ZFS_EXITING;
+      t->retval = ZFS_EXITING;
       return;
     }
 
-  td->retval = ZFS_OK;
+  t->retval = ZFS_OK;
 
   /* Add the tread to the table of waiting threads.  */
   wd = ((waiting4reply_data *)
@@ -307,10 +306,10 @@ send_request (thread *t, uint32_t request_id, int fd)
 
   /* Send the request.  */
   network_fd_data[fd].last_use = time (NULL);
-  if (!full_write (fd, td->dc_call.buffer, td->dc_call.cur_length))
+  if (!full_write (fd, t->dc_call.buffer, t->dc_call.cur_length))
     {
       zfsd_mutex_unlock (&network_fd_data[fd].mutex);
-      td->retval = ZFS_CONNECTION_CLOSED;
+      t->retval = ZFS_CONNECTION_CLOSED;
       htab_clear_slot (network_fd_data[fd].waiting4reply, slot);
       return;
     }
@@ -320,10 +319,10 @@ send_request (thread *t, uint32_t request_id, int fd)
   semaphore_down (&t->sem, 1);
 
   /* If there was no error with connection, decode return value.  */
-  if (td->retval == ZFS_OK)
+  if (t->retval == ZFS_OK)
     {
-      if (!decode_status (&td->dc, &td->retval))
-	td->retval = ZFS_INVALID_REPLY;
+      if (!decode_status (&t->dc, &t->retval))
+	t->retval = ZFS_INVALID_REPLY;
     }
 }
 
@@ -342,8 +341,10 @@ add_fd_to_active (int fd)
 /* Send a reply.  */
 
 static void
-send_reply (network_thread_data *td)
+send_reply (thread *t)
 {
+  network_thread_data *td = &t->u.server;
+
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&td->fd_data->mutex);
 
@@ -352,7 +353,7 @@ send_reply (network_thread_data *td)
   if (td->fd_data->fd >= 0 && td->fd_data->generation == td->generation)
     {
       td->fd_data->last_use = time (NULL);
-      if (!full_write (td->fd_data->fd, td->dc.buffer, td->dc.cur_length))
+      if (!full_write (td->fd_data->fd, t->dc.buffer, t->dc.cur_length))
 	{
 	}
     }
@@ -362,14 +363,14 @@ send_reply (network_thread_data *td)
 /* Send error reply with error status STATUS.  */
 
 static void
-send_error_reply (network_thread_data *td, uint32_t request_id, int status)
+send_error_reply (thread *t, uint32_t request_id, int status)
 {
-  start_encoding (&td->dc);
-  encode_direction (&td->dc, DIR_REPLY);
-  encode_request_id (&td->dc, request_id);
-  encode_status (&td->dc, status);
-  finish_encoding (&td->dc);
-  send_reply (td);
+  start_encoding (&t->dc);
+  encode_direction (&t->dc, DIR_REPLY);
+  encode_request_id (&t->dc, request_id);
+  encode_status (&t->dc, status);
+  finish_encoding (&t->dc);
+  send_reply (t);
 }
 
 /* Initialize network thread T.  */
@@ -377,7 +378,7 @@ send_error_reply (network_thread_data *td, uint32_t request_id, int status)
 void
 network_worker_init (thread *t)
 {
-  dc_create (&t->u.server.dc_call, ZFS_MAX_REQUEST_LEN);
+  dc_create (&t->dc_call, ZFS_MAX_REQUEST_LEN);
 }
 
 /* Cleanup network thread DATA.  */
@@ -387,7 +388,7 @@ network_worker_cleanup (void *data)
 {
   thread *t = (thread *) data;
 
-  dc_destroy (&t->u.server.dc_call);
+  dc_destroy (&t->dc_call);
 }
 
 /* The main function of the network thread.  */
@@ -418,21 +419,21 @@ network_worker (void *data)
       if (t->state == THREAD_DYING)
 	break;
 
-      if (!decode_request_id (&td->dc, &request_id))
+      if (!decode_request_id (&t->dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
 	  goto out;
 	}
 
-      if (td->dc.max_length > td->dc.size)
+      if (t->dc.max_length > t->dc.size)
 	{
-	  send_error_reply (td, request_id, ZFS_REQUEST_TOO_LONG);
+	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
-      if (!decode_function (&td->dc, &fn))
+      if (!decode_function (&t->dc, &fn))
 	{
-	  send_error_reply (td, request_id, ZFS_INVALID_REQUEST);
+	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
 	}
 
@@ -444,27 +445,27 @@ network_worker (void *data)
 	  case ZFS_PROC_##NAME:						      \
 	    if (fd_data->auth < AUTH)					      \
 	      {								      \
-		send_error_reply (td, request_id, ZFS_INVALID_AUTH_LEVEL);    \
+		send_error_reply (t, request_id, ZFS_INVALID_AUTH_LEVEL);     \
 		goto out;						      \
 	      }								      \
-	    if (!decode_##ARGS (&td->dc, &td->args.FUNCTION)		      \
-		|| !finish_decoding (&td->dc))				      \
+	    if (!decode_##ARGS (&t->dc, &t->args.FUNCTION)		      \
+		|| !finish_decoding (&t->dc))				      \
 	      {								      \
-		send_error_reply (td, request_id, ZFS_INVALID_REQUEST);	      \
+		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	      \
 		goto out;						      \
 	      }								      \
-	    start_encoding (&td->dc);					      \
-	    encode_direction (&td->dc, DIR_REPLY);			      \
-	    encode_request_id (&td->dc, request_id);			      \
-	    zfs_proc_##FUNCTION##_server (&td->args.FUNCTION, t);	      \
-	    finish_encoding (&td->dc);					      \
-	    send_reply (td);						      \
+	    start_encoding (&t->dc);					      \
+	    encode_direction (&t->dc, DIR_REPLY);			      \
+	    encode_request_id (&t->dc, request_id);			      \
+	    zfs_proc_##FUNCTION##_server (&t->args.FUNCTION, t);	      \
+	    finish_encoding (&t->dc);					      \
+	    send_reply (t);						      \
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
 	  default:
-	    send_error_reply (td, request_id, ZFS_UNKNOWN_FUNCTION);
+	    send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
 	    goto out;
 	}
 
@@ -476,13 +477,13 @@ out:
 	  if (fd_data->ndc < MAX_FREE_BUFFERS_PER_SERVER_FD)
 	    {
 	      /* Add the buffer to the queue.  */
-	      fd_data->dc[fd_data->ndc] = td->dc;
+	      fd_data->dc[fd_data->ndc] = t->dc;
 	      fd_data->ndc++;
 	    }
 	  else
 	    {
 	      /* Free the buffer.  */
-	      dc_destroy (&td->dc);
+	      dc_destroy (&t->dc);
 	    }
 	}
       zfsd_mutex_unlock (&fd_data->mutex);
@@ -560,7 +561,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
 	    data = *(waiting4reply_data **) slot;
 	    t = data->t;
-	    t->u.server.dc = *dc;
+	    t->dc = *dc;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    pool_free (fd_data->waiting4reply_pool, data);
 	    zfsd_mutex_unlock (&fd_data->mutex);
@@ -586,7 +587,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 #endif
 	network_pool.threads[index].t.state = THREAD_BUSY;
 	network_pool.threads[index].t.u.server.fd_data = fd_data;
-	network_pool.threads[index].t.u.server.dc = *dc;
+	network_pool.threads[index].t.dc = *dc;
 	network_pool.threads[index].t.u.server.generation = generation;
 
 	/* Let the thread run.  */
@@ -1065,7 +1066,7 @@ network_cleanup ()
 	{
 	  waiting4reply_data *data = *(waiting4reply_data **) slot;
 
-	  data->t->u.server.retval = ZFS_EXITING;
+	  data->t->retval = ZFS_EXITING;
 	  semaphore_up (&data->t->sem, 1);
 	});
       zfsd_mutex_unlock (&fd_data->mutex);
