@@ -605,10 +605,10 @@ int zfsd_write(write_args *args)
 	return error;
 }
 
-int zfsd_readpage(char *buf, read_args *args)
+int zfsd_read_kernel(char *buf, read_args *args)
 {
 	DC *dc;
-	uint32_t nbytes;
+	read_res res;
 	int error;
 
 	TRACE("reading %u bytes", args->count);
@@ -619,17 +619,13 @@ int zfsd_readpage(char *buf, read_args *args)
 
 	error = zfs_proc_read_zfsd(&dc, args);
 	if (!error) {
-		if (!decode_uint32_t(dc, &nbytes)
-		    || (nbytes > args->count))
+		if (!decode_read_res(dc, &res)
+		    || (res.data.len > args->count)
+		    || !finish_decoding(dc))
 			error = -EPROTO;
 		else {
-			dc->cur_length += nbytes;
-			if (!finish_decoding(dc))
-				error = -EPROTO;
-			else {
-				memcpy(buf, dc->cur_pos, nbytes);
-				error = nbytes;
-			}
+			memcpy(buf, dc->cur_pos, res.data.len);
+			error = res.data.len;
 		}
 	}
 

@@ -49,6 +49,6 @@ extern int zfsd_close(zfs_cap *cap);
 extern int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t filldir);
 extern int zfsd_read(char __user *buf, read_args *args);
 extern int zfsd_write(write_args *args);
-extern int zfsd_readpage(char *buf, read_args *args);
+extern int zfsd_read_kernel(char *buf, read_args *args);
 
 #endif
