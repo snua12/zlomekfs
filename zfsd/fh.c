@@ -129,7 +129,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
       vd = (virtual_dir) htab_find_with_hash (virtual_dir_htab, fh, hash);
       pthread_mutex_unlock (&virtual_dir_mutex);
       if (!vd || vd->active == 0)
-	return 0;
+	return false;
 
       *volp = vd->vol;
       *ifhp = NULL;

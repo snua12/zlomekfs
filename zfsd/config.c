@@ -253,11 +253,11 @@ get_node_name ()
   message (1, stderr, "Autodetected node name: '%s'\n", node_name);
 }
 
-static int
+static bool
 read_private_key (const char *filename)
 {
 
-  return 1;
+  return true;
 }
 
 static bool

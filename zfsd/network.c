@@ -632,7 +632,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
 /* Create server threads and related threads.  */
 
-int
+bool
 create_server_threads ()
 {
   int i;
@@ -651,7 +651,7 @@ create_server_threads ()
 
   thread_pool_create_regulator (&server_regulator_data, &server_pool,
 				server_worker, server_worker_init);
-  return 1;
+  return true;
 }
 
 #ifdef RPC
@@ -964,7 +964,7 @@ retry_accept:
 
 /* Create a listening socket and start the main server thread.  */
 
-int
+bool
 server_start ()
 {
   socklen_t socket_options;
@@ -975,7 +975,7 @@ server_start ()
   if (main_socket < 0)
     {
       message (-1, stderr, "socket(): %s\n", strerror (errno));
-      return 0;
+      return false;
     }
 
   /* Reuse the port.  */
@@ -985,7 +985,7 @@ server_start ()
     {
       message (-1, stderr, "setsockopt(): %s\n", strerror (errno));
       close (main_socket);
-      return 0;
+      return false;
     }
 
   /* Bind the server socket to ZFS_PORT.  */
@@ -996,7 +996,7 @@ server_start ()
     {
       message (-1, stderr, "bind(): %s\n", strerror (errno));
       close (main_socket);
-      return 0;
+      return false;
     }
 
   /* Set the queue for incoming connections.  */
@@ -1004,7 +1004,7 @@ server_start ()
     {
       message (-1, stderr, "listen(): %s\n", strerror (errno));
       close (main_socket);
-      return 0;
+      return false;
     }
 
   /* Create the main server thread.  */
@@ -1013,15 +1013,15 @@ server_start ()
       message (-1, stderr, "pthread_create() failed\n");
       free (server_fd_data);
       close (main_socket);
-      return 0;
+      return false;
     }
 
-  return 1;
+  return true;
 }
 
 /* Initialize information about network file descriptors.  */
 
-int
+bool
 server_init_fd_data ()
 {
   int i;
@@ -1029,7 +1029,7 @@ server_init_fd_data ()
   if (pthread_mutex_init (&active_mutex, NULL))
     {
       message (-1, stderr, "pthread_mutex_init() failed\n");
-      return 0;
+      return false;
     }
 
   server_fd_data = (server_fd_data_t *) xcalloc (max_nfd,
@@ -1040,7 +1040,7 @@ server_init_fd_data ()
 	{
 	  message (-1, stderr, "pthread_mutex_init() failed\n");
 	  free (server_fd_data);
-	  return 0;
+	  return false;
 	}
       server_fd_data[i].fd = -1;
     }
@@ -1048,7 +1048,7 @@ server_init_fd_data ()
   nactive = 0;
   active = (server_fd_data_t **) xmalloc (max_nfd * sizeof (server_fd_data_t));
 
-  return 1;
+  return true;
 }
 
 /* Destroy information about network file descriptors.  */

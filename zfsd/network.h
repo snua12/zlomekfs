@@ -85,12 +85,12 @@ extern void server_worker_init (struct thread_def *t);
 extern void server_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd, node nod);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
-extern int create_server_threads ();
+extern bool create_server_threads ();
 #ifdef RPC
 extern void register_server ();
 #else
-extern int server_start ();
-extern int server_init_fd_data ();
+extern bool server_start ();
+extern bool server_init_fd_data ();
 #endif
 extern void server_cleanup ();
 
