@@ -2107,9 +2107,6 @@ make_space_in_conflict_dir (volume *volp, internal_dentry *conflictp,
     abort ();
   if ((*conflictp)->fh->attr.type != FT_DIR)
     abort ();
-  if ((*conflictp)->fh->level == LEVEL_UNLOCKED
-      && (*conflictp)->parent->fh->level == LEVEL_UNLOCKED)
-    abort ();
   if (CONFLICT_DIR_P (*fh))
     abort ();
   if (exists && (*volp)->id != fh->vid)
