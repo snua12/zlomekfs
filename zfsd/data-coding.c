@@ -184,7 +184,7 @@ ENCODE_SIMPLE_TYPE (uint16_t, 2, u16_to_le)
 ENCODE_SIMPLE_TYPE (int32_t, 4, i32_to_le)
 ENCODE_SIMPLE_TYPE (uint32_t, 4, u32_to_le)
 ENCODE_SIMPLE_TYPE (int64_t, 8, i64_to_le)
-ENCODE_SIMPLE_TYPE (uint64_t, 8, u32_to_le)
+ENCODE_SIMPLE_TYPE (uint64_t, 8, u64_to_le)
 
 bool
 decode_data_buffer (DC *dc, data_buffer *data)
