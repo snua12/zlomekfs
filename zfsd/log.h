@@ -39,23 +39,23 @@
 /* Print the function name and return value.  */
 #define RETURN_INT(RETVAL)						\
   do {									\
-    int32_t r = (int32_t) (RETVAL);					\
-    TRACE ("return %" PRIi32, r);					\
-    return r;								\
+    int32_t _r = (int32_t) (RETVAL);					\
+    TRACE ("return %" PRIi32, _r);					\
+    return _r;								\
   } while (0)
 
 #define RETURN_PTR(RETVAL)						\
   do {									\
-    void *r = (RETVAL);							\
-    TRACE ("return %p", r);						\
-    return r;								\
+    void *_r = (RETVAL);							\
+    TRACE ("return %p", _r);						\
+    return _r;								\
   } while (0)
 
 #define RETURN_BOOL(RETVAL)						\
   do {									\
-    bool r = (RETVAL);							\
-    TRACE ("return %d", r);						\
-    return r;								\
+    bool _r = (RETVAL);							\
+    TRACE ("return %d", _r);						\
+    return _r;								\
   } while (0)
 
 #define RETURN_VOID							\
