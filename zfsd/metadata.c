@@ -2705,13 +2705,15 @@ metadata_hardlink_insert (volume vol, zfs_fh *fh, metadata *meta,
 /* Replace a hardlink [OLD_PARENT_DEV, OLD_PARENT_INO, OLD_NAME] by
    [NEW_PARENT_DEV, NEW_PARENT_INO, NEW_NAME] in hardlink list for file
    handle FH on volume VOL.  Use META for loading metadata.
+   If SHADOW is true set the METADATA_SHADOW flag, otherwise clear it.
    Return false on file error.  */
 
 bool
 metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
 			   uint32_t old_parent_dev, uint32_t old_parent_ino,
 			   string *old_name, uint32_t new_parent_dev,
-			   uint32_t new_parent_ino, string *new_name)
+			   uint32_t new_parent_ino, string *new_name,
+			   bool shadow)
 {
   hardlink_list hl;
   bool flush;
@@ -2725,6 +2727,11 @@ metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
       hardlink_list_destroy (hl);
       return false;
     }
+
+  if (shadow)
+    meta->flags |= METADATA_SHADOW;
+  else
+    meta->flags &= ~METADATA_SHADOW;
 
   flush = hardlink_list_delete (hl, old_parent_dev, old_parent_ino,
 				old_name);

@@ -172,7 +172,7 @@ extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
 				       string *old_name,
 				       uint32_t new_parent_dev,
 				       uint32_t new_parent_ino,
-				       string *new_name);
+				       string *new_name, bool shadow);
 extern bool metadata_hardlink_set (volume vol, zfs_fh *fh, metadata *meta,
 				   uint32_t parent_dev, uint32_t parent_ino,
 				   string *name);

@@ -2673,7 +2673,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 					  from_name,
 					  to_dentry->fh->local_fh.dev,
 					  to_dentry->fh->local_fh.ino,
-					  to_name))
+					  to_name, false))
 	    MARK_VOLUME_DELETE (vol);
 
 	  if (vol->master != this_node)
@@ -4504,7 +4504,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  if (!metadata_hardlink_replace (vol, fh, &meta, old_parent_st.st_dev,
 					  old_parent_st.st_ino, &old_name,
 					  new_parent_dev, new_parent_ino,
-					  &new_name))
+					  &new_name, false))
 	    {
 	      MARK_VOLUME_DELETE (vol);
 	      zfsd_mutex_unlock (&vol->mutex);
