@@ -21,12 +21,18 @@
 #include "system.h"
 #include <string.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <errno.h>
 #include "config.h"
 #include "crc32.h"
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"
 #include "node.h"
+#include "server.h"
+#include "thread.h"
 #include "zfs_prot.h"
 
 /* Hash table of nodes, searched by ID.  */
@@ -122,8 +128,6 @@ node_create (unsigned int id, char *name)
   nod->name = xstrdup (name);
   nod->flags = 0;
   nod->last_connect = 0;
-  nod->conn = CONNECTION_NONE;
-  nod->auth = AUTHENTICATION_NONE;
 #ifdef RPC
   nod->clnt = NULL;
 #endif
@@ -132,11 +136,7 @@ node_create (unsigned int id, char *name)
 
   /* Are we creating a structure describing local node?  */
   if (strcmp (name, node_name) == 0)
-    {
-      this_node = nod;
-      nod->conn = CONNECTION_FAST;
-      nod->auth = AUTHENTICATION_FINISHED;
-    }
+    this_node = nod;
 
   pthread_mutex_lock (&node_mutex);
 #ifdef ENABLE_CHECKING
@@ -198,6 +198,232 @@ node_destroy (node nod)
   pthread_mutex_destroy (&nod->mutex);
   free (nod->name);
   free (nod);
+}
+
+/* Update file descriptor of node NOD to be FD with generation GENERATION.  */
+
+void
+node_update_fd (node nod, int fd, unsigned int generation)
+{
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+  if (nod->fd >= 0)
+    {
+      pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+      server_fd_data[nod->fd].busy = -1;
+      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+    }
+
+  nod->fd = fd;
+  nod->generation = generation;
+}
+
+/* If node NOD is connected return true and lock SERVER_FD_DATA[NOD->FD].MUTEX.
+   This function expects NOD->MUTEX to be locked.  */
+
+bool
+node_connected_p (node nod)
+{
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+
+  if (nod->fd < 0)
+    return false;
+
+  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+  if (nod->generation != server_fd_data[nod->fd].generation)
+    {
+      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+      return false;
+    }
+
+  return true;
+}
+
+/* Connect to node NOD, return open file descriptor.  */
+
+static int
+node_connect (node nod)
+{
+  struct addrinfo *addr, *a;
+  int s;
+  int err;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+
+  /* Lookup the IP address.  */
+  if ((err = getaddrinfo (nod->name, NULL, NULL, &addr)) != 0)
+    {
+      message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
+      return -1;
+    }
+
+  for (a = addr; a; a = a->ai_next)
+    {
+      switch (a->ai_family)
+	{
+	  case AF_INET:
+	    if (a->ai_socktype == SOCK_STREAM
+		&& a->ai_protocol == IPPROTO_TCP)
+	      {
+		s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (s < 0)
+		  {
+		    message (-1, stderr, "socket(): %s\n", strerror (errno));
+		    break;
+		  }
+
+		/* Connect the server socket to ZFS_PORT.  */
+		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
+		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
+		  goto node_connected;
+	      }
+	    break;
+
+	  case AF_INET6:
+	    if (a->ai_socktype == SOCK_STREAM
+		&& a->ai_protocol == IPPROTO_TCP)
+	      {
+		s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+		if (s < 0)
+		  {
+		    message (-1, stderr, "socket(): %s\n", strerror (errno));
+		    break;
+		  }
+
+		/* Connect the server socket to ZFS_PORT.  */
+		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
+		  = htons (ZFS_PORT);
+		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
+		  goto node_connected;
+	      }
+	    break;
+	}
+    }
+
+  message (-1, stderr, "Could not connect to %s\n", nod->name);
+  close (s);
+  freeaddrinfo (addr);
+  return -1;
+
+node_connected: 
+  freeaddrinfo (addr);
+  server_fd_data[s].auth = AUTHENTICATION_NONE;
+  server_fd_data[s].conn = CONNECTION_FAST; /* FIXME */
+  message (2, stderr, "FD %d connected to %s\n", s, nod->name);
+  return s;
+}
+
+/* Authenticate connection with node NOD using data of thread T.
+   On success leave SERVER_FD_DATA[NOD->FD].MUTEX lcoked.  */
+
+static bool
+node_authenticate (thread *t, node nod)
+{
+  auth_stage1_args args1;
+  auth_stage2_args args2;
+
+  memset (&args1, 0, sizeof (args1));
+  memset (&args2, 0, sizeof (args2));
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+
+  /* FIXME: really do authentication; currently the functions are empty.  */
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
+    abort ();
+#endif
+  args1.node.len = node_name_len;
+  args1.node.str = node_name;
+  if (zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd) != ZFS_OK)
+    goto node_authenticate_error;
+  if (!node_connected_p (nod))
+    goto node_authenticate_error;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
+    abort ();
+#endif
+  server_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
+
+  if (zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd) != ZFS_OK)
+    goto node_authenticate_error;
+  if (!node_connected_p (nod))
+    goto node_authenticate_error;
+
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
+    abort ();
+#endif
+  server_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
+  return true;
+
+node_authenticate_error:
+  message (2, stderr, "not auth\n");
+  server_fd_data[nod->fd].auth = AUTHENTICATION_NONE;
+  server_fd_data[nod->fd].conn = CONNECTION_NONE;
+  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+  close_server_fd (nod->fd);
+  pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+  nod->fd = -1;
+  return false;
+}
+
+/* Check whether node NOD is connected and authenticated. If not do so.
+   Return open file descriptor and leave its SERVER_FD_DATA locked.  */
+
+int
+node_connect_and_authenticate (thread *t, node nod)
+{
+  server_thread_data *td = &t->u.server;
+  int fd;
+
+  pthread_mutex_lock (&nod->mutex);
+  if (!node_connected_p (nod))
+    {
+      time_t now;
+
+      /* Do not try to connect too often.  */
+      now = time (NULL);
+      if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
+	{
+	  td->retval = ZFS_COULD_NOT_CONNECT;
+	  pthread_mutex_unlock (&nod->mutex);
+	  return -1;
+	}
+      nod->last_connect = now;
+
+      fd = node_connect (nod);
+      if (fd < 0)
+	{
+	  td->retval = ZFS_COULD_NOT_CONNECT;
+	  pthread_mutex_unlock (&nod->mutex);
+	  return -1;
+	}
+      add_fd_to_active (fd);
+      node_update_fd (nod, fd, server_fd_data[fd].generation);
+
+      if (!node_authenticate (t, nod))
+	{
+	  td->retval = ZFS_COULD_NOT_AUTH;
+	  pthread_mutex_unlock (&nod->mutex);
+	  return -1;
+	}
+    }
+  else
+    fd = nod->fd;
+
+  pthread_mutex_unlock (&nod->mutex);
+  return fd;
 }
 
 /* Initialize data structures in NODE.C.  */

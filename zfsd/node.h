@@ -25,22 +25,7 @@
 #include <netdb.h>
 #include <rpc/rpc.h>
 #include <pthread.h>
-
-/* Connection status.  */
-typedef enum connection_status_def
-{
-  CONNECTION_NONE = 0,
-  CONNECTION_SLOW,
-  CONNECTION_FAST
-} connection_status;
-
-/* Status of authentication.  */
-typedef enum authentication_status_def
-{
-  AUTHENTICATION_NONE = 0,
-  AUTHENTICATION_IN_PROGRESS,
-  AUTHENTICATION_FINISHED
-} authentication_status;
+#include "thread.h"
 
 /* Node description.  */
 typedef struct node_def
@@ -51,8 +36,6 @@ typedef struct node_def
 				/* public key */
   int flags;			/* see NODE_* below */
   time_t last_connect;		/* last attemp to connect to node */
-  connection_status conn;	/* connection status */
-  authentication_status auth;	/* authentication status */
   int fd;			/* file descriptor */
   unsigned int generation;	/* generation of open file descriptor */
 #ifdef RPC
@@ -75,6 +58,9 @@ extern node node_lookup (unsigned int id);
 extern node node_lookup_name (char *name);
 extern node node_create (unsigned int id, char *name);
 extern void node_destroy (node nod);
+extern void node_update_fd (node nod, int fd, unsigned int generation);
+extern bool node_connected_p (node nod);
+extern int node_connect_and_authenticate (thread *t, node nod);
 extern void initialize_node_c ();
 extern void cleanup_node_c ();
 

@@ -23,8 +23,6 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include "constant.h"
 #include "zfs_prot.h"
 #include "data-coding.h"
@@ -125,6 +123,8 @@ zfs_proc_lookup_server (dir_op_args *args, thread *t)
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_zfs_fh (dc, &fh);
+
+  free (args->name.str);
 }
 
 /* open_res zfs_proc_open_by_name (open_name_args); */
@@ -288,13 +288,32 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
   server_fd_data_t *fd_data = t->u.server.fd_data;
+  node nod;
 
-  /* TODO: write the function */
-
+  pthread_mutex_lock (&node_mutex);
   pthread_mutex_lock (&fd_data->mutex);
-  fd_data->auth = AUTHENTICATION_IN_PROGRESS;
+  nod = node_lookup_name (args->node.str);
+  if (nod)
+    {
+      pthread_mutex_lock (&nod->mutex);
+      pthread_mutex_unlock (&node_mutex);
+      /* FIXME: do the key authorization */
+      fd_data->sid = nod->id;
+      fd_data->auth = AUTHENTICATION_IN_PROGRESS;
+      encode_status (dc, ZFS_OK);
+      pthread_mutex_unlock (&nod->mutex);
+    }
+  else
+    pthread_mutex_unlock (&node_mutex);
+
+  if (!nod)
+    {
+      sleep (1);	/* FIXME: create constant or configuration directive */
+      close_server_fd (fd_data->fd);
+    }
   pthread_mutex_unlock (&fd_data->mutex);
-  encode_status (dc, ZFS_OK);
+
+  free (args->node.str);
 }
 
 /* ? zfs_proc_auth_stage2 (auth_stage2_args); */
@@ -304,17 +323,41 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 {
   DC *dc = &t->u.server.dc;
   server_fd_data_t *fd_data = t->u.server.fd_data;
+  node nod;
+  bool authenticated = false;
 
-  /* TODO: write the function */
-
+  pthread_mutex_lock (&node_mutex);
   pthread_mutex_lock (&fd_data->mutex);
-  fd_data->auth = AUTHENTICATION_FINISHED;
+  nod = node_lookup (fd_data->sid);
+  if (nod)
+    {
+      pthread_mutex_lock (&nod->mutex);
+      pthread_mutex_unlock (&node_mutex);
+      /* FIXME: verify the authentication data */
+      authenticated = true;
+      if (authenticated)
+	{
+	  fd_data->auth = AUTHENTICATION_FINISHED;
+	  encode_status (dc, ZFS_OK);
+	  node_update_fd (nod, fd_data->fd, fd_data->generation);
+	}
+      pthread_mutex_unlock (&nod->mutex);
+    }
+  else
+    pthread_mutex_unlock (&node_mutex);
+
+  if (!authenticated)
+    {
+      pthread_mutex_unlock (&fd_data->mutex);
+      sleep (1);	/* FIXME: create constant or configuration directive */
+      pthread_mutex_lock (&fd_data->mutex);
+      close_server_fd (fd_data->fd);
+    }
   pthread_mutex_unlock (&fd_data->mutex);
-  encode_status (dc, ZFS_OK);
 }
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
-static int								\
+int								\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   server_thread_data *td = &t->u.server;				\
@@ -339,214 +382,6 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 
-/* If node NOD is connected return true and lock SERVER_FD_DATA[NOD->FD].MUTEX.
-   This function expects NOD->MUTEX to be locked.  */
-
-static bool
-node_connected_p (node nod)
-{
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
-
-  if (nod->fd < 0)
-    return false;
-
-  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
-  if (nod->generation != server_fd_data[nod->fd].generation)
-    {
-      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
-      return false;
-    }
-
-  return true;
-}
-
-/* Connect to node NOD, return open file descriptor.  */
-
-int
-node_connect (node nod)
-{
-  struct addrinfo *addr, *a;
-  int s;
-  int err;
-
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
-
-  /* Lookup the IP address.  */
-  if ((err = getaddrinfo (nod->name, NULL, NULL, &addr)) != 0)
-    {
-      message (-1, stderr, "getaddrinfo(): %s\n", gai_strerror (err));
-      return -1;
-    }
-
-  for (a = addr; a; a = a->ai_next)
-    {
-      switch (a->ai_family)
-	{
-	  case AF_INET:
-	    if (a->ai_socktype == SOCK_STREAM
-		&& a->ai_protocol == IPPROTO_TCP)
-	      {
-		s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (s < 0)
-		  {
-		    message (-1, stderr, "socket(): %s\n", strerror (errno));
-		    break;
-		  }
-
-		/* Connect the server socket to ZFS_PORT.  */
-		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
-		  goto node_connected;
-	      }
-	    break;
-
-	  case AF_INET6:
-	    if (a->ai_socktype == SOCK_STREAM
-		&& a->ai_protocol == IPPROTO_TCP)
-	      {
-		s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-		if (s < 0)
-		  {
-		    message (-1, stderr, "socket(): %s\n", strerror (errno));
-		    break;
-		  }
-
-		/* Connect the server socket to ZFS_PORT.  */
-		((struct sockaddr_in6 *)a->ai_addr)->sin6_port
-		  = htons (ZFS_PORT);
-		if (connect (s, a->ai_addr, a->ai_addrlen) >= 0)
-		  goto node_connected;
-	      }
-	    break;
-	}
-    }
-
-  message (-1, stderr, "Could not connect to %s\n", nod->name);
-  close (s);
-  freeaddrinfo (addr);
-  return -1;
-
-node_connected: 
-  freeaddrinfo (addr);
-  nod->fd = s;
-  nod->auth = AUTHENTICATION_NONE;
-  nod->conn = CONNECTION_FAST; /* FIXME */
-  message (2, stderr, "FD %d connected to %s\n", s, nod->name);
-  return s;
-}
-
-/* Authenticate connection with node NOD using data of thread T.
-   On success leave SERVER_FD_DATA[NOD->FD].MUTEX lcoked.  */
-
-static bool
-node_authenticate (thread *t, node nod)
-{
-  auth_stage1_args args1;
-  auth_stage2_args args2;
-
-  memset (&args1, 0, sizeof (args1));
-  memset (&args2, 0, sizeof (args2));
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&nod->mutex) == 0)
-    abort ();
-#endif
-
-  /* FIXME: really do authentication; currently the functions are empty.  */
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
-    abort ();
-#endif
-  args1.node.len = node_name_len;
-  args1.node.str = node_name;
-  if (zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd) != ZFS_OK)
-    goto node_authenticate_error;
-  if (!node_connected_p (nod))
-    goto node_authenticate_error;
-
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
-    abort ();
-#endif
-  nod->auth = AUTHENTICATION_IN_PROGRESS;
-  server_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
-
-  if (zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd) != ZFS_OK)
-    goto node_authenticate_error;
-  if (!node_connected_p (nod))
-    goto node_authenticate_error;
-
-#ifdef ENABLE_CHECKING
-  if (pthread_mutex_trylock (&server_fd_data[nod->fd].mutex) == 0)
-    abort ();
-#endif
-  nod->auth = AUTHENTICATION_FINISHED;
-  server_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
-  return true;
-
-node_authenticate_error:
-  message (2, stderr, "not auth\n");
-  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
-  close_server_fd (nod->fd);
-  pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
-  nod->auth = AUTHENTICATION_NONE;
-  nod->conn = CONNECTION_NONE;
-  nod->fd = -1;
-  return false;
-}
-
-/* Check whether node NOD is connected and authenticated. If not do so.
-   Return open file descriptor and leave its SERVER_FD_DATA locked.  */
-
-static int
-zfs_proc_client_connect (thread *t, node nod)
-{
-  server_thread_data *td = &t->u.server;
-  int fd;
-
-  pthread_mutex_lock (&nod->mutex);
-  if (!node_connected_p (nod))
-    {
-      time_t now;
-
-      /* Do not try to connect too often.  */
-      now = time (NULL);
-      if (now - nod->last_connect < NODE_CONNECT_VISCOSITY)
-	{
-	  td->retval = ZFS_COULD_NOT_CONNECT;
-	  pthread_mutex_unlock (&nod->mutex);
-	  return -1;
-	}
-      nod->last_connect = now;
-
-      fd = node_connect (nod);
-      if (fd < 0)
-	{
-	  td->retval = ZFS_COULD_NOT_CONNECT;
-	  pthread_mutex_unlock (&nod->mutex);
-	  return -1;
-	}
-      add_fd_to_active (fd, nod);
-
-      if (!node_authenticate (t, nod))
-	{
-	  td->retval = ZFS_COULD_NOT_AUTH;
-	  pthread_mutex_unlock (&nod->mutex);
-	  return -1;
-	}
-    }
-  else
-    fd = nod->fd;
-
-  pthread_mutex_unlock (&nod->mutex);
-  return fd;
-}
-
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
 int									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
@@ -554,7 +389,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
   server_thread_data *td = &t->u.server;				\
   int fd;								\
 									\
-  fd = zfs_proc_client_connect (t, nod);				\
+  fd = node_connect_and_authenticate (t, nod);				\
   if (fd < 0)								\
     return td->retval;							\
 									\
