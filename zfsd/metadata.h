@@ -22,6 +22,8 @@
 #define METADATA_H
 
 #include "system.h"
+#include "volume.h"
+#include "fh.h"
 
 /* Purpose of the interval tree.  */
 typedef enum interval_tree_purpose_def
@@ -33,4 +35,11 @@ typedef enum interval_tree_purpose_def
   INTERVAL_TREE_MODIFIED
 } interval_tree_purpose;
 
+extern bool init_interval_tree (volume vol, internal_fh fh,
+				interval_tree_purpose purpose);
+extern bool flush_interval_tree (volume vol, internal_fh fh,
+				 interval_tree_purpose purpose);
+
+extern void initialize_metadata_c ();
+extern void cleanup_metadata_c ();
 #endif
