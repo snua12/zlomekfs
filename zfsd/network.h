@@ -76,8 +76,6 @@ typedef struct network_fd_data_def
 /* Data for network pool regulator.  */
 extern thread_pool_regulator_data network_regulator_data;
 
-#ifndef RPC
-
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
 extern pthread_t main_network_thread;
 
@@ -86,8 +84,6 @@ extern pthread_mutex_t main_network_thread_in_syscall;
 
 /* The array of data for each file descriptor.  */
 extern network_fd_data_t *network_fd_data;
-
-#endif
 
 struct thread_def;
 
@@ -99,12 +95,8 @@ extern void network_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
 extern bool create_network_threads ();
-#ifdef RPC
-extern void register_server ();
-#else
 extern bool network_start ();
 extern bool init_network_fd_data ();
-#endif
 extern void network_cleanup ();
 
 #endif

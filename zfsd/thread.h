@@ -24,7 +24,6 @@
 #include "system.h"
 #include <inttypes.h>
 #include <stddef.h>
-#include <rpc/rpc.h>
 #include "pthread.h"
 #include "queue.h"
 #include "semaphore.h"
@@ -53,15 +52,9 @@ typedef enum thread_state_def
 struct network_fd_data_def;
 typedef struct network_thread_data_def
 {
-#ifdef RPC
-  /* Parameters passed to zfs_program_1 */
-  struct svc_req *rqstp;
-  SVCXPRT *transp;
-#else
   struct network_fd_data_def *fd_data; /* passed from main network thread */
   unsigned int generation;    /* generation of file descriptor */
   unsigned int index;         /* index of FD in array "active" */
-#endif
 } network_thread_data;
 
 /* Additional data for a client thread.  */

@@ -22,8 +22,16 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/poll.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <time.h>
 #include "pthread.h"
 #include "constant.h"
+#include "memory.h"
 #include "semaphore.h"
 #include "data-coding.h"
 #include "network.h"
@@ -32,117 +40,16 @@
 #include "malloc.h"
 #include "thread.h"
 #include "zfs_prot.h"
+#include "node.h"
+#include "volume.h"
+#include "hashtab.h"
+#include "alloc-pool.h"
 
 /* Pool of network threads.  */
 static thread_pool network_pool;
 
 /* Data for network pool regulator.  */
 thread_pool_regulator_data network_regulator_data;
-
-#ifdef RPC
-#if 0
-
-#include <rpc/rpc.h>
-#include <rpc/pmap_clnt.h>
-
-extern void zfs_program_1 (struct svc_req *rqstp, SVCXPRT *transp);
-
-/* Local function prototypes.  */
-static void *network_worker (void *data);
-static void network_dispatch (struct svc_req *rqstp, register SVCXPRT *transp);
-
-/* Function which receives a RPC request and passes it to some network thread.
-   It also regulates the number of network threads.  */
-
-static void
-network_dispatch (struct svc_req *rqstp, register SVCXPRT *transp)
-{
-  size_t index;
-
-  zfsd_mutex_lock (&network_pool.idle.mutex);
-
-  /* Regulate the number of threads.  */
-  thread_pool_regulate (&network_pool, network_worker, NULL);
-
-  /* Select an idle thread and forward the request to it.  */
-  index = queue_get (&network_pool.idle);
-#ifdef ENABLE_CHECKING
-  if (network_pool.threads[index].t.state == THREAD_BUSY)
-    abort ();
-#endif
-  network_pool.threads[index].t.state = THREAD_BUSY;
-  network_pool.threads[index].t.u.server.rqstp = rqstp;
-  network_pool.threads[index].t.u.server.transp = transp;
-  printf ("%p %p\n", rqstp, transp);
-  zfsd_mutex_unlock (&network_pool.threads[index].t.mutex);
-
-  zfsd_mutex_unlock (&network_pool.idle.mutex);
-}
-
-/* The main function of the network thread.  */
-
-static void *
-network_worker (void *data)
-{
-  thread *t = (thread *) data;
-
-  while (1)
-    {
-      /* Wait until network_dispatch wakes us up.  */
-      zfsd_mutex_lock (&t->mutex);
-
-#ifdef ENABLE_CHECKING
-      if (t->state == THREAD_DEAD)
-	abort ();
-#endif
-
-      /* We were requested to die.  */
-      if (t->state == THREAD_DYING)
-	return data;
-
-#ifdef RPC
-      /* We have some work to do.  */
-      zfs_program_1 (t->u.server.rqstp, t->u.server.transp);
-#endif
-
-      /* Put self to the idle queue if not requested to die meanwhile.  */
-      zfsd_mutex_lock (&network_pool.idle.mutex);
-      if (t->state == THREAD_BUSY)
-	{
-	  queue_put (&network_pool.idle, t->index);
-	  t->state = THREAD_IDLE;
-	}
-      else
-	{
-#ifdef ENABLE_CHECKING
-	  if (t->state != THREAD_DYING)
-	    abort ();
-#endif
-	  zfsd_mutex_unlock (&network_pool.idle.mutex);
-	  break;
-	}
-      zfsd_mutex_unlock (&network_pool.idle.mutex);
-    }
-
-  return data;
-}
-
-#endif
-#else	/* RPC */
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/poll.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#include "data-coding.h"
-#include "memory.h"
-#include "node.h"
-#include "volume.h"
-#include "hashtab.h"
-#include "alloc-pool.h"
 
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
 pthread_t main_network_thread;
@@ -630,8 +537,6 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
     }
 }
 
-#endif
-
 /* Create network threads and related threads.  */
 
 bool
@@ -655,63 +560,6 @@ create_network_threads ()
 				network_worker, network_worker_init);
   return true;
 }
-
-#ifdef RPC
-/* Register and run the ZFS protocol server.  This function never returns
-   (unless error occurs).  */
-
-void
-register_server ()
-{
-  SVCXPRT *udp;
-  SVCXPRT *tcp;
-
-  pmap_unset (ZFS_PROGRAM, ZFS_VERSION);
-
-  udp = svcudp_create (RPC_ANYSOCK);
-  if (udp == NULL)
-    {
-      message (-1, stderr, "cannot create udp service.\n");
-      return;
-    }
-  if (!svc_register (udp, ZFS_PROGRAM, ZFS_VERSION, network_dispatch,
-		     IPPROTO_UDP))
-    {
-      message (-1, stderr,
-	       "unable to register (ZFS_PROGRAM<%d>, ZFS_VERSION<%d>, udp).\n",
-	       ZFS_PROGRAM, ZFS_VERSION);
-      return;
-    }
-
-  tcp = svctcp_create (RPC_ANYSOCK, 0, 0);
-  if (tcp == NULL)
-    {
-      message (-1, stderr, "cannot create tcp service.\n");
-      return;
-    }
-  if (!svc_register (tcp, ZFS_PROGRAM, ZFS_VERSION, network_dispatch,
-		     IPPROTO_TCP))
-    {
-      message (-1, stderr,
-	       "unable to register (ZFS_PROGRAM<%d>, ZFS_VERSION<%d>, tcp).\n",
-	       ZFS_PROGRAM, ZFS_VERSION);
-      return;
-    }
-
-#if 0
-  svc_run ();
-#endif
-  message (-1, stderr, "svc_run returned.\n");
-
-#if 0
-  /* This does not help :-( */
-  svc_destroy (udp);
-  svc_destroy (tcp);
-  svc_unregister (ZFS_PROGRAM, ZFS_VERSION);
-#endif
-}
-
-#else
 
 /* Main function of the main (i.e. listening) network thread.  */
 
@@ -1082,8 +930,6 @@ network_destroy_fd_data ()
   free (active);
   free (network_fd_data);
 }
-
-#endif
 
 /* Terminate network threads and destroy data structures.  */
 

@@ -38,8 +38,6 @@ OBJECTS = alloc-pool.o cap.o client.o config.o constant.o \
 	  random.o semaphore.o splay-tree.o test.o thread.o \
 	  user-group.o util.o varray.o volume.o zfsd.o zfs_prot.o
 
-RPC_OBJECTS = #zfs_prot_clnt.o zfs_prot_svc.o zfs_prot_server.o zfs_prot_xdr.o
-
 .c.o:
 	$(COMPILE) -c $<
 
@@ -47,29 +45,10 @@ all: $(PACKAGE)
 
 clean:
 	-rm -f $(PACKAGE) *.o core *.core
-	-rm -f Makefile.zfs_prot zfs_prot_*
 distclean: clean
 	-rm -f Makefile.dep
 
-$(PACKAGE): $(OBJECTS) $(RPC_OBJECTS)
-	$(LINK) $(OBJECTS) $(RPC_OBJECTS) $(LIBS)
-
-# RPC code
-zfs_prot.h: zfs_prot.x
-	#rpcgen -h zfs_prot.x > zfs_prot.h
-zfs_prot_clnt.c: zfs_prot.x zfs_prot.h
-	rpcgen -l zfs_prot.x > $@
-zfs_prot_svc.c: zfs_prot.x zfs_prot.h
-	rpcgen -m zfs_prot.x > $@
-zfs_prot_server.c: zfs_prot.x zfs_prot.h
-	rpcgen -Ss zfs_prot.x > $@
-zfs_prot_xdr.c: zfs_prot.x zfs_prot.h
-	rpcgen -c zfs_prot.x > $@
-zfs_prot_clnt.o: zfs_prot_clnt.c
-zfs_prot_svc.o: zfs_prot_svc.c
-zfs_prot_server.o: zfs_prot_server.c
-zfs_prot_xdr.o: zfs_prot_xdr.c
-
-ZFS_PROT_H = zfs_prot.h
+$(PACKAGE): $(OBJECTS)
+	$(LINK) $(OBJECTS) $(LIBS)
 
 include ./Makefile.dep

@@ -24,7 +24,6 @@
 #include "system.h"
 #include <inttypes.h>
 #include <netdb.h>
-#include <rpc/rpc.h>
 #include "pthread.h"
 #include "thread.h"
 #include "hashtab.h"
@@ -40,9 +39,6 @@ typedef struct node_def
   time_t last_connect;		/* last attemp to connect to node */
   int fd;			/* file descriptor */
   unsigned int generation;	/* generation of open file descriptor */
-#ifdef RPC
-  CLIENT *clnt;			/* RPC client */
-#endif
 
   /* Tables for mapping between ZFS IDs and node IDs.  */
   htab_t map_uid_to_node;

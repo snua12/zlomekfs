@@ -148,9 +148,6 @@ node_create (uint32_t id, char *name)
   nod->name = xstrdup (name);
   nod->flags = 0;
   nod->last_connect = 0;
-#ifdef RPC
-  nod->clnt = NULL;
-#endif
   nod->fd = -1;
   nod->generation = 0;
   nod->map_uid_to_node = NULL;

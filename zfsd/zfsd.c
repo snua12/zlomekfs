@@ -399,11 +399,6 @@ main (int argc, char **argv)
   if (!client_start ())
     terminate ();
 
-#ifdef RPC
-  /* Register the ZFS protocol RPC server, register_server never returns (unless
-     error occurs).  */
-  register_server ();
-#else
   /* Create listening socket and start the main network thread.  */
   if (network_start ())
     {
@@ -418,7 +413,6 @@ main (int argc, char **argv)
     }
   else
     terminate ();
-#endif
 
   client_cleanup ();
   network_cleanup ();
