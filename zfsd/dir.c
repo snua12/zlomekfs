@@ -1291,12 +1291,6 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
 {
   TRACE ("");
 
-  if (sa->size != (uint64_t) -1)
-    {
-      if (truncate (path->str, sa->size) != 0)
-	RETURN_INT (errno);
-    }
-
   if (sa->mode != (uint32_t) -1)
     {
       sa->mode = GET_MODE (sa->mode);
@@ -1320,6 +1314,12 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
       t.actime = sa->atime;
       t.modtime = sa->mtime;
       if (utime (path->str, &t) != 0)
+	RETURN_INT (errno);
+    }
+
+  if (sa->size != (uint64_t) -1)
+    {
+      if (truncate (path->str, sa->size) != 0)
 	RETURN_INT (errno);
     }
 
