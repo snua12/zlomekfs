@@ -1658,6 +1658,8 @@ internal_dentry_move (volume vol, internal_dentry from_dir, char *from_name,
 
   /* Insert DENTRY to DIR.  */
   internal_dentry_add_to_dir (to_dir, dentry);
+
+  release_dentry (dentry);
 }
 
 /* Destroy internal dentry DENTRY.  Clear vol->root_dentry if
