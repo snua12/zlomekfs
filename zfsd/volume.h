@@ -24,6 +24,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include "pthread.h"
+#include "hashtab.h"
 #include "fh.h"
 #include "node.h"
 
