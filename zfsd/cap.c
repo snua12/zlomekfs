@@ -295,7 +295,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   icap = internal_cap_lookup (cap);
   if (icap)
     icap->busy++;
-  else if (*vd)
+  else if (vd && *vd)
     icap = internal_cap_create_vd (*vd, cap->flags);
   else
     icap = internal_cap_create_dentry (*dentry, cap->flags);
