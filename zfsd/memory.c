@@ -121,7 +121,7 @@ xstrconcat (unsigned int n, ...)
 {
   va_list va;
   unsigned int i;
-  char *s;
+  char *r, *s;
   varray v;
 
   /* Store the arguments to varray V.  */
@@ -133,9 +133,10 @@ xstrconcat (unsigned int n, ...)
       VARRAY_PUSH (v, s, char *);
     }
   va_end (va);
+  r = xstrconcat_varray (&v);
   varray_destroy (&v);
 
-  return xstrconcat_varray (&v);
+  return r;
 }
 
 /* Return a concatenation of strings stored in varray.  */
