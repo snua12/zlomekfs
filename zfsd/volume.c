@@ -106,6 +106,7 @@ volume_create (uint32_t id)
   vol = (volume) xmalloc (sizeof (struct volume_def));
   vol->id = id;
   vol->master = NULL;
+  vol->slaves = NULL;
   vol->name.str = NULL;
   vol->name.len = 0;
   vol->mountpoint.str = NULL;
@@ -124,6 +125,13 @@ volume_create (uint32_t id)
 
   zfsd_mutex_init (&vol->mutex);
   zfsd_mutex_lock (&vol->mutex);
+
+  /* Create the list of nodes whose master is this node.  */
+  if (id == VOLUME_ID_CONFIG)
+    {
+      vol->slaves = htab_create (5, node_hash_name, node_eq_name, NULL,
+				 &vol->mutex);
+    }
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
@@ -153,6 +161,9 @@ volume_destroy (volume vol)
   if (vol->n_locked_fhs > 0)
     abort ();
 #endif
+
+  if (vol->slaves)
+    htab_destroy (vol->slaves);
 
   if (vol->root_dentry)
     {

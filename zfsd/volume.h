@@ -43,6 +43,7 @@ struct volume_def
   pthread_mutex_t mutex;
   uint32_t id;			/* ID of the volume */
   node master;			/* master node of the volume */
+  htab_t slaves;		/* nodes whose master is this node */
   string name;			/* name of the volume */
   string mountpoint;		/* "mountpoint" of the volume on cluster fs */
 
