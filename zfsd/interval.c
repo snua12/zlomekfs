@@ -60,7 +60,7 @@ interval_tree_destroy (interval_tree tree)
 
 /* Insert the interval [START, END) into TREE.  */
 
-void
+interval_tree_node
 interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
 {
   splay_tree_node node, prev, next;
@@ -75,7 +75,7 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
 	{
 	  /* There already is a larger interval starting in START
 	     so we have nothing to do.  */
-	  return;
+	  return node;
 	}
     }
   else
@@ -122,6 +122,8 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
       else
 	break;
     }
+
+  return node;
 }
 
 /* Delete the interval [START, END) from TREE.  */
