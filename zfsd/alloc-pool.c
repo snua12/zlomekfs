@@ -227,12 +227,14 @@ pool_free (alloc_pool pool, void *ptr)
 {
   alloc_pool_list header;
 
-  message (4, stderr, "POOL FREE  %p %p\n", (void *) pool, ptr);
-
 #ifdef ENABLE_CHECKING
   if (!pool)
     abort ();
+#endif
 
+  message (4, stderr, "POOL FREE %s %p %p\n", pool->name, (void *) pool, ptr);
+
+#ifdef ENABLE_CHECKING
   if (!ptr)
     abort ();
 
