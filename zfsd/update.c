@@ -3255,7 +3255,7 @@ out2:
 int32_t
 update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 {
-  int32_t r;
+  int32_t r = ZFS_OK;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
