@@ -53,6 +53,9 @@ string node_config;
 /* File with private key.  */
 static string private_key;
 
+/* ID of this node.  */
+static uint32_t this_node_id;
+
 /* Process one line of configuration file.  Return the length of value.  */
 
 static int
@@ -309,7 +312,7 @@ read_private_key (ATTRIBUTE_UNUSED string *filename)
 static bool
 read_local_cluster_config (string *path)
 {
-  char *volumes;
+  char *file;
   FILE *f;
   int line_num;
 
@@ -322,12 +325,39 @@ read_local_cluster_config (string *path)
     }
   message (2, stderr, "Reading configuration of local node\n");
 
-  volumes = xstrconcat (2, path->str, "/volume_info");
-  f = fopen (volumes, "rt");
+  /* Read ID of local node.  */
+  file = xstrconcat (2, path->str, "/node_id");
+  f = fopen (file, "rt");
   if (!f)
     {
-      message (-1, stderr, "%s: %s\n", volumes, strerror (errno));
-      free (volumes);
+      message (-1, stderr, "%s: %s\n", file, strerror (errno));
+      free (file);
+      return false;
+    }
+  if (fscanf (f, "%" PRIu32, &this_node_id) != 1)
+    {
+      message (0, stderr, "%s: Could not read node ID\n", file);
+      free (file);
+      fclose (f);
+      return false;
+    }
+  fclose (f);
+  if (this_node_id == 0 || this_node_id == (uint32_t) -1)
+    {
+      message (0, stderr, "%s: Node ID must not be 0 or %" PRIu32, file,
+	       (uint32_t) -1);
+      free (file);
+      return false;
+    }
+  free (file);
+
+  /* Read local info about volumes.  */
+  file = xstrconcat (2, path->str, "/volume_info");
+  f = fopen (file, "rt");
+  if (!f)
+    {
+      message (-1, stderr, "%s: %s\n", file, strerror (errno));
+      free (file);
       return false;
     }
   else
@@ -354,20 +384,20 @@ read_local_cluster_config (string *path)
 	      if (sscanf (parts[0].str, "%" PRIu32, &id) != 1
 		  || sscanf (parts[2].str, "%" PRIu64, &size_limit) != 1)
 		{
-		  message (0, stderr, "%s:%d: Wrong format of line\n", volumes,
+		  message (0, stderr, "%s:%d: Wrong format of line\n", file,
 			   line_num);
 		}
 	      else if (id == 0 || id == (uint32_t) -1)
 		{
 		  message (0, stderr,
 			   "%s:%d: Volume ID must not be 0 or %" PRIu32,
-			   volumes, line_num, (uint32_t) -1);
+			   file, line_num, (uint32_t) -1);
 		}
 	      else if (parts[1].str[0] != '/')
 		{
 		  message (0, stderr,
 			   "%s:%d: Local path must be an absolute path\n",
-			   volumes, line_num);
+			   file, line_num);
 		}
 	      else
 		{
@@ -388,14 +418,14 @@ read_local_cluster_config (string *path)
 	    }
 	  else
 	    {
-	      message (0, stderr, "%s:%d: Wrong format of line\n", volumes,
+	      message (0, stderr, "%s:%d: Wrong format of line\n", file,
 		       line_num);
 	    }
 	}
       fclose (f);
     }
 
-  free (volumes);
+  free (file);
   return true;
 }
 
@@ -416,7 +446,7 @@ init_config (void)
     }
 
   zfsd_mutex_lock (&node_mutex);
-  nod = node_create ((uint32_t) -1, &node_name);
+  nod = node_create (this_node_id, &node_name);
   zfsd_mutex_unlock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
   volume_set_common_info_wrapper (vol, "config", "/config", nod);
