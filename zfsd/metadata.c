@@ -1588,8 +1588,6 @@ set_attr_version (fattr *attr, metadata *meta)
   TRACE ("");
 
   attr->version = meta->local_version;
-  if (meta->flags & METADATA_MODIFIED)
-    attr->version++;
 }
 
 /* Init metadata for root of volume VOL according to ST so that volume root
@@ -1969,7 +1967,6 @@ set_metadata_flags (volume vol, internal_fh fh, uint32_t flags)
     return true;
 
   fh->meta.flags = flags;
-  set_attr_version (&fh->attr, &fh->meta);
 
   return flush_metadata (vol, &fh->meta);
 }
@@ -2053,6 +2050,25 @@ inc_local_version (volume vol, internal_fh fh)
   fh->meta.local_version++;
   if (!vol->is_copy)
     fh->meta.master_version = fh->meta.local_version;
+  set_attr_version (&fh->attr, &fh->meta);
+
+  return flush_metadata (vol, &fh->meta);
+}
+
+/* Increase the local version for file FH on volume VOL and set MODIFIED flag.
+   Return false on file error.  */
+
+bool
+inc_local_version_and_modified (volume vol, internal_fh fh)
+{
+  TRACE ("");
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  fh->meta.local_version++;
+  if (!vol->is_copy)
+    fh->meta.master_version = fh->meta.local_version;
+  fh->meta.flags |= METADATA_MODIFIED;
   set_attr_version (&fh->attr, &fh->meta);
 
   return flush_metadata (vol, &fh->meta);

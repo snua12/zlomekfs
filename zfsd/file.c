@@ -2252,50 +2252,56 @@ zfs_write (write_res *res, write_args *args)
   if (r == ZFS_OK)
     {
       if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh)
-	  && dentry->fh->attr.type == FT_REG
-	  && vol->master != this_node)
+	  && dentry->fh->attr.type == FT_REG)
 	{
-	  uint64_t start, end;
-	  varray blocks;
-	  unsigned int i;
-
-	  if (!set_metadata_flags (vol, dentry->fh,
-				   dentry->fh->meta.flags | METADATA_MODIFIED))
-	    MARK_VOLUME_DELETE (vol);
-
-	  start = (args->offset / ZFS_MODIFIED_BLOCK_SIZE
-		   * ZFS_MODIFIED_BLOCK_SIZE);
-	  end = ((args->offset + args->data.len
-		  + ZFS_MODIFIED_BLOCK_SIZE - 1)
-		 / ZFS_MODIFIED_BLOCK_SIZE * ZFS_MODIFIED_BLOCK_SIZE);
-
-	  interval_tree_intersection (dentry->fh->updated, start, end,
-				      &blocks);
-
-	  start = args->offset;
-	  end = args->offset + args->data.len;
-	  for (i = 0; i < VARRAY_USED (blocks); i++)
+	  if (vol->master == this_node)
 	    {
-	      if (VARRAY_ACCESS (blocks, i, interval).end < start)
-		continue;
-	      if (VARRAY_ACCESS (blocks, i, interval).start > end)
-		break;
-
-	      /* Now the interval is joinable with [START, END).  */
-	      if (VARRAY_ACCESS (blocks, i, interval).start < start)
-		start = VARRAY_ACCESS (blocks, i, interval).start;
-	      if (VARRAY_ACCESS (blocks, i, interval).end > end)
-		end = VARRAY_ACCESS (blocks, i, interval).end;
+	      if (!inc_local_version (vol, dentry->fh))
+		MARK_VOLUME_DELETE (vol);
 	    }
+	  else
+	    {
+	      uint64_t start, end;
+	      varray blocks;
+	      unsigned int i;
 
-	  if (!append_interval (vol, dentry->fh,
-				METADATA_TYPE_UPDATED, start, end))
-	    MARK_VOLUME_DELETE (vol);
-	  if (!append_interval (vol, dentry->fh,
-				METADATA_TYPE_MODIFIED, start, end))
-	    MARK_VOLUME_DELETE (vol);
+	      if (!inc_local_version_and_modified (vol, dentry->fh))
+		MARK_VOLUME_DELETE (vol);
 
-	  varray_destroy (&blocks);
+	      start = (args->offset / ZFS_MODIFIED_BLOCK_SIZE
+		       * ZFS_MODIFIED_BLOCK_SIZE);
+	      end = ((args->offset + args->data.len
+		      + ZFS_MODIFIED_BLOCK_SIZE - 1)
+		     / ZFS_MODIFIED_BLOCK_SIZE * ZFS_MODIFIED_BLOCK_SIZE);
+
+	      interval_tree_intersection (dentry->fh->updated, start, end,
+					  &blocks);
+
+	      start = args->offset;
+	      end = args->offset + args->data.len;
+	      for (i = 0; i < VARRAY_USED (blocks); i++)
+		{
+		  if (VARRAY_ACCESS (blocks, i, interval).end < start)
+		    continue;
+		  if (VARRAY_ACCESS (blocks, i, interval).start > end)
+		    break;
+
+		  /* Now the interval is joinable with [START, END).  */
+		  if (VARRAY_ACCESS (blocks, i, interval).start < start)
+		    start = VARRAY_ACCESS (blocks, i, interval).start;
+		  if (VARRAY_ACCESS (blocks, i, interval).end > end)
+		    end = VARRAY_ACCESS (blocks, i, interval).end;
+		}
+
+	      if (!append_interval (vol, dentry->fh,
+				    METADATA_TYPE_UPDATED, start, end))
+		MARK_VOLUME_DELETE (vol);
+	      if (!append_interval (vol, dentry->fh,
+				    METADATA_TYPE_MODIFIED, start, end))
+		MARK_VOLUME_DELETE (vol);
+
+	      varray_destroy (&blocks);
+	    }
 	}
     }
 
