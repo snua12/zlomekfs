@@ -45,6 +45,23 @@ extern volatile bool running;
 /*! Mutex protecting RUNNING flag.  */
 extern pthread_mutex_t running_mutex;
 
+/*! Limits for number of threads.  */
+typedef struct thread_limit_def
+{
+  size_t max_total;	/*!< maximal number of total threads */
+  size_t min_spare;	/*!< minimal number of spare threads */
+  size_t max_spare;	/*!< maximal number of spare threads */
+} thread_limit;
+
+/*! Limits for number of network threads.  */
+extern thread_limit network_thread_limit;
+
+/*! Limits for number of kernel threads.  */
+extern thread_limit kernel_thread_limit;
+
+/*! Limits for number of update threads.  */
+extern thread_limit update_thread_limit;
+
 /*! State of the thread.  */
 typedef enum thread_state_def
 {
@@ -167,9 +184,7 @@ extern void thread_terminate_blocking_syscall (volatile pthread_t *thid,
 extern int wait_for_thread_to_die (volatile pthread_t *thid, void **ret);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
-extern bool thread_pool_create (thread_pool *pool, size_t max_threads,
-				size_t min_spare_threads,
-				size_t max_spare_threads,
+extern bool thread_pool_create (thread_pool *pool, thread_limit *limit,
 				thread_start main_start,
 				thread_start worker_start,
 				thread_init worker_init);

@@ -1797,7 +1797,7 @@ network_start (void)
       return false;
     }
 
-  if (!thread_pool_create (&network_pool, 256, 4, 16, network_main,
+  if (!thread_pool_create (&network_pool, &network_thread_limit, network_main,
 			   network_worker, network_worker_init))
     {
       close (main_socket);

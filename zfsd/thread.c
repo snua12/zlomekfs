@@ -47,6 +47,15 @@ pthread_key_t thread_data_key;
 /*! Key for thread name.  */
 pthread_key_t thread_name_key;
 
+/*! Limits for number of network threads.  */
+thread_limit network_thread_limit = {8, 2, 4};
+
+/*! Limits for number of kernel threads.  */
+thread_limit kernel_thread_limit = {4, 1, 2};
+
+/*! Limits for number of update threads.  */
+thread_limit update_thread_limit = {4, 1, 2};
+
 /*! Get value of RUNNING flag.  */
 
 bool
@@ -172,12 +181,15 @@ set_thread_state (thread *t, thread_state state)
   zfsd_mutex_unlock (&t->mutex);
 }
 
-/*! Initialize POOL to be a thread pool of MAX_THREADS threads with
-   MIN_SPARE (MAX_THREADS) minimum (maximum) number of spare threads.  */
+/*! Initialize the thread pool.
+    \param pool The thread pool to initialize.
+    \param limit Limits for number of threads.
+    \param main_start Start routine of the main thread of the pool.
+    \param worker_start Start routine of the worker thread of the pool.
+    \param worker_init Initialization of the worker thread.  */
 
 bool
-thread_pool_create (thread_pool *pool, size_t max_threads,
-		    size_t min_spare_threads, size_t max_spare_threads,
+thread_pool_create (thread_pool *pool, thread_limit *limit,
 		    thread_start main_start,
 		    thread_start worker_start, thread_init worker_init)
 {
@@ -195,21 +207,21 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   if (pool->terminate)
     return false;
 
-  pool->min_spare_threads = min_spare_threads;
-  pool->max_spare_threads = max_spare_threads;
-  pool->size = max_threads;
-  pool->unaligned_array = xmalloc (max_threads * sizeof (padded_thread) + 255);
+  pool->min_spare_threads = limit->min_spare;
+  pool->max_spare_threads = limit->max_spare;
+  pool->size = limit->max_total;
+  pool->unaligned_array = xmalloc (pool->size * sizeof (padded_thread) + 255);
   pool->threads = (padded_thread *) ALIGN_PTR_256 (pool->unaligned_array);
   zfsd_mutex_init (&pool->mutex);
-  queue_create (&pool->idle, sizeof (size_t), max_threads, &pool->mutex);
-  queue_create (&pool->empty, sizeof (size_t), max_threads, &pool->mutex);
+  queue_create (&pool->idle, sizeof (size_t), pool->size, &pool->mutex);
+  queue_create (&pool->empty, sizeof (size_t), pool->size, &pool->mutex);
   pool->worker_start = worker_start;
   pool->worker_init = worker_init;
   zfsd_mutex_init (&pool->main_in_syscall);
   zfsd_mutex_init (&pool->regulator_in_syscall);
 
   zfsd_mutex_lock (&pool->mutex);
-  for (i = 0; i < max_threads; i++)
+  for (i = 0; i < pool->size; i++)
     {
       zfsd_mutex_init (&pool->threads[i].t.mutex);
       set_thread_state (&pool->threads[i].t, THREAD_DEAD);
@@ -220,7 +232,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
 
   /* Create worker threads.  */
   zfsd_mutex_lock (&pool->mutex);
-  for (i = 0; i < min_spare_threads; i++)
+  for (i = 0; i < pool->min_spare_threads; i++)
     {
       r = create_idle_thread (pool);
       if (r != 0)

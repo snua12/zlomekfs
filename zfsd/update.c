@@ -3452,8 +3452,8 @@ update_start (void)
   zfsd_mutex_init (&update_queue_mutex);
   queue_create (&update_queue, sizeof (zfs_fh), 250, &update_queue_mutex);
 
-  if (!thread_pool_create (&update_pool, 4, 1, 3, update_main,
-			   update_worker, update_worker_init))
+  if (!thread_pool_create (&update_pool, &update_thread_limit,
+			   update_main, update_worker, update_worker_init))
     {
       zfsd_mutex_lock (&update_queue_mutex);
       queue_destroy (&update_queue);

@@ -485,7 +485,7 @@ kernel_start (void)
 
   init_fd_data ();
 
-  if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_main,
+  if (!thread_pool_create (&kernel_pool, &kernel_thread_limit, kernel_main,
 			   kernel_worker, kernel_worker_init))
     {
       close_kernel_fd ();
