@@ -182,6 +182,7 @@ struct internal_fh_def
 #define IFH_UPDATE	1
 #define IFH_REINTEGRATE	2
 #define IFH_METADATA	4
+#define IFH_ENQUEUED	8	
 
 /* Information about locked file handle.  */
 typedef struct lock_info_def

@@ -531,6 +531,8 @@ update_file (zfs_fh *fh)
       queue_put (&update_queue, &dentry->fh->local_fh);
       zfsd_mutex_unlock (&update_queue.mutex);
     }
+  else
+    dentry->fh->flags = 0;
 
   goto out;
 
@@ -1434,8 +1436,8 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 
   if (dentry->fh->attr.type == FT_REG)
     {
-      if ((how & (IFH_UPDATE | IFH_REINTEGRATE)) == IFH_UPDATE
-	  || (how & (IFH_UPDATE | IFH_REINTEGRATE)) == IFH_REINTEGRATE)
+      if (dentry->fh->attr.version == dentry->fh->meta.master_version
+	  || attr->version == dentry->fh->meta.master_version)
 	{
 	  /* Schedule update or reintegration of regular file.  */
 
@@ -1449,13 +1451,14 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 	    {
 	      zfsd_mutex_unlock (&running_mutex);
 
-	      if (dentry->fh->flags)
+	      if (dentry->fh->flags & IFH_ENQUEUED)
 		{
 		  dentry->fh->flags |= how & (IFH_UPDATE | IFH_REINTEGRATE);
 		}
 	      else
 		{
-		  dentry->fh->flags |= how & (IFH_UPDATE | IFH_REINTEGRATE);
+		  dentry->fh->flags |= ((how & (IFH_UPDATE | IFH_REINTEGRATE))
+					| IFH_ENQUEUED);
 		  zfsd_mutex_lock (&update_queue.mutex);
 		  queue_put (&update_queue, &dentry->fh->local_fh);
 		  zfsd_mutex_unlock (&update_queue.mutex);
