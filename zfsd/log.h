@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 #define abort() verbose_abort(__FILE__, __LINE__)
 
