@@ -24,6 +24,10 @@
 /* The interval between 2 invocations of thread pool regulator in seconds.  */
 #define THREAD_POOL_REGULATOR_INTERVAL 15
 
+/* Maximal time (in seconds) which internal file handle may be unused for.
+   If it is unused for longer time it is removed.  */
+#define MAX_INTERNAL_FH_UNUSED_TIME 30
+
 /* The time between two attempts to connect to node in seconds.  */
 #define NODE_CONNECT_VISCOSITY 10
 
