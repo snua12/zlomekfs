@@ -1293,7 +1293,7 @@ out:
 static void
 update_worker_init (thread *t)
 {
-  dc_create (&t->dc_call, ZFS_MAX_REQUEST_LEN);
+  dc_create (&t->dc_call);
 }
 
 /* Cleanup update thread DATA.  */

@@ -68,7 +68,7 @@ init_fd_data ()
   fd_data_a[kernel_fd].busy = 0;
   if (fd_data_a[kernel_fd].ndc == 0)
     {
-      dc_create (&fd_data_a[kernel_fd].dc[0], ZFS_MAX_REQUEST_LEN);
+      dc_create (&fd_data_a[kernel_fd].dc[0]);
       fd_data_a[kernel_fd].ndc++;
     }
 
@@ -137,7 +137,7 @@ send_error_reply (thread *t, uint32_t request_id, int32_t status)
 static void
 kernel_worker_init (thread *t)
 {
-  dc_create (&t->dc_call, ZFS_MAX_REQUEST_LEN);
+  dc_create (&t->dc_call);
 }
 
 /* Cleanup kernel thread DATA.  */
@@ -187,7 +187,7 @@ kernel_worker (void *data)
 	  goto out;
 	}
 
-      if (t->u.kernel.dc.max_length > t->u.kernel.dc.size)
+      if (t->u.kernel.dc.max_length > DC_SIZE)
 	{
 	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
@@ -416,7 +416,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	      zfsd_mutex_lock (&fd_data->mutex);
 	      if (fd_data->ndc == 0)
 		{
-		  dc_create (&fd_data->dc[0], ZFS_MAX_REQUEST_LEN);
+		  dc_create (&fd_data->dc[0]);
 		  fd_data->ndc++;
 		}
 	      zfsd_mutex_unlock (&fd_data->mutex);
@@ -434,7 +434,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	    }
 	  else
 	    {
-	      if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
+	      if (fd_data->dc[0].max_length <= DC_SIZE)
 		{
 		  r = read (fd_data->fd,
 			    fd_data->dc[0].buffer + fd_data->read,
@@ -456,7 +456,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	      fd_data->read += r;
 	      if (fd_data->dc[0].max_length == fd_data->read)
 		{
-		  if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
+		  if (fd_data->dc[0].max_length <= DC_SIZE)
 		    {
 		      /* We have read complete request, dispatch it.  */
 		      zfsd_mutex_lock (&fd_data->mutex);

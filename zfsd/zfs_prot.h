@@ -36,9 +36,6 @@
 #define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (MD5_SIZE + 2 * sizeof (uint64_t)))
 #define ZFS_MAX_DIR_ENTRIES (ZFS_MAXDATA / (4 * sizeof (uint32_t)))
 
-/* Maximal length of request / reply.  */
-#define ZFS_MAX_REQUEST_LEN 8888
-
 /* Error codes.
    System errors have positive numbers, ZFS errors have negative numbers.  */
 #define ZFS_OK			0

@@ -30,15 +30,13 @@
 #include "util.h"
 #include "zfs_prot.h"
 
-/* Allocate a new data coding buffer of size SIZE and fill information
-   about it in DC.  */
+/* Create a new data coding buffer DC.  */
 
 void
-dc_create (DC *dc, unsigned int size)
+dc_create (DC *dc)
 {
-  dc->unaligned = (char *) xmalloc (size + 15);
+  dc->unaligned = (char *) xmalloc (DC_SIZE + 15);
   dc->buffer = (char *) ALIGN_PTR_16 (dc->unaligned);
-  dc->size = size;
 }
 
 /* Free the data coding buffer DC.  */
@@ -57,10 +55,9 @@ print_dc (DC *dc, FILE *f)
   fprintf (f, "Cur.pos    = %d\n", dc->current - dc->buffer);
   fprintf (f, "Cur.length = %d\n", dc->cur_length);
   fprintf (f, "Max.length = %d\n", dc->max_length);
-  fprintf (f, "Size       = %d\n", dc->size);
   fprintf (f, "Data: ");
   print_hex_buffer (dc->buffer,
-		    (dc->max_length == dc->size
+		    (dc->max_length == DC_SIZE
 		     ? dc->cur_length : dc->max_length),
 		    f);
 }
@@ -80,7 +77,7 @@ start_encoding (DC *dc)
 {
   dc->current = dc->buffer;
   dc->cur_length = 0;
-  dc->max_length = dc->size;
+  dc->max_length = DC_SIZE;
   encode_uint32_t (dc, 0);
 }
 
@@ -103,7 +100,7 @@ start_decoding (DC *dc)
   dc->max_length = 4;
   dc->cur_length = 0;
   decode_uint32_t (dc, (uint32_t *) &dc->max_length);
-  return dc->max_length <= dc->size;
+  return dc->max_length <= DC_SIZE;
 }
 
 /* Return true if all data has been read from encoded buffer.  */

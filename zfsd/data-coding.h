@@ -26,6 +26,9 @@
 #include <netinet/in.h>
 #include <stdio.h>
 
+/* Maximal length of request / reply.  */
+#define DC_SIZE 8888
+
 /* Align a number to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_1(N) (N)
 #define ALIGN_2(N) (((N) + 1) & ~1)
@@ -134,12 +137,11 @@ typedef struct data_coding_def
 				   encoding/decoding */
   unsigned int max_length;	/* maximal valid position to buffer */ 
   unsigned int cur_length;	/* current position to buffer */
-  unsigned int size;		/* size of buffer */
 } DC;
 
 #include "zfs_prot.h"
 
-extern void dc_create (DC *dc, unsigned int size);
+extern void dc_create (DC *dc);
 extern void dc_destroy (DC *dc);
 extern void print_dc (DC *dc, FILE *f);
 extern void debug_dc (DC *dc);
