@@ -801,6 +801,95 @@ map_gid_node2zfs (uint32_t gid)
   return DEFAULT_ZFS_GID;
 }
 
+/* Mark all users.  */
+
+void
+mark_all_users (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  HTAB_FOR_EACH_SLOT (users_id, slot)
+    {
+      user_t u = (user_t) *slot;
+
+      u->marked = true;
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+}
+
+/* Mark all groups.  */
+
+void
+mark_all_groups (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  HTAB_FOR_EACH_SLOT (groups_id, slot)
+    {
+      group_t g = (group_t) *slot;
+
+      g->marked = true;
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+}
+
+/* Mark all id mappings in table HTAB.  */
+
+static void
+mark_id_mapping (htab_t htab)
+{
+  void **slot;
+
+  HTAB_FOR_EACH_SLOT (htab, slot)
+    {
+      id_mapping map = (id_mapping) *slot;
+
+      map->marked = true;
+    }
+}
+
+/* Mark user mapping.  If NOD is defined mark user mapping for node NOD
+   otherwise mark the global user mapping.  */
+
+void
+mark_user_mapping (node nod)
+{
+  if (nod)
+    {
+      CHECK_MUTEX_LOCKED (&nod->mutex);
+
+      mark_id_mapping (nod->map_uid_to_node);
+    }
+  else
+    {
+      zfsd_mutex_lock (&users_groups_mutex);
+      mark_id_mapping (map_uid_to_node);
+      zfsd_mutex_unlock (&users_groups_mutex);
+    }
+}
+
+/* Mark group mapping.  If NOD is defined mark group mapping for node NOD
+   otherwise mark the global group mapping.  */
+
+void
+mark_group_mapping (node nod)
+{
+  if (nod)
+    {
+      CHECK_MUTEX_LOCKED (&nod->mutex);
+
+      mark_id_mapping (nod->map_gid_to_node);
+    }
+  else
+    {
+      zfsd_mutex_lock (&users_groups_mutex);
+      mark_id_mapping (map_gid_to_node);
+      zfsd_mutex_unlock (&users_groups_mutex);
+    }
+}
+
 /* Initialize data structures in USER-GROUP.C.  */
 
 void

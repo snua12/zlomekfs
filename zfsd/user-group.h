@@ -86,6 +86,10 @@ extern uint32_t map_uid_zfs2node (uint32_t uid);
 extern uint32_t map_uid_node2zfs (uint32_t uid);
 extern uint32_t map_gid_zfs2node (uint32_t gid);
 extern uint32_t map_gid_node2zfs (uint32_t gid);
+extern void mark_all_users (void);
+extern void mark_all_groups (void);
+extern void mark_user_mapping (node nod);
+extern void mark_group_mapping (node nod);
 
 extern void initialize_user_group_c (void);
 extern void cleanup_user_group_c (void);
