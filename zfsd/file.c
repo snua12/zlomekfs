@@ -197,8 +197,13 @@ capability_open (uint32_t flags, internal_dentry dentry, volume vol)
   else if (capability_opened_p (dentry->fh))
     return ZFS_OK;
 
+  if (dentry->fh->attr.type == FT_DIR)
+    flags |= O_RDONLY;
+  else
+    flags |= O_RDWR;
+
   path = build_local_path (vol, dentry);
-  dentry->fh->fd = safe_open (path, O_RDWR | flags, 0);
+  dentry->fh->fd = safe_open (path, flags, 0);
   free (path);
   if (dentry->fh->fd >= 0)
     {
