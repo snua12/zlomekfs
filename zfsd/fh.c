@@ -419,22 +419,22 @@ set_lock_info (lock_info *li)
 
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
-      li[i].fh = NULL;
+      li[i].dentry = NULL;
       li[i].level = LEVEL_UNLOCKED;
     }
 }
 
-/* Add file handle FH locked to level LEVEL to list of file handles
-   owned by current thread.  */
+/* Add dentry DENTRY locked to level LEVEL to list of dentries owned
+   by current thread.  */
 
 void
-set_owned (internal_fh fh, unsigned int level)
+set_owned (internal_dentry dentry, unsigned int level)
 {
   lock_info *li;
   int i;
 
-  TRACE ("%p %u", (void *) fh, level);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  TRACE ("%p %u", (void *) dentry, level);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
 #ifdef ENABLE_CHECKING
@@ -446,13 +446,13 @@ set_owned (internal_fh fh, unsigned int level)
 
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
-      if (li[i].fh == NULL)
+      if (li[i].dentry == NULL)
 	{
 #ifdef ENABLE_CHECKING
 	  if (li[i].level != LEVEL_UNLOCKED)
 	    abort ();
 #endif
-	  li[i].fh = fh;
+	  li[i].dentry = dentry;
 	  li[i].level = level;
 	  RETURN_VOID;
 	}
@@ -463,16 +463,16 @@ set_owned (internal_fh fh, unsigned int level)
 #endif
 }
 
-/* Remove file handle FH from list of file handles owned by current thread.  */
+/* Remove dentry DENTRY from list of dentries owned by current thread.  */
 
 static void
-clear_owned (internal_fh fh)
+clear_owned (internal_dentry dentry)
 {
   lock_info *li;
   int i;
 
-  TRACE ("%p", (void *) fh);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  TRACE ("%p", (void *) dentry);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
 #ifdef ENABLE_CHECKING
@@ -482,13 +482,13 @@ clear_owned (internal_fh fh)
 
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
-      if (li[i].fh == fh)
+      if (li[i].dentry == dentry)
 	{
 #ifdef ENABLE_CHECKING
 	  if (li[i].level != LEVEL_SHARED && li[i].level != LEVEL_EXCLUSIVE)
 	    abort ();
 #endif
-	  li[i].fh = NULL;
+	  li[i].dentry = NULL;
 	  li[i].level = LEVEL_UNLOCKED;
 	  RETURN_VOID;
 	}
@@ -499,16 +499,16 @@ clear_owned (internal_fh fh)
 #endif
 }
 
-/* Return true if file handle FH is owned by current thread.  */
+/* Return true if dentry DENTRY is owned by current thread.  */
 
 static bool
-is_owned (internal_fh fh)
+is_owned (internal_dentry dentry)
 {
   lock_info *li;
   int i;
 
-  TRACE ("%p", (void *) fh);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  TRACE ("%p", (void *) dentry);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
 #ifdef ENABLE_CHECKING
@@ -518,23 +518,23 @@ is_owned (internal_fh fh)
 
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
-      if (li[i].fh == fh)
+      if (li[i].dentry == dentry)
 	RETURN_BOOL (true);
     }
 
   RETURN_BOOL (false);
 }
 
-/* Return the level which file handle is locked by current thread.  */
+/* Return the level which dentry DENTRY is locked by current thread.  */
 
 static unsigned int
-get_level (internal_fh fh)
+get_level (internal_dentry dentry)
 {
   lock_info *li;
   int i;
 
-  TRACE ("%p", (void *) fh);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  TRACE ("%p", (void *) dentry);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
   li = (lock_info *) pthread_getspecific (lock_info_key);
 #ifdef ENABLE_CHECKING
@@ -544,7 +544,7 @@ get_level (internal_fh fh)
 
   for (i = 0; i < MAX_LOCKED_FILE_HANDLES; i++)
     {
-      if (li[i].fh == fh)
+      if (li[i].dentry == dentry)
 	RETURN_INT (li[i].level);
     }
 
@@ -1001,8 +1001,9 @@ internal_dentry_lock (unsigned int level, volume *volp,
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
+  (*dentryp)->users++;
   (*volp)->n_locked_fhs++;
-  set_owned ((*dentryp)->fh, level);
+  set_owned (*dentryp, level);
 
   if (!wait_for_locked)
     {
@@ -1031,6 +1032,8 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
 #ifdef ENABLE_CHECKING
   if (dentry->fh->level == LEVEL_UNLOCKED)
     abort ();
+  if (dentry->users == 0)
+    abort ();
   if (dentry->fh->users == 0)
     abort ();
 #endif
@@ -1042,7 +1045,8 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
   vol->n_locked_fhs--;
   zfsd_mutex_unlock (&vol->mutex);
   dentry->fh->users--;
-  clear_owned (dentry->fh);
+  dentry->users--;
+  clear_owned (dentry);
   if (dentry->fh->users == 0)
     {
       dentry->fh->level = LEVEL_UNLOCKED;
@@ -1261,7 +1265,6 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 #endif
       fh->users++;
       vol->n_locked_fhs++;
-      set_owned (fh, level);
     }
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
@@ -1533,6 +1536,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->prev = dentry;
   dentry->last_use = time (NULL);
   dentry->heap_node = NULL;
+  dentry->users = 0;
   dentry->deleted = false;
 
   /* Find the internal file handle in hash table, create it if it does not
@@ -1559,6 +1563,15 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   if (!*slot)
     {
       fh = internal_fh_create (local_fh, master_fh, attr, meta, vol, level);
+      if (level != LEVEL_UNLOCKED)
+	{
+#ifdef ENABLE_CHECKING
+	  if (level != LEVEL_SHARED && level != LEVEL_EXCLUSIVE)
+	    abort ();
+#endif
+	  dentry->users++;
+	  set_owned (dentry, level);
+	}
     }
   else
     {
@@ -1720,7 +1733,7 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	    tmp.vid = vol->id;
 	  zfsd_mutex_unlock (&vol->mutex);
 
-	  level = get_level (dentry->fh);
+	  level = get_level (dentry);
 	  internal_dentry_destroy (dentry, true, true);
 
 	  if (dir)
@@ -2019,7 +2032,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
 #endif
 
   /* If we are holding the lock unlock it first.  */
-  if (is_owned (dentry->fh))
+  if (is_owned (dentry))
     {
       volume vol;
 
@@ -2031,12 +2044,13 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
       zfsd_mutex_unlock (&vol->mutex);
 
       dentry->fh->users--;
-      clear_owned (dentry->fh);
+      dentry->users--;
+      clear_owned (dentry);
       if (dentry->fh->users == 0)
 	dentry->fh->level = LEVEL_UNLOCKED;
     }
 
-  if (dentry->fh->level != LEVEL_UNLOCKED)
+  if (dentry->users > 0)
     {
 #ifdef ENABLE_CHECKING
       internal_dentry tmp1, tmp2;
@@ -2068,7 +2082,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
 	  zfsd_mutex_lock (&fh->mutex);
 #endif
 	}
-      while (dentry->fh->level != LEVEL_UNLOCKED);
+      while (dentry->users > 0);
     }
 
   if (dentry->deleted)

@@ -205,10 +205,10 @@ struct internal_fh_def
 #define IFH_ALL_UPDATE	(IFH_UPDATE | IFH_REINTEGRATE | IFH_METADATA)
 #define IFH_ENQUEUED	8
 
-/* Information about locked file handle.  */
+/* Information about locked dentries.  */
 typedef struct lock_info_def
 {
-  internal_fh fh;
+  internal_dentry dentry;
   unsigned int level;
 } lock_info;
 
@@ -239,6 +239,9 @@ struct internal_dentry_def
 
   /* Heap node whose data is this dentry.  */
   fibnode heap_node;
+
+  /* Number of current users of the file handle.  */
+  unsigned int users;
 
   /* Is dentry marked to be deleted?  */
   bool deleted;
@@ -313,7 +316,7 @@ extern pthread_t cleanup_dentry_thread;
 extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
 extern void set_lock_info (lock_info *li);
-extern void set_owned (internal_fh fh, unsigned int level);
+extern void set_owned (internal_dentry dentry, unsigned int level);
 extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
 			      internal_dentry *dentryp, virtual_dir *vdp,
 			      bool delete_volume_p);
