@@ -1072,6 +1072,37 @@ differ:
   return ZFS_OK;
 }
 
+/* Set mode, UID and GID in metadata META for file FH on volume VOL
+   according to ATTR.  */
+
+static void
+set_metadata_attr (volume vol, metadata *meta, zfs_fh *fh, fattr *attr)
+{
+  internal_dentry dentry;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  dentry = dentry_lookup (fh);
+  if (dentry)
+    *meta = dentry->fh->meta;
+
+  meta->modetype = GET_MODETYPE (attr->mode, attr->type);
+  meta->uid = attr->uid;
+  meta->gid = attr->gid;
+
+  if (!flush_metadata (vol, meta))
+    MARK_VOLUME_DELETE (vol);
+
+  if (dentry)
+    {
+      dentry->fh->meta.modetype = meta->modetype;
+      dentry->fh->meta.uid = meta->uid;
+      dentry->fh->meta.gid = meta->gid;
+      release_dentry (dentry);
+    }
+}
+
 /* Synchronize attributes of local file LOCAL_FH with attributes LOCAL_ATTR
    and attributes of remote file REMOTE_FH with attributes REMOTE_ATTR.
    LOCAL_CHANGED and REMOTE_CHANGED specify which attributes have changed.  */
@@ -1605,6 +1636,13 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 		}
 
 	      local_changed = METADATA_ATTR_CHANGE_P (meta, local_res.attr);
+	      if (local_changed
+		  && METADATA_ATTR_EQ_P (local_res.attr, remote_res.attr))
+		{
+		  set_metadata_attr (vol, &meta, &local_res.file,
+				     &local_res.attr);
+		  local_changed = false;
+		}
 	      remote_changed = METADATA_ATTR_CHANGE_P (meta, remote_res.attr);
 	      want_conflict = local_changed && remote_changed;
 
