@@ -220,22 +220,19 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (!fh_lookup (&cap->fh, vol, ifh, vd))
     return ESTALE;
 
-  if (*vd)
+  if (*vd && *vol)
     {
-      if (*vol)
-	{
-	  int r;
+      int r;
 
-	  r = update_volume_root (*vol, ifh);
-	  if (r != ZFS_OK)
-	    {
-	      zfsd_mutex_unlock (&(*vol)->mutex);
-	      zfsd_mutex_unlock (&(*vd)->mutex);
-	      return r;
-	    }
+      r = update_volume_root (*vol, ifh);
+      if (r != ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&(*vol)->mutex);
 	  zfsd_mutex_unlock (&(*vd)->mutex);
-	  *vd = NULL;
+	  return r;
 	}
+      zfsd_mutex_unlock (&(*vd)->mutex);
+      *vd = NULL;
     }
   
   if (*vd && cap->flags != O_RDONLY)
@@ -279,6 +276,20 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
       return ESTALE;
     }
 
+  if (*vd && *vol)
+    {
+      int r;
+
+      r = update_volume_root (*vol, ifh);
+      if (r != ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&icap->mutex);
+	  zfsd_mutex_unlock (&(*vol)->mutex);
+	  zfsd_mutex_unlock (&(*vd)->mutex);
+	  return r;
+	}
+    }
+
   *icapp = icap;
   return ZFS_OK;
 }
@@ -305,6 +316,20 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     {
       zfsd_mutex_unlock (&icap->mutex);
       return ESTALE;
+    }
+
+  if (*vd && *vol)
+    {
+      int r;
+
+      r = update_volume_root (*vol, ifh);
+      if (r != ZFS_OK)
+	{
+	  zfsd_mutex_unlock (&icap->mutex);
+	  zfsd_mutex_unlock (&(*vol)->mutex);
+	  zfsd_mutex_unlock (&(*vd)->mutex);
+	  return r;
+	}
     }
 
   *icapp = icap;

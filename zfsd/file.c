@@ -293,7 +293,7 @@ zfs_close (zfs_cap *cap)
       return r;
     }
 
-  if (vd)
+  if (!ifh)
     {
       put_capability (icap);
       zfsd_mutex_unlock (&cap_mutex);
@@ -302,6 +302,8 @@ zfs_close (zfs_cap *cap)
       zfsd_mutex_unlock (&vd->mutex);
       return ZFS_OK;
     }
+  if (vd)
+    zfsd_mutex_unlock (&vd->mutex);
 
   if (icap->busy == 1)
     r = close_capability (icap, vol);
