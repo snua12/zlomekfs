@@ -3224,7 +3224,7 @@ remote_file_info (file_info_res *res, internal_dentry dentry, volume vol)
 	  || !finish_decoding (t->dc_reply))
 	r = ZFS_INVALID_REPLY;
       else
-	res->path.str = (char *) xmemdup (res->path.str, res->path.len);
+	res->path.str = (char *) xmemdup (res->path.str, res->path.len + 1);
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
