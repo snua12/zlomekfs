@@ -1543,16 +1543,11 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 		      }
 		    else
 		      {
-			local_res.file.sid = this_node->id;
-			conflict = create_conflict (vol, dentry, &entry->name,
-						    &res.file, &res.attr);
-			add_file_to_conflict_dir (vol, conflict, true,
-						  &res.file, &res.attr, NULL);
-			add_file_to_conflict_dir (vol, conflict, false,
-						  &local_res.file, &res.attr,
-						  NULL);
-			if (!try_resolve_conflict (conflict))
-			  release_dentry (conflict);
+			/* There is another file with NAME so the original file
+			   must have been already deleted.  */
+			if (!journal_delete_entry (dentry->fh->journal, entry))
+			  abort ();
+			flush_journal = true;
 		      }
 		  }
 		else if (r == ENOENT || r == ESTALE)
