@@ -27,6 +27,7 @@
 #include "memory.h"
 #include "log.h"
 
+/* Similar to CALLOC but always returns valid pointer.  */
 void *
 xcalloc(size_t nmemb, size_t size)
 {
@@ -39,6 +40,7 @@ xcalloc(size_t nmemb, size_t size)
   return r;
 }
 
+/* Similar to MALLOC but always returns valid pointer.  */
 void *
 xmalloc(size_t size)
 {
@@ -51,6 +53,7 @@ xmalloc(size_t size)
   return r;
 }
 
+/* Similar to REALLOC but always returns valid pointer.  */
 void *
 xrealloc(void *ptr, size_t size)
 {
@@ -63,6 +66,7 @@ xrealloc(void *ptr, size_t size)
   return r;
 }
 
+/* Similar to STRDUP but always returns valid pointer.  */
 char *
 xstrdup(const char *s)
 {
@@ -75,6 +79,7 @@ xstrdup(const char *s)
   return r;
 }
 
+/* Similar to STRNDUP but always returns valid pointer.  */
 char *
 xstrndup(const char *s, size_t n)
 {
@@ -96,6 +101,7 @@ xstrndup(const char *s, size_t n)
   return r;
 }
 
+/* Return a copy of memory SRC of size N.  */
 void *
 xmemdup(const void *src, size_t n)
 {
@@ -109,6 +115,7 @@ xmemdup(const void *src, size_t n)
   return r;
 }
 
+/* Return a concatenation of N strings.  */
 char *
 xstrconcat(int n, ...)
 {
