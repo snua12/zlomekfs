@@ -788,5 +788,6 @@ server_start ()
 int
 server_cleanup ()
 {
+  /* TODO: kill threads and wait 4 threads to die.  */
   return 0;
 }
