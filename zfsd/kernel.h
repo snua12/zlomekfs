@@ -34,7 +34,6 @@ extern pthread_t main_kernel_thread;
 /* This mutex is locked when main kernel thread is in poll.  */
 extern pthread_mutex_t main_kernel_thread_in_syscall;
 
-extern bool create_kernel_threads ();
 extern bool kernel_start ();
 extern void kernel_cleanup ();
 

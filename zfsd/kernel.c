@@ -278,16 +278,6 @@ kernel_dispatch (DC *dc)
     }
 }
 
-/* Create kernel threads and related threads.  */
-
-bool
-create_kernel_threads ()
-{
-  /* FIXME: read the numbers from configuration.  */
-  return thread_pool_create (&kernel_pool, 256, 4, 16, kernel_worker,
-			     kernel_worker_init);
-}
-
 /* Main function of the main (i.e. listening) kernel thread.  */
 
 static void *
@@ -413,11 +403,6 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 bool
 kernel_start ()
 {
-#if 0
-  socklen_t socket_options;
-  struct sockaddr_in sa;
-#endif
-
   zfsd_mutex_init (&kernel_data.mutex);
 
   /* Open connection with kernel.  */
@@ -426,6 +411,13 @@ kernel_start ()
     {
       message (-1, stderr, "%s: open(): %s\n", kernel_file_name,
 	       strerror (errno));
+      return false;
+    }
+
+  if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_worker,
+			     kernel_worker_init))
+    {
+      close (kernel_file);
       return false;
     }
 

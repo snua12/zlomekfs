@@ -359,6 +359,9 @@ daemon_mode ()
 int
 main (int argc, char **argv)
 {
+  bool kernel_started = false;
+  bool network_started = false;
+
   init_constants ();
   init_sig_handlers ();
 
@@ -396,18 +399,10 @@ main (int argc, char **argv)
   if (!init_network_fd_data ())
     die ();
 
-  /* Create kernel threads and related threads.  */
-  create_kernel_threads ();
+  network_started = network_start ();
+  kernel_started = kernel_start ();
 
-  /* Create network threads and related threads.  */
-  create_network_threads ();
-
-  /* Make the connection with kernel and start main kernel thread.  */
-  if (!kernel_start ())
-    terminate ();
-
-  /* Create listening socket and start the main network thread.  */
-  if (network_start ())
+  if (network_started)
     {
 #ifdef TEST
       test_zfs ();
@@ -415,14 +410,20 @@ main (int argc, char **argv)
       if (!read_cluster_config ())
 	terminate ();
 #endif
-
-      pthread_join (main_network_thread, NULL);
     }
   else
     terminate ();
 
-  kernel_cleanup ();
-  network_cleanup ();
+  if (network_started)
+    {
+      pthread_join (main_network_thread, NULL);
+      network_cleanup ();
+    }
+  if (kernel_started)
+    {
+      pthread_join (main_kernel_thread, NULL);
+      kernel_cleanup ();
+    }
 
   cleanup_data_structures ();
 

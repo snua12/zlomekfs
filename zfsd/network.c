@@ -548,16 +548,6 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
     }
 }
 
-/* Create network threads and related threads.  */
-
-bool
-create_network_threads ()
-{
-  /* FIXME: read the numbers from configuration.  */
-  return thread_pool_create (&network_pool, 256, 4, 16, network_worker,
-		      network_worker_init);
-}
-
 /* Main function of the main (i.e. listening) network thread.  */
 
 static void *
@@ -861,6 +851,7 @@ network_start ()
   if (main_socket < 0)
     {
       message (-1, stderr, "socket(): %s\n", strerror (errno));
+      network_destroy_fd_data ();
       return false;
     }
 
@@ -871,6 +862,7 @@ network_start ()
     {
       message (-1, stderr, "setsockopt(): %s\n", strerror (errno));
       close (main_socket);
+      network_destroy_fd_data ();
       return false;
     }
 
@@ -882,6 +874,7 @@ network_start ()
     {
       message (-1, stderr, "bind(): %s\n", strerror (errno));
       close (main_socket);
+      network_destroy_fd_data ();
       return false;
     }
 
@@ -890,6 +883,16 @@ network_start ()
     {
       message (-1, stderr, "listen(): %s\n", strerror (errno));
       close (main_socket);
+      network_destroy_fd_data ();
+      return false;
+    }
+
+  if (!thread_pool_create (&network_pool, 256, 4, 16, network_worker,
+		      network_worker_init))
+    {
+      free (network_fd_data);
+      close (main_socket);
+      network_destroy_fd_data ();
       return false;
     }
 
@@ -899,6 +902,7 @@ network_start ()
       message (-1, stderr, "pthread_create() failed\n");
       free (network_fd_data);
       close (main_socket);
+      network_destroy_fd_data ();
       return false;
     }
 
