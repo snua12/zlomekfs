@@ -310,11 +310,14 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = safe_open (path, O_RDWR | (flags & ~O_ACCMODE), attr->mode);
   if (r < 0)
     {
       free (path);
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
       return errno;
     }
   *fdp = r;

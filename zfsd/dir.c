@@ -1097,6 +1097,14 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  r = parent_exists (path);
+  if (r != ZFS_OK)
+    {
+      free (path);
+      return r;
+    }
+
   r = local_getattr_path (&res->attr, path);
   free (path);
   if (r != ZFS_OK)
@@ -1415,11 +1423,14 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = mkdir (path, attr->mode);
   if (r != 0)
     {
       free (path);
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
       return errno;
     }
 
@@ -1622,6 +1633,13 @@ local_rmdir (struct stat *st, char **pathp,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  r = parent_exists (path);
+  if (r != ZFS_OK)
+    {
+      free (path);
+      return r;
+    }
 
   r = lstat (path, st);
   if (r != 0)
@@ -1834,6 +1852,24 @@ local_rename (struct stat *st_old, struct stat *st_new, char **pathp,
     release_dentry (to_dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  r = parent_exists (path1);
+  if (r != ZFS_OK)
+    {
+      free (path1);
+      free (path2);
+      return r;
+    }
+  if (to_dir != from_dir)
+    {
+      r = parent_exists (path2);
+      if (r != ZFS_OK)
+	{
+	  free (path1);
+	  free (path2);
+	  return r;
+	}
+    }
 
   r = lstat (path1, st_new);
   if (r != 0)
@@ -2239,7 +2275,11 @@ local_link (internal_dentry from, internal_dentry dir, string *name, volume vol)
   free (path1);
   free (path2);
   if (r != 0)
-    return errno;
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
+      return errno;
+    }
 
   return ZFS_OK;
 }
@@ -2504,6 +2544,13 @@ local_unlink (struct stat *st, char **pathp,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  r = parent_exists (path);
+  if (r != ZFS_OK)
+    {
+      free (path);
+      return r;
+    }
 
   r = lstat (path, st);
   if (r != 0)
@@ -2885,6 +2932,14 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
+  r = parent_exists (path);
+  if (r != ZFS_OK)
+    {
+      free (path);
+      return r;
+    }
+
   r = symlink (to->str, path);
   if (r != 0)
     {
@@ -3097,11 +3152,14 @@ local_mknod (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
   attr->mode &= (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
   r = mknod (path, attr->mode | ftype2mode[type], rdev);
   if (r != 0)
     {
       free (path);
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
       return errno;
     }
 
