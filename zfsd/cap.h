@@ -44,13 +44,30 @@ typedef struct internal_cap_def
 
   /* Number of clients using this capability.  */
   unsigned int busy;
+
+  /* Open file descriptor.  */
+  int fd;
+
+  /* Generation of open file descriptor.  */
+  unsigned int generation;
 } *internal_cap;
 
+/* Data for file descriptor.  */
+typedef struct internal_fd_data_def
+{
+  pthread_mutex_t mutex;
+  int fd;			/* file descriptor */
+  time_t last_use;		/* time of last use of the file descriptor */
+  unsigned int generation;	/* generation of open file descriptor */
+  int busy;			/* number of threads using file descriptor */
+} internal_fd_data_t;
+ 
 /* Mutex for cap_pool and cap_htab.  */
 extern pthread_mutex_t cap_mutex;
 
 extern internal_cap internal_cap_lookup (internal_fh fh, unsigned int mode);
 extern internal_cap get_capability (internal_fh fh, unsigned int mode);
+extern void put_capability (internal_cap cap);
 extern void initialize_cap_c ();
 extern void cleanup_cap_c ();
 

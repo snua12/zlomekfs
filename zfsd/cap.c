@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 #include "pthread.h"
 #include "cap.h"
 #include "crc32.h"
@@ -31,6 +32,11 @@
 #include "log.h"
 #include "random.h"
 #include "util.h"
+#include "memory.h"
+#include "zfs_prot.h"
+
+/* The array of data for each file descriptor.  */
+internal_fd_data_t *internal_fd_data;
 
 /* Allocation pool for capabilities.  */
 static alloc_pool cap_pool;
@@ -74,14 +80,17 @@ internal_cap_lookup (internal_fh fh, unsigned int mode)
   zfs_cap tmp_cap;
   internal_cap cap;
 
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&cap_mutex) == 0)
+    abort ();
+#endif
+
   tmp_cap.fh = fh->local_fh;
   tmp_cap.mode = mode;
-  zfsd_mutex_lock (&cap_mutex);
   cap = (internal_cap) htab_find_with_hash (cap_htab, &tmp_cap,
 					    ZFS_CAP_HASH (tmp_cap));
   if (cap)
     zfsd_mutex_lock (&cap->mutex);
-  zfsd_mutex_unlock (&cap_mutex);
 
   return cap;
 }
@@ -95,18 +104,19 @@ internal_cap_create (internal_fh fh, unsigned int mode)
   void **slot;
 
 #ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&cap_mutex) == 0)
+    abort ();
+
   /* This should be handled in ZFS "open".  */
   if (fh->attr.type == FT_DIR && mode != O_RDONLY)
     abort ();
 #endif
 
-  zfsd_mutex_lock (&cap_mutex);
   cap = (internal_cap) pool_alloc (cap_pool);
 
   if (!full_read (fd_urandom, cap->random, CAP_RANDOM_LEN))
     {
       pool_free (cap_pool, cap);
-      zfsd_mutex_unlock (&cap_mutex);
       return NULL;
     }
   cap->local_cap.fh = fh->local_fh;
@@ -127,7 +137,6 @@ internal_cap_create (internal_fh fh, unsigned int mode)
 				   INTERNAL_CAP_HASH (cap), INSERT);
   *slot = cap;
 
-  zfsd_mutex_unlock (&cap_mutex);
   return cap;
 }
 
@@ -138,10 +147,10 @@ internal_cap_destroy (internal_cap cap)
 {
   void **slot;
 
-  pthread_mutex_destroy (&cap->mutex);
-
 #ifdef ENABLE_CHECKING
   if (pthread_mutex_trylock (&cap_mutex) == 0)
+    abort ();
+  if (pthread_mutex_trylock (&cap->mutex) == 0)
     abort ();
 #endif
   slot = htab_find_slot_with_hash (cap_htab, cap, INTERNAL_CAP_HASH (cap),
@@ -150,6 +159,9 @@ internal_cap_destroy (internal_cap cap)
   if (!slot)
     abort ();
 #endif
+
+  zfsd_mutex_unlock (&cap->mutex);
+  pthread_mutex_destroy (&cap->mutex);
   pool_free (cap_pool, *slot);
   htab_clear_slot (cap_htab, slot);
 }
@@ -167,13 +179,42 @@ get_capability (internal_fh fh, unsigned int mode)
     abort ();
 #endif
 
+  zfsd_mutex_lock (&cap_mutex);
   cap = internal_cap_lookup (fh, mode);
   if (cap)
     cap->busy++;
   else
     cap = internal_cap_create (fh, mode);
+  zfsd_mutex_unlock (&cap_mutex);
 
   return cap;
+}
+
+/* Decrease the number of users of capability CAP and destroy the capability
+   when the number of users becomes 0.  */
+
+int
+put_capability (zfs_cap *zcap)
+{
+  internal_cap cap;
+
+  zfsd_mutex_lock (&cap_mutex);
+  cap = (internal_cap) htab_find_with_hash (cap_htab, zcap,
+					    ZFS_CAP_HASH (*zcap));
+  if (!cap)
+    {
+      zfsd_mutex_unlock (&cap_mutex);
+      return EBADF;
+    }
+  zfsd_mutex_lock (&cap->mutex);
+  cap->busy--;
+  if (cap->busy == 0)
+    internal_cap_destroy (cap);
+  else
+    zfsd_mutex_unlock (&cap->mutex);
+  zfsd_mutex_unlock (&cap_mutex);
+
+  return ZFS_OK;
 }
 
 /* Initialize data structures in CAP.C.  */
@@ -181,6 +222,22 @@ get_capability (internal_fh fh, unsigned int mode)
 void
 initialize_cap_c ()
 {
+  int i;
+
+  /* Data for each file descriptor.  */
+  internal_fd_data
+    = (internal_fd_data_t *) xcalloc (max_nfd, sizeof (internal_fd_data_t));
+  for (i = 0; i < max_nfd; i++)
+    {
+      if (pthread_mutex_init (&internal_fd_data[i].mutex, NULL))
+	{
+	  message (-1, stderr, "pthread_mutex_init() failed\n");
+	  free (internal_fd_data);
+	  return;
+	}
+      internal_fd_data[i].fd = -1;
+    }
+
   pthread_mutex_init (&cap_mutex, NULL);
   cap_pool = create_alloc_pool ("cap_pool", sizeof (struct internal_cap_def),
 				250, &cap_mutex);
@@ -197,7 +254,12 @@ cleanup_cap_c ()
 
   zfsd_mutex_lock (&cap_mutex);
   HTAB_FOR_EACH_SLOT (cap_htab, slot,
-		      internal_cap_destroy ((internal_cap) *slot));
+    {
+      internal_cap cap = (internal_cap) *slot;
+      
+      zfsd_mutex_lock (&cap->mutex);
+      internal_cap_destroy (cap);
+    });
   htab_destroy (cap_htab);
 
 #ifdef ENABLE_CHECKING
