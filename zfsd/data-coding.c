@@ -82,12 +82,9 @@ dc_destroy (DC *dc)
 #ifdef __KERNEL__
 #include <asm/semaphore.h>
 
-struct
-{
-  struct semaphore lock;
-  DC *dc[MAX_FREE_DCS];
-  int ndc;
-} dcs;
+DECLARE_MUTEX (dc_lock);
+DC *dc[MAX_FREE_DCS];
+int ndc;
 
 /* Return a new data coding buffer;
    use an unused one or create a new one.  */
@@ -95,18 +92,18 @@ struct
 DC *
 dc_get (void)
 {
-  DC *dc;
+  DC *_dc;
 
-  down (&dcs.lock);
-  if (dcs.ndc)
+  down (&dc_lock);
+  if (ndc)
     {
-      dc = dcs.dc[--dcs.ndc];
-      up (&dcs.lock);
-      return dc;
+      _dc = dc[--ndc];
+      up (&dc_lock);
+      return _dc;
     }
   else
     {
-      up (&dcs.lock);
+      up (&dc_lock);
       return dc_create();
     }
 }
@@ -115,30 +112,30 @@ dc_get (void)
    make it unused or free it.  */
 
 void
-dc_put(DC *dc, int always_destroy)
+dc_put (DC *_dc, int always_destroy)
 {
-  down (&dcs.lock);
-  if (always_destroy || (dcs.ndc == MAX_FREE_DCS))
+  down (&dc_lock);
+  if (always_destroy || (ndc == MAX_FREE_DCS))
     {
-      up (&dcs.lock);
-      dc_destroy(dc);
+      up (&dc_lock);
+      dc_destroy(_dc);
     }
   else
     {
-      dcs.dc[dcs.ndc++] = dc;
-      up (&dcs.lock);
+      dc[ndc++] = _dc;
+      up (&dc_lock);
     }
 }
 
 /* Free all unused data coding buffers. */
 
 void
-dc_destroy_all ()
+dc_destroy_all (void)
 {
-  down (&dcs.lock);
-  while (dcs.ndc)
-	  dc_destroy (dcs.dc[--dcs.ndc]);
-  up (&dcs.lock);
+  down (&dc_lock);
+  while (ndc)
+	  dc_destroy (dc[--ndc]);
+  up (&dc_lock);
 }
 #endif
 
