@@ -1584,7 +1584,7 @@ fd_data_shutdown (void)
   if (kernel_fd >= 0)
     {
       zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
-      wake_all_threads (fd_data_a, ZFS_EXITING);
+      wake_all_threads (&fd_data_a[kernel_fd], ZFS_EXITING);
       zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
     }
 }
