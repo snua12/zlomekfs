@@ -997,7 +997,7 @@ zfs_lookup_retry:
 /* Create directory NAME in local directory DIR on volume VOL, set owner,
    group and permitions according to ATTR.  */
 
-static int32_t
+int32_t
 local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 	     volume vol)
 {
@@ -1031,7 +1031,7 @@ local_mkdir (dir_op_res *res, internal_dentry dir, string *name, sattr *attr,
 /* Create directory NAME in remote directory DIR on volume VOL, set owner,
    group and permitions according to ATTR.  */
 
-static int32_t
+int32_t
 remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 	      volume vol)
 {
