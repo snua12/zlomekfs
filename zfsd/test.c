@@ -20,6 +20,9 @@
 
 #include "system.h"
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "pthread.h"
 #include "test.h"
 #include "memory.h"
@@ -152,6 +155,7 @@ test_zfs (thread *t)
 {
   dir_op_res res;
   dir_op_res res2;
+  zfs_cap cap;
   int test = 0;
   string rmdir_name = {3, "dir"};
   sattr attr = {0755, 0, 0, (uint64_t) -1, (zfs_time) -1, (zfs_time) -1};
@@ -166,6 +170,7 @@ test_zfs (thread *t)
     {
       node nod;
       char *str;
+      int r;
 
       zfsd_mutex_lock (&node_mutex);
       nod = node_lookup (2);
@@ -199,5 +204,14 @@ test_zfs (thread *t)
 
       message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n", zfs_rmdir (&res.file, &rmdir_name));
+
+      message (2, stderr, "TEST %d\n", ++test);
+      printf ("%d\n", r = zfs_open_by_fh (&cap, &res.file, O_RDONLY));
+
+      if (r == ZFS_OK)
+	{
+	  message (2, stderr, "TEST %d\n", ++test);
+	  printf ("%d\n", zfs_close (&cap));
+	}
     }
 }
