@@ -151,6 +151,37 @@ process_arguments (int argc, char **argv)
     usage (EXIT_FAILURE);
 }
 
+#include "splay-tree.h"
+static void
+test_splay ()
+{
+  splay_tree st;
+  int i;
+
+  st = splay_tree_create (200, NULL);
+  for (i = 0; i <= 4; i++)
+    splay_tree_insert (st, 2 * i, i);
+  splay_tree_lookup (st, 7);
+  debug_splay_tree (st);
+}
+
+#include "interval.h"
+static void
+test_interval ()
+{
+  interval_tree t;
+  
+  t = interval_tree_create (6);
+  interval_tree_insert (t, 0, 4);
+  interval_tree_insert (t, 10, 15);
+  interval_tree_insert (t, 20, 25);
+  interval_tree_insert (t, 30, 32);
+  interval_tree_insert (t, 40, 45);
+  interval_tree_insert (t, 50, 55);
+  interval_tree_insert (t, 60, 65);
+  debug_interval_tree (t);
+}
+
 /* Entry point of ZFS daemon.  */
 
 int
@@ -160,6 +191,9 @@ main (int argc, char **argv)
 
   process_arguments (argc, argv);
 
+  test_interval ();
+  test_splay ();
+  
   if (!read_config (config_file))
     return EXIT_FAILURE;
 
