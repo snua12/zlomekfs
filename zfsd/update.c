@@ -74,10 +74,12 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
   varray_destroy (&tmp);
 }
 
-/* Update BLOCKS (described in ARGS) of local file CAP from remote file.  */
+/* Update BLOCKS (described in ARGS) of local file CAP from remote file,
+   start searching in BLOCKS at index INDEX.  */
 
 static int32_t
-update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
+update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
+		      unsigned int *index)
 {
   bool flush;
   volume vol;
@@ -189,7 +191,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
   zfsd_mutex_unlock (&vol->mutex);
 
   /* Update different blocks.  */
-  for (i = 0, j = 0; i < remote_md5.count; i++)
+  for (i = 0, j = *index; i < remote_md5.count; i++)
     {
       if (remote_md5.length[i] > ZFS_MAXDATA
 	  || remote_md5.offset[i] + remote_md5.length[i] > remote_md5.size)
@@ -291,6 +293,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
     }
+  *index = j;
 
   if (flush)
     {
@@ -320,7 +323,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   internal_cap icap;
   internal_dentry dentry;
   int32_t r, r2;
-  unsigned int i;
+  unsigned int i, index;
 
   TRACE ("");
 
@@ -357,6 +360,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
   zfsd_mutex_unlock (&vol->mutex);
 
   args.count = 0;
+  index = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
     {
       interval x;
@@ -378,7 +382,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 	    {
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
-		  r = update_file_blocks_1 (&args, cap, blocks);
+		  r = update_file_blocks_1 (&args, cap, blocks, &index);
 		  if (r != ZFS_OK)
 		    return r;
 		  args.count = 0;
@@ -395,7 +399,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks)
 
   if (args.count > 0)
     {
-      r = update_file_blocks_1 (&args, cap, blocks);
+      r = update_file_blocks_1 (&args, cap, blocks, &index);
       if (r != ZFS_OK)
 	return r;
     }
