@@ -140,7 +140,7 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
   else if (!pvd->vol)
     {
       zfsd_mutex_unlock (&pvd->mutex);
-      return ENOENT;
+      return EROFS;
     }
   else
     {
