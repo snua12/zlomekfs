@@ -662,8 +662,12 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 
   varray_create (&hierarchy, sizeof (char *), 4);
   file_name = xstrconcat (2, "config/volume/", name->str);
-  process_file_by_lines (&file_res.file, file_name,
-			 process_line_volume_hierarchy, &hierarchy);
+  if (!process_file_by_lines (&file_res.file, file_name,
+			      process_line_volume_hierarchy, &hierarchy))
+    {
+      free (file_name);
+      goto out;
+    }
   free (file_name);
 
   master_name = NULL;
@@ -701,6 +705,7 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
       zfsd_mutex_unlock (&vd_mutex);
     }
 
+out:
   while (VARRAY_USED (hierarchy) > 0)
     {
       master_name = VARRAY_TOP (hierarchy, char *);
