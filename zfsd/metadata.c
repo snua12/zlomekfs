@@ -2190,8 +2190,6 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
       meta->dev = dev;
       meta->ino = ino;
       meta->gen = 1;
-      meta->local_version = 1;
-      meta->master_version = vol->is_copy ? 0 : 1;
       zfs_fh_undefine (meta->master_fh);
     }
 
@@ -2199,9 +2197,8 @@ delete_metadata (volume vol, metadata *meta, uint32_t dev, uint32_t ino,
 
   meta->flags = 0;
   meta->gen++;
-  meta->local_version++;
-  if (!vol->is_copy)
-    meta->master_version = meta->local_version;
+  meta->local_version = 1;
+  meta->master_version = vol->is_copy ? 0 : 1;
   zfs_fh_undefine (meta->master_fh);
   meta->modetype = GET_MODETYPE (0, FT_BAD);
   meta->parent_dev = (uint32_t) -1;
@@ -2273,9 +2270,8 @@ delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
   /* Update metadata.  */
   meta->flags = 0;
   meta->gen++;
-  meta->local_version++;
-  if (!vol->is_copy)
-    meta->master_version = meta->local_version;
+  meta->local_version = 1;
+  meta->master_version = vol->is_copy ? 0 : 1;
   zfs_fh_undefine (meta->master_fh);
   meta->parent_dev = (uint32_t) -1;
   meta->parent_ino = (uint32_t) -1;
