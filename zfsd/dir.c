@@ -1155,10 +1155,27 @@ zfs_mkdir_retry:
 	{
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-	  internal_dentry_destroy (dentry, vol);
+	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
+	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
+		  && !zfs_fh_undefined (dentry->fh->master_fh)))
+	    {
+	      internal_dentry_destroy (dentry, vol);
+	      dentry = internal_dentry_create (&res->file, &master_res.file,
+					       vol, idir, name->str,
+					       &res->attr);
+	    }
+	  else
+	    {
+	      if (zfs_fh_undefined (dentry->fh->master_fh))
+		dentry->fh->master_fh = master_res.file;
+
+	      set_attr_version (&res->attr, &dentry->fh->meta);
+	      dentry->fh->attr = res->attr;
+	    }
 	}
-      dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-				       idir, name->str, &res->attr);
+      else
+	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
+					 idir, name->str, &res->attr);
 
       if (vol->local_path)
 	{
@@ -2274,10 +2291,27 @@ zfs_symlink_retry:
 	{
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-	  internal_dentry_destroy (dentry, vol);
+	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
+	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
+		  && !zfs_fh_undefined (dentry->fh->master_fh)))
+	    {
+	      internal_dentry_destroy (dentry, vol);
+	      dentry = internal_dentry_create (&res->file, &master_res.file,
+					       vol, idir, name->str,
+					       &res->attr);
+	    }
+	  else
+	    {
+	      if (zfs_fh_undefined (dentry->fh->master_fh))
+		dentry->fh->master_fh = master_res.file;
+
+	      set_attr_version (&res->attr, &dentry->fh->meta);
+	      dentry->fh->attr = res->attr;
+	    }
 	}
-      dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-				       idir, name->str, &res->attr);
+      else
+	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
+					 idir, name->str, &res->attr);
 
       if (vol->local_path)
 	{
@@ -2465,10 +2499,27 @@ zfs_mknod_retry:
 	{
 	  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-	  internal_dentry_destroy (dentry, vol);
+	  if (!ZFS_FH_EQ (dentry->fh->local_fh, res->file)
+	      || (!ZFS_FH_EQ (dentry->fh->master_fh, master_res.file)
+		  && !zfs_fh_undefined (dentry->fh->master_fh)))
+	    {
+	      internal_dentry_destroy (dentry, vol);
+	      dentry = internal_dentry_create (&res->file, &master_res.file,
+					       vol, idir, name->str,
+					       &res->attr);
+	    }
+	  else
+	    {
+	      if (zfs_fh_undefined (dentry->fh->master_fh))
+		dentry->fh->master_fh = master_res.file;
+
+	      set_attr_version (&res->attr, &dentry->fh->meta);
+	      dentry->fh->attr = res->attr;
+	    }
 	}
-      dentry = internal_dentry_create (&res->file, &master_res.file, vol,
-				       idir, name->str, &res->attr);
+      else
+	dentry = internal_dentry_create (&res->file, &master_res.file, vol,
+					 idir, name->str, &res->attr);
 
       if (vol->local_path)
 	{
