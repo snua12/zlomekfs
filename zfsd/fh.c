@@ -115,6 +115,13 @@ static internal_dentry make_space_in_conflict_dir (volume *volp,
 						   internal_dentry *conflictp,
 						   bool exists, zfs_fh *fh);
 
+/* Dentries which should never be cleaned up.  */
+#define DENTRY_NEVER_CLEANUP(DENTRY)					\
+  ((DENTRY)->next == (DENTRY)						\
+   && ((DENTRY)->fh->cap != NULL					\
+       || (DENTRY)->fh->level != LEVEL_UNLOCKED				\
+       || (DENTRY)->fh->reintegrating_sid != 0))
+
 /* Return the fibheap key for dentry DENTRY.  */
 
 static fibheapkey_t
@@ -124,18 +131,22 @@ dentry_key (internal_dentry dentry)
     {
       internal_dentry tmp;
       unsigned int i;
+      fibheapkey_t max_key = FIBHEAPKEY_MIN;
 
       for (i = 0; i < VARRAY_USED (dentry->fh->subdentries); i++)
 	{
 	  tmp = VARRAY_ACCESS (dentry->fh->subdentries, i, internal_dentry);
-	  if ((tmp->fh->cap || tmp->fh->level != LEVEL_UNLOCKED)
-	      && tmp->next == tmp)
+	  if (DENTRY_NEVER_CLEANUP (tmp))
 	    return FIBHEAPKEY_MAX;
+
+	  if (max_key < (fibheapkey_t) dentry->last_use)
+	    max_key = (fibheapkey_t) dentry->last_use;
 	}
+
+      return max_key;
     }
 
-  if ((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
-       && dentry->next == dentry)
+  if (DENTRY_NEVER_CLEANUP (dentry))
     return FIBHEAPKEY_MAX;
 
   return (fibheapkey_t) dentry->last_use;
