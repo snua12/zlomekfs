@@ -2281,11 +2281,6 @@ zfs_mknod_retry:
   if (vol->local_path)
     {
       r = local_mknod (idir, name, attr, type, rdev, vol);
-      if (r == ZFS_OK)
-	{
-	  if (vol->master != this_node)
-	    r = remote_mknod (idir->fh, name, attr, type, rdev, vol);
-	}
     }
   else if (vol->master != this_node)
     {
