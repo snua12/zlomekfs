@@ -550,7 +550,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   else
     memset (&fh->meta, 0, sizeof (fh->meta));
 
-  set_attr_version (fh);
+  set_attr_version (&fh->attr, &fh->meta);
+  attr->version = fh->attr.version;
 
   return fh;
 }

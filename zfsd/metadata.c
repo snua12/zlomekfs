@@ -912,16 +912,14 @@ append_interval (volume vol, internal_fh fh, interval_tree_purpose purpose,
   return r;
 }
 
-/* Set version to attributes of file handle FH according to its metadata.  */
+/* Set version in attributes ATTR according to metadata META.  */
 
 void
-set_attr_version (internal_fh fh)
+set_attr_version (fattr *attr, metadata *meta)
 {
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-
-  fh->attr.version = fh->meta.local_version;
-  if (fh->meta.flags & METADATA_MODIFIED)
-    fh->attr.version++;
+  attr->version = meta->local_version;
+  if (meta->flags & METADATA_MODIFIED)
+    attr->version++;
 }
 
 /* Init metadata for file handle FH on volume VOL.
@@ -961,7 +959,7 @@ init_metadata (volume vol, internal_fh fh)
       fh->meta.master_version = 0;
     }
 
-  set_attr_version (fh);
+  set_attr_version (&fh->attr, &fh->meta);
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
   return true;
@@ -1027,7 +1025,7 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
   if (!modified)
     return true;
 
-  set_attr_version (fh);
+  set_attr_version (&fh->attr, &fh->meta);
 
   return flush_metadata (vol, fh);
 }
