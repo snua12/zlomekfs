@@ -44,7 +44,6 @@
 #include "zfs_prot.h"
 #include "user-group.h"
 #include "dir.h"
-#include "update.h"
 
 /* File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
@@ -2221,6 +2220,123 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
   zfsd_mutex_unlock (&nod->mutex);
   release_dentry (dentry);
   return dentry;
+}
+
+/* Try resolve CONFLICT, return true if it was resolved.  */
+
+bool
+try_resolve_conflict (internal_dentry conflict)
+{
+  internal_dentry dentry1, dentry2, parent;
+  char *swp;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!conflict->parent)
+    abort ();
+#endif
+
+  switch (VARRAY_USED (conflict->fh->subdentries))
+    {
+      case 0:
+	internal_dentry_destroy (conflict, true);
+	return true;
+
+      case 1:
+	dentry1 = VARRAY_ACCESS (conflict->fh->subdentries, 0,
+				 internal_dentry);
+	acquire_dentry (dentry1);
+	if (REGULAR_FH_P (dentry1->fh->local_fh))
+	  {
+	    parent = conflict->parent;
+	    acquire_dentry (parent);
+	    internal_dentry_del_from_dir (dentry1);
+	    internal_dentry_del_from_dir (conflict);
+
+	    swp = dentry1->name;
+	    dentry1->name = conflict->name;
+	    conflict->name = swp;
+
+	    internal_dentry_add_to_dir (parent, dentry1);
+	    release_dentry (parent);
+	    release_dentry (dentry1);
+	    internal_dentry_destroy (conflict, false);
+	  }
+	else if (NON_EXIST_FH_P (dentry1->fh->local_fh))
+	  {
+	    release_dentry (dentry1);
+	    internal_dentry_destroy (conflict, true);
+	  }
+#ifdef ENABLE_CHECKING
+	else
+	  abort ();
+#endif
+	return true;
+
+      case 2:
+	dentry1 = VARRAY_ACCESS (conflict->fh->subdentries, 0,
+				 internal_dentry);
+	dentry2 = VARRAY_ACCESS (conflict->fh->subdentries, 1,
+				 internal_dentry);
+
+	acquire_dentry (dentry1);
+	acquire_dentry (dentry2);
+#ifdef ENABLE_CHECKING
+	if (!REGULAR_FH_P (dentry1->fh->local_fh)
+	    && !NON_EXIST_FH_P (dentry1->fh->local_fh))
+	  abort ();
+	if (!REGULAR_FH_P (dentry2->fh->local_fh)
+	    && !NON_EXIST_FH_P (dentry2->fh->local_fh))
+	  abort ();
+#endif
+
+	if (REGULAR_FH_P (dentry1->fh->local_fh)
+	    && REGULAR_FH_P (dentry2->fh->local_fh))
+	  {
+	    if (dentry1->fh->attr.type == FT_DIR
+		&& dentry2->fh->attr.type == FT_DIR)
+	      {
+		parent = conflict->parent;
+		acquire_dentry (parent);
+		internal_dentry_del_from_dir (dentry1);
+		internal_dentry_del_from_dir (conflict);
+
+		swp = dentry1->name;
+		dentry1->name = conflict->name;
+		conflict->name = swp;
+
+		internal_dentry_add_to_dir (parent, dentry1);
+		release_dentry (parent);
+		release_dentry (dentry1);
+		release_dentry (dentry2);
+		internal_dentry_destroy (conflict, false);
+		return true;
+	      }
+	    else
+	      {
+		release_dentry (dentry1);
+		release_dentry (dentry2);
+		return false;
+	      }
+	  }
+	if (NON_EXIST_FH_P (dentry1->fh->local_fh)
+	    && NON_EXIST_FH_P (dentry2->fh->local_fh))
+	  {
+	    release_dentry (dentry1);
+	    release_dentry (dentry2);
+	    internal_dentry_destroy (conflict, false);
+	    return true;
+	  }
+	release_dentry (dentry1);
+	release_dentry (dentry2);
+	break;
+
+      default:
+	abort ();
+    }
+
+  return false;
 }
 
 /* Delete conflict subtree for conflict dentry DENTRY.  */

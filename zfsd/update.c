@@ -1785,18 +1785,6 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
   return r;
 }
 
-/* Try resolve CONFLICT, return true if it was resolved.  */
-
-bool
-try_resolve_conflict (internal_dentry conflict)
-{
-  CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&conflict->fh->mutex);
-
-
-  return false;
-}
-
 /* Initialize update thread T.  */
 
 static void

@@ -333,6 +333,7 @@ extern internal_dentry add_file_to_conflict_dir (volume vol,
 						 internal_dentry conflict,
 						 bool exists, zfs_fh *fh,
 						 fattr *attr, metadata *meta);
+extern bool try_resolve_conflict (internal_dentry conflict);
 extern void internal_dentry_cancel_conflict (internal_dentry dentry,
 					     volume vol);
 

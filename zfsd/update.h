@@ -231,7 +231,6 @@ extern bool move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir,
 extern bool move_to_shadow (volume vol, internal_dentry dentry);
 extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
 		       fattr *attr, int how);
-extern bool try_resolve_conflict (internal_dentry conflict);
 
 extern bool update_start (void);
 extern void update_cleanup (void);
