@@ -84,13 +84,13 @@ extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks,
 				   bool conflict_p);
 extern int32_t reintegrate_file_blocks (zfs_cap *cap);
 extern int32_t update_fh_if_needed (volume *volp, internal_dentry *dentryp,
-				    zfs_fh *fh);
+				    zfs_fh *fh, int what);
 extern int32_t update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 				      internal_dentry *dentry2p, zfs_fh *fh,
-				      zfs_fh *fh2);
+				      zfs_fh *fh2, int what);
 extern int32_t update_cap_if_needed (internal_cap *icapp, volume *volp,
 				     internal_dentry *dentryp,
-				     virtual_dir *vdp, zfs_cap *cap);
+				     virtual_dir *vdp, zfs_cap *cap, int what);
 extern int32_t delete_tree (internal_dentry dentry, volume vol,
 			    bool destroy_dentry, bool journal_p,
 			    bool move_to_shadow_p);

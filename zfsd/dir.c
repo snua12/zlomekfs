@@ -1251,7 +1251,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      r = update_fh_if_needed (&vol, &dentry, &tmp_fh);
+      r = update_fh_if_needed (&vol, &dentry, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_getattr (fa, dentry, vol);
@@ -1467,7 +1467,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      r = update_fh_if_needed (&vol, &dentry, &tmp_fh);
+      r = update_fh_if_needed (&vol, &dentry, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_setattr (fa, dentry, sa, vol);
@@ -1983,7 +1983,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_lookup (res, idir, name, vol, &meta);
@@ -2225,7 +2225,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_mkdir (res, idir, name, attr, vol, &meta);
@@ -2573,7 +2573,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   else if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       what_to_do = 1;
-      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_rmdir (&meta, idir, name, vol);
@@ -3177,13 +3177,13 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       r = update_fh_if_needed_2 (&vol, &to_dentry, &from_dentry,
-				 &tmp_to, &tmp_from);
+				 &tmp_to, &tmp_from, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       if (tmp_from.ino != tmp_to.ino)
 	{
 	  r = update_fh_if_needed_2 (&vol, &from_dentry, &to_dentry,
-				     &tmp_from, &tmp_to);
+				     &tmp_from, &tmp_to, IFH_ALL_UPDATE);
 	  if (r != ZFS_OK)
 	    RETURN_INT (r);
 	}
@@ -3545,13 +3545,13 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
     {
       r = update_fh_if_needed_2 (&vol, &dir_dentry, &from_dentry,
-				 &tmp_dir, &tmp_from);
+				 &tmp_dir, &tmp_from, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       if (tmp_from.ino != tmp_dir.ino)
 	{
 	  r = update_fh_if_needed_2 (&vol, &from_dentry, &dir_dentry,
-				     &tmp_from, &tmp_dir);
+				     &tmp_from, &tmp_dir, IFH_ALL_UPDATE);
 	  if (r != ZFS_OK)
 	    RETURN_INT (r);
 	}
@@ -3985,7 +3985,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   else if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       what_to_do = 1;
-      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_unlink (&meta, idir, name, vol);
@@ -4592,7 +4592,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_symlink (res, idir, name, to, attr, vol, &meta);
@@ -4844,7 +4844,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
-      r = update_fh_if_needed (&vol, &idir, &tmp_fh);
+      r = update_fh_if_needed (&vol, &idir, &tmp_fh, IFH_ALL_UPDATE);
       if (r != ZFS_OK)
 	RETURN_INT (r);
       r = local_mknod (res, idir, name, attr, type, rdev, vol, &meta);

@@ -784,10 +784,12 @@ out:
   RETURN_INT (r);
 }
 
-/* Update generic file DENTRY with file handle FH on volume VOL if needed.  */
+/* Update generic file DENTRY with file handle FH on volume VOL if needed.
+   Do WHAT we are asked to do.  */
 
 int32_t
-update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh)
+update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
+		     int what)
 {
   int32_t r, r2;
   fattr remote_attr;
@@ -802,9 +804,9 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh)
   if ((*volp)->master != this_node)
     {
       how = update_p (volp, dentryp, fh, &remote_attr, true);
-      if (how)
+      if (how & what)
 	{
-	  r = update (*volp, *dentryp, fh, &remote_attr, how);
+	  r = update (*volp, *dentryp, fh, &remote_attr, how & what);
 
 	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 	  if (r2 != ZFS_OK)
@@ -823,11 +825,12 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh)
 
 /* Update generic file DENTRY on volume VOL if needed.
    DENTRY and DENTRY2 are locked before and after this macro.
-   DENTRY2 might be deleted in update.  */
+   DENTRY2 might be deleted in update.  Do WHAT we are asked to do.  */
 
 int32_t
 update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
-		       internal_dentry *dentry2p, zfs_fh *fh, zfs_fh *fh2)
+		       internal_dentry *dentry2p, zfs_fh *fh, zfs_fh *fh2,
+		       int what)
 {
   int32_t r, r2;
   fattr remote_attr;
@@ -853,9 +856,9 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 	release_dentry (*dentry2p);
 
       how = update_p (volp, dentryp, fh, &remote_attr, true);
-      if (how)
+      if (how & what)
 	{
-	  r = update (*volp, *dentryp, fh, &remote_attr, how);
+	  r = update (*volp, *dentryp, fh, &remote_attr, how & what);
 
 	  r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
 	  if (r2 != ZFS_OK)
@@ -922,12 +925,12 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 }
 
 /* Update generic file DENTRY on volume VOL associated with capability ICAP
-   if needed.  */
+   if needed.  Do WHAT we are asked to do.  */
 
 int32_t
 update_cap_if_needed (internal_cap *icapp, volume *volp,
 		      internal_dentry *dentryp, virtual_dir *vdp,
-		      zfs_cap *cap)
+		      zfs_cap *cap, int what)
 {
   int32_t r, r2;
   fattr remote_attr;
@@ -944,9 +947,9 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
     {
       tmp_fh = (*dentryp)->fh->local_fh;
       how = update_p (volp, dentryp, &tmp_fh, &remote_attr, true);
-      if (how)
+      if (how & what)
 	{
-	  r = update (*volp, *dentryp, &tmp_fh, &remote_attr, how);
+	  r = update (*volp, *dentryp, &tmp_fh, &remote_attr, how & what);
 
 	  r2 = find_capability_nolock (cap, icapp, volp, dentryp, vdp, false);
 	  if (r2 != ZFS_OK)
@@ -1430,12 +1433,10 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 }
 
 /* Synchronize file DENTRY with file handle FH on volume VOL
-   with the remote file with attributes ATTR.
-   HOW describe what needs to be done.  */
+   with the remote file with attributes ATTR.  */
 
 static int32_t
-synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
-		  int how)
+synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 {
   internal_dentry parent, conflict, dentry2;
   bool local_changed, remote_changed;
@@ -1456,19 +1457,6 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 
   local_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr);
   remote_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, *attr);
-
-#ifdef ENABLE_CHECKING
-  if (how & IFH_METADATA)
-    {
-      if (!local_changed && !remote_changed)
-	abort ();
-    }
-  else
-    {
-      if (local_changed || remote_changed)
-	abort ();
-    }
-#endif
 
   if (local_changed ^ remote_changed)
     {
@@ -2823,27 +2811,43 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 	abort ();
 
       case FT_REG:
-	r = synchronize_file (vol, dentry, fh, attr, how);
+	r = synchronize_file (vol, dentry, fh, attr);
 	break;
 
       case FT_DIR:
-	r = synchronize_file (vol, dentry, fh, attr, how);
-	if (r != ZFS_OK)
-	  RETURN_INT (r);
+	if (how & IFH_METADATA)
+	  {
+	    r = synchronize_file (vol, dentry, fh, attr);
+	    if (r != ZFS_OK)
+	      RETURN_INT (r);
 
-	r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
-	if (r != ZFS_OK)
-	  RETURN_INT (r);
+	    r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+	    if (r != ZFS_OK)
+	      RETURN_INT (r);
+	  }
 
-	r = reintegrate_dir (vol, dentry, fh, attr);
-	if (r != ZFS_OK)
-	  RETURN_INT (r);
+	if (how & IFH_REINTEGRATE)
+	  {
+	    r = reintegrate_dir (vol, dentry, fh, attr);
+	    if (r != ZFS_OK)
+	      RETURN_INT (r);
 
-	r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
-	if (r != ZFS_OK)
-	  RETURN_INT (r);
+	    r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+	    if (r != ZFS_OK)
+	      RETURN_INT (r);
 
-	r = update_dir (vol, dentry, fh, attr);
+	  }
+
+	if (how & (IFH_UPDATE | IFH_REINTEGRATE))
+	  {
+	    r = update_dir (vol, dentry, fh, attr);
+	  }
+	else
+	  {
+	    release_dentry (dentry);
+	    zfsd_mutex_unlock (&vol->mutex);
+	    zfsd_mutex_unlock (&fh_mutex);
+	  }
 	break;
 
       case FT_LNK:
@@ -2851,7 +2855,7 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
       case FT_CHR:
       case FT_SOCK:
       case FT_FIFO:
-	r = synchronize_file (vol, dentry, fh, attr, how);
+	r = synchronize_file (vol, dentry, fh, attr);
 	break;
     }
 

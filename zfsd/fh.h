@@ -202,6 +202,7 @@ struct internal_fh_def
 #define IFH_UPDATE	1
 #define IFH_REINTEGRATE	2
 #define IFH_METADATA	4
+#define IFH_ALL_UPDATE	(IFH_UPDATE | IFH_REINTEGRATE | IFH_METADATA)
 #define IFH_ENQUEUED	8
 
 /* Information about locked file handle.  */
