@@ -254,9 +254,9 @@ send_request (thread *t, uint32_t request_id, int fd)
   network_fd_data[fd].last_use = time (NULL);
   if (!full_write (fd, t->dc_call.buffer, t->dc_call.cur_length))
     {
-      zfsd_mutex_unlock (&network_fd_data[fd].mutex);
       t->retval = ZFS_CONNECTION_CLOSED;
       htab_clear_slot (network_fd_data[fd].waiting4reply, slot);
+      zfsd_mutex_unlock (&network_fd_data[fd].mutex);
       return;
     }
   zfsd_mutex_unlock (&network_fd_data[fd].mutex);
@@ -952,6 +952,7 @@ network_cleanup ()
 	  waiting4reply_data *data = *(waiting4reply_data **) slot;
 
 	  data->t->retval = ZFS_EXITING;
+	  htab_clear_slot (fd_data->waiting4reply, slot);
 	  semaphore_up (&data->t->sem, 1);
 	});
       zfsd_mutex_unlock (&fd_data->mutex);
