@@ -1660,6 +1660,9 @@ zfs_rmdir_retry:
 	}
     }
 
+  if (path)
+    free (path);
+
   internal_dentry_unlock (vol, idir);
 
   if (r == ZFS_STALE && retry < 1)

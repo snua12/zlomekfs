@@ -912,6 +912,7 @@ init_volume_metadata (volume vol)
   vol->fh_mapping = hfile_create (sizeof (fh_mapping), 32, fh_mapping_hash,
 				  fh_mapping_eq, fh_mapping_decode,
 				  fh_mapping_encode, path, &vol->mutex);
+  free (path);
 
   fd = open_hash_file (vol, METADATA_TYPE_FH_MAPPING);
   if (fd < 0)
