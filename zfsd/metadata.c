@@ -2620,6 +2620,14 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
       return;
     }
 
+  if (meta.slot_status != VALID_SLOT)
+    {
+      hardlink_list_destroy (hl);
+      path->str = NULL;
+      path->len = 0;
+      return;
+    }
+
   /* Check for volume root.  */
   if (meta.parent_dev == (uint32_t) -1
       && meta.parent_ino == (uint32_t) -1
