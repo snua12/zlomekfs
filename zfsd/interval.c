@@ -110,6 +110,7 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
 	     so we have nothing to do.  */
 	  return node;
 	}
+      INTERVAL_END (node) = end;
     }
   else
     {
@@ -147,7 +148,7 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
     {
       if (INTERVAL_START (next) <= INTERVAL_END (node))
 	{
-	  if (INTERVAL_END (next) > INTERVAL_END (node))
+	  if (INTERVAL_END (node) < INTERVAL_END (next))
 	    INTERVAL_END (node) = INTERVAL_END (next);
 	  splay_tree_delete (tree->splay, INTERVAL_START (next));
 	  tree->size--;
