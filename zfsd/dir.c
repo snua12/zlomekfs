@@ -536,6 +536,9 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   return ESTALE;
 }
 
+/* Create directory NAME in local directory DIR on volume VOL, set owner,
+   group and permitions according to ATTR.  */
+
 static int
 local_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 	     volume vol)
@@ -566,6 +569,9 @@ local_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
 
   return ZFS_OK;
 }
+
+/* Create directory NAME in remote directory DIR on volume VOL, set owner,
+   group and permitions according to ATTR.  */
 
 static int
 remote_mkdir (dir_op_res *res, internal_fh dir, string *name, sattr *attr,
