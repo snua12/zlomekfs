@@ -69,6 +69,7 @@ typedef struct hardlink_list_def
 
 extern hardlink_list hardlink_list_create (unsigned int nelem,
 					   pthread_mutex_t *mutex);
+extern void hardlink_list_empty (hardlink_list hl);
 extern void hardlink_list_destroy (hardlink_list hl);
 extern bool hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
 				  uint32_t parent_ino, string *name, bool copy);

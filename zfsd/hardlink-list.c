@@ -73,6 +73,29 @@ hardlink_list_create (unsigned int nelem, pthread_mutex_t *mutex)
   return hl;
 }
 
+/* Empty the hardlink list HL.  */
+
+void
+hardlink_list_empty (hardlink_list hl)
+{
+  hardlink_list_entry entry, next;
+
+  CHECK_MUTEX_LOCKED (hl->mutex);
+
+  zfsd_mutex_lock (&hardlink_list_mutex);
+  for (entry = hl->first; entry; entry = next)
+    {
+      next = entry->next;
+      free (entry->name.str);
+      pool_free (hardlink_list_pool, entry);
+    }
+  zfsd_mutex_unlock (&hardlink_list_mutex);
+
+  hl->first = NULL;
+  hl->last = NULL;
+  htab_empty (hl->htab);
+}
+
 /* Destroy hardlink list HL.  */
 
 void
