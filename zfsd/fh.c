@@ -46,7 +46,7 @@
 #include "dir.h"
 
 /* File handle of ZFS root.  */
-zfs_fh root_fh = {NODE_ANY, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
+zfs_fh root_fh = {NODE_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
 
 /* Static undefined ZFS file handle.  */
 zfs_fh undefined_fh;
@@ -2043,7 +2043,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
     last_virtual_ino = ROOT_INODE + 1;
 
   vd = (virtual_dir) pool_alloc (vd_pool);
-  vd->fh.sid = NODE_ANY;
+  vd->fh.sid = NODE_NONE;
   vd->fh.vid = VOLUME_ID_VIRTUAL;
   vd->fh.dev = VIRTUAL_DEVICE;
   vd->fh.ino = last_virtual_ino;
