@@ -495,11 +495,13 @@ init_config (void)
   node nod;
 
   zfsd_mutex_lock (&vd_mutex);
-  vol = volume_lookup (VOLUME_ID_CONFIG);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_lookup_nolock (VOLUME_ID_CONFIG);
   if (!vol)
     {
       message (0, stderr, "Config volume (ID == %" PRIu32 " does not exist.\n",
 	       VOLUME_ID_CONFIG);
+      zfsd_mutex_unlock (&volume_mutex);
       zfsd_mutex_unlock (&vd_mutex);
       goto out;
     }
@@ -511,8 +513,9 @@ init_config (void)
 
   volume_set_common_info_wrapper (vol, "config", "/config", nod);
 
-  zfsd_mutex_unlock (&vd_mutex);
   zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
   return true;
 
 out:
@@ -733,13 +736,10 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 	  if (nod)
 	    {
 	      zfsd_mutex_lock (&vd_mutex);
-	      vol = volume_lookup (d->vid);
+	      zfsd_mutex_lock (&volume_mutex);
+	      vol = volume_lookup_nolock (d->vid);
 	      if (!vol)
-		{
-		  zfsd_mutex_lock (&volume_mutex);
-		  vol = volume_create (d->vid);
-		  zfsd_mutex_unlock (&volume_mutex);
-		}
+		vol = volume_create (d->vid);
 	      else
 		{
 		  vol->marked = false;
@@ -748,6 +748,7 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 		}
 	      volume_set_common_info (vol, d->name, d->mountpoint, nod);
 	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&volume_mutex);
 	      zfsd_mutex_unlock (&vd_mutex);
 
 	      /* Continue reading the file because we need to read the list

@@ -241,6 +241,7 @@ volume_set_common_info (volume vol, string *name, string *mountpoint,
 			node master)
 {
   CHECK_MUTEX_LOCKED (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   set_string (&vol->name, name);

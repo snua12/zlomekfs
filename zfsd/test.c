@@ -66,8 +66,8 @@ fake_config (void)
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (1);
-  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info_wrapper (vol, "volume1", "/volume1", nod);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&vd_mutex);
   if (nod == this_node)
     {
@@ -84,8 +84,8 @@ fake_config (void)
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (2);
-  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info_wrapper (vol, "volume2", "/volume2", nod);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&vd_mutex);
   if (nod == this_node)
     {
@@ -107,8 +107,8 @@ fake_config (void)
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (3);
-  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info_wrapper (vol, "volume3", "/volume1/volume3", nod);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&vd_mutex);
   if (nod == this_node)
     {
@@ -135,9 +135,9 @@ fake_config (void)
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (4);
-  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info_wrapper (vol, "volume4", "/volume2/artax/volume4",
 				  nod);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&vd_mutex);
   if (nod == this_node)
     {
@@ -160,8 +160,8 @@ fake_config (void)
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (5);
-  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info_wrapper (vol, "volume5", "/other/volume5", nod);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&vd_mutex);
   if (nod == this_node)
     {
@@ -179,8 +179,8 @@ fake_config (void)
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (6);
-  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info_wrapper (vol, "volume6", "/volume6", nod);
+  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&vd_mutex);
   if (nod == this_node)
     {
