@@ -836,7 +836,9 @@ process_line_user (char *line, char *file_name, unsigned int line_num,
 	}
       else
 	{
+	  zfsd_mutex_lock (&users_groups_mutex);
 	  user_create (id, &parts[1]);
+	  zfsd_mutex_unlock (&users_groups_mutex);
 	}
     }
   else
@@ -893,7 +895,9 @@ process_line_group (char *line, char *file_name, unsigned int line_num,
 	}
       else
 	{
+	  zfsd_mutex_lock (&users_groups_mutex);
 	  group_create (id, &parts[1]);
+	  zfsd_mutex_unlock (&users_groups_mutex);
 	}
     }
   else
@@ -953,11 +957,17 @@ process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
 	      if (!nod)
 		abort ();
 #endif
+	      zfsd_mutex_lock (&users_groups_mutex);
 	      user_mapping_create (&parts[0], &parts[1], nod);
+	      zfsd_mutex_unlock (&users_groups_mutex);
 	      zfsd_mutex_unlock (&nod->mutex);
 	    }
 	  else
-	    user_mapping_create (&parts[0], &parts[1], NULL);
+	    {
+	      zfsd_mutex_lock (&users_groups_mutex);
+	      user_mapping_create (&parts[0], &parts[1], NULL);
+	      zfsd_mutex_unlock (&users_groups_mutex);
+	    }
 	}
     }
   else
@@ -1045,11 +1055,17 @@ process_line_group_mapping (char *line, char *file_name, unsigned int line_num,
 	      if (!nod)
 		abort ();
 #endif
+	      zfsd_mutex_lock (&users_groups_mutex);
 	      group_mapping_create (&parts[0], &parts[1], nod);
+	      zfsd_mutex_unlock (&users_groups_mutex);
 	      zfsd_mutex_unlock (&nod->mutex);
 	    }
 	  else
-	    group_mapping_create (&parts[0], &parts[1], NULL);
+	    {
+	      zfsd_mutex_lock (&users_groups_mutex);
+	      group_mapping_create (&parts[0], &parts[1], NULL);
+	      zfsd_mutex_unlock (&users_groups_mutex);
+	    }
 	}
     }
   else
