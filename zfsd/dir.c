@@ -172,7 +172,7 @@ build_relative_path (string *dst, internal_dentry dentry)
 
 /* Return a pointer into PATH where path relative to volume root starts.  */
 
-static void
+void
 local_path_to_relative_path (string *dst, volume vol, string *path)
 {
   TRACE ("");
