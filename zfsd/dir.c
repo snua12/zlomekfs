@@ -2482,6 +2482,7 @@ zfs_rename_finish (internal_dentry *from_dir, string *from_name,
 		   zfs_fh *from_fh, zfs_fh *to_fh,
 		   metadata *meta_old, metadata *meta_new)
 {
+  TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&(*vol)->mutex);
 #ifdef ENABLE_CHECKING
@@ -2906,6 +2907,40 @@ remote_link (internal_dentry from, internal_dentry dir, string *name, volume vol
   return r;
 }
 
+/* Add a new dentry for dentry FROM to NAME in DIR on volume VOL.  Add a record
+   accoring to metadata META to journal and increase version of DIR.  */
+
+static void
+zfs_link_finish (internal_dentry from, internal_dentry dir, string *name,
+		 volume vol, metadata *meta)
+{
+  TRACE ("");
+#ifdef ENABLE_CHECKING
+  if (!dir)
+    abort ();
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  if (from)
+    CHECK_MUTEX_LOCKED (&from->fh->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#endif
+
+  if (from)
+    internal_dentry_link (from, vol, dir, name);
+
+  if (INTERNAL_FH_HAS_LOCAL_PATH (dir->fh))
+    {
+      if (vol->master != this_node)
+	{
+	  if (!add_journal_entry_meta (vol, dir->fh, meta, name,
+				       JOURNAL_OPERATION_ADD))
+	    MARK_VOLUME_DELETE (vol);
+	}
+      if (!inc_local_version (vol, dir->fh))
+	MARK_VOLUME_DELETE (vol);
+    }
+}
+
 /* Link file FROM to be a file with NAME in directory DIR.  */
 
 int32_t
@@ -3090,19 +3125,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
       else
 	from_dentry = dir_dentry;
 
-      internal_dentry_link (from_dentry, vol, dir_dentry, name);
-
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
-	{
-	  if (vol->master != this_node)
-	    {
-	      if (!add_journal_entry_meta (vol, dir_dentry->fh, &meta, name,
-					   JOURNAL_OPERATION_ADD))
-		MARK_VOLUME_DELETE (vol);
-	    }
-	  if (!inc_local_version (vol, dir_dentry->fh))
-	    MARK_VOLUME_DELETE (vol);
-	}
+      zfs_link_finish (from_dentry, dir_dentry, name, vol, &meta);
 
       if (dir_dentry != from_dentry)
 	release_dentry (from_dentry);
