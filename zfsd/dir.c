@@ -280,13 +280,13 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
   r = ZFS_OK;
 
 out:
-  if (!destroy_dentry)
+  if (!destroy_dentry && r != ZFS_OK)
     return r;
 
   vol = volume_lookup (vid);
   if (vol)
     {
-      /* Destroy dentry associated with the file.  */
+      /* Lookup file handle and metadata.  */
       fh.sid = this_node->id;
       fh.vid = vid;
       fh.dev = st.st_dev;
@@ -298,6 +298,7 @@ out:
 
       if (r == ZFS_OK)
 	{
+	  /* Delete metadata.  */
 	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
 					zfs_mode_to_ftype (st.st_mode));
 	  meta.uid = map_uid_node2zfs (st.st_uid);
@@ -308,11 +309,15 @@ out:
 	}
       zfsd_mutex_unlock (&vol->mutex);
 
-      zfsd_mutex_lock (&fh_mutex);
-      dentry = dentry_lookup (&fh);
-      if (dentry)
-	internal_dentry_destroy (dentry, true);
-      zfsd_mutex_unlock (&fh_mutex);
+      if (destroy_dentry)
+	{
+	  /* Destroy dentry associated with the file.  */
+	  zfsd_mutex_lock (&fh_mutex);
+	  dentry = dentry_lookup (&fh);
+	  if (dentry)
+	    internal_dentry_destroy (dentry, true);
+	  zfsd_mutex_unlock (&fh_mutex);
+	}
     }
 
   return r;
