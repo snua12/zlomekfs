@@ -1115,6 +1115,8 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 	abort ();
 #endif
       fh->meta = *meta;
+      set_attr_version (&fh->attr, &fh->meta);
+      attr->version = fh->attr.version;
     }
   else
     clear_meta (fh);
@@ -1125,9 +1127,6 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
       vol->delete_p = true;
       clear_meta (fh);
     }
-
-  set_attr_version (&fh->attr, &fh->meta);
-  attr->version = fh->attr.version;
 
   return fh;
 }
@@ -1539,7 +1538,8 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	  if (zfs_fh_undefined (dentry->fh->meta.master_fh))
 	    set_master_fh (vol, dentry->fh, master_fh);
 
-	  set_attr_version (attr, &dentry->fh->meta);
+	  if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+	    set_attr_version (attr, &dentry->fh->meta);
 	  dentry->fh->attr = *attr;
 	}
     }
@@ -2160,7 +2160,8 @@ add_file_to_conflict_dir (volume vol, internal_dentry conflict, bool exists,
   dentry = make_space_in_conflict_dir (&vol, &conflict, exists, fh);
   if (dentry)
     {
-      set_attr_version (attr, &dentry->fh->meta);
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+	set_attr_version (attr, &dentry->fh->meta);
       dentry->fh->attr = *attr;
       release_dentry (dentry);
       return dentry;
