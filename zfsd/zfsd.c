@@ -106,6 +106,12 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
   thread_terminate_blocking_syscall (&cleanup_dentry_thread,
 				     &cleanup_dentry_thread_in_syscall);
 
+  if (config_reader_data.thread_id)
+    {
+      set_thread_state (&config_reader_data, THREAD_DYING);
+      semaphore_up (&config_reader_data.sem, 1);
+    }
+
   message (2, stderr, "Leaving exit_sighandler\n");
 }
 
@@ -364,6 +370,15 @@ initialize_data_structures (void)
 void
 cleanup_data_structures (void)
 {
+  /* Destroy data of config reader thread.  */
+  if (config_reader_data.thread_id)
+    {
+      pthread_join (config_reader_data.thread_id, NULL);
+      config_reader_data.thread_id = 0;
+      network_worker_cleanup (&config_reader_data);
+      semaphore_destroy (&config_reader_data.sem);
+    }
+
   /* Destroy data structures in other modules.  */
   cleanup_user_group_c ();
   cleanup_zfs_prot_c ();

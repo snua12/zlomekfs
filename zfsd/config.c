@@ -51,6 +51,9 @@
 #define LINE_SIZE 2048
 #endif
 
+/* Data for config reader thread.  */
+thread config_reader_data;
+
 /* File used to communicate with kernel.  */
 string kernel_file_name;
 
@@ -1259,13 +1262,14 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
 }
 
 /* Has the config reader already terminated?  */
-static volatile bool config_reader_terminated;
+static volatile bool reading_cluster_config;
 
 /* Thread for reading a configuration.  */
 
 static void *
 config_reader (void *data)
 {
+  thread *t = (thread *) data;
   lock_info li[MAX_LOCKED_FILE_HANDLES];
   dir_op_res config_dir_res;
   dir_op_res user_dir_res;
@@ -1335,14 +1339,47 @@ config_reader (void *data)
 	zfsd_mutex_unlock (&vol->mutex);
     }
 
-  config_reader_terminated = true;
+  /* Let the main thread run.  */
+  t->retval = ZFS_OK;
+  reading_cluster_config = false;
   pthread_kill (main_thread, SIGUSR1);
+
+  /* Change state to IDLE.  */
+  zfsd_mutex_lock (&t->mutex);
+  if (t->state == THREAD_DYING)
+    {
+      zfsd_mutex_unlock (&t->mutex);
+      goto dying;
+    }
+  t->state = THREAD_IDLE;
+  zfsd_mutex_unlock (&t->mutex);
+  
+  /* Reread parts of configuration when notified.  */
+  while (1)
+    {
+      /* Wait until we are notified.  */
+      semaphore_down (&t->sem, 1);
+
+#ifdef ENABLE_CHECKING
+      if (get_thread_state (t) == THREAD_DEAD)
+	abort ();
+#endif
+      if (get_thread_state (t) == THREAD_DYING)
+	break;
+
+      /* TODO: process requests for rereading configuration.  */
+    }
+
+dying:
+  set_thread_state (t, THREAD_DEAD);
   return NULL;
 
 out:
-  config_reader_terminated = true;
+  t->retval = ZFS_OK + 1;
+  reading_cluster_config = false;
   pthread_kill (main_thread, SIGUSR1);
-  return (void *) 1;
+  set_thread_state (t, THREAD_DEAD);
+  return NULL;
 }
 
 /* Read global configuration of the cluster from config volume.  */
@@ -1350,42 +1387,32 @@ out:
 static bool
 read_global_cluster_config (void)
 {
-  thread config_reader_data;
-
   semaphore_init (&config_reader_data.sem, 0);
   network_worker_init (&config_reader_data);
   config_reader_data.from_sid = this_node->id;
+  config_reader_data.state = THREAD_BUSY;
 
-  config_reader_terminated = false;
+  reading_cluster_config = true;
   if (pthread_create (&config_reader_data.thread_id, NULL, config_reader,
 		      &config_reader_data))
     {
       message (-1, stderr, "pthread_create() failed\n");
+      config_reader_data.state = THREAD_DEAD;
       config_reader_data.thread_id = 0;
-      config_reader_terminated = true;
+      reading_cluster_config = false;
       network_worker_cleanup (&config_reader_data);
       semaphore_destroy (&config_reader_data.sem);
       return false;
     }
-  else
+
+  /* Workaround valgrind bug (PR/77369),  */
+  while (reading_cluster_config)
     {
-      void *retval;
-
-      /* Workaround valgrind bug (PR/77369),  */
-      while (!config_reader_terminated)
-	{
-	  /* Sleep gets interrupted by the signal.  */
-	  sleep (1000000);
-	}
-
-      pthread_join (config_reader_data.thread_id, &retval);
-      network_worker_cleanup (&config_reader_data);
-      semaphore_destroy (&config_reader_data.sem);
-
-      return retval == NULL;
+      /* Sleep gets interrupted by the signal.  */
+      sleep (1000000);
     }
 
-  return true;
+  return config_reader_data.retval == ZFS_OK;
 }
 
 /* Invalidate configuration.  */

@@ -26,6 +26,10 @@
 #include <netinet/in.h>
 #include "pthread.h"
 #include "memory.h"
+#include "thread.h"
+
+/* Data for config reader thread.  */
+extern thread config_reader_data;
 
 /* File used to communicate with kernel.  */
 extern string kernel_file_name;
