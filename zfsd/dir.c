@@ -1545,7 +1545,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 
   TRACE ("");
 
-  r = validate_operation_on_zfs_fh (fh, EROFS, EROFS);
+  r = validate_operation_on_zfs_fh (fh, ZFS_OK, ZFS_OK);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -1570,7 +1570,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	  if (r != ZFS_OK)
 	    RETURN_INT (r);
 
-	  r = validate_operation_on_volume_root (dentry, EROFS);
+	  r = validate_operation_on_volume_root (dentry, ZFS_OK);
 	  if (r != ZFS_OK)
 	    {
 	      release_dentry (dentry);
@@ -1583,6 +1583,14 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 	  zfsd_mutex_unlock (&vd->mutex);
 	  RETURN_INT (EROFS);
 	}
+    }
+
+  if (!REGULAR_FH_P (dentry->fh->local_fh))
+    {
+      /* Ignore the setting attributes of the special file.  */
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      RETURN_INT (ZFS_OK);
     }
 
   r = internal_dentry_lock (dentry->fh->attr.type == FT_DIR
