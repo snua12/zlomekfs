@@ -489,10 +489,11 @@ open_list_file (volume vol)
 }
 
 /* Open and initialize file descriptor for interval of type TYPE for
-   file handle FH on volume VOL.  */
+   file handle FH on volume VOL.  Store the name of interval file to PATHP.  */
 
 static int
-open_interval_file (volume vol, internal_fh fh, metadata_type type)
+open_interval_file (volume vol, internal_fh fh, metadata_type type,
+		    char **pathp)
 {
   interval_tree tree;
   char *path;
@@ -538,7 +539,73 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   init_interval_fd (tree);
   zfsd_mutex_unlock (&metadata_mutex);
 
+  *pathp = path;
   return fd;
+}
+
+/* Delete interval file PATH for interval tree TREE of type TYPE
+   for internal file handle FH on volume VOL.
+   Return true if it was useless.  */
+
+static bool
+delete_useless_interval_file (volume vol, internal_fh fh, metadata_type type,
+			      interval_tree tree, char *path)
+{
+  switch (type)
+    {
+      case METADATA_TYPE_UPDATED:
+	if (tree->size == 1
+	    && INTERVAL_START (tree->splay->root) == 0
+	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags | METADATA_COMPLETE))
+	      vol->flags |= VOLUME_DELETE;
+
+	    if (unlink (path) < 0 && errno != ENOENT)
+	      {
+		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		vol->flags |= VOLUME_DELETE;
+	      }
+	    free (path);
+	    return true;
+	  }
+	else
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags & ~METADATA_COMPLETE))
+	      vol->flags |= VOLUME_DELETE;
+	  }
+	break;
+
+      case METADATA_TYPE_MODIFIED:
+	if (tree->size == 0)
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags & ~METADATA_MODIFIED))
+	      vol->flags |= VOLUME_DELETE;
+
+	    if (unlink (path) < 0 && errno != ENOENT)
+	      {
+		message (2, stderr, "%s: %s\n", path, strerror (errno));
+		vol->flags |= VOLUME_DELETE;
+	      }
+	    free (path);
+	    return true;
+	  }
+	else
+	  {
+	    if (!set_metadata_flags (vol, fh,
+				     fh->meta.flags | METADATA_MODIFIED))
+	      vol->flags |= VOLUME_DELETE;
+	  }
+	break;
+
+      default:
+	abort ();
+    }
+
+  return false;
 }
 
 /* Flush interval tree of type TYPE for file handle FH on volume VOL
@@ -573,61 +640,8 @@ flush_interval_tree_1 (volume vol, internal_fh fh, metadata_type type,
 
   close_interval_file (tree);
 
-  switch (type)
-    {
-      case METADATA_TYPE_UPDATED:
-	if (tree->size == 1
-	    && INTERVAL_START (tree->splay->root) == 0
-	    && INTERVAL_END (tree->splay->root) == fh->attr.size)
-	  {
-	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags | METADATA_COMPLETE))
-	      vol->flags |= VOLUME_DELETE;
-
-	    if (unlink (path) < 0 && errno != ENOENT)
-	      {
-		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		free (path);
-		return false;
-	      }
-	    free (path);
-	    return true;
-	  }
-	else
-	  {
-	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags & ~METADATA_COMPLETE))
-	      vol->flags |= VOLUME_DELETE;
-	  }
-	break;
-
-      case METADATA_TYPE_MODIFIED:
-	if (tree->size == 0)
-	  {
-	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags & ~METADATA_MODIFIED))
-	      vol->flags |= VOLUME_DELETE;
-
-	    if (unlink (path) < 0 && errno != ENOENT)
-	      {
-		message (2, stderr, "%s: %s\n", path, strerror (errno));
-		free (path);
-		return false;
-	      }
-	    free (path);
-	    return true;
-	  }
-	else
-	  {
-	    if (!set_metadata_flags (vol, fh,
-				     fh->meta.flags | METADATA_MODIFIED))
-	      vol->flags |= VOLUME_DELETE;
-	  }
-	break;
-
-      default:
-	abort ();
-    }
+  if (delete_useless_interval_file (vol, fh, type, tree, path))
+    return true;
 
   new_path = xstrconcat (2, path, ".new");
   fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT,
@@ -961,6 +975,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 {
   interval_tree tree;
   interval i;
+  char *path;
   bool r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -985,7 +1000,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
 
   if (!interval_opened_p (tree))
     {
-      if (open_interval_file (vol, fh, type) < 0)
+      if (open_interval_file (vol, fh, type, &path) < 0)
 	return false;
     }
 
@@ -994,6 +1009,10 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
   r = full_write (tree->fd, &i, sizeof (interval));
 
   zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
+
+  delete_useless_interval_file (vol, fh, type, tree, path);
+  free (path);
+
   return r;
 }
 
