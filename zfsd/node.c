@@ -258,13 +258,13 @@ cleanup_node_c (void)
   void **slot;
 
   zfsd_mutex_lock (&node_mutex);
-  HTAB_FOR_EACH_SLOT (node_htab, slot,
+  HTAB_FOR_EACH_SLOT (node_htab, slot)
     {
       node nod = (node) *slot;
 
       zfsd_mutex_lock (&nod->mutex);
       node_destroy (nod);
-    });
+    }
   htab_destroy (node_htab);
   htab_destroy (node_htab_name);
   zfsd_mutex_unlock (&node_mutex);

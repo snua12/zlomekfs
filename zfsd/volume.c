@@ -263,7 +263,10 @@ print_volumes (FILE *f)
 {
   void **slot;
 
-  HTAB_FOR_EACH_SLOT (volume_htab, slot, print_volume (f, (volume) *slot));
+  HTAB_FOR_EACH_SLOT (volume_htab, slot)
+    {
+      print_volume (f, (volume) *slot);
+    }
 }
 
 /* Print the information about volume VOL to STDERR.  */
@@ -301,13 +304,13 @@ cleanup_volume_c (void)
   zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
-  HTAB_FOR_EACH_SLOT (volume_htab, slot,
+  HTAB_FOR_EACH_SLOT (volume_htab, slot)
     {
       volume vol = (volume) *slot;
 
       zfsd_mutex_lock (&vol->mutex);
       volume_destroy ((volume) *slot);
-    });
+    }
   htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_destroy (&volume_mutex);

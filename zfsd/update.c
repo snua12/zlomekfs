@@ -1283,7 +1283,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  return r;
 	}
 
-      HTAB_FOR_EACH_SLOT (local_entries.htab, slot,
+      HTAB_FOR_EACH_SLOT (local_entries.htab, slot)
 	{
 	  entry = (dir_entry *) *slot;
 
@@ -1361,9 +1361,9 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    }
 
 	  htab_clear_slot (local_entries.htab, slot);
-	});
+	}
 
-      HTAB_FOR_EACH_SLOT (remote_entries.htab, slot,
+      HTAB_FOR_EACH_SLOT (remote_entries.htab, slot)
 	{
 	  entry = (dir_entry *) *slot;
 
@@ -1412,7 +1412,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    }
 
 	  htab_clear_slot (remote_entries.htab, slot);
-	});
+	}
 
       r = ZFS_OK;
 out:

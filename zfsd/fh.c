@@ -1245,7 +1245,7 @@ print_fh_htab (FILE *f)
 {
   void **slot;
 
-  HTAB_FOR_EACH_SLOT (fh_htab, slot,
+  HTAB_FOR_EACH_SLOT (fh_htab, slot)
     {
       internal_fh fh = (internal_fh) *slot;
 
@@ -1256,7 +1256,7 @@ print_fh_htab (FILE *f)
 	       fh->meta.master_fh.ino, fh->meta.master_fh.gen);
       fprintf (f, "L%d ", fh->level);
       fprintf (f, "\n");
-    });
+    }
 }
 
 /* Print the contents of hash table of filehandles HTAB to STDERR.  */

@@ -185,7 +185,7 @@ set_default_groups (void)
 
   CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
-  HTAB_FOR_EACH_SLOT (users_id, slot,
+  HTAB_FOR_EACH_SLOT (users_id, slot)
     {
       user_t u = (user_t) slot;
       group_t g;
@@ -199,7 +199,7 @@ set_default_groups (void)
 					GROUP_ID_HASH (u->gid), INSERT);
       if (!*slot2)
 	*slot2 = g;
-    });
+    }
 }
 
 /* Destroy user U.  */
@@ -524,12 +524,12 @@ set_default_user_mapping (void)
 
   CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
-  HTAB_FOR_EACH_SLOT (users_id, slot,
+  HTAB_FOR_EACH_SLOT (users_id, slot)
     {
       user_t u = (user_t) slot;
 
       user_mapping_create (u->name, u->name, NULL);
-    });
+    }
 }
 
 /* Destroy all user mappings between ZFS and node NOD.
@@ -561,18 +561,18 @@ user_mapping_destroy_all (node nod)
       map_to_zfs = map_uid_to_zfs;
     }
 
-  HTAB_FOR_EACH_SLOT (map_to_node, slot,
+  HTAB_FOR_EACH_SLOT (map_to_node, slot)
     {
       id_mapping map = (id_mapping) *slot;
 
       user_mapping_destroy (map, nod);
-    });
-  HTAB_FOR_EACH_SLOT (map_to_zfs, slot,
+    }
+  HTAB_FOR_EACH_SLOT (map_to_zfs, slot)
     {
       id_mapping map = (id_mapping) *slot;
 
       user_mapping_destroy (map, nod);
-    });
+    }
 }
 
 /* Add mapping between ZFS group name ZFS_GROUP and node group name NODE_GROUP
@@ -703,12 +703,12 @@ set_default_group_mapping (void)
 
   CHECK_MUTEX_LOCKED (&users_groups_mutex);
 
-  HTAB_FOR_EACH_SLOT (groups_id, slot,
+  HTAB_FOR_EACH_SLOT (groups_id, slot)
     {
       group_t g = (group_t) slot;
 
       group_mapping_create (g->name, g->name, NULL);
-    });
+    }
 }
 
 /* Destroy all group mappings between ZFS and node NOD.
@@ -740,18 +740,18 @@ group_mapping_destroy_all (node nod)
       map_to_zfs = map_gid_to_zfs;
     }
 
-  HTAB_FOR_EACH_SLOT (map_to_node, slot,
+  HTAB_FOR_EACH_SLOT (map_to_node, slot)
     {
       id_mapping map = (id_mapping) *slot;
 
       group_mapping_destroy (map, nod);
-    });
-  HTAB_FOR_EACH_SLOT (map_to_zfs, slot,
+    }
+  HTAB_FOR_EACH_SLOT (map_to_zfs, slot)
     {
       id_mapping map = (id_mapping) *slot;
 
       group_mapping_destroy (map, nod);
-    });
+    }
 }
 
 /* Map ZFS user UID to (local) node user ID.  */
@@ -921,21 +921,21 @@ cleanup_user_group_c (void)
   htab_destroy (map_gid_to_zfs);
 
   /* User and group tables.  */
-  HTAB_FOR_EACH_SLOT (users_id, slot,
+  HTAB_FOR_EACH_SLOT (users_id, slot)
     {
       user_t u = (user_t) *slot;
 
       user_destroy (u);
-    });
+    }
   htab_destroy (users_id);
   htab_destroy (users_name);
 
-  HTAB_FOR_EACH_SLOT (groups_id, slot,
+  HTAB_FOR_EACH_SLOT (groups_id, slot)
     {
       group_t g = (group_t) *slot;
 
       group_destroy (g);
-    });
+    }
   htab_destroy (groups_id);
   htab_destroy (groups_name);
 
