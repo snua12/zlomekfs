@@ -1690,6 +1690,15 @@ lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
       parent = (*dentryp)->parent;
       acquire_dentry (parent);
       release_dentry (*dentryp);
+      if (CONFLICT_DIR_P (parent->fh->local_fh))
+	{
+	  internal_dentry grandparent;
+
+	  grandparent = parent->parent;
+	  acquire_dentry (grandparent);
+	  release_dentry (parent);
+	  parent = grandparent;
+	}
       zfsd_mutex_unlock (&fh_mutex);
 
       r = remote_lookup (res, parent, &name, *volp);
