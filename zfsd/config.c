@@ -1438,6 +1438,94 @@ reread_group_list (void)
   return true;
 }
 
+/* Reread user mapping for node SID.  */
+
+static bool
+reread_user_mapping (uint32_t sid)
+{
+  dir_op_res user_dir_res;
+  int32_t r;
+  node nod;
+
+  r = zfs_extended_lookup (&user_dir_res, &root_fh, "config/user");
+  if (r != ZFS_OK)
+    return true;
+
+  if (sid == 0)
+    nod = NULL;
+  else if (sid == this_node->id)
+    nod = this_node;
+  else
+    return true;
+
+  if (nod)
+    {
+      zfsd_mutex_lock (&nod->mutex);
+      mark_user_mapping (nod);
+      zfsd_mutex_unlock (&nod->mutex);
+    }
+  else
+    mark_user_mapping (nod);
+
+  if (!read_user_mapping (&user_dir_res.file, sid))
+    return false;
+
+  if (nod)
+    {
+      zfsd_mutex_lock (&nod->mutex);
+      destroy_invalid_user_mapping (nod);
+      zfsd_mutex_unlock (&nod->mutex);
+    }
+  else
+    destroy_invalid_user_mapping (nod);
+
+  return true;
+}
+
+/* Reread group mapping for node SID.  */
+
+static bool
+reread_group_mapping (uint32_t sid)
+{
+  dir_op_res group_dir_res;
+  int32_t r;
+  node nod;
+
+  r = zfs_extended_lookup (&group_dir_res, &root_fh, "config/group");
+  if (r != ZFS_OK)
+    return true;
+
+  if (sid == 0)
+    nod = NULL;
+  else if (sid == this_node->id)
+    nod = this_node;
+  else
+    return true;
+
+  if (nod)
+    {
+      zfsd_mutex_lock (&nod->mutex);
+      mark_group_mapping (nod);
+      zfsd_mutex_unlock (&nod->mutex);
+    }
+  else
+    mark_group_mapping (nod);
+
+  if (!read_group_mapping (&group_dir_res.file, sid))
+    return false;
+
+  if (nod)
+    {
+      zfsd_mutex_lock (&nod->mutex);
+      destroy_invalid_group_mapping (nod);
+      zfsd_mutex_unlock (&nod->mutex);
+    }
+  else
+    destroy_invalid_group_mapping (nod);
+
+  return true;
+}
+
 /* Reread configuration file RELATIVE_PATH.  */ 
 
 static bool
@@ -1474,6 +1562,16 @@ reread_config_file (string *relative_path)
       if (*str == '/')
 	{
 	  str++;
+	  if (strncmp (str, "default", 8) == 0)
+	    {
+	      if (!reread_user_mapping (0))
+		goto out;
+	    }
+	  else if (strcmp (str, this_node->name.str) == 0)
+	    {
+	      if (!reread_user_mapping (this_node->id))
+		goto out;
+	    }
 	}
       else if (strncmp (str, "_list", 6) == 0)
 	{
@@ -1487,6 +1585,16 @@ reread_config_file (string *relative_path)
       if (*str == '/')
 	{
 	  str++;
+	  if (strncmp (str, "default", 8) == 0)
+	    {
+	      if (!reread_group_mapping (0))
+		goto out;
+	    }
+	  else if (strcmp (str, this_node->name.str) == 0)
+	    {
+	      if (!reread_group_mapping (this_node->id))
+		goto out;
+	    }
 	}
       else if (strncmp (str, "_list", 6) == 0)
 	{
