@@ -119,7 +119,7 @@ string_list_insert (string_list sl, char *str)
     return;
 
   zfsd_mutex_lock (&string_list_mutex);
-  entry = pool_alloc (string_list_pool);
+  entry = (string_list_entry) pool_alloc (string_list_pool);
   zfsd_mutex_unlock (&string_list_mutex);
   entry->index = VARRAY_USED (sl->array);
   entry->str = xstrdup (str);
@@ -133,12 +133,9 @@ string_list_insert (string_list sl, char *str)
 bool
 string_list_member (string_list sl, char *str)
 {
-  string_list_entry entry;
-
   CHECK_MUTEX_LOCKED (sl->mutex);
 
-  entry = htab_find_with_hash (sl->htab, str, STRING_LIST_HASH (str));
-  return entry != NULL;
+  return (htab_find_with_hash (sl->htab, str, STRING_LIST_HASH (str)) != NULL);
 }
 
 /* Delete string STR from string list SL.  */
