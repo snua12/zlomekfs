@@ -1318,6 +1318,22 @@ invalidate_config (void)
 static bool
 fix_config (void)
 {
+  if (this_node == NULL || this_node->marked)
+    return false;
+
+  destroy_invalid_volumes ();
+  destroy_invalid_nodes ();
+
+  destroy_invalid_user_mapping (NULL);
+  destroy_invalid_group_mapping (NULL);
+
+  zfsd_mutex_lock (&this_node->mutex);
+  destroy_invalid_user_mapping (this_node);
+  destroy_invalid_group_mapping (this_node);
+  zfsd_mutex_unlock (&this_node->mutex);
+
+  destroy_invalid_users ();
+  destroy_invalid_groups ();
 
   return true;
 }
