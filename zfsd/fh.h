@@ -98,6 +98,11 @@ typedef struct virtual_dir_def *virtual_dir;
 /* Internal information about file handle.  */
 struct internal_fh_def
 {
+#ifdef ENABLE_CHECKING
+  long unused0;
+  long unused1;
+#endif
+
   pthread_mutex_t mutex;
 
   /* File handle for client, key for hash table.  */
