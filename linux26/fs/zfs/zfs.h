@@ -59,7 +59,7 @@ struct zfs_inode_info {
 #define INDEX(key) (key % REQ_PROCESSING_TABSIZE)
 extern struct channel {
 	struct semaphore lock;
-	int connected;
+	volatile int connected;
 
 	struct semaphore request_id_lock;
 	uint32_t request_id;

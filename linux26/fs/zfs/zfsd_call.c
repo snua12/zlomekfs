@@ -43,6 +43,7 @@ int send_request(struct request *req) {
 	down(&channel.req_pending_lock);
 	list_add_tail(&req->item, &channel.req_pending);
 	up(&channel.req_pending_lock);
+
 	req->state = REQ_PENDING;
 
 	wake_up(&channel.waitq);
@@ -76,15 +77,17 @@ int send_request(struct request *req) {
 	if (signal_pending(current)) {
 		TRACE("zfs: send_request: %u: interrupt\n", req->id);
 		return -EINTR;
-	} else if (!timeout_left) {
+	}
+	if (!timeout_left) {
 		TRACE("zfs: send_request: %u: timeout\n", req->id);
 		return -ESTALE;
-	} else if (req->state != REQ_DEQUEUED) {
+	}
+	if (!channel.connected) {
 		TRACE("zfs: send_request: %u: zfsd closed communication device\n", req->id);
 		return -EIO;
 	}
 
-	TRACE("zfs: send_request: %u: reply received\n", req->id);
+	TRACE("zfs: send_request: %u: corresponding reply received\n", req->id);
 
 	return 0;
 }
