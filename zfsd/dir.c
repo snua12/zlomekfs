@@ -3096,11 +3096,8 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	{
 	  if (vol->master != this_node)
 	    {
-	      if (!add_journal_entry (vol, dir_dentry->fh,
-				      &from_dentry->fh->local_fh,
-				      &from_dentry->fh->meta.master_fh,
-				      from_dentry->fh->meta.master_version,
-				      name, JOURNAL_OPERATION_ADD))
+	      if (!add_journal_entry_meta (vol, dir_dentry->fh, &meta, name,
+					   JOURNAL_OPERATION_ADD))
 		MARK_VOLUME_DELETE (vol);
 	    }
 	  if (!inc_local_version (vol, dir_dentry->fh))
