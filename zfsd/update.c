@@ -119,10 +119,11 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 
   /* If remote file is shorter truncate local file.  */
   if (local_md5.count > remote_md5.count
-      || ((local_md5.offset[local_md5.count - 1]
-	   + local_md5.length[local_md5.count - 1])
-	  < (remote_md5.offset[remote_md5.count - 1]
-	     + remote_md5.length[remote_md5.count - 1])))
+      || (local_md5.count == remote_md5.count
+	  && ((local_md5.offset[local_md5.count - 1]
+	       + local_md5.length[local_md5.count - 1])
+	      < (remote_md5.offset[remote_md5.count - 1]
+		 + remote_md5.length[remote_md5.count - 1]))))
     {
       sattr sa;
 
