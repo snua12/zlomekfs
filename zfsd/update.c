@@ -1550,9 +1550,8 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		    else
 		      {
 			release_dentry (dentry);
-			zfsd_mutex_unlock (&vol->mutex);
 			zfsd_mutex_unlock (&fh_mutex);
-			r = zfs_file_info (&info, &entry->master_fh);
+			r = remote_file_info (&info, &entry->master_fh, vol);
 
 			r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL,
 						   false);
