@@ -245,7 +245,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   icap = internal_cap_lookup (cap);
   if (icap)
     icap->busy++;
-  else if (VIRTUAL_FH_P (cap->fh))
+  else if (*vd)
     icap = internal_cap_create_vd (*vd, cap->flags);
   else
     icap = internal_cap_create_fh (*ifh, cap->flags);
