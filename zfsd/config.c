@@ -1282,6 +1282,8 @@ config_reader (void *data)
   pthread_setspecific (thread_name_key, "Config reader");
   set_lock_info (li);
 
+  invalidate_config ();
+
   r = zfs_extended_lookup (&config_dir_res, &root_fh, "config");
   if (r != ZFS_OK)
     goto out;
@@ -1338,6 +1340,9 @@ config_reader (void *data)
       else
 	zfsd_mutex_unlock (&vol->mutex);
     }
+
+  if (!fix_config ())
+    goto out;
 
   /* Let the main thread run.  */
   t->retval = ZFS_OK;
@@ -1651,12 +1656,7 @@ read_cluster_config (void)
   if (!init_config ())
     return false;
 
-  invalidate_config ();
-
   if (!read_global_cluster_config ())
-    return false;
-
-  if (!fix_config ())
     return false;
 
   return true;
