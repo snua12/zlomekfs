@@ -2470,68 +2470,58 @@ remote_rename (internal_dentry from_dir, string *from_name,
   return r;
 }
 
-/* Move the dentry for FROM_NAME in FROM_DIR to TO_NAME in TO_DIR
-   on volume VOL.  File handle of FROM_DIR is FROM_FH, file handle of TO_DIR
-   if TO_FH.  META_OLD is the metadata of overwritten file, METADATA_NEW
-   is the metadata of the moved file.  Add neccessary records to journals
-   and increase versions of directories.  */
+/* Add the journal dentries for the move of file FROM_NAME in FROM_DIR
+   to TO_NAME in TO_DIR.  META_OLD is the metadata of overwritten file,
+   METADATA_NEW is the metadata of the moved file.  */
 
 static void
-zfs_rename_finish (internal_dentry *from_dir, string *from_name,
-		   internal_dentry *to_dir, string *to_name, volume *vol,
-		   zfs_fh *from_fh, zfs_fh *to_fh,
-		   metadata *meta_old, metadata *meta_new)
+zfs_rename_journal (internal_dentry from_dir, string *from_name,
+		    internal_dentry to_dir, string *to_name, volume vol,
+		    metadata *meta_old, metadata *meta_new)
 {
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&(*vol)->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
-  if (*from_dir)
-    CHECK_MUTEX_LOCKED (&(*from_dir)->fh->mutex);
-  if (*to_dir)
-    CHECK_MUTEX_LOCKED (&(*to_dir)->fh->mutex);
+  if (from_dir)
+    CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
+  if (to_dir)
+    CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
 #endif
 
-  /* Move the dentry if it exists.  */
-  if (*from_dir && *to_dir)
+  if (from_dir && INTERNAL_FH_HAS_LOCAL_PATH (from_dir->fh)
+      && !(from_dir->fh->meta.flags & METADATA_SHADOW_TREE))
     {
-      internal_dentry_move (from_dir, from_name, to_dir, to_name, vol,
-			    from_fh, to_fh);
-    }
-
-  if (*from_dir && INTERNAL_FH_HAS_LOCAL_PATH ((*from_dir)->fh)
-      && !((*from_dir)->fh->meta.flags & METADATA_SHADOW_TREE))
-    {
-      if ((*vol)->master != this_node)
+      if (vol->master != this_node)
 	{
-	  if (!add_journal_entry_meta (*vol, (*from_dir)->fh, meta_new,
+	  if (!add_journal_entry_meta (vol, from_dir->fh, meta_new,
 				       from_name, JOURNAL_OPERATION_DEL))
-	    MARK_VOLUME_DELETE (*vol);
+	    MARK_VOLUME_DELETE (vol);
 	}
 
-      if (!inc_local_version (*vol, (*from_dir)->fh))
-	MARK_VOLUME_DELETE (*vol);
+      if (!inc_local_version (vol, from_dir->fh))
+	MARK_VOLUME_DELETE (vol);
     }
 
-  if (*to_dir && INTERNAL_FH_HAS_LOCAL_PATH ((*to_dir)->fh)
-      && !((*to_dir)->fh->meta.flags & METADATA_SHADOW_TREE))
+  if (to_dir && INTERNAL_FH_HAS_LOCAL_PATH (to_dir->fh)
+      && !(to_dir->fh->meta.flags & METADATA_SHADOW_TREE))
     {
-      if ((*vol)->master != this_node)
+      if (vol->master != this_node)
 	{
 	  if (meta_old->slot_status == VALID_SLOT)
 	    {
-	      if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_old,
+	      if (!add_journal_entry_meta (vol, to_dir->fh, meta_old,
 					   to_name, JOURNAL_OPERATION_DEL))
-		MARK_VOLUME_DELETE (*vol);
+		MARK_VOLUME_DELETE (vol);
 	    }
 
-	  if (!add_journal_entry_meta (*vol, (*to_dir)->fh, meta_new,
+	  if (!add_journal_entry_meta (vol, to_dir->fh, meta_new,
 				       to_name, JOURNAL_OPERATION_ADD))
-	    MARK_VOLUME_DELETE (*vol);
+	    MARK_VOLUME_DELETE (vol);
 	}
 
-      if (!inc_local_version (*vol, (*to_dir)->fh))
-	MARK_VOLUME_DELETE (*vol);
+      if (!inc_local_version (vol, to_dir->fh))
+	MARK_VOLUME_DELETE (vol);
     }
 }
 
@@ -2759,8 +2749,10 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
       else
 	from_dentry = to_dentry;
 
-      zfs_rename_finish (&from_dentry, from_name, &to_dentry, to_name, &vol,
-			 &tmp_from, &tmp_to, &meta_old, &meta_new);
+      internal_dentry_move (&from_dentry, from_name, &to_dentry, to_name, &vol,
+			    &tmp_from, &tmp_to);
+      zfs_rename_journal (from_dentry, from_name, to_dentry, to_name, vol,
+			  &meta_old, &meta_new);
 
       if (tmp_from.ino != tmp_to.ino)
 	release_dentry (from_dentry);
@@ -4627,8 +4619,13 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
 	  file_name_from_path (&shadow_name, &shadow_path);
 	}
 
-      zfs_rename_finish (&parent, &shadow_name, &dir, name, &vol,
-			 NULL, dir_fh, &meta_old, &meta_new);
+      if (parent)
+	{
+	  internal_dentry_move (&parent, &shadow_name, &dir, name, &vol,
+				NULL, dir_fh);
+	}
+      zfs_rename_journal (parent, &shadow_name, dir, name, vol,
+			  &meta_old, &meta_new);
 
       if (parent)
 	release_dentry (parent);
@@ -4804,8 +4801,13 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	      else
 		old_dentry = NULL;
 
-	      zfs_rename_finish (&old_dentry, &old_name, &dir, name, &vol,
-				 &old_fh, dir_fh, &meta_old, &meta_new);
+	      if (old_dentry)
+		{
+		  internal_dentry_move (&old_dentry, &old_name, &dir, name,
+					&vol, &old_fh, dir_fh);
+		}
+	      zfs_rename_journal (old_dentry, &old_name, dir, name, vol,
+				  &meta_old, &meta_new);
 
 	      if (old_dentry)
 		release_dentry (old_dentry);
