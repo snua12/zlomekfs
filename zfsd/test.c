@@ -404,35 +404,35 @@ do_tests (void *data)
 	  message (1, stderr, "TEST CLOSE\n");
 	  r = zfs_close (&creater.cap);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST LINK\n");
+	  r = zfs_link (&creater.cap.fh, &res.file, &test2);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST UNLINK\n");
+	  r = zfs_unlink (&res.file, &test);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST RENAME\n");
+	  r = zfs_rename (&res.file, &test2, &res.file, &test3);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST UNLINK\n");
+	  r = zfs_unlink (&res.file, &test3);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
 	}
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST LINK\n");
-      r = zfs_link (&creater.cap.fh, &res.file, &test2);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST UNLINK\n");
-      r = zfs_unlink (&res.file, &test);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST RENAME\n");
-      r = zfs_rename (&res.file, &test2, &res.file, &test3);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST UNLINK\n");
-      r = zfs_unlink (&res.file, &test3);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
 
       if (!get_running ())
 	break;
