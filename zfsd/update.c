@@ -1078,6 +1078,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	  abort ();
 #endif
 
+	sa.mode = (uint32_t) -1;
 	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
 	break;
 
@@ -1169,6 +1170,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 	  abort ();
 #endif
 
+	sa.mode = (uint32_t) -1;
 	r = remote_symlink (res, dir, name, &link_to.path, &sa, vol);
 	break;
 
