@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <string.h>
+#include <inttypes.h>
 #include "pthread.h"
 #include "log.h"
 #include "memory.h"
@@ -66,7 +67,7 @@ users_name_hash (const void *x)
 static int
 users_id_eq (const void *xx, const void *yy)
 {
-  return ((user) xx)->id == *(unsigned int *) yy;
+  return ((user) xx)->id == *(uint32_t *) yy;
 }
 
 /* Compare an user XX with user name YY.  */
@@ -98,7 +99,7 @@ groups_name_hash (const void *x)
 static int
 groups_id_eq (const void *xx, const void *yy)
 {
-  return ((group) xx)->id == *(unsigned int *) yy;
+  return ((group) xx)->id == *(uint32_t *) yy;
 }
 
 /* Compare a group XX with group name YY.  */
@@ -112,7 +113,7 @@ groups_name_eq (const void *xx, const void *yy)
 /* Create an user with ID and NAME with default group GID.  */
 
 user
-user_create (unsigned int id, char *name, unsigned int gid)
+user_create (uint32_t id, char *name, uint32_t gid)
 {
   user u;
   void **slot1;
@@ -218,7 +219,7 @@ user_destroy (user u)
 /* Create a group with ID and NAME, its list of users is USER_LIST.  */
 
 group
-group_create (unsigned int id, char *name, char *user_list)
+group_create (uint32_t id, char *name, char *user_list)
 {
   group g;
   void **slot1;
