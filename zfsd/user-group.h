@@ -52,6 +52,9 @@ typedef struct id_mapping_def
 #define DEFAULT_ZFS_UID ((uint32_t) -2)
 #define DEFAULT_ZFS_GID ((uint32_t) -2)
 
+/* Mutex protecting hash tables users_*, groups_*, map_*.  */
+extern pthread_mutex_t users_groups_mutex;
+
 /* ID of default node user/group.  */
 extern uint32_t default_node_uid;
 extern uint32_t default_node_gid;
