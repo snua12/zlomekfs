@@ -1836,10 +1836,10 @@ virtual_mountpoint_create (volume vol)
 void
 virtual_mountpoint_destroy (volume vol)
 {
-  zfsd_mutex_lock (&vd_mutex);
+  CHECK_MUTEX_LOCKED (&vd_mutex);
+
   zfsd_mutex_lock (&vol->root_vd->mutex);
   virtual_dir_destroy (vol->root_vd);
-  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Set the file attributes of virtual directory VD.  */

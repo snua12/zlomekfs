@@ -137,6 +137,7 @@ volume_destroy (volume vol)
 {
   void **slot;
 
+  CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&volume_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -195,11 +196,15 @@ volume_delete (volume vol)
     zfsd_mutex_unlock (&vol->mutex);
 
   /* Destroy volume.  */
+  zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_lookup_nolock (vid);
   if (vol)
     volume_destroy (vol);
   zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Set the information common for all volume types.  */
@@ -309,6 +314,7 @@ cleanup_volume_c ()
 {
   void **slot;
 
+  zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot,
@@ -322,4 +328,5 @@ cleanup_volume_c ()
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_destroy (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 }

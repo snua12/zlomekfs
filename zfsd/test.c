@@ -59,41 +59,47 @@ fake_config ()
   nod = node_create (1, "orion");
   zfsd_mutex_unlock (&node_mutex);
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (1);
+  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info (vol, "volume1", "/volume1", nod);
   if (nod == this_node)
     {
       if (volume_set_local_info (vol, "/.zfs/dir1", VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
   else
     zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (2);
+  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info (vol, "volume2", "/volume2", nod);
   if (nod == this_node)
     {
       if (volume_set_local_info (vol, "/.zfs/dir2", VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
   else
     zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (2, "artax");
   zfsd_mutex_unlock (&node_mutex);
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (3);
+  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info (vol, "volume3", "/volume1/volume3", nod);
   if (nod == this_node)
     {
@@ -101,7 +107,7 @@ fake_config ()
 				 VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
 #ifdef TEST_UPDATE
   else if (this_node && strcmp (this_node->name, "orion") == 0)
@@ -110,15 +116,17 @@ fake_config ()
       if (volume_set_local_info (vol, "/.zfs/vol3", VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
 #endif
   else
     zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (4);
+  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info (vol, "volume4", "/volume2/artax/volume4", nod);
   if (nod == this_node)
     {
@@ -126,44 +134,48 @@ fake_config ()
 				 VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
   else
     zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
   zfsd_mutex_lock (&node_mutex);
   nod = node_create (3, "find");
   zfsd_mutex_unlock (&node_mutex);
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (5);
+  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info (vol, "volume5", "/other/volume5", nod);
   if (nod == this_node)
     {
       if (volume_set_local_info (vol, "/home/joe/.zfs/dir1", VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
   else
     zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
 
+  zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
   vol = volume_create (6);
+  zfsd_mutex_unlock (&volume_mutex);
   volume_set_common_info (vol, "volume6", "/volume6", nod);
   if (nod == this_node)
     {
       if (volume_set_local_info (vol, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT))
 	zfsd_mutex_unlock (&vol->mutex);
       else
-	volume_destroy (vol);
+	volume_delete (vol);
     }
   else
     zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&volume_mutex);
+  zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
   debug_virtual_tree ();
