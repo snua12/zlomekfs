@@ -253,8 +253,9 @@ close_active_fd (int i)
     abort ();
 #endif
   close_server_fd (fd);
-  active[i] = active[nactive];
   nactive--;
+  if (i < nactive)
+    active[i] = active[nactive];
   for (j = 0; j < server_fd_data[fd].ndc; j++)
     dc_destroy (&server_fd_data[fd].dc[j]);
   server_fd_data[fd].ndc = 0;
