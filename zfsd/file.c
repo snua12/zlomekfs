@@ -903,13 +903,23 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   flags &= ~O_ACCMODE;
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      r = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap, true,
-				IFH_ALL_UPDATE);
-      if (r != ZFS_OK)
-	RETURN_INT (r);
-
       if (vol->master != this_node)
 	{
+	  int what;
+
+	  /* If we are truncating the file synchronize the attributes only
+	     and do not synchronize the contents of the file.  */
+	  if ((flags & O_TRUNC)
+	      && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
+	    what = IFH_METADATA;
+	  else
+	    what = IFH_ALL_UPDATE;
+
+	  r = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap, true,
+				    what);
+	  if (r != ZFS_OK)
+	    RETURN_INT (r);
+
 	  switch (dentry->fh->attr.type)
 	    {
 	      case FT_REG:
@@ -968,6 +978,39 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
     {
       if (remote_call)
 	icap->master_cap = remote_cap;
+      else if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+	{
+	  if ((flags & O_TRUNC)
+	      && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
+	    {
+	      /* If the file was truncated, increase its version and delete
+		 the contents of interval trees.  */
+
+	      if (!inc_local_version (vol, dentry->fh))
+		MARK_VOLUME_DELETE (vol);
+
+	      if (dentry->fh->updated)
+		{
+		  interval_tree_delete (dentry->fh->updated, 0, UINT64_MAX);
+		  if (dentry->fh->updated->deleted)
+		    {
+		      if (!flush_interval_tree (vol, dentry->fh,
+						METADATA_TYPE_UPDATED))
+			MARK_VOLUME_DELETE (vol);
+		    }
+		}
+	      if (dentry->fh->modified)
+		{
+		  interval_tree_delete (dentry->fh->modified, 0, UINT64_MAX);
+		  if (dentry->fh->modified->deleted)
+		    {
+		      if (!flush_interval_tree (vol, dentry->fh,
+						METADATA_TYPE_MODIFIED))
+			MARK_VOLUME_DELETE (vol);
+		    }
+		}
+	    }
+	}
     }
   else
     {
