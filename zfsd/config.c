@@ -1879,21 +1879,21 @@ config_reader (void *data)
 
   /* Reread the updated configuration about nodes and volumes.  */
   vol = volume_lookup (VOLUME_ID_CONFIG);
-  if (vol)
+  if (!vol)
+    goto out;
+
+  if (vol->master != this_node)
     {
-      if (vol->master != this_node)
-	{
-	  zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&vol->mutex);
 
-	  if (!read_node_list (&config_dir_res.file))
-	    goto out;
+      if (!read_node_list (&config_dir_res.file))
+	goto out;
 
-	  if (!read_volume_list (&config_dir_res.file))
-	    goto out;
-	}
-      else
-	zfsd_mutex_unlock (&vol->mutex);
+      if (!read_volume_list (&config_dir_res.file))
+	goto out;
     }
+  else
+    zfsd_mutex_unlock (&vol->mutex);
 
   if (!fix_config ())
     goto out;
