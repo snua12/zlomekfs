@@ -2048,7 +2048,8 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh)
+	  || vol->master == this_node)
 	r = local_read (res, dentry, offset, count, vol);
       else if (dentry->fh->attr.type == FT_REG && update)
 	{
@@ -2301,7 +2302,8 @@ zfs_write (write_res *res, write_args *args)
 
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
-      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh)
+	  || vol->master == this_node)
 	r = local_write (res, dentry, args->offset, &args->data, vol);
       else
 	{
