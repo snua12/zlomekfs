@@ -189,7 +189,16 @@ dentry_update_cleanup_node (internal_dentry dentry)
 #endif
 
   if (dentry->parent && CONFLICT_DIR_P (dentry->parent->fh->local_fh))
-    dentry = dentry->parent;
+    {
+      zfsd_mutex_lock (&cleanup_dentry_mutex);
+      if (dentry->heap_node)
+	{
+	  fibheap_delete_node (cleanup_dentry_heap, dentry->heap_node);
+	  dentry->heap_node = NULL;
+	}
+      zfsd_mutex_unlock (&cleanup_dentry_mutex);
+      dentry = dentry->parent;
+    }
 
   dentry->last_use = time (NULL);
   zfsd_mutex_lock (&cleanup_dentry_mutex);
