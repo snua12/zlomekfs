@@ -1,5 +1,6 @@
 zfsd
 dump_intervals
+dump_metadata
 Makefile.dep
 qqq
 qwe
