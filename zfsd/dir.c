@@ -278,30 +278,35 @@ recursive_unlink_1 (string *path, string *name, uint32_t vid,
 	}
     }
 
-  vol = volume_lookup (vid);
-  if (vol)
-    {
-      if (!delete_metadata (vol, st.st_dev, st.st_ino,
-			    parent_st->st_dev, parent_st->st_ino, name))
-	vol->delete_p = true;
-      zfsd_mutex_unlock (&vol->mutex);
-    }
-
   r = ZFS_OK;
 
 out:
-  /* Destroy dentry associated with the file.  */
-  fh.sid = this_node->id;	/* FIXME: race condition? */
-  fh.vid = vid;
-  fh.dev = st.st_dev;
-  fh.ino = st.st_ino;
-  get_metadata (volume_lookup (vid), &fh, &meta);
+  vol = volume_lookup (vid);
+  if (vol)
+    {
+      /* Destroy dentry associated with the file.  */
+      fh.sid = this_node->id;
+      fh.vid = vid;
+      fh.dev = st.st_dev;
+      fh.ino = st.st_ino;
+      /* Get FH.GEN.  */
+      if (!lookup_metadata (vol, &fh, &meta, false))
+	vol->delete_p = true;
 
-  zfsd_mutex_lock (&fh_mutex);
-  dentry = dentry_lookup (&fh);
-  if (dentry)
-    internal_dentry_destroy (dentry, true);
-  zfsd_mutex_unlock (&fh_mutex);
+      if (r == ZFS_OK)
+	{
+	  if (!delete_metadata (vol, st.st_dev, st.st_ino,
+				parent_st->st_dev, parent_st->st_ino, name))
+	    vol->delete_p = true;
+	}
+      zfsd_mutex_unlock (&vol->mutex);
+
+      zfsd_mutex_lock (&fh_mutex);
+      dentry = dentry_lookup (&fh);
+      if (dentry)
+	internal_dentry_destroy (dentry, true);
+      zfsd_mutex_unlock (&fh_mutex);
+    }
 
   return r;
 }
