@@ -213,7 +213,7 @@ volume_destroy (volume vol)
   if (vol->root_dentry)
     {
       zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
-      internal_dentry_destroy (vol->root_dentry, false);
+      internal_dentry_destroy (vol->root_dentry, false, false);
     }
 
   virtual_mountpoint_destroy (vol);
@@ -264,7 +264,7 @@ volume_delete (volume vol)
       dentry = vol->root_dentry;
       zfsd_mutex_lock (&dentry->fh->mutex);
       zfsd_mutex_unlock (&vol->mutex);
-      internal_dentry_destroy (dentry, true);
+      internal_dentry_destroy (dentry, true, false);
     }
   else
     zfsd_mutex_unlock (&vol->mutex);

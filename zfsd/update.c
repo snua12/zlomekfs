@@ -1056,7 +1056,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   if (r == ZFS_OK)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      internal_dentry_destroy (dir, false);
+      internal_dentry_destroy (dir, false, true);
       zfsd_mutex_unlock (&fh_mutex);
     }
 
