@@ -28,19 +28,6 @@
 #include "node.h"
 #include "dir.h"
 
-#if 0
-/* FIXME: These are some temporary dummy functions to make linker happy.  */
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
-int									\
-zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc)			\
-{									\
-  /* return zfs_##FUNCTION## (args, dc); */				\
-  return ZFS_OK;							\
-}
-#include "zfs_prot.def"
-#undef DEFINE_ZFS_PROC
-#endif
-
 /* void zfs_proc_null (void) */
 
 void
@@ -202,13 +189,13 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS_TYPE *args, node nod)	\
   server_thread_data *td = &t->u.server;				\
   static uint32_t request_id;						\
 									\
-  start_encoding (&td->dc);						\
-  encode_direction (&td->dc, DIR_REQUEST);				\
-  encode_request_id (&td->dc, request_id++);				\
-  encode_function (&td->dc, NUMBER);					\
-  if (!encode_##ARGS_TYPE (&td->dc, args))				\
+  start_encoding (&td->dc_call);					\
+  encode_direction (&td->dc_call, DIR_REQUEST);				\
+  encode_request_id (&td->dc_call, request_id++);			\
+  encode_function (&td->dc_call, NUMBER);				\
+  if (!encode_##ARGS_TYPE (&td->dc_call, args))				\
     return ZFS_REQUEST_TOO_LONG;					\
-  finish_encoding (&td->dc);						\
+  finish_encoding (&td->dc_call);					\
 									\
   send_request (td, nod);						\
 									\
