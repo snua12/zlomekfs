@@ -350,15 +350,13 @@ fibheap_rem_root (fibheap heap, fibnode node)
 static void
 fibheap_consolidate (fibheap heap)
 {
-  fibnode a[1 + 8 * sizeof (long)];
+#define D (1 + 8 * sizeof (long))
+  fibnode a[D];
   fibnode w;
   fibnode y;
   fibnode x;
   int i;
   int d;
-  int D;
-
-  D = 1 + 8 * sizeof (long);
 
   memset (a, 0, sizeof (fibnode) * D);
 
@@ -391,6 +389,7 @@ fibheap_consolidate (fibheap heap)
 	if (heap->min == NULL || a[i]->key < heap->min->key)
 	  heap->min = a[i];
       }
+#undef D
 }
 
 /* Make NODE a child of PARENT.  */
