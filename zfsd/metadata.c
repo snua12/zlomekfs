@@ -1882,16 +1882,20 @@ set_metadata_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
    on volume VOL.  */
 
 bool
-delete_master_fh_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
+delete_metadata_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
 {
   fh_mapping map;
+  string path;
+  int i;
 
+  /* If META->MASTER_FH is undefined the metadata was correctly deleted.  */
   if (zfs_fh_undefined (meta->master_fh))
     return true;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
+  /* Delete the file handle mapping.  */
   if (!hashfile_opened_p (vol->fh_mapping))
     {
       int fd;
@@ -1910,15 +1914,53 @@ delete_master_fh_of_created_file (volume vol, zfs_fh *fh, metadata *meta)
     }
   zfsd_mutex_unlock (&metadata_fd_data[vol->fh_mapping->fd].mutex);
 
+  /* Delete interval files, hardlink list and journal.  */
+  delete_hardlinks_file (vol, fh);
+  for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+    {
+      build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_UPDATED, i);
+      if (!remove_file_and_path (&path, i))
+	vol->delete_p = true;
+      free (path.str);
+      build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_MODIFIED, i);
+      if (!remove_file_and_path (&path, i))
+	vol->delete_p = true;
+      free (path.str);
+      build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL, i);
+      if (!remove_file_and_path (&path, i))
+	vol->delete_p = true;
+      free (path.str);
+    }
+
+  /* Update metadata.  */
   meta->flags = 0;
   meta->gen++;
   meta->local_version++;
   if (!vol->is_copy)
     meta->master_version = meta->local_version;
   zfs_fh_undefine (meta->master_fh);
+  meta->parent_dev = (uint32_t) -1;
+  meta->parent_ino = (uint32_t) -1;
+  memset (meta->name, 0, METADATA_NAME_SIZE);
   fh->gen = meta->gen;
 
-  return flush_metadata (vol, meta);
+  if (!hashfile_opened_p (vol->metadata))
+    {
+      int fd;
+
+      fd = open_hash_file (vol, METADATA_TYPE_METADATA);
+      if (fd < 0)
+	return false;
+    }
+
+  if (!hfile_insert (vol->metadata, &meta, false))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+      return false;
+    }
+  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+
+  return true;
 }
 
 /* Increase the local version for file FH on volume VOL.

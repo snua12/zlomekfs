@@ -364,7 +364,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     vol->delete_p = true;
   else if (!existed)
     {
-      if (!delete_master_fh_of_created_file (vol, &res->file, meta))
+      if (!delete_metadata_of_created_file (vol, &res->file, meta))
 	vol->delete_p = true;
     }
   zfsd_mutex_unlock (&vol->mutex);
