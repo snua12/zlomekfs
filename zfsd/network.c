@@ -298,7 +298,7 @@ safe_write (int fd, char *buf, size_t len)
     {
       size_t i;
 
-      message (2, stderr, "Sending data:\n");
+      message (2, stderr, "Sending data from %p:\n", buf);
       for (i = 0; i < len; i++)
 	fprintf (stderr, "%02x ", (unsigned char) buf[i]);
       fprintf (stderr, "\n");
