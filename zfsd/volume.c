@@ -187,8 +187,10 @@ volume_destroy (volume vol)
 
   if (vol->local_path.str)
     free (vol->local_path.str);
-  free (vol->mountpoint.str);
-  free (vol->name.str);
+  if (vol->mountpoint.str)
+    free (vol->mountpoint.str);
+  if (vol->name.str)
+    free (vol->name.str);
   free (vol);
 }
 
