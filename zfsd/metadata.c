@@ -108,6 +108,10 @@ metadata_decode (void *x)
   m->ino = le_to_u32 (m->ino);
   m->local_version = le_to_u64 (m->local_version);
   m->master_version = le_to_u64 (m->master_version);
+  m->master_fh.sid = le_to_u32 (m->master_fh.sid);
+  m->master_fh.vid = le_to_u32 (m->master_fh.vid);
+  m->master_fh.dev = le_to_u32 (m->master_fh.dev);
+  m->master_fh.ino = le_to_u32 (m->master_fh.ino);
 }
 
 /* Encode element X of the hash file.  */
@@ -122,6 +126,10 @@ metadata_encode (void *x)
   m->ino = u32_to_le (m->ino);
   m->local_version = u64_to_le (m->local_version);
   m->master_version = u64_to_le (m->master_version);
+  m->master_fh.sid = u32_to_le (m->master_fh.sid);
+  m->master_fh.vid = u32_to_le (m->master_fh.vid);
+  m->master_fh.dev = u32_to_le (m->master_fh.dev);
+  m->master_fh.ino = u32_to_le (m->master_fh.ino);
 }
 
 /* Build path to file with global metadata of type TYPE for volume VOL.  */
