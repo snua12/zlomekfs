@@ -89,6 +89,7 @@ static ftype zfs_mode_to_ftype(int mode)
 
 static struct inode_operations zfs_dir_inode_operations, zfs_file_inode_operations, zfs_symlink_inode_operations;
 extern struct file_operations zfs_dir_operations, zfs_file_operations;
+extern struct address_space_operations zfs_file_address_space_operations;
 
 static void zfs_fill_inode(struct inode *inode, fattr *attr)
 {
@@ -97,6 +98,7 @@ static void zfs_fill_inode(struct inode *inode, fattr *attr)
 		case S_IFREG:
 			inode->i_op = &zfs_file_inode_operations;
 			inode->i_fop = &zfs_file_operations;
+			inode->i_data.a_ops = &zfs_file_address_space_operations;
 			break;
 		case S_IFDIR:
 			inode->i_op = &zfs_dir_inode_operations;
@@ -473,7 +475,7 @@ static int zfs_readlink(struct dentry *dentry, char __user *buf, int buflen)
 	return vfs_readlink(dentry, buf, buflen, res.path.str);
 }
 
-static int zfs_follow_link (struct dentry *dentry, struct nameidata *nd)
+static int zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
 {
 	read_link_res res;
 	int error;

@@ -24,6 +24,8 @@
 #include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/time.h>
+#include <linux/pagemap.h>
+#include <linux/string.h>
 
 #include "zfs.h"
 #include "zfs_prot.h"
@@ -36,7 +38,7 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 	read_args args;
 	int error;
 
-	TRACE("zfs: read: '%s'\n", file->f_dentry->d_name.name);
+	TRACE("zfs: read: '%s': %lld\n", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
 	args.offset = *off;
@@ -58,7 +60,7 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 	write_args args;
 	int error;
 
-	TRACE("zfs: write: '%s'\n", file->f_dentry->d_name.name);
+	TRACE("zfs: write: '%s': %lld\n", file->f_dentry->d_name.name, *off);
 
 	args.cap = *CAP(file->private_data);
 	args.offset = *off;
@@ -124,10 +126,51 @@ int zfs_release(struct inode *inode, struct file *file)
 	return error;
 }
 
+static int zfs_readpage(struct file *file, struct page *page)
+{
+	char *kaddr;
+	read_args args;
+	int error = 0;
+
+	TRACE("zfs: readpage: '%s': %lu\n", file->f_dentry->d_name.name, page->index);
+
+	if (PageUptodate(page))
+		goto out;
+
+	args.cap = *CAP(file->private_data);
+	args.offset = page->index << PAGE_CACHE_SHIFT;
+	args.count = PAGE_CACHE_SIZE;
+
+	kaddr = kmap(page);
+
+	error = zfsd_readpage(kaddr, &args);
+
+	if (error > 0) {
+		if (error < PAGE_CACHE_SIZE)
+			memset(kaddr + error, 0, PAGE_CACHE_SIZE - error);
+
+		SetPageUptodate(page);
+
+		error = 0;
+	}
+
+	kunmap(kaddr);
+
+out:
+	unlock_page(page);
+
+	return error;
+}
+
 struct file_operations zfs_file_operations = {
 	.llseek         = generic_file_llseek,
 	.read           = zfs_read,
 	.write          = zfs_write,
+	.mmap		= generic_file_readonly_mmap,
 	.open           = zfs_open,
 	.release        = zfs_release,
+};
+
+struct address_space_operations zfs_file_address_space_operations = {
+	.readpage           = zfs_readpage,
 };

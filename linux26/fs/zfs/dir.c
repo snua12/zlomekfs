@@ -27,7 +27,7 @@
 #include "zfsd_call.h"
 
 
-static int zfs_readdir (struct file *file, void *dirent, filldir_t filldir)
+static int zfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 {
 	read_dir_args args;
 

@@ -608,3 +608,39 @@ int zfsd_write(write_args *args)
 
 	return error;
 }
+
+int zfsd_readpage(char *buf, read_args *args)
+{
+	DC *dc;
+	uint32_t nbytes;
+	int error;
+
+	TRACE("zfs:  zfsd_read: reading %u bytes\n", args->count);
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_read_zfsd(&dc, args);
+
+	if (!error) {
+		if (!decode_uint32_t(dc, &nbytes)
+		    || (nbytes > args->count))
+			error = -EPROTO;
+		else {
+			dc->cur_length += nbytes;
+			if (!finish_decoding(dc))
+				error = -EPROTO;
+			else {
+				memcpy(buf, dc->cur_pos, nbytes);
+				error = nbytes;
+			}
+		}
+	}
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_read: %d\n", error);
+
+	return error;
+}
