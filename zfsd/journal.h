@@ -59,6 +59,7 @@ struct journal_entry_def
   journal_operation_t oper;	/* journaled operation */
   string name;			/* name of local file */
   zfs_fh master_fh;		/* master file handle */
+  uint64_t master_version;	/* master version of the file */
 };
 
 /* Definition of journal datatype.  */
@@ -85,8 +86,8 @@ extern journal_t journal_create (unsigned int nelem, pthread_mutex_t *mutex);
 extern void journal_empty (journal_t journal);
 extern void journal_destroy (journal_t journal);
 extern bool journal_insert (journal_t journal, zfs_fh *local_fh,
-			    zfs_fh *master_fh, string *name,
-			    journal_operation_t oper, bool copy);
+			    zfs_fh *master_fh, uint64_t master_version,
+			    string *name, journal_operation_t oper, bool copy);
 extern bool journal_member (journal_t journal, zfs_fh *local_fh, string *name);
 extern bool journal_delete (journal_t journal, zfs_fh *local_fh, string *name);
 extern bool journal_delete_entry (journal_t journal, journal_entry entry);

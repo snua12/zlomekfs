@@ -1799,7 +1799,8 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name,
+				      &dentry->fh->meta.master_fh,
+				      dentry->fh->meta.master_version, name,
 				      JOURNAL_OPERATION_ADD))
 		MARK_VOLUME_DELETE (vol);
 	    }
@@ -2186,8 +2187,9 @@ zfs_rmdir (zfs_fh *dir, string *name)
 	    /* Add the local directory to journal so that it could be
 	       reintegrated.  */
 	    if (!add_journal_entry (vol, parent->fh, &dentry->fh->local_fh,
-				    &dentry->fh->meta.master_fh, &idir->name,
-				    JOURNAL_OPERATION_ADD))
+				    &dentry->fh->meta.master_fh,
+				    dentry->fh->meta.master_version,
+				    &idir->name, JOURNAL_OPERATION_ADD))
 	      MARK_VOLUME_DELETE (vol);
 	    release_dentry (dentry);
 	    release_dentry (parent);
@@ -2998,6 +3000,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	      if (!add_journal_entry (vol, dir_dentry->fh,
 				      &from_dentry->fh->local_fh,
 				      &from_dentry->fh->meta.master_fh,
+				      from_dentry->fh->meta.master_version,
 				      name, JOURNAL_OPERATION_ADD))
 		MARK_VOLUME_DELETE (vol);
 	    }
@@ -3479,8 +3482,9 @@ zfs_unlink (zfs_fh *dir, string *name)
 	    /* Add the local file to journal so that it could be
 	       reintegrated.  */
 	    if (!add_journal_entry (vol, parent->fh, &dentry->fh->local_fh,
-				    &dentry->fh->meta.master_fh, &idir->name,
-				    JOURNAL_OPERATION_ADD))
+				    &dentry->fh->meta.master_fh,
+				    dentry->fh->meta.master_version,
+				    &idir->name, JOURNAL_OPERATION_ADD))
 	      MARK_VOLUME_DELETE (vol);
 	    release_dentry (dentry);
 	    release_dentry (parent);
@@ -4028,7 +4032,8 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name,
+				      &dentry->fh->meta.master_fh,
+				      dentry->fh->meta.master_version, name,
 				      JOURNAL_OPERATION_ADD))
 		MARK_VOLUME_DELETE (vol);
 	    }
@@ -4270,7 +4275,8 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-				      &dentry->fh->meta.master_fh, name,
+				      &dentry->fh->meta.master_fh,
+				      dentry->fh->meta.master_version, name,
 				      JOURNAL_OPERATION_ADD))
 		MARK_VOLUME_DELETE (vol);
 	    }

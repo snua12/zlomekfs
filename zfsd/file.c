@@ -621,8 +621,9 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	      if (!exists)
 		{
 		  if (!add_journal_entry (vol, idir->fh, &dentry->fh->local_fh,
-					  &dentry->fh->meta.master_fh, name,
-					  JOURNAL_OPERATION_ADD))
+					  &dentry->fh->meta.master_fh,
+					  dentry->fh->meta.master_version,
+					  name, JOURNAL_OPERATION_ADD))
 		    MARK_VOLUME_DELETE (vol);
 		}
 	    }

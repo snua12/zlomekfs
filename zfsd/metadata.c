@@ -2947,6 +2947,7 @@ flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
       uint32_t oper;
       uint32_t name_len;
       zfs_fh master_fh;
+      uint64_t master_version;
 
       dev = u32_to_le (entry->dev);
       ino = u32_to_le (entry->ino);
@@ -2958,6 +2959,7 @@ flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
       master_fh.dev = u32_to_le (entry->master_fh.dev);
       master_fh.ino = u32_to_le (entry->master_fh.ino);
       master_fh.gen = u32_to_le (entry->master_fh.gen);
+      master_version = u64_to_le (entry->master_version);
       if (fwrite (&dev, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
 	  || fwrite (&ino, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
 	  || fwrite (&gen, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
@@ -2966,7 +2968,9 @@ flush_journal (volume vol, zfs_fh *fh, journal_t journal, string *path)
 	  || (fwrite (entry->name.str, 1, entry->name.len + 1, f)
 	      != entry->name.len + 1)
 	  || (fwrite (&master_fh, 1, sizeof (master_fh), f)
-	      != sizeof (master_fh)))
+	      != sizeof (master_fh))
+	  || (fwrite (&master_version, 1, sizeof (master_version), f)
+	      != sizeof (master_version)))
 	{
 	  fclose (f);
 	  unlink (new_path.str);
@@ -3022,6 +3026,7 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
     {
       zfs_fh local_fh;
       zfs_fh master_fh;
+      uint64_t master_version;
       uint32_t oper;
       string name;
 
@@ -3043,7 +3048,9 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
 
       if ((fread (name.str, 1, name.len + 1, f) != name.len + 1)
 	  || (fread (&master_fh, 1, sizeof (master_fh), f)
-	      != sizeof (master_fh)))
+	      != sizeof (master_fh))
+	  || (fread (&master_version, 1, sizeof (master_version), f)
+	      != sizeof (master_version)))
 	{
 	  free (name.str);
 	  break;
@@ -3054,11 +3061,12 @@ read_journal (volume vol, zfs_fh *fh, journal_t journal)
       master_fh.dev = le_to_u32 (master_fh.dev);
       master_fh.ino = le_to_u32 (master_fh.ino);
       master_fh.gen = le_to_u32 (master_fh.gen);
+      master_version = le_to_u64 (master_version);
 
       if (oper < JOURNAL_OPERATION_LAST_AND_UNUSED)
 	{
-	  journal_insert (journal, &local_fh, &master_fh, &name,
-			  (journal_operation_t) oper, false);
+	  journal_insert (journal, &local_fh, &master_fh, master_version,
+			  &name, (journal_operation_t) oper, false);
 	}
     }
 
@@ -3080,16 +3088,19 @@ write_journal (volume vol, zfs_fh *fh, journal_t journal)
   return flush_journal (vol, fh, journal, &path);
 }
 
-/* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH
-   and operation OPER to journal for file handle FH on volume VOL.  */
+/* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH,
+   master version MASTER_VERSION and operation OPER to journal for file
+   handle FH on volume VOL.  */
 
 bool
 add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
-		   zfs_fh *master_fh, string *name, journal_operation_t oper)
+		   zfs_fh *master_fh, uint64_t master_version, string *name,
+		   journal_operation_t oper)
 {
   char buffer[DC_SIZE];
   char *end;
   uint32_t tmp32;
+  uint64_t tmp64;
   zfs_fh tmp_fh;
   bool r;
 
@@ -3147,13 +3158,18 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
   memcpy (end, &tmp_fh, sizeof (zfs_fh));
   end += sizeof (zfs_fh);
 
+  tmp64 = u64_to_le (master_version);
+  memcpy (end, &tmp64, sizeof (uint64_t));
+  end += sizeof (uint64_t);
+
   r = full_write (fh->journal->fd, buffer, end - buffer);
   zfsd_mutex_unlock (&metadata_fd_data[fh->journal->fd].mutex);
 
   if (!r)
     return false;
 
-  journal_insert (fh->journal, local_fh, master_fh, name, oper, true);
+  journal_insert (fh->journal, local_fh, master_fh, master_version, name,
+		  oper, true);
 
   return true;
 }
@@ -3180,7 +3196,8 @@ add_journal_entry_meta (volume vol, internal_fh fh, metadata *meta,
   local_fh.ino = meta->ino;
   local_fh.gen = meta->gen;
 
-  return add_journal_entry (vol, fh, &local_fh, &meta->master_fh, name, oper);
+  return add_journal_entry (vol, fh, &local_fh, &meta->master_fh,
+			    meta->master_version, name, oper);
 }
 
 /* Build and create path PATH to shadow file for file FH with name NAME

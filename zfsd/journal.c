@@ -126,7 +126,8 @@ journal_destroy (journal_t journal)
 
 bool
 journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
-		string *name, journal_operation_t oper, bool copy)
+		uint64_t master_version, string *name,
+		journal_operation_t oper, bool copy)
 {
   journal_entry entry;
   void **slot;
@@ -200,6 +201,7 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
 
   entry->oper = oper;
   entry->master_fh = *master_fh;
+  entry->master_version = master_version;
   if (copy)
     entry->name.str = (char *) xmemdup (name->str, entry->name.len + 1);
 
