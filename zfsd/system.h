@@ -33,10 +33,6 @@
 #define _THREAD_SAFE
 #endif
 
-#ifndef ENABLE_CHECKING
-#define ENABLE_CHECKING
-#endif
-
 #ifdef __cplusplus
 #define __STDC_FORMAT_MACROS
 #define __STDC_LIMIT_MACROS

@@ -20,7 +20,7 @@
 
 CC = g++
 LD = $(CC)
-DEFS = 
+DEFS = -DENABLE_CHECKING
 CFLAGS = -g -Wall -pedantic
 LDFLAGS =
 LIBS = -lpthread
