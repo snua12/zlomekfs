@@ -1110,16 +1110,11 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
   int32_t r, r2;
 
   TRACE ("%p %p", (void *) *dentry1p, (void *) *dentry2p);
-#ifdef ENABLE_CHECKING
-  /* internal_dentry_lock2 should be used only by zfs_link and zfs_rename
-     thus the files should be on the same device.  */
-  if (tmp_fh1->sid != tmp_fh2->sid
-      || tmp_fh1->vid != tmp_fh2->vid
-      || tmp_fh1->dev != tmp_fh2->dev)
-    abort ();
-#endif
+  CHECK_MUTEX_LOCKED (&(*volp)->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentry1p)->fh->mutex);
+  CHECK_MUTEX_LOCKED (&(*dentry2p)->fh->mutex);
 
-  if (tmp_fh1->ino == tmp_fh2->ino)
+  if (tmp_fh1->ino == tmp_fh2->ino && tmp_fh1->dev == tmp_fh2->dev)
     {
       r = internal_dentry_lock ((level1 > level2 ? level1 : level2),
 				volp, dentry1p, tmp_fh1);
@@ -1130,7 +1125,8 @@ internal_dentry_lock2 (unsigned int level1, unsigned int level2, volume *volp,
       RETURN_INT (ZFS_OK);
     }
 
-  if (tmp_fh1->ino < tmp_fh2->ino)
+  if (tmp_fh1->ino < tmp_fh2->ino
+      || (tmp_fh1->ino == tmp_fh2->ino && tmp_fh1->dev < tmp_fh2->dev))
     {
       release_dentry (*dentry2p);
 
@@ -1164,7 +1160,8 @@ out1:
       zfsd_mutex_unlock (&(*volp)->mutex);
       zfsd_mutex_unlock (&fh_mutex);
     }
-  else /* if (tmp_fh1->ino > tmp_fh2->ino) */
+  else /*if (tmp_fh1->ino > tmp_fh2->ino
+	   || (tmp_fh1->ino == tmp_fh2->ino && tmp_fh1->dev > tmp_fh2->dev) */
     {
       release_dentry (*dentry1p);
 
