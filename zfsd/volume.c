@@ -25,6 +25,7 @@
 #include "hashtab.h"
 #include "memory.h"
 #include "volume.h"
+#include "server.h"
 
 /* Hash table of volumes.  */
 static htab_t volume_htab;
@@ -165,7 +166,28 @@ volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
 {
   set_string (&vol->local_path, local_path);
   vol->size_limit = size_limit;
-  vol->flags |= VOLUME_LOCAL;
+}
+
+bool
+volume_active_p (volume vol)
+{
+  bool active;
+
+#ifdef ENABLE_CHECKING
+  /* TODO: some checks? */
+#endif
+
+  if (vol->local_path)
+    return true;
+
+  pthread_mutex_lock (&vol->master->mutex);
+  active
+    = (node_connected_p (vol->master)
+       && (server_fd_data[vol->master->fd].auth == AUTHENTICATION_FINISHED));
+  pthread_mutex_unlock (&server_fd_data[vol->master->fd].mutex);
+  pthread_mutex_unlock (&vol->master->mutex);
+
+  return active;
 }
 
 /* Print the information about volume VOL to file F.  */

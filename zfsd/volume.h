@@ -55,14 +55,7 @@ struct volume_def
 /* Volume flags.  */
 #define VOLUME_DELETE	1	/* the volume should be deleted from memory
 				   datastructures  */
-#define VOLUME_LOCAL	2	/* this volume is located on local node */
 #define VOLUME_COPY	4	/* this is a copy of a volume */
-
-/* Is the volume active (i.e. accessible)?  */
-#define VOLUME_ACTIVE_P(V)					\
-  (((V)->flags & VOLUME_LOCAL) > 0				\
-   ||  ((V)->master->conn != CONNECTION_NONE			\
-	&& (V)->master->auth == AUTHENTICATION_FINISHED))
 
 /* Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0
@@ -78,6 +71,7 @@ extern void volume_set_common_info (volume vol, const char *name,
 				    const char *mountpoint, node master);
 extern void volume_set_local_info (volume vol, const char *local_path,
 				   uint64_t size_limit);
+extern bool volume_active_p (volume vol);
 extern void initialize_volume_c ();
 extern void cleanup_volume_c ();
 
