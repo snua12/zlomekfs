@@ -2795,6 +2795,38 @@ local_readlink (read_link_res *res, internal_dentry file, volume vol)
   return ZFS_OK;
 }
 
+/* Read local symlink NAME in directroy DIR on volume VOL.  */
+
+int32_t
+local_readlink_name (read_link_res *res, internal_dentry dir, string *name,
+		     volume vol)
+{
+  char *path;
+  char buf[ZFS_MAXDATA + 1];
+  int32_t r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  path = build_local_path_name (vol, dir, name->str);
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
+  r = readlink (path, buf, ZFS_MAXDATA);
+  free (path);
+  if (r < 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
+      return errno;
+    }
+
+  buf[r] = 0;
+  res->path.str = (char *) xmemdup (buf, r + 1);
+  res->path.len = r;
+
+  return ZFS_OK;
+}
+
 /* Read remote symlink FILE on volume VOL.  */
 
 int32_t

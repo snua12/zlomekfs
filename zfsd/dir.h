@@ -77,6 +77,8 @@ extern int32_t zfs_link (zfs_fh *from, zfs_fh *dir, string *name);
 extern int32_t zfs_unlink (zfs_fh *dir, string *name);
 extern int32_t local_readlink (read_link_res *res, internal_dentry file,
 			       volume vol);
+extern int32_t local_readlink_name (read_link_res *res, internal_dentry dir,
+				    string *name, volume vol);
 extern int32_t remote_readlink (read_link_res *res, internal_dentry file,
 				volume vol);
 extern int32_t remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh,
