@@ -2742,7 +2742,6 @@ update_worker (void *data)
   pthread_setspecific (thread_data_key, data);
   pthread_setspecific (thread_name_key, "Network worker thread");
   set_lock_info (li);
-  t->from_sid = this_node->id;
 
   while (1)
     {
@@ -2758,6 +2757,7 @@ update_worker (void *data)
       if (get_thread_state (t) == THREAD_DYING)
 	break;
 
+      t->from_sid = this_node->id;
       update_file ((zfs_fh *) &t->u.update.fh);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
