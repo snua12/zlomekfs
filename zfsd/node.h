@@ -64,6 +64,9 @@ typedef struct node_def
 					   memory datastructures  */
 #define NODE_LOCAL		2	/* the node is local node */
 
+/* Mutex for table of nodes.  */
+extern pthread_mutex_t node_mutex;
+
 /* Description of local node.  */
 extern node this_node;
 

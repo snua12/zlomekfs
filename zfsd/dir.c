@@ -279,8 +279,10 @@ update_volume_root (volume vol, internal_fh *ifh)
       || !ZFS_FH_EQ (vol->master_root_fh, master_fh))
     {
       /* FIXME? delete only FHs which are not open now?  */
+      pthread_mutex_lock (&vol->fh_mutex);
       htab_empty (vol->fh_htab_name);
       htab_empty (vol->fh_htab);
+      pthread_mutex_unlock (&vol->fh_mutex);
 
       vol->local_root_fh = local_fh;
       vol->master_root_fh = master_fh;

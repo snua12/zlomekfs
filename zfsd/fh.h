@@ -130,8 +130,8 @@ struct virtual_dir_def
 /* File handle of ZFS root.  */
 extern zfs_fh root_fh;
 
-/* Allocation pool for file handles.  */
-extern alloc_pool fh_pool;
+/* Mutex for fh_pool.  */
+extern pthread_mutex_t fh_pool_mutex;
 
 extern hash_t internal_fh_hash (const void *x);
 extern hash_t internal_fh_hash_name (const void *x);

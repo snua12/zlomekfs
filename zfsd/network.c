@@ -209,10 +209,11 @@ init_fd_data (int fd)
 
   server_fd_data[fd].waiting4reply_pool
     = create_alloc_pool ("waiting4reply_data",
-			 sizeof (waiting4reply_data), 30);
+			 sizeof (waiting4reply_data), 30,
+			 &server_fd_data[fd].mutex);
   server_fd_data[fd].waiting4reply
     = htab_create (30, waiting4reply_hash, waiting4reply_eq,
-		   NULL);
+		   NULL, &server_fd_data[fd].mutex);
 }
 
 /* Close an active file descriptor on index I in ACTIVE.  */
@@ -682,6 +683,7 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	    uint32_t request_id;
 	    void **slot;
 	    waiting4reply_data *data;
+	    thread *t;
 
 	    if (!decode_request_id (dc, &request_id))
 	      {
@@ -689,12 +691,14 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 		break;
 	      }
 	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+	    pthread_mutex_lock (&fd_data->mutex);
 	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
 					     &request_id,
 					     WAITING4REPLY_HASH (request_id),
 					     NO_INSERT);
 	    if (!slot)
 	      {
+		pthread_mutex_unlock (&fd_data->mutex);
 		/* TODO: log request was not found.  */
 		message (1, stderr, "Request ID %d has not been found.\n",
 			 request_id);
@@ -702,12 +706,14 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
 	      }
 
 	    data = *(waiting4reply_data **) slot;
-	    data->t->u.server.dc = *dc;
+	    t = data->t;
+	    t->u.server.dc = *dc;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
+	    pool_free (fd_data->waiting4reply_pool, data);
+	    pthread_mutex_unlock (&fd_data->mutex);
 
 	    /* Let the thread run again.  */
-	    pthread_mutex_unlock (&data->t->mutex);
-	    pool_free (fd_data->waiting4reply_pool, data);
+	    pthread_mutex_unlock (&t->mutex);
 	  }
 	break;
 

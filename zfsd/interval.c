@@ -37,12 +37,13 @@ static void interval_tree_shrink (interval_tree tree);
 /* Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
 
 interval_tree
-interval_tree_create (unsigned preferred_size)
+interval_tree_create (unsigned preferred_size, pthread_mutex_t *mutex)
 {
   interval_tree t;
 
   t = (interval_tree) xmalloc (sizeof (struct interval_tree_def));
-  t->splay = splay_tree_create (preferred_size, NULL);
+  t->mutex = mutex;
+  t->splay = splay_tree_create (preferred_size, NULL, NULL);
   t->preferred_size = preferred_size;
   t->size = 0;
   return t;
@@ -53,6 +54,11 @@ interval_tree_create (unsigned preferred_size)
 void
 interval_tree_destroy (interval_tree tree)
 {
+#ifdef ENABLE_CHECKING
+  if (tree->mutex && pthread_mutex_trylock (tree->mutex) == 0)
+    abort ();
+#endif
+
   splay_tree_destroy (tree->splay);
   free (tree);
 }
@@ -63,6 +69,11 @@ void
 interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
 {
   splay_tree_node node, prev, next;
+
+#ifdef ENABLE_CHECKING
+  if (tree->mutex && pthread_mutex_trylock (tree->mutex) == 0)
+    abort ();
+#endif
 
   if ((node = splay_tree_lookup (tree->splay, start)) != NULL)
     {
@@ -137,6 +148,11 @@ void
 interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 {
   splay_tree_node node, prev, next;
+
+#ifdef ENABLE_CHECKING
+  if (tree->mutex && pthread_mutex_trylock (tree->mutex) == 0)
+    abort ();
+#endif
 
   if ((node = splay_tree_lookup (tree->splay, start)) != NULL)
     {

@@ -27,6 +27,7 @@
 
 #include "system.h"
 #include <stddef.h>
+#include <pthread.h>
 
 typedef unsigned long ALLOC_POOL_ID_TYPE;
 
@@ -38,6 +39,7 @@ typedef struct alloc_pool_list_def
 typedef struct alloc_pool_def
 {
   char *name;
+  pthread_mutex_t *mutex;
 #ifdef ENABLE_CHECKING
   ALLOC_POOL_ID_TYPE id;
 #endif
@@ -51,7 +53,8 @@ typedef struct alloc_pool_def
   size_t elt_size;
 } *alloc_pool;
 
-extern alloc_pool create_alloc_pool (const char *name, size_t size, size_t num);
+extern alloc_pool create_alloc_pool (const char *name, size_t size, size_t num,
+				     pthread_mutex_t *mutex);
 extern void free_alloc_pool (alloc_pool pool);
 extern void *pool_alloc (alloc_pool pool);
 extern void pool_free (alloc_pool pool, void *ptr);

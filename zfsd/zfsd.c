@@ -397,11 +397,17 @@ test_zfs (thread *t)
 
   if (strcmp (node_name, "orion") == 0)
     {
-      message (2, stderr, "TEST %d\n", ++test);
-      zfs_proc_null_client (t, NULL, node_lookup (2));
+      node nod;
+
+      pthread_mutex_lock (&node_mutex);
+      nod = node_lookup (2);
+      pthread_mutex_unlock (&node_mutex);
 
       message (2, stderr, "TEST %d\n", ++test);
-      zfs_proc_root_client (t, NULL, node_lookup (2));
+      zfs_proc_null_client (t, NULL, nod);
+
+      message (2, stderr, "TEST %d\n", ++test);
+      zfs_proc_root_client (t, NULL, nod);
 
       message (2, stderr, "TEST %d\n", ++test);
       printf ("%d\n",

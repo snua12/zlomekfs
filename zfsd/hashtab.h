@@ -25,6 +25,9 @@
 #ifndef HASHTAB_H
 #define HASHTAB_H
 
+#include "system.h"
+#include <pthread.h>
+
 /* Insert operation.  */
 enum insert
 {
@@ -67,10 +70,13 @@ typedef struct htab_def
 
   /* Cleanup function.  */
   htab_del del_f;
+
+  /* Mutex which must be locked when accessing the table.  */
+  pthread_mutex_t *mutex;
 } *htab_t;
 
 extern htab_t htab_create (unsigned int size, htab_hash hash_f, htab_eq eq_f,
-			   htab_del del_f);
+			   htab_del del_f, pthread_mutex_t *mutex);
 extern void htab_destroy (htab_t htab);
 extern void htab_empty (htab_t htab);
 extern void htab_clear_slot (htab_t htab, void **slot);
@@ -110,14 +116,12 @@ extern void **htab_find_slot_with_hash (htab_t htab, const void *elem,
 	}							\
     }
 
-#else
-
-#define HTAB_CHECK_SLOT(HTAB, SLOT)
-
-#endif
-
 /* Loop through all valid SLOTs of hash table HTAB.  */
 #define HTAB_FOR_EACH_SLOT(HTAB, SLOT, CODE)			\
+  if ((HTAB)->mutex						\
+      && pthread_mutex_trylock ((HTAB)->mutex) == 0)		\
+      abort ();							\
+								\
   for ((SLOT) = (HTAB)->table;					\
        (SLOT) < (HTAB)->table + (HTAB)->size;			\
        (SLOT)++)						\
@@ -129,19 +133,33 @@ extern void **htab_find_slot_with_hash (htab_t htab, const void *elem,
 	}							\
     }
 
-#ifdef ENABLE_CHECKING
-
 /* Check the table HTAB.  */
 #define HTAB_CHECK(HTAB)					\
   if (1)							\
     {								\
       void **slot_;						\
 								\
-      HTAB_FOR_EACH_SLOT ((HTAB), slot_, {} );			\
+      HTAB_FOR_EACH_SLOT ((HTAB), slot_, );			\
     }
 
 #else
 
+/* Check the contents of SLOT is on correct position in HTAB.  */
+#define HTAB_CHECK_SLOT(HTAB, SLOT)
+
+/* Loop through all valid SLOTs of hash table HTAB.  */
+#define HTAB_FOR_EACH_SLOT(HTAB, SLOT, CODE)			\
+  for ((SLOT) = (HTAB)->table;					\
+       (SLOT) < (HTAB)->table + (HTAB)->size;			\
+       (SLOT)++)						\
+    {								\
+      if (*(SLOT) != EMPTY_ENTRY && *(SLOT) != DELETED_ENTRY)	\
+	{							\
+	  CODE;							\
+	}							\
+    }
+
+/* Check the table HTAB.  */
 #define HTAB_CHECK(HTAB)
 
 #endif

@@ -76,7 +76,8 @@ static ALLOC_POOL_ID_TYPE last_id;
    allocate.  */
 
 alloc_pool
-create_alloc_pool (const char *name, size_t size, size_t num)
+create_alloc_pool (const char *name, size_t size, size_t num,
+		   pthread_mutex_t *mutex)
 {
   alloc_pool pool;
   size_t pool_size, header_size;
@@ -108,6 +109,7 @@ create_alloc_pool (const char *name, size_t size, size_t num)
 
   /* Now init the various pieces of our pool structure.  */
   pool->name = xstrdup (name);
+  pool->mutex = mutex;
   pool->elt_size = size;
   pool->elts_per_block = num;
 
@@ -143,6 +145,9 @@ free_alloc_pool (alloc_pool pool)
 #ifdef ENABLE_CHECKING
   if (!pool)
     abort ();
+
+  if (pool->mutex && pthread_mutex_trylock (pool->mutex) == 0)
+    abort ();
 #endif
 
   /* Free each block allocated to the pool.  */
@@ -165,6 +170,9 @@ pool_alloc (alloc_pool pool)
 
 #ifdef ENABLE_CHECKING
   if (!pool)
+    abort ();
+
+  if (pool->mutex && pthread_mutex_trylock (pool->mutex) == 0)
     abort ();
 #endif
 
@@ -225,7 +233,13 @@ pool_free (alloc_pool pool, void *ptr)
   message (3, stderr, "POOL FREE  %p %p\n", (void *) pool, ptr);
 
 #ifdef ENABLE_CHECKING
+  if (!pool)
+    abort ();
+
   if (!ptr)
+    abort ();
+
+  if (pool->mutex && pthread_mutex_trylock (pool->mutex) == 0)
     abort ();
 
   /* Check whether the PTR was allocated from POOL.  */

@@ -36,6 +36,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <inttypes.h>
+#include <pthread.h>
 #include "alloc-pool.h"
 
 /* Use typedefs for the key and data types to facilitate changing
@@ -84,6 +85,9 @@ struct splay_tree_node_s
 /* The splay tree itself.  */
 struct splay_tree_s
 {
+  /* Mutex for this splay tree.  */
+  pthread_mutex_t *mutex;
+
   /* The root of the tree.  */
   splay_tree_node root;
 
@@ -95,7 +99,8 @@ struct splay_tree_s
 };
 typedef struct splay_tree_s *splay_tree;
 
-extern splay_tree splay_tree_create (unsigned, splay_tree_delete_value_fn);
+extern splay_tree splay_tree_create (unsigned, splay_tree_delete_value_fn,
+				     pthread_mutex_t *mutex);
 extern void splay_tree_destroy (splay_tree);
 extern splay_tree_node splay_tree_insert (splay_tree, splay_tree_key,
 					  splay_tree_value);

@@ -29,6 +29,9 @@
 /* Hash table of volumes.  */
 static htab_t volume_htab;
 
+/* Mutex for table of volumes.  */
+pthread_mutex_t volume_mutex;
+
 /* Hash function for volume ID ID.  */
 #define VOLUME_HASH_ID(ID) (ID)
 
@@ -81,11 +84,14 @@ volume_create (unsigned int id)
   vol->local_root_fh = root_fh;
   vol->master_root_fh = root_fh;
   vol->root_vd = NULL;
+  pthread_mutex_init (&vol->fh_mutex, NULL);
   vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
-			      internal_fh_del);
+			      internal_fh_del, &vol->fh_mutex);
   vol->fh_htab_name = htab_create (250, internal_fh_hash_name,
-				   internal_fh_eq_name, NULL);
+				   internal_fh_eq_name, NULL, &vol->fh_mutex);
 
+
+  pthread_mutex_lock (&volume_mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
@@ -96,6 +102,7 @@ volume_create (unsigned int id)
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
   *slot = vol;
+  pthread_mutex_unlock (&volume_mutex);
 
   return vol;
 }
@@ -109,8 +116,12 @@ volume_destroy (volume vol)
 
   virtual_mountpoint_destroy (vol);
 
+  pthread_mutex_lock (&vol->fh_mutex);
+  pthread_mutex_lock (&fh_pool_mutex);
   htab_destroy (vol->fh_htab_name);
   htab_destroy (vol->fh_htab);
+  pthread_mutex_unlock (&fh_pool_mutex);
+  pthread_mutex_unlock (&vol->fh_mutex);
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
@@ -196,7 +207,8 @@ debug_volumes ()
 void
 initialize_volume_c ()
 {
-  volume_htab = htab_create (200, volume_hash, volume_eq, NULL);
+  pthread_mutex_init (&volume_mutex, NULL);
+  volume_htab = htab_create (200, volume_hash, volume_eq, NULL, &volume_mutex);
 }
 
 /* Destroy data structures in VOLUME.C.  */
@@ -206,7 +218,10 @@ cleanup_volume_c ()
 {
   void **slot;
 
+  pthread_mutex_lock (&volume_mutex);
   HTAB_FOR_EACH_SLOT (volume_htab, slot, volume_destroy ((volume) *slot));
 
   htab_destroy (volume_htab);
+  pthread_mutex_unlock (&volume_mutex);
+  pthread_mutex_destroy (&volume_mutex);
 }

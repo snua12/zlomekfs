@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <string.h>
+#include <pthread.h>
 #include "config.h"
 #include "hashtab.h"
 #include "log.h"
@@ -29,6 +30,9 @@
 
 /* Hash table of nodes.  */
 static htab_t node_htab;
+
+/* Mutex for table of nodes.  */
+pthread_mutex_t node_mutex;
 
 /* Description of local node.  */
 node this_node;
@@ -93,6 +97,7 @@ node_create (unsigned int id, char *name)
       nod->auth = AUTHENTICATION_DONE;
     }
 
+  pthread_mutex_lock (&node_mutex);
 #ifdef ENABLE_CHECKING
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
@@ -103,6 +108,7 @@ node_create (unsigned int id, char *name)
   slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
 				   INSERT);
   *slot = nod;
+  pthread_mutex_unlock (&node_mutex);
 
   return nod;
 }
@@ -112,7 +118,8 @@ node_create (unsigned int id, char *name)
 void
 initialize_node_c ()
 {
-  node_htab = htab_create (50, node_hash, node_eq, NULL);
+  pthread_mutex_init (&node_mutex, NULL);
+  node_htab = htab_create (50, node_hash, node_eq, NULL, &node_mutex);
 }
 
 /* Destroy data structures in NODE.C.  */
@@ -120,5 +127,9 @@ initialize_node_c ()
 void
 cleanup_node_c ()
 {
+  pthread_mutex_lock (&node_mutex);
+  /* TODO: destroy nodes.  */
   htab_destroy (node_htab);
+  pthread_mutex_unlock (&node_mutex);
+  pthread_mutex_destroy (&node_mutex);
 }

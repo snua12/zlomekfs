@@ -23,11 +23,16 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <pthread.h>
+#include "log.h"
 #include "splay-tree.h"
 
 /* The interval tree.  */
 typedef struct interval_tree_def
 {
+  /* Mutex for this interval tree.  */
+  pthread_mutex_t *mutex;
+
   /* The underlying splay tree.  */
   splay_tree splay;
 
@@ -38,7 +43,8 @@ typedef struct interval_tree_def
   unsigned size;
 } *interval_tree;
 
-extern interval_tree interval_tree_create (unsigned preferred_size);
+extern interval_tree interval_tree_create (unsigned preferred_size,
+					   pthread_mutex_t *mutex);
 extern void interval_tree_destroy (interval_tree tree);
 extern void interval_tree_insert (interval_tree tree,
 				  uint64_t start, uint64_t end);
