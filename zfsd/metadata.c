@@ -2725,7 +2725,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
 	abort ();
 #endif
       hardlink_list_destroy (hl);
-      get_shadow_path (path, vol, fh, false);
+      xstringdup (path, &vol->local_path);
       return;
     }
 
@@ -2739,7 +2739,7 @@ get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh)
 	abort ();
 #endif
       hardlink_list_destroy (hl);
-      xstringdup (path, &vol->local_path);
+      get_shadow_path (path, vol, fh, false);
       return;
     }
 #ifdef ENABLE_CHECKING
