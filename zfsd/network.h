@@ -105,6 +105,9 @@ extern void network_worker_init (struct thread_def *t);
 extern void network_worker_cleanup (void *data);
 extern void add_fd_to_active (int fd);
 extern void send_request (struct thread_def *t, uint32_t request_id, int fd);
+extern void fd_data_init ();
+extern void fd_data_shutdown ();
+extern void fd_data_destroy ();
 extern bool network_start ();
 extern void network_cleanup ();
 

@@ -1381,9 +1381,9 @@ retry_accept:
   return NULL;
 }
 
-/* Initialize information about network file descriptors.  */
+/* Initialize information about file descriptors.  */
 
-static void
+void
 fd_data_init ()
 {
   int i;
@@ -1405,7 +1405,7 @@ fd_data_init ()
 
 /* Wake threads waiting for reply on file descriptors.  */
 
-static void
+void
 fd_data_shutdown ()
 {
   int i;
@@ -1435,9 +1435,9 @@ fd_data_shutdown ()
 
 }
 
-/* Destroy information about network file descriptors.  */
+/* Destroy information about file descriptors.  */
 
-static void
+void
 fd_data_destroy ()
 {
   int i;
@@ -1527,7 +1527,5 @@ network_start ()
 void
 network_cleanup ()
 {
-  fd_data_shutdown ();
   thread_pool_destroy (&network_pool);
-  fd_data_destroy ();
 }
