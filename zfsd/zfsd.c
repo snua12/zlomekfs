@@ -257,7 +257,7 @@ static void
 version (int exitcode)
 {
   printf ("zfsd 0.1.0\n");
-  printf ("Copyright (C) 2003 Josef Zlomek\n");
+  printf ("Copyright (C) 2003, 2004 Josef Zlomek\n");
   printf ("This is free software; see the source for copying conditions.  There is NO\n");
   printf ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 
