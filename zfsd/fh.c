@@ -1899,7 +1899,6 @@ internal_dentry_link (internal_dentry orig, volume vol,
   else
     abort ();
 #endif
-  *slot = dentry;
 
   RETURN_PTR (dentry);
 }
