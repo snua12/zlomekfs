@@ -1903,14 +1903,14 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
       if (flags & CONFLICT_REMOTE_EXISTS)
 	{
 	  dentry->name = xstrdup (nod->name);
-	  name = xstrconcat (2, this_node->name, ".not_exist");
+	  name = this_node->name;
 	  tmp_fh.sid = this_node->id;
 	  tmp_fh.ino = nod->id;
 	}
       else
 	{
 	  dentry->name = xstrdup (this_node->name);
-	  name = xstrconcat (2, nod->name, ".not_exist");
+	  name = nod->name;
 	  tmp_fh.sid = nod->id;
 	  tmp_fh.ino = this_node->id;
 	}
@@ -1934,7 +1934,6 @@ internal_dentry_create_conflict (internal_dentry dentry, volume vol,
       tmp_attr.mtime = tmp_attr.atime;
       dentry2 = internal_dentry_create (&tmp_fh, &undefined_fh, vol, conflict,
 					name, &tmp_attr, NULL, LEVEL_UNLOCKED);
-      free (name);
     }
 
   internal_dentry_add_to_dir (conflict, dentry);
