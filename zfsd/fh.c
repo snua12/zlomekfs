@@ -538,8 +538,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   if (vol->local_path)
     {
-      if (!init_metadata (vol, fh)
-	  || !update_metadata (vol, fh))
+      if (!init_metadata (vol, fh))
 	vol->flags |= VOLUME_DELETE;
     }
 
@@ -574,8 +573,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
 
   if (vol->local_path)
     {
-      if (!(vol->flags & VOLUME_DELETE)
-	  && !update_metadata (vol, fh))
+      if (!flush_metadata (vol, fh))
 	vol->flags |= VOLUME_DELETE;
     }
 

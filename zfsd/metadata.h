@@ -64,7 +64,7 @@ extern bool append_interval (volume vol, internal_fh fh,
 			     interval_tree_purpose purpose,
 			     uint64_t start, uint64_t end);
 extern bool init_metadata (volume vol, internal_fh fh);
-extern bool update_metadata (volume vol, internal_fh fh);
+extern bool flush_metadata (volume vol, internal_fh fh);
 extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
 
