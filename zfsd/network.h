@@ -56,7 +56,7 @@ typedef enum authentication_status_def
   AUTHENTICATION_FINISHED
 } authentication_status;
 
-/*! Data for a file descriptor used to communicate with other nodes
+/*! \brief Data for a file descriptor used to communicate with other nodes
    or kernel.  */
 typedef struct fd_data_def
 {

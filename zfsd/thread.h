@@ -54,8 +54,9 @@ typedef enum thread_state_def
   THREAD_BUSY		/*!< thread is working */
 } thread_state;
 
-/*! Additional data for a network thread.  */
 struct fd_data_def;
+
+/*! \brief Additional data for a network thread.  */
 typedef struct network_thread_data_def
 {
   DC *dc;				/*!< buffer for request to this node */
@@ -66,7 +67,7 @@ typedef struct network_thread_data_def
   unsigned int index;			/*!< index of FD in array "active" */
 } network_thread_data;
 
-/*! Additional data for a kernel thread.  */
+/*! \brief Additional data for a kernel thread.  */
 typedef struct kernel_thread_data_def
 {
   DC *dc;				/*!< buffer for request to this node */
@@ -75,14 +76,14 @@ typedef struct kernel_thread_data_def
   struct fd_data_def *fd_data;		/*!< passed from main network thread */
 } kernel_thread_data;
 
-/*! Additional data for an update thread.  */
+/*! \brief Additional data for an update thread.  */
 typedef struct update_thread_data_def
 {
   /*! File handle to update.  */
   zfs_fh fh;
 } update_thread_data;
 
-/*! Definition of thread's variables.  */
+/*! \brief Definition of thread's variables.  */
 typedef struct thread_def
 {
   /*! Mutex protecting the state of thread.  */
@@ -113,7 +114,7 @@ typedef struct thread_def
   } u;
 } thread;
 
-/*! Thread datatype padded to 256 bytes to avoid cache ping pong.  */
+/*! \brief Thread datatype padded to 256 bytes to avoid cache ping pong.  */
 typedef union padded_thread_def
 {
   thread t;
@@ -126,7 +127,7 @@ typedef void *(*thread_start) (void *);
 /*! Type of thread initializer.  */
 typedef void (*thread_init) (thread *);
 
-/*! Definition of thread pool.  */
+/*! \brief Thread pool.  */
 typedef struct thread_pool_def
 {
   volatile bool terminate;	/*!< shall threads in this pool terminate? */
@@ -151,7 +152,7 @@ typedef struct thread_pool_def
   pthread_mutex_t regulator_in_syscall;	/*!< regulator is in blocking syscall */
 } thread_pool;
 
-/*! Description of thread waiting for reply.  */
+/*! \brief Description of thread waiting for reply.  */
 typedef struct waiting4reply_data_def
 {
   uint32_t request_id;

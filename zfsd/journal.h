@@ -45,8 +45,9 @@ typedef enum journal_operation_def
   JOURNAL_OPERATION_LAST_AND_UNUSED
 } journal_operation_t;
 
-/*! Journal entry.  */
 typedef struct journal_entry_def *journal_entry;
+
+/*! \brief Journal entry.  */
 struct journal_entry_def
 {
   journal_entry next;		/*!< next entry in the doubly linked chain */
@@ -61,7 +62,7 @@ struct journal_entry_def
   uint64_t master_version;	/*!< master version of the file */
 };
 
-/*! Definition of journal datatype.  */
+/*! \brief Journal datatype.  */
 typedef struct journal_def
 {
   /*! Hash table.  */

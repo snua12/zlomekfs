@@ -55,7 +55,7 @@ typedef uint32_t fibheapkey_t;
 #define FIBHEAPKEY_MIN 0
 #define FIBHEAPKEY_MAX ((fibheapkey_t) -1)
 
-/*! Node of Fibonacci heap.  */
+/*! \brief Node of Fibonacci heap.  */
 typedef struct fibnode_def
 {
   struct fibnode_def *parent;
@@ -68,7 +68,7 @@ typedef struct fibnode_def
   unsigned int mark : 1;
 } *fibnode;
 
-/* Fibonacci heap.  */
+/*! \brief Fibonacci heap.  */
 typedef struct fibheap_def
 {
   unsigned int nodes;

@@ -37,8 +37,9 @@
 		 &(H)->parent_dev, sizeof (uint32_t)),			    \
    &(H)->parent_ino, sizeof (uint32_t)))
 
-/*! Entry of a hardlink list.  */
 typedef struct hardlink_list_entry_def *hardlink_list_entry;
+
+/*! \brief Entry of a hardlink list.  */
 struct hardlink_list_entry_def
 {
   /*! Next and previous entry in the doubly linked chain.  */
@@ -55,7 +56,7 @@ struct hardlink_list_entry_def
   string name;
 };
 
-/*! Definition of the hashed variable-sized array.  */
+/*! \brief A hashed variable-sized array.  */
 typedef struct hardlink_list_def
 {
   /*! Hash table.  */

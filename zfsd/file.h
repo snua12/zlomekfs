@@ -39,7 +39,7 @@
 #include "fibheap.h"
 #include "metadata.h"
 
-/*! Data for file descriptor.  */
+/*! \brief Data for file descriptor.  */
 typedef struct internal_fd_data_def
 {
   pthread_mutex_t mutex;
@@ -48,14 +48,14 @@ typedef struct internal_fd_data_def
   fibnode heap_node;		/*!< node of heap whose data is this structure  */
 } internal_fd_data_t;
 
-/*! Data for supplementary functions of readdir.  */
+/*! \brief Data for supplementary functions of readdir.  */
 typedef struct readdir_data_def
 {
   uint32_t written;
   uint32_t count;
 } readdir_data;
 
-/*! Structure holding entries for filldir_htab.  */
+/*! \brief Structure holding entries for filldir_htab.  */
 typedef struct filldir_htab_entries_def
 {
   htab_t htab;

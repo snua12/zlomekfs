@@ -34,7 +34,7 @@
 /*! Mark the volume to delete it.  */
 #define MARK_VOLUME_DELETE(VOL) (VOL)->delete_p = true
 
-/*! Volume description.  */
+/*! \brief Volume description.  */
 struct volume_def
 {
 #ifdef ENABLE_CHECKING

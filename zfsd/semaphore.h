@@ -26,6 +26,7 @@
 #include "system.h"
 #include "pthread.h"
 
+/*! \brief Semaphore. */
 typedef struct semaphore_def
 {
   pthread_mutex_t mutex;

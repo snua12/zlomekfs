@@ -25,7 +25,7 @@
 
 #include "system.h"
 
-/*! Definition of the variable-sized array.  */
+/*! \brief Variable-sized array.  */
 typedef struct varray_def
 {
   /*! Total number of elements allocated.  */

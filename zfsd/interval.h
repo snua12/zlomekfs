@@ -30,7 +30,7 @@
 #include "splay-tree.h"
 #include "varray.h"
 
-/*! The interval tree.  */
+/*! \brief The interval tree.  */
 typedef struct interval_tree_def
 {
   /*! Mutex for this interval tree.  */
@@ -56,7 +56,7 @@ typedef struct interval_tree_def
   bool deleted;
 } *interval_tree;
 
-/*! Structure of an interval used by interval_tree_read/interval_tree_write.  */
+/*! \brief Interval structure used by interval_tree_read/interval_tree_write.  */
 typedef struct interval_def
 {
   /*! Start of interval.  */

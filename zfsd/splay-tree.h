@@ -70,7 +70,7 @@ typedef void * (*splay_tree_allocate_fn) (int, void *);
    functions pass through to the freer.  */
 typedef void (*splay_tree_deallocate_fn) (void *, void *);
 
-/*! The nodes in the splay tree.  */
+/*! \brief The nodes in the splay tree.  */
 struct splay_tree_node_s
 {
   /*! The key.  */
@@ -84,7 +84,7 @@ struct splay_tree_node_s
   splay_tree_node right;
 };
 
-/*! The splay tree itself.  */
+/*! \brief The splay tree itself.  */
 struct splay_tree_s
 {
   /*! Mutex for this splay tree.  */

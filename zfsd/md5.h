@@ -42,7 +42,7 @@
 
 #ifndef __KERNEL__
 
-/*! MD% context used while computing MD5 sum. */
+/*! \brief MD5 context used while computing MD5 sum. */
 typedef struct MD5Context_def
 {
   uint32_t buf[4];

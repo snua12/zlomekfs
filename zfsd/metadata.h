@@ -52,7 +52,7 @@
 /*! Depth of directory tree for saving metadata about files.  */
 extern unsigned int metadata_tree_depth;
 
-/*!Type of metadata.  */
+/*! Type of metadata.  */
 typedef enum metadata_type_def
 {
   /*! Generic metadata hashed by local file handle.  */
@@ -81,7 +81,7 @@ typedef enum metadata_type_def
    Longer names are stored in separate files together with hardlinks.  */
 #define METADATA_NAME_SIZE 52
 
-/*! Metadata for file.  */
+/*! \brief Metadata for file.  */
 typedef struct metadata_def
 {
   uint32_t slot_status;		/*!< status of slot (empty, deleted, valid) */
@@ -100,7 +100,7 @@ typedef struct metadata_def
   char name[METADATA_NAME_SIZE];/*!< file name */
 } metadata;
 
-/*! File handle mapping.  */
+/*! \brief File handle mapping.  */
 typedef struct fh_mapping_def
 {
   uint32_t slot_status;		/*!< status of slot (empty, deleted, valid) */

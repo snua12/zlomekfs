@@ -70,8 +70,8 @@ static string private_key;
 /*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
 
-/*! Element of list of requests for config reread.  */
 typedef struct reread_config_request_def *reread_config_request;
+/*! \brief Element of list of requests for config reread.  */
 struct reread_config_request_def
 {
   /*! Next element in the chain.  */
@@ -103,10 +103,10 @@ process_line (const char *file, const int line_num, char *line, char **key,
 {
   char *dest;
   enum automata_states {
-    STATE_NORMAL,		/*!< outside quotes and not after backslash */
-    STATE_QUOTED,		/*!< inside quotes and not after backslash  */
-    STATE_BACKSLASH,		/*!< outside quotes and after backslash */
-    STATE_QUOTED_BACKSLASH	/*!< inside quotes and after backslash */
+    STATE_NORMAL,		/* outside quotes and not after backslash */
+    STATE_QUOTED,		/* inside quotes and not after backslash  */
+    STATE_BACKSLASH,		/* outside quotes and after backslash */
+    STATE_QUOTED_BACKSLASH	/* inside quotes and after backslash */
   } state;
 
   /* Skip white spaces.  */
@@ -814,7 +814,7 @@ read_node_list (zfs_fh *config_dir)
 				process_line_node, NULL);
 }
 
-/*! Data for process_line_volume_hierarchy.  */
+/*! \brief Data for process_line_volume_hierarchy.  */
 typedef struct volume_hierarchy_data_def
 {
   varray hierarchy;

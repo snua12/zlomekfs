@@ -47,7 +47,7 @@ typedef void (*hfile_decode) (void *x);
 /*! Encode element of the hash file.  */
 typedef void (*hfile_encode) (void *x);
 
-/*! Hash table datatype.  */
+/*! \brief Hash file datatype.  */
 typedef struct hfile_def
 {
   /*! Mutex which must be locked when accessing the table.  */
@@ -93,7 +93,7 @@ typedef struct hfile_def
   unsigned int generation;
 } *hfile_t;
 
-/*! Header of the hash file.  */
+/*! \brief Header of the hash file.  */
 typedef struct hashfile_header_def
 {
   uint32_t n_elements;

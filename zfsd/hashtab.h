@@ -49,7 +49,7 @@ typedef int (*htab_eq) (const void *x, const void *y);
 /*! Cleanup function called when element is deleted from hash table.  */
 typedef void (*htab_del) (void *x);
 
-/*! Hash table datatype.  */
+/*! \brief Hash table datatype.  */
 typedef struct htab_def
 {
   /*! Table itself.  */

@@ -40,7 +40,7 @@
 
 typedef struct internal_cap_def *internal_cap;
 
-/*! In-memory capability structure.  */
+/*! \brief In-memory capability structure.  */
 struct internal_cap_def
 {
   /*! Capability for client.  */

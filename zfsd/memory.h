@@ -33,7 +33,7 @@
 # include "varray.h"
 #endif
 
-/*! String type.  */
+/*! \brief String type.  */
 typedef struct string_def
 {
   uint32_t len;		/*!< Length of the string.  */

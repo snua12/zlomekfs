@@ -383,13 +383,13 @@ interval_tree_read (interval_tree tree, int fd, uint64_t n)
   return true;
 }
 
-/*! Data used by interval_tree_write_*.  */
+/*! \brief Data used by interval_tree_write_*.  */
 typedef struct interval_tree_write_data_def
 {
-  /* Number of intervals.  */
+  /*! Number of intervals.  */
   int n;
 
-  /* Intervals.  */
+  /*! Intervals.  */
   interval intervals[INTERVAL_COUNT];
 } interval_tree_write_data;
 

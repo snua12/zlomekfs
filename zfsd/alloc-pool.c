@@ -36,7 +36,7 @@
 #define align_four(x) (((x+3) >> 2) << 2)
 #define align_eight(x) (((x+7) >> 3) << 3)
 
-/*! The internal allocation object.  */
+/*! \brief The internal allocation object.  */
 typedef struct allocation_object_def
 {
 #ifdef ENABLE_CHECKING

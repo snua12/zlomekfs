@@ -50,13 +50,14 @@ typedef unsigned long		uintptr_t;
 /*! Maximal number of DC structures for a file decriptor.  */
 #define MAX_FREE_DCS 8
 
+/*! \brief Data coding buffer.  */
 typedef struct data_coding_def
 {
-  char *buffer;			/* previous pointer aligned to 16 */
-  char *cur_pos;		/* current position to buffer while
-				   encoding/decoding */
-  unsigned int max_length;	/* maximal valid index to buffer */
-  unsigned int cur_length;	/* current index to buffer */
+  char *buffer;			/*!< data aligned to 16 */
+  char *cur_pos;		/*!< current position to buffer while
+				     encoding/decoding */
+  unsigned int max_length;	/*!< maximal valid index to buffer */
+  unsigned int cur_length;	/*!< current index to buffer */
   char data[DC_SIZE + 15];
 } DC;
 

@@ -137,7 +137,7 @@ typedef struct virtual_dir_def *virtual_dir;
 #include "cap.h"
 #include "metadata.h"
 
-/*! Internal information about file handle.  */
+/*! \brief Internal information about file handle.  */
 struct internal_fh_def
 {
 #ifdef ENABLE_CHECKING
@@ -214,14 +214,14 @@ struct internal_fh_def
 #define IFH_ENQUEUED	8
 #define IFH_REINTEGRATING 16
 
-/*! Information about locked dentries by current thread.  */
+/*! \brief Information about locked dentries by current thread.  */
 typedef struct lock_info_def
 {
   internal_dentry dentry;	/*!< Locked dentry */
   unsigned int level;		/*!< Lock level */
 } lock_info;
 
-/*! Internal directory entry.  */
+/*! \brief Internal directory entry.  */
 struct internal_dentry_def
 {
   /* Mutex is not needed here because we can use FH->MUTEX
@@ -256,7 +256,7 @@ struct internal_dentry_def
   bool deleted;
 };
 
-/*! Structure of a virtual directory (element of mount tree).  */
+/*! \brief Virtual directory (element of mount tree).  */
 struct virtual_dir_def
 {
 #ifdef ENABLE_CHECKING

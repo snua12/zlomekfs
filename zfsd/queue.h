@@ -28,12 +28,14 @@
 #include "pthread.h"
 #include "alloc-pool.h"
 
+/*! \brief Node of the queue. */
 typedef struct queue_node_def
 {
   struct queue_node_def *next;	/*!< next node in the chain */
   char data[1];			/*!< data */
 } *queue_node;
 
+/*! \brief Queue datatype.  */
 typedef struct queue_def
 {
   pthread_mutex_t *mutex;	/*!< mutex for accessing the queue */

@@ -28,7 +28,7 @@
 #include "hashtab.h"
 #include "node.h"
 
-/*! Description of ZFS user.  */
+/*! \brief Description of ZFS user.  */
 typedef struct user_def
 {
   uint32_t id;			/*!< user ID */
@@ -36,7 +36,7 @@ typedef struct user_def
   bool marked;			/*!< Is the user marked?  */
 } *user_t;
 
-/*! Description of ZFS group.  */
+/*! \brief Description of ZFS group.  */
 typedef struct group_def
 {
   uint32_t id;			/*!< group ID */
@@ -44,8 +44,7 @@ typedef struct group_def
   bool marked;			/*!< Is the group marked?  */
 } *group_t;
 
-/*! Structure describing mapping between ZFS user/group ID
-   and node user/group ID.  */
+/*! \brief Mapping between ZFS user/group ID and node user/group ID.  */
 typedef struct id_mapping_def
 {
   uint32_t zfs_id;		/*!< ID of ZFS user/group */

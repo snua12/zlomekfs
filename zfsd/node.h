@@ -29,7 +29,7 @@
 #include "pthread.h"
 #include "hashtab.h"
 
-/*! Node description.  */
+/*! \brief Node description.  */
 typedef struct node_def
 {
 #ifdef ENABLE_CHECKING

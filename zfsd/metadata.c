@@ -52,7 +52,7 @@
 /*! Depth of directory tree for saving metadata about files.  */
 unsigned int metadata_tree_depth = 1;
 
-/*! Data for file descriptor.  */
+/*! \brief Data for file descriptor.  */
 typedef struct metadata_fd_data_def
 {
   pthread_mutex_t mutex;

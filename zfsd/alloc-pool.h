@@ -34,13 +34,13 @@
 /*! Type of ID of the alloc pool.  */
 typedef unsigned long ALLOC_POOL_ID_TYPE;
 
-/* Structure chaining free elements.  */
+/*! \brief Structure chaining free elements.  */
 typedef struct alloc_pool_list_def
 {
   struct alloc_pool_list_def *next;	/*!< Pointer to next element. */
 } *alloc_pool_list;
 
-/* Definition of alloc pool.  */
+/*! \brief Definition of alloc pool.  */
 typedef struct alloc_pool_def
 {
   char *name;				/*!< Name of the pool. */
