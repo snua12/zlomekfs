@@ -212,7 +212,7 @@ local_path_to_relative_path (volume vol, char *path)
 /* Recursively unlink the file PATH on volume with ID == VID.  */
 
 bool
-recursive_unlink (const char *path, uint32_t vid)
+recursive_unlink (char *path, uint32_t vid)
 {
   volume vol;
   internal_dentry dentry;
