@@ -868,7 +868,9 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
       RETURN_INT (ZFS_OK);
     }
 
-  r = internal_cap_lock (LEVEL_SHARED, &icap, &vol, &dentry, &vd, &tmp_cap);
+  r = internal_cap_lock (dentry->fh->attr.type == FT_DIR
+			 ? LEVEL_EXCLUSIVE : LEVEL_SHARED,
+			 &icap, &vol, &dentry, &vd, &tmp_cap);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
