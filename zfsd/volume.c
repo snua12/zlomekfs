@@ -231,6 +231,7 @@ volume_set_common_info (volume vol, string *name, string *mountpoint,
   CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
+  virtual_mountpoint_destroy (vol);
   set_string (&vol->name, name);
   set_string (&vol->mountpoint, mountpoint);
   vol->master = master;
