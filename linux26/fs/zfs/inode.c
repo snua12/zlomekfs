@@ -141,6 +141,34 @@ struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 	return inode;
 }
 
+static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
+{
+	struct inode *inode = dentry->d_inode;
+	fattr attr;
+
+	TRACE("zfs: d_revalidate: '%s'\n", dentry->d_name.name);
+
+	if (!inode)
+		return 1;
+
+	if (is_bad_inode(inode))
+		return 0;
+
+	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
+		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh))
+			return 0;
+
+		zfs_attr_to_iattr(inode, &attr);
+		dentry->d_time = jiffies;
+	}
+
+	return 1;
+}
+
+struct dentry_operations zfs_dentry_operations = {
+	.d_revalidate   = zfs_d_revalidate,
+};
+
 static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
 {
 	create_args args;
@@ -167,17 +195,20 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
 	args.attr.mtime = -1;
 
 	error = zfsd_create(&res, &args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return error;
+	}
+
+	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+	if (!inode)
+		return -ENOMEM;
 
 	dentry->d_fsdata = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
 	if (!dentry->d_fsdata)
 		return -ENOMEM;
 	*(zfs_cap *)dentry->d_fsdata = res.cap;
-
-	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
-	if (!inode)
-		return -ENOMEM;
 
 	d_instantiate(dentry, inode);
 
@@ -203,17 +234,19 @@ static struct dentry *zfs_lookup(struct inode *dir, struct dentry *dentry, struc
 	args.name.len = dentry->d_name.len;
 
 	error = zfsd_lookup(&res, &args);
-	if (error) {
-		if (error == -ENOENT) {
-			d_add(dentry, NULL);
-			return NULL;
-		}
+	if (!error) {
+		inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+		if (!inode)
+			return ERR_PTR(-ENOMEM);
+	} else if (error != -ENOENT) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return ERR_PTR(error);
-	}
+	} else
+		inode = NULL;
 
-	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
-	if (!inode)
-		return ERR_PTR(-ENOMEM);
+	dentry->d_time = jiffies;
+	dentry->d_op = &zfs_dentry_operations;
 
 	d_add(dentry, inode);
 
@@ -234,8 +267,13 @@ static int zfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry 
 	args.to.name.len = dst_dentry->d_name.len;
 
 	error = zfsd_link(&args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE) {
+			make_bad_inode(dir);
+			make_bad_inode(inode);
+		}
 		return error;
+	}
 
 	inode->i_nlink++;
 	inode->i_ctime = CURRENT_TIME;
@@ -261,8 +299,11 @@ static int zfs_unlink(struct inode *dir, struct dentry *dentry)
 	args.name.len = dentry->d_name.len;
 
 	error = zfsd_unlink(&args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return error;
+	}
 
 	inode->i_nlink--;
 	inode->i_ctime = CURRENT_TIME;
@@ -300,8 +341,11 @@ static int zfs_symlink(struct inode *dir, struct dentry *dentry, const char *old
 	args.attr.mtime = -1;
 
 	error = zfsd_symlink(&res, &args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return error;
+	}
 
 	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
 	if (!inode)
@@ -338,8 +382,11 @@ static int zfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 	args.attr.mtime = -1;
 
 	error = zfsd_mkdir(&res, &args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return error;
+	}
 
 	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
 	if (!inode)
@@ -366,8 +413,11 @@ static int zfs_rmdir(struct inode *dir, struct dentry *dentry)
 	args.name.len = dentry->d_name.len;
 
 	error = zfsd_rmdir(&args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return error;
+	}
 
 	inode->i_nlink--;
 
@@ -402,8 +452,11 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 	args.rdev = huge_encode_dev(rdev);
 
 	error = zfsd_mknod(&res, &args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(dir);
 		return error;
+	}
 
 	inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
 	if (!inode)
@@ -418,6 +471,7 @@ static int zfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t r
 
 static int zfs_rename(struct inode *old_dir, struct dentry *old_dentry, struct inode *new_dir, struct dentry *new_dentry)
 {
+	struct inode *old_inode = old_dentry->d_inode;
 	rename_args args;
 	int error;
 
@@ -431,10 +485,15 @@ static int zfs_rename(struct inode *old_dir, struct dentry *old_dentry, struct i
 	args.to.name.len = new_dentry->d_name.len;
 
 	error = zfsd_rename(&args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE) {
+			make_bad_inode(old_dir);
+			make_bad_inode(old_inode);
+		}
 		return error;
+	}
 
-	if (S_ISDIR(old_dentry->d_inode->i_mode)) {
+	if (S_ISDIR(old_inode->i_mode)) {
 		old_dir->i_nlink--;
 		new_dir->i_nlink++;
 	}
@@ -457,8 +516,11 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 	zfs_iattr_to_sattr(&args.attr, iattr);
 
 	error = zfsd_setattr(&attr, &args);
-	if (error)
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(inode);
 		return error;
+	}
 
 	zfs_attr_to_iattr(inode, &attr);
 
@@ -467,28 +529,36 @@ static int zfs_setattr(struct dentry *dentry, struct iattr *iattr)
 
 static int zfs_readlink(struct dentry *dentry, char __user *buf, int buflen)
 {
+	struct inode *inode = dentry->d_inode;
 	read_link_res res;
 	int error;
 
 	TRACE("zfs: readlink: '%s'\n", dentry->d_name.name);
 
-	error = zfsd_readlink(&res, &ZFS_I(dentry->d_inode)->fh);
-	if (error)
+	error = zfsd_readlink(&res, &ZFS_I(inode)->fh);
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(inode);
 		return error;
+	}
 
 	return vfs_readlink(dentry, buf, buflen, res.path.str);
 }
 
 static int zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
 {
+	struct inode *inode = dentry->d_inode;
 	read_link_res res;
 	int error;
 
 	TRACE("zfs: follow_link: '%s'\n", dentry->d_name.name);
 
-	error = zfsd_readlink(&res, &ZFS_I(dentry->d_inode)->fh);
-	if (error)
+	error = zfsd_readlink(&res, &ZFS_I(inode)->fh);
+	if (error) {
+		if (error == -ESTALE)
+			make_bad_inode(inode);
 		return error;
+	}
 
 	return vfs_follow_link(nd, res.path.str);
 }

@@ -29,15 +29,24 @@
 
 static int zfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 {
+	struct inode *inode = file->f_dentry->d_inode;
 	read_dir_args args;
+	int error;
 
 	TRACE("zfs: readdir: '%s'\n", file->f_dentry->d_name.name);
 
+	if (file->f_pos == -1)
+		return 0;
+
 	args.cap = *CAP(file->private_data);
-	args.cookie = file->f_pos;
+	args.cookie = file->f_pos ? *COOKIE(file->private_data) : 0;
 	args.count = ZFS_MAXDATA;
 
-	return zfsd_readdir(&args, file, dirent, filldir);
+	error = zfsd_readdir(&args, file, dirent, filldir);
+	if (error == -ESTALE)
+		make_bad_inode(inode);
+
+	return error;
 }
 
 extern int zfs_open(struct inode *inode, struct file *file);

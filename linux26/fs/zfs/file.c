@@ -45,11 +45,11 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
 	args.count = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
 
 	error = zfsd_read(buf, &args);
-
 	if (error > 0) {
 		*off += error;
 		inode->i_atime = CURRENT_TIME;
-	}
+	} else if (error == -ESTALE)
+		make_bad_inode(inode);
 
 	return error;
 }
@@ -68,7 +68,6 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 	args.data.buf = buf;
 
 	error = zfsd_write(&args);
-
 	if (error > 0) {
 		*off += error;
 		inode->i_mtime = CURRENT_TIME;
@@ -76,7 +75,8 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
 			inode->i_size = *off;
 			inode->i_ctime = CURRENT_TIME;
 		}
-	}
+	} else if (error == -ESTALE)
+		make_bad_inode(inode);
 
 	return error;
 }
@@ -94,7 +94,7 @@ int zfs_open(struct inode *inode, struct file *file)
 		file->private_data = dentry->d_fsdata;
 		dentry->d_fsdata = NULL;
 	} else {
-		cap = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
+		cap = kmalloc(sizeof(zfs_cap) + (S_ISDIR(inode->i_mode) ? sizeof(int32_t) : 0), GFP_KERNEL);
 		if (!cap)
 			return -ENOMEM;
 
@@ -104,6 +104,8 @@ int zfs_open(struct inode *inode, struct file *file)
 		error = zfsd_open(cap, &args);
 		if (error) {
 			kfree(cap);
+			if (error == -ESTALE)
+				make_bad_inode(inode);
 			return error;
 		}
 
@@ -144,7 +146,6 @@ static int zfs_readpage(struct file *file, struct page *page)
 	kaddr = kmap(page);
 
 	error = zfsd_readpage(kaddr, &args);
-
 	if (error > 0) {
 		if (error < PAGE_CACHE_SIZE)
 			memset(kaddr + error, 0, PAGE_CACHE_SIZE - error);
@@ -152,7 +153,8 @@ static int zfs_readpage(struct file *file, struct page *page)
 		SetPageUptodate(page);
 
 		error = 0;
-	}
+	} else if (error == -ESTALE)
+		make_bad_inode(file->f_dentry->d_inode);
 
 	kunmap(kaddr);
 

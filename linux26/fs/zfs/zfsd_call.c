@@ -119,7 +119,6 @@ int zfsd_root(zfs_fh *fh)
 		return -ENOMEM;
 
 	error = zfs_proc_root_zfsd(&dc, NULL);
-
 	if (!error
 	    && (!decode_zfs_fh(dc, fh)
 		|| !finish_decoding(dc)))
@@ -144,7 +143,6 @@ int zfsd_getattr(fattr *attr, zfs_fh *fh)
 		return -ENOMEM;
 
 	error = zfs_proc_getattr_zfsd(&dc, fh);
-
 	if (!error
 	    && (!decode_fattr(dc, attr)
 		|| !finish_decoding(dc)))
@@ -169,7 +167,6 @@ int zfsd_setattr(fattr *attr, sattr_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_setattr_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_fattr(dc, attr)
 		|| !finish_decoding(dc)))
@@ -194,7 +191,6 @@ int zfsd_create(create_res *res, create_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_create_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_create_res(dc, res)
 		|| !finish_decoding(dc)))
@@ -219,7 +215,6 @@ int zfsd_lookup(dir_op_res *res, dir_op_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_lookup_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_dir_op_res(dc, res)
 		|| !finish_decoding(dc)))
@@ -244,7 +239,6 @@ int zfsd_link(link_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_link_zfsd(&dc, args);
-
 	if (!error
 	    && !finish_decoding(dc))
 		error = -EPROTO;
@@ -268,7 +262,6 @@ int zfsd_unlink(dir_op_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_unlink_zfsd(&dc, args);
-
 	if (!error
 	    && !finish_decoding(dc))
 		error = -EPROTO;
@@ -292,7 +285,6 @@ int zfsd_symlink(dir_op_res *res, symlink_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_symlink_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_dir_op_res(dc, res)
 		|| !finish_decoding(dc)))
@@ -317,7 +309,6 @@ int zfsd_mkdir(dir_op_res *res, mkdir_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_mkdir_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_dir_op_res(dc, res)
 		|| !finish_decoding(dc)))
@@ -342,7 +333,6 @@ int zfsd_rmdir(dir_op_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_rmdir_zfsd(&dc, args);
-
 	if (!error
 	    && !finish_decoding(dc))
 		error = -EPROTO;
@@ -366,7 +356,6 @@ int zfsd_mknod(dir_op_res *res, mknod_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_mknod_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_dir_op_res(dc, res)
 		|| !finish_decoding(dc)))
@@ -391,7 +380,6 @@ int zfsd_rename(rename_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_rename_zfsd(&dc, args);
-
 	if (!error
 	    && !finish_decoding(dc))
 		error = -EPROTO;
@@ -415,7 +403,6 @@ int zfsd_readlink(read_link_res *res, zfs_fh *fh)
 		return -ENOMEM;
 
 	error = zfs_proc_readlink_zfsd(&dc, fh);
-
 	if (!error
 	    && (!decode_read_link_res(dc, res)
 		|| !finish_decoding(dc)))
@@ -440,7 +427,6 @@ int zfsd_open(zfs_cap *cap, open_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_open_zfsd(&dc, args);
-
 	if (!error
 	    && (!decode_zfs_cap(dc, cap)
 		|| !finish_decoding(dc)))
@@ -465,7 +451,6 @@ int zfsd_close(zfs_cap *cap)
 		return -ENOMEM;
 
 	error = zfs_proc_close_zfsd(&dc, cap);
-
 	if (!error
 	    && !finish_decoding(dc))
 		error = -EPROTO;
@@ -516,7 +501,8 @@ int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t
 			if (error)
 				break;
 
-			file->f_pos = entry.cookie;
+			*COOKIE(file->private_data) = entry.cookie;
+			file->f_pos++;
 			entries++;
 		}
 		if (error)
@@ -527,8 +513,10 @@ int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t
 			break;
 		}
 
-		if (list.eof)
+		if (list.eof) {
+			file->f_pos = -1;
 			break;
+		}
 
 		args->cookie = entry.cookie;
 	}
@@ -553,7 +541,6 @@ int zfsd_read(char __user *buf, read_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_read_zfsd(&dc, args);
-
 	if (!error) {
 		if (!decode_uint32_t(dc, &nbytes)
 		    || (nbytes > args->count))
@@ -591,7 +578,6 @@ int zfsd_write(write_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_write_zfsd(&dc, args);
-
 	if (!error) {
 		if (!decode_write_res(dc, &res)
 		    || (res.written > args->data.len)
@@ -622,7 +608,6 @@ int zfsd_readpage(char *buf, read_args *args)
 		return -ENOMEM;
 
 	error = zfs_proc_read_zfsd(&dc, args);
-
 	if (!error) {
 		if (!decode_uint32_t(dc, &nbytes)
 		    || (nbytes > args->count))

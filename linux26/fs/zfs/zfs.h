@@ -49,10 +49,13 @@
 
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 
-#define ROTATE_LEFT(x, nbites) ((x << nbites) | (x >> (32 - nbites)))
-#define HASH(fh) (ROTATE_LEFT(fh->sid, 22) ^ ROTATE_LEFT(fh->dev, 12) ^ fh->ino)
+#define ZFS_DENTRY_MAXAGE 10
 
 #define CAP(p) ((zfs_cap *)p)
+#define COOKIE(p) ((int32_t *)&((zfs_cap *)p)[1])
+
+#define ROTATE_LEFT(x, nbites) ((x << nbites) | (x >> (32 - nbites)))
+#define HASH(fh) (ROTATE_LEFT(fh->sid, 22) ^ ROTATE_LEFT(fh->dev, 12) ^ fh->ino)
 
 #define ZFS_I(inode) ((struct zfs_inode_info *)inode)
 struct zfs_inode_info {
