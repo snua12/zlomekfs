@@ -25,17 +25,21 @@
 #include "system.h"
 #include <stdio.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include "zfs_prot.h"
 #include "log.h"
 
 /* The host name of local node.  */
 extern char *node_name;
 
-/* Directory with node configuration. */
+/* Directory with node configuration.  */
 extern char *node_config;
 
-/* Direcotry with cluster configuration. */
+/* Direcotry with cluster configuration.  */
 extern char *cluster_config;
+
+/* RW-lock for access to configuration.  */
+extern pthread_rwlock_t lock_config;
 
 /* Node description.  */
 typedef struct node_def
@@ -45,8 +49,10 @@ typedef struct node_def
   				/* public key */
   int flags;			/* see NODE_* below */
 } *node;
-#define NODE_LOCAL		1	/* the node is local node */
-#define NODE_ADDR_RESOLVED	2	/* the address of node is resolved  */
+#define NODE_DELETE		1	/* the node should be deleted from
+					   memory datastructures  */
+#define NODE_LOCAL		2	/* the node is local node */
+#define NODE_ADDR_RESOLVED	4	/* the address of node is resolved  */
 
 /* Volume description.  */
 typedef struct volume_def
@@ -60,8 +66,10 @@ typedef struct volume_def
   uint64_t size_limit;
 } *volume;
 
-#define VOLUME_LOCAL	1	/* this volume is located on local node */
-#define VOLUME_COPY	2	/* this is a copy of a volume */
+#define VOLUME_DELETE	1	/* the volume should be deleted from memory
+				   datastructures  */
+#define VOLUME_LOCAL	2	/* this volume is located on local node */
+#define VOLUME_COPY	4	/* this is a copy of a volume */
 
 extern int read_config(const char *file);
 
