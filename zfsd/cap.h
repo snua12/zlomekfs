@@ -55,7 +55,7 @@ typedef struct internal_cap_def
 /* Mutex for cap_pool and cap_htab.  */
 extern pthread_mutex_t cap_mutex;
 
-extern internal_cap internal_cap_lookup (internal_fh fh, unsigned int mode);
+extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			   internal_fh *ifh, virtual_dir *vd);
 extern int find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
