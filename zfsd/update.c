@@ -1304,8 +1304,9 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 		   && attr->version > dentry->fh->meta.master_version);
 
   conflict = dentry->parent;
-  acquire_dentry (conflict);
-  if (CONFLICT_DIR_P (conflict->fh->local_fh))
+  if (conflict)
+    acquire_dentry (conflict);
+  if (conflict && CONFLICT_DIR_P (conflict->fh->local_fh))
     {
       if (want_conflict)
 	{
@@ -1345,7 +1346,8 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
       else
 	release_dentry (dentry);
 
-      release_dentry (parent);
+      if (parent)
+	release_dentry (parent);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
     }
