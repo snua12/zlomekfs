@@ -2231,7 +2231,6 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   void **slot, **slot2;
   file_info_res info;
   fh_mapping map;
-  bool want_conflict;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -2315,7 +2314,6 @@ update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  if (r != ZFS_OK)
 	    goto out;
 
-	  want_conflict = true;
 	  if (ZFS_FH_EQ (meta.master_fh, remote_res.file))
 	    {
 	      bool same;
