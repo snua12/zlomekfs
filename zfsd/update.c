@@ -546,7 +546,7 @@ out:
    be updated.  Store remote attributes to ATTR.  */
 
 int
-update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
+update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
 
@@ -1066,12 +1066,12 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   return r;
 }
 
-/* Update the directory *DIRP on volume *VOLP with file handle FH,
+/* Update the directory DIR on volume VOL with file handle FH,
    set attributes according to ATTR.
    HOW are the flags what we should do.  */
 
 int32_t
-update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr, int how)
+update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr, int how)
 {
   int32_t r, r2;
   internal_dentry dentry, parent;
