@@ -1429,6 +1429,7 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 
   if (dentry->fh->attr.type == FT_DIR)
     {
+      internal_dentry conflict;
       journal_entry entry, next;
       dir_op_res local_res;
       dir_op_res res;
@@ -1479,7 +1480,20 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 
 		if (r == ZFS_OK)
 		  {
-		    /* TODO: create conflict */
+		    if (local_res.attr.type != FT_DIR
+			|| res.attr.type != FT_DIR)
+		      {
+			conflict = create_conflict (vol, dentry,
+						    entry->name.str,
+						    &local_res.file,
+						    &local_res.attr);
+			add_file_to_conflict_dir (vol, conflict, true,
+						  &local_res.file,
+						  &local_res.attr, &meta);
+			add_file_to_conflict_dir (vol, conflict, true,
+						  &res.file, &res.attr, NULL);
+			release_dentry (conflict);
+		      }
 		  }
 		else if (r == ENOENT || r == ESTALE)
 		  {
@@ -1629,7 +1643,16 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 		      }
 		    else
 		      {
-			/* TODO: create conflict */
+			local_res.file.sid = this_node->id;
+			conflict = create_conflict (vol, dentry,
+						    entry->name.str,
+						    &res.file, &res.attr);
+			add_file_to_conflict_dir (vol, conflict, true,
+						  &res.file, &res.attr, NULL);
+			add_file_to_conflict_dir (vol, conflict, false,
+						  &local_res.file, &res.attr,
+						  NULL);
+			release_dentry (conflict);
 		      }
 		  }
 		else if (r == ENOENT || r == ESTALE)
