@@ -78,6 +78,7 @@ struct thread_def;
 
 extern void server_worker_init (struct thread_def *t);
 extern void server_worker_cleanup (void *data);
+extern bool node_connected_p (node nod);
 extern void send_request (struct thread_def *t, uint32_t request_id, node nod);
 extern int create_server_threads ();
 #ifdef RPC

@@ -302,6 +302,30 @@ node_authenticate_error:
   return false;
 }
 
+/* If node NOD is connected return true and lock SERVER_FD_DATA[NOD->FD].MUTEX.
+   This function expects NOD->MUTEX to be locked.  */
+
+bool
+node_connected_p (node nod)
+{
+#ifdef ENABLE_CHECKING
+  if (pthread_mutex_trylock (&nod->mutex) == 0)
+    abort ();
+#endif
+
+  if (nod->fd < 0)
+    return false;
+
+  pthread_mutex_lock (&server_fd_data[nod->fd].mutex);
+  if (nod->generation != server_fd_data[nod->fd].generation)
+    {
+      pthread_mutex_unlock (&server_fd_data[nod->fd].mutex);
+      return false;
+    }
+
+  return true;
+}
+
 /* Connect to node NOD, return open file descriptor.  */
 
 static int
