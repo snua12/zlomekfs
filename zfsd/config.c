@@ -319,17 +319,19 @@ read_local_cluster_config (const char *path)
   if (path == NULL || *path == 0)
     {
       message (0, stderr,
-	       "The directory with configuration of local node is not specified in configuration file.\n");
+	       "The directory with configuration of local node is not specified"
+	       "in configuration file.\n");
       return false;
     }
   message (2, stderr, "Reading configuration of local node\n");
 
-  volumes = xstrconcat (2, path, "/volumes");
+  volumes = xstrconcat (2, path, "/volume_info");
   f = fopen (volumes, "rt");
   if (!f)
     {
       message (-1, stderr, "%s: %s\n", volumes, strerror (errno));
       free (volumes);
+      return false;
     }
   else
     {
@@ -345,9 +347,37 @@ read_local_cluster_config (const char *path)
 	  line_num++;
 	  if (split_and_trim (line, 3, parts) == 3)
 	    {
+	      volume vol;
+	      uint32_t id;
+	      uint64_t size_limit;
+
 	      /* 0 ... ID
-	         1 ... localpath
-	         2 ... sizelimit */
+	         1 ... local path
+	         2 ... size limit */
+	      if (sscanf (parts[0].str, "%" PRIu32, &id) != 1
+		  || sscanf (parts[2].str, "%" PRIu64, &size_limit) != 1)
+		{
+		  message (0, stderr, "%s:%d: Wrong format of line\n", volumes,
+			   line_num);
+		}
+	      else if (parts[1].str[0] != '/')
+		{
+		  message (0, stderr,
+			   "%s:%d: Local path must be an absolute path\n",
+			   volumes, line_num);
+		}
+	      else
+		{
+		  zfsd_mutex_lock (&fh_mutex);
+		  zfsd_mutex_lock (&volume_mutex);
+		  vol = volume_create (id);
+		  if (volume_set_local_info (vol, &parts[1], size_limit))
+		    zfsd_mutex_unlock (&vol->mutex);
+		  else
+		    volume_delete (vol);
+		  zfsd_mutex_unlock (&volume_mutex);
+		  zfsd_mutex_unlock (&fh_mutex);
+		}
 	    }
 	  else
 	    {
