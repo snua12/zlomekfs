@@ -66,7 +66,7 @@
 	how = update_p (&(VOL), &(DENTRY), &(FH), &remote_attr);	\
 	if (how)							\
 	  {								\
-	    r = update_fh ((VOL), (DENTRY), &(FH), &remote_attr, how);	\
+	    r = update ((VOL), (DENTRY), &(FH), &remote_attr, how);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
 				       false);				\
@@ -84,7 +84,7 @@
 
 /* Update generic file DENTRY on volume VOL if needed.
    DENTRY and DENTRY2 are locked before and after this macro.
-   DENTRY2 might be deleted in update_fh.  */
+   DENTRY2 might be deleted in update.  */
 #define UPDATE_FH_IF_NEEDED_2(VOL, DENTRY, DENTRY2, FH, FH2)		\
   do {									\
     fattr remote_attr;							\
@@ -104,7 +104,7 @@
 	how = update_p (&(VOL), &(DENTRY), &(FH), &remote_attr);	\
 	if (how)							\
 	  {								\
-	    r = update_fh ((VOL), (DENTRY), &(FH), &remote_attr, how);	\
+	    r = update ((VOL), (DENTRY), &(FH), &remote_attr, how);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
 				       false);				\
@@ -182,7 +182,7 @@
 	how = update_p (&(VOL), &(DENTRY), &tmp_fh, &remote_attr);	\
 	if (how)							\
 	  {								\
-	    r = update_fh ((VOL), (DENTRY), &tmp_fh, &remote_attr, how);\
+	    r = update ((VOL), (DENTRY), &tmp_fh, &remote_attr, how);	\
 									\
 	    if (VIRTUAL_FH_P ((CAP).fh))				\
 	      zfsd_mutex_lock (&vd_mutex);				\
@@ -224,8 +224,8 @@ extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks);
 extern int update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 		     fattr *attr);
-extern int32_t update_fh (volume vol, internal_dentry dentry, zfs_fh *fh,
-			  fattr *attr, int how);
+extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
+		       fattr *attr, int how);
 
 extern bool update_start (void);
 extern void update_cleanup (void);

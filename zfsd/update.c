@@ -1067,11 +1067,10 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 }
 
 /* Update the directory DIR on volume VOL with file handle FH,
-   set attributes according to ATTR.
-   HOW are the flags what we should do.  */
+   set attributes according to ATTR.  */
 
-int32_t
-update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr, int how)
+static int32_t
+update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
   internal_dentry dentry, parent;
@@ -1089,17 +1088,7 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr, int how)
     abort ();
   if (attr->type != dir->fh->attr.type && !dir->parent)
     abort ();
-  if (how == 0)
-    abort ();
 #endif
-
-  if ((how & IFH_UPDATE) == 0)
-    {
-      release_dentry (dir);
-      zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_unlock (&fh_mutex);
-      return ZFS_OK;
-    }
 
   parent = dir->parent;
   if (parent)
@@ -1334,6 +1323,69 @@ out:
   zfsd_mutex_unlock (&vol->mutex);
   htab_destroy (local_entries.htab);
   htab_destroy (remote_entries.htab);
+  return r;
+}
+
+static int32_t
+reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
+{
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
+    abort ();
+  if (attr->type != dentry->fh->attr.type && !dentry->parent)
+    abort ();
+#endif
+
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  return ZFS_OK;
+}
+
+/* Reintegrate or update generic file DENTRY on volume VOL with file handle FH
+   and remote file attributes ATTR.  HOW specifies what we should do.  */
+
+int32_t
+update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
+{
+  int32_t r;
+
+  if (how & IFH_REINTEGRATE)
+    {
+      r = reintegrate_fh (vol, dentry, fh, attr);
+      if (r != ZFS_OK)
+	return r;
+
+      if (how & IFH_UPDATE)
+	{
+	  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
+	  if (r != ZFS_OK)
+	    return r;
+
+	  how = update_p (&vol, &dentry, fh, attr);
+	  if ((how & (IFH_REINTEGRATE | IFH_UPDATE)) == IFH_UPDATE)
+	    {
+	      r = update_fh (vol, dentry, fh, attr);
+	    }
+	  else
+	    {
+	      release_dentry (dentry);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
+	    }
+	}
+    }
+  else if (how & IFH_UPDATE)
+    {
+      r = update_fh (vol, dentry, fh, attr);
+    }
+  else
+    abort ();
+
   return r;
 }
 
