@@ -1,5 +1,6 @@
 /* ZFS protocol.
    Copyright (C) 2003, 2004 Josef Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 

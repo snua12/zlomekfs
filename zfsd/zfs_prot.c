@@ -1,5 +1,6 @@
 /* ZFS protocol.
    Copyright (C) 2003, 2004 Josef Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -830,6 +831,8 @@ cleanup_zfs_prot_c (void)
 
 #else  /* !__KERNEL__ */
 
+/* Convert ZFS error to system error */
+
 static int zfs_error(int error)
 {
 	if (error > 0)
@@ -859,6 +862,8 @@ static int zfs_error(int error)
 	}
 }
 
+/* Call ZFSd FUNCTION with ARGS using data structures in DC
+   and return its error code. */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)	\
 int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 {								\

@@ -1,5 +1,6 @@
 /* Data coding functions (encoding and decoding requests and replies).
    Copyright (C) 2003, 2004 Josef Zlomek
+   Copyright (C) 2004 Martin Zlomek
 
    This file is part of ZFS.
 
@@ -69,7 +70,7 @@ dc_create (void)
 #ifdef __KERNEL__
   dc = (DC *) vmalloc (sizeof (DC));
   if (dc) {
-    TRACE("zfs: dc_create: %d DCs allocated\n", ++allocated);
+    TRACE("%d DCs allocated", ++allocated);
     dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
   }
 #else
@@ -86,7 +87,7 @@ void
 dc_destroy (DC *dc)
 {
 #ifdef __KERNEL__
-  TRACE("zfs: dc_destroy: %d DCs allocated\n", --allocated);
+  TRACE("%d DCs allocated", --allocated);
   vfree (dc);
 #else
   free (dc);
