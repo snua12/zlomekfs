@@ -324,8 +324,8 @@ extern bool internal_dentry_move (internal_dentry dentry, volume vol,
 				  internal_dentry dir, char *name);
 extern void internal_dentry_destroy (internal_dentry dentry,
 				     bool clear_volume_root);
-extern void print_fh_htab (FILE *f, htab_t htab);
-extern void debug_fh_htab (htab_t htab);
+extern void print_fh_htab (FILE *f);
+extern void debug_fh_htab ();
 
 extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);
 extern void virtual_dir_destroy (virtual_dir vd);

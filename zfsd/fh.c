@@ -1057,11 +1057,11 @@ internal_fh_destroy_stage2 (internal_fh fh)
 /* Print the contents of hash table HTAB to file F.  */
 
 void
-print_fh_htab (FILE *f, htab_t htab)
+print_fh_htab (FILE *f)
 {
   void **slot;
 
-  HTAB_FOR_EACH_SLOT (htab, slot,
+  HTAB_FOR_EACH_SLOT (fh_htab, slot,
     {
       internal_fh fh = (internal_fh) *slot;
 
@@ -1069,6 +1069,7 @@ print_fh_htab (FILE *f, htab_t htab)
 	       fh->local_fh.dev, fh->local_fh.ino);
       fprintf (f, "[%u,%u,%u,%u] ", fh->master_fh.sid, fh->master_fh.vid,
 	       fh->master_fh.dev, fh->master_fh.ino);
+      fprintf (f, "L%d ", fh->level);
       fprintf (f, "\n");
     });
 }
@@ -1076,9 +1077,9 @@ print_fh_htab (FILE *f, htab_t htab)
 /* Print the contents of hash table of filehandles HTAB to STDERR.  */
 
 void
-debug_fh_htab (htab_t htab)
+debug_fh_htab ()
 {
-  print_fh_htab (stderr, htab);
+  print_fh_htab (stderr);
 }
 
 /* Create a new internal dentry NAME in directory PARENT on volume VOL and
