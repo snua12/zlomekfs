@@ -395,10 +395,7 @@ main (int argc, char **argv)
 
   daemon_mode ();
 
-  /* Initialize information about network file descriptors.  */
-  if (!init_network_fd_data ())
-    die ();
-
+  /* Start the threads.  */
   network_started = network_start ();
   kernel_started = kernel_start ();
 

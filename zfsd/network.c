@@ -838,87 +838,16 @@ retry_accept:
   return NULL;
 }
 
-/* Create a listening socket and start the main network thread.  */
-
-bool
-network_start ()
-{
-  socklen_t socket_options;
-  struct sockaddr_in sa;
-
-  /* Create a listening socket.  */
-  main_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (main_socket < 0)
-    {
-      message (-1, stderr, "socket(): %s\n", strerror (errno));
-      network_destroy_fd_data ();
-      return false;
-    }
-
-  /* Reuse the port.  */
-  socket_options = 1;
-  if (setsockopt (main_socket, SOL_SOCKET, SO_REUSEADDR, &socket_options,
-	      sizeof (socket_options)) != 0)
-    {
-      message (-1, stderr, "setsockopt(): %s\n", strerror (errno));
-      close (main_socket);
-      network_destroy_fd_data ();
-      return false;
-    }
-
-  /* Bind the socket to ZFS_PORT.  */
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons (ZFS_PORT);
-  sa.sin_addr.s_addr = htonl (INADDR_ANY);
-  if (bind (main_socket, (struct sockaddr *) &sa, sizeof (sa)))
-    {
-      message (-1, stderr, "bind(): %s\n", strerror (errno));
-      close (main_socket);
-      network_destroy_fd_data ();
-      return false;
-    }
-
-  /* Set the queue for incoming connections.  */
-  if (listen (main_socket, SOMAXCONN) != 0)
-    {
-      message (-1, stderr, "listen(): %s\n", strerror (errno));
-      close (main_socket);
-      network_destroy_fd_data ();
-      return false;
-    }
-
-  if (!thread_pool_create (&network_pool, 256, 4, 16, network_worker,
-		      network_worker_init))
-    {
-      free (network_fd_data);
-      close (main_socket);
-      network_destroy_fd_data ();
-      return false;
-    }
-
-  /* Create the main network thread.  */
-  if (pthread_create (&main_network_thread, NULL, network_main, NULL))
-    {
-      message (-1, stderr, "pthread_create() failed\n");
-      free (network_fd_data);
-      close (main_socket);
-      network_destroy_fd_data ();
-      return false;
-    }
-
-  return true;
-}
-
 /* Initialize information about network file descriptors.  */
 
-bool
+static void
 init_network_fd_data ()
 {
   int i;
 
   zfsd_mutex_init (&active_mutex);
   network_fd_data = (network_fd_data_t *) xcalloc (max_nfd,
-						 sizeof (network_fd_data_t));
+						   sizeof (network_fd_data_t));
   for (i = 0; i < max_nfd; i++)
     {
       zfsd_mutex_init (&network_fd_data[i].mutex);
@@ -926,15 +855,14 @@ init_network_fd_data ()
     }
 
   nactive = 0;
-  active = (network_fd_data_t **) xmalloc (max_nfd * sizeof (network_fd_data_t));
-
-  return true;
+  active = (network_fd_data_t **) xmalloc (max_nfd
+					   * sizeof (network_fd_data_t));
 }
 
 /* Destroy information about network file descriptors.  */
 
-void
-network_destroy_fd_data ()
+static void
+destroy_network_fd_data ()
 {
   int i;
 
@@ -955,6 +883,75 @@ network_destroy_fd_data ()
 
   free (active);
   free (network_fd_data);
+}
+
+/* Create a listening socket and start the main network thread.  */
+
+bool
+network_start ()
+{
+  socklen_t socket_options;
+  struct sockaddr_in sa;
+
+  /* Create a listening socket.  */
+  main_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (main_socket < 0)
+    {
+      message (-1, stderr, "socket(): %s\n", strerror (errno));
+      return false;
+    }
+
+  /* Reuse the port.  */
+  socket_options = 1;
+  if (setsockopt (main_socket, SOL_SOCKET, SO_REUSEADDR, &socket_options,
+	      sizeof (socket_options)) != 0)
+    {
+      message (-1, stderr, "setsockopt(): %s\n", strerror (errno));
+      close (main_socket);
+      return false;
+    }
+
+  /* Bind the socket to ZFS_PORT.  */
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons (ZFS_PORT);
+  sa.sin_addr.s_addr = htonl (INADDR_ANY);
+  if (bind (main_socket, (struct sockaddr *) &sa, sizeof (sa)))
+    {
+      message (-1, stderr, "bind(): %s\n", strerror (errno));
+      close (main_socket);
+      return false;
+    }
+
+  /* Set the queue for incoming connections.  */
+  if (listen (main_socket, SOMAXCONN) != 0)
+    {
+      message (-1, stderr, "listen(): %s\n", strerror (errno));
+      close (main_socket);
+      return false;
+    }
+
+  init_network_fd_data ();
+
+  if (!thread_pool_create (&network_pool, 256, 4, 16, network_worker,
+		      network_worker_init))
+    {
+      free (network_fd_data);
+      close (main_socket);
+      destroy_network_fd_data ();
+      return false;
+    }
+
+  /* Create the main network thread.  */
+  if (pthread_create (&main_network_thread, NULL, network_main, NULL))
+    {
+      message (-1, stderr, "pthread_create() failed\n");
+      free (network_fd_data);
+      close (main_socket);
+      destroy_network_fd_data ();
+      return false;
+    }
+
+  return true;
 }
 
 /* Terminate network threads and destroy data structures.  */
@@ -988,5 +985,5 @@ network_cleanup ()
     }
 
   thread_pool_destroy (&network_pool);
-  network_destroy_fd_data ();
+  destroy_network_fd_data ();
 }
