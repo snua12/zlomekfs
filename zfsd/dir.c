@@ -3259,14 +3259,10 @@ local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 
   path = get_local_path_from_metadata (vol, fh);
   if (!path)
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      return ENOENT;
-    }
+    return ENOENT;
 
   xmkstring (&res->path, local_path_to_relative_path (vol, path));
   free (path);
-  zfsd_mutex_unlock (&vol->mutex);
 
   return ZFS_OK;
 }
@@ -3339,7 +3335,10 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
     return ENOENT;
 
   if (vol->local_path)
-    r = local_file_info (res, fh, vol);
+    {
+      r = local_file_info (res, fh, vol);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&vol->mutex);
