@@ -644,6 +644,7 @@ test_zfs (void)
       /* Initialize testing thread data.  */
       semaphore_init (&testing_thread_data.sem, 0);
       network_worker_init (&testing_thread_data);
+      testing_thread_data.from_sid = this_node->id;
 
       if (pthread_create (&id, NULL, do_tests, &testing_thread_data))
 	message (-1, stderr, "pthread_create() failed\n");
