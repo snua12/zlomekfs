@@ -78,12 +78,6 @@ typedef struct network_fd_data_def
 /* Pool of network threads.  */
 extern thread_pool network_pool;
 
-/* Thread ID of the main network thread (thread receiving data from sockets).  */
-extern pthread_t main_network_thread;
-
-/* This mutex is locked when main network thread is in poll.  */
-extern pthread_mutex_t main_network_thread_in_syscall;
-
 /* The array of data for each file descriptor.  */
 extern network_fd_data_t *network_fd_data;
 

@@ -21,6 +21,7 @@
 #include "system.h"
 #include <stddef.h>
 #include <unistd.h>
+#include <errno.h>
 #include <signal.h>
 #include "pthread.h"
 #include "constant.h"
@@ -69,26 +70,89 @@ get_running ()
   return value;
 }
 
-/* Terminate blocking syscall in THREAD.  We mark the blocking syscall by
+/* Shall the worker threads terminate?  */
+
+bool
+thread_pool_terminate_p (thread_pool *pool)
+{
+  bool value;
+
+  zfsd_mutex_lock (&running_mutex);
+  value = pool->terminate;
+  zfsd_mutex_unlock (&running_mutex);
+
+  return value;
+}
+
+/* Terminate blocking syscall in thread *THID.  We mark the blocking syscall by
    locking MUTEX.  */
 
 void
-thread_terminate_blocking_syscall (pthread_t thid, pthread_mutex_t *mutex)
+thread_terminate_blocking_syscall (volatile pthread_t *thid,
+				   pthread_mutex_t *mutex)
 {
   int i;
   unsigned long delay = 1;
 
+  zfsd_mutex_lock (&running_mutex);
+
+  if (*thid == 0)
+    {
+      zfsd_mutex_unlock (&running_mutex);
+      return;
+    }
+
   /* While MUTEX is locked try to terminate syscall.  */
   for (i = 0; i < 3 && pthread_mutex_trylock (mutex) != 0; i++)
     {
+      zfsd_mutex_unlock (&running_mutex);
       usleep (delay);
+      zfsd_mutex_lock (&running_mutex);
+
+      if (*thid == 0)
+	{
+	  zfsd_mutex_unlock (&running_mutex);
+	  return;
+	}
+
       delay *= 500;
       if (pthread_mutex_trylock (mutex) != 0)
-	pthread_kill (thid, SIGUSR1);
+	{
+	  message (3, stderr, "killing %lu\n", *thid);
+	  pthread_kill (*thid, SIGUSR1);
+	}
       else
 	break;
     }
   pthread_mutex_unlock (mutex);
+
+  zfsd_mutex_unlock (&running_mutex);
+}
+
+/* Wait for thread *THID to die and store its return value to RET.  */
+
+int
+wait_for_thread_to_die (volatile pthread_t *thid, void **ret)
+{
+  pthread_t id;
+  int r;
+
+  zfsd_mutex_lock (&running_mutex);
+  id = *thid;
+  zfsd_mutex_unlock (&running_mutex);
+
+  if (id == 0)
+    return ESRCH;
+
+  message (3, stderr, "joining %lu\n", id);
+  r = pthread_join (id, ret);
+
+  /* Disable destroying this thread.  */
+  zfsd_mutex_lock (&running_mutex);
+  id = 0;
+  zfsd_mutex_unlock (&running_mutex);
+
+  return r;
 }
 
 /* Get state of thread T.  */
@@ -121,15 +185,22 @@ set_thread_state (thread *t, thread_state state)
 bool
 thread_pool_create (thread_pool *pool, size_t max_threads,
 		    size_t min_spare_threads, size_t max_spare_threads,
-		    thread_start start, thread_initialize init)
+		    thread_start main_start,
+		    thread_start worker_start, thread_init worker_init)
 {
   size_t i;
   int r;
 
 #ifdef ENABLE_CHECKING
+  if (pool->main_thread != 0)
+    abort ();
   if (pool->regulator_thread != 0)
     abort ();
 #endif
+
+  pool->terminate = !get_running ();
+  if (pool->terminate)
+    return false;
 
   pool->min_spare_threads = min_spare_threads;
   pool->max_spare_threads = max_spare_threads;
@@ -138,8 +209,9 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   pool->threads = (padded_thread *) ALIGN_PTR_256 (pool->unaligned_array);
   queue_create (&pool->idle, sizeof (size_t), max_threads);
   queue_create (&pool->empty, sizeof (size_t), max_threads);
-  pool->start = start;
-  pool->init = init;
+  pool->worker_start = worker_start;
+  pool->worker_init = worker_init;
+  zfsd_mutex_init (&pool->main_in_syscall);
   zfsd_mutex_init (&pool->regulator_in_syscall);
 
   zfsd_mutex_lock (&pool->empty.mutex);
@@ -168,8 +240,8 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   zfsd_mutex_unlock (&pool->idle.mutex);
 
   /* Create thread pool regulator.  */
-  r = pthread_create (&pool->regulator_thread, NULL, thread_pool_regulator,
-		      (void *) pool);
+  r = pthread_create ((pthread_t *) &pool->regulator_thread, NULL,
+		      thread_pool_regulator, pool);
   if (r != 0)
     {
       message (-1, stderr, "pthread_create() failed\n");
@@ -177,7 +249,34 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
       return false;
     }
 
+  /* Create main thread pool.  */
+  r = pthread_create ((pthread_t *) &pool->main_thread, NULL,
+		      main_start, pool);
+  if (r != 0)
+    {
+      message (-1, stderr, "pthread_create() failed\n");
+      thread_pool_terminate (pool);
+      thread_pool_destroy (pool);
+      return false;
+    }
+
   return true;
+}
+
+/* Terminate the main and regulator threads in thread pool POOL
+   and tell worker threads to finish.  */
+
+void
+thread_pool_terminate (thread_pool *pool)
+{
+  zfsd_mutex_lock (&running_mutex);
+  pool->terminate = true;	/* used in main thread to finish */
+  zfsd_mutex_unlock (&running_mutex);
+
+  thread_terminate_blocking_syscall (&pool->main_thread,
+				     &pool->main_in_syscall);
+  thread_terminate_blocking_syscall (&pool->regulator_thread,
+				     &pool->regulator_in_syscall);
 }
 
 /* Destroy thread pool POOL - terminate idle threads, wait for active threads to
@@ -188,6 +287,12 @@ thread_pool_destroy (thread_pool *pool)
 {
   size_t i;
 
+  wait_for_thread_to_die (&pool->main_thread, NULL);
+  wait_for_thread_to_die (&pool->regulator_thread, NULL);
+  zfsd_mutex_destroy (&pool->main_in_syscall);
+  zfsd_mutex_destroy (&pool->regulator_in_syscall);
+
+  /* Wait until all worker threads are idle and destroy them.  */
   zfsd_mutex_lock (&pool->idle.mutex);
   zfsd_mutex_lock (&pool->empty.mutex);
 
@@ -237,12 +342,12 @@ create_idle_thread (thread_pool *pool)
     }
 
   t->state = THREAD_IDLE;
-  r = pthread_create (&t->thread_id, NULL, pool->start, t);
+  r = pthread_create (&t->thread_id, NULL, pool->worker_start, t);
   if (r == 0)
     {
       /* Call the initializer before we put the thread to the idle queue.  */
-      if (pool->init)
-	(*pool->init) (t);
+      if (pool->worker_init)
+	(*pool->worker_init) (t);
 
       queue_put (&pool->idle, &index);
     }
@@ -342,24 +447,18 @@ thread_pool_regulator (void *data)
 
   thread_disable_signals ();
 
-  while (get_running ())
+  while (!thread_pool_terminate_p (pool))
     {
       zfsd_mutex_lock (&pool->regulator_in_syscall);
-      if (get_running ())
+      if (!thread_pool_terminate_p (pool))
 	sleep (THREAD_POOL_REGULATOR_INTERVAL);
       zfsd_mutex_unlock (&pool->regulator_in_syscall);
-      if (!get_running ())
+      if (thread_pool_terminate_p (pool))
 	break;
       zfsd_mutex_lock (&pool->idle.mutex);
       thread_pool_regulate (pool);
       zfsd_mutex_unlock (&pool->idle.mutex);
     }
 
-  /* Disable signaling this thread. */
-  zfsd_mutex_lock (&running_mutex);
-  pool->regulator_thread = 0;
-  zfsd_mutex_unlock (&running_mutex);
-
-  zfsd_mutex_destroy (&pool->regulator_in_syscall);
   return NULL;
 }

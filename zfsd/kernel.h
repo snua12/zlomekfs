@@ -28,12 +28,6 @@
 /* Pool of kernel threads (threads communicating with kernel).  */
 extern thread_pool kernel_pool;
 
-/* Thread ID of the main kernel thread (thread receiving data from socket).  */
-extern pthread_t main_kernel_thread;
-
-/* This mutex is locked when main kernel thread is in poll.  */
-extern pthread_mutex_t main_kernel_thread_in_syscall;
-
 extern bool kernel_start ();
 extern void kernel_cleanup ();
 

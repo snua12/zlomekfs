@@ -60,12 +60,6 @@ typedef struct kernel_fd_data_def
 /* Pool of kernel threads (threads communicating with kernel).  */
 thread_pool kernel_pool;
 
-/* Thread ID of the main kernel thread (thread receiving data from sockets).  */
-pthread_t main_kernel_thread;
-
-/* This mutex is locked when main kernel thread is in poll.  */
-pthread_mutex_t main_kernel_thread_in_syscall;
-
 /* File descriptor of file communicating with kernel.  */
 static int kernel_file;
 
@@ -289,15 +283,15 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
   thread_disable_signals ();
 
-  while (get_running ())
+  while (!thread_pool_terminate_p (&kernel_pool))
     {
       pfd.fd = kernel_file;
       pfd.events = CAN_READ;
 
       message (2, stderr, "Polling\n");
-      zfsd_mutex_lock (&main_kernel_thread_in_syscall);
+      zfsd_mutex_lock (&kernel_pool.main_in_syscall);
       r = poll (&pfd, 1, -1);
-      zfsd_mutex_unlock (&main_kernel_thread_in_syscall);
+      zfsd_mutex_unlock (&kernel_pool.main_in_syscall);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
 
       if (r < 0 && errno != EINTR)
@@ -306,7 +300,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 	  break;
 	}
 
-      if (!get_running ())
+      if (thread_pool_terminate_p (&kernel_pool))
 	{
 	  message (2, stderr, "Terminating\n");
 	  break;
@@ -414,17 +408,9 @@ kernel_start ()
       return false;
     }
 
-  if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_worker,
-			     kernel_worker_init))
+  if (!thread_pool_create (&kernel_pool, 256, 4, 16, kernel_main,
+			   kernel_worker, kernel_worker_init))
     {
-      close (kernel_file);
-      return false;
-    }
-
-  /* Create the main kernel thread.  */
-  if (pthread_create (&main_kernel_thread, NULL, kernel_main, NULL))
-    {
-      message (-1, stderr, "pthread_create() failed\n");
       close (kernel_file);
       return false;
     }

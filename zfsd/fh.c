@@ -304,11 +304,6 @@ cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
       cleanup_unused_dentries ();
     }
 
-  /* Disable signaling this thread. */
-  zfsd_mutex_lock (&running_mutex);
-  cleanup_dentry_thread = 0;
-  zfsd_mutex_unlock (&running_mutex);
-
   zfsd_mutex_destroy (&cleanup_dentry_thread_in_syscall);
   return NULL;
 }
@@ -1950,6 +1945,8 @@ void
 cleanup_fh_c ()
 {
   virtual_root_destroy (root);
+
+  wait_for_thread_to_die (&cleanup_dentry_thread, NULL);
 
   /* Data structures for file handles and dentries.  */
   zfsd_mutex_lock (&fh_mutex);

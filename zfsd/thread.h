@@ -110,11 +110,13 @@ typedef union padded_thread_def
 typedef void *(*thread_start) (void *);
 
 /* Type of thread initializer.  */
-typedef void (*thread_initialize) (thread *);
+typedef void (*thread_init) (thread *);
 
 /* Definition of thread pool.  */
 typedef struct thread_pool_def
 {
+  volatile bool terminate;	/* shall threads in this pool terminate? */
+
   size_t min_spare_threads;	/* minimal number of spare threads */
   size_t max_spare_threads;	/* maximal number of spare threads */
   size_t size;			/* total number of slots for threads */
@@ -122,11 +124,15 @@ typedef struct thread_pool_def
   padded_thread *threads;	/* thread slots, previous pointer aligned */
   queue idle;			/* queue of idle threads */
   queue empty;			/* queue of empty thread slots */
-  thread_start start;		/* start routine of the worker thread */
-  thread_initialize init;	/* initialization routine */
+  thread_start worker_start;	/* start routine of the worker thread */
+  thread_init worker_init;	/* initialization routine for worker thread */
+
+  /* Data for main thread.  */
+  volatile pthread_t main_thread;	/* thread ID of the main thread */
+  pthread_mutex_t main_in_syscall;	/* main thread is in blocking syscall */
 
   /* Data for thread pool regulator.  */
-  pthread_t regulator_thread;		/* thread ID of the regulator */
+  volatile pthread_t regulator_thread;	/* thread ID of the regulator */
   pthread_mutex_t regulator_in_syscall;	/* regulator is in blocking syscall */
 } thread_pool;
 
@@ -139,13 +145,19 @@ typedef struct waiting4reply_data_def
 } waiting4reply_data;
 
 extern bool get_running ();
-extern void thread_terminate_blocking_syscall (pthread_t thid, pthread_mutex_t *mutex);
+extern bool thread_pool_terminate_p (thread_pool *pool);
+extern void thread_terminate_blocking_syscall (volatile pthread_t *thid,
+					       pthread_mutex_t *mutex);
+extern int wait_for_thread_to_die (volatile pthread_t *thid, void **ret);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
 extern bool thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
 				size_t max_spare_threads,
-				thread_start start, thread_initialize init);
+				thread_start main_start,
+				thread_start worker_start,
+				thread_init worker_init);
+extern void thread_pool_terminate (thread_pool *pool);
 extern void thread_pool_destroy (thread_pool *pool);
 extern int create_idle_thread (thread_pool *pool);
 extern int destroy_idle_thread (thread_pool *pool);

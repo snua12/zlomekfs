@@ -87,23 +87,17 @@ static void
 exit_sighandler (ATTRIBUTE_UNUSED int signum)
 {
   message (2, stderr, "Entering exit_sighandler\n");
+
   zfsd_mutex_lock (&running_mutex);
   running = false;
-
-  thread_terminate_blocking_syscall (main_kernel_thread,
-				     &main_kernel_thread_in_syscall);
-  thread_terminate_blocking_syscall (main_network_thread,
-				     &main_network_thread_in_syscall);
-  if (kernel_pool.regulator_thread)
-    thread_terminate_blocking_syscall (kernel_pool.regulator_thread,
-				       &kernel_pool.regulator_in_syscall);
-  if (network_pool.regulator_thread)
-    thread_terminate_blocking_syscall (network_pool.regulator_thread,
-				       &network_pool.regulator_in_syscall);
-  if (cleanup_dentry_thread)
-    thread_terminate_blocking_syscall (cleanup_dentry_thread,
-				       &cleanup_dentry_thread_in_syscall);
   zfsd_mutex_unlock (&running_mutex);
+
+  thread_pool_terminate (&kernel_pool);
+  thread_pool_terminate (&network_pool);
+
+  thread_terminate_blocking_syscall (&cleanup_dentry_thread,
+				     &cleanup_dentry_thread_in_syscall);
+
   message (2, stderr, "Leaving exit_sighandler\n");
 }
 
@@ -147,11 +141,12 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
     }
 }
 
-/* Empty signal handler, used to break poll.  */
+/* Empty signal handler, used to break poll and other syscalls.  */
 
 static void
 dummy_sighandler (ATTRIBUTE_UNUSED int signum)
 {
+  message (3, stderr, "signalled %lu\n", pthread_self ());
 }
 
 /* Initialize signal handlers.  */
@@ -166,8 +161,7 @@ init_sig_handlers ()
 
   /* Initialize the mutexes which are used with signal handlers.  */
   zfsd_mutex_init (&running_mutex);
-  zfsd_mutex_init (&main_kernel_thread_in_syscall);
-  zfsd_mutex_init (&main_network_thread_in_syscall);
+  zfsd_mutex_init (&cleanup_dentry_thread_in_syscall);
 
   /* Set the signal handler for terminating zfsd.  */
   sigfillset (&sig.sa_mask);
@@ -201,6 +195,35 @@ init_sig_handlers ()
   sig.sa_handler = SIG_IGN;
   sig.sa_flags = SA_RESTART;
   sigaction (SIGPIPE, &sig, NULL);
+}
+
+/* Set default sighandlers.  */
+
+static void
+disable_sig_handlers ()
+{
+  struct sigaction sig;
+
+  /* Disable the sighandlers which were set.  */
+  sigfillset (&sig.sa_mask);
+  sig.sa_handler = SIG_DFL;
+  sig.sa_flags = 0;
+  sigaction (SIGINT, &sig, NULL);
+  sigaction (SIGQUIT, &sig, NULL);
+  sigaction (SIGTERM, &sig, NULL);
+  sigaction (SIGILL, &sig, NULL);
+  sigaction (SIGBUS, &sig, NULL);
+  sigaction (SIGFPE, &sig, NULL);
+  sigaction (SIGTRAP, &sig, NULL);
+  sigaction (SIGSEGV, &sig, NULL);
+  sigaction (SIGXCPU, &sig, NULL);
+  sigaction (SIGXFSZ, &sig, NULL);
+  sigaction (SIGSYS, &sig, NULL);
+  sigaction (SIGUSR1, &sig, NULL);
+
+  /* Destroy the mutexes which are used with signal handlers.  */
+  zfsd_mutex_destroy (&cleanup_dentry_thread_in_syscall);
+  zfsd_mutex_destroy (&running_mutex);
 }
 
 /* Display the usage and arguments, exit the program with exit code EXITCODE.  */
@@ -408,21 +431,25 @@ main (int argc, char **argv)
 	terminate ();
 #endif
     }
-  else
+
+  if (!network_started)
     terminate ();
 
   if (network_started)
     {
-      pthread_join (main_network_thread, NULL);
+      wait_for_thread_to_die (&network_pool.main_thread, NULL);
+      wait_for_thread_to_die (&network_pool.regulator_thread, NULL);
       network_cleanup ();
     }
   if (kernel_started)
     {
-      pthread_join (main_kernel_thread, NULL);
+      wait_for_thread_to_die (&kernel_pool.main_thread, NULL);
+      wait_for_thread_to_die (&kernel_pool.regulator_thread, NULL);
       kernel_cleanup ();
     }
 
   cleanup_data_structures ();
+  disable_sig_handlers ();
 
   return EXIT_FAILURE;
 }
