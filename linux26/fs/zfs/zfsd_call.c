@@ -73,11 +73,12 @@ int send_request(struct request *req) {
 
 	add_wait_queue(&req->waitq, &wait);
 	set_current_state(TASK_INTERRUPTIBLE);
+
+	/* Enable preemtible scheduling, but do not try to schedule. */
+	preempt_enable_no_resched();
+
 	timeout_left = schedule_timeout(ZFS_TIMEOUT * HZ);
 	remove_wait_queue(&req->waitq, &wait);
-
-	/* Enable preemtible scheduling, but do not try to schedule right now. */
-	preempt_enable_no_resched();
 
 	down(&req->lock);
 
