@@ -304,7 +304,8 @@ node_connect (node nod)
     }
 
   freeaddrinfo (addr);
-  message (-1, stderr, "Could not connect to %s\n", nod->name);
+  message (-1, stderr, "Could not connect to %s: %s\n", nod->name,
+	   strerror (errno));
   close (s);
   return -1;
 
