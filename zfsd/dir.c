@@ -1455,7 +1455,7 @@ zfs_mkdir_retry:
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
 			   &res->attr);
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
@@ -1924,7 +1924,7 @@ zfs_rename_retry:
 	  release_dentry (dentry);
 	}
 
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+      if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
 	{
 	  if (relative_path)
 	    {
@@ -2187,7 +2187,7 @@ zfs_link_retry:
 
       internal_dentry_link (from_dentry->fh, vol, dir_dentry, name->str);
 
-      if (INTERNAL_FH_HAS_LOCAL_PATH (from_dentry->fh))
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
 	{
 	  if (!inc_local_version (vol, dir_dentry->fh))
 	    vol->delete_p = true;
@@ -2761,7 +2761,7 @@ zfs_symlink_retry:
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
 			   &res->attr);
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
@@ -2966,7 +2966,7 @@ zfs_mknod_retry:
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name->str,
 			   &res->attr);
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;

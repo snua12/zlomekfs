@@ -476,7 +476,7 @@ zfs_create_retry:
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry,
 					      flags & O_ACCMODE);
 
-      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+      if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
 	  /* Remote file is not open.  */
 	  zfs_fh_undefine (icap->master_cap.fh);
