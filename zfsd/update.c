@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "pthread.h"
+#include "constant.h"
 #include "update.h"
 #include "md5.h"
 #include "memory.h"
@@ -1128,6 +1129,24 @@ out2:
   return r;
 }
 
+/* Initialize update thread T.  */
+
+static void
+update_worker_init (thread *t)
+{
+  dc_create (&t->dc_call, ZFS_MAX_REQUEST_LEN);
+}
+
+/* Cleanup update thread DATA.  */
+
+static void
+update_worker_cleanup (void *data)
+{
+  thread *t = (thread *) data;
+
+  dc_destroy (&t->dc_call);
+}
+
 /* The main function of an update thread.  */
 
 static void *
@@ -1137,6 +1156,7 @@ update_worker (void *data)
 
   thread_disable_signals ();
 
+  pthread_cleanup_push (update_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
 
   while (1)
@@ -1184,6 +1204,8 @@ update_worker (void *data)
       zfsd_mutex_unlock (&update_pool.idle.mutex);
     }
   
+  pthread_cleanup_pop (1);
+
   return NULL;
 }
 
@@ -1240,7 +1262,7 @@ update_start ()
   queue_create (&update_queue, sizeof (zfs_fh), 250);
 
   if (!thread_pool_create (&update_pool, 16, 4, 8, update_main,
-			   update_worker, NULL))
+			   update_worker, update_worker_init))
     {
       zfsd_mutex_lock (&update_queue.mutex);
       queue_destroy (&update_queue);
