@@ -435,21 +435,21 @@ do_tests (void *data)
 
       if (r == ZFS_OK)
 	{
-	  message (1, stderr, "TEST MKDIR\n");
+	  message (1, stderr, "TEST MKDIR /volume1/volume3/subdir/dir\n");
 	  r = zfs_mkdir (&res2, &res.file, &rmdir_name, &sa);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST RMDIR\n");
+	  message (1, stderr, "TEST RMDIR /volume1/volume3/subdir/dir\n");
 	  r = zfs_rmdir (&res.file, &rmdir_name);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST CREATE\n");
+	  message (1, stderr, "TEST CREATE /volume1/volume3/subdir/test\n");
 	  r = zfs_create (&creater, &res.file, &test,
 			  O_RDWR | O_TRUNC | O_CREAT, &sa);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
@@ -466,28 +466,28 @@ do_tests (void *data)
 	      if (!get_running ())
 		goto out;
 
-	      message (1, stderr, "TEST LINK\n");
+	      message (1, stderr, "TEST LINK /volume1/volume3/subdir/test /volume1/volume3/subdir/test2\n");
 	      r = zfs_link (&creater.cap.fh, &res.file, &test2);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
 		goto out;
 
-	      message (1, stderr, "TEST UNLINK\n");
+	      message (1, stderr, "TEST UNLINK /volume1/volume3/subdir/test\n");
 	      r = zfs_unlink (&res.file, &test);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
 		goto out;
 
-	      message (1, stderr, "TEST RENAME\n");
+	      message (1, stderr, "TEST RENAME /volume1/volume3/subdir/test2 /volume1/volume3/subdir/test3\n");
 	      r = zfs_rename (&res.file, &test2, &res.file, &test3);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	      if (!get_running ())
 		goto out;
 
-	      message (1, stderr, "TEST UNLINK\n");
+	      message (1, stderr, "TEST UNLINK /volume1/volume3/subdir/test3\n");
 	      r = zfs_unlink (&res.file, &test3);
 	      message (1, stderr, "  %s\n", zfs_strerror (r));
 
@@ -495,7 +495,7 @@ do_tests (void *data)
 		goto out;
 	    }
 
-	  message (1, stderr, "TEST SYMLINK\n");
+	  message (1, stderr, "TEST SYMLINK path /volume1/volume3/subdir/symlink\n");
 	  r = zfs_symlink (&res2, &res.file, &sym, &path, &sa_symlink);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
@@ -511,7 +511,7 @@ do_tests (void *data)
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST READLINK\n");
+	  message (1, stderr, "TEST READLINK /volume1/volume3/subdir/symlink\n");
 	  r = zfs_readlink (&readlinkr, &res2.file);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 	  if (r == ZFS_OK)
@@ -520,21 +520,21 @@ do_tests (void *data)
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST UNLINK\n");
+	  message (1, stderr, "TEST UNLINK /volume1/volume3/subdir/symlink\n");
 	  r = zfs_unlink (&res.file, &sym);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST MKNOD\n");
+	  message (1, stderr, "TEST MKNOD /volume1/volume3/subdir/pipe\n");
 	  r = zfs_mknod (&res2, &res.file, &pip, &sa, FT_FIFO, 1234);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST UNLINK\n");
+	  message (1, stderr, "TEST UNLINK /volume1/volume3/subdir/pipe\n");
 	  r = zfs_unlink (&res.file, &pip);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
@@ -553,7 +553,7 @@ do_tests (void *data)
 
       if (r == ZFS_OK)
 	{
-	  message (1, stderr, "TEST OPEN\n");
+	  message (1, stderr, "TEST OPEN /volume1/volume3/subdir/file\n");
 	  r = zfs_open (&cap, &res.file, O_RDWR);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
@@ -607,14 +607,14 @@ do_tests (void *data)
 		goto out;
 	    }
 
-	  message (1, stderr, "TEST SETATTR\n");
+	  message (1, stderr, "TEST SETATTR /volume1/volume3/subdir/file\n");
 	  r = zfs_setattr (&fa, &res.file, &sa);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    goto out;
 
-	  message (1, stderr, "TEST GETATTR\n");
+	  message (1, stderr, "TEST GETATTR /volume1/volume3/subdir/file\n");
 	  r = zfs_getattr (&fa, &res.file);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
