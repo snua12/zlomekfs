@@ -104,7 +104,7 @@ extern struct inode *zfs_ilookup(struct super_block *sb, zfs_fh *fh);
 static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {
 	struct list_head *item;
-	struct request *req = NULL;
+	struct request *req;
 	DC *dc;
 	direction dir;
 	unsigned int id;
@@ -126,9 +126,9 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 		error = -EFAULT;
 	else if (!start_decoding(dc)
 		 || !decode_direction(dc, &dir)
-		 || !decode_request_id(dc, &id)) {
+		 || !decode_request_id(dc, &id))
 		error = -EINVAL;
-	} else
+	else
 		switch (dir) {
 			case DIR_REQUEST:
 				/* TODO: ZFSd wants something, we must send a reply with the same id. */
@@ -201,9 +201,8 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 								error = -EINVAL;
 								break;
 						}
-
-					break;
 				}
+				break;
 			default:
 				break;
 		}
