@@ -1,5 +1,5 @@
 /* Test ZFS.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 

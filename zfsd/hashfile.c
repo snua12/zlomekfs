@@ -1,5 +1,5 @@
 /* An expandable hash table in a file.
-   Copyright (C) 2003 Josef Zlomek
+   Copyright (C) 2003, 2004 Josef Zlomek
    Based on hashfile.c
 
    This file is part of ZFS.
