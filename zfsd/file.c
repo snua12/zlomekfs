@@ -1800,7 +1800,7 @@ zfs_write (write_res *res, write_args *args)
   if (VIRTUAL_FH_P (args->cap.fh))
     return EISDIR;
 
-  if (cap->flags != O_WRONLY && cap->flags != O_RDWR)
+  if (args->cap.flags != O_WRONLY && args->cap.flags != O_RDWR)
     return EBADF;
 
 zfs_write_retry:
