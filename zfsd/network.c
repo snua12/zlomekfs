@@ -1562,16 +1562,17 @@ fd_data_shutdown (void)
 
   /* Tell each thread waiting for reply that we are exiting.  */
   zfsd_mutex_lock (&active_mutex);
-  i = nactive - 1;
-  zfsd_mutex_unlock (&active_mutex);
-  for (; i >= 0; i--)
+  for (i = nactive - 1; i >= 0; i--)
     {
       fd_data_t *fd_data = active[i];
 
       zfsd_mutex_lock (&fd_data->mutex);
       wake_all_threads (fd_data, ZFS_EXITING);
+      if (fd_data->conn != CONNECTION_ESTABLISHED)
+	close_active_fd (i);
       zfsd_mutex_unlock (&fd_data->mutex);
     }
+  zfsd_mutex_unlock (&active_mutex);
 
   if (kernel_fd >= 0)
     {
