@@ -382,111 +382,114 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (1, stderr, "TEST MKDIR\n");
-      r = zfs_mkdir (&res2, &res.file, &rmdir_name, &sa);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST RMDIR\n");
-      r = zfs_rmdir (&res.file, &rmdir_name);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST CREATE\n");
-      r = zfs_create (&creater, &res.file, &test,
-		      O_RDWR | O_TRUNC | O_CREAT, &sa);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
       if (r == ZFS_OK)
 	{
-	  if (!get_running ())
-	    break;
-
-	  message (1, stderr, "TEST CLOSE\n");
-	  r = zfs_close (&creater.cap);
+	  message (1, stderr, "TEST MKDIR\n");
+	  r = zfs_mkdir (&res2, &res.file, &rmdir_name, &sa);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    break;
 
-	  message (1, stderr, "TEST LINK\n");
-	  r = zfs_link (&creater.cap.fh, &res.file, &test2);
+	  message (1, stderr, "TEST RMDIR\n");
+	  r = zfs_rmdir (&res.file, &rmdir_name);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST CREATE\n");
+	  r = zfs_create (&creater, &res.file, &test,
+			  O_RDWR | O_TRUNC | O_CREAT, &sa);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  if (r == ZFS_OK)
+	    {
+	      message (1, stderr, "TEST CLOSE\n");
+	      r = zfs_close (&creater.cap);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		break;
+
+	      message (1, stderr, "TEST LINK\n");
+	      r = zfs_link (&creater.cap.fh, &res.file, &test2);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		break;
+
+	      message (1, stderr, "TEST UNLINK\n");
+	      r = zfs_unlink (&res.file, &test);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		break;
+
+	      message (1, stderr, "TEST RENAME\n");
+	      r = zfs_rename (&res.file, &test2, &res.file, &test3);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		break;
+
+	      message (1, stderr, "TEST UNLINK\n");
+	      r = zfs_unlink (&res.file, &test3);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		break;
+	    }
+
+	  message (1, stderr, "TEST SYMLINK\n");
+	  r = zfs_symlink (&res.file, &sym, &path, &sa_symlink);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir/symlink\n");
+	  str = xstrdup ("/volume1/volume3/subdir/symlink");
+	  r = zfs_extended_lookup (&res2, &root_fh, str);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+	  free (str);
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST READLINK\n");
+	  r = zfs_readlink (&readlinkr, &res2.file);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+	  if (r == ZFS_OK)
+	    free (readlinkr.path.str);
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST UNLINK\n");
+	  r = zfs_unlink (&res.file, &sym);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
+	  message (1, stderr, "TEST MKNOD\n");
+	  r = zfs_mknod (&res.file, &pip, &sa, FT_FIFO, 1234);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    break;
 
 	  message (1, stderr, "TEST UNLINK\n");
-	  r = zfs_unlink (&res.file, &test);
+	  r = zfs_unlink (&res.file, &pip);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    break;
-
-	  message (1, stderr, "TEST RENAME\n");
-	  r = zfs_rename (&res.file, &test2, &res.file, &test3);
-	  message (1, stderr, "  %s\n", zfs_strerror (r));
-
-	  if (!get_running ())
-	    break;
-
-	  message (1, stderr, "TEST UNLINK\n");
-	  r = zfs_unlink (&res.file, &test3);
-	  message (1, stderr, "  %s\n", zfs_strerror (r));
 	}
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST SYMLINK\n");
-      r = zfs_symlink (&res.file, &sym, &path, &sa_symlink);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir/symlink\n");
-      str = xstrdup ("/volume1/volume3/subdir/symlink");
-      r = zfs_extended_lookup (&res2, &root_fh, str);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-      free (str);
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST READLINK\n");
-      r = zfs_readlink (&readlinkr, &res2.file);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-      if (r == ZFS_OK)
-	free (readlinkr.path.str);
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST UNLINK\n");
-      r = zfs_unlink (&res.file, &sym);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST MKNOD\n");
-      r = zfs_mknod (&res.file, &pip, &sa, FT_FIFO, 1234);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST UNLINK\n");
-      r = zfs_unlink (&res.file, &pip);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
 
       message (1, stderr, "TEST LOOKUP /volume1/volume3/subdir/file\n");
       str = xstrdup ("/volume1/volume3/subdir/file");
@@ -497,59 +500,62 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (1, stderr, "TEST OPEN\n");
-      r = zfs_open (&cap, &res.file, O_RDWR);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
-
       if (r == ZFS_OK)
 	{
-	  write_args writea;
-	  write_res writer;
-	  data_buffer data;
-
-	  writea.data.buf = writea.data.real_buffer;
-	  data.buf = data.real_buffer;
-
-	  writea.cap = cap;
-	  writea.offset = 0;
-	  writea.data.len = 4;
-	  memcpy (writea.data.buf, "abcd", writea.data.len);
-	  message (1, stderr, "TEST WRITE\n");
-	  r = zfs_write (&writer, &writea);
+	  message (1, stderr, "TEST OPEN\n");
+	  r = zfs_open (&cap, &res.file, O_RDWR);
 	  message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	  if (!get_running ())
+	    break;
+
 	  if (r == ZFS_OK)
-	    message (1, stderr, "  %d\n", writer.written);
+	    {
+	      write_args writea;
+	      write_res writer;
+	      data_buffer data;
+
+	      writea.data.buf = writea.data.real_buffer;
+	      data.buf = data.real_buffer;
+
+	      writea.cap = cap;
+	      writea.offset = 0;
+	      writea.data.len = 4;
+	      memcpy (writea.data.buf, "abcd", writea.data.len);
+	      message (1, stderr, "TEST WRITE\n");
+	      r = zfs_write (&writer, &writea);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+	      if (r == ZFS_OK)
+		message (1, stderr, "  %d\n", writer.written);
+
+	      if (!get_running ())
+		break;
+
+	      message (1, stderr, "TEST READ\n");
+	      r = zfs_read (&data.len, data.buf, &cap, 0, 4, true);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+	      if (r == ZFS_OK
+		  && (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0))
+		message (1, stderr, "FAILURE\n");
+
+	      if (!get_running ())
+		break;
+
+	      message (1, stderr, "TEST CLOSE\n");
+	      r = zfs_close (&cap);
+	      message (1, stderr, "  %s\n", zfs_strerror (r));
+
+	      if (!get_running ())
+		break;
+	    }
+
+	  message (1, stderr, "TEST SETATTR\n");
+	  r = zfs_setattr (&fa, &res.file, &sa);
+	  message (1, stderr, "  %s\n", zfs_strerror (r));
 
 	  if (!get_running ())
 	    break;
-
-	  message (1, stderr, "TEST READ\n");
-	  r = zfs_read (&data.len, data.buf, &cap, 0, 4, true);
-	  message (1, stderr, "  %s\n", zfs_strerror (r));
-	  if (r == ZFS_OK
-	      && (data.len != 4 || memcmp (data.buf, "abcd", 4) != 0))
-	    message (1, stderr, "FAILURE\n");
-
-	  if (!get_running ())
-	    break;
-
-	  message (1, stderr, "TEST CLOSE\n");
-	  r = zfs_close (&cap);
-	  message (1, stderr, "  %s\n", zfs_strerror (r));
 	}
-
-      if (!get_running ())
-	break;
-
-      message (1, stderr, "TEST SETATTR\n");
-      r = zfs_setattr (&fa, &res.file, &sa);
-      message (1, stderr, "  %s\n", zfs_strerror (r));
-
-      if (!get_running ())
-	break;
 
       if (1)
 	{
