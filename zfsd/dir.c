@@ -1237,20 +1237,20 @@ zfs_mkdir_retry:
   return r;
 }
 
-/* Remove local directory NAME from directory DIR on volume VOL.  */
+/* Remove local directory NAME from directory DIR on volume VOL,
+   store the stat structure of NAME to ST.  */
 
 static int32_t
-local_rmdir (internal_dentry dir, string *name, volume vol)
+local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
 {
   char *path;
-  struct stat st;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
-  r = lstat (path, &st);
+  r = lstat (path, st);
   if (r != 0)
     {
       free (path);
@@ -1258,12 +1258,7 @@ local_rmdir (internal_dentry dir, string *name, volume vol)
     }
   r = rmdir (path);
   free (path);
-  if (r == 0)
-    {
-      if (!delete_metadata (vol, st.st_dev, st.st_ino))
-	vol->flags |= VOLUME_DELETE;
-    }
-  else
+  if (r != 0)
     return errno;
 
   return ZFS_OK;
@@ -1314,6 +1309,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
+  struct stat st;
   int32_t r;
   int retry = 0;
 
@@ -1352,7 +1348,7 @@ zfs_rmdir_retry:
   if (vol->local_path)
     {
       UPDATE_DIR_IF_NEEDED (vol, idir);
-      r = local_rmdir (idir, name, vol);
+      r = local_rmdir (&st, idir, name, vol);
     }
   else if (vol->master != this_node)
     r = remote_rmdir (idir->fh, name, vol);
@@ -1370,6 +1366,8 @@ zfs_rmdir_retry:
 
       if (vol->local_path)
 	{
+	  if (!delete_metadata (vol, st.st_dev, st.st_ino))
+	    vol->flags |= VOLUME_DELETE;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
@@ -1995,20 +1993,20 @@ zfs_link_retry:
   return r;
 }
 
-/* Delete local file NAME from directory DIR on volume VOL.  */
+/* Delete local file NAME from directory DIR on volume VOL,
+   store the stat structure of NAME to ST.  */
 
 static int32_t
-local_unlink (internal_dentry dir, string *name, volume vol)
+local_unlink (struct stat *st, internal_dentry dir, string *name, volume vol)
 {
   char *path;
-  struct stat st;
   int32_t r;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
   path = build_local_path_name (vol, dir, name->str);
-  r = lstat (path, &st);
+  r = lstat (path, st);
   if (r != 0)
     {
       free (path);
@@ -2016,12 +2014,7 @@ local_unlink (internal_dentry dir, string *name, volume vol)
     }
   r = unlink (path);
   free (path);
-  if (r == 0)
-    {
-      if (!delete_metadata (vol, st.st_dev, st.st_ino))
-	vol->flags |= VOLUME_DELETE;
-    }
-  else
+  if (r != 0)
     return errno;
 
   return ZFS_OK;
@@ -2072,6 +2065,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   volume vol;
   internal_dentry idir;
   virtual_dir pvd;
+  struct stat st;
   int32_t r;
   int retry = 0;
 
@@ -2110,7 +2104,7 @@ zfs_unlink_retry:
   if (vol->local_path)
     {
       UPDATE_DIR_IF_NEEDED (vol, idir);
-      r = local_unlink (idir, name, vol);
+      r = local_unlink (&st, idir, name, vol);
     }
   else if (vol->master != this_node)
     r = remote_unlink (idir->fh, name, vol);
@@ -2128,6 +2122,8 @@ zfs_unlink_retry:
 
       if (vol->local_path)
 	{
+	  if (!delete_metadata (vol, st.st_dev, st.st_ino))
+	    vol->flags |= VOLUME_DELETE;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->flags |= VOLUME_DELETE;
 	}
