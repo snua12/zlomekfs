@@ -51,7 +51,7 @@
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 
 /* Maximum age of dentry in seconds after that revalidation is requered. */
-#define ZFS_DENTRY_MAXAGE 10
+#define ZFS_DENTRY_MAXAGE 5
 
 #define CAP(p) ((zfs_cap *)p)
 #define COOKIE(p) ((int32_t *)&((zfs_cap *)p)[1])
