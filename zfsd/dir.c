@@ -1304,7 +1304,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	{
 	  internal_dentry dentry;
 
-	  dentry = dentry_lookup_name (idir, name);
+	  dentry = dentry_lookup_name (NULL, idir, name);
 	  if (dentry)
 	    {
 	      res->file = dentry->fh->local_fh;
@@ -1368,7 +1368,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 			   &res->attr, &meta);
       if (dentry->parent != idir && request_from_this_node ())
 	{
-	  conflict = dentry_lookup_name (idir, name);
+	  conflict = dentry_lookup_name (NULL, idir, name);
 	  res->file = conflict->fh->local_fh;
 	  res->attr = conflict->fh->attr;
 	  release_dentry (conflict);
@@ -3864,7 +3864,7 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   idir = dentry_lookup (dir);
   if (idir)
     {
-      dentry = dentry_lookup_name (idir, name);
+      dentry = dentry_lookup_name (NULL, idir, name);
       release_dentry (idir);
       if (dentry)
 	internal_dentry_destroy (dentry, true);

@@ -801,22 +801,36 @@ dentry_lookup (zfs_fh *fh)
   return dentry;
 }
 
-/* Return the internal dentry for NAME in directory PARENT.  */
+/* Return the internal dentry for NAME in directory PARENT
+   or the volume root of volume VOL if PARENT is NULL.  */
 
 internal_dentry
-dentry_lookup_name (internal_dentry parent, string *name)
+dentry_lookup_name (volume vol, internal_dentry parent, string *name)
 {
   struct internal_dentry_def tmp;
   internal_dentry dentry;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
-  CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (parent)
+    CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+  else if (vol)
+    CHECK_MUTEX_LOCKED (&vol->mutex);
+  else
+    abort ();
+#endif
 
-  tmp.parent = parent;
-  tmp.name = *name;
+  if (parent)
+    {
+      tmp.parent = parent;
+      tmp.name = *name;
 
-  dentry = (internal_dentry) htab_find (dentry_htab_name, &tmp);
+      dentry = (internal_dentry) htab_find (dentry_htab_name, &tmp);
+    }
+  else
+    dentry = vol->root_dentry;
+
   if (dentry)
     acquire_dentry (dentry);
 
@@ -1488,30 +1502,14 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  if (dir)
-    dentry = dentry_lookup_name (dir, name);
-  else
-    {
-      dentry = vol->root_dentry;
-      if (dentry)
-	acquire_dentry (dentry);
-    }
-
+  dentry = dentry_lookup_name (vol, dir, name);
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     {
       subdentry = add_file_to_conflict_dir (vol, dentry, true, local_fh,
 					    attr, meta);
       if (try_resolve_conflict (dentry))
 	{
-	  if (dir)
-	    dentry = dentry_lookup_name (dir, name);
-	  else
-	    {
-	      dentry = vol->root_dentry;
-	      if (dentry)
-		acquire_dentry (dentry);
-	    }
-
+	  dentry = dentry_lookup_name (vol, dir, name);
 #ifdef ENABLE_CHECKING
 	  if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
 	    abort ();
@@ -1614,7 +1612,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
     abort ();
 #endif
 
-  dentry = dentry_lookup_name (*dirp, name);
+  dentry = dentry_lookup_name (NULL, *dirp, name);
   if (dentry)
     {
       if (CONFLICT_DIR_P (dentry->fh->local_fh))
@@ -1624,7 +1622,7 @@ delete_dentry (volume *volp, internal_dentry *dirp, string *name,
 
 	  release_dentry (*dirp);
 	  zfsd_mutex_unlock (&(*volp)->mutex);
-	  subdentry = dentry_lookup_name (dentry, &this_node->name);
+	  subdentry = dentry_lookup_name (NULL, dentry, &this_node->name);
 	  if (subdentry)
 	    {
 	      tmp_fh = dentry->fh->local_fh;
@@ -1677,7 +1675,7 @@ internal_dentry_link (internal_dentry orig, volume vol,
   CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
 #ifdef ENABLE_CHECKING
-  dentry = dentry_lookup_name (parent, name);
+  dentry = dentry_lookup_name (NULL, parent, name);
   if (dentry)
     abort ();
 #endif
@@ -1730,7 +1728,7 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
   CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
 
-  dentry = dentry_lookup_name (from_dir, from_name);
+  dentry = dentry_lookup_name (NULL, from_dir, from_name);
   if (!dentry)
     return;
 
@@ -1749,7 +1747,7 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
   /* Delete DENTRY from FROM_DIR's directory entries.  */
   if (CONFLICT_DIR_P (dentry->fh->local_fh))
     {
-      sdentry = dentry_lookup_name (dentry, &this_node->name);
+      sdentry = dentry_lookup_name (NULL, dentry, &this_node->name);
 #ifdef ENABLE_CHECKING
       if (!sdentry)
 	abort ();
@@ -1765,7 +1763,7 @@ internal_dentry_move (volume vol, internal_dentry from_dir, string *from_name,
 
   /* Insert DENTRY to TO_DIR.  */
 #ifdef ENABLE_CHECKING
-  dentry2 = dentry_lookup_name (to_dir, to_name);
+  dentry2 = dentry_lookup_name (NULL, to_dir, to_name);
   if (dentry2)
     abort ();
 #endif
@@ -1996,7 +1994,7 @@ again:
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
 
-  dentry = dentry_lookup_name (dir, name);
+  dentry = dentry_lookup_name (vol, dir, name);
   if (dentry && CONFLICT_DIR_P (dentry->fh->local_fh))
     return dentry;
 
