@@ -1714,7 +1714,7 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   internal_dentry from_dentry, to_dentry;
   virtual_dir vd;
   struct stat st;
-  char *path;
+  char *path = NULL;
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
   int retry = 0;
@@ -2255,7 +2255,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
-  char *path;
+  char *path = NULL;
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
