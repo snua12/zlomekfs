@@ -407,6 +407,8 @@ read_local_volume_info (string *path)
 	      zfsd_mutex_lock (&fh_mutex);
 	      zfsd_mutex_lock (&volume_mutex);
 	      vol = volume_create (id);
+	      zfsd_mutex_unlock (&volume_mutex);
+
 	      if (volume_set_local_info (vol, &parts[1], size_limit))
 		zfsd_mutex_unlock (&vol->mutex);
 	      else
@@ -415,7 +417,6 @@ read_local_volume_info (string *path)
 			   " about volume with ID = %" PRIu32 "\n", id);
 		  volume_delete (vol);
 		}
-	      zfsd_mutex_unlock (&volume_mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 	    }
 	}
