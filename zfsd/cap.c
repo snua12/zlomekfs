@@ -110,7 +110,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     abort ();
 #endif
 
-  message (4, stderr, "CAP %p LOCK\n", (*dentryp)->fh);
+  message (4, stderr, "CAP %p LOCK\n", (void *) (*dentryp)->fh);
 
   *tmp_cap = (*icapp)->local_cap;
   wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
@@ -138,7 +138,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 	return r;
     }
 
-  message (4, stderr, "CAP %p LOCKED\n", (*dentryp)->fh);
+  message (4, stderr, "CAP %p LOCKED\n", (void *) (*dentryp)->fh);
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;

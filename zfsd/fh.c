@@ -700,7 +700,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
     abort ();
 #endif
 
-  message (4, stderr, "FH %p LOCK\n", (*dentryp)->fh);
+  message (4, stderr, "FH %p LOCK\n", (void *) (*dentryp)->fh);
 
   *tmp_fh = (*dentryp)->fh->local_fh;
   wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
@@ -722,7 +722,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
 	return r;
     }
 
-  message (4, stderr, "FH %p LOCKED\n", (*dentryp)->fh);
+  message (4, stderr, "FH %p LOCKED\n", (void *) (*dentryp)->fh);
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
@@ -765,7 +765,7 @@ internal_dentry_unlock (internal_dentry dentry)
     abort ();
 #endif
 
-  message (4, stderr, "FH %p UNLOCK\n", dentry->fh);
+  message (4, stderr, "FH %p UNLOCK\n", (void *) dentry->fh);
 
   dentry->fh->users--;
   if (dentry->fh->users == 0)
