@@ -641,6 +641,11 @@ update_file (zfs_fh *fh)
       goto out2;
     }
 
+#ifdef ENABLE_CHECKING
+  if ((dentry->fh->flags & (IFH_REINTEGRATE | IFH_UPDATE)) == 0)
+    abort ();
+#endif
+
   if (dentry->fh->flags & IFH_REINTEGRATE)
     {
       release_dentry (dentry);
