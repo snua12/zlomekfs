@@ -36,7 +36,7 @@ int main (int argc, char **argv)
 
   if (argc < 3)
     {
-      fprintf (stderr, "Usage: dump_metadata LIST_FILE LOCAL_FILE...\n");
+      fprintf (stderr, "Usage: dump_metadata METADATA_FILE LOCAL_FILE...\n");
       return 1;
     }
 
