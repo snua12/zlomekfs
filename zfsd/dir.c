@@ -540,9 +540,10 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
    it to IFH.  */
 
 int32_t
-get_volume_root_dentry (volume vol, internal_dentry *dentry,
+get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 			bool unlock_fh_mutex)
 {
+  internal_dentry dentry;
   zfs_fh local_fh, master_fh;
   metadata meta;
   uint32_t vid;
@@ -605,12 +606,20 @@ get_volume_root_dentry (volume vol, internal_dentry *dentry,
       return ENOENT;
     }
 
-  get_dentry (&local_fh, &master_fh, vol, NULL, &empty_string, &attr, &meta);
+  dentry = get_dentry (&local_fh, &master_fh, vol, NULL, &empty_string, &attr,
+		       &meta);
 
   if (unlock_fh_mutex)
     zfsd_mutex_unlock (&fh_mutex);
 
-  *dentry = vol->root_dentry;
+  if (dentry->parent && request_from_this_node ())
+    {
+      release_dentry (dentry);
+      dentry = vol->root_dentry;
+      acquire_dentry (dentry);
+    }
+
+  *dentryp = dentry;
   return ZFS_OK;
 }
 

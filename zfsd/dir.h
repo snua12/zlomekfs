@@ -44,7 +44,7 @@ extern int32_t validate_operation_on_zfs_fh (zfs_fh *fh,
 					     uint32_t non_exist_error);
 extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 				       fattr *attr);
-extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentry,
+extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 				       bool unlock_fh_mutex);
 extern int32_t local_getattr_path (fattr *attr, string *path);
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
