@@ -291,6 +291,7 @@ node_has_valid_fd (node nod)
       || fd_data_a[nod->fd].close)
     {
       zfsd_mutex_unlock (&fd_data_a[nod->fd].mutex);
+      nod->fd = -1;
       return false;
     }
 
