@@ -455,27 +455,28 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 }
 
 /* Check whether we can perform operation on ZFS file handle FH.
-   If DENY_CONFLICT is true return error when we are trying to do the operation
-   on conflict file handle.
+   If DENY_CONFLICT is true return error when we are trying to do an operation
+   on a special file handle created because of conflict.
    If FH is a file handle of non-existing file return NON_EXIST_ERROR.  */
 
 int32_t
-validate_operation_on_zfs_fh (zfs_fh *fh, bool deny_conflict,
+validate_operation_on_zfs_fh (zfs_fh *fh, uint32_t conflict_error,
 			      uint32_t non_exist_error)
 {
-  if (NON_EXIST_FH_P (*fh))
-    return non_exist_error;
-
   if (!request_from_this_node ())
     {
-#ifdef ENABLE_CHECKING
       if (CONFLICT_DIR_P (*fh))
-	abort ();
-#endif
+	return EINVAL;
+      if (NON_EXIST_FH_P (*fh))
+	return EINVAL;
     }
-
-  if (deny_conflict && CONFLICT_DIR_P (*fh))
-    return EINVAL;
+  else
+    {
+      if (CONFLICT_DIR_P (*fh))
+	return conflict_error;
+      if (NON_EXIST_FH_P (*fh))
+	return non_exist_error;
+    }
 
   return ZFS_OK;
 }
@@ -794,7 +795,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (fh, false, ZFS_OK);
+  r = validate_operation_on_zfs_fh (fh, ZFS_OK, ZFS_OK);
   if (r != ZFS_OK)
     return r;
 
@@ -997,7 +998,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (fh, true, EROFS);
+  r = validate_operation_on_zfs_fh (fh, EROFS, EROFS);
   if (r != ZFS_OK)
     return r;
 
@@ -1199,7 +1200,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, false, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, ZFS_OK, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1533,7 +1534,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1736,7 +1737,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1994,11 +1995,11 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (from_dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (from_dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
-  r = validate_operation_on_zfs_fh (to_dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (to_dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -2368,18 +2369,18 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   zfs_fh tmp_from, tmp_dir;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (from, true, EROFS);
+  if (VIRTUAL_FH_P (*from))
+    return EROFS;
+
+  r = validate_operation_on_zfs_fh (from, EROFS, EROFS);
   if (r != ZFS_OK)
     return r;
 
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
   /* Lookup FROM.  */
-  if (!REGULAR_FH_P (*from))
-    return EPERM;
-
   r = zfs_fh_lookup (from, &vol, &from_dentry, NULL, true);
   if (r == ZFS_STALE)
     {
@@ -2649,7 +2650,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -2942,10 +2943,6 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
       return ZFS_OK;
     }
 
-  r = validate_operation_on_zfs_fh (fh, true, ZFS_OK);
-  if (r != ZFS_OK)
-    return r;
-
   /* Lookup FH.  */
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r == ZFS_STALE)
@@ -3097,7 +3094,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -3316,7 +3313,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
+  r = validate_operation_on_zfs_fh (dir, EROFS, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -3732,14 +3729,6 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   if (!REGULAR_FH_P (*dir))
     return EINVAL;
 
-  r = validate_operation_on_zfs_fh (fh, true, EINVAL);
-  if (r != ZFS_OK)
-    return r;
-
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
-  if (r != ZFS_OK)
-    return r;
-
   r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
   if (r == ZFS_STALE)
     {
@@ -3862,10 +3851,6 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
 
   if (!REGULAR_FH_P (*dir))
     return EINVAL;
-
-  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
-  if (r != ZFS_OK)
-    return r;
 
   r = zfs_lookup (&res, dir, name);
   if (r != ZFS_OK)

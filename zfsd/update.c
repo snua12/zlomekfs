@@ -87,7 +87,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks)
   unsigned int i, j;
 
 #ifdef ENABLE_CHECKING
-  if (VIRTUAL_FH_P (cap->fh))
+  if (!REGULAR_FH_P (cap->fh))
     abort ();
 #endif
 

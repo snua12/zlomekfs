@@ -44,7 +44,8 @@ extern bool recursive_unlink (char *path, uint32_t vid, bool shadow);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
 							internal_dentry *dir);
-extern int32_t validate_operation_on_zfs_fh (zfs_fh *fh, bool deny_conflict,
+extern int32_t validate_operation_on_zfs_fh (zfs_fh *fh,
+					     uint32_t conflict_error,
 					     uint32_t non_exist_error);
 extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 				       fattr *attr);
