@@ -43,12 +43,14 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   queue_create (&pool->idle, max_threads);
   queue_create (&pool->empty, max_threads);
 
+  pthread_mutex_lock (&pool->empty.mutex);
   for (i = 0; i < max_threads; i++)
     {
       pool->threads[i].t.state = THREAD_DEAD;
       pool->threads[i].t.index = i;
       queue_put (&pool->empty, i);
     }
+  pthread_mutex_unlock (&pool->empty.mutex);
 }
 
 /* Create a new idle thread in thread pool POOL and start a routine START in it.
