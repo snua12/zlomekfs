@@ -49,14 +49,8 @@ string node_name;
 /* Description of local node.  */
 node this_node;
 
-/* Hash function for node ID.  */
-#define HASH_NODE_ID(ID) (ID)
-
 /* Hash function for node NODE, computed from ID.  */
 #define NODE_HASH(NODE) ((NODE)->id)
-
-/* Hash function for node name.  */
-#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
 
 /* Hash function for node NODE, computed from its name.  */
 #define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
