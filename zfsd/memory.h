@@ -53,6 +53,7 @@ extern char *xstrconcat_varray (varray *va) ATTRIBUTE_MALLOC;
 extern void xstringconcat_varray (string *dst, varray *va);
 extern void set_str_with_length (char **destp, const char *src, int len);
 extern void set_str (char **destp, const char *src);
+extern void set_string (string *dst, const char *src);
 
 #endif
 

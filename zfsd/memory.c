@@ -272,3 +272,21 @@ set_str (char **destp, const char *src)
 {
   set_str_with_length (destp, src, strlen (src));
 }
+
+/* Set a copy of SRC to DST.  */
+
+void
+set_string (string *dst, const char *src)
+{
+  if (dst->str)
+    free (dst->str);
+
+  dst->len = strlen (src);
+  dst->str = (char *) malloc (dst->len + 1);
+  if (!dst->str)
+    {
+      message (-1, stderr, "Not enough memory.\n");
+      abort ();
+    }
+  memcpy (dst->str, src, dst->len + 1);
+}
