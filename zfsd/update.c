@@ -34,6 +34,7 @@
 #include "alloc-pool.h"
 #include "queue.h"
 #include "log.h"
+#include "random.h"
 #include "volume.h"
 #include "fh.h"
 #include "cap.h"
@@ -2649,9 +2650,33 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
   if (!dir->fh->journal->first && flush_journal)
     {
       uint64_t version;
+      unsigned long delay, range;
 
       /* If the journal is empty set the local and remote version.  */
+      
       zfsd_mutex_unlock (&fh_mutex);
+
+      range = 40000;
+      do
+	{
+	  r = remote_reintegrate (dir, 1, vol);
+	  if (r == ZFS_BUSY)
+	    {
+	      delay = range / 4 + RANDOM (range);
+	      range += 40000;
+	      usleep (range);
+	    }
+
+	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
+      while (r == ZFS_BUSY);
+      if (r != ZFS_OK)
+	goto out2;
+
       r = remote_getattr (attr, dir, vol);
       r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -2659,36 +2684,37 @@ reintegrate_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	abort ();
 #endif
       if (r != ZFS_OK)
-	goto out2;
+	{
+	  /* This could happen only if there is a problem with connection.
+	     In this case, the master will allow other node to start
+	     reintegration so there is no need to send a release request.  */
+	  goto out2;
+	}
 
       if (!lookup_metadata (vol, &dir->fh->local_fh, &dir->fh->meta, true))
 	{
 	  MARK_VOLUME_DELETE (vol);
-	  goto out2;
-	}
-
-      if (dir->fh->meta.local_version > attr->version)
-	version = dir->fh->meta.local_version;
-      else
-	version = attr->version;
-
-      dir->fh->meta.flags &= ~METADATA_COMPLETE;
-      dir->fh->meta.local_version = version;
-      dir->fh->meta.master_version = version;
-      if (!flush_metadata (vol, &dir->fh->meta))
-	MARK_VOLUME_DELETE (vol);
-
-      if (version != attr->version)
-	{
-	  r = remote_reintegrate_set (dir, version, NULL, vol);
-	  if (r == ZFS_OK)
-	    attr->version = version;
+	  version = attr->version;
 	}
       else
 	{
-	  release_dentry (dir);
-	  zfsd_mutex_unlock (&vol->mutex);
+	  if (dir->fh->meta.local_version > attr->version)
+	    version = dir->fh->meta.local_version;
+	  else
+	    version = attr->version;
+
+	  dir->fh->meta.flags &= ~METADATA_COMPLETE;
+	  dir->fh->meta.local_version = version;
+	  dir->fh->meta.master_version = version;
+	  if (!flush_metadata (vol, &dir->fh->meta))
+	    MARK_VOLUME_DELETE (vol);
 	}
+
+      /* Wee need to call following call even if VERSION == ATTR->VERSION
+	 because we need to release the right to reintegrate the dir.  */
+      r = remote_reintegrate_set (dir, version, NULL, vol);
+      if (r == ZFS_OK)
+	attr->version = version;
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
