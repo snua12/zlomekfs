@@ -655,12 +655,6 @@ internal_fh_destroy (internal_fh fh, volume vol)
 #endif
   htab_clear_slot (vol->fh_htab, slot);
 
-  if (vol->local_path)
-    {
-      if (!flush_metadata (vol, fh))
-	vol->flags |= VOLUME_DELETE;
-    }
-
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
   zfsd_mutex_lock (&fh_pool_mutex);

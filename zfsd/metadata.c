@@ -971,7 +971,7 @@ init_metadata (volume vol, internal_fh fh)
 /* Write the metadata for file handle FH on volume VOL to list file.
    Return false on file error.  */
 
-bool
+static bool
 flush_metadata (volume vol, internal_fh fh)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
