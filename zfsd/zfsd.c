@@ -54,6 +54,9 @@
 #include "test.h"
 #endif
 
+/* Thread ID of the main thread.  */
+pthread_t main_thread;
+
 /* Name of the configuration file.  */
 static char *config_file;
 

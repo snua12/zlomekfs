@@ -33,9 +33,6 @@
 /* Level of verbosity.  Higher number means more messages.  */
 int verbose = 1;
 
-/* Thread ID of the main thread.  */
-pthread_t main_thread;
-
 /* Print message to F if LEVEL > VERBOSE.  */
 void
 message (int level, FILE * f, char *format, ...)
