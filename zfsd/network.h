@@ -86,10 +86,8 @@ typedef struct fd_data_def
   authentication_status auth;	/* status of authentication with remote node */
   unsigned int sid;		/* ID of node which wants to connect */
   unsigned int busy;		/* number of threads using file descriptor */
-  unsigned int flags;		/* See FD_FLAG_* below */
+  bool close;			/* close the fd when possile */
 } fd_data_t;
-
-#define FD_FLAG_CLOSE 1
 
 /* Pool of network threads.  */
 extern thread_pool network_pool;

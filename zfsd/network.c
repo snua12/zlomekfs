@@ -129,7 +129,7 @@ init_fd_data (int fd)
   fd_data_a[fd].last_use = time (NULL);
   fd_data_a[fd].generation++;
   fd_data_a[fd].busy = 0;
-  fd_data_a[fd].flags = 0;
+  fd_data_a[fd].close = false;
 
   fd_data_a[fd].waiting4reply_pool
     = create_alloc_pool ("waiting4reply_data",
@@ -181,7 +181,7 @@ update_node_fd (node nod, int fd, unsigned int generation, bool active)
 	  /* The new connection is in allowed direction.  */
 	  zfsd_mutex_lock (&fd_data_a[nod->fd].mutex);
 	  if (nod->generation == fd_data_a[nod->fd].generation)
-	    fd_data_a[nod->fd].flags = FD_FLAG_CLOSE;
+	    close_network_fd (nod->fd);
 	  zfsd_mutex_unlock (&fd_data_a[nod->fd].mutex);
 	  nod->fd = fd;
 	  nod->generation = generation;
@@ -227,19 +227,12 @@ close_network_fd (int fd)
 #endif
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
-  message (2, stderr, "Closing FD %d\n", fd);
-  close (fd);
-  wake_all_threads (&fd_data_a[fd], ZFS_CONNECTION_CLOSED);
-  htab_destroy (fd_data_a[fd].waiting4reply);
-  fibheap_delete (fd_data_a[fd].waiting4reply_heap);
-  free_alloc_pool (fd_data_a[fd].waiting4reply_pool);
+  if (fd_data_a[fd].close)
+    return;
 
-  fd_data_a[fd].generation++;
-  fd_data_a[fd].conn = CONNECTION_NONE;
-  fd_data_a[fd].speed = CONNECTION_SPEED_NONE;
-  fd_data_a[fd].auth = AUTHENTICATION_NONE;
-  fd_data_a[fd].sid = 0;
-  zfsd_cond_broadcast (&fd_data_a[fd].cond);
+  fd_data_a[fd].close = true;
+  thread_terminate_blocking_syscall (&network_pool.main_thread,
+				     &network_pool.main_in_syscall);
 }
 
 /* Close an active file descriptor on index I in ACTIVE.  */
@@ -257,7 +250,15 @@ close_active_fd (int i)
   CHECK_MUTEX_LOCKED (&active_mutex);
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
-  close_network_fd (fd);
+  message (2, stderr, "Closing FD %d\n", fd);
+  printf ("BUSY: %d\n", fd_data_a[fd].busy);
+  close (fd);
+
+  wake_all_threads (&fd_data_a[fd], ZFS_CONNECTION_CLOSED);
+  htab_destroy (fd_data_a[fd].waiting4reply);
+  fibheap_delete (fd_data_a[fd].waiting4reply_heap);
+  free_alloc_pool (fd_data_a[fd].waiting4reply_pool);
+
   nactive--;
   if (i < nactive)
     active[i] = active[nactive];
@@ -265,6 +266,12 @@ close_active_fd (int i)
     dc_destroy (&fd_data_a[fd].dc[j]);
   fd_data_a[fd].ndc = 0;
   fd_data_a[fd].fd = -1;
+  fd_data_a[fd].generation++;
+  fd_data_a[fd].conn = CONNECTION_NONE;
+  fd_data_a[fd].speed = CONNECTION_SPEED_NONE;
+  fd_data_a[fd].auth = AUTHENTICATION_NONE;
+  fd_data_a[fd].sid = 0;
+  zfsd_cond_broadcast (&fd_data_a[fd].cond);
 }
 
 /* Return true if there is a valid file descriptor attached to node NOD
@@ -725,12 +732,10 @@ node_authenticate_error:
   t->retval = r;
   message (2, stderr, "not auth\n");
   zfsd_mutex_lock (&fd_data_a[fd].mutex);
-  fd_data_a[fd].conn = CONNECTION_NONE;
-  fd_data_a[fd].speed = CONNECTION_SPEED_NONE;
-  fd_data_a[fd].auth = AUTHENTICATION_NONE;
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[fd]);
-  close_network_fd (fd);
+  if (fd_data_a[fd].generation == t->u.network.generation)
+    close_network_fd (fd);
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
   if (nod)
     {
@@ -1274,7 +1279,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
 	  message (2, stderr, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
 	  if ((pfd[i].revents & CANNOT_RW)
-	      || ((fd_data->flags & FD_FLAG_CLOSE)
+	      || (fd_data->close
 		  && fd_data->busy == 0
 		  && fd_data->read == 0))
 	    {
