@@ -1448,9 +1448,9 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 static int32_t
 synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 {
-  internal_dentry parent, conflict, dentry2;
+  internal_dentry parent, conflict, other;
   bool local_changed, remote_changed;
-  bool want_conflict;
+  bool attr_conflict, data_conflict;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1481,7 +1481,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
   if (dentry->fh->attr.type == FT_REG)
     {
       if ((dentry->fh->attr.version == dentry->fh->meta.master_version
-	  || attr->version == dentry->fh->meta.master_version)
+	   || attr->version == dentry->fh->meta.master_version)
 	  && volume_master_connected (vol) == CONNECTION_SPEED_FAST)
 	{
 	  /* Schedule update or reintegration of regular file.  */
@@ -1507,42 +1507,55 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr)
 	}
     }
 
-  want_conflict = ((dentry->fh->attr.version > dentry->fh->meta.master_version
-		    && attr->version > dentry->fh->meta.master_version)
-		   || (local_changed && remote_changed));
+  attr_conflict = local_changed && remote_changed;
+  data_conflict = (dentry->fh->attr.version > dentry->fh->meta.master_version
+		   && attr->version > dentry->fh->meta.master_version);
 
   conflict = dentry->parent;
   if (conflict)
     acquire_dentry (conflict);
   if (conflict && CONFLICT_DIR_P (conflict->fh->local_fh))
     {
-      if (want_conflict)
+      other = conflict_other_dentry (conflict, dentry);
+#ifdef ENABLE_CHECKING
+      if (!other)
+	abort ();
+#endif
+
+      if (ZFS_FH_EQ (dentry->fh->meta.master_fh, other->fh->local_fh))
 	{
 	  release_dentry (dentry);
-	  dentry2 = conflict_remote_dentry (conflict);
-	  if (dentry2)
+	  if (!attr_conflict && !data_conflict)
 	    {
-	      dentry2->fh->attr = *attr;
-	      release_dentry (dentry2);
+	      release_dentry (other);
+	      cancel_conflict (vol, conflict);
 	    }
-	  release_dentry (conflict);
-	  zfsd_mutex_unlock (&vol->mutex);
-	  zfsd_mutex_unlock (&fh_mutex);
+	  else
+	    {
+	      other->fh->attr = *attr;
+	      release_dentry (other);
+	      release_dentry (conflict);
+	      zfsd_mutex_unlock (&vol->mutex);
+	      zfsd_mutex_unlock (&fh_mutex);
+	    }
 	}
       else
 	{
 	  release_dentry (dentry);
-	  cancel_conflict (vol, conflict);
+	  release_dentry (other);
+	  release_dentry (conflict);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
 	}
     }
   else
     {
       parent = conflict;
-      if (want_conflict)
+      if (attr_conflict)
 	{
 	  string name;
 
-	  /* Create a modify-modify or an attr-attr conflict.  */
+	  /* Create an attr-attr conflict.  */
 	  xstringdup (&name, &dentry->name);
 	  release_dentry (dentry);
 	  conflict = create_conflict (vol, parent, &name, fh,
