@@ -21,16 +21,25 @@
  */
 
 #include <linux/fs.h>
-#include <linux/errno.h>
 
 #include "zfs.h"
+#include "zfs_prot.h"
+#include "zfsd_call.h"
 
 
 static int zfs_readdir (struct file *file, void *dirent, filldir_t filldir)
 {
-	TRACE("zfs: readdir\n");
+	read_dir_args args;
 
-	return 0;
+	TRACE("zfs: readdir: '%s'\n", file->f_dentry->d_name.name);
+
+	args.cap = *CAP(file->private_data);
+	args.cookie = file->f_pos;
+	args.count = ZFS_MAXDATA;
+
+	/* TODO: need_revalidate?: (file->f_version != file->f_dentry->d_inode->i_version) */
+
+	return zfsd_readdir(&args, file, dirent, filldir);
 }
 
 extern int zfs_open(struct inode *inode, struct file *file);
@@ -41,40 +50,6 @@ struct file_operations zfs_dir_operations = {
 	.read           = generic_read_dir,
 	.readdir        = zfs_readdir,
 	.open           = zfs_open,
-//	.flush          = zfs_flush,
 	.release        = zfs_release,
-//	.fsync          = zfs_fsync,
 };
 
-
-#if 0
-/*
- * NOTE:
- * read, write, poll, fsync, readv, writev can be called
- *   without the big kernel lock held in all filesystems.
- */
-struct file_operations {
-	struct module *owner;
-	loff_t (*llseek) (struct file *, loff_t, int);
-	ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
-	ssize_t (*aio_read) (struct kiocb *, char __user *, size_t, loff_t);
-	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
-	ssize_t (*aio_write) (struct kiocb *, const char __user *, size_t, loff_t);
-	int (*readdir) (struct file *, void *, filldir_t);
-	unsigned int (*poll) (struct file *, struct poll_table_struct *);
-	int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
-	int (*mmap) (struct file *, struct vm_area_struct *);
-	int (*open) (struct inode *, struct file *);
-	int (*flush) (struct file *);
-	int (*release) (struct inode *, struct file *);
-	int (*fsync) (struct file *, struct dentry *, int datasync);
-	int (*aio_fsync) (struct kiocb *, int datasync);
-	int (*fasync) (int, struct file *, int);
-	int (*lock) (struct file *, int, struct file_lock *);
-	ssize_t (*readv) (struct file *, const struct iovec *, unsigned long, loff_t *);
-	ssize_t (*writev) (struct file *, const struct iovec *, unsigned long, loff_t *);
-	ssize_t (*sendfile) (struct file *, loff_t *, size_t, read_actor_t, void __user *);
-	ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
-	unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
-};
-#endif

@@ -41,29 +41,29 @@ static ssize_t zfs_chardev_read(struct file *file, char __user *buf, size_t nbyt
 	struct request *req;
 	int error = 0;
 
-	TRACE("zfs: chardev_read: %u: reading %u bytes\n", current->pid, nbytes);
+	TRACE("zfs:   chardev_read: %u: reading %u bytes\n", current->pid, nbytes);
 
+	/* Wait for request. */
 	down(&channel.req_pending_lock);
-
 NEXT_REQUEST:
 	while (list_empty(&channel.req_pending)) {
 		up(&channel.req_pending_lock);
 
-		TRACE("zfs: chardev_read: %u: sleep\n", current->pid);
+		TRACE("zfs:   chardev_read: %u: sleep\n", current->pid);
 
 		add_wait_queue_exclusive(&channel.waitq, &wait);
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule();
 		remove_wait_queue(&channel.waitq, &wait);
 
-		TRACE("zfs: chardev_read: %u: wake up\n", current->pid);
+		TRACE("zfs:   chardev_read: %u: wake up\n", current->pid);
 
 		if (signal_pending(current)) {
-			TRACE("zfs: chardev_read: %u: interrupt\n", current->pid);
+			TRACE("zfs:   chardev_read: %u: interrupt\n", current->pid);
 			return -EINTR;
 		}
 		if (!channel.connected) {
-			TRACE("zfs: chardev_read: %u: zfsd closed communication device\n", current->pid);
+			TRACE("zfs:   chardev_read: %u: zfsd closed communication device\n", current->pid);
 			return -EIO;
 		}
 
@@ -83,7 +83,7 @@ NEXT_REQUEST:
 		WARN("zfs: chardev_read: %u: zfsd read only %u bytes of %u in message\n", current->pid, nbytes, req->length);
 		req->length = nbytes;
 	} else
-		TRACE("zfs: chardev_read: %u: %u bytes read\n", current->pid, req->length);
+		TRACE("zfs:   chardev_read: %u: %u bytes read\n", current->pid, req->length);
 
 	if (copy_to_user(buf, req->dc->buffer, req->length))
 		error = -EFAULT;
@@ -110,7 +110,7 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 	direction dir;
 	unsigned int id;
 
-	TRACE("zfs: chardev_write: writting %u bytes\n", nbytes);
+	TRACE("zfs:   chardev_write: writting %u bytes\n", nbytes);
 
 	if (nbytes > DC_SIZE) {
 		WARN("zfs: chardev_write: zfsd has written %u bytes but max. %u is allowed in message\n", nbytes, DC_SIZE);
@@ -132,25 +132,29 @@ static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size
 	if (dir == DIR_REQUEST) {
 		/* TODO: zfsd wants something, we must reply with the same id */
 	} else {
+		/* Find the request this reply belongs to. */
 		down(&channel.req_processing_lock);
 		list_for_each(item, &channel.req_processing[INDEX(id)]) {
 			req = list_entry(item, struct request, item);
 			if (down_trylock(&req->lock))
 				continue;
 			if (id == req->id) {
-				TRACE("zfs: chardev_write: request corresponding to reply id %u found\n", id);
+				TRACE("zfs:   chardev_write: request corresponding to reply id %u found\n", id);
 
 				list_del(item);
 				up(&channel.req_processing_lock);
+
 				req->state = REQ_DEQUEUED;
+
 				dc_put(req->dc);
 				req->dc = dc;
 
-				/* FIXME: a better synchronization is realy acceptable */
-				while (list_entry(req->waitq.task_list.next, wait_queue_t, task_list)->task->state != TASK_INTERRUPTIBLE)
-					schedule();
+				/* Wait untill the thread waiting for this reply goes to sleep. */
+				down(&req->wake_up_lock);
 
+				/* Wake up the thread. */
 				wake_up(&req->waitq);
+
 				up(&req->lock);
 
 				return nbytes;
@@ -171,7 +175,7 @@ static int zfs_chardev_open(struct inode *inode, struct file *file)
 {
 	int i;
 
-	TRACE("zfs: chardev_open\n");
+	TRACE("zfs:   chardev_open\n");
 
 	down(&channel.lock);
 
@@ -205,7 +209,7 @@ static int zfs_chardev_release(struct inode *inode, struct file *file)
 	struct request *req;
 	int i;
 
-	TRACE("zfs: chardev_close\n");
+	TRACE("zfs:   chardev_close\n");
 
 	down(&channel.lock);
 

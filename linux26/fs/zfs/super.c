@@ -91,18 +91,18 @@ static void zfs_destroy_inodecache(void)
 		INFO("zfs_inode_cache: not all structures were freed\n");
 }
 
-
 static struct super_operations zfs_super_operations = {
 	.alloc_inode    = zfs_alloc_inode,
 	.destroy_inode  = zfs_destroy_inode,
 	.statfs		= simple_statfs,
 };
 
-extern int zfs_inode(struct inode **inode, struct super_block *sb, zfs_fh *fh);
+extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
 
 static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 {
 	zfs_fh root_fh;
+	fattr root_attr;
 	struct inode *root_inode;
 	int error;
 
@@ -110,7 +110,7 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	if (!channel.connected) {
 		ERROR("zfs: zfsd has not opened communication device\n");
-		return -ECOMM;
+		return -EIO;
 	}
 
 	sb->s_blocksize = PAGE_CACHE_SIZE;
@@ -122,9 +122,13 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 	if (error)
 		return error;
 
-	error = zfs_inode(&root_inode, sb, &root_fh);
+	error = zfsd_getattr(&root_attr, &root_fh);
 	if (error)
 		return error;
+
+	root_inode = zfs_iget(sb, &root_fh, &root_attr);
+	if (!root_inode)
+		return -ENOMEM;
 
 	sb->s_root = d_alloc_root(root_inode);
 	if (!sb->s_root)

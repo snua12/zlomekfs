@@ -21,6 +21,7 @@
  */
 
 #include <linux/fs.h>
+#include <linux/slab.h>
 #include <linux/errno.h>
 
 #include "zfs.h"
@@ -30,16 +31,41 @@
 
 static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff_t *off)
 {
-	TRACE("zfs: read\n");
+	read_args args;
+	int error;
 
-	return 0;
+	TRACE("zfs: read: '%s'\n", file->f_dentry->d_name.name);
+
+	args.cap = *CAP(file->private_data);
+	args.offset = *off;
+	args.count = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
+
+	error = zfsd_read(buf, &args);
+
+	if (error > 0)
+		file->f_pos += error;
+
+	return error;
 }
 
 static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {
-	TRACE("zfs: write\n");
+	write_args args;
+	int error;
 
-	return 0;
+	TRACE("zfs: write: '%s'\n", file->f_dentry->d_name.name);
+
+	args.cap = *CAP(file->private_data);
+	args.offset = *off;
+	args.data.len = (nbytes > ZFS_MAXDATA) ? ZFS_MAXDATA : nbytes;
+	args.data.buf = buf;
+
+	error = zfsd_write(&args);
+
+	if (error > 0)
+		file->f_pos += error;
+
+	return error;
 }
 
 int zfs_open(struct inode *inode, struct file *file)
@@ -48,7 +74,7 @@ int zfs_open(struct inode *inode, struct file *file)
 	open_args args;
 	int error;
 
-	TRACE("zfs: open: %p\n", inode);
+	TRACE("zfs: open: '%s'\n", file->f_dentry->d_name.name);
 
 	cap = kmalloc(sizeof(zfs_cap), GFP_KERNEL);
 	if (!cap)
@@ -72,9 +98,9 @@ int zfs_release(struct inode *inode, struct file *file)
 {
 	int error;
 
-	TRACE("zfs: release: %p\n", inode);
+	TRACE("zfs: release: '%s'\n", file->f_dentry->d_name.name);
 
-	error = zfsd_close(file->private_data);
+	error = zfsd_close(CAP(file->private_data));
 
 	kfree(file->private_data);
 

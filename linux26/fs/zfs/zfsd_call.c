@@ -20,12 +20,14 @@
    or download it from http://www.gnu.org/licenses/gpl.html
  */
 
-#include <linux/smp_lock.h>
+#include <linux/fs.h>
+#include <linux/types.h>
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/errno.h>
 #include <asm/semaphore.h>
+#include <asm/uaccess.h>
 
 #include "zfs.h"
 #include "data-coding.h"
@@ -36,9 +38,15 @@ int send_request(struct request *req) {
 	DECLARE_WAITQUEUE(wait, current);
 	long timeout_left;
 
-	TRACE("zfs: send_request: %u\n", req->id);
+	TRACE("zfs:   send_request: %u\n", req->id);
+
+	if (!channel.connected) {
+		TRACE("zfs:   send_request: %u: zfsd closed communication device\n", req->id);
+		return -EIO;
+	}
 
 	init_MUTEX(&req->lock);
+	init_MUTEX_LOCKED(&req->wake_up_lock);
 	init_waitqueue_head(&req->waitq);
 
 	down(&channel.req_pending_lock);
@@ -47,16 +55,21 @@ int send_request(struct request *req) {
 
 	req->state = REQ_PENDING;
 
+	/* Wake up a thread waiting for a request. */
 	wake_up(&channel.waitq);
 
-	TRACE("zfs: send_request: %u: sleep\n", req->id);
+	TRACE("zfs:   send_request: %u: sleep\n", req->id);
 
 	add_wait_queue(&req->waitq, &wait);
 	set_current_state(TASK_INTERRUPTIBLE);
+
+	/* Allow the thread which receives the reply to wake me up. */
+	up(&req->wake_up_lock);
+
 	timeout_left = schedule_timeout(ZFS_TIMEOUT * HZ);
 	remove_wait_queue(&req->waitq, &wait);
 
-	TRACE("zfs: send_request: %u: wake up\n", req->id);
+	TRACE("zfs:   send_request: %u: wake up\n", req->id);
 
 	down(&req->lock);
 
@@ -76,19 +89,19 @@ int send_request(struct request *req) {
 	}
 
 	if (signal_pending(current)) {
-		TRACE("zfs: send_request: %u: interrupt\n", req->id);
+		TRACE("zfs:   send_request: %u: interrupt\n", req->id);
 		return -EINTR;
 	}
 	if (!timeout_left) {
-		TRACE("zfs: send_request: %u: timeout\n", req->id);
+		TRACE("zfs:   send_request: %u: timeout\n", req->id);
 		return -ESTALE;
 	}
 	if (!channel.connected) {
-		TRACE("zfs: send_request: %u: zfsd closed communication device\n", req->id);
+		TRACE("zfs:   send_request: %u: zfsd closed communication device\n", req->id);
 		return -EIO;
 	}
 
-	TRACE("zfs: send_request: %u: corresponding reply received\n", req->id);
+	TRACE("zfs:   send_request: %u: corresponding reply received\n", req->id);
 
 	return 0;
 }
@@ -98,7 +111,7 @@ int zfsd_root(zfs_fh *fh)
 	DC *dc;
 	int error;
 
-	TRACE("zfs: zfsd_root\n");
+	TRACE("zfs:  zfsd_root\n");
 
 	dc = dc_get();
 	if (!dc)
@@ -113,7 +126,32 @@ int zfsd_root(zfs_fh *fh)
 
 	dc_put(dc);
 
-	TRACE("zfs: zfsd_root: %d\n", error);
+	TRACE("zfs:  zfsd_root: %d\n", error);
+
+	return error;
+}
+
+int zfsd_lookup(dir_op_res *res, dir_op_args *args)
+{
+	DC *dc;
+	int error;
+
+	TRACE("zfs:  zfsd_lookup\n");
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_lookup_zfsd(&dc, args);
+
+	if (!error
+	    && (!decode_dir_op_res(dc, res)
+		|| !finish_decoding(dc)))
+		error = -EPROTO;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_lookup: %d\n", error);
 
 	return error;
 }
@@ -123,7 +161,7 @@ int zfsd_getattr(fattr *attr, zfs_fh *fh)
 	DC *dc;
 	int error;
 
-	TRACE("zfs: zfsd_getattr\n");
+	TRACE("zfs:  zfsd_getattr\n");
 
 	dc = dc_get();
 	if (!dc)
@@ -138,7 +176,7 @@ int zfsd_getattr(fattr *attr, zfs_fh *fh)
 
 	dc_put(dc);
 
-	TRACE("zfs: zfsd_getattr: %d\n", error);
+	TRACE("zfs:  zfsd_getattr: %d\n", error);
 
 	return error;
 }
@@ -148,7 +186,7 @@ int zfsd_setattr(fattr *attr, sattr_args *args)
 	DC *dc;
 	int error;
 
-	TRACE("zfs: zfsd_setattr\n");
+	TRACE("zfs:  zfsd_setattr\n");
 
 	dc = dc_get();
 	if (!dc)
@@ -163,7 +201,7 @@ int zfsd_setattr(fattr *attr, sattr_args *args)
 
 	dc_put(dc);
 
-	TRACE("zfs: zfsd_setattr: %d\n", error);
+	TRACE("zfs:  zfsd_setattr: %d\n", error);
 
 	return error;
 }
@@ -173,7 +211,7 @@ int zfsd_open(zfs_cap *cap, open_args *args)
 	DC *dc;
 	int error;
 
-	TRACE("zfs: zfsd_open\n");
+	TRACE("zfs:  zfsd_open\n");
 
 	dc = dc_get();
 	if (!dc)
@@ -188,7 +226,7 @@ int zfsd_open(zfs_cap *cap, open_args *args)
 
 	dc_put(dc);
 
-	TRACE("zfs: zfsd_open: %d\n", error);
+	TRACE("zfs:  zfsd_open: %d\n", error);
 
 	return error;
 }
@@ -198,7 +236,7 @@ int zfsd_close(zfs_cap *cap)
 	DC *dc;
 	int error;
 
-	TRACE("zfs: zfsd_close\n");
+	TRACE("zfs:  zfsd_close\n");
 
 	dc = dc_get();
 	if (!dc)
@@ -212,32 +250,139 @@ int zfsd_close(zfs_cap *cap)
 
 	dc_put(dc);
 
-	TRACE("zfs: zfsd_close: %d\n", error);
+	TRACE("zfs:  zfsd_close: %d\n", error);
 
 	return error;
 }
 
-int zfsd_readdir(dir_list *list, read_dir_args *args)
+int zfsd_readdir(read_dir_args *args, struct file *file, void *dirent, filldir_t filldir)
 {
 	DC *dc;
-	int error;
+	dir_list list;
+	dir_entry entry;
+	struct qstr name;
+	int error, entries = 0, i;
 
-	TRACE("zfs: zfsd_readdir\n");
+	TRACE("zfs:  zfsd_readdir\n");
 
 	dc = dc_get();
 	if (!dc)
 		return -ENOMEM;
 
-	error = zfs_proc_readdir_zfsd(&dc, args);
+	while (1) {
+		error = zfs_proc_readdir_zfsd(&dc, args);
+		if (error)
+			break;
 
-	if (!error
-	    && (!decode_dir_list(dc, list)
-		|| !finish_decoding(dc)))
-		error = -EPROTO;
+		if (!decode_dir_list(dc, &list)) {
+			error = -EPROTO;
+			break;
+		}
+
+		for (i = 0; i < list.n; i++) {
+			if (!decode_dir_entry(dc, &entry)) {
+				error = -EPROTO;
+				break;
+			}
+
+			TRACE("zfs:  zfsd_readdir: entry: ino=%u, cookie=%d, '%s'\n", entry.ino, entry.cookie, entry.name.str);
+
+			name.name = entry.name.str;
+			name.len = entry.name.len;
+
+			error = filldir(dirent, name.name, name.len, file->f_pos, entry.ino, DT_UNKNOWN);
+			if (error)
+				break;
+
+			file->f_pos = entry.cookie;
+			entries++;
+		}
+		if (error)
+			break;
+
+		if (!finish_decoding(dc)) {
+			error = -EPROTO;
+			break;
+		}
+
+		if (list.eof)
+			break;
+
+		args->cookie = entry.cookie;
+	}
 
 	dc_put(dc);
 
-	TRACE("zfs: zfsd_readdir: %d\n", error);
+	TRACE("zfs:  zfsd_readdir: %d\n", entries ? entries : error);
+
+	return entries ? entries : error;
+}
+
+int zfsd_read(char __user *buf, read_args *args)
+{
+	DC *dc;
+	uint32_t nbytes;
+	int error;
+
+	TRACE("zfs:  zfsd_read: reading %u bytes\n", args->count);
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_read_zfsd(&dc, args);
+
+	if (!error) {
+		if (!decode_uint32_t(dc, &nbytes)
+		    || (nbytes > args->count))
+			error = -EPROTO;
+		else {
+			dc->cur_length += nbytes;
+			if (!finish_decoding(dc))
+				error = -EPROTO;
+			else {
+				if (copy_to_user(buf, dc->cur_pos, nbytes))
+					error = -EFAULT;
+				else
+					error = nbytes;
+			}
+		}
+	}
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_read: %d\n", error);
+
+	return error;
+}
+
+int zfsd_write(write_args *args)
+{
+	DC *dc;
+	write_res res;
+	int error;
+
+	TRACE("zfs:  zfsd_write: writting %u bytes\n", args->data.len);
+
+	dc = dc_get();
+	if (!dc)
+		return -ENOMEM;
+
+	error = zfs_proc_write_zfsd(&dc, args);
+
+	if (!error) {
+		if (!decode_write_res(dc, &res)
+		    || (res.written > args->data.len)
+		    || !finish_decoding(dc))
+			error = -EPROTO;
+		else
+			error = res.written;
+	} else if (dc->cur_pos == NULL)
+		error = -EFAULT;
+
+	dc_put(dc);
+
+	TRACE("zfs:  zfsd_write: %d\n", error);
 
 	return error;
 }

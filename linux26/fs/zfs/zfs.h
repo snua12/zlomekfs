@@ -50,7 +50,9 @@
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
 
 #define ROTATE_LEFT(x, nbites) ((x << nbites) | (x >> (32 - nbites)))
-#define HASH(fh) (ROTATE_LEFT(fh->sid, 24) ^ fh->dev ^ fh->ino)
+#define HASH(fh) (ROTATE_LEFT(fh->sid, 22) ^ ROTATE_LEFT(fh->dev, 12) ^ fh->ino)
+
+#define CAP(p) ((zfs_cap *)p)
 
 #define ZFS_I(inode) ((struct zfs_inode_info *)inode)
 struct zfs_inode_info {
@@ -86,6 +88,7 @@ enum request_state {REQ_PENDING, REQ_PROCESSING, REQ_DEQUEUED};
 
 struct request {
 	struct semaphore lock;
+	struct semaphore wake_up_lock;
 	enum request_state state;
 	unsigned int id;		/* unique request id */
 	DC *dc;				/* the message */
