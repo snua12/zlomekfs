@@ -53,7 +53,7 @@ typedef struct volume_def
 {
   char *name;		/* name of the volume */
   node master;		/* master node for the volume */
-  char *location;	/* "mountpoint" for the volume on the cluster fs */
+  char *mountpoint;	/* "mountpoint" for the volume on the cluster fs */
   int flags;		/* see VOLUME_* below */
   
   char *localpath;

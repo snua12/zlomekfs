@@ -76,14 +76,14 @@ node_create(char *name)
 
 /* Create volume structure and fill it with information.  */
 volume
-volume_create(char *name, node master, char *location)
+volume_create(char *name, node master, char *mountpoint)
 {
   volume vol;
 
   vol = (volume) xmalloc(sizeof(volume));
   vol->name = xstrdup(name);
   vol->master = master;
-  vol->location = xstrdup(location);
+  vol->mountpoint = xstrdup(mountpoint);
   vol->flags = 0;
 }
 
