@@ -35,6 +35,7 @@ typedef struct volume_def *volume;
 #include "varray.h"
 #include "fibheap.h"
 #include "interval.h"
+#include "journal.h"
 #include "hardlink-list.h"
 #include "zfs_prot.h"
 #include "util.h"
@@ -136,6 +137,9 @@ struct internal_fh_def
 
   /* List of hardlinks.  */
   hardlink_list hardlinks;
+
+  /* Journal for a directory.  */
+  journal_t journal;
 
   /* "Lock" level of the file handle.  */
   unsigned int level;

@@ -68,6 +68,8 @@ journal_create (unsigned int nelem, pthread_mutex_t *mutex)
   journal->mutex = mutex;
   journal->first = NULL;
   journal->last = NULL;
+  journal->fd = -1;
+  journal->generation = 0;
 
   return journal;
 }

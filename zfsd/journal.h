@@ -72,6 +72,12 @@ typedef struct journal_def
   /* First and last node of the doubly-linked chain.  */
   journal_entry first;
   journal_entry last;
+
+  /* File descriptor associated with the journal.  */
+  int fd;
+
+  /* Generation of opened file descriptor.  */
+  unsigned int generation;
 } *journal_t;
 
 extern journal_t journal_create (unsigned int nelem, pthread_mutex_t *mutex);

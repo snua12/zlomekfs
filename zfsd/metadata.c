@@ -36,6 +36,7 @@
 #include "interval.h"
 #include "varray.h"
 #include "hardlink-list.h"
+#include "journal.h"
 #include "fh.h"
 #include "volume.h"
 #include "config.h"
@@ -297,6 +298,10 @@ build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
 	VARRAY_PUSH (v, ".hardlinks", char *);
 	break;
 
+      case METADATA_TYPE_JOURNAL:
+	VARRAY_PUSH (v, ".journal", char *);
+	break;
+
       default:
 	abort ();
     }
@@ -449,6 +454,33 @@ interval_opened_p (interval_tree tree)
   return true;
 }
 
+/* Is the file for journal JOURNAL opened?  */
+
+static bool
+journal_opened_p (journal_t journal)
+{
+  CHECK_MUTEX_LOCKED (journal->mutex);
+
+  if (journal->fd < 0)
+    return false;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[journal->fd].mutex);
+  if (journal->generation != metadata_fd_data[journal->fd].generation)
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[journal->fd].mutex);
+      zfsd_mutex_unlock (&metadata_mutex);
+      return false;
+    }
+
+  metadata_fd_data[journal->fd].heap_node
+    = fibheap_replace_key (metadata_heap,
+			   metadata_fd_data[journal->fd].heap_node,
+			   (fibheapkey_t) time (NULL));
+  zfsd_mutex_unlock (&metadata_mutex);
+  return true;
+}
+
 /* Initialize file descriptor for hash file HFILE.  */
 
 static void
@@ -489,6 +521,27 @@ init_interval_fd (interval_tree tree)
   metadata_fd_data[tree->fd].heap_node
     = fibheap_insert (metadata_heap, (fibheapkey_t) time (NULL),
 		      &metadata_fd_data[tree->fd]);
+}
+
+/* Initialize file descriptor for journal JOURNAL.  */
+
+static void
+init_journal_fd (journal_t journal)
+{
+#ifdef ENABLE_CHECKING
+  if (journal->fd < 0)
+    abort ();
+#endif
+  CHECK_MUTEX_LOCKED (journal->mutex);
+  CHECK_MUTEX_LOCKED (&metadata_mutex);
+  CHECK_MUTEX_LOCKED (&metadata_fd_data[journal->fd].mutex);
+
+  metadata_fd_data[journal->fd].fd = journal->fd;
+  metadata_fd_data[journal->fd].generation++;
+  journal->generation = metadata_fd_data[journal->fd].generation;
+  metadata_fd_data[journal->fd].heap_node
+    = fibheap_insert (metadata_heap, (fibheapkey_t) time (NULL),
+		      &metadata_fd_data[journal->fd]);
 }
 
 /* Close file descriptor FD of metadata file.  */
@@ -684,6 +737,43 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   zfsd_mutex_lock (&metadata_mutex);
   zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
   init_interval_fd (tree);
+  zfsd_mutex_unlock (&metadata_mutex);
+
+  return fd;
+}
+
+/* Open and initialize file descriptor for journal JOURNAL for file handle FH
+   on volume VOL.  */
+
+static int
+open_journal_file (volume vol, internal_fh fh)
+{
+  char *path;
+  int fd;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+				 metadata_tree_depth);
+  fd = open_fh_metadata (path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+			 O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+  free (path);
+  if (fd < 0)
+    return fd;
+
+  if (lseek (fd, 0, SEEK_END))
+    {
+      message (1, stderr, "lseek: %s\n", strerror (errno));
+      close (fd);
+      return -1;
+    }
+
+  fh->journal->fd = fd;
+
+  zfsd_mutex_lock (&metadata_mutex);
+  zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
+  init_journal_fd (fh->journal);
   zfsd_mutex_unlock (&metadata_mutex);
 
   return fd;
@@ -1049,6 +1139,26 @@ close_interval_file (interval_tree tree)
 	zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
       zfsd_mutex_unlock (&metadata_mutex);
       tree->fd = -1;
+    }
+}
+
+/* Close file for journal JOURNAL.  */
+
+void
+close_journal_file (journal_t journal)
+{
+  CHECK_MUTEX_LOCKED (journal->mutex);
+
+  if (journal->fd >= 0)
+    {
+      zfsd_mutex_lock (&metadata_mutex);
+      zfsd_mutex_lock (&metadata_fd_data[journal->fd].mutex);
+      if (journal->generation == metadata_fd_data[journal->fd].generation)
+	close_metadata_fd (journal->fd);
+      else
+	zfsd_mutex_unlock (&metadata_fd_data[journal->fd].mutex);
+      zfsd_mutex_unlock (&metadata_mutex);
+      journal->fd = -1;
     }
 }
 
@@ -1660,7 +1770,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
       free (path);
     }
 
-  /* Delete interval files.  */
+  /* Delete interval files and journal.  */
   for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
     {
       path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_UPDATED, i);
@@ -1668,6 +1778,10 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
 	vol->delete_p = true;
       free (path);
       path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_MODIFIED, i);
+      if (!remove_file_and_path (path, i))
+	vol->delete_p = true;
+      free (path);
+      path = build_fh_metadata_path (vol, &fh, METADATA_TYPE_JOURNAL, i);
       if (!remove_file_and_path (path, i))
 	vol->delete_p = true;
       free (path);
@@ -2377,6 +2491,267 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
     }
 
   return path;
+}
+
+/* Write the journal for file handle FH on volume VOL to file PATH
+   or delete the file if the journal is empty.  */
+
+static bool
+flush_journal (volume vol, internal_fh fh, char *path)
+{
+  journal_entry entry;
+  char *new_path;
+  int fd;
+  FILE *f;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  close_journal_file (fh->journal);
+
+  if (fh->journal->first == NULL)
+    {
+      bool r;
+
+      r = remove_file_and_path (path, metadata_tree_depth);
+      free (path);
+      return r;
+    }
+
+  new_path = xstrconcat (2, path, ".new");
+  fd = open_fh_metadata (new_path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+			 O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+
+  if (fd < 0)
+    {
+      free (new_path);
+      free (path);
+      return false;
+    }
+
+  f = fdopen (fd, "wt");
+#ifdef ENABLE_CHECKING
+  if (!f)
+    abort ();
+#endif
+
+  for (entry = fh->journal->first; entry; entry = entry->next)
+    {
+      uint32_t dev;
+      uint32_t ino;
+      uint32_t gen;
+      uint32_t oper;
+      uint32_t name_len;
+      zfs_fh master_fh;
+
+      dev = u32_to_le (entry->dev);
+      ino = u32_to_le (entry->ino);
+      gen = u32_to_le (entry->gen);
+      oper = u32_to_le (entry->oper);
+      name_len = u32_to_le (entry->name.len);
+      master_fh.sid = u32_to_le (entry->master_fh.sid);
+      master_fh.vid = u32_to_le (entry->master_fh.vid);
+      master_fh.dev = u32_to_le (entry->master_fh.dev);
+      master_fh.ino = u32_to_le (entry->master_fh.ino);
+      master_fh.gen = u32_to_le (entry->master_fh.gen);
+      if (fwrite (&dev, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || fwrite (&ino, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || fwrite (&gen, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || fwrite (&oper, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || fwrite (&name_len, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || (fwrite (entry->name.str, 1, entry->name.len + 1, f)
+	      != entry->name.len + 1)
+	  || (fwrite (&master_fh, 1, sizeof (master_fh), f)
+	      != sizeof (master_fh)))
+	{
+	  fclose (f);
+	  unlink (new_path);
+	  free (new_path);
+	  free (path);
+	  return false;
+	}
+    }
+
+  fclose (f);
+  rename (new_path, path);
+
+  free (new_path);
+  free (path);
+  return true;
+}
+
+/* Read journal for file handle FH on volume VOL.  */
+
+bool
+read_journal (volume vol, internal_fh fh)
+{
+  int fd;
+  char *path;
+  FILE *f;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!fh->journal)
+    abort ();
+#endif
+
+  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+				 metadata_tree_depth);
+  fd = open_fh_metadata (path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+			 O_RDONLY, 0);
+  if (fd < 0)
+    {
+      free (path);
+      if (errno != ENOENT)
+	return false;
+
+      return true;
+    }
+
+  f = fdopen (fd, "wt");
+#ifdef ENABLE_CHECKING
+  if (!f)
+    abort ();
+#endif
+
+  for (;;)
+    {
+      zfs_fh local_fh;
+      zfs_fh master_fh;
+      uint32_t oper;
+      uint32_t name_len;
+      char *name;
+
+      if (fread (&local_fh.dev, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || (fread (&local_fh.ino, 1, sizeof (uint32_t), f)
+	      != sizeof (uint32_t))
+	  || (fread (&local_fh.gen, 1, sizeof (uint32_t), f)
+	      != sizeof (uint32_t))
+	  || fread (&oper, 1, sizeof (uint32_t), f) != sizeof (uint32_t)
+	  || fread (&name_len, 1, sizeof (uint32_t), f) != sizeof (uint32_t))
+	break;
+
+      local_fh.dev = le_to_u32 (local_fh.dev);
+      local_fh.ino = le_to_u32 (local_fh.ino);
+      local_fh.gen = le_to_u32 (local_fh.gen);
+      oper = le_to_u32 (oper);
+      name_len = le_to_u32 (name_len);
+      name = (char *) xmalloc (name_len + 1);
+
+      if ((fread (name, 1, name_len + 1, f) != name_len + 1)
+	  || (fread (&master_fh, 1, sizeof (master_fh), f)
+	      != sizeof (master_fh)))
+	{
+	  free (name);
+	  break;
+	}
+      name[name_len] = 0;
+      master_fh.sid = le_to_u32 (master_fh.sid);
+      master_fh.vid = le_to_u32 (master_fh.vid);
+      master_fh.dev = le_to_u32 (master_fh.dev);
+      master_fh.ino = le_to_u32 (master_fh.ino);
+      master_fh.gen = le_to_u32 (master_fh.gen);
+
+      if (oper < JOURNAL_OPERATION_LAST_AND_UNUSED)
+	{
+	  journal_insert (fh->journal, &local_fh, &master_fh, name, oper,
+			  false);
+	}
+    }
+
+  fclose (f);
+  return flush_journal (vol, fh, path);
+}
+
+/* Write the journal for file handle FH on volume VOL to appropriate file.  */
+
+bool
+write_journal (volume vol, internal_fh fh)
+{
+  char *path;
+
+  path = build_fh_metadata_path (vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+				 metadata_tree_depth);
+
+  return flush_journal (vol, fh, path);
+}
+
+/* Add a journal entry with key [LOCAL_FH, NAME], master file handle MASTER_FH
+   and operation OPER to journal for file handle FH on volume VOL.  */
+
+bool
+add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
+		   zfs_fh *master_fh, char *name, journal_operation_t oper)
+{
+  char buffer[DC_SIZE];
+  char *end;
+  uint32_t len;
+  uint32_t tmp32;
+  zfs_fh tmp_fh;
+  bool r;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!fh->journal)
+    abort ();
+#endif
+
+  if (!journal_opened_p (fh->journal))
+    {
+      if (open_journal_file (vol, fh) < 0)
+	return false;
+    }
+
+  len = strlen (name);
+#ifdef ENABLE_CHECKING
+  if (len + 1 + 5 * sizeof (uint32_t) + sizeof (master_fh) > DC_SIZE)
+    abort ();
+#endif
+
+  end = buffer;
+
+  tmp32 = u32_to_le (local_fh->dev);
+  memcpy (end, &tmp32, sizeof (uint32_t));
+  end += sizeof (uint32_t);
+
+  tmp32 = u32_to_le (local_fh->ino);
+  memcpy (end, &tmp32, sizeof (uint32_t));
+  end += sizeof (uint32_t);
+
+  tmp32 = u32_to_le (local_fh->gen);
+  memcpy (end, &tmp32, sizeof (uint32_t));
+  end += sizeof (uint32_t);
+
+  tmp32 = u32_to_le (oper);
+  memcpy (end, &tmp32, sizeof (uint32_t));
+  end += sizeof (uint32_t);
+
+  tmp32 = u32_to_le (len);
+  memcpy (end, &tmp32, sizeof (uint32_t));
+  end += sizeof (uint32_t);
+
+  memcpy (end, name, len + 1);
+  end += len + 1;
+
+  tmp_fh.sid = u32_to_le (master_fh->sid);
+  tmp_fh.vid = u32_to_le (master_fh->vid);
+  tmp_fh.dev = u32_to_le (master_fh->dev);
+  tmp_fh.ino = u32_to_le (master_fh->ino);
+  tmp_fh.gen = u32_to_le (master_fh->gen);
+  memcpy (end, &tmp_fh, sizeof (zfs_fh));
+  end += sizeof (zfs_fh);
+
+  r = full_write (fh->journal->fd, buffer, end - buffer);
+  zfsd_mutex_unlock (&metadata_fd_data[fh->journal->fd].mutex);
+
+  if (!r)
+    return false;
+
+  journal_insert (fh->journal, local_fh, master_fh, name, oper, true);
+
+  return true;
 }
 
 /* Initialize data structures in METADATA.C.  */

@@ -25,6 +25,7 @@
 #include <inttypes.h>
 #include "zfs_prot.h"
 #include "hardlink-list.h"
+#include "journal.h"
 
 /* Depth of directory tree for saving metadata about files.  */
 extern unsigned int metadata_tree_depth;
@@ -45,7 +46,10 @@ typedef enum metadata_type_def
   METADATA_TYPE_MODIFIED,
 
   /* List of hardlinks for file handle.  */
-  METADATA_TYPE_HARDLINKS
+  METADATA_TYPE_HARDLINKS,
+
+  /* Journal of modifications of a directory.  */
+  METADATA_TYPE_JOURNAL
 } metadata_type;
 
 /* The size of char array for file name stored in hash table.
@@ -133,6 +137,11 @@ extern bool metadata_hardlink_delete (volume vol, internal_fh fh,
 				      uint32_t parent_dev, uint32_t parent_ino,
 				      char *name);
 extern char *get_local_path_from_metadata (volume vol, zfs_fh *fh);
+extern bool read_journal (volume vol, internal_fh fh);
+extern bool write_journal (volume vol, internal_fh fh);
+extern bool add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
+			       zfs_fh *master_fh, char *name,
+			       journal_operation_t oper);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);

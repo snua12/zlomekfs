@@ -39,6 +39,8 @@
 #include "memory.h"
 #include "network.h"
 #include "varray.h"
+#include "hardlink-list.h"
+#include "journal.h"
 #include "metadata.h"
 #include "zfs_prot.h"
 #include "user-group.h"
@@ -1075,6 +1077,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->modified = NULL;
   fh->interval_tree_users = 0;
   fh->hardlinks = NULL;
+  fh->journal = NULL;
   fh->level = level;
   fh->users = 0;
   fh->fd = -1;
@@ -1172,6 +1175,8 @@ internal_fh_destroy_stage1 (internal_fh fh)
 
   if (fh->hardlinks)
     hardlink_list_destroy (fh->hardlinks);
+  if (fh->journal)
+    journal_destroy (fh->journal);
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -1353,6 +1358,14 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	      fh->hardlinks = hardlink_list_create (2, &fh->mutex);
 	      if (!init_hardlinks (vol, &fh->local_fh, &fh->meta,
 				   fh->hardlinks))
+		vol->delete_p = true;
+	    }
+
+	  if (fh->attr.type == FT_DIR
+	      && !fh->journal)
+	    {
+	      fh->journal = journal_create (5, &fh->mutex);
+	      if (!read_journal (vol, fh))
 		vol->delete_p = true;
 	    }
 
