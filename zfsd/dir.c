@@ -2127,6 +2127,15 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
 	    zfsd_mutex_unlock (&fh_mutex);
 	    return EINVAL;
 	  }
+      if (from_dentry->parent == to_dentry
+	  && strcmp (from_dentry->name, to_name->str) == 0)
+	{
+	  release_dentry (from_dentry);
+	  release_dentry (to_dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  zfsd_mutex_unlock (&fh_mutex);
+	  return ENOTEMPTY;
+	}
     }
 
   zfsd_mutex_unlock (&fh_mutex);
