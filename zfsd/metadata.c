@@ -937,23 +937,7 @@ init_metadata (volume vol, internal_fh fh)
       fh->meta.master_version = 0;
     }
 
-  if (!init_interval_tree (vol, fh, INTERVAL_TREE_UPDATED))
-    {
-      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      return false;
-    }
-  if (!init_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED))
-    {
-      zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
-      close_interval_file (fh->updated);
-      interval_tree_destroy (fh->updated);
-      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-      return false;
-    }
-
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-  zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
-  zfsd_mutex_unlock (&metadata_fd_data[fh->modified->fd].mutex);
   return true;
 }
 
@@ -983,6 +967,48 @@ update_metadata (volume vol, internal_fh fh)
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
   return true;
+}
+
+/* Load interval trees for file handle FH on volume VOL.  */
+
+bool
+load_interval_trees (volume vol, internal_fh fh)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  if (!init_interval_tree (vol, fh, INTERVAL_TREE_UPDATED))
+    {
+      return false;
+    }
+  if (!init_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED))
+    {
+      zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
+      close_interval_file (fh->updated);
+      interval_tree_destroy (fh->updated);
+      fh->updated = NULL;
+      return false;
+    }
+
+  zfsd_mutex_unlock (&metadata_fd_data[fh->updated->fd].mutex);
+  zfsd_mutex_unlock (&metadata_fd_data[fh->modified->fd].mutex);
+  return true;
+}
+
+/* Save interval trees for file handle FH on volume VOL.  */
+
+bool
+save_interval_trees (volume vol, internal_fh fh)
+{
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+  bool r = true;
+
+  if (fh->updated)
+    r &= free_interval_tree (vol, fh, INTERVAL_TREE_UPDATED);
+  if (fh->modified)
+    r &= free_interval_tree (vol, fh, INTERVAL_TREE_MODIFIED);
+
+  return r;
 }
 
 /* Initialize data structures in METADATA.C.  */
