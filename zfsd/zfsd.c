@@ -473,7 +473,7 @@ main (int argc, char **argv)
   /* Start the threads.  */
   update_started = update_start ();
   network_started = network_start ();
-  kernel_started = kernel_start ();
+  kernel_started = false;
 
   if (network_started)
     {
@@ -492,6 +492,10 @@ main (int argc, char **argv)
     {
       terminate ();
       ret = EXIT_FAILURE;
+    }
+  else if (running)
+    {
+      kernel_started = kernel_start ();
     }
 
   /* Workaround valgrind bug (PR/77369),
