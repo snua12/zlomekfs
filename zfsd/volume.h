@@ -77,6 +77,7 @@ extern pthread_mutex_t volume_mutex;
 /* Function prototypes.  */
 extern volume volume_lookup (uint32_t id);
 extern volume volume_lookup_nolock (uint32_t id);
+extern volume volume_lookup_name (string *name);
 extern volume volume_create (uint32_t id);
 extern void volume_delete (volume vol);
 extern void volume_set_common_info (volume vol, string *name,

@@ -122,6 +122,23 @@ volume_lookup_nolock (uint32_t id)
   return vol;
 }
 
+/* Return the volume with name == NAME.  */
+
+volume
+volume_lookup_name (string *name)
+{
+  volume vol;
+
+  zfsd_mutex_lock (&volume_mutex);
+  vol = (volume) htab_find_with_hash (volume_htab_name, name,
+				      HASH_VOLUME_NAME (*name));
+  if (vol)
+    zfsd_mutex_lock (&vol->mutex);
+  zfsd_mutex_unlock (&volume_mutex);
+
+  return vol;
+}
+
 /* Create volume structure and fill it with information.  */
 
 volume
