@@ -523,7 +523,8 @@ get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 
       if (!ZFS_FH_EQ (dentry->fh->local_fh, *local_fh)
 	  || (!ZFS_FH_EQ (dentry->fh->master_fh, *master_fh)
-	      && !zfs_fh_undefined (dentry->fh->master_fh)))
+	      && !zfs_fh_undefined (dentry->fh->master_fh)
+	      && !zfs_fh_undefined (*master_fh)))
 	{
 	  uint32_t vid;
 	  zfs_fh tmp;
