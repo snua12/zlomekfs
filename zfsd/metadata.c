@@ -370,7 +370,7 @@ build_shadow_metadata_path (string *path, volume vol, zfs_fh *fh,
 
   for (i = 0; i < metadata_tree_depth; i++)
     {
-      tree[2 * i] = name[15 - i];
+      tree[2 * i] = name[len + 15 - i];
       tree[2 * i + 1] = '/';
     }
   tree[2 * metadata_tree_depth] = 0;
