@@ -227,6 +227,9 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (*vd && *vol)
     update_volume_root (*vol, ifh);
 
+  if ((*ifh)->attr.type == FT_DIR && cap->flags != O_RDONLY)
+    return EISDIR;
+
   icap = internal_cap_lookup (cap);
   if (icap)
     icap->busy++;
