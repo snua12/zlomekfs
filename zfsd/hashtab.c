@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include "hashtab.h"
+#include "memory.h"
 
 /* Value for empty hash table entry.  */
 #define EMPTY_ENTRY ((void *) 0)
@@ -137,7 +138,7 @@ htab_expand(htab_t htab)
 
   /* Get next prime number from table.  */
   new_size = get_higher_prime (htab->size + 1);
-  new_table = (void **) calloc(new_size * sizeof(void *));
+  new_table = (void **) xcalloc(new_size * sizeof(void *));
   if (!new_table)
     return 0;
   htab->table = new_table;
@@ -169,11 +170,11 @@ htab_create(unsigned int size, htab_hash hash, htab_hash hash_f, htab_eq eq_f)
   if (!size)
     return NULL;
 
-  htab = (htab_t) malloc(sizeof(htab_t));
+  htab = (htab_t) xmalloc(sizeof(htab_t));
   if (!htab)
     return NULL;
 
-  htab->table = (void **) calloc(size * sizeof(void *));
+  htab->table = (void **) xcalloc(size * sizeof(void *));
   if (!htab->table)
     {
       free(htab);
