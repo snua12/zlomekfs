@@ -2293,8 +2293,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   if (r != ZFS_OK)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      free (from_path->str);
-      free (to_path->str);
       return r;
     }
   if (from_path->len - from_name.len != to_path->len - to_name.len
@@ -2305,8 +2303,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       if (r != ZFS_OK)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  free (from_path->str);
-	  free (to_path->str);
 	  return r;
 	}
     }
@@ -2320,8 +2316,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   if (r != 0)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      free (from_path->str);
-      free (to_path->str);
       return errno;
     }
 
@@ -2333,8 +2327,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  free (from_path->str);
-	  free (to_path->str);
 	  return errno;
 	}
 
@@ -2347,8 +2339,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       if (r != 0)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  free (from_path->str);
-	  free (to_path->str);
 	  return errno;
 	}
 
@@ -2390,8 +2380,6 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
     MARK_VOLUME_DELETE (vol);
 
   zfsd_mutex_unlock (&vol->mutex);
-  free (from_path->str);
-  free (to_path->str);
   return ZFS_OK;
 }
 
@@ -2407,6 +2395,7 @@ local_rename (metadata *meta_old, metadata *meta_new,
 {
   string from_path, to_path;
   bool shadow;
+  int32_t r;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
@@ -2422,8 +2411,12 @@ local_rename (metadata *meta_old, metadata *meta_new,
     release_dentry (to_dir);
   zfsd_mutex_unlock (&fh_mutex);
 
-  return local_rename_base (meta_old, meta_new, &from_path, &to_path,
-			    vol, shadow);
+  r = local_rename_base (meta_old, meta_new, &from_path, &to_path,
+			 vol, shadow);
+
+  free (from_path.str);
+  free (to_path.str);
+  return r;
 }
 
 /* Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME
@@ -2759,30 +2752,19 @@ local_link_base (metadata *meta, string *from_path, string *to_path,
 
   r = parent_exists (to_path, &to_parent_st);
   if (r != ZFS_OK)
-    {
-      free (from_path->str);
-      free (to_path->str);
-      return r;
-    }
+    return r;
 
   r = link (from_path->str, to_path->str);
   if (r != 0)
     {
-      free (from_path->str);
-      free (to_path->str);
       if (errno == ENOENT || errno == ENOTDIR)
 	return ESTALE;
       return errno;
     }
 
-
   vol = volume_lookup (fh->vid);
   if (!vol)
-    {
-      free (from_path->str);
-      free (to_path->str);
-      return ESTALE;
-    }
+    return ESTALE;
 
   file_name_from_path (&to_name, to_path);
   if (!metadata_hardlink_insert (vol, fh, meta, to_parent_st.st_dev,
@@ -2790,8 +2772,6 @@ local_link_base (metadata *meta, string *from_path, string *to_path,
     MARK_VOLUME_DELETE (vol);
 
   zfsd_mutex_unlock (&vol->mutex);
-  free (from_path->str);
-  free (to_path->str);
   return ZFS_OK;
 }
 
@@ -2835,7 +2815,11 @@ local_link (metadata *meta, internal_dentry from, internal_dentry dir,
 				 zfs_mode_to_ftype (st.st_mode));
   meta->uid = map_uid_node2zfs (st.st_uid);
   meta->gid = map_gid_node2zfs (st.st_gid);
-  return local_link_base (meta, &from_path, &to_path, fh);
+  r = local_link_base (meta, &from_path, &to_path, fh);
+
+  free (from_path.str);
+  free (to_path.str);
+  return r;
 }
 
 /* Link remote file FROM to be a file with NAME in directory DIR
@@ -4549,6 +4533,8 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
 
   r = local_rename_base (&meta_old, &meta_new, &shadow_path, &path,
 			 vol, false);
+  free (shadow_path.str);
+  free (path.str);
   if (r != ZFS_OK)
     return false;
 
@@ -4601,6 +4587,8 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
     }
 
   r = local_rename_base (&meta_old, &meta_new, &path, &shadow_path, vol, true);
+  free (path.str);
+  free (shadow_path.str);
   if (r != ZFS_OK)
     return false;
 
@@ -4692,12 +4680,16 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 
 	  r = local_rename_base (&meta_old, &meta_new, &old_path, &new_path,
 				 vol, false);
+	  free (old_path.str);
+	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    return r;
 	}
       else
 	{
 	  r = local_link_base (&meta, &old_path, &new_path, fh);
+	  free (old_path.str);
+	  free (new_path.str);
 	  if (r != ZFS_OK)
 	    return r;
 	}
