@@ -1472,7 +1472,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
       meta->ino = fh->ino;
       meta->gen = 1;
       meta->local_version = 1;
-      meta->master_version = 0;
+      meta->master_version = vol->is_copy ? 0 : 1;
       zfs_fh_undefine (meta->master_fh);
       meta->parent_dev = (uint32_t) -1;
       meta->parent_ino = (uint32_t) -1;
@@ -1624,10 +1624,17 @@ set_metadata (volume vol, internal_fh fh, uint32_t flags,
       fh->meta.local_version = local_version;
       modified = true;
     }
-  if (fh->meta.master_version != master_version)
+  if (vol->is_copy)
     {
-      fh->meta.master_version = master_version;
-      modified = true;
+      if (fh->meta.master_version != master_version)
+	{
+	  fh->meta.master_version = master_version;
+	  modified = true;
+	}
+    }
+  else
+    {
+      fh->meta.master_version = local_version;
     }
 
   if (!modified)
@@ -1734,6 +1741,8 @@ inc_local_version (volume vol, internal_fh fh)
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   fh->meta.local_version++;
+  if (!vol->is_copy)
+    fh->meta.master_version = fh->meta.local_version;
   set_attr_version (&fh->attr, &fh->meta);
 
   return flush_metadata (vol, fh);
@@ -1826,7 +1835,7 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
       meta.ino = ino;
       meta.gen = 1;
       meta.local_version = 1;
-      meta.master_version = 0;
+      meta.master_version = vol->is_copy ? 0 : 1;
       zfs_fh_undefine (meta.master_fh);
       meta.parent_dev = (uint32_t) -1;
       meta.parent_ino = (uint32_t) -1;
@@ -1836,6 +1845,9 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino,
   meta.flags = 0;
   meta.gen++;
   meta.local_version++;
+  if (!vol->is_copy)
+    meta.master_version = meta.local_version;
+
   if (!hfile_insert (vol->metadata, &meta))
     {
       zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
@@ -2129,7 +2141,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  meta.ino = fh->ino;
 	  meta.gen = 1;
 	  meta.local_version = 1;
-	  meta.master_version = 0;
+	  meta.master_version = vol->is_copy ? 0 : 1;
 	  zfs_fh_undefine (meta.master_fh);
 	  meta.parent_dev = (uint32_t) -1;
 	  meta.parent_ino = (uint32_t) -1;
@@ -2204,7 +2216,7 @@ write_hardlinks (volume vol, zfs_fh *fh, hardlink_list hl)
 	  meta.ino = fh->ino;
 	  meta.gen = 1;
 	  meta.local_version = 1;
-	  meta.master_version = 0;
+	  meta.master_version = vol->is_copy ? 0 : 1;
 	  zfs_fh_undefine (meta.master_fh);
 	}
 
