@@ -31,7 +31,7 @@ LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
 .PHONY: all install uninstall clean distclean
 
 PACKAGE = zfsd
-OBJECTS = config.o dir.o file.o fh.o hashtab.o \
+OBJECTS = alloc-pool.o config.o dir.o file.o fh.o hashtab.o \
           log.o memory.o node.o volume.o zfsd.o
 
 .c.o:
@@ -51,6 +51,7 @@ clean:
 	-rm -f Makefile.zfs_prot zfs_prot.h zfs_prot_*
 
 # Dependencies:
+alloc-pool.o: alloc-pool.c alloc-pool.h system.h log.h memory.h
 config.o: config.c config.h system.h log.h memory.h
 dir.o: dir.c dir.h system.h fh.h hashtab.h
 fh.o: fh.c fh.h system.h
