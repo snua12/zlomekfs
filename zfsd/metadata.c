@@ -1464,7 +1464,7 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
       return false;
     }
 
-  if (meta->slot_status != VALID_SLOT)
+  if (insert && meta->slot_status != VALID_SLOT)
     {
       meta->slot_status = VALID_SLOT;
       meta->flags = METADATA_COMPLETE;
@@ -1478,13 +1478,10 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
       meta->parent_ino = (uint32_t) -1;
       memset (meta->name, 0, METADATA_NAME_SIZE);
 
-      if (insert)
+      if (!hfile_insert (vol->metadata, meta))
 	{
-	  if (!hfile_insert (vol->metadata, meta))
-	    {
-	      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	      return false;
-	    }
+	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+	  return false;
 	}
     }
   fh->gen = meta->gen;
@@ -2091,6 +2088,9 @@ read_hardlinks (volume vol, zfs_fh *fh, metadata *meta, hardlink_list hl)
 
   if (!lookup_metadata (vol, fh, meta, false))
     return false;
+
+  if (meta.slot_status != VALID_SLOT)
+    return true;
 
   if (meta->name[0] == 0)
     {
@@ -2741,6 +2741,11 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
   local_fh.ino = st->st_ino;
   if (!lookup_metadata (vol, &local_fh, &meta, false))
     return false;
+
+#ifdef ENABLE_CHECKING
+  if (meta.slot_status != VALID_SLOT)
+    abort ();
+#endif
 
   return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
 }
