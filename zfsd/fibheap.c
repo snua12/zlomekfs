@@ -112,7 +112,7 @@ fibheap_min_key (fibheap heap)
 
   /* If there is no min, we can't easily return it.  */
   if (heap->min == NULL)
-    return 0;
+    return FIBHEAPKEY_MAX;
   return heap->min->key;
 }
 
@@ -237,7 +237,7 @@ fibheap_delete (fibheap heap)
   free (heap);
 }
 
-/* Determine if HEAP is empty.  */
+/* Return size of the heap HEAP.  */
 int
 fibheap_size (fibheap heap)
 {
