@@ -34,6 +34,25 @@
 #include "varray.h"
 #include "fh.h"
 #include "config.h"
+#include "fibheap.h"
+
+/* Data for file descriptor.  */
+typedef struct metadata_fd_data_def
+{
+  pthread_mutex_t mutex;
+  int fd;			/* file descriptor */
+  unsigned int generation;	/* generation of open file descriptor */
+  fibnode heap_node;		/* node of heap whose data is this structure  */
+} metadata_fd_data_t;
+
+/* The array of data for each file descriptor.  */
+metadata_fd_data_t *metadata_fd_data;
+
+/* Array of opened metadata file descriptors.  */
+static fibheap metadata;
+
+/* Mutex protecting access to METADATA.  */
+static pthread_mutex_t metadata_mutex;
 
 /* Build path to file with interval tree of purpose PURPOSE for file handle FH
    on volume VOL, the depth of metadata directory tree is TREE_DEPTH.  */
@@ -303,4 +322,50 @@ flush_interval_tree (volume vol, internal_fh fh, interval_tree_purpose purpose)
   path = build_metadata_path (vol, fh, purpose, metadata_tree_depth);
   /* TODO: Close fd if opened.  */
   return flush_interval_tree_1 (tree, path);
+}
+
+/* Initialize data structures in METADATA.C.  */
+
+void
+initialize_metadata_c ()
+{
+  int i;
+
+  zfsd_mutex_init (&metadata_mutex);
+  metadata = fibheap_new (max_metadata_fds, &metadata_mutex);
+
+  /* Data for each file descriptor.  */
+  metadata_fd_data
+    = (metadata_fd_data_t *) xcalloc (max_nfd, sizeof (metadata_fd_data_t));
+  for (i = 0; i < max_nfd; i++)
+    {
+      zfsd_mutex_init (&metadata_fd_data[i].mutex);
+      metadata_fd_data[i].fd = -1;
+    }
+}
+
+/* Destroy data structures in METADATA.C.  */
+
+void
+cleanup_metadata_c ()
+{
+  while (fibheap_size (metadata) > 0)
+    {
+      metadata_fd_data_t *fd_data;
+
+      zfsd_mutex_lock (&metadata_mutex);
+      fd_data = (metadata_fd_data_t *) fibheap_min (metadata);
+#ifdef ENABLE_CHECKING
+      if (!fd_data && fibheap_size (metadata) > 0)
+	abort ();
+#endif
+      if (fd_data && fd_data->fd >= 0)
+	/* FIXME: close_local_fd (fd_data->fd) */;
+      zfsd_mutex_unlock (&metadata_mutex);
+    }
+  zfsd_mutex_lock (&metadata_mutex);
+  fibheap_delete (metadata);
+  zfsd_mutex_unlock (&metadata_mutex);
+  zfsd_mutex_destroy (&metadata_mutex);
+  free (metadata_fd_data);
 }
