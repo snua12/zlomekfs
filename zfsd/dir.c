@@ -617,6 +617,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
   vol = NULL;
   dentry = NULL;
   journal = NULL;
+  journal_in_fh = true;
   if (journal_p)
     {
       zfsd_mutex_lock (&fh_mutex);

@@ -877,6 +877,7 @@ dentry_lookup_path (volume vol, internal_dentry start, string *path)
       start = dentry;
     }
 
+  dentry = NULL;
   str = path->str;
   while (*str)
     {
