@@ -546,9 +546,22 @@ init_config_volume (void)
 		       (uint32_t) -1);
 	      goto out_usage;
 	    }
+	  else if (sid == this_node_id)
+	    {
+	      message (0, stderr, "The ID of the config node must be "
+		       "different from the ID of the local node\n");
+	      goto out_usage;
+	    }
 	  else if (parts[1].len == 0)
 	    {
 	      message (0, stderr, "Node name must not be empty\n");
+	      goto out_usage;
+	    }
+	  else if (parts[1].len == node_name.len
+		   && strcmp (parts[1].str, node_name.str) == 0)
+	    {
+	      message (0, stderr, "The name of the config node must be "
+		       "different from the name of the local node\n");
 	      goto out_usage;
 	    }
 	  else if (parts[2].len == 0)
