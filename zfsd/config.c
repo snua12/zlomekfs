@@ -344,6 +344,21 @@ read_private_key (string *filename)
   return true;
 }
 
+/* Initialize local node so that we could read configuration.  */
+
+static void
+init_this_node (void)
+{
+  node nod;
+
+  zfsd_mutex_lock (&node_mutex);
+  nod = node_create (this_node_id, &node_name, &node_host_name);
+  zfsd_mutex_unlock (&nod->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+}
+
+/* Read ID and name of local node and local paths of volumes.  */
+
 static bool
 read_local_cluster_config (string *path)
 {
@@ -413,6 +428,8 @@ read_local_cluster_config (string *path)
     }
   free (file);
   fclose (f);
+
+  init_this_node ();
 
   /* Read local info about volumes.  */
   file = xstrconcat (2, path->str, "/volume_info");
@@ -489,13 +506,12 @@ read_local_cluster_config (string *path)
   return true;
 }
 
-/* Initialize data structures which are needed for reading configuration.  */
+/* Initialize config volume so that we could read configuration.  */
 
 static bool
-init_config (void)
+init_config_volume (void)
 {
   volume vol;
-  node nod;
 
   zfsd_mutex_lock (&fh_mutex);
   zfsd_mutex_lock (&volume_mutex);
@@ -509,12 +525,7 @@ init_config (void)
       goto out;
     }
 
-  zfsd_mutex_lock (&node_mutex);
-  nod = node_create (this_node_id, &node_name, &node_host_name);
-  zfsd_mutex_unlock (&nod->mutex);
-  zfsd_mutex_unlock (&node_mutex);
-
-  volume_set_common_info_wrapper (vol, "config", "/config", nod);
+  volume_set_common_info_wrapper (vol, "config", "/config", this_node);
 
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&volume_mutex);
@@ -2060,7 +2071,7 @@ read_cluster_config (void)
   if (!read_local_cluster_config (&node_config))
     return false;
 
-  if (!init_config ())
+  if (!init_config_volume ())
     return false;
 
   if (!read_global_cluster_config ())
