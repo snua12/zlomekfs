@@ -559,7 +559,7 @@ init_config_volume (void)
   vol = volume_lookup_nolock (VOLUME_ID_CONFIG);
   if (!vol)
     {
-      message (0, stderr, "Config volume (ID == %" PRIu32 " does not exist.\n",
+      message (0, stderr, "Config volume (ID == %" PRIu32 ") does not exist.\n",
 	       VOLUME_ID_CONFIG);
       goto out;
     }
