@@ -102,7 +102,7 @@ node_lookup (unsigned int id)
 /* Return the node whose name is NAME.  */
 
 node
-node_lookup (char *name)
+node_lookup_name (char *name)
 {
   return (node) htab_find_with_hash (node_htab_name, name,
 				     HASH_NODE_NAME (name));

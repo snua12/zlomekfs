@@ -359,12 +359,12 @@ splay_tree_lookup (splay_tree sp, splay_tree_key key)
 splay_tree_node
 splay_tree_max (splay_tree sp)
 {
+  splay_tree_node n = sp->root;
+
 #ifdef ENABLE_CHECKING
   if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
     abort ();
 #endif
-
-  splay_tree_node n = sp->root;
 
   if (!n)
     return NULL;
@@ -380,12 +380,12 @@ splay_tree_max (splay_tree sp)
 splay_tree_node
 splay_tree_min (splay_tree sp)
 {
+  splay_tree_node n = sp->root;
+
 #ifdef ENABLE_CHECKING
   if (sp->mutex && pthread_mutex_trylock (sp->mutex) == 0)
     abort ();
 #endif
-
-  splay_tree_node n = sp->root;
 
   if (!n)
     return NULL;
