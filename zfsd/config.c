@@ -570,6 +570,11 @@ process_line_node (char *line, char *file_name, unsigned int line_num,
 	  message (0, stderr, "%s:%u: Node ID must not be 0 or %" PRIu32 "\n",
 		   file_name, line_num, (uint32_t) -1);
 	}
+      else if (parts[1].len == 0)
+	{
+	  message (0, stderr, "%s:%u: Node name must not be empty\n",
+		   file_name, line_num);
+	}
       else
 	{
 	  nod = try_create_node (sid, &parts[1]);
@@ -616,6 +621,8 @@ process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
 
   for (i = 0; line[i] == ' '; i++)
     ;
+  if (line[i] == 0)
+    return 0;
 
   /* Free superfluous records.  */
   while (VARRAY_USED (*hierarchy) > i)
