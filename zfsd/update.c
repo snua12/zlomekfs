@@ -1019,12 +1019,21 @@ files_are_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
 
 	r = remote_readlink_zfs_fh (&remote_link, remote_fh, vol);
 	if (r != ZFS_OK)
-	  goto differ;
+	  {
+	    free (local_link.path.str);
+	    goto differ;
+	  }
 
 	if (local_link.path.len != remote_link.path.len
 	    || memcmp (local_link.path.str, remote_link.path.str,
 		       local_link.path.len) != 0)
-	  goto differ;
+	  {
+	    free (local_link.path.str);
+	    free (remote_link.path.str);
+	    goto differ;
+	  }
+	free (local_link.path.str);
+	free (remote_link.path.str);
 
 	break;
 
@@ -1135,6 +1144,7 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 	sa.atime = (uint32_t) -1;
 	sa.mtime = (uint32_t) -1;
 	r = local_symlink (&res, dir, name, &link_to.path, &sa, vol, &meta);
+	free (link_to.path.str);
 	break;
 
       case FT_BLK:
@@ -1230,6 +1240,7 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 	sa.atime = (uint32_t) -1;
 	sa.mtime = (uint32_t) -1;
 	r = remote_symlink (res, dir, name, &link_to.path, &sa, vol);
+	free (link_to.path.str);
 	break;
 
       case FT_REG:
