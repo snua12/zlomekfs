@@ -1239,6 +1239,8 @@ read_global_cluster_config (void)
       message (-1, stderr, "pthread_create() failed\n");
       config_reader_id = 0;
       config_reader_terminated = true;
+      network_worker_cleanup (&config_reader_data);
+      semaphore_destroy (&config_reader_data.sem);
       return false;
     }
   else
@@ -1251,7 +1253,10 @@ read_global_cluster_config (void)
 	  /* Sleep gets interrupted by the signal.  */
 	  sleep (1000000);
 	}
+
       pthread_join (config_reader_id, &retval);
+      network_worker_cleanup (&config_reader_data);
+      semaphore_destroy (&config_reader_data.sem);
 
       return retval == NULL;
     }

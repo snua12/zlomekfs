@@ -201,9 +201,13 @@ node
 node_create_wrapper (uint32_t id, char *name)
 {
   string name_str;
+  node nod;
 
   xmkstring (&name_str, name);
-  return node_create (id, &name_str);
+  nod = node_create (id, &name_str);
+  free (name_str.str);
+
+  return nod;
 }
 
 /* Create node NAME with ID if ID and NAME does not exist.  */

@@ -255,6 +255,8 @@ volume_set_common_info_wrapper (volume vol, char *name, char *mountpoint,
   xmkstring (&name_str, name);
   xmkstring (&mountpoint_str, mountpoint);
   volume_set_common_info (vol, &name_str, &mountpoint_str, master);
+  free (name_str.str);
+  free (mountpoint_str.str);
 }
 
 /* Set the information for a volume with local copy.  */
