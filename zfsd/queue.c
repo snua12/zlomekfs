@@ -35,8 +35,8 @@ queue_create (queue *q, size_t size)
     abort ();
 #endif
 
-  pthread_mutex_init (&q->mutex, NULL);
-  pthread_cond_init (&q->non_empty, NULL);
+  zfsd_mutex_init (&q->mutex);
+  zfsd_cond_init (&q->non_empty);
   q->queue = (size_t *) xmalloc (size * sizeof (size_t));
   q->size = size;
   q->nelem = 0;
@@ -55,8 +55,8 @@ queue_destroy (queue *q)
 #endif
 
   q->size = 0;
-  pthread_cond_destroy (&q->non_empty);
-  pthread_mutex_destroy (&q->mutex);
+  zfsd_cond_destroy (&q->non_empty);
+  zfsd_mutex_destroy (&q->mutex);
   free (q->queue);
 }
 

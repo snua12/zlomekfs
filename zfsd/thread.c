@@ -29,6 +29,20 @@
 #include "queue.h"
 #include "thread.h"
 
+#ifdef ENABLE_CHECKING
+
+/* Static mutex initializer.  */
+pthread_mutex_t zfsd_mutex_initializer
+  = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+
+#else
+
+/* Static mutex initializer.  */
+pthread_mutex_t zfsd_mutex_initializer
+  = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
+
+#endif
+
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
 volatile bool running = true;
 

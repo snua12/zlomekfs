@@ -999,22 +999,12 @@ init_server_fd_data ()
 {
   int i;
 
-  if (pthread_mutex_init (&active_mutex, NULL))
-    {
-      message (-1, stderr, "pthread_mutex_init() failed\n");
-      return false;
-    }
-
+  zfsd_mutex_init (&active_mutex);
   server_fd_data = (server_fd_data_t *) xcalloc (max_nfd,
 						 sizeof (server_fd_data_t));
   for (i = 0; i < max_nfd; i++)
     {
-      if (pthread_mutex_init (&server_fd_data[i].mutex, NULL))
-	{
-	  message (-1, stderr, "pthread_mutex_init() failed\n");
-	  free (server_fd_data);
-	  return false;
-	}
+      zfsd_mutex_init (&server_fd_data[i].mutex);
       server_fd_data[i].fd = -1;
     }
 
@@ -1041,10 +1031,10 @@ server_destroy_fd_data ()
       zfsd_mutex_unlock (&fd_data->mutex);
     }
   zfsd_mutex_unlock (&active_mutex);
-  pthread_mutex_destroy (&active_mutex);
+  zfsd_mutex_destroy (&active_mutex);
 
   for (i = 0; i < max_nfd; i++)
-    pthread_mutex_destroy (&server_fd_data[i].mutex);
+    zfsd_mutex_destroy (&server_fd_data[i].mutex);
 
   free (active);
   free (server_fd_data);

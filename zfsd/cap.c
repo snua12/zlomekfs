@@ -119,7 +119,7 @@ internal_cap_create (internal_fh fh, unsigned int mode)
   cap->local_cap.mode = mode;
   cap->master_cap.mode = mode;
   cap->busy = 1;
-  pthread_mutex_init (&cap->mutex, NULL);
+  zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
 
 #ifdef ENABLE_CHECKING
@@ -154,7 +154,7 @@ internal_cap_destroy (internal_cap cap)
 
   htab_clear_slot (cap_htab, slot);
   zfsd_mutex_unlock (&cap->mutex);
-  pthread_mutex_destroy (&cap->mutex);
+  zfsd_mutex_destroy (&cap->mutex);
   pool_free (cap_pool, *slot);
 }
 
@@ -221,16 +221,11 @@ initialize_cap_c ()
     = (internal_fd_data_t *) xcalloc (max_nfd, sizeof (internal_fd_data_t));
   for (i = 0; i < max_nfd; i++)
     {
-      if (pthread_mutex_init (&internal_fd_data[i].mutex, NULL))
-	{
-	  message (-1, stderr, "pthread_mutex_init() failed\n");
-	  free (internal_fd_data);
-	  return;
-	}
+      zfsd_mutex_init (&internal_fd_data[i].mutex);
       internal_fd_data[i].fd = -1;
     }
 
-  pthread_mutex_init (&cap_mutex, NULL);
+  zfsd_mutex_init (&cap_mutex);
   cap_pool = create_alloc_pool ("cap_pool", sizeof (struct internal_cap_def),
 				250, &cap_mutex);
   cap_htab = htab_create (200, internal_cap_hash, internal_cap_eq, NULL,
@@ -261,7 +256,7 @@ cleanup_cap_c ()
 #endif
   free_alloc_pool (cap_pool);
   zfsd_mutex_unlock (&cap_mutex);
-  pthread_mutex_destroy (&cap_mutex);
+  zfsd_mutex_destroy (&cap_mutex);
 
   free (internal_fd_data);
 }

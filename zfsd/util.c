@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <unistd.h>
+#include "pthread.h"
 #include "log.h"
 
 /* Read LEN bytes from file descriptor FD to buffer BUF.  */

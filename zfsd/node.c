@@ -155,7 +155,7 @@ node_create (unsigned int id, char *name)
   if (strcmp (name, node_name) == 0)
     this_node = nod;
 
-  pthread_mutex_init (&nod->mutex, NULL);
+  zfsd_mutex_init (&nod->mutex);
   zfsd_mutex_lock (&nod->mutex);
 
 #ifdef ENABLE_CHECKING
@@ -209,7 +209,7 @@ node_destroy (node nod)
   htab_clear_slot (node_htab_name, slot);
 
   zfsd_mutex_unlock (&nod->mutex);
-  pthread_mutex_destroy (&nod->mutex);
+  zfsd_mutex_destroy (&nod->mutex);
   free (nod->name);
   free (nod);
 }
@@ -427,7 +427,7 @@ node_connect_and_authenticate (thread *t, node nod)
 void
 initialize_node_c ()
 {
-  pthread_mutex_init (&node_mutex, NULL);
+  zfsd_mutex_init (&node_mutex);
   node_htab = htab_create (50, node_hash, node_eq, NULL, &node_mutex);
   node_htab_name = htab_create (50, node_hash_name, node_eq_name, NULL,
 				&node_mutex);
@@ -451,5 +451,5 @@ cleanup_node_c ()
   htab_destroy (node_htab);
   htab_destroy (node_htab_name);
   zfsd_mutex_unlock (&node_mutex);
-  pthread_mutex_destroy (&node_mutex);
+  zfsd_mutex_destroy (&node_mutex);
 }

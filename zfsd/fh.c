@@ -713,12 +713,12 @@ void
 initialize_fh_c ()
 {
   /* Data structures for file handles.  */
-  pthread_mutex_init (&fh_pool_mutex, NULL);
+  zfsd_mutex_init (&fh_pool_mutex);
   fh_pool = create_alloc_pool ("fh_pool", sizeof (struct internal_fh_def),
 			       1023, &fh_pool_mutex);
 
   /* Data structures for virtual directories.  */
-  pthread_mutex_init (&vd_mutex, NULL);
+  zfsd_mutex_init (&vd_mutex);
   vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
 			       127, &vd_mutex);
   vd_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq,
@@ -745,7 +745,7 @@ cleanup_fh_c ()
 #endif
   free_alloc_pool (fh_pool);
   zfsd_mutex_unlock (&fh_pool_mutex);
-  pthread_mutex_destroy (&fh_pool_mutex);
+  zfsd_mutex_destroy (&fh_pool_mutex);
 
   /* Data structures for virtual directories.  */
   zfsd_mutex_lock (&vd_mutex);
@@ -758,5 +758,5 @@ cleanup_fh_c ()
 #endif
   free_alloc_pool (vd_pool);
   zfsd_mutex_unlock (&vd_mutex);
-  pthread_mutex_destroy (&vd_mutex);
+  zfsd_mutex_destroy (&vd_mutex);
 }

@@ -417,7 +417,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod)		\
 void
 initialize_zfs_prot_c ()
 {
-  pthread_mutex_init (&request_id_mutex, NULL);
+  zfsd_mutex_init (&request_id_mutex);
 }
 
 /* Cleanup data structures needed by this module.  */
@@ -425,5 +425,5 @@ initialize_zfs_prot_c ()
 void
 cleanup_zfs_prot_c ()
 {
-  pthread_mutex_destroy (&request_id_mutex);
+  zfsd_mutex_destroy (&request_id_mutex);
 }

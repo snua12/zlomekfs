@@ -29,14 +29,14 @@ semaphore_init (semaphore *sem, unsigned int n)
 {
   int r;
 
-  r = pthread_mutex_init (&sem->mutex, NULL);
+  r = zfsd_mutex_init (&sem->mutex);
   if (r != 0)
     return r;
 
-  r = pthread_cond_init (&sem->cond, NULL);
+  r = zfsd_cond_init (&sem->cond);
   if (r != 0)
     {
-      pthread_mutex_destroy (&sem->mutex);
+      zfsd_mutex_destroy (&sem->mutex);
       return r;
     }
 
@@ -51,11 +51,11 @@ semaphore_destroy (semaphore *sem)
 {
   int r;
 
-  r = pthread_cond_destroy (&sem->cond);
+  r = zfsd_cond_destroy (&sem->cond);
   if (r != 0)
     return r;
 
-  r = pthread_mutex_destroy (&sem->mutex);
+  r = zfsd_mutex_destroy (&sem->mutex);
   return r;
 }
 

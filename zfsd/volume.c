@@ -97,7 +97,7 @@ volume_create (unsigned int id)
   vol->master_root_fh = root_fh;
   vol->root_vd = NULL;
 
-  pthread_mutex_init (&vol->mutex, NULL);
+  zfsd_mutex_init (&vol->mutex);
   zfsd_mutex_lock (&vol->mutex);
 
   vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
@@ -146,7 +146,7 @@ volume_destroy (volume vol)
 #endif
   htab_clear_slot (volume_htab, slot);
   zfsd_mutex_unlock (&vol->mutex);
-  pthread_mutex_destroy (&vol->mutex);
+  zfsd_mutex_destroy (&vol->mutex);
 
   if (vol->local_path)
     free (vol->local_path);
@@ -246,7 +246,7 @@ debug_volumes ()
 void
 initialize_volume_c ()
 {
-  pthread_mutex_init (&volume_mutex, NULL);
+  zfsd_mutex_init (&volume_mutex);
   volume_htab = htab_create (200, volume_hash, volume_eq, NULL, &volume_mutex);
 }
 
@@ -267,5 +267,5 @@ cleanup_volume_c ()
     });
   htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
-  pthread_mutex_destroy (&volume_mutex);
+  zfsd_mutex_destroy (&volume_mutex);
 }
