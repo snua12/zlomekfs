@@ -841,10 +841,21 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
   switch (type)
     {
       case METADATA_TYPE_UPDATED:
+	if (fh->meta.flags & METADATA_COMPLETE)
+	  {
+	    fh->updated = interval_tree_create (62, &fh->mutex);
+	    interval_tree_insert (fh->updated, 0, fh->attr.size);
+	    return true;
+	  }
 	treep = &fh->updated;
 	break;
 
       case METADATA_TYPE_MODIFIED:
+	if (!(fh->meta.flags & METADATA_MODIFIED))
+	  {
+	    fh->modified = interval_tree_create (62, &fh->mutex);
+	    return true;
+	  }
 	treep = &fh->modified;
 	break;
 
