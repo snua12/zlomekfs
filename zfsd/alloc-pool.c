@@ -25,6 +25,7 @@
 
 #include "system.h"
 #include <stdlib.h>
+#include <inttypes.h>
 #include "alloc-pool.h"
 #include "log.h"
 #include "memory.h"
@@ -185,7 +186,7 @@ pool_alloc (alloc_pool pool)
 	{
 #ifdef ENABLE_CHECKING
 	  /* Mark the element to be free.  */
-	  *((allocation_object *) block)->id = 0;
+	  ((allocation_object *) block)->id = 0;
 #endif
 	  header = (alloc_pool_list) USER_PTR_FROM_ALLOCATION_OBJECT_PTR (block);
 	  header->next = pool->free_list;
