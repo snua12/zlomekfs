@@ -700,8 +700,9 @@ internal_dentry_lock (unsigned int level, volume *volp,
     abort ();
 #endif
 
-  message (4, stderr, "FH %p LOCK, by %lu\n", (void *) (*dentryp)->fh,
-	   (unsigned long) pthread_self ());
+  message (4, stderr, "FH %p LOCK %u, by %lu at %s:%d\n", level,
+	   (void *) (*dentryp)->fh, (unsigned long) pthread_self (),
+	   __FILE__, __LINE__);
 
   *tmp_fh = (*dentryp)->fh->local_fh;
   wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
@@ -723,8 +724,9 @@ internal_dentry_lock (unsigned int level, volume *volp,
 	return r;
     }
 
-  message (4, stderr, "FH %p LOCKED, by %lu\n", (void *) (*dentryp)->fh,
-	   (unsigned long) pthread_self ());
+  message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n", level,
+	   (void *) (*dentryp)->fh, (unsigned long) pthread_self (),
+	   __FILE__, __LINE__);
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
@@ -767,8 +769,9 @@ internal_dentry_unlock (internal_dentry dentry)
     abort ();
 #endif
 
-  message (4, stderr, "FH %p UNLOCK, by %lu\n", (void *) dentry->fh,
-	   (unsigned long) pthread_self ());
+  message (4, stderr, "FH %p UNLOCK, by %lu at %s:%d\n",
+	   (void *) (*dentryp)->fh, (unsigned long) pthread_self (),
+	   __FILE__, __LINE__);
 
   dentry->fh->users--;
   if (dentry->fh->users == 0)
