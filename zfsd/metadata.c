@@ -911,18 +911,18 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
    on volume VOL.  */
 
 static int
-open_journal_file (volume vol, internal_fh fh)
+open_journal_file (volume vol, journal_t journal, zfs_fh *fh)
 {
   string path;
   int fd;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (journal->mutex);
 
-  build_fh_metadata_path (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  build_fh_metadata_path (&path, vol, fh, METADATA_TYPE_JOURNAL,
 			  metadata_tree_depth);
-  fd = open_fh_metadata (&path, vol, &fh->local_fh, METADATA_TYPE_JOURNAL,
+  fd = open_fh_metadata (&path, vol, fh, METADATA_TYPE_JOURNAL,
 			 O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
   free (path.str);
   if (fd < 0)
@@ -935,11 +935,11 @@ open_journal_file (volume vol, internal_fh fh)
       return -1;
     }
 
-  fh->journal->fd = fd;
+  journal->fd = fd;
 
   zfsd_mutex_lock (&metadata_mutex);
   zfsd_mutex_lock (&metadata_fd_data[fd].mutex);
-  init_journal_fd (fh->journal);
+  init_journal_fd (journal);
   zfsd_mutex_unlock (&metadata_mutex);
 
   return fd;
@@ -3125,7 +3125,7 @@ add_journal_entry (volume vol, internal_fh fh, zfs_fh *local_fh,
 
   if (!journal_opened_p (fh->journal))
     {
-      if (open_journal_file (vol, fh) < 0)
+      if (open_journal_file (vol, fh->journal, &fh->local_fh) < 0)
 	return false;
     }
 
