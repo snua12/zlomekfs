@@ -123,6 +123,8 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
   else
     zfsd_mutex_unlock (&vol->mutex);
 
+  /* DENTRY->FH->MUTEX is still locked.  */
+
   /* Delete the same blocks from MODIFIED interval tree and add them to
      UPDATED interval tree.  */
   for (i = 0; i < local_md5.count; i++)
@@ -241,9 +243,12 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 	      r = zfs_fh_lookup (&local_cap->fh, &vol, &dentry, NULL);
 	      if (r != ZFS_OK)
 		return r;
+
 	      interval_tree_insert (dentry->fh->updated, remote_md5.offset[i],
 				    (remote_md5.offset[i]
 				     + remote_md5.length[i]));
+	      zfsd_mutex_unlock (&dentry->fh->mutex);
+	      zfsd_mutex_unlock (&vol->mutex);
 	    }
 	}
     }
