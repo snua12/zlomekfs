@@ -3157,7 +3157,13 @@ local_file_info (zfs_fh *fh, volume vol)
     }
   zfsd_mutex_unlock (&vol->mutex);
 
-  return meta.slot_status == VALID_SLOT ? ZFS_OK : ENOENT;
+  if (meta.slot_status != VALID_SLOT)
+    return ENOENT;
+
+  if (meta.gen != fh->gen)
+    return ENOENT;
+
+  return ZFS_OK;
 }
 
 /* Check whether remote file for DENTRY on volume VOL exists.  */
