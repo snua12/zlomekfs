@@ -68,8 +68,7 @@ volume_set_local_info_wrapper (volume vol, char *local_path,
 {
   string local_path_str;
 
-  local_path_str.str = local_path;
-  local_path_str.len = strlen (local_path);
+  xmkstring (&local_path_str, local_path);
   return volume_set_local_info (vol, &local_path_str, size_limit);
 }
 
