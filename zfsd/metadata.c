@@ -3193,6 +3193,31 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st,
   return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
 }
 
+/* Add a journal entry for file with metadata META, name NAME
+   and operation OPER to journal for file handle FH on volume VOL.  */
+
+bool
+add_journal_entry_meta (volume vol, internal_fh fh, metadata *meta,
+			string *name, journal_operation_t oper)
+{
+  zfs_fh local_fh;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (!vol->local_path.str || !vol->is_copy)
+    abort ();
+  if (meta->slot_status != VALID_SLOT)
+    abort ();
+#endif
+
+  local_fh.dev = meta->dev;
+  local_fh.ino = meta->ino;
+  local_fh.gen = meta->gen;
+
+  return add_journal_entry (vol, fh, &local_fh, &meta->master_fh, name, oper);
+}
+
 /* Build and create path PATH to shadow file for file FH with name NAME
    on volume VOL.  */
 
