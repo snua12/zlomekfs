@@ -35,6 +35,7 @@ typedef struct volume_def *volume;
 #include "varray.h"
 #include "fibheap.h"
 #include "interval.h"
+#include "string-list.h"
 #include "zfs_prot.h"
 #include "util.h"
 
