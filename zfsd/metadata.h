@@ -61,6 +61,10 @@ typedef struct metadata_def
 #include "volume.h"
 #include "fh.h"
 
+extern hashval_t metadata_hash (const void *x);
+extern int metadata_eq (const void *x, const void *y);
+extern void metadata_decode (void *x);
+extern void metadata_encode (void *x);
 extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);

@@ -79,7 +79,7 @@ static bool write_hardlinks (volume vol, zfs_fh *fh, string_list sl,
 
 /* Hash function for metadata X.  */
 
-static hashval_t
+hashval_t
 metadata_hash (const void *x)
 {
   return METADATA_HASH (*(metadata *) x);
@@ -87,7 +87,7 @@ metadata_hash (const void *x)
 
 /* Compare element X of hash file with possible element Y.  */
 
-static int
+int
 metadata_eq (const void *x, const void *y)
 {
   metadata *m1 = (metadata *) x;
@@ -98,7 +98,7 @@ metadata_eq (const void *x, const void *y)
 
 /* Decode element X of the hash file.  */
 
-static void
+void
 metadata_decode (void *x)
 {
   metadata *m = (metadata *) x;
@@ -112,7 +112,7 @@ metadata_decode (void *x)
 
 /* Encode element X of the hash file.  */
 
-static void
+void
 metadata_encode (void *x)
 {
   metadata *m = (metadata *) x;
