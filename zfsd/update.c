@@ -531,7 +531,7 @@ reintegrate_file_blocks (zfs_cap *cap)
 
 /* Update file with file handle FH.  */
 
-int32_t
+static int32_t
 update_file (zfs_fh *fh)
 {
   varray blocks;
@@ -566,11 +566,27 @@ update_file (zfs_fh *fh)
       zfsd_mutex_unlock (&vol->mutex);
       return ZFS_UPDATE_FAILED;
     }
-  release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
+  switch (dentry->fh->flags & (IFH_UPDATE | IFH_REINTEGRATE))
+    {
+      default:
+	abort ();
+
+      case IFH_UPDATE:
+	cap.flags = O_RDONLY;
+	break;
+
+      case IFH_REINTEGRATE:
+	cap.flags = O_WRONLY;
+	break;
+
+      case IFH_UPDATE | IFH_REINTEGRATE:
+	cap.flags = O_RDWR;
+	break;
+    }
+  release_dentry (dentry);
   cap.fh = *fh;
-  cap.flags = O_RDONLY;
   r = get_capability (&cap, &icap, &vol, &dentry, NULL, true, true);
   if (r != ZFS_OK)
     return r;
