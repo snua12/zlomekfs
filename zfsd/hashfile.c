@@ -246,7 +246,7 @@ hfile_expand (hfile_t hfile)
     }
 
   new_path = xstrconcat (2, hfile->file_name, ".new");
-  hfile->fd = open (new_path, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+  hfile->fd = open (new_path, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   if (hfile->fd < 0)
     goto hfile_expand_error;
 

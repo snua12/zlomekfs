@@ -344,7 +344,8 @@ open_list_file (volume vol)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  fd = open_metadata (vol->metadata->file_name, O_RDWR | O_CREAT, S_IRWXU);
+  fd = open_metadata (vol->metadata->file_name, O_RDWR | O_CREAT,
+		      S_IRUSR | S_IWUSR);
   if (fd < 0)
     return fd;
 
@@ -372,7 +373,7 @@ open_interval_file (volume vol, internal_fh fh, interval_tree_purpose purpose)
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
   path = build_interval_path (vol, &fh->local_fh, purpose, metadata_tree_depth);
-  fd = open_metadata (path, O_WRONLY | O_CREAT, S_IRWXU);
+  fd = open_metadata (path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
   free (path);
   if (fd < 0)
     return fd;
@@ -479,7 +480,8 @@ flush_interval_tree_1 (interval_tree tree, char *path)
   CHECK_MUTEX_LOCKED (tree->mutex);
 
   new_path = xstrconcat (2, path, ".new");
-  fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
+  fd = open_metadata (new_path, O_WRONLY | O_TRUNC | O_CREAT,
+		      S_IRUSR | S_IWUSR);
 
   if (fd < 0)
     {
