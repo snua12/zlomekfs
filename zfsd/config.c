@@ -1140,7 +1140,7 @@ process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of user mapping.  If NOD is NULL read the default user mapping
+/* Read list of user mapping.  If SID == 0 read the default user mapping
    from CONFIG_DIR/user/default else read the special mapping for node SID.  */
 
 static bool
@@ -1240,7 +1240,7 @@ process_line_group_mapping (char *line, char *file_name, unsigned int line_num,
   return 0;
 }
 
-/* Read list of group mapping.  If NOD is NULL read the default group mapping
+/* Read list of group mapping.  If SID == 0 read the default group mapping
    from CONFIG_DIR/group/default else read the special mapping for node SID.  */
 
 static bool
