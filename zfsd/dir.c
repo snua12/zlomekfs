@@ -65,12 +65,16 @@ build_local_path (volume vol, internal_dentry dentry)
   /* Count the number of strings which will be concatenated.  */
   n = 1;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    n += 2;
+    if (!GET_CONFLICT (tmp->fh->local_fh))
+      n += 2;
 
   varray_create (&v, sizeof (char *), n);
   VARRAY_USED (v) = n;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
+      if (GET_CONFLICT (tmp->fh->local_fh))
+	n += 2;
+
       n--;
       VARRAY_ACCESS (v, n, char *) = tmp->name;
       n--;
@@ -105,7 +109,8 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
   /* Count the number of strings which will be concatenated.  */
   n = 3;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    n += 2;
+    if (!GET_CONFLICT (tmp->fh->local_fh))
+      n += 2;
 
   varray_create (&v, sizeof (char *), n);
   VARRAY_USED (v) = n;
@@ -115,6 +120,9 @@ build_local_path_name (volume vol, internal_dentry dentry, char *name)
   VARRAY_ACCESS (v, n, char *) = "/";
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
+      if (GET_CONFLICT (tmp->fh->local_fh))
+	n += 2;
+
       n--;
       VARRAY_ACCESS (v, n, char *) = tmp->name;
       n--;
@@ -144,12 +152,16 @@ build_relative_path (internal_dentry dentry)
   /* Count the number of strings which will be concatenated.  */
   n = 0;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    n += 2;
+    if (!GET_CONFLICT (tmp->fh->local_fh))
+      n += 2;
 
   varray_create (&v, sizeof (char *), n);
   VARRAY_USED (v) = n;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
+      if (GET_CONFLICT (tmp->fh->local_fh))
+	n += 2;
+
       n--;
       VARRAY_ACCESS (v, n, char *) = tmp->name;
       n--;
@@ -178,7 +190,8 @@ build_relative_path_name (internal_dentry dentry, char *name)
   /* Count the number of strings which will be concatenated.  */
   n = 2;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
-    n += 2;
+    if (!GET_CONFLICT (tmp->fh->local_fh))
+      n += 2;
 
   varray_create (&v, sizeof (char *), n);
   VARRAY_USED (v) = n;
@@ -188,6 +201,9 @@ build_relative_path_name (internal_dentry dentry, char *name)
   VARRAY_ACCESS (v, n, char *) = "/";
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     {
+      if (GET_CONFLICT (tmp->fh->local_fh))
+	n += 2;
+
       n--;
       VARRAY_ACCESS (v, n, char *) = tmp->name;
       n--;
