@@ -315,7 +315,14 @@ do_tests (void *data)
       nod = node_lookup (2);
       zfsd_mutex_unlock (&node_mutex);
       message (2, stderr, "TEST %d\n", ++test);
-      zfs_proc_null_client (t, NULL, nod);
+      r = zfs_proc_null_client (t, NULL, nod);
+
+      zfsd_mutex_lock (&node_mutex);
+      nod = node_lookup (2);
+      zfsd_mutex_unlock (&node_mutex);
+      if (r >= ZFS_ERROR_HAS_DC_REPLY)
+	recycle_dc_to_node (&t->dc_reply, nod);
+      zfsd_mutex_unlock (&nod->mutex);
 
       if (!get_running ())
 	break;
@@ -324,7 +331,14 @@ do_tests (void *data)
       nod = node_lookup (2);
       zfsd_mutex_unlock (&node_mutex);
       message (2, stderr, "TEST %d\n", ++test);
-      zfs_proc_root_client (t, NULL, nod);
+      r = zfs_proc_root_client (t, NULL, nod);
+
+      zfsd_mutex_lock (&node_mutex);
+      nod = node_lookup (2);
+      zfsd_mutex_unlock (&node_mutex);
+      if (r >= ZFS_ERROR_HAS_DC_REPLY)
+	recycle_dc_to_node (&t->dc_reply, nod);
+      zfsd_mutex_unlock (&nod->mutex);
 
       if (!get_running ())
 	break;

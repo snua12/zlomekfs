@@ -38,6 +38,7 @@
 #include "dir.h"
 #include "cap.h"
 #include "volume.h"
+#include "network.h"
 
 /* int getdents(unsigned int fd, struct dirent *dirp, unsigned int count); */
 _syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
@@ -105,10 +106,12 @@ close_remote_capability (internal_cap cap, volume vol)
 
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc))
-	return ZFS_INVALID_REPLY;
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
     }
 
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_volume_master (&t->dc_reply, vol);
   return r;
 }
 
@@ -205,18 +208,23 @@ open_remote_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
 
   if (r == ZFS_OK)
     {
-      if (!decode_zfs_cap (&t->dc, cap)
-	  || !finish_decoding (&t->dc))
-	return ZFS_INVALID_REPLY;
+      if (!decode_zfs_cap (&t->dc_reply, cap)
+	  || !finish_decoding (&t->dc_reply))
+	{
+	  recycle_dc_to_volume_master (&t->dc_reply, vol);
+	  return ZFS_INVALID_REPLY;
+	}
 
       icap->master_cap = *cap;
     }
   if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc))
-	return ZFS_INVALID_REPLY;
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
     }
 
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_volume_master (&t->dc_reply, vol);
   return r;
 }
 
@@ -546,22 +554,24 @@ read_remote_dir (DC *dc, internal_cap cap, readdir_data *data, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (t->dc.max_length > dc->cur_length)
+      if (t->dc_reply.max_length > dc->cur_length)
 	{
-	  memcpy (dc->current, t->dc.current,
-		  t->dc.max_length - t->dc.cur_length);
-	  dc->current += t->dc.max_length - t->dc.cur_length;
-	  dc->cur_length += t->dc.max_length - t->dc.cur_length;
+	  memcpy (dc->current, t->dc_reply.current,
+		  t->dc_reply.max_length - t->dc_reply.cur_length);
+	  dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
+	  dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
 	}
       else
 	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc))
-	return ZFS_INVALID_REPLY;
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
     }
 
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_volume_master (&t->dc_reply, vol);
   return r;
 }
 
@@ -731,20 +741,22 @@ remote_read (DC *dc, internal_cap cap, uint64_t offset,
   if (r == ZFS_OK)
     {
       encode_status (dc, ZFS_OK);
-      memcpy (dc->current, t->dc.current,
-	      t->dc.max_length - t->dc.cur_length);
-      dc->current += t->dc.max_length - t->dc.cur_length;
-      dc->cur_length += t->dc.max_length - t->dc.cur_length;
+      memcpy (dc->current, t->dc_reply.current,
+	      t->dc_reply.max_length - t->dc_reply.cur_length);
+      dc->current += t->dc_reply.max_length - t->dc_reply.cur_length;
+      dc->cur_length += t->dc_reply.max_length - t->dc_reply.cur_length;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc))
+      if (!finish_decoding (&t->dc_reply))
 	r = ZFS_INVALID_REPLY;
     }
 
   if (r != ZFS_OK)
     encode_status (dc, r);
 
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_volume_master (&t->dc_reply, vol);
   return r;
 }
 
@@ -852,16 +864,18 @@ remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 
   if (r == ZFS_OK)
     {
-      if (decode_write_res (&t->dc, res)
-	  || !finish_decoding (&t->dc))
-	return ZFS_INVALID_REPLY;
+      if (decode_write_res (&t->dc_reply, res)
+	  || !finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
     }
   else if (r >= ZFS_LAST_DECODED_ERROR)
     {
-      if (!finish_decoding (&t->dc))
-	return ZFS_INVALID_REPLY;
+      if (!finish_decoding (&t->dc_reply))
+	r = ZFS_INVALID_REPLY;
     }
 
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_volume_master (&t->dc_reply, vol);
   return r;
 }
 

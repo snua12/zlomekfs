@@ -495,7 +495,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
 
   zfsd_mutex_init (&vd->mutex);
   zfsd_mutex_lock (&vd->mutex);
-  
+
   varray_create (&vd->subdirs, sizeof (virtual_dir), 16);
   vd->subdir_index = VARRAY_USED (parent->subdirs);
   VARRAY_PUSH (parent->subdirs, vd, virtual_dir);

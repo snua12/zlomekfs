@@ -90,6 +90,7 @@ typedef struct thread_def
 
   DC dc;			/* buffer for request to this node */
   DC dc_call;			/* buffer for request for remote node */
+  DC dc_reply;			/* buffer for reply from remote node */
   call_args args;		/* union for decoded call arguments.  */
   int retval;			/* return value for request.  */
 

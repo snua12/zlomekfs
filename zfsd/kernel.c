@@ -194,19 +194,16 @@ client_worker (void *data)
 
 out:
       zfsd_mutex_lock (&client_data.mutex);
-      if (get_running ())
+      if (client_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
 	{
-	  if (client_data.ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
-	    {
-	      /* Add the buffer to the queue.  */
-	      client_data.dc[client_data.ndc] = t->dc;
-	      client_data.ndc++;
-	    }
-	  else
-	    {
-	      /* Free the buffer.  */
-	      dc_destroy (&t->dc);
-	    }
+	  /* Add the buffer to the queue.  */
+	  client_data.dc[client_data.ndc] = t->dc;
+	  client_data.ndc++;
+	}
+      else
+	{
+	  /* Free the buffer.  */
+	  dc_destroy (&t->dc);
 	}
       zfsd_mutex_unlock (&client_data.mutex);
 

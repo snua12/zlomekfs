@@ -139,6 +139,7 @@ network_worker (void *data)
 #include "data-coding.h"
 #include "memory.h"
 #include "node.h"
+#include "volume.h"
 #include "hashtab.h"
 #include "alloc-pool.h"
 
@@ -224,6 +225,7 @@ init_fd_data (int fd)
 }
 
 /* Close file descriptor FD and update its network_fd_data.  */
+
 void
 close_network_fd (int fd)
 {
@@ -268,6 +270,65 @@ close_active_fd (int i)
     });
   htab_destroy (network_fd_data[fd].waiting4reply);
   free_alloc_pool (network_fd_data[fd].waiting4reply_pool);
+}
+
+/* Put DC back to file descriptor data FD_DATA.  */
+
+void
+recycle_dc_to_network_fd (DC *dc, network_fd_data_t *fd_data)
+{
+  CHECK_MUTEX_LOCKED (&fd_data->mutex);
+
+  if (fd_data->fd >= 0 && fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
+    {
+      /* Add the buffer to the queue.  */
+      fd_data->dc[fd_data->ndc] = *dc;
+      fd_data->ndc++;
+    }
+  else
+    {
+      /* Free the buffer.  */
+      dc_destroy (dc);
+    }
+}
+
+/* Put DC back to data for socket connected to master of volume VOL.  */
+
+void
+recycle_dc_to_volume_master (DC *dc, volume vol)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+  if (vol->master->fd < 0)
+    dc_destroy (dc);
+  else
+    {
+      zfsd_mutex_lock (&network_fd_data[vol->master->fd].mutex);
+      recycle_dc_to_network_fd (dc, &network_fd_data[vol->master->fd]);
+      zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
+    }
+
+  zfsd_mutex_unlock (&vol->master->mutex);
+}
+
+/* Put DC back to data for socket connected to node NOD.  */
+
+void
+recycle_dc_to_node (DC *dc, node nod)
+{
+  CHECK_MUTEX_LOCKED (&nod->mutex);
+
+  if (nod->fd < 0)
+    dc_destroy (dc);
+  else
+    {
+      zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
+      recycle_dc_to_network_fd (dc, &network_fd_data[nod->fd]);
+      zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
+    }
 }
 
 /* Helper function for sending request.  Send request with request id REQUEST_ID
@@ -325,7 +386,7 @@ send_request (thread *t, uint32_t request_id, int fd)
   /* If there was no error with connection, decode return value.  */
   if (t->retval == ZFS_OK)
     {
-      if (!decode_status (&t->dc, &t->retval))
+      if (!decode_status (&t->dc_reply, &t->retval))
 	t->retval = ZFS_INVALID_REPLY;
     }
 }
@@ -478,17 +539,7 @@ network_worker (void *data)
 out:
       zfsd_mutex_lock (&fd_data->mutex);
       fd_data->busy--;
-      if (get_running () && fd_data->ndc < MAX_FREE_BUFFERS_PER_ACTIVE_FD)
-	{
-	  /* Add the buffer to the queue.  */
-	  fd_data->dc[fd_data->ndc] = t->dc;
-	  fd_data->ndc++;
-	}
-      else
-	{
-	  /* Free the buffer.  */
-	  dc_destroy (&t->dc);
-	}
+      recycle_dc_to_network_fd (&t->dc, fd_data);
       zfsd_mutex_unlock (&fd_data->mutex);
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
@@ -555,6 +606,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 					     NO_INSERT);
 	    if (!slot)
 	      {
+		recycle_dc_to_network_fd (dc, fd_data);
 		zfsd_mutex_unlock (&fd_data->mutex);
 		/* TODO: log request was not found.  */
 		message (1, stderr, "Request ID %d has not been found.\n",
@@ -564,7 +616,7 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
 
 	    data = *(waiting4reply_data **) slot;
 	    t = data->t;
-	    t->dc = *dc;
+	    t->dc_reply = *dc;
 	    htab_clear_slot (fd_data->waiting4reply, slot);
 	    pool_free (fd_data->waiting4reply_pool, data);
 	    zfsd_mutex_unlock (&fd_data->mutex);

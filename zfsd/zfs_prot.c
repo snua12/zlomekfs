@@ -409,16 +409,16 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, thread *t)
 }
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
-int								\
+int									\
 zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   uint32_t req_id;							\
 									\
-  zfsd_mutex_lock (&request_id_mutex);				\
+  zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
-  start_encoding (&t->dc_call);					\
+  start_encoding (&t->dc_call);						\
   encode_direction (&t->dc_call, DIR_REQUEST);				\
   encode_request_id (&t->dc_call, req_id);				\
   encode_function (&t->dc_call, NUMBER);				\

@@ -339,6 +339,7 @@ node_authenticate (thread *t, node nod)
 {
   auth_stage1_args args1;
   auth_stage2_args args2;
+  int32_t r;
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
   CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
@@ -349,25 +350,34 @@ node_authenticate (thread *t, node nod)
   /* FIXME: really do authentication; currently the functions are empty.  */
   args1.node.len = node_name_len;
   args1.node.str = node_name;
-  if (zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd) != ZFS_OK)
+  r = zfs_proc_auth_stage1_client_1 (t, &args1, nod->fd);
+  if (r != ZFS_OK)
     goto node_authenticate_error;
   if (!node_connected_p (nod))
     goto node_authenticate_error;
 
   CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
   network_fd_data[nod->fd].auth = AUTHENTICATION_IN_PROGRESS;
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_network_fd (&t->dc_reply, &network_fd_data[nod->fd]);
 
-  if (zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd) != ZFS_OK)
+  r = zfs_proc_auth_stage2_client_1 (t, &args2, nod->fd);
+  if (r != ZFS_OK)
     goto node_authenticate_error;
   if (!node_connected_p (nod))
     goto node_authenticate_error;
 
   CHECK_MUTEX_LOCKED (&network_fd_data[nod->fd].mutex);
   network_fd_data[nod->fd].auth = AUTHENTICATION_FINISHED;
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_network_fd (&t->dc_reply, &network_fd_data[nod->fd]);
   return true;
+
 
 node_authenticate_error:
   message (2, stderr, "not auth\n");
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_node (&t->dc_reply, nod);
   network_fd_data[nod->fd].auth = AUTHENTICATION_NONE;
   network_fd_data[nod->fd].conn = CONNECTION_NONE;
   zfsd_mutex_lock (&network_fd_data[nod->fd].mutex);
