@@ -225,6 +225,42 @@ fake_config (void)
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
+  zfsd_mutex_lock (&node_mutex);
+  nod = node_create_wrapper (4, "sabbath", "sabbath");
+  zfsd_mutex_unlock (&node_mutex);
+
+  zfsd_mutex_lock (&fh_mutex);
+  zfsd_mutex_lock (&volume_mutex);
+  vol = volume_create (17);
+  volume_set_common_info_wrapper (vol, "volume7", "/volume7", nod);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (nod == this_node)
+    {
+      if (volume_set_local_info_wrapper (&vol, "/.zfs/vol7", VOLUME_NO_LIMIT))
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
+      else
+	volume_delete (vol);
+    }
+#ifdef TEST_UPDATE
+  else if (this_node && strcmp (this_node->name.str, "orion") == 0)
+    {
+      if (volume_set_local_info_wrapper (&vol, "/.zfs/vol7", VOLUME_NO_LIMIT))
+	{
+	  if (vol)
+	    zfsd_mutex_unlock (&vol->mutex);
+	}
+      else
+	volume_delete (vol);
+    }
+#endif
+  else
+    zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_unlock (&nod->mutex);
+
   debug_virtual_tree ();
 }
 
