@@ -228,29 +228,6 @@ open_remote_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
   return r;
 }
 
-/* Open file for capability ICAP (whose internal file handle is FH)
-   with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
-
-static int
-open_capability (zfs_cap *cap, internal_cap icap, unsigned int flags,
-		 internal_fh fh, volume vol)
-{
-  int r;
-
-  CHECK_MUTEX_LOCKED (&icap->mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
-  if (vol->local_path)
-    r = open_local_capability (cap, icap, flags, fh, vol);
-  else if (vol->master != this_node)
-    r = open_remote_capability (cap, icap, flags, vol);
-  else
-    abort ();
-
-  return r;
-}
-
 /* Open file handle FH with open flags FLAGS and return capability in CAP.  */
 
 int
@@ -285,7 +262,13 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
   if (vd)
     zfsd_mutex_unlock (&vd->mutex);
 
-  r = open_capability (cap, icap, flags & ~O_ACCMODE, ifh, vol);
+  if (vol->local_path)
+    r = open_local_capability (cap, icap, flags & ~O_ACCMODE, ifh, vol);
+  else if (vol->master != this_node)
+    r = open_remote_capability (cap, icap, flags & ~O_ACCMODE, vol);
+  else
+    abort ();
+
   zfsd_mutex_unlock (&icap->mutex);
   zfsd_mutex_unlock (&ifh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
