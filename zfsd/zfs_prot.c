@@ -527,13 +527,13 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
       zfsd_cond_broadcast (&fd_data->cond);
+      update_node_fd (nod, fd_data->fd, fd_data->generation, false);
       zfsd_mutex_unlock (&nod->mutex);
 
       encode_status (dc, ZFS_OK);
       res.node.str = this_node->name;
       res.node.len = strlen (this_node->name);
       encode_auth_stage1_res (dc, &res);
-      update_node_fd (nod, fd_data->fd, fd_data->generation, false);
     }
 
   if (!nod)
