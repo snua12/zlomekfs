@@ -1036,31 +1036,3 @@ encode_md5sum_res (DC *dc, md5sum_res *res)
 
   return true;
 }
-
-bool
-decode_hardlinks_args (DC *dc, hardlinks_args *args)
-{
-  return (decode_zfs_fh (dc, &args->fh)
-	  && decode_uint32_t (dc, &args->start));
-}
-
-bool
-encode_hardlinks_args (DC *dc, hardlinks_args *args)
-{
-  return (encode_zfs_fh (dc, &args->fh)
-	  && encode_uint32_t (dc, args->start));
-}
-
-bool
-decode_hardlinks_res (DC *dc, hardlinks_res *res)
-{
-  return (decode_uint32_t (dc, &res->start)
-	  && decode_uint32_t (dc, &res->n));
-}
-
-bool
-encode_hardlinks_res (DC *dc, hardlinks_res *res)
-{
-  return (encode_uint32_t (dc, res->start)
-	  && encode_uint32_t (dc, res->n));
-}
