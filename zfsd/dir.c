@@ -1895,6 +1895,9 @@ zfs_rename_retry:
 	from_dentry = to_dentry;
     }
 
+  if (path)
+    free (path);
+
   internal_dentry_unlock (to_dentry);
   if (to_dentry != from_dentry)
     internal_dentry_unlock (from_dentry);
@@ -2331,6 +2334,9 @@ zfs_unlink_retry:
 	    vol->flags |= VOLUME_DELETE;
 	}
     }
+
+  if (path)
+    free (path);
 
   internal_dentry_unlock (idir);
   zfsd_mutex_unlock (&vol->mutex);

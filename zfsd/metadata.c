@@ -1252,8 +1252,9 @@ delete_metadata (volume vol, uint32_t dev, uint32_t ino, char *hardlink)
 	    delete_hardlinks_fh (vol, &fh);
 
 	  string_list_destroy (sl);
-	  free (path);
 	}
+
+      free (path);
     }
 
   if (!list_opened_p (vol->metadata))
