@@ -30,9 +30,10 @@
 /* State of the thread.  */
 typedef enum thread_state_def
 {
-  THREAD_NONE,
-  THREAD_IDLE,
-  THREAD_BUSY
+  THREAD_NONE,		/* thread is not created */
+  THREAD_DYING,		/* thread is dying */
+  THREAD_IDLE,		/* thread is idle */
+  THREAD_BUSY		/* thread is working */
 } thread_state;
 
 /* Additional data for a server thread.  */
