@@ -1350,7 +1350,6 @@ out:
 static bool
 read_global_cluster_config (void)
 {
-  pthread_t config_reader_id;
   thread config_reader_data;
 
   semaphore_init (&config_reader_data.sem, 0);
@@ -1358,11 +1357,11 @@ read_global_cluster_config (void)
   config_reader_data.from_sid = this_node->id;
 
   config_reader_terminated = false;
-  if (pthread_create (&config_reader_id, NULL, config_reader,
+  if (pthread_create (&config_reader_data.thread_id, NULL, config_reader,
 		      &config_reader_data))
     {
       message (-1, stderr, "pthread_create() failed\n");
-      config_reader_id = 0;
+      config_reader_data.thread_id = 0;
       config_reader_terminated = true;
       network_worker_cleanup (&config_reader_data);
       semaphore_destroy (&config_reader_data.sem);
@@ -1379,7 +1378,7 @@ read_global_cluster_config (void)
 	  sleep (1000000);
 	}
 
-      pthread_join (config_reader_id, &retval);
+      pthread_join (config_reader_data.thread_id, &retval);
       network_worker_cleanup (&config_reader_data);
       semaphore_destroy (&config_reader_data.sem);
 
