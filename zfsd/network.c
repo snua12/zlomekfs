@@ -279,6 +279,7 @@ node_connect (node nod)
 		((struct sockaddr_in *)a->ai_addr)->sin_port = htons (ZFS_PORT);
 		if (connect (s, a->ai_addr, a->ai_addrlen) < 0)
 		  {
+		    message (-1, stderr, "connect(): %s\n", strerror (errno));
 		    close (s);
 		    break;
 		  }
