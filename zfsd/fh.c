@@ -274,8 +274,8 @@ internal_fh_destroy (internal_fh fh, volume vol)
 #ifdef ENABLE_CHECKING
       if (VARRAY_USED (fh->dentries))
 	abort ();
-      varray_destroy (&fh->dentries);
 #endif
+      varray_destroy (&fh->dentries);
     }
 
   /* Remove FH from parent's directory entries.  */
