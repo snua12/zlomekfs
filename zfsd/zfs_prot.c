@@ -90,50 +90,19 @@ void
 zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
 			     ATTRIBUTE_UNUSED void *data, bool map_id)
 {
+  dir_op_res res;
   int32_t r;
-  volume vol;
-  internal_dentry dentry;
 
-  vol = volume_lookup (args->vid);
-  if (!vol)
+  r = zfs_volume_root (&res, args->vid);
+  encode_status (dc, r);
+  if (r == ZFS_OK)
     {
-      encode_status (dc, ENOENT);
-    }
-  else if (vol->delete_p)
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_lock (&fh_mutex);
-      vol = volume_lookup (args->vid);
-      if (vol)
-	volume_delete (vol);
-      zfsd_mutex_unlock (&fh_mutex);
-      encode_status (dc, ENOENT);
-    }
-  else
-    {
-      r = get_volume_root_dentry (vol, &dentry, true);
-      encode_status (dc, r);
-      if (r == ZFS_OK)
+      if (map_id)
 	{
-	  zfsd_mutex_unlock (&vol->mutex);
-	  encode_zfs_fh (dc, &dentry->fh->local_fh);
-	  if (map_id)
-	    {
-	      uint32_t orig_uid = dentry->fh->attr.uid;
-	      uint32_t orig_gid = dentry->fh->attr.gid;
-
-	      dentry->fh->attr.uid = map_uid_zfs2node (orig_uid);
-	      dentry->fh->attr.gid = map_gid_zfs2node (orig_gid);
-	      encode_fattr (dc, &dentry->fh->attr);
-	      dentry->fh->attr.uid = orig_uid;
-	      dentry->fh->attr.gid = orig_gid;
-	    }
-	  else
-	    {
-	      encode_fattr (dc, &dentry->fh->attr);
-	    }
-	  release_dentry (dentry);
+	  res.attr.uid = map_uid_zfs2node (res.attr.uid);
+	  res.attr.gid = map_gid_zfs2node (res.attr.gid);
 	}
+      encode_dir_op_res (dc, &res);
     }
 }
 
