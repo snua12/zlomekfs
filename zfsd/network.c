@@ -460,6 +460,13 @@ network_dispatch (network_fd_data_t *fd_data, DC *dc, unsigned int generation)
   direction dir;
   uint32_t from_sid;
 
+  if (verbose >= 3)
+    print_dc (dc, stderr);
+#ifdef ENABLE_CHECKING
+  if (dc->cur_length != sizeof (uint32_t))
+    abort ();
+#endif
+
   if (!decode_direction (dc, &dir))
     {
       /* Invalid direction or packet too short, FIXME: log it.  */

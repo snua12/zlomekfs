@@ -233,6 +233,13 @@ kernel_dispatch (DC *dc)
   size_t index;
   direction dir;
 
+  if (verbose >= 3)
+    print_dc (dc, stderr);
+#ifdef ENABLE_CHECKING
+  if (dc->cur_length != sizeof (uint32_t))
+    abort ();
+#endif
+
   if (!decode_direction (dc, &dir))
     {
       /* Invalid direction or packet too short, FIXME: log it.  */
