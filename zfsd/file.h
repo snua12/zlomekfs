@@ -29,6 +29,7 @@
 #include <time.h>
 #include "pthread.h"
 #include "data-coding.h"
+#include "hashtab.h"
 #include "fh.h"
 #include "zfs_prot.h"
 #include "volume.h"
@@ -49,6 +50,13 @@ typedef struct readdir_data_def
   uint32_t written;
   uint32_t count;
 } readdir_data;
+
+/* Structure holding entries for filldir_htab.  */
+typedef struct filldir_htab_entries_def
+{
+  htab_t htab;
+  int32_t last_cookie;
+} filldir_htab_entries;
 
 /* Function called to add one directory entry to list.  */
 typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
@@ -72,6 +80,12 @@ extern bool filldir_encode (uint32_t ino, int32_t cookie, char *name,
 extern bool filldir_array (uint32_t ino, int32_t cookie, char *name,
 			   uint32_t name_len, dir_list *list,
 			   ATTRIBUTE_UNUSED readdir_data *data);
+extern hash_t filldir_htab_hash (const void *x);
+extern int filldir_htab_eq (const void *xx, const void *yy);
+extern void filldir_htab_del (void *xx);
+extern bool filldir_htab (uint32_t ino, int32_t cookie, char *name,
+			  uint32_t name_len, dir_list *list,
+			  ATTRIBUTE_UNUSED readdir_data *data);
 extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
 			    uint32_t count, filldir_f filldir);
 extern int32_t zfs_read (uint32_t *rcount, void *buffer, zfs_cap *cap,

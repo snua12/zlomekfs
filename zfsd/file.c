@@ -33,7 +33,9 @@
 #include "pthread.h"
 #include "constant.h"
 #include "memory.h"
+#include "alloc-pool.h"
 #include "fibheap.h"
+#include "hashtab.h"
 #include "varray.h"
 #include "data-coding.h"
 #include "fh.h"
@@ -57,6 +59,12 @@ static fibheap opened;
 
 /* Mutex protecting access to OPENED.  */
 static pthread_mutex_t opened_mutex;
+
+/* Alloc pool for directory entries.  */
+static alloc_pool dir_entry_pool;
+
+/* Mutex protecting DIR_ENTRY_POOL.  */
+static pthread_mutex_t dir_entry_mutex;
 
 /* Initialize data for file descriptor of capability CAP.  */
 
@@ -830,6 +838,78 @@ filldir_array (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
   return true;
 }
 
+/* Hash function for directory entry ENTRY.  */
+#define FILLDIR_HTAB_HASH(ENTRY)					\
+  crc32_buffer ((ENTRY)->name.str, (ENTRY)->name.len)
+
+/* Hash function for directory entry X being inserted for filldir htab.  */
+
+hash_t
+filldir_htab_hash (const void *x)
+{
+  return FILLDIR_HTAB_HASH ((dir_entry *) x);
+}
+
+/* Compare directory entries XX and YY.  */
+
+int
+filldir_htab_eq (const void *xx, const void *yy)
+{
+  const dir_entry *x = (const dir_entry *) xx;
+  const dir_entry *y = (const dir_entry *) yy;
+
+  return (x->name.len == y->name.len
+	  && memcmp (x->name.str, y->name.str, x->name.len) == 0);
+}
+
+/* Free directory entry XX.  */
+
+void
+filldir_htab_del (void *xx)
+{
+  dir_entry *x = (dir_entry *) xx;
+
+  free (x->name.str);
+  zfsd_mutex_lock (&dir_entry_mutex);
+  pool_free (dir_entry_pool, x);
+  zfsd_mutex_unlock (&dir_entry_mutex);
+}
+
+/* Store one directory entry (INO, COOKIE, NAME[NAME_LEN]) to hash table
+   LIST->BUFFER.  */
+
+bool
+filldir_htab (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
+	      dir_list *list, ATTRIBUTE_UNUSED readdir_data *data)
+{
+  filldir_htab_entries *entries = (filldir_htab_entries *) list->buffer;
+  dir_entry *entry;
+  void **slot;
+
+  zfsd_mutex_lock (&dir_entry_mutex);
+  entry = (dir_entry *) pool_alloc (dir_entry_pool);
+  zfsd_mutex_unlock (&dir_entry_mutex);
+  entry->ino = ino;
+  entry->cookie = cookie;
+  entry->name.str = (char *) xmemdup (name, name_len + 1);
+  entry->name.len = name_len;
+
+  slot = htab_find_slot_with_hash (entries->htab, entry,
+				   FILLDIR_HTAB_HASH (entry),
+				   INSERT);
+  if (*slot)
+    {
+      htab_clear_slot (entries->htab, slot);
+      list->n--;
+    }
+
+  *slot = entry;
+  list->n++;
+  entries->last_cookie = cookie;
+
+  return true;
+}
+
 /* Read DATA->COUNT bytes from virtual directory VD starting at position
    COOKIE.  Store directory entries to LIST using function FILLDIR.  */
 
@@ -1016,7 +1096,6 @@ static int32_t
 remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 		readdir_data *data, volume vol, filldir_f filldir)
 {
-  DC *dc = (DC *) list->buffer;
   read_dir_args args;
   thread *t;
   int32_t r;
@@ -1047,6 +1126,8 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
     {
       if (filldir == &filldir_encode)
 	{
+	  DC *dc = (DC *) list->buffer;
+
 	  if (t->dc_reply.max_length > dc->cur_length)
 	    {
 	      memcpy (dc->current, t->dc_reply.current,
@@ -1081,6 +1162,53 @@ remote_readdir (dir_list *list, internal_cap cap, int32_t cookie,
 		    r = ZFS_INVALID_REPLY;
 		}
 	      else
+		r = ZFS_INVALID_REPLY;
+	    }
+	}
+      else if (filldir == &filldir_htab)
+	{
+	  dir_list tmp;
+
+	  if (!decode_dir_list (&t->dc_reply, &tmp))
+	    r = ZFS_INVALID_REPLY;
+	  else
+	    {
+	      uint32_t i;
+
+	      for (i = 0; i < tmp.n; i++)
+		{
+		  filldir_htab_entries *entries
+		    = (filldir_htab_entries *) list->buffer;
+		  dir_entry *entry;
+		  void **slot;
+
+		  zfsd_mutex_lock (&dir_entry_mutex);
+		  entry = (dir_entry *) pool_alloc (dir_entry_pool);
+		  zfsd_mutex_unlock (&dir_entry_mutex);
+
+		  if (!decode_dir_entry (&t->dc_reply, entry))
+		    {
+		      r = ZFS_INVALID_REPLY;
+		      zfsd_mutex_lock (&dir_entry_mutex);
+		      pool_free (dir_entry_pool, entry);
+		      zfsd_mutex_unlock (&dir_entry_mutex);
+		      break;
+		    }
+
+		  slot = htab_find_slot_with_hash (entries->htab, entry,
+						   FILLDIR_HTAB_HASH (entry),
+						   INSERT);
+		  if (*slot)
+		    {
+		      htab_clear_slot (entries->htab, slot);
+		      list->n--;
+		    }
+
+		  *slot = entry;
+		  list->n++;
+		  entries->last_cookie = entry->cookie;
+		}
+	      if (!finish_decoding (&t->dc_reply))
 		r = ZFS_INVALID_REPLY;
 	    }
 	}
@@ -1183,7 +1311,7 @@ zfs_readdir_retry:
   zfsd_mutex_unlock (&icap->mutex);
 
   /* Cleanup decoded directory entries on error.  */
-  if (r != ZFS_OK)
+  if (r != ZFS_OK && list->n > 0)
     {
       if (filldir == &filldir_array)
 	{
@@ -1192,6 +1320,13 @@ zfs_readdir_retry:
 
 	  for (i = 0; i < list->n; i++)
 	    free (entries[i].name.str);
+	}
+      else if (filldir == &filldir_htab)
+	{
+	  filldir_htab_entries *entries
+	    = (filldir_htab_entries *) list->buffer;
+
+	  htab_empty (entries->htab);
 	}
     }
 
@@ -1919,6 +2054,10 @@ initialize_file_c ()
   zfsd_mutex_init (&opened_mutex);
   opened = fibheap_new (max_local_fds, &opened_mutex);
 
+  zfsd_mutex_init (&dir_entry_mutex);
+  dir_entry_pool = create_alloc_pool ("dir_entry", sizeof (dir_entry), 1020,
+				      &dir_entry_mutex);
+
   /* Data for each file descriptor.  */
   internal_fd_data
     = (internal_fd_data_t *) xcalloc (max_nfd, sizeof (internal_fd_data_t));
@@ -1955,9 +2094,21 @@ cleanup_file_c ()
 	}
       zfsd_mutex_unlock (&opened_mutex);
     }
+
+  zfsd_mutex_lock (&dir_entry_mutex);
+#ifdef ENABLE_CHECKING
+  if (dir_entry_pool->elts_free < dir_entry_pool->elts_allocated)
+    message (2, stderr, "Memory leak (%u elements) in dir_entry_pool.\n",
+	     dir_entry_pool->elts_allocated - dir_entry_pool->elts_free);
+#endif
+  free_alloc_pool (dir_entry_pool);
+  zfsd_mutex_unlock (&dir_entry_mutex);
+  zfsd_mutex_destroy (&dir_entry_mutex);
+
   zfsd_mutex_lock (&opened_mutex);
   fibheap_delete (opened);
   zfsd_mutex_unlock (&opened_mutex);
   zfsd_mutex_destroy (&opened_mutex);
+
   free (internal_fd_data);
 }
