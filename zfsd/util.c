@@ -37,7 +37,16 @@ print_hex_buffer (char *buf, unsigned int len, FILE *f)
   unsigned int i;
 
   for (i = 0; i < len; i++)
-    fprintf (f, "%02x ", (unsigned char) buf[i]);
+    {
+      if (i > 0)
+	{
+	  if (i % 16 == 0)
+	    fputc ('\n', f);
+	  else if (i % 4 == 0)
+	    fputc (' ', f);
+	}
+      fprintf (f, "%02x ", (unsigned char) buf[i]);
+    }
   fprintf (f, "\n");
 }
 
