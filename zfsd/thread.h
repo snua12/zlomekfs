@@ -122,12 +122,12 @@ typedef struct thread_pool_def
   padded_thread *threads;	/* thread slots, previous pointer aligned */
   queue idle;			/* queue of idle threads */
   queue empty;			/* queue of empty thread slots */
-
-  /* Data for thread pool regulator.  */
-  pthread_t thread_id;		/* thread ID of the regulator */
-  pthread_mutex_t in_syscall;	/* regulator is in blocking syscall */
   thread_start start;		/* start routine of the worker thread */
   thread_initialize init;	/* initialization routine */
+
+  /* Data for thread pool regulator.  */
+  pthread_t regulator_thread;		/* thread ID of the regulator */
+  pthread_mutex_t regulator_in_syscall;	/* regulator is in blocking syscall */
 } thread_pool;
 
 /* Description of thread waiting for reply.  */

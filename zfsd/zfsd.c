@@ -94,12 +94,12 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
 				     &main_kernel_thread_in_syscall);
   thread_terminate_blocking_syscall (main_network_thread,
 				     &main_network_thread_in_syscall);
-  if (kernel_pool.thread_id)
-    thread_terminate_blocking_syscall (kernel_pool.thread_id,
-				       &kernel_pool.in_syscall);
-  if (network_pool.thread_id)
-    thread_terminate_blocking_syscall (network_pool.thread_id,
-				       &network_pool.in_syscall);
+  if (kernel_pool.regulator_thread)
+    thread_terminate_blocking_syscall (kernel_pool.regulator_thread,
+				       &kernel_pool.regulator_in_syscall);
+  if (network_pool.regulator_thread)
+    thread_terminate_blocking_syscall (network_pool.regulator_thread,
+				       &network_pool.regulator_in_syscall);
   if (cleanup_dentry_thread)
     thread_terminate_blocking_syscall (cleanup_dentry_thread,
 				       &cleanup_dentry_thread_in_syscall);

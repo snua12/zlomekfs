@@ -137,7 +137,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   int r;
 
 #ifdef ENABLE_CHECKING
-  if (pool->thread_id != 0)
+  if (pool->regulator_thread != 0)
     abort ();
 #endif
 
@@ -150,7 +150,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   queue_create (&pool->empty, sizeof (size_t), max_threads);
   pool->start = start;
   pool->init = init;
-  zfsd_mutex_init (&pool->in_syscall);
+  zfsd_mutex_init (&pool->regulator_in_syscall);
 
   zfsd_mutex_lock (&pool->empty.mutex);
   for (i = 0; i < max_threads; i++)
@@ -178,7 +178,7 @@ thread_pool_create (thread_pool *pool, size_t max_threads,
   zfsd_mutex_unlock (&pool->idle.mutex);
 
   /* Create thread pool regulator.  */
-  r = pthread_create (&pool->thread_id, NULL, thread_pool_regulator,
+  r = pthread_create (&pool->regulator_thread, NULL, thread_pool_regulator,
 		      (void *) pool);
   if (r != 0)
     {
@@ -354,10 +354,10 @@ thread_pool_regulator (void *data)
 
   while (get_running ())
     {
-      zfsd_mutex_lock (&pool->in_syscall);
+      zfsd_mutex_lock (&pool->regulator_in_syscall);
       if (get_running ())
 	sleep (THREAD_POOL_REGULATOR_INTERVAL);
-      zfsd_mutex_unlock (&pool->in_syscall);
+      zfsd_mutex_unlock (&pool->regulator_in_syscall);
       if (!get_running ())
 	break;
       zfsd_mutex_lock (&pool->idle.mutex);
@@ -367,9 +367,9 @@ thread_pool_regulator (void *data)
 
   /* Disable signaling this thread. */
   zfsd_mutex_lock (&running_mutex);
-  pool->thread_id = 0;
+  pool->regulator_thread = 0;
   zfsd_mutex_unlock (&running_mutex);
 
-  zfsd_mutex_destroy (&pool->in_syscall);
+  zfsd_mutex_destroy (&pool->regulator_in_syscall);
   return NULL;
 }
