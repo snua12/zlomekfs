@@ -78,8 +78,8 @@ fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol)
   attr->fversion = 0;		/* FIXME */
   attr->sid = this_node->id;
   attr->vid = vol->id;
-  attr->fsid = st->st_dev;
-  attr->fileid = st->st_ino;
+  attr->dev = st->st_dev;
+  attr->ino = st->st_ino;
   attr->atime = st->st_atime;
   attr->mtime = st->st_mtime;
   attr->ctime = st->st_ctime;
@@ -178,8 +178,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
       fa->fversion = 0;		/* FIXME */
       fa->sid = ifh->local_fh.sid;
       fa->vid = ifh->local_fh.vid;
-      fa->fsid = ifh->local_fh.dev;
-      fa->fileid = ifh->local_fh.ino;
+      fa->dev = ifh->local_fh.dev;
+      fa->ino = ifh->local_fh.ino;
       fa->atime = st.st_atime;
       fa->mtime = st.st_mtime;
       fa->ctime = st.st_ctime;

@@ -304,8 +304,8 @@ local_lookup (dir_op_res *res, internal_fh dir, const char *name, volume vol)
 
   res->file.sid = dir->local_fh.sid;
   res->file.vid = dir->local_fh.vid;
-  res->file.dev = res->attr.fsid;
-  res->file.ino = res->attr.fileid;
+  res->file.dev = res->attr.dev;
+  res->file.ino = res->attr.ino;
 
   return ZFS_OK;
 }

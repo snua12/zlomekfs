@@ -628,8 +628,8 @@ virtual_dir_set_fattr (virtual_dir vd)
   vd->attr.fversion = 0;
   vd->attr.sid = vd->fh.sid;
   vd->attr.vid = vd->fh.vid;
-  vd->attr.fsid = vd->fh.dev;
-  vd->attr.fileid = vd->fh.ino;
+  vd->attr.dev = vd->fh.dev;
+  vd->attr.ino = vd->fh.ino;
   vd->attr.atime = time (NULL);
   vd->attr.mtime = vd->attr.atime;
   vd->attr.ctime = vd->attr.atime;

@@ -102,8 +102,8 @@ typedef struct fattr_def
   uint64_t fversion;
   unsigned int sid;
   unsigned int vid;
-  unsigned int fsid;
-  unsigned int fileid;
+  unsigned int dev;
+  unsigned int ino;
   zfs_time atime;
   zfs_time mtime;
   zfs_time ctime;
