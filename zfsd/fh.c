@@ -48,13 +48,13 @@ static alloc_pool fh_pool;
 pthread_mutex_t fh_pool_mutex;
 
 /* Allocation pool for virtual directories ("mountpoints").  */
-static alloc_pool virtual_dir_pool;
+static alloc_pool vd_pool;
 
 /* Hash table of virtual directories, searched by fh.  */
-static htab_t virtual_dir_htab;
+static htab_t vd_htab;
 
 /* Hash table of virtual directories, searched by (parent->fh, name).  */
-static htab_t virtual_dir_htab_name;
+static htab_t vd_htab_name;
 
 /* Mutex for virtual directories.  */
 static pthread_mutex_t virtual_dir_mutex;
@@ -133,7 +133,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
       virtual_dir vd;
 
       zfsd_mutex_lock (&virtual_dir_mutex);
-      vd = (virtual_dir) htab_find_with_hash (virtual_dir_htab, fh, hash);
+      vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, hash);
       zfsd_mutex_unlock (&virtual_dir_mutex);
       if (!vd)
 	return false;
@@ -187,7 +187,7 @@ vd_lookup_name (virtual_dir parent, const char *name)
   tmp_vd.parent = parent;
   tmp_vd.name = (char *) name;
   zfsd_mutex_lock (&virtual_dir_mutex);
-  vd = (virtual_dir) htab_find (virtual_dir_htab_name, &tmp_vd);
+  vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
   zfsd_mutex_unlock (&virtual_dir_mutex);
 
   return vd;
@@ -415,7 +415,7 @@ virtual_dir_eq_name (const void *xx, const void *yy)
 void
 virtual_dir_del (void *x)
 {
-  pool_free (virtual_dir_pool, x);
+  pool_free (vd_pool, x);
 }
 
 /* Create a new virtual directory NAME in virtual directory PARENT.  */
@@ -431,7 +431,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
   if (last_virtual_ino == 0)
     last_virtual_ino++;
 
-  vd = (virtual_dir) pool_alloc (virtual_dir_pool);
+  vd = (virtual_dir) pool_alloc (vd_pool);
   vd->fh.sid = SERVER_ANY;
   vd->fh.vid = VOLUME_ID_VIRTUAL;
   vd->fh.dev = VIRTUAL_DEVICE;
@@ -450,21 +450,21 @@ virtual_dir_create (virtual_dir parent, const char *name)
   vd->vol = NULL;
 
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
+  slot = htab_find_slot_with_hash (vd_htab, &vd->fh,
 				   VIRTUAL_DIR_HASH (vd), NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
+  slot = htab_find_slot_with_hash (vd_htab, &vd->fh,
 				   VIRTUAL_DIR_HASH (vd), INSERT);
   *slot = vd;
 
 #ifdef ENABLE_CHECKING
-  slot = htab_find_slot (virtual_dir_htab_name, vd, NO_INSERT);
+  slot = htab_find_slot (vd_htab_name, vd, NO_INSERT);
   if (slot)
     abort ();
 #endif
-  slot = htab_find_slot (virtual_dir_htab_name, vd, INSERT);
+  slot = htab_find_slot (vd_htab_name, vd, INSERT);
   *slot = vd;
 
   return vd;
@@ -504,19 +504,19 @@ virtual_dir_destroy (virtual_dir vd)
 	  vd->parent->attr.ctime = vd->parent->attr.mtime = time (NULL);
 
 	  /* Delete the virtual_fh from the table of virtual directories.  */
-	  slot = htab_find_slot (virtual_dir_htab_name, vd, NO_INSERT);
+	  slot = htab_find_slot (vd_htab_name, vd, NO_INSERT);
 #ifdef ENABLE_CHECKING
 	  if (!slot)
 	    abort ();
 #endif
-	  htab_clear_slot (virtual_dir_htab_name, slot);
-	  slot = htab_find_slot_with_hash (virtual_dir_htab, &vd->fh,
+	  htab_clear_slot (vd_htab_name, slot);
+	  slot = htab_find_slot_with_hash (vd_htab, &vd->fh,
 					   VIRTUAL_DIR_HASH (vd), NO_INSERT);
 #ifdef ENABLE_CHECKING
 	  if (!slot)
 	    abort ();
 #endif
-	  htab_clear_slot (virtual_dir_htab, slot);
+	  htab_clear_slot (vd_htab, slot);
 	  free (vd->name);
 	}
     }
@@ -532,7 +532,7 @@ virtual_root_create ()
   void **slot;
 
   zfsd_mutex_lock (&virtual_dir_mutex);
-  root = (virtual_dir) pool_alloc (virtual_dir_pool);
+  root = (virtual_dir) pool_alloc (vd_pool);
   root->fh = root_fh;
   root->parent = NULL;
   root->name = xstrdup ("");
@@ -543,7 +543,7 @@ virtual_root_create ()
   virtual_dir_set_fattr (root);
 
   /* Insert the root into hash table.  */
-  slot = htab_find_slot_with_hash (virtual_dir_htab, &root->fh,
+  slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), INSERT);
   *slot = root;
   zfsd_mutex_unlock (&virtual_dir_mutex);
@@ -567,13 +567,13 @@ virtual_root_destroy (virtual_dir root)
   varray_destroy (&root->subdirs);
 
   zfsd_mutex_lock (&virtual_dir_mutex);
-  slot = htab_find_slot_with_hash (virtual_dir_htab, &root->fh,
+  slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();
 #endif
-  htab_clear_slot (virtual_dir_htab, slot);
+  htab_clear_slot (vd_htab, slot);
   zfsd_mutex_unlock (&virtual_dir_mutex);
 }
 
@@ -621,7 +621,7 @@ virtual_mountpoint_create (volume vol)
 
       tmp_vd.parent = parent;
       tmp_vd.name = s;
-      vd = (virtual_dir) htab_find (virtual_dir_htab_name, &tmp_vd);
+      vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
       if (!vd)
 	vd = virtual_dir_create (parent, s);
 #ifdef ENABLE_CHECKING
@@ -717,14 +717,12 @@ initialize_fh_c ()
 
   /* Data structures for virtual directories.  */
   pthread_mutex_init (&virtual_dir_mutex, NULL);
-  virtual_dir_pool = create_alloc_pool ("virtual_dir_pool",
-					sizeof (struct virtual_dir_def), 127,
-					&virtual_dir_mutex);
-  virtual_dir_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq,
-				  virtual_dir_del, &virtual_dir_mutex);
-  virtual_dir_htab_name = htab_create (100, virtual_dir_hash_name,
-				       virtual_dir_eq_name, NULL,
-				       &virtual_dir_mutex);
+  vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
+			       127, &virtual_dir_mutex);
+  vd_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq,
+			 virtual_dir_del, &virtual_dir_mutex);
+  vd_htab_name = htab_create (100, virtual_dir_hash_name, virtual_dir_eq_name,
+			      NULL, &virtual_dir_mutex);
 
   root = virtual_root_create ();
 }
@@ -749,14 +747,14 @@ cleanup_fh_c ()
 
   /* Data structures for virtual directories.  */
   zfsd_mutex_lock (&virtual_dir_mutex);
-  htab_destroy (virtual_dir_htab_name);
-  htab_destroy (virtual_dir_htab);
+  htab_destroy (vd_htab_name);
+  htab_destroy (vd_htab);
 #ifdef ENABLE_CHECKING
-  if (virtual_dir_pool->elts_free < virtual_dir_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in virtual_dir_pool.\n",
-	     virtual_dir_pool->elts_allocated - virtual_dir_pool->elts_free);
+  if (vd_pool->elts_free < vd_pool->elts_allocated)
+    message (2, stderr, "Memory leak (%u elements) in vd_pool.\n",
+	     vd_pool->elts_allocated - vd_pool->elts_free);
 #endif
-  free_alloc_pool (virtual_dir_pool);
+  free_alloc_pool (vd_pool);
   zfsd_mutex_unlock (&virtual_dir_mutex);
   pthread_mutex_destroy (&virtual_dir_mutex);
 }
