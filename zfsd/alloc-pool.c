@@ -4,7 +4,7 @@
    Contributed by Daniel Berlin <dan@cgsoftware.com>
 
    Some modifications for ZFS:
-   Copyright (C) 2003 Josef Zlomek (josef.zlomek@email.cz).
+   Copyright (C) 2003, 2004 Josef Zlomek (josef.zlomek@email.cz).
 
    This file is part of ZFS.
 
@@ -81,7 +81,7 @@ create_alloc_pool (const char *name, size_t size, size_t num,
 		   pthread_mutex_t *mutex)
 {
   alloc_pool pool;
-  size_t pool_size, header_size;
+  size_t header_size;
 
   if (!name)
     abort ();
@@ -102,13 +102,8 @@ create_alloc_pool (const char *name, size_t size, size_t num,
   if (num == 0)
     abort ();
 
-  /* Find the size of the pool structure, and the name.  */
-  pool_size = sizeof (struct alloc_pool_def);
-
-  /* and allocate that much memory.  */
-  pool = (alloc_pool) xmalloc (pool_size);
-
   /* Now init the various pieces of our pool structure.  */
+  pool = (alloc_pool) xmalloc (sizeof (struct alloc_pool_def));
   pool->name = xstrdup (name);
   pool->mutex = mutex;
   pool->elt_size = size;
