@@ -4552,6 +4552,10 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dir->fh->level == LEVEL_UNLOCKED)
+    abort ();
+#endif
 
   build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
@@ -4657,6 +4661,10 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dir->fh->level == LEVEL_UNLOCKED)
+    abort ();
+#endif
 
   build_local_path_name (&path, vol, dir, name);
   vid = vol->id;
@@ -4747,6 +4755,10 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+#ifdef ENABLE_CHECKING
+  if (dir->fh->level == LEVEL_UNLOCKED)
+    abort ();
+#endif
 
   meta.modetype = GET_MODETYPE (0, FT_BAD);
   n = metadata_n_hardlinks (vol, fh, &meta);
