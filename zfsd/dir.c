@@ -327,9 +327,9 @@ remote_lookup (dir_op_res *res, internal_fh dir, string *name, volume vol)
   args.name = *name;
   t = (thread *) pthread_getspecific (server_thread_key);
 
-//  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
   r = zfs_proc_lookup_client (t, &args, vol->master);
-//  zfsd_mutex_unlock (&vol->master->mutex);
+  zfsd_mutex_unlock (&vol->master->mutex);
   if (r == ZFS_OK)
     {
       if (!decode_dir_op_res (&t->u.server.dc, res)
