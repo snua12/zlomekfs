@@ -4739,6 +4739,21 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   if (r != ZFS_OK)
     return r;
 
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str, true))
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EINVAL;
+    }
+
+  if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EINVAL;
+    }
+
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     r = local_reintegrate_add (vol, idir, name, fh);
   else if (vol->master != this_node)
@@ -5013,6 +5028,21 @@ zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name, bool destroy_p)
     }
   if (r != ZFS_OK)
     return r;
+
+  /* Hide special dirs in the root of the volume.  */
+  if (SPECIAL_DIR_P (idir, name->str, true))
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EINVAL;
+    }
+
+  if (idir->fh->meta.flags & METADATA_SHADOW_TREE)
+    {
+      release_dentry (idir);
+      zfsd_mutex_unlock (&vol->mutex);
+      return EINVAL;
+    }
 
   r = internal_dentry_lock (LEVEL_EXCLUSIVE, &vol, &idir, &tmp_fh);
   if (r != ZFS_OK)
