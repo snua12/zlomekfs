@@ -99,79 +99,10 @@ typedef struct hashfile_header_def
 extern hfile_t hfile_create (unsigned int element_size, unsigned int size,
 			     hfile_hash hash_f, hfile_eq eq_f,
 			     hfile_decode decode_f, hfile_encode encode_f,
-			     pthread_mutex_t *mutex);
+			     const char *file_name, pthread_mutex_t *mutex);
 extern void hfile_destroy (hfile_t hfile);
 extern bool hfile_lookup (hfile_t hfile, void *x);
 extern bool hfile_insert (hfile_t hfile, void *x);
 extern bool hfile_delete (hfile_t hfile, void *x);
-
-/* FIXME: the rest of file */
-#ifdef ENABLE_CHECKING
-
-/* Check the contents of SLOT is on correct position in HFILE.  */
-#define HFILE_CHECK_SLOT(HFILE, SLOT)				\
-  if (1)							\
-    {								\
-      hash_t hash_ = (*(HFILE)->hash_f) (*(SLOT));		\
-      unsigned int size_ = (HFILE)->size;			\
-      unsigned int index_ = hash_ % size_;			\
-      unsigned int step_ = 1 + hash_ % (size_ - 2);		\
-								\
-      while (&(HFILE)->table[index_] != (SLOT))			\
-	{							\
-	  if ((HFILE)->table[index_] == EMPTY_ENTRY		\
-	      || (HFILE)->table[index_] == *(SLOT))		\
-	    abort ();						\
-								\
-	  index_ += step_;					\
-	  if (index_ >= size_)					\
-	    index_ -= size_;					\
-	}							\
-    }
-
-/* Loop through all valid SLOTs of hash table HFILE.  */
-#define HFILE_FOR_EACH_SLOT(HFILE, SLOT, CODE)			\
-  CHECK_MUTEX_LOCKED ((HFILE)->mutex);				\
-  for ((SLOT) = (HFILE)->table;					\
-       (SLOT) < (HFILE)->table + (HFILE)->size;			\
-       (SLOT)++)						\
-    {								\
-      if (*(SLOT) != EMPTY_ENTRY && *(SLOT) != DELETED_ENTRY)	\
-	{							\
-	  HFILE_CHECK_SLOT ((HFILE), (SLOT));			\
-	  CODE;							\
-	}							\
-    }
-
-/* Check the table HFILE.  */
-#define HFILE_CHECK(HFILE)					\
-  if (1)							\
-    {								\
-      void **slot_;						\
-								\
-      HFILE_FOR_EACH_SLOT ((HFILE), slot_, );			\
-    }
-
-#else
-
-/* Check the contents of SLOT is on correct position in HFILE.  */
-#define HFILE_CHECK_SLOT(HFILE, SLOT)
-
-/* Loop through all valid SLOTs of hash table HFILE.  */
-#define HFILE_FOR_EACH_SLOT(HFILE, SLOT, CODE)			\
-  for ((SLOT) = (HFILE)->table;					\
-       (SLOT) < (HFILE)->table + (HFILE)->size;			\
-       (SLOT)++)						\
-    {								\
-      if (*(SLOT) != EMPTY_ENTRY && *(SLOT) != DELETED_ENTRY)	\
-	{							\
-	  CODE;							\
-	}							\
-    }
-
-/* Check the table HFILE.  */
-#define HFILE_CHECK(HFILE)
-
-#endif
 
 #endif
