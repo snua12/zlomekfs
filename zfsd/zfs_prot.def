@@ -77,3 +77,7 @@ DEFINE_ZFS_PROC (23, PING, ping, data_buffer,
 		 AUTHENTICATION_STAGE_1)
 DEFINE_ZFS_PROC (24, FILE_INFO, file_info, zfs_fh,
 		 AUTHENTICATION_FINISHED)
+DEFINE_ZFS_PROC (25, REINTEGRATE_ADD, reintegrate_add, reintegrate_add_args,
+		 AUTHENTICATION_FINISHED)
+DEFINE_ZFS_PROC (26, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
+		 AUTHENTICATION_FINISHED)

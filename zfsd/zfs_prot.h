@@ -337,6 +337,19 @@ typedef struct file_info_res_def
   zfs_path path;
 } file_info_res;
 
+typedef struct reintegrate_add_args_def
+{
+  zfs_fh fh;
+  zfs_fh dir;
+  filename name;
+} reintegrate_add_args;
+
+typedef struct reintegrate_del_args_def
+{
+  zfs_fh fh;
+  char destroy_p;
+} reintegrate_del_args;
+
 typedef union call_args_def
 {
   char null;
@@ -364,6 +377,8 @@ typedef union call_args_def
   md5sum_args md5sum;
   data_buffer ping;
   zfs_fh file_info;
+  reintegrate_add_args reintegrate_add;
+  reintegrate_del_args reintegrate_del;
 } call_args;
 
 /* Mapping file type -> file mode.  */

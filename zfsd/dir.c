@@ -3273,6 +3273,24 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
   return r;
 }
 
+/* Name the file handle FH as NAME in directory DIR
+   by moving the file or linking it.  */
+
+int32_t
+zfs_reintegrate_add (reintegrate_add_args *args)
+{
+  return ZFS_OK;
+}
+
+/* If ARGS->DESTROY delete file ARGS->FH and its subtree,
+   otherwise move it to shadow.  */
+
+int32_t
+zfs_reintegrate_del (reintegrate_del_args *args)
+{
+  return ZFS_OK;
+}
+
 /* Refresh master file handles on path to DENTRY on volume VOL.
 
    Under the conflict dentry, all dentries have valid master_fh

@@ -1048,3 +1048,33 @@ encode_file_info_res (DC *dc, file_info_res *res)
 {
   return encode_zfs_path (dc, &res->path);
 }
+
+bool
+decode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
+{
+  return (decode_zfs_fh (dc, &args->fh)
+	  && decode_zfs_fh (dc, &args->dir)
+	  && decode_filename (dc, &args->name));
+}
+
+bool
+encode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
+{
+  return (encode_zfs_fh (dc, &args->fh)
+	  && encode_zfs_fh (dc, &args->dir)
+	  && encode_filename (dc, &args->name));
+}
+
+bool
+decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
+{
+  return (decode_zfs_fh (dc, &args->fh)
+	  && decode_char (dc, &args->destroy_p));
+}
+
+bool
+encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
+{
+  return (encode_zfs_fh (dc, &args->fh)
+	  && encode_char (dc, args->destroy_p));
+}
