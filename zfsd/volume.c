@@ -245,34 +245,6 @@ volume_set_local_info (volume vol, const char *local_path, uint64_t size_limit)
   return init_volume_metadata (vol);
 }
 
-/* Return true when volume VOL is accessible.  */
-
-bool
-volume_active_p (volume vol)
-{
-  bool active;
-  bool connected;
-
-  CHECK_MUTEX_LOCKED (&vol->mutex);
-
-#ifdef ENABLE_CHECKING
-  /* TODO: some checks? */
-#endif
-
-  if (vol->local_path)
-    return true;
-
-  zfsd_mutex_lock (&vol->master->mutex);
-  connected = node_has_valid_fd (vol->master);
-  active = connected && (network_fd_data[vol->master->fd].auth
-			 == AUTHENTICATION_FINISHED);
-  if (connected)
-    zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
-  zfsd_mutex_unlock (&vol->master->mutex);
-
-  return active;
-}
-
 /* Print the information about volume VOL to file F.  */
 
 void

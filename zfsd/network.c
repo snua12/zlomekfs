@@ -276,20 +276,29 @@ node_has_valid_fd (node nod)
   return true;
 }
 
-/* Return true if current node is conencted to node NOD.  */
+/* Return true if current node is connected to master of volume VOL.  */
 
 bool
-node_connected (node nod)
+volume_master_connected (volume vol)
 {
   bool r;
 
-  if (!node_has_valid_fd (nod))
-    return false;
+  CHECK_MUTEX_LOCKED (&vol->mutex);
 
-  r = (network_fd_data[nod->fd].conn == CONNECTION_SLOW
-       || network_fd_data[nod->fd].conn == CONNECTION_FAST);
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&vol->master->mutex);
+  zfsd_mutex_unlock (&node_mutex);
 
-  zfsd_mutex_unlock (&network_fd_data[nod->fd].mutex);
+  if (!node_has_valid_fd (vol->master))
+    {
+      zfsd_mutex_unlock (&vol->master->mutex);
+      return false;
+    }
+
+  r = (network_fd_data[vol->master->fd].auth == AUTHENTICATION_FINISHED);
+
+  zfsd_mutex_unlock (&network_fd_data[vol->master->fd].mutex);
+  zfsd_mutex_unlock (&vol->master->mutex);
 
   return r;
 }

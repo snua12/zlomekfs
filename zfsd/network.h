@@ -94,7 +94,7 @@ extern void update_node_fd (node nod, int fd, unsigned int generation,
 			    bool active);
 extern void close_network_fd (int fd);
 extern bool node_has_valid_fd (node nod);
-extern bool node_connected (node nod);
+extern bool volume_master_connected (volume vol);
 extern int node_connect_and_authenticate (thread *t, node nod,
 					  authentication_status auth);
 extern bool request_from_this_node ();

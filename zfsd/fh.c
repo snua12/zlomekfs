@@ -610,7 +610,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
 	    abort ();
 #endif
 
-	  if (!volume_active_p (vol))
+	  if (!vol->local_path && !volume_master_connected (vol))
 	    {
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
