@@ -142,7 +142,7 @@ extern internal_fh fh_lookup_name (volume vol, internal_fh parent,
 				   const char *name);
 extern internal_fh internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh,
 				       internal_fh parent, volume vol,
-				       const char *name);
+				       const char *name, fattr *attr);
 extern void internal_fh_destroy (internal_fh fh, volume vol);
 extern void print_fh_htab (FILE *f, htab_t htab);
 extern void debug_fh_htab (htab_t htab);

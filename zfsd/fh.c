@@ -211,7 +211,7 @@ fh_lookup_name (volume vol, internal_fh parent, const char *name)
 
 internal_fh
 internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
-		    volume vol, const char *name)
+		    volume vol, const char *name, fattr *attr)
 {
   internal_fh fh;
   void **slot;
@@ -225,6 +225,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
   fh->parent = parent;
   fh->name = xstrdup (name);
   fh->fd = -1;
+  fh->attr = *attr;
 
   zfsd_mutex_lock (&vol->fh_mutex);
 #ifdef ENABLE_CHECKING
