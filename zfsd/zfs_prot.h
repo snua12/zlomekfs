@@ -413,7 +413,8 @@ struct thread_def;
 struct node_def;
 
 #include "data-coding.h"
-/* Function headers.  */
+
+extern ftype zfs_mode_to_ftype (uint32_t mode);
 
 #ifdef __KERNEL__
 
