@@ -1461,6 +1461,8 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
 	    }
 	}
     }
+  else
+    vol->root_dentry = dentry;
 
   slot = htab_find_slot_with_hash (dentry_htab, &fh->local_fh,
 				   INTERNAL_DENTRY_HASH (dentry), INSERT);
