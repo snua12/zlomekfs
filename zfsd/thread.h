@@ -44,6 +44,13 @@ typedef struct server_thread_data_def
   SVCXPRT *transp;
 } server_thread_data;
 
+/* Additional data for a client thread.  */
+typedef struct client_thread_data_def
+{
+  /* Buffer for data.  */
+  char *buffer;
+} client_thread_data;
+
 /* Definition of thread's variables.  */
 typedef struct thread_def
 {
@@ -62,8 +69,8 @@ typedef struct thread_def
   /* Additional data for each subtype.  */
   union {
     server_thread_data server;
-#if 0
     client_thread_data client;
+#if 0
     update_thread_data update;
 #endif
   } u;
@@ -92,6 +99,15 @@ typedef void *(*thread_start) (void *);
 /* Type of thread initializer.  */
 typedef void (*thread_initialize) (thread *);
 
+/* Data for thread_pool_regulator.  */
+typedef struct thread_pool_regulator_data_def
+{
+  pthread_t thread_id;		/* thread ID of the regulator */
+  thread_pool *pool;		/* thread pool which the regulator regulates */
+  thread_start start;		/* start routine of the worker thread */
+  thread_initialize init;	/* initialization routine */
+} thread_pool_regulator_data;
+
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,
 				size_t min_spare_threads,
 				size_t max_spare_threads);
@@ -100,5 +116,9 @@ extern int create_idle_thread (thread_pool *pool, thread_start start,
 extern int destroy_idle_thread (thread_pool *pool);
 extern void thread_pool_regulate (thread_pool *pool, thread_start start,
 				  thread_initialize init);
+extern void thread_pool_create_regulator (thread_pool_regulator_data *data,
+					  thread_pool *pool,
+					  thread_start start,
+					  thread_initialize init);
 
 #endif
