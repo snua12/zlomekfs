@@ -35,6 +35,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007)
 
 #include <stdio.h>
+#include <errno.h>
 #include "log.h"
 
 #define zfsd_mutex_destroy(M) __extension__				\
@@ -145,11 +146,33 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 /* Check whether the mutex M is locked.  */
 #define CHECK_MUTEX_LOCKED(M)						\
   do {									\
-    message (5, stderr, "MUTEX %p TRYLOCK, by %lu at %s:%d\n",		\
-	     (void *) M,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((M) && pthread_mutex_trylock (M) == 0)				\
-      abort ();								\
+    if (M)								\
+      {									\
+	int r;								\
+									\
+	message (5, stderr, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
+		 (void *) M,						\
+		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	r = pthread_mutex_lock (M);					\
+	if (r != EDEADLK)						\
+	  abort ();							\
+      }									\
+  } while (0)
+
+/* Check whether the mutex M is NOT locked by current thread.  */
+#define CHECK_MUTEX_UNLOCKED(M)						\
+  do {									\
+    if (M)								\
+      {									\
+	message (5, stderr, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
+		 (void *) M,						\
+		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	r = pthread_mutex_lock (M);					\
+	if (r == EDEADLK)						\
+	  abort ();							\
+	if (r == 0)							\
+	  pthread_mutex_unlock (M);					\
+      }									\
   } while (0)
 
 #else
