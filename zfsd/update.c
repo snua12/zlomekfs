@@ -1157,8 +1157,10 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
       bool ok;
 
       r2 = zfs_fh_lookup_nolock (dir_fh, &vol, &dir, NULL, false);
-      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
 	abort ();
+#endif
 
       dentry = get_dentry (local_fh, remote_fh, vol, dir, name,
 			   local_attr, &meta);
@@ -1398,8 +1400,10 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  entry = (dir_entry *) *slot;
 
 	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
 	    abort ();
+#endif
 
 	  r = local_lookup (&local_res, dir, &entry->name, vol, &meta);
 	  if (r == ENOENT)
@@ -1416,8 +1420,10 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  if (slot2)
 	    {
 	      r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
-	      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
 		abort ();
+#endif
 
 	      r = remote_lookup (&remote_res, dir, &entry->name, vol);
 	      if (r != ZFS_OK)
@@ -1445,16 +1451,20 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  if (!zfs_fh_undefined (meta.master_fh))
 	    {
 	      vol = volume_lookup (fh->vid);
-	      if (ENABLE_CHECKING_VALUE && !vol)
+#ifdef ENABLE_CHECKING
+	      if (!vol)
 		abort ();
+#endif
 
 	      r = remote_file_info (&info, &meta.master_fh, vol);
 	      if (r == ZFS_OK)
 		free (info.path.str);
 
 	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-	      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
 		abort ();
+#endif
 
 	      r = local_reintegrate_del (vol, dir, &entry->name, r != ZFS_OK,
 					 fh);
@@ -1462,8 +1472,10 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  else
 	    {
 	      r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-	      if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+	      if (r2 != ZFS_OK)
 		abort ();
+#endif
 
 	      r = delete_tree_name (dir, &entry->name, vol);
 	      if (r != ZFS_OK)
@@ -1478,8 +1490,10 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  entry = (dir_entry *) *slot;
 
 	  r2 = zfs_fh_lookup (fh, &vol, &dir, NULL, false);
-	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
 	    abort ();
+#endif
 
 	  r = remote_lookup (&remote_res, dir, &entry->name, vol);
 	  if (r == ENOENT || r == ESTALE)
@@ -1491,8 +1505,10 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	    goto out;
 
 	  vol = volume_lookup (fh->vid);
-	  if (ENABLE_CHECKING_VALUE && !vol)
+#ifdef ENABLE_CHECKING
+	  if (!vol)
 	    abort ();
+#endif
 
 	  if (!get_fh_mapping_for_master_fh (vol, &remote_res.file, &map))
 	    {
@@ -1503,8 +1519,10 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 	  zfsd_mutex_unlock (&vol->mutex);
 
 	  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
-	  if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
 	    abort ();
+#endif
 
 	  if (map.slot_status == VALID_SLOT)
 	    {
