@@ -162,6 +162,8 @@ int main (int argc, char **argv)
 	printf (" shadow_tree");
       printf ("\n");
 
+      printf (" Dev: %" PRIu32 "\n", meta.dev);
+      printf (" Ino: %" PRIu32 "\n", meta.ino);
       printf (" Generation: %" PRIu32 "\n", meta.gen);
       printf (" Local version: %" PRIu64 "\n", meta.local_version);
       printf (" Master version: %" PRIu64 "\n", meta.master_version);
