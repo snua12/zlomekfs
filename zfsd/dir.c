@@ -2303,11 +2303,7 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
     MARK_VOLUME_DELETE (vol);
 
   /* Delete the metadata.  */
-  tmp_meta.flags = 0;
-  tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-				    zfs_mode_to_ftype (st.st_mode));
-  tmp_meta.uid = map_uid_node2zfs (st.st_uid);
-  tmp_meta.gid = map_gid_node2zfs (st.st_gid);
+  tmp_meta = *meta;
   if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
 			parent_st.st_dev, parent_st.st_ino, name))
     MARK_VOLUME_DELETE (vol);
@@ -2794,11 +2790,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
 	MARK_VOLUME_DELETE (vol);
 
       /* Delete the metadata.  */
-      tmp_meta.flags = 0;
-      tmp_meta.modetype = GET_MODETYPE (GET_MODE (st_old.st_mode),
-					zfs_mode_to_ftype (st_old.st_mode));
-      tmp_meta.uid = map_uid_node2zfs (st_old.st_uid);
-      tmp_meta.gid = map_gid_node2zfs (st_old.st_gid);
+      tmp_meta = *meta_old;
       if (!delete_metadata (vol, &tmp_meta, st_old.st_dev, st_old.st_ino,
 			    to_parent_st.st_dev, to_parent_st.st_ino,
 			    &to_name))
@@ -3638,11 +3630,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     MARK_VOLUME_DELETE (vol);
 
   /* Delete the metadata.  */
-  tmp_meta.flags = 0;
-  tmp_meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-				    zfs_mode_to_ftype (st.st_mode));
-  tmp_meta.uid = map_uid_node2zfs (st.st_uid);
-  tmp_meta.gid = map_gid_node2zfs (st.st_gid);
+  tmp_meta = *meta;
   if (!delete_metadata (vol, &tmp_meta, st.st_dev, st.st_ino,
 			parent_st.st_dev, parent_st.st_ino, name))
     MARK_VOLUME_DELETE (vol);
