@@ -331,7 +331,7 @@ internal_dentry_hash_name (const void *x)
   return INTERNAL_DENTRY_HASH_NAME ((internal_dentry) x);
 }
 
-/* Compate an internal file handle XX with client's file handle YY.  */
+/* Compare an internal file handle XX with client's file handle YY.  */
 
 static int
 internal_fh_eq (const void *xx, const void *yy)
