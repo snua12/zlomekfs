@@ -227,6 +227,47 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
     }
 }
 
+/* Insert interval represented by node NODE to tree DATA.  */
+
+static int
+interval_tree_add_1 (splay_tree_node node, void *data)
+{
+  interval_tree tree = (interval_tree) data;
+
+  interval_tree_insert (tree, INTERVAL_START (node), INTERVAL_END (node));
+  return 0;
+}
+
+/* Add the intervals in TREE2 to TREE1.  */
+
+void
+interval_tree_add (interval_tree tree1, interval_tree tree2)
+{
+  splay_tree_foreach (tree2->splay, interval_tree_add_1, tree1);
+}
+
+/* Delete interval represented by node NODE from tree DATA.  */
+
+static int
+interval_tree_sub_1 (splay_tree_node node, void *data)
+{
+  interval_tree tree = (interval_tree) data;
+
+  interval_tree_delete (tree, INTERVAL_START (node), INTERVAL_END (node));
+
+  /* Stop traversing when TREE is empty and thus no more intervals can be
+     deleted.  */
+  return tree->splay->root == NULL;
+}
+
+/* Delete the intervals in TREE2 from TREE1.  */
+
+void
+interval_tree_sub (interval_tree tree1, interval_tree tree2)
+{
+  splay_tree_foreach (tree2->splay, interval_tree_sub_1, tree1);
+}
+
 /* Return the first interval from tree TREE.  */
 
 interval_tree_node
