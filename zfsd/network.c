@@ -36,6 +36,7 @@ static thread_pool server_pool;
 static thread_pool_regulator_data server_regulator_data;
 
 #ifdef RPC
+#if 0
 
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
@@ -122,6 +123,7 @@ server_worker (void *data)
   return data;
 }
 
+#endif
 #else	/* RPC */
 
 #include <sys/types.h>
@@ -298,6 +300,8 @@ server_dispatch (server_fd_data_t *fd_data, DC *dc, unsigned int generation)
   server_pool.threads[index].t.u.server.fd_data = fd_data;
   server_pool.threads[index].t.u.server.dc = *dc;
   server_pool.threads[index].t.u.server.generation = generation;
+
+  /* Let the thread run.  */
   pthread_mutex_unlock (&server_pool.threads[index].t.mutex);
 
   pthread_mutex_unlock (&server_pool.idle.mutex);
@@ -440,7 +444,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 	  return NULL;
 	}
 
-      if (r == 0)
+      if (r <= 0)
 	continue;
 
       now = time (NULL);
@@ -478,7 +482,7 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		      d->ndc++;
 		    }
 		  pthread_mutex_unlock (&d->mutex);
-		  r = read (d->fd, d->dc[0].start + d->read, 4 - d->read);
+		  r = read (d->fd, d->dc[0].buffer + d->read, 4 - d->read);
 		  if (r < 0)
 		    {
 		      pthread_mutex_lock (&active[i]->mutex);
@@ -489,11 +493,11 @@ server_main (void * ATTRIBUTE_UNUSED data)
 		    d->read += r;
 
 		  if (d->read == 4)
-		    d->length = GET_UINT (d->dc[0].start);
+		    d->length = GET_UINT (d->dc[0].buffer);
 		}
 	      else
 		{
-		  r = read (d->fd, d->dc[0].start + d->read,
+		  r = read (d->fd, d->dc[0].buffer + d->read,
 			    d->length - 4);
 		  if (r < 0)
 		    {

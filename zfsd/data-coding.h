@@ -131,7 +131,7 @@
 typedef struct data_coding_def
 {
   char *unaligned;
-  char *start;
+  char *buffer;
   char *current;
   int max_length;
   int cur_length;

@@ -34,7 +34,7 @@ void
 dc_create (DC *dc, int size)
 {
   dc->unaligned = (char *) xmalloc (size + 15); 
-  dc->start = (char *) ALIGN_PTR_16 (dc->unaligned);
+  dc->buffer = (char *) ALIGN_PTR_16 (dc->unaligned);
   dc->size = size;
 #ifdef ENABLE_CHECKING
   if (size < 0)
@@ -55,7 +55,7 @@ dc_destroy (DC *dc)
 void
 start_encoding (DC *dc)
 {
-  dc->current = dc->start;
+  dc->current = dc->buffer;
   dc->cur_length = 0;
   dc->max_length = dc->size;
 }
@@ -65,7 +65,7 @@ start_encoding (DC *dc)
 int
 finish_encoding (DC *dc)
 {
-  *(uint32_t *) dc->start = u32_to_le ((uint32_t) dc->cur_length);
+  *(uint32_t *) dc->buffer = u32_to_le ((uint32_t) dc->cur_length);
 
   return dc->cur_length;
 }
@@ -75,7 +75,7 @@ finish_encoding (DC *dc)
 int
 start_decoding (DC *dc)
 {
-  dc->current = dc->start;
+  dc->current = dc->buffer;
   dc->max_length = 4;
   dc->cur_length = 0;
   decode_int32_t (dc, (int32_t *) &dc->max_length);

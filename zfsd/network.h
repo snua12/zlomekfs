@@ -29,6 +29,7 @@
 /* Data for a server socket.  */
 typedef struct server_fd_data_def
 {
+  pthread_mutex_t mutex;
   int fd;			/* file descriptor of the socket */
   unsigned int read;		/* number of bytes already read */
 
@@ -40,7 +41,6 @@ typedef struct server_fd_data_def
   time_t last_use;		/* time of last use of the socket */
   unsigned int generation;	/* generation of open file descriptor */
   int busy;			/* number of threads using file descriptor */
-  pthread_mutex_t mutex;
 } server_fd_data_t;
 
 #define SERVER_ANY 0
