@@ -553,9 +553,9 @@ again:
 	  }
 	if (fd != nod->fd)
 	  {
-	    zfsd_mutex_unlock (&nod->mutex);
 	    if (r >= ZFS_ERROR_HAS_DC_REPLY)
 	      recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[nod->fd]);
+	    zfsd_mutex_unlock (&nod->mutex);
 	    goto again;
 	  }
 
@@ -599,9 +599,9 @@ again:
 	  }
 	if (fd != nod->fd)
 	  {
-	    zfsd_mutex_unlock (&nod->mutex);
 	    if (r >= ZFS_ERROR_HAS_DC_REPLY)
 	      recycle_dc_to_fd_data (&t->dc_reply, &fd_data_a[nod->fd]);
+	    zfsd_mutex_unlock (&nod->mutex);
 	    goto again;
 	  }
 
