@@ -48,16 +48,25 @@
        && ((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version  \
 	   || (ATTR).version == (DENTRY)->fh->meta.master_version)))
 
+/* Reintegrate the file DENTRY
+   if local file was modified since we reintegrated it last time.
+   If both UPDATE_P and REINTEGRATE_P are true, there is a conflict
+   on the file.  */
+#define REINTEGRATE_P(DENTRY)						\
+  ((DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version)
+
 /* Update generic file DENTRY on volume VOL if needed.  */
 #define UPDATE_FH_IF_NEEDED(VOL, DENTRY, FH)				\
   do {									\
     fattr remote_attr;							\
+    int how;								\
 									\
     if ((VOL)->master != this_node)					\
       {									\
-	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
+	how = update_p (&(DENTRY), &(VOL), &(FH), &remote_attr);	\
+	if (how)							\
 	  {								\
-	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
+	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr, how);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
 				       false);				\
@@ -79,6 +88,7 @@
 #define UPDATE_FH_IF_NEEDED_2(VOL, DENTRY, DENTRY2, FH, FH2)		\
   do {									\
     fattr remote_attr;							\
+    int how;								\
 									\
     if ((VOL)->master != this_node)					\
       {									\
@@ -91,9 +101,10 @@
 	if ((FH2).ino != (FH).ino)					\
 	  release_dentry ((DENTRY2));					\
 									\
-	if (update_p (&(DENTRY), &(VOL), &(FH), &remote_attr))		\
+	how = update_p (&(DENTRY), &(VOL), &(FH), &remote_attr);	\
+	if (how)							\
 	  {								\
-	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr);	\
+	    r = update_fh ((DENTRY), (VOL), &(FH), &remote_attr, how);	\
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
 				       false);				\
@@ -163,13 +174,15 @@
   do {									\
     fattr remote_attr;							\
     zfs_fh tmp_fh;							\
+    int how;								\
 									\
     if ((VOL)->master != this_node)					\
       {									\
 	tmp_fh = (DENTRY)->fh->local_fh;				\
-	if (update_p (&(DENTRY), &(VOL), &tmp_fh, &remote_attr))	\
+	how = update_p (&(DENTRY), &(VOL), &tmp_fh, &remote_attr);	\
+	if (how)							\
 	  {								\
-	    r = update_fh ((DENTRY), (VOL), &tmp_fh, &remote_attr);	\
+	    r = update_fh ((DENTRY), (VOL), &tmp_fh, &remote_attr, how);\
 									\
 	    if (VIRTUAL_FH_P ((CAP).fh))				\
 	      zfsd_mutex_lock (&vd_mutex);				\
@@ -209,10 +222,10 @@ extern thread_pool update_pool;
 extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 				     uint64_t end, varray *blocks);
 extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks);
-extern bool update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh,
-		      fattr *attr);
+extern int update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh,
+		     fattr *attr);
 extern int32_t update_fh (internal_dentry dentry, volume vol, zfs_fh *fh,
-			  fattr *attr);
+			  fattr *attr, int how);
 
 extern bool update_start (void);
 extern void update_cleanup (void);

@@ -545,7 +545,7 @@ out:
 /* Return true if file *DENTRYP on volume *VOLP with file handle FH should
    be updated.  Store remote attributes to ATTR.  */
 
-bool
+int
 update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
 {
   int32_t r, r2;
@@ -581,7 +581,8 @@ update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh, fattr *attr)
     abort ();
 #endif
 
-  return UPDATE_P (*dentryp, *attr);
+  return (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
+	  + REINTEGRATE_P (*dentryp) * IFH_REINTEGRATE);
 
 out:
   r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
@@ -1032,10 +1033,11 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 }
 
 /* Update the directory *DIRP on volume *VOLP with file handle FH,
-   set attributes according to ATTR.  */
+   set attributes according to ATTR.
+   HOW are the flags what we should do.  */
 
 int32_t
-update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
+update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr, int how)
 {
   int32_t r, r2;
   internal_dentry dentry, parent;
@@ -1052,6 +1054,8 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr)
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dir->fh) && vol->master != this_node))
     abort ();
   if (attr->type != dir->fh->attr.type && !dir->parent)
+    abort ();
+  if (how == 0)
     abort ();
 #endif
 
