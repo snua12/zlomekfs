@@ -1490,10 +1490,11 @@ zfs_mkdir_retry:
 }
 
 /* Remove local directory NAME from directory DIR on volume VOL,
-   store the stat structure of NAME to ST.  */
+   store the stat structure of NAME to ST and path to PATHP.  */
 
 static int32_t
-local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
+local_rmdir (struct stat *st, char **pathp,
+	     internal_dentry dir, string *name, volume vol)
 {
   char *path;
   int32_t r;
@@ -1506,6 +1507,7 @@ local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
   r = lstat (path, st);
   if (r != 0)
     {
@@ -1513,10 +1515,14 @@ local_rmdir (struct stat *st, internal_dentry dir, string *name, volume vol)
       return errno;
     }
   r = rmdir (path);
-  free (path);
-  if (r != 0)
-    return errno;
 
+  if (r != 0)
+    {
+      free (path);
+      return errno;
+    }
+
+  *pathp = path;
   return ZFS_OK;
 }
 
@@ -1570,6 +1576,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   internal_dentry idir;
   virtual_dir pvd;
   struct stat st;
+  char *path = NULL;
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
@@ -1616,7 +1623,7 @@ zfs_rmdir_retry:
   if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
     {
       UPDATE_FH_IF_NEEDED (vol, idir, tmp_fh);
-      r = local_rmdir (&st, idir, name, vol);
+      r = local_rmdir (&st, &path, idir, name, vol);
     }
   else if (vol->master != this_node)
     {
@@ -1635,11 +1642,18 @@ zfs_rmdir_retry:
   /* Delete the internal file handle of the deleted directory.  */
   if (r == ZFS_OK)
     {
-      DESTROY_DENTRY (vol, idir, name->str, tmp_fh, NULL);
+      char *relative_path;
+
+      relative_path = local_path_to_relative_path (vol, path);
+      DESTROY_DENTRY (vol, idir, name->str, tmp_fh, relative_path);
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
 	{
-	  if (!delete_metadata (vol, st.st_dev, st.st_ino, NULL))
+#ifdef ENABLE_CHECKING
+	  if (relative_path == NULL)
+	    abort ();
+#endif
+	  if (!delete_metadata (vol, st.st_dev, st.st_ino, relative_path))
 	    vol->delete_p = true;
 	  if (!inc_local_version (vol, idir->fh))
 	    vol->delete_p = true;
