@@ -408,7 +408,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
      Force O_CREAT to be set here.  */
   flags |= O_CREAT;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -656,7 +656,8 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
      The flag is superfluous here.  */
   flags &= ~O_CREAT;
 
-  r = validate_operation_on_zfs_fh (fh, (flags & O_ACCMODE) != O_RDONLY);
+  r = validate_operation_on_zfs_fh (fh, (flags & O_ACCMODE) != O_RDONLY,
+				    EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -793,7 +794,7 @@ zfs_close (zfs_cap *cap)
   zfs_cap tmp_cap;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (&cap->fh, false);
+  r = validate_operation_on_zfs_fh (&cap->fh, false, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1468,7 +1469,7 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   if (cap->flags != O_RDONLY)
     return EBADF;
 
-  r = validate_operation_on_zfs_fh (&cap->fh, false);
+  r = validate_operation_on_zfs_fh (&cap->fh, false, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1735,7 +1736,7 @@ zfs_read (uint32_t *rcount, void *buffer,
   if (cap->flags != O_RDONLY && cap->flags != O_RDWR)
     return EBADF;
 
-  r = validate_operation_on_zfs_fh (&cap->fh, true);
+  r = validate_operation_on_zfs_fh (&cap->fh, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1975,7 +1976,7 @@ zfs_write (write_res *res, write_args *args)
   if (args->cap.flags != O_WRONLY && args->cap.flags != O_RDWR)
     return EBADF;
 
-  r = validate_operation_on_zfs_fh (&args->cap.fh, true);
+  r = validate_operation_on_zfs_fh (&args->cap.fh, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 

@@ -454,11 +454,16 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
 
 /* Check whether we can perform operation on ZFS file handle FH.
    If DENY_CONFLICT is true return error when we are trying to do the operation
-   on conflict file handle.  */
+   on conflict file handle.
+   If FH is a file handle of non-existing file return NON_EXIST_ERROR.  */
 
 int32_t
-validate_operation_on_zfs_fh (zfs_fh *fh, bool deny_conflict)
+validate_operation_on_zfs_fh (zfs_fh *fh, bool deny_conflict,
+			      uint32_t non_exist_error)
 {
+  if (NON_EXIST_FH_P (*fh))
+    return non_exist_error;
+
   if (!request_from_this_node ())
     {
 #ifdef ENABLE_CHECKING
@@ -774,7 +779,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (fh, false);
+  r = validate_operation_on_zfs_fh (fh, false, ZFS_OK);
   if (r != ZFS_OK)
     return r;
 
@@ -807,7 +812,8 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
 	}
     }
 
-  if (GET_CONFLICT (dentry->fh->local_fh))
+  if (GET_CONFLICT (dentry->fh->local_fh)
+      || NON_EXIST_FH_P (dentry->fh->local_fh))
     {
       *fa = dentry->fh->attr;
       release_dentry (dentry);
@@ -976,7 +982,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (fh, true);
+  r = validate_operation_on_zfs_fh (fh, true, EROFS);
   if (r != ZFS_OK)
     return r;
 
@@ -1178,7 +1184,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, false);
+  r = validate_operation_on_zfs_fh (dir, false, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1510,7 +1516,7 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1713,7 +1719,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -1971,11 +1977,11 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (from_dir, true);
+  r = validate_operation_on_zfs_fh (from_dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
-  r = validate_operation_on_zfs_fh (to_dir, true);
+  r = validate_operation_on_zfs_fh (to_dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -2343,11 +2349,11 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   zfs_fh tmp_from, tmp_dir;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (from, true);
+  r = validate_operation_on_zfs_fh (from, true, EROFS);
   if (r != ZFS_OK)
     return r;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -2624,7 +2630,7 @@ zfs_unlink (zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -2885,7 +2891,7 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
       return ZFS_OK;
     }
 
-  r = validate_operation_on_zfs_fh (fh, true);
+  r = validate_operation_on_zfs_fh (fh, true, ZFS_OK);
   if (r != ZFS_OK)
     return r;
 
@@ -3040,7 +3046,7 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -3259,7 +3265,7 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   metadata meta;
   int32_t r, r2;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -3680,11 +3686,11 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
   if (VIRTUAL_FH_P (*dir))
     return EINVAL;
 
-  r = validate_operation_on_zfs_fh (fh, true);
+  r = validate_operation_on_zfs_fh (fh, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -3811,7 +3817,7 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   if (VIRTUAL_FH_P (*dir))
     return EINVAL;
 
-  r = validate_operation_on_zfs_fh (dir, true);
+  r = validate_operation_on_zfs_fh (dir, true, EINVAL);
   if (r != ZFS_OK)
     return r;
 
@@ -3979,6 +3985,9 @@ refresh_fh (zfs_fh *fh)
   int32_t r;
 
   if (VIRTUAL_FH_P (*fh))
+    return ESTALE;
+
+  if (NON_EXIST_FH_P (*fh))
     return ESTALE;
 
   r = zfs_file_info (&info, fh);
