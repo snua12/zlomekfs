@@ -1473,6 +1473,7 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
 {
   int32_t r;
   int fd;
+  bool regular_file;
 
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
@@ -1487,14 +1488,18 @@ local_read (uint32_t *rcount, void *buffer, internal_dentry dentry,
     }
 
   fd = dentry->fh->fd;
+  regular_file = dentry->fh->attr.type == FT_REG;
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  r = lseek (fd, offset, SEEK_SET);
-  if (r < 0)
+  if (regular_file || offset != (uint64_t) -1)
     {
-      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
-      return errno;
+      r = lseek (fd, offset, SEEK_SET);
+      if (r < 0)
+	{
+	  zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+	  return errno;
+	}
     }
 
   r = read (fd, buffer, count);
