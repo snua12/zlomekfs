@@ -658,6 +658,19 @@ zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
   encode_status (dc, r);
 }
 
+/* void reintegrate_set (reintegrate_set_args);  */
+
+void
+zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
+				 ATTRIBUTE_UNUSED void *data,
+				 ATTRIBUTE_UNUSED bool map_id)
+{
+  int32_t r;
+
+  r = zfs_reintegrate_set (&args->fh, args->version);
+  encode_status (dc, r);
+}
+
 /* Call remote FUNCTION with ARGS using data structures in thread T
    and return its error code.  Use FD for communication with remote node.  */
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\

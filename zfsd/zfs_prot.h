@@ -345,6 +345,12 @@ typedef struct reintegrate_del_args_def
   char destroy_p;
 } reintegrate_del_args;
 
+typedef struct reintegrate_set_args_def
+{
+  zfs_fh fh;
+  uint64_t version;
+} reintegrate_set_args;
+
 typedef union call_args_def
 {
   char null;
@@ -374,6 +380,7 @@ typedef union call_args_def
   zfs_fh file_info;
   reintegrate_add_args reintegrate_add;
   reintegrate_del_args reintegrate_del;
+  reintegrate_set_args reintegrate_set;
 } call_args;
 
 /* Mapping file type -> file mode.  */

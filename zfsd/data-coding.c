@@ -1168,4 +1168,18 @@ encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 	  && encode_char (dc, args->destroy_p));
 }
 
+bool
+decode_reintegrate_set_args (DC *dc, reintegrate_set_args *args)
+{
+  return (decode_zfs_fh (dc, &args->fh)
+	  && decode_uint64_t (dc, &args->version));
+}
+
+bool
+encode_reintegrate_set_args (DC *dc, reintegrate_set_args *args)
+{
+  return (encode_zfs_fh (dc, &args->fh)
+	  && encode_uint64_t (dc, args->version));
+}
+
 #endif

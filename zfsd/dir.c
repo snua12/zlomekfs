@@ -3899,6 +3899,134 @@ zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
   return r;
 }
 
+/* Set version of local file handle FH with dentry DENTRY on volume VOL
+   to VERSION.  */
+
+int32_t
+local_reintegrate_set (zfs_fh *fh, uint64_t version, internal_dentry dentry,
+		       volume vol)
+{
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (dentry)
+    CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+#endif
+
+  if (dentry)
+    {
+      dentry->fh->meta.local_version = version;
+      if (!vol->is_copy)
+	dentry->fh->meta.master_version = version;
+      set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+      if (!flush_metadata (vol, &dentry->fh->meta))
+	{
+	  vol->delete_p = true;
+	  release_dentry (dentry);
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return ZFS_UPDATE_FAILED;
+	}
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+    }
+  else
+    {
+      metadata meta;
+
+      if (!get_metadata (vol, fh, &meta))
+	return ZFS_UPDATE_FAILED;
+
+      meta.local_version = version;
+      if (!vol->is_copy)
+	meta.master_version = version;
+
+      if (!flush_metadata (vol, &meta))
+	{
+	  vol->delete_p = true;
+	  zfsd_mutex_unlock (&vol->mutex);
+	  return ZFS_UPDATE_FAILED;
+	}
+    }
+
+  return ZFS_OK;
+}
+
+/* Set version of remote file handle FH with dentry DENTRY on volume VOL
+   to VERSION.  */
+
+int32_t
+remote_reintegrate_set (zfs_fh *fh, uint64_t version, internal_dentry dentry,
+			volume vol)
+{
+  reintegrate_set_args args;
+  thread *t;
+  int32_t r;
+  int fd;
+  node nod = vol->master;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+#ifdef ENABLE_CHECKING
+  if (dentry)
+    {
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+      if (zfs_fh_undefined (dentry->fh->meta.master_fh))
+	abort ();
+    }
+#endif
+
+  args.fh = *fh;
+  args.version = version;
+
+  if (dentry)
+    {
+      dentry->fh->attr.version = version;
+      release_dentry (dentry);
+    }
+  zfsd_mutex_lock (&node_mutex);
+  zfsd_mutex_lock (&nod->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&node_mutex);
+
+  t = (thread *) pthread_getspecific (thread_data_key);
+  r = zfs_proc_reintegrate_set_client (t, &args, nod, &fd);
+
+  if (r >= ZFS_LAST_DECODED_ERROR)
+    {
+      if (!finish_decoding (t->dc_reply))
+	r = ZFS_INVALID_REPLY;
+    }
+
+  if (r >= ZFS_ERROR_HAS_DC_REPLY)
+    recycle_dc_to_fd (t->dc_reply, fd);
+  return r;
+}
+
+/* Set version of file handle FH to VERSION.  */
+
+int32_t
+zfs_reintegrate_set (zfs_fh *fh, uint64_t version)
+{
+  volume vol;
+  internal_dentry dentry;
+  int32_t r;
+
+  if (!REGULAR_FH_P (*fh))
+    return EINVAL;
+
+  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, true);
+  if (r != ZFS_OK)
+    vol = volume_lookup (fh->vid);
+
+  if (!vol)
+    return ESTALE;
+
+  if (fh->sid == this_node->id)
+    r = local_reintegrate_set (fh, version, dentry, vol);
+  else
+    r = remote_reintegrate_set (fh, version, dentry, vol);
+
+  return r;
+}
+
 /* Refresh file handle FH.  */
 
 int32_t
