@@ -409,7 +409,10 @@ zfs_create_retry:
   attr->mtime = (zfs_time) -1;
 
   if (vol->local_path)
-    r = local_create (res, &fd, idir, name, flags, attr, vol);
+    {
+      UPDATE_DIR_IF_NEEDED (vol, idir);
+      r = local_create (res, &fd, idir, name, flags, attr, vol);
+    }
   else if (vol->master != this_node)
     r = remote_create (res, idir->fh, name, flags, attr, vol);
   else

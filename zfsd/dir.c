@@ -940,26 +940,7 @@ zfs_lookup_retry:
 
   if (vol->local_path)
     {
-      if (vol->master != this_node)
-	{
-	  if (update_p (idir, vol))
-	    {
-	      zfs_fh fh;
-
-	      CHECK_MUTEX_LOCKED (&idir->fh->mutex);
-	      CHECK_MUTEX_LOCKED (&vol->mutex);
-
-	      fh = idir->fh->local_fh;
-	      r = update_file (idir, vol, false);
-	      if (r != ZFS_OK)
-		return r;
-
-	      r = zfs_fh_lookup (&fh, &vol, &idir, NULL);
-	      if (r != ZFS_OK)
-		return r;
-	    }
-	}
-
+      UPDATE_DIR_IF_NEEDED (vol, idir);
       r = local_lookup (res, idir, name, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -1152,6 +1133,7 @@ zfs_mkdir_retry:
 
   if (vol->local_path)
     {
+      UPDATE_DIR_IF_NEEDED (vol, idir);
       r = local_mkdir (res, idir, name, attr, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);
@@ -1319,7 +1301,10 @@ zfs_rmdir_retry:
     }
 
   if (vol->local_path)
-    r = local_rmdir (idir, name, vol);
+    {
+      UPDATE_DIR_IF_NEEDED (vol, idir);
+      r = local_rmdir (idir, name, vol);
+    }
   else if (vol->master != this_node)
     r = remote_rmdir (idir->fh, name, vol);
   else
@@ -1549,7 +1534,11 @@ zfs_rename_retry:
     }
 
   if (vol->local_path)
-    r = local_rename (dentry1, from_name, dentry2, to_name, vol);
+    {
+      UPDATE_DIR_IF_NEEDED (vol, dentry1);
+      UPDATE_DIR_IF_NEEDED (vol, dentry2);
+      r = local_rename (dentry1, from_name, dentry2, to_name, vol);
+    }
   else if (vol->master != this_node)
     r = remote_rename (dentry1->fh, from_name, dentry2->fh, to_name, vol);
   else
@@ -1815,7 +1804,10 @@ zfs_link_retry:
     }
 
   if (vol->local_path)
-    r = local_link (dentry1, dentry2, name, vol);
+    {
+      UPDATE_DIR_IF_NEEDED (vol, dentry2);
+      r = local_link (dentry1, dentry2, name, vol);
+    }
   else if (vol->master != this_node)
     r = remote_link (dentry1->fh, dentry2->fh, name, vol);
   else
@@ -1977,7 +1969,10 @@ zfs_unlink_retry:
     }
 
   if (vol->local_path)
-    r = local_unlink (idir, name, vol);
+    {
+      UPDATE_DIR_IF_NEEDED (vol, idir);
+      r = local_unlink (idir, name, vol);
+    }
   else if (vol->master != this_node)
     r = remote_unlink (idir->fh, name, vol);
   else
@@ -2260,6 +2255,7 @@ zfs_symlink_retry:
 
   if (vol->local_path)
     {
+      UPDATE_DIR_IF_NEEDED (vol, idir);
       r = local_symlink (res, idir, name, to, attr, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefined (master_res.file);
@@ -2451,6 +2447,7 @@ zfs_mknod_retry:
 
   if (vol->local_path)
     {
+      UPDATE_DIR_IF_NEEDED (vol, idir);
       r = local_mknod (res, idir, name, attr, type, rdev, vol);
       if (r == ZFS_OK)
 	zfs_fh_undefine (master_res.file);

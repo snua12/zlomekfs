@@ -31,6 +31,28 @@
 #define ZFS_UPDATED_BLOCK_SIZE ZFS_MAXDATA
 #define ZFS_MODIFIED_BLOCK_SIZE 1024
 
+/* Update directory DENTRY on volume VOL if needed.  */
+#define UPDATE_DIR_IF_NEEDED(VOL, DENTRY)				\
+  if ((VOL)->master != this_node)					\
+    {									\
+      if (update_p ((DENTRY), (VOL)))					\
+	{								\
+	  zfs_fh fh;							\
+									\
+	  CHECK_MUTEX_LOCKED (&(DENTRY)->fh->mutex);			\
+	  CHECK_MUTEX_LOCKED (&(VOL)->mutex);				\
+									\
+	  fh = (DENTRY)->fh->local_fh;					\
+	  r = update_file ((DENTRY), (VOL), false);			\
+	  if (r != ZFS_OK)						\
+	    return r;							\
+									\
+	  r = zfs_fh_lookup (&fh, &(VOL), &(DENTRY), NULL);		\
+	  if (r != ZFS_OK)						\
+	    return r;							\
+	}								\
+    }
+
 extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 				     uint64_t end, varray *blocks);
 extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,
