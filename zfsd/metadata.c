@@ -195,6 +195,67 @@ build_fh_metadata_path (volume vol, zfs_fh *fh, metadata_type type,
   return path;
 }
 
+/* Create a full path to file FILE with access rights MODE.
+   Return true if path exists at the end of this function.  */
+
+static bool
+create_path_for_file (char *file, unsigned int mode)
+{
+  struct stat st;
+  char *last;
+  char *end;
+
+  for (last = file; *last; last++)
+    ;
+  for (last--; last != file && *last != '/'; last--)
+    ;
+  if (last == file)
+    return false;
+
+  *last = 0;
+
+  /* Find the first existing directory.  */
+  for (end = last;;)
+    {
+      if (lstat (file, &st) == 0)
+	{
+	  if ((st.st_mode & S_IFMT) != S_IFDIR)
+	    return false;
+
+	  break;
+	}
+
+      for (; end != file && *end != '/'; end--)
+	;
+      if (end == file)
+	return false;
+
+      *end = 0;
+    }
+
+  /* Create the path.  */
+  for (;;)
+    {
+      if (end < last)
+	{
+	  *end = '/';
+
+	  if (mkdir (file, mode) != 0)
+	    return false;
+
+	  for (end++; end < last && *end; end++)
+	    ;
+	}
+      if (end >= last)
+	{
+	  *last = '/';
+	  return true;
+	}
+    }
+
+  return false;
+}
+
 /* Is the hash file HFILE for list of file handles opened?  */
 
 static bool
@@ -355,6 +416,59 @@ retry_open:
   return fd;
 }
 
+/* Open metadata file of type TYPE for file handle FH on volume VOL
+   with open flags FLAGS and mode MODE.
+   Store the path to PATHP.  */
+
+static int
+open_fh_metadata (char **pathp, volume vol, internal_fh fh, metadata_type type,
+		  int flags, mode_t mode)
+{
+  char *path;
+  int fd;
+  unsigned int i;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  path = build_fh_metadata_path (vol, &fh->local_fh, type,
+				 metadata_tree_depth);
+  fd = open_metadata (path, flags, mode);
+  if (fd < 0)
+    {
+      if (errno != ENOENT)
+	{
+	  free (path);
+	  *pathp = NULL;
+	  return -1;
+	}
+
+      if (!create_path_for_file (path, S_IRWXU))
+	{
+	  free (path);
+	  *pathp = NULL;
+	  if (errno == ENOENT)
+	    errno = 0;
+	  return -1;
+	}
+
+      for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
+	if (i != metadata_tree_depth)
+	  {
+	    char *old_path;
+
+	    old_path = build_fh_metadata_path (vol, &fh->local_fh, type, i);
+	    rename (old_path, path);
+	    free (old_path);
+	  }
+
+      fd = open_metadata (path, flags, mode);
+    }
+
+  *pathp = path;
+  return fd;
+}
+
 /* Open and initialize file descriptor for hash file HFILE with list
    of file handles and metadata.  */
 
@@ -431,67 +545,6 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   zfsd_mutex_unlock (&metadata_mutex);
 
   return fd;
-}
-
-/* Create a full path to file FILE with access rights MODE.
-   Return true if path exists at the end of this function.  */
-
-static bool
-create_path_for_file (char *file, unsigned int mode)
-{
-  struct stat st;
-  char *last;
-  char *end;
-
-  for (last = file; *last; last++)
-    ;
-  for (last--; last != file && *last != '/'; last--)
-    ;
-  if (last == file)
-    return false;
-
-  *last = 0;
-
-  /* Find the first existing directory.  */
-  for (end = last;;)
-    {
-      if (lstat (file, &st) == 0)
-	{
-	  if ((st.st_mode & S_IFMT) != S_IFDIR)
-	    return false;
-
-	  break;
-	}
-
-      for (; end != file && *end != '/'; end--)
-	;
-      if (end == file)
-	return false;
-
-      *end = 0;
-    }
-
-  /* Create the path.  */
-  for (;;)
-    {
-      if (end < last)
-	{
-	  *end = '/';
-
-	  if (mkdir (file, mode) != 0)
-	    return false;
-
-	  for (end++; end < last && *end; end++)
-	    ;
-	}
-      if (end >= last)
-	{
-	  *last = '/';
-	  return true;
-	}
-    }
-
-  return false;
 }
 
 /* Flush interval tree TREE to file name PATH.  */
@@ -693,7 +746,6 @@ close_interval_file (interval_tree tree)
 bool
 init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 {
-  unsigned int i;
   int fd;
   char *path;
   struct stat st;
@@ -701,36 +753,6 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
-
-  path = build_fh_metadata_path (vol, &fh->local_fh, type,
-				 metadata_tree_depth);
-  fd = open (path, O_RDONLY);
-  if (fd < 0)
-    {
-      if (errno != ENOENT)
-	{
-	  free (path);
-	  return false;
-	}
-
-      if (!create_path_for_file (path, S_IRWXU))
-	{
-	  free (path);
-	  return false;
-	}
-
-      for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
-	if (i != metadata_tree_depth)
-	  {
-	    char *old_path;
-
-	    old_path = build_fh_metadata_path (vol, &fh->local_fh, type, i);
-	    rename (old_path, path);
-	    free (old_path);
-	  }
-
-      fd = open (path, O_RDONLY);
-    }
 
   switch (type)
     {
@@ -746,6 +768,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 	abort ();
     }
 
+  fd = open_fh_metadata (&path, vol, fh, type, O_RDONLY, 0);
   if (fd < 0)
     {
       if (errno != ENOENT)
