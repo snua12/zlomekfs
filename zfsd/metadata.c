@@ -836,7 +836,7 @@ init_volume_metadata (volume vol)
 static void
 close_hash_file (hfile_t hfile)
 {
-  CHECK_MUTEX_LOCKED (&hfile->mutex);
+  CHECK_MUTEX_LOCKED (hfile->mutex);
 
   if (hfile->fd >= 0)
     {
