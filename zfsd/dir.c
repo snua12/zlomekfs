@@ -247,7 +247,7 @@ get_volume_root_local (volume vol, zfs_fh *local_fh, fattr *attr)
 /* Store the remote file handle of root of volume VOL to REMOTE_FH
    and its attributes to ATTR.  */
 
-static int32_t
+int32_t
 get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 {
   volume_root_args args;

@@ -35,6 +35,8 @@ extern bool recursive_unlink (const char *path, volume vol);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
 							string *name,
 							internal_dentry *dir);
+extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
+				       fattr *attr);
 extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentry);
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st);
 extern int32_t local_getattr_path (fattr *attr, char *path);
