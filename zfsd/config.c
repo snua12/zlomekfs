@@ -192,7 +192,7 @@ process_line (const char *file, const int line_num, char *line, char **key,
    to PARTS and return the total number of parts.  */
 
 static int
-split_and_trim (char *line, int n, char **parts)
+split_and_trim (char *line, int n, string *parts)
 {
   int i;
   char *start, *colon;
@@ -207,7 +207,7 @@ split_and_trim (char *line, int n, char **parts)
       /* Remember the beginning of a part. */
       start = line;
       if (i < n)
-	parts[i] = start;
+	parts[i].str = start;
 
       /* Find the end of a part.  */
       while (*line != 0 && *line != '\n' && *line != ':')
@@ -216,13 +216,18 @@ split_and_trim (char *line, int n, char **parts)
 
       if (i < n)
 	{
-	  /* Delete white spaces at the end of a part.  */
-	  while (line > start
-		 && (*line == ' ' || *line == '\t'))
+	  if (line > start)
 	    {
-	      *line = 0;
-	      line--;
+	      /* Delete white spaces at the end of a part.  */
+	      do
+		{
+		  *line = 0;
+		  line--;
+		}
+	      while (line >= start && (*line == ' ' || *line == '\t'));
+	      line++;
 	    }
+	  parts[i].len = line - start;
 	}
 
       i++;
@@ -331,7 +336,7 @@ read_local_cluster_config (const char *path)
       line_num = 0;
       while (!feof (f))
 	{
-	  char *parts[3];
+	  string parts[3];
 	  char line[LINE_SIZE + 1];
 
 	  if (!fgets (line, sizeof (line), f))
