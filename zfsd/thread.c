@@ -375,6 +375,12 @@ destroy_idle_thread (thread_pool *pool)
   CHECK_MUTEX_LOCKED (&pool->idle.mutex);
   CHECK_MUTEX_LOCKED (&pool->empty.mutex);
 
+  /* Let the thread which was busy add itself to idle queue.  */
+  zfsd_mutex_unlock (&pool->empty.mutex);
+  zfsd_mutex_unlock (&pool->idle.mutex);
+  zfsd_mutex_lock (&pool->idle.mutex);
+  zfsd_mutex_lock (&pool->empty.mutex);
+
   queue_get (&pool->idle, &index);
   t = &pool->threads[index].t;
 
