@@ -475,6 +475,7 @@ virtual_root_create ()
   root->subdir_index = 0;
   root->active = 1;
   root->total = 1;
+  root->vol = NULL;
 
   /* Insert the root into hash table.  */
   slot = htab_find_slot_with_hash (virtual_dir_htab, &root->fh,
