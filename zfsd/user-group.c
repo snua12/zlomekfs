@@ -930,6 +930,156 @@ mark_group_mapping (node nod)
     }
 }
 
+/* Destroy invalid users.  */
+
+void
+destroy_invalid_users (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  HTAB_FOR_EACH_SLOT (users_id, slot)
+    {
+      user_t u = (user_t) *slot;
+
+      if (u->marked)
+	user_destroy (u);
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+}
+
+/* Destroy invalid groups.  */
+
+void
+destroy_invalid_groups (void)
+{
+  void **slot;
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  HTAB_FOR_EACH_SLOT (groups_id, slot)
+    {
+      group_t g = (group_t) *slot;
+
+      if (g->marked)
+	group_destroy (g);
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+}
+
+/* Destroy invalid user mapping.  */
+
+void
+destroy_invalid_user_mapping (node nod)
+{
+  htab_t map_to_node;
+  htab_t map_to_zfs;
+  void **slot;
+  user_t u;
+
+  if (nod)
+    {
+      CHECK_MUTEX_LOCKED (&nod->mutex);
+#ifdef ENABLE_CHECKING
+      if (!nod->map_uid_to_node || !nod->map_uid_to_zfs)
+	abort ();
+#endif
+
+      map_to_node = nod->map_uid_to_node;
+      map_to_zfs = nod->map_uid_to_zfs;
+    }
+  else
+    {
+      map_to_node = map_uid_to_node;
+      map_to_zfs = map_uid_to_zfs;
+    }
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  HTAB_FOR_EACH_SLOT (map_to_node, slot)
+    {
+      id_mapping map = (id_mapping) *slot;
+
+      if (map->marked)
+	user_mapping_destroy (map, nod);
+      else
+	{
+	  u = user_lookup (map->zfs_id);
+	  if (!u || u->marked)
+	    user_mapping_destroy (map, nod);
+	}
+    }
+  HTAB_FOR_EACH_SLOT (map_to_zfs, slot)
+    {
+      id_mapping map = (id_mapping) *slot;
+
+      if (map->marked)
+	user_mapping_destroy (map, nod);
+      else
+	{
+	  u = user_lookup (map->zfs_id);
+	  if (!u || u->marked)
+	    user_mapping_destroy (map, nod);
+	}
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+}
+
+/* Destroy invalid group mapping.  */
+
+void
+destroy_invalid_group_mapping (node nod)
+{
+  htab_t map_to_node;
+  htab_t map_to_zfs;
+  void **slot;
+  group_t g;
+
+  if (nod)
+    {
+      CHECK_MUTEX_LOCKED (&nod->mutex);
+#ifdef ENABLE_CHECKING
+      if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
+	abort ();
+#endif
+
+      map_to_node = nod->map_gid_to_node;
+      map_to_zfs = nod->map_gid_to_zfs;
+    }
+  else
+    {
+      map_to_node = map_gid_to_node;
+      map_to_zfs = map_gid_to_zfs;
+    }
+
+  zfsd_mutex_lock (&users_groups_mutex);
+  HTAB_FOR_EACH_SLOT (map_to_node, slot)
+    {
+      id_mapping map = (id_mapping) *slot;
+
+      if (map->marked)
+	group_mapping_destroy (map, nod);
+      else
+	{
+	  g = group_lookup (map->zfs_id);
+	  if (!g || g->marked)
+	    group_mapping_destroy (map, nod);
+	}
+    }
+  HTAB_FOR_EACH_SLOT (map_to_zfs, slot)
+    {
+      id_mapping map = (id_mapping) *slot;
+
+      if (map->marked)
+	group_mapping_destroy (map, nod);
+      else
+	{
+	  g = group_lookup (map->zfs_id);
+	  if (!g || g->marked)
+	    group_mapping_destroy (map, nod);
+	}
+    }
+  zfsd_mutex_unlock (&users_groups_mutex);
+}
+
 /* Initialize data structures in USER-GROUP.C.  */
 
 void
