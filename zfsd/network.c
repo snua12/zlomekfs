@@ -653,6 +653,11 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	{
 	  network_fd_data_t *fd_data = &network_fd_data[pfd[i].fd];
 
+#ifdef ENABLE_CHECKING
+	  if (pfd[i].fd < 0)
+	    abort ();
+#endif
+
 	  message (2, stderr, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
 	  if ((pfd[i].revents & CANNOT_RW)
 	      || ((fd_data->flags & NETWORK_FD_CLOSE)
