@@ -1110,7 +1110,7 @@ zfs_readdir_retry:
    and file handle FH on volume VOL.
    Store data to BUFFER and count to RCOUNT.  */
 
-static int32_t
+int32_t
 local_read (uint32_t *rcount, void *buffer, internal_cap cap,
 	    internal_dentry dentry, uint64_t offset, uint32_t count, volume vol)
 {
@@ -1297,7 +1297,7 @@ local_write (write_res *res, internal_cap cap, internal_dentry dentry,
 
 /* Write to remote file with capability CAP on volume VOL.  */
 
-static int32_t
+int32_t
 remote_write (write_res *res, internal_cap cap, write_args *args, volume vol)
 {
   thread *t;
