@@ -107,8 +107,8 @@ typedef struct fattr_def
   ftype type;
   unsigned int mode;
   unsigned int nlink;
-  unsigned int uid;
-  unsigned int gid;
+  uint32_t uid;
+  uint32_t gid;
   unsigned int rdev;
   uint64_t size;
   uint64_t blocks;
@@ -132,8 +132,8 @@ typedef struct fattr_def
 typedef struct sattr_def
 {
   unsigned int mode;
-  unsigned int uid;
-  unsigned int gid;
+  uint32_t uid;
+  uint32_t gid;
   uint64_t size;
   zfs_time atime;
   zfs_time mtime;
