@@ -299,9 +299,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       else
 	ifh = internal_fh_create (&res->file, &res->file, idir,
 				  vol, name->str, &res->attr);
-      zfsd_mutex_lock (&cap_mutex);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, ifh);
-      zfsd_mutex_unlock (&cap_mutex);
 
       if (vol->local_path)
 	{
@@ -401,9 +399,7 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, unsigned int flags)
 
   cap->fh = *fh;
   cap->flags = flags & O_ACCMODE;
-  zfsd_mutex_lock (&cap_mutex);
   r = get_capability (cap, &icap, &vol, &ifh, &vd);
-  zfsd_mutex_unlock (&cap_mutex);
   if (r != ZFS_OK)
     return r;
 
@@ -442,8 +438,14 @@ zfs_close (zfs_cap *cap)
   virtual_dir vd;
   int r;
 
+  zfsd_mutex_lock (&volume_mutex);
+  if (VIRTUAL_FH_P (cap->fh))
+    zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&cap_mutex);
-  r = find_capability (cap, &icap, &vol, &ifh, &vd);
+  r = find_capability_nolock (cap, &icap, &vol, &ifh, &vd);
+  zfsd_mutex_unlock (&volume_mutex);
+  if (VIRTUAL_FH_P (cap->fh))
+    zfsd_mutex_unlock (&vd_mutex);
   if (r != ZFS_OK)
     {
       zfsd_mutex_unlock (&cap_mutex);
@@ -735,13 +737,13 @@ zfs_readdir (DC *dc, zfs_cap *cap, int cookie, unsigned int count)
   char *status_pos, *cur_pos;
   int status_len, cur_len;
 
-  zfsd_mutex_lock (&cap_mutex);
   zfsd_mutex_lock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
     zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&cap_mutex);
   r = find_capability_nolock (cap, &icap, &vol, &ifh, &vd);
-  zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&cap_mutex);
+  zfsd_mutex_unlock (&volume_mutex);
   if (r == ZFS_OK)
     {
       if (ifh && ifh->attr.type != FT_DIR)
@@ -928,9 +930,7 @@ zfs_read (DC *dc, zfs_cap *cap, uint64_t offset, unsigned int count)
       return EISDIR;
     }
 
-  zfsd_mutex_lock (&cap_mutex);
   r = find_capability (cap, &icap, &vol, &ifh, NULL);
-  zfsd_mutex_unlock (&cap_mutex);
   if (r != ZFS_OK)
     {
       encode_status (dc, r);
@@ -1043,9 +1043,7 @@ zfs_write (write_res *res, write_args *args)
   if (VIRTUAL_FH_P (args->cap.fh))
     return EISDIR;
 
-  zfsd_mutex_lock (&cap_mutex);
   r = find_capability (&args->cap, &icap, &vol, &ifh, NULL);
-  zfsd_mutex_unlock (&cap_mutex);
   if (r != ZFS_OK)
     return r;
 

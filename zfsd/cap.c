@@ -210,8 +210,6 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
 {
   internal_cap icap;
 
-  CHECK_MUTEX_LOCKED (&cap_mutex);
-
 #ifdef ENABLE_CHECKING
   if (cap->flags & ~O_ACCMODE)
     abort ();
@@ -236,6 +234,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
       return EISDIR;
     }
 
+  zfsd_mutex_lock (&cap_mutex);
   icap = internal_cap_lookup (cap);
   if (icap)
     icap->busy++;
@@ -243,6 +242,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
     icap = internal_cap_create_vd (*vd, cap->flags);
   else
     icap = internal_cap_create_fh (*ifh, cap->flags);
+  zfsd_mutex_unlock (&cap_mutex);
 
   *icapp = icap;
   return ZFS_OK;
@@ -256,11 +256,13 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_fh fh)
 {
   internal_cap icap;
 
+  zfsd_mutex_lock (&cap_mutex);
   icap = internal_cap_lookup (cap);
   if (icap)
     icap->busy++;
   else
     icap = internal_cap_create_fh (fh, cap->flags);
+  zfsd_mutex_unlock (&cap_mutex);
 
   return icap;
 }
@@ -273,32 +275,27 @@ int
 find_capability (zfs_cap *cap, internal_cap *icapp,
 		 volume *vol, internal_fh *ifh, virtual_dir *vd)
 {
-  internal_cap icap;
+  int r;
 
-  CHECK_MUTEX_LOCKED (&cap_mutex);
+  zfsd_mutex_lock (&volume_mutex);
+  if (VIRTUAL_FH_P (cap->fh))
+    zfsd_mutex_lock (&vd_mutex);
+  zfsd_mutex_lock (&cap_mutex);
 
-  icap = internal_cap_lookup (cap);
-  if (!icap)
-    return EBADF;
+  r = find_capability_nolock (cap, icapp, vol, ifh, vd);
 
-  if (!zfs_fh_lookup (&cap->fh, vol, ifh, vd))
-    {
-      zfsd_mutex_unlock (&icap->mutex);
-      return ESTALE;
-    }
+  zfsd_mutex_unlock (&volume_mutex);
+  if (VIRTUAL_FH_P (cap->fh))
+    zfsd_mutex_unlock (&vd_mutex);
+  zfsd_mutex_unlock (&cap_mutex);
 
-  if (vd && *vd && *vol)
-    update_volume_root (*vol, ifh);
-
-  *icapp = icap;
-  return ZFS_OK;
+  return r;
 }
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal file handle IFH and virtual directory to VD.
    Create a new internal capability if it does not exist.
-   This function is similar to FIND_CAPABILITY but uses FH_LOOKUP_NOLOCK
-   instead of FH_LOOKUP.  */
+   This function is similar to FIND_CAPABILITY but does not lock big locks.  */
 
 int
 find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
@@ -306,6 +303,9 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 {
   internal_cap icap;
 
+  CHECK_MUTEX_LOCKED (&volume_mutex);
+  if (VIRTUAL_FH_P (cap->fh))
+    CHECK_MUTEX_LOCKED (&vd_mutex);
   CHECK_MUTEX_LOCKED (&cap_mutex);
 
   icap = internal_cap_lookup (cap);
@@ -318,7 +318,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
       return ESTALE;
     }
 
-  if (*vd && *vol)
+  if (vd && *vd && *vol)
     update_volume_root (*vol, ifh);
 
   *icapp = icap;
@@ -331,6 +331,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
 int
 put_capability (internal_cap cap)
 {
+  CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
 
   cap->busy--;
