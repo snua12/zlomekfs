@@ -707,10 +707,11 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
       meta.gid = map_gid_node2zfs (st.st_gid);
       if (!lookup_metadata (vol, &fh, &meta, true))
 	MARK_VOLUME_DELETE (vol);
-      zfsd_mutex_unlock (&vol->mutex);
 
       if (!vol->local_path.str || vol->master == this_node)
 	journal_p = false;
+
+      zfsd_mutex_unlock (&vol->mutex);
     }
 
   return recursive_unlink_start (&meta, path, &filename, &fh,
