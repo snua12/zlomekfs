@@ -995,6 +995,42 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
   return ZFS_OK;
 }
 
+/* Return file handle and attributes of root of volume VID.  */
+
+int32_t
+zfs_volume_root (dir_op_res *res, uint32_t vid)
+{
+  int32_t r;
+  volume vol;
+  internal_dentry dentry;
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    return ENOENT;
+
+  if (vol->delete_p)
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_lock (&fh_mutex);
+      vol = volume_lookup (vid);
+      if (vol)
+	volume_delete (vol);
+      zfsd_mutex_unlock (&fh_mutex);
+      return ENOENT;
+    }
+
+  r = get_volume_root_dentry (vol, &dentry, true);
+  if (r != ZFS_OK)
+    return r;
+
+  zfsd_mutex_unlock (&vol->mutex);
+  res->file = dentry->fh->local_fh;
+  res->attr = dentry->fh->attr;
+  release_dentry (dentry);
+
+  return ZFS_OK;
+}
+
 /* Get attributes of local file PATH and store them to ATTR.  */
 
 int32_t
