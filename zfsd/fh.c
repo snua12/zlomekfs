@@ -1112,7 +1112,7 @@ set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh)
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  if (INTERNAL_FH_NEEDS_METADATA (fh))
+  if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
     {
       if (!ZFS_FH_EQ (fh->meta.master_fh, *master_fh)
 	  && !zfs_fh_undefined (*master_fh))
@@ -1195,7 +1195,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 #endif
   *slot = fh;
 
-  if (INTERNAL_FH_NEEDS_METADATA (fh))
+  if (INTERNAL_FH_HAS_LOCAL_PATH (fh))
     {
       if (!init_metadata (vol, fh))
 	{

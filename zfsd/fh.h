@@ -75,8 +75,8 @@ typedef struct volume_def *volume;
   (crc32_update (crc32_string ((D)->name),				\
 		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
-/* True if file handle FH needs metadata.  */
-#define INTERNAL_FH_NEEDS_METADATA(FH)					\
+/* True if file handle FH has a local path.  */
+#define INTERNAL_FH_HAS_LOCAL_PATH(FH)					\
   (GET_SID ((FH)->local_fh) == this_node->id				\
    && GET_CONFLICT ((FH)->local_fh) == 0)
 
