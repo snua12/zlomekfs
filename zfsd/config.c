@@ -2323,6 +2323,31 @@ read_cluster_config (void)
   return true;
 }
 
+/*! Verify whether the thread limits are valid.
+    \param limit Thread limits.
+    \param name Name of the threads.  */
+
+static bool
+verify_thread_limit (thread_limit *limit, char *name)
+{
+  if (limit->min_spare > limit->max_total)
+    {
+      message (-1, stderr,
+	       "MinSpareThreads.%s must be lower or equal to MaxThreads.%s\n",
+	       name, name);
+      return false;
+    }
+  if (limit->min_spare > limit->max_spare)
+    {
+      message (-1, stderr,
+	       "MinSpareThreads.%s must be lower or equal to MaxSpareThreads.%s\n",
+	       name, name);
+      return false;
+    }
+
+  return true;
+}
+
 /*! Read configuration from FILE and using this information read configuration
    of node and cluster.  Return true on success.  */
 
@@ -2434,6 +2459,47 @@ read_config_file (const char *file)
 			       metadata_tree_depth);
 		    }
 		}
+#define PROCESS_THREAD_LIMITS(KEY, LEN, ELEM)				\
+	      else if (strncasecmp (key, KEY, LEN) == 0)		\
+		{							\
+		  uint32_t ivalue;					\
+									\
+		  if (sscanf (value, "%" PRIu32, &ivalue) != 1)		\
+		    {							\
+		      message (0, stderr,				\
+			       "Not an unsigned number: %s\n", value);	\
+		    }							\
+									\
+		  if (key[LEN] == 0)					\
+		    {							\
+		      kernel_thread_limit.ELEM =			\
+		      network_thread_limit.ELEM =			\
+		      update_thread_limit.ELEM = ivalue;		\
+		    }							\
+		  else if (strncasecmp (key + LEN, ".kernel", 8) == 0)	\
+		    {							\
+		      kernel_thread_limit.ELEM = ivalue;		\
+		    }							\
+		  else if (strncasecmp (key + LEN, ".network", 9) == 0)	\
+		    {							\
+		      network_thread_limit.ELEM = ivalue;		\
+		    }							\
+		  else if (strncasecmp (key + LEN, ".update", 8) == 0)	\
+		    {							\
+		      update_thread_limit.ELEM = ivalue;		\
+		    }							\
+		  else							\
+		    {							\
+		      message (0, stderr,				\
+			       "%s:%d: Unknown option: '%s'\n",		\
+			       file, line_num, key);			\
+		      return false;					\
+		    }							\
+		}
+	      PROCESS_THREAD_LIMITS ("maxthreads", 10, max_total)
+	      PROCESS_THREAD_LIMITS ("minsparethreads", 15, min_spare)
+	      PROCESS_THREAD_LIMITS ("maxsparethreads", 15, max_spare)
+#undef PROCESS_THREAD_LIMITS
 	      else
 		{
 		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
@@ -2482,6 +2548,11 @@ read_config_file (const char *file)
 	       "DefaultGroup or DefaultGID was not specified,\n  'nogroup' or 'nobody' could not be used either.\n");
       return false;
     }
+
+  if (!verify_thread_limit (&network_thread_limit, "network")
+      || !verify_thread_limit (&kernel_thread_limit, "kernel")
+      || !verify_thread_limit (&update_thread_limit, "update"))
+    return false;
 
   if (!private_key.str)
     append_file_name (&private_key, &local_config, "node_key", 8);
