@@ -3366,10 +3366,12 @@ zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name)
 int32_t
 local_reintegrate_del (volume vol, internal_dentry dentry, bool destroy_p)
 {
+  metadata meta;
+
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   if (destroy_p
-      || metadata_n_hardlinks (vol, &dentry->fh->local_fh) > 1)
+      || metadata_n_hardlinks (vol, &dentry->fh->local_fh, &meta) > 1)
     {
       if (!delete_tree (dentry, vol))
 	return ZFS_UPDATE_FAILED;

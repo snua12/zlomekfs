@@ -2375,19 +2375,19 @@ metadata_hardlink_set_shadow (volume vol, zfs_fh *fh)
   return write_hardlinks (vol, fh, hl);
 }
 
-/* Return the number of hardlinks of file FH on volume VOL.  */
+/* Return the number of hardlinks of file FH on volume VOL
+   and store the metadata to META.  */
 
 unsigned int
-metadata_n_hardlinks (volume vol, zfs_fh *fh)
+metadata_n_hardlinks (volume vol, zfs_fh *fh, metadata *meta)
 {
   unsigned int n;
   hardlink_list hl;
-  metadata meta;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   hl = hardlink_list_create (2, NULL);
-  if (!read_hardlinks (vol, fh, &meta, hl))
+  if (!read_hardlinks (vol, fh, meta, hl))
     {
       n = 0;
       vol->delete_p = true;

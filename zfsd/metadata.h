@@ -143,7 +143,8 @@ extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh,
 				       uint32_t new_parent_dev,
 				       uint32_t new_parent_ino, char *new_name);
 extern bool metadata_hardlink_set_shadow (volume vol, zfs_fh *fh);
-extern unsigned int metadata_n_hardlinks (volume vol, zfs_fh *fh);
+extern unsigned int metadata_n_hardlinks (volume vol, zfs_fh *fh,
+					  metadata *meta);
 extern char *get_local_path_from_metadata (volume vol, zfs_fh *fh);
 extern bool read_journal (volume vol, internal_fh fh);
 extern bool write_journal (volume vol, internal_fh fh);
