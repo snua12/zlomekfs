@@ -1059,6 +1059,14 @@ update_fh (internal_dentry dir, volume vol, zfs_fh *fh, fattr *attr, int how)
     abort ();
 #endif
 
+  if ((how & IFH_UPDATE) == 0)
+    {
+      release_dentry (dir);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      return ZFS_OK;
+    }
+
   parent = dir->parent;
   if (parent)
     {
