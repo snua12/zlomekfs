@@ -129,14 +129,39 @@ internal_fh_del (void *x)
 bool
 fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 {
+  bool res;
+
+  zfsd_mutex_lock (&volume_mutex);
+  if (VIRTUAL_FH_P (*fh))
+    zfsd_mutex_lock (&vd_mutex);
+
+  res = fh_lookup_nolock (fh, volp, ifhp, vdp);
+
+  zfsd_mutex_unlock (&volume_mutex);
+  if (VIRTUAL_FH_P (*fh))
+    zfsd_mutex_unlock (&vd_mutex);
+
+  return res;
+}
+
+/* Find the internal file handle or virtual directory for zfs_fh FH
+   and set *VOLP, *IFHP and VDP according to it.
+   This function is similar to FH_LOOKUP but the big locks must be locked.  */
+
+bool
+fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
+		  virtual_dir *vdp)
+{
   hash_t hash = ZFS_FH_HASH (fh);
+
+  CHECK_MUTEX_LOCKED (&volume_mutex);
 
   if (VIRTUAL_FH_P (*fh))
     {
       virtual_dir vd;
 
-      zfsd_mutex_lock (&volume_mutex);
-      zfsd_mutex_lock (&vd_mutex);
+      CHECK_MUTEX_LOCKED (&vd_mutex);
+
       vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, hash);
       if (vd)
 	{
@@ -144,8 +169,6 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 	  if (vd->vol)
 	    zfsd_mutex_lock (&vd->vol->mutex);
 	}
-      zfsd_mutex_unlock (&vd_mutex);
-      zfsd_mutex_unlock (&volume_mutex);
       if (!vd)
 	return false;
 
@@ -160,9 +183,7 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
       volume vol;
       internal_fh ifh;
 
-      zfsd_mutex_lock (&volume_mutex);
       vol = volume_lookup (fh->vid);
-      zfsd_mutex_unlock (&volume_mutex);
       if (!vol)
 	return false;
 

@@ -60,6 +60,9 @@ extern int get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			   internal_fh *ifh, virtual_dir *vd);
 extern int find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 			    internal_fh *ifh, virtual_dir *vd);
+extern int find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
+				   volume *vol, internal_fh *ifh,
+				   virtual_dir *vd);
 extern int put_capability (internal_cap cap);
 extern bool internal_cap_opened_p (internal_cap cap);
 extern int internal_cap_open (internal_cap cap, unsigned int flags,

@@ -283,6 +283,34 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
   return ZFS_OK;
 }
 
+/* Find an internal capability CAP and store it to ICAPP. Store capability's
+   volume to VOL, internal file handle IFH and virtual directory to VD.
+   Create a new internal capability if it does not exist.
+   This function is similar to FIND_CAPABILITY but uses FH_LOOKUP_NOLOCK
+   instead of FH_LOOKUP.  */
+
+int
+find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
+			volume *vol, internal_fh *ifh, virtual_dir *vd)
+{
+  internal_cap icap;
+
+  CHECK_MUTEX_LOCKED (&cap_mutex);
+
+  icap = internal_cap_lookup (cap);
+  if (!icap)
+    return EBADF;
+
+  if (!fh_lookup_nolock (&cap->fh, vol, ifh, vd))
+    {
+      zfsd_mutex_unlock (&icap->mutex);
+      return ESTALE;
+    }
+
+  *icapp = icap;
+  return ZFS_OK;
+}
+
 /* Decrease the number of users of capability CAP and destroy the capability
    when the number of users becomes 0.  */
 
