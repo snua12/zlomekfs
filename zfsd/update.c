@@ -42,6 +42,7 @@
 #include "zfs_prot.h"
 #include "file.h"
 #include "dir.h"
+#include "network.h"
 #include "journal.h"
 #include "metadata.h"
 
