@@ -281,12 +281,13 @@ update_file_blocks_1 (bool use_buffer, uint32_t *rcount, void *buffer,
 
 int32_t
 update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
-		    uint64_t offset, internal_cap cap, varray *blocks)
+		    uint64_t offset, zfs_cap *cap, varray *blocks)
 {
   md5sum_args args;
-  zfs_cap local_cap;
-  zfs_cap master_cap;
-  int32_t r;
+  volume vol;
+  internal_cap icap;
+  internal_dentry dentry;
+  int32_t r, r2;
   unsigned int i;
 
 #ifdef ENABLE_CHECKING
@@ -294,8 +295,31 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
     abort ();
 #endif
 
-  local_cap = cap->local_cap;
-  master_cap = cap->master_cap;
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (zfs_cap_undefined (icap->master_cap))
+    {
+      zfs_cap master_cap;
+
+      r = remote_open (&master_cap, icap, O_RDWR, dentry, vol);
+      if (r != ZFS_OK)
+	return r;
+
+      r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+      if (r2 != ZFS_OK)
+	abort ();
+#endif
+
+      icap->master_cap = master_cap;
+    }
+
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&vol->mutex);
 
   args.count = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
@@ -320,7 +344,7 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
 		  r = update_file_blocks_1 (use_buffer, rcount, buffer, offset,
-					    &args, &local_cap, blocks);
+					    &args, cap, blocks);
 		  if (r != ZFS_OK)
 		    return r;
 		  args.count = 0;
@@ -338,9 +362,27 @@ update_file_blocks (bool use_buffer, uint32_t *rcount, void *buffer,
   if (args.count > 0)
     {
       r = update_file_blocks_1 (use_buffer, rcount, buffer, offset, &args,
-				&local_cap, blocks);
+				cap, blocks);
       if (r != ZFS_OK)
 	return r;
+    }
+
+  r2 = find_capability (cap, &icap, &vol, &dentry, NULL);
+#ifdef ENABLE_CHECKING
+  if (r2 != ZFS_OK)
+    abort ();
+#endif
+
+  if (dentry->fh->meta.flags & METADATA_COMPLETE)
+    {
+      r = remote_close (icap, dentry, vol);
+      if (r != ZFS_OK)
+	return r;
+    }
+  else
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
     }
 
   return ZFS_OK;

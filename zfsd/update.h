@@ -191,7 +191,7 @@ extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 				     uint64_t end, varray *blocks);
 extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,
 				   void *buffer, uint64_t offset,
-				   internal_cap cap, varray *blocks);
+				   zfs_cap *cap, varray *blocks);
 extern bool update_p (internal_dentry *dentryp, volume *volp, zfs_fh *fh,
 		      fattr *attr);
 extern int32_t update_fh (internal_dentry dentry, volume vol, zfs_fh *fh,
