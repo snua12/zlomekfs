@@ -57,7 +57,7 @@ static htab_t vd_htab;
 static htab_t vd_htab_name;
 
 /* Mutex for virtual directories.  */
-static pthread_mutex_t virtual_dir_mutex;
+static pthread_mutex_t vd_mutex;
 
 /* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
@@ -132,9 +132,9 @@ fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
     {
       virtual_dir vd;
 
-      zfsd_mutex_lock (&virtual_dir_mutex);
+      zfsd_mutex_lock (&vd_mutex);
       vd = (virtual_dir) htab_find_with_hash (vd_htab, fh, hash);
-      zfsd_mutex_unlock (&virtual_dir_mutex);
+      zfsd_mutex_unlock (&vd_mutex);
       if (!vd)
 	return false;
 
@@ -186,9 +186,9 @@ vd_lookup_name (virtual_dir parent, const char *name)
 
   tmp_vd.parent = parent;
   tmp_vd.name = (char *) name;
-  zfsd_mutex_lock (&virtual_dir_mutex);
+  zfsd_mutex_lock (&vd_mutex);
   vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
-  zfsd_mutex_unlock (&virtual_dir_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 
   return vd;
 }
@@ -479,7 +479,7 @@ virtual_dir_destroy (virtual_dir vd)
   void **slot;
 
   /* Check the path to root.  */
-  zfsd_mutex_lock (&virtual_dir_mutex);
+  zfsd_mutex_lock (&vd_mutex);
   for (; vd; vd = parent)
     {
       parent = vd->parent;
@@ -520,7 +520,7 @@ virtual_dir_destroy (virtual_dir vd)
 	  free (vd->name);
 	}
     }
-  zfsd_mutex_unlock (&virtual_dir_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Create the virtual root directory.  */
@@ -531,7 +531,7 @@ virtual_root_create ()
   virtual_dir root;
   void **slot;
 
-  zfsd_mutex_lock (&virtual_dir_mutex);
+  zfsd_mutex_lock (&vd_mutex);
   root = (virtual_dir) pool_alloc (vd_pool);
   root->fh = root_fh;
   root->parent = NULL;
@@ -546,7 +546,7 @@ virtual_root_create ()
   slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), INSERT);
   *slot = root;
-  zfsd_mutex_unlock (&virtual_dir_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 
   return root;
 }
@@ -566,7 +566,7 @@ virtual_root_destroy (virtual_dir root)
 #endif
   varray_destroy (&root->subdirs);
 
-  zfsd_mutex_lock (&virtual_dir_mutex);
+  zfsd_mutex_lock (&vd_mutex);
   slot = htab_find_slot_with_hash (vd_htab, &root->fh,
 				   VIRTUAL_DIR_HASH (root), NO_INSERT);
 #ifdef ENABLE_CHECKING
@@ -574,7 +574,7 @@ virtual_root_destroy (virtual_dir root)
     abort ();
 #endif
   htab_clear_slot (vd_htab, slot);
-  zfsd_mutex_unlock (&virtual_dir_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 }
 
 /* Create the virtual mountpoint for volume VOL.  */
@@ -610,7 +610,7 @@ virtual_mountpoint_create (volume vol)
     }
 
   /* Create the components of the path.  */
-  zfsd_mutex_lock (&virtual_dir_mutex);
+  zfsd_mutex_lock (&vd_mutex);
   vd = root;
   for (i = 0; i < VARRAY_USED (subpath); i++)
     {
@@ -636,7 +636,7 @@ virtual_mountpoint_create (volume vol)
   /* Increase the count of volumes in subtree.  */
   for (tmp = vd; tmp; tmp = tmp->parent)
     tmp->n_mountpoints++;
-  zfsd_mutex_unlock (&virtual_dir_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
 
   free (mountpoint);
 
@@ -716,13 +716,13 @@ initialize_fh_c ()
 			       1023, &fh_pool_mutex);
 
   /* Data structures for virtual directories.  */
-  pthread_mutex_init (&virtual_dir_mutex, NULL);
+  pthread_mutex_init (&vd_mutex, NULL);
   vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
-			       127, &virtual_dir_mutex);
+			       127, &vd_mutex);
   vd_htab = htab_create (100, virtual_dir_hash, virtual_dir_eq,
-			 virtual_dir_del, &virtual_dir_mutex);
+			 virtual_dir_del, &vd_mutex);
   vd_htab_name = htab_create (100, virtual_dir_hash_name, virtual_dir_eq_name,
-			      NULL, &virtual_dir_mutex);
+			      NULL, &vd_mutex);
 
   root = virtual_root_create ();
 }
@@ -746,7 +746,7 @@ cleanup_fh_c ()
   pthread_mutex_destroy (&fh_pool_mutex);
 
   /* Data structures for virtual directories.  */
-  zfsd_mutex_lock (&virtual_dir_mutex);
+  zfsd_mutex_lock (&vd_mutex);
   htab_destroy (vd_htab_name);
   htab_destroy (vd_htab);
 #ifdef ENABLE_CHECKING
@@ -755,6 +755,6 @@ cleanup_fh_c ()
 	     vd_pool->elts_allocated - vd_pool->elts_free);
 #endif
   free_alloc_pool (vd_pool);
-  zfsd_mutex_unlock (&virtual_dir_mutex);
-  pthread_mutex_destroy (&virtual_dir_mutex);
+  zfsd_mutex_unlock (&vd_mutex);
+  pthread_mutex_destroy (&vd_mutex);
 }
