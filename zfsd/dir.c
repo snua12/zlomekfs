@@ -2209,7 +2209,7 @@ zfs_symlink_retry:
    set the attributes according to ATTR.
    If device is being created RDEV is its number.  */
 
-static int32_t
+int32_t
 local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
 	     uint32_t rdev, volume vol)
 {
@@ -2239,7 +2239,7 @@ local_mknod (internal_dentry dir, string *name, sattr *attr, ftype type,
    set the attributes according to ATTR.
    If device is being created RDEV is its number.  */
 
-static int32_t
+int32_t
 remote_mknod (internal_fh dir, string *name, sattr *attr, ftype type,
 	      uint32_t rdev, volume vol)
 {
