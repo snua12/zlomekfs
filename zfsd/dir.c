@@ -744,66 +744,62 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 	}
     }
 
+  if (!idir)
+    abort ();
+
   /* TODO: update directory */
 
-  if (idir)
+  CHECK_MUTEX_LOCKED (&idir->mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (vol->local_path)
     {
-      CHECK_MUTEX_LOCKED (&idir->mutex);
-      CHECK_MUTEX_LOCKED (&vol->mutex);
-
-      if (vol->local_path)
-	{
-	  r = local_lookup (res, idir, name, vol);
-	  if (r == ZFS_OK)
-	    {
-	      if (vol->master == this_node)
-		master_res.file = res->file;
-	      else
-		r = remote_lookup (&master_res, idir, name, vol);
-	    }
-	}
-      else if (vol->master != this_node)
-	{
-	  r = remote_lookup (res, idir, name, vol);
-	  if (r == ZFS_OK)
-	    master_res.file = res->file;
-	}
-      else
-	abort ();
-
+      r = local_lookup (res, idir, name, vol);
       if (r == ZFS_OK)
 	{
-	  internal_fh ifh;
-
-	  /* Update internal file handles in htab.  */
-	  ifh = fh_lookup_name (vol, idir, name->str);
-	  if (ifh)
-	    {
-	      CHECK_MUTEX_LOCKED (&ifh->mutex);
-
-	      if (!ZFS_FH_EQ (ifh->local_fh, res->file)
-		  || !ZFS_FH_EQ (ifh->master_fh, master_res.file))
-		{
-		  internal_fh_destroy (ifh, vol);
-		  ifh = internal_fh_create (&res->file, &master_res.file, idir,
-					    vol, name->str, &res->attr);
-		}
-	    }
+	  if (vol->master == this_node)
+	    master_res.file = res->file;
 	  else
-	    ifh = internal_fh_create (&res->file, &master_res.file, idir, vol,
-				      name->str, &res->attr);
-	  zfsd_mutex_unlock (&ifh->mutex);
+	    r = remote_lookup (&master_res, idir, name, vol);
 	}
-
-      zfsd_mutex_unlock (&idir->mutex);
-      zfsd_mutex_unlock (&vol->mutex);
-      return r;
+    }
+  else if (vol->master != this_node)
+    {
+      r = remote_lookup (res, idir, name, vol);
+      if (r == ZFS_OK)
+	master_res.file = res->file;
     }
   else
     abort ();
 
-  /* Never reached.  */
-  return ENOENT;
+  if (r == ZFS_OK)
+    {
+      internal_fh ifh;
+
+      /* Update internal file handles in htab.  */
+      ifh = fh_lookup_name (vol, idir, name->str);
+      if (ifh)
+	{
+	  CHECK_MUTEX_LOCKED (&ifh->mutex);
+
+	  if (!ZFS_FH_EQ (ifh->local_fh, res->file)
+	      || !ZFS_FH_EQ (ifh->master_fh, master_res.file))
+	    {
+	      internal_fh_destroy (ifh, vol);
+	      ifh = internal_fh_create (&res->file, &master_res.file, idir,
+					vol, name->str, &res->attr);
+	    }
+	}
+      else
+	ifh = internal_fh_create (&res->file, &master_res.file, idir, vol,
+				  name->str, &res->attr);
+      zfsd_mutex_unlock (&ifh->mutex);
+    }
+
+  zfsd_mutex_unlock (&idir->mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  return r;
 }
 
 /* Create directory NAME in local directory DIR on volume VOL, set owner,
