@@ -34,7 +34,7 @@ int main (int argc, char **argv)
 
   if (argc < 2)
     {
-      fprintf (stderr, "Usage: dump_intervals [FILE]...\n");
+      fprintf (stderr, "Usage: dump_intervals INTERVAL_FILE...\n");
       return 1;
     }
 
