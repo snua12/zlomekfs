@@ -63,6 +63,7 @@ thread_pool kernel_pool;
 /* File descriptor of file communicating with kernel.  */
 static int kernel_file;
 
+/* Data for kernel file descriptor.  */
 kernel_fd_data_t kernel_data;
 
 /* Send a reply.  */
