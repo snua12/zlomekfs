@@ -301,42 +301,42 @@ program ZFS_PROGRAM {
     ZFSPROC_OPEN_BY_FD(zfs_fh) = 5;
 
     int
-    ZFSPROC_CLOSE(zfs_fh) = 15;
+    ZFSPROC_CLOSE(zfs_fh) = 6;
 
     read_dir_res
-    ZFSPROC_READDIR(read_dir_args) = 6;
+    ZFSPROC_READDIR(read_dir_args) = 7;
     
     dir_op_res
-    ZFSPROC_MKDIR(open_name_args) = 7;
+    ZFSPROC_MKDIR(open_name_args) = 8;
     
     int
-    ZFSPROC_RMDIR(dir_op_args) = 8;
+    ZFSPROC_RMDIR(dir_op_args) = 9;
 
     int
-    ZFSPROC_RENAME(rename_args) = 9;
+    ZFSPROC_RENAME(rename_args) = 10;
 
     int
-    ZFSPROC_LINK(link_args) = 10;
+    ZFSPROC_LINK(link_args) = 11;
 
     int 
-    ZFSPROC_UNLINK(dir_op_args) = 11;
+    ZFSPROC_UNLINK(dir_op_args) = 12;
 
     read_res
-    ZFSPROC_READ(read_args) = 16;
+    ZFSPROC_READ(read_args) = 13;
 
     write_res
-    ZFSPROC_WRITE(write_args) = 17;
+    ZFSPROC_WRITE(write_args) = 14;
     
     read_link_res
-    ZFSPROC_READLINK(zfs_fh) = 18;
+    ZFSPROC_READLINK(zfs_fh) = 15;
 
     int
-    ZFSPROC_SYMLINK(symlink_args) = 19;
+    ZFSPROC_SYMLINK(symlink_args) = 16;
 
     int
-    ZFSPROC_MKNOD(mknod_args) = 20;
+    ZFSPROC_MKNOD(mknod_args) = 17;
 
-    /* ??? ZFSPROC_STATVOLUME???(???) = 7;*/
+    /* ??? ZFSPROC_STATVOLUME???(???) = 18;*/
 #if 0
 CODA:
 	"vget        ",   /* 22 */
