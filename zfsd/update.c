@@ -1544,19 +1544,15 @@ reintegrate_fh (volume vol, internal_dentry dentry, zfs_fh *fh)
 
 		if (r == ZFS_OK)
 		  {
-		    if (local_res.attr.type != FT_DIR
-			|| res.attr.type != FT_DIR)
-		      {
-			conflict = create_conflict (vol, dentry, &entry->name,
-						    &local_res.file,
-						    &local_res.attr);
-			add_file_to_conflict_dir (vol, conflict, true,
-						  &local_res.file,
-						  &local_res.attr, &meta);
-			add_file_to_conflict_dir (vol, conflict, true,
-						  &res.file, &res.attr, NULL);
-			release_dentry (conflict);
-		      }
+		    conflict = create_conflict (vol, dentry, &entry->name,
+						&local_res.file,
+						&local_res.attr);
+		    add_file_to_conflict_dir (vol, conflict, true,
+					      &local_res.file,
+					      &local_res.attr, &meta);
+		    add_file_to_conflict_dir (vol, conflict, true,
+					      &res.file, &res.attr, NULL);
+		    release_dentry (conflict);
 		  }
 		else if (r == ENOENT || r == ESTALE)
 		  {

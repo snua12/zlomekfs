@@ -2370,31 +2370,9 @@ try_resolve_conflict (internal_dentry conflict)
 	if (REGULAR_FH_P (dentry1->fh->local_fh)
 	    && REGULAR_FH_P (dentry2->fh->local_fh))
 	  {
-	    if (dentry1->fh->attr.type == FT_DIR
-		&& dentry2->fh->attr.type == FT_DIR)
-	      {
-		parent = conflict->parent;
-		acquire_dentry (parent);
-		internal_dentry_del_from_dir (dentry1);
-		internal_dentry_del_from_dir (conflict);
-
-		swp = dentry1->name;
-		dentry1->name = conflict->name;
-		conflict->name = swp;
-
-		internal_dentry_add_to_dir (parent, dentry1);
-		release_dentry (parent);
-		release_dentry (dentry1);
-		release_dentry (dentry2);
-		internal_dentry_destroy (conflict, false);
-		return true;
-	      }
-	    else
-	      {
-		release_dentry (dentry1);
-		release_dentry (dentry2);
-		return false;
-	      }
+	    release_dentry (dentry1);
+	    release_dentry (dentry2);
+	    return false;
 	  }
 	if (NON_EXIST_FH_P (dentry1->fh->local_fh)
 	    && NON_EXIST_FH_P (dentry2->fh->local_fh))
