@@ -1025,8 +1025,8 @@ local_readdir (dir_list *list, internal_cap cap, internal_dentry dentry,
 		  return ZFS_OK;
 		}
 
-	      /* EINVAL means that (DATA.COUNT - DATA.WRITTEN) was too low.  */
-	      return (errno == EINVAL) ? ZFS_OK : errno;
+	      /* EINVAL means that buffer was too small.  */
+	      return (errno == EINVAL && list->n > 0) ? ZFS_OK : errno;
 	    }
 
 	  for (pos = 0; pos < r; pos += de->d_reclen)
