@@ -646,7 +646,7 @@ zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
 {
   int32_t r;
 
-  r = zfs_reintegrate_del (args);
+  r = zfs_reintegrate_del (&args->dir, &args->name, args->destroy_p);
   encode_status (dc, r);
 }
 

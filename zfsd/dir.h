@@ -100,7 +100,7 @@ extern int32_t remote_file_info (file_info_res *res, internal_dentry dentry,
 				 volume vol);
 extern int32_t zfs_file_info (file_info_res *res, zfs_fh *fh);
 extern int32_t zfs_reintegrate_add (reintegrate_add_args *args);
-extern int32_t zfs_reintegrate_del (reintegrate_del_args *args);
+extern int32_t zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p);
 extern int32_t refresh_master_fh (zfs_fh *fh);
 extern int32_t refresh_fh (zfs_fh *fh);
 

@@ -3417,35 +3417,35 @@ remote_reintegrate_del (volume vol, internal_dentry dir, string *name,
   return r;
 }
 
-/* If ARGS->DESTROY delete file NAME and its subtree from directory ARGS->DIR,
+/* If DESTROY_P delete file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
 int32_t
-zfs_reintegrate_del (reintegrate_del_args *args)
+zfs_reintegrate_del (zfs_fh *dir, string *name, bool destroy_p)
 {
   dir_op_res res;
   volume vol;
   internal_dentry idir, dentry;
   int32_t r, r2;
 
-  if (VIRTUAL_FH_P (args->dir))
+  if (VIRTUAL_FH_P (*dir))
     return EINVAL;
 
-  r = validate_operation_on_zfs_fh (&args->dir, true);
+  r = validate_operation_on_zfs_fh (dir, true);
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_lookup (&res, &args->dir, &args->name);
+  r = zfs_lookup (&res, dir, name);
   if (r != ZFS_OK)
     return r;
 
-  r = zfs_fh_lookup_nolock (&args->dir, &vol, &idir, NULL, true);
+  r = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
   if (r != ZFS_OK)
     return r;
 
   if (vol->local_path)
     {
-      dentry = dentry_lookup_name (idir, args->name.str);
+      dentry = dentry_lookup_name (idir, name->str);
       if (!dentry)
 	{
 	  release_dentry (idir);
@@ -3454,17 +3454,17 @@ zfs_reintegrate_del (reintegrate_del_args *args)
 	  return ESTALE;
 	}
 
-      r = local_reintegrate_del (vol, dentry, args->destroy_p);
+      r = local_reintegrate_del (vol, dentry, destroy_p);
     }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
-      r = remote_reintegrate_del (vol, idir, &args->name, args->destroy_p);
+      r = remote_reintegrate_del (vol, idir, name, destroy_p);
 
-      r2 = zfs_fh_lookup_nolock (&args->dir, &vol, &idir, NULL, true);
+      r2 = zfs_fh_lookup_nolock (dir, &vol, &idir, NULL, true);
       if (r2 == ZFS_OK)
 	{
-	  dentry = dentry_lookup_name (idir, args->name.str);
+	  dentry = dentry_lookup_name (idir, name->str);
 	  release_dentry (idir);
 	  zfsd_mutex_unlock (&vol->mutex);
 
