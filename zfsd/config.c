@@ -259,7 +259,7 @@ read_private_key (const char *filename)
 }
 
 static bool
-read_local_config (const char *path)
+read_local_cluster_config (const char *path)
 {
   char *volumes;
   FILE *f;
@@ -312,7 +312,7 @@ read_local_config (const char *path)
 }
 
 static bool
-read_cluster_config (const char *path)
+read_global_cluster_config (const char *path)
 {
 
   return true;
@@ -349,7 +349,7 @@ init_config ()
    of node and cluster.  Return true on success.  */
 
 bool
-read_config (const char *file)
+read_config_file (const char *file)
 {
   FILE *f;
   char line[LINE_SIZE + 1];
@@ -455,15 +455,22 @@ read_config (const char *file)
     private_key = xstrconcat (3, node_config, "/", node_name);
   if (!read_private_key (private_key))
     return false;
+  return true;
+}
 
+/* Read configuration of the cluster - nodes, volumes, ... */
+
+bool
+read_cluster_config ()
+{
   invalidate_config ();
 
-  if (!read_local_config (node_config))
+  if (!read_local_cluster_config (node_config))
     return false;
 
   /* TODO: FIXME: cluster configuration is always in the same
      ZFS directory so the parameter should not be needed.  */
-  if (!read_cluster_config (cluster_config))
+  if (!read_global_cluster_config (cluster_config))
     return false;
 
   if (!fix_config ())

@@ -393,7 +393,7 @@ main (int argc, char **argv)
 #ifdef TEST
   fake_config ();
 #else
-  if (!read_config (config_file))
+  if (!read_config_file (config_file))
     die ();
 #endif
 
@@ -438,6 +438,13 @@ main (int argc, char **argv)
 
 #ifdef TEST
   test_zfs ();
+#else
+  if (!read_cluster_config ())
+    {
+      server_cleanup ();
+      die ();
+    }
+    
 #endif
 
   pthread_join (main_server_thread, NULL);
