@@ -83,7 +83,7 @@ fake_config ()
   vol = volume_create (3);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
-    volume_set_local_info (vol, "/.zfs/dir1", VOLUME_NO_LIMIT);
+    volume_set_local_info (vol, "/home/joe/.zfs/dir1", VOLUME_NO_LIMIT);
   volume_set_common_info (vol, "volume3", "/volume1/volume3", nod);
   zfsd_mutex_unlock (&vol->mutex);
 
@@ -91,8 +91,8 @@ fake_config ()
   vol = volume_create (4);
   zfsd_mutex_unlock (&volume_mutex);
   if (nod == this_node)
-    volume_set_local_info (vol, "/.zfs/dir2", VOLUME_NO_LIMIT);
-  volume_set_common_info (vol, "volume4", "/volume2/sabbath/volume4", nod);
+    volume_set_local_info (vol, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
+  volume_set_common_info (vol, "volume4", "/volume2/find/volume4", nod);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&nod->mutex);
 
@@ -341,8 +341,8 @@ do_tests (void *data)
       if (!get_running ())
 	break;
 
-      message (1, stderr, "TEST LOOKUP /volume2/sabbath/hidden\n");
-      str = xstrdup ("/volume2/sabbath/hidden");
+      message (1, stderr, "TEST LOOKUP /volume2/find/hidden\n");
+      str = xstrdup ("/volume2/find/hidden");
       r = zfs_extended_lookup (&res, &root_fh, str);
       message (1, stderr, "  %s\n", zfs_strerror (r));
       free (str);
