@@ -50,6 +50,10 @@ typedef struct id_mapping_def
   uint32_t node_id;		/* ID of node user/group */
 } *id_mapping;
 
+/* ID of default ZFS user/group.  */
+#define DEFAULT_ZFS_UID ((uint32_t) -2)
+#define DEFAULT_ZFS_GID ((uint32_t) -2)
+
 /* ID of default node user/group.  */
 extern uint32_t default_node_uid;
 extern uint32_t default_node_gid;
