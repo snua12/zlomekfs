@@ -470,7 +470,8 @@ out:
 
 static bool
 process_file_by_lines (zfs_fh *fh, char *file_name,
-		       void (*process) (char *, char *, unsigned int))
+		       void (*process) (char *, char *, unsigned int, void *),
+		       void *data)
 {
   char buf[ZFS_MAXDATA];
   unsigned int index, i, line_num;
@@ -504,7 +505,7 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 	    if (buf[i] == '\n')
 	      {
 		buf[i] = 0;
-		(*process) (buf + index, file_name, line_num);
+		(*process) (buf + index, file_name, line_num, data);
 		line_num++;
 		break;
 	      }
@@ -543,7 +544,8 @@ out:
 /* Process line LINE number LINE_NUM from file FILE_NAME.  */
 
 static void
-process_line_node (char *line, char *file_name, unsigned int line_num)
+process_line_node (char *line, char *file_name, unsigned int line_num,
+		   ATTRIBUTE_UNUSED void *data)
 {
   string parts[2];
   uint32_t sid;
@@ -588,13 +590,14 @@ read_node_list (zfs_fh *config_dir)
     return false;
 
   return process_file_by_lines (&node_list_res.file, "config/node_list",
-				process_line_node);
+				process_line_node, NULL);
 }
 
 /* Process line LINE number LINE_NUM from file FILE_NAME.  */
 
 static void
-process_line_volume (char *line, char *file_name, unsigned int line_num)
+process_line_volume (char *line, char *file_name, unsigned int line_num,
+		     ATTRIBUTE_UNUSED void *data)
 {
   string parts[3];
   uint32_t vid;
@@ -642,7 +645,7 @@ read_volume_list (zfs_fh *config_dir)
     return false;
 
   return process_file_by_lines (&volume_list_res.file, "config/volume_list",
-				process_line_volume);
+				process_line_volume, config_dir);
 }
 
 /* Has the config reader already terminated?  */
