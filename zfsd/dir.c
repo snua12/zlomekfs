@@ -3665,7 +3665,8 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	  return ENOENT;
 	}
 
-      if (!recursive_unlink (&new_path, vid, false))
+      r = recursive_unlink (&new_path, vid, false);
+      if (r != ZFS_OK)
 	{
 	  free (old_path.str);
 	  free (new_path.str);

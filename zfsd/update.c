@@ -854,6 +854,7 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   uint32_t vid;
   uint32_t new_parent_dev;
   uint32_t new_parent_ino;
+  int32_t r;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -869,7 +870,8 @@ move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   get_shadow_path (&shadow_path, vol, fh, false);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (!recursive_unlink (&path, vid, false))
+  r = recursive_unlink (&path, vid, false);
+  if (r != ZFS_OK)
     {
       free (path.str);
       free (shadow_path.str);
@@ -914,6 +916,7 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   string path;
   string shadow_path;
   uint32_t vid;
+  int32_t r;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -927,7 +930,8 @@ move_to_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
   get_shadow_path (&shadow_path, vol, fh, true);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (!recursive_unlink (&shadow_path, vid, true))
+  r = recursive_unlink (&shadow_path, vid, true);
+  if (r != ZFS_OK)
     {
       free (path.str);
       free (shadow_path.str);
