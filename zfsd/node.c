@@ -158,7 +158,18 @@ node_create (unsigned int id, char *name)
 
   /* Are we creating a structure describing local node?  */
   if (strcmp (name, node_name) == 0)
-    this_node = nod;
+    {
+      this_node = nod;
+      nod->map_uid_to_node = htab_create (5, map_id_to_node_hash,
+					  map_id_to_node_eq, NULL,
+					  &nod->mutex);
+      nod->map_uid_to_zfs = htab_create (5, map_id_to_zfs_hash,
+					 map_id_to_zfs_eq, NULL,
+					 &nod->mutex);
+      nod->map_gid_to_node = htab_create (5, map_id_to_node_hash,
+					  map_id_to_node_eq, NULL,
+					  &nod->mutex);
+    }
 
   zfsd_mutex_init (&nod->mutex);
   zfsd_mutex_lock (&nod->mutex);
