@@ -52,6 +52,7 @@ typedef struct metadata_def
 
 extern bool init_volume_metadata (volume vol);
 extern void close_volume_metadata (volume vol);
+extern void close_interval_file (interval_tree tree);
 extern bool init_interval_tree (volume vol, internal_fh fh,
 				interval_tree_purpose purpose);
 extern bool flush_interval_tree (volume vol, internal_fh fh,

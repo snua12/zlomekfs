@@ -629,7 +629,7 @@ close_volume_metadata (volume vol)
 
 /* Close file for interval tree TREE.  */
 
-static void
+void
 close_interval_file (interval_tree tree)
 {
   zfsd_mutex_lock (&metadata_mutex);
