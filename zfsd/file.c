@@ -400,6 +400,10 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
      Force O_CREAT to be set here.  */
   flags |= O_CREAT;
 
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_create_retry:
 
   /* Lookup DIR.  */
@@ -636,6 +640,10 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
      The flag is superfluous here.  */
   flags &= ~O_CREAT;
 
+  r = validate_operation_on_zfs_fh (fh, (flags & O_ACCMODE) != O_RDONLY);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_open_retry:
 
   cap->fh = *fh;
@@ -755,6 +763,10 @@ zfs_close (zfs_cap *cap)
   zfs_cap tmp_cap;
   int32_t r, r2;
   int retry = 0;
+
+  r = validate_operation_on_zfs_fh (&cap->fh, false);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_close_retry:
 
@@ -1341,6 +1353,10 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   if (cap->flags != O_RDONLY)
     return EBADF;
 
+  r = validate_operation_on_zfs_fh (&cap->fh, false);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_readdir_retry:
 
   if (VIRTUAL_FH_P (cap->fh))
@@ -1607,6 +1623,10 @@ zfs_read (uint32_t *rcount, void *buffer,
   if (cap->flags != O_RDONLY && cap->flags != O_RDWR)
     return EBADF;
 
+  r = validate_operation_on_zfs_fh (&cap->fh, false);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_read_retry:
 
   r = find_capability (cap, &icap, &vol, &dentry, NULL, true);
@@ -1829,6 +1849,10 @@ zfs_write (write_res *res, write_args *args)
 
   if (args->cap.flags != O_WRONLY && args->cap.flags != O_RDWR)
     return EBADF;
+
+  r = validate_operation_on_zfs_fh (&args->cap.fh, true);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_write_retry:
 

@@ -349,6 +349,28 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
   return ZFS_OK;
 }
 
+/* Check whether we can perform operation on ZFS file handle FH.
+   If MODIFY is true we are performing an operation changing state of file
+   system.  */
+
+int32_t
+validate_operation_on_zfs_fh (zfs_fh *fh, bool modify)
+{
+  if (!request_from_this_node ())
+    {
+#ifdef ENABLE_CHECKING
+      if (GET_CONFLICT (*fh))
+	abort ();
+#endif
+      SET_CONFLICT (*fh, 0);
+    }
+
+  if (modify && GET_CONFLICT (*fh))
+    return EINVAL;
+
+  return ZFS_OK;
+}
+
 /* Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
 
 static void
@@ -643,6 +665,10 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
   int32_t r, r2;
   int retry = 0;
 
+  r = validate_operation_on_zfs_fh (fh, false);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_getattr_retry:
 
   /* Lookup FH.  */
@@ -835,6 +861,10 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
   int32_t r, r2;
   int retry = 0;
 
+  r = validate_operation_on_zfs_fh (fh, true);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_setattr_retry:
 
   /* Lookup FH.  */
@@ -1024,6 +1054,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
+
+  r = validate_operation_on_zfs_fh (dir, false);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_lookup_retry:
 
@@ -1297,6 +1331,10 @@ zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr)
   int32_t r, r2;
   int retry = 0;
 
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_mkdir_retry:
 
   /* Lookup DIR.  */
@@ -1475,6 +1513,10 @@ zfs_rmdir (zfs_fh *dir, string *name)
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
+
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_rmdir_retry:
 
@@ -1676,6 +1718,14 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   zfs_fh tmp_from, tmp_to;
   int32_t r, r2;
   int retry = 0;
+
+  r = validate_operation_on_zfs_fh (from_dir, true);
+  if (r != ZFS_OK)
+    return r;
+
+  r = validate_operation_on_zfs_fh (to_dir, true);
+  if (r != ZFS_OK)
+    return r;
 
   /* Lookup TO_DIR.  */
   if (VIRTUAL_FH_P (*to_dir))
@@ -1965,6 +2015,14 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   int32_t r, r2;
   int retry = 0;
 
+  r = validate_operation_on_zfs_fh (from, true);
+  if (r != ZFS_OK)
+    return r;
+
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
+
   /* Lookup FROM.  */
   if (VIRTUAL_FH_P (*from))
     return EPERM;
@@ -2220,6 +2278,10 @@ zfs_unlink (zfs_fh *dir, string *name)
   int32_t r, r2;
   int retry = 0;
 
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_unlink_retry:
 
   /* Lookup DIR.  */
@@ -2447,6 +2509,10 @@ zfs_readlink (read_link_res *res, zfs_fh *fh)
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
 
+  r = validate_operation_on_zfs_fh (fh, false);
+  if (r != ZFS_OK)
+    return r;
+
 zfs_readlink_retry:
 
   /* Lookup FH.  */
@@ -2593,6 +2659,10 @@ zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name, string *to,
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
+
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_symlink_retry:
 
@@ -2797,6 +2867,10 @@ zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name, sattr *attr, ftype type,
   zfs_fh tmp_fh;
   int32_t r, r2;
   int retry = 0;
+
+  r = validate_operation_on_zfs_fh (dir, true);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_mknod_retry:
 
@@ -3085,6 +3159,10 @@ zfs_hardlinks (hardlinks_res *res, zfs_fh *fh, uint32_t start,
 
   if (VIRTUAL_FH_P (*fh))
     return EINVAL;
+
+  r = validate_operation_on_zfs_fh (fh, true);
+  if (r != ZFS_OK)
+    return r;
 
 zfs_hardlinks_retry:
 
