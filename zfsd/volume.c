@@ -372,7 +372,6 @@ destroy_invalid_volumes (void)
 	    zfsd_mutex_unlock (&vol->mutex);
 	}
     }
-  htab_destroy (volume_htab);
   zfsd_mutex_unlock (&volume_mutex);
   zfsd_mutex_unlock (&fh_mutex);
   zfsd_mutex_unlock (&vd_mutex);
