@@ -2039,8 +2039,8 @@ virtual_dir_create (virtual_dir parent, const char *name)
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
   last_virtual_ino++;
-  if (last_virtual_ino == 0)
-    last_virtual_ino++;
+  if (last_virtual_ino <= ROOT_INODE)
+    last_virtual_ino = ROOT_INODE + 1;
 
   vd = (virtual_dir) pool_alloc (vd_pool);
   vd->fh.sid = NODE_ANY;

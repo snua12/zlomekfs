@@ -39,9 +39,9 @@ typedef struct volume_def *volume;
 #include "zfs_prot.h"
 #include "util.h"
 
-#define VIRTUAL_DEVICE 0	/* Device number of device with virtual
+#define VIRTUAL_DEVICE 1	/* Device number of device with virtual
 				   directories */
-#define ROOT_INODE 0		/* Inode number of the root dir of ZFS */
+#define ROOT_INODE 1		/* Inode number of the root dir of ZFS */
 
 /* Maximal number of file handles locked by one thread.  */
 #define MAX_LOCKED_FILE_HANDLES 2
