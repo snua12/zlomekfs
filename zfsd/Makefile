@@ -18,6 +18,9 @@
 # 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
 # or download it from http://www.gnu.org/licenses/gpl.html
 
+prefix = /usr
+
+INSTALL = /usr/bin/install -c
 CC = gcc
 LD = $(CC)
 DEFS = -DENABLE_CHECKING -DENABLE_VALGRIND_CHECKING -DENABLE_STATISTICS -DTEST -DTEST_UPDATE
@@ -54,6 +57,14 @@ clean:
 	-rm -f $(BINARIES) *.o core *.core
 distclean: clean
 	-rm -f Makefile.dep
+
+install:
+	$(INSTALL) -m 755 zfsd $(prefix)/sbin
+	$(INSTALL) -m 755 dump_intervals dump_metadata $(prefix)/bin
+
+uninstall:
+	-rm -f $(prefix)/sbin/zfsd
+	-rm -f $(prefix)/bin/dump_intervals $(prefix)/bin/dump_metadata
 
 zfsd: $(ZFSD)
 	$(LINK) $(ZFSD) $(LIBS)
