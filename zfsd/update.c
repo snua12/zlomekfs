@@ -188,6 +188,11 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   /* Update different blocks.  */
   for (i = 0, j = 0; i < remote_md5.count; i++)
     {
+#ifdef ENABLE_CHECKING
+      if (remote_md5.length[i] > ZFS_MAXDATA)
+	abort ();
+#endif
+
       if (i >= local_md5.count
 	  || local_md5.length[i] != remote_md5.length[i]
 	  || memcmp (local_md5.md5sum[i], remote_md5.md5sum[i], MD5_SIZE) != 0)
