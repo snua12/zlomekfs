@@ -41,136 +41,158 @@ zfs_proc_##FUNCTION##_server (ARGS_TYPE *args, DC *dc)			\
 #undef DEFINE_ZFS_PROC
 #endif
 
-int
+/* void zfs_proc_null (void) */
+
+void
 zfs_proc_null_server (void *args, DC *dc)
 {
-  return ZFS_OK;
 }
 
-int
+/* zfs_fh zfs_proc_root (void); */
+
+void
 zfs_proc_root_server (void *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* zfs_fh zfs_proc_volume_root (volume_root_args); */
+
+void
 zfs_proc_volume_root_server (volume_root_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* attr_res zfs_proc_getattr (zfs_fh); */
+
+void
 zfs_proc_getattr_server (zfs_fh *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* attr_res zfs_proc_setattr (sattr_args); */
+
+void
 zfs_proc_setattr_server (sattr_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* dir_op_res zfs_proc_lookup (dir_op_args); */
+
+void
 zfs_proc_lookup_server (dir_op_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* open_res zfs_proc_open_by_name (open_name_args); */
+
+void
 zfs_proc_open_by_name_server (open_name_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* open_res zfs_proc_open_by_fd (zfs_fh); */
+
+void
 zfs_proc_open_by_fd_server (zfs_fh *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_close (zfs_fh); */
+
+void
 zfs_proc_close_server (zfs_fh *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* read_dir_res zfs_proc_readdir (read_dir_args); */
+
+void
 zfs_proc_readdir_server (read_dir_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* dir_op_res zfs_proc_mkdir (open_name_args); */
+
+void
 zfs_proc_mkdir_server (open_name_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_rmdir (dir_op_args); */
+
+void
 zfs_proc_rmdir_server (dir_op_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_rename (rename_args); */
+
+void
 zfs_proc_rename_server (rename_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_link (link_args); */
+
+void
 zfs_proc_link_server (link_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_unlink (dir_op_args); */
+
+void
 zfs_proc_unlink_server (dir_op_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* read_res zfs_proc_read (read_args); */
+
+void
 zfs_proc_read_server (read_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* write_res zfs_proc_write (write_args); */
+
+void
 zfs_proc_write_server (write_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* read_link_res zfs_proc_readlink (zfs_fh); */
+
+void
 zfs_proc_readlink_server (zfs_fh *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_symlink (symlink_args); */
+
+void
 zfs_proc_symlink_server (symlink_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* int zfs_proc_mknod (mknod_args); */
+
+void
 zfs_proc_mknod_server (mknod_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* ? zfs_proc_auth_stage1 (auth_stage1_args); */
+
+void
 zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
-int
+/* ? zfs_proc_auth_stage2 (auth_stage2_args); */
+
+void
 zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc)
 {
-  return ZFS_UNKNOWN_FUNCTION;
 }
 
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS_TYPE)		\
