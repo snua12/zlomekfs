@@ -56,6 +56,9 @@
 #define offsetof(TYPE, MEMBER)  ((unsigned long) &((TYPE *) 0)->MEMBER)
 #endif
 
+/* Crash when executing this macro.  */
+#define CRASH (*(char *) 0 = 0)
+
 /* Definitions of some GCC attributes.  */
 #ifdef __GNUC__
 
