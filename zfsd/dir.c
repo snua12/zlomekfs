@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <utime.h>
 #include <errno.h>
 #include "pthread.h"
 #include "fh.h"
