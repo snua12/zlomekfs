@@ -87,6 +87,7 @@ extern bool journal_insert (journal_t journal, zfs_fh *local_fh,
 			    journal_operation_t oper, bool copy);
 extern bool journal_member (journal_t journal, zfs_fh *local_fh, char *name);
 extern bool journal_delete (journal_t journal, zfs_fh *local_fh, char *name);
+extern bool journal_delete_entry (journal_t journal, journal_entry entry);
 
 extern void initialize_journal_c (void);
 extern void cleanup_journal_c (void);

@@ -249,6 +249,39 @@ journal_delete (journal_t journal, zfs_fh *local_fh, char *name)
   return true;
 }
 
+/* Delete a journal entry ENTRY from journal JOURNAL.
+   Return true if it was really deleted.  */
+
+bool
+journal_delete_entry (journal_t journal, journal_entry entry)
+{
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (journal->mutex);
+
+  slot = htab_find_slot_with_hash (journal->htab, entry, JOURNAL_HASH (entry),
+				   NO_INSERT);
+  if (!slot)
+    return false;
+
+  if (entry->next)
+    entry->next->prev = entry->prev;
+  else
+    journal->last = entry->prev;
+  if (entry->prev)
+    entry->prev->next = entry->next;
+  else
+    journal->first = entry->next;
+
+  free (entry->name.str);
+  zfsd_mutex_lock (&journal_mutex);
+  pool_free (journal_pool, entry);
+  zfsd_mutex_unlock (&journal_mutex);
+  htab_clear_slot (journal->htab, slot);
+
+  return true;
+}
+
 /* Initialize data structures in JOURNAL.C.  */
 
 void
