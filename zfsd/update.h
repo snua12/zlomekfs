@@ -48,32 +48,37 @@
 
 /* Update directory DENTRY on volume VOL if needed.  */
 #define UPDATE_DIR_IF_NEEDED(VOL, DENTRY)				\
-  if ((VOL)->master != this_node)					\
-    {									\
-      if (update_p ((DENTRY), (VOL)))					\
-	{								\
-	  zfs_fh fh;							\
+  do {									\
+    fattr remote_attr;							\
 									\
-	  CHECK_MUTEX_LOCKED (&(DENTRY)->fh->mutex);			\
-	  CHECK_MUTEX_LOCKED (&(VOL)->mutex);				\
+    if ((VOL)->master != this_node)					\
+      {									\
+	if (update_p ((DENTRY), (VOL), &remote_attr))			\
+	  {								\
+	    zfs_fh fh;							\
 									\
-	  fh = (DENTRY)->fh->local_fh;					\
-	  r = update_file ((DENTRY), (VOL), false);			\
-	  if (r != ZFS_OK)						\
-	    return r;							\
+	    CHECK_MUTEX_LOCKED (&(DENTRY)->fh->mutex);			\
+	    CHECK_MUTEX_LOCKED (&(VOL)->mutex);				\
 									\
-	  r = zfs_fh_lookup (&fh, &(VOL), &(DENTRY), NULL);		\
-	  if (r != ZFS_OK)						\
-	    return r;							\
-	}								\
-    }
+	    fh = (DENTRY)->fh->local_fh;				\
+	    r = update_directory ((DENTRY), (VOL), &remote_attr);	\
+	    if (r != ZFS_OK)						\
+	      return r;							\
+									\
+	    r = zfs_fh_lookup (&fh, &(VOL), &(DENTRY), NULL);		\
+	    if (r != ZFS_OK)						\
+	      return r;							\
+	  }								\
+      }									\
+  } while (0)
 
 extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
 				     uint64_t end, varray *blocks);
 extern int32_t update_file_blocks (bool use_buffer, uint32_t *rcount,
 				   void *buffer, uint64_t offset,
 				   internal_cap cap, varray *blocks);
-extern bool update_p (internal_dentry dentry, volume vol);
-extern int32_t update_file (internal_dentry dentry, volume vol, bool schedule);
+extern bool update_p (internal_dentry dentry, volume vol, fattr *attr);
+extern int32_t update_directory (internal_dentry dentry, volume vol,
+				 fattr *attr);
 
 #endif
