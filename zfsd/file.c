@@ -2251,11 +2251,9 @@ local_md5sum (md5sum_res *res, md5sum_args *args)
   uint32_t total;
   uint32_t count;
 
-  r = zfs_fh_lookup (&args->cap.fh, NULL, &dentry, NULL);
-#ifdef ENABLE_CHECKING
-  if (r != ZFS_OK)
-    abort ();
-#endif
+  dentry = dentry_lookup (&args->cap.fh);
+  if (!dentry)
+    return ZFS_STALE;
 
   res->count = 0;
   res->size = dentry->fh->attr.size;
