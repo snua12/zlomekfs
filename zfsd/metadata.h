@@ -55,9 +55,9 @@ typedef struct metadata_def
   uint32_t dev;			/* device of the file */
   uint32_t ino;			/* inode of the file */
   uint32_t gen;			/* generation of the file */
+  zfs_fh master_fh;		/* master file handle */
   uint64_t local_version;	/* local version (is it needed?) */
   uint64_t master_version;	/* version on server/version got from server */
-  zfs_fh master_fh;		/* master file handle */
 } metadata;
 
 /* File handle mapping.  */
