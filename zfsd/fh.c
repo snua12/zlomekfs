@@ -110,6 +110,9 @@ internal_fh_eq_name (const void *xx, const void *yy)
 void
 internal_fh_del (void *x)
 {
+  internal_fh fh = (internal_fh) x;
+
+  free (fh->name);
   pool_free (fh_pool, x);
 }
 
@@ -271,6 +274,7 @@ internal_fh_destroy (internal_fh fh, volume vol)
 #endif
   htab_clear_slot (vol->fh_htab, slot);
 
+  free (fh->name);
   pool_free (fh_pool, fh);
 }
 

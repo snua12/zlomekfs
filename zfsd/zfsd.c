@@ -397,6 +397,7 @@ test_zfs (thread *t)
   if (strcmp (node_name, "orion") == 0)
     {
       node nod;
+      char *str;
 
       pthread_mutex_lock (&node_mutex);
       nod = node_lookup (2);
@@ -409,14 +410,14 @@ test_zfs (thread *t)
       zfs_proc_root_client (t, NULL, nod);
 
       message (2, stderr, "TEST %d\n", ++test);
-      printf ("%d\n",
-	      zfs_extended_lookup (&fh, &root_fh,
-				   xstrdup ("/volume1/subdir/file")));
+      str = xstrdup ("/volume1/subdir/file");
+      printf ("%d\n", zfs_extended_lookup (&fh, &root_fh, str));
+      free (str);
 
       message (2, stderr, "TEST %d\n", ++test);
-      printf ("%d\n",
-	      zfs_extended_lookup (&fh, &root_fh,
-				   xstrdup ("/volume1/volume3/subdir/file")));
+      str = xstrdup ("/volume1/volume3/subdir/file");
+      printf ("%d\n", zfs_extended_lookup (&fh, &root_fh, str));
+      free (str);
     }
 }
 #endif
