@@ -74,7 +74,7 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
     {
       /* The START of interval is already in the tree.  */
 
-      if (node->value >= end)
+      if (INTERVAL_END (node) >= end)
 	{
 	  /* There already is a larger interval starting in START
 	     so we have nothing to do.  */
@@ -88,7 +88,8 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
       next = splay_tree_successor (tree->splay, start);
 
       if (tree->size == tree->preferred_size
-	  && !((prev && prev->value >= start) || (next && next->key <= end)))
+	  && !((prev && INTERVAL_END (prev) >= start)
+	       || (next && INTERVAL_START (next) <= end)))
 	{
 	  /* Maybe we will be inserting a new node. Shrink the tree first.  */
 	  interval_tree_shrink (tree);
@@ -98,21 +99,21 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
 	  next = splay_tree_successor (tree->splay, start);
 	}
 
-      if (prev && prev->value >= start)
+      if (prev && INTERVAL_END (prev) >= start)
 	{
 	  /* We are extending PREV.  */
 	  node = prev;
-	  if (node->value < end)
-	    node->value = end;
+	  if (INTERVAL_END (node) < end)
+	    INTERVAL_END (node) = end;
 	}
-      else if (next && next->key <= end)
+      else if (next && INTERVAL_START (next) <= end)
 	{
 	  /* We are extending NEXT.  */
 	  node = next;
-	  if (node->key > start)
-	    node->key = start;
-	  if (node->value < end)
-	    node->value = end;
+	  if (INTERVAL_START (node) > start)
+	    INTERVAL_START (node) = start;
+	  if (INTERVAL_END (node) < end)
+	    INTERVAL_END (node) = end;
 	}
       else
 	{
@@ -123,13 +124,14 @@ interval_tree_insert (interval_tree tree, uint64_t start, uint64_t end)
     }
 
   /* Merge the successors if they are covered by [START, END).  */
-  while ((next = splay_tree_successor (tree->splay, node->key)) != NULL)
+  while ((next = splay_tree_successor (tree->splay,
+				       INTERVAL_START (node))) != NULL)
     {
-      if (next->key <= node->value)
+      if (INTERVAL_START (next) <= INTERVAL_END (node))
 	{
-	  if (next->value > node->value)
-	    node->value = next->value;
-	  splay_tree_delete (tree->splay, next->key);
+	  if (INTERVAL_END (next) > INTERVAL_END (node))
+	    INTERVAL_END (node) = INTERVAL_END (next);
+	  splay_tree_delete (tree->splay, INTERVAL_START (next));
 	  tree->size--;
 	}
       else
@@ -148,10 +150,10 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 
   if ((node = splay_tree_lookup (tree->splay, start)) != NULL)
     {
-      if (node->value > end)
+      if (INTERVAL_END (node) > end)
 	{
 	  /* We are shortening the interval NODE.  */
-	  node->key = end;
+	  INTERVAL_START (node) = end;
 	  return;
 	}
       else
@@ -166,19 +168,19 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
 
       if (prev)
 	{
-	  if (prev->value > end)
+	  if (INTERVAL_END (prev) > end)
 	    {
 	      /* We are cutting a subinterval from interval PREV.  */
 	      interval_tree_shrink (tree);
-	      splay_tree_insert (tree->splay, end, prev->value);
+	      splay_tree_insert (tree->splay, end, INTERVAL_END (prev));
 	      tree->size++;
-	      prev->value = start;
+	      INTERVAL_END (prev) = start;
 	      return;
 	    }
 	  else
 	    {
 	      /* We are shortening the interval PREV.  */
-	      prev->value = end;
+	      INTERVAL_END (prev) = end;
 	    }
 	}
     }
@@ -187,14 +189,14 @@ interval_tree_delete (interval_tree tree, uint64_t start, uint64_t end)
   while (1)
     {
       next = splay_tree_successor (tree->splay, start);
-      if (next->value <= end)
+      if (INTERVAL_END (next) <= end)
 	{
-	  splay_tree_delete (tree->splay, next->key);
+	  splay_tree_delete (tree->splay, INTERVAL_START (next));
 	  tree->size--;
 	}
       else
 	{
-	  next->key = end;
+	  INTERVAL_START (next) = end;
 	  return;
 	}
     }
@@ -270,8 +272,8 @@ interval_tree_shrink_foreach (splay_tree_node node, void *data)
   d->node[d->index] = node;
   d->pos[d->index] = d->index;
   if (d->index)
-    d->diff[d->index - 1] = node->key - d->last_end;
-  d->last_end = node->value;
+    d->diff[d->index - 1] = INTERVAL_START (node) - d->last_end;
+  d->last_end = INTERVAL_END (node);
   d->index++;
   return 0;
 }
@@ -355,8 +357,8 @@ interval_tree_shrink (interval_tree tree)
 	    abort ();
 #endif
 	}
-      d.node[i]->value = d.node[i + 1]->value;
-      splay_tree_delete (tree->splay, d.node[i + 1]->key);
+      INTERVAL_END (d.node[i]) = INTERVAL_END (d.node[i + 1]);
+      splay_tree_delete (tree->splay, INTERVAL_START (d.node[i + 1]));
       tree->size--;
       d.node[i + 1] = d.node[i];
       i++;
@@ -373,9 +375,9 @@ print_interval_tree_node (splay_tree_node node, void *data)
   FILE *f = (FILE *) data;
 
   fprintf (f, "[");
-  fprintf (f, "%" PRIu64, node->key);
+  fprintf (f, "%" PRIu64, INTERVAL_START (node));
   fprintf (f, ",");
-  fprintf (f, "%" PRIu64, node->value);
+  fprintf (f, "%" PRIu64, INTERVAL_END (node));
   fprintf (f, ")\n");
   return 0;
 }
