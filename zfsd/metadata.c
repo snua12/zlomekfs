@@ -1433,11 +1433,12 @@ init_metadata_for_created_volume_root (volume vol)
   return true;
 }
 
-/* Lookup metadata for file handle FH on volume VOL.
-   Store the metadata to META and update FH->GEN.  */
+/* Lookup metadata for file handle FH on volume VOL.  Store the metadata to META
+   and update FH->GEN.  Insert the metadata to hash file if INSERT is true and
+   the metadata was not found.  */
 
 static bool
-lookup_metadata (volume vol, zfs_fh *fh, metadata *meta)
+lookup_metadata (volume vol, zfs_fh *fh, metadata *meta, bool insert)
 {
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -1478,10 +1479,13 @@ lookup_metadata (volume vol, zfs_fh *fh, metadata *meta)
       meta->parent_ino = (uint32_t) -1;
       memset (meta->name, 0, METADATA_NAME_SIZE);
 
-      if (!hfile_insert (vol->metadata, meta))
+      if (insert)
 	{
-	  zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
-	  return false;
+	  if (!hfile_insert (vol->metadata, meta))
+	    {
+	      zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
+	      return false;
+	    }
 	}
     }
   fh->gen = meta->gen;
@@ -1503,7 +1507,7 @@ get_metadata (volume vol, zfs_fh *fh, metadata *meta)
     abort ();
 #endif
 
-  if (!lookup_metadata (vol, fh, meta))
+  if (!lookup_metadata (vol, fh, meta, true))
     {
       vol->delete_p = true;
       close_volume_metadata (vol);
@@ -2781,7 +2785,7 @@ add_journal_entry_st (volume vol, internal_fh fh, struct stat *st, char *name,
 
   local_fh.dev = st->st_dev;
   local_fh.ino = st->st_ino;
-  if (!lookup_metadata (vol, &local_fh, &meta))
+  if (!lookup_metadata (vol, &local_fh, &meta, false))
     return false;
 
   return add_journal_entry (vol, fh, &local_fh, &meta.master_fh, name, oper);
