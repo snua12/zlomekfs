@@ -521,6 +521,8 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
   if (nod)
     {
       /* FIXME: do the key authorization */
+
+      message (2, stderr, "FD %d connected to %s\n", fd_data->fd, nod->name);
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
       zfsd_cond_broadcast (&fd_data->cond);

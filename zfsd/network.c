@@ -608,6 +608,7 @@ again:
   if (!nod)
     return -1;
 
+  nod->last_connect = time (NULL);
   if (!node_has_valid_fd (nod))
     {
       zfsd_mutex_unlock (&nod->mutex);
@@ -700,6 +701,7 @@ again:
 
 	/* FIXME: really do authentication */
 
+	message (2, stderr, "FD %d connected to %s\n", fd, nod->name);
 	zfsd_mutex_unlock (&nod->mutex);
 	fd_data_a[fd].auth = AUTHENTICATION_STAGE_1;
 	if (r >= ZFS_ERROR_HAS_DC_REPLY)
@@ -792,6 +794,7 @@ node_authenticate_error:
   if (nod)
     {
       nod->fd = -1;
+      nod->last_connect = time (NULL);
       zfsd_mutex_unlock (&nod->mutex);
     }
   return -1;
@@ -1370,13 +1373,13 @@ network_main (ATTRIBUTE_UNUSED void *data)
 		  close_active_fd (i);
 		  zfsd_mutex_unlock (&fd_data->mutex);
 		}
-
-	      zfsd_mutex_lock (&fd_data->mutex);
-	      fd_data->conn = CONNECTION_ACTIVE;
-	      zfsd_cond_broadcast (&fd_data->cond);
-	      zfsd_mutex_unlock (&fd_data->mutex);
-/*	      message (2, stderr, "FD %d connected to %s\n", pfd[i].fd,
-		       nod->name);*/
+	      else
+		{
+		  zfsd_mutex_lock (&fd_data->mutex);
+		  fd_data->conn = CONNECTION_ACTIVE;
+		  zfsd_cond_broadcast (&fd_data->cond);
+		  zfsd_mutex_unlock (&fd_data->mutex);
+		}
 	    }
 	  else if (pfd[i].revents & CAN_READ)
 	    {
