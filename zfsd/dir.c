@@ -1374,10 +1374,17 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
   if (r == ZFS_OK)
     {
-      internal_dentry dentry;
+      internal_dentry dentry, conflict;
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
 			   &res->attr, &meta);
+      if (dentry->parent != idir && request_from_this_node ())
+	{
+	  conflict = dentry_lookup_name (idir, name);
+	  res->file = conflict->fh->local_fh;
+	  res->attr = conflict->fh->attr;
+	  release_dentry (conflict);
+	}
       release_dentry (dentry);
     }
 
