@@ -945,7 +945,7 @@ init_metadata (volume vol, internal_fh fh)
       fh->meta.flags = METADATA_COMPLETE;
       fh->meta.dev = fh->local_fh.dev;
       fh->meta.ino = fh->local_fh.ino;
-      fh->meta.local_version = 1;
+      fh->meta.local_version = 0;
       fh->meta.master_version = 0;
     }
 
@@ -979,6 +979,45 @@ flush_metadata (volume vol, internal_fh fh)
 
   zfsd_mutex_unlock (&metadata_fd_data[vol->metadata->fd].mutex);
   return true;
+}
+
+/* Set metadata (FLAGS, LOCAL_VERSION, MASTER_VERSION) for file handle FH
+   on volume VOL.  */
+
+bool
+set_metadata (volume vol, internal_fh fh, uint32_t flags,
+	      uint64_t local_version, uint64_t master_version)
+{
+  bool modified;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&fh->mutex);
+
+  modified = false;
+  if (fh->meta.flags != flags)
+    {
+      fh->meta.flags = flags;
+      modified = true;
+    }
+  if (fh->meta.local_version != local_version)
+    {
+      fh->meta.local_version = local_version;
+      modified = true;
+    }
+  if (fh->meta.master_version != master_version)
+    {
+      fh->meta.master_version = master_version;
+      modified = true;
+    }
+
+  if (!modified)
+    return true;
+
+  fh->attr.version = fh->meta.local_version;
+  if (fh->meta.flags & METADATA_MODIFIED)
+    fh->attr.version++;
+
+  return flush_metadata (vol, fh);
 }
 
 /* Delete all metadata files for local file PATH on volume VOL.  */
