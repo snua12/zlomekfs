@@ -748,6 +748,7 @@ zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
       return t->retval;							\
     }									\
 									\
+  zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);			\
   return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd, true);	\
 }
 #include "zfs_prot.def"
