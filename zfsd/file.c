@@ -635,6 +635,7 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   zfs_cap tmp_cap, remote_cap;
   int32_t r, r2;
   int retry = 0;
+  bool remote_call = false;
 
   /* When O_CREAT is set the function zfs_create is called.
      The flag is superfluous here.  */
@@ -682,15 +683,40 @@ zfs_open_retry:
 
       if (vol->master != this_node)
 	{
-	  if (dentry->fh->attr.type != FT_REG
-	      || load_interval_trees (vol, dentry->fh))
+	  switch (dentry->fh->attr.type)
 	    {
-	      r = local_open (flags, dentry, vol);
-	    }
-	  else
-	    {
-	      vol->delete_p = true;
-	      r = ZFS_METADATA_ERROR;
+	      case FT_REG:
+		if (load_interval_trees (vol, dentry->fh))
+		  {
+		    r = local_open (flags, dentry, vol);
+		  }
+		else
+		  {
+		    vol->delete_p = true;
+		    r = ZFS_METADATA_ERROR;
+		  }
+		break;
+
+	      case FT_DIR:
+		r = local_open (flags, dentry, vol);
+		break;
+
+	      case FT_BLK:
+	      case FT_CHR:
+	      case FT_SOCK:
+	      case FT_FIFO:
+		if (volume_master_connected (vol))
+		  {
+		    zfsd_mutex_unlock (&fh_mutex);
+		    r = remote_open (&remote_cap, icap, flags, dentry, vol);
+		    remote_call = true;
+		  }
+		else
+		  r = local_open (flags, dentry, vol);
+		break;
+
+	      default:
+		abort ();
 	    }
 	}
       else
@@ -700,6 +726,7 @@ zfs_open_retry:
     {
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_open (&remote_cap, icap, flags, dentry, vol);
+      remote_call = true;
     }
   else
     abort ();
@@ -714,9 +741,7 @@ zfs_open_retry:
 
   if (r == ZFS_OK)
     {
-      if (vol->local_path)
-	;
-      else if (vol->master != this_node)
+      if (remote_call)
 	icap->master_cap = remote_cap;
     }
   else
@@ -798,6 +823,23 @@ zfs_close_retry:
 
   if (vol->local_path)
     {
+      if (!zfs_cap_undefined (icap->master_cap)
+	  && (dentry->fh->attr.type == FT_BLK
+	      || dentry->fh->attr.type == FT_CHR
+	      || dentry->fh->attr.type == FT_SOCK
+	      || dentry->fh->attr.type == FT_FIFO))
+	{
+	  r = remote_close (icap, dentry, vol);
+
+	  r2 = find_capability (&tmp_cap, &icap, &vol, &dentry, &vd, true);
+#ifdef ENABLE_CHECKING
+	  if (r2 != ZFS_OK)
+	    abort ();
+#endif
+	}
+      else
+	r = ZFS_OK;
+
       if (icap->busy == 1)
 	{
 	  if (vol->master != this_node)
@@ -811,7 +853,6 @@ zfs_close_retry:
 	}
       else
 	{
-	  r = ZFS_OK;
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
       release_dentry (dentry);
@@ -1651,7 +1692,7 @@ zfs_read_retry:
 
   if (vol->local_path)
     {
-      if (vol->master != this_node && update)
+      if (vol->master != this_node && dentry->fh->attr.type == FT_REG && update)
 	{
 	  varray blocks;
 	  uint64_t start;
@@ -1709,6 +1750,32 @@ zfs_read_retry:
 	    }
 
 	  varray_destroy (&blocks);
+	}
+      else if (vol->master != this_node)
+	{
+	  switch (dentry->fh->attr.type)
+	    {
+	      case FT_REG:
+		r = local_read (rcount, buffer, dentry, offset, count, vol);
+		break;
+
+	      case FT_BLK:
+	      case FT_CHR:
+	      case FT_SOCK:
+	      case FT_FIFO:
+		if (!zfs_cap_undefined (icap->master_cap))
+		  {
+		    zfsd_mutex_unlock (&fh_mutex);
+		    r = remote_read (rcount, buffer, icap, dentry, offset,
+				     count, vol);
+		  }
+		else
+		  r = local_read (rcount, buffer, dentry, offset, count, vol);
+		break;
+
+	      default:
+		abort ();
+	    }
 	}
       else
 	r = local_read (rcount, buffer, dentry, offset, count, vol);
@@ -1877,7 +1944,35 @@ zfs_write_retry:
     return r;
 
   if (vol->local_path)
-    r = local_write (res, dentry, args->offset, &args->data, vol);
+    {
+      if (vol->master != this_node)
+	{
+	  switch (dentry->fh->attr.type)
+	    {
+	      case FT_REG:
+		r = local_write (res, dentry, args->offset, &args->data, vol);
+		break;
+
+	      case FT_BLK:
+	      case FT_CHR:
+	      case FT_SOCK:
+	      case FT_FIFO:
+		if (!zfs_cap_undefined (icap->master_cap))
+		  {
+		    zfsd_mutex_unlock (&fh_mutex);
+		    r = remote_write (res, icap, dentry, args, vol);
+		  }
+		else
+		  r = local_write (res, dentry, args->offset, &args->data, vol);
+		break;
+
+	      default:
+		abort ();
+	    }
+	}
+      else
+	r = local_write (res, dentry, args->offset, &args->data, vol);
+    }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
@@ -1894,7 +1989,7 @@ zfs_write_retry:
 
   if (r == ZFS_OK)
     {
-      if (vol->local_path)
+      if (vol->local_path && dentry->fh->attr.type == FT_REG)
 	{
 	  if (!set_metadata_flags (vol, dentry->fh,
 				   dentry->fh->meta.flags | METADATA_MODIFIED))
