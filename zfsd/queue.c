@@ -1,4 +1,4 @@
-/* Queue datatype.
+/* Cyclic queue datatype.
    Copyright (C) 2003 Josef Zlomek
 
    This file is part of ZFS.
@@ -70,7 +70,10 @@ queue_put (queue *q, size_t elem)
     abort ();
 #endif
   
-  q->queue[q->end++] = elem;
+  q->queue[q->end] = elem;
+  q->end++;
+  if (q->end == q->size)
+    q->end = 0;
   q->nelem++;
 }
 
@@ -79,6 +82,8 @@ queue_put (queue *q, size_t elem)
 inline size_t
 queue_get (queue *q)
 {
+  size_t r;
+
 #ifdef ENABLE_CHECKING
   if (q->size == 0)
     abort ();
@@ -86,6 +91,11 @@ queue_get (queue *q)
     abort ();
 #endif
  
+  r = q->queue[q->start];
+  q->start++;
+  if (q->start == q->size)
+    q->start = 0;
   q->nelem--;
-  return q->queue[q->start--];
+
+  return r;
 }
