@@ -37,6 +37,7 @@
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_CHARDEV_MAJOR(ZFS_CHARDEV_MAJOR);
 
+struct super_block *zfs_sb;
 struct channel channel;
 
 extern struct file_operations zfs_chardev_file_operations;
@@ -94,6 +95,8 @@ static void zfs_destroy_inodecache(void)
 static void zfs_put_super(struct super_block *sb)
 {
 	INFO("UMOUNT");
+
+	zfs_sb = NULL;
 }
 
 static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
@@ -124,7 +127,7 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 	INFO("MOUNT");
 
 	if (!channel.connected) {
-		ERROR("zfsd has not opened communication device");
+		ERROR("zfsd has not opened communication device!");
 		return -EIO;
 	}
 
@@ -150,6 +153,8 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 	sb->s_root = d_alloc_root(root_inode);
 	if (!sb->s_root)
 		return -ENOMEM;
+
+	zfs_sb = sb;
 
 	return 0;
 }

@@ -125,6 +125,11 @@ static int zfs_set_inode(struct inode *inode, void *data)
 	return 0;
 }
 
+struct inode *zfs_ilookup(struct super_block *sb, zfs_fh *fh)
+{
+	return ilookup5(sb, HASH(fh), zfs_test_inode, fh);
+}
+
 struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr)
 {
 	struct inode *inode;
@@ -157,7 +162,7 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 	if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
 		/* The dentry is too old, so revalidate it. */
 		if (zfsd_getattr(&attr, &ZFS_I(inode)->fh)
-		    || attr.version != inode->i_version) {
+		    || (attr.version != inode->i_version)) {
 			make_bad_inode(dentry->d_inode);
 			return 0;
 		}

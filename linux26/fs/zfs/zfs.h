@@ -63,6 +63,9 @@
 #define ROTATE_LEFT(x, nbites) ((x << nbites) | (x >> (32 - nbites)))
 #define HASH(fh) (ROTATE_LEFT(fh->sid, 22) ^ ROTATE_LEFT(fh->dev, 12) ^ fh->ino)
 
+/* ZFS super block. */
+extern struct super_block *zfs_sb;
+
 /* ZFS inode. */
 #define ZFS_I(inode) ((struct zfs_inode_info *)inode)
 struct zfs_inode_info {
