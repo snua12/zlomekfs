@@ -988,7 +988,7 @@ int32_t
 zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 {
   volume vol;
-  internal_dentry dentry;
+  internal_dentry dentry, conflict, other;
   virtual_dir vd;
   zfs_fh tmp_fh;
   int32_t r, r2;
@@ -1069,6 +1069,52 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
       if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
 	set_attr_version (fa, &dentry->fh->meta);
       dentry->fh->attr = *fa;
+
+      if (dentry->parent)
+	{
+	  conflict = dentry->parent;
+	  acquire_dentry (conflict);
+	  if (CONFLICT_DIR_P (conflict->fh->local_fh))
+	    {
+	      other = conflict_other_dentry (conflict, dentry);
+#ifdef ENABLE_CHECKING
+	      if (!other)
+		abort ();
+#endif
+
+	      if (METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr)
+		  && METADATA_ATTR_EQ_P (dentry->fh->attr, other->fh->attr))
+		{
+		  dentry->fh->meta.modetype
+		    = GET_MODETYPE (dentry->fh->attr.mode,
+				    dentry->fh->attr.type);
+		  dentry->fh->meta.uid = dentry->fh->attr.uid;
+		  dentry->fh->meta.gid = dentry->fh->attr.gid;
+		  if (!flush_metadata (vol, &dentry->fh->meta))
+		    MARK_VOLUME_DELETE (vol);
+
+		  release_dentry (dentry);
+		  release_dentry (other);
+		  if (try_resolve_conflict (vol, conflict))
+		    {
+		      zfsd_mutex_unlock (&fh_mutex);
+
+		      r2 = zfs_fh_lookup_nolock (&tmp_fh, &vol, &dentry, NULL,
+						 false);
+#ifdef ENABLE_CHECKING
+		      if (r2 != ZFS_OK)
+			abort ();
+#endif
+		    }
+		  else
+		    dentry = conflict_other_dentry (conflict, other);
+		}
+	      else
+		release_dentry (other);
+	    }
+	  else
+	    release_dentry (conflict);
+	}
     }
 
   internal_dentry_unlock (vol, dentry);
