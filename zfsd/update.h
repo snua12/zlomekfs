@@ -107,16 +107,13 @@ extern int32_t resolve_conflict_discard_remote (zfs_fh *conflict_fh,
 						internal_dentry local,
 						internal_dentry remote,
 						volume vol);
-extern int32_t resolve_conflict_delete_local_file (dir_op_res *res,
-						   internal_dentry dir,
-						   zfs_fh *dir_fh, string *name,
-						   zfs_fh *local_fh,
-						   zfs_fh *remote_fh,
-						   volume vol);
-extern int32_t resolve_conflict_delete_remote_file (volume vol,
-						    internal_dentry dir,
-						    string *name,
-						    zfs_fh *remote_fh);
+extern int32_t resolve_conflict_delete_local (dir_op_res *res,
+					      internal_dentry dir,
+					      zfs_fh *dir_fh, string *name,
+					      zfs_fh *local_fh,
+					      zfs_fh *remote_fh, volume vol);
+extern int32_t resolve_conflict_delete_remote (volume vol, internal_dentry dir,
+					       string *name, zfs_fh *remote_fh);
 extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
 		       fattr *attr, int how);
 

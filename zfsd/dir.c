@@ -2959,10 +2959,9 @@ zfs_unlink (zfs_fh *dir, string *name)
 		  parent_fh = parent->fh->local_fh;
 		  release_dentry (dentry);
 		  release_dentry (other);
-		  r = resolve_conflict_delete_local_file (&res, parent,
-							  &parent_fh,
-							  &name2, &local_fh,
-							  &remote_fh, vol);
+		  r = resolve_conflict_delete_local (&res, parent, &parent_fh,
+						     &name2, &local_fh,
+						     &remote_fh, vol);
 		  free (name2.str);
 		}
 	      else /* Both DENTRY and OTHER are regular dentries.  */
@@ -2982,10 +2981,10 @@ zfs_unlink (zfs_fh *dir, string *name)
 		      parent_fh = parent->fh->local_fh;
 		      release_dentry (dentry);
 		      release_dentry (other);
-		      r = resolve_conflict_delete_local_file (&res, parent,
-							      &parent_fh,
-							      &name2, &local_fh,
-							      &remote_fh, vol);
+		      r = resolve_conflict_delete_local (&res, parent,
+							 &parent_fh, &name2,
+							 &local_fh, &remote_fh,
+							 vol);
 		      free (name2.str);
 		    }
 		  else if ((dentry->fh->attr.version
@@ -3045,8 +3044,8 @@ zfs_unlink (zfs_fh *dir, string *name)
 		  remote_fh = dentry->fh->local_fh;
 		  release_dentry (dentry);
 		  release_dentry (other);
-		  r = resolve_conflict_delete_remote_file (vol, parent,
-							   &name2, &remote_fh);
+		  r = resolve_conflict_delete_remote (vol, parent, &name2,
+						      &remote_fh);
 		  free (name2.str);
 		}
 	      else /* Both DENTRY and OTHER are regular dentries.  */
@@ -3065,9 +3064,8 @@ zfs_unlink (zfs_fh *dir, string *name)
 		      remote_fh = dentry->fh->local_fh;
 		      release_dentry (dentry);
 		      release_dentry (other);
-		      r = resolve_conflict_delete_remote_file (vol, parent,
-							       &name2,
-							       &remote_fh);
+		      r = resolve_conflict_delete_remote (vol, parent, &name2,
+							  &remote_fh);
 		      free (name2.str);
 		    }
 		  else if ((dentry->fh->attr.version

@@ -1751,10 +1751,9 @@ out:
    on volume VOL.  Store the info about deleted file into RES.  */
 
 int32_t
-resolve_conflict_delete_local_file (dir_op_res *res, internal_dentry dir,
-				    zfs_fh *dir_fh, string *name,
-				    zfs_fh *local_fh, zfs_fh *remote_fh,
-				    volume vol)
+resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
+			       zfs_fh *dir_fh, string *name, zfs_fh *local_fh,
+			       zfs_fh *remote_fh, volume vol)
 {
   file_info_res info;
   metadata meta;
@@ -1834,8 +1833,8 @@ resolve_conflict_delete_local_file (dir_op_res *res, internal_dentry dir,
    in directory DIR on volume VOL.  */
 
 int32_t
-resolve_conflict_delete_remote_file (volume vol, internal_dentry dir,
-				     string *name, zfs_fh *remote_fh)
+resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
+				zfs_fh *remote_fh)
 {
   fh_mapping map;
 
