@@ -140,6 +140,7 @@ close_network_fd (int fd)
   close (fd);
   network_fd_data[fd].generation++;
   network_fd_data[fd].auth = AUTHENTICATION_NONE;
+  network_fd_data[fd].sid = 0;
 }
 
 /* Close an active file descriptor on index I in ACTIVE.  */
