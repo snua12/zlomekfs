@@ -44,6 +44,7 @@
 #define ZFS_UNKNOWN_FUNCTION	-3	/* Unknown function in request.  */
 #define ZFS_INVALID_AUTH_LEVEL	-4	/* Remote node has not authenticated
 					   enough yet.  */
+#define ZFS_STALE		-5	/* zfs_fh could not be found.  */
 #define ZFS_METADATA_ERROR	-50	/* Error when accessing file containing
 					   metadata.  */
 #define ZFS_UPDATE_FAILED	-51	/* Error while updating a file.  */

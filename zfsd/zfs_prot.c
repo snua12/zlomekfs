@@ -663,6 +663,9 @@ zfs_strerror (int32_t errnum)
       case ZFS_INVALID_AUTH_LEVEL:
 	return "Invalid authentication level";
 
+      case ZFS_STALE:
+	return "Stale ZFS file handle";
+
       case ZFS_INVALID_REPLY:
 	return "Invalid reply";
 

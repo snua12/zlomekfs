@@ -436,7 +436,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
       if (!volume_active_p (vol))
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return ESTALE;
+	  return ZFS_STALE;
 	}
 
       dentry = (internal_dentry) htab_find_with_hash (vol->dentry_htab, fh,
@@ -444,7 +444,7 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
       if (!dentry)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
-	  return ESTALE;
+	  return ZFS_STALE;
 	}
 
       zfsd_mutex_lock (&dentry->fh->mutex);

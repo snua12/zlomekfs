@@ -508,7 +508,7 @@ zfs_create_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -687,7 +687,7 @@ zfs_open_retry:
   zfsd_mutex_unlock (&icap->mutex);
   zfsd_mutex_unlock (&dentry->fh->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (fh);
@@ -766,7 +766,7 @@ zfs_close_retry:
   zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&cap_mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (&cap->fh);
@@ -1330,7 +1330,7 @@ zfs_readdir_retry:
 	}
     }
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (&cap->fh);
@@ -1593,7 +1593,7 @@ zfs_read_retry:
   else
     abort ();
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (&cap->fh);
@@ -1781,7 +1781,7 @@ zfs_write_retry:
   zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&icap->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (&args->cap.fh);
@@ -2033,7 +2033,7 @@ remote_md5sum_retry:
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     recycle_dc_to_fd (&t->dc_reply, fd);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (&fh);

@@ -589,7 +589,7 @@ zfs_getattr_retry:
   zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (fh);
@@ -738,7 +738,7 @@ zfs_setattr_retry:
   zfsd_mutex_unlock (&dentry->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (fh);
@@ -989,7 +989,7 @@ zfs_lookup_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -1174,7 +1174,7 @@ zfs_mkdir_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -1326,7 +1326,7 @@ zfs_rmdir_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -1481,7 +1481,7 @@ zfs_rename_retry:
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&vd_mutex);
-	  return ESTALE;
+	  return ZFS_STALE;
 	}
     }
 
@@ -1583,7 +1583,7 @@ zfs_rename_retry:
     zfsd_mutex_unlock (&dentry2->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (from_dir);
@@ -1736,7 +1736,7 @@ zfs_link_retry:
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
 	  zfsd_mutex_unlock (&vd_mutex);
-	  return ESTALE;
+	  return ZFS_STALE;
 	}
     }
 
@@ -1839,7 +1839,7 @@ zfs_link_retry:
     zfsd_mutex_unlock (&dentry2->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (from);
@@ -1993,7 +1993,7 @@ zfs_unlink_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -2105,7 +2105,7 @@ zfs_readlink_retry:
 
   zfsd_mutex_unlock (&dentry->fh->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (fh);
@@ -2293,7 +2293,7 @@ zfs_symlink_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -2484,7 +2484,7 @@ zfs_mknod_retry:
   zfsd_mutex_unlock (&idir->fh->mutex);
   zfsd_mutex_unlock (&vol->mutex);
 
-  if (r == ESTALE && retry < 1)
+  if (r == ZFS_STALE && retry < 1)
     {
       retry++;
       r = refresh_path (dir);
@@ -2512,7 +2512,7 @@ refresh_path_1 (dir_op_res *res, internal_dentry dir, char *name, volume vol)
 
   zfsd_mutex_lock (&dir->fh->mutex);
   r = remote_lookup (res, dir->fh, &s, vol);
-  if (r == ESTALE)
+  if (r == ZFS_STALE)
     {
       r = refresh_path_1 (res, dir->parent, dir->name, vol);
       if (r == ZFS_OK)
@@ -2579,7 +2579,7 @@ retry_lookup:
 	  s.str = dentry->name;
 	  s.len = strlen (dentry->name);
 	  r = remote_lookup (&res, dentry->parent->fh, &s, vol);
-	  if (r == ESTALE && retry < 1)
+	  if (r == ZFS_STALE && retry < 1)
 	    {
 	      retry++;
 	      r = refresh_path (&dentry->parent->fh->local_fh);
