@@ -178,7 +178,7 @@ journal_insert (journal_t journal, zfs_fh *local_fh, zfs_fh *master_fh,
   entry->oper = oper;
   entry->master_fh = *master_fh;
   if (copy)
-    entry->name.str = (char *) xmemdup (name, entry->name.len);
+    entry->name.str = (char *) xmemdup (name, entry->name.len + 1);
 
   *slot = entry;
   entry->next = NULL;

@@ -133,7 +133,7 @@ hardlink_list_insert (hardlink_list hl, uint32_t parent_dev,
     }
 
   if (copy)
-    entry->name.str = (char *) xmemdup (name, entry->name.len);
+    entry->name.str = (char *) xmemdup (name, entry->name.len + 1);
 
   *slot = entry;
   entry->next = NULL;

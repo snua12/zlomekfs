@@ -2384,19 +2384,17 @@ get_local_path_from_metadata (volume vol, zfs_fh *fh)
 	}
       else
 	{
+	  path = xstrconcat (3, parent_path, "/", entry->name.str);
+	  free (parent_path);
+
 	  if (lstat (path, &st) != 0
 	      || st.st_dev != fh->dev
 	      || st.st_ino != fh->ino)
 	    {
-	      free (parent_path);
 	      flush |= hardlink_list_delete_entry (hl, entry);
 	    }
 	  else
-	    {
-	      path = xstrconcat (3, parent_path, "/", entry->name);
-	      free (parent_path);
-	      break;
-	    }
+	    break;
 	}
     }
 

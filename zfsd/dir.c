@@ -227,7 +227,7 @@ local_path_to_relative_path (volume vol, char *path)
   if (path == NULL)
     return path;
 
-  for (i = 0; vol->local_path[i] == path[i]; i++)
+  for (i = 0; path[i] && vol->local_path[i] == path[i]; i++)
     ;
 #ifdef ENABLE_CHECKING
   /* Now we should be at the end of VOL->LOCAL_PATH.  */
