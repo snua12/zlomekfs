@@ -61,8 +61,8 @@
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
 				       false);				\
-	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
-	      abort ();							\
+	    if (r2 != ZFS_OK)						\
+	      return r2;						\
 									\
 	    if (r != ZFS_OK)						\
 	      {								\
@@ -97,12 +97,28 @@
 									\
 	    r2 = zfs_fh_lookup_nolock (&(FH), &(VOL), &(DENTRY), NULL,	\
 				       false);				\
-	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
-	      abort ();							\
+	    if (r2 != ZFS_OK)						\
+	      {								\
+		if ((FH2).ino != (FH).ino)				\
+		  {							\
+		    r = zfs_fh_lookup_nolock (&(FH2), &(VOL), &(DENTRY),\
+					      NULL, false);		\
+		    if (r == ZFS_OK)					\
+		      internal_dentry_unlock ((VOL), (DENTRY));		\
+		  }							\
+		return r2;						\
+	      }								\
 									\
 	    if (r != ZFS_OK)						\
 	      {								\
 		internal_dentry_unlock ((VOL), (DENTRY));		\
+		if ((FH2).ino != (FH).ino)				\
+		  {							\
+		    r2 = zfs_fh_lookup_nolock (&(FH2), &(VOL),		\
+					       &(DENTRY2), NULL, false);\
+		    if (r2 == ZFS_OK)					\
+		      internal_dentry_unlock ((VOL), (DENTRY2));	\
+		  }							\
 		return r;						\
 	      }								\
 									\
@@ -159,8 +175,12 @@
 	      zfsd_mutex_lock (&vd_mutex);				\
 	    r2 = find_capability_nolock (&(CAP), &(ICAP), &(VOL),	\
 					&(DENTRY), &(VD), false);	\
-	    if (ENABLE_CHECKING_VALUE && r2 != ZFS_OK)			\
-	      abort ();							\
+	    if (r2 != ZFS_OK)						\
+	      {								\
+		if (VIRTUAL_FH_P ((CAP).fh))				\
+		  zfsd_mutex_unlock (&vd_mutex);			\
+		return r2;						\
+	      }								\
 									\
 	    if (r != ZFS_OK)						\
 	      {								\
