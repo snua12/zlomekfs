@@ -115,6 +115,64 @@ build_local_path_name (volume vol, internal_dentry dentry, const char *name)
   return r;
 }
 
+/* Recursively unlink the file PATH on volume VOL.  */
+
+bool
+recursive_unlink (const char *path, volume vol)
+{
+  internal_dentry dentry;
+  zfs_fh fh;
+  struct stat st;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+
+  if (lstat (path, &st) != 0)
+    return errno == ENOENT;
+
+  if ((st.st_mode & S_IFMT) != S_IFDIR)
+    {
+      if (unlink (path) != 0)
+	return errno == ENOENT;
+    }
+  else
+    {
+      DIR *d;
+      struct dirent *de;
+
+      d = opendir (path);
+      if (!d)
+	return errno == ENOENT;
+
+      while ((de = readdir (d)) != NULL)
+	{
+	  char *new_path;
+
+	  new_path = xstrconcat (3, path, "/", de->d_name);
+	  recursive_unlink (new_path, vol);
+	  free (new_path);
+	}
+      closedir (d);
+
+      if (rmdir (path) != 0)
+	return errno == ENOENT;
+    }
+
+  /* Destroy dentry associated with the file.  */
+  fh.sid = this_node->id;
+  fh.vid = vol->id;
+  fh.dev = st.st_dev;
+  fh.ino = st.st_ino;
+
+  dentry = dentry_lookup (vol, &fh);
+  if (dentry)
+    {
+      zfsd_mutex_lock (&dentry->fh->mutex);
+      internal_dentry_destroy (dentry, vol);
+    }
+
+  return true;
+}
+
 /* Check whether we can perform file system change operation on NAME in
    virtual directory PVD.  Resolve whether the is a volume mapped on PVD
    whose mounpoint name is not NAME and if so return ZFS_OK and store
