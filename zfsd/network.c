@@ -1634,8 +1634,6 @@ network_start (void)
       return false;
     }
 
-  fd_data_init ();
-
   if (!thread_pool_create (&network_pool, 256, 4, 16, network_main,
 			   network_worker, network_worker_init))
     {
