@@ -590,7 +590,10 @@ update_file (zfs_fh *fh)
 
 #ifdef ENABLE_CHECKING
   if ((dentry->fh->flags & (IFH_REINTEGRATE | IFH_UPDATE)) == 0)
-    abort ();
+    {
+      printf ("%d\n", dentry->fh->flags);
+      abort ();
+    }
 #endif
 
   if (dentry->fh->flags & IFH_REINTEGRATE)
