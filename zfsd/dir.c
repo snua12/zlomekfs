@@ -2745,14 +2745,65 @@ zfs_rename (zfs_fh *from_dir, string *from_name,
   return r;
 }
 
-/* Link local file FROM to be a file with NAME in directory DIR
-   on volume VOL.  Store the stat structure to ST.  */
+/* Link local file FROM_PATH with file handle FH to TO_PATH.
+   Use the metadata META for adding a metadata hardlink.  */
 
 static int32_t
-local_link (struct stat *st, internal_dentry from, internal_dentry dir,
-	    string *name, volume vol)
+local_link_base (metadata *meta, string *from_path, string *to_path,
+		 zfs_fh *fh)
 {
-  string path1, path2;
+  struct stat to_parent_st;
+  string to_name;
+  volume vol;
+  int32_t r;
+
+  r = parent_exists (to_path, &to_parent_st);
+  if (r != ZFS_OK)
+    {
+      free (from_path->str);
+      free (to_path->str);
+      return r;
+    }
+
+  r = link (from_path->str, to_path->str);
+  if (r != 0)
+    {
+      free (from_path->str);
+      free (to_path->str);
+      if (errno == ENOENT || errno == ENOTDIR)
+	return ESTALE;
+      return errno;
+    }
+
+
+  vol = volume_lookup (fh->vid);
+  if (!vol)
+    {
+      free (from_path->str);
+      free (to_path->str);
+      return ESTALE;
+    }
+
+  file_name_from_path (&to_name, to_path);
+  if (!metadata_hardlink_insert (vol, fh, meta, to_parent_st.st_dev,
+				 to_parent_st.st_ino, &to_name))
+    MARK_VOLUME_DELETE (vol);
+
+  zfsd_mutex_unlock (&vol->mutex);
+  free (from_path->str);
+  free (to_path->str);
+  return ZFS_OK;
+}
+
+/* Link local file FROM with file handle FH to be a file with NAME
+   in directory DIR on volume VOL.  Store the metadata to META.  */
+
+static int32_t
+local_link (metadata *meta, internal_dentry from, internal_dentry dir,
+	    string *name, volume vol, zfs_fh *fh)
+{
+  string from_path, to_path;
+  struct stat st;
   int32_t r;
 
   TRACE ("");
@@ -2761,35 +2812,30 @@ local_link (struct stat *st, internal_dentry from, internal_dentry dir,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh_mutex);
 
-  build_local_path (&path1, vol, from);
-  build_local_path_name (&path2, vol, dir, name);
+  build_local_path (&from_path, vol, from);
+  build_local_path_name (&to_path, vol, dir, name);
   release_dentry (from);
   if (dir->fh != from->fh)
     release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = lstat (path1.str, st);
+  r = lstat (from_path.str, &st);
   if (r != 0)
     {
-      free (path1.str);
-      free (path2.str);
+      free (from_path.str);
+      free (to_path.str);
       if (errno == ENOENT || errno == ENOTDIR)
 	return ESTALE;
       return errno;
     }
 
-  r = link (path1.str, path2.str);
-  free (path1.str);
-  free (path2.str);
-  if (r != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-	return ESTALE;
-      return errno;
-    }
-
-  return ZFS_OK;
+  meta->flags = METADATA_COMPLETE;
+  meta->modetype = GET_MODETYPE (GET_MODE (st.st_mode),
+				 zfs_mode_to_ftype (st.st_mode));
+  meta->uid = map_uid_node2zfs (st.st_uid);
+  meta->gid = map_gid_node2zfs (st.st_gid);
+  return local_link_base (meta, &from_path, &to_path, fh);
 }
 
 /* Link remote file FROM to be a file with NAME in directory DIR
@@ -2849,7 +2895,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
   volume vol;
   internal_dentry from_dentry, dir_dentry;
   virtual_dir vd;
-  struct stat st;
+  metadata meta;
   zfs_fh tmp_from, tmp_dir;
   int32_t r, r2;
 
@@ -2994,7 +3040,7 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 	  if (r != ZFS_OK)
 	    return r;
 	}
-      r = local_link (&st, from_dentry, dir_dentry, name, vol);
+      r = local_link (&meta, from_dentry, dir_dentry, name, vol, &tmp_from);
     }
   else if (vol->master != this_node)
     {
@@ -3029,17 +3075,6 @@ zfs_link (zfs_fh *from, zfs_fh *dir, string *name)
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (dir_dentry->fh))
 	{
-	  metadata meta;
-
-	  meta.flags = METADATA_COMPLETE;
-	  meta.modetype = GET_MODETYPE (GET_MODE (st.st_mode),
-					zfs_mode_to_ftype (st.st_mode));
-	  meta.uid = map_uid_node2zfs (st.st_uid);
-	  meta.gid = map_gid_node2zfs (st.st_gid);
-	  if (!metadata_hardlink_insert (vol, &from_dentry->fh->local_fh, &meta,
-					 dir_dentry->fh->local_fh.dev,
-					 dir_dentry->fh->local_fh.ino, name))
-	    MARK_VOLUME_DELETE (vol);
 	  if (vol->master != this_node)
 	    {
 	      if (!add_journal_entry (vol, dir_dentry->fh,
@@ -4662,33 +4697,9 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	}
       else
 	{
-	  if (link (old_path.str, new_path.str) != 0)
-	    {
-	      free (old_path.str);
-	      free (new_path.str);
-	      return errno;
-	    }
-
-	  vol = volume_lookup (vid);
-	  if (!vol)
-	    {
-	      free (old_path.str);
-	      free (new_path.str);
-	      return ENOENT;
-	    }
-
-	  if (!metadata_hardlink_insert (vol, fh, &meta, new_parent_dev,
-					 new_parent_ino, &new_name))
-	    {
-	      MARK_VOLUME_DELETE (vol);
-	      zfsd_mutex_unlock (&vol->mutex);
-	      free (old_path.str);
-	      free (new_path.str);
-	      return ZFS_UPDATE_FAILED;
-	    }
-	  zfsd_mutex_unlock (&vol->mutex);
-	  free (old_path.str);
-	  free (new_path.str);
+	  r = local_link_base (&meta, &old_path, &new_path, fh);
+	  if (r != ZFS_OK)
+	    return r;
 	}
     }
 
