@@ -636,6 +636,67 @@ delete_tree_name (internal_dentry dir, char *name, volume vol)
   return r;
 }
 
+/* Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
+
+bool
+move_from_shadow (volume vol, zfs_fh *fh, internal_dentry dir, string *name)
+{
+  char *path;
+  char *shadow_path;
+  uint32_t vid;
+  uint32_t new_parent_dev;
+  uint32_t new_parent_ino;
+
+  CHECK_MUTEX_LOCKED (&fh_mutex);
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+
+  path = build_local_path_name (vol, dir, name->str);
+  vid = vol->id;
+  new_parent_dev = dir->fh->local_fh.dev;
+  new_parent_ino = dir->fh->local_fh.ino;
+  release_dentry (dir);
+  zfsd_mutex_unlock (&fh_mutex);
+  shadow_path = get_shadow_path (vol, fh, false);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  if (!recursive_unlink (path, vid, false))
+    {
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  if (rename (shadow_path, path) != 0)
+    {
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  vol = volume_lookup (vid);
+  if (!vol)
+    {
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  if (!metadata_hardlink_replace (vol, fh, 0, 0, "", new_parent_dev,
+				  new_parent_ino, name->str))
+    {
+      zfsd_mutex_unlock (&vol->mutex);
+      free (path);
+      free (shadow_path);
+      return false;
+    }
+
+  zfsd_mutex_unlock (&vol->mutex);
+  free (path);
+  free (shadow_path);
+  return true;
+}
+
 /* Move file DENTRY on volume VOL to shadow.  */
 
 bool
