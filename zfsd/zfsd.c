@@ -55,7 +55,7 @@
 #endif
 
 /* Name of the configuration file.  */
-char *config_file = "/etc/zfs/config";
+static char *config_file;
 
 /* Local function prototypes.  */
 static void exit_sighandler (int signum);
@@ -287,17 +287,14 @@ static void
 process_arguments (int argc, char **argv)
 {
   int c;
-  bool config_file_allocated = false;
 
   while ((c = getopt_long (argc, argv, "f:qv", long_options, NULL)) != -1)
     {
       switch (c)
 	{
 	  case 'f':
-	    if (config_file_allocated)
-	      free (config_file);
+	    free (config_file);
 	    config_file = xstrdup (optarg);
-	    config_file_allocated = true;
 	    break;
 
 	  case 'v':
@@ -413,8 +410,13 @@ main (int argc, char **argv)
 #ifdef TEST
   fake_config ();
 #else
+  config_file = xstrdup ("/etc/zfs/config");
   if (!read_config_file (config_file))
-    die ();
+    {
+      free (config_file);
+      die ();
+    }
+  free (config_file);
 #endif
 
   printf ("sizeof (pthread_mutex_t) = %u\n", sizeof (pthread_mutex_t));
