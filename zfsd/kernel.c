@@ -389,19 +389,28 @@ client_main (ATTRIBUTE_UNUSED void *data)
 	      client_data.read += r;
 	      if (client_data.dc[0].max_length == client_data.read)
 		{
-		  DC *dc;
+		  if (client_data.dc[0].max_length <= client_data.dc[0].size)
+		    {
+		      DC *dc;
 
-		  zfsd_mutex_lock (&client_data.mutex);
-		  dc = &client_data.dc[0];
-		  client_data.read = 0;
-		  client_data.busy++;
-		  client_data.ndc--;
-		  if (client_data.ndc > 0)
-		    client_data.dc[0] = client_data.dc[client_data.ndc];
-		  zfsd_mutex_unlock (&client_data.mutex);
+		      zfsd_mutex_lock (&client_data.mutex);
+		      dc = &client_data.dc[0];
+		      client_data.read = 0;
+		      client_data.busy++;
+		      client_data.ndc--;
+		      if (client_data.ndc > 0)
+			client_data.dc[0] = client_data.dc[client_data.ndc];
+		      zfsd_mutex_unlock (&client_data.mutex);
 
-		  /* We have read complete request, dispatch it.  */
-		  client_dispatch (dc);
+		      /* We have read complete request, dispatch it.  */
+		      client_dispatch (dc);
+		    }
+		  else
+		    {
+		      message (2, stderr, "Packet too long: %u\n",
+			       client_data.read);
+		      client_data.read = 0;
+		    }
 		}
 	    }
 	}

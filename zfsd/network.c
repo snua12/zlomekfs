@@ -849,21 +849,30 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
 		      if (fd_data->dc[0].max_length == fd_data->read)
 			{
-			  unsigned int generation;
-			  DC *dc;
+			  if (fd_data->dc[0].max_length <= fd_data->dc[0].size)
+			    {
+			      unsigned int generation;
+			      DC *dc;
 
-			  zfsd_mutex_lock (&fd_data->mutex);
-			  generation = fd_data->generation;
-			  dc = &fd_data->dc[0];
-			  fd_data->read = 0;
-			  fd_data->busy++;
-			  fd_data->ndc--;
-			  if (fd_data->ndc > 0)
-			    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-			  zfsd_mutex_unlock (&fd_data->mutex);
+			      zfsd_mutex_lock (&fd_data->mutex);
+			      generation = fd_data->generation;
+			      dc = &fd_data->dc[0];
+			      fd_data->read = 0;
+			      fd_data->busy++;
+			      fd_data->ndc--;
+			      if (fd_data->ndc > 0)
+				fd_data->dc[0] = fd_data->dc[fd_data->ndc];
+			      zfsd_mutex_unlock (&fd_data->mutex);
 
-			  /* We have read complete request, dispatch it.  */
-			  network_dispatch (fd_data, dc, generation);
+			      /* We have read complete request, dispatch it.  */
+			      network_dispatch (fd_data, dc, generation);
+			    }
+			  else
+			    {
+			      message (2, stderr, "Packet too long: %u\n",
+				       fd_data->read);
+			      fd_data->read = 0;
+			    }
 			}
 		    }
 		}
