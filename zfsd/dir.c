@@ -3259,7 +3259,7 @@ local_file_info (file_info_res *res, zfs_fh *fh, volume vol)
 
   path = get_local_path_from_metadata (vol, fh);
   if (!path)
-    return ENOENT;
+    return ESTALE;
 
   xmkstring (&res->path, local_path_to_relative_path (vol, path));
   free (path);
@@ -3332,7 +3332,7 @@ zfs_file_info (file_info_res *res, zfs_fh *fh)
 
   vol = volume_lookup (fh->vid);
   if (!vol)
-    return ENOENT;
+    return ESTALE;
 
   if (vol->local_path)
     {
@@ -3447,7 +3447,7 @@ local_reintegrate_add (volume vol, internal_dentry dir, string *name,
 	    {
 	      free (old_path);
 	      free (new_path);
-	      return ENOENT;
+	      return ESTALE;
 	    }
 
 	  if (!metadata_hardlink_replace (vol, fh, old_parent_st.st_dev,
@@ -3869,7 +3869,7 @@ refresh_fh (zfs_fh *fh)
   if (!vol)
     {
       free (info.path.str);
-      return ENOENT;
+      return ESTALE;
     }
 
   r = get_volume_root_dentry (vol, &dentry, true);
