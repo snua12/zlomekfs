@@ -33,11 +33,18 @@ int fd_urandom = -1;
 
 /* Initialize random bytes.  */
 
-void
-init_random_c ()
+bool
+initialize_random_c ()
 {
   fd_random = open ("/dev/random", O_RDONLY);
+  if (fd_random < 0)
+    return false;
+
   fd_urandom = open ("/dev/urandom", O_RDONLY);
+  if (fd_urandom < 0)
+    return false;
+
+  return true;
 }
 
 /* Close files opened in init_random_c.  */

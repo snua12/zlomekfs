@@ -312,6 +312,9 @@ initialize_data_structures ()
   pthread_setspecific (server_thread_key, &main_thread_data);
 
   /* Initialize data structures in other modules.  */
+  if (!initialize_random_c ())
+    return false;
+
   initialize_fh_c ();
   initialize_node_c ();
   initialize_volume_c ();
@@ -333,6 +336,7 @@ cleanup_data_structures ()
   cleanup_volume_c ();
   cleanup_node_c ();
   cleanup_fh_c ();
+  cleanup_random_c ();
 
   free (node_name);
 }
