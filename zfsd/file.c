@@ -1670,16 +1670,17 @@ zfs_read_retry:
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 
-	      r = update_file_blocks (true, rcount, buffer, offset,
-				      &tmp_cap, &blocks);
+	      *rcount = 0;
+	      r = update_file_blocks (&tmp_cap, &blocks,
+				      true, rcount, buffer, offset, count);
 	    }
 	  else
 	    {
 	      r = local_read (rcount, buffer, dentry, offset, count, vol);
 	      if (r == ZFS_OK)
 		{
-		  r = update_file_blocks (true, rcount, buffer, offset,
-					  &tmp_cap, &blocks);
+		  r = update_file_blocks (&tmp_cap, &blocks,
+					  true, rcount, buffer, offset, count);
 		}
 	    }
 
