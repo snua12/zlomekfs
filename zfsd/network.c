@@ -892,7 +892,9 @@ send_request (thread *t, uint32_t request_id, int fd)
   /* If there was no error with connection, decode return value.  */
   if (t->retval == ZFS_OK)
     {
-      if (!decode_status (t->dc_reply, &t->retval))
+      if (t->dc_reply->max_length > DC_SIZE)
+	t->retval = ZFS_REPLY_TOO_LONG;
+      else if (!decode_status (t->dc_reply, &t->retval))
 	t->retval = ZFS_INVALID_REPLY;
     }
 }
@@ -991,6 +993,8 @@ network_worker (void *data)
 
       if (t->u.network.dc->max_length > DC_SIZE)
 	{
+	  message (1, stderr, "Packet too long: %u\n",
+		   t->u.network.dc->max_length);
 	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
@@ -1108,9 +1112,11 @@ network_dispatch (fd_data_t *fd_data)
 	    if (!decode_request_id (dc, &request_id))
 	      {
 		/* TODO: log too short packet.  */
+		message (1, stderr, "Packet too short.\n");
 		return false;
 	      }
 	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+
 	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
 					     &request_id,
 					     WAITING4REPLY_HASH (request_id),
@@ -1359,10 +1365,18 @@ network_main (ATTRIBUTE_UNUSED void *data)
 				fd_data->dc[0]->buffer + fd_data->read,
 				fd_data->dc[0]->max_length - fd_data->read);
 		    }
+		  else if (fd_data->read < 12)
+		    {
+		      /* Read the header upto request_id.  */
+		      r = read (fd_data->fd,
+				fd_data->dc[0]->buffer + fd_data->read,
+				12 - fd_data->read);
+		    }
 		  else
 		    {
 		      int l;
 
+		      /* Read the rest of long packet.  */
 		      l = fd_data->dc[0]->max_length - fd_data->read;
 		      if (l > ZFS_MAXDATA)
 			l = ZFS_MAXDATA;
@@ -1381,25 +1395,16 @@ network_main (ATTRIBUTE_UNUSED void *data)
 
 		      if (fd_data->dc[0]->max_length == fd_data->read)
 			{
-			  if (fd_data->dc[0]->max_length <= DC_SIZE)
+			  /* Dispatch the packet.  */
+			  zfsd_mutex_lock (&fd_data->mutex);
+			  fd_data->read = 0;
+			  if (network_dispatch (fd_data))
 			    {
-			      /* We have read complete request, dispatch it.  */
-			      zfsd_mutex_lock (&fd_data->mutex);
-			      fd_data->read = 0;
-			      if (network_dispatch (fd_data))
-				{
-				  fd_data->ndc--;
-				  if (fd_data->ndc > 0)
-				    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-				}
-			      zfsd_mutex_unlock (&fd_data->mutex);
+			      fd_data->ndc--;
+			      if (fd_data->ndc > 0)
+				fd_data->dc[0] = fd_data->dc[fd_data->ndc];
 			    }
-			  else
-			    {
-			      message (2, stderr, "Packet too long: %u\n",
-				       fd_data->read);
-			      fd_data->read = 0;
-			    }
+			  zfsd_mutex_unlock (&fd_data->mutex);
 			}
 		    }
 		}

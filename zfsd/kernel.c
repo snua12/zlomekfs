@@ -300,9 +300,11 @@ kernel_dispatch (fd_data_t *fd_data)
 	    if (!decode_request_id (dc, &request_id))
 	      {
 		/* TODO: log too short packet.  */
+		message (1, stderr, "Packet from kernel too short.\n");
 		return false;
 	      }
 	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+
 	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
 					     &request_id,
 					     WAITING4REPLY_HASH (request_id),
@@ -408,23 +410,30 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
       start_decoding (fd_data->dc[0]);
 
-      if (fd_data->dc[0]->max_length == (unsigned int) r)
+      if (fd_data->dc[0]->max_length != (unsigned int) r)
 	{
-	  /* Dispatch the request.  */
-	  zfsd_mutex_lock (&fd_data->mutex);
-	  fd_data->read = 0;
-	  if (kernel_dispatch (fd_data))
-	    {
-	      fd_data->ndc--;
-	      if (fd_data->ndc > 0)
-		fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-	    }
-	  zfsd_mutex_unlock (&fd_data->mutex);
+	  message (1, stderr, "Invalid packet from kernel.\n");
+
+	  /* If the packet length is at least 12 we will decode the request_id.
+	     So if the packet length is smaller than DC_SIZE
+	     we can send a ZFS_INVALID_REQUEST error reply
+	     or return a ZFS_INVALID_REPLY error to caller thread.
+	     If the packet is larger than DC_SIZE we will
+	     return a ZFS_REPLY_TOO_LONG error.  */
+	  if (fd_data->dc[0]->max_length >= 12
+	      && fd_data->dc[0]->max_length <= DC_SIZE)
+	    fd_data->dc[0]->max_length = 12;
 	}
-      else
+	
+      /* Dispatch the packet.  */
+      zfsd_mutex_lock (&fd_data->mutex);
+      if (kernel_dispatch (fd_data))
 	{
-	  message (2, stderr, "Invalid packet\n");
+	  fd_data->ndc--;
+	  if (fd_data->ndc > 0)
+	    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
 	}
+      zfsd_mutex_unlock (&fd_data->mutex);
     }
 
   close (kernel_fd);

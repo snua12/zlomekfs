@@ -51,7 +51,8 @@
 #define ZFS_LAST_DECODED_ERROR	-99	/* Code of last error which is being
 					   decoded from DC */
 
-#define ZFS_INVALID_REPLY	-100	/* Reply was not well encoded. */
+#define ZFS_REPLY_TOO_LONG	-100	/* Reply was too long.  */
+#define ZFS_INVALID_REPLY	-101	/* Reply was not well encoded. */
 #define ZFS_ERROR_HAS_DC_REPLY	-150	/* Code of last error which has
 					   a DC_REPLY.  */
 
