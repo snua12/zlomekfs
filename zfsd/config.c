@@ -40,6 +40,9 @@
 /* The host name of local node.  */
 char *node_name;
 
+/* Length of host name of local node.  */
+unsigned int node_name_len;
+
 /* Directory with node configuration. */
 char *node_config;
 
@@ -241,13 +244,12 @@ void
 get_node_name ()
 {
   struct utsname un;
-  int len;
 
   if (uname (&un) != 0)
     return;
 
-  len = strlen (un.nodename);
-  set_string_with_length (&node_name, un.nodename, len);
+  node_name_len = strlen (un.nodename);
+  set_string_with_length (&node_name, un.nodename, node_name_len);
   message (1, stderr, "Autodetected node name: '%s'\n", node_name);
 }
 

@@ -29,6 +29,9 @@
 /* The host name of local node.  */
 extern char *node_name;
 
+/* Length of host name of local node.  */
+extern unsigned int node_name_len;
+
 /* Directory with node configuration.  */
 extern char *node_config;
 
