@@ -708,7 +708,7 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
   if (fd < 0)
     return fd;
 
-  if (lseek (fd, 0, SEEK_END))
+  if (lseek (fd, 0, SEEK_END) == (off_t) -1)
     {
       message (1, stderr, "lseek: %s\n", strerror (errno));
       close (fd);
@@ -761,7 +761,7 @@ open_journal_file (volume vol, internal_fh fh)
   if (fd < 0)
     return fd;
 
-  if (lseek (fd, 0, SEEK_END))
+  if (lseek (fd, 0, SEEK_END) == (off_t) -1)
     {
       message (1, stderr, "lseek: %s\n", strerror (errno));
       close (fd);
