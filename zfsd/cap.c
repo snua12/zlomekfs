@@ -130,19 +130,19 @@ verify_capability (zfs_cap *cap, internal_cap icap)
 	  : EBADF);
 }
 
-/* Create a new capability for internal file handle FH with open flags FLAGS.  */
+/* Create a new capability for internal dentry DENTRY with open flags FLAGS.  */
 
 static internal_cap
-internal_cap_create_fh (internal_fh fh, unsigned int flags)
+internal_cap_create_dentry (internal_dentry dentry, unsigned int flags)
 {
   internal_cap cap;
   void **slot;
 
   CHECK_MUTEX_LOCKED (&cap_mutex);
-  CHECK_MUTEX_LOCKED (&fh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
   /* This should be handled in get_capability().  */
-  if (fh->attr.type == FT_DIR && flags != O_RDONLY)
+  if (dentry->fh->attr.type == FT_DIR && flags != O_RDONLY)
     abort ();
 #endif
 
@@ -153,14 +153,14 @@ internal_cap_create_fh (internal_fh fh, unsigned int flags)
       pool_free (cap_pool, cap);
       return NULL;
     }
-  cap->local_cap.fh = fh->local_fh;
-  cap->master_cap.fh = fh->master_fh;
+  cap->local_cap.fh = dentry->fh->local_fh;
+  cap->master_cap.fh = dentry->fh->master_fh;
   cap->local_cap.flags = flags;
   cap->master_cap.flags = flags;
   cap->busy = 1;
   cap->fd = -1;
   cap->generation = 0;
-  fh->ncap++;
+  dentry->ncap++;
   internal_cap_compute_verify (cap);
   zfsd_mutex_init (&cap->mutex);
   zfsd_mutex_lock (&cap->mutex);
@@ -220,21 +220,21 @@ internal_cap_create_vd (virtual_dir vd, unsigned int flags)
   return cap;
 }
 
-/* Destroy capability CAP.  */
+/* Destroy capability CAP associated with internal dentry DENTRY.  */
 
 static void
-internal_cap_destroy (internal_cap cap, internal_fh fh)
+internal_cap_destroy (internal_cap cap, internal_dentry dentry)
 {
   void **slot;
 
   CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
 
-  if (fh)
+  if (dentry)
     {
-      CHECK_MUTEX_LOCKED (&fh->mutex);
+      CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-      fh->ncap--;
+      dentry->ncap--;
     }
 
   if (cap->fd >= 0)
@@ -259,7 +259,7 @@ internal_cap_destroy (internal_cap cap, internal_fh fh)
 
 int
 get_capability (zfs_cap *cap, internal_cap *icapp,
-		volume *vol, internal_fh *ifh, virtual_dir *vd)
+		volume *vol, internal_dentry *dentry, virtual_dir *vd)
 {
   internal_cap icap;
   int r;
@@ -272,16 +272,16 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   if (VIRTUAL_FH_P (cap->fh) && cap->flags != O_RDONLY)
     return EISDIR;
 
-  r = zfs_fh_lookup (&cap->fh, vol, ifh, vd);
+  r = zfs_fh_lookup (&cap->fh, vol, dentry, vd);
   if (r != ZFS_OK)
     return r;
 
   if (*vd && *vol)
-    update_volume_root (*vol, ifh);
+    update_volume_root (*vol, dentry);
 
-  if (*ifh && (*ifh)->attr.type == FT_DIR && cap->flags != O_RDONLY)
+  if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
-      zfsd_mutex_unlock (&(*ifh)->mutex);
+      zfsd_mutex_unlock (&(*dentry)->fh->mutex);
       if (*vd)
 	zfsd_mutex_unlock (&(*vd)->mutex);
       if (*vol)
@@ -296,18 +296,18 @@ get_capability (zfs_cap *cap, internal_cap *icapp,
   else if (*vd)
     icap = internal_cap_create_vd (*vd, cap->flags);
   else
-    icap = internal_cap_create_fh (*ifh, cap->flags);
+    icap = internal_cap_create_dentry (*dentry, cap->flags);
   zfsd_mutex_unlock (&cap_mutex);
 
   *icapp = icap;
   return ZFS_OK;
 }
 
-/* Return an internal capability for ZFS capability CAP and internal file
-   handle FH.  */
+/* Return an internal capability for ZFS capability CAP and internal dentry
+   DENTRY.  */
 
 internal_cap
-get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_fh fh)
+get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry)
 {
   internal_cap icap;
 
@@ -316,19 +316,19 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_fh fh)
   if (icap)
     icap->busy++;
   else
-    icap = internal_cap_create_fh (fh, cap->flags);
+    icap = internal_cap_create_dentry (dentry, cap->flags);
   zfsd_mutex_unlock (&cap_mutex);
 
   return icap;
 }
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
-   volume to VOL, internal file handle IFH and virtual directory to VD.
+   volume to VOL, internal dentry DENTRY and virtual directory to VD.
    Create a new internal capability if it does not exist.  */
 
 int
 find_capability (zfs_cap *cap, internal_cap *icapp,
-		 volume *vol, internal_fh *ifh, virtual_dir *vd)
+		 volume *vol, internal_dentry *dentry, virtual_dir *vd)
 {
   int r;
 
@@ -337,7 +337,7 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
     zfsd_mutex_lock (&vd_mutex);
   zfsd_mutex_lock (&cap_mutex);
 
-  r = find_capability_nolock (cap, icapp, vol, ifh, vd);
+  r = find_capability_nolock (cap, icapp, vol, dentry, vd);
 
   zfsd_mutex_unlock (&volume_mutex);
   if (VIRTUAL_FH_P (cap->fh))
@@ -348,13 +348,13 @@ find_capability (zfs_cap *cap, internal_cap *icapp,
 }
 
 /* Find an internal capability CAP and store it to ICAPP. Store capability's
-   volume to VOL, internal file handle IFH and virtual directory to VD.
+   volume to VOL, internal dentry DENTRY and virtual directory to VD.
    Create a new internal capability if it does not exist.
    This function is similar to FIND_CAPABILITY but does not lock big locks.  */
 
 int
 find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
-			volume *vol, internal_fh *ifh, virtual_dir *vd)
+			volume *vol, internal_dentry *dentry, virtual_dir *vd)
 {
   internal_cap icap;
   int r;
@@ -375,7 +375,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
       return r;
     }
 
-  r = zfs_fh_lookup_nolock (&cap->fh, vol, ifh, vd);
+  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd);
   if (r != ZFS_OK)
     {
       internal_cap_destroy (icap, NULL);
@@ -383,7 +383,7 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     }
 
   if (vd && *vd && *vol)
-    update_volume_root (*vol, ifh);
+    update_volume_root (*vol, dentry);
 
   *icapp = icap;
   return ZFS_OK;
@@ -393,14 +393,14 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
    when the number of users becomes 0.  */
 
 int
-put_capability (internal_cap cap, internal_fh fh)
+put_capability (internal_cap cap, internal_dentry dentry)
 {
   CHECK_MUTEX_LOCKED (&cap_mutex);
   CHECK_MUTEX_LOCKED (&cap->mutex);
 
   cap->busy--;
   if (cap->busy == 0)
-    internal_cap_destroy (cap, fh);
+    internal_cap_destroy (cap, dentry);
   else
     zfsd_mutex_unlock (&cap->mutex);
 

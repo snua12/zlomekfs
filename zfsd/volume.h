@@ -41,12 +41,14 @@ struct volume_def
   char *local_path;		/* directory with local copy of volume */
   uint64_t size_limit;		/* size limit for copy of volume */
 
-  internal_fh root_fh;		/* file handle of root on underlying FS.  */
+  internal_dentry root_dentry;	/* dentry of root on underlying FS.  */
   virtual_dir root_vd;		/* virtual directory for the mountpoint */
   htab_t fh_htab;		/* hash table of used file handles,
 				   searched by local_fh */
-  htab_t fh_htab_name;		/* hash table of used file handles,
-				   searched by(parent_fh, name) */
+  htab_t dentry_htab;		/* hash table of used dentries,
+				   searched by fh->local_fh.  */
+  htab_t dentry_htab_name;	/* hash table of used dentries,
+				   searched by (parent->fh->local_fh, name) */
 };
 
 /* Predefined volume IDs.  */

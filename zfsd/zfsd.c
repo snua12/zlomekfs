@@ -98,9 +98,9 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
   if (network_regulator_data.thread_id)
     thread_terminate_blocking_syscall (network_regulator_data.thread_id,
 				       &network_regulator_data.in_syscall);
-  if (cleanup_fh_thread)
-    thread_terminate_blocking_syscall (cleanup_fh_thread,
-				       &cleanup_fh_thread_in_syscall);
+  if (cleanup_dentry_thread)
+    thread_terminate_blocking_syscall (cleanup_dentry_thread,
+				       &cleanup_dentry_thread_in_syscall);
   zfsd_mutex_unlock (&running_mutex);
   message (2, stderr, "Leaving exit_sighandler\n");
 }

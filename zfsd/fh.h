@@ -57,25 +57,27 @@ typedef struct volume_def *volume;
 			     && (FH1).vid == (FH2).vid		\
 			     && (FH1).sid == (FH2).sid)
 
-/* Hash function for internal_fh FH, computed from local_fh.  */
-#define INTERNAL_FH_HASH(FH)						\
-  (ZFS_FH_HASH (&(FH)->local_fh))
+/* Hash function for internal dentry D, computed from fh->local_fh.  */
+#define INTERNAL_DENTRY_HASH(D)						\
+  (ZFS_FH_HASH (&(D)->fh->local_fh))
 
-/* Hash function for internal_fh FH, computed from parent_fh and name.  */
-#define INTERNAL_FH_HASH_NAME(FH)					\
-  (crc32_update (crc32_string ((FH)->name),				\
-		 &(FH)->parent->local_fh, sizeof (zfs_fh)))
+/* Hash function for internal dentry D, computed from parent->fh and name.  */
+#define INTERNAL_DENTRY_HASH_NAME(D)					\
+  (crc32_update (crc32_string ((D)->name),				\
+		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
-/* Return internal file handle for ZFS file handle FH on volume VOL.  */
-#define fh_lookup(VOL, FH)						\
-  ((internal_fh) htab_find_with_hash ((VOL)->fh_htab, (FH), ZFS_FH_HASH (FH)))
+/* Return internal dentry for ZFS file handle FH on volume VOL.  */
+#define dentry_lookup(VOL, FH)						\
+  ((internal_dentry) htab_find_with_hash ((VOL)->dentry_htab, (FH),	\
+					  ZFS_FH_HASH (FH)))
   
-/* Return internal file handle for ZFS file handle FH on volume VOL.  */
+/* Return virtual directory for ZFS file handle FH on volume VOL.  */
 #define vd_lookup(FH)							\
   ((virtual_dir) htab_find_with_hash (vd_htab, (FH), ZFS_FH_HASH (FH)))
   
 /* Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
+typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
 
 #include "volume.h"
@@ -91,28 +93,41 @@ struct internal_fh_def
   /* File handle for server.  */
   zfs_fh master_fh;
 
-  /* Pointer to file handle of the parent directory.  */
-  internal_fh parent;
+  /* File attributes.  */
+  fattr attr;
+
+  /* Number Directory entries associated with this file handle.  */
+  unsigned int ndentries;
+};
+
+/* Internal directory entry.  */
+struct internal_dentry_def
+{
+  /* Mutex is not needed here because we can use FH->MUTEX
+     because FH is constant for each internal dentry.  */
+
+  /* Pointer to internal dentry of the parent directory.  */
+  internal_dentry parent;
 
   /* File name.  */
   char *name;
 
-  /* File attributes.  */
-  fattr attr;
+  /* Internal file handle associated with this dentry.  */
+  internal_fh fh;
 
-  /* Directory entries (of type 'struct internal_fh_def *').  */
+  /* Contained directory entries (of type 'struct internal_dentry_def *').  */
   varray dentries;
 
-  /* Index in parent's list of directory entries.  */
+  /* Index of this dentry in parent's list of directory entries.  */
   unsigned int dentry_index;
 
-  /* Number of capabilities associated with this file handle.  */
+  /* Number of capabilities associated with this dentry.  */
   unsigned int ncap;
 
-  /* Last use of this FH.  */
+  /* Last use of this dentry.  */
   time_t last_use;
 
-  /* Heap node whose data is this structure.  */
+  /* Heap node whose data is this dentry.  */
   fibnode heap_node;
 };
 
@@ -136,7 +151,7 @@ struct virtual_dir_def
   /* Directory attributes.  */
   fattr attr;
 
-  /* Subdirectories (of type 'struct virtual_dir_def *').  */
+  /* Virtual subdirectories (of type 'struct virtual_dir_def *').  */
   varray subdirs;
 
   /* Index in parent's list of subdirectories.  */
@@ -149,36 +164,36 @@ struct virtual_dir_def
 /* File handle of ZFS root.  */
 extern zfs_fh root_fh;
 
-/* Mutex for fh_pool.  */
-extern pthread_mutex_t fh_pool_mutex;
-
 /* Hash table of virtual directories, searched by fh.  */
 extern htab_t vd_htab;
 
 /* Mutex for virtual directories.  */
 extern pthread_mutex_t vd_mutex;
 
-/* Thread ID of thread freeing file handles unused for a long time.  */
-extern pthread_t cleanup_fh_thread;
+/* Thread ID of thread freeing dentries unused for a long time.  */
+extern pthread_t cleanup_dentry_thread;
 
-/* This mutex is locked when cleanup fh thread is in sleep.  */
-extern pthread_mutex_t cleanup_fh_thread_in_syscall;
+/* This mutex is locked when cleanup dentry thread is in sleep.  */
+extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
 extern hash_t internal_fh_hash (const void *x);
-extern hash_t internal_fh_hash_name (const void *x);
+extern hash_t internal_dentry_hash (const void *x);
+extern hash_t internal_dentry_hash_name (const void *x);
 extern int internal_fh_eq (const void *xx, const void *yy);
-extern int internal_fh_eq_name (const void *xx, const void *yy);
-extern int zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp,
-			  virtual_dir *vdp);
-extern int zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
-				 virtual_dir *vdp);
+extern int internal_dentry_eq (const void *xx, const void *yy);
+extern int internal_dentry_eq_name (const void *xx, const void *yy);
+extern int zfs_fh_lookup (zfs_fh *fh, volume *volp,
+			  internal_dentry *dentryp, virtual_dir *vdp);
+extern int zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
+				 internal_dentry *dentryp, virtual_dir *vdp);
 extern virtual_dir vd_lookup_name (virtual_dir parent, const char *name);
-extern internal_fh fh_lookup_name (volume vol, internal_fh parent,
+extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
 				   const char *name);
-extern internal_fh internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh,
-				       internal_fh parent, volume vol,
-				       const char *name, fattr *attr);
-extern void internal_fh_destroy (internal_fh fh, volume vol);
+extern internal_dentry internal_dentry_create (zfs_fh *local_fh,
+					       zfs_fh *master_fh, volume vol,
+					       internal_dentry parent, char *name,
+					       fattr *attr);
+extern void internal_dentry_destroy (internal_dentry dentry, volume vol);
 extern void print_fh_htab (FILE *f, htab_t htab);
 extern void debug_fh_htab (htab_t htab);
 

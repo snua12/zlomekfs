@@ -50,7 +50,13 @@ static virtual_dir root;
 static alloc_pool fh_pool;
 
 /* Mutex for fh_pool.  */
-pthread_mutex_t fh_pool_mutex;
+static pthread_mutex_t fh_pool_mutex;
+
+/* Allocation pool for dentries.  */
+static alloc_pool dentry_pool;
+
+/* Mutex for dentry_pool.  */
+static pthread_mutex_t dentry_pool_mutex;
 
 /* Allocation pool for virtual directories ("mountpoints").  */
 static alloc_pool vd_pool;
@@ -66,16 +72,20 @@ pthread_mutex_t vd_mutex;
 
 /* Heap holding internal file handles will be automatically freed
    when unused for a long time.  */
-fibheap cleanup_fh_heap;
+fibheap cleanup_dentry_heap;
 
 /* Mutex protecting CLEANUP_FH_*.  */
-pthread_mutex_t cleanup_fh_mutex;
+pthread_mutex_t cleanup_dentry_mutex;
 
 /* Thread ID of thread freeing file handles unused for a long time.  */
-pthread_t cleanup_fh_thread;
+pthread_t cleanup_dentry_thread;
 
 /* This mutex is locked when cleanup fh thread is in sleep.  */
-pthread_mutex_t cleanup_fh_thread_in_syscall;
+pthread_mutex_t cleanup_dentry_thread_in_syscall;
+
+/* Hash function for internal file handle FH.  */
+#define INTERNAL_FH_HASH(FH)						\
+  (ZFS_FH_HASH (&(FH)->local_fh))
 
 /* Hash function for virtual_dir VD, computed from fh.  */
 #define VIRTUAL_DIR_HASH(VD)						\
@@ -86,69 +96,69 @@ pthread_mutex_t cleanup_fh_thread_in_syscall;
   (crc32_update (crc32_string ((VD)->name),				\
 		 &(VD)->parent->fh, sizeof (zfs_fh)))
 
-/* Add ZFS_FH of internal file handle IFH with key IFH->LAST_USE
-   to heap CLEANUP_FH_HEAP.  */
+/* Add ZFS_FH of internal dentry DENTRY with key DENTRY->LAST_USE
+   to heap CLEANUP_DENTRY_HEAP.  */
 
 static void
-cleanup_fh_insert_node (internal_fh ifh)
+cleanup_dentry_insert_node (internal_dentry dentry)
 {
 #ifdef ENABLE_CHECKING
-  CHECK_MUTEX_LOCKED (&ifh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
-  zfsd_mutex_lock (&cleanup_fh_mutex);
-  if (!ifh->heap_node)
+  zfsd_mutex_lock (&cleanup_dentry_mutex);
+  if (!dentry->heap_node)
     {
       fibheapkey_t key;
 
-      key = ifh->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) ifh->last_use;
-      ifh->heap_node = fibheap_insert (cleanup_fh_heap, key, ifh);
+      key = dentry->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use;
+      dentry->heap_node = fibheap_insert (cleanup_dentry_heap, key, dentry);
     }
-  zfsd_mutex_unlock (&cleanup_fh_mutex);
+  zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
 
-/* Replace key of node IFH->HEAP_NODE to IFH->LAST_USE.  */
+/* Replace key of node DENTRY->HEAP_NODE to DENTRY->LAST_USE.  */
 
 static void
-cleanup_fh_update_node (internal_fh ifh)
+cleanup_dentry_update_node (internal_dentry dentry)
 {
 #ifdef ENABLE_CHECKING
-  CHECK_MUTEX_LOCKED (&ifh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
-  zfsd_mutex_lock (&cleanup_fh_mutex);
-  if (ifh->heap_node)
+  zfsd_mutex_lock (&cleanup_dentry_mutex);
+  if (dentry->heap_node)
     {
       fibheapkey_t key;
 
-      key = ifh->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) ifh->last_use;
-      fibheap_replace_key (cleanup_fh_heap, ifh->heap_node, key);
+      key = dentry->ncap > 0 ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use;
+      fibheap_replace_key (cleanup_dentry_heap, dentry->heap_node, key);
     }
-  zfsd_mutex_unlock (&cleanup_fh_mutex);
+  zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
 
 /* Delete IFH->HEAP_NODE from CLEANUP_FH_HEAP and set it to NULL.  */
 
 static void
-cleanup_fh_delete_node (internal_fh ifh)
+cleanup_dentry_delete_node (internal_dentry dentry)
 {
 #ifdef ENABLE_CHECKING
-  CHECK_MUTEX_LOCKED (&ifh->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
-  zfsd_mutex_lock (&cleanup_fh_mutex);
-  if (ifh->heap_node)
+  zfsd_mutex_lock (&cleanup_dentry_mutex);
+  if (dentry->heap_node)
     {
-      fibheap_delete_node (cleanup_fh_heap, ifh->heap_node);
-      ifh->heap_node = NULL;
+      fibheap_delete_node (cleanup_dentry_heap, dentry->heap_node);
+      dentry->heap_node = NULL;
     }
-  zfsd_mutex_unlock (&cleanup_fh_mutex);
+  zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
 
 /* Compare the volume IDs of ZFS_FHs P1 and P2.  */
 
 static int
-cleanup_unused_fhs_compare (const void *p1, const void *p2)
+cleanup_unused_dentries_compare (const void *p1, const void *p2)
 {
   const zfs_fh *fh1 = (const zfs_fh *) p1;
   const zfs_fh *fh2 = (const zfs_fh *) p2;
@@ -160,49 +170,49 @@ cleanup_unused_fhs_compare (const void *p1, const void *p2)
   return 1;
 }
 
-/* Free internal file handles unused for at least MAX_INTERNAL_FH_UNUSED_TIME
+/* Free internal dentries unused for at least MAX_INTERNAL_DENTRY_UNUSED_TIME
    seconds.  */
 
 static void
-cleanup_unused_fhs ()
+cleanup_unused_dentries ()
 {
   fibheapkey_t threshold;
-  internal_fh ifh;
+  internal_dentry dentry;
   zfs_fh fh[1024];
   int i, j, n;
 
-  threshold = (fibheapkey_t) time (NULL) - MAX_INTERNAL_FH_UNUSED_TIME;
+  threshold = (fibheapkey_t) time (NULL) - MAX_INTERNAL_DENTRY_UNUSED_TIME;
   do
     {
-      zfsd_mutex_lock (&cleanup_fh_mutex);
+      zfsd_mutex_lock (&cleanup_dentry_mutex);
       for (n = 0; n < 1024; n++)
 	{
-	  if (cleanup_fh_heap->nodes == 0)
+	  if (cleanup_dentry_heap->nodes == 0)
 	    break;
 
-	  ifh = (internal_fh) fibheap_min (cleanup_fh_heap);
+	  dentry = (internal_dentry) fibheap_min (cleanup_dentry_heap);
 #ifdef ENABLE_CHECKING
-	  if (!ifh)
+	  if (!dentry)
 	    abort ();
 #endif
-	  if (fibheap_min_key (cleanup_fh_heap) >= threshold)
+	  if (fibheap_min_key (cleanup_dentry_heap) >= threshold)
 	    break;
 
-	  fibheap_extract_min (cleanup_fh_heap);
+	  fibheap_extract_min (cleanup_dentry_heap);
 
-	  /* We have to clear IFH->HEAP_NODE while the CLEANUP_FH_MUTEX is
-	     still locked. Moreover we have to copy the ZFS_FH because
-	     the internal file handle may be freed as soon as we unlock
-	     CLEANUP_FH_MUTEX.  Later we have to lookup the internal file
-	     handle and do nothing if it already does not exist.  */
-	  ifh->heap_node = NULL;
-	  fh[n] = ifh->local_fh;
+	  /* We have to clear DENTRY->HEAP_NODE while the CLEANUP_DENTRY_MUTEX
+	     is still locked. Moreover we have to copy the ZFS_FH because
+	     the internal dentry may be freed as soon as we unlock
+	     CLEANUP_DENTRY_MUTEX.  Later we have to lookup the internal dentry
+	     and do nothing if it already does not exist.  */
+	  dentry->heap_node = NULL;
+	  fh[n] = dentry->fh->local_fh;
 	}
-      zfsd_mutex_unlock (&cleanup_fh_mutex);
+      zfsd_mutex_unlock (&cleanup_dentry_mutex);
       if (n)
 	{
 	  message (3, stderr, "Freeing %d nodes\n", n);
-	  qsort (fh, n, sizeof (zfs_fh), cleanup_unused_fhs_compare);
+	  qsort (fh, n, sizeof (zfs_fh), cleanup_unused_dentries_compare);
 
 	  zfsd_mutex_lock (&volume_mutex);
 	  for (i = 0; i < n; i = j)
@@ -216,42 +226,42 @@ cleanup_unused_fhs ()
 		{
 		  for (j = i; j < n && fh[j].vid == vid; j++)
 		    {
-		      internal_fh parent;
+		      internal_dentry parent;
 
-		      ifh = fh_lookup (vol, &fh[j]);
-		      if (!ifh)
+		      dentry = dentry_lookup (vol, &fh[j]);
+		      if (!dentry)
 			continue;
 
 		      /* We may have added a dentry to it
-			 while CLEANUP_FH_MUTEX was unlocked.  */
-		      if (ifh->attr.type == FT_DIR
-			  && VARRAY_USED (ifh->dentries) > 0)
+			 while CLEANUP_DENTRY_MUTEX was unlocked.  */
+		      if (dentry->fh->attr.type == FT_DIR
+			  && VARRAY_USED (dentry->dentries) > 0)
 			continue;
 
-		      /* We may have looked IFH up again
+		      /* We may have looked DENTRY up again
 			 so we may have updated LAST_USE
 			 or there are capabilities associated with
 			 the file handle.  */
-		      if ((fibheapkey_t) ifh->last_use >= threshold
-			  || ifh->ncap > 0)
+		      if ((fibheapkey_t) dentry->last_use >= threshold
+			  || dentry->ncap > 0)
 			{
 			  /* Reinsert the file handle to heap.  */
-			  zfsd_mutex_lock (&ifh->mutex);
-			  cleanup_fh_insert_node (ifh);
-			  zfsd_mutex_unlock (&ifh->mutex);
+			  zfsd_mutex_lock (&dentry->fh->mutex);
+			  cleanup_dentry_insert_node (dentry);
+			  zfsd_mutex_unlock (&dentry->fh->mutex);
 			  continue;
 			}
 
-		      parent = ifh->parent;
+		      parent = dentry->parent;
 
 		      if (parent)
-			zfsd_mutex_lock (&parent->mutex);
+			zfsd_mutex_lock (&parent->fh->mutex);
 
-		      zfsd_mutex_lock (&ifh->mutex);
-		      internal_fh_destroy (ifh, vol);
+		      zfsd_mutex_lock (&dentry->fh->mutex);
+		      internal_dentry_destroy (dentry, vol);
 
 		      if (parent)
-			zfsd_mutex_unlock (&parent->mutex);
+			zfsd_mutex_unlock (&parent->fh->mutex);
 		    }
 		  zfsd_mutex_unlock (&vol->mutex);
 		}
@@ -271,48 +281,55 @@ cleanup_unused_fhs ()
 /* Main function of thread freeing file handles unused for a long time.  */
 
 void *
-cleanup_fh_thread_main (ATTRIBUTE_UNUSED void *data)
+cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
 {
   thread_disable_signals ();
 
   while (get_running ())
     {
-      zfsd_mutex_lock (&cleanup_fh_thread_in_syscall);
+      zfsd_mutex_lock (&cleanup_dentry_thread_in_syscall);
       if (get_running ())
 	sleep (1);
-      zfsd_mutex_unlock (&cleanup_fh_thread_in_syscall);
+      zfsd_mutex_unlock (&cleanup_dentry_thread_in_syscall);
       if (!get_running ())
 	break;
 
-      cleanup_unused_fhs ();
+      cleanup_unused_dentries ();
     }
 
   /* Disable signaling this thread. */
   zfsd_mutex_lock (&running_mutex);
-  cleanup_fh_thread = 0;
+  cleanup_dentry_thread = 0;
   zfsd_mutex_unlock (&running_mutex);
 
-  zfsd_mutex_destroy (&cleanup_fh_thread_in_syscall);
+  zfsd_mutex_destroy (&cleanup_dentry_thread_in_syscall);
   return NULL;
 }
 
-/* Hash function for internal file handle X, computed from local_fh.  */
-
+/* Hash function for internal file handle X.  */
 hash_t
 internal_fh_hash (const void *x)
 {
   return INTERNAL_FH_HASH ((internal_fh) x);
 }
 
-/* Hash function for internal_fh X, computed from parent_fh and name.  */
+/* Hash function for internal dentry X, computed from fh->local_fh.  */
 
 hash_t
-internal_fh_hash_name (const void *x)
+internal_dentry_hash (const void *x)
 {
-  return INTERNAL_FH_HASH_NAME ((internal_fh) x);
+  return INTERNAL_DENTRY_HASH ((internal_dentry) x);
 }
 
-/* Compare an internal file handle XX with client's file handle YY.  */
+/* Hash function for internal dentry X, computed from parent->fh and name.  */
+
+hash_t
+internal_dentry_hash_name (const void *x)
+{
+  return INTERNAL_DENTRY_HASH_NAME ((internal_dentry) x);
+}
+
+/* Compate an internal file handle XX with client's file handle YY.  */
 
 int
 internal_fh_eq (const void *xx, const void *yy)
@@ -324,24 +341,37 @@ internal_fh_eq (const void *xx, const void *yy)
 	  && x->vid == y->vid && x->sid == y->sid);
 }
 
+/* Compare an internal file handle XX with client's file handle YY.  */
+
+int
+internal_dentry_eq (const void *xx, const void *yy)
+{
+  zfs_fh *x = &((internal_dentry) xx)->fh->local_fh;
+  zfs_fh *y = (zfs_fh *) yy;
+
+  return (x->ino == y->ino && x->dev == y->dev
+	  && x->vid == y->vid && x->sid == y->sid);
+}
+
 /* Compare two internal file handles XX and YY whether they have same parent
    and file name.  */
 
 int
-internal_fh_eq_name (const void *xx, const void *yy)
+internal_dentry_eq_name (const void *xx, const void *yy)
 {
-  internal_fh x = (internal_fh) xx;
-  internal_fh y = (internal_fh) yy;
+  internal_dentry x = (internal_dentry) xx;
+  internal_dentry y = (internal_dentry) yy;
 
   return (x->parent == y->parent
   	  && strcmp (x->name, y->name) == 0);
 }
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
-   and set *VOLP, *IFHP and VDP according to it.  */
+   and set *VOLP, *DENTRYP and VDP according to it.  */
 
 int
-zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
+zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
+	       virtual_dir *vdp)
 {
   int res;
 
@@ -349,7 +379,7 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
   if (VIRTUAL_FH_P (*fh))
     zfsd_mutex_lock (&vd_mutex);
 
-  res = zfs_fh_lookup_nolock (fh, volp, ifhp, vdp);
+  res = zfs_fh_lookup_nolock (fh, volp, dentryp, vdp);
 
   zfsd_mutex_unlock (&volume_mutex);
   if (VIRTUAL_FH_P (*fh))
@@ -359,12 +389,12 @@ zfs_fh_lookup (zfs_fh *fh, volume *volp, internal_fh *ifhp, virtual_dir *vdp)
 }
 
 /* Find the internal file handle or virtual directory for zfs_fh FH
-   and set *VOLP, *IFHP and VDP according to it.
+   and set *VOLP, *DENTRYP and VDP according to it.
    This function is similar to FH_LOOKUP but the big locks must be locked.  */
 
 int
-zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
-		  virtual_dir *vdp)
+zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_dentry *dentryp,
+		      virtual_dir *vdp)
 {
   hash_t hash = ZFS_FH_HASH (fh);
 
@@ -385,14 +415,14 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 	zfsd_mutex_lock (&vd->vol->mutex);
 
       *volp = vd->vol;
-      if (ifhp)
-	*ifhp = NULL;
+      if (dentryp)
+	*dentryp = NULL;
       *vdp = vd;
     }
   else
     {
       volume vol;
-      internal_fh ifh;
+      internal_dentry dentry;
 
       vol = volume_lookup (fh->vid);
       if (!vol)
@@ -404,19 +434,20 @@ zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp, internal_fh *ifhp,
 	  return ESTALE;
 	}
 
-      ifh = (internal_fh) htab_find_with_hash (vol->fh_htab, fh, hash);
-      if (!ifh)
+      dentry = (internal_dentry) htab_find_with_hash (vol->dentry_htab, fh,
+						      hash);
+      if (!dentry)
 	{
 	  zfsd_mutex_unlock (&vol->mutex);
 	  return ESTALE;
 	}
 
-      zfsd_mutex_lock (&ifh->mutex);
-      ifh->last_use = time (NULL);
-      cleanup_fh_update_node (ifh);
+      zfsd_mutex_lock (&dentry->fh->mutex);
+      dentry->last_use = time (NULL);
+      cleanup_dentry_update_node (dentry);
 
       *volp = vol;
-      *ifhp = ifh;
+      *dentryp = dentry;
       if (vdp)
 	*vdp = NULL;
     }
@@ -444,151 +475,71 @@ vd_lookup_name (virtual_dir parent, const char *name)
   return vd;
 }
 
-/* Return the internal file handle for NAME in directory PARENT
-   on volume VOL.  */
+/* Return the internal dentry for NAME in directory PARENT on volume VOL.  */
 
-internal_fh
-fh_lookup_name (volume vol, internal_fh parent, const char *name)
+internal_dentry
+dentry_lookup_name (volume vol, internal_dentry parent, const char *name)
 {
-  struct internal_fh_def tmp_fh;
-  internal_fh fh;
+  struct internal_dentry_def tmp;
+  internal_dentry dentry;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  CHECK_MUTEX_LOCKED (&parent->mutex);
+  CHECK_MUTEX_LOCKED (&parent->fh->mutex);
 
-  tmp_fh.parent = parent;
-  tmp_fh.name = (char *) name;
-  fh = (internal_fh) htab_find (vol->fh_htab_name, &tmp_fh);
-  if (fh)
+  tmp.parent = parent;
+  tmp.name = (char *) name;
+  dentry = (internal_dentry) htab_find (vol->dentry_htab_name, &tmp);
+  if (dentry)
     {
-      zfsd_mutex_lock (&fh->mutex);
-      fh->last_use = time (NULL);
-      cleanup_fh_update_node (fh);
+      zfsd_mutex_lock (&dentry->fh->mutex);
+      dentry->last_use = time (NULL);
+      cleanup_dentry_update_node (dentry);
     }
 
-  return fh;
+  return dentry;
 }
 
 /* Create a new internal file handle and store it to hash tables.  */
 
-internal_fh
-internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, internal_fh parent,
-		    volume vol, const char *name, fattr *attr)
+static internal_fh
+internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
+		    volume vol)
 {
   internal_fh fh;
   void **slot;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
-  if (parent)
-    CHECK_MUTEX_LOCKED (&parent->mutex);
 
-  /* Create a new internal file handle.  */
   zfsd_mutex_lock (&fh_pool_mutex);
   fh = (internal_fh) pool_alloc (fh_pool);
   zfsd_mutex_unlock (&fh_pool_mutex);
   fh->local_fh = *local_fh;
   fh->master_fh = *master_fh;
-  fh->parent = parent;
-  fh->name = xstrdup (name);
   fh->attr = *attr;
-  fh->ncap = 0;
-  fh->last_use = time (NULL);
-  fh->heap_node = NULL;
-
-  if (fh->attr.type == FT_DIR)
-    varray_create (&fh->dentries, sizeof (internal_fh), 16);
 
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
 
-  if (parent)
-    {
-      cleanup_fh_insert_node (fh);
-      fh->dentry_index = VARRAY_USED (parent->dentries);
-      VARRAY_PUSH (parent->dentries, fh, internal_fh);
-      cleanup_fh_delete_node (parent);
-    }
-
-#ifdef ENABLE_CHECKING
-  slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
-				   INTERNAL_FH_HASH (fh), NO_INSERT);
-  if (slot)
-    abort ();
-#endif
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), INSERT);
-  *slot = fh;
-
-  if (parent)
-    {
 #ifdef ENABLE_CHECKING
-      slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
-      if (slot)
-	abort ();
+  if (*slot)
+    abort ();
 #endif
-      slot = htab_find_slot (vol->fh_htab_name, fh, INSERT);
-      *slot = fh;
-    }
+  *slot = fh;
 
   return fh;
 }
 
 /* Destroy the internal file handle FH.  */
 
-void
+static void
 internal_fh_destroy (internal_fh fh, volume vol)
 {
   void **slot;
-  internal_fh top;
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
-
-  if (fh->attr.type == FT_DIR)
-    {
-      int i;
-
-      /* Destroy subtree first.  */
-      for (i = VARRAY_USED (fh->dentries) - 1; i >= 0; i--)
-	{
-	  internal_fh sfh;
-
-	  sfh = VARRAY_ACCESS (fh->dentries, (unsigned int) i, internal_fh);
-	  zfsd_mutex_lock (&sfh->mutex);
-	  internal_fh_destroy (sfh, vol);
-	}
-
-      varray_destroy (&fh->dentries);
-    }
-
-  /* At this point, FH is always a leaf.  */
-  cleanup_fh_delete_node (fh);
-
-  if (fh->parent)
-    {
-      CHECK_MUTEX_LOCKED (&fh->parent->mutex);
-
-      /* Remove FH from parent's directory entries.  */
-      top = VARRAY_TOP (fh->parent->dentries, internal_fh);
-      VARRAY_ACCESS (fh->parent->dentries, fh->dentry_index, internal_fh)
-	= top;
-      VARRAY_POP (fh->parent->dentries);
-      top->dentry_index = fh->dentry_index;
-
-      /* Delete from table searched by parent + name.  */
-      slot = htab_find_slot (vol->fh_htab_name, fh, NO_INSERT);
-#ifdef ENABLE_CHECKING
-      if (!slot)
-	abort ();
-#endif
-      htab_clear_slot (vol->fh_htab_name, slot);
-
-      if (fh->parent->parent				/* PARENT is not root */
-	  && VARRAY_USED (fh->parent->dentries) == 0)	/* and is a leaf */
-	{
-	  cleanup_fh_insert_node (fh->parent);
-	}
-    }
 
   slot = htab_find_slot_with_hash (vol->fh_htab, &fh->local_fh,
 				   INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -597,9 +548,9 @@ internal_fh_destroy (internal_fh fh, volume vol)
     abort ();
 #endif
   htab_clear_slot (vol->fh_htab, slot);
+
   zfsd_mutex_unlock (&fh->mutex);
   zfsd_mutex_destroy (&fh->mutex);
-  free (fh->name);
   zfsd_mutex_lock (&fh_pool_mutex);
   pool_free (fh_pool, fh);
   zfsd_mutex_unlock (&fh_pool_mutex);
@@ -620,7 +571,6 @@ print_fh_htab (FILE *f, htab_t htab)
 	       fh->local_fh.dev, fh->local_fh.ino);
       fprintf (f, "[%u,%u,%u,%u] ", fh->master_fh.sid, fh->master_fh.vid,
 	       fh->master_fh.dev, fh->master_fh.ino);
-      fprintf (f, "'%s'", fh->name);
       fprintf (f, "\n");
     });
 }
@@ -631,6 +581,153 @@ void
 debug_fh_htab (htab_t htab)
 {
   print_fh_htab (stderr, htab);
+}
+
+/* Create a new internal dentry and store it to hash tables.  */
+
+internal_dentry
+internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
+			internal_dentry parent, char *name, fattr *attr)
+{
+  internal_dentry dentry;
+  internal_fh fh;
+  void **slot;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  if (parent)
+    CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+
+  zfsd_mutex_lock (&dentry_pool_mutex);
+  dentry = (internal_dentry) pool_alloc (dentry_pool);
+  zfsd_mutex_unlock (&dentry_pool_mutex);
+  dentry->parent = parent;
+  dentry->name = xstrdup (name);
+  dentry->ncap = 0;
+  dentry->last_use = time (NULL);
+  dentry->heap_node = NULL;
+
+  /* Find the internal file handle in hash table, create it if it does not
+     exist.  */
+  slot = htab_find_slot_with_hash (vol->fh_htab, local_fh,
+				   ZFS_FH_HASH (local_fh), INSERT);
+  if (!*slot)
+    {
+      fh = internal_fh_create (local_fh, master_fh, attr, vol);
+      *slot = fh;
+    }
+  else
+    {
+      fh = (internal_fh) *slot;
+      zfsd_mutex_lock (&fh->mutex);
+      fh->attr = *attr;
+    }
+
+  dentry->fh = fh;
+  fh->ndentries++;
+
+  if (fh->attr.type == FT_DIR)
+    varray_create (&dentry->dentries, sizeof (dentry), 16);
+
+  if (parent)
+    {
+      cleanup_dentry_insert_node (dentry);
+      dentry->dentry_index = VARRAY_USED (parent->dentries);
+      VARRAY_PUSH (parent->dentries, dentry, internal_dentry);
+      cleanup_dentry_delete_node (parent);
+    }
+
+  slot = htab_find_slot_with_hash (vol->dentry_htab, &fh->local_fh,
+				   INTERNAL_DENTRY_HASH (dentry), INSERT);
+#ifdef ENABLE_CHECKING
+  if (*slot)
+    abort ();
+#endif
+  *slot = dentry;
+
+  if (parent)
+    {
+      slot = htab_find_slot (vol->dentry_htab_name, dentry, INSERT);
+#ifdef ENABLE_CHECKING
+      if (*slot)
+	abort ();
+#endif
+      *slot = dentry;
+    }
+
+  return dentry;
+}
+
+/* Destroy internal dentry DENTRY on volume VOL.  */
+
+void
+internal_dentry_destroy (internal_dentry dentry, volume vol)
+{
+  void **slot;
+  internal_dentry top;
+
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+
+  if (dentry->fh->attr.type == FT_DIR)
+    {
+      int i;
+
+      /* Destroy subtree first.  */
+      for (i = VARRAY_USED (dentry->dentries) - 1; i >= 0; i--)
+	{
+	  internal_dentry sdentry;
+
+	  sdentry = VARRAY_ACCESS (dentry->dentries, (unsigned int) i,
+				   internal_dentry);
+	  zfsd_mutex_lock (&sdentry->fh->mutex);
+	  internal_dentry_destroy (sdentry, vol);
+	}
+
+      varray_destroy (&dentry->dentries);
+    }
+
+  /* At this point, DENTRY is always a leaf.  */
+  cleanup_dentry_delete_node (dentry);
+
+  if (dentry->parent)
+    {
+      CHECK_MUTEX_LOCKED (&dentry->parent->fh->mutex);
+
+      /* Remove DENTRY from parent's directory entries.  */
+      top = VARRAY_TOP (dentry->parent->dentries, internal_dentry);
+      VARRAY_ACCESS (dentry->parent->dentries, dentry->dentry_index,
+		     internal_dentry) = top;
+      VARRAY_POP (dentry->parent->dentries);
+      top->dentry_index = dentry->dentry_index;
+
+      /* Delete from table searched by parent + name.  */
+      slot = htab_find_slot (vol->dentry_htab_name, dentry, NO_INSERT);
+#ifdef ENABLE_CHECKING
+      if (!slot)
+	abort ();
+#endif
+      htab_clear_slot (vol->dentry_htab_name, slot);
+
+      if (dentry->parent->parent		/* PARENT is not root */
+	  && VARRAY_USED (dentry->parent->dentries) == 0) /* and is a leaf */
+	{
+	  cleanup_dentry_insert_node (dentry->parent);
+	}
+    }
+
+  slot = htab_find_slot_with_hash (vol->dentry_htab, &dentry->fh->local_fh,
+				   INTERNAL_DENTRY_HASH (dentry), NO_INSERT);
+#ifdef ENABLE_CHECKING
+  if (!slot)
+    abort ();
+#endif
+  htab_clear_slot (vol->dentry_htab, slot);
+
+  internal_fh_destroy (dentry->fh, vol);
+  free (dentry->name);
+  zfsd_mutex_lock (&dentry_pool_mutex);
+  pool_free (dentry_pool, dentry);
+  zfsd_mutex_unlock (&dentry_pool_mutex);
 }
 
 /* Hash function for virtual_dir X, computed from FH.  */
@@ -1026,6 +1123,12 @@ initialize_fh_c ()
   fh_pool = create_alloc_pool ("fh_pool", sizeof (struct internal_fh_def),
 			       1023, &fh_pool_mutex);
 
+  /* Data structures for dentries.  */
+  zfsd_mutex_init (&dentry_pool_mutex);
+  dentry_pool = create_alloc_pool ("dentry_pool",
+				   sizeof (struct internal_dentry_def),
+				   1023, &dentry_pool_mutex);
+
   /* Data structures for virtual directories.  */
   zfsd_mutex_init (&vd_mutex);
   vd_pool = create_alloc_pool ("vd_pool", sizeof (struct virtual_dir_def),
@@ -1036,9 +1139,9 @@ initialize_fh_c ()
 			      NULL, &vd_mutex);
 
   /* Data structures for cleanup of file handles.  */
-  zfsd_mutex_init (&cleanup_fh_mutex);
-  cleanup_fh_heap = fibheap_new (1020, &cleanup_fh_mutex);
-  if (pthread_create (&cleanup_fh_thread, NULL, cleanup_fh_thread_main, NULL))
+  zfsd_mutex_init (&cleanup_dentry_mutex);
+  cleanup_dentry_heap = fibheap_new (1020, &cleanup_dentry_mutex);
+  if (pthread_create (&cleanup_dentry_thread, NULL, cleanup_dentry_thread_main, NULL))
     {
       message (-1, stderr, "pthread_create() failed\n");
     }
@@ -1064,6 +1167,17 @@ cleanup_fh_c ()
   zfsd_mutex_unlock (&fh_pool_mutex);
   zfsd_mutex_destroy (&fh_pool_mutex);
 
+  /* Data structures dentries.  */
+  zfsd_mutex_lock (&dentry_pool_mutex);
+#ifdef ENABLE_CHECKING
+  if (dentry_pool->elts_free < dentry_pool->elts_allocated)
+    message (2, stderr, "Memory leak (%u elements) in dentry_pool.\n",
+	     dentry_pool->elts_allocated - dentry_pool->elts_free);
+#endif
+  free_alloc_pool (dentry_pool);
+  zfsd_mutex_unlock (&dentry_pool_mutex);
+  zfsd_mutex_destroy (&dentry_pool_mutex);
+
   /* Data structures for virtual directories.  */
   zfsd_mutex_lock (&vd_mutex);
   htab_destroy (vd_htab_name);
@@ -1078,8 +1192,8 @@ cleanup_fh_c ()
   zfsd_mutex_destroy (&vd_mutex);
 
   /* Data structures for cleanup of file handles.  */
-  zfsd_mutex_lock (&cleanup_fh_mutex);
-  fibheap_delete (cleanup_fh_heap);
-  zfsd_mutex_unlock (&cleanup_fh_mutex);
-  zfsd_mutex_destroy (&cleanup_fh_mutex);
+  zfsd_mutex_lock (&cleanup_dentry_mutex);
+  fibheap_delete (cleanup_dentry_heap);
+  zfsd_mutex_unlock (&cleanup_dentry_mutex);
+  zfsd_mutex_destroy (&cleanup_dentry_mutex);
 }

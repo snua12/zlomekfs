@@ -93,7 +93,7 @@ volume_create (unsigned int id)
   vol->flags = 0;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
-  vol->root_fh = NULL;
+  vol->root_dentry = NULL;
   vol->root_vd = NULL;
 
   zfsd_mutex_init (&vol->mutex);
@@ -101,9 +101,11 @@ volume_create (unsigned int id)
 
   vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
 			      NULL, &vol->mutex);
-  vol->fh_htab_name = htab_create (250, internal_fh_hash_name,
-				   internal_fh_eq_name, NULL, &vol->mutex);
-
+  vol->dentry_htab = htab_create (250, internal_dentry_hash,
+				  internal_dentry_eq, NULL, &vol->mutex);
+  vol->dentry_htab_name = htab_create (250, internal_dentry_hash_name,
+				       internal_dentry_eq_name, NULL,
+				       &vol->mutex);
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
@@ -129,12 +131,13 @@ volume_destroy (volume vol)
 
   virtual_mountpoint_destroy (vol);
 
-  if (vol->root_fh)
+  if (vol->root_dentry)
     {
-      zfsd_mutex_lock (&vol->root_fh->mutex);
-      internal_fh_destroy (vol->root_fh, vol);
+      zfsd_mutex_lock (&vol->root_dentry->fh->mutex);
+      internal_dentry_destroy (vol->root_dentry, vol);
     }
-  htab_destroy (vol->fh_htab_name);
+  htab_destroy (vol->dentry_htab_name);
+  htab_destroy (vol->dentry_htab);
   htab_destroy (vol->fh_htab);
 
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),

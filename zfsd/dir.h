@@ -27,13 +27,13 @@
 #include "volume.h"
 #include "zfs_prot.h"
 
-extern char *build_local_path (volume vol, internal_fh fh);
-extern char *build_local_path_name (volume vol, internal_fh fh,
+extern char *build_local_path (volume vol, internal_dentry dentry);
+extern char *build_local_path_name (volume vol, internal_dentry dentry,
 				    const char *name);
 extern int validate_operation_on_virtual_directory (virtual_dir pvd,
 						    string *name,
-						    internal_fh *idir);
-extern int update_volume_root (volume vol, internal_fh *ifh);
+						    internal_dentry *dir);
+extern int update_volume_root (volume vol, internal_dentry *dentry);
 extern void fattr_from_struct_stat (fattr *attr, struct stat *st, volume vol);
 extern int local_getattr (fattr *attr, char *path, volume vol);
 extern int zfs_getattr (fattr *fa, zfs_fh *fh);

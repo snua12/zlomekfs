@@ -57,18 +57,15 @@ extern pthread_mutex_t cap_mutex;
 
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern int get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-			   internal_fh *ifh, virtual_dir *vd);
+			   internal_dentry *dentry, virtual_dir *vd);
 extern internal_cap get_capability_no_zfs_fh_lookup (zfs_cap *cap,
-						     internal_fh fh);
+						     internal_dentry dentry);
 extern int find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-			    internal_fh *ifh, virtual_dir *vd);
+			    internal_dentry *dentry, virtual_dir *vd);
 extern int find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
-				   volume *vol, internal_fh *ifh,
+				   volume *vol, internal_dentry *dentry,
 				   virtual_dir *vd);
-extern int put_capability (internal_cap cap, internal_fh fh);
-extern bool internal_cap_opened_p (internal_cap cap);
-extern int internal_cap_open (internal_cap cap, unsigned int flags,
-			      internal_fh fh, volume vol);
+extern int put_capability (internal_cap cap, internal_dentry dentry);
 extern void initialize_cap_c ();
 extern void cleanup_cap_c ();
 
