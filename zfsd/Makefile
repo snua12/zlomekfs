@@ -20,7 +20,7 @@
 
 CC = gcc
 LD = $(CC)
-DEFS = -DENABLE_CHECKING -DTEST
+DEFS = -DENABLE_CHECKING -DTEST -DTEST_UPDATE
 CFLAGS = -g -W -Wall -pedantic
 LDFLAGS =
 LIBS = -lpthread
