@@ -515,7 +515,7 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
   for (i = 0; i < 3; i++)
     {
       gettimeofday (&t0, NULL);
-      *r = zfs_proc_ping_client_1 (t, &ping_args, fd, false);
+      *r = zfs_proc_ping_client_1 (t, &ping_args, fd);
       gettimeofday (&t1, NULL);
       if (*r != ZFS_OK)
 	{
@@ -664,7 +664,7 @@ again:
 	memset (&args1, 0, sizeof (args1));
 	/* FIXME: really do authentication */
 	args1.node = node_name;
-	r = zfs_proc_auth_stage1_client_1 (t, &args1, fd, false);
+	r = zfs_proc_auth_stage1_client_1 (t, &args1, fd);
 	if (r != ZFS_OK)
 	  goto node_authenticate_error;
 
@@ -735,7 +735,7 @@ again:
 
 	memset (&args2, 0, sizeof (args2));
 	/* FIXME: really do authentication */
-	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd, false);
+	r = zfs_proc_auth_stage2_client_1 (t, &args2, fd);
 	if (r != ZFS_OK)
 	  goto node_authenticate_error;
 
@@ -1084,13 +1084,15 @@ network_worker (void *data)
 	{
 	  message (1, stderr, "Packet too long: %u\n",
 		   t->u.network.dc->max_length);
-	  send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
+	  if (t->u.network.dir == ZFS_CALL_TWOWAY)
+	    send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
 	  goto out;
 	}
 
       if (!decode_function (t->u.network.dc, &fn))
 	{
-	  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
+	  if (t->u.network.dir == ZFS_CALL_TWOWAY)
+	    send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
 	  goto out;
 	}
 
@@ -1098,37 +1100,53 @@ network_worker (void *data)
       switch (fn)
 	{
 #define ZFS_CALL_SERVER
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
 	  case ZFS_PROC_##NAME:						\
+	    if (t->u.network.dir != CALL_MODE)				\
+	      {								\
+		if (t->u.network.dir == ZFS_CALL_TWOWAY)		\
+		  send_error_reply (t, request_id,			\
+				    ZFS_INVALID_DIRECTION);		\
+		goto out;						\
+	      }								\
 	    if (td->fd_data->auth < AUTH)				\
 	      {								\
-		send_error_reply (t, request_id,			\
-				  ZFS_INVALID_AUTH_LEVEL);		\
+		if (CALL_MODE == ZFS_CALL_TWOWAY)			\
+		  send_error_reply (t, request_id,			\
+				    ZFS_INVALID_AUTH_LEVEL);		\
 		goto out;						\
 	      }								\
 	    if (!decode_##ARGS (t->u.network.dc,			\
 				&t->u.network.args.FUNCTION)		\
 		|| !finish_decoding (t->u.network.dc))			\
 	      {								\
-		send_error_reply (t, request_id, ZFS_INVALID_REQUEST);	\
+		if (CALL_MODE == ZFS_CALL_TWOWAY)			\
+		  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
 		goto out;						\
 	      }								\
 	    call_statistics[CALL_FROM_NETWORK][NUMBER]++;		\
-	    start_encoding (t->u.network.dc);				\
-	    encode_direction (t->u.network.dc, DIR_REPLY);		\
-	    encode_request_id (t->u.network.dc, request_id);		\
+	    if (CALL_MODE == ZFS_CALL_TWOWAY)				\
+	      {								\
+		start_encoding (t->u.network.dc);			\
+		encode_direction (t->u.network.dc, DIR_REPLY);		\
+		encode_request_id (t->u.network.dc, request_id);	\
+	      }								\
 	    zfs_proc_##FUNCTION##_server (&t->u.network.args.FUNCTION,	\
 					  t->u.network.dc,		\
 					  &t->u.network, false);	\
-	    finish_encoding (t->u.network.dc);				\
-	    send_reply (t);						\
+	    if (CALL_MODE == ZFS_CALL_TWOWAY)				\
+	      {								\
+		finish_encoding (t->u.network.dc);			\
+		send_reply (t);						\
+	      }								\
 	    break;
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_SERVER
 
 	  default:
-	    send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
+	    if (t->u.network.dir == ZFS_CALL_TWOWAY)
+	      send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
 	    goto out;
 	}
 
@@ -1233,6 +1251,7 @@ network_dispatch (fd_data_t *fd_data)
 	break;
 
       case DIR_REQUEST:
+      case DIR_ONEWAY:
 	/* Dispatch request.  */
 	fd_data->busy++;
 
@@ -1251,6 +1270,7 @@ network_dispatch (fd_data_t *fd_data)
 	set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
 	network_pool.threads[index].t.from_sid = fd_data->sid;
 	network_pool.threads[index].t.u.network.dc = dc;
+	network_pool.threads[index].t.u.network.dir = dir;
 	network_pool.threads[index].t.u.network.fd_data = fd_data;
 	network_pool.threads[index].t.u.network.generation
 	  = fd_data->generation;

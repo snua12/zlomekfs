@@ -677,10 +677,9 @@ zfs_proc_reintegrate_set_server (reintegrate_set_args *args, DC *dc,
    and return its error code.  Use FD for communication with remote node.  */
 #define ZFS_CALL_CLIENT
 #define ZFS_CALL_KERNEL
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
 int32_t									\
-zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd,		\
-				bool oneway)				\
+zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 {									\
   uint32_t req_id;							\
 									\
@@ -691,7 +690,8 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd,		\
   zfsd_mutex_unlock (&request_id_mutex);				\
   message (2, stderr, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
   start_encoding (t->dc_call);						\
-  encode_direction (t->dc_call, oneway ? DIR_ONEWAY : DIR_REQUEST);	\
+  encode_direction (t->dc_call, (CALL_MODE == ZFS_CALL_ONEWAY		\
+				 ? DIR_ONEWAY : DIR_REQUEST));		\
   encode_request_id (t->dc_call, req_id);				\
   encode_function (t->dc_call, NUMBER);					\
   if (!encode_##ARGS (t->dc_call, args))				\
@@ -701,7 +701,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd,		\
     }									\
   finish_encoding (t->dc_call);						\
 									\
-  if (oneway)								\
+  if (CALL_MODE == ZFS_CALL_ONEWAY)					\
     send_oneway_request (t, fd);					\
   else									\
     send_request (t, req_id, fd);					\
@@ -716,7 +716,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd,		\
 /* Call remote FUNCTION with ARGS on node NOD using data structures in thread T
    and return its error code, store file descriptor connected to NOD to FD.  */
 #define ZFS_CALL_CLIENT
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
 int32_t									\
 zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 {									\
@@ -730,7 +730,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
       return t->retval;							\
     }									\
 									\
-  return zfs_proc_##FUNCTION##_client_1 (t, args, *fd, false);		\
+  return zfs_proc_##FUNCTION##_client_1 (t, args, *fd);			\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -739,7 +739,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 /* Call FUNCTION in kernel with ARGS using data structures in thread T
    and return its error code.  */
 #define ZFS_CALL_KERNEL
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
 int32_t									\
 zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
 {									\
@@ -750,7 +750,7 @@ zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
     }									\
 									\
   zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);			\
-  return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd, true);	\
+  return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd);		\
 }
 #include "zfs_prot.def"
 #undef DEFINE_ZFS_PROC
@@ -844,7 +844,7 @@ cleanup_zfs_prot_c (void)
   printf ("%-16s%15s%15s\n", "Function", "From kernel", "From network");
 
 #define ZFS_CALL_SERVER
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)		\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   if (call_statistics[CALL_FROM_KERNEL][NUMBER] > 0			\
       || call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)		\
     {									\
@@ -895,7 +895,7 @@ static int zfs_error(int error)
 /* Call ZFSd FUNCTION with ARGS using data structures in DC
    and return its error code. */
 #define ZFS_CALL_CLIENT
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH)	\
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUT, CALL_MODE)	\
 int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 {								\
 	struct request req;					\

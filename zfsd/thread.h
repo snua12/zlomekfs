@@ -58,6 +58,7 @@ typedef struct network_thread_data_def
 {
   DC *dc;				/* buffer for request to this node */
   call_args args;			/* union for decoded call arguments */
+  direction dir;			/* method of the request */
   struct fd_data_def *fd_data;		/* passed from main network thread */
   unsigned int generation;		/* generation of file descriptor */
   unsigned int index;			/* index of FD in array "active" */
@@ -68,6 +69,7 @@ typedef struct kernel_thread_data_def
 {
   DC *dc;				/* buffer for request to this node */
   call_args args;			/* union for decoded call arguments */
+  direction dir;			/* method of the request */
   struct fd_data_def *fd_data;		/* passed from main network thread */
 } kernel_thread_data;
 
