@@ -1454,6 +1454,28 @@ update_fh (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 				      &same);
 	      if (r != ZFS_OK)
 		goto out;
+
+	      if (!same)
+		{
+		  /* If the special files have the same file handle
+		     but do not have same contents
+		     delete the local file because this could have happened
+		     if master has deleted metadata and the new file
+		     got the same file handle.  */
+
+		  r2 = zfs_fh_lookup_nolock (fh, &vol, &dir, NULL, false);
+#ifdef ENABLE_CHECKING
+		  if (r2 != ZFS_OK)
+		    abort ();
+#endif
+
+		  r = delete_tree_name (dir, &entry->name, vol);
+		  if (r != ZFS_OK)
+		    goto out;
+
+		  htab_clear_slot (local_entries.htab, slot);
+		  continue;
+		}
 	    }
 
 	  if (!same)
