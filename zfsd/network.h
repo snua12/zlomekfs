@@ -28,6 +28,7 @@
 #include "data-coding.h"
 #include "hashtab.h"
 #include "alloc-pool.h"
+#include "thread.h"
 
 /* Connection status.  */
 typedef enum connection_status_def
@@ -69,13 +70,16 @@ typedef struct network_fd_data_def
 
 #define NETWORK_FD_CLOSE 1
 
+/* Data for network pool regulator.  */
+extern thread_pool_regulator_data network_regulator_data;
+
 #ifndef RPC
 
 /* Thread ID of the main network thread (thread receiving data from sockets).  */
 extern pthread_t main_network_thread;
 
 /* This mutex is locked when main network thread is in poll.  */
-extern pthread_mutex_t main_network_thread_in_poll;
+extern pthread_mutex_t main_network_thread_in_syscall;
 
 /* The array of data for each file descriptor.  */
 extern network_fd_data_t *network_fd_data;

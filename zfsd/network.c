@@ -36,7 +36,7 @@
 static thread_pool network_pool;
 
 /* Data for network pool regulator.  */
-static thread_pool_regulator_data network_regulator_data;
+thread_pool_regulator_data network_regulator_data;
 
 #ifdef RPC
 #if 0
@@ -146,7 +146,7 @@ network_worker (void *data)
 pthread_t main_network_thread;
 
 /* This mutex is locked when main network thread is in poll.  */
-pthread_mutex_t main_network_thread_in_poll;
+pthread_mutex_t main_network_thread_in_syscall;
 
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
@@ -338,7 +338,7 @@ add_fd_to_active (int fd)
   zfsd_mutex_lock (&active_mutex);
   zfsd_mutex_lock (&network_fd_data[fd].mutex);
   init_fd_data (fd);
-  thread_terminate_poll (main_network_thread, &main_network_thread_in_poll);
+  thread_terminate_blocking_syscall (main_network_thread, &main_network_thread_in_syscall);
   zfsd_mutex_unlock (&active_mutex);
 }
 
@@ -725,21 +725,21 @@ network_main (void * ATTRIBUTE_UNUSED data)
       n = nactive;
 
       message (2, stderr, "Polling %d sockets\n", n + accept_connections);
-      zfsd_mutex_lock (&main_network_thread_in_poll);
+      zfsd_mutex_lock (&main_network_thread_in_syscall);
       zfsd_mutex_unlock (&active_mutex);
       r = poll (pfd, n + accept_connections, -1);
-      zfsd_mutex_unlock (&main_network_thread_in_poll);
+      zfsd_mutex_unlock (&main_network_thread_in_syscall);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
-
-      if (r < 0 && errno != EINTR)
-	{
-	  message (-1, stderr, "%s, network_main exiting\n", strerror (errno));
-	  break;
-	}
 
       if (!get_running ())
 	{
 	  message (2, stderr, "Terminating\n");
+	  break;
+	}
+
+      if (r < 0 && errno != EINTR)
+	{
+	  message (-1, stderr, "%s, network_main exiting\n", strerror (errno));
 	  break;
 	}
 

@@ -85,9 +85,20 @@ terminate ()
 static void
 exit_sighandler (int signum)
 {
-  set_running (false);
-  thread_terminate_poll (main_client_thread, &main_client_thread_in_poll);
-  thread_terminate_poll (main_network_thread, &main_network_thread_in_poll);
+  zfsd_mutex_lock (&running_mutex);
+  running = false;
+
+  thread_terminate_blocking_syscall (main_client_thread,
+				     &main_client_thread_in_syscall);
+  thread_terminate_blocking_syscall (main_network_thread,
+				     &main_network_thread_in_syscall);
+  if (client_regulator_data.thread_id)
+    thread_terminate_blocking_syscall (client_regulator_data.thread_id,
+				       &client_regulator_data.in_syscall);
+  if (network_regulator_data.thread_id)
+    thread_terminate_blocking_syscall (network_regulator_data.thread_id,
+				       &network_regulator_data.in_syscall);
+  zfsd_mutex_unlock (&running_mutex);
 }
 
 /* Report the fatal signal.  */
@@ -149,8 +160,8 @@ init_sig_handlers ()
 
   /* Initialize the mutexes which are used with signal handlers.  */
   zfsd_mutex_init (&running_mutex);
-  zfsd_mutex_init (&main_client_thread_in_poll);
-  zfsd_mutex_init (&main_network_thread_in_poll);
+  zfsd_mutex_init (&main_client_thread_in_syscall);
+  zfsd_mutex_init (&main_network_thread_in_syscall);
 
   /* Set the signal handler for terminating zfsd.  */
   sigfillset (&sig.sa_mask);

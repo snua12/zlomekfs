@@ -45,7 +45,7 @@ pthread_mutex_t zfsd_mutex_initializer
 #endif
 
 /* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-static volatile bool running = true;
+volatile bool running = true;
 
 /* Mutex protecting RUNNING.  */
 pthread_mutex_t running_mutex;
@@ -77,15 +77,20 @@ set_running (bool value)
   zfsd_mutex_unlock (&running_mutex);
 }
 
-/* Terminate poll in THREAD.  Poll is being executed when MUTEX is locked.  */
+/* Terminate blocking syscall in THREAD.  We mark the blocking syscall by
+   locking MUTEX.  */
 
 void
-thread_terminate_poll (pthread_t thread, pthread_mutex_t *mutex)
+thread_terminate_blocking_syscall (pthread_t thread, pthread_mutex_t *mutex)
 {
+  /* While MUTEX is locked try to terminate syscall.  */
   while (pthread_mutex_trylock (mutex) != 0)
     {
       usleep (1);
-      pthread_kill (thread, SIGUSR1);
+      if (pthread_mutex_trylock (mutex) != 0)
+	pthread_kill (thread, SIGUSR1);
+      else
+	break;
     }
   pthread_mutex_unlock (mutex);
 }
@@ -304,14 +309,23 @@ thread_pool_regulator (void *data)
 
   while (get_running ())
     {
-      sleep (THREAD_POOL_REGULATOR_INTERVAL);
+      zfsd_mutex_lock (&d->in_syscall);
+      if (get_running ())
+	sleep (THREAD_POOL_REGULATOR_INTERVAL);
+      zfsd_mutex_unlock (&d->in_syscall);
       if (!get_running ())
-	return NULL;
+	break;
       zfsd_mutex_lock (&d->pool->idle.mutex);
       thread_pool_regulate (d->pool, d->start, d->init);
       zfsd_mutex_unlock (&d->pool->idle.mutex);
     }
 
+  /* Disable signaling this thread. */
+  zfsd_mutex_lock (&running_mutex);
+  d->thread_id = 0;
+  zfsd_mutex_unlock (&running_mutex);
+
+  zfsd_mutex_destroy (&d->in_syscall);
   return NULL;
 }
 
@@ -327,6 +341,7 @@ thread_pool_create_regulator (thread_pool_regulator_data *data,
   data->pool = pool;
   data->start = start;
   data->init = init;
+  zfsd_mutex_init (&data->in_syscall);
   if (pthread_create (&data->thread_id, NULL, thread_pool_regulator,
 		      (void *) data))
     {

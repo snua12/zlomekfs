@@ -33,6 +33,9 @@
 /* Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
 
+/* Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
+extern volatile bool running;
+
 /* Mutex protecting RUNNING flag.  */
 extern pthread_mutex_t running_mutex;
 
@@ -136,6 +139,7 @@ typedef void (*thread_initialize) (thread *);
 typedef struct thread_pool_regulator_data_def
 {
   pthread_t thread_id;		/* thread ID of the regulator */
+  pthread_mutex_t in_syscall;	/* regulator is in blocking syscall */
   thread_pool *pool;		/* thread pool which the regulator regulates */
   thread_start start;		/* start routine of the worker thread */
   thread_initialize init;	/* initialization routine */
@@ -143,7 +147,7 @@ typedef struct thread_pool_regulator_data_def
 
 extern bool get_running ();
 extern void set_running (bool value);
-extern void thread_terminate_poll (pthread_t thread, pthread_mutex_t *mutex);
+extern void thread_terminate_blocking_syscall (pthread_t thread, pthread_mutex_t *mutex);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
 extern void thread_pool_create (thread_pool *pool, size_t max_threads,

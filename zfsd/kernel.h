@@ -22,12 +22,17 @@
 #define CLIENT_H
 
 #include "system.h"
+#include "pthread.h"
+#include "thread.h"
+
+/* Data for client pool regulator.  */
+extern thread_pool_regulator_data client_regulator_data;
 
 /* Thread ID of the main client thread (thread receiving data from socket).  */
 extern pthread_t main_client_thread;
 
 /* This mutex is locked when main client thread is in poll.  */
-extern pthread_mutex_t main_client_thread_in_poll;
+extern pthread_mutex_t main_client_thread_in_syscall;
 
 extern bool create_client_threads ();
 extern bool client_start ();

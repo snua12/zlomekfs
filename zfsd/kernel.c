@@ -36,7 +36,7 @@
 static thread_pool client_pool;
 
 /* Data for client pool regulator.  */
-static thread_pool_regulator_data client_regulator_data;
+thread_pool_regulator_data client_regulator_data;
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -67,7 +67,7 @@ typedef struct client_fd_data_def
 pthread_t main_client_thread;
 
 /* This mutex is locked when main client thread is in poll.  */
-pthread_mutex_t main_client_thread_in_poll;
+pthread_mutex_t main_client_thread_in_syscall;
 
 /* File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
@@ -320,9 +320,9 @@ client_main (void * ATTRIBUTE_UNUSED data)
       pfd.events = CAN_READ;
 
       message (2, stderr, "Polling\n");
-      zfsd_mutex_lock (&main_client_thread_in_poll);
+      zfsd_mutex_lock (&main_client_thread_in_syscall);
       r = poll (&pfd, 1, -1);
-      zfsd_mutex_unlock (&main_client_thread_in_poll);
+      zfsd_mutex_unlock (&main_client_thread_in_syscall);
       message (2, stderr, "Poll returned %d, errno=%d\n", r, errno);
 
       if (r < 0 && errno != EINTR)
