@@ -26,6 +26,7 @@
 #ifdef __KERNEL__
 # include <linux/types.h>
 typedef unsigned long		uintptr_t;
+# include <asm/byteorder.h>
 # if defined(__LITTLE_ENDIAN)
 #  define BYTE_ORDER LITTLE_ENDIAN
 # elif defined(__BIG_ENDIAN)
@@ -162,7 +163,7 @@ extern DC *dc_create (void);
 extern void dc_destroy (DC *dc);
 #ifdef __KERNEL__
 extern DC *dc_get(void);
-extern void dc_put(DC *dc, int always_destroy);
+extern void dc_put(DC *dc);
 extern void dc_destroy_all(void);
 #endif
 #ifndef __KERNEL__

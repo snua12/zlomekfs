@@ -25,6 +25,7 @@
 # include <linux/string.h>
 # include <linux/slab.h>
 # include <linux/vmalloc.h>
+# include "zfs.h"
 #else
 # include <unistd.h>
 # include <inttypes.h>
@@ -83,8 +84,8 @@ dc_destroy (DC *dc)
 #include <asm/semaphore.h>
 
 DECLARE_MUTEX (dc_lock);
-DC *dc[MAX_FREE_DCS];
-int ndc;
+static DC *dc[MAX_FREE_DCS];
+static int ndc;
 
 /* Return a new data coding buffer;
    use an unused one or create a new one.  */
@@ -112,10 +113,10 @@ dc_get (void)
    make it unused or free it.  */
 
 void
-dc_put (DC *_dc, int always_destroy)
+dc_put (DC *_dc)
 {
   down (&dc_lock);
-  if (always_destroy || (ndc == MAX_FREE_DCS))
+  if (!channel.connected || (ndc == MAX_FREE_DCS))
     {
       up (&dc_lock);
       dc_destroy(_dc);
@@ -134,7 +135,7 @@ dc_destroy_all (void)
 {
   down (&dc_lock);
   while (ndc)
-	  dc_destroy (dc[--ndc]);
+    dc_destroy (dc[--ndc]);
   up (&dc_lock);
 }
 #endif
