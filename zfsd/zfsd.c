@@ -312,32 +312,42 @@ fake_config ()
   node n;
   volume v;
 
-  set_string (&node_name, "orion");
+  get_node_name ();
 
   n = node_create (1, "orion");
 
   v = volume_create (1);
-  volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
+  if (n == this_node)
+    volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
   volume_set_common_info (v, "volume1", "/volume1", n);
 
   v = volume_create (2);
-  volume_set_local_info (v, "/.zfs/dir2", VOLUME_NO_LIMIT);
+  if (n == this_node)
+    volume_set_local_info (v, "/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (v, "volume2", "/volume2", n);
 
   n = node_create (2, "sabbath");
 
   v = volume_create (3);
+  if (n == this_node)
+    volume_set_local_info (v, "/.zfs/dir1", VOLUME_NO_LIMIT);
   volume_set_common_info (v, "volume3", "/volume1/volume3", n);
 
   v = volume_create (4);
+  if (n == this_node)
+    volume_set_local_info (v, "/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (v, "volume4", "/volume2/sabbath/volume4", n);
 
   n = node_create (3, "jaro");
 
   v = volume_create (5);
+  if (n == this_node)
+    volume_set_local_info (v, "/home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (v, "volume5", "/jaro/volume5", n);
 
   v = volume_create (6);
+  if (n == this_node)
+    volume_set_local_info (v, "home/joe/.zfs/dir2", VOLUME_NO_LIMIT);
   volume_set_common_info (v, "volume6", "/volume6", n);
 
   debug_virtual_tree ();
@@ -352,6 +362,9 @@ test_zfs ()
   printf ("%d\n",
 	  zfs_extended_lookup (&fh, &root_fh,
 			       xstrdup ("/volume1/subdir/file")));
+  printf ("%d\n",
+	  zfs_extended_lookup (&fh, &root_fh,
+			       xstrdup ("/volume1/volume3/subdir/file")));
 }
 
 #endif
