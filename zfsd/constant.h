@@ -43,6 +43,10 @@
 /* The timeout for connection attempt in seconds.  */
 #define NODE_CONNECT_TIMEOUT 3
 
+/* The maximal number of microseconds of the measuring of connection speed
+   to decide that the connection is fast.  */
+#define CONNECTION_SPEED_FAST_LIMIT 50000
+
 /* Maximal value for MetadataTreeDepth.  */
 #define MAX_METADATA_TREE_DEPTH 6
 

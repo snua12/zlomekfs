@@ -588,14 +588,14 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
 	i--;
       else
 	{
-	  if (t1.tv_sec - t0.tv_sec > 1)
+	  if (t1.tv_sec - t0.tv_sec > 1 + CONNECTION_SPEED_FAST_LIMIT / 1000000)
 	    {
 	      fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
 	      return false;
 	    }
 
 	  delta += (t1.tv_sec - t0.tv_sec) * 1000000 + t1.tv_usec - t0.tv_usec;
-	  if (delta > 30000)	/* FIXME: configuration or defined constant*/
+	  if (delta > CONNECTION_SPEED_FAST_LIMIT)
 	    {
 	      fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
 	      return false;
