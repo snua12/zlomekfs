@@ -23,6 +23,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <stdio.h>
 #include "pthread.h"
 #include "memory.h"
 #include "hashtab.h"
@@ -78,6 +79,8 @@ extern bool hardlink_list_delete (hardlink_list hl, uint32_t parent_dev,
 extern bool hardlink_list_delete_entry (hardlink_list hl,
 					hardlink_list_entry entry);
 extern unsigned int hardlink_list_length (hardlink_list hl);
+extern void print_hardlink_list (FILE *f, hardlink_list hl);
+extern void debug_hardlink_list (hardlink_list hl);
 
 extern void initialize_hardlink_list_c (void);
 extern void cleanup_hardlink_list_c (void);

@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "pthread.h"
 #include "hardlink-list.h"
@@ -248,6 +249,28 @@ hardlink_list_length (hardlink_list hl)
   CHECK_MUTEX_LOCKED (hl->mutex);
 
   return hl->htab->n_elements - hl->htab->n_deleted;
+}
+
+/* Print the hardlink list HL to file F.  */
+
+void
+print_hardlink_list (FILE *f, hardlink_list hl)
+{
+  hardlink_list_entry entry;
+
+  for (entry = hl->first; entry; entry = entry->next)
+    {
+      fprintf (f, "  %" PRIu32 ",%" PRIu32 " %s\n",
+	       entry->parent_dev, entry->parent_ino, entry->name.str);
+    }
+}
+
+/* Print the hardlink list HL to STDERR.  */
+
+void
+debug_hardlink_list (hardlink_list hl)
+{
+  print_hardlink_list (stderr, hl);
 }
 
 /* Initialize data structures in HARDLINK-LIST.C.  */
