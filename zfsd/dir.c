@@ -273,6 +273,34 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
       return (errno == ENOENT ? ZFS_OK : errno);
     }
 
+  if (vol)
+    {
+      /* Lookup file handle and metadata.  */
+      fh.sid = parent_fh->sid;
+      fh.vid = parent_fh->vid;
+      fh.dev = st.st_dev;
+      fh.ino = st.st_ino;
+      /* Get FH.GEN.  */
+      meta->modetype = GET_MODETYPE (0, FT_BAD);
+
+      if (move_to_shadow_p)
+	{
+	  if (metadata_n_hardlinks (vol, &fh, meta) == 1
+	      && (zfs_fh_undefined (meta->master_fh)
+		  || (meta->flags & METADATA_MODIFIED)))
+	    {
+	      return (move_to_shadow_base (vol, &fh, path, name, parent_fh,
+					   journal != NULL)
+		      ? ZFS_OK : ZFS_METADATA_ERROR);
+	    }
+	}
+      else
+	{
+	  if (!lookup_metadata (vol, &fh, meta, false))
+	    MARK_VOLUME_DELETE (vol);
+	}
+    }
+
   r = ZFS_OK;
   if ((st.st_mode & S_IFMT) != S_IFDIR)
     {
@@ -294,16 +322,6 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 
   if (vol)
     {
-      /* Lookup file handle and metadata.  */
-      fh.sid = parent_fh->sid;
-      fh.vid = parent_fh->vid;
-      fh.dev = st.st_dev;
-      fh.ino = st.st_ino;
-      /* Get FH.GEN.  */
-      meta->modetype = GET_MODETYPE (0, FT_BAD);
-      if (!lookup_metadata (vol, &fh, meta, false))
-	MARK_VOLUME_DELETE (vol);
-
       if (r == ZFS_OK)
 	{
 	  if (journal)
@@ -344,13 +362,13 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
   return r;
 }
 
-/* Delete the contents of directory PATH with file handle FH on volume VID.
-   Use META for reading and deleting metadata.
+/* Delete the contents of directory PATH with file handle FH and parent
+   PARENT_FH.  Use META for reading and deleting metadata.
    If JOURNAL_P add a journal entry to journal for the directory.
    Destroy the dentries of the deleted files if DESTROY_DENTRY.  */
 
 static int32_t
-recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
+recursive_unlink_contents (metadata *meta, string *path, zfs_fh *parent_fh,
 			   zfs_fh *fh, bool destroy_dentry, bool journal_p,
 			   bool move_to_shadow_p)
 {
@@ -365,6 +383,20 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
   bool journal_in_fh;
 
   TRACE ("%s", path->str);
+
+  if (move_to_shadow_p)
+    {
+      vol = volume_lookup (fh->vid);
+      if (vol && zfs_fh_undefined (meta->master_fh))
+	{
+	  string name;
+
+	  file_name_from_path (&name, path);
+	  return (move_to_shadow_base (vol, fh, path, &name, parent_fh,
+				       journal_p)
+		  ? ZFS_OK : ZFS_METADATA_ERROR);
+	}
+    }
 
   /* Delete contents of subdirectories.  */
   d = opendir (path->str);
@@ -383,7 +415,7 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
 		  && de->d_name[2] == 0)))
 	continue;
 
-      vol = volume_lookup (vid);
+      vol = volume_lookup (fh->vid);
       if (lstat (path->str, &st) != 0)
 	{
 	  if (vol)
@@ -393,8 +425,8 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
 
       if ((st.st_mode & S_IFMT) == S_IFDIR)
 	{
-	  sub_fh.sid = this_node->id;
-	  sub_fh.vid = vid;
+	  sub_fh.sid = fh->sid;
+	  sub_fh.vid = fh->vid;
 	  sub_fh.dev = st.st_dev;
 	  sub_fh.ino = st.st_ino;
 	  sub_fh.gen = 0;
@@ -412,7 +444,7 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
 
 	  len = strlen (de->d_name);
 	  append_file_name (&new_path, path, de->d_name, len);
-	  r = recursive_unlink_contents (meta, &new_path, vid, &sub_fh,
+	  r = recursive_unlink_contents (meta, &new_path, fh, &sub_fh,
 					 destroy_dentry, journal_p,
 					 move_to_shadow_p);
 	  free (new_path.str);
@@ -456,7 +488,7 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
       if (journal_p && journal_in_fh)
 	{
 	  zfsd_mutex_lock (&fh_mutex);
-	  vol = volume_lookup (vid);
+	  vol = volume_lookup (fh->vid);
 	  if (vol)
 	    {
 	      dentry = dentry_lookup (fh);
@@ -480,7 +512,7 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
 	}
       else
 	{
-	  vol = volume_lookup (vid);
+	  vol = volume_lookup (fh->vid);
 	}
 
       len = strlen (de->d_name);
@@ -521,8 +553,7 @@ recursive_unlink_contents (metadata *meta, string *path, uint32_t vid,
 
 static int32_t
 recursive_unlink_start (metadata *meta, string *path, string *name,
-			uint32_t vid, zfs_fh *parent_fh,
-			bool destroy_dentry, bool journal_p,
+			zfs_fh *parent_fh, bool destroy_dentry, bool journal_p,
 			bool move_to_shadow_p)
 {
   struct stat st;
@@ -535,7 +566,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
 
   TRACE ("%s", path->str);
 
-  vol = volume_lookup (vid);
+  vol = volume_lookup (parent_fh->vid);
   if (lstat (path->str, &st) != 0)
     {
       if (vol)
@@ -545,8 +576,8 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
 
   if ((st.st_mode & S_IFMT) == S_IFDIR)
     {
-      fh.sid = this_node->id;
-      fh.vid = vid;
+      fh.sid = parent_fh->sid;
+      fh.vid = parent_fh->vid;
       fh.dev = st.st_dev;
       fh.ino = st.st_ino;
       fh.gen = 0;
@@ -562,7 +593,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
 
-      r = recursive_unlink_contents (meta, path, vid, &fh,
+      r = recursive_unlink_contents (meta, path, parent_fh, &fh,
 				     destroy_dentry, journal_p,
 				     move_to_shadow_p);
       if (r != ZFS_OK)
@@ -580,7 +611,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
   if (journal_p)
     {
       zfsd_mutex_lock (&fh_mutex);
-      vol = volume_lookup (vid);
+      vol = volume_lookup (parent_fh->vid);
       if (vol)
 	{
 	  dentry = dentry_lookup (parent_fh);
@@ -604,7 +635,7 @@ recursive_unlink_start (metadata *meta, string *path, string *name,
     }
   else
     {
-      vol = volume_lookup (vid);
+      vol = volume_lookup (parent_fh->vid);
     }
 
   r = recursive_unlink_itself (meta, path, name, vol, parent_fh,
@@ -677,7 +708,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  return recursive_unlink_start (&meta, path, &filename, vid, &fh,
+  return recursive_unlink_start (&meta, path, &filename, &fh,
 				 destroy_dentry, journal_p, move_to_shadow_p);
 }
 
