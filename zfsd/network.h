@@ -72,12 +72,13 @@ typedef struct server_thread_data_def
 /* Thread ID of the main server thread (thread receiving data from sockets).  */
 extern pthread_t main_server_thread;
 
-/* Key for server thread specific data.  */
-extern pthread_key_t server_thread_key;
-
 #endif
 
-extern void send_request (server_thread_data *td, node nod);
+struct thread_def;
+
+extern void server_worker_init (struct thread_def *t);
+extern void server_worker_cleanup (void *data);
+extern void send_request (struct thread_def *t, uint32_t request_id, node nod);
 extern int create_server_threads ();
 #ifdef RPC
 extern void register_server ();
