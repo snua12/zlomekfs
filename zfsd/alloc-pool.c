@@ -35,7 +35,7 @@
    allocate.  */
 
 alloc_pool
-create_alloc_pool (const char *name, size_t size,size_t  num)
+create_alloc_pool (const char *name, size_t size, size_t num)
 {
   alloc_pool pool;
   size_t pool_size, header_size;
@@ -50,9 +50,11 @@ create_alloc_pool (const char *name, size_t size,size_t  num)
   /* Now align the size to a multiple of 4.  */
   size = align_four (size);
 
+#ifdef ENABLE_CHECKING
   /* Um, we can't really allocate 0 elements per block.  */
   if (num == 0)
     abort ();
+#endif
 
   /* Find the size of the pool structure, and the name.  */
   pool_size = sizeof (struct alloc_pool_def);
@@ -84,8 +86,10 @@ free_alloc_pool (alloc_pool pool)
 {
   alloc_pool_list block, next_block;
 
+#ifdef ENABLE_CHECKING
   if (!pool)
     abort ();
+#endif
 
   /* Free each block allocated to the pool.  */
   for (block = pool->block_list; block != NULL; block = next_block)
@@ -105,8 +109,10 @@ pool_alloc (alloc_pool pool)
   alloc_pool_list header;
   char *block;
 
+#ifdef ENABLE_CHECKING
   if (!pool)
     abort ();
+#endif
 
   /* If there are no more free elements, make some more!.  */
   if (!pool->free_list)
@@ -150,12 +156,15 @@ pool_free (alloc_pool pool, void *ptr)
 {
   alloc_pool_list header;
 
+#ifdef ENABLE_CHECKING
   if (!ptr)
     abort ();
 
   /* Check if we free more than we allocated, which is Bad (TM).  */
   if (pool->elts_free + 1 > pool->elts_allocated)
     abort ();
+#endif
+
   header = (alloc_pool_list) ptr;
   header->next = pool->free_list;
   pool->free_list = header;
