@@ -190,8 +190,7 @@ zfs_proc_setattr_server (sattr_args *args, DC *dc,
 
 void
 zfs_proc_lookup_server (dir_op_args *args, DC *dc,
-			ATTRIBUTE_UNUSED void *data,
-			ATTRIBUTE_UNUSED bool map_id)
+			ATTRIBUTE_UNUSED void *data, bool map_id)
 {
   dir_op_res res;
   int32_t r;
