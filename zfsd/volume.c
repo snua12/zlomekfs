@@ -78,7 +78,8 @@ volume_create (unsigned int id)
   vol->flags = 0;
   vol->local_path = NULL;
   vol->size_limit = VOLUME_NO_LIMIT;
-  vol->root_fh = root_fh;
+  vol->local_root_fh = root_fh;
+  vol->remote_root_fh = root_fh;
   vol->root_vd = NULL;
   vol->fh_htab = htab_create (250, internal_fh_hash, internal_fh_eq,
 			      internal_fh_del);
