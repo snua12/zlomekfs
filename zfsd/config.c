@@ -60,8 +60,8 @@ thread config_reader_data;
 /* File used to communicate with kernel.  */
 string kernel_file_name;
 
-/* Directory with node configuration. */
-string node_config;
+/* Directory with local node configuration. */
+static string local_config;
 
 /* File with private key.  */
 static string private_key;
@@ -2098,7 +2098,7 @@ read_global_cluster_config (void)
 bool
 read_cluster_config (void)
 {
-  if (!read_local_cluster_config (&node_config))
+  if (!read_local_cluster_config (&local_config))
     return false;
 
   if (!init_config_volume ())
@@ -2129,7 +2129,7 @@ read_config_file (const char *file)
 
   /* Default values.  */
   set_str (&kernel_file_name, "/dev/zfs");
-  set_str (&node_config, "/etc/zfs");
+  set_str (&local_config, "/etc/zfs");
 
   /* Read the config file.  */
   f = fopen (file, "rt");
@@ -2167,13 +2167,11 @@ read_config_file (const char *file)
 		  set_string_with_length (&private_key, value, value_len);
 		  message (1, stderr, "PrivateKey = '%s'\n", value);
 		}
-	      else if (strncasecmp (key, "nodeconfig", 11) == 0
-		       || strncasecmp (key, "nodeconfiguration", 18) == 0
-		       || strncasecmp (key, "localconfig", 12) == 0
+	      else if (strncasecmp (key, "localconfig", 12) == 0
 		       || strncasecmp (key, "localconfiguration", 19) == 0)
 		{
-		  set_string_with_length (&node_config, value, value_len);
-		  message (1, stderr, "NodeConfig = '%s'\n", value);
+		  set_string_with_length (&local_config, value, value_len);
+		  message (1, stderr, "LocalConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)
 		{
@@ -2236,12 +2234,8 @@ read_config_file (const char *file)
 	      /* Configuration options which require a value.  */
 	      if (strncasecmp (key, "nodename", 9) == 0
 		  || strncasecmp (key, "privatekey", 11) == 0
-		  || strncasecmp (key, "nodeconfig", 11) == 0
-		  || strncasecmp (key, "nodeconfiguration", 18) == 0
 		  || strncasecmp (key, "localconfig", 12) == 0
 		  || strncasecmp (key, "localconfiguration", 19) == 0
-		  || strncasecmp (key, "clusterconfig", 14) == 0
-		  || strncasecmp (key, "clusterconfiguration", 21) == 0
 		  || strncasecmp (key, "defaultuser", 12) == 0
 		  || strncasecmp (key, "defaultuid", 11) == 0
 		  || strncasecmp (key, "defaultgroup", 13) == 0
@@ -2283,7 +2277,7 @@ read_config_file (const char *file)
     }
 
   if (!private_key.str)
-    append_file_name (&private_key, &node_config, "node_key", 8);
+    append_file_name (&private_key, &local_config, "node_key", 8);
   if (!read_private_key (&private_key))
     return false;
   return true;
@@ -2322,5 +2316,5 @@ cleanup_config_c (void)
     free (node_name.str);
   free (node_host_name.str);
   free (kernel_file_name.str);
-  free (node_config.str);
+  free (local_config.str);
 }
