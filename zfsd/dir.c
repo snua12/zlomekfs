@@ -4874,6 +4874,8 @@ local_reintegrate_set (internal_dentry dentry, uint64_t version, volume vol)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #endif
 
+  if (dentry->fh->meta.flags & METADATA_MODIFIED)
+    version--;
   dentry->fh->meta.local_version = version;
   if (!vol->is_copy)
     dentry->fh->meta.master_version = version;
