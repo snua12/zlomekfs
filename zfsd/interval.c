@@ -407,7 +407,7 @@ interval_tree_intersection_1 (interval_tree tree, uint64_t start, uint64_t end,
     {
       interval *x;
 
-      VARRAY_EMPTY_PUSH (*dest, interval);
+      VARRAY_EMPTY_PUSH (*dest);
       x = &VARRAY_TOP (*dest, interval);
       x->start = MAX (start, INTERVAL_START (node));
       x->end = MIN (end, INTERVAL_END (node));
@@ -477,7 +477,7 @@ interval_tree_complement_1 (interval_tree tree, uint64_t start, uint64_t end,
     {
       interval *x;
 
-      VARRAY_EMPTY_PUSH (*dest, interval);
+      VARRAY_EMPTY_PUSH (*dest);
       x = &VARRAY_TOP (*dest, interval);
       x->start = last;
 

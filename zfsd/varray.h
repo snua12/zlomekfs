@@ -45,9 +45,8 @@ typedef struct varray_def
 /* Number of used elements of variable-sized array VA.  */
 #define VARRAY_USED(VA) ((VA).nused)
 
-/* Add an uninitialized element of type T on top of the variable-sized
-   array VA.  */
-#define VARRAY_EMPTY_PUSH(VA, T)			\
+/* Add an uninitialized element on top of the variable-sized array VA.  */
+#define VARRAY_EMPTY_PUSH(VA)				\
   do							\
     {							\
       if ((VA).nused >= (VA).nelem)			\
