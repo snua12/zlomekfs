@@ -112,6 +112,18 @@ pthread_mutex_t cleanup_dentry_thread_in_syscall;
   (crc32_update (crc32_string ((VD)->name),				\
 		 &(VD)->parent->fh, sizeof (zfs_fh)))
 
+/* Return the fibheap key for dentry DENTRY.  */
+
+static fibheapkey_t
+dentry_key (internal_dentry dentry)
+{
+  if ((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
+       && dentry->next == dentry)
+    return FIBHEAPKEY_MAX;
+
+  return (fibheapkey_t) dentry->last_use;
+}
+
 /* Add ZFS_FH of internal dentry DENTRY with key DENTRY->LAST_USE
    to heap CLEANUP_DENTRY_HEAP.  */
 
@@ -125,12 +137,8 @@ cleanup_dentry_insert_node (internal_dentry dentry)
   zfsd_mutex_lock (&cleanup_dentry_mutex);
   if (!dentry->heap_node)
     {
-      fibheapkey_t key;
-
-      key = (((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
-	      && dentry->next == dentry)
-	     ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use);
-      dentry->heap_node = fibheap_insert (cleanup_dentry_heap, key, dentry);
+      dentry->heap_node = fibheap_insert (cleanup_dentry_heap,
+					  dentry_key (dentry), dentry);
     }
   zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
@@ -148,12 +156,8 @@ cleanup_dentry_update_node (internal_dentry dentry)
   zfsd_mutex_lock (&cleanup_dentry_mutex);
   if (dentry->heap_node)
     {
-      fibheapkey_t key;
-
-      key = (((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
-	      && dentry->next == dentry)
-	     ? FIBHEAPKEY_MAX : (fibheapkey_t) dentry->last_use);
-      fibheap_replace_key (cleanup_dentry_heap, dentry->heap_node, key);
+      fibheap_replace_key (cleanup_dentry_heap, dentry->heap_node,
+			   dentry_key (dentry));
     }
   zfsd_mutex_unlock (&cleanup_dentry_mutex);
 }
@@ -260,13 +264,11 @@ cleanup_unused_dentries ()
 		  continue;
 		}
 
-	      /* We may have looked DENTRY up again
+	      /* We may have looked up DENTRY again
 		 so we may have updated LAST_USE
 		 or there are capabilities associated with
 		 the file handle and this is its only dentry.  */
-	      if ((fibheapkey_t) dentry->last_use >= threshold
-		  || ((dentry->fh->cap || dentry->fh->level != LEVEL_UNLOCKED)
-		      && dentry->next == dentry))
+	      if (dentry_key (dentry) >= threshold)
 		{
 		  /* Reinsert the file handle to heap.  */
 		  cleanup_dentry_insert_node (dentry);
