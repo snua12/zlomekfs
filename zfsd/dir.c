@@ -218,9 +218,8 @@ file_name_from_path (string *dst, string *path)
    exist.  */
 
 static int32_t
-parent_exists (string *path)
+parent_exists (string *path, struct stat *st)
 {
-  struct stat st;
   int32_t r;
   string file;
 
@@ -228,7 +227,7 @@ parent_exists (string *path)
 
   file_name_from_path (&file, path);
   file.str[-1] = 0;
-  r = lstat (path->str[0] ? path->str : "/", &st);
+  r = lstat (path->str[0] ? path->str : "/", st);
   file.str[-1] = '/';
 
   if (r != 0)
@@ -1223,6 +1222,7 @@ int32_t
 local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
 	      metadata *meta)
 {
+  struct stat parent_st;
   string path;
   int32_t r;
 
@@ -1239,7 +1239,7 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (&path);
+  r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -1821,6 +1821,7 @@ static int32_t
 local_rmdir (struct stat *st, string *pathp,
 	     internal_dentry dir, string *name, volume vol)
 {
+  struct stat parent_st;
   string path;
   int32_t r;
 
@@ -1834,7 +1835,7 @@ local_rmdir (struct stat *st, string *pathp,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (&path);
+  r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -2280,6 +2281,7 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
 	      internal_dentry from_dir, string *from_name,
 	      internal_dentry to_dir, string *to_name, volume vol)
 {
+  struct stat parent_st;
   string path1, path2;
   int32_t r;
 
@@ -2297,7 +2299,7 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (&path1);
+  r = parent_exists (&path1, &parent_st);
   if (r != ZFS_OK)
     {
       free (path1.str);
@@ -2306,7 +2308,7 @@ local_rename (struct stat *st_old, struct stat *st_new, string *pathp,
     }
   if (to_dir != from_dir)
     {
-      r = parent_exists (&path2);
+      r = parent_exists (&path2, &parent_st);
       if (r != ZFS_OK)
 	{
 	  free (path1.str);
@@ -3026,6 +3028,7 @@ static int32_t
 local_unlink (struct stat *st, string *pathp,
 	      internal_dentry dir, string *name, volume vol)
 {
+  struct stat parent_st;
   string path;
   int32_t r;
 
@@ -3039,7 +3042,7 @@ local_unlink (struct stat *st, string *pathp,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (&path);
+  r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
     {
       free (path.str);
@@ -3811,6 +3814,7 @@ int32_t
 local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
 	       sattr *attr, volume vol, metadata *meta)
 {
+  struct stat parent_st;
   string path;
   int32_t r;
 
@@ -3827,7 +3831,7 @@ local_symlink (dir_op_res *res, internal_dentry dir, string *name, string *to,
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  r = parent_exists (&path);
+  r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
     {
       free (path.str);
