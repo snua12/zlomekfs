@@ -19,6 +19,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include <stdio.h>
 #include <string.h>
 #include "fh.h"
 #include "alloc-pool.h"
@@ -221,10 +222,10 @@ static hash_t
 virtual_dir_hash (const void *x)
 {
 #ifdef ENABLE_CHECKING
-  if (!VIRTUAL_FH_P (((virtual_dir) x)->virtual_fh->client_fh))
+  if (!VIRTUAL_FH_P (*(svc_fh *) x))
     abort ();
 #endif
-  return VIRTUAL_DIR_HASH ((virtual_dir) x);
+  return SVC_FH_HASH ((svc_fh *) x);
 }
 
 /* Compare a virtual directory XX with client's file handle YY.  */
@@ -442,14 +443,15 @@ virtual_mountpoint_create (volume vol)
 {
   varray subpath;
   virtual_dir vd, parent, tmp;
-  char *s;
+  char *s, *mountpoint;
   unsigned int i;
   int active;
 
+  mountpoint = xstrdup (vol->mountpoint);
   varray_create (&subpath, sizeof (char *), 16);
 
   /* Split the path.  */
-  s = vol->mountpoint;
+  s = mountpoint;
   while (*s != 0)
     {
       while (*s == '/')
@@ -461,6 +463,8 @@ virtual_mountpoint_create (volume vol)
       VARRAY_PUSH (subpath, s, char *);
       while (*s != 0 && *s != '/')
 	s++;
+      if (*s == '/')
+	*s++ = 0;
     }
 
   /* Create the components of the path.  */
@@ -476,10 +480,10 @@ virtual_mountpoint_create (volume vol)
       tmp_fh.parent = parent->virtual_fh;
       tmp_fh.name = s;
       fh = (internal_fh) htab_find (fh_htab_name, &tmp_fh);
-      if (!VIRTUAL_FH_P (fh->client_fh))
-	vd = virtual_dir_create (parent, s);
-      else
+      if (fh && VIRTUAL_FH_P (fh->client_fh))
 	vd = fh->vd;
+      else
+	vd = virtual_dir_create (parent, s);
     }
   vd->vol = vol;
 
@@ -492,7 +496,47 @@ virtual_mountpoint_create (volume vol)
       tmp->total++;
     }
 
+  free (mountpoint);
+
   return vd;
+}
+
+/* Print the virtual directory VD and its subdirectories to file F
+   indented by INDENT spaces.  */
+
+static void
+print_virtual_tree_node (FILE *f, virtual_dir vd, unsigned int indent)
+{
+  unsigned int i;
+
+  for (i = 0; i < indent; i++)
+    fputc (' ', f);
+    
+  fputs (vd->virtual_fh->name, f);
+  if (vd->vol)
+    fprintf (f, "; VOLUME = %s", vd->vol->name);
+  fputc ('\n', f);
+
+  for (i = 0; i < VARRAY_USED (vd->subdirs); i++)
+    print_virtual_tree_node (f,
+			     VARRAY_ACCESS (vd->subdirs, i, internal_fh)->vd,
+			     indent + 1);
+}
+
+/* Print the virtual tree to file F.  */
+
+void
+print_virtual_tree (FILE *f)
+{
+  print_virtual_tree_node (f, root, 0);
+}
+
+/* Print the virtual tree to STDERR.  */
+
+void
+debug_virtual_tree ()
+{
+  print_virtual_tree (stderr);
 }
 
 /* Initialize data structures in FH.C.  */
