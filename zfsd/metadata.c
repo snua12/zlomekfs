@@ -1122,6 +1122,7 @@ init_metadata_for_created_volume_root (volume vol)
       meta.ino = st.st_ino;
       meta.local_version = 1;
       meta.master_version = 1;
+      zfs_fh_undefine (meta.master_fh);
     }
 
   if (!hfile_insert (vol->metadata, &meta))
@@ -1170,6 +1171,7 @@ init_metadata (volume vol, internal_fh fh)
       fh->meta.ino = fh->local_fh.ino;
       fh->meta.local_version = 0;
       fh->meta.master_version = 0;
+      zfs_fh_undefine (fh->meta.master_fh);
     }
 
   set_attr_version (&fh->attr, &fh->meta);
