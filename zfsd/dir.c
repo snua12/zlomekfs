@@ -1681,6 +1681,13 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 		{
 		  interval_tree_delete (dentry->fh->updated, fa->size,
 					UINT64_MAX);
+		  if (dentry->fh->attr.size < fa->size)
+		    {
+		      if (!append_interval (vol, dentry->fh,
+					    METADATA_TYPE_UPDATED,
+					    dentry->fh->attr.size, fa->size))
+			MARK_VOLUME_DELETE (vol);
+		    }
 		  if (dentry->fh->updated->deleted)
 		    {
 		      if (!flush_interval_tree (vol, dentry->fh,
@@ -1692,6 +1699,13 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
 		{
 		  interval_tree_delete (dentry->fh->modified, fa->size,
 					UINT64_MAX);
+		  if (dentry->fh->attr.size < fa->size)
+		    {
+		      if (!append_interval (vol, dentry->fh,
+					    METADATA_TYPE_UPDATED,
+					    dentry->fh->attr.size, fa->size))
+			MARK_VOLUME_DELETE (vol);
+		    }
 		  if (dentry->fh->modified->deleted)
 		    {
 		      if (!flush_interval_tree (vol, dentry->fh,
