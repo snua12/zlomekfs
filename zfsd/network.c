@@ -1367,7 +1367,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
       
       threshold = (fibheapkey_t) time (NULL);
       if (threshold <= REQUEST_TIMEOUT)
-	threshold = 0;
+	threshold = 1;
       else
 	threshold -= REQUEST_TIMEOUT;
 
