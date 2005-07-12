@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+use strict;
+
+if (@ARGV == 0 || @ARGV > 2)
+{
+	print "Usage: make_symlinks.pl PATH_TO_ZFSD_SOURCES [PATH_TO_KERNEL_SOURCES]\n\n";
+	exit 1;
+}
+
+if (@ARGV == 2)
+{
+	if (!chdir ($ARGV[1] . "/fs/zfs"))
+	{
+		print STDERR "Could not chdir to '", $ARGV[1], "/fs/zfs'\n";
+		exit 1;
+	}
+}
+
+if (!symlink ($ARGV[0], "zfsd"))
+{
+	print STDERR "Could not symlink '$ARGV[0]' to 'zfsd', reason: $!\n";
+}
+
+my @files = ("constant.h", "data-coding.c", "data-coding.h", "md5.h", "memory.h", "system.h", "zfs_prot.c", "zfs_prot.def", "zfs_prot.h");
+
+foreach my $file (@files)
+{
+	if (!symlink ("zfsd/" . $file, $file))
+	{
+		print STDERR "Could not symlink 'zfsd/$file' to '$file', reason: $!\n";
+	}
+}
+
+exit 0;
