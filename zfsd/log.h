@@ -31,6 +31,11 @@
 /*! Redefine abort to be the verbose abort.  */
 #define abort() verbose_abort(__FILE__, __LINE__)
 
+#define TRACE2(format, ...) message (1, stderr,				       \
+				    "TRACE %s() by %lu at %s:%d: " format "\n",\
+				    __func__, (unsigned long) pthread_self (), \
+				    __FILE__, __LINE__, ## __VA_ARGS__)
+
 #ifdef ENABLE_CHECKING
 
 /*! Print which function we are in with additional information.  */

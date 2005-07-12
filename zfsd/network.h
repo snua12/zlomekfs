@@ -92,6 +92,10 @@ extern fd_data_t *fd_data_a;
 /*! Hash function for request ID.  */
 #define WAITING4REPLY_HASH(REQUEST_ID) (REQUEST_ID)
 
+extern unsigned int pending_slow_reqs_count;
+extern pthread_mutex_t pending_slow_reqs_mutex;
+extern pthread_cond_t pending_slow_reqs_cond;
+
 struct thread_def;
 
 extern hash_t waiting4reply_hash (const void *xx);

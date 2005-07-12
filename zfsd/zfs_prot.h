@@ -58,6 +58,7 @@
 #define ZFS_BUSY		-21	/*!< file handle is being reintegrated */
 #define ZFS_CHANGED		-22	/*!< The file has changed while doing
 					     operation.  */
+#define ZFS_SLOW_BUSY	-23 /*!< Operation terminated because slow connection is busy */
 #define ZFS_METADATA_ERROR	-50	/*!< Error when accessing file containing
 					     metadata.  */
 #define ZFS_UPDATE_FAILED	-51	/*!< Error while updating a file.  */
@@ -88,7 +89,12 @@ typedef struct data_buffer_def
 {
   uint32_t len;
 #ifdef __KERNEL__
-  const char __user *buf;
+  bool user;
+  union {
+    const char __user *u_rbuf;
+    char __user *u_wbuf;
+    char *k_buf;
+  } buf;
 #else
   char *buf;
 #endif
@@ -107,7 +113,7 @@ typedef enum ftype_def
   FT_LAST_AND_UNUSED
 } ftype;
 
-/*! Connection speed.  */
+/*! Connection speed. */
 typedef enum connection_speed_def
 {
   CONNECTION_SPEED_NONE = 0,

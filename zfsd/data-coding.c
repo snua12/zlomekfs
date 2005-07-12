@@ -316,7 +316,12 @@ decode_data_buffer (DC *dc, data_buffer *data)
   if (dc->cur_length > dc->max_length)
     return false;
 
+#ifdef __KERNEL__
+  data->buf.k_buf = dc->cur_pos;
+#else
   data->buf = dc->cur_pos;
+#endif
+  
   dc->cur_pos += data->len;
 
   return true;
@@ -339,9 +344,13 @@ encode_data_buffer (DC *dc, data_buffer *data)
     }
 
 #ifdef __KERNEL__
-  if (copy_from_user(dc->cur_pos, data->buf, data->len)) {
-    dc->cur_pos = NULL;
-    return false;
+  if (data->user) {
+    if (copy_from_user(dc->cur_pos, data->buf.u_rbuf, data->len)) {
+	  dc->cur_pos = NULL;
+	  return false;
+	}
+  } else {
+  	memcpy (dc->cur_pos, data->buf.k_buf, data->len);
   }
 #else
   if (dc->cur_pos != data->buf)

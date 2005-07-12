@@ -98,6 +98,8 @@ typedef struct update_thread_data_def
 {
   /*! File handle to update.  */
   zfs_fh fh;
+  /*! Thread is a slow updater. */
+  bool slow;
 } update_thread_data;
 
 /*! \brief Definition of thread's variables.  */

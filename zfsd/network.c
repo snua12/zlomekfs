@@ -69,6 +69,24 @@ static int nactive;
 /*! Mutex protecting access to ACTIVE and NACTIVE.  */
 static pthread_mutex_t active_mutex;
 
+/*! \brief Number of pending slow requests
+ * 
+ * Total number of RPC requests sent and yet not received from slowly connected nodes.
+ * 
+ * \see pending_slow_reqs_cond
+ */
+unsigned int pending_slow_reqs_count;
+
+/*! \brief Mutex for #pending_slow_reqs_cond */
+pthread_mutex_t pending_slow_reqs_mutex;
+
+/*! \brief Condition variable for #pending_slow_reqs_count
+ * 
+ * Protected by #pendinf_slow_reqs_mutex
+ */
+pthread_cond_t pending_slow_reqs_cond;
+
+
 /*! Hash function for waiting4reply_data.  */
 
 hash_t
@@ -264,7 +282,7 @@ close_active_fd (int i)
   CHECK_MUTEX_LOCKED (&active_mutex);
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
-  message (2, stderr, "Closing FD %d\n", fd);
+  message (1, stderr, "Closing FD %d\n", fd);
   close (fd);
 
   wake_all_threads (&fd_data_a[fd], ZFS_CONNECTION_CLOSED);
@@ -381,6 +399,8 @@ volume_master_connected (volume vol)
 static int
 node_connect (node nod)
 {
+  message (1, stderr, "Connecting to node %u\n", nod->id);
+
   struct addrinfo *addr, *a;
   int s = -1;
   int err;
@@ -513,6 +533,7 @@ node_connect (node nod)
   return -1;
 
 node_connected:
+  message (1, stderr, "Nonblocking connection to node %u initiated on socked %d\n", nod->id, s);	
   freeaddrinfo (addr);
   fd_data_a[s].conn = CONNECTION_CONNECTING;
   fd_data_a[s].speed = CONNECTION_SPEED_NONE;
@@ -598,6 +619,7 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
 	{
 	  if (t1.tv_sec - t0.tv_sec > 1 + CONNECTION_SPEED_FAST_LIMIT / 1000000)
 	    {
+	      message (1, stderr, "Estabilished SLOW connection\n");
 	      fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
 	      return false;
 	    }
@@ -605,12 +627,14 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
 	  delta += (t1.tv_sec - t0.tv_sec) * 1000000 + t1.tv_usec - t0.tv_usec;
 	  if (delta > CONNECTION_SPEED_FAST_LIMIT)
 	    {
+	      message (1, stderr, "Estabilished SLOW connection\n");
 	      fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
 	      return false;
 	    }
 	}
     }
 
+  message (1, stderr, "Estabilished FAST connection\n");
   fd_data_a[fd].speed = CONNECTION_SPEED_FAST;
   return false;
 }
@@ -747,7 +771,7 @@ again:
 
 	/* FIXME: really do authentication */
 
-	message (2, stderr, "FD %d connected to node %s (%s)\n", fd,
+	message (1, stderr, "FD %d connected to node %s (%s)\n", fd,
 		 nod->name.str, nod->host_name.str);
 	zfsd_mutex_unlock (&nod->mutex);
 	fd_data_a[fd].auth = AUTHENTICATION_STAGE_1;
@@ -828,7 +852,7 @@ again:
   return fd;
 
 node_authenticate_error:
-  message (2, stderr, "not auth\n");
+  message (1, stderr, "not auth\n");
   zfsd_mutex_lock (&fd_data_a[fd].mutex);
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     {
@@ -858,8 +882,12 @@ node_connect_and_authenticate (thread *t, node nod, authentication_status auth)
 
   CHECK_MUTEX_LOCKED (&nod->mutex);
 
+
+
   if (!node_has_valid_fd (nod))
     {
+      message (1, stderr, "Connecting+authentizing to node %u\n", nod->id);
+      
       time_t now;
 
       /* Do not try to connect too often.  */
@@ -954,6 +982,8 @@ recycle_dc_to_fd (DC *dc, int fd)
 void
 send_oneway_request (thread *t, int fd)
 {
+  TRACE2("test");
+  
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
   t->dc_reply = NULL;
@@ -977,24 +1007,40 @@ send_oneway_request (thread *t, int fd)
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
 }
 
-/*! Helper function for sending request.  Send request with request id REQUEST_ID
-   using data in thread T to connected socket FD and wait for reply.
-   It expects fd_data_a[fd].mutex to be locked.  */
-
+/*! \brief Helper function for sending request.
+ * 
+ * Send request with request id REQUEST_ID
+ * using data in thread T to connected socket FD and wait for reply.
+ * It expects fd_data_a[fd].mutex to be locked.
+ * Tracks number of slow requests in #pending_slow_reqs_count for slowly connected volumes.
+ * 
+ */
 void
 send_request (thread *t, uint32_t request_id, int fd)
 {
   void **slot;
   waiting4reply_data *wd;
+  bool slow = false;
 
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
   t->dc_reply = NULL;
+
   if (thread_pool_terminate_p (&network_pool))
     {
       t->retval = ZFS_EXITING;
       zfsd_mutex_unlock (&fd_data_a[fd].mutex);
       return;
+    }
+
+  /* increase the number of requests pending on slow connections */
+  if (fd_data_a[fd].speed == CONNECTION_SPEED_SLOW)
+    {
+      slow = true;
+      zfsd_mutex_lock(&pending_slow_reqs_mutex);
+      pending_slow_reqs_count++;
+      message(1, stderr, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
+      zfsd_mutex_unlock(&pending_slow_reqs_mutex);
     }
 
   t->retval = ZFS_OK;
@@ -1024,6 +1070,15 @@ send_request (thread *t, uint32_t request_id, int fd)
       fibheap_delete_node (fd_data_a[fd].waiting4reply_heap, wd->node);
       pool_free (fd_data_a[fd].waiting4reply_pool, wd);
       zfsd_mutex_unlock (&fd_data_a[fd].mutex);
+      if (slow)
+        {
+          /* decrease the number of requests pending on slow connections */
+          zfsd_mutex_lock(&pending_slow_reqs_mutex);
+          pending_slow_reqs_count--;
+          message(1, stderr, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
+          zfsd_cond_signal(&pending_slow_reqs_cond);
+          zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+        }
       return;
     }
   zfsd_mutex_unlock (&fd_data_a[fd].mutex);
@@ -1031,6 +1086,16 @@ send_request (thread *t, uint32_t request_id, int fd)
   /* Wait for reply.  */
   semaphore_down (&t->sem, 1);
 
+  if (slow)
+    {
+      /* decrease the number of requests pending on slow connections */
+      zfsd_mutex_lock(&pending_slow_reqs_mutex);
+      pending_slow_reqs_count--;
+      message(1, stderr, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
+      zfsd_cond_signal(&pending_slow_reqs_cond);
+      zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+    }
+	  
   /* If there was no error with connection, decode return value.  */
   if (t->retval == ZFS_OK)
     {
@@ -1130,6 +1195,7 @@ network_worker (void *data)
       if (!decode_request_id (t->u.network.dc, &request_id))
 	{
 	  /* TODO: log too short packet.  */
+	  message(-1, stderr, "Too short packet...?\n");
 	  goto out;
 	}
 
@@ -1149,7 +1215,7 @@ network_worker (void *data)
 	  goto out;
 	}
 
-      message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
+      message (1, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
 	{
 #define ZFS_CALL_SERVER
@@ -1277,7 +1343,7 @@ network_dispatch (fd_data_t *fd_data)
 		message (1, stderr, "Packet too short.\n");
 		return false;
 	      }
-	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+	    message (1, stderr, "REPLY: ID=%u\n", request_id);
 
 	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
 					     &request_id,
@@ -1286,7 +1352,7 @@ network_dispatch (fd_data_t *fd_data)
 	    if (!slot)
 	      {
 		/* TODO: log request was not found.  */
-		message (1, stderr, "Request ID %d has not been found.\n",
+		message (1, stderr, "Request (network) ID %d has not been found.\n",
 			 request_id);
 		return false;
 	      }
@@ -1391,6 +1457,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
 	      if (!slot || !*slot)
 		abort ();
 #endif
+          message(1, stderr, "TIMEOUTING NETWORK REQUEST ID=%u\n", data->request_id);
 	      data->t->retval = ZFS_REQUEST_TIMEOUT;
 	      semaphore_up (&data->t->sem, 1);
 	      htab_clear_slot (active[i]->waiting4reply, slot);
@@ -1672,8 +1739,7 @@ retry_accept:
   return NULL;
 }
 
-/*! Initialize information about file descriptors.  */
-
+/*! \brief Initialize information about networking file descriptors, mutexes and cond vars  */
 void
 fd_data_init (void)
 {
@@ -1690,10 +1756,16 @@ fd_data_init (void)
 
   nactive = 0;
   active = (fd_data_t **) xmalloc (max_nfd * sizeof (fd_data_t));
+  
+  zfsd_mutex_init(&pending_slow_reqs_mutex);
+  zfsd_cond_init(&pending_slow_reqs_cond);
+  pending_slow_reqs_count = 0;
 }
 
-/*! Wake threads waiting for reply on file descriptors.  */
-
+/*! \brief Start networking shutdown
+ * 
+ * Wake threads waiting for reply on file descriptors.
+ */
 void
 fd_data_shutdown (void)
 {
@@ -1721,8 +1793,7 @@ fd_data_shutdown (void)
     }
 }
 
-/*! Destroy information about file descriptors.  */
-
+/*! \brief Destroy networking and kernel file descriptors, mutexes and cond vars.  */
 void
 fd_data_destroy (void)
 {
@@ -1747,13 +1818,15 @@ fd_data_destroy (void)
       zfsd_mutex_destroy (&fd_data_a[i].mutex);
       zfsd_cond_destroy (&fd_data_a[i].cond);
     }
-
+    
   free (active);
   free (fd_data_a);
+  
+  zfsd_mutex_destroy(&pending_slow_reqs_mutex);
+  zfsd_cond_destroy(&pending_slow_reqs_cond);
 }
 
-/*! Create a listening socket and start the main network thread.  */
-
+/*! \brief Create a listening socket and start the main network thread.  */
 bool
 network_start (void)
 {
@@ -1808,8 +1881,7 @@ network_start (void)
   return true;
 }
 
-/*! Terminate network threads and destroy data structures.  */
-
+/*! \brief Terminate network threads and destroy data structures.  */
 void
 network_cleanup (void)
 {

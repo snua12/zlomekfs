@@ -847,8 +847,8 @@ cond_remote_open (zfs_cap *cap, internal_cap icap, internal_dentry *dentryp,
   RETURN_INT (ZFS_OK);
 }
 
-/*! Open file handle FH with open flags FLAGS and return capability in CAP.  */
-
+/*! \brief Open file handle FH with open flags FLAGS and return capability in CAP.
+ */
 int32_t
 zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
 {
@@ -922,18 +922,33 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
   flags &= ~O_ACCMODE;
   if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
+      /* file cached locally and we are not master of this volume */
       if (vol->master != this_node)
 	{
 	  int what;
-
-	  /* If we are truncating the file synchronize the attributes only
-	     and do not synchronize the contents of the file.  */
+          
+          /* now decide what to update if needed */
 	  if ((flags & O_TRUNC)
 	      && (cap->flags == O_WRONLY || cap->flags == O_RDWR))
+	  {
+            /* If we are truncating the file synchronize the attributes only
+               and do not synchronize the contents of the file.  */
 	    what = IFH_METADATA;
+	  }
+	  else if (dentry->fh->attr.type == FT_REG)
+	  {
+            /* regular files must get metadata updated to recognize conflict/new version/new file size
+             * update gets scheduled for read-ahead from server
+             * reintegration when opening seems not smart, so no scheduling for that */ 
+	    what = IFH_METADATA | IFH_UPDATE;
+	  }
 	  else
+	  {
+            /* the rest should get fully updated (directories for example...) */
 	    what = IFH_ALL_UPDATE;
-
+	  }
+          
+          /* determine what needs updating and do it if it's what we just decided */          
 	  r = update_cap_if_needed (&icap, &vol, &dentry, &vd, &tmp_cap, true,
 				    what);
 	  if (r != ZFS_OK)
@@ -976,15 +991,18 @@ zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags)
 	    }
 	}
       else
+        /* we are master of the volume, nothing to update */
 	r = local_open (flags, dentry, vol);
     }
   else if (vol->master != this_node)
     {
+      /* file not cached locally and we are not master */
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_open (&remote_cap, icap, flags, dentry, vol);
       remote_call = true;
     }
   else
+    /* file not cached locally but we are master volume? can't happen! */
     abort ();
 
   r2 = find_capability_nolock (&tmp_cap, &icap, &vol, &dentry, &vd, false);
@@ -2061,13 +2079,18 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	  uint32_t count2;
 	  unsigned int i;
 	  bool complete;
+	  
+////	  message(1, stderr, "zfs_read(): file has local path\n");
 
 	  count2 = (count < ZFS_UPDATED_BLOCK_SIZE
 		    ? ZFS_UPDATED_BLOCK_SIZE : count);
 	  end = (offset < (uint64_t) -1 - count2
 		 ? offset + count2 : (uint64_t) -1);
+	  
+////	  message(1, stderr, "zfs_read(): calling get_blocks_for_updating()\n");
 	  get_blocks_for_updating (dentry->fh, offset, end, &blocks);
-
+////	  message(1, stderr, "zfs_read(): back from get_blocks_for_updating()\n");
+	  
 	  complete = true;
 	  offset2 = offset + count;
 	  for (i = 0; i < VARRAY_USED (blocks); i++)
@@ -2091,10 +2114,12 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 
 	  if (complete)
 	    {
+////	      message(1, stderr, "zfs_read(): nothing to update\n");
 	      r = local_read (res, dentry, offset, count, vol);
 	    }
 	  else
 	    {
+////	      message(1, stderr, "zfs_read(): will update\n");
 	      bool modified;
 
 	      if (icap->master_busy == 0)
@@ -2112,8 +2137,12 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	      release_dentry (dentry);
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
-
-	      r = update_file_blocks (&tmp_cap, &blocks, modified);
+	      
+////	      message(1, stderr, "zfs_read(): calling update_file_blocks\n");
+              
+              /* update the file blocks needed for this read, parameter for slow = false, we don't want to get
+               * interrupted here, it's not background update */
+	      r = update_file_blocks (&tmp_cap, &blocks, modified, false);
 	      if (r == ZFS_OK)
 		{
 out_update:

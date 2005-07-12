@@ -108,9 +108,9 @@ typedef struct fh_mapping_def
   zfs_fh local_fh;		/*!< local file handle */
 } fh_mapping;
 
-#define METADATA_COMPLETE	1	/*!< file is complete */
-#define METADATA_UPDATED_TREE	2	/*!< file has an updated interval tree */
-#define METADATA_MODIFIED_TREE	4	/*!< file has a modified interval tree */
+#define METADATA_COMPLETE	1	/*!< file is complete, should be XOR with METADATA_MODIFIED_TREE  */
+#define METADATA_UPDATED_TREE	2	/*!< file has an updated interval tree, should be XOR with METADATA_COMPLETE */
+#define METADATA_MODIFIED_TREE	4	/*!< file has a modified interval tree, no effect on METADATA_COMPLETE (it seems) */
 #define METADATA_SHADOW		16	/*!< file is in shadow */
 #define METADATA_SHADOW_TREE	32	/*!< dir is a part of shadow tree */
 

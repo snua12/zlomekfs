@@ -1,5 +1,5 @@
 /*! \file
-    \brief Functions for updating files.  */
+    \brief Functions for updating and reintegrating files.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <errno.h>
 #include "pthread.h"
@@ -49,18 +50,48 @@
 #include "journal.h"
 #include "metadata.h"
 
-/*! Queue of file handles.  */
+/*! \brief Queue of file handles for updating or reintegrating.
+ *
+ * Protected by #update_queue_mutex.
+ * File handles are processed by threads in #update_pool
+ * 
+ */
 queue update_queue;
 
-/*! Mutex for UPDATE_QUEUE.  */
+/*! \brief Mutex for #update_queue.  */
 static pthread_mutex_t update_queue_mutex;
 
-/*! Pool of update threads.  */
+/*! \brief Pool of update threads.  */
 thread_pool update_pool;
 
-/*! Get blocks of file FH from interval [START, END) which need to be updated
-   and store them to BLOCKS.  */
+/*! \brief Queue of file handles for slow updating or reintegrating.
+ * 
+ * Protected by #update_slow_queue_mutex.
+ * File handles are processed by one thread from #update_pool, referenced by #slow_update_worker.
+ * 
+ */
+static queue update_slow_queue;
 
+/*! \brief Mutex for #update_slow_queue and #slow_update_worker */
+static pthread_mutex_t update_slow_queue_mutex;
+
+/*! \brief Pointer to thread that is performing slow update.
+ * 
+ * Protected by #update_slow_queue_mutex 
+ * 
+ */
+static thread * slow_update_worker;
+
+/*! \brief How long at least will the slow update worker sleep after aborted by ZFS_SLOW_BUSY
+ */
+#define ZFS_SLOW_BUSY_DELAY   5
+
+/*! \brief Determine, which blocks in specified part of the file need to be updated.
+ * 
+ * Get blocks of file FH from interval [START, END) which need to be updated
+ * and store them to BLOCKS.
+ * 
+ */
 void
 get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
 			 varray *blocks)
@@ -76,17 +107,86 @@ get_blocks_for_updating (internal_fh fh, uint64_t start, uint64_t end,
     abort ();
 #endif
 
+  /* create tmp varray within interval without the already updated ones */
   interval_tree_complement (fh->updated, start, end, &tmp);
+  /* remove blocks modified locally, we don't want to update those, and store result to blocks */
   interval_tree_complement_varray (fh->modified, &tmp, blocks);
   varray_destroy (&tmp);
 
   RETURN_VOID;
 }
 
-/*! Clear the tree of updated intervals and set version of file.
-    \param fh File handle of the file.
-    \param version New version of the file.  */
+/*! \brief Clear the tree of updated intervals and set version of dentry.
+ * 
+ * Used when new version detected on master node, to update whole file again.
+ * Changes file's local and master version in metadata and updated tree.
+ * 
+ *  \param version New version to set as local for the file and master_version in metadata.
+ * 
+ */
+static
+int32_t
+update_file_clear_updated_tree_1 (volume vol, internal_dentry dentry, uint64_t version)
+{
+  TRACE ("");
+    
+  int32_t r;
+  
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  
+  r = ZFS_OK;
 
+  /* file has updated tree and is no longer treated as complete */
+  dentry->fh->meta.flags |= METADATA_UPDATED_TREE;
+  dentry->fh->meta.flags &= ~METADATA_COMPLETE;
+  
+  /* update the local and master versions in metadata */
+  if (dentry->fh->meta.local_version > dentry->fh->meta.master_version)
+    {
+      if (dentry->fh->meta.local_version <= version)
+        dentry->fh->meta.local_version = version + 1;
+    }
+  else
+    {
+      /* increase local version to the desired one */
+      if (dentry->fh->meta.local_version < version)
+        dentry->fh->meta.local_version = version;
+    }
+  dentry->fh->meta.master_version = version;
+  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
+  
+  /* write out the updated metadata */
+  if (!flush_metadata (vol, &dentry->fh->meta))
+    {
+      MARK_VOLUME_DELETE (vol);
+      r = ZFS_METADATA_ERROR;
+    }
+
+  /* if there is an updated tree, clear it, add contects of modified tree and flush the result */
+  if (dentry->fh->updated) {
+    interval_tree_empty (dentry->fh->updated);
+    interval_tree_add (dentry->fh->updated, dentry->fh->modified);
+    if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
+      {
+        MARK_VOLUME_DELETE (vol);
+	r = ZFS_METADATA_ERROR;
+      }
+  }
+    
+  CHECK_MUTEX_LOCKED (&vol->mutex);
+  CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+    
+  RETURN_INT (r);
+}  
+
+/*! \brief Clear the tree of updated intervals and set version of file.
+ * 
+ * Wrapper for #update_file_clear_updated_tree_1.
+ * 
+ *  \param fh File handle of the file.
+ *  \param version New version of the file.
+*/
 int32_t
 update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
 {
@@ -102,36 +202,7 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
     abort ();
 #endif
 
-  r = ZFS_OK;
-
-  dentry->fh->meta.flags |= METADATA_UPDATED_TREE;
-  dentry->fh->meta.flags &= ~METADATA_COMPLETE;
-  if (dentry->fh->meta.local_version > dentry->fh->meta.master_version)
-    {
-      if (dentry->fh->meta.local_version <= version)
-	dentry->fh->meta.local_version = version + 1;
-    }
-  else
-    {
-      if (dentry->fh->meta.local_version < version)
-	dentry->fh->meta.local_version = version;
-    }
-  dentry->fh->meta.master_version = version;
-  set_attr_version (&dentry->fh->attr, &dentry->fh->meta);
-
-  if (!flush_metadata (vol, &dentry->fh->meta))
-    {
-      MARK_VOLUME_DELETE (vol);
-      r = ZFS_METADATA_ERROR;
-    }
-
-  interval_tree_empty (dentry->fh->updated);
-  interval_tree_add (dentry->fh->updated, dentry->fh->modified);
-  if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_UPDATED))
-    {
-      MARK_VOLUME_DELETE (vol);
-      r = ZFS_METADATA_ERROR;
-    }
+  r = update_file_clear_updated_tree_1(vol, dentry, version);
 
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
@@ -139,13 +210,14 @@ update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
   RETURN_INT (r);
 }
 
-/*! Truncate the local file according to the remote size but do not
-    get rid of local modifications of the file.
-    \param volp Volume which the file is on.
-    \param dentryp Dentry of the file.
-    \param fh File handle of the file.
-    \param size Remote size of the file.  */
-
+/*! \brief Truncate the local file according to the remote size but do not
+ *      get rid of local modifications of the file.
+ * 
+ *  \param volp Volume which the file is on.
+ *  \param dentryp Dentry of the file.
+ *  \param fh File handle of the file.
+ *  \param size Remote size of the file.  
+ */
 static int32_t
 truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 		     uint64_t size)
@@ -161,18 +233,22 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
 
+  /* we want to change only size, -1 for other structure members mean no changing */
   memset (&sa, -1, sizeof (sattr));
   sa.size = size;
+  /* prevent losing local modifications */
   n = interval_tree_max ((*dentryp)->fh->modified);
   if (n && sa.size < INTERVAL_END (n))
     sa.size = INTERVAL_END (n);
-
+    
+  /* size doesn't need to be changed */
   if (sa.size == (*dentryp)->fh->attr.size)
     {
       zfsd_mutex_unlock (&fh_mutex);
       RETURN_INT (ZFS_OK);
     }
-
+  
+  /* do the actual size change */
   r = local_setattr (&fa, *dentryp, &sa, *volp);
   if (r != ZFS_OK)
     RETURN_INT (r);
@@ -207,12 +283,25 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/*! Update BLOCKS (described in ARGS) of local file CAP from remote file,
-   start searching in BLOCKS at index INDEX.  */
+/*! \brief Update parts of file from remote file.
+ * 
+ * The core function for updating file contents from remote file. Used either for updating part of file
+ * that user requested, or for all blocks not updated yet, via background update thread. Each block is
+ * first checked if it's really different from remote file, by md5 hash comparing. May be called from slow
+ * update worker thread, it will check for slow connections usage before time consuming remote functions, and
+ * eventually abort updating.
+ * 
+ * \param cap Capability of file to be updated.
+ * \param blocks List of blocks to update.
+ * \param args List of blocks for md5 comparing.
+ * \param index Number of block to start searching from.
+ * \param slow Determines if it should check for requests pending on slow lines and abort if there are some.
+ * 
+ */ 
 
 static int32_t
 update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
-		      unsigned int *index)
+		      unsigned int *index, bool slow)
 {
   bool flush;
   volume vol;
@@ -231,15 +320,27 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 #endif
 
   args->cap = *cap;
+////  message(1, stderr, "update_file_blocks_1(): before remote_md5sum\n");
+////  message(1, stderr, "md5 args count %u\n", args->count);
+////  for (i = 0; i < args->count; i++) {
+////  	message(1, stderr, "md5 args %u: offset %llu, length %u\n", i, args->offset[i], args->length[i]);
+////  }
+  /* get remote md5 sums of blocks */
   r = remote_md5sum (&remote_md5, args);
+////  message(1, stderr, "update_file_blocks_1(): after remote_md5sum, result %d count %d\n", r, remote_md5.count);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
+  /* no sums got calculated, intervals requested probably doesn't exist remotely (file got truncated) */
   if (remote_md5.count == 0)
     RETURN_INT (ZFS_OK);
 
   args->cap = *cap;
+  
+  /* get local md5 sums of blocks */
+////  message(1, stderr, "update_file_blocks_1(): before local_md5sum\n");
   r = local_md5sum (&local_md5, args);
+////  message(1, stderr, "update_file_blocks_1(): after local_md5sum\n");
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -253,14 +354,20 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node))
     abort ();
 #endif
-
+  
+////  message(1, stderr, "update_file_blocks_1(): version local: %llu, master: %llu, md5: %llu\n", dentry->fh->attr.version,
+////  			dentry->fh->meta.master_version, remote_md5.version);
+  /* check if there file version on master node changed from what we assumed in our metadata */
   if (dentry->fh->attr.version == dentry->fh->meta.master_version
       && dentry->fh->meta.master_version != remote_md5.version)
     {
+      /* in that case, the whole file should be reupdated */
+////      message(1, stderr, "update_file_blocks_1(): oops\n");
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
-
+      
+      /* so we clear the stored records of what was already updated */
       r = update_file_clear_updated_tree (&cap->fh, remote_md5.version);
       if (r != ZFS_OK)
 	RETURN_INT (r);
@@ -279,7 +386,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
       r = truncate_local_file (&vol, &dentry, &cap->fh, remote_md5.size);
       if (r != ZFS_OK)
 	RETURN_INT (r);
-
+    
+      /* truncate the local_md5 results as well */
       local_md5.size = dentry->fh->attr.size;
       if (local_md5.count > remote_md5.count)
 	local_md5.count = remote_md5.count;
@@ -290,7 +398,9 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
     }
 
   /* Delete the same blocks from MODIFIED interval tree and add them to
-     UPDATED interval tree.  */
+   * UPDATED interval tree (overwrite what was marked as modified).
+   * (I think this shouldn't happen during normal update, probably only during conflict resolution?)
+   */
   flush = dentry->fh->modified->deleted;
   for (i = 0; i < local_md5.count; i++)
     {
@@ -313,6 +423,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	    MARK_VOLUME_DELETE (vol);
 	}
     }
+  /* update local and master versions to what we currently know */
   local_version = dentry->fh->attr.version;
   remote_version = remote_md5.version;
   modified = (dentry->fh->attr.version != dentry->fh->meta.master_version);
@@ -320,49 +431,66 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
 
-  /* Update different blocks.  */
+  /* Process all blocks, update those with different local and remote checksums. */
   for (i = 0, j = *index; i < remote_md5.count; i++)
     {
+      /* sanity check (could this really happen?) */
       if (remote_md5.length[i] > ZFS_MAXDATA
 	  || remote_md5.offset[i] + remote_md5.length[i] > remote_md5.size)
 	{
 	  RETURN_INT (ZFS_UPDATE_FAILED);
 	}
-
-      if (i >= local_md5.count
-	  || local_md5.length[i] != remote_md5.length[i]
-	  || memcmp (local_md5.md5sum[i], remote_md5.md5sum[i], MD5_SIZE) != 0)
+        
+      if (i >= local_md5.count // remote file was bigger
+	  || local_md5.length[i] != remote_md5.length[i] // remote file was bigger
+	  || memcmp (local_md5.md5sum[i], remote_md5.md5sum[i], MD5_SIZE) != 0) // md5 hashes not equal
 	{
+          /* we need to update this block */
 	  uint32_t count;
 	  char buf[ZFS_MAXDATA];
 	  char buf2[ZFS_MAXDATA];
-
-	  while (j < VARRAY_USED (*blocks)
+      
+          
+          /* find the update block that matches this md5 block */
+      	  while (j < VARRAY_USED (*blocks)
 		 && (VARRAY_ACCESS (*blocks, j, interval).end
 		     < remote_md5.offset[i]))
 	    j++;
+
+          /* If the slow line is used, abort updating */
+          if (slow) {
+	    zfsd_mutex_lock(&pending_slow_reqs_mutex);
+	    if (pending_slow_reqs_count > 0) {
+	      message (1, stderr, "Slow connections busy, aborting update\n");
+	      zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+	      RETURN_INT (ZFS_SLOW_BUSY);
+	    }
+	    zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+	  }
+          
+          /* read the remote block */
+	  r = full_remote_read (&remote_md5.length[i], buf, cap,
+		    remote_md5.offset[i], remote_md5.length[i],
+		    modified ? NULL : &remote_version);
+          if (r == ZFS_CHANGED)
+	    {
+              /* remote file version was changed meanwhile */
+	      r = update_file_clear_updated_tree (&cap->fh, remote_version);
+	      if (r != ZFS_OK)
+		RETURN_INT (r);
+
+	      RETURN_INT (ZFS_CHANGED);
+	    }
+        
+	  if (r != ZFS_OK)
+	    RETURN_INT (r);
 
 	  if ((VARRAY_ACCESS (*blocks, j, interval).start
 	       <= remote_md5.offset[i])
 	      && (remote_md5.offset[i] + remote_md5.length[i]
 		  <= VARRAY_ACCESS (*blocks, j, interval).end))
 	    {
-	      /* MD5 block is not larger than the block to be updated.  */
-
-	      r = full_remote_read (&remote_md5.length[i], buf, cap,
-				    remote_md5.offset[i], remote_md5.length[i],
-				    modified ? NULL : &remote_version);
-	      if (r == ZFS_CHANGED)
-		{
-		  r = update_file_clear_updated_tree (&cap->fh, remote_version);
-		  if (r != ZFS_OK)
-		    RETURN_INT (r);
-
-		  RETURN_INT (ZFS_CHANGED);
-		}
-	      if (r != ZFS_OK)
-		RETURN_INT (r);
-
+	      /* MD5 block is not larger than the block to be updated. */
 	      r = full_local_write (&count, buf, cap, remote_md5.offset[i],
 				    remote_md5.length[i], &local_version);
 	      if (r != ZFS_OK)
@@ -371,22 +499,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	  else
 	    {
 	      /* MD5 block is larger than block(s) to be updated.  */
-
-	      r = full_remote_read (&remote_md5.length[i], buf2, cap,
-				    remote_md5.offset[i], remote_md5.length[i],
-				    modified ? NULL : &remote_version);
-	      if (r == ZFS_CHANGED)
-		{
-		  r = update_file_clear_updated_tree (&cap->fh, remote_version);
-		  if (r != ZFS_OK)
-		    RETURN_INT (r);
-
-		  RETURN_INT (ZFS_CHANGED);
-		}
-	      if (r != ZFS_OK)
-		RETURN_INT (r);
-
-	      r = full_local_read (&count, buf, cap, remote_md5.offset[i],
+	      r = full_local_read (&count, buf2, cap, remote_md5.offset[i],
 				   remote_md5.length[i], &local_version);
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
@@ -394,7 +507,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	      /* Copy the part which was not written from local file
 		 because local file was truncated meanwhile.  */
 	      if (count < remote_md5.length[i])
-		memcpy (buf + count, buf2 + count,
+		memcpy (buf2 + count, buf + count,
 			remote_md5.length[i] - count);
 
 	      /* Update the blocks in buffer BUF.  */
@@ -412,19 +525,19 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 		  if (end > remote_md5.offset[i] + remote_md5.length[i])
 		    end = remote_md5.offset[i] + remote_md5.length[i];
 
-		  memcpy (buf + start - remote_md5.offset[i],
-			  buf2 + start - remote_md5.offset[i],
+		  memcpy (buf2 + start - remote_md5.offset[i],
+			  buf + start - remote_md5.offset[i],
 			  end - start);
 		}
 
 	      /* Write updated buffer BUF.  */
-	      r = full_local_write (&count, buf, cap, remote_md5.offset[i],
+	      r = full_local_write (&count, buf2, cap, remote_md5.offset[i],
 				    remote_md5.length[i], &local_version);
 	      if (r != ZFS_OK)
 		RETURN_INT (r);
 	    }
 
-	  /* Add the interval to UPDATED.  */
+	  /* Add the interval to UPDATED. */
 	  r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	  if (r != ZFS_OK)
@@ -439,11 +552,12 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
 	  release_dentry (dentry);
 	  zfsd_mutex_unlock (&vol->mutex);
 	}
-    }
+    } // end for (i = 0, j = *index; i < remote_md5.count; i++)
   *index = j;
 
   if (flush)
     {
+      /* interval tree got changed during update */
       r = zfs_fh_lookup (&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
@@ -460,13 +574,18 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   RETURN_INT (ZFS_OK);
 }
 
-/*! Update blocks of local file according to remote file.
-    \param cap Capability of the local file.
-    \param blocks Blocks to be updated.
-    \param modified Flag saying the local file has been modified.  */
-
+/*! \brief  Update blocks of local file according to remote file.
+ * 
+ *  Prepares the md5sum arguments for #update_file_blocks_1 and calls it.
+ * 
+ *  \param cap Capability of the local file.
+ *  \param blocks Blocks to be updated.
+ *  \param modified Flag saying the local file has been modified.
+ *  \param slow Just passed to #update_file_blocks_1
+ * 
+ */
 int32_t
-update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)
+update_file_blocks (zfs_cap *cap, varray *blocks, bool modified, bool slow)
 {
   md5sum_args args;
   int32_t r;
@@ -502,7 +621,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)
 	    {
 	      if (args.count == ZFS_MAX_MD5_CHUNKS)
 		{
-		  r = update_file_blocks_1 (&args, cap, blocks, &index);
+		  r = update_file_blocks_1 (&args, cap, blocks, &index, slow);
 		  if (r == ZFS_CHANGED)
 		    RETURN_INT (ZFS_OK);
 		  if (r != ZFS_OK)
@@ -521,7 +640,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)
 
   if (args.count > 0)
     {
-      r = update_file_blocks_1 (&args, cap, blocks, &index);
+      r = update_file_blocks_1 (&args, cap, blocks, &index, slow);
       if (r == ZFS_CHANGED)
 	RETURN_INT (ZFS_OK);
       if (r != ZFS_OK)
@@ -531,10 +650,17 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified)
   RETURN_INT (ZFS_OK);
 }
 
-/*! Reintegrate modified blocks of local file CAP to remote file.  */
-
+/*! \brief Reintegrate modified blocks of local file CAP to remote file.
+ * 
+ *  Function for performing the actual reintegration work.
+ * 
+ *  \param cap Capability of the file.
+ *  \param slow Determines a slow reintegration, checks for slow connections usage and aborts if there are other pending requests.
+ * 
+ */
+static
 int32_t
-reintegrate_file_blocks (zfs_cap *cap)
+reintegrate_file_blocks (zfs_cap *cap, bool slow)
 {
   fattr remote_attr;
   volume vol;
@@ -549,7 +675,8 @@ reintegrate_file_blocks (zfs_cap *cap)
   metadata *meta;
 
   TRACE ("");
-
+  
+  /* fill the internal capability, vol and dentry */
   r2 = find_capability (cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
@@ -558,6 +685,7 @@ reintegrate_file_blocks (zfs_cap *cap)
     abort ();
 #endif
 
+  /* Get reintegration privilege from volume master */
   r = remote_reintegrate (dentry, 1, vol);
   if (r == ZFS_BUSY)
     RETURN_INT (ZFS_OK);
@@ -569,10 +697,12 @@ reintegrate_file_blocks (zfs_cap *cap)
   if (r2 != ZFS_OK)
     abort ();
 #endif
-
+  
+  /* mark the file as reintegrating */
   dentry->fh->flags |= IFH_REINTEGRATING;
 
   version_increase = 0;
+  /* process the whole file, offset gets changed inside the for cycle */
   for (offset = 0; offset < dentry->fh->attr.size; )
     {
       char buf[ZFS_MAXDATA];
@@ -581,31 +711,58 @@ reintegrate_file_blocks (zfs_cap *cap)
       CHECK_MUTEX_LOCKED (&vol->mutex);
       CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
+      /* Get offset and number of bytes to reintegrate, the maximum is ZFS_MAXDATA */
       node = interval_tree_lookup (dentry->fh->modified, offset);
-      if (!node)
-	break;
-
-      if (INTERVAL_START (node) > offset)
+      if (!node) // nothing more to reintegrate
+	break; 
+      if (INTERVAL_START (node) > offset) // position the offset to the reitegration interval start
 	offset = INTERVAL_START (node);
 
       count = (INTERVAL_END (node) - INTERVAL_START (node) < ZFS_MAXDATA
 	       ? INTERVAL_END (node) - INTERVAL_START (node) : ZFS_MAXDATA);
-
+	
+      message (1, stderr, "Will reintegrate %u bytes starting at offset %u\n", (unsigned)count, (unsigned)offset);
+	
+      /* Read the data for reintegration into buffer */
       r = full_local_read_dentry (&count, buf, cap, dentry, vol, offset,
 				  count);
       if (r != ZFS_OK)
 	break;
-
+      
+////      message (1, stderr, "Read local file OK\n");
+      
+      /* Send the data to volume master if there are some */
       if (count > 0)
 	{
+	  /* If the line is used, abort integrating */
+	  if (slow) {
+	    zfsd_mutex_lock(&pending_slow_reqs_mutex);
+	    if (pending_slow_reqs_count > 0) {
+	      message (1, stderr, "Slow connections busy, aborting slow reintegration\n");
+	      zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+	      /* Break from the for cycle */
+	      r = ZFS_SLOW_BUSY;
+	      break;
+	    }
+	    zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+	  }
+          
+          /* the actual data write to master */
 	  r = full_remote_write_dentry (&count, buf, cap, icap, dentry, vol,
 					offset, count, &version_increase);
 	  if (r != ZFS_OK)
+	  {
+            message (1, stderr, "Write to master failed, aborting\n");
 	    break;
+	  }
 	}
 
+////      message (1, stderr, "Write to master OK\n");
+
+      /* Update modified interval tree and offset */
       if (count > 0)
 	{
+////	  message (1, stderr, "Deleting reintegrated interval from interval tree\n");
 	  interval_tree_delete (dentry->fh->modified, offset, offset + count);
 	  offset += count;
 	}
@@ -629,8 +786,10 @@ reintegrate_file_blocks (zfs_cap *cap)
     {
       if (dentry->fh->attr.size != remote_attr.size)
 	{
+////      message (1, stderr, "Changing remote file size from %u to %u\n", (unsigned)remote_attr.size, (unsigned)dentry->fh->attr.size);
 	  sattr sa;
-
+          
+          /* we want to change only the size */
 	  memset (&sa, -1, sizeof (sa));
 	  sa.size = dentry->fh->attr.size;
 	  r3 = remote_setattr (&remote_attr, dentry, &sa, vol);
@@ -648,14 +807,19 @@ reintegrate_file_blocks (zfs_cap *cap)
   /* Update the versions.  */
   meta = &dentry->fh->meta;
   diff = meta->local_version - (meta->master_version + version_increase);
+  
+////  message (1, stderr, "Updating versions... diff = %u ...", (unsigned)diff);
+ 
   if (diff > 0
       && !interval_tree_min (dentry->fh->modified))
     {
+////      message (1, stderr, "Yes\n");
       if (remote_reintegrate_ver (dentry, diff, NULL, vol) == ZFS_OK)
 	version_increase += diff;
     }
   else
     {
+////      message (1, stderr, "No\n");
       remote_reintegrate (dentry, 0, vol);
     }
 
@@ -686,11 +850,20 @@ reintegrate_file_blocks (zfs_cap *cap)
 
     }
 
+  /* mark file as no more reintegrating and flush the modified log */
   dentry->fh->flags &= ~IFH_REINTEGRATING;
   if (dentry->fh->modified->deleted)
     {
+////      message (1, stderr, "Flushing modification log...");
       if (!flush_interval_tree (vol, dentry->fh, METADATA_TYPE_MODIFIED))
+      {
+////      	message(1, stderr, "failed\n");
 	MARK_VOLUME_DELETE (vol);
+      }
+      else
+      {
+////      	message(1, stderr,"OK\n");
+      }
     }
 
   release_dentry (dentry);
@@ -699,14 +872,27 @@ reintegrate_file_blocks (zfs_cap *cap)
   RETURN_INT (r);
 }
 
-/*! Return true if file *DENTRYP on volume *VOLP with file handle FH should
-   be updated.  Store remote attributes to ATTR.  */
-
+/*! \brief Determine if and how the local file should be updated.
+ * 
+ *  Get the attributes from remote file and compare them with attributes of local dentry, return what should be updated.
+ *  
+ *  \param[out] attr For returning the determined remote attributes.
+ * 
+ *  \retval Bitwise-or combination of #IFH_UPDATE for file/dir contents update, #IFH_REINTEGRATE for reintegration and
+ *          #IFH_METADATA for metadata (mode, uid, gid), including file size and master version for regular files.
+ * 
+ *  \see UPDATE_P
+ *  \see REINTEGRATE_P
+ *  \see METADATA_CHANGE_P
+ * 
+ */
 static int
 update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
 	  bool fh_mutex_locked)
 {
   int32_t r, r2;
+  
+////  message(1, stderr, "update_p() enter\n");
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
@@ -721,11 +907,13 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
 
   if (fh_mutex_locked)
     zfsd_mutex_unlock (&fh_mutex);
-
+  
+  /* get remote attributes */
   r = remote_getattr (attr, *dentryp, *volp);
+  message(1, stderr, "update_p() got master version %llu, local meta: %llu\n", attr->version, (*dentryp)->fh->meta.master_version);
   if (r != ZFS_OK)
     goto out;
-
+    
   if (fh_mutex_locked)
     r2 = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
   else
@@ -737,7 +925,8 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
 
   if ((*dentryp)->fh->attr.type != attr->type)
     RETURN_INT (0);
-
+  
+  /* return what was changed according to macros in update.h */  
   RETURN_INT (UPDATE_P (*dentryp, *attr) * IFH_UPDATE
 	      + REINTEGRATE_P (*dentryp, *attr) * IFH_REINTEGRATE
 	      + METADATA_CHANGE_P (*dentryp, *attr) * IFH_METADATA);
@@ -755,10 +944,17 @@ out:
   RETURN_INT (0);
 }
 
-/*! Update file with file handle FH.  */
-
+/*! \brief Fully update regular file with file handle FH.
+ *  
+ *  The main file updating function of #update_worker. Determines what should be updated and performs it.
+ *  Handles the connection status change of volume master of the file.
+ *  Reschedules the file for further updating if it couldn't finish it.
+ * 
+ *  \param fh File handle (taken from #update_queue or #update_slow_queue)
+ *  \param slowthread Determines if the thread is slow updater. If the file is on volume with different speed, it's resolved.
+ */
 static int32_t
-update_file (zfs_fh *fh)
+update_file (zfs_fh *fh, bool slowthread)
 {
   varray blocks;
   volume vol;
@@ -766,12 +962,18 @@ update_file (zfs_fh *fh)
   internal_cap icap = NULL;
   zfs_cap cap;
   int32_t r, r2;
-  int what;
+  int what; // what should be updated 
   fattr attr;
   bool opened_remote = false;
+  bool slow = slowthread; // the speed of volume with the file
+  zfs_fh reschedule_fh;   // file handle to be rescheduled
 
   TRACE ("");
+  
+  /* we don't plan rescheduling the file yet */ 
+  zfs_fh_undefine(reschedule_fh);
 
+  /* Get information about handle being updated + some sanity checks (?) */
   r = zfs_fh_lookup (fh, &vol, &dentry, NULL, true);
   if (r == ZFS_STALE)
     {
@@ -783,6 +985,7 @@ update_file (zfs_fh *fh)
   if (r != ZFS_OK)
     RETURN_INT (r);
 
+  /* can't update files without local cache or on volumes without master */
   if (!(INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh) && vol->master != this_node)
       || zfs_fh_undefined (dentry->fh->meta.master_fh))
     {
@@ -795,30 +998,68 @@ update_file (zfs_fh *fh)
   if (r != ZFS_OK)
     RETURN_INT (r);
 
+  /* Determine what to update */
   what = update_p (&vol, &dentry, fh, &attr, true);
+
+  /* Non-regular files can't be updated via background thread */
   if (dentry->fh->attr.type != FT_REG || attr.type != FT_REG)
     {
       r = ZFS_UPDATE_FAILED;
       goto out;
     }
-  release_dentry (dentry);
-  zfsd_mutex_unlock (&fh_mutex);
 
-  if (volume_master_connected (vol) != CONNECTION_SPEED_FAST)
-    {
-      zfsd_mutex_unlock (&vol->mutex);
-      r = ZFS_OK;
-      goto out2;
-    }
-  zfsd_mutex_unlock (&vol->mutex);
-
+  switch (volume_master_connected(vol)) {
+  	case CONNECTION_SPEED_NONE:
+          /* volume master not connected, abort updating without rescheduling */
+	  zfsd_mutex_unlock (&vol->mutex);
+	  r = ZFS_OK;
+	  goto out;
+	  break;	    
+	case CONNECTION_SPEED_SLOW:
+          /* volume master on slow connection */
+	  slow = true;
+	  if (slowthread == false)
+	    {
+	      /* The file is on slow connected volume and this thread is not slow updater */
+	      zfsd_mutex_lock (&update_slow_queue_mutex);
+	      if (slow_update_worker == NULL)
+	        {
+	          /* There is no slow updater running. Make this thread the slow updater and continue updating */
+	          message(1, stderr, "Changing updater thread to slow updater\n");
+	          slow_update_worker = pthread_getspecific (thread_data_key);
+	          slow_update_worker->u.update.slow = true;
+	        }
+	      else
+	      	{
+	      	  /* There is slow updater running. Mark file for rescheduling and goto end */
+	          message(1, stderr, "Passing file handle to slow update queue\n");
+	          reschedule_fh = *fh;
+	      	  zfsd_mutex_unlock (&update_slow_queue_mutex);
+	      	  goto out;
+	      	}
+	      zfsd_mutex_unlock (&update_slow_queue_mutex);
+	    }
+	  break;
+	default:
+          /* volume master on fast connection */
+	  slow = false;
+	  if (slowthread == true)
+	    {
+	      /* The file is on fast connected volume and this thread is slow updater
+	       * Mark file for rescheduling and end
+	       */
+              message(1, stderr, "Passing file handle for fast update queue\n");
+	      reschedule_fh = *fh;
+	      goto out;
+	    }
+	  break;
+  }
+  
+  /* calculate the capability rigts needed for desired action */
   switch (what & (IFH_UPDATE | IFH_REINTEGRATE))
     {
-      default:
-	r = ZFS_OK;
-	goto out2;
-
       case IFH_UPDATE:
+        /* updating needs just to read the file */
 	cap.flags = O_RDONLY;
 	break;
 
@@ -829,17 +1070,46 @@ update_file (zfs_fh *fh)
       case IFH_UPDATE | IFH_REINTEGRATE:
 	cap.flags = O_RDWR;
 	break;
+
+      default:
+        r = ZFS_OK;
+        goto out;
     }
+    
+  if (slow) {
+    /* If the slow line is busy, reschedule and return with ZFS_SLOW_BUSY */
+    zfsd_mutex_lock(&pending_slow_reqs_mutex);
+    if (pending_slow_reqs_count > 0) {
+      zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+      message(1, stderr, "Slow line busy on update_file() start, aborting\n");
+      reschedule_fh = *fh;
+      r = ZFS_SLOW_BUSY;
+      goto out;
+    }
+    zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+  }
+ 
+  release_dentry (dentry);
+  zfsd_mutex_unlock (&fh_mutex);
+  zfsd_mutex_unlock (&vol->mutex);
+
+  /* open the remote file */
+
   cap.fh = *fh;
   r = get_capability (&cap, &icap, &vol, &dentry, NULL, false, false);
   if (r != ZFS_OK)
     goto out2;
-
+  
+////  message(1, stderr, "update_file() trying to open remote file\n");
   r = cond_remote_open (&cap, icap, &dentry, &vol);
-  if (r != ZFS_OK)
+  if (r != ZFS_OK) {
+////  	 message(1, stderr, "update_file() trying to open remote file FAILED\n");
     goto out2;
+  }
+////  message(1, stderr, "update_file() trying to open remote file OK\n");
   opened_remote = true;
 
+  /* load the updated and modified interval trees from metadata files */
   if (!load_interval_trees (vol, dentry->fh))
     {
       MARK_VOLUME_DELETE (vol);
@@ -852,10 +1122,12 @@ update_file (zfs_fh *fh)
 
   if (what & IFH_REINTEGRATE)
     {
+      /* we are reintegrating */
       release_dentry (dentry);
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
-      r = reintegrate_file_blocks (&cap);
+
+      r = reintegrate_file_blocks (&cap, slow);
 
       r2 = zfs_fh_lookup_nolock (fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
@@ -863,26 +1135,33 @@ update_file (zfs_fh *fh)
 	abort ();
 #endif
 
+      /* check if there's still anything to do */
       if (r == ZFS_OK)
 	what = update_p (&vol, &dentry, fh, &attr, true);
     }
 
   if (r == ZFS_OK && (what & IFH_UPDATE))
     {
+      /* we are updating */
+////      message(1, stderr, "update_file() in IFH_UPDATE\n");
+      /* change file size according to remote, if needed */
       r = truncate_local_file (&vol, &dentry, fh, attr.size);
       if (r == ZFS_OK)
 	{
+////	  message(1, stderr, "update_file() truncate_local_file() was OK\n");
 	  bool modified;
 
 	  zfsd_mutex_unlock (&vol->mutex);
+	  
 	  get_blocks_for_updating (dentry->fh, 0, attr.size, &blocks);
-	  modified = (dentry->fh->attr.version
-		      != dentry->fh->meta.master_version);
-	  release_dentry (dentry);
+	  modified = (dentry->fh->attr.version != dentry->fh->meta.master_version);
+////      message(1, stderr, "update_file() local version %llu master %llu\n", dentry->fh->attr.version, dentry->fh->meta.master_version);
+          release_dentry (dentry);
 
 	  if (VARRAY_USED (blocks) > 0)
 	    {
-	      r = update_file_blocks (&cap, &blocks, modified);
+	      message(1, stderr, "update_file() calling update_file_blocks()\n");	
+	      r = update_file_blocks (&cap, &blocks, modified, slow);
 	    }
 	  varray_destroy (&blocks);
 	}
@@ -892,9 +1171,11 @@ update_file (zfs_fh *fh)
       if (r2 != ZFS_OK)
 	abort ();
 #endif
-
+      
+      /* was everything updated? */
       if (interval_tree_covered (dentry->fh->updated, 0, attr.size))
 	{
+          /* yes, mark file as complete and flush metadata */
 	  dentry->fh->meta.flags |= METADATA_COMPLETE;
 	  if (!flush_metadata (vol, &dentry->fh->meta))
 	    MARK_VOLUME_DELETE (vol);
@@ -910,13 +1191,12 @@ update_file (zfs_fh *fh)
 
   /* If the file was not completelly updated or reintegrated
      add it to queue again.  */
-  if (r == ZFS_OK
+  if ( ( (r == ZFS_OK) || (r == ZFS_SLOW_BUSY) ) 
       && ((dentry->fh->meta.flags & METADATA_COMPLETE) == 0
 	  || (dentry->fh->meta.flags & METADATA_MODIFIED_TREE) != 0))
     {
-      zfsd_mutex_lock (&update_queue_mutex);
-      queue_put (&update_queue, &dentry->fh->local_fh);
-      zfsd_mutex_unlock (&update_queue_mutex);
+      message (1, stderr, "File not fully updated or reintegrated, rescheduling\n");
+      reschedule_fh = dentry->fh->local_fh;
     }
   else
     dentry->fh->flags &= ~(IFH_ENQUEUED | IFH_UPDATE | IFH_REINTEGRATE);
@@ -924,23 +1204,57 @@ update_file (zfs_fh *fh)
   goto out;
 
 out2:
+////  message(1, stderr, "Entering out2\n");
   r2 = find_capability_nolock (&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
   if (r2 != ZFS_OK)
     abort ();
 #endif
-
+  
 out:
-  if (opened_remote)
+////  message(1, stderr, "Entering out\n");
+  if (opened_remote) {
+////    message(1, stderr, "cond_remote_close()\n");
     cond_remote_close (&cap, icap, &dentry, &vol);
-  if (icap)
+  }
+  if (icap) {
+////    message(1, stderr, "put_capability\n");
     put_capability (icap, dentry->fh, NULL);
+  }
+////  message(1, stderr, "internal_dentry_unlock\n");
   internal_dentry_unlock (vol, dentry);
+  
+  /* Reschedule if planned, according to file's volume connection speed */
+  if (!zfs_fh_undefined(reschedule_fh)) {
+    message (1, stderr, "Rescheduling file on the update_file() end...");
+    if (slow == false)
+      {
+        message(1, stderr, "to fast queue\n");
+        zfsd_mutex_lock (&update_queue_mutex);
+        queue_put (&update_queue, &reschedule_fh);
+        zfsd_mutex_unlock (&update_queue_mutex);
+      }
+    else
+      {
+      	message(1, stderr, "to slow queue\n");
+        zfsd_mutex_lock (&update_slow_queue_mutex);
+        queue_put (&update_slow_queue, &reschedule_fh);
+        zfsd_mutex_unlock (&update_slow_queue_mutex);
+      }
+  }
+  
   RETURN_INT (r);
 }
 
-/*! Update generic file DENTRY with file handle FH on volume VOL if needed.
-   Do WHAT we are asked to do.  */
+/*! \brief Update generic file DENTRY with file handle FH on volume VOL if needed and wanted.
+ * 
+ *  Uses #update_p() to determine what should be updated and performs the intersetion of the result and WHAT via #update().
+ * 
+ *  \param[in] what What should be updated if needed. Bitwise-or combination of #IFH_UPDATE for file/dir contents update,
+ *        #IFH_REINTEGRATE for reintegration and #IFH_METADATA for metadata (mode, uid, gid), 
+ *        including file size and master version for regular files.
+ * 
+ */
 
 int32_t
 update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
@@ -960,11 +1274,15 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 #endif
 
   r = ZFS_OK;
+  /* no use updating files without volume master */
   if ((*volp)->master != this_node)
     {
+      /* determine what needs to be updated */
       how = update_p (volp, dentryp, fh, &remote_attr, true);
+////      message(1, stderr, "how %d what %d\n", how, what);
       if (how & what)
 	{
+          /* if it matches with what we want to update, perform it */
 	  r = update (*volp, *dentryp, fh, &remote_attr, how & what);
 
 	  CHECK_MUTEX_UNLOCKED (&fh_mutex);
@@ -984,10 +1302,11 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/*! Update generic file DENTRY on volume VOL if needed.
-   DENTRY and DENTRY2 are locked before and after this macro.
-   DENTRY2 might be deleted in update.  Do WHAT we are asked to do.  */
-
+/*! \brief Update generic file DENTRY on volume VOL if needed.
+ * 
+ * DENTRY and DENTRY2 are locked before and after this macro.
+ * DENTRY2 might be deleted in update.  Do WHAT we are asked to do.
+ */
 int32_t
 update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
 		       internal_dentry *dentry2p, zfs_fh *fh, zfs_fh *fh2,
@@ -1091,9 +1410,10 @@ update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
   RETURN_INT (r);
 }
 
-/*! Update generic file DENTRY on volume VOL associated with capability ICAP
-   if needed.  Do WHAT we are asked to do.  */
-
+/*! \brief Update generic file DENTRY on volume VOL associated with capability ICAP if needed.
+ * 
+ * Do WHAT we are asked to do.
+ */
 int32_t
 update_cap_if_needed (internal_cap *icapp, volume *volp,
 		      internal_dentry *dentryp, virtual_dir *vdp,
@@ -1118,6 +1438,7 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
     {
       tmp_fh = (*dentryp)->fh->local_fh;
       how = update_p (volp, dentryp, &tmp_fh, &remote_attr, true);
+      message(1, stderr, "update_cap_if_needed(): update_p() result: how = %d, what = %d\n", how, what);
       if (how & what)
 	{
 	  r = update (*volp, *dentryp, &tmp_fh, &remote_attr, how & what);
@@ -1146,9 +1467,14 @@ update_cap_if_needed (internal_cap *icapp, volume *volp,
   RETURN_INT (r);
 }
 
-/*! Delete file in place of file DENTRY on volume VOL.
-   If JOURNAL_P add a journal entries to appropriate journals.  */
-
+/*! \brief Delete file/subtree in place of file DENTRY on volume VOL.
+ *
+ *  Uses #recursive_unlink to delete the desired path.
+ * 
+ *  \param[in] journal_p Add a journal entries to appropriate journals. Passed to #recursive_unlink
+ *  \param[in] move_to_shadow_p Passed to #recursive_unlink
+ *  \param[in] destroy_dentry Passed to #recursive_unlink
+ */
 int32_t
 delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
 	     bool journal_p, bool move_to_shadow_p)
@@ -1175,9 +1501,14 @@ delete_tree (internal_dentry dentry, volume vol, bool destroy_dentry,
   RETURN_INT (r);
 }
 
-/*! Delete file NAME in directory DIR on volume VOL.
-   If JOURNAL_P add a journal entries to appropriate journals.  */
-
+/*! \brief Delete file NAME in directory DIR on volume VOL.
+ * 
+ *  Uses #recursive_unlink to delete the desired path.
+ * 
+ *  \param[in] journal_p Add a journal entries to appropriate journals. Passed to #recursive_unlink
+ *  \param[in] move_to_shadow_p Passed to #recursive_unlink
+ *  \param[in] destroy_dentry Passed to #recursive_unlink
+ */
 int32_t
 delete_tree_name (internal_dentry dir, string *name, volume vol,
 		  bool destroy_dentry, bool journal_p, bool move_to_shadow_p)
@@ -1204,13 +1535,15 @@ delete_tree_name (internal_dentry dir, string *name, volume vol,
   RETURN_INT (r);
 }
 
-/*! If the local file NAME in directory DIR_FH is the same as remote file
-   REMOTE_FH set SAME to true and return ZFS_OK.
-   Otherwise delete NAME and its subtree from directory DIR_FH and set SAME
-   to false.
-   Use local attributes LOCAL_ATTR and remote attributes REMOTE_ATTR for
-   comparing the files.  */
-
+/*! \brief Check if local and remote files are same. 
+ * 
+ *  If the local file NAME in directory DIR_FH is the same as remote file
+ *  REMOTE_FH set SAME to true and return ZFS_OK.
+ *  Otherwise delete NAME and its subtree from directory DIR_FH and set SAME
+ *  to false.
+ *  Use local attributes LOCAL_ATTR and remote attributes REMOTE_ATTR for
+ *  comparing the files.
+ */
 static int32_t
 files_are_the_same (zfs_fh *dir_fh, string *name, fattr *local_attr,
 		    zfs_fh *remote_fh, fattr *remote_attr, bool *same)
@@ -1293,10 +1626,18 @@ differ:
   RETURN_INT (ZFS_OK);
 }
 
-/*! Synchronize attributes of local file LOCAL_FH with attributes LOCAL_ATTR
-   and attributes of remote file REMOTE_FH with attributes REMOTE_ATTR.
-   LOCAL_CHANGED and REMOTE_CHANGED specify which attributes have changed.  */
-
+/*! \brief Synchronize attributes and metadata (including regular file's size) of local and remote file.
+ * 
+ *  Synchronize attributes of local file with provided attributes of remote file.
+ *  The attributes synchronized are: modetype, uid, gid, size (for regular files).
+ *  
+ *  \param[in] volp Volume of the local file.
+ *  \param[in] dentryp Internal dentry of the local file.
+ *  \param[in] fh ZFS file handle of the local file
+ *  \param[in] attr Attributes of the remote file.
+ *  \param[in] local_changed The local attributes got changed.
+ *  \param[in] remote_changed The remote attributes got changed.
+ */
 static int32_t
 synchronize_attributes (volume *volp, internal_dentry *dentryp,
 			zfs_fh *fh, fattr *attr,
@@ -1319,6 +1660,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
 
   if (local_changed && METADATA_ATTR_EQ_P ((*dentryp)->fh->attr, *attr))
     {
+      /* local attributes were supposed to be changed but actually aren't, just update local metadata then */
       (*dentryp)->fh->meta.modetype = GET_MODETYPE (attr->mode, attr->type);
       (*dentryp)->fh->meta.uid = attr->uid;
       (*dentryp)->fh->meta.gid = attr->gid;
@@ -1327,7 +1669,8 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
 
       RETURN_INT (ZFS_OK);
     }
-
+  
+  /* don't sync those (except size for regular files) */
   sa.size = (uint64_t) -1;
   sa.atime = (zfs_time) -1;
   sa.mtime = (zfs_time) -1;
@@ -1336,18 +1679,30 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
 
   if (local_changed)
     {
+      /* local attributes changed, update remote file */
       sa.mode = (*dentryp)->fh->attr.mode;
       sa.uid = (*dentryp)->fh->attr.uid;
       sa.gid = (*dentryp)->fh->attr.gid;
+      if ((*dentryp)->fh->attr.type == FT_REG) {
+        sa.size = (*dentryp)->fh->attr.size;
+      }
 
       zfsd_mutex_unlock (&fh_mutex);
+      message(1, stderr, "here\n");
+      message(1, stderr, "attr->version %llu, meta_master version %llu\n", attr->version, (*dentryp)->fh->meta.master_version);
       r = remote_setattr (attr, *dentryp, &sa, *volp);
+      message(1, stderr, "attr->version %llu, meta_master version %llu\n", attr->version, (*dentryp)->fh->meta.master_version);
+      (*dentryp)->fh->meta.master_version = attr->version;
     }
   if (remote_changed)
     {
+      /* remote attributes changed, update local file */
       sa.mode = attr->mode;
       sa.uid = attr->uid;
       sa.gid = attr->gid;
+      if (attr->type == FT_REG) {
+        sa.size = attr->size;
+      }
 
       r = local_setattr (&fa, *dentryp, &sa, *volp);
     }
@@ -1358,6 +1713,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
   r = zfs_fh_lookup_nolock (fh, volp, dentryp, NULL, false);
   if (r == ZFS_OK)
     {
+      /* update the metadata */
       if (remote_changed)
 	(*dentryp)->fh->attr = fa;
 
@@ -1391,10 +1747,13 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
   RETURN_INT (ZFS_OK);
 }
 
-/*! Create local generic file NAME in directory DIR on volume VOL with remote
-   file REMOTE_FH and remote attributes REMOTE_ATTR.  DIR_FH is a file handle
-   of the directory.  */
-
+/*! \brief Create local generic file based on remote attributes
+ * 
+ *  Create local generic file NAME in directory DIR on volume VOL with remote
+ *  file REMOTE_FH and remote attributes REMOTE_ATTR. DIR_FH is a file handle
+ *  of the directory.
+ * 
+ */
 static int32_t
 create_local_fh (internal_dentry dir, string *name, volume vol,
 		 zfs_fh *dir_fh, zfs_fh *remote_fh, fattr *remote_attr)
@@ -1418,7 +1777,12 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
   sa.mode = remote_attr->mode;
   sa.uid = remote_attr->uid;
   sa.gid = remote_attr->gid;
-  sa.size = (uint64_t) -1;
+  /* for regular files, create with remote size so it is known before fetching whole content */
+  if (remote_attr->type == FT_REG) {
+  	sa.size = remote_attr->size;
+  } else {
+  	sa.size = (uint64_t) -1;
+  }
   sa.atime = remote_attr->atime;
   sa.mtime = remote_attr->mtime;
 
@@ -1529,11 +1893,13 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
 
   RETURN_INT (r);
 }
-
-/*! Create remote generic file NAME in directory DIR on volume VOL according
-   to local attributes ATTR.  DIR_FH is a file handle of the directory.
-   Return file handle together with attributes in RES.  */
-
+/*! \brief Create remote generic file based on local attributes
+ * 
+ *  Create remote generic file NAME in directory DIR on volume VOL according
+ *  to local attributes ATTR.  DIR_FH is a file handle of the directory.
+ *   
+ *  \param[out] res Contains remote file handle and attributes.
+ */
 static int32_t
 create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
 		  volume vol, zfs_fh *dir_fh, fattr *attr)
@@ -1550,7 +1916,12 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   sa.mode = attr->mode;
   sa.uid = attr->uid;
   sa.gid = attr->gid;
-  sa.size = (uint64_t) -1;
+  /* for regular files, create with local file's size so it is known on remote node before reintegrating whole content */
+  if (attr->type == FT_REG) {
+  	sa.size = attr->size;
+  } else {
+  	sa.size = (uint64_t) -1;
+  }
   sa.atime = attr->atime;
   sa.mtime = attr->mtime;
 
@@ -1595,11 +1966,16 @@ create_remote_fh (dir_op_res *res, internal_dentry dir, string *name,
   RETURN_INT (r);
 }
 
-/*! Schedule update or reintegration of a regular file if volume master
-    is connected via a fast link and the update threads are running.
-    \param vol Volume the file is on.
-    \param dentry The dentry of the file.  */
-
+/*! \brief Schedule update or reintegration of a not yet enqueued regular file.
+ * 
+ *  The scheduling happens only for volumes that are currently connected and if some threads in #update_pool are running.
+ *  If the file is on slow connected volume and there is a #slow_update_worker thread running,
+ *  it's put into #update_slow_queue. Otherwise, it's put into #update_queue.
+ * 
+ *  \param vol Volume the file is on.
+ *  \param dentry The dentry of the file.
+ * 
+ */
 static void
 schedule_update_or_reintegration (volume vol, internal_dentry dentry)
 {
@@ -1611,7 +1987,9 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
     abort ();
 #endif
 
-  if (volume_master_connected (vol) == CONNECTION_SPEED_FAST)
+  connection_speed speed = volume_master_connected (vol);
+
+  if (speed > CONNECTION_SPEED_NONE)
     {
       /* Schedule update or reintegration of regular file.  */
 
@@ -1624,10 +2002,27 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
       else
 	{
 	  zfsd_mutex_unlock (&running_mutex);
-
+          
+          /* File must not be in any queue yet */
 	  if (!(dentry->fh->flags & IFH_ENQUEUED))
 	    {
 	      dentry->fh->flags |= IFH_ENQUEUED;
+              
+              if (speed == CONNECTION_SPEED_SLOW)
+                {
+                  /* put into slow queue if there is slow updater running */
+                  zfsd_mutex_lock(&update_slow_queue_mutex);
+                  if (slow_update_worker != NULL)
+                    {
+                      queue_put (&update_slow_queue, &dentry->fh->local_fh);
+                      zfsd_mutex_unlock(&update_slow_queue_mutex);
+                      RETURN_VOID;
+                    }
+                  zfsd_mutex_unlock(&update_slow_queue_mutex);
+                  /* now there could be some slow updater created but it doesn't matter,
+                   * fast updater will pass the handle */
+                }
+              
 	      zfsd_mutex_lock (&update_queue_mutex);
 	      queue_put (&update_queue, &dentry->fh->local_fh);
 	      zfsd_mutex_unlock (&update_queue_mutex);
@@ -1638,12 +2033,14 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
   RETURN_VOID;
 }
 
-/*! Lookup the remote file which is in the same place as the local file.
-    \param res Buffer for result of directory operation.
-    \param fh File handle of the file.
-    \param dentryp Dentry of the file.
-    \param volp Volume which the file is on.  */
-
+/*! \brief Lookup the remote file which is in the same place as the local file.
+ * 
+ *  \param res Buffer for result of directory operation.
+ *  \param fh File handle of the file.
+ *  \param dentryp Dentry of the file.
+ *  \param volp Volume which the file is on.
+ * 
+ */
 static int32_t
 lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
 					internal_dentry *dentryp, volume *volp)
@@ -1701,15 +2098,21 @@ lookup_remote_dentry_in_the_same_place (dir_op_res *res, zfs_fh *fh,
   RETURN_INT (r);
 }
 
-/*! Synchronize the local file with the remote file.
-    \param vol Volume which the file is on.
-    \param dentry Dentry of the file.
-    \param fh File handle of the file.
-    \param attr Remote attributes.
-    \param what Flags saying what needs to be done.
-    \param same_place True if the remote attributes are for the file in the
-	   same place as the local file.  */
-
+/*! \brief Synchronize the local file with the remote file.
+ * 
+ *  The function synchronizes metadata (attributes and size) if it's needed, creates conflict if there is one.
+ *  If the master version changed (without creating conflict), local metadata is updated and updated tree cleared.
+ *  Updating and reintegrating is only scheduled, not performed instantly in here.
+ * 
+ *  \param[in] vol Volume which the file is on.
+ *  \param[in] dentry Dentry of the file.
+ *  \param[in] fh File handle of the file.
+ *  \param[in] attr Remote attributes.
+ *  \param[in] what What should be updated if needed. Bitwise-or combination of #IFH_UPDATE for file/dir contents update,
+ *        #IFH_REINTEGRATE for reintegration and #IFH_METADATA for metadata (mode, uid, gid), 
+ *        including file size and master version for regular files.
+ *  \param same_place True if the remote attributes are for the file in the same place as the local file.
+ */ 
 static int32_t
 synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 		  int what, bool same_place)
@@ -1731,11 +2134,15 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
     abort ();
 #endif
 
-  local_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr);
-  remote_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, *attr);
+  /* detects changes of metadata (attributes and size) */
+  local_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr)
+  	|| (METADATA_SIZE_CHANGE_P(dentry->fh->attr, *attr) && (dentry->fh->attr.version > attr->version));
+  remote_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, *attr)
+  	|| (METADATA_SIZE_CHANGE_P(dentry->fh->attr, *attr) && (dentry->fh->attr.version < attr->version));
 
   if (local_changed ^ remote_changed)
     {
+      /* synchronize metadata if only one side has them changed */
       r = synchronize_attributes (&vol, &dentry, fh, attr, local_changed,
 				  remote_changed);
       if (r != ZFS_OK)
@@ -1745,18 +2152,13 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 	RETURN_INT (ZFS_OK);
     }
 
-  if (dentry->fh->attr.type == FT_REG
-      && (what & (IFH_UPDATE | IFH_REINTEGRATE)) != 0)
-    {
-      schedule_update_or_reintegration (vol, dentry);
-    }
-
   if (!same_place)
     {
 #ifdef ENABLE_CHECKING
       if (dentry->fh->level == LEVEL_UNLOCKED)
 	abort ();
 #endif
+      /* handle the case when remote attributes are not for file in the same place */
 
       r = lookup_remote_dentry_in_the_same_place (&res, fh, &dentry, &vol);
       if (r != ZFS_OK)
@@ -1773,7 +2175,8 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
       attr = &res.attr;
       remote_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, *attr);
     }
-
+  
+  /* detect attribute and data conflicts */
   attr_conflict = local_changed && remote_changed;
   data_conflict = (dentry->fh->attr.type == FT_REG
 		   && dentry->fh->attr.version > dentry->fh->meta.master_version
@@ -1796,6 +2199,7 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 
   if (attr_conflict || data_conflict)
     {
+      /* handle the conflicts */
       string name;
       fattr local_attr;
       zfs_fh master_fh;
@@ -1830,6 +2234,25 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
     }
   else
     {
+      /* there were no conflicts */
+////      message(1, stderr, "synchronize_file() end, versions: local: %llu, master: %llu, meta master: %llu\n",
+////        dentry->fh->attr.version, attr->version, dentry->fh->meta.master_version);
+      
+      if (dentry->fh->attr.type == FT_REG) {
+        /* for the regular files, check if master version changed from what we knew in local metadata */
+        if (attr->version > dentry->fh->meta.master_version) {
+////          message(1, stderr, "synchronize_file(): master version changed, clearing updated tree\n");
+////          //dentry->fh->attr.version = dentry->fh->meta.master_version;
+          /* if yes, this will update the version and remove updated tree if any */
+          update_file_clear_updated_tree_1(vol, dentry, attr->version);
+        }
+        
+        /* schedule if wanted */        
+        if ((what & (IFH_UPDATE | IFH_REINTEGRATE)) != 0) {
+          schedule_update_or_reintegration (vol, dentry);
+        }
+      }
+      
       release_dentry (dentry);
       if (conflict && CONFLICT_DIR_P (conflict->fh->local_fh))
 	{
@@ -1843,14 +2266,16 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
 	  zfsd_mutex_unlock (&fh_mutex);
 	}
     }
-
+  
+  // should no longer hold &fh_mutex, &vol->mutex, &dentry->fh->mutex 
   RETURN_INT (ZFS_OK);
 }
 
-/*! Discard changes to local file LOCAL which is in conflict with REMOTE
-   on volume VOL.  CONFLICT_FH is a file handle of the cnflict directory
-   containing these two files.  */
-
+/*! \brief Discard changes to local file LOCAL which is in conflict with REMOTE on volume VOL.
+ * 
+ * CONFLICT_FH is a file handle of the cnflict directory containing these two files.
+ * 
+ */
 int32_t
 resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
 				internal_dentry remote, volume vol)
@@ -1981,10 +2406,11 @@ out:
   RETURN_INT (ZFS_METADATA_ERROR);
 }
 
-/*! Discard changes to local file LOCAL which is in conflict with REMOTE
-   on volume VOL.  CONFLICT_FH is a file handle of the cnflict directory
-   containing these two files.  */
-
+/*! \brief Discard changes to remote file REMOTE which is in conflict with LOCAL on volume VOL. 
+ * 
+ * CONFLICT_FH is a file handle of the cnflict directory containing these two files.
+ * 
+ */
 int32_t
 resolve_conflict_discard_remote (zfs_fh *conflict_fh, internal_dentry local,
 				 internal_dentry remote, volume vol)
@@ -2115,10 +2541,13 @@ out:
   RETURN_INT (ZFS_METADATA_ERROR);
 }
 
-/*! Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
-   and remote file handle REMOTE_FH in directory DIR with file handle DIR_FH
-   on volume VOL.  Store the info about deleted file into RES.  */
-
+/*! \brief Resolve conflict by deleting local file.
+ *  
+ * Resolve conflict by deleting local file NAME with local file handle LOCAL_FH
+ * and remote file handle REMOTE_FH in directory DIR with file handle DIR_FH
+ * on volume VOL.  Store the info about deleted file into RES.
+ * 
+ */
 int32_t
 resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
 			       zfs_fh *dir_fh, string *name, zfs_fh *local_fh,
@@ -2184,9 +2613,8 @@ resolve_conflict_delete_local (dir_op_res *res, internal_dentry dir,
   RETURN_INT (r);
 }
 
-/*! Resolve conflict by deleting remote file NAME with file handle REMOTE_FH
-   in directory DIR on volume VOL.  */
-
+/*! \brief Resolve conflict by deleting remote file NAME with file handle REMOTE_FH in directory DIR on volume VOL.
+ */
 int32_t
 resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
 				zfs_fh *remote_fh)
@@ -2215,9 +2643,9 @@ resolve_conflict_delete_remote (volume vol, internal_dentry dir, string *name,
 				      map.slot_status != VALID_SLOT, &dir_fh));
 }
 
-/*! Update the directory DIR on volume VOL with file handle FH,
-   set attributes according to ATTR.  */
-
+/*! \brief Update the directory DIR on volume VOL with file handle FH,
+ *         set attributes according to ATTR.
+ */
 static int32_t
 update_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
@@ -2567,9 +2995,10 @@ out:
   RETURN_INT (r);
 }
 
-/*! Reintegrate journal of deleted directory DIR_ENTRY on volume VID.
-   Use RES for lookups.  */
-
+/*! \brief Reintegrate journal of deleted directory DIR_ENTRY on volume VID.
+ * 
+ * Use RES for lookups.
+ */
 static int32_t
 reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
 {
@@ -2727,9 +3156,10 @@ out:
   RETURN_INT (r);
 }
 
-/*! Reintegrate journal for directory DIR on volume VOL with file handle FH.
-   Update version of remote directrory in ATTR.  */
-
+/*! \brief Reintegrate journal for directory DIR on volume VOL with file handle FH.
+ * 
+ * Update version of remote directrory in ATTR.
+ */
 static int32_t
 reintegrate_dir (volume vol, internal_dentry dir, zfs_fh *fh, fattr *attr)
 {
@@ -3249,9 +3679,15 @@ out2:
   RETURN_INT (ZFS_OK);
 }
 
-/*! Reintegrate or update generic file DENTRY on volume VOL with file handle FH
-   and remote file attributes ATTR.  HOW specifies what we should do.  */
-
+/*! \brief Reintegrate or update generic file 
+ * 
+ * Reintegrate or update generic file DENTRY on volume VOL with file handle FH
+ * and remote file attributes ATTR.
+ * 
+ *  \param[in] how What should be updated if needed. Bitwise-or combination of #IFH_UPDATE for file/dir contents update,
+ *        #IFH_REINTEGRATE for reintegration and #IFH_METADATA for metadata (mode, uid, gid), 
+ *        including file size and master version for regular files.
+ */
 int32_t
 update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
 {
@@ -3324,16 +3760,16 @@ update (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr, int how)
   RETURN_INT (r);
 }
 
-/*! Initialize update thread T.  */
-
+/*! \brief Initialize update thread T.
+ */
 static void
 update_worker_init (thread *t)
 {
   t->dc_call = dc_create ();
 }
 
-/*! Cleanup update thread DATA.  */
-
+/*! \brief Cleanup update thread DATA.
+ */
 static void
 update_worker_cleanup (void *data)
 {
@@ -3342,25 +3778,37 @@ update_worker_cleanup (void *data)
   dc_destroy (t->dc_call);
 }
 
-/*! The main function of an update thread.  */
-
+/*! \brief The main function of an update thread.
+ * 
+ * Normal update threads get their file handles passed from thread performing #update_main(), which also
+ * regulates them and lets them run by raising their semaphore. With the file handle got, they perform update.
+ * When a thread becomes slow_updater, it's the only one doing that so it can get file handles from the
+ * #update_slow_queue itself. It's no longer regulated by update_pool because it appears as busy to it all the time.
+ * When the #update_slow_queue becames empty, the slow updater converts back to normal updater and goes idle.
+ * 
+ */
 static void *
 update_worker (void *data)
 {
   thread *t = (thread *) data;
   lock_info li[MAX_LOCKED_FILE_HANDLES];
+  int r;
 
   thread_disable_signals ();
+  
+  message (1, stderr, "Starting worker update thread...\n");
 
   pthread_cleanup_push (update_worker_cleanup, data);
   pthread_setspecific (thread_data_key, data);
-  pthread_setspecific (thread_name_key, "Network worker thread");
+  pthread_setspecific (thread_name_key, "Update worker thread");
   set_lock_info (li);
-
+  
   while (1)
     {
-      /* Wait until network_dispatch wakes us up.  */
+      /* Wait until update_main() wakes us up.  */
       semaphore_down (&t->sem, 1);
+      
+      message (1, stderr, "Worker update thread: Waking up...\n");
 
 #ifdef ENABLE_CHECKING
       if (get_thread_state (t) == THREAD_DEAD)
@@ -3372,14 +3820,86 @@ update_worker (void *data)
 	break;
 
       t->from_sid = this_node->id;
-      update_file ((zfs_fh *) &t->u.update.fh);
+      
+      /* perform the update, take the slow parameter from this thread's data */
+      r = update_file ((zfs_fh *) &t->u.update.fh, t->u.update.slow);
+      
+      ////  message(1, stderr, "Entering busy check\n");
+      /* Sleep if slow line was busy */
+      if (t->u.update.slow && (r == ZFS_SLOW_BUSY))
+        {
+          message (1, stderr, "update_file() returned ZFS_SLOW_BUSY for slow updater worker, sleeping 5+ seconds\n");
+          struct timeval now;
+          struct timespec timeout;
+          
+          zfsd_mutex_lock(&pending_slow_reqs_mutex);
+          r = 0;
+          while (r != ETIMEDOUT)
+          {
+            message (1, stderr, "Worker update thread: waiting for slow reqs count == 0\n");
+            while (pending_slow_reqs_count != 0) {
+              pthread_cond_wait(&pending_slow_reqs_cond, &pending_slow_reqs_mutex);
+            }
+            gettimeofday(&now, NULL);
+            timeout.tv_sec = now.tv_sec + ZFS_SLOW_BUSY_DELAY;
+            timeout.tv_nsec = now.tv_usec * 1000;
+            message (1, stderr, "Worker update thread: waiting for 5 seconds of no activity\n");
+            r = pthread_cond_timedwait(&pending_slow_reqs_cond, &pending_slow_reqs_mutex, &timeout);
+          }
+          zfsd_mutex_unlock(&pending_slow_reqs_mutex);
+        }
 
       /* Put self to the idle queue if not requested to die meanwhile.  */
+      message (1, stderr, "Worker update thread: work done...\n");
+      
+      if (t->u.update.slow == true)
+        {
+          /* this thread is slow updater */
+          bool succeeded;
+          message (1, stderr, "Worker slow update thread: check slow update queue...");
+          zfsd_mutex_lock (&update_slow_queue_mutex);
+          /* check if slow_queue is empty */
+          if (update_slow_queue.nelem == 0)
+            {
+              /* slow_queue empty, convert this slow updater thread to normal (idle) updater */
+              message(1, stderr, "empty. Changing to normal updater\n");
+              slow_update_worker = NULL;
+              t->u.update.slow = false;
+              zfsd_mutex_unlock (&update_slow_queue_mutex);
+            }
+          else
+            {
+              /* get another file handle from slow update queue */
+              message(1, stderr, "not empty. get file handle...\n");
+              succeeded = queue_get (&update_slow_queue, &t->u.update.fh);
+              zfsd_mutex_unlock (&update_slow_queue_mutex);
+              if (!succeeded)
+                {
+                  message (1, stderr, "Worker slow update thread: get file handle...failed\n");
+  	          break;
+                }
+              message (1, stderr, "Worker slow update thread: get file handle...succeeded\n");
+            }
+        }
+
       zfsd_mutex_lock (&update_pool.mutex);
+      
+      /* are we still supposed to work ? */
       if (get_thread_state (t) == THREAD_BUSY)
 	{
-	  queue_put (&update_pool.idle, &t->index);
-	  set_thread_state (t, THREAD_IDLE);
+	  if (t->u.update.slow == false)
+	    {
+              /* regular updater thread, will have to wait on the semaphore */
+	      message (1, stderr, "Update worker: going idle\n");
+	      queue_put (&update_pool.idle, &t->index);
+	      set_thread_state (t, THREAD_IDLE);
+	    }
+	  else
+	    {
+              /* slow updater, has file handle to update, wasn't killed, just up the semaphore so it doesn't deadlock
+               * in the next while cycle */
+	      semaphore_up (&t->sem, 1);
+	    }
 	}
       else
 	{
@@ -3387,19 +3907,27 @@ update_worker (void *data)
 	  if (get_thread_state (t) != THREAD_DYING)
 	    abort ();
 #endif
+          /* thread is supposed to die */
+	  message (1, stderr, "terminating\n");
 	  zfsd_mutex_unlock (&update_pool.mutex);
 	  break;
 	}
       zfsd_mutex_unlock (&update_pool.mutex);
     }
-
+    
   pthread_cleanup_pop (1);
+  
+  message (1, stderr, "Terminating worker update thread...\n");
 
   return NULL;
 }
 
-/*! Main function if the main update thread.  */
-
+/*! \brief Main function of the main update thread.
+ * 
+ * This is the main thread in #update_pool. It regulates number of threads there, gets file handles from #update_queue,
+ * passes them into one idle thread's data and wakes up that thread via raising its semaphore.
+ * 
+ */
 static void *
 update_main (ATTRIBUTE_UNUSED void *data)
 {
@@ -3409,17 +3937,24 @@ update_main (ATTRIBUTE_UNUSED void *data)
   thread_disable_signals ();
   pthread_setspecific (thread_name_key, "Update main thread");
 
+  message (1, stderr, "Starting main update thread...\n");
+  
   while (!thread_pool_terminate_p (&update_pool))
     {
       bool succeeded;
 
       /* Get the file handle.  */
+      message (1, stderr, "Main update thread: get file handle...\n");
       zfsd_mutex_lock (&update_queue_mutex);
       succeeded = queue_get (&update_queue, &fh);
       zfsd_mutex_unlock (&update_queue_mutex);
       if (!succeeded)
+      {
+      	message (1, stderr, "Main update thread: get file handle...failed\n");
 	break;
-
+      }
+      message (1, stderr, "Main update thread: get file handle...succeeded\n");
+      
       zfsd_mutex_lock (&update_pool.mutex);
 
       /* Regulate the number of threads.  */
@@ -3433,25 +3968,30 @@ update_main (ATTRIBUTE_UNUSED void *data)
 #endif
       set_thread_state (&update_pool.threads[index].t, THREAD_BUSY);
       update_pool.threads[index].t.u.update.fh = fh;
-
+      update_pool.threads[index].t.u.update.slow = false;
+	
       /* Let the thread run.  */
+      message (1, stderr, "Main update thread: starting worker thread\n");
       semaphore_up (&update_pool.threads[index].t.sem, 1);
 
       zfsd_mutex_unlock (&update_pool.mutex);
     }
 
-  message (2, stderr, "Terminating...\n");
+  message (1, stderr, "Terminating main update thread...\n");
+  
   return NULL;
 }
 
-/*! Start the main update thread.  */
-
+/*! \brief Initialize the mutexes and queues for updating, and create the #update_pool.
+ */
 bool
 update_start (void)
 {
   zfsd_mutex_init (&update_queue_mutex);
   queue_create (&update_queue, sizeof (zfs_fh), 250, &update_queue_mutex);
-
+  zfsd_mutex_init (&update_slow_queue_mutex);
+  queue_create (&update_slow_queue, sizeof(zfs_fh), 250, &update_slow_queue_mutex);
+  
   if (!thread_pool_create (&update_pool, &update_thread_limit,
 			   update_main, update_worker, update_worker_init))
     {
@@ -3459,20 +3999,32 @@ update_start (void)
       queue_destroy (&update_queue);
       zfsd_mutex_unlock (&update_queue_mutex);
       zfsd_mutex_destroy (&update_queue_mutex);
+
+      zfsd_mutex_lock (&update_slow_queue_mutex);
+      queue_destroy (&update_slow_queue);
+      zfsd_mutex_unlock (&update_slow_queue_mutex);
+      zfsd_mutex_destroy (&update_slow_queue_mutex);
+
       return false;
     }
 
   return true;
 }
 
-/*! Terminate update threads and destroy data structures.  */
-
+/*! \brief Destroy #update_pool and cleanup the mutexes and queues for updating.
+ */
 void
 update_cleanup (void)
 {
   thread_pool_destroy (&update_pool);
+
   zfsd_mutex_lock (&update_queue_mutex);
   queue_destroy (&update_queue);
   zfsd_mutex_unlock (&update_queue_mutex);
   zfsd_mutex_destroy (&update_queue_mutex);
+  
+  zfsd_mutex_lock (&update_slow_queue_mutex);
+  queue_destroy (&update_slow_queue);
+  zfsd_mutex_unlock (&update_slow_queue_mutex);
+  zfsd_mutex_destroy (&update_slow_queue_mutex); 
 }
