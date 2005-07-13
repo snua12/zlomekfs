@@ -28,6 +28,6 @@ install: zfs.ko
 	depmod -a
 
 clean:
-	-rm -f *.o *.ko .*.cmd
+	-rm -rf *.o *.ko .*.cmd .tmp_versions
 
 endif

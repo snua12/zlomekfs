@@ -1,4 +1,0 @@
-.cvsignore
-*.cmd
-zfs.ko
-zfs.mod.c
