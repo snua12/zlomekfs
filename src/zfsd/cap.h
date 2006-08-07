@@ -1,6 +1,6 @@
-/*! \file 
+/*! \file
     \brief Capability functions.  */
-    
+
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include "pthread.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 
 /*! Number of random bytes used to compute VERIFY.  */
 #define CAP_RANDOM_LEN 16
@@ -65,26 +65,26 @@ struct internal_cap_def
 #include "fh.h"
 
 extern int32_t internal_cap_lock (unsigned int level, internal_cap *icapp,
-				  volume *volp, internal_dentry *dentryp,
-				  virtual_dir *vdp, zfs_cap *tmp_cap);
+                                  volume *volp, internal_dentry *dentryp,
+                                  virtual_dir *vdp, zfs_cap *tmp_cap);
 extern void internal_cap_unlock (volume vol, internal_dentry dentry,
-				 virtual_dir vd);
+                                 virtual_dir vd);
 extern internal_cap internal_cap_lookup (zfs_cap *cap);
 extern void destroy_unused_capabilities (internal_fh fh);
 extern int32_t get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-			       internal_dentry *dentry, virtual_dir *vd,
-			       bool unlock_fh_mutex, bool delete_volume_p);
+                               internal_dentry *dentry, virtual_dir *vd,
+                               bool unlock_fh_mutex, bool delete_volume_p);
 extern internal_cap get_capability_no_zfs_fh_lookup (zfs_cap *cap,
-						     internal_dentry dentry,
-						     uint32_t flags);
+                                                     internal_dentry dentry,
+                                                     uint32_t flags);
 extern int32_t find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-				internal_dentry *dentry, virtual_dir *vd,
-				bool delete_volume_p);
+                                internal_dentry *dentry, virtual_dir *vd,
+                                bool delete_volume_p);
 extern int32_t find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
-				       volume *vol, internal_dentry *dentry,
-				       virtual_dir *vd, bool delete_volume_p);
+                                       volume *vol, internal_dentry *dentry,
+                                       virtual_dir *vd, bool delete_volume_p);
 extern int32_t put_capability (internal_cap cap, internal_fh fh,
-			       virtual_dir vd);
+                               virtual_dir vd);
 
 extern void initialize_cap_c (void);
 extern void cleanup_cap_c (void);

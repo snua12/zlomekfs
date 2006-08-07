@@ -23,39 +23,39 @@
 #include <linux/fs.h>
 
 #include "zfs.h"
-#include "zfs_prot.h"
-#include "zfsd_call.h"
+#include "zfs-prot.h"
+#include "zfsd-call.h"
 
 
 static int zfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 {
-	struct inode *inode = file->f_dentry->d_inode;
-	read_dir_args args;
-	int error;
+        struct inode *inode = file->f_dentry->d_inode;
+        read_dir_args args;
+        int error;
 
-	TRACE("'%s'", file->f_dentry->d_name.name);
+        TRACE("'%s'", file->f_dentry->d_name.name);
 
-	if (file->f_pos == -1)
-		return 0;
+        if (file->f_pos == -1)
+                return 0;
 
-	args.cap = *CAP(file->private_data);
-	args.cookie = file->f_pos ? *COOKIE(file->private_data) : 0;
-	args.count = ZFS_MAXDATA;
+        args.cap = *CAP(file->private_data);
+        args.cookie = file->f_pos ? *COOKIE(file->private_data) : 0;
+        args.count = ZFS_MAXDATA;
 
-	error = zfsd_readdir(&args, file, dirent, filldir);
-	if (error == -ESTALE)
-		ZFS_I(inode)->flags |= NEED_REVALIDATE;
+        error = zfsd_readdir(&args, file, dirent, filldir);
+        if (error == -ESTALE)
+                ZFS_I(inode)->flags |= NEED_REVALIDATE;
 
-	return error;
+        return error;
 }
 
 extern int zfs_open(struct inode *inode, struct file *file);
 extern int zfs_release(struct inode *inode, struct file *file);
 
 struct file_operations zfs_dir_operations = {
-	.llseek         = generic_file_llseek,
-	.read           = generic_read_dir,
-	.readdir        = zfs_readdir,
-	.open           = zfs_open,
-	.release        = zfs_release,
+        .llseek         = generic_file_llseek,
+        .read           = generic_read_dir,
+        .readdir        = zfs_readdir,
+        .open           = zfs_open,
+        .release        = zfs_release,
 };

@@ -29,122 +29,122 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "fh.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "volume.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "metadata.h"
 
 extern void build_local_path (string *dst, volume vol, internal_dentry dentry);
 extern void build_local_path_name (string *dst, volume vol,
-				   internal_dentry dentry, string *name);
+                                   internal_dentry dentry, string *name);
 extern void build_relative_path (string *dst, internal_dentry dentry);
 extern void build_relative_path_name (string *dst, internal_dentry dentry,
-				      string *name);
+                                      string *name);
 extern void local_path_to_relative_path (string *dst, volume vol, string *path);
 extern void file_name_from_path (string *dst, string *path);
 extern int32_t recursive_unlink (string *path, uint32_t vid,
-				 bool destroy_dentry, bool journal_p,
-				 bool move_to_shadow_p);
+                                 bool destroy_dentry, bool journal_p,
+                                 bool move_to_shadow_p);
 extern int32_t validate_operation_on_virtual_directory (virtual_dir pvd,
-							string *name,
-							internal_dentry *dir,
-							uint32_t conflict_error);
+                                                        string *name,
+                                                        internal_dentry *dir,
+                                                        uint32_t conflict_error);
 extern int32_t validate_operation_on_zfs_fh (zfs_fh *fh,
-					     uint32_t conflict_error,
-					     uint32_t non_exist_error);
+                                             uint32_t conflict_error,
+                                             uint32_t non_exist_error);
 extern int32_t validate_operation_on_volume_root (internal_dentry dentry,
-						  uint32_t conflict_error);
+                                                  uint32_t conflict_error);
 extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
-				       fattr *attr);
+                                       fattr *attr);
 extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentryp,
-				       bool unlock_fh_mutex);
+                                       bool unlock_fh_mutex);
 extern int32_t zfs_volume_root (dir_op_res *res, uint32_t vid);
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t remote_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
 extern int32_t local_setattr_path (fattr *fa, string *path, sattr *sa);
 extern int32_t local_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
-			      volume vol);
+                              volume vol);
 extern int32_t remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
-			       volume vol);
+                               volume vol);
 extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
 extern int32_t zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int32_t local_lookup (dir_op_res *res, internal_dentry dir,
-			     string *name, volume vol, metadata *meta);
+                             string *name, volume vol, metadata *meta);
 extern int32_t remote_lookup (dir_op_res *res, internal_dentry dir,
-			      string *name, volume vol);
+                              string *name, volume vol);
 extern int32_t remote_lookup_zfs_fh (dir_op_res *res, zfs_fh *dir,
-				     string *name, volume vol);
+                                     string *name, volume vol);
 extern int32_t zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name);
 extern int32_t local_mkdir (dir_op_res *res, internal_dentry dir, string *name,
-			    sattr *attr, volume vol, metadata *meta);
+                            sattr *attr, volume vol, metadata *meta);
 extern int32_t remote_mkdir (dir_op_res *res, internal_dentry dir, string *name,
-			     sattr *attr, volume vol);
+                             sattr *attr, volume vol);
 extern int32_t zfs_mkdir (dir_op_res *res, zfs_fh *dir, string *name,
-			  sattr *attr);
+                          sattr *attr);
 extern int32_t zfs_rmdir (zfs_fh *dir, string *name);
 extern int32_t zfs_rename (zfs_fh *from_dir, string *from_name,
-			   zfs_fh *to_dir, string *to_name);
+                           zfs_fh *to_dir, string *to_name);
 extern int32_t zfs_link (zfs_fh *from, zfs_fh *dir, string *name);
 extern int32_t zfs_unlink (zfs_fh *dir, string *name);
 extern int32_t local_readlink (read_link_res *res, internal_dentry file,
-			       volume vol);
+                               volume vol);
 extern int32_t local_readlink_name (read_link_res *res, internal_dentry dir,
-				    string *name, volume vol);
+                                    string *name, volume vol);
 extern int32_t remote_readlink (read_link_res *res, internal_dentry file,
-				volume vol);
+                                volume vol);
 extern int32_t remote_readlink_zfs_fh (read_link_res *res, zfs_fh *fh,
-				       volume vol);
+                                       volume vol);
 extern int32_t zfs_readlink (read_link_res *res, zfs_fh *fh);
 extern int32_t local_symlink (dir_op_res *res, internal_dentry dir,
-			      string *name, string *to, sattr *attr,
-			      volume vol, metadata *meta);
+                              string *name, string *to, sattr *attr,
+                              volume vol, metadata *meta);
 extern int32_t remote_symlink (dir_op_res *res, internal_dentry dir,
-			       string *name, string *to, sattr *attr,
-			       volume vol);
+                               string *name, string *to, sattr *attr,
+                               volume vol);
 extern int32_t zfs_symlink (dir_op_res *res, zfs_fh *dir, string *name,
-			    string *to, sattr *attr);
+                            string *to, sattr *attr);
 extern int32_t local_mknod (dir_op_res *res, internal_dentry dir, string *name,
-			    sattr *attr, ftype type, uint32_t rdev, volume vol,
-			    metadata *meta);
+                            sattr *attr, ftype type, uint32_t rdev, volume vol,
+                            metadata *meta);
 extern int32_t remote_mknod (dir_op_res *res, internal_dentry dir, string *name,
-			     sattr *attr, ftype type, uint32_t rdev,
-			     volume vol);
+                             sattr *attr, ftype type, uint32_t rdev,
+                             volume vol);
 extern int32_t zfs_mknod (dir_op_res *res, zfs_fh *dir, string *name,
-			  sattr *attr, ftype type, uint32_t rdev);
+                          sattr *attr, ftype type, uint32_t rdev);
 extern int32_t local_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t remote_file_info (file_info_res *res, zfs_fh *fh, volume vol);
 extern int32_t zfs_file_info (file_info_res *res, zfs_fh *fh);
 extern int32_t remote_reintegrate (internal_dentry dentry, char status,
-				   volume vol);
+                                   volume vol);
 extern int32_t zfs_reintegrate (zfs_fh *fh, char status);
 extern int32_t local_reintegrate_add (volume vol, internal_dentry dir,
-				      string *name, zfs_fh *fh,
-				      zfs_fh *dir_fh, bool journal);
+                                      string *name, zfs_fh *fh,
+                                      zfs_fh *dir_fh, bool journal);
 extern int32_t remote_reintegrate_add (volume vol, internal_dentry dir,
-				       string *name, zfs_fh *fh,
-				       zfs_fh *dir_fh);
+                                       string *name, zfs_fh *fh,
+                                       zfs_fh *dir_fh);
 extern int32_t zfs_reintegrate_add (zfs_fh *fh, zfs_fh *dir, string *name);
 extern int32_t local_reintegrate_del_base (zfs_fh *fh, string *name,
-					   bool destroy_p, zfs_fh *dir_fh,
-					   bool journal);
+                                           bool destroy_p, zfs_fh *dir_fh,
+                                           bool journal);
 extern int32_t local_reintegrate_del (volume vol, zfs_fh *fh,
-				      internal_dentry dir, string *name,
-				      bool destroy_p, zfs_fh *dir_fh,
-				      bool journal);
+                                      internal_dentry dir, string *name,
+                                      bool destroy_p, zfs_fh *dir_fh,
+                                      bool journal);
 extern int32_t remote_reintegrate_del (volume vol, zfs_fh *fh,
-				       internal_dentry dir, string *name,
-				       bool destroy_p, zfs_fh *dir_fh);
+                                       internal_dentry dir, string *name,
+                                       bool destroy_p, zfs_fh *dir_fh);
 extern int32_t remote_reintegrate_del_zfs_fh (volume vol, zfs_fh *fh,
-					      zfs_fh *dir, string *name,
-					      bool destroy_p);
+                                              zfs_fh *dir, string *name,
+                                              bool destroy_p);
 extern int32_t zfs_reintegrate_del (zfs_fh *fh, zfs_fh *dir, string *name,
-				    bool destroy_p);
+                                    bool destroy_p);
 extern int32_t local_reintegrate_ver (internal_dentry dentry,
-				      uint64_t version_inc, volume vol);
+                                      uint64_t version_inc, volume vol);
 extern int32_t remote_reintegrate_ver (internal_dentry dentry,
-				       uint64_t version_inc, zfs_fh *fh,
-				       volume vol);
+                                       uint64_t version_inc, zfs_fh *fh,
+                                       volume vol);
 extern int32_t zfs_reintegrate_ver (zfs_fh *fh, uint64_t version_inc);
 extern int32_t local_invalidate_fh (zfs_fh *fh);
 extern int32_t local_invalidate (internal_dentry dentry, bool volume_root_p);

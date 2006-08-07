@@ -33,7 +33,7 @@
 #include "data-coding.h"
 #include "hashtab.h"
 #include "fh.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "volume.h"
 #include "node.h"
 #include "fibheap.h"
@@ -64,71 +64,71 @@ typedef struct filldir_htab_entries_def
 
 /*! Function called to add one directory entry to list.  */
 typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
-			   uint32_t name_len, dir_list *list,
-			   readdir_data *data);
+                           uint32_t name_len, dir_list *list,
+                           readdir_data *data);
 
 #include "cap.h"
 extern int32_t local_close (internal_fh fh);
 extern int32_t cond_remote_close (zfs_cap *cap, internal_cap icap,
-				  internal_dentry *dentryp, volume *volp);
+                                  internal_dentry *dentryp, volume *volp);
 extern int32_t local_create (create_res *res, int *fdp, internal_dentry dir,
-			     string *name, uint32_t flags, sattr *attr,
-			     volume vol, metadata *meta, bool *exists);
+                             string *name, uint32_t flags, sattr *attr,
+                             volume vol, metadata *meta, bool *exists);
 extern int32_t remote_create (create_res *res, internal_dentry dir,
-			      string *name, uint32_t flags, sattr *attr,
-			      volume vol);
+                              string *name, uint32_t flags, sattr *attr,
+                              volume vol);
 extern int32_t zfs_create (create_res *res, zfs_fh *dir, string *name,
-			   uint32_t flags, sattr *attr);
+                           uint32_t flags, sattr *attr);
 extern int32_t cond_remote_open (zfs_cap *cap, internal_cap icap,
-				 internal_dentry *dentryp, volume *volp);
+                                 internal_dentry *dentryp, volume *volp);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
 extern int32_t zfs_close (zfs_cap *cap);
 extern bool filldir_encode (uint32_t ino, int32_t cookie, char *name,
-			    uint32_t name_len, dir_list *list,
-			    readdir_data *data);
+                            uint32_t name_len, dir_list *list,
+                            readdir_data *data);
 extern bool filldir_array (uint32_t ino, int32_t cookie, char *name,
-			   uint32_t name_len, dir_list *list,
-			   ATTRIBUTE_UNUSED readdir_data *data);
+                           uint32_t name_len, dir_list *list,
+                           ATTRIBUTE_UNUSED readdir_data *data);
 extern hash_t filldir_htab_hash (const void *x);
 extern int filldir_htab_eq (const void *xx, const void *yy);
 extern void filldir_htab_del (void *xx);
 extern bool filldir_htab (uint32_t ino, int32_t cookie, char *name,
-			  uint32_t name_len, dir_list *list,
-			  ATTRIBUTE_UNUSED readdir_data *data);
+                          uint32_t name_len, dir_list *list,
+                          ATTRIBUTE_UNUSED readdir_data *data);
 extern int32_t local_readdir (dir_list *list, internal_dentry dentry,
-			      virtual_dir vd, zfs_fh *fh, int32_t cookie,
-			      readdir_data *data, volume vol,
-			      filldir_f filldir);
+                              virtual_dir vd, zfs_fh *fh, int32_t cookie,
+                              readdir_data *data, volume vol,
+                              filldir_f filldir);
 extern int32_t remote_readdir (dir_list *list, internal_cap cap,
-			       internal_dentry dentry, int32_t cookie,
-			       readdir_data *data, volume vol,
-			       filldir_f filldir);
+                               internal_dentry dentry, int32_t cookie,
+                               readdir_data *data, volume vol,
+                               filldir_f filldir);
 extern int32_t zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie,
-			    uint32_t count, filldir_f filldir);
+                            uint32_t count, filldir_f filldir);
 extern int32_t zfs_read (read_res *res, zfs_cap *cap, uint64_t offset,
-			 uint32_t count, bool update);
+                         uint32_t count, bool update);
 extern int32_t zfs_write (write_res *res, write_args *args);
 
 extern int32_t full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries);
 extern int32_t full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries);
 extern int32_t full_local_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
-				uint64_t offset, uint32_t count,
-				uint64_t *version);
+                                uint64_t offset, uint32_t count,
+                                uint64_t *version);
 extern int32_t full_local_read_dentry (uint32_t *rcount, void *buffer,
-				       zfs_cap *cap, internal_dentry dentry,
-				       volume vol, uint64_t offset,
-				       uint32_t count);
+                                       zfs_cap *cap, internal_dentry dentry,
+                                       volume vol, uint64_t offset,
+                                       uint32_t count);
 extern int32_t full_remote_read (uint32_t *rcount, void *buffer, zfs_cap *cap,
-				 uint64_t offset, uint32_t count,
-				 uint64_t *version);
+                                 uint64_t offset, uint32_t count,
+                                 uint64_t *version);
 extern int32_t full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
-				 uint64_t offset, uint32_t count,
-				 uint64_t *version);
+                                 uint64_t offset, uint32_t count,
+                                 uint64_t *version);
 extern int32_t full_remote_write_dentry (uint32_t *rcount, void *buffer,
-					 zfs_cap *cap, internal_cap icap,
-					 internal_dentry dentry, volume vol,
-					 uint64_t offset, uint32_t count,
-					 uint64_t *version_increase);
+                                         zfs_cap *cap, internal_cap icap,
+                                         internal_dentry dentry, volume vol,
+                                         uint64_t offset, uint32_t count,
+                                         uint64_t *version_increase);
 extern int32_t local_md5sum (md5sum_res *res, md5sum_args *args);
 extern int32_t remote_md5sum (md5sum_res *res, md5sum_args *args);
 extern void remote_reread_config (string *path, node nod);

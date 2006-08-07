@@ -39,11 +39,11 @@ typedef struct volume_def *volume;
 #include "fibheap.h"
 #include "interval.h"
 #include "journal.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "util.h"
 
 #define VIRTUAL_DEVICE 1	/* Device number of device with virtual
-				   directories */
+                                   directories */
 #define ROOT_INODE 1		/* Inode number of the root dir of ZFS */
 
 /*! Maximal number of file handles locked by one thread.  */
@@ -51,20 +51,20 @@ typedef struct volume_def *volume;
 
 /*! Is the FH virtual?  */
 #define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL			\
-			  && (FH).sid == NODE_NONE)
+                          && (FH).sid == NODE_NONE)
 
 /*! Is FH a file handle of non-existing file represented as a symlink
    to existing file in case of exist-non_exist conflict?  */
 #define NON_EXIST_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL		\
-			    && (FH).sid != NODE_NONE)
+                            && (FH).sid != NODE_NONE)
 
 /*! Is FH a conflict directroy?  */
 #define CONFLICT_DIR_P(FH) ((FH).sid == NODE_NONE			\
-			    && (FH).vid != VOLUME_ID_VIRTUAL)
+                            && (FH).vid != VOLUME_ID_VIRTUAL)
 
 /*! Is FH a regular file handle, i.e. not special file handle?  */
 #define REGULAR_FH_P(FH) ((FH).sid != NODE_NONE				\
-			  && (FH).vid != VOLUME_ID_VIRTUAL)
+                          && (FH).vid != VOLUME_ID_VIRTUAL)
 
 /*! Is DENTRY a local volume root?  */
 #define LOCAL_VOLUME_ROOT_P(DENTRY)					\
@@ -88,8 +88,8 @@ typedef struct volume_def *volume;
 
 /*! Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
-			     ? memset (&(FH), -1, sizeof (zfs_fh))	\
-			     : (abort (), (void *) 0))
+                             ? memset (&(FH), -1, sizeof (zfs_fh))	\
+                             : (abort (), (void *) 0))
 
 /*! Return true if the ZFS file handle FH is undefined.  */
 #define zfs_fh_undefined(FH) (bytecmp (&(FH), -1, sizeof (zfs_fh)))
@@ -99,10 +99,10 @@ typedef struct volume_def *volume;
 
 /*! Return true if FH1 and FH2 are the same.  */
 #define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino			\
-			     && (FH1).dev == (FH2).dev			\
-			     && (FH1).vid == (FH2).vid			\
-			     && (FH1).sid == (FH2).sid			\
-			     && (FH1).gen == (FH2).gen)
+                             && (FH1).dev == (FH2).dev			\
+                             && (FH1).vid == (FH2).vid			\
+                             && (FH1).sid == (FH2).sid			\
+                             && (FH1).gen == (FH2).gen)
 
 /*! Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
@@ -111,7 +111,7 @@ typedef struct volume_def *volume;
 /*! Hash function for internal dentry D, computed from parent->fh and name.  */
 #define INTERNAL_DENTRY_HASH_NAME(D)					\
   (crc32_update (crc32_buffer ((D)->name.str, (D)->name.len),		\
-		 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
+                 &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
 /*! True if file handle FH has a local path.  */
 #define INTERNAL_FH_HAS_LOCAL_PATH(FH)					\
@@ -327,34 +327,34 @@ extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 extern void set_lock_info (lock_info *li);
 extern void set_owned (internal_dentry dentry, unsigned int level);
 extern int32_t zfs_fh_lookup (zfs_fh *fh, volume *volp,
-			      internal_dentry *dentryp, virtual_dir *vdp,
-			      bool delete_volume_p);
+                              internal_dentry *dentryp, virtual_dir *vdp,
+                              bool delete_volume_p);
 extern int32_t zfs_fh_lookup_nolock (zfs_fh *fh, volume *volp,
-				     internal_dentry *dentryp,
-				     virtual_dir *vdp, bool delete_volume_p);
+                                     internal_dentry *dentryp,
+                                     virtual_dir *vdp, bool delete_volume_p);
 extern void acquire_dentry (internal_dentry dentry);
 extern void release_dentry (internal_dentry dentry);
 extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
-				   volume vol, internal_dentry dir,
-				   string *name, fattr *attr, metadata *meta);
+                                   volume vol, internal_dentry dir,
+                                   string *name, fattr *attr, metadata *meta);
 extern void delete_dentry (volume *volp, internal_dentry *dirp, string *name,
-			   zfs_fh *dir_fh);
+                           zfs_fh *dir_fh);
 extern virtual_dir vd_lookup (zfs_fh *fh);
 extern virtual_dir vd_lookup_name (virtual_dir parent, string *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);
 extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
-					   string *name);
+                                           string *name);
 extern internal_dentry dentry_lookup_path (volume vol, internal_dentry start,
-					   string *path);
+                                           string *path);
 extern internal_dentry dentry_lookup_local_path (volume vol,
-						 string *local_path);
+                                                 string *local_path);
 extern int32_t internal_dentry_lock (unsigned int level, volume *volp,
-				     internal_dentry *dentryp, zfs_fh *tmp_fh);
+                                     internal_dentry *dentryp, zfs_fh *tmp_fh);
 extern void internal_dentry_unlock (volume vol, internal_dentry dentry);
 extern int32_t internal_dentry_lock2 (unsigned int level1, unsigned int level2,
-				      volume *volp, internal_dentry *dentry1p,
-				      internal_dentry *dentry2p,
-				      zfs_fh *tmp_fh1, zfs_fh *tmp_fh2);
+                                      volume *volp, internal_dentry *dentry1p,
+                                      internal_dentry *dentry2p,
+                                      zfs_fh *tmp_fh1, zfs_fh *tmp_fh2);
 extern bool set_master_fh (volume vol, internal_fh fh, zfs_fh *master_fh);
 extern void print_fh_htab (FILE *f);
 extern void debug_fh_htab (void);
@@ -362,26 +362,26 @@ extern void print_subdentries (FILE *f, internal_dentry dentry);
 extern void debug_subdentries (internal_dentry dentry);
 
 extern internal_dentry internal_dentry_link (internal_dentry orig,
-					     internal_dentry parent,
-					     string *name);
+                                             internal_dentry parent,
+                                             string *name);
 extern void internal_dentry_move (internal_dentry *from_dirp, string *from_name,
-				  internal_dentry *to_dirp, string *to_name,
-				  volume *volp, zfs_fh *from_fh, zfs_fh *to_fh);
+                                  internal_dentry *to_dirp, string *to_name,
+                                  volume *volp, zfs_fh *from_fh, zfs_fh *to_fh);
 extern void internal_dentry_destroy (internal_dentry dentry,
-				     bool clear_volume_root, bool invalidate,
-				     bool volume_root_p);
+                                     bool clear_volume_root, bool invalidate,
+                                     bool volume_root_p);
 extern internal_dentry create_conflict (volume vol, internal_dentry dir,
-					string *name, zfs_fh *local_fh,
-					fattr *attr);
+                                        string *name, zfs_fh *local_fh,
+                                        fattr *attr);
 extern internal_dentry add_file_to_conflict_dir (volume vol,
-						 internal_dentry conflict,
-						 bool exists, zfs_fh *fh,
-						 fattr *attr, metadata *meta);
+                                                 internal_dentry conflict,
+                                                 bool exists, zfs_fh *fh,
+                                                 fattr *attr, metadata *meta);
 extern bool try_resolve_conflict (volume vol, internal_dentry conflict);
 extern internal_dentry conflict_local_dentry (internal_dentry conflict);
 extern internal_dentry conflict_remote_dentry (internal_dentry conflict);
 extern internal_dentry conflict_other_dentry (internal_dentry conflict,
-					      internal_dentry dentry);
+                                              internal_dentry dentry);
 extern void cancel_conflict (volume vol, internal_dentry conflict);
 
 extern virtual_dir virtual_dir_create (virtual_dir parent, const char *name);

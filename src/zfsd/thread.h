@@ -31,7 +31,7 @@
 #include "semaphore.h"
 #include "fibheap.h"
 #include "data-coding.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 
 /*! Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
@@ -182,14 +182,14 @@ typedef struct waiting4reply_data_def
 extern bool get_running (void);
 extern bool thread_pool_terminate_p (thread_pool *pool);
 extern void thread_terminate_blocking_syscall (volatile pthread_t *thid,
-					       pthread_mutex_t *mutex);
+                                               pthread_mutex_t *mutex);
 extern int wait_for_thread_to_die (volatile pthread_t *thid, void **ret);
 extern thread_state get_thread_state (thread *t);
 extern void set_thread_state (thread *t, thread_state state);
 extern bool thread_pool_create (thread_pool *pool, thread_limit *limit,
-				thread_start main_start,
-				thread_start worker_start,
-				thread_init worker_init);
+                                thread_start main_start,
+                                thread_start worker_start,
+                                thread_init worker_init);
 extern void thread_pool_terminate (thread_pool *pool);
 extern void thread_pool_destroy (thread_pool *pool);
 extern int create_idle_thread (thread_pool *pool);

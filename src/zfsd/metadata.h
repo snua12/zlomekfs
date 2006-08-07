@@ -28,7 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "hardlink-list.h"
 #include "journal.h"
 
@@ -38,7 +38,7 @@
 
 /*! Get mode from MODE from struct stat.  */
 #define GET_MODE(MODE) ((MODE) & (S_IRWXU | S_IRWXG | S_IRWXO		\
-				  | S_ISUID | S_ISGID | S_ISVTX))
+                                  | S_ISUID | S_ISGID | S_ISVTX))
 
 /*! Compute a combination of MODE and TYPE.  */
 #define GET_MODETYPE(MODE, TYPE) (GET_MODE (MODE) | ((TYPE) << 24))
@@ -134,62 +134,62 @@ extern void close_volume_metadata (volume vol);
 extern void close_interval_file (interval_tree tree);
 extern void close_journal_file (journal_t journal);
 extern bool flush_interval_tree (volume vol, internal_fh fh,
-				metadata_type type);
+                                metadata_type type);
 extern bool append_interval (volume vol, internal_fh fh,
-			     metadata_type type,
-			     uint64_t start, uint64_t end);
+                             metadata_type type,
+                             uint64_t start, uint64_t end);
 extern void set_attr_version (fattr *attr, metadata *meta);
 extern bool lookup_metadata (volume vol, zfs_fh *fh, metadata *meta,
-			     bool insert);
+                             bool insert);
 extern bool get_metadata (volume vol, zfs_fh *fh, metadata *meta);
 extern bool get_fh_mapping_for_master_fh (volume vol, zfs_fh *master_fh,
-					  fh_mapping *map);
+                                          fh_mapping *map);
 extern bool flush_metadata (volume vol, metadata *meta);
 extern bool set_metadata (volume vol, internal_fh fh, uint32_t flags,
-			  uint64_t local_version, uint64_t master_version);
+                          uint64_t local_version, uint64_t master_version);
 extern bool set_metadata_flags (volume vol, internal_fh fh, uint32_t flags);
 extern bool set_metadata_master_fh (volume vol, internal_fh fh,
-				    zfs_fh *master_fh);
+                                    zfs_fh *master_fh);
 extern bool inc_local_version (volume vol, internal_fh fh);
 extern bool inc_local_version_and_modified (volume vol, internal_fh fh);
 extern bool delete_metadata (volume vol, metadata *meta, uint32_t dev,
-			     uint32_t ino, uint32_t parent_dev,
-			     uint32_t parent_ino, string *name);
+                             uint32_t ino, uint32_t parent_dev,
+                             uint32_t parent_ino, string *name);
 extern bool delete_metadata_of_created_file (volume vol, zfs_fh *fh,
-					     metadata *meta);
+                                             metadata *meta);
 extern bool load_interval_trees (volume vol, internal_fh fh);
 extern bool save_interval_trees (volume vol, internal_fh fh);
 extern bool init_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
-			    hardlink_list hl);
+                            hardlink_list hl);
 extern bool read_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
-			    hardlink_list hl);
+                            hardlink_list hl);
 extern bool metadata_hardlink_insert (volume vol, zfs_fh *fh, metadata *meta,
-				      uint32_t parent_dev, uint32_t parent_ino,
-				      string *name);
+                                      uint32_t parent_dev, uint32_t parent_ino,
+                                      string *name);
 extern bool metadata_hardlink_replace (volume vol, zfs_fh *fh, metadata *meta,
-				       uint32_t old_parent_dev,
-				       uint32_t old_parent_ino,
-				       string *old_name,
-				       uint32_t new_parent_dev,
-				       uint32_t new_parent_ino,
-				       string *new_name, bool shadow);
+                                       uint32_t old_parent_dev,
+                                       uint32_t old_parent_ino,
+                                       string *old_name,
+                                       uint32_t new_parent_dev,
+                                       uint32_t new_parent_ino,
+                                       string *new_name, bool shadow);
 extern bool metadata_hardlink_set (volume vol, zfs_fh *fh, metadata *meta,
-				   uint32_t parent_dev, uint32_t parent_ino,
-				   string *name);
+                                   uint32_t parent_dev, uint32_t parent_ino,
+                                   string *name);
 extern unsigned int metadata_n_hardlinks (volume vol, zfs_fh *fh,
-					  metadata *meta);
+                                          metadata *meta);
 extern void get_local_path_from_metadata (string *path, volume vol, zfs_fh *fh);
 extern bool read_journal (volume vol, zfs_fh *fh, journal_t journal);
 extern bool write_journal (volume vol, zfs_fh *fh, journal_t journal);
 extern bool add_journal_entry (volume vol, journal_t journal, zfs_fh *fh,
-			       zfs_fh *local_fh, zfs_fh *master_fh,
-			       uint64_t master_version, string *name,
-			       journal_operation_t oper);
+                               zfs_fh *local_fh, zfs_fh *master_fh,
+                               uint64_t master_version, string *name,
+                               journal_operation_t oper);
 extern bool add_journal_entry_meta (volume vol, journal_t journal, zfs_fh *fh,
-				    metadata *meta, string *name,
-				    journal_operation_t oper);
+                                    metadata *meta, string *name,
+                                    journal_operation_t oper);
 extern bool create_shadow_path (string *path, volume vol, zfs_fh *fh,
-				string *name);
+                                string *name);
 
 extern void initialize_metadata_c (void);
 extern void cleanup_metadata_c (void);

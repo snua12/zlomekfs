@@ -45,7 +45,7 @@
 
 #include "data-coding.h"
 #include "memory.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 
 #ifndef __KERNEL__
 
@@ -135,15 +135,15 @@ dc_put (DC *_dc)
     {
       down (&dc_lock);
       if (!channel.connected || (ndc == MAX_FREE_DCS))
-	{
-	  up (&dc_lock);
-	  dc_destroy(_dc);
-	}
+        {
+          up (&dc_lock);
+          dc_destroy(_dc);
+        }
       else
-	{
-	  dc[ndc++] = _dc;
-	  up (&dc_lock);
-	}
+        {
+          dc[ndc++] = _dc;
+          up (&dc_lock);
+        }
     }
 }
 
@@ -170,9 +170,9 @@ print_dc (DC *dc, FILE *f)
   fprintf (f, "Max.length = %d\n", dc->max_length);
   fprintf (f, "Data:\n");
   print_hex_buffer (dc->buffer,
-		    (dc->max_length == DC_SIZE
-		     ? dc->cur_length : dc->max_length),
-		    f);
+                    (dc->max_length == DC_SIZE
+                     ? dc->cur_length : dc->max_length),
+                    f);
 }
 
 /*! Print DC to STDERR.  */
@@ -237,11 +237,11 @@ decode_##T (DC *dc, T *ret)					\
   dc->cur_length = ALIGN_##S (dc->cur_length) + S;		\
   if (dc->cur_length > dc->max_length)				\
     return false;						\
-								\
+                                                                \
   dc->cur_pos = (char *) ALIGN_PTR_##S (dc->cur_pos);		\
   *ret = F (dc->cur_pos);					\
   dc->cur_pos += S;						\
-								\
+                                                                \
   return true;							\
 }
 
@@ -254,7 +254,7 @@ encode_##T (DC *dc, T val)					\
 {								\
   unsigned int prev = dc->cur_length;				\
   char *s;							\
-								\
+                                                                \
   /* Advance and check the length.  */				\
   dc->cur_length = ALIGN_##S (dc->cur_length) + S;		\
   if (dc->cur_length > dc->max_length)				\
@@ -262,16 +262,16 @@ encode_##T (DC *dc, T val)					\
       dc->cur_length = prev;					\
       return false;						\
     }								\
-								\
+                                                                \
   /* Clear bytes which are before the aligned offset.  */	\
   s = dc->cur_pos;						\
   dc->cur_pos = (char *) ALIGN_PTR_##S (dc->cur_pos);		\
   while (s < dc->cur_pos)					\
     *s++ = 0;							\
-								\
+                                                                \
   *(T *) dc->cur_pos = F (val);					\
   dc->cur_pos += S;						\
-								\
+                                                                \
   return true;							\
 }
 
@@ -321,7 +321,7 @@ decode_data_buffer (DC *dc, data_buffer *data)
 #else
   data->buf = dc->cur_pos;
 #endif
-  
+
   dc->cur_pos += data->len;
 
   return true;
@@ -346,11 +346,11 @@ encode_data_buffer (DC *dc, data_buffer *data)
 #ifdef __KERNEL__
   if (data->user) {
     if (copy_from_user(dc->cur_pos, data->buf.u_rbuf, data->len)) {
-	  dc->cur_pos = NULL;
-	  return false;
-	}
+          dc->cur_pos = NULL;
+          return false;
+        }
   } else {
-  	memcpy (dc->cur_pos, data->buf.k_buf, data->len);
+        memcpy (dc->cur_pos, data->buf.k_buf, data->len);
   }
 #else
   if (dc->cur_pos != data->buf)
@@ -460,9 +460,9 @@ decode_direction (DC *dc, direction *dir)
   if (r)
     {
       if (dir_val >= DIR_LAST_AND_UNUSED)
-	r = false;
+        r = false;
       else
-	*dir = (direction) dir_val;
+        *dir = (direction) dir_val;
     }
 
   return r;
@@ -484,9 +484,9 @@ decode_ftype (DC *dc, ftype *type)
   if (r)
     {
       if (type_val >= FT_LAST_AND_UNUSED)
-	r = false;
+        r = false;
       else
-	*type = (ftype) type_val;
+        *type = (ftype) type_val;
     }
 
   return r;
@@ -510,9 +510,9 @@ decode_connection_speed (DC *dc, connection_speed *speed)
   if (r)
     {
       if (speed_val >= CONNECTION_SPEED_LAST_AND_UNUSED)
-	r = false;
+        r = false;
       else
-	*speed = (connection_speed) speed_val;
+        *speed = (connection_speed) speed_val;
     }
 
   return r;
@@ -530,56 +530,56 @@ bool
 decode_zfs_fh (DC *dc, zfs_fh *fh)
 {
   return (decode_uint32_t (dc, &fh->sid)
-	  && decode_uint32_t (dc, &fh->vid)
-	  && decode_uint32_t (dc, &fh->dev)
-	  && decode_uint32_t (dc, &fh->ino)
-	  && decode_uint32_t (dc, &fh->gen));
+          && decode_uint32_t (dc, &fh->vid)
+          && decode_uint32_t (dc, &fh->dev)
+          && decode_uint32_t (dc, &fh->ino)
+          && decode_uint32_t (dc, &fh->gen));
 }
 
 bool
 encode_zfs_fh (DC *dc, zfs_fh *fh)
 {
   return (encode_uint32_t (dc, fh->sid)
-	  && encode_uint32_t (dc, fh->vid)
-	  && encode_uint32_t (dc, fh->dev)
-	  && encode_uint32_t (dc, fh->ino)
-	  && encode_uint32_t (dc, fh->gen));
+          && encode_uint32_t (dc, fh->vid)
+          && encode_uint32_t (dc, fh->dev)
+          && encode_uint32_t (dc, fh->ino)
+          && encode_uint32_t (dc, fh->gen));
 }
 
 bool
 decode_zfs_cap (DC *dc, zfs_cap *cap)
 {
   return (decode_zfs_fh (dc, &cap->fh)
-	  && decode_uint32_t (dc, &cap->flags)
-	  && decode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
+          && decode_uint32_t (dc, &cap->flags)
+          && decode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
 }
 
 bool
 encode_zfs_cap (DC *dc, zfs_cap *cap)
 {
   return (encode_zfs_fh (dc, &cap->fh)
-	  && encode_uint32_t (dc, cap->flags)
-	  && encode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
+          && encode_uint32_t (dc, cap->flags)
+          && encode_fixed_buffer (dc, &cap->verify, ZFS_VERIFY_LEN));
 }
 
 bool
 decode_fattr (DC *dc, fattr *attr)
 {
   return (decode_uint32_t (dc, &attr->dev)
-	  && decode_uint32_t (dc, &attr->ino)
-	  && decode_uint64_t (dc, &attr->version)
-	  && decode_ftype (dc, &attr->type)
-	  && decode_uint32_t (dc, &attr->mode)
-	  && decode_uint32_t (dc, &attr->nlink)
-	  && decode_uint32_t (dc, &attr->uid)
-	  && decode_uint32_t (dc, &attr->gid)
-	  && decode_uint32_t (dc, &attr->rdev)
-	  && decode_uint64_t (dc, &attr->size)
-	  && decode_uint64_t (dc, &attr->blocks)
-	  && decode_uint32_t (dc, &attr->blksize)
-	  && decode_zfs_time (dc, &attr->atime)
-	  && decode_zfs_time (dc, &attr->mtime)
-	  && decode_zfs_time (dc, &attr->ctime));
+          && decode_uint32_t (dc, &attr->ino)
+          && decode_uint64_t (dc, &attr->version)
+          && decode_ftype (dc, &attr->type)
+          && decode_uint32_t (dc, &attr->mode)
+          && decode_uint32_t (dc, &attr->nlink)
+          && decode_uint32_t (dc, &attr->uid)
+          && decode_uint32_t (dc, &attr->gid)
+          && decode_uint32_t (dc, &attr->rdev)
+          && decode_uint64_t (dc, &attr->size)
+          && decode_uint64_t (dc, &attr->blocks)
+          && decode_uint32_t (dc, &attr->blksize)
+          && decode_zfs_time (dc, &attr->atime)
+          && decode_zfs_time (dc, &attr->mtime)
+          && decode_zfs_time (dc, &attr->ctime));
 }
 
 #ifndef __KERNEL__
@@ -588,31 +588,31 @@ bool
 encode_fattr (DC *dc, fattr *attr)
 {
   return (encode_uint32_t (dc, attr->dev)
-	  && encode_uint32_t (dc, attr->ino)
-	  && encode_uint64_t (dc, attr->version)
-	  && encode_ftype (dc, attr->type)
-	  && encode_uint32_t (dc, attr->mode)
-	  && encode_uint32_t (dc, attr->nlink)
-	  && encode_uint32_t (dc, attr->uid)
-	  && encode_uint32_t (dc, attr->gid)
-	  && encode_uint32_t (dc, attr->rdev)
-	  && encode_uint64_t (dc, attr->size)
-	  && encode_uint64_t (dc, attr->blocks)
-	  && encode_uint32_t (dc, attr->blksize)
-	  && encode_zfs_time (dc, &attr->atime)
-	  && encode_zfs_time (dc, &attr->mtime)
-	  && encode_zfs_time (dc, &attr->ctime));
+          && encode_uint32_t (dc, attr->ino)
+          && encode_uint64_t (dc, attr->version)
+          && encode_ftype (dc, attr->type)
+          && encode_uint32_t (dc, attr->mode)
+          && encode_uint32_t (dc, attr->nlink)
+          && encode_uint32_t (dc, attr->uid)
+          && encode_uint32_t (dc, attr->gid)
+          && encode_uint32_t (dc, attr->rdev)
+          && encode_uint64_t (dc, attr->size)
+          && encode_uint64_t (dc, attr->blocks)
+          && encode_uint32_t (dc, attr->blksize)
+          && encode_zfs_time (dc, &attr->atime)
+          && encode_zfs_time (dc, &attr->mtime)
+          && encode_zfs_time (dc, &attr->ctime));
 }
 
 bool
 decode_sattr (DC *dc, sattr *attr)
 {
   return (decode_uint32_t (dc, &attr->mode)
-	  && decode_uint32_t (dc, &attr->uid)
-	  && decode_uint32_t (dc, &attr->gid)
-	  && decode_uint64_t (dc, &attr->size)
-	  && decode_zfs_time (dc, &attr->atime)
-	  && decode_zfs_time (dc, &attr->mtime));
+          && decode_uint32_t (dc, &attr->uid)
+          && decode_uint32_t (dc, &attr->gid)
+          && decode_uint64_t (dc, &attr->size)
+          && decode_zfs_time (dc, &attr->atime)
+          && decode_zfs_time (dc, &attr->mtime));
 }
 
 #endif
@@ -621,11 +621,11 @@ bool
 encode_sattr (DC *dc, sattr *attr)
 {
   return (encode_uint32_t (dc, attr->mode)
-	  && encode_uint32_t (dc, attr->uid)
-	  && encode_uint32_t (dc, attr->gid)
-	  && encode_uint64_t (dc, attr->size)
-	  && encode_zfs_time (dc, &attr->atime)
-	  && encode_zfs_time (dc, &attr->mtime));
+          && encode_uint32_t (dc, attr->uid)
+          && encode_uint32_t (dc, attr->gid)
+          && encode_uint64_t (dc, attr->size)
+          && encode_zfs_time (dc, &attr->atime)
+          && encode_zfs_time (dc, &attr->mtime));
 }
 
 bool
@@ -682,7 +682,7 @@ bool
 decode_setattr_args (DC *dc, setattr_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
-	  && decode_sattr (dc, &args->attr));
+          && decode_sattr (dc, &args->attr));
 }
 
 #endif
@@ -691,7 +691,7 @@ bool
 encode_setattr_args (DC *dc, setattr_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
-	  && encode_sattr (dc, &args->attr));
+          && encode_sattr (dc, &args->attr));
 }
 
 #ifndef __KERNEL__
@@ -700,7 +700,7 @@ bool
 decode_dir_op_args (DC *dc, dir_op_args *args)
 {
   return (decode_zfs_fh (dc, &args->dir)
-	  && decode_filename (dc, &args->name));
+          && decode_filename (dc, &args->name));
 }
 
 #endif
@@ -709,14 +709,14 @@ bool
 encode_dir_op_args (DC *dc, dir_op_args *args)
 {
   return (encode_zfs_fh (dc, &args->dir)
-	  && encode_filename (dc, &args->name));
+          && encode_filename (dc, &args->name));
 }
 
 bool
 decode_dir_op_res (DC *dc, dir_op_res *res)
 {
   return (decode_zfs_fh (dc, &res->file)
-	  && decode_fattr (dc, &res->attr));
+          && decode_fattr (dc, &res->attr));
 }
 
 #ifndef __KERNEL__
@@ -725,15 +725,15 @@ bool
 encode_dir_op_res (DC *dc, dir_op_res *res)
 {
   return (encode_zfs_fh (dc, &res->file)
-	  && encode_fattr (dc, &res->attr));
+          && encode_fattr (dc, &res->attr));
 }
 
 bool
 decode_create_args (DC *dc, create_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
-	  && decode_uint32_t (dc, &args->flags)
-	  && decode_sattr (dc, &args->attr));
+          && decode_uint32_t (dc, &args->flags)
+          && decode_sattr (dc, &args->attr));
 }
 
 #endif
@@ -742,16 +742,16 @@ bool
 encode_create_args (DC *dc, create_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
-	  && encode_uint32_t (dc, args->flags)
-	  && encode_sattr (dc, &args->attr));
+          && encode_uint32_t (dc, args->flags)
+          && encode_sattr (dc, &args->attr));
 }
 
 bool
 decode_create_res (DC *dc, create_res *res)
 {
   return (decode_zfs_cap (dc, &res->cap)
-	  && decode_zfs_fh (dc, &res->file)
-	  && decode_fattr (dc, &res->attr));
+          && decode_zfs_fh (dc, &res->file)
+          && decode_fattr (dc, &res->attr));
 }
 
 #ifndef __KERNEL__
@@ -760,15 +760,15 @@ bool
 encode_create_res (DC *dc, create_res *res)
 {
   return (encode_zfs_cap (dc, &res->cap)
-	  && encode_zfs_fh (dc, &res->file)
-	  && encode_fattr (dc, &res->attr));
+          && encode_zfs_fh (dc, &res->file)
+          && encode_fattr (dc, &res->attr));
 }
 
 bool
 decode_open_args (DC *dc, open_args *args)
 {
   return (decode_zfs_fh (dc, &args->file)
-	  && decode_uint32_t (dc, &args->flags));
+          && decode_uint32_t (dc, &args->flags));
 }
 
 #endif
@@ -777,7 +777,7 @@ bool
 encode_open_args (DC *dc, open_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
-	  && encode_uint32_t (dc, args->flags));
+          && encode_uint32_t (dc, args->flags));
 }
 
 #ifndef __KERNEL__
@@ -786,8 +786,8 @@ bool
 decode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (decode_zfs_cap (dc, &args->cap)
-	  && decode_int32_t (dc, &args->cookie)
-	  && decode_uint32_t (dc, &args->count));
+          && decode_int32_t (dc, &args->cookie)
+          && decode_uint32_t (dc, &args->count));
 }
 
 #endif
@@ -796,16 +796,16 @@ bool
 encode_read_dir_args (DC *dc, read_dir_args *args)
 {
   return (encode_zfs_cap (dc, &args->cap)
-	  && encode_int32_t (dc, args->cookie)
-	  && encode_uint32_t (dc, args->count));
+          && encode_int32_t (dc, args->cookie)
+          && encode_uint32_t (dc, args->count));
 }
 
 bool
 decode_dir_entry (DC *dc, dir_entry *entry)
 {
   return (decode_uint32_t (dc, &entry->ino)
-	  && decode_int32_t (dc, &entry->cookie)
-	  && decode_filename (dc, &entry->name));
+          && decode_int32_t (dc, &entry->cookie)
+          && decode_filename (dc, &entry->name));
 }
 
 #ifndef __KERNEL__
@@ -814,8 +814,8 @@ bool
 encode_dir_entry (DC *dc, dir_entry *entry)
 {
   return (encode_uint32_t (dc, entry->ino)
-	  && encode_int32_t (dc, entry->cookie)
-	  && encode_filename (dc, &entry->name));
+          && encode_int32_t (dc, entry->cookie)
+          && encode_filename (dc, &entry->name));
 }
 
 #endif
@@ -824,7 +824,7 @@ bool
 decode_dir_list (DC *dc, dir_list *list)
 {
   return (decode_uint32_t (dc, &list->n)
-	  && decode_char (dc, &list->eof));
+          && decode_char (dc, &list->eof));
 }
 
 #ifndef __KERNEL__
@@ -833,14 +833,14 @@ bool
 encode_dir_list (DC *dc, dir_list *list)
 {
   return (encode_uint32_t (dc, list->n)
-	  && encode_char (dc, list->eof));
+          && encode_char (dc, list->eof));
 }
 
 bool
 decode_mkdir_args (DC *dc, mkdir_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
-	  && decode_sattr (dc, &args->attr));
+          && decode_sattr (dc, &args->attr));
 }
 
 #endif
@@ -849,7 +849,7 @@ bool
 encode_mkdir_args (DC *dc, mkdir_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
-	  && encode_sattr (dc, &args->attr));
+          && encode_sattr (dc, &args->attr));
 }
 
 #ifndef __KERNEL__
@@ -858,7 +858,7 @@ bool
 decode_rename_args (DC *dc, rename_args *args)
 {
   return (decode_dir_op_args (dc, &args->from)
-	  && decode_dir_op_args (dc, &args->to));
+          && decode_dir_op_args (dc, &args->to));
 }
 
 #endif
@@ -867,7 +867,7 @@ bool
 encode_rename_args (DC *dc, rename_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
-	  && encode_dir_op_args (dc, &args->to));
+          && encode_dir_op_args (dc, &args->to));
 }
 
 #ifndef __KERNEL__
@@ -876,7 +876,7 @@ bool
 decode_link_args (DC *dc, link_args *args)
 {
   return (decode_zfs_fh (dc, &args->from)
-	  && decode_dir_op_args (dc, &args->to));
+          && decode_dir_op_args (dc, &args->to));
 }
 
 #endif
@@ -885,7 +885,7 @@ bool
 encode_link_args (DC *dc, link_args *args)
 {
   return (encode_zfs_fh (dc, &args->from)
-	  && encode_dir_op_args (dc, &args->to));
+          && encode_dir_op_args (dc, &args->to));
 }
 
 #ifndef __KERNEL__
@@ -894,8 +894,8 @@ bool
 decode_read_args (DC *dc, read_args *args)
 {
   return (decode_zfs_cap (dc, &args->cap)
-	  && decode_uint64_t (dc, &args->offset)
-	  && decode_uint32_t (dc, &args->count));
+          && decode_uint64_t (dc, &args->offset)
+          && decode_uint32_t (dc, &args->count));
 }
 
 #endif
@@ -904,15 +904,15 @@ bool
 encode_read_args (DC *dc, read_args *args)
 {
   return (encode_zfs_cap (dc, &args->cap)
-	  && encode_uint64_t (dc, args->offset)
-	  && encode_uint32_t (dc, args->count));
+          && encode_uint64_t (dc, args->offset)
+          && encode_uint32_t (dc, args->count));
 }
 
 bool
 decode_read_res (DC *dc, read_res *res)
 {
   return (decode_data_buffer (dc, &res->data)
-	  && decode_uint64_t (dc, &res->version));
+          && decode_uint64_t (dc, &res->version));
 }
 
 #ifndef __KERNEL__
@@ -921,15 +921,15 @@ bool
 encode_read_res (DC *dc, read_res *res)
 {
   return (encode_data_buffer (dc, &res->data)
-	  && encode_uint64_t (dc, res->version));
+          && encode_uint64_t (dc, res->version));
 }
 
 bool
 decode_write_args (DC *dc, write_args *args)
 {
   return (decode_zfs_cap (dc, &args->cap)
-	  && decode_uint64_t (dc, &args->offset)
-	  && decode_data_buffer (dc, &args->data));
+          && decode_uint64_t (dc, &args->offset)
+          && decode_data_buffer (dc, &args->data));
 }
 
 #endif
@@ -938,15 +938,15 @@ bool
 encode_write_args (DC *dc, write_args *args)
 {
   return (encode_zfs_cap (dc, &args->cap)
-	  && encode_uint64_t (dc, args->offset)
-	  && encode_data_buffer (dc, &args->data));
+          && encode_uint64_t (dc, args->offset)
+          && encode_data_buffer (dc, &args->data));
 }
 
 bool
 decode_write_res (DC *dc, write_res *res)
 {
   return (decode_uint32_t (dc, &res->written)
-	  && decode_uint64_t (dc, &res->version));
+          && decode_uint64_t (dc, &res->version));
 }
 
 #ifndef __KERNEL__
@@ -955,7 +955,7 @@ bool
 encode_write_res (DC *dc, write_res *res)
 {
   return (encode_uint32_t (dc, res->written)
-	  && encode_uint64_t (dc, res->version));
+          && encode_uint64_t (dc, res->version));
 }
 
 #endif
@@ -978,8 +978,8 @@ bool
 decode_symlink_args (DC *dc, symlink_args *args)
 {
   return (decode_dir_op_args (dc, &args->from)
-	  && decode_zfs_path (dc, &args->to)
-	  && decode_sattr (dc, &args->attr));
+          && decode_zfs_path (dc, &args->to)
+          && decode_sattr (dc, &args->attr));
 }
 
 #endif
@@ -988,8 +988,8 @@ bool
 encode_symlink_args (DC *dc, symlink_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
-	  && encode_zfs_path (dc, &args->to)
-	  && encode_sattr (dc, &args->attr));
+          && encode_zfs_path (dc, &args->to)
+          && encode_sattr (dc, &args->attr));
 }
 
 #ifndef __KERNEL__
@@ -998,9 +998,9 @@ bool
 decode_mknod_args (DC *dc, mknod_args *args)
 {
   return (decode_dir_op_args (dc, &args->where)
-	  && decode_sattr (dc, &args->attr)
-	  && decode_ftype (dc, &args->type)
-	  && decode_uint32_t (dc, &args->rdev));
+          && decode_sattr (dc, &args->attr)
+          && decode_ftype (dc, &args->type)
+          && decode_uint32_t (dc, &args->rdev));
 }
 
 #endif
@@ -1009,9 +1009,9 @@ bool
 encode_mknod_args (DC *dc, mknod_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
-	  && encode_sattr (dc, &args->attr)
-	  && encode_ftype (dc, args->type)
-	  && encode_uint32_t (dc, args->rdev));
+          && encode_sattr (dc, &args->attr)
+          && encode_ftype (dc, args->type)
+          && encode_uint32_t (dc, args->rdev));
 }
 
 #ifndef __KERNEL__
@@ -1171,62 +1171,62 @@ bool
 decode_reintegrate_args (DC *dc, reintegrate_args *args)
 {
   return (decode_zfs_fh (dc, &args->fh)
-	  && decode_char (dc, &args->status));
+          && decode_char (dc, &args->status));
 }
 
 bool
 encode_reintegrate_args (DC *dc, reintegrate_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
-	  && encode_char (dc, args->status));
+          && encode_char (dc, args->status));
 }
 
 bool
 decode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
 {
   return (decode_zfs_fh (dc, &args->fh)
-	  && decode_zfs_fh (dc, &args->dir)
-	  && decode_filename (dc, &args->name));
+          && decode_zfs_fh (dc, &args->dir)
+          && decode_filename (dc, &args->name));
 }
 
 bool
 encode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
-	  && encode_zfs_fh (dc, &args->dir)
-	  && encode_filename (dc, &args->name));
+          && encode_zfs_fh (dc, &args->dir)
+          && encode_filename (dc, &args->name));
 }
 
 bool
 decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 {
   return (decode_zfs_fh (dc, &args->fh)
-	  && decode_zfs_fh (dc, &args->dir)
-	  && decode_filename (dc, &args->name)
-	  && decode_char (dc, &args->destroy_p));
+          && decode_zfs_fh (dc, &args->dir)
+          && decode_filename (dc, &args->name)
+          && decode_char (dc, &args->destroy_p));
 }
 
 bool
 encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
-	  && encode_zfs_fh (dc, &args->dir)
-	  && encode_filename (dc, &args->name)
-	  && encode_char (dc, args->destroy_p));
+          && encode_zfs_fh (dc, &args->dir)
+          && encode_filename (dc, &args->name)
+          && encode_char (dc, args->destroy_p));
 }
 
 bool
 decode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args)
 {
   return (decode_zfs_fh (dc, &args->fh)
-	  && decode_uint64_t (dc, &args->version_inc));
+          && decode_uint64_t (dc, &args->version_inc));
 }
 
 bool
 encode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
-	  && encode_uint64_t (dc, args->version_inc));
+          && encode_uint64_t (dc, args->version_inc));
 }
 
 #endif

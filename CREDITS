@@ -1,5 +1,7 @@
 The initial version of zlomekFS has been written in
-2004 by Josef Zlomek as his master thesis project.
+2004 by Josef Zlomek as his master thesis project,
+with Martin Zlomek working on the kernel module
+as his operating systems course project.
 
 Support for update and reintegration over slow
 connections has been added in 2005 by Vlastimil

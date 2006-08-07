@@ -51,30 +51,30 @@
 #define ZFS_INVALID_REQUEST	-2	/*!< Request was not well encoded. */
 #define ZFS_UNKNOWN_FUNCTION	-3	/*!< Unknown function in request.  */
 #define ZFS_INVALID_AUTH_LEVEL	-4	/*!< Remote node has not authenticated
-					     enough yet.  */
+                                             enough yet.  */
 #define ZFS_INVALID_DIRECTION	-5	/*!< Different direction to direction
-					     expected by function.  */
+                                             expected by function.  */
 #define ZFS_STALE		-20	/*!< zfs_fh could not be found.  */
 #define ZFS_BUSY		-21	/*!< file handle is being reintegrated */
 #define ZFS_CHANGED		-22	/*!< The file has changed while doing
-					     operation.  */
+                                             operation.  */
 #define ZFS_SLOW_BUSY	-23 /*!< Operation terminated because slow connection is busy */
 #define ZFS_METADATA_ERROR	-50	/*!< Error when accessing file containing
-					     metadata.  */
+                                             metadata.  */
 #define ZFS_UPDATE_FAILED	-51	/*!< Error while updating a file.  */
 #define ZFS_LAST_DECODED_ERROR	-99	/*!< Code of last error which is being
-					     decoded from DC */
+                                             decoded from DC */
 
 #define ZFS_REPLY_TOO_LONG	-100	/*!< Reply was too long.  */
 #define ZFS_INVALID_REPLY	-101	/*!< Reply was not well encoded. */
 #define ZFS_ERROR_HAS_DC_REPLY	-150	/*!< Code of last error which has
-					     a DC_REPLY.  */
+                                             a DC_REPLY.  */
 
 #define ZFS_EXITING		-151	/*!< zfsd is exiting */
 #define ZFS_COULD_NOT_CONNECT	-152	/*!< Could not connect to node.  */
 #define ZFS_COULD_NOT_AUTH	-153	/*!< Could not authenticate with node.  */
 #define ZFS_CONNECTION_CLOSED	-154	/*!< Connection closed while waiting for
-					     reply.  */
+                                             reply.  */
 #define ZFS_REQUEST_TIMEOUT	-155	/*!< Request has timed out.  */
 
 typedef enum direction_def
@@ -436,7 +436,7 @@ enum function_number_def
 #define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   ZFS_PROC_##NAME = NUMBER,
-#include "zfs_prot.def"
+#include "zfs-prot.def"
   ZFS_PROC_LAST_AND_UNUSED
 };
 #undef DEFINE_ZFS_PROC
@@ -454,7 +454,7 @@ struct node_def;
 #define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args);
-#include "zfs_prot.def"
+#include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
@@ -463,19 +463,19 @@ struct node_def;
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
-					    DC *dc, void *data,		\
-					    bool map_id);
-#include "zfs_prot.def"
+                                            DC *dc, void *data,		\
+                                            bool map_id);
+#include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_SERVER
 
 #define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern int32_t zfs_proc_##FUNCTION##_client (struct thread_def *t,	\
-					       ARGS *args,		\
-					       struct node_def *nod,	\
-					       int *fd);
-#include "zfs_prot.def"
+                                               ARGS *args,		\
+                                               struct node_def *nod,	\
+                                               int *fd);
+#include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
@@ -483,8 +483,8 @@ struct node_def;
 #define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
-						 ARGS *args, int fd);
-#include "zfs_prot.def"
+                                                 ARGS *args, int fd);
+#include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_CLIENT
@@ -492,8 +492,8 @@ struct node_def;
 #define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern int32_t zfs_proc_##FUNCTION##_kernel (struct thread_def *t,	\
-					       ARGS *args);
-#include "zfs_prot.def"
+                                               ARGS *args);
+#include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_KERNEL
 

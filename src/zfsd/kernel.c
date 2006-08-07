@@ -43,7 +43,7 @@
 #include "util.h"
 #include "memory.h"
 #include "thread.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "config.h"
 
 /*! Pool of kernel threads (threads communicating with kernel).  */
@@ -77,13 +77,13 @@ init_fd_data (void)
 
   fd_data_a[kernel_fd].waiting4reply_pool
     = create_alloc_pool ("waiting4reply_data",
-			 sizeof (waiting4reply_data), 30,
-			 &fd_data_a[kernel_fd].mutex);
+                         sizeof (waiting4reply_data), 30,
+                         &fd_data_a[kernel_fd].mutex);
   fd_data_a[kernel_fd].waiting4reply_heap
     = fibheap_new (30, &fd_data_a[kernel_fd].mutex);
   fd_data_a[kernel_fd].waiting4reply
     = htab_create (30, waiting4reply_hash, waiting4reply_eq,
-		   NULL, &fd_data_a[kernel_fd].mutex);
+                   NULL, &fd_data_a[kernel_fd].mutex);
   zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
 }
 
@@ -120,7 +120,7 @@ send_reply (thread *t)
   message (2, stderr, "sending reply\n");
   zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
   if (!full_write (kernel_fd, t->u.kernel.dc->buffer,
-		   t->u.kernel.dc->cur_length))
+                   t->u.kernel.dc->cur_length))
     {
     }
   zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
@@ -181,82 +181,82 @@ kernel_worker (void *data)
 
 #ifdef ENABLE_CHECKING
       if (get_thread_state (t) == THREAD_DEAD)
-	abort ();
+        abort ();
 #endif
 
       /* We were requested to die.  */
       if (get_thread_state (t) == THREAD_DYING)
-	break;
+        break;
 
       if (!decode_request_id (t->u.kernel.dc, &request_id))
-	{
-	  /* TODO: log too short packet.  */
-	  goto out;
-	}
+        {
+          /* TODO: log too short packet.  */
+          goto out;
+        }
 
       if (t->u.kernel.dc->max_length > DC_SIZE)
-	{
-	  if (t->u.kernel.dir == DIR_REQUEST)
-	    send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
-	  goto out;
-	}
+        {
+          if (t->u.kernel.dir == DIR_REQUEST)
+            send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
+          goto out;
+        }
 
       if (!decode_function (t->u.kernel.dc, &fn))
-	{
-	  if (t->u.kernel.dir == DIR_REQUEST)
-	    send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
-	  goto out;
-	}
+        {
+          if (t->u.kernel.dir == DIR_REQUEST)
+            send_error_reply (t, request_id, ZFS_INVALID_REQUEST);
+          goto out;
+        }
 
       /* ZFS is mounted if kernel wants something from zfsd.  */
       mounted = true;
 
       message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
-	{
+        {
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-	  case ZFS_PROC_##NAME:						\
-	    if (t->u.kernel.dir != CALL_MODE)				\
-	      {								\
-		if (t->u.kernel.dir == DIR_REQUEST)			\
-		  send_error_reply (t, request_id,			\
-				    ZFS_INVALID_DIRECTION);		\
-		goto out;						\
-	      }								\
-	    if (!decode_##ARGS (t->u.kernel.dc,				\
-				&t->u.kernel.args.FUNCTION)		\
-		|| !finish_decoding (t->u.kernel.dc))			\
-	      {								\
-		if (CALL_MODE == DIR_REQUEST)				\
-		  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
-		goto out;						\
-	      }								\
-	    call_statistics[CALL_FROM_KERNEL][NUMBER]++;		\
-	    if (CALL_MODE == DIR_REQUEST)				\
-	      {								\
-		start_encoding (t->u.kernel.dc);			\
-		encode_direction (t->u.kernel.dc, DIR_REPLY);		\
-		encode_request_id (t->u.kernel.dc, request_id);		\
-	      }								\
-	    zfs_proc_##FUNCTION##_server (&t->u.kernel.args.FUNCTION,	\
-					  t->u.kernel.dc,		\
-					  &t->u.kernel, true);		\
-	    if (CALL_MODE == DIR_REQUEST)				\
-	      {								\
-		finish_encoding (t->u.kernel.dc);			\
-		send_reply (t);						\
-	      }								\
-	    break;
-#include "zfs_prot.def"
+          case ZFS_PROC_##NAME:						\
+            if (t->u.kernel.dir != CALL_MODE)				\
+              {								\
+                if (t->u.kernel.dir == DIR_REQUEST)			\
+                  send_error_reply (t, request_id,			\
+                                    ZFS_INVALID_DIRECTION);		\
+                goto out;						\
+              }								\
+            if (!decode_##ARGS (t->u.kernel.dc,				\
+                                &t->u.kernel.args.FUNCTION)		\
+                || !finish_decoding (t->u.kernel.dc))			\
+              {								\
+                if (CALL_MODE == DIR_REQUEST)				\
+                  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
+                goto out;						\
+              }								\
+            call_statistics[CALL_FROM_KERNEL][NUMBER]++;		\
+            if (CALL_MODE == DIR_REQUEST)				\
+              {								\
+                start_encoding (t->u.kernel.dc);			\
+                encode_direction (t->u.kernel.dc, DIR_REPLY);		\
+                encode_request_id (t->u.kernel.dc, request_id);		\
+              }								\
+            zfs_proc_##FUNCTION##_server (&t->u.kernel.args.FUNCTION,	\
+                                          t->u.kernel.dc,		\
+                                          &t->u.kernel, true);		\
+            if (CALL_MODE == DIR_REQUEST)				\
+              {								\
+                finish_encoding (t->u.kernel.dc);			\
+                send_reply (t);						\
+              }								\
+            break;
+#include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_SERVER
 
-	  default:
-	    if (t->u.kernel.dir == DIR_REQUEST)
-	      send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
-	    goto out;
-	}
+          default:
+            if (t->u.kernel.dir == DIR_REQUEST)
+              send_error_reply (t, request_id, ZFS_UNKNOWN_FUNCTION);
+            goto out;
+        }
 
 out:
       zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
@@ -267,19 +267,19 @@ out:
       /* Put self to the idle queue if not requested to die meanwhile.  */
       zfsd_mutex_lock (&kernel_pool.mutex);
       if (get_thread_state (t) == THREAD_BUSY)
-	{
-	  queue_put (&kernel_pool.idle, &t->index);
-	  set_thread_state (t, THREAD_IDLE);
-	}
+        {
+          queue_put (&kernel_pool.idle, &t->index);
+          set_thread_state (t, THREAD_IDLE);
+        }
       else
-	{
+        {
 #ifdef ENABLE_CHECKING
-	  if (get_thread_state (t) != THREAD_DYING)
-	    abort ();
+          if (get_thread_state (t) != THREAD_DYING)
+            abort ();
 #endif
-	  zfsd_mutex_unlock (&kernel_pool.mutex);
-	  break;
-	}
+          zfsd_mutex_unlock (&kernel_pool.mutex);
+          break;
+        }
       zfsd_mutex_unlock (&kernel_pool.mutex);
     }
 
@@ -317,80 +317,80 @@ kernel_dispatch (fd_data_t *fd_data)
   switch (dir)
     {
       case DIR_REPLY:
-	/* Dispatch reply.  */
+        /* Dispatch reply.  */
 
-	if (1)
-	  {
-	    uint32_t request_id;
-	    void **slot;
-	    waiting4reply_data *data;
-	    thread *t;
+        if (1)
+          {
+            uint32_t request_id;
+            void **slot;
+            waiting4reply_data *data;
+            thread *t;
 
-	    if (!decode_request_id (dc, &request_id))
-	      {
-		/* TODO: log too short packet.  */
-		message (1, stderr, "Packet from kernel too short.\n");
-		return false;
-	      }
-	    message (2, stderr, "REPLY: ID=%u\n", request_id);
+            if (!decode_request_id (dc, &request_id))
+              {
+                /* TODO: log too short packet.  */
+                message (1, stderr, "Packet from kernel too short.\n");
+                return false;
+              }
+            message (2, stderr, "REPLY: ID=%u\n", request_id);
 
-	    slot = htab_find_slot_with_hash (fd_data->waiting4reply,
-					     &request_id,
-					     WAITING4REPLY_HASH (request_id),
-					     NO_INSERT);
-	    if (!slot)
-	      {
-		/* TODO: log request was not found.  */
-		message (1, stderr, "Request ID %d has not been found.\n",
-			 request_id);
-		return false;
-	      }
+            slot = htab_find_slot_with_hash (fd_data->waiting4reply,
+                                             &request_id,
+                                             WAITING4REPLY_HASH (request_id),
+                                             NO_INSERT);
+            if (!slot)
+              {
+                /* TODO: log request was not found.  */
+                message (1, stderr, "Request ID %d has not been found.\n",
+                         request_id);
+                return false;
+              }
 
-	    data = *(waiting4reply_data **) slot;
-	    t = data->t;
-	    t->dc_reply = dc;
-	    htab_clear_slot (fd_data->waiting4reply, slot);
-	    fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
-	    pool_free (fd_data->waiting4reply_pool, data);
+            data = *(waiting4reply_data **) slot;
+            t = data->t;
+            t->dc_reply = dc;
+            htab_clear_slot (fd_data->waiting4reply, slot);
+            fibheap_delete_node (fd_data->waiting4reply_heap, data->node);
+            pool_free (fd_data->waiting4reply_pool, data);
 
-	    /* Let the thread run again.  */
-	    semaphore_up (&t->sem, 1);
-	  }
-	break;
+            /* Let the thread run again.  */
+            semaphore_up (&t->sem, 1);
+          }
+        break;
 
       case DIR_REQUEST:
       case DIR_ONEWAY:
-	/* Dispatch request.  */
-	fd_data->busy++;
+        /* Dispatch request.  */
+        fd_data->busy++;
 
-	zfsd_mutex_lock (&kernel_pool.mutex);
+        zfsd_mutex_lock (&kernel_pool.mutex);
 
-	/* Regulate the number of threads.  */
-	if (kernel_pool.idle.nelem == 0)
-	  thread_pool_regulate (&kernel_pool);
+        /* Regulate the number of threads.  */
+        if (kernel_pool.idle.nelem == 0)
+          thread_pool_regulate (&kernel_pool);
 
-	/* Select an idle thread and forward the request to it.  */
-	queue_get (&kernel_pool.idle, &index);
+        /* Select an idle thread and forward the request to it.  */
+        queue_get (&kernel_pool.idle, &index);
 #ifdef ENABLE_CHECKING
-	if (get_thread_state (&kernel_pool.threads[index].t) == THREAD_BUSY)
-	  abort ();
+        if (get_thread_state (&kernel_pool.threads[index].t) == THREAD_BUSY)
+          abort ();
 #endif
-	set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
-	kernel_pool.threads[index].t.from_sid = this_node->id;
-	kernel_pool.threads[index].t.u.kernel.dc = dc;
-	kernel_pool.threads[index].t.u.kernel.dir = dir;
-	kernel_pool.threads[index].t.u.kernel.fd_data = fd_data;
+        set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
+        kernel_pool.threads[index].t.from_sid = this_node->id;
+        kernel_pool.threads[index].t.u.kernel.dc = dc;
+        kernel_pool.threads[index].t.u.kernel.dir = dir;
+        kernel_pool.threads[index].t.u.kernel.fd_data = fd_data;
 
-	/* Let the thread run.  */
-	semaphore_up (&kernel_pool.threads[index].t.sem, 1);
+        /* Let the thread run.  */
+        semaphore_up (&kernel_pool.threads[index].t.sem, 1);
 
-	zfsd_mutex_unlock (&kernel_pool.mutex);
-	break;
+        zfsd_mutex_unlock (&kernel_pool.mutex);
+        break;
 
       default:
-	/* This case never happens, it is caught in the beginning of this
-	   function. It is here to make compiler happy.  */
-	abort ();
+        /* This case never happens, it is caught in the beginning of this
+           function. It is here to make compiler happy.  */
+        abort ();
     }
 
   return true;
@@ -412,10 +412,10 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
     {
       zfsd_mutex_lock (&fd_data->mutex);
       if (fd_data->ndc == 0)
-	{
-	  fd_data->dc[0] = dc_create ();
-	  fd_data->ndc++;
-	}
+        {
+          fd_data->dc[0] = dc_create ();
+          fd_data->ndc++;
+        }
       zfsd_mutex_unlock (&fd_data->mutex);
 
       zfsd_mutex_lock (&kernel_pool.main_in_syscall);
@@ -423,45 +423,45 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       zfsd_mutex_unlock (&kernel_pool.main_in_syscall);
 
       if (r < 0 && errno != EINTR)
-	{
-	  message (-1, stderr, "%s, kernel_main exiting\n", strerror (errno));
-	  break;
-	}
+        {
+          message (-1, stderr, "%s, kernel_main exiting\n", strerror (errno));
+          break;
+        }
 
       if (thread_pool_terminate_p (&kernel_pool))
-	{
-	  message (2, stderr, "Terminating\n");
-	  break;
-	}
+        {
+          message (2, stderr, "Terminating\n");
+          break;
+        }
 
       if (r <= 0)
-	continue;
+        continue;
 
       start_decoding (fd_data->dc[0]);
 
       if (fd_data->dc[0]->max_length != (unsigned int) r)
-	{
-	  message (1, stderr, "Invalid packet from kernel.\n");
+        {
+          message (1, stderr, "Invalid packet from kernel.\n");
 
-	  /* If the packet length is at least 12 we will decode the request_id.
-	     So if the packet length is smaller than DC_SIZE
-	     we can send a ZFS_INVALID_REQUEST error reply
-	     or return a ZFS_INVALID_REPLY error to caller thread.
-	     If the packet is larger than DC_SIZE we will
-	     return a ZFS_REPLY_TOO_LONG error.  */
-	  if (fd_data->dc[0]->max_length >= 12
-	      && fd_data->dc[0]->max_length <= DC_SIZE)
-	    fd_data->dc[0]->max_length = 12;
-	}
+          /* If the packet length is at least 12 we will decode the request_id.
+             So if the packet length is smaller than DC_SIZE
+             we can send a ZFS_INVALID_REQUEST error reply
+             or return a ZFS_INVALID_REPLY error to caller thread.
+             If the packet is larger than DC_SIZE we will
+             return a ZFS_REPLY_TOO_LONG error.  */
+          if (fd_data->dc[0]->max_length >= 12
+              && fd_data->dc[0]->max_length <= DC_SIZE)
+            fd_data->dc[0]->max_length = 12;
+        }
 
       /* Dispatch the packet.  */
       zfsd_mutex_lock (&fd_data->mutex);
       if (kernel_dispatch (fd_data))
-	{
-	  fd_data->ndc--;
-	  if (fd_data->ndc > 0)
-	    fd_data->dc[0] = fd_data->dc[fd_data->ndc];
-	}
+        {
+          fd_data->ndc--;
+          if (fd_data->ndc > 0)
+            fd_data->dc[0] = fd_data->dc[fd_data->ndc];
+        }
       zfsd_mutex_unlock (&fd_data->mutex);
     }
 
@@ -479,14 +479,14 @@ kernel_start (void)
   if (kernel_fd < 0)
     {
       message (-1, stderr, "%s: open(): %s\n", kernel_file_name.str,
-	       strerror (errno));
+               strerror (errno));
       return false;
     }
 
   init_fd_data ();
 
   if (!thread_pool_create (&kernel_pool, &kernel_thread_limit, kernel_main,
-			   kernel_worker, kernel_worker_init))
+                           kernel_worker, kernel_worker_init))
     {
       close_kernel_fd ();
       return false;

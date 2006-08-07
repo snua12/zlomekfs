@@ -47,7 +47,7 @@
 #include "file.h"
 #include "node.h"
 #include "volume.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 #include "metadata.h"
 #include "user-group.h"
 #include "update.h"
@@ -87,7 +87,7 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
     }
 
   thread_terminate_blocking_syscall (&cleanup_dentry_thread,
-				     &cleanup_dentry_thread_in_syscall);
+                                     &cleanup_dentry_thread_in_syscall);
 
   if (config_reader_data.thread_id)
     {
@@ -112,32 +112,32 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
       ucontext_t *context = (ucontext_t *) data;
 
       switch (signum)
-	{
-	  case SIGBUS:
-	  case SIGSEGV:
+        {
+          case SIGBUS:
+          case SIGSEGV:
 #if defined(__i386__)
-	    internal_error ("%s at %p when accessing %p", strsignal (signum),
-			    context->uc_mcontext.gregs[REG_EIP],
-			    info->si_addr);
+            internal_error ("%s at %p when accessing %p", strsignal (signum),
+                            context->uc_mcontext.gregs[REG_EIP],
+                            info->si_addr);
 #elif defined(__x86_64__)
-	    internal_error ("%s at %p when accessing %p", strsignal (signum),
-			    context->uc_mcontext.gregs[REG_RIP],
-			    info->si_addr);
+            internal_error ("%s at %p when accessing %p", strsignal (signum),
+                            context->uc_mcontext.gregs[REG_RIP],
+                            info->si_addr);
 #else
-	    internal_error ("%s when accessing %p", strsignal (signum),
-			    info->si_addr);
+            internal_error ("%s when accessing %p", strsignal (signum),
+                            info->si_addr);
 #endif
-	    break;
+            break;
 
-	  case SIGILL:
-	  case SIGFPE:
-	    internal_error ("%s at %p", strsignal (signum), info->si_addr);
-	    break;
+          case SIGILL:
+          case SIGFPE:
+            internal_error ("%s at %p", strsignal (signum), info->si_addr);
+            break;
 
-	  default:
-	    internal_error ("%s", strsignal (signum));
-	    break;
-	}
+          default:
+            internal_error ("%s", strsignal (signum));
+            break;
+        }
     }
 }
 
@@ -248,21 +248,21 @@ usage (void)
 {
   printf ("Usage: zfsd [OPTION]...\n\n");
   printf ("  -f, --config=FILE            "
-	  "Specifies the name of the configuration file.\n");
+          "Specifies the name of the configuration file.\n");
   printf ("  -n, --node=ID:NAME:HOSTNAME  "
-	  "Fetch global configuration from specified node.\n");
+          "Fetch global configuration from specified node.\n");
   printf ("  -v, --verbose                "
-	  "Verbose; display verbose debugging messages.\n");
+          "Verbose; display verbose debugging messages.\n");
   printf ("                               "
-	  "Multiple -v increases verbosity.\n");
+          "Multiple -v increases verbosity.\n");
   printf ("  -q, --quiet                  "
-	  "Quiet; display less messages.\n");
+          "Quiet; display less messages.\n");
   printf ("                               "
-	  "Multiple -q increases quietness.\n");
+          "Multiple -q increases quietness.\n");
   printf ("      --help                   "
-	  "Display this help and exit.\n");
+          "Display this help and exit.\n");
   printf ("      --version                "
-	  "Output version information and exit.\n");
+          "Output version information and exit.\n");
 }
 
 /*! Display the version, exit the program with exit code EXITCODE.  */
@@ -306,40 +306,40 @@ process_arguments (int argc, char **argv)
   while ((c = getopt_long (argc, argv, "f:n:qv", long_options, NULL)) != -1)
     {
       switch (c)
-	{
-	  case 'f':
-	    free (config_file);
-	    config_file = xstrdup (optarg);
-	    break;
+        {
+          case 'f':
+            free (config_file);
+            config_file = xstrdup (optarg);
+            break;
 
-	  case 'n':
-	    if (config_node)
-	      free (config_node);
-	    config_node = xstrdup (optarg);
-	    break;
+          case 'n':
+            if (config_node)
+              free (config_node);
+            config_node = xstrdup (optarg);
+            break;
 
-	  case 'v':
-	    verbose++;
-	    break;
+          case 'v':
+            verbose++;
+            break;
 
-	  case 'q':
-	    verbose--;
-	    break;
+          case 'q':
+            verbose--;
+            break;
 
-	  case OPTION_HELP:
-	    usage ();
-	    exit (EXIT_SUCCESS);
-	    break;
+          case OPTION_HELP:
+            usage ();
+            exit (EXIT_SUCCESS);
+            break;
 
-	  case OPTION_VERSION:
-	    version (EXIT_SUCCESS);
-	    break;
+          case OPTION_VERSION:
+            version (EXIT_SUCCESS);
+            break;
 
-	  default:
-	    usage ();
-	    exit (EXIT_FAILURE);
-	    break;
-	}
+          default:
+            usage ();
+            exit (EXIT_FAILURE);
+            break;
+        }
     }
 
   if (optind < argc)
@@ -512,10 +512,10 @@ main (int argc, char **argv)
       test_zfs ();
 #else
       if (!read_cluster_config ())
-	{
-	  terminate ();
-	  ret = EXIT_FAILURE;
-	}
+        {
+          terminate ();
+          ret = EXIT_FAILURE;
+        }
 #endif
     }
 

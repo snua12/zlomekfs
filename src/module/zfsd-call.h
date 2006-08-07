@@ -27,7 +27,7 @@
 #include <linux/compiler.h>
 
 #include "zfs.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 
 
 extern int send_request(struct request *req);

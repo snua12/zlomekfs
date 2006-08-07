@@ -30,8 +30,8 @@
 #include <asm/semaphore.h>
 
 #include "zfs.h"
-#include "zfs_prot.h"
-#include "zfsd_call.h"
+#include "zfs-prot.h"
+#include "zfsd-call.h"
 
 
 MODULE_LICENSE("GPL");
@@ -46,174 +46,174 @@ static kmem_cache_t *zfs_inode_cachep;
 
 static struct inode *zfs_alloc_inode(struct super_block *sb)
 {
-	struct zfs_inode_info *ei;
+        struct zfs_inode_info *ei;
 
-	ei = kmem_cache_alloc(zfs_inode_cachep, SLAB_KERNEL);
-	if (!ei)
-		return NULL;
+        ei = kmem_cache_alloc(zfs_inode_cachep, SLAB_KERNEL);
+        if (!ei)
+                return NULL;
 
-	TRACE("%p", &ei->vfs_inode);
+        TRACE("%p", &ei->vfs_inode);
 
-	return &ei->vfs_inode;
+        return &ei->vfs_inode;
 }
 
 static void zfs_destroy_inode(struct inode *inode)
 {
-	TRACE("%p", inode);
+        TRACE("%p", inode);
 
-	kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
+        kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
 }
 
 static void zfs_init_once(void *foo, kmem_cache_t *cachep, unsigned long flags)
 {
-	struct zfs_inode_info *ei = (struct zfs_inode_info *)foo;
+        struct zfs_inode_info *ei = (struct zfs_inode_info *)foo;
 
-	if ((flags & (SLAB_CTOR_VERIFY | SLAB_CTOR_CONSTRUCTOR)) == SLAB_CTOR_CONSTRUCTOR)
-		inode_init_once(&ei->vfs_inode);
+        if ((flags & (SLAB_CTOR_VERIFY | SLAB_CTOR_CONSTRUCTOR)) == SLAB_CTOR_CONSTRUCTOR)
+                inode_init_once(&ei->vfs_inode);
 }
 
 static int zfs_init_inodecache(void)
 {
-	zfs_inode_cachep = kmem_cache_create("zfs_inode_cache",
-					     sizeof(struct zfs_inode_info),
-					     0,
-					     SLAB_HWCACHE_ALIGN | SLAB_RECLAIM_ACCOUNT,
-					     zfs_init_once,
-					     NULL);
-	if (!zfs_inode_cachep)
-		return -ENOMEM;
+        zfs_inode_cachep = kmem_cache_create("zfs_inode_cache",
+                                             sizeof(struct zfs_inode_info),
+                                             0,
+                                             SLAB_HWCACHE_ALIGN | SLAB_RECLAIM_ACCOUNT,
+                                             zfs_init_once,
+                                             NULL);
+        if (!zfs_inode_cachep)
+                return -ENOMEM;
 
-	return 0;
+        return 0;
 }
 
 static void zfs_destroy_inodecache(void)
 {
-	if (kmem_cache_destroy(zfs_inode_cachep))
-		INFO("zfs_inode_cache: not all structures were freed");
+        if (kmem_cache_destroy(zfs_inode_cachep))
+                INFO("zfs_inode_cache: not all structures were freed");
 }
 
 static void zfs_put_super(struct super_block *sb)
 {
-	INFO("UMOUNT");
+        INFO("UMOUNT");
 
-	zfs_sb = NULL;
+        zfs_sb = NULL;
 }
 
 static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
 {
-	buf->f_type = ZFS_SUPER_MAGIC;
-	buf->f_bsize = ZFS_MAXDATA;
-	buf->f_namelen = ZFS_MAXNAMELEN;
+        buf->f_type = ZFS_SUPER_MAGIC;
+        buf->f_bsize = ZFS_MAXDATA;
+        buf->f_namelen = ZFS_MAXNAMELEN;
 
-	return 0;
+        return 0;
 }
 
 static struct super_operations zfs_super_operations = {
-	.alloc_inode    = zfs_alloc_inode,
-	.destroy_inode  = zfs_destroy_inode,
-	.put_super	= zfs_put_super,
-	.statfs		= zfs_statfs,
+        .alloc_inode    = zfs_alloc_inode,
+        .destroy_inode  = zfs_destroy_inode,
+        .put_super	= zfs_put_super,
+        .statfs		= zfs_statfs,
 };
 
 extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
 
 static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 {
-	zfs_fh root_fh;
-	fattr root_attr;
-	struct inode *root_inode;
-	int error;
+        zfs_fh root_fh;
+        fattr root_attr;
+        struct inode *root_inode;
+        int error;
 
-	INFO("MOUNT");
+        INFO("MOUNT");
 
-	if (!channel.connected) {
-		ERROR("zfsd has not opened communication device!");
-		return -EIO;
-	}
+        if (!channel.connected) {
+                ERROR("zfsd has not opened communication device!");
+                return -EIO;
+        }
 
-	sb->s_op = &zfs_super_operations;
-	sb->s_magic = ZFS_SUPER_MAGIC;
+        sb->s_op = &zfs_super_operations;
+        sb->s_magic = ZFS_SUPER_MAGIC;
 
-	/* Get root file handle. */
-	error = zfsd_root(&root_fh);
-	if (error)
-		return error;
+        /* Get root file handle. */
+        error = zfsd_root(&root_fh);
+        if (error)
+                return error;
 
-	/* Get root inode attributes. */
-	error = zfsd_getattr(&root_attr, &root_fh);
-	if (error)
-		return error;
+        /* Get root inode attributes. */
+        error = zfsd_getattr(&root_attr, &root_fh);
+        if (error)
+                return error;
 
-	/* Make root inode. */
-	root_inode = zfs_iget(sb, &root_fh, &root_attr);
-	if (!root_inode)
-		return -ENOMEM;
+        /* Make root inode. */
+        root_inode = zfs_iget(sb, &root_fh, &root_attr);
+        if (!root_inode)
+                return -ENOMEM;
 
-	/* Create root dentry. */
-	sb->s_root = d_alloc_root(root_inode);
-	if (!sb->s_root)
-		return -ENOMEM;
+        /* Create root dentry. */
+        sb->s_root = d_alloc_root(root_inode);
+        if (!sb->s_root)
+                return -ENOMEM;
 
-	zfs_sb = sb;
+        zfs_sb = sb;
 
-	return 0;
+        return 0;
 }
 
 static struct super_block *zfs_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
 {
-	return get_sb_single(fs_type, flags, data, zfs_fill_super);
+        return get_sb_single(fs_type, flags, data, zfs_fill_super);
 }
 
 static struct file_system_type zfs_type = {
-	.owner		= THIS_MODULE,
-	.name		= "zfs",
-	.get_sb		= zfs_get_sb,
-	.kill_sb	= kill_anon_super,
-	.fs_flags	= 0,
+        .owner		= THIS_MODULE,
+        .name		= "zfs",
+        .get_sb		= zfs_get_sb,
+        .kill_sb	= kill_anon_super,
+        .fs_flags	= 0,
 };
 
 static int __init zfs_init(void)
 {
-	int error;
+        int error;
 
-	INFO("INIT");
+        INFO("INIT");
 
-	/* Register communication device. */
-	error = register_chrdev(ZFS_CHARDEV_MAJOR, "zfs", &zfs_chardev_file_operations);
-	if (error) {
-		ERROR("unable to register chardev major %d!", ZFS_CHARDEV_MAJOR);
-		return error;
-	}
+        /* Register communication device. */
+        error = register_chrdev(ZFS_CHARDEV_MAJOR, "zfs", &zfs_chardev_file_operations);
+        if (error) {
+                ERROR("unable to register chardev major %d!", ZFS_CHARDEV_MAJOR);
+                return error;
+        }
 
-	/* Initialize inode cache. */
-	error = zfs_init_inodecache();
-	if (error) {
-		unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
-		ERROR("unable to create zfs inode cache!");
-		return error;
-	}
+        /* Initialize inode cache. */
+        error = zfs_init_inodecache();
+        if (error) {
+                unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
+                ERROR("unable to create zfs inode cache!");
+                return error;
+        }
 
-	/* Register ZFS file system. */
-	error = register_filesystem(&zfs_type);
-	if (error) {
-		zfs_destroy_inodecache();
-		unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
-		ERROR("unable to register filesystem!");
-		return error;
-	}
+        /* Register ZFS file system. */
+        error = register_filesystem(&zfs_type);
+        if (error) {
+                zfs_destroy_inodecache();
+                unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
+                ERROR("unable to register filesystem!");
+                return error;
+        }
 
-	init_MUTEX(&channel.lock);
+        init_MUTEX(&channel.lock);
 
-	return 0;
+        return 0;
 }
 
 static void __exit zfs_exit(void)
 {
-	INFO("EXIT");
+        INFO("EXIT");
 
-	unregister_filesystem(&zfs_type);
-	zfs_destroy_inodecache();
-	unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
+        unregister_filesystem(&zfs_type);
+        zfs_destroy_inodecache();
+        unregister_chrdev(ZFS_CHARDEV_MAJOR, "zfs");
 }
 
 module_init(zfs_init);

@@ -1,76 +1,133 @@
 # Makefile.
 # Copyright (C) 2003, 2004 Josef Zlomek
+# Copyright (C) other contributors as outlined in CREDITS
 #
-# This file is part of ZFS.
+# This file is part of zlomekFS.
 #
-# ZFS is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
-# any later version.
+# zlomekFS is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
+# by the Free Software Foundation; either version 2 of the License,
+# or (at your option) any later version.
 #
-# ZFS is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-# License for more details.
+# zlomekFS is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-# 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-# or download it from http://www.gnu.org/licenses/gpl.html
+# You should have received a copy of the GNU General Public License
+# along with zlomekFS; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-prefix = /usr
+PREFIX ?= /usr
 
-INSTALL = /usr/bin/install -c
+INSTALL = install
+
 CC = gcc
-LD = $(CC)
-DEFS =
-CFLAGS = -g -O2 -W -Wall -std=gnu99
-LDFLAGS =
-LIBS = -lpthread
-COMPILE = $(CC) $(DEFS) $(CFLAGS)
-LINK = $(LD) $(CFLAGS) $(LDFLAGS) -o $@
+CC_OPTS =
+LD = gcc
+LD_OPTS = -lpthread
+
+ifeq ($(debug), 1)
+  CC_OPTS += -g -DDEBUG -O0
+  LD_OPTS += -g
+else
+  CC_OPTS += -O3
+endif
+
 
 .SUFFIXES: .c .o
+.PHONY: all install uninstall clean
 
-.PHONY: all install uninstall clean distclean
+BB_ALL = zfsd dump-metadata dump-intervals
 
-BINARIES = zfsd dump_intervals dump_metadata
-ZFSD =	alloc-pool.o cap.o config.o constant.o crc32.o \
-	data-coding.o dir.o fh.o fibheap.o file.o hardlink-list.o hashfile.o \
-	hashtab.o interval.o journal.o kernel.o log.o md5.o memory.o \
-	metadata.o network.o node.o pthread.o queue.o random.o semaphore.o \
-	splay-tree.o test.o thread.o update.o \
-	user-group.o util.o varray.o volume.o zfsd.o zfs_prot.o
-DUMP_INTERVALS = alloc-pool.o dump_intervals.o interval.o log.o \
-		 memory.o splay-tree.o util.o varray.o
-DUMP_METADATA = alloc-pool.o constant.o crc32.o dump_metadata.o \
-		fibheap.o hardlink-list.o hashfile.o hashtab.o \
-		interval.o journal.o log.o memory.o metadata.o node.o \
-		pthread.o splay-tree.o user-group.o util.o varray.o
+all: $(BB_ALL)
 
-.c.o:
-	$(COMPILE) -c $<
 
-all: $(BINARIES)
+# Executables
+
+OO_ZFSD = zfsd.o \
+	  alloc-pool.o \
+	  cap.o config.o constant.o crc32.o \
+	  data-coding.o dir.o \
+	  fh.o fibheap.o file.o \
+	  hardlink-list.o hashfile.o hashtab.o \
+	  interval.o \
+	  journal.o \
+	  kernel.o \
+	  log.o \
+	  md5.o memory.o metadata.o \
+	  network.o node.o \
+	  pthread.o \
+	  queue.o \
+	  random.o \
+	  semaphore.o splay-tree.o \
+	  thread.o \
+	  update.o user-group.o util.o \
+	  varray.o volume.o\
+	  zfs-prot.o
+
+zfsd: $(OO_ZFSD)
+	$(LD) $(LD_OPTS) -o $@ $^
+
+OO_DUMP_METADATA = dump-metadata.o \
+		   alloc-pool.o \
+		   constant.o crc32.o \
+		   fibheap.o \
+		   hardlink-list.o hashfile.o hashtab.o \
+		   interval.o \
+		   journal.o \
+		   log.o \
+		   memory.o metadata.o \
+		   node.o \
+		   pthread.o \
+		   splay-tree.o \
+		   user-group.o \
+		   util.o \
+		   varray.o
+
+dump-metadata: $(OO_DUMP_METADATA)
+	$(LD) $(LD_OPTS) -o $@ $^
+
+OO_DUMP_INTERVALS = dump-intervals.o \
+		    alloc-pool.o \
+		    interval.o \
+		    log.o \
+		    memory.o \
+		    splay-tree.o \
+		    util.o \
+		    varray.o
+
+dump-intervals: $(OO_DUMP_INTERVALS)
+	$(LD) $(LD_OPTS) -o $@ $^
+
+
+# Dependencies
+
+OO_ALL = $(sort $(OO_ZFSD) $(OO_DUMP_METADATA) $(OO_DUMP_INTERVALS))
+
+include $(OO_ALL:.o=.dep)
+
+%.dep: %.c
+	set -e ; $(CC) -MM $(CC_OPTS) $< | sed 's/\($*\)\.o *:/\1.o $@:/g' > $@
+
+# Objects
+
+%.o:            ../%.cc
+	$(CC) $(CC_OPTS) -c -o $@ $<
+
+%.o:            %.cc
+	$(CC) $(CC_OPTS) -c -o $@ $<
+
+# Other
 
 clean:
-	-rm -f $(BINARIES) *.o core *.core
-distclean: clean
-	-rm -f Makefile.dep
+	-rm -f $(BB_ALL) $(OO_ALL) $(OO_ALL:.o=.dep)
 
 install:
-	$(INSTALL) -m 755 zfsd $(prefix)/sbin
-	$(INSTALL) -m 755 dump_intervals dump_metadata $(prefix)/bin
+	$(INSTALL) -m 755 zfsd $(PREFIX)/sbin
+	$(INSTALL) -m 755 dump-intervals dump-metadata $(PREFIX)/bin
 
 uninstall:
-	-rm -f $(prefix)/sbin/zfsd
-	-rm -f $(prefix)/bin/dump_intervals $(prefix)/bin/dump_metadata
+	-rm -f $(PREFIX)/sbin/zfsd
+	-rm -f $(PREFIX)/bin/dump-intervals $(PREFIX)/bin/dump-metadata
 
-zfsd: $(ZFSD)
-	$(LINK) $(ZFSD) $(LIBS)
-dump_intervals: $(DUMP_INTERVALS)
-	$(LINK) $(DUMP_INTERVALS) $(LIBS)
-dump_metadata: $(DUMP_METADATA)
-	$(LINK) $(DUMP_METADATA) $(LIBS)
-
-include ./Makefile.dep

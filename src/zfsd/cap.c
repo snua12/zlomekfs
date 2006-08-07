@@ -41,7 +41,7 @@
 #include "random.h"
 #include "volume.h"
 #include "util.h"
-#include "zfs_prot.h"
+#include "zfs-prot.h"
 
 /*! Allocation pool for capabilities.  */
 static alloc_pool cap_pool;
@@ -65,9 +65,9 @@ internal_cap_compute_verify (internal_cap cap)
 
   MD5Init (&ctx);
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.fh,
-	     sizeof (cap->local_cap.fh));
+             sizeof (cap->local_cap.fh));
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.flags,
-	     sizeof (cap->local_cap.flags));
+             sizeof (cap->local_cap.flags));
   MD5Update (&ctx, random, sizeof (random));
   MD5Final ((unsigned char *) cap->local_cap.verify, &ctx);
 
@@ -107,8 +107,8 @@ verify_capability (zfs_cap *cap, internal_cap icap)
 
 int32_t
 internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
-		   internal_dentry *dentryp, virtual_dir *vdp,
-		   zfs_cap *tmp_cap)
+                   internal_dentry *dentryp, virtual_dir *vdp,
+                   zfs_cap *tmp_cap)
 {
   int32_t r;
   bool wait_for_locked;
@@ -129,8 +129,8 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
 #endif
 
   message (4, stderr, "FH %p LOCK %u, by %lu at %s:%d\n",
-	   (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
-	   __FILE__, __LINE__);
+           (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
+           __FILE__, __LINE__);
 
   *tmp_cap = (*icapp)->local_cap;
   id = (*dentryp)->fh->id2assign++;
@@ -139,22 +139,22 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     {
       zfsd_mutex_unlock (&(*volp)->mutex);
       if (vdp && *vdp)
-	zfsd_mutex_unlock (&(*vdp)->mutex);
+        zfsd_mutex_unlock (&(*vdp)->mutex);
 
       while (!(*dentryp)->deleted
-	     && ((*dentryp)->fh->id2run != id
-		 || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE))
-	zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
+             && ((*dentryp)->fh->id2run != id
+                 || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE))
+        zfsd_cond_wait (&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
       zfsd_mutex_unlock (&(*dentryp)->fh->mutex);
 
       r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, true);
       if (r != ZFS_OK)
-	RETURN_INT (r);
+        RETURN_INT (r);
     }
 
   message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n",
-	   (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
-	   __FILE__, __LINE__);
+           (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
+           __FILE__, __LINE__);
 
   (*dentryp)->fh->level = level;
   (*dentryp)->fh->users++;
@@ -176,12 +176,12 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
       release_dentry (*dentryp);
       zfsd_mutex_unlock (&(*volp)->mutex);
       if (vdp && *vdp)
-	zfsd_mutex_unlock (&(*vdp)->mutex);
+        zfsd_mutex_unlock (&(*vdp)->mutex);
 
       r = find_capability_nolock (tmp_cap, icapp, volp, dentryp, vdp, false);
 #ifdef ENABLE_CHECKING
       if (r != ZFS_OK)
-	abort ();
+        abort ();
 #endif
     }
 
@@ -206,15 +206,15 @@ internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
     {
       vd->users--;
       if (vd->users == 0)
-	{
-	  vd->busy = false;
-	  if (vd->deleted > 0)
-	    virtual_dir_destroy (vd);
-	  else
-	    zfsd_mutex_unlock (&vd->mutex);
-	}
+        {
+          vd->busy = false;
+          if (vd->deleted > 0)
+            virtual_dir_destroy (vd);
+          else
+            zfsd_mutex_unlock (&vd->mutex);
+        }
       else
-	zfsd_mutex_unlock (&vd->mutex);
+        zfsd_mutex_unlock (&vd->mutex);
     }
 
   internal_dentry_unlock (vol, dentry);
@@ -311,7 +311,7 @@ internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
       CHECK_MUTEX_LOCKED (&vd->mutex);
 #ifdef ENABLE_CHECKING
       if (vd->cap != cap)
-	abort ();
+        abort ();
 #endif
 
       vd->cap = NULL;
@@ -323,30 +323,30 @@ internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
       CHECK_MUTEX_LOCKED (&fh->mutex);
 #ifdef ENABLE_CHECKING
       if (fh->cap == NULL)
-	abort ();
+        abort ();
 #endif
 
       if (cap == fh->cap)
-	{
-	  icap = cap;
-	  fh->cap = cap->next;
-	}
+        {
+          icap = cap;
+          fh->cap = cap->next;
+        }
       else
-	{
-	  for (prev = fh->cap, icap = prev->next; icap; icap = icap->next)
-	    {
-	      if (icap == cap)
-		{
-		  prev->next = cap->next;
-		  break;
-		}
-	      prev = icap;
-	    }
-	}
+        {
+          for (prev = fh->cap, icap = prev->next; icap; icap = icap->next)
+            {
+              if (icap == cap)
+                {
+                  prev->next = cap->next;
+                  break;
+                }
+              prev = icap;
+            }
+        }
 
 #ifdef ENABLE_CHECKING
       if (icap == NULL)
-	abort ();
+        abort ();
 #endif
 
     }
@@ -376,15 +376,15 @@ destroy_unused_capabilities (internal_fh fh)
       next = cap->next;
 
       if (cap->busy == 0)
-	{
-	  zfsd_mutex_lock (&cap_mutex);
-	  pool_free (cap_pool, cap);
-	  zfsd_mutex_unlock (&cap_mutex);
+        {
+          zfsd_mutex_lock (&cap_mutex);
+          pool_free (cap_pool, cap);
+          zfsd_mutex_unlock (&cap_mutex);
 
-	  *prevp = next;
-	}
+          *prevp = next;
+        }
       else
-	prevp = &cap->next;
+        prevp = &cap->next;
     }
 
   if (fh->cap == NULL)
@@ -397,8 +397,8 @@ destroy_unused_capabilities (internal_fh fh)
 
 int32_t
 get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-		internal_dentry *dentry, virtual_dir *vd,
-		bool unlock_fh_mutex, bool delete_volume_p)
+                internal_dentry *dentry, virtual_dir *vd,
+                bool unlock_fh_mutex, bool delete_volume_p)
 {
   internal_cap icap;
   int32_t r;
@@ -421,11 +421,11 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
     {
 #ifdef ENABLE_CHECKING
       if (VIRTUAL_FH_P (cap->fh))
-	abort ();
+        abort ();
 #endif
       r = refresh_fh (&cap->fh);
       if (r != ZFS_OK)
-	RETURN_INT (r);
+        RETURN_INT (r);
       r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
     }
   if (r != ZFS_OK)
@@ -439,26 +439,26 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
       int32_t r2;
 
       if (!unlock_fh_mutex)
-	zfsd_mutex_unlock (&fh_mutex);
+        zfsd_mutex_unlock (&fh_mutex);
 
       r2 = get_volume_root_dentry (*vol, dentry, unlock_fh_mutex);
       if (r2 != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&(*vd)->mutex);
-	  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
-	  if (r != ZFS_OK)
-	    RETURN_INT (r);
+        {
+          zfsd_mutex_unlock (&(*vd)->mutex);
+          r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+          if (r != ZFS_OK)
+            RETURN_INT (r);
 
-	  if (unlock_fh_mutex)
-	    zfsd_mutex_unlock (&fh_mutex);
-	}
+          if (unlock_fh_mutex)
+            zfsd_mutex_unlock (&fh_mutex);
+        }
     }
 
   if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
       release_dentry (*dentry);
       if (*vd)
-	zfsd_mutex_unlock (&(*vd)->mutex);
+        zfsd_mutex_unlock (&(*vd)->mutex);
       zfsd_mutex_unlock (&(*vol)->mutex);
       RETURN_INT (EISDIR);
     }
@@ -466,23 +466,23 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
   if (vd && *vd)
     {
       if ((*vd)->cap)
-	{
-	  icap = (*vd)->cap;
-	  icap->busy++;
-	}
+        {
+          icap = (*vd)->cap;
+          icap->busy++;
+        }
       else
-	icap = internal_cap_create_vd (*vd, cap->flags);
+        icap = internal_cap_create_vd (*vd, cap->flags);
     }
   else
     {
       for (icap = (*dentry)->fh->cap; icap; icap = icap->next)
-	if (icap->local_cap.flags == cap->flags)
-	  break;
+        if (icap->local_cap.flags == cap->flags)
+          break;
 
       if (icap)
-	icap->busy++;
+        icap->busy++;
       else
-	icap = internal_cap_create_fh ((*dentry)->fh, cap->flags);
+        icap = internal_cap_create_fh ((*dentry)->fh, cap->flags);
     }
 
   *icapp = icap;
@@ -495,7 +495,7 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 
 internal_cap
 get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry,
-				 uint32_t flags)
+                                 uint32_t flags)
 {
   internal_cap icap;
 
@@ -525,8 +525,8 @@ get_capability_no_zfs_fh_lookup (zfs_cap *cap, internal_dentry dentry,
 
 int32_t
 find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
-		 internal_dentry *dentry, virtual_dir *vd,
-		 bool delete_volume_p)
+                 internal_dentry *dentry, virtual_dir *vd,
+                 bool delete_volume_p)
 {
   int32_t r;
 
@@ -548,8 +548,8 @@ find_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
 
 int32_t
 find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
-			volume *vol, internal_dentry *dentry, virtual_dir *vd,
-			bool delete_volume_p)
+                        volume *vol, internal_dentry *dentry, virtual_dir *vd,
+                        bool delete_volume_p)
 {
   internal_cap icap;
   int32_t r;
@@ -561,11 +561,11 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     {
 #ifdef ENABLE_CHECKING
       if (VIRTUAL_FH_P (cap->fh))
-	abort ();
+        abort ();
 #endif
       r = refresh_fh (&cap->fh);
       if (r != ZFS_OK)
-	RETURN_INT (r);
+        RETURN_INT (r);
       r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
     }
   if (r != ZFS_OK)
@@ -578,12 +578,12 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
       zfsd_mutex_unlock (&fh_mutex);
       r2 = get_volume_root_dentry (*vol, dentry, false);
       if (r2 != ZFS_OK)
-	{
-	  zfsd_mutex_unlock (&(*vd)->mutex);
-	  r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
-	  if (r != ZFS_OK)
-	    RETURN_INT (r);
-	}
+        {
+          zfsd_mutex_unlock (&(*vd)->mutex);
+          r = zfs_fh_lookup_nolock (&cap->fh, vol, dentry, vd, delete_volume_p);
+          if (r != ZFS_OK)
+            RETURN_INT (r);
+        }
     }
 
   if (vd && *vd)
@@ -593,8 +593,8 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
   else
     {
       for (icap = (*dentry)->fh->cap; icap; icap = icap->next)
-	if (icap->local_cap.flags == cap->flags)
-	  break;
+        if (icap->local_cap.flags == cap->flags)
+          break;
     }
 
   if (!icap)
@@ -641,7 +641,7 @@ put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
   if (cap->busy == 0)
     {
       if (!fh || fh->users == 0)
-	internal_cap_destroy (cap, fh, vd);
+        internal_cap_destroy (cap, fh, vd);
     }
 
   RETURN_INT (ZFS_OK);
@@ -654,7 +654,7 @@ initialize_cap_c (void)
 {
   zfsd_mutex_init (&cap_mutex);
   cap_pool = create_alloc_pool ("cap_pool", sizeof (struct internal_cap_def),
-				250, &cap_mutex);
+                                250, &cap_mutex);
 }
 
 /*! Destroy data structures in CAP.C.  */
@@ -666,7 +666,7 @@ cleanup_cap_c (void)
 #ifdef ENABLE_CHECKING
   if (cap_pool->elts_free < cap_pool->elts_allocated)
     message (2, stderr, "Memory leak (%u elements) in cap_pool.\n",
-	     cap_pool->elts_allocated - cap_pool->elts_free);
+             cap_pool->elts_allocated - cap_pool->elts_free);
 #endif
   free_alloc_pool (cap_pool);
   zfsd_mutex_unlock (&cap_mutex);
