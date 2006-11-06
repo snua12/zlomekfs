@@ -82,7 +82,7 @@ pthread_mutex_t pending_slow_reqs_mutex;
 
 /*! \brief Condition variable for #pending_slow_reqs_count
  *
- * Protected by #pendinf_slow_reqs_mutex
+ * Protected by #pending_slow_reqs_mutex
  */
 pthread_cond_t pending_slow_reqs_cond;
 
