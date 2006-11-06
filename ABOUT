@@ -1,0 +1,6 @@
+A distributed filesystem for Linux inspired by CODA. Creates a local cache of
+remote files that can be used to operate without network connection. Changes
+done without network connection are integrated back to remote files when
+network connection becomes available. Major difference from CODA is a
+lightweight architecture that works on top of any filesystem rather
+than requiring dedicated filesystem partition on the server.
