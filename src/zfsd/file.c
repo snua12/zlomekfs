@@ -28,6 +28,7 @@
 #include <linux/unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -51,8 +52,12 @@
 #include "md5.h"
 #include "update.h"
 
-/*! int getdents(unsigned int fd, struct dirent *dirp, unsigned int count); */
-_syscall3(int, getdents, uint, fd, struct dirent *, dirp, uint, count)
+/* FIXME: use getdents64 (), or just plain readdir ()? */
+static int
+getdents (int fd, struct dirent *dirp, unsigned count)
+{
+  return syscall (SYS_getdents, fd, dirp, count);
+}
 
 /*! The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
