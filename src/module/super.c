@@ -99,7 +99,7 @@ static void zfs_put_super(struct super_block *sb)
         zfs_sb = NULL;
 }
 
-static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
+static int zfs_statfs(struct dentry *dentry, struct kstatfs *buf)
 {
         buf->f_type = ZFS_SUPER_MAGIC;
         buf->f_bsize = ZFS_MAXDATA;
@@ -159,9 +159,10 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
         return 0;
 }
 
-static struct super_block *zfs_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
+static int zfs_get_sb(struct file_system_type *fs_type, int flags,
+		      const char *dev_name, void *data, struct vfsmount *mnt)
 {
-        return get_sb_single(fs_type, flags, data, zfs_fill_super);
+	return get_sb_single(fs_type, flags, data, zfs_fill_super, mnt);
 }
 
 static struct file_system_type zfs_type = {
