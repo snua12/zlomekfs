@@ -1,5 +1,71 @@
 /*! \file
     \brief Data coding functions (encoding and decoding requests and replies).
+
+    Each request or reply is represented as "packet", a sequence of primitive
+    values.
+
+    All integer values use the little-endian two's complement representation,
+    and their offset within the "packet" is aligned to the size of the integer
+    (a 32-bit integer is aligned to 4 bytes, for example); the padding, if any,
+    is filled with zeroes.
+
+    "Data buffers" (read or write command data) are represented as data length
+    (encoded as \c uint32_t) immediately followed by data of the specified
+    length.
+
+    Strings are represented as string length (encoded as \c uint32_t) followed
+    by the string data and by a zero byte.  The zero byte is not counted in the
+    string length.
+
+    Other commonly used data types:
+    - #zfs_fh:
+      - <tt>uint32_t sid, vid</tt>
+      - <tt>uint32_t dev, ino</tt>
+      - <tt>uint32_t gen</tt>
+    - #zfs_cap:
+      - <tt>zfs_fh fh</tt>
+      - <tt>uint32_t flags</tt>: #O_RDONLY or #O_WRONLY or #O_RDWR
+      - <tt>uint8_t[#ZFS_VERIFY_LEN] verify</tt>
+    - #fattr:
+      - <tt>uint32_t dev, ino</tt>
+      - <tt>uint64_t version</tt>
+      - <tt>uint8_t ftype</tt>
+      - <tt>uint32_t mode</tt>
+      - <tt>uint32_t nlink</tt>
+      - <tt>uint32_t uid, gid</tt>
+      - <tt>uint32_t rdev</tt>
+      - <tt>uint64_t size</tt>
+      - <tt>uint64_t blocks</tt>
+      - <tt>uint32_t blksize</tt>
+      - <tt>zfs_time atime, mtime, ctime</tt>
+    - #sattr:
+      - <tt>uint32_t mode</tt>
+      - <tt>uint32_t uid, gid</tt>
+      - <tt>uint64_t size</tt>
+      - <tt>zfs_time atime, mtime</tt>
+
+    Each "packet" starts with the following header:
+
+    - <tt>uint32_t length</tt>: the total packet length, including the header.
+      The maximum allowed packet length is #DC_SIZE.
+    - <tt>uint8_t direction</tt>: #direction_def
+    - <tt>uint32_t request_id</tt>: ID of this request, or of the request this
+      is a reply to if \p direction is #DIR_REPLY
+
+    In #DIR_REQUEST and #DIR_ONEWAY packets the header is followed by:
+    - <tt>uint32_t function</tt>: request function number
+    - function-specific parameters
+
+    In #DIR_REPLY packets the header is followed by:
+    - <tt>int32_t status</tt>
+    - function-specific return values.  These are omitted if \c status is not
+      #ZFS_OK.
+
+    Descriptions of the specific functions are contained in zfsd/zfs-prot.def.
+
+    Possible protocol changes:
+    - time, inode numbers should be 64-bit; what about device numbers?
+    - O_* in capability flags should not depend on platform ABI
     */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
