@@ -24,7 +24,7 @@
       - <tt>uint32_t gen</tt>
     - #zfs_cap:
       - <tt>zfs_fh fh</tt>
-      - <tt>uint32_t flags</tt>: #O_RDONLY or #O_WRONLY or #O_RDWR
+      - <tt>uint32_t flags</tt>: \c O_RDONLY or \c O_WRONLY or \c O_RDWR
       - <tt>uint8_t[#ZFS_VERIFY_LEN] verify</tt>
     - #fattr:
       - <tt>uint32_t dev, ino</tt>
