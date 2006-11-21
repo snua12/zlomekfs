@@ -842,7 +842,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
                   bool journal_p, bool move_to_shadow_p)
 {
   metadata meta;
-  string filename;
+  string file_name;
   struct stat st;
   volume vol;
   zfs_fh fh;
@@ -856,15 +856,15 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
 
   vol = volume_lookup (vid);
 
-  file_name_from_path (&filename, path);
-  filename.str[-1] = 0;
+  file_name_from_path (&file_name, path);
+  file_name.str[-1] = 0;
   if (lstat (path->str[0] ? path->str : "/", &st) != 0)
     {
       if (vol)
         zfsd_mutex_unlock (&vol->mutex);
       RETURN_INT (errno == ENOENT ? ZFS_OK : errno);
     }
-  filename.str[-1] = '/';
+  file_name.str[-1] = '/';
 
   fh.sid = this_node->id;
   fh.vid = vid;
@@ -887,7 +887,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
       zfsd_mutex_unlock (&vol->mutex);
     }
 
-  RETURN_INT (recursive_unlink_start (&meta, path, &filename, &fh,
+  RETURN_INT (recursive_unlink_start (&meta, path, &file_name, &fh,
                                       destroy_dentry, journal_p, inc_version_p,
                                       move_to_shadow_p));
 }

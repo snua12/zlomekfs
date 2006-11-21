@@ -103,13 +103,13 @@ static void **
 htab_find_empty_slot (htab_t htab, hash_t hash)
 {
   unsigned int size;
-  unsigned int index;
+  unsigned int idx;
   unsigned int step;
   void **slot;
 
   size = htab->size;
-  index = hash % size;
-  slot = htab->table + index;
+  idx = hash % size;
+  slot = htab->table + idx;
   if (*slot == EMPTY_ENTRY)
     return slot;
 #ifdef ENABLE_CHECKING
@@ -120,11 +120,11 @@ htab_find_empty_slot (htab_t htab, hash_t hash)
   step = 1 + hash % (size - 2);
   for (;;)
     {
-      index += step;
-      if (index >= size)
-	index -= size;
+      idx += step;
+      if (idx >= size)
+	idx -= size;
 
-      slot = htab->table + index;
+      slot = htab->table + idx;
       if (*slot == EMPTY_ENTRY)
 	return slot;
 #ifdef ENABLE_CHECKING
@@ -270,16 +270,16 @@ void *
 htab_find_with_hash (htab_t htab, const void *elem, hash_t hash)
 {
   unsigned int size;
-  unsigned int index;
+  unsigned int idx;
   unsigned int step;
   void *entry;
 
   CHECK_MUTEX_LOCKED (htab->mutex);
 
   size = htab->size;
-  index = hash % size;
+  idx = hash % size;
 
-  entry = htab->table[index];
+  entry = htab->table[idx];
   if (entry == EMPTY_ENTRY
       || (entry != DELETED_ENTRY && (*htab->eq_f) (entry, elem)))
     return entry;
@@ -287,11 +287,11 @@ htab_find_with_hash (htab_t htab, const void *elem, hash_t hash)
   step = 1 + hash % (size - 2);
   for (;;)
     {
-      index += step;
-      if (index >= size)
-	index -= size;
+      idx += step;
+      if (idx >= size)
+	idx -= size;
 
-      entry = htab->table[index];
+      entry = htab->table[idx];
       if (entry == EMPTY_ENTRY
 	  || (entry != DELETED_ENTRY && (*htab->eq_f) (entry, elem)))
 	return entry;
@@ -315,7 +315,7 @@ htab_find_slot_with_hash (htab_t htab, const void *elem, hash_t hash,
 			  enum insert insert)
 {
   unsigned int size;
-  unsigned int index;
+  unsigned int idx;
   unsigned int step;
   void **first_deleted_slot;
 
@@ -325,32 +325,32 @@ htab_find_slot_with_hash (htab_t htab, const void *elem, hash_t hash,
     htab_expand (htab);
 
   size = htab->size;
-  index = hash % size;
+  idx = hash % size;
   first_deleted_slot = NULL;
 
-  if (htab->table[index] == EMPTY_ENTRY)
+  if (htab->table[idx] == EMPTY_ENTRY)
     goto empty_entry;
-  if (htab->table[index] == DELETED_ENTRY)
-    first_deleted_slot = &htab->table[index];
-  else if ((*htab->eq_f) (htab->table[index], elem))
-    return &htab->table[index];
+  if (htab->table[idx] == DELETED_ENTRY)
+    first_deleted_slot = &htab->table[idx];
+  else if ((*htab->eq_f) (htab->table[idx], elem))
+    return &htab->table[idx];
 
   step = 1 + hash % (size - 2);
   for (;;)
     {
-      index += step;
-      if (index >= size)
-	index -= size;
+      idx += step;
+      if (idx >= size)
+	idx -= size;
 
-      if (htab->table[index] == EMPTY_ENTRY)
+      if (htab->table[idx] == EMPTY_ENTRY)
 	goto empty_entry;
-      if (htab->table[index] == DELETED_ENTRY)
+      if (htab->table[idx] == DELETED_ENTRY)
 	{
 	  if (!first_deleted_slot)
-	    first_deleted_slot = &htab->table[index];
+	    first_deleted_slot = &htab->table[idx];
 	}
-      else if ((*htab->eq_f) (htab->table[index], elem))
-	return &htab->table[index];
+      else if ((*htab->eq_f) (htab->table[idx], elem))
+	return &htab->table[idx];
     }
 
 empty_entry:
@@ -365,5 +365,5 @@ empty_entry:
     }
 
   htab->n_elements++;
-  return &htab->table[index];
+  return &htab->table[idx];
 }

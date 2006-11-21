@@ -23,7 +23,9 @@ PREFIX ?= /usr
 INSTALL = install
 
 CC = gcc
-CC_OPTS =
+CC_OPTS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef
+#	-Wwrite-strings
 LD = gcc
 LD_OPTS = -lpthread
 

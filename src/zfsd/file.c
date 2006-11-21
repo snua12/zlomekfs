@@ -1213,8 +1213,8 @@ zfs_close (zfs_cap *cap)
    Additional data is passed in DATA.  */
 
 bool
-filldir_encode (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
-		dir_list *list, readdir_data *data)
+filldir_encode (uint32_t ino, int32_t cookie, const char *name,
+		uint32_t name_len, dir_list *list, readdir_data *data)
 {
   DC *dc = (DC *) list->buffer;
   char *old_pos;
@@ -1254,8 +1254,9 @@ filldir_encode (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
    LIST->BUFFER.  */
 
 bool
-filldir_array (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
-	       dir_list *list, ATTRIBUTE_UNUSED readdir_data *data)
+filldir_array (uint32_t ino, int32_t cookie, const char *name,
+	       uint32_t name_len, dir_list *list,
+	       ATTRIBUTE_UNUSED readdir_data *data)
 {
   dir_entry *entries = (dir_entry *) list->buffer;
 
@@ -1279,7 +1280,7 @@ filldir_array (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
 hash_t
 filldir_htab_hash (const void *x)
 {
-  return FILLDIR_HTAB_HASH ((dir_entry *) x);
+  return FILLDIR_HTAB_HASH ((const dir_entry *) x);
 }
 
 /*! Compare directory entries XX and YY.  */
@@ -1311,8 +1312,9 @@ filldir_htab_del (void *xx)
    LIST->BUFFER.  */
 
 bool
-filldir_htab (uint32_t ino, int32_t cookie, char *name, uint32_t name_len,
-	      dir_list *list, ATTRIBUTE_UNUSED readdir_data *data)
+filldir_htab (uint32_t ino, int32_t cookie, const char *name,
+	      uint32_t name_len, dir_list *list,
+	      ATTRIBUTE_UNUSED readdir_data *data)
 {
   filldir_htab_entries *entries = (filldir_htab_entries *) list->buffer;
   dir_entry *entry;
@@ -2029,11 +2031,11 @@ remote_read (read_res *res, internal_cap cap, internal_dentry dentry,
 }
 
 /*! Read COUNT bytes from file CAP at offset OFFSET, store the results to RES.
-   If UPDATE is true update the local file on copied volume.  */
+   If UPDATE_LOCAL is true update the local file on copied volume.  */
 
 int32_t
 zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
-	  bool update)
+	  bool update_local)
 {
   volume vol;
   internal_cap icap;
@@ -2076,7 +2078,7 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
       if (zfs_fh_undefined (dentry->fh->meta.master_fh)
 	  || vol->master == this_node)
 	r = local_read (res, dentry, offset, count, vol);
-      else if (dentry->fh->attr.type == FT_REG && update)
+      else if (dentry->fh->attr.type == FT_REG && update_local)
 	{
 	  varray blocks;
 	  uint64_t end;
@@ -2613,8 +2615,6 @@ full_remote_readdir (zfs_fh *fh, filldir_htab_entries *entries)
 
       if (r != ZFS_OK)
 	{
-	  int32_t r2;
-
 	  remote_close (icap, dentry, vol);
 
 	  r2 = find_capability (&cap, &icap, &vol, &dentry, NULL, false);

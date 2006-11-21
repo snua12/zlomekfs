@@ -295,7 +295,7 @@ static bool
 kernel_dispatch (fd_data_t *fd_data)
 {
   DC *dc = fd_data_a[kernel_fd].dc[0];
-  size_t index;
+  size_t idx;
   direction dir;
 
   CHECK_MUTEX_LOCKED (&fd_data_a[kernel_fd].mutex);
@@ -370,19 +370,19 @@ kernel_dispatch (fd_data_t *fd_data)
           thread_pool_regulate (&kernel_pool);
 
         /* Select an idle thread and forward the request to it.  */
-        queue_get (&kernel_pool.idle, &index);
+        queue_get (&kernel_pool.idle, &idx);
 #ifdef ENABLE_CHECKING
-        if (get_thread_state (&kernel_pool.threads[index].t) == THREAD_BUSY)
+        if (get_thread_state (&kernel_pool.threads[idx].t) == THREAD_BUSY)
           abort ();
 #endif
-        set_thread_state (&kernel_pool.threads[index].t, THREAD_BUSY);
-        kernel_pool.threads[index].t.from_sid = this_node->id;
-        kernel_pool.threads[index].t.u.kernel.dc = dc;
-        kernel_pool.threads[index].t.u.kernel.dir = dir;
-        kernel_pool.threads[index].t.u.kernel.fd_data = fd_data;
+        set_thread_state (&kernel_pool.threads[idx].t, THREAD_BUSY);
+        kernel_pool.threads[idx].t.from_sid = this_node->id;
+        kernel_pool.threads[idx].t.u.kernel.dc = dc;
+        kernel_pool.threads[idx].t.u.kernel.dir = dir;
+        kernel_pool.threads[idx].t.u.kernel.fd_data = fd_data;
 
         /* Let the thread run.  */
-        semaphore_up (&kernel_pool.threads[index].t.sem, 1);
+        semaphore_up (&kernel_pool.threads[idx].t.sem, 1);
 
         zfsd_mutex_unlock (&kernel_pool.mutex);
         break;

@@ -497,7 +497,7 @@ struct node_def;
 #define CALL_FROM_NETWORK	1
 extern uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
 
-extern char *zfs_strerror (int32_t errnum);
+extern const char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c (void);
 extern void cleanup_zfs_prot_c (void);
 

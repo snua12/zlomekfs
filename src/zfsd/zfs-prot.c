@@ -826,7 +826,7 @@ zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
 
 /*! Return string describing error code.  */
 
-char *
+const char *
 zfs_strerror (int32_t errnum)
 {
   if (errnum >= 0)

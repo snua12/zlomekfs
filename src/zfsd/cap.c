@@ -56,11 +56,11 @@ static bool
 internal_cap_compute_verify (internal_cap cap)
 {
   MD5Context ctx;
-  unsigned char random[CAP_RANDOM_LEN];
+  unsigned char random_bytes[CAP_RANDOM_LEN];
 
   TRACE ("");
 
-  if (!full_read (fd_urandom, random, sizeof (random)))
+  if (!full_read (fd_urandom, random_bytes, sizeof (random_bytes)))
     RETURN_BOOL (false);
 
   MD5Init (&ctx);
@@ -68,7 +68,7 @@ internal_cap_compute_verify (internal_cap cap)
              sizeof (cap->local_cap.fh));
   MD5Update (&ctx, (unsigned char *) &cap->local_cap.flags,
              sizeof (cap->local_cap.flags));
-  MD5Update (&ctx, random, sizeof (random));
+  MD5Update (&ctx, random_bytes, sizeof (random_bytes));
   MD5Final ((unsigned char *) cap->local_cap.verify, &ctx);
 
   if (verbose >= 3)
