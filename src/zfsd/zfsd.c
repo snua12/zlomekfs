@@ -491,7 +491,7 @@ main (int argc, char **argv)
 #endif
 
   /* Keep the pages of the daemon in memory.  */
-  if (mlockall (MCL_CURRENT | MCL_FUTURE))
+  if (mlock_zfsd && mlockall (MCL_CURRENT | MCL_FUTURE))
     {
       message (-1, stderr, "mlockall: %s\n", strerror (errno));
       die ();

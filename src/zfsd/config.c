@@ -73,6 +73,9 @@ static string private_key;
 /*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
 
+/*! mlockall() zfsd  .*/
+bool mlock_zfsd;
+
 typedef struct reread_config_request_def *reread_config_request;
 /*! \brief Element of list of requests for config reread.  */
 struct reread_config_request_def
@@ -2365,6 +2368,7 @@ read_config_file (const char *file)
   /* Default values.  */
   set_str (&kernel_file_name, "/dev/zfs");
   set_str (&local_config, "/etc/zfs");
+  mlock_zfsd = true;
 
   /* Read the config file.  */
   f = fopen (file, "rt");
@@ -2411,6 +2415,15 @@ read_config_file (const char *file)
 		{
 		  set_string_with_length (&kernel_file_name, value, value_len);
 		  message (1, stderr, "KernelDevice = '%s'\n", value);
+		}
+	      else if (strncasecmp (key, "mlock", 6) == 0)
+		{
+		  int i;
+
+		  if (sscanf (value, "%d", &i) != 1 || (i != 0 && i != 1))
+		    message (0, stderr, "Invalid mlock value: %s\n", value);
+		  else
+		    mlock_zfsd = i != 0;
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)
 		{
@@ -2516,6 +2529,7 @@ read_config_file (const char *file)
 		  || strncasecmp (key, "localconfiguration", 19) == 0
 		  || strncasecmp (key, "kerneldevice", 13) == 0
 		  || strncasecmp (key, "kernelfile", 11) == 0
+		  || strncasecmp (key, "mlock", 6) == 0
 		  || strncasecmp (key, "defaultuser", 12) == 0
 		  || strncasecmp (key, "defaultuid", 11) == 0
 		  || strncasecmp (key, "defaultgroup", 13) == 0
