@@ -37,27 +37,28 @@
 # include <sys/stat.h>
 # include <unistd.h>
 # include <errno.h>
-# include "pthread.h"
-# include "constant.h"
 # include "zfs-prot.h"
-# include "data-coding.h"
-# include "config.h"
-# include "thread.h"
-# include "network.h"
-# include "kernel.h"
-# include "node.h"
-# include "dir.h"
-# include "file.h"
-# include "volume.h"
-# include "log.h"
-# include "user-group.h"
+# ifdef ZFSD
+#  include "pthread.h"
+#  include "data-coding.h"
+#  include "config.h"
+#  include "thread.h"
+#  include "network.h"
+#  include "kernel.h"
+#  include "node.h"
+#  include "dir.h"
+#  include "file.h"
+#  include "volume.h"
+#  include "log.h"
+#  include "user-group.h"
+# endif
 #endif
 
 /*! Mapping file type -> file mode.  */
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
   = {0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO};
 
-#ifndef __KERNEL__
+#ifdef ZFSD
 
 /*! Request ID for next call.  */
 static volatile uint32_t request_id;
@@ -926,7 +927,7 @@ cleanup_zfs_prot_c (void)
 #endif
 }
 
-#else  /* !__KERNEL__ */
+#elif defined (__KERNEL__)
 
 /*! Convert ZFS error to system error */
 

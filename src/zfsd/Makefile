@@ -34,6 +34,7 @@ else
   CC_OPTS += -O3
 endif
 
+CC_OPTS += -DZFSD
 
 .SUFFIXES: .c .o
 .PHONY: all install uninstall clean
@@ -112,10 +113,7 @@ include $(OO_ALL:.o=.dep)
 
 # Objects
 
-%.o:            ../%.cc
-	$(CC) $(CC_OPTS) -c -o $@ $<
-
-%.o:            %.cc
+%.o: %.c
 	$(CC) $(CC_OPTS) -c -o $@ $<
 
 # Other
