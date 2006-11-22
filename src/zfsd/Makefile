@@ -33,7 +33,7 @@ ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -O0
   LD_OPTS += -g
 else
-  CC_OPTS += -O3
+  CC_OPTS += -O2 -g
 endif
 
 CC_OPTS += -DZFSD
