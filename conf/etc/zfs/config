@@ -1,0 +1,25 @@
+#ZFS main local config file, default placement /etc/zfs, if elsewhere pass it to zfsd as "-f filename" argument
+#
+#format is config_entry_name whitespace value, line starting '#' will be ignored
+
+#path to rest of config files (default /etc/zfs)
+#LocalConfig	"/etc/zfs"
+
+#name of chardev (default /dev/zfs)
+#KernelDevice	"/dev/zfs"
+
+#depth of directory tree containing the files with varialbe-length metadata (default 1)
+#MetadataTreeDepth	1
+
+#the name of the local user, which shoult be used, when no mapping defined (default nobody)
+#DefaultUser	nobody
+
+#uid of the default local user (default uid of nobody)
+#DefaultUID	65534
+
+#the name of the local group to use, when no mapping definet (default nogroup)
+#DefaultGroup	nogroup
+
+#gid of the default local grup (default gid of nogroup)
+#DefaultGID	65534
+

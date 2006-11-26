@@ -1,0 +1,4 @@
+#replace this line with NODE_ID:NODE_NAME (just this one line is allowed in this file (no comments), NODE_ID is number NODE_NAME string)
+# just one line with data is allowed (NO COMMENTS), PLEASE DELETE THIS LINES
+#example:
+42:my_great_node
