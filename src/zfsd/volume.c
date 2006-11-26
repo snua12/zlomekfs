@@ -58,7 +58,7 @@ pthread_mutex_t volume_mutex;
 static hash_t
 volume_hash (const void *x)
 {
-  return VOLUME_HASH ((volume) x);
+  return VOLUME_HASH ((const struct volume_def *) x);
 }
 
 /*! Hash function for volume X, conputed from volume name.  */
@@ -66,7 +66,7 @@ volume_hash (const void *x)
 static hash_t
 volume_hash_name (const void *x)
 {
-  return VOLUME_HASH_NAME ((volume) x);
+  return VOLUME_HASH_NAME ((const struct volume_def *) x);
 }
 
 /*! Compare a volume X with ID *Y.  */
@@ -74,8 +74,8 @@ volume_hash_name (const void *x)
 static int
 volume_eq (const void *x, const void *y)
 {
-  volume vol = (volume) x;
-  uint32_t id = *(uint32_t *) y;
+  const struct volume_def *vol = (const struct volume_def *) x;
+  uint32_t id = *(const uint32_t *) y;
 
   return vol->id == id;
 }
@@ -85,8 +85,8 @@ volume_eq (const void *x, const void *y)
 static int
 volume_eq_name (const void *x, const void *y)
 {
-  volume vol = (volume) x;
-  string *s = (string *) y;
+  const struct volume_def *vol = (const struct volume_def *) x;
+  const string *s = (const string *) y;
 
   return (vol->name.len == s->len
 	  && strcmp (vol->name.str, s->str) == 0);

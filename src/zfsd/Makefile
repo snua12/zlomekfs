@@ -23,17 +23,20 @@ PREFIX ?= /usr
 INSTALL = install
 
 CC = gcc
-CC_OPTS =
+CC_OPTS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef
+#	-Wwrite-strings
 LD = gcc
 LD_OPTS = -lpthread
 
 ifeq ($(debug), 1)
-  CC_OPTS += -g -DDEBUG -O0
-  LD_OPTS += -g
+  CC_OPTS += -g -DDEBUG -O0 -ggdb
+  LD_OPTS += -g -ggdb
 else
-  CC_OPTS += -O3
+  CC_OPTS += -O2 -g
 endif
 
+CC_OPTS += -DZFSD
 
 .SUFFIXES: .c .o
 .PHONY: all install uninstall clean
@@ -112,10 +115,7 @@ include $(OO_ALL:.o=.dep)
 
 # Objects
 
-%.o:            ../%.cc
-	$(CC) $(CC_OPTS) -c -o $@ $<
-
-%.o:            %.cc
+%.o: %.c
 	$(CC) $(CC_OPTS) -c -o $@ $<
 
 # Other

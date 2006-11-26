@@ -63,7 +63,7 @@ typedef struct filldir_htab_entries_def
 } filldir_htab_entries;
 
 /*! Function called to add one directory entry to list.  */
-typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, char *name,
+typedef bool (*filldir_f) (uint32_t ino, int32_t cookie, const char *name,
                            uint32_t name_len, dir_list *list,
                            readdir_data *data);
 
@@ -83,16 +83,16 @@ extern int32_t cond_remote_open (zfs_cap *cap, internal_cap icap,
                                  internal_dentry *dentryp, volume *volp);
 extern int32_t zfs_open (zfs_cap *cap, zfs_fh *fh, uint32_t flags);
 extern int32_t zfs_close (zfs_cap *cap);
-extern bool filldir_encode (uint32_t ino, int32_t cookie, char *name,
+extern bool filldir_encode (uint32_t ino, int32_t cookie, const char *name,
                             uint32_t name_len, dir_list *list,
                             readdir_data *data);
-extern bool filldir_array (uint32_t ino, int32_t cookie, char *name,
+extern bool filldir_array (uint32_t ino, int32_t cookie, const char *name,
                            uint32_t name_len, dir_list *list,
                            ATTRIBUTE_UNUSED readdir_data *data);
 extern hash_t filldir_htab_hash (const void *x);
 extern int filldir_htab_eq (const void *xx, const void *yy);
 extern void filldir_htab_del (void *xx);
-extern bool filldir_htab (uint32_t ino, int32_t cookie, char *name,
+extern bool filldir_htab (uint32_t ino, int32_t cookie, const char *name,
                           uint32_t name_len, dir_list *list,
                           ATTRIBUTE_UNUSED readdir_data *data);
 extern int32_t local_readdir (dir_list *list, internal_dentry dentry,

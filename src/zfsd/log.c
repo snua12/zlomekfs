@@ -37,7 +37,7 @@ int verbose = 0;
 
 /*! Print message to F if LEVEL > VERBOSE.  */
 void
-message (int level, FILE * f, char *format, ...)
+message (int level, FILE * f, const char *format, ...)
 {
   va_list va;
 
@@ -52,7 +52,7 @@ message (int level, FILE * f, char *format, ...)
 
 /*! Print the internal error message and exit.  */
 void
-internal_error (char *format, ...)
+internal_error (const char *format, ...)
 {
   va_list va;
 #ifdef ENABLE_CHECKING

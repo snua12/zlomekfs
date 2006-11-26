@@ -41,7 +41,7 @@ static pthread_mutex_t hardlink_list_mutex;
 static hash_t
 hardlink_list_hash (const void *x)
 {
-  return HARDLINK_LIST_HASH ((const hardlink_list_entry) x);
+  return HARDLINK_LIST_HASH ((const struct hardlink_list_entry_def *) x);
 }
 
 /*! Compare hardlinks X and Y.  */
@@ -49,8 +49,10 @@ hardlink_list_hash (const void *x)
 static int
 hardlink_list_eq (const void *x, const void *y)
 {
-  const hardlink_list_entry h1 = (const hardlink_list_entry) x;
-  const hardlink_list_entry h2 = (const hardlink_list_entry) y;
+  const struct hardlink_list_entry_def *h1
+    = (const struct hardlink_list_entry_def *) x;
+  const struct hardlink_list_entry_def *h2
+    = (const struct hardlink_list_entry_def *) y;
 
   return (h1->parent_ino == h2->parent_ino
 	  && h1->parent_dev == h2->parent_dev

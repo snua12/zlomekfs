@@ -68,7 +68,7 @@ node this_node;
 static hash_t
 node_hash (const void *x)
 {
-  return NODE_HASH ((node) x);
+  return NODE_HASH ((const struct node_def *) x);
 }
 
 /*! Hash function for node X, computed from node name.  */
@@ -76,7 +76,7 @@ node_hash (const void *x)
 hash_t
 node_hash_name (const void *x)
 {
-  return NODE_HASH_NAME ((node) x);
+  return NODE_HASH_NAME ((const struct node_def *) x);
 }
 
 /*! Compare a node X with ID *Y.  */
@@ -84,8 +84,8 @@ node_hash_name (const void *x)
 static int
 node_eq (const void *x, const void *y)
 {
-  node nod = (node) x;
-  uint32_t id = *(uint32_t *) y;
+  const struct node_def *nod = (const struct node_def *) x;
+  uint32_t id = *(const uint32_t *) y;
 
   return nod->id == id;
 }
@@ -95,8 +95,8 @@ node_eq (const void *x, const void *y)
 int
 node_eq_name (const void *x, const void *y)
 {
-  node nod = (node) x;
-  string *s = (string *) y;
+  const struct node_def * nod = (const struct node_def *) x;
+  const string *s = (const string *) y;
 
   return (nod->name.len == s->len
 	  && strcmp (nod->name.str, s->str) == 0);

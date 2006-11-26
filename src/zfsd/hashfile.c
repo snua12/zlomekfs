@@ -73,7 +73,7 @@ static uint64_t
 hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
 {
   unsigned int size;
-  unsigned int index;
+  unsigned int idx;
   uint64_t offset;
   uint32_t status;
 
@@ -83,9 +83,9 @@ hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
 #endif
 
   size = hfile->size;
-  index = hash % size;
+  idx = hash % size;
 
-  offset = (uint64_t) index * hfile->element_size + hfile->element_size;
+  offset = (uint64_t) idx * hfile->element_size + hfile->element_size;
   status = hfile_read_slot_status (hfile, offset);
   if (status == (uint32_t) -1)
     return 0;
@@ -101,11 +101,11 @@ hfile_find_empty_slot (hfile_t hfile, hashval_t hash)
 
   for (;;)
     {
-      index++;
-      if (index >= size)
-	index -= size;
+      idx++;
+      if (idx >= size)
+	idx -= size;
 
-      offset = (uint64_t) index * hfile->element_size + hfile->element_size;
+      offset = (uint64_t) idx * hfile->element_size + hfile->element_size;
       status = hfile_read_slot_status (hfile, offset);
       if (status == (uint32_t) -1)
 	return 0;
@@ -127,7 +127,7 @@ static uint64_t
 hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 {
   unsigned int size;
-  unsigned int index;
+  unsigned int idx;
   uint64_t offset;
   uint64_t first_deleted_slot;
   uint32_t status;
@@ -138,10 +138,10 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 #endif
 
   size = hfile->size;
-  index = hash % size;
+  idx = hash % size;
   first_deleted_slot = 0;
 
-  offset = (uint64_t) index * hfile->element_size + hfile->element_size;
+  offset = (uint64_t) idx * hfile->element_size + hfile->element_size;
   status = hfile_read_element (hfile, offset);
   if (status == (uint32_t) -1)
     return 0;
@@ -161,11 +161,11 @@ hfile_find_slot (hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 
   for (;;)
     {
-      index++;
-      if (index >= size)
-	index -= size;
+      idx++;
+      if (idx >= size)
+	idx -= size;
 
-      offset = (uint64_t) index * hfile->element_size + hfile->element_size;
+      offset = (uint64_t) idx * hfile->element_size + hfile->element_size;
       status = hfile_read_element (hfile, offset);
       if (status == (uint32_t) -1)
 	return 0;

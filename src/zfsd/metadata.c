@@ -92,7 +92,7 @@ static bool write_hardlinks (volume vol, zfs_fh *fh, metadata *meta,
 hashval_t
 metadata_hash (const void *x)
 {
-  return METADATA_HASH (*(metadata *) x);
+  return METADATA_HASH (*(const metadata *) x);
 }
 
 /*! Compare element X of hash file with possible element Y.  */
@@ -100,8 +100,8 @@ metadata_hash (const void *x)
 int
 metadata_eq (const void *x, const void *y)
 {
-  metadata *m1 = (metadata *) x;
-  metadata *m2 = (metadata *) y;
+  const metadata *m1 = (const metadata *) x;
+  const metadata *m2 = (const metadata *) y;
 
   return (m1->dev == m2->dev && m1->ino == m2->ino);
 }
@@ -165,7 +165,7 @@ metadata_encode (void *x)
 static hashval_t
 fh_mapping_hash (const void *x)
 {
-  return FH_MAPPING_HASH (*(fh_mapping *) x);
+  return FH_MAPPING_HASH (*(const fh_mapping *) x);
 }
 
 /*! Compare element X of hash file with possible element Y.  */
@@ -173,8 +173,8 @@ fh_mapping_hash (const void *x)
 static int
 fh_mapping_eq (const void *x, const void *y)
 {
-  fh_mapping *m1 = (fh_mapping *) x;
-  fh_mapping *m2 = (fh_mapping *) y;
+  const fh_mapping *m1 = (const fh_mapping *) x;
+  const fh_mapping *m2 = (const fh_mapping *) y;
 
   return (m1->master_fh.dev == m2->master_fh.dev
           && m1->master_fh.ino == m2->master_fh.ino);
