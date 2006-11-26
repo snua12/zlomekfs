@@ -130,7 +130,7 @@ typedef struct thread_def
     network_thread_data network;
     kernel_thread_data kernel;
     update_thread_data update;
-  } u;
+  } u; //FIXME: none or meaningfull name
 } thread;
 
 /*! \brief Thread datatype padded to 256 bytes to avoid cache ping pong.  */

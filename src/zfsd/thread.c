@@ -86,7 +86,7 @@ thread_pool_terminate_p (thread_pool *pool)
 
 /*! Terminate blocking syscall in thread *THID.  We mark the blocking syscall by
    locking MUTEX.  */
-
+//NOTE: interresting heuristic
 void
 thread_terminate_blocking_syscall (volatile pthread_t *thid,
 				   pthread_mutex_t *mutex)
@@ -118,7 +118,7 @@ thread_terminate_blocking_syscall (volatile pthread_t *thid,
       delay *= 500;
       if (pthread_mutex_trylock (mutex) != 0)
 	{
-	  message (3, stderr, "killing %lu\n", *thid);
+	  message (3, stderr, "killing %lu\n", *thid); //NOTE: try to track this with unexpected manners
 	  pthread_kill (*thid, SIGUSR1);
 	}
       else
@@ -149,7 +149,7 @@ wait_for_thread_to_die (volatile pthread_t *thid, void **ret)
   if (r == 0)
     message (3, stderr, "joined %lu\n", id);
 
-  /* Disable destroying this thread.  */
+  /* Disable destroying this thread.  */ //NOTE: this is o.k., but what about side efffects?
   zfsd_mutex_lock (&running_mutex);
   *thid = 0;
   zfsd_mutex_unlock (&running_mutex);
@@ -229,7 +229,7 @@ thread_pool_create (thread_pool *pool, thread_limit *limit,
       queue_put (&pool->empty, &i);
     }
   zfsd_mutex_unlock (&pool->mutex);
-
+//NOTE: why thiw unlock/lock gap?
   /* Create worker threads.  */
   zfsd_mutex_lock (&pool->mutex);
   for (i = 0; i < pool->min_spare_threads; i++)
@@ -242,7 +242,7 @@ thread_pool_create (thread_pool *pool, thread_limit *limit,
 	}
     }
   zfsd_mutex_unlock (&pool->mutex);
-
+//NOTE: ^ regulator & main thread init may not (should not)  be locked?
   /* Create thread pool regulator.  */
   r = pthread_create ((pthread_t *) &pool->regulator_thread, NULL,
 		      thread_pool_regulator, pool);
@@ -332,7 +332,7 @@ create_idle_thread (thread_pool *pool)
   thread *t;
   int r;
 
-  CHECK_MUTEX_LOCKED (&pool->mutex);
+  CHECK_MUTEX_LOCKED (&pool->mutex);//NOTE: why makro????
 
   queue_get (&pool->empty, &idx);
   t = &pool->threads[idx].t;
@@ -458,7 +458,7 @@ thread_pool_regulator (void *data)
     {
       zfsd_mutex_lock (&pool->regulator_in_syscall);
       if (!thread_pool_terminate_p (pool))
-	sleep (THREAD_POOL_REGULATOR_INTERVAL);
+	sleep (THREAD_POOL_REGULATOR_INTERVAL);//NOTE: condvar will be better
       zfsd_mutex_unlock (&pool->regulator_in_syscall);
       if (thread_pool_terminate_p (pool))
 	break;

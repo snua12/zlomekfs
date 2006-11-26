@@ -26,6 +26,8 @@
 #include "system.h"
 #include "pthread.h"
 
+//NOTE: why do not use posix semaphores?
+
 /*! \brief Semaphore. */
 typedef struct semaphore_def
 {

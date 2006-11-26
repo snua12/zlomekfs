@@ -102,7 +102,7 @@ static alloc_pool reread_config_pool;
 static pthread_mutex_t reread_config_mutex;
 
 /*! Process one line of configuration file.  Return the length of value.  */
-
+//TODO: create normal parser with flex / bison
 static int
 process_line (const char *file, const int line_num, char *line, char **key,
 	      char **value)
