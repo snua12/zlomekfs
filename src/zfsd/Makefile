@@ -30,8 +30,8 @@ LD = gcc
 LD_OPTS = -lpthread
 
 ifeq ($(debug), 1)
-  CC_OPTS += -g -DDEBUG -O0 -ggdb
-  LD_OPTS += -g -ggdb
+  CC_OPTS += -g -DDEBUG -O0
+  LD_OPTS += -g
 else
   CC_OPTS += -O2 -g
 endif
