@@ -43,7 +43,7 @@ typedef struct interval_tree_def
   unsigned int preferred_size;
 
   /*! Number of intervals in tree.  */
-  unsigned int size;
+  unsigned int size;//NOTE: size?
 
   /*! File descriptor associated with the tree.  */
   int fd;

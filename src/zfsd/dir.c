@@ -47,6 +47,9 @@
 #include "user-group.h"
 #include "update.h"
 
+//TODO: all path mangling functions have to use real filename regexps or system calls, not dumb heuristics
+//FIXME: dumb path conversion functions
+
 static bool move_to_shadow_base (volume vol, zfs_fh *fh, string *path,
                                  string *name, zfs_fh *dir_fh, bool journal);
 
@@ -527,7 +530,7 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
 
 /*! Delete the contents of directory PATH with file handle FH and parent
    PARENT_FH.  Use META for reading and deleting metadata.
-   If JOURNAL_P add a journal entry to journal for the directory.
+   If JOURNAL_P, add a journal entry to journal for the directory.
    Destroy the dentries of the deleted files if DESTROY_DENTRY.  */
 
 static int32_t

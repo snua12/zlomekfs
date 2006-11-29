@@ -144,7 +144,7 @@ struct internal_fh_def
   long unused0;
   long unused1;
 #endif
-
+//NOTE: why uses pthread_mutex, when have zfs_mutex?
   pthread_mutex_t mutex;
   pthread_cond_t cond;
 
