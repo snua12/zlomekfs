@@ -27,7 +27,13 @@ CC_OPTS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef
 #	-Wwrite-strings
 LD = gcc
-LD_OPTS = -lpthread
+
+ifeq ($(syslog),1)
+  LD_OPTS = -lpthread
+  CC_OPTS += -DUSE_SYSLOG
+else
+  LD_OPTS = -lpthread
+endif
 
 ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -DENABLE_CHECKING -O0 -ggdb -g3

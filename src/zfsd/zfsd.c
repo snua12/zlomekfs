@@ -242,26 +242,20 @@ disable_sig_handlers (void)
 }
 
 /*! Display the usage and arguments.  */
-
+//TODO: replace chars and options with DEFINES (use them on all places
 void
 usage (void)
 {
   printf ("Usage: zfsd [OPTION]...\n\n");
-  printf ("  -f, --config=FILE            "
+  printf ("  -f FILE, --config=FILE            "
           "Specifies the name of the configuration file.\n");
-  printf ("  -n, --node=ID:NAME:HOSTNAME  "
+  printf ("  -h, --help            "
+          "Displays this help and exit.\n");
+  printf ("  -n ID:NAME:HOSTNAME, --node=ID:NAME:HOSTNAME  "
           "Fetch global configuration from specified node.\n");
-  printf ("  -v, --verbose                "
-          "Verbose; display verbose debugging messages.\n");
-  printf ("                               "
-          "Multiple -v increases verbosity.\n");
-  printf ("  -q, --quiet                  "
-          "Quiet; display less messages.\n");
-  printf ("                               "
-          "Multiple -q increases quietness.\n");
-  printf ("      --help                   "
-          "Display this help and exit.\n");
-  printf ("      --version                "
+  printf ("  -d LEVEL, --debug=LEVEL                "
+          "Verbose; display verbose debugging messages (to level LEVEL).\n");
+  printf ("      -v,--version                "
           "Output version information and exit.\n");
 }
 
@@ -289,10 +283,9 @@ enum long_option
 static struct option const long_options[] = {
   {"config", required_argument, 0, 'f'},
   {"node", required_argument, 0, 'n'},
-  {"verbose", no_argument, 0, 'v'},
-  {"quiet", no_argument, 0, 'q'},
-  {"help", no_argument, 0, OPTION_HELP},
-  {"version", no_argument, 0, OPTION_VERSION},
+  {"debug", required_argument, 0, 'd'},
+  {"help", no_argument, 0, 'h'},
+  {"version", no_argument, 0, 'v'},
   {NULL, 0, NULL, 0}
 };
 
@@ -303,7 +296,7 @@ process_arguments (int argc, char **argv)
 {
   int c;
 
-  while ((c = getopt_long (argc, argv, "f:n:qv", long_options, NULL)) != -1)
+  while ((c = getopt_long (argc, argv, "vhf:n:d:", long_options, NULL)) != -1)
     {
       switch (c)
         {
@@ -318,20 +311,16 @@ process_arguments (int argc, char **argv)
             config_node = xstrdup (optarg);
             break;
 
-          case 'v':
-            verbose++;
+          case 'd':
+            verbose = atoi(optarg);
             break;
 
-          case 'q':
-            verbose--;
-            break;
-
-          case OPTION_HELP:
+          case 'h':
             usage ();
             exit (EXIT_SUCCESS);
             break;
 
-          case OPTION_VERSION:
+          case 'v':
             version (EXIT_SUCCESS);
             break;
 
@@ -446,6 +435,10 @@ main (int argc, char **argv)
   bool network_started = false;
   bool update_started = false;
   int ret = EXIT_SUCCESS;
+
+#ifdef USE_SYSLOG
+  zfs_openlog();
+#endif
 
   init_constants ();
   init_sig_handlers ();

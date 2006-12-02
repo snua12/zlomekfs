@@ -32,8 +32,23 @@
 #include "pthread.h"
 #include "log.h"
 
+const char * ZFS_IDENT = "zfsd";
+
 /*! Level of verbosity.  Higher number means more messages.  */
 int verbose = DEFAULT_VERBOSITY;
+
+void zfs_openlog()
+{
+#ifdef USE_SYSLOG
+  openlog(ZFS_IDENT,0,LOG_DAEMON);
+#endif
+}
+
+void zfs_closelog(void){
+#ifdef USE_SYSLOG
+  closelog();
+#endif
+}
 
 /*! Print message to F if LEVEL > VERBOSE.  */
 void
@@ -45,8 +60,14 @@ message (int level, FILE * f, const char *format, ...)
     return;
 
   va_start (va, format);
+
+#ifdef USE_SYSLOG
+  vsyslog(level,format,va);
+#else
   vfprintf (f, format, va);
   fflush (f);
+#endif
+
   va_end (va);
 }
 
@@ -60,9 +81,16 @@ internal_error (const char *format, ...)
 #endif
 
   va_start (va, format);
+
+#ifdef USE_SYSLOG
+  syslog(LOG_EMERG,"Zfsd terminating due to internal error...");
+  vsyslog(LOG_EMERG,format,va);
+#else
   fprintf (stderr, "\nInternal error: ");
   vfprintf (stderr, format, va);
   fprintf (stderr, "\n");
+#endif
+
   va_end (va);
 
 #ifdef ENABLE_CHECKING
