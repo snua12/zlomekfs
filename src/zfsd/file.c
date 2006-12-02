@@ -288,7 +288,7 @@ remote_close (internal_cap cap, internal_dentry dentry, volume vol)
   thread *t;
   int32_t r;
   int fd;
-  node nod = vol->master;
+  node nod = vol->master;//WARN: mutex check is after this
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&vol->mutex);

@@ -441,7 +441,7 @@ daemon_mode (void)
 int
 main (int argc, char **argv)
 {
-  lock_info li[MAX_LOCKED_FILE_HANDLES];
+  lock_info li[MAX_LOCKED_FILE_HANDLES]; //NOTE: for what? macros for memory??? TODO: better name
   bool kernel_started = false;
   bool network_started = false;
   bool update_started = false;
@@ -502,7 +502,7 @@ main (int argc, char **argv)
   fd_data_init ();
 
   /* Start the threads.  */
-  update_started = update_start ();
+  update_started = update_start ();//NOTE:where checked?
   network_started = network_start ();
   kernel_started = false;
 
