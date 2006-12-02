@@ -30,6 +30,7 @@
 #include "system.h"
 #include <stddef.h>
 #include "pthread.h"
+#include "log.h"
 
 /*! Type of ID of the alloc pool.  */
 typedef unsigned long ALLOC_POOL_ID_TYPE;

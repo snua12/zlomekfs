@@ -42,30 +42,30 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 
 #define zfsd_mutex_destroy(M) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
     message (5, stderr, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((r = pthread_mutex_destroy (M)) != 0)				\
+    if ((def_ret = pthread_mutex_destroy (M)) != 0)				\
       {									\
 	message (2, stderr, "pthread_mutex_destroy: %d = %s\n",		\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     0; })
 
 #define zfsd_mutex_lock(M) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
     message (5, stderr, "MUTEX %p LOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((r = pthread_mutex_lock (M)) != 0)				\
+    if ((def_ret = pthread_mutex_lock (M)) != 0)				\
       {									\
 	message (2, stderr, "pthread_mutex_lock: %d = %s\n",		\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     message (5, stderr, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
@@ -75,107 +75,108 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 
 #define zfsd_mutex_unlock(M) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
     message (5, stderr, "MUTEX %p UNLOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((r = pthread_mutex_unlock (M)) != 0)				\
+    if ((def_ret = pthread_mutex_unlock (M)) != 0)				\
       {									\
 	message (2, stderr, "pthread_mutex_unlock: %d = %s\n",		\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     0; })
 
 #define zfsd_cond_destroy(C) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
-    if ((r = pthread_cond_destroy (C)) != 0)				\
+    if ((def_ret = pthread_cond_destroy (C)) != 0)				\
       {									\
 	message (2, stderr, "pthread_cond_destroy: %d = %s\n",		\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     0; })
 
 #define zfsd_cond_wait(C, M) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
     message (5, stderr, "COND %p WAIT with MUTEX %p, by %lu at %s:%d\n",\
 	     (void *) C, (void *) M,					\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((r = pthread_cond_wait (C, M)) != 0)				\
+    if ((def_ret = pthread_cond_wait (C, M)) != 0)				\
       {									\
 	message (2, stderr, "pthread_cond_wait: %d = %s\n",		\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     0; })
 
 #define zfsd_cond_signal(C) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
     message (5, stderr, "COND %p SIGNAL, by %lu at %s:%d\n",		\
 	     (void *) C,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((r = pthread_cond_signal (C)) != 0)				\
+    if ((def_ret = pthread_cond_signal (C)) != 0)				\
       {									\
 	message (2, stderr, "pthread_cond_signal: %d = %s\n",		\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     0; })
 
 #define zfsd_cond_broadcast(C) __extension__				\
   ({									\
-    int r;								\
+    int def_ret;								\
 									\
     message (5, stderr, "COND %p BROADCAST, by %lu at %s:%d\n",		\
 	     (void *) C,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-    if ((r = pthread_cond_broadcast (C)) != 0)				\
+    if ((def_ret = pthread_cond_broadcast (C)) != 0)				\
       {									\
 	message (2, stderr, "pthread_cond_broadcast: %d = %s\n",	\
-		 r, strerror (r));					\
+		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
     0; })
 
 /*! Check whether the mutex M is locked.  */
 #define CHECK_MUTEX_LOCKED(M)						\
+  ({									\
   do {									\
     if (M)								\
       {									\
-	int r;								\
 									\
 	message (5, stderr, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
 		 (void *) M,						\
 		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-	r = pthread_mutex_lock (M);					\
-	if (r != EDEADLK)						\
+	if( pthread_mutex_lock (M)!= EDEADLK )						\
 	  abort ();							\
       }									\
-  } while (0)
+  } while (0);								\
+  })
 
 /*! Check whether the mutex M is NOT locked by current thread.  */
 #define CHECK_MUTEX_UNLOCKED(M)						\
+  ({									\
   do {									\
     if (M)								\
       {									\
 	message (5, stderr, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
 		 (void *) M,						\
 		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
-	r = pthread_mutex_lock (M);					\
-	if (r == EDEADLK)						\
+	if (pthread_mutex_lock (M) == EDEADLK)						\
 	  abort ();							\
 	if (r == 0)							\
 	  pthread_mutex_unlock (M);					\
       }									\
-  } while (0)
+  } while (0);								\
+  })
 
 #else
 

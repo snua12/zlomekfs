@@ -30,7 +30,6 @@
 #include <inttypes.h>
 #include "pthread.h"
 #include "alloc-pool.h"
-#include "log.h"
 #include "memory.h"
 
 #define align_four(x) (((x+3) >> 2) << 2)

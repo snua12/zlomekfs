@@ -28,6 +28,17 @@
 #include <stdlib.h>
 #include "pthread.h"
 
+#ifdef DEBUG
+	#define ENABLE_CHECKING			1
+	#ifndef DEFAULT_VERBOSITY
+		#define DEFAULT_VERBOSITY		255	
+	#endif
+#else
+	#ifndef DEFAULT_VERBOSITY
+		#define DEFAULT_VERBOSITY	0
+	#endif
+#endif
+
 /*! Redefine abort to be the verbose abort.  */
 #define abort() verbose_abort(__FILE__, __LINE__)
 
@@ -38,51 +49,52 @@
 
 #ifdef ENABLE_CHECKING
 
-/*! Print which function we are in with additional information.  */
-#define TRACE(format, ...) message (4, stderr,				       \
+	/*! Print which function we are in with additional information.  */
+	#define TRACE(format, ...) message (4, stderr,				       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
 
-/*! Print the function name and return integer value.  */
-#define RETURN_INT(RETVAL)						\
-  do {									\
-    int32_t _r = (int32_t) (RETVAL);					\
-    TRACE ("return %" PRIi32, _r);					\
-    return _r;								\
-  } while (0)
+	/*! Print the function name and return integer value.  */
+	#define RETURN_INT(RETVAL)						\
+	  do {									\
+	    int32_t _r = (int32_t) (RETVAL);					\
+	    TRACE ("return %" PRIi32, _r);					\
+	    return _r;								\
+	  } while (0)
 
-/*! Print the function name and return pointervalue.  */
-#define RETURN_PTR(RETVAL)						\
-  do {									\
-    TRACE ("return %p", (void *) (RETVAL));				\
-    return (RETVAL);							\
-  } while (0)
+	/*! Print the function name and return pointervalue.  */
+	#define RETURN_PTR(RETVAL)						\
+	  do {									\
+	    TRACE ("return %p", (void *) (RETVAL));				\
+	    return (RETVAL);							\
+	  } while (0)
 
-/*! Print the function name and return bool value.  */
-#define RETURN_BOOL(RETVAL)						\
-  do {									\
-    bool _r = (RETVAL);							\
-    TRACE ("return %d", _r);						\
-    return _r;								\
-  } while (0)
+	/*! Print the function name and return bool value.  */
+	#define RETURN_BOOL(RETVAL)						\
+	  do {									\
+	    bool _r = (RETVAL);							\
+	    TRACE ("return %d", _r);						\
+	    return _r;								\
+	  } while (0)
 
-/*! Print the function name.  */
-#define RETURN_VOID							\
-  do {									\
-    TRACE ("return");							\
-    return;								\
-  } while (0)
+	/*! Print the function name.  */
+	#define RETURN_VOID							\
+	  do {									\
+	    TRACE ("return");							\
+	    return;								\
+	  } while (0)
 
-#else
 
-#define TRACE(...)
-#define RETURN_INT(RETVAL) return (RETVAL)
-#define RETURN_PTR(RETVAL) return (RETVAL)
-#define RETURN_BOOL(RETVAL) return (RETVAL)
-#define RETURN_VOID return
+#else //ENABLE_CHECKING not defined
 
-#endif
+	#define TRACE(...)
+	#define RETURN_INT(RETVAL) return (RETVAL)
+	#define RETURN_PTR(RETVAL) return (RETVAL)
+	#define RETURN_BOOL(RETVAL) return (RETVAL)
+	#define RETURN_VOID return
+
+#endif //ENABLE_CHECKING
 
 /*! Level of verbosity.  Higher number means more messages.  */
 extern int verbose;
