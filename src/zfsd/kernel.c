@@ -117,7 +117,7 @@ close_kernel_fd (void)
 static void
 send_reply (thread *t)
 {
-  message (2, stderr, "sending reply\n");
+  message (LOG_INFO, NULL, "sending reply\n");
   zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
   if (!full_write (kernel_fd, t->u.kernel.dc->buffer,
                    t->u.kernel.dc->cur_length))
@@ -211,7 +211,7 @@ kernel_worker (void *data)
       /* ZFS is mounted if kernel wants something from zfsd.  */
       mounted = true;
 
-      message (2, stderr, "REQUEST: ID=%u function=%u\n", request_id, fn);
+      message (LOG_INFO, NULL, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
         {
 #define ZFS_CALL_SERVER
@@ -300,8 +300,7 @@ kernel_dispatch (fd_data_t *fd_data)
 
   CHECK_MUTEX_LOCKED (&fd_data_a[kernel_fd].mutex);
 
-  if (verbose >= 3)
-    print_dc (dc, stderr);
+  print_dc (LOG_DATA, NULL, dc);
 
 #ifdef ENABLE_CHECKING
   if (dc->cur_length != sizeof (uint32_t))
@@ -329,10 +328,10 @@ kernel_dispatch (fd_data_t *fd_data)
             if (!decode_request_id (dc, &request_id))
               {
                 /* TODO: log too short packet.  */
-                message (1, stderr, "Packet from kernel too short.\n");
+                message (LOG_WARNING, NULL, "Packet from kernel too short.\n");
                 return false;
               }
-            message (2, stderr, "REPLY: ID=%u\n", request_id);
+            message (LOG_INFO, NULL, "REPLY: ID=%u\n", request_id);
 
             slot = htab_find_slot_with_hash (fd_data->waiting4reply,
                                              &request_id,
@@ -341,7 +340,7 @@ kernel_dispatch (fd_data_t *fd_data)
             if (!slot)
               {
                 /* TODO: log request was not found.  */
-                message (1, stderr, "Request ID %d has not been found.\n",
+                message (LOG_NOTICE, NULL, "Request ID %d has not been found.\n",
                          request_id);
                 return false;
               }
@@ -424,13 +423,13 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
       if (r < 0 && errno != EINTR)
         {
-          message (-1, stderr, "%s, kernel_main exiting\n", strerror (errno));
+          message (LOG_CRIT, stderr, "%s, kernel_main exiting\n", strerror (errno));
           break;
         }
 
       if (thread_pool_terminate_p (&kernel_pool))
         {
-          message (2, stderr, "Terminating\n");
+          message (LOG_NOTICE, NULL, "Terminating\n");
           break;
         }
 
@@ -441,7 +440,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
       if (fd_data->dc[0]->max_length != (unsigned int) r)
         {
-          message (1, stderr, "Invalid packet from kernel.\n");
+          message (LOG_WARNING, NULL, "Invalid packet from kernel.\n");
 
           /* If the packet length is at least 12 we will decode the request_id.
              So if the packet length is smaller than DC_SIZE
@@ -465,7 +464,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       zfsd_mutex_unlock (&fd_data->mutex);
     }
 
-  message (2, stderr, "Terminating...\n");
+  message (LOG_NOTICE, NULL, "Terminating...\n");
   return NULL;
 }
 
@@ -478,7 +477,7 @@ kernel_start (void)
   kernel_fd = open (kernel_file_name.str, O_RDWR);
   if (kernel_fd < 0)
     {
-      message (-1, stderr, "%s: open(): %s\n", kernel_file_name.str,
+      message (LOG_CRIT, stderr, "%s: open(): %s\n", kernel_file_name.str,
                strerror (errno));
       return false;
     }

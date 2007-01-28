@@ -29,43 +29,50 @@
 #include "pthread.h"
 
 #ifdef USE_SYSLOG
-	#include <syslog.h>
+  #include <syslog.h>
+
+// define extras as known syslog's
+  #define LOG_FUNC        LOG_DEBUG
+  #define LOG_LOCK        LOG_DEBUG
+  #define LOG_DATA        LOG_DEBUG
+  #define LOG_LOOPS       LOG_DEBUG
 #else
-//TODO: change message(num,...) to this defines (and define other)
-	#define LOG_EMERG       0       /* system is unusable */
-	#define LOG_ALERT       1       /* action must be taken immediately */
-	#define LOG_CRIT        2       /* critical conditions */
-	#define LOG_ERR         3       /* error conditions */
-	#define LOG_WARNING     4       /* warning conditions */
-	#define LOG_NOTICE      5       /* normal but significant condition */
-	#define LOG_INFO        6       /* informational */
-	#define LOG_DEBUG       7       /* debug-level messages */
+  #define LOG_EMERG       0       /* system is unusable */
+  #define LOG_ALERT       1       /* action must be taken immediately */
+  #define LOG_CRIT        2       /* critical conditions */
+  #define LOG_ERR         3       /* error conditions */
+  #define LOG_WARNING     4       /* warning conditions */
+  #define LOG_NOTICE      5       /* normal but significant condition */
+  #define LOG_INFO        6       /* informational */
+  #define LOG_DEBUG       7       /* debug-level messages */
+  #define LOG_FUNC        8       /* function entry and leave */
+  #define LOG_LOCK        9       /* locking info */
+  #define LOG_DATA       10       /* data changes */
+  #define LOG_LOOPS      11       /* loops */
 #endif
+
+// TODO: fix in code
+#define LOG_ERROR         LOG_ERR
 
 
 #ifdef DEBUG
-	#define ENABLE_CHECKING			1
-	#ifndef DEFAULT_VERBOSITY
-		#define DEFAULT_VERBOSITY		255	
-	#endif
+  #define ENABLE_CHECKING               1
+  #ifndef DEFAULT_VERBOSITY
+    #define DEFAULT_VERBOSITY           7
+  #endif
 #else
-	#ifndef DEFAULT_VERBOSITY
-		#define DEFAULT_VERBOSITY	0
-	#endif
+  #ifndef DEFAULT_VERBOSITY
+    #define DEFAULT_VERBOSITY           3
+  #endif
 #endif
 
 /*! Redefine abort to be the verbose abort.  */
 #define abort() verbose_abort(__FILE__, __LINE__)
 
-#define TRACE2(format, ...) message (1, stderr,				       \
-				    "TRACE %s() by %lu at %s:%d: " format "\n",\
-				    __func__, (unsigned long) pthread_self (), \
-				    __FILE__, __LINE__, ## __VA_ARGS__)
-
 #ifdef ENABLE_CHECKING
 
 	/*! Print which function we are in with additional information.  */
-	#define TRACE(format, ...) message (4, stderr,				       \
+	#define TRACE(format, ...) message (LOG_FUNC, stderr,				       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
@@ -103,11 +110,11 @@
 
 #else //ENABLE_CHECKING not defined
 
-	#define TRACE(...)
-	#define RETURN_INT(RETVAL) return (RETVAL)
-	#define RETURN_PTR(RETVAL) return (RETVAL)
-	#define RETURN_BOOL(RETVAL) return (RETVAL)
-	#define RETURN_VOID return
+  #define TRACE(...)
+  #define RETURN_INT(RETVAL) return (RETVAL)
+  #define RETURN_PTR(RETVAL) return (RETVAL)
+  #define RETURN_BOOL(RETVAL) return (RETVAL)
+  #define RETURN_VOID return
 
 #endif //ENABLE_CHECKING
 

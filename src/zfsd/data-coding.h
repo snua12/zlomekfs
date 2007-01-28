@@ -176,7 +176,7 @@ extern DC *dc_get(void);
 extern void dc_put(DC *dc);
 extern void dc_destroy_all(void);
 #else
-extern void print_dc (DC *dc, FILE *f);
+extern void print_dc (int level, FILE *f, DC *dc);
 extern void debug_dc (DC *dc);
 #endif
 extern void start_encoding (DC *dc);

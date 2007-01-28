@@ -356,7 +356,7 @@ cleanup_journal_c (void)
   zfsd_mutex_lock (&journal_mutex);
 #ifdef ENABLE_CHECKING
   if (journal_pool->elts_free < journal_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in journal_pool.\n",
+    message (LOG_WARNING, NULL, "Memory leak (%u elements) in journal_pool.\n",
 	     journal_pool->elts_allocated - journal_pool->elts_free);
 #endif
   free_alloc_pool (journal_pool);

@@ -226,28 +226,25 @@ dc_destroy_all (void)
 
 #else
 
-/*! Print DC to file F.  */
+/*! Print DC to file F.  
+ *!see message
+*/
 
 void
-print_dc (DC *dc, FILE *f)
+print_dc (int level, FILE *f, DC *dc)
 {
-  fprintf (f, "Cur.pos    = %d\n", dc->cur_pos - dc->buffer);
-  fprintf (f, "Cur.length = %d\n", dc->cur_length);
-  fprintf (f, "Max.length = %d\n", dc->max_length);
-  fprintf (f, "Data:\n");
-  print_hex_buffer (dc->buffer,
+  message (level, f, "Cur.pos    = %d\n", dc->cur_pos - dc->buffer);
+  message (level, f, "Cur.length = %d\n", dc->cur_length);
+  message (level, f, "Max.length = %d\n", dc->max_length);
+  message (level, f, "Data:\n");
+  print_hex_buffer (level, f, dc->buffer,
                     (dc->max_length == DC_SIZE
-                     ? dc->cur_length : dc->max_length),
-                    f);
+                     ? dc->cur_length : dc->max_length)
+                   );
 }
 
-/*! Print DC to STDERR.  */
 
-void
-debug_dc (DC *dc)
-{
-  print_dc (dc, stderr);
-}
+#define debug_dc(d)	print_dc(LOG_DEBUG, NULL, d)
 
 #endif
 

@@ -329,7 +329,7 @@ volume_set_common_info (volume vol, string *name, string *mountpoint,
       if (*slot)
 	{
 	  vol->marked = true;
-	  message (0, stderr, "Volume with name = %s already exists\n",
+	  message (LOG_NOTICE, NULL, "Volume with name = %s already exists\n",
 		   name->str);
 	  return;
 	}

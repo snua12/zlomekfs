@@ -24,7 +24,7 @@ INSTALL = install
 
 CC = gcc
 CC_OPTS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread
 #	-Wwrite-strings
 LD = gcc
 
@@ -129,7 +129,7 @@ include $(OO_ALL:.o=.dep)
 clean:
 	-rm -f $(BB_ALL) $(OO_ALL) $(OO_ALL:.o=.dep)
 
-install:
+install: zfsd dump-intervals dump-metadata
 	$(INSTALL) -m 755 zfsd $(PREFIX)/sbin
 	$(INSTALL) -m 755 dump-intervals dump-metadata $(PREFIX)/bin
 

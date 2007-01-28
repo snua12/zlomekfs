@@ -301,7 +301,7 @@ cleanup_unused_dentries (void)
       zfsd_mutex_unlock (&cleanup_dentry_mutex);
       if (n)
         {
-          message (3, stderr, "Freeing %d nodes\n", n);
+          message (LOG_INFO, NULL, "Freeing %d nodes\n", n);
           qsort (fh, n, sizeof (zfs_fh), cleanup_unused_dentries_compare);
 
           for (i = 0; i < n; i++)
@@ -999,7 +999,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
     abort ();
 #endif
 
-  message (4, stderr, "FH %p LOCK %u, by %lu at %s:%d\n",
+  message (LOG_LOCK, NULL, "FH %p LOCK %u, by %lu at %s:%d\n",
            (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 
@@ -1021,7 +1021,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
         RETURN_INT (r);
     }
 
-  message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n",
+  message (LOG_INFO, NULL, "FH %p LOCKED %u, by %lu at %s:%d\n",
            (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 
@@ -1068,7 +1068,7 @@ internal_dentry_unlock (volume vol, internal_dentry dentry)
     abort ();
 #endif
 
-  message (4, stderr, "FH %p UNLOCK, by %lu at %s:%d\n",
+  message (LOG_LOCK, NULL, "FH %p UNLOCK, by %lu at %s:%d\n",
            (void *) dentry->fh, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 
@@ -1278,7 +1278,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->reintegrating_sid = 0;
   fh->reintegrating_generation = 0;
 
-  message (4, stderr, "FH %p CREATED, by %lu\n", (void *) fh,
+  message (LOG_DEBUG, NULL, "FH %p CREATED, by %lu\n", (void *) fh,
            (unsigned long) pthread_self ());
 
   if (fh->attr.type == FT_DIR)
@@ -1357,7 +1357,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
     abort ();
 #endif
 
-  message (4, stderr, "FH %p DESTROY, by %lu\n", (void *) fh,
+  message (LOG_DEBUG, NULL, "FH %p DESTROY, by %lu\n", (void *) fh,
            (unsigned long) pthread_self ());
 
   /* Destroy capabilities associated with file handle.  */
@@ -1398,7 +1398,7 @@ internal_fh_destroy_stage2 (internal_fh fh)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&fh->mutex);
 
-  message (4, stderr, "FH %p DESTROYED, by %lu\n", (void *) fh,
+  message (LOG_DEBUG, NULL, "FH %p DESTROYED, by %lu\n", (void *) fh,
            (unsigned long) pthread_self ());
 
   zfsd_mutex_unlock (&fh->mutex);
@@ -2093,7 +2093,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
     {
       volume vol;
 
-      message (4, stderr, "FH %p DELETE, by %lu\n", (void *) dentry->fh,
+      message (LOG_DEBUG, NULL, "FH %p DELETE, by %lu\n", (void *) dentry->fh,
                (unsigned long) pthread_self ());
 
       vol = volume_lookup (tmp_fh.vid);
@@ -3327,7 +3327,7 @@ initialize_fh_c (void)
   if (pthread_create (&cleanup_dentry_thread, NULL, cleanup_dentry_thread_main,
                       NULL))
     {
-      message (-1, stderr, "pthread_create() failed\n");
+      message (LOG_CRIT, stderr, "pthread_create() failed\n");
     }
 
   root = virtual_root_create ();
@@ -3346,13 +3346,13 @@ cleanup_fh_c (void)
   zfsd_mutex_lock (&fh_mutex);
 #ifdef ENABLE_CHECKING
   if (fh_pool->elts_free < fh_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in fh_pool.\n",
+    message (LOG_WARNING, NULL, "Memory leak (%u elements) in fh_pool.\n",
              fh_pool->elts_allocated - fh_pool->elts_free);
   if (dentry_pool->elts_free < dentry_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in dentry_pool.\n",
+    message (LOG_WARNING, NULL, "Memory leak (%u elements) in dentry_pool.\n",
              dentry_pool->elts_allocated - dentry_pool->elts_free);
   if (vd_pool->elts_free < vd_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in vd_pool.\n",
+    message (LOG_WARNING, NULL, "Memory leak (%u elements) in vd_pool.\n",
              vd_pool->elts_allocated - vd_pool->elts_free);
 #endif
   htab_destroy (fh_htab);

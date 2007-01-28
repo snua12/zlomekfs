@@ -154,7 +154,7 @@ user_create (uint32_t id, string *name)
       u = (user_t) *slot1;
       if (!u->marked)
 	{
-	  message (1, stderr, "Duplicate user ID and name: %" PRIu32 " %s\n",
+	  message (LOG_WARNING, NULL, "Duplicate user ID and name: %" PRIu32 " %s\n",
 		   id, name->str);
 	  return NULL;
 	}
@@ -164,13 +164,13 @@ user_create (uint32_t id, string *name)
   if (slot1)
     {
       /* ID is already there.  */
-      message (1, stderr, "Duplicate user ID: %" PRIu32 "\n", id);
+      message (LOG_WARNING, NULL, "Duplicate user ID: %" PRIu32 "\n", id);
       return NULL;
     }
   if (slot2)
     {
       /* NAME is already there.  */
-      message (1, stderr, "Duplicate user name: %s\n", name->str);
+      message (LOG_WARNING, NULL, "Duplicate user name: %s\n", name->str);
       return NULL;
     }
 
@@ -253,7 +253,7 @@ group_create (uint32_t id, string *name)
       g = (group_t) *slot1;
       if (!g->marked)
 	{
-	  message (1, stderr, "Duplicate group ID and name: %" PRIu32 " %s\n",
+	  message (LOG_WARNING, NULL, "Duplicate group ID and name: %" PRIu32 " %s\n",
 		   id, name->str);
 	  return NULL;
 	}
@@ -263,13 +263,13 @@ group_create (uint32_t id, string *name)
   if (slot1)
     {
       /* ID is already there.  */
-      message (1, stderr, "Duplicate group ID: %" PRIu32 "\n", id);
+      message (LOG_WARNING, NULL, "Duplicate group ID: %" PRIu32 "\n", id);
       return NULL;
     }
   if (slot2)
     {
       /* NAME is already there.  */
-      message (1, stderr, "Duplicate group name: %s\n", name->str);
+      message (LOG_WARNING, NULL, "Duplicate group name: %s\n", name->str);
       return NULL;
     }
 
@@ -384,7 +384,7 @@ user_mapping_create (string *zfs_user, string *node_user, node nod)
 				    USER_NAME_HASH (*zfs_user));
   if (!u || u->marked)
     {
-      message (1, stderr,
+      message (LOG_NOTICE, NULL,
 	       "ZFS user '%s' for mapping '%s'<->'%s' does not exist\n",
 	       zfs_user->str, zfs_user->str, node_user->str);
       return NULL;
@@ -393,7 +393,7 @@ user_mapping_create (string *zfs_user, string *node_user, node nod)
   pwd = getpwnam (node_user->str);
   if (!pwd)
     {
-      message (1, stderr,
+      message (LOG_NOTICE, NULL,
 	       "Node user '%s' for mapping '%s'<->'%s' does not exist\n",
 	       node_user->str, zfs_user->str, node_user->str);
       return NULL;
@@ -564,7 +564,7 @@ group_mapping_create (string *zfs_group, string *node_group, node nod)
 				     GROUP_NAME_HASH (*zfs_group));
   if (!g || g->marked)
     {
-      message (1, stderr,
+      message (LOG_NOTICE, NULL,
 	       "ZFS group '%s' for mapping '%s'<->'%s' does not exist\n",
 	       zfs_group->str, zfs_group->str, node_group->str);
       return NULL;
@@ -573,7 +573,7 @@ group_mapping_create (string *zfs_group, string *node_group, node nod)
   grp = getgrnam (node_group->str);
   if (!grp)
     {
-      message (1, stderr,
+      message (LOG_NOTICE, NULL,
 	       "Node group '%s' for mapping '%s'<->'%s' does not exist\n",
 	       node_group->str, zfs_group->str, node_group->str);
       return NULL;

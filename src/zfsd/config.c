@@ -137,7 +137,7 @@ process_line (const char *file, const int line_num, char *line, char **key,
   if (*line == 0 || *line == '#' || *line == '\n')
     {
       *line = 0;
-      message (0, stderr, "%s:%d: Option '%s' has no value\n",
+      message (LOG_WARNING, NULL, "%s:%d: Option '%s' has no value\n",
 	       file, line_num, *key);
       return 0;
     }
@@ -226,7 +226,7 @@ process_line (const char *file, const int line_num, char *line, char **key,
 
   if (*value == dest)
     {
-      message (0, stderr, "%s:%d: Option '%s' has no value\n",
+      message (LOG_WARNING, NULL, "%s:%d: Option '%s' has no value\n",
 	       file, line_num, *key);
       return 0;
     }
@@ -371,7 +371,7 @@ read_local_volume_info (string *path, bool reread)
   f = fopen (file, "rt");
   if (!f)
     {
-      message (-1, stderr, "%s: %s\n", file, strerror (errno));
+      message (LOG_ERROR, stderr, "%s: %s\n", file, strerror (errno));
       free (file);
       return false;
     }
@@ -395,18 +395,18 @@ read_local_volume_info (string *path, bool reread)
 	  if (sscanf (parts[0].str, "%" PRIu32, &id) != 1
 	      || sscanf (parts[2].str, "%" PRIu64, &size_limit) != 1)
 	    {
-	      message (0, stderr, "%s:%d: Wrong format of line\n", file,
+	      message (LOG_ERROR, NULL, "%s:%d: Wrong format of line\n", file,
 		       line_num);
 	    }
 	  else if (id == 0 || id == (uint32_t) -1)
 	    {
-	      message (0, stderr,
+	      message (LOG_ERROR, NULL,
 		       "%s:%d: Volume ID must not be 0 or %" PRIu32 "\n",
 		       file, line_num, (uint32_t) -1);
 	    }
 	  else if (parts[1].str[0] != '/')
 	    {
-	      message (0, stderr,
+	      message (LOG_ERROR, NULL,
 		       "%s:%d: Local path must be an absolute path\n",
 		       file, line_num);
 	    }
@@ -436,7 +436,7 @@ read_local_volume_info (string *path, bool reread)
 		}
 	      else
 		{
-		  message (0, stderr, "Could not set local information"
+		  message (LOG_ERROR, NULL, "Could not set local information"
 			   " about volume with ID = %" PRIu32 "\n", id);
 		  volume_delete (vol);
 		}
@@ -445,7 +445,7 @@ read_local_volume_info (string *path, bool reread)
 	}
       else
 	{
-	  message (0, stderr, "%s:%d: Wrong format of line\n", file,
+	  message (LOG_ERROR, NULL, "%s:%d: Wrong format of line\n", file,
 		   line_num);
 	}
     }
@@ -483,25 +483,25 @@ read_local_cluster_config (string *path)
 
   if (path->str == 0)
     {
-      message (0, stderr,
+      message (LOG_CRIT, NULL,
 	       "The directory with configuration of local node is not specified"
 	       "in configuration file.\n");
       return false;
     }
-  message (2, stderr, "Reading configuration of local node\n");
+  message (LOG_NOTICE, NULL, "Reading configuration of local node\n");
 
   /* Read ID of local node.  */
   file = xstrconcat (2, path->str, "/this_node");
   f = fopen (file, "rt");
   if (!f)
     {
-      message (-1, stderr, "%s: %s\n", file, strerror (errno));
+      message (LOG_CRIT, stderr, "%s: %s\n", file, strerror (errno));
       free (file);
       return false;
     }
   if (!fgets (line, sizeof (line), f))
     {
-      message (0, stderr, "%s: Could not read a line\n", file);
+      message (LOG_ERROR, NULL, "%s: Could not read a line\n", file);
       free (file);
       fclose (f);
       return false;
@@ -510,14 +510,14 @@ read_local_cluster_config (string *path)
     {
       if (sscanf (parts[0].str, "%" PRIu32, &this_node_id) != 1)
 	{
-	  message (0, stderr, "%s: Could not read node ID\n", file);
+	  message (LOG_ERROR, NULL, "%s: Could not read node ID\n", file);
 	  free (file);
 	  fclose (f);
 	  return false;
 	}
       if (this_node_id == 0 || this_node_id == (uint32_t) -1)
 	{
-	  message (0, stderr, "%s: Node ID must not be 0 or %" PRIu32 "\n",
+	  message (LOG_ERROR, NULL, "%s: Node ID must not be 0 or %" PRIu32 "\n",
 		   file, (uint32_t) -1);
 	  free (file);
 	  fclose (f);
@@ -525,7 +525,7 @@ read_local_cluster_config (string *path)
 	}
       if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s: Node name must not be empty\n", file);
+	  message (LOG_ERROR, NULL, "%s: Node name must not be empty\n", file);
 	  free (file);
 	  fclose (f);
 	  return false;
@@ -534,7 +534,7 @@ read_local_cluster_config (string *path)
     }
   else
     {
-      message (0, stderr, "%s:1: Wrong format of line\n", file);
+      message (LOG_ERROR, NULL, "%s:1: Wrong format of line\n", file);
       free (file);
       fclose (f);
       return false;
@@ -562,7 +562,7 @@ init_config_volume (void)
   vol = volume_lookup_nolock (VOLUME_ID_CONFIG);
   if (!vol)
     {
-      message (0, stderr, "Config volume (ID == %" PRIu32 ") does not exist.\n",
+      message (LOG_ERROR, NULL, "Config volume (ID == %" PRIu32 ") does not exist.\n",
 	       VOLUME_ID_CONFIG);
       goto out;
     }
@@ -578,36 +578,36 @@ init_config_volume (void)
 	{
 	  if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
 	    {
-	      message (0, stderr, "Wrong format of node option\n");
+	      message (LOG_ERROR, NULL, "Wrong format of node option\n");
 	      goto out_usage;
 	    }
 	  else if (sid == 0 || sid == (uint32_t) -1)
 	    {
-	      message (0, stderr, "Node ID must not be 0 or %" PRIu32 "\n",
+	      message (LOG_ERROR, NULL, "Node ID must not be 0 or %" PRIu32 "\n",
 		       (uint32_t) -1);
 	      goto out_usage;
 	    }
 	  else if (sid == this_node_id)
 	    {
-	      message (0, stderr, "The ID of the config node must be "
+	      message (LOG_ERROR, NULL, "The ID of the config node must be "
 		       "different from the ID of the local node\n");
 	      goto out_usage;
 	    }
 	  else if (parts[1].len == 0)
 	    {
-	      message (0, stderr, "Node name must not be empty\n");
+	      message (LOG_ERROR, NULL, "Node name must not be empty\n");
 	      goto out_usage;
 	    }
 	  else if (parts[1].len == node_name.len
 		   && strcmp (parts[1].str, node_name.str) == 0)
 	    {
-	      message (0, stderr, "The name of the config node must be "
+	      message (LOG_ERROR, NULL, "The name of the config node must be "
 		       "different from the name of the local node\n");
 	      goto out_usage;
 	    }
 	  else if (parts[2].len == 0)
 	    {
-	      message (0, stderr, "Node host name must not be empty\n");
+	      message (LOG_ERROR, NULL, "Node host name must not be empty\n");
 	      goto out_usage;
 	    }
 	  else
@@ -640,7 +640,7 @@ init_config_volume (void)
 	      else
 		{
 		  zfsd_mutex_unlock (&vol->mutex);
-		  message (0, stderr, "Could not initialize config volume.\n");
+		  message (LOG_CRIT, NULL, "Could not initialize config volume.\n");
 		  goto out_fh;
 		}
 	      zfsd_mutex_unlock (&fh_mutex);
@@ -651,7 +651,7 @@ init_config_volume (void)
 	}
       else
 	{
-	  message (0, stderr, "Wrong format of node option\n");
+	  message (LOG_ERROR, NULL, "Wrong format of node option\n");
 	  goto out_usage;
 	}
     }
@@ -696,7 +696,7 @@ process_file_by_lines (zfs_fh *fh, const char *file_name,
   r = zfs_open (&cap, fh, O_RDONLY);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "%s: open(): %s\n", file_name, zfs_strerror (r));
+      message (LOG_ERROR, NULL, "%s: open(): %s\n", file_name, zfs_strerror (r));
       return false;
     }
 
@@ -709,7 +709,7 @@ process_file_by_lines (zfs_fh *fh, const char *file_name,
       r = zfs_read (&res, &cap, offset, ZFS_MAXDATA - pos, true);
       if (r != ZFS_OK)
 	{
-	  message (0, stderr, "%s: read(): %s\n", file_name, zfs_strerror (r));
+	  message (LOG_ERROR, NULL, "%s: read(): %s\n", file_name, zfs_strerror (r));
 	  return false;
 	}
 
@@ -735,7 +735,7 @@ process_file_by_lines (zfs_fh *fh, const char *file_name,
 
       if (pos == 0 && i == ZFS_MAXDATA)
 	{
-	  message (0, stderr, "%s:%u: Line too long\n", file_name, line_num);
+	  message (LOG_ERROR, NULL, "%s:%u: Line too long\n", file_name, line_num);
 	  goto out;
 	}
       if (pos > 0)
@@ -754,7 +754,7 @@ finish:
   r = zfs_close (&cap);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "%s: close(): %s\n", file_name, zfs_strerror (r));
+      message (LOG_ERROR, NULL, "%s: close(): %s\n", file_name, zfs_strerror (r));
       return false;
     }
 
@@ -780,22 +780,22 @@ process_line_node (char *line, const char *file_name, unsigned int line_num,
     {
       if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
 	{
-	  message (0, stderr, "%s:%u: Wrong format of line\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 		   file_name, line_num);
 	}
       else if (sid == 0 || sid == (uint32_t) -1)
 	{
-	  message (0, stderr, "%s:%u: Node ID must not be 0 or %" PRIu32 "\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Node ID must not be 0 or %" PRIu32 "\n",
 		   file_name, line_num, (uint32_t) -1);
 	}
       else if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Node name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Node name must not be empty\n",
 		   file_name, line_num);
 	}
       else if (parts[2].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Node host name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Node host name must not be empty\n",
 		   file_name, line_num);
 	}
       else
@@ -807,7 +807,7 @@ process_line_node (char *line, const char *file_name, unsigned int line_num,
     }
   else
     {
-      message (0, stderr, "%s:%u: Wrong format of line\n",
+      message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
 
@@ -1167,22 +1167,22 @@ process_line_volume (char *line, const char *file_name, unsigned int line_num,
     {
       if (sscanf (parts[0].str, "%" PRIu32, &vid) != 1)
 	{
-	  message (0, stderr, "%s:%u: Wrong format of line\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 		   file_name, line_num);
 	}
       else if (vid == 0 || vid == (uint32_t) -1)
 	{
-	  message (0, stderr, "%s:%u: Volume ID must not be 0 or %" PRIu32 "\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Volume ID must not be 0 or %" PRIu32 "\n",
 		   file_name, line_num, (uint32_t) -1);
 	}
       else if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Volume name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Volume name must not be empty\n",
 		   file_name, line_num);
 	}
       else if (parts[2].str[0] != '/')
 	{
-	  message (0, stderr,
+	  message (LOG_ERROR, NULL,
 		   "%s:%d: Volume mountpoint must be an absolute path\n",
 		   file_name, line_num);
 	}
@@ -1219,7 +1219,7 @@ process_line_volume (char *line, const char *file_name, unsigned int line_num,
     }
   else
     {
-      message (0, stderr, "%s:%u: Wrong format of line\n",
+      message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
 
@@ -1270,7 +1270,7 @@ read_volume_list (zfs_fh *config_dir)
   else
     {
 no_config:
-      message (0, stderr,
+      message (LOG_CRIT, NULL,
 	       "config:/volume_list: Config volume does not exist\n");
       return false;
     }
@@ -1292,17 +1292,17 @@ process_line_user (char *line, const char *file_name, unsigned int line_num,
     {
       if (sscanf (parts[0].str, "%" PRIu32, &id) != 1)
 	{
-	  message (0, stderr, "%s:%u: Wrong format of line\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 		   file_name, line_num);
 	}
       else if (id == (uint32_t) -1)
 	{
-	  message (0, stderr, "%s:%u: User ID must not be %" PRIu32 "\n",
+	  message (LOG_ERROR, NULL, "%s:%u: User ID must not be %" PRIu32 "\n",
 		   file_name, line_num, (uint32_t) -1);
 	}
       else if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s:%u: User name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: User name must not be empty\n",
 		   file_name, line_num);
 	}
       else
@@ -1314,7 +1314,7 @@ process_line_user (char *line, const char *file_name, unsigned int line_num,
     }
   else
     {
-      message (0, stderr, "%s:%u: Wrong format of line\n",
+      message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
 
@@ -1351,17 +1351,17 @@ process_line_group (char *line, const char *file_name, unsigned int line_num,
     {
       if (sscanf (parts[0].str, "%" PRIu32, &id) != 1)
 	{
-	  message (0, stderr, "%s:%u: Wrong format of line\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 		   file_name, line_num);
 	}
       else if (id == (uint32_t) -1)
 	{
-	  message (0, stderr, "%s:%u: Group ID must not be %" PRIu32 "\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Group ID must not be %" PRIu32 "\n",
 		   file_name, line_num, (uint32_t) -1);
 	}
       else if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Group name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Group name must not be empty\n",
 		   file_name, line_num);
 	}
       else
@@ -1373,7 +1373,7 @@ process_line_group (char *line, const char *file_name, unsigned int line_num,
     }
   else
     {
-      message (0, stderr, "%s:%u: Wrong format of line\n",
+      message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
 
@@ -1411,12 +1411,12 @@ process_line_user_mapping (char *line, const char *file_name,
     {
       if (parts[0].len == 0)
 	{
-	  message (0, stderr, "%s:%u: ZFS user name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: ZFS user name must not be empty\n",
 		   file_name, line_num);
 	}
       else if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Node user name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Node user name must not be empty\n",
 		   file_name, line_num);
 	}
       else
@@ -1443,7 +1443,7 @@ process_line_user_mapping (char *line, const char *file_name,
     }
   else
     {
-      message (0, stderr, "%s:%u: Wrong format of line\n",
+      message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
 
@@ -1511,12 +1511,12 @@ process_line_group_mapping (char *line, const char *file_name,
     {
       if (parts[0].len == 0)
 	{
-	  message (0, stderr, "%s:%u: ZFS group name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: ZFS group name must not be empty\n",
 		   file_name, line_num);
 	}
       else if (parts[1].len == 0)
 	{
-	  message (0, stderr, "%s:%u: Node group name must not be empty\n",
+	  message (LOG_ERROR, NULL, "%s:%u: Node group name must not be empty\n",
 		   file_name, line_num);
 	}
       else
@@ -1543,7 +1543,7 @@ process_line_group_mapping (char *line, const char *file_name,
     }
   else
     {
-      message (0, stderr, "%s:%u: Wrong format of line\n",
+      message (LOG_ERROR, NULL, "%s:%u: Wrong format of line\n",
 	       file_name, line_num);
     }
 
@@ -2103,7 +2103,7 @@ config_reader (void *data)
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "volume_root(): %s\n", zfs_strerror (r));
+      message (LOG_ERROR, NULL, "volume_root(): %s\n", zfs_strerror (r));
       goto out;
     }
 
@@ -2117,7 +2117,7 @@ config_reader (void *data)
   r = zfs_volume_root (&config_dir_res, VOLUME_ID_CONFIG);
   if (r != ZFS_OK)
     {
-      message (0, stderr, "volume_root(): %s\n", zfs_strerror (r));
+      message (LOG_ERROR, NULL, "volume_root(): %s\n", zfs_strerror (r));
       goto out;
     }
 
@@ -2289,7 +2289,7 @@ read_global_cluster_config (void)
   if (pthread_create (&config_reader_data.thread_id, NULL, config_reader,
 		      &config_reader_data))
     {
-      message (-1, stderr, "pthread_create() failed\n");
+      message (LOG_CRIT, stderr, "pthread_create() failed\n");
       config_reader_data.state = THREAD_DEAD;
       config_reader_data.thread_id = 0;
       reading_cluster_config = false;
@@ -2321,7 +2321,7 @@ read_cluster_config (void)
 
   if (!read_global_cluster_config ())
     {
-      message (-1, stderr, "Could not read global configuration\n");
+      message (LOG_CRIT, stderr, "Could not read global configuration\n");
       return false;
     }
 
@@ -2337,14 +2337,14 @@ verify_thread_limit (thread_limit *limit, const char *name)
 {
   if (limit->min_spare > limit->max_total)
     {
-      message (-1, stderr,
+      message (LOG_WARNING, stderr,
 	       "MinSpareThreads.%s must be lower or equal to MaxThreads.%s\n",
 	       name, name);
       return false;
     }
   if (limit->min_spare > limit->max_spare)
     {
-      message (-1, stderr,
+      message (LOG_WARNING, stderr,
 	       "MinSpareThreads.%s must be lower or equal to MaxSpareThreads.%s\n",
 	       name, name);
       return false;
@@ -2376,11 +2376,11 @@ read_config_file (const char *file)
   f = fopen (file, "rt");
   if (!f)
     {
-      message (-1, stderr, "%s: %s\n", file, strerror (errno));
+      message (LOG_ERROR, stderr, "%s: %s\n", file, strerror (errno));
       return false;
     }
 
-  message (2, stderr, "Reading configuration file '%s'\n", file);
+  message (LOG_NOTICE, NULL, "Reading configuration file '%s'\n", file);
   line_num = 0;
   while (!feof (f))
     {
@@ -2398,11 +2398,11 @@ read_config_file (const char *file)
 	    {
 	      /* Configuration options which require a value.  */
 
-#if 0
+#ifdef DEBUG
 	      if (strncasecmp (key, "privatekey", 11) == 0)
 		{
 		  set_string_with_length (&private_key, value, value_len);
-		  message (1, stderr, "PrivateKey = '%s'\n", value);
+		  message (LOG_DEBUG, NULL, "PrivateKey = '%s'\n", value);
 		}
 	      else
 #endif
@@ -2410,20 +2410,20 @@ read_config_file (const char *file)
 		  || strncasecmp (key, "localconfiguration", 19) == 0)
 		{
 		  set_string_with_length (&local_config, value, value_len);
-		  message (1, stderr, "LocalConfig = '%s'\n", value);
+		  message (LOG_INFO, NULL, "LocalConfig = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "kerneldevice", 13) == 0
 		       || strncasecmp (key, "kernelfile", 11) == 0)
 		{
 		  set_string_with_length (&kernel_file_name, value, value_len);
-		  message (1, stderr, "KernelDevice = '%s'\n", value);
+		  message (LOG_INFO, NULL, "KernelDevice = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "mlock", 6) == 0)
 		{
 		  int i;
 
 		  if (sscanf (value, "%d", &i) != 1 || (i != 0 && i != 1))
-		    message (0, stderr, "Invalid mlock value: %s\n", value);
+		    message (LOG_ERROR, NULL, "Invalid mlock value: %s\n", value);
 		  else
 		    mlock_zfsd = i != 0;
 		}
@@ -2431,7 +2431,7 @@ read_config_file (const char *file)
 		{
 		  if (!set_default_uid (value))
 		    {
-		      message (0, stderr, "Unknown (local) user: %s\n",
+		      message (LOG_ERROR, NULL, "Unknown (local) user: %s\n",
 			       value);
 		    }
 		}
@@ -2439,7 +2439,7 @@ read_config_file (const char *file)
 		{
 		  if (sscanf (value, "%" PRIu32, &default_node_uid) != 1)
 		    {
-		      message (0, stderr, "Not an unsigned number: %s\n",
+		      message (LOG_ERROR, NULL, "Not an unsigned number: %s\n",
 			       value);
 		    }
 		}
@@ -2447,7 +2447,7 @@ read_config_file (const char *file)
 		{
 		  if (!set_default_gid (value))
 		    {
-		      message (0, stderr, "Unknown (local) group: %s\n",
+		      message (LOG_ERROR, NULL, "Unknown (local) group: %s\n",
 			       value);
 		    }
 		}
@@ -2455,7 +2455,7 @@ read_config_file (const char *file)
 		{
 		  if (sscanf (value, "%" PRIu32, &default_node_gid) != 1)
 		    {
-		      message (0, stderr, "Not an unsigned number: %s\n",
+		      message (LOG_ERROR, NULL, "Not an unsigned number: %s\n",
 			       value);
 		    }
 		}
@@ -2463,14 +2463,14 @@ read_config_file (const char *file)
 		{
 		  if (sscanf (value, "%u", &metadata_tree_depth) != 1)
 		    {
-		      message (0, stderr, "Not an unsigned number: %s\n",
+		      message (LOG_ERROR, NULL, "Not an unsigned number: %s\n",
 			       value);
 		    }
 		  else
 		    {
 		      if (metadata_tree_depth > MAX_METADATA_TREE_DEPTH)
 			metadata_tree_depth = MAX_METADATA_TREE_DEPTH;
-		      message (1, stderr, "MetadataTreeDepth = %u\n",
+		      message (LOG_INFO, NULL, "MetadataTreeDepth = %u\n",
 			       metadata_tree_depth);
 		    }
 		}
@@ -2481,7 +2481,7 @@ read_config_file (const char *file)
 									\
 		  if (sscanf (value, "%" PRIu32, &ivalue) != 1)		\
 		    {							\
-		      message (0, stderr,				\
+		      message (LOG_ERROR, NULL,				\
 			       "Not an unsigned number: %s\n", value);	\
 		    }							\
 									\
@@ -2505,7 +2505,7 @@ read_config_file (const char *file)
 		    }							\
 		  else							\
 		    {							\
-		      message (0, stderr,				\
+		      message (LOG_WARNING, NULL,				\
 			       "%s:%d: Unknown option: '%s'\n",		\
 			       file, line_num, key);			\
 		      return false;					\
@@ -2517,7 +2517,7 @@ read_config_file (const char *file)
 #undef PROCESS_THREAD_LIMITS
 	      else
 		{
-		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
+		  message (LOG_WARNING, NULL, "%s:%d: Unknown option: '%s'\n",
 			   file, line_num, key);
 		  return false;
 		}
@@ -2538,11 +2538,11 @@ read_config_file (const char *file)
 		  || strncasecmp (key, "defaultgid", 11) == 0
 		  || strncasecmp (key, "metadatatreedepth", 18) == 0)
 		{
-		  message (-1, stderr, "Option '%s' requires a value.\n", key);
+		  message (LOG_ERROR, stderr, "Option '%s' requires a value.\n", key);
 		}
 	      else
 		{
-		  message (0, stderr, "%s:%d: Unknown option: '%s'\n",
+		  message (LOG_WARNING, NULL, "%s:%d: Unknown option: '%s'\n",
 			   file, line_num, key);
 		  return false;
 		}
@@ -2553,14 +2553,14 @@ read_config_file (const char *file)
 
   if (default_node_uid == (uint32_t) -1)
     {
-      message (-1, stderr,
+      message (LOG_CRIT, stderr,
 	       "DefaultUser or DefaultUID was not specified,\n  'nobody' could not be used either.\n");
       return false;
     }
 
   if (default_node_gid == (uint32_t) -1)
     {
-      message (-1, stderr,
+      message (LOG_CRIT, stderr,
 	       "DefaultGroup or DefaultGID was not specified,\n  'nogroup' or 'nobody' could not be used either.\n");
       return false;
     }
@@ -2599,7 +2599,7 @@ cleanup_config_c (void)
   zfsd_mutex_lock (&reread_config_mutex);
 #ifdef ENABLE_CHECKING
   if (reread_config_pool->elts_free < reread_config_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in reread_config_pool.\n",
+    message (LOG_WARNING, NULL, "Memory leak (%u elements) in reread_config_pool.\n",
 	     reread_config_pool->elts_allocated
 	     - reread_config_pool->elts_free);
 #endif

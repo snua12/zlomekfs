@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stddef.h>
 
-extern void print_hex_buffer (char *buf, unsigned int len, FILE *f);
+extern void print_hex_buffer (int level, FILE *f, char *buf, unsigned int len);
 extern bool full_read (int fd, void *buf, size_t len);
 extern bool full_write (int fd, void *buf, size_t len);
 extern bool full_mkdir (char *path, unsigned int mode);

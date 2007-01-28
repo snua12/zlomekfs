@@ -118,7 +118,7 @@ thread_terminate_blocking_syscall (volatile pthread_t *thid,
       delay *= 500;
       if (pthread_mutex_trylock (mutex) != 0)
 	{
-	  message (3, stderr, "killing %lu\n", *thid); //NOTE: try to track this with unexpected manners
+	  message (LOG_INFO, NULL, "killing %lu\n", *thid); //NOTE: try to track this with unexpected manners
 	  pthread_kill (*thid, SIGUSR1);
 	}
       else
@@ -144,10 +144,10 @@ wait_for_thread_to_die (volatile pthread_t *thid, void **ret)
   if (id == 0)
     return ESRCH;
 
-  message (3, stderr, "joining %lu\n", id);
+  message (LOG_DEBUG, NULL, "joining %lu\n", id);
   r = pthread_join (id, ret);
   if (r == 0)
-    message (3, stderr, "joined %lu\n", id);
+    message (LOG_DEBUG, NULL, "joined %lu\n", id);
 
   /* Disable destroying this thread.  */ //NOTE: this is o.k., but what about side efffects?
   zfsd_mutex_lock (&running_mutex);
@@ -248,7 +248,7 @@ thread_pool_create (thread_pool *pool, thread_limit *limit,
 		      thread_pool_regulator, pool);
   if (r != 0)
     {
-      message (-1, stderr, "pthread_create() failed\n");
+      message (LOG_ERROR, stderr, "pthread_create() failed\n");
       thread_pool_destroy (pool);
       return false;
     }
@@ -258,7 +258,7 @@ thread_pool_create (thread_pool *pool, thread_limit *limit,
 		      main_start, pool);
   if (r != 0)
     {
-      message (-1, stderr, "pthread_create() failed\n");
+      message (LOG_ERROR, stderr, "pthread_create() failed\n");
       thread_pool_terminate (pool);
       thread_pool_destroy (pool);
       return false;
@@ -342,7 +342,7 @@ create_idle_thread (thread_pool *pool)
     {
       t->state = THREAD_DEAD;
       queue_put (&pool->empty, &idx);
-      message (-1, stderr, "semaphore_init() failed\n");
+      message (LOG_ERROR, stderr, "semaphore_init() failed\n");
       return r;
     }
 
@@ -361,7 +361,7 @@ create_idle_thread (thread_pool *pool)
       semaphore_destroy (&t->sem);
       t->state = THREAD_DEAD;
       queue_put (&pool->empty, &idx);
-      message (-1, stderr, "pthread_create() failed\n");
+      message (LOG_ERROR, stderr, "pthread_create() failed\n");
     }
 
   return r;
@@ -397,7 +397,7 @@ destroy_idle_thread (thread_pool *pool)
     }
   else
     {
-      message (-1, stderr, "pthread_join() failed\n");
+      message (LOG_ERROR, stderr, "pthread_join() failed\n");
     }
 
   return r;
@@ -429,7 +429,7 @@ thread_pool_regulate (thread_pool *pool)
   /* Let some threads to die.  */
   while (pool->idle.nelem > pool->max_spare_threads)
     {
-      message (2, stderr, "Regulating: destroying idle thread\n");
+      message (LOG_INFO, NULL, "Regulating: destroying idle thread\n");
       destroy_idle_thread (pool);
     }
 
@@ -438,7 +438,7 @@ thread_pool_regulate (thread_pool *pool)
 	 && pool->idle.nelem < pool->idle.size
 	 && pool->empty.nelem > 0)
     {
-      message (2, stderr, "Regulating: creating idle thread\n");
+      message (LOG_INFO, NULL, "Regulating: creating idle thread\n");
       create_idle_thread (pool);
     }
 }

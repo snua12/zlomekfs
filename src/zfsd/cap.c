@@ -71,11 +71,8 @@ internal_cap_compute_verify (internal_cap cap)
   MD5Update (&ctx, random_bytes, sizeof (random_bytes));
   MD5Final ((unsigned char *) cap->local_cap.verify, &ctx);
 
-  if (verbose >= 3)
-    {
-      fprintf (stderr, "Created verify ");
-      print_hex_buffer (cap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
-    }
+      message (LOG_DEBUG, NULL, "Created verify ");
+      print_hex_buffer (LOG_DATA, NULL, cap->local_cap.verify, ZFS_VERIFY_LEN);
 
   RETURN_BOOL (true);
 }
@@ -90,13 +87,10 @@ verify_capability (zfs_cap *cap, internal_cap icap)
   if (memcmp (cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0)
     RETURN_INT (ZFS_OK);
 
-  if (verbose >= 3)
-    {
-      fprintf (stderr, "Using verify ");
-      print_hex_buffer (cap->verify, ZFS_VERIFY_LEN, stderr);
-      fprintf (stderr, "It should be ");
-      print_hex_buffer (icap->local_cap.verify, ZFS_VERIFY_LEN, stderr);
-    }
+    message (LOG_DEBUG, NULL, "Using verify ");
+    print_hex_buffer (LOG_DATA, NULL, cap->verify, ZFS_VERIFY_LEN);
+    message (LOG_DEBUG, NULL, "It should be ");
+    print_hex_buffer (LOG_DATA, NULL, icap->local_cap.verify, ZFS_VERIFY_LEN);
 
   RETURN_INT (EBADF);
 }
@@ -128,7 +122,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
     abort ();
 #endif
 
-  message (4, stderr, "FH %p LOCK %u, by %lu at %s:%d\n",
+  message (LOG_LOCK, NULL, "FH %p LOCK %u, by %lu at %s:%d\n",
            (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 
@@ -152,7 +146,7 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
         RETURN_INT (r);
     }
 
-  message (4, stderr, "FH %p LOCKED %u, by %lu at %s:%d\n",
+  message (LOG_INFO, NULL, "FH %p LOCKED %u, by %lu at %s:%d\n",
            (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 
@@ -665,7 +659,7 @@ cleanup_cap_c (void)
   zfsd_mutex_lock (&cap_mutex);
 #ifdef ENABLE_CHECKING
   if (cap_pool->elts_free < cap_pool->elts_allocated)
-    message (2, stderr, "Memory leak (%u elements) in cap_pool.\n",
+    message (LOG_ERROR, NULL, "Memory leak (%u elements) in cap_pool.\n",
              cap_pool->elts_allocated - cap_pool->elts_free);
 #endif
   free_alloc_pool (cap_pool);

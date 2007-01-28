@@ -31,10 +31,11 @@
 #include "pthread.h"
 #include "log.h"
 
-/*! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  */
-
+/*! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  
+ *!see message
+*/
 void
-print_hex_buffer (char *buf, unsigned int len, FILE *f)
+print_hex_buffer (int level, FILE * f, char *buf, unsigned int len)
 {
   unsigned int i;
 
@@ -43,13 +44,13 @@ print_hex_buffer (char *buf, unsigned int len, FILE *f)
       if (i > 0)
 	{
 	  if (i % 16 == 0)
-	    fputc ('\n', f);
+	    message (level, f, "\n");
 	  else if (i % 4 == 0)
-	    fputc (' ', f);
+	    message (level, f, " ");
 	}
-      fprintf (f, "%02x ", (unsigned char) buf[i]);
+      message (level, f, "%02x ", (unsigned char) buf[i]);
     }
-  fprintf (f, "\n");
+  message (level, f, "\n");
 }
 
 /*! Read LEN bytes from file descriptor FD to buffer BUF.  */
@@ -65,18 +66,15 @@ full_read (int fd, void *buf, size_t len)
       r = read (fd, (char *) buf + total_read, len - total_read);
       if (r <= 0)
 	{
-	  message (2, stderr, "reading data FAILED: %d (%s)\n",
+	  message (LOG_WARNING, NULL, "reading data FAILED: %d (%s)\n",
 		   errno, strerror (errno));
 	  return false;
 	}
     }
 
-  if (verbose >= 3)
-    {
-      message (3, stderr, "Reading data of length %u from %d to %p:\n",
-	       len, fd, buf);
-      print_hex_buffer ((char *) buf, len, stderr);
-    }
+    message (LOG_DEBUG, NULL, "Reading data of length %u from %d to %p:\n",
+      len, fd, buf);
+    print_hex_buffer (LOG_DATA, NULL, (char *) buf, len);
 
   return true;
 }
@@ -89,19 +87,16 @@ full_write (int fd, void *buf, size_t len)
   ssize_t w;
   unsigned int total_written;
 
-  if (verbose >= 3)
-    {
-      message (3, stderr, "Writing data of length %u to %d from %p:\n",
-	       len, fd, buf);
-      print_hex_buffer ((char *) buf, len, stderr);
-    }
+    message (LOG_DEBUG, NULL, "Writing data of length %u to %d from %p:\n",
+       len, fd, buf);
+    print_hex_buffer (LOG_DATA, NULL, (char *) buf, len);
 
   for (total_written = 0; total_written < len; total_written += w)
     {
       w = write (fd, (char *) buf + total_written, len - total_written);
       if (w <= 0)
 	{
-	  message (2, stderr, "writing data FAILED: %d (%s)\n",
+	  message (LOG_NOTICE, NULL, "writing data FAILED: %d (%s)\n",
 		   errno, strerror (errno));
 	  return false;
 	}

@@ -216,7 +216,7 @@ pool_alloc (alloc_pool pool)
 					    (header), sizeof (pool->id)));
 #endif
 
-  message (4, stderr, "POOL ALLOC %s %p %p\n", pool->name, (void *) pool,
+  message (LOG_DEBUG, NULL, "POOL ALLOC %s %p %p\n", pool->name, (void *) pool,
 	   (void *) header);
 
   return ((void *) header);
@@ -233,7 +233,7 @@ pool_free (alloc_pool pool, void *ptr)
     abort ();
 #endif
 
-  message (4, stderr, "POOL FREE %s %p %p\n", pool->name, (void *) pool, ptr);
+  message (LOG_DEBUG, NULL, "POOL FREE %s %p %p\n", pool->name, (void *) pool, ptr);
 
 #ifdef ENABLE_CHECKING
   if (!ptr)

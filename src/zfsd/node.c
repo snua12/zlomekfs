@@ -242,9 +242,9 @@ try_create_node (uint32_t id, string *name, string *host_name)
   if (slot || slot2)
     {
       if (slot)
-	message (0, stderr, "Node with ID = %" PRIu32 " already exists\n", id);
+	message (LOG_NOTICE, NULL, "Node with ID = %" PRIu32 " already exists\n", id);
       if (slot2)
-	message (0, stderr, "Node with name = %s already exists\n", name->str);
+	message (LOG_NOTICE, NULL, "Node with name = %s already exists\n", name->str);
       zfsd_mutex_unlock (&node_mutex);
       return NULL;
     }

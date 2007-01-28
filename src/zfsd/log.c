@@ -64,8 +64,13 @@ message (int level, FILE * f, const char *format, ...)
 #ifdef USE_SYSLOG
   vsyslog(level,format,va);
 #else
+if (f != NULL){
   vfprintf (f, format, va);
   fflush (f);
+  }else{
+    vfprintf (stdout, format, va);
+    fflush (f);
+  }
 #endif
 
   va_end (va);
