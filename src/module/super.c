@@ -88,8 +88,7 @@ static int zfs_init_inodecache(void)
 
 static void zfs_destroy_inodecache(void)
 {
-        if (kmem_cache_destroy(zfs_inode_cachep))
-                INFO("zfs_inode_cache: not all structures were freed");
+        kmem_cache_destroy(zfs_inode_cachep);
 }
 
 static void zfs_put_super(struct super_block *sb)
