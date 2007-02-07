@@ -97,8 +97,6 @@ static ftype zfs_mode_to_ftype(int mode)
 }
 
 static struct inode_operations zfs_dir_inode_operations, zfs_file_inode_operations, zfs_symlink_inode_operations;
-extern struct file_operations zfs_dir_operations, zfs_file_operations;
-extern struct address_space_operations zfs_file_address_space_operations;
 
 static void zfs_fill_inode(struct inode *inode, fattr *attr)
 {
@@ -210,7 +208,7 @@ out_invalid:
         return 0;
 }
 
-struct dentry_operations zfs_dentry_operations = {
+static struct dentry_operations zfs_dentry_operations = {
         .d_revalidate   = zfs_d_revalidate,
 };
 

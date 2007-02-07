@@ -118,4 +118,14 @@ struct request {
                    which have prepared the request but not received the reply */
 };
 
+extern struct file_operations zfs_chardev_file_operations;
+extern struct file_operations zfs_dir_operations, zfs_file_operations;
+extern struct address_space_operations zfs_file_address_space_operations;
+
+extern struct inode *zfs_ilookup(struct super_block *sb, zfs_fh *fh);
+extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
+
+extern int zfs_open(struct inode *inode, struct file *file);
+extern int zfs_release(struct inode *inode, struct file *file);
+
 #endif

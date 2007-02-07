@@ -40,8 +40,6 @@ MODULE_ALIAS_CHARDEV_MAJOR(ZFS_CHARDEV_MAJOR);
 struct super_block *zfs_sb;
 struct channel channel;
 
-extern struct file_operations zfs_chardev_file_operations;
-
 static struct kmem_cache *zfs_inode_cachep;
 
 static struct inode *zfs_alloc_inode(struct super_block *sb)
@@ -114,8 +112,6 @@ static struct super_operations zfs_super_operations = {
         .put_super	= zfs_put_super,
         .statfs		= zfs_statfs,
 };
-
-extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
 
 static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 {

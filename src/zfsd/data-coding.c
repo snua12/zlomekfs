@@ -163,7 +163,7 @@ dc_destroy (DC *dc)
 
 #ifdef __KERNEL__
 
-DECLARE_MUTEX (dc_lock);
+static DECLARE_MUTEX (dc_lock);
 static DC *dc[MAX_FREE_DCS];
 static int ndc;
 

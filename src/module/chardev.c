@@ -102,8 +102,6 @@ NEXT_REQUEST:
         return nbytes;
 }
 
-extern struct inode *zfs_ilookup(struct super_block *sb, zfs_fh *fh);
-
 static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {
         struct list_head *item;
