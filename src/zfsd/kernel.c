@@ -30,6 +30,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include "pthread.h"
 #include "constant.h"
 #include "semaphore.h"
@@ -474,11 +476,24 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 bool
 kernel_start (void)
 {
-  /* Open connection with kernel.  */
-  kernel_fd = open (kernel_file_name.str, O_RDWR);
+  struct sockaddr_un sun;
+
+  kernel_fd = socket (AF_UNIX, SOCK_STREAM, 0);
   if (kernel_fd < 0)
     {
-      message (-1, stderr, "%s: open(): %s\n", kernel_file_name.str,
+      message (-1, stderr, "socket(): %s\n", strerror (errno));
+      return false;
+    }
+  sun.sun_family = AF_UNIX;
+  if (sizeof (sun.sun_path) <= kernel_file_name.len)
+    {
+      message (-1, stderr, "%s: path too long\n", kernel_file_name.str);
+      return false;
+    }
+  memcpy (sun.sun_path, kernel_file_name.str, kernel_file_name.len + 1);
+  if (connect (kernel_fd, &sun, sizeof (sun)) != 0)
+    {
+      message (-1, stderr, "%s: connect(): %s\n", kernel_file_name.str,
                strerror (errno));
       return false;
     }

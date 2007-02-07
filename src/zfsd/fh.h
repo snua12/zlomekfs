@@ -32,13 +32,9 @@ typedef struct volume_def *volume;
 #include <time.h>
 #include "pthread.h"
 #include "memory.h"
-#include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"
 #include "varray.h"
-#include "fibheap.h"
-#include "interval.h"
-#include "journal.h"
 #include "zfs-prot.h"
 #include "util.h"
 
@@ -104,6 +100,8 @@ typedef struct volume_def *volume;
                              && (FH1).sid == (FH2).sid			\
                              && (FH1).gen == (FH2).gen)
 
+#ifdef ZFSD
+
 /*! Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
   (ZFS_FH_HASH (&(D)->fh->local_fh))
@@ -133,6 +131,9 @@ typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
 
+#include "fibheap.h"
+#include "interval.h"
+#include "journal.h"
 #include "volume.h"
 #include "cap.h"
 #include "metadata.h"
@@ -396,5 +397,7 @@ extern void debug_virtual_tree (void);
 
 extern void initialize_fh_c (void);
 extern void cleanup_fh_c (void);
+
+#endif /* ZFSD */
 
 #endif

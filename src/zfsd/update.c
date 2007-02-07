@@ -1806,8 +1806,8 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
         if (r == ZFS_OK)
           {
             close (fd);
-            local_fh = &cr_res.file;
-            local_attr = &cr_res.attr;
+            local_fh = &cr_res.dor.file;
+            local_attr = &cr_res.dor.attr;
           }
         break;
 

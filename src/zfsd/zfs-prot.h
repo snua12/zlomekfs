@@ -208,8 +208,7 @@ typedef struct create_args_def
 typedef struct create_res_def
 {
   zfs_cap cap;
-  zfs_fh file;
-  fattr attr;
+  dir_op_res dor;
 } create_res;
 
 typedef struct open_args_def
@@ -453,7 +452,7 @@ struct node_def;
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-#else /* __KERNEL__ */
+#elif defined (ZFSD)
 
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
@@ -501,6 +500,17 @@ extern const char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c (void);
 extern void cleanup_zfs_prot_c (void);
 
-#endif /* !__KERNEL__ */
+#else /* !ZFSD */
+
+#include "proxy.h"
+
+#define ZFS_CALL_CLIENT
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
+extern int zfs_call_##FUNCTION(struct request *req, const ARGS *args);
+#include "zfs-prot.def"
+#undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
+
+#endif /* !ZFSD */
 
 #endif

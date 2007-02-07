@@ -198,8 +198,8 @@ zfs_proc_lookup_server (dir_op_args *args, DC *dc,
     }
 }
 
-/*! zfs_cap zfs_proc_create (zfs_fh dir, string filename, uint32_t flags,
-                             sattr attr);
+/*! zfs_cap, zfs_fh, fattr zfs_proc_create (zfs_fh dir, string filename,
+                                            uint32_t flags, sattr attr);
 
     Create the file.  \p flags are O_*, as defined in <fcntl.h>.  */
 void
@@ -221,8 +221,8 @@ zfs_proc_create_server (create_args *args, DC *dc,
     {
       if (map_id)
         {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
+          res.dor.attr.uid = map_uid_zfs2node (res.dor.attr.uid);
+          res.dor.attr.gid = map_gid_zfs2node (res.dor.attr.gid);
         }
       encode_create_res (dc, &res);
     }
@@ -927,7 +927,7 @@ cleanup_zfs_prot_c (void)
 #endif
 }
 
-#elif defined (__KERNEL__)
+#else /* !ZFSD */
 
 /*! Convert ZFS error to system error */
 
@@ -959,6 +959,8 @@ static int zfs_error(int error)
                         return -ESTALE;
         }
 }
+
+# if defined (__KERNEL__)
 
 /*! Call ZFSd FUNCTION with ARGS using data structures in DC
    and return its error code. */
@@ -999,4 +1001,44 @@ int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 # undef DEFINE_ZFS_PROC
 # undef ZFS_CALL_CLIENT
 
-#endif  /* __KERNEL__ */
+# else /* !__KERNEL__ */
+
+#include "proxy.h"
+
+static uint32_t request_id;
+
+/*! Call ZFSd FUNCTION with ARGS using data structures in DC
+   and return its positive error code. */
+#define ZFS_CALL_CLIENT
+#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUT, CALL_MODE)	\
+int									\
+zfs_call_##FUNCTION(struct request *req, const ARGS *args)		\
+{									\
+  int error;								\
+									\
+  req->id = request_id++;						\
+									\
+  start_encoding (&req->dc);						\
+  encode_direction (&req->dc, DIR_REQUEST);				\
+  encode_request_id (&req->dc, req->id);				\
+  encode_function (&req->dc, NUMBER);					\
+  if (!encode_##ARGS (&req->dc, args))					\
+    return -zfs_error (ZFS_REQUEST_TOO_LONG);				\
+  finish_encoding (&req->dc);						\
+									\
+  error = call_request (req);						\
+									\
+  if (error)								\
+    return error;							\
+									\
+  if (!decode_status(&req->dc, &error))					\
+    return EPROTO;							\
+									\
+  return -zfs_error(error);						\
+}
+# include "zfs-prot.def"
+# undef DEFINE_ZFS_PROC
+# undef ZFS_CALL_CLIENT
+
+# endif  /* !__KERNEL__ */
+#endif /* !ZFSD */

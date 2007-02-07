@@ -227,15 +227,15 @@ extern bool encode_uint64_t (DC *dc, uint64_t val);
 #define encode_zfs_time(DC, T) encode_uint32_t ((DC), *(T))
 
 extern bool decode_data_buffer (DC *dc, data_buffer *data);
-extern bool encode_data_buffer (DC *dc, data_buffer *data);
+extern bool encode_data_buffer (DC *dc, const data_buffer *data);
 extern bool decode_fixed_buffer (DC *dc, void *buf, int len);
 extern bool encode_fixed_buffer (DC *dc, void *buf, int len);
 extern bool decode_string (DC *dc, string *str, uint32_t max_len);
-extern bool encode_string (DC *dc, string *str);
+extern bool encode_string (DC *dc, const string *str);
 #ifndef __KERNEL__
 extern bool decode_void (DC *dc, void *v);
 #endif
-extern bool encode_void (DC *dc, void *v);
+extern bool encode_void (DC *dc, const void *v);
 extern bool decode_direction (DC *dc, direction *dir);
 extern bool encode_direction (DC *dc, direction dir);
 extern bool decode_ftype (DC *dc, ftype *type);
@@ -245,47 +245,47 @@ extern bool decode_connection_speed (DC *dc, connection_speed *speed);
 extern bool encode_connection_speed (DC *dc, connection_speed speed);
 #endif
 extern bool decode_zfs_fh (DC *dc, zfs_fh *fh);
-extern bool encode_zfs_fh (DC *dc, zfs_fh *fh);
+extern bool encode_zfs_fh (DC *dc, const zfs_fh *fh);
 extern bool decode_zfs_cap (DC *dc, zfs_cap *cap);
-extern bool encode_zfs_cap (DC *dc, zfs_cap *cap);
+extern bool encode_zfs_cap (DC *dc, const zfs_cap *cap);
 extern bool decode_fattr (DC *dc, fattr *attr);
 #ifndef __KERNEL__
 extern bool encode_fattr (DC *dc, fattr *attr);
 extern bool decode_sattr (DC *dc, sattr *attr);
 #endif
-extern bool encode_sattr (DC *dc, sattr *attr);
+extern bool encode_sattr (DC *dc, const sattr *attr);
 extern bool decode_filename (DC *dc, string *str);
-extern bool encode_filename (DC *dc, string *str);
+extern bool encode_filename (DC *dc, const string *str);
 extern bool decode_zfs_path (DC *dc, string *str);
-extern bool encode_zfs_path (DC *dc, string *str);
+extern bool encode_zfs_path (DC *dc, const string *str);
 #ifndef __KERNEL__
 extern bool decode_nodename (DC *dc, string *str);
-extern bool encode_nodename (DC *dc, string *str);
+extern bool encode_nodename (DC *dc, const string *str);
 extern bool decode_volume_root_args (DC *dc, volume_root_args *args);
-extern bool encode_volume_root_args (DC *dc, volume_root_args *args);
+extern bool encode_volume_root_args (DC *dc, const volume_root_args *args);
 extern bool decode_setattr_args (DC *dc, setattr_args *args);
 #endif
-extern bool encode_setattr_args (DC *dc, setattr_args *args);
+extern bool encode_setattr_args (DC *dc, const setattr_args *args);
 #ifndef __KERNEL__
 extern bool decode_dir_op_args (DC *dc, dir_op_args *args);
 #endif
-extern bool encode_dir_op_args (DC *dc, dir_op_args *args);
+extern bool encode_dir_op_args (DC *dc, const dir_op_args *args);
 extern bool decode_dir_op_res (DC *dc, dir_op_res *res);
 #ifndef __KERNEL__
 extern bool encode_dir_op_res (DC *dc, dir_op_res *res);
 extern bool decode_create_args (DC *dc, create_args *args);
 #endif
-extern bool encode_create_args (DC *dc, create_args *args);
+extern bool encode_create_args (DC *dc, const create_args *args);
 extern bool decode_create_res (DC *dc, create_res *res);
 #ifndef __KERNEL__
 extern bool encode_create_res (DC *dc, create_res *res);
 extern bool decode_open_args (DC *dc, open_args *args);
 #endif
-extern bool encode_open_args (DC *dc, open_args *args);
+extern bool encode_open_args (DC *dc, const open_args *args);
 #ifndef __KERNEL__
 extern bool decode_read_dir_args (DC *dc, read_dir_args *args);
 #endif
-extern bool encode_read_dir_args (DC *dc, read_dir_args *args);
+extern bool encode_read_dir_args (DC *dc, const read_dir_args *args);
 extern bool decode_dir_entry (DC *dc, dir_entry *entry);
 #ifndef __KERNEL__
 extern bool encode_dir_entry (DC *dc, dir_entry *entry);
@@ -295,25 +295,25 @@ extern bool decode_dir_list (DC *dc, dir_list *list);
 extern bool encode_dir_list (DC *dc, dir_list *list);
 extern bool decode_mkdir_args (DC *dc, mkdir_args *args);
 #endif
-extern bool encode_mkdir_args (DC *dc, mkdir_args *args);
+extern bool encode_mkdir_args (DC *dc, const mkdir_args *args);
 #ifndef __KERNEL__
 extern bool decode_rename_args (DC *dc, rename_args *args);
 #endif
-extern bool encode_rename_args (DC *dc, rename_args *args);
+extern bool encode_rename_args (DC *dc, const rename_args *args);
 #ifndef __KERNEL__
 extern bool decode_link_args (DC *dc, link_args *args);
 #endif
-extern bool encode_link_args (DC *dc, link_args *args);
+extern bool encode_link_args (DC *dc, const link_args *args);
 #ifndef __KERNEL__
 extern bool decode_read_args (DC *dc, read_args *args);
 #endif
-extern bool encode_read_args (DC *dc, read_args *args);
+extern bool encode_read_args (DC *dc, const read_args *args);
 extern bool decode_read_res (DC *dc, read_res *res);
 #ifndef __KERNEL__
 extern bool encode_read_res (DC *dc, read_res *res);
 extern bool decode_write_args (DC *dc, write_args *args);
 #endif
-extern bool encode_write_args (DC *dc, write_args *args);
+extern bool encode_write_args (DC *dc, const write_args *args);
 extern bool decode_write_res (DC *dc, write_res *res);
 #ifndef __KERNEL__
 extern bool encode_write_res (DC *dc, write_res *res);
@@ -323,39 +323,42 @@ extern bool decode_read_link_res (DC *dc, read_link_res *res);
 extern bool encode_read_link_res (DC *dc, read_link_res *res);
 extern bool decode_symlink_args (DC *dc, symlink_args *args);
 #endif
-extern bool encode_symlink_args (DC *dc, symlink_args *args);
+extern bool encode_symlink_args (DC *dc, const symlink_args *args);
 #ifndef __KERNEL__
 extern bool decode_mknod_args (DC *dc, mknod_args *args);
 #endif
-extern bool encode_mknod_args (DC *dc, mknod_args *args);
+extern bool encode_mknod_args (DC *dc, const mknod_args *args);
 #ifndef __KERNEL__
 extern bool decode_auth_stage1_args (DC *dc, auth_stage1_args *args);
-extern bool encode_auth_stage1_args (DC *dc, auth_stage1_args *args);
+extern bool encode_auth_stage1_args (DC *dc, const auth_stage1_args *args);
 extern bool decode_auth_stage1_res (DC *dc, auth_stage1_res *res);
 extern bool encode_auth_stage1_res (DC *dc, auth_stage1_res *res);
 extern bool decode_auth_stage2_args (DC *dc, auth_stage2_args *args);
-extern bool encode_auth_stage2_args (DC *dc, auth_stage2_args *args);
+extern bool encode_auth_stage2_args (DC *dc, const auth_stage2_args *args);
 extern bool decode_md5sum_args (DC *dc, md5sum_args *args);
-extern bool encode_md5sum_args (DC *dc, md5sum_args *args);
+extern bool encode_md5sum_args (DC *dc, const md5sum_args *args);
 extern bool decode_md5sum_res (DC *dc, md5sum_res *res);
 extern bool encode_md5sum_res (DC *dc, md5sum_res *res);
 extern bool decode_file_info_res (DC *dc, file_info_res *res);
 extern bool encode_file_info_res (DC *dc, file_info_res *res);
 extern bool decode_reintegrate_args (DC *dc, reintegrate_args *args);
-extern bool encode_reintegrate_args (DC *dc, reintegrate_args *args);
+extern bool encode_reintegrate_args (DC *dc, const reintegrate_args *args);
 extern bool decode_reintegrate_add_args (DC *dc, reintegrate_add_args *args);
-extern bool encode_reintegrate_add_args (DC *dc, reintegrate_add_args *args);
+extern bool encode_reintegrate_add_args (DC *dc,
+					 const reintegrate_add_args *args);
 extern bool decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args);
-extern bool encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args);
+extern bool encode_reintegrate_del_args (DC *dc,
+					 const reintegrate_del_args *args);
 extern bool decode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args);
-extern bool encode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args);
+extern bool encode_reintegrate_ver_args (DC *dc,
+					 const reintegrate_ver_args *args);
 #endif
 #ifdef __KERNEL__
 extern bool decode_invalidate_args (DC *dc, invalidate_args *args);
 #else
 extern bool encode_invalidate_args (DC *dc, invalidate_args *args);
 extern bool decode_reread_config_args (DC *dc, reread_config_args *args);
-extern bool encode_reread_config_args (DC *dc, reread_config_args *args);
+extern bool encode_reread_config_args (DC *dc, const reread_config_args *args);
 #endif
 
 #endif

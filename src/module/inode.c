@@ -246,7 +246,7 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
                 return error;
         }
 
-        inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+        inode = zfs_iget(dir->i_sb, &res.dor.file, &res.dor.attr);
         if (!inode)
                 return -ENOMEM;
 
