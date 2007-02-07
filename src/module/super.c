@@ -42,13 +42,13 @@ struct channel channel;
 
 extern struct file_operations zfs_chardev_file_operations;
 
-static kmem_cache_t *zfs_inode_cachep;
+static struct kmem_cache *zfs_inode_cachep;
 
 static struct inode *zfs_alloc_inode(struct super_block *sb)
 {
         struct zfs_inode_info *ei;
 
-        ei = kmem_cache_alloc(zfs_inode_cachep, SLAB_KERNEL);
+        ei = kmem_cache_alloc(zfs_inode_cachep, GFP_KERNEL);
         if (!ei)
                 return NULL;
 
@@ -64,7 +64,8 @@ static void zfs_destroy_inode(struct inode *inode)
         kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
 }
 
-static void zfs_init_once(void *foo, kmem_cache_t *cachep, unsigned long flags)
+static void zfs_init_once(void *foo, struct kmem_cache *cachep,
+			  unsigned long flags)
 {
         struct zfs_inode_info *ei = (struct zfs_inode_info *)foo;
 
