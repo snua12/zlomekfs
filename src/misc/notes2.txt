@@ -1,0 +1,59 @@
+xml-input + .so transformation into structure (linking functions?)
+xml-output
+periodical snapshots (dump + filesystem)?
+
+man core
+
+monolog
+- normal logging facility
+
+log4j 4py 4c
+- tree hierarchy
+- printing classes
+- multiple targets
+
+gcore
+- only gdb core dumps
+- in current (6.x) only from gdb (no command line tool)
+
+checkpointing and running in virtual machine
+openVZ / xen 
+
+BLCR
+- should work everything
+- end 2005
+- don't support tcp/upd
+
+cryopid
+- seems to have everything working (don't know about devices)
+- end 2005
+- ?kernel?
+
+chpox
+- seems to have everything working
+- linux 2.4
+- end 2003
+- kernel-mode
+
+ckpt 
+- can't checkpoint threaded programs
+- linux 2.6
+- end 2005
+- usermode
+
+asim shankar
+- linux 2.6
+- fd (regular)
+- no signals, dlopen, threads, mmap
+- end 2005
+- usermode
+
+esky 
+- usermode
+- no threaded
+- prelink
+- dll, mmap, fd (no devices), sighandlers
+- linux 2.2
+- end 2002
+
+others epckpt, libckpt, ...
