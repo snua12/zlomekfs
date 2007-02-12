@@ -31,6 +31,7 @@
 #include <linux/wait.h>
 #include <linux/errno.h>
 #include <linux/types.h>
+#include <linux/sched.h>
 #include <asm/semaphore.h>
 #include <asm/uaccess.h>
 
