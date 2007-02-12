@@ -1,3 +1,5 @@
+last trmac's merged revision:2438 (last up on 2434)
+
 communication with one provider may not change the behavior of operations on objects not provided by him
 
 is it true, that for kernel is it the same to comunicate with remote and local provider?

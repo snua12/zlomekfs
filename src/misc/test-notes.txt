@@ -3,6 +3,8 @@ setup/teardown - nastaveni, erase pred/po testu
 
 test on all levels
 
+pickling and unpickling - serialization :)
+
 mind maps
 flash demos
 
