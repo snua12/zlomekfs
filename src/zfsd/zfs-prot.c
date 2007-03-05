@@ -930,8 +930,7 @@ cleanup_zfs_prot_c (void)
 #else /* !ZFSD */
 
 /*! Convert ZFS error to system error */
-
-static int zfs_error(int error)
+int zfs_error(int error)
 {
         if (error > 0)
                 return -error;
@@ -1003,6 +1002,8 @@ int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
 
 # else /* !__KERNEL__ */
 
+#include <stdlib.h>
+
 #include "proxy.h"
 
 static uint32_t request_id;
@@ -1011,30 +1012,24 @@ static uint32_t request_id;
    and return its positive error code. */
 #define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUT, CALL_MODE)	\
-int									\
+void									\
 zfs_call_##FUNCTION(struct request *req, const ARGS *args)		\
 {									\
-  int error;								\
-									\
   req->id = request_id++;						\
-									\
   start_encoding (&req->dc);						\
   encode_direction (&req->dc, DIR_REQUEST);				\
   encode_request_id (&req->dc, req->id);				\
   encode_function (&req->dc, NUMBER);					\
   if (!encode_##ARGS (&req->dc, args))					\
-    return -zfs_error (ZFS_REQUEST_TOO_LONG);				\
-  finish_encoding (&req->dc);						\
-									\
-  error = call_request (req);						\
-									\
-  if (error)								\
-    return error;							\
-									\
-  if (!decode_status(&req->dc, &error))					\
-    return EPROTO;							\
-									\
-  return -zfs_error(error);						\
+    {									\
+      req->handle_reply (req, -zfs_error (ZFS_REQUEST_TOO_LONG));	\
+      free (req);							\
+    }									\
+  else									\
+    {									\
+      finish_encoding (&req->dc);					\
+      call_request (req);						\
+    }									\
 }
 # include "zfs-prot.def"
 # undef DEFINE_ZFS_PROC

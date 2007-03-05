@@ -506,11 +506,15 @@ extern void cleanup_zfs_prot_c (void);
 
 #define ZFS_CALL_CLIENT
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-extern int zfs_call_##FUNCTION(struct request *req, const ARGS *args);
+extern void zfs_call_##FUNCTION(struct request *req, const ARGS *args);
 #include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
 #endif /* !ZFSD */
+
+#ifndef ZFSD
+extern int zfs_error(int error);
+#endif
 
 #endif
