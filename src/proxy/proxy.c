@@ -24,6 +24,7 @@
 #define ZFSD_SOCKET "/home/mitr/z/socket"
 
 static int zfsd_fd;
+static struct fuse_session *se;
 
 static fuse_ino_t next_ino;
 
@@ -59,6 +60,23 @@ static int
 inode_map_fh_eq (const void *x, const void *y)
 {
   return ZFS_FH_EQ (((const struct inode_map *)x)->fh, *(const zfs_fh *)y);
+}
+
+/* Return 0 if not found */
+static fuse_ino_t
+fh_get_inode (const zfs_fh *fh)
+{
+  void **slot;
+
+  slot = htab_find_slot_with_hash (inode_map_fh, &fh, ZFS_FH_HASH (fh), INSERT);
+  if (*slot != NULL)
+    {
+      struct inode_map *map;
+
+      map = *slot;
+      return map->ino;
+    }
+  return 0;
 }
 
 /* FIXME?
@@ -221,6 +239,40 @@ call_request (struct request *req)
 }
 
 static void
+handle_oneway_request (DC *dc)
+{
+  uint32_t fn;
+
+  if (!decode_function (dc, &fn))
+    {
+      message (1, stderr, "Invalid one-way request\n");
+      return;
+    }
+  switch (fn)
+    {
+    case ZFS_PROC_INVALIDATE:
+      {
+	invalidate_args args;
+	fuse_ino_t ino;
+
+	if (!decode_invalidate_args (dc, &args) || !finish_decoding (dc))
+	  {
+	    message (1, stderr, "Invalid invalidate notification\n");
+	    return;
+	  }
+	ino = fh_get_inode (&args.fh);
+	if (ino != 0)
+	  fuse_kernel_invalidate_metadata(se, ino);
+	break;
+      }
+
+    default:
+      message(1, stderr, "Unknown one-way request %" PRIu32 "\n", fn);
+      return;
+    }
+}
+
+static void
 handle_request_reply (void)
 {
   DC dc;
@@ -242,7 +294,7 @@ handle_request_reply (void)
       return;
 
     case DIR_ONEWAY:
-      message (1, stderr, "Ignoring an one-way reply\n");
+      handle_oneway_request(&dc);
       return;
 
     case DIR_REPLY:
@@ -1076,6 +1128,7 @@ zfs_proxy_release_reply (struct request *rq, int err)
       err = EPROTO;
       goto err;
     }
+  (void)fuse_kernel_invalidate_data(se, rq->u.ino);
   /* Fall through */
  err:
   fuse_reply_err (rq->req, err);
@@ -1084,14 +1137,13 @@ zfs_proxy_release_reply (struct request *rq, int err)
 static void
 zfs_proxy_release (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 {
-  /* FIXME FIXME: write out any pending modifications in the page cache and
-     invalidate the cache */
   struct request *rq;
   zfs_cap *cap;
 
-  (void)ino;
+  (void)fuse_kernel_sync_inode(se, ino);
   cap = (zfs_cap *)(intptr_t)fi->fh;
   rq = request_new (req, zfs_proxy_release_reply);
+  rq->u.ino = ino;
   zfs_call_close (rq, cap);
   free (cap);
 }
@@ -1401,7 +1453,6 @@ main (int argc, char *argv[])
 {
   struct fuse_args args;
   char *mountpoint;
-  struct fuse_session *se;
   struct fuse_chan *ch;
   size_t fuse_buf_size;
   void *fuse_buf;

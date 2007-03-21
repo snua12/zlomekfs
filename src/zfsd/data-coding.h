@@ -353,9 +353,10 @@ extern bool decode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args);
 extern bool encode_reintegrate_ver_args (DC *dc,
 					 const reintegrate_ver_args *args);
 #endif
-#ifdef __KERNEL__
+#if defined (__KERNEL__) || !defined (ZFSD)
 extern bool decode_invalidate_args (DC *dc, invalidate_args *args);
-#else
+#endif
+#ifndef __KERNEL__
 extern bool encode_invalidate_args (DC *dc, invalidate_args *args);
 extern bool decode_reread_config_args (DC *dc, reread_config_args *args);
 extern bool encode_reread_config_args (DC *dc, const reread_config_args *args);

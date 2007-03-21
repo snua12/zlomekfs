@@ -1295,14 +1295,15 @@ encode_reintegrate_ver_args (DC *dc, const reintegrate_ver_args *args)
 
 #endif
 
-#ifdef __KERNEL__
+#if defined (__KERNEL__) || !defined (ZFSD)
 bool
 decode_invalidate_args (DC *dc, invalidate_args *args)
 {
   return decode_zfs_fh (dc, &args->fh);
 }
+#endif
 
-#else
+#ifndef __KERNEL__
 
 bool
 encode_invalidate_args (DC *dc, invalidate_args *args)
