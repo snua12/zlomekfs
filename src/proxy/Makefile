@@ -30,8 +30,10 @@ CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 LD = gcc
 LD_OPTS = $(FUSE_LDFLAGS) -lpthread
 
-FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
-FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
+#FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
+FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I../fuse/include
+#FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
+FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a -lrt -ldl
 
 ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -O0
@@ -62,7 +64,7 @@ OO_ZFS_PROXY = proxy.o \
 	       zfs-prot.o
 
 zfs-proxy: $(OO_ZFS_PROXY)
-	$(LD) $(LD_OPTS) -o $@ $^
+	$(LD) -o $@ $^ $(LD_OPTS)
 
 # Dependencies
 
