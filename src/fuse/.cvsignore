@@ -1,0 +1,15 @@
+Makefile.in
+Makefile
+*.m4
+ltmain.sh
+configure
+install-sh
+mkinstalldirs
+missing
+*.cache
+config.*
+depcomp
+compile
+libtool
+INSTALL
+fuse.pc
