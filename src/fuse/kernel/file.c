@@ -901,8 +901,8 @@ static struct inode *fc_ilookup(struct fuse_conn *fc, unsigned long nodeid)
 	}
 	sb = fc->sb;
 	sb->s_count++; /* FIXME: need to hold sb_lock? */
-	down_read(&sb->s_umount);
 	spin_unlock(&fc->lock);
+	down_read(&sb->s_umount);
 	inode = fuse_ilookup(sb, nodeid);
 	drop_super(sb);
 	return inode;

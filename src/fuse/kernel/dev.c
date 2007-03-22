@@ -872,12 +872,15 @@ static ssize_t fuse_dev_writev(struct file *file, const struct iovec *iov,
 		struct fuse_back_header bh;
 
 		spin_unlock(&fc->lock);
+
 		if (nbytes != sizeof(struct fuse_out_header)
 		    + sizeof(struct fuse_back_header))
 			goto err_finish;
 		err = fuse_copy_one(&cs, &bh, sizeof(bh));
 		if (err)
 			goto err_finish;
+		fuse_copy_finish(&cs);
+
 		err = -ENOSYS;
 		if (bh.opcode > ARRAY_SIZE(back_fns)
 		    || back_fns[bh.opcode] == NULL)
