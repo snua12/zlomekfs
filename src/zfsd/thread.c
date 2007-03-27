@@ -244,7 +244,7 @@ thread_pool_create (thread_pool *pool, thread_limit *limit,
   zfsd_mutex_unlock (&pool->mutex);
 
   /* Create thread pool regulator.  */
-  r = pthread_create ((pthread_t *) &pool->regulator_thread, NULL,
+  r = pthread_create (CAST_QUAL (pthread_t *, &pool->regulator_thread), NULL,
 		      thread_pool_regulator, pool);
   if (r != 0)
     {
@@ -254,7 +254,7 @@ thread_pool_create (thread_pool *pool, thread_limit *limit,
     }
 
   /* Create main thread pool.  */
-  r = pthread_create ((pthread_t *) &pool->main_thread, NULL,
+  r = pthread_create (CAST_QUAL (pthread_t *, &pool->main_thread), NULL,
 		      main_start, pool);
   if (r != 0)
     {

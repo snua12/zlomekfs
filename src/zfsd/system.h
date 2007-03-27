@@ -84,14 +84,14 @@
 #define VALGRIND_DISCARD(x)
 #endif
 
-/* Cast away constness while avoiding a gcc -Wcast-qual warning; TYPE must be
-   "T *" and VALUE must have type "const T *".
+/* Cast away qualifiers while avoiding a gcc -Wcast-qual warning; TYPE must be
+   "T *" and VALUE must have type "qualifier T *".
 
    The subtraction is there to ensure this type relation; it is wrapped in
    sizeof to avoid evaluating VALUE twice - or even evaluating the subtraction,
    which has undefined value (assuming TYPE is not a variably-modified
    type). */
-#define CONST_CAST(TYPE, VALUE) \
+#define CAST_QUAL(TYPE, VALUE) \
   ((void)sizeof ((VALUE) - (TYPE)0), (TYPE)(intptr_t)(VALUE))
 
 #endif /* !__KERNEL__ */

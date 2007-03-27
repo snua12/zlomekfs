@@ -1228,7 +1228,7 @@ filldir_encode (uint32_t ino, int32_t cookie, const char *name,
 
   entry.ino = ino;
   entry.cookie = cookie;
-  entry.name.str = CONST_CAST (char *, name);
+  entry.name.str = CAST_QUAL (char *, name);
   entry.name.len = name_len;
 
   /* Try to encode ENTRY to DC.  */

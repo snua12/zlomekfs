@@ -726,7 +726,7 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
   args.cap = *cap;
   args.offset = off;
   args.data.len = size;
-  args.data.buf = CONST_CAST (char *, buf);
+  args.data.buf = CAST_QUAL (char *, buf);
   err = -zfs_error (zfs_write (&res, &args));
   if (err != 0)
     goto err;
