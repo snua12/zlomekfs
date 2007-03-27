@@ -752,10 +752,12 @@ zfs_fuse_read (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 				  true));
       if (err != 0)
 	goto err_buf_estale;
+      if (res.data.len == 0)
+	break;
       done += res.data.len;
     }
   while (done < size);
-  fuse_reply_buf (req, buf, size);
+  fuse_reply_buf (req, buf, done);
   free (buf);
   return;
 
