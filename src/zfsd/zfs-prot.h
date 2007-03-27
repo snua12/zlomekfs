@@ -452,13 +452,12 @@ struct node_def;
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-#elif defined (ZFSD)
+#else
 
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
-                                            DC *dc, void *data,		\
-                                            bool map_id);
+                                            DC *dc, void *data);
 #include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_SERVER
@@ -492,29 +491,14 @@ struct node_def;
 #undef ZFS_CALL_KERNEL
 
 /*! Call statistics.  */
-#define CALL_FROM_KERNEL	0
-#define CALL_FROM_NETWORK	1
-extern uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
+extern uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];
 
 extern const char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c (void);
 extern void cleanup_zfs_prot_c (void);
 
-#else /* !ZFSD */
+#endif /* !__KERNEL__ */
 
-#include "proxy.h"
-
-#define ZFS_CALL_CLIENT
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-extern void zfs_call_##FUNCTION(struct request *req, const ARGS *args);
-#include "zfs-prot.def"
-#undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_CLIENT
-
-#endif /* !ZFSD */
-
-#ifndef ZFSD
 extern int zfs_error(int error);
-#endif
 
 #endif

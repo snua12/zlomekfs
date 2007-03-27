@@ -100,8 +100,6 @@ typedef struct volume_def *volume;
                              && (FH1).sid == (FH2).sid			\
                              && (FH1).gen == (FH2).gen)
 
-#ifdef ZFSD
-
 /*! Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
   (ZFS_FH_HASH (&(D)->fh->local_fh))
@@ -397,7 +395,5 @@ extern void debug_virtual_tree (void);
 
 extern void initialize_fh_c (void);
 extern void cleanup_fh_c (void);
-
-#endif /* ZFSD */
 
 #endif
