@@ -1,5 +1,3 @@
-/* FIXME FIXME FIXME: handle -ESTALE at all places */
-
 /*! \file
     \brief Functions for threads communicating with kernel.  */
 
@@ -111,7 +109,6 @@ inode_map_fh_eq (const void *x, const void *y)
 }
 
 /* Return 0 if not found */
-/* FIXME FIXME: use for back calls */
 static fuse_ino_t
 fh_get_inode (const zfs_fh *fh)
 {
@@ -289,7 +286,7 @@ zfs_fuse_lookup (fuse_req_t req, fuse_ino_t parent, const char *name)
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.dir = *fh;
@@ -297,11 +294,14 @@ zfs_fuse_lookup (fuse_req_t req, fuse_ino_t parent, const char *name)
   err = -zfs_error (zfs_lookup (&res, &args.dir, &args.name));
   free (args.name.str);
   if (err != 0)
-    goto err;
+    goto err_estale;
   entry_from_dir_op_res (&e, &res);
   fuse_reply_entry (req, &e);
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
@@ -319,13 +319,13 @@ zfs_fuse_getattr (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args = *fh;
   err = -zfs_error (zfs_getattr (&fa, &args));
   if (err != 0)
-    goto err;
+    goto err; /* ESTALE not handled specially */
   stat_from_fattr (&st, &fa, ino);
   fuse_reply_attr (req, &st, CACHE_VALIDITY);
   return;
@@ -348,7 +348,7 @@ zfs_fuse_setattr (fuse_req_t req, fuse_ino_t ino, struct stat *attr,
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.file = *fh;
@@ -380,11 +380,14 @@ zfs_fuse_setattr (fuse_req_t req, fuse_ino_t ino, struct stat *attr,
     args.attr.mtime = -1;
   err = -zfs_error (zfs_setattr (&fa, &args.file, &args.attr));
   if (err != 0)
-    goto err;
+    goto err_estale;
   stat_from_fattr (&st, &fa, ino);
   fuse_reply_attr (req, &st, CACHE_VALIDITY);
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata (fuse_se, ino);
  err:
   fuse_reply_err (req, err);
 }
@@ -400,7 +403,7 @@ zfs_fuse_readlink (fuse_req_t req, fuse_ino_t ino)
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args = *fh;
@@ -428,7 +431,7 @@ zfs_fuse_mknod (fuse_req_t req, fuse_ino_t parent, const char *name,
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.where.dir = *fh;
@@ -449,11 +452,14 @@ zfs_fuse_mknod (fuse_req_t req, fuse_ino_t parent, const char *name,
 			       &args.attr, args.type, args.rdev));
   free (args.where.name.str);
   if (err != 0)
-    goto err;
+    goto err_estale;
   entry_from_dir_op_res (&e, &res);
   fuse_reply_entry (req, &e);
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
@@ -471,7 +477,7 @@ zfs_fuse_mkdir (fuse_req_t req, fuse_ino_t parent, const char *name,
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.where.dir = *fh;
@@ -483,11 +489,14 @@ zfs_fuse_mkdir (fuse_req_t req, fuse_ino_t parent, const char *name,
 			       &args.attr));
   free (args.where.name.str);
   if (err != 0)
-    goto err;
+    goto err_estale;
   entry_from_dir_op_res (&e, &res);
   fuse_reply_entry (req, &e);
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
@@ -502,7 +511,7 @@ zfs_fuse_unlink (fuse_req_t req, fuse_ino_t parent, const char *name)
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.dir = *fh;
@@ -510,8 +519,12 @@ zfs_fuse_unlink (fuse_req_t req, fuse_ino_t parent, const char *name)
   err = -zfs_error (zfs_unlink (&args.dir, &args.name));
   free (args.name.str);
   if (err != 0)
-    goto err;
-  /* Fall through */
+    goto err_estale;
+  goto err;
+
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
@@ -526,7 +539,7 @@ zfs_fuse_rmdir (fuse_req_t req, fuse_ino_t parent, const char *name)
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.dir = *fh;
@@ -534,8 +547,12 @@ zfs_fuse_rmdir (fuse_req_t req, fuse_ino_t parent, const char *name)
   err = -zfs_error (zfs_rmdir (&args.dir, &args.name));
   free (args.name.str);
   if (err != 0)
-    goto err;
-  /* Fall through */
+    goto err_estale;
+  goto err;
+
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
@@ -553,7 +570,7 @@ zfs_fuse_symlink (fuse_req_t req, const char *dest, fuse_ino_t parent,
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.from.dir = *fh;
@@ -565,11 +582,14 @@ zfs_fuse_symlink (fuse_req_t req, const char *dest, fuse_ino_t parent,
   free (args.from.name.str);
   free (args.to.str);
   if (err != 0)
-    goto err;
+    goto err_estale;
   entry_from_dir_op_res (&e, &res);
   fuse_reply_entry (req, &e);
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
@@ -585,14 +605,14 @@ zfs_fuse_rename (fuse_req_t req, fuse_ino_t parent, const char *name,
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.from.dir = *fh;
   fh = inode_to_fh (newparent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.to.dir = *fh;
@@ -603,8 +623,15 @@ zfs_fuse_rename (fuse_req_t req, fuse_ino_t parent, const char *name,
   free (args.from.name.str);
   free (args.to.name.str);
   if (err != 0)
-    goto err;
-  /* Fall through */
+    goto err_estale;
+  goto err;
+
+ err_estale:
+  if (err == ESTALE)
+    {
+      (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+      (void)fuse_kernel_invalidate_metadata(fuse_se, newparent);
+    }
  err:
   fuse_reply_err (req, err);
 }
@@ -622,14 +649,14 @@ zfs_fuse_link (fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.from = *fh;
   fh = inode_to_fh (newparent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.to.dir = *fh;
@@ -638,14 +665,22 @@ zfs_fuse_link (fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
   if (err != 0)
     {
       free (args.to.name.str);
-      goto err;
+      goto err_estale;
     }
   err = -zfs_error (zfs_lookup (&res, &args.to.dir, &args.to.name));
   free (args.to.name.str);
+  if (err != 0)
+    goto err_estale_newparent;
   entry_from_dir_op_res (&e, &res);
   fuse_reply_entry (req, &e);
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+ err_estale_newparent:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, newparent);
  err:
   fuse_reply_err (req, err);
 }
@@ -661,23 +696,29 @@ zfs_fuse_open (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.file = *fh;
   args.flags = fi->flags;
   err = -zfs_error (zfs_open (&res, &args.file, args.flags));
   if (err != 0)
-    goto err;
+    goto err_estale;
   cap = xmalloc (sizeof (*cap));
   *cap = res;
   fi->fh = (intptr_t)cap;
   fi->direct_io = 0; /* Use the page cache */
   fi->keep_cache = 1;
-  fuse_reply_open (req, fi);
-  /* FIXME: release the file if reply_open fails? */
+  if (fuse_reply_open (req, fi) != 0)
+    {
+      (void)zfs_close (cap);
+      free (cap);
+    }
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
  err:
   fuse_reply_err (req, err);
 }
@@ -686,29 +727,42 @@ static void
 zfs_fuse_read (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 	       struct fuse_file_info *fi)
 {
-  read_args args;
-  read_res res;
   zfs_cap *cap;
+  void *buf;
+  size_t done;
   int err;
 
-  (void)ino;
   cap = (zfs_cap *)(intptr_t)fi->fh;
-  args.cap = *cap;
-  args.offset = off;
-  args.count = size;
-  res.data.buf = xmalloc (size); /* FIXME: avoid the allocations? */
-  /* FIXME: handle size > ZFS_MAXDATA? */
-  err = -zfs_error (zfs_read (&res, &args.cap, args.offset, args.count, true));
-  if (err != 0)
+  buf = xmalloc (size);
+  done = 0;
+  do
     {
-      free (res.data.buf);
-      goto err;
+      read_args args;
+      read_res res;
+      size_t run;
+
+      run = size - done;
+      if (run > ZFS_MAXDATA)
+	run = ZFS_MAXDATA;
+      args.cap = *cap;
+      args.offset = off + done;
+      args.count = run;
+      res.data.buf = (char *)buf + done;
+      err = -zfs_error (zfs_read (&res, &args.cap, args.offset, args.count,
+				  true));
+      if (err != 0)
+	goto err_buf_estale;
+      done += res.data.len;
     }
-  fuse_reply_buf (req, res.data.buf, res.data.len);
-  free (res.data.buf);
+  while (done < size);
+  fuse_reply_buf (req, buf, size);
+  free (buf);
   return;
 
- err:
+ err_buf_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+  free (buf);
   fuse_reply_err (req, err);
 }
 
@@ -721,7 +775,6 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
   zfs_cap *cap;
   int err;
 
-  (void)ino;
   cap = (zfs_cap *)(intptr_t)fi->fh;
   args.cap = *cap;
   args.offset = off;
@@ -729,12 +782,14 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
   args.data.buf = CAST_QUAL (char *, buf);
   err = -zfs_error (zfs_write (&res, &args));
   if (err != 0)
-    goto err;
+    goto err_estale;
   fuse_reply_write (req, res.written);
   return;
 
- err:
-  fuse_reply_err (req, err);
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+   fuse_reply_err (req, err);
 }
 
 static void
@@ -748,7 +803,7 @@ zfs_fuse_release (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   err = -zfs_error (zfs_close (cap));
   free (cap);
   if (err != 0)
-    goto err;
+    goto err; /* ESTALE not handled specially */
   (void)fuse_kernel_invalidate_data(fuse_se, ino);
   /* Fall through */
  err:
@@ -779,7 +834,6 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   uint32_t i;
   int err;
 
-  (void)ino;
   cap = (zfs_cap *)(intptr_t)fi->fh;
   args.cap = *cap;
   args.cookie = off;
@@ -791,7 +845,7 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   err = -zfs_error (zfs_readdir (&list, &args.cap, args.cookie, args.count,
 				 &filldir_array));
   if (err != 0)
-    goto err_list;
+    goto err_list_estale;
 
   buf_size = args.count;
   buf = xmalloc (buf_size);
@@ -824,7 +878,9 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   free_dir_list_array (&list);
   return;
 
- err_list:
+ err_list_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
   free_dir_list_array (&list);
   fuse_reply_err (req, err);
 }
@@ -864,7 +920,7 @@ zfs_fuse_create (fuse_req_t req, fuse_ino_t parent, const char *name,
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
-      err = EBADF; /* FIXME? other value? */
+      err = EINVAL;
       goto err;
     }
   args.where.dir = *fh;
@@ -877,17 +933,23 @@ zfs_fuse_create (fuse_req_t req, fuse_ino_t parent, const char *name,
 				args.flags, &args.attr));
   free (args.where.name.str);
   if (err != 0)
-    goto err;
+    goto err_estale;
   entry_from_dir_op_res (&e, &res.dor);
   cap = xmalloc (sizeof (*cap));
   *cap = res.cap;
   fi->fh = (intptr_t)cap;
   fi->direct_io = 0; /* Use the page cache */
   fi->keep_cache = 1;
-  fuse_reply_create (req, &e, fi);
-  /* FIXME: release the file if reply_create fails? */
+  if (fuse_reply_create (req, &e, fi) != 0)
+    {
+      (void)zfs_close (cap);
+      free (cap);
+    }
   return;
 
+ err_estale:
+  if (err == ESTALE)
+    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
  err:
   fuse_reply_err (req, err);
 }
