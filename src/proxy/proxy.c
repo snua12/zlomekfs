@@ -26,8 +26,6 @@
 static int zfsd_fd;
 static struct fuse_session *se;
 
-static fuse_ino_t next_ino;
-
  /* Inode <-> file handle mapping */
 
 struct inode_map
@@ -35,6 +33,8 @@ struct inode_map
   fuse_ino_t ino;
   zfs_fh fh;
 };
+
+static fuse_ino_t next_ino;
 
 static htab_t inode_map_ino, inode_map_fh;
 
