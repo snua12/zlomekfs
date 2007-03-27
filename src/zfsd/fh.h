@@ -263,6 +263,7 @@ struct virtual_dir_def
   long unused1;
 #endif
 
+  /*! fh_mutex must be held before locking this mutex. */
   pthread_mutex_t mutex;
 
   /*! Handle of this node.  */
