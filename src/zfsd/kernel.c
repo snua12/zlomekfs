@@ -116,7 +116,7 @@ fh_get_inode (const zfs_fh *fh)
   struct inode_map *map;
 
   zfsd_mutex_lock (&inode_map_mutex);
-  map = htab_find_with_hash (inode_map_fh, &fh, ZFS_FH_HASH (fh));
+  map = htab_find_with_hash (inode_map_fh, fh, ZFS_FH_HASH (fh));
   zfsd_mutex_unlock (&inode_map_mutex);
   if (map != NULL)
     return map->ino;
@@ -133,7 +133,7 @@ fh_to_inode (const zfs_fh *fh)
   struct inode_map *map;
 
   zfsd_mutex_lock (&inode_map_mutex);
-  slot = htab_find_slot_with_hash (inode_map_fh, &fh, ZFS_FH_HASH (fh), INSERT);
+  slot = htab_find_slot_with_hash (inode_map_fh, fh, ZFS_FH_HASH (fh), INSERT);
   if (*slot != NULL)
     map = *slot;
   else
