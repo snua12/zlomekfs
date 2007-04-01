@@ -22,6 +22,7 @@
 
 #include "system.h"
 #include <assert.h>
+#include <dirent.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
@@ -197,6 +198,10 @@ kernel_unmount (void)
 }
 
  /* Data translation */
+
+/*! Mapping file type -> d_type value.  */
+static const unsigned char ftype2dtype[FT_LAST_AND_UNUSED]
+  = {DT_UNKNOWN, DT_REG, DT_DIR, DT_LNK, DT_BLK, DT_CHR, DT_SOCK, DT_FIFO};
 
 static ftype
 ftype_from_mode_t (mode_t mode)
@@ -854,13 +859,25 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   buf_offset = 0;
   for (i = 0; i < list.n; i++)
     {
+      dir_op_args lookup_args;
+      dir_op_res lookup_res;
       dir_entry *entry;
       struct stat st;
       size_t sz;
 
       entry = entries + i;
-      st.st_ino = entry->ino;
-      st.st_mode = 0;
+      /* Ugly.  The ino returned by zfs_readdir () is only a part of the FH,
+	 from a different namespace than the kernel ino.  To get the kernel ino,
+	 a lookup is necessary to get the full FH. */
+      lookup_args.dir = cap->fh;
+      xstringdup (&lookup_args.name, &entry->name);
+      err = -zfs_error (zfs_lookup (&lookup_res, &lookup_args.dir,
+				    &lookup_args.name));
+      free (lookup_args.name.str);
+      if (err != 0)
+	continue;
+      st.st_ino = fh_to_inode (&lookup_res.file);
+      st.st_mode = ftype2dtype[lookup_res.attr.type];
       sz = fuse_add_direntry (req, buf + buf_offset, buf_size - buf_offset,
 			      entry->name.str, &st, entry->cookie);
       if (buf_offset + sz > buf_size)
@@ -1171,8 +1188,11 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
       if (recv_res <= 0)
         {
-          message (-1, stderr, "kernel_main exiting: %s\n",
-		   strerror (-recv_res));
+	  if (recv_res != ENODEV)
+	    message (-1, stderr, "FUSE unmounted, kernel_main exiting\n");
+	  else
+	    message (-1, stderr, "kernel_main exiting: %s\n",
+		     strerror (-recv_res));
           break;
         }
 
