@@ -196,6 +196,7 @@ static int32_t
 capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 {
   string path;
+  int err;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -230,12 +231,14 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
   if (dentry->fh->attr.type == FT_DIR)
     flags |= O_RDONLY;
   else
+    /* FIXME: this breaks if the file is unreadable by the owner */
     flags |= O_RDWR;
 
   build_local_path (&path, vol, dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
   dentry->fh->fd = safe_open (path.str, flags, 0);
+  err = errno;
   free (path.str);
   if (dentry->fh->fd >= 0)
     {
@@ -249,10 +252,10 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
     }
   release_dentry (dentry);
 
-  if (errno == ENOENT || errno == ENOTDIR)
+  if (err == ENOENT || err == ENOTDIR)
     RETURN_INT (ESTALE);
 
-  RETURN_INT (errno);
+  RETURN_INT (err);
 }
 
 /*! Close local file for internal file handle FH.  */
