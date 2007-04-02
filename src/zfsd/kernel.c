@@ -777,20 +777,32 @@ static void
 zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
 		off_t off, struct fuse_file_info *fi)
 {
-  write_args args;
-  write_res res;
   zfs_cap *cap;
+  size_t done;
   int err;
 
   cap = (zfs_cap *)(intptr_t)fi->fh;
-  args.cap = *cap;
-  args.offset = off;
-  args.data.len = size;
-  args.data.buf = CAST_QUAL (char *, buf);
-  err = -zfs_error (zfs_write (&res, &args));
-  if (err != 0)
-    goto err_estale;
-  fuse_reply_write (req, res.written);
+  done = 0;
+  do
+    {
+      write_args args;
+      write_res res;
+      size_t run;
+
+      run = size - done;
+      if (run > ZFS_MAXDATA)
+	run = ZFS_MAXDATA;
+      args.cap = *cap;
+      args.offset = off + done;
+      args.data.len = run;
+      args.data.buf = CAST_QUAL (char *, buf + done);
+      err = -zfs_error (zfs_write (&res, &args));
+      if (err != 0)
+	goto err_estale;
+      done += res.written;
+    }
+  while (done < size);
+  fuse_reply_write (req, size);
   return;
 
  err_estale:
