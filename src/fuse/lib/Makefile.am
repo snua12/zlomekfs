@@ -27,6 +27,7 @@ libfuse_la_SOURCES = 		\
 	modules/subdir.c	\
 	modules/iconv.c		\
 	$(mount_source)
+libfuse_la_LIBADD= $(LTLIBICONV)
 
 libfuse_la_LDFLAGS = @libfuse_libs@ -version-number 2:7:0 \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
