@@ -44,7 +44,8 @@ static int fuse_kern_chan_receive(struct fuse_chan **chp, char *buf,
         return -err;
     }
     if ((size_t) res < sizeof(struct fuse_in_header)) {
-        fprintf(stderr, "short read on fuse device\n");
+        fprintf(stderr, "short read on fuse device: %llu\n", 
+		(unsigned long long)res);
         return -EIO;
     }
     return res;
