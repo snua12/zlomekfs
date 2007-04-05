@@ -114,11 +114,11 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
         {
           case SIGBUS:
           case SIGSEGV:
-#if defined(__i386__)
+#if defined (__linux__) && defined(__i386__)
             internal_error ("%s at %p when accessing %p", strsignal (signum),
                             context->uc_mcontext.gregs[REG_EIP],
                             info->si_addr);
-#elif defined(__x86_64__)
+#elif defined (__linux__) && defined(__x86_64__)
             internal_error ("%s at %p when accessing %p", strsignal (signum),
                             context->uc_mcontext.gregs[REG_RIP],
                             info->si_addr);
