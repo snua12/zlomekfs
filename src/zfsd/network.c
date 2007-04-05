@@ -42,7 +42,6 @@
 #include "kernel.h"
 #include "log.h"
 #include "util.h"
-#include "malloc.h"
 #include "thread.h"
 #include "zfs-prot.h"
 #include "node.h"
