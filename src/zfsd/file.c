@@ -23,9 +23,13 @@
 #include "system.h"
 #include <unistd.h>
 #include <inttypes.h>
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/dirent.h>
 #include <linux/unistd.h>
+#else
+#include <dirent.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
@@ -53,11 +57,13 @@
 #include "update.h"
 
 /* FIXME: use getdents64 (), or just plain readdir ()? */
+#ifdef __linux__
 static int
 getdents (int fd, struct dirent *dirp, unsigned count)
 {
   return syscall (SYS_getdents, fd, dirp, count);
 }
+#endif /* __linux__ */
 
 /*! The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
@@ -1584,7 +1590,14 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
       while (1)
 	{
+	  long block_start;
+
+#ifdef __linux__
 	  r = getdents (fd, (struct dirent *) buf, ZFS_MAXDATA);
+#else
+	  /* FIXME: make sure the buffer is => st_bufsiz */
+	  r = getdirentries (fd, buf, ZFS_MAXDATA, &block_start);
+#endif
 	  if (r <= 0)
 	    {
 	      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
@@ -1608,7 +1621,13 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	  for (pos = 0; pos < r; pos += de->d_reclen)
 	    {
 	      de = (struct dirent *) &buf[pos];
+#ifdef __linux__
 	      cookie = de->d_off;
+#else
+	      /* Too bad FreeBSD doesn't provide that information, let's hope
+		 the kernel can handle slightly incorrect data. */
+	      cookie = block_start + pos + de->d_reclen;
+#endif
 
 	      /* Hide special dirs in the root of the volume.  */
 	      if (local_volume_root && SPECIAL_NAME_P (de->d_name, false))
