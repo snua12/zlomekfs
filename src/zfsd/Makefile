@@ -32,7 +32,10 @@ LD_OPTS = $(FUSE_LDFLAGS) -lpthread
 #FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
 FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I../fuse/include
 #FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
-FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a -lrt -ldl
+FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a
+ifndef freebsd
+  FUSE_LDFLAGS += -lrt -ldl
+endif
 
 ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -O0
