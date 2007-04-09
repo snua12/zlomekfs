@@ -873,6 +873,7 @@ static ssize_t fuse_dev_writev(struct file *file, const struct iovec *iov,
 
 		spin_unlock(&fc->lock);
 
+		err = -EINVAL;
 		if (nbytes != sizeof(struct fuse_out_header)
 		    + sizeof(struct fuse_back_header))
 			goto err_finish;
