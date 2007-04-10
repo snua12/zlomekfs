@@ -130,10 +130,20 @@ static void fuse_lookup_init(struct fuse_req *req, struct inode *dir,
 static int fuse_dentry_revalidate(struct dentry *entry, struct nameidata *nd)
 {
 	struct inode *inode = entry->d_inode;
+	int invalid;
 
 	if (inode && is_bad_inode(inode))
 		return 0;
-	else if (fuse_dentry_time(entry) < get_jiffies_64()) {
+	invalid = 0;
+	if (inode && get_fuse_inode(inode)->i_time == (u64)-1) {
+		/* The dentry was in use when the inode purge request was
+		   processed. */
+		shrink_dcache_parent(entry);
+		d_drop(entry);
+		invalid = 1;
+	} else if (fuse_dentry_time(entry) < get_jiffies_64())
+		invalid = 1;
+	if (invalid) {
 		int err;
 		struct fuse_entry_out outarg;
 		struct fuse_conn *fc;
