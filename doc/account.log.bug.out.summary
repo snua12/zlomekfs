@@ -1,0 +1,27 @@
+=== data for mode Discard ===
+count:680	chars:0		time:213
+=== data for mode Memory ===
+count:304	chars:0		time:213
+count:75	chars:1203	time:311
+count:75	chars:3169	time:381
+count:225	chars:4853	time:425
+=== data for mode SHM ===
+count:303	chars:0		time:219
+count:75	chars:1203	time:318
+count:75	chars:3169	time:393
+count:225	chars:4853	time:449
+=== data for mode File ===
+count:304	chars:0		time:214
+count:75	chars:1203	time:328
+count:75	chars:3169	time:410
+count:225	chars:4853	time:517
+=== data for mode Console ===
+count:305	chars:0		time:215
+count:75	chars:1203	time:6522
+count:75	chars:3169	time:18341
+count:225	chars:4853	time:29199
+=== data for mode ConsoleNulled ===
+count:303	chars:0		time:213
+count:75	chars:1203	time:335
+count:75	chars:3169	time:415
+count:225	chars:4853	time:478
