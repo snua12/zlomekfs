@@ -128,11 +128,10 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
  */
 static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff_t *off)
 {
-        struct inode *inode = file->f_dentry->d_inode;
 	ssize_t res;
 
         TRACE("reading file '%s' from %lld size %u", file->f_dentry->d_name.name, *off, nbytes);
-        TRACE("inode size is: %lld", i_size_read(inode));
+        TRACE("inode size is: %lld", i_size_read(file->f_dentry->d_inode));
         TRACE("calling do_sync_read()");
 
         res = do_sync_read(file, buf, nbytes, off);
@@ -149,11 +148,10 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
  */
 static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {
-        struct inode *inode = file->f_dentry->d_inode;
 	ssize_t res;
 
         TRACE("writing file '%s' from %lld size %u", file->f_dentry->d_name.name, *off, nbytes);
-        TRACE("inode size is: %lld", i_size_read(inode));
+        TRACE("inode size is: %lld", i_size_read(file->f_dentry->d_inode));
         TRACE("calling do_sync_write()");
 
         res = do_sync_write(file, buf, nbytes, off);

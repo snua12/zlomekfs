@@ -23,9 +23,13 @@
 #include "system.h"
 #include <unistd.h>
 #include <inttypes.h>
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/dirent.h>
 #include <linux/unistd.h>
+#else
+#include <dirent.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
@@ -53,11 +57,13 @@
 #include "update.h"
 
 /* FIXME: use getdents64 (), or just plain readdir ()? */
+#ifdef __linux__
 static int
 getdents (int fd, struct dirent *dirp, unsigned count)
 {
   return syscall (SYS_getdents, fd, dirp, count);
 }
+#endif /* __linux__ */
 
 /*! The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
@@ -196,6 +202,7 @@ static int32_t
 capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 {
   string path;
+  int err;
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -230,12 +237,14 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
   if (dentry->fh->attr.type == FT_DIR)
     flags |= O_RDONLY;
   else
+    /* FIXME: this breaks if the file is unreadable by the owner */
     flags |= O_RDWR;
 
   build_local_path (&path, vol, dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
   dentry->fh->fd = safe_open (path.str, flags, 0);
+  err = errno;
   free (path.str);
   if (dentry->fh->fd >= 0)
     {
@@ -249,10 +258,10 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
     }
   release_dentry (dentry);
 
-  if (errno == ENOENT || errno == ENOTDIR)
+  if (err == ENOENT || err == ENOTDIR)
     RETURN_INT (ESTALE);
 
-  RETURN_INT (errno);
+  RETURN_INT (err);
 }
 
 /*! Close local file for internal file handle FH.  */
@@ -406,8 +415,8 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
       RETURN_INT (ESTALE);
     }
 
-  res->file.sid = dir->fh->local_fh.sid;
-  res->file.vid = dir->fh->local_fh.vid;
+  res->dor.file.sid = dir->fh->local_fh.sid;
+  res->dor.file.vid = dir->fh->local_fh.vid;
 
   build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
@@ -429,7 +438,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     }
   *fdp = r;
 
-  r = local_setattr_path (&res->attr, &path, attr);
+  r = local_setattr_path (&res->dor.attr, &path, attr);
   if (r != ZFS_OK)
     {
       close (*fdp);
@@ -440,25 +449,25 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
     }
 
   free (path.str);
-  res->file.dev = res->attr.dev;
-  res->file.ino = res->attr.ino;
+  res->dor.file.dev = res->dor.attr.dev;
+  res->dor.file.ino = res->dor.attr.ino;
 
-  vol = volume_lookup (res->file.vid);
+  vol = volume_lookup (res->dor.file.vid);
 #ifdef ENABLE_CHECKING
   if (!vol)
     abort ();
 #endif
 
   meta->flags = METADATA_COMPLETE;
-  meta->modetype = GET_MODETYPE (res->attr.mode, res->attr.type);
-  meta->uid = res->attr.uid;
-  meta->gid = res->attr.gid;
-  if (!lookup_metadata (vol, &res->file, meta, true))
+  meta->modetype = GET_MODETYPE (res->dor.attr.mode, res->dor.attr.type);
+  meta->uid = res->dor.attr.uid;
+  meta->gid = res->dor.attr.gid;
+  if (!lookup_metadata (vol, &res->dor.file, meta, true))
     MARK_VOLUME_DELETE (vol);
   else if (!existed)
     {
       if (!zfs_fh_undefined (meta->master_fh)
-	  && !delete_metadata_of_created_file (vol, &res->file, meta))
+	  && !delete_metadata_of_created_file (vol, &res->dor.file, meta))
 	MARK_VOLUME_DELETE (vol);
     }
   zfsd_mutex_unlock (&vol->mutex);
@@ -613,14 +622,14 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 	RETURN_INT (r);
       r = local_create (res, &fd, idir, name, flags, attr, vol, &meta, &exists);
       if (r == ZFS_OK)
-	zfs_fh_undefine (master_res.file);
+	zfs_fh_undefine (master_res.dor.file);
     }
   else if (vol->master != this_node)
     {
       zfsd_mutex_unlock (&fh_mutex);
       r = remote_create (res, idir, name, flags, attr, vol);
       if (r == ZFS_OK)
-	master_res.file = res->file;
+	master_res.dor.file = res->dor.file;
     }
   else
     abort ();
@@ -636,8 +645,8 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       internal_cap icap;
       internal_dentry dentry;
 
-      dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
-			   &res->attr, &meta);
+      dentry = get_dentry (&res->dor.file, &master_res.dor.file, vol, idir,
+			   name, &res->dor.attr, &meta);
       icap = get_capability_no_zfs_fh_lookup (&res->cap, dentry,
 					      flags & O_ACCMODE);
 
@@ -1228,7 +1237,7 @@ filldir_encode (uint32_t ino, int32_t cookie, const char *name,
 
   entry.ino = ino;
   entry.cookie = cookie;
-  entry.name.str = name;
+  entry.name.str = CAST_QUAL (char *, name);
   entry.name.len = name_len;
 
   /* Try to encode ENTRY to DC.  */
@@ -1581,7 +1590,14 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
       while (1)
 	{
+	  long block_start;
+
+#ifdef __linux__
 	  r = getdents (fd, (struct dirent *) buf, ZFS_MAXDATA);
+#else
+	  /* FIXME: make sure the buffer is => st_bufsiz */
+	  r = getdirentries (fd, buf, ZFS_MAXDATA, &block_start);
+#endif
 	  if (r <= 0)
 	    {
 	      zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
@@ -1605,7 +1621,13 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 	  for (pos = 0; pos < r; pos += de->d_reclen)
 	    {
 	      de = (struct dirent *) &buf[pos];
+#ifdef __linux__
 	      cookie = de->d_off;
+#else
+	      /* Too bad FreeBSD doesn't provide that information, let's hope
+		 the kernel can handle slightly incorrect data. */
+	      cookie = block_start + pos + de->d_reclen;
+#endif
 
 	      /* Hide special dirs in the root of the volume.  */
 	      if (local_volume_root && SPECIAL_NAME_P (de->d_name, false))

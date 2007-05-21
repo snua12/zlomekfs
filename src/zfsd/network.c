@@ -42,7 +42,6 @@
 #include "kernel.h"
 #include "log.h"
 #include "util.h"
-#include "malloc.h"
 #include "thread.h"
 #include "zfs-prot.h"
 #include "node.h"
@@ -1240,10 +1239,10 @@ network_worker (void *data)
                 || !finish_decoding (t->u.network.dc))			\
               {								\
                 if (CALL_MODE == DIR_REQUEST)				\
-                  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
+                  send_error_reply (t, request_id, ZFS_INVALID_REQUEST); \
                 goto out;						\
               }								\
-            call_statistics[CALL_FROM_NETWORK][NUMBER]++;		\
+            call_statistics[NUMBER]++;					\
             if (CALL_MODE == DIR_REQUEST)				\
               {								\
                 start_encoding (t->u.network.dc);			\
@@ -1252,7 +1251,7 @@ network_worker (void *data)
               }								\
             zfs_proc_##FUNCTION##_server (&t->u.network.args.FUNCTION,	\
                                           t->u.network.dc,		\
-                                          &t->u.network, false);	\
+                                          &t->u.network);		\
             if (CALL_MODE == DIR_REQUEST)				\
               {								\
                 finish_encoding (t->u.network.dc);			\
@@ -1784,13 +1783,6 @@ fd_data_shutdown (void)
       zfsd_mutex_unlock (&fd_data->mutex);
     }
   zfsd_mutex_unlock (&active_mutex);
-
-  if (kernel_fd >= 0)
-    {
-      zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
-      wake_all_threads (&fd_data_a[kernel_fd], ZFS_EXITING);
-      zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
-    }
 }
 
 /*! \brief Destroy networking and kernel file descriptors, mutexes and cond vars.  */
@@ -1811,7 +1803,7 @@ fd_data_destroy (void)
   zfsd_mutex_unlock (&active_mutex);
   zfsd_mutex_destroy (&active_mutex);
 
-  close_kernel_fd ();
+  kernel_unmount ();
 
   for (i = 0; i < max_nfd; i++)
     {

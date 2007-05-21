@@ -23,17 +23,26 @@ PREFIX ?= /usr
 INSTALL = install
 
 CC = gcc
-CC_OPTS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
+CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread
 #	-Wwrite-strings
 LD = gcc
 
+#FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
+FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I../fuse/include
+#FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
+FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a
+ifndef freebsd
+  FUSE_LDFLAGS += -lrt -ldl
+endif
+
 ifeq ($(syslog),1)
-  LD_OPTS = -lpthread
+  LD_OPTS += $(FUSE_LDFLAGS) -lpthread
   CC_OPTS += -DUSE_SYSLOG
 else
-  LD_OPTS = -lpthread
+  LD_OPTS += $(FUSE_LDFLAGS) -lpthread
 endif
+
 
 ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -DENABLE_CHECKING -O0 -ggdb -g3
@@ -41,8 +50,6 @@ ifeq ($(debug), 1)
 else
   CC_OPTS += -O2 -g
 endif
-
-CC_OPTS += -DZFSD
 
 .SUFFIXES: .c .o
 .PHONY: all install uninstall clean
@@ -76,7 +83,7 @@ OO_ZFSD = zfsd.o \
 	  zfs-prot.o
 
 zfsd: $(OO_ZFSD)
-	$(LD) $(LD_OPTS) -o $@ $^
+	$(LD) -o $@ $^ $(LD_OPTS)
 
 OO_DUMP_METADATA = dump-metadata.o \
 		   alloc-pool.o \

@@ -425,15 +425,9 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
   if (r != ZFS_OK)
     RETURN_INT (r);
 
-  if (unlock_fh_mutex)
-    zfsd_mutex_unlock (&fh_mutex);
-
   if (vd && *vd && *vol)
     {
       int32_t r2;
-
-      if (!unlock_fh_mutex)
-        zfsd_mutex_unlock (&fh_mutex);
 
       r2 = get_volume_root_dentry (*vol, dentry, unlock_fh_mutex);
       if (r2 != ZFS_OK)
@@ -447,6 +441,8 @@ get_capability (zfs_cap *cap, internal_cap *icapp, volume *vol,
             zfsd_mutex_unlock (&fh_mutex);
         }
     }
+  else if (unlock_fh_mutex)
+    zfsd_mutex_unlock (&fh_mutex);
 
   if (*dentry && (*dentry)->fh->attr.type == FT_DIR && cap->flags != O_RDONLY)
     {
@@ -569,7 +565,6 @@ find_capability_nolock (zfs_cap *cap, internal_cap *icapp,
     {
       int32_t r2;
 
-      zfsd_mutex_unlock (&fh_mutex);
       r2 = get_volume_root_dentry (*vol, dentry, false);
       if (r2 != ZFS_OK)
         {

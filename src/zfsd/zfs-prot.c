@@ -38,27 +38,55 @@
 # include <unistd.h>
 # include <errno.h>
 # include "zfs-prot.h"
-# ifdef ZFSD
-#  include "pthread.h"
-#  include "data-coding.h"
-#  include "config.h"
-#  include "thread.h"
-#  include "network.h"
-#  include "kernel.h"
-#  include "node.h"
-#  include "dir.h"
-#  include "file.h"
-#  include "volume.h"
-#  include "log.h"
-#  include "user-group.h"
-# endif
+# include "pthread.h"
+# include "data-coding.h"
+# include "config.h"
+# include "thread.h"
+# include "network.h"
+# include "kernel.h"
+# include "node.h"
+# include "dir.h"
+# include "file.h"
+# include "volume.h"
+# include "log.h"
+# include "user-group.h"
 #endif
 
 /*! Mapping file type -> file mode.  */
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
   = {0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO};
 
-#ifdef ZFSD
+/*! Convert ZFS error to system error */
+int zfs_error(int error)
+{
+        if (error > 0)
+                return -error;
+
+        switch (error) {
+                case ZFS_OK:
+                        return 0;
+                case ZFS_REQUEST_TOO_LONG:
+                case ZFS_INVALID_REQUEST:
+                case ZFS_REPLY_TOO_LONG:
+                case ZFS_INVALID_REPLY:
+                        return -EPROTO;
+                case ZFS_UNKNOWN_FUNCTION:
+                        return -EOPNOTSUPP;
+                case ZFS_COULD_NOT_CONNECT:
+                case ZFS_COULD_NOT_AUTH:
+                        return -ENOTCONN;
+                case ZFS_STALE:
+                case ZFS_METADATA_ERROR:
+                case ZFS_UPDATE_FAILED:
+                case ZFS_EXITING:
+                case ZFS_CONNECTION_CLOSED:
+                case ZFS_REQUEST_TIMEOUT:
+                default:
+                        return -ESTALE;
+        }
+}
+
+#ifndef __KERNEL__
 
 /*! Request ID for next call.  */
 static volatile uint32_t request_id;
@@ -71,8 +99,7 @@ static pthread_mutex_t request_id_mutex;
     Do nothing. Just test whether the requests can be sent.  */
 void
 zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
-                      ATTRIBUTE_UNUSED void *data,
-                      ATTRIBUTE_UNUSED bool map_id)
+                      ATTRIBUTE_UNUSED void *data)
 {
   encode_status (dc, ZFS_OK);
 }
@@ -81,9 +108,7 @@ zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
 
     Ping. The receiver sends back what the sender sent.  */
 void
-zfs_proc_ping_server (data_buffer *args, DC *dc,
-                      ATTRIBUTE_UNUSED void *data,
-                      ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_ping_server (data_buffer *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   encode_status (dc, ZFS_OK);
   encode_data_buffer (dc, args);
@@ -94,8 +119,7 @@ zfs_proc_ping_server (data_buffer *args, DC *dc,
     Get file handle of root.  */
 void
 zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, DC *dc,
-                      ATTRIBUTE_UNUSED void *data,
-                      ATTRIBUTE_UNUSED bool map_id)
+		      ATTRIBUTE_UNUSED void *data)
 {
   encode_status (dc, ZFS_OK);
   encode_zfs_fh (dc, &root_fh);
@@ -106,7 +130,7 @@ zfs_proc_root_server (ATTRIBUTE_UNUSED void *args, DC *dc,
     Get the file handle and attributes of the volume root.  */
 void
 zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
-                             ATTRIBUTE_UNUSED void *data, bool map_id)
+                             ATTRIBUTE_UNUSED void *data)
 {
   dir_op_res res;
   int32_t r;
@@ -114,22 +138,14 @@ zfs_proc_volume_root_server (volume_root_args *args, DC *dc,
   r = zfs_volume_root (&res, args->vid);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
-        }
-      encode_dir_op_res (dc, &res);
-    }
+    encode_dir_op_res (dc, &res);
 }
 
 /*! fattr zfs_proc_getattr (zfs_fh);
 
     Get attributes of the file.  */
 void
-zfs_proc_getattr_server (zfs_fh *args, DC *dc,
-                         ATTRIBUTE_UNUSED void *data, bool map_id)
+zfs_proc_getattr_server (zfs_fh *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
   fattr fa;
@@ -137,14 +153,7 @@ zfs_proc_getattr_server (zfs_fh *args, DC *dc,
   r = zfs_getattr (&fa, args);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          fa.uid = map_uid_zfs2node (fa.uid);
-          fa.gid = map_gid_zfs2node (fa.gid);
-        }
-      encode_fattr (dc, &fa);
-    }
+    encode_fattr (dc, &fa);
 }
 
 /*! fattr zfs_proc_setattr (zfs_fh file, sattr attr);
@@ -152,35 +161,22 @@ zfs_proc_getattr_server (zfs_fh *args, DC *dc,
     Set attributes of the file.  */
 void
 zfs_proc_setattr_server (setattr_args *args, DC *dc,
-                         ATTRIBUTE_UNUSED void *data, bool map_id)
+			 ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
   fattr fa;
 
-  if (map_id)
-    {
-      args->attr.uid = map_uid_node2zfs (args->attr.uid);
-      args->attr.gid = map_gid_node2zfs (args->attr.gid);
-    }
   r = zfs_setattr (&fa, &args->file, &args->attr);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          fa.uid = map_uid_zfs2node (fa.uid);
-          fa.gid = map_gid_zfs2node (fa.gid);
-        }
-      encode_fattr (dc, &fa);
-    }
+    encode_fattr (dc, &fa);
 }
 
 /*! zfs_fh, fattr zfs_proc_lookup (zfs_fh dir, string filename);
 
     Lookup the file name.  */
 void
-zfs_proc_lookup_server (dir_op_args *args, DC *dc,
-                        ATTRIBUTE_UNUSED void *data, bool map_id)
+zfs_proc_lookup_server (dir_op_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   dir_op_res res;
   int32_t r;
@@ -188,53 +184,31 @@ zfs_proc_lookup_server (dir_op_args *args, DC *dc,
   r = zfs_lookup (&res, &args->dir, &args->name);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
-        }
-      encode_dir_op_res (dc, &res);
-    }
+    encode_dir_op_res (dc, &res);
 }
 
-/*! zfs_cap zfs_proc_create (zfs_fh dir, string filename, uint32_t flags,
-                             sattr attr);
+/*! zfs_cap, zfs_fh, fattr zfs_proc_create (zfs_fh dir, string filename,
+                                            uint32_t flags, sattr attr);
 
     Create the file.  \p flags are O_*, as defined in <fcntl.h>.  */
 void
-zfs_proc_create_server (create_args *args, DC *dc,
-                        ATTRIBUTE_UNUSED void *data, bool map_id)
+zfs_proc_create_server (create_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   create_res res;
   int32_t r;
 
-  if (map_id)
-    {
-      args->attr.uid = map_uid_node2zfs (args->attr.uid);
-      args->attr.gid = map_gid_node2zfs (args->attr.gid);
-    }
   r = zfs_create (&res, &args->where.dir, &args->where.name, args->flags,
                   &args->attr);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
-        }
-      encode_create_res (dc, &res);
-    }
+    encode_create_res (dc, &res);
 }
 
 /*! zfs_cap zfs_proc_open (zfs_fh file, uint32_t flags);
 
     Open the file or directory.  \p flags are O_*, as defined in <fcntl.h>. */
 void
-zfs_proc_open_server (open_args *args, DC *dc,
-                      ATTRIBUTE_UNUSED void *data,
-                      ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_open_server (open_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   zfs_cap res;
   int32_t r;
@@ -249,9 +223,7 @@ zfs_proc_open_server (open_args *args, DC *dc,
 
     Close the file or directory.  */
 void
-zfs_proc_close_server (zfs_cap *args, DC *dc,
-                       ATTRIBUTE_UNUSED void *data,
-                       ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_close_server (zfs_cap *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -278,8 +250,7 @@ zfs_proc_close_server (zfs_cap *args, DC *dc,
     - <tt>string filename</tt> */
 void
 zfs_proc_readdir_server (read_dir_args *args, DC *dc,
-                         ATTRIBUTE_UNUSED void *data,
-                         ATTRIBUTE_UNUSED bool map_id)
+			 ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
   char *old_pos, *cur_pos;
@@ -316,37 +287,22 @@ zfs_proc_readdir_server (read_dir_args *args, DC *dc,
 
     Create the directory.  */
 void
-zfs_proc_mkdir_server (mkdir_args *args, DC *dc,
-                       ATTRIBUTE_UNUSED void *data, bool map_id)
+zfs_proc_mkdir_server (mkdir_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   dir_op_res res;
   int32_t r;
 
-  if (map_id)
-    {
-      args->attr.uid = map_uid_node2zfs (args->attr.uid);
-      args->attr.gid = map_gid_node2zfs (args->attr.gid);
-    }
   r = zfs_mkdir (&res, &args->where.dir, &args->where.name, &args->attr);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
-        }
-      encode_dir_op_res (dc, &res);
-    }
+    encode_dir_op_res (dc, &res);
 }
 
 /*! void zfs_proc_rmdir (zfs_fh dir, string filename);
 
     Delete the directory.  */
 void
-zfs_proc_rmdir_server (dir_op_args *args, DC *dc,
-                       ATTRIBUTE_UNUSED void *data,
-                       ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_rmdir_server (dir_op_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -359,9 +315,7 @@ zfs_proc_rmdir_server (dir_op_args *args, DC *dc,
 
     Rename the file or directory.  */
 void
-zfs_proc_rename_server (rename_args *args, DC *dc,
-                        ATTRIBUTE_UNUSED void *data,
-                        ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_rename_server (rename_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -374,9 +328,7 @@ zfs_proc_rename_server (rename_args *args, DC *dc,
 
     Link the file.  */
 void
-zfs_proc_link_server (link_args *args, DC *dc,
-                      ATTRIBUTE_UNUSED void *data,
-                      ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_link_server (link_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -388,9 +340,7 @@ zfs_proc_link_server (link_args *args, DC *dc,
 
     Delete the file.  */
 void
-zfs_proc_unlink_server (dir_op_args *args, DC *dc,
-                        ATTRIBUTE_UNUSED void *data,
-                        ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_unlink_server (dir_op_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -404,9 +354,7 @@ zfs_proc_unlink_server (dir_op_args *args, DC *dc,
     Read from the file.  Returned \p version is the file version from which the
     data was read. */
 void
-zfs_proc_read_server (read_args *args, DC *dc,
-                      ATTRIBUTE_UNUSED void *data,
-                      ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_read_server (read_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   read_res res;
   int32_t r;
@@ -433,9 +381,7 @@ zfs_proc_read_server (read_args *args, DC *dc,
     Write to the file.  Returned \p version is the file version after writing
     the data. */
 void
-zfs_proc_write_server (write_args *args, DC *dc,
-                       ATTRIBUTE_UNUSED void *data,
-                       ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_write_server (write_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   write_res res;
   int32_t r;
@@ -450,9 +396,7 @@ zfs_proc_write_server (write_args *args, DC *dc,
 
     Read the symlink.  */
 void
-zfs_proc_readlink_server (zfs_fh *args, DC *dc,
-                          ATTRIBUTE_UNUSED void *data,
-                          ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_readlink_server (zfs_fh *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
   read_link_res res;
@@ -472,28 +416,16 @@ zfs_proc_readlink_server (zfs_fh *args, DC *dc,
     Create the symlink.  */
 void
 zfs_proc_symlink_server (symlink_args *args, DC *dc,
-                         ATTRIBUTE_UNUSED void *data, bool map_id)
+			 ATTRIBUTE_UNUSED void *data)
 {
   dir_op_res res;
   int32_t r;
 
-  if (map_id)
-    {
-      args->attr.uid = map_uid_node2zfs (args->attr.uid);
-      args->attr.gid = map_gid_node2zfs (args->attr.gid);
-    }
   r = zfs_symlink (&res, &args->from.dir, &args->from.name, &args->to,
                    &args->attr);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
-        }
-      encode_dir_op_res (dc, &res);
-    }
+    encode_dir_op_res (dc, &res);
 }
 
 /*! zfs_fh, fattr zfs_proc_mknod (zfs_fh dir, string filename, sattr attr,
@@ -501,29 +433,16 @@ zfs_proc_symlink_server (symlink_args *args, DC *dc,
 
     Create the special file.  */
 void
-zfs_proc_mknod_server (mknod_args *args, DC *dc,
-                       ATTRIBUTE_UNUSED void *data, bool map_id)
+zfs_proc_mknod_server (mknod_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   dir_op_res res;
   int32_t r;
 
-  if (map_id)
-    {
-      args->attr.uid = map_uid_node2zfs (args->attr.uid);
-      args->attr.gid = map_gid_node2zfs (args->attr.gid);
-    }
   r = zfs_mknod (&res, &args->where.dir, &args->where.name, &args->attr,
                  args->type, args->rdev);
   encode_status (dc, r);
   if (r == ZFS_OK)
-    {
-      if (map_id)
-        {
-          res.attr.uid = map_uid_zfs2node (res.attr.uid);
-          res.attr.gid = map_gid_zfs2node (res.attr.gid);
-        }
-      encode_dir_op_res (dc, &res);
-    }
+    encode_dir_op_res (dc, &res);
 }
 
 /*! string nodename
@@ -531,8 +450,7 @@ zfs_proc_mknod_server (mknod_args *args, DC *dc,
 
     1st stage of authentication.  */
 void
-zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
-                             ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data)
 {
   auth_stage1_res res;
   network_thread_data *t_data = (network_thread_data *) data;
@@ -574,8 +492,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data,
 
     2nd stage of authentication.  */
 void
-zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
-                             ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data)
 {
   network_thread_data *t_data = (network_thread_data *) data;
   fd_data_t *fd_data = t_data->fd_data;
@@ -620,9 +537,7 @@ zfs_proc_auth_stage2_server (auth_stage2_args *args, DC *dc, void *data,
     The operation fails with #ZFS_CHANGED if the file is changed while
     computing the hash value unless \p ignore_changes is nonzero. */
 void
-zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
-                        ATTRIBUTE_UNUSED void *data,
-                        ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_md5sum_server (md5sum_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
   md5sum_res md5;
@@ -637,9 +552,7 @@ zfs_proc_md5sum_server (md5sum_args *args, DC *dc,
 
     Get relative path for the file handle.  */
 void
-zfs_proc_file_info_server (zfs_fh *args, DC *dc,
-                           ATTRIBUTE_UNUSED void *data,
-                           ATTRIBUTE_UNUSED bool map_id)
+zfs_proc_file_info_server (zfs_fh *args, DC *dc, ATTRIBUTE_UNUSED void *data)
 {
   file_info_res res;
   int32_t r;
@@ -659,9 +572,8 @@ zfs_proc_file_info_server (zfs_fh *args, DC *dc,
     configuration volume.  An one-way request.  */
 void
 zfs_proc_reread_config_server (reread_config_args *args,
-                               ATTRIBUTE_UNUSED DC *dc,
-                               ATTRIBUTE_UNUSED void *data,
-                               ATTRIBUTE_UNUSED bool map_id)
+			       ATTRIBUTE_UNUSED DC *dc,
+			       ATTRIBUTE_UNUSED void *data)
 {
   string relative_path;
   thread *t;
@@ -685,8 +597,7 @@ zfs_proc_reread_config_server (reread_config_args *args,
     Note that reintegrate_ver () releases the reintegration lock as well. */
 void
 zfs_proc_reintegrate_server (reintegrate_args *args, DC *dc,
-                             ATTRIBUTE_UNUSED void *data,
-                             ATTRIBUTE_UNUSED bool map_id)
+			     ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -701,8 +612,7 @@ zfs_proc_reintegrate_server (reintegrate_args *args, DC *dc,
     file. */
 void
 zfs_proc_reintegrate_add_server (reintegrate_add_args *args, DC *dc,
-                                 ATTRIBUTE_UNUSED void *data,
-                                 ATTRIBUTE_UNUSED bool map_id)
+                                 ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -717,8 +627,7 @@ zfs_proc_reintegrate_add_server (reintegrate_add_args *args, DC *dc,
     delete it irreversibly, otherwise move it to a shadow directory. */
 void
 zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
-                                 ATTRIBUTE_UNUSED void *data,
-                                 ATTRIBUTE_UNUSED bool map_id)
+                                 ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -733,8 +642,7 @@ zfs_proc_reintegrate_del_server (reintegrate_del_args *args, DC *dc,
     reintegration lock on \p fh. */
 void
 zfs_proc_reintegrate_ver_server (reintegrate_ver_args *args, DC *dc,
-                                 ATTRIBUTE_UNUSED void *data,
-                                 ATTRIBUTE_UNUSED bool map_id)
+                                 ATTRIBUTE_UNUSED void *data)
 {
   int32_t r;
 
@@ -804,26 +712,6 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-/*! Call FUNCTION in kernel with ARGS using data structures in thread T
-   and return its error code.  */
-#define ZFS_CALL_KERNEL
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-int32_t									\
-zfs_proc_##FUNCTION##_kernel (thread *t, ARGS *args)			\
-{									\
-  if (!mounted)								\
-    {									\
-      t->retval = ZFS_COULD_NOT_CONNECT;				\
-      return t->retval;							\
-    }									\
-                                                                        \
-  zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);			\
-  return zfs_proc_##FUNCTION##_client_1 (t, args, kernel_fd);		\
-}
-#include "zfs-prot.def"
-#undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_KERNEL
-
 /*! Return string describing error code.  */
 
 const char *
@@ -882,7 +770,7 @@ zfs_strerror (int32_t errnum)
 }
 
 /*! Call statistics.  */
-uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
+uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];
 
 /*! Initialize data structures needed by this module.  */
 
@@ -894,10 +782,7 @@ initialize_zfs_prot_c (void)
   zfsd_mutex_init (&request_id_mutex);
 
   for (i = 0; i < ZFS_PROC_LAST_AND_UNUSED; i++)
-    {
-      call_statistics[CALL_FROM_KERNEL][i] = 0;
-      call_statistics[CALL_FROM_NETWORK][i] = 0;
-    }
+    call_statistics[i] = 0;
 }
 
 /*! Cleanup data structures needed by this module.  */
@@ -913,11 +798,9 @@ cleanup_zfs_prot_c (void)
 
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-  if (call_statistics[CALL_FROM_KERNEL][NUMBER] > 0			\
-      || call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)		\
+  if (call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)			\
     {									\
-      message (LOG_DEBUG, NULL, "%-16s%15" PRIu64 "%15" PRIu64 "\n", #FUNCTION,		\
-              call_statistics[CALL_FROM_KERNEL][NUMBER],		\
+      message (LOG_DEBUG, NULL, "%-16s%15" PRIu64 "\n", #FUNCTION,		\
               call_statistics[CALL_FROM_NETWORK][NUMBER]);		\
     }
 #include "zfs-prot.def"
@@ -927,38 +810,7 @@ cleanup_zfs_prot_c (void)
 #endif
 }
 
-#elif defined (__KERNEL__)
-
-/*! Convert ZFS error to system error */
-
-static int zfs_error(int error)
-{
-        if (error > 0)
-                return -error;
-
-        switch (error) {
-                case ZFS_OK:
-                        return 0;
-                case ZFS_REQUEST_TOO_LONG:
-                case ZFS_INVALID_REQUEST:
-                case ZFS_REPLY_TOO_LONG:
-                case ZFS_INVALID_REPLY:
-                        return -EPROTO;
-                case ZFS_UNKNOWN_FUNCTION:
-                        return -EOPNOTSUPP;
-                case ZFS_COULD_NOT_CONNECT:
-                case ZFS_COULD_NOT_AUTH:
-                        return -ENOTCONN;
-                case ZFS_STALE:
-                case ZFS_METADATA_ERROR:
-                case ZFS_UPDATE_FAILED:
-                case ZFS_EXITING:
-                case ZFS_CONNECTION_CLOSED:
-                case ZFS_REQUEST_TIMEOUT:
-                default:
-                        return -ESTALE;
-        }
-}
+#else /* !__KERNEL__ */
 
 /*! Call ZFSd FUNCTION with ARGS using data structures in DC
    and return its error code. */
@@ -995,8 +847,8 @@ int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
                                                                 \
         return zfs_error(error);				\
 }
-# include "zfs-prot.def"
-# undef DEFINE_ZFS_PROC
-# undef ZFS_CALL_CLIENT
+#include "zfs-prot.def"
+#undef DEFINE_ZFS_PROC
+#undef ZFS_CALL_CLIENT
 
-#endif  /* __KERNEL__ */
+#endif /* !__KERNEL__ */

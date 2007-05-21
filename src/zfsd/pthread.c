@@ -27,12 +27,20 @@
 
 /*! Static mutex initializer.  */
 pthread_mutex_t zfsd_mutex_initializer
+#ifdef PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
   = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+#else
+  = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 #else
 
 /*! Static mutex initializer.  */
 pthread_mutex_t zfsd_mutex_initializer
+#ifdef PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP
   = PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP;
+#else
+  = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 #endif

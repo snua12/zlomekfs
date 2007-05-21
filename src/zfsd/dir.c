@@ -940,7 +940,6 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
       volume vol = pvd->vol;
 
       zfsd_mutex_unlock (&pvd->mutex);
-      zfsd_mutex_unlock (&fh_mutex);
       r = get_volume_root_dentry (vol, dir, true);
       if (r != ZFS_OK)
         RETURN_INT (r);
@@ -1130,7 +1129,8 @@ get_volume_root_remote (volume vol, zfs_fh *remote_fh, fattr *attr)
 }
 
 /*! Update root of volume VOL, create an internal file handle for it and store
-   it to IFH.  */
+   it to IFH.  On return, fh_mutex is unlocked on failure or
+   if (unlock_fh_mutex). */
 
 int32_t
 get_volume_root_dentry (volume vol, internal_dentry *dentryp,
@@ -1144,6 +1144,7 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
   int32_t r;
 
   TRACE ("");
+  CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
 
   vid = vol->id;
@@ -1151,7 +1152,6 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
   if (vol->delete_p)
     {
       zfsd_mutex_unlock (&vol->mutex);
-      zfsd_mutex_lock (&fh_mutex);
       vol = volume_lookup (vid);
       if (vol)
         volume_delete (vol);
@@ -1169,11 +1169,12 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
             {
               fattr remote_attr;
 
-              zfsd_mutex_lock (&fh_mutex);
               vol = volume_lookup (vid);
-              zfsd_mutex_unlock (&fh_mutex);
               if (!vol)
-                RETURN_INT (ENOENT);
+		{
+		  zfsd_mutex_unlock (&fh_mutex);
+		  RETURN_INT (ENOENT);
+		}
 
               get_volume_root_remote (vol, &master_fh, &remote_attr);
             }
@@ -1187,9 +1188,11 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
     }
 
   if (r != ZFS_OK)
-    RETURN_INT (r);
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (r);
+    }
 
-  zfsd_mutex_lock (&fh_mutex);
   vol = volume_lookup (vid);
   if (!vol)
     {
@@ -1232,9 +1235,13 @@ zfs_volume_root (dir_op_res *res, uint32_t vid)
 
   TRACE ("%" PRIu32, vid);
 
+  zfsd_mutex_lock (&fh_mutex);
   vol = volume_lookup (vid);
   if (!vol)
-    RETURN_INT (ENOENT);
+    {
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (ENOENT);
+    }
 
   r = get_volume_root_dentry (vol, &dentry, true);
   if (r != ZFS_OK)
@@ -1367,13 +1374,13 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
     RETURN_INT (r);
 
   /* Lookup FH.  */
-  r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, &vd, true);
   if (r == ZFS_STALE)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
         RETURN_INT (r);
-      r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+      r = zfs_fh_lookup_nolock (fh, &vol, &dentry, &vd, true);
     }
   if (r != ZFS_OK)
     RETURN_INT (r);
@@ -1397,11 +1404,14 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
         }
       else
         {
+	  zfsd_mutex_unlock (&fh_mutex);
           *fa = vd->attr;
           zfsd_mutex_unlock (&vd->mutex);
           RETURN_INT (ZFS_OK);
         }
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   if (CONFLICT_DIR_P (dentry->fh->local_fh)
       || NON_EXIST_FH_P (dentry->fh->local_fh))
@@ -1598,13 +1608,13 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
     RETURN_INT (r);
 
   /* Lookup FH.  */
-  r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+  r = zfs_fh_lookup_nolock (fh, &vol, &dentry, &vd, true);
   if (r == ZFS_STALE)
     {
       r = refresh_fh (fh);
       if (r != ZFS_OK)
         RETURN_INT (r);
-      r = zfs_fh_lookup (fh, &vol, &dentry, &vd, true);
+      r = zfs_fh_lookup_nolock (fh, &vol, &dentry, &vd, true);
     }
   if (r != ZFS_OK)
     RETURN_INT (r);
@@ -1628,10 +1638,13 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
         }
       else
         {
+	  zfsd_mutex_unlock (&fh_mutex);
           zfsd_mutex_unlock (&vd->mutex);
           RETURN_INT (EROFS);
         }
     }
+  else
+    zfsd_mutex_unlock (&fh_mutex);
 
   if (!REGULAR_FH_P (dentry->fh->local_fh))
     {
@@ -2081,7 +2094,6 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
               zfsd_mutex_lock (&vol->mutex);
               zfsd_mutex_unlock (&volume_mutex);
               zfsd_mutex_unlock (&vd->mutex);
-              zfsd_mutex_unlock (&fh_mutex);
 
               r = get_volume_root_dentry (vol, &idir, true);
               if (r != ZFS_OK)
@@ -2110,7 +2122,6 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
             }
           RETURN_INT (ZFS_OK);
         }
-      zfsd_mutex_unlock (&fh_mutex);
 
       /* !vd */
       zfsd_mutex_unlock (&pvd->mutex);
@@ -2133,7 +2144,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
             }
         }
       else
-        RETURN_INT (ENOENT);
+	{
+	  zfsd_mutex_unlock (&fh_mutex);
+	  RETURN_INT (ENOENT);
+	}
     }
   else
     {
@@ -6893,9 +6907,11 @@ refresh_fh (zfs_fh *fh)
   if (r != ZFS_OK)
     RETURN_INT (r);
 
+  zfsd_mutex_lock (&fh_mutex);
   vol = volume_lookup (fh->vid);
   if (!vol)
     {
+      zfsd_mutex_unlock (&fh_mutex);
       free (info.path.str);
       RETURN_INT (ESTALE);
     }

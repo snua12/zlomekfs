@@ -40,15 +40,13 @@ MODULE_ALIAS_CHARDEV_MAJOR(ZFS_CHARDEV_MAJOR);
 struct super_block *zfs_sb;
 struct channel channel;
 
-extern struct file_operations zfs_chardev_file_operations;
-
-static kmem_cache_t *zfs_inode_cachep;
+static struct kmem_cache *zfs_inode_cachep;
 
 static struct inode *zfs_alloc_inode(struct super_block *sb)
 {
         struct zfs_inode_info *ei;
 
-        ei = kmem_cache_alloc(zfs_inode_cachep, SLAB_KERNEL);
+        ei = kmem_cache_alloc(zfs_inode_cachep, GFP_KERNEL);
         if (!ei)
                 return NULL;
 
@@ -64,7 +62,8 @@ static void zfs_destroy_inode(struct inode *inode)
         kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
 }
 
-static void zfs_init_once(void *foo, kmem_cache_t *cachep, unsigned long flags)
+static void zfs_init_once(void *foo, struct kmem_cache *cachep,
+			  unsigned long flags)
 {
         struct zfs_inode_info *ei = (struct zfs_inode_info *)foo;
 
@@ -88,8 +87,7 @@ static int zfs_init_inodecache(void)
 
 static void zfs_destroy_inodecache(void)
 {
-        if (kmem_cache_destroy(zfs_inode_cachep))
-                INFO("zfs_inode_cache: not all structures were freed");
+        kmem_cache_destroy(zfs_inode_cachep);
 }
 
 static void zfs_put_super(struct super_block *sb)
@@ -114,8 +112,6 @@ static struct super_operations zfs_super_operations = {
         .put_super	= zfs_put_super,
         .statfs		= zfs_statfs,
 };
-
-extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
 
 static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 {

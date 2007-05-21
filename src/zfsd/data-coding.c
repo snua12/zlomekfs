@@ -88,8 +88,6 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#include "system.h"
-
 #ifdef __KERNEL__
 # include <linux/types.h>
 # include <linux/string.h>
@@ -165,7 +163,7 @@ dc_destroy (DC *dc)
 
 #ifdef __KERNEL__
 
-DECLARE_MUTEX (dc_lock);
+static DECLARE_MUTEX (dc_lock);
 static DC *dc[MAX_FREE_DCS];
 static int ndc;
 
@@ -391,7 +389,7 @@ decode_data_buffer (DC *dc, data_buffer *data)
 }
 
 bool
-encode_data_buffer (DC *dc, data_buffer *data)
+encode_data_buffer (DC *dc, const data_buffer *data)
 {
   unsigned int prev;
 
@@ -476,7 +474,7 @@ decode_string (DC *dc, string *str, uint32_t max_len)
 }
 
 bool
-encode_string (DC *dc, string *str)
+encode_string (DC *dc, const string *str)
 {
   unsigned int prev;
 
@@ -508,7 +506,7 @@ decode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED void *v)
 #endif
 
 bool
-encode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED void *v)
+encode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED const void *v)
 {
   return true;
 }
@@ -600,7 +598,7 @@ decode_zfs_fh (DC *dc, zfs_fh *fh)
 }
 
 bool
-encode_zfs_fh (DC *dc, zfs_fh *fh)
+encode_zfs_fh (DC *dc, const zfs_fh *fh)
 {
   return (encode_uint32_t (dc, fh->sid)
           && encode_uint32_t (dc, fh->vid)
@@ -618,7 +616,7 @@ decode_zfs_cap (DC *dc, zfs_cap *cap)
 }
 
 bool
-encode_zfs_cap (DC *dc, zfs_cap *cap)
+encode_zfs_cap (DC *dc, const zfs_cap *cap)
 {
   return (encode_zfs_fh (dc, &cap->fh)
           && encode_uint32_t (dc, cap->flags)
@@ -681,7 +679,7 @@ decode_sattr (DC *dc, sattr *attr)
 #endif
 
 bool
-encode_sattr (DC *dc, sattr *attr)
+encode_sattr (DC *dc, const sattr *attr)
 {
   return (encode_uint32_t (dc, attr->mode)
           && encode_uint32_t (dc, attr->uid)
@@ -698,7 +696,7 @@ decode_filename (DC *dc, string *str)
 }
 
 bool
-encode_filename (DC *dc, string *str)
+encode_filename (DC *dc, const string *str)
 {
   return encode_string (dc, str);
 }
@@ -710,7 +708,7 @@ decode_zfs_path (DC *dc, string *str)
 }
 
 bool
-encode_zfs_path (DC *dc, string *str)
+encode_zfs_path (DC *dc, const string *str)
 {
   return encode_string (dc, str);
 }
@@ -724,7 +722,7 @@ decode_nodename (DC *dc, string *str)
 }
 
 bool
-encode_nodename (DC *dc, string *str)
+encode_nodename (DC *dc, const string *str)
 {
   return encode_string (dc, str);
 }
@@ -736,7 +734,7 @@ decode_volume_root_args (DC *dc, volume_root_args *args)
 }
 
 bool
-encode_volume_root_args (DC *dc, volume_root_args *args)
+encode_volume_root_args (DC *dc, const volume_root_args *args)
 {
   return encode_uint32_t (dc, args->vid);
 }
@@ -751,7 +749,7 @@ decode_setattr_args (DC *dc, setattr_args *args)
 #endif
 
 bool
-encode_setattr_args (DC *dc, setattr_args *args)
+encode_setattr_args (DC *dc, const setattr_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
           && encode_sattr (dc, &args->attr));
@@ -769,7 +767,7 @@ decode_dir_op_args (DC *dc, dir_op_args *args)
 #endif
 
 bool
-encode_dir_op_args (DC *dc, dir_op_args *args)
+encode_dir_op_args (DC *dc, const dir_op_args *args)
 {
   return (encode_zfs_fh (dc, &args->dir)
           && encode_filename (dc, &args->name));
@@ -802,7 +800,7 @@ decode_create_args (DC *dc, create_args *args)
 #endif
 
 bool
-encode_create_args (DC *dc, create_args *args)
+encode_create_args (DC *dc, const create_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
           && encode_uint32_t (dc, args->flags)
@@ -813,8 +811,8 @@ bool
 decode_create_res (DC *dc, create_res *res)
 {
   return (decode_zfs_cap (dc, &res->cap)
-          && decode_zfs_fh (dc, &res->file)
-          && decode_fattr (dc, &res->attr));
+          && decode_zfs_fh (dc, &res->dor.file)
+          && decode_fattr (dc, &res->dor.attr));
 }
 
 #ifndef __KERNEL__
@@ -823,8 +821,8 @@ bool
 encode_create_res (DC *dc, create_res *res)
 {
   return (encode_zfs_cap (dc, &res->cap)
-          && encode_zfs_fh (dc, &res->file)
-          && encode_fattr (dc, &res->attr));
+          && encode_zfs_fh (dc, &res->dor.file)
+          && encode_fattr (dc, &res->dor.attr));
 }
 
 bool
@@ -837,7 +835,7 @@ decode_open_args (DC *dc, open_args *args)
 #endif
 
 bool
-encode_open_args (DC *dc, open_args *args)
+encode_open_args (DC *dc, const open_args *args)
 {
   return (encode_zfs_fh (dc, &args->file)
           && encode_uint32_t (dc, args->flags));
@@ -856,7 +854,7 @@ decode_read_dir_args (DC *dc, read_dir_args *args)
 #endif
 
 bool
-encode_read_dir_args (DC *dc, read_dir_args *args)
+encode_read_dir_args (DC *dc, const read_dir_args *args)
 {
   return (encode_zfs_cap (dc, &args->cap)
           && encode_int32_t (dc, args->cookie)
@@ -909,7 +907,7 @@ decode_mkdir_args (DC *dc, mkdir_args *args)
 #endif
 
 bool
-encode_mkdir_args (DC *dc, mkdir_args *args)
+encode_mkdir_args (DC *dc, const mkdir_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
           && encode_sattr (dc, &args->attr));
@@ -927,7 +925,7 @@ decode_rename_args (DC *dc, rename_args *args)
 #endif
 
 bool
-encode_rename_args (DC *dc, rename_args *args)
+encode_rename_args (DC *dc, const rename_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
           && encode_dir_op_args (dc, &args->to));
@@ -945,7 +943,7 @@ decode_link_args (DC *dc, link_args *args)
 #endif
 
 bool
-encode_link_args (DC *dc, link_args *args)
+encode_link_args (DC *dc, const link_args *args)
 {
   return (encode_zfs_fh (dc, &args->from)
           && encode_dir_op_args (dc, &args->to));
@@ -964,7 +962,7 @@ decode_read_args (DC *dc, read_args *args)
 #endif
 
 bool
-encode_read_args (DC *dc, read_args *args)
+encode_read_args (DC *dc, const read_args *args)
 {
   return (encode_zfs_cap (dc, &args->cap)
           && encode_uint64_t (dc, args->offset)
@@ -998,7 +996,7 @@ decode_write_args (DC *dc, write_args *args)
 #endif
 
 bool
-encode_write_args (DC *dc, write_args *args)
+encode_write_args (DC *dc, const write_args *args)
 {
   return (encode_zfs_cap (dc, &args->cap)
           && encode_uint64_t (dc, args->offset)
@@ -1048,7 +1046,7 @@ decode_symlink_args (DC *dc, symlink_args *args)
 #endif
 
 bool
-encode_symlink_args (DC *dc, symlink_args *args)
+encode_symlink_args (DC *dc, const symlink_args *args)
 {
   return (encode_dir_op_args (dc, &args->from)
           && encode_zfs_path (dc, &args->to)
@@ -1069,7 +1067,7 @@ decode_mknod_args (DC *dc, mknod_args *args)
 #endif
 
 bool
-encode_mknod_args (DC *dc, mknod_args *args)
+encode_mknod_args (DC *dc, const mknod_args *args)
 {
   return (encode_dir_op_args (dc, &args->where)
           && encode_sattr (dc, &args->attr)
@@ -1086,7 +1084,7 @@ decode_auth_stage1_args (DC *dc, auth_stage1_args *args)
 }
 
 bool
-encode_auth_stage1_args (DC *dc, auth_stage1_args *args)
+encode_auth_stage1_args (DC *dc, const auth_stage1_args *args)
 {
   return encode_nodename (dc, &args->node);
 }
@@ -1110,7 +1108,7 @@ decode_auth_stage2_args (DC *dc, auth_stage2_args *args)
 }
 
 bool
-encode_auth_stage2_args (DC *dc, auth_stage2_args *args)
+encode_auth_stage2_args (DC *dc, const auth_stage2_args *args)
 {
   return encode_connection_speed (dc, args->speed);
 }
@@ -1140,7 +1138,7 @@ decode_md5sum_args (DC *dc, md5sum_args *args)
 }
 
 bool
-encode_md5sum_args (DC *dc, md5sum_args *args)
+encode_md5sum_args (DC *dc, const md5sum_args *args)
 {
   uint32_t i;
 
@@ -1238,7 +1236,7 @@ decode_reintegrate_args (DC *dc, reintegrate_args *args)
 }
 
 bool
-encode_reintegrate_args (DC *dc, reintegrate_args *args)
+encode_reintegrate_args (DC *dc, const reintegrate_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
           && encode_char (dc, args->status));
@@ -1253,7 +1251,7 @@ decode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
 }
 
 bool
-encode_reintegrate_add_args (DC *dc, reintegrate_add_args *args)
+encode_reintegrate_add_args (DC *dc, const reintegrate_add_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
           && encode_zfs_fh (dc, &args->dir)
@@ -1270,7 +1268,7 @@ decode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
 }
 
 bool
-encode_reintegrate_del_args (DC *dc, reintegrate_del_args *args)
+encode_reintegrate_del_args (DC *dc, const reintegrate_del_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
           && encode_zfs_fh (dc, &args->dir)
@@ -1286,7 +1284,7 @@ decode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args)
 }
 
 bool
-encode_reintegrate_ver_args (DC *dc, reintegrate_ver_args *args)
+encode_reintegrate_ver_args (DC *dc, const reintegrate_ver_args *args)
 {
   return (encode_zfs_fh (dc, &args->fh)
           && encode_uint64_t (dc, args->version_inc));
@@ -1300,7 +1298,6 @@ decode_invalidate_args (DC *dc, invalidate_args *args)
 {
   return decode_zfs_fh (dc, &args->fh);
 }
-
 #else
 
 bool
@@ -1316,7 +1313,7 @@ decode_reread_config_args (DC *dc, reread_config_args *args)
 }
 
 bool
-encode_reread_config_args (DC *dc, reread_config_args *args)
+encode_reread_config_args (DC *dc, const reread_config_args *args)
 {
   return encode_zfs_path (dc, &args->path);
 }

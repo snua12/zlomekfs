@@ -32,13 +32,9 @@ typedef struct volume_def *volume;
 #include <time.h>
 #include "pthread.h"
 #include "memory.h"
-#include "alloc-pool.h"
 #include "crc32.h"
 #include "hashtab.h"
 #include "varray.h"
-#include "fibheap.h"
-#include "interval.h"
-#include "journal.h"
 #include "zfs-prot.h"
 #include "util.h"
 
@@ -133,6 +129,9 @@ typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
 
+#include "fibheap.h"
+#include "interval.h"
+#include "journal.h"
 #include "volume.h"
 #include "cap.h"
 #include "metadata.h"
@@ -264,6 +263,7 @@ struct virtual_dir_def
   long unused1;
 #endif
 
+  /*! fh_mutex must be held before locking this mutex. */
   pthread_mutex_t mutex;
 
   /*! Handle of this node.  */

@@ -137,6 +137,7 @@ process_line (const char *file, const int line_num, char *line, char **key,
   if (*line == 0 || *line == '#' || *line == '\n')
     {
       *line = 0;
+      *value = NULL;
       message (LOG_WARNING, NULL, "%s:%d: Option '%s' has no value\n",
 	       file, line_num, *key);
       return 0;
@@ -1458,14 +1459,14 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
 {
   dir_op_res user_mapping_res;
   int32_t r;
-  string node_name_tmp;
+  string node_name_;
   char *file_name;
   bool ret;
 
   if (sid == 0)
     {
-      node_name_tmp.str = "default";
-      node_name_tmp.len = strlen ("default");
+      node_name_.str = "default";
+      node_name_.len = strlen ("default");
     }
   else
     {
@@ -1475,24 +1476,24 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
       if (!nod)
 	return false;
 
-      xstringdup (&node_name_tmp, &nod->name);
+      xstringdup (&node_name_, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
     }
 
-  r = zfs_extended_lookup (&user_mapping_res, user_dir, node_name_tmp.str);
+  r = zfs_extended_lookup (&user_mapping_res, user_dir, node_name_.str);
   if (r != ZFS_OK)
     {
       if (sid != 0)
-	free (node_name_tmp.str);
+	free (node_name_.str);
       return true;
     }
 
-  file_name = xstrconcat (2, "config:/user/", node_name_tmp.str);
+  file_name = xstrconcat (2, "config:/user/", node_name_.str);
   ret = process_file_by_lines (&user_mapping_res.file, file_name,
 			       process_line_user_mapping, &sid);
   free (file_name);
   if (sid != 0)
-    free (node_name_tmp.str);
+    free (node_name_.str);
   return ret;
 }
 
@@ -1558,14 +1559,14 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
 {
   dir_op_res group_mapping_res;
   int32_t r;
-  string node_name_tmp;
+  string node_name_;
   char *file_name;
   bool ret;
 
   if (sid == 0)
     {
-      node_name_tmp.str = "default";
-      node_name_tmp.len = strlen ("default");
+      node_name_.str = "default";
+      node_name_.len = strlen ("default");
     }
   else
     {
@@ -1575,24 +1576,24 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
       if (!nod)
 	return false;
 
-      xstringdup (&node_name_tmp, &nod->name);
+      xstringdup (&node_name_, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
     }
 
-  r = zfs_extended_lookup (&group_mapping_res, group_dir, node_name_tmp.str);
+  r = zfs_extended_lookup (&group_mapping_res, group_dir, node_name_.str);
   if (r != ZFS_OK)
     {
       if (sid != 0)
-	free (node_name_tmp.str);
+	free (node_name_.str);
       return true;
     }
 
-  file_name = xstrconcat (2, "config:/group/", node_name_tmp.str);
+  file_name = xstrconcat (2, "config:/group/", node_name_.str);
   ret = process_file_by_lines (&group_mapping_res.file, file_name,
 			       process_line_group_mapping, &sid);
   free (file_name);
   if (sid != 0)
-    free (node_name_tmp.str);
+    free (node_name_.str);
   return ret;
 }
 

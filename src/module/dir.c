@@ -49,9 +49,6 @@ static int zfs_readdir(struct file *file, void *dirent, filldir_t filldir)
         return error;
 }
 
-extern int zfs_open(struct inode *inode, struct file *file);
-extern int zfs_release(struct inode *inode, struct file *file);
-
 struct file_operations zfs_dir_operations = {
         .llseek         = generic_file_llseek,
         .read           = generic_read_dir,
