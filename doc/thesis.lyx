@@ -1,0 +1,117 @@
+#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
+\lyxformat 245
+\begin_document
+\begin_header
+\textclass article
+\language english
+\inputencoding latin2
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 2
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Regression Testing For zlomekFS
+\end_layout
+
+\begin_layout Author
+Jiri Zouhar
+\end_layout
+
+\begin_layout Abstract
+Something very smart it is, young adept.
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Subsection
+Motivation
+\end_layout
+
+\begin_layout Subsection
+Goals
+\end_layout
+
+\begin_layout Subsection
+Structure of the Thesis
+\end_layout
+
+\begin_layout Section
+Automated testing
+\end_layout
+
+\begin_layout Subsection
+Models
+\end_layout
+
+\begin_layout Subsection
+Methods
+\end_layout
+
+\begin_layout Section
+The test suite architecture
+\end_layout
+
+\begin_layout Subsection
+Used tools
+\end_layout
+
+\begin_layout Paragraph
+Web result presentation
+\end_layout
+
+\begin_layout Paragraph
+Logging
+\end_layout
+
+\begin_layout Paragraph
+Build bot
+\end_layout
+
+\begin_layout Paragraph
+Documentation
+\end_layout
+
+\begin_layout Paragraph
+Coding standard
+\end_layout
+
+\begin_layout Section
+Implementation details
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand \bibtex[plain]{references}
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
