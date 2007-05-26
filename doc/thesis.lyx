@@ -53,20 +53,174 @@ Motivation
 Goals
 \end_layout
 
+\begin_layout Standard
+Extend the existing zlomekFS implementation by introducing a regression
+ testing framework.
+ The framework should be capable of submitting both predefined and random
+ workload to the filesystem and, either by comparing the results with the
+ same operations performed over another filesystem, or by some other appropriate
+ means, identify filesystem errors.
+ The identification of an error should contain both a minimal sequence of
+ steps necessary to reproduce the error, and the debugging protocol excerpt
+ relevant to the error.
+ The framework should include support for generating the debugging protocol
+ and changing the network conditions.
+\end_layout
+
+\begin_layout Standard
+Make all the developer documentation an integral part of the zlomekFS project
+ using appropriate tools such as DoxyGen.
+\end_layout
+
 \begin_layout Subsection
 Structure of the Thesis
 \end_layout
 
 \begin_layout Section
-Automated testing
+Testing
+\end_layout
+
+\begin_layout Standard
+The most used division of filesystem tests is to three groups: 
+\end_layout
+
+\begin_layout Paragraph
+Benchmarking
+\end_layout
+
+\begin_layout Standard
+all the speed tests ;)
+\end_layout
+
+\begin_layout Paragraph
+Api conformity
+\end_layout
+
+\begin_layout Standard
+most used for NFS.
+\end_layout
+
+\begin_layout Paragraph
+Functional testing
+\end_layout
+
+\begin_layout Standard
+is the one we will be doing.
+\end_layout
+
+\begin_layout Standard
+The most desired feature on testing framework is ease of use tightly coupled
+ with automation.
+ To achieve this, the tests have to be written in understandable format,
+ close to the tested code.
+ By the meaning of regression testing, they have to be runned automatically,
+ in scheduled periods (defined by amouth of time or changes), the results
+ must be collected and presented in readable format somewhere.
+\end_layout
+
+\begin_layout Standard
+For tracing the code execution, there may be some tracing tools and logging
+ tools.
+ They have to have minimal footprint and collect as much information as
+ possible.
+ Their output must be formatted in way compatible with the automation framework
+ and with the presentation tool too, if possible.
+\end_layout
+
+\begin_layout Standard
+The output of tests could be accompanied with some state information from
+ the time of failure.
+ This can be achieved by using some snapshoting tool which may or may not
+ support resuming.
+ 
+\end_layout
+
+\begin_layout Standard
+For filesystem testing, it is hard to find good testing patterns, which
+ will cover all cases, which can occur.
+ So it is good idea to have some random workload generator, which can randomly
+ exercise the filesystem.
+ The problem with this approach is, that outputs of such testing tends to
+ be very big and only a small portion of them is related to the occured
+ error.
+ To allow random testing and avoid the unwanted side efects, some pruning
+ algorithm has to be used.
+ The reruns of tests may use the snapshots, if the method used for snapshoting
+ make the resume possible.
+\end_layout
+
+\begin_layout Standard
+As the ZloFS is multi-threaded, distributed filesystem, the suite should
+ have some support or at least extensibility to allow control or simulation
+ of distributed enviroment.
 \end_layout
 
 \begin_layout Subsection
-Models
+Format
+\end_layout
+
+\begin_layout Standard
+native, scripting, misc, xml, behavior-prot, 
 \end_layout
 
 \begin_layout Subsection
-Methods
+Logging, tracing
+\end_layout
+
+\begin_layout Standard
+monolog, log4x, syslog, printf, 
+\end_layout
+
+\begin_layout Subsection
+Presentation layer
+\end_layout
+
+\begin_layout Standard
+web, log, app
+\end_layout
+
+\begin_layout Subsection
+Random workload generation
+\end_layout
+
+\begin_layout Subsection
+Pruning output
+\end_layout
+
+\begin_layout Subsection
+Checkpointing
+\end_layout
+
+\begin_layout Subsection
+Distributed testing
+\end_layout
+
+\begin_layout Subsection
+Sandboxing
+\end_layout
+
+\begin_layout Subsection
+Automation
+\end_layout
+
+\begin_layout Subsection
+Filesystem test patterns
+\end_layout
+
+\begin_layout Paragraph
+fstest
+\end_layout
+
+\begin_layout Paragraph
+fsx
+\end_layout
+
+\begin_layout Paragraph
+solaris
+\end_layout
+
+\begin_layout Paragraph
+ltp
 \end_layout
 
 \begin_layout Section
