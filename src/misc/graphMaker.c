@@ -9,7 +9,8 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 
-typedef unsigned long long ullong;
+typedef unsigned long long int ullong;
+typedef double ulld;
 typedef unsigned int uint;
 
 /* Declare the image */
@@ -39,6 +40,8 @@ int markerWidht = 50;
 typedef struct point{
 	unsigned int timeSpent;
 	unsigned int charsPrinted;
+	ullong overallTime;
+	unsigned int verbosity;
 	unsigned int count;
 	struct point * prev;
 	struct point * next;
@@ -53,6 +56,14 @@ typedef struct modeData{
 	unsigned long long timeSum, charsSum;
 	char outputName[255];
 } modeDataStruct;
+
+typedef struct summaryRow {
+	unsigned int count;
+	ulld timeToCharSum;
+	ulld logToOverallSum;
+} summaryRowStruct;
+
+summaryRowStruct summaryData[6][8];
 
 int maxTime = 0;
 int maxCharsPrinted = 0;
@@ -129,7 +140,9 @@ modeDataStruct mode5Data = {
 	.outputName = "ConsoleNulled",
 };
 
-pointStruct * newPoint(int timeSpent, int charsPrinted){
+modeDataStruct * modes[6] = {&mode0Data, &mode1Data, &mode2Data, &mode3Data, &mode4Data, &mode5Data};
+
+pointStruct * newPoint(int timeSpent, int charsPrinted, ullong overall, unsigned int verbosity){
 	pointStruct * ret = malloc(sizeof(pointStruct));
 	if(ret == NULL){
 		return NULL;
@@ -138,13 +151,15 @@ pointStruct * newPoint(int timeSpent, int charsPrinted){
 	ret->prev = ret->next = NULL;
 	ret->charsPrinted = charsPrinted;
 	ret->timeSpent = timeSpent;
+	ret->verbosity = verbosity;
+	ret->overallTime = overall;
 	ret->count = 1;
 
 	return ret;
 }
 
 
-void appendNode(int mode, int timeSpent, int charsPrinted){
+void appendNode(int mode, int timeSpent, int charsPrinted, ullong overall, unsigned int verbosity){
 	modeDataStruct * actualMode = NULL;
 
 	switch(mode){
@@ -171,12 +186,11 @@ void appendNode(int mode, int timeSpent, int charsPrinted){
 			break;
 	}
 
-	pointStruct * point = newPoint(timeSpent, charsPrinted);
+	pointStruct * point = newPoint(timeSpent, charsPrinted, overall, verbosity);
 	if(point == NULL){
 		fprintf(stderr, "out of memory\n");
 		exit(1);
 	}
-
 
 	actualMode->timeSum += point->timeSpent;
 	actualMode->charsSum += point->charsPrinted;
@@ -259,7 +273,7 @@ void loadData(char * infile){
 	}
 
 	int verbosity, mode, timeSpent, charsPrinted;
-	ullong user, system, overal;
+	ullong user, system, overall;
 	uint  cpu, majorPageFaults, minorPageFaults;
 
 	char * current = (char*)inMemory;
@@ -273,13 +287,16 @@ void loadData(char * infile){
 			&verbosity, &mode,
 			&timeSpent,
 			&charsPrinted,
-			&user, &system, &overal, &cpu,
+			&user, &system, &overall, &cpu,
 			&majorPageFaults, &minorPageFaults
 			);
+		if(verbosity == -1){
+			verbosity = 0;
+		}
 
 		fprintf(stderr, "caught point %d/%d@%d\n", 
 			charsPrinted, timeSpent, mode);
-		appendNode(mode, timeSpent, charsPrinted);
+		appendNode(mode, timeSpent, charsPrinted, overall, verbosity);
 		current = next;
 	}
 
@@ -368,6 +385,36 @@ int isTheSame (pointStruct * one, pointStruct * two){
 	return FALSE;
 }
 
+void summarizeVerbMode(){
+	memset(&summaryData, 0, sizeof(&summaryData));
+
+	int mode = 0;
+	pointStruct * point = NULL;
+
+	// loop around modes
+	for( mode = 0; mode < 6; mode++) {
+		point = modes[mode]->begin;
+
+		while(point){
+			if( point->charsPrinted > 0) {
+				summaryData[mode][point->verbosity].timeToCharSum += 
+					(ulld)point->timeSpent / (ulld)point->charsPrinted ;
+				summaryData[mode][point->verbosity].count ++;
+				summaryData[mode][point->verbosity].logToOverallSum += 
+					(ulld)point->timeSpent / (ulld)(point->overallTime / 100) ;
+			}else{
+				summaryData[mode][0].count ++;
+				summaryData[mode][0].logToOverallSum += 
+					(ulld)point->timeSpent / (ulld)(point->overallTime / 100) ;
+
+			}
+
+			
+			point = point -> next;
+		}
+	}
+}
+
 void sumarizeMode(pointStruct * rowBegin){
 	unsigned long long actualSum = 0;
 	unsigned int actualNum = 0;
@@ -409,6 +456,8 @@ void sumarizeMode(pointStruct * rowBegin){
 }
 
 void sumarizeData(){
+	summarizeVerbMode();
+	
 	sumarizeMode(mode0Data.begin);
 	sumarizeMode(mode1Data.begin);
 	sumarizeMode(mode2Data.begin);
@@ -427,6 +476,8 @@ void printNodes(FILE* out, pointStruct * begin){
 }
 
 void printModes(FILE* out){
+	fprintf(out, "\n*************************************************************\n");
+
 	fprintf(out, "=== data for mode %s ===\n", mode0Data.outputName);
 	printNodes(out, mode0Data.begin);
 	fprintf(out, "=== data for mode %s ===\n", mode1Data.outputName);
@@ -439,6 +490,26 @@ void printModes(FILE* out){
 	printNodes(out, mode4Data.begin);
 	fprintf(out, "=== data for mode %s ===\n", mode5Data.outputName);
 	printNodes(out, mode5Data.begin);
+}
+
+void printVerbModes(FILE* out){
+	int mode = 0;
+	int verbosity = 0;
+	fprintf(out, "\n*************************************************************\n");
+
+	for(mode=0; mode < 6; mode++){
+			fprintf(out, "=== data for mode %s ===\n", modes[mode]->outputName);
+		for(verbosity = 0; verbosity < 8; verbosity ++){
+			fprintf(out, "verbosity: %d\t", verbosity);
+			if(summaryData[mode][verbosity].count > 0);
+			fprintf(out, "meanTimeToChar: %f\t",
+				(ulld)(summaryData[mode][verbosity].timeToCharSum / summaryData[mode][verbosity].count)
+			);
+			fprintf(out, "meanTimePercentage: %f\n",
+				(ulld)(summaryData[mode][verbosity].logToOverallSum / summaryData[mode][verbosity].count)
+			);
+		}
+	}
 }
 
 void drawGraph(){
@@ -470,6 +541,7 @@ int main(int argc, char ** argv) {
 if(argc<2){
 	fprintf(stderr, "too few arguments\n");
 	fprintf(stderr, "%s <infile> <graphfile> [summaryfile]\n", argv[0]);
+	exit(1);
 }
 
 im = gdImageCreate(width, height);
@@ -509,6 +581,7 @@ if(argc>3){
 	FILE *  summaries = fopen(argv[3],"w");
 	sumarizeData();
 	printModes(summaries);
+	printVerbModes(summaries);
 }
 
 width = width / 2;

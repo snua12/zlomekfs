@@ -243,7 +243,11 @@ By tracing we will mean storing information about call sequence in the program,
 \end_layout
 
 \begin_layout Standard
-The simpliest logging tool used is printing messages to output.
+The simpliest logging tool used is 
+\series bold
+printing messages to output
+\series default
+.
  Printing may provide the information needed, but it suffer by not having
  centrallized control of what has to be printed.
  This leads to excessive logging in which is hard to find a usefull information
@@ -253,24 +257,36 @@ The simpliest logging tool used is printing messages to output.
 \end_layout
 
 \begin_layout Standard
-So the next logical step is to send logging messages to some centralized
- facility accompanied by importance of the message.
+So the next logical step is to send logging messages to some 
+\series bold
+centralized facility
+\series default
+ accompanied by importance of the message.
  The importance levels are in most cases directly given in advance.
  Then it is possible to change the amount of information centrally and even
  redirect the messages to other destination than output.
+ 
 \end_layout
 
 \begin_layout Standard
 When simple distinguishment by importance is not enough then more advanced
- logging facilities comes with tagging of messages.
+ logging facilities comes with 
+\series bold
+tagging of messages
+\series default
+.
  The tags could be flat or of arbitrary structure.
  This allows better filtering of messages of special types.
+ 
 \end_layout
 
 \begin_layout Standard
 Other approach to logging is to have more than one centrallized logger.
- In this case the loggers have frequently producer - consumer based architecture
- and are organized to dynamically created hierarchy.
+ In this case the loggers have frequently 
+\series bold
+producer - consumer
+\series default
+ based architecture and are organized to dynamically created hierarchy.
  This ease goal of having different output locations for different types
  of messages.
  On the other hand, the architecture is not so easy to understand for anybody
@@ -282,10 +298,14 @@ e to keep the hierarchy of producers and consumers used in application sane.
 
 \begin_layout Standard
 The last approach to logging and tracing is something called 
+\series bold
+
 \begin_inset Quotes eld
 \end_inset
 
 aspect oriented programing
+\series default
+
 \begin_inset Quotes erd
 \end_inset
 
@@ -314,42 +334,25 @@ Even if a adequate logging facility is used to debug the software it can
 
 \begin_layout Standard
 There is one more reason that may be considered for muting the logging output.
- The reason is that logging could slow the application down and make some
- synchronization primitive which could prevent some collisions to appear.
- 
-\end_layout
-
-\begin_layout Standard
-Problem with synchronization could be solved by design of logging facility.
- The logger must be designed in way that create separated resources for
- every concurrently running entity.
- Then The only effect done by the logger is slowdown of creation of new
- 
-\begin_inset Quotes eld
-\end_inset
-
-threads
-\begin_inset Quotes erd
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-To check how much logging slows down a ordinary application, some measurement
+ The reason is that logging could slow the application down.
+ To check how much logging slows down a ordinary application, some measurement
  was done.
- For testing was used threaded session server accessible by network from
- the SUCKS 
+ 
+\end_layout
+
+\begin_layout Standard
+For testing was used real app session server from the SUCKS 
 \begin_inset LatexCommand \cite{SUCKS}
 
 \end_inset
 
 project.
- The logging facility was simple centralizet logger with pre-definet log
- levels alternated so it measures the time spent by logging.
- Tests consists of pre-defined workload both valid and invalid requests.
- Output was time spent by the application, time spent by logging and characters
- printed.
+ The session server was threaded and accessible by network.
+ The logging facility was simple centralized logger with pre-definet log
+ levels.
+ Logger was alternated so it measures the time spent by logging.
+ Tests consists of pre-defined workload, output was time spent by the applicatio
+n, time spent by logging and characters printed.
  Test cycle was coposet of one run of all tests for every log level and
  log target.
  After finishing the cycle starts again.
@@ -367,22 +370,61 @@ motorola ppc MPC8241 (177 bogomips) with 128MB memory running kernel 2.4.32
 \end_layout
 
 \begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+Logging load
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 Both platforms behave equally, the only difference was in speed.
- 
+ From results we can see that all logging targets had the same footprint
+ and the only 
+\begin_inset Quotes eld
+\end_inset
+
+slow
+\begin_inset Quotes erd
+\end_inset
+
+ target was console write.
+ For non-blocking targets, the slowdown was in hundereths of per cent for
+ all log levels and the difference between no logging and full logging was
+ only one hundereth of per cent.
+ So, when we don't need to read the output of application online we can
+ log all into some circular buffer which can be flushed to file only when
+ error occured and filter the logging output afterwards.
+ Another finding is that the logging footprint is in half made of checks
+ if something has to be logged or not and to minimalize it, the logging
+ must be entirely deleted in compile time.
+ Problem with this is that it makes changes to code, thus in binary image
+ too and this changes can lead to different behavior of erroneous code,
+ so the bug could be unreproducible with different logging level.
 \end_layout
 
 \begin_layout Standard
-Some failures in software are hardly reproducible.
- In this cases we want to store 
-\end_layout
+Other problem which can arise with logging is that logging can act as synchroniz
+ation primitive which could prevent some collisions to appear.
+ Problem with synchronization could be solved by design of logging facility.
+ The logger must be designed in way that create separated resources for
+ every concurrently running entity in beforehand and then the only effect
+ done by the logger is slowdown of creation of new 
+\begin_inset Quotes eld
+\end_inset
 
-\begin_layout Standard
-monolog, log4x, syslog, printf, aspectj
-\end_layout
+threads
+\begin_inset Quotes erd
+\end_inset
 
-\begin_layout Standard
-simple printing, centralized printing, producers / consumers, aspect oriented,
- matrix based
+.
 \end_layout
 
 \begin_layout Subsection
@@ -453,6 +495,50 @@ Web result presentation
 Logging
 \end_layout
 
+\begin_layout Standard
+We need logger with this features:
+\end_layout
+
+\begin_layout Itemize
+it can be controlled externally
+\end_layout
+
+\begin_layout Itemize
+it has simple still full featured interface
+\end_layout
+
+\begin_layout Itemize
+it has to have implementations in both languages in which is written test
+ suite and zfs 
+\end_layout
+
+\begin_layout Itemize
+the output has to be in parseable and user readable format
+\end_layout
+
+\begin_layout Standard
+This enforces writing of own logger, which suits best the needs.
+ From models, we can't use aspect oriented logging as there is no implementation
+ of aspects for both language (and moreover it will be big requirement for
+ developers to use aspects).
+ The producer-consumer model seems to be too complicated as there will be
+ large and non-homogenous group of developers working on zfs.
+\end_layout
+
+\begin_layout Standard
+So the logger has to be centralized, with some sort of tagging with fast
+ evaluation.
+ The output must be redirectable to some sort of shared resource (shm, network
+ socket) which can be used and controlled by test suite.
+ The format of written log for failure could be readable by some GUI or
+ web based reader such as Chainsaw 
+\begin_inset LatexCommand \cite{Chainsaw}
+
+\end_inset
+
+.
+\end_layout
+
 \begin_layout Paragraph
 Build bot
 \end_layout
@@ -467,6 +553,18 @@ Coding standard
 
 \begin_layout Section
 Implementation details
+\end_layout
+
+\begin_layout Subsection
+Logging
+\end_layout
+
+\begin_layout Standard
+32/64b binary flag pool, some pre-defined, rest user defined, automatic
+ adding of info such as thread id, file, function and line number, defined
+ output format (what to include), default stdout, redirected to file, shm,
+ network socket.
+ 
 \end_layout
 
 \begin_layout Section
