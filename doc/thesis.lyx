@@ -214,7 +214,64 @@ Format
 \end_layout
 
 \begin_layout Standard
-native, scripting, misc, xml, behavior-prot, 
+When tests are expected to be executed manually, then the format could vary.
+ On the other hand, when they have to be executed automatically, then for
+ every format there must be support in all components of the test suite.
+ Because of this there is tendency to minimize number of formats.
+ 
+\end_layout
+
+\begin_layout Standard
+The basic choice is to write tests in native language of the application.
+ Sometimes there is support for inlining tests to normal code with some
+ flags saying 
+\begin_inset Quotes eld
+\end_inset
+
+this is test code, it should be runned when testing
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This allow tests as close to code as possible.
+ It is ideal for short tests of functionality of separated parts (objects,
+ libraries, etc).
+ 
+\end_layout
+
+\begin_layout Standard
+For automated testing are often used scripting languages to write either
+ control logic or whole thing including tests.
+ Scripting languages are ideal for the logic because of their flexibility.
+ The reason for writing tests in the same languate goo is that it could
+ be easier integrated in that way.
+\end_layout
+
+\begin_layout Standard
+Another possibility is to have tests in some proper format.
+ This offer possibility of having the format very suitable for the needs
+ of particular software, but this bring disadvantage of having to change
+ the format every time a lag is found in specification or a new requirement
+ is found.
+\end_layout
+
+\begin_layout Standard
+Some testing tools uses configuration (tests) in xml or xml with embedded
+ code.
+ Main reason for using xml is option of using external tools for editing
+ or xml-based transformation.
+ On other hand, xml is very unsuitable format for hand written code and
+ the DTD of configuration is often hard to understand too.
+\end_layout
+
+\begin_layout Standard
+For component based systems is often used model checking or behaviour protocols.
+ For this approach, there is some meta-language for defining actions and
+ requirements of interfaces and some logic algebra to define states and
+ conditions which must hold.
+ It is usefull for checking the design of whole application, but there is
+ speed issues when using behaviour protocols for checking larger or complex
+ systems.
 \end_layout
 
 \begin_layout Subsection
@@ -447,6 +504,10 @@ Pruning output
 Checkpointing
 \end_layout
 
+\begin_layout Standard
+check pint (two beer or not two beer)
+\end_layout
+
 \begin_layout Subsection
 Distributed testing
 \end_layout
@@ -481,6 +542,10 @@ ltp
 
 \begin_layout Section
 The test suite architecture
+\end_layout
+
+\begin_layout Standard
+python
 \end_layout
 
 \begin_layout Subsection
