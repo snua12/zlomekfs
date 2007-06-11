@@ -496,8 +496,16 @@ web, log, app
 Random workload generation
 \end_layout
 
+\begin_layout Standard
+automata
+\end_layout
+
 \begin_layout Subsection
 Pruning output
+\end_layout
+
+\begin_layout Standard
+rerun with other settings
 \end_layout
 
 \begin_layout Subsection
@@ -505,7 +513,92 @@ Checkpointing
 \end_layout
 
 \begin_layout Standard
-check pint (two beer or not two beer)
+As some failures are hardly reproducible, developer wants as much information
+ about the faulty run as possible.
+ Sometimes logs are not sufficient and state of application in time of failure
+ is needed.
+ That's why some snapshoting support might be usefull.
+ 
+\end_layout
+
+\begin_layout Standard
+Moreover, as the runs to failure could be very long, the test suite may
+ try to repeat just short parts of them or skip some steps to find the shortest
+ possible run to bring about the bug.
+ For reruns is best, when the second run has the same start conditions.
+ The snapshots (checkopoints) can help with it by resuming from stored state
+ (if possible).
+\end_layout
+
+\begin_layout Standard
+There are many projects trying to create full featured checkpoint / resume
+ support for applications.
+ They can be divided in two groups: userspace only tools and kernel-based
+ tools.
+ The main problem among them is, that none of them have full support for
+ every resource an application could use.
+ The most frequently missing features are suspend / resume support for:
+ networking, devices, threads, signal handlers, shm, shared objects.
+ Some of them (BCLR 
+\begin_inset LatexCommand \cite{BLCR}
+
+\end_inset
+
+, CryptoPID 
+\begin_inset LatexCommand \cite{cryptoPID}
+
+\end_inset
+
+, Chpox 
+\begin_inset LatexCommand \cite{chpox}
+
+\end_inset
+
+) seems to have everything needed, but for the price of many constraints
+ and dependencies.
+ 
+\end_layout
+
+\begin_layout Standard
+Other possibility, which solve the matter of sandboxing too is to use some
+ virtualization tool and run application (not necessarilly test suite) inside
+ virtual machine.
+ Nowadays there is many virtualization tools with support for snapshoting
+ (for ex.
+ openVZ 
+\begin_inset LatexCommand \cite{openVZ}
+
+\end_inset
+
+, Vmware 
+\begin_inset LatexCommand \cite{Vmware}
+
+\end_inset
+
+, Xen 
+\begin_inset LatexCommand \cite{Xen}
+
+\end_inset
+
+, Qemu 
+\begin_inset LatexCommand \cite{Qemu}
+
+\end_inset
+
+).
+ However, working with virtualization is fairly complicated and we can't
+ test hardware dependent issues on them.
+\end_layout
+
+\begin_layout Standard
+The last and easiest possibility is to use just snapshoting without resume
+ and save the snapshots in some easy to read format.
+ For this we can use for example GDB gcore 
+\begin_inset LatexCommand \cite{gcore}
+
+\end_inset
+
+ command (which creates gdb core dumps) to pause and snapshot the application.
 \end_layout
 
 \begin_layout Subsection

@@ -17,7 +17,8 @@ gcore
 - in current (6.x) only from gdb (no command line tool)
 
 checkpointing and running in virtual machine
-openVZ / xen 
+openVZ / xen / vmware / qemu
+kvm just pause
 
 BLCR
 - should work everything
