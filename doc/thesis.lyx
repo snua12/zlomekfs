@@ -285,44 +285,42 @@ Models
 \begin_layout Standard
 When an error is detected in software, developer need to have as much informatio
 n about the failure as possible.
- What occured is nice to know but without more details about the run is
- in most cases useless.
+ What occured is nice to know but in most cases useless without without
+ more details about the run.
  Therefore developers uses logging and tracing to get some useful information
  about the particular run.
 \end_layout
 
 \begin_layout Standard
-By tracing we will mean storing information about call sequence in the program,
- by logging we will mean saving information about data changes and additional
- notes about states of system inserted by developers.
- In most cases we join this two features for simplicity to one tool.
- 
+Tracing we mean storing information about call sequence in the program,
+ by logging we mean saving information about data changes or notes about
+ states of system inserted by developer.
+ In most cases this features are provided by one tool.
 \end_layout
 
 \begin_layout Standard
-The simpliest logging tool used is 
+The simpliest logging tool used is insertion of 
 \series bold
-printing messages to output
+direct message prints
 \series default
 .
  Printing may provide the information needed, but it suffer by not having
- centrallized control of what has to be printed.
- This leads to excessive logging in which is hard to find a usefull information
- and if we want to avoid this, it force us to changing the code on many
+ centralized control of what has to be printed.
+ This leads to excessive logging, in which is hard to find a usefull information
+, and if we want to avoid this it force us to changing the code on many
  places.
- 
 \end_layout
 
 \begin_layout Standard
-So the next logical step is to send logging messages to some 
+So the next logical step is to send logging messages (accompanied by importance
+ level) to some 
 \series bold
 centralized facility
 \series default
- accompanied by importance of the message.
+.
  The importance levels are in most cases directly given in advance.
- Then it is possible to change the amount of information centrally and even
- redirect the messages to other destination than output.
- 
+ Providing this it is possible to change the amount of information centraly
+ and even redirect the messages to distinct places.
 \end_layout
 
 \begin_layout Standard
@@ -332,18 +330,18 @@ When simple distinguishment by importance is not enough then more advanced
 tagging of messages
 \series default
 .
- The tags could be flat or of arbitrary structure.
- This allows better filtering of messages of special types.
+ Tags could be flat or of arbitrary structure.
+ This allow better filtering of messages of special types.
  
 \end_layout
 
 \begin_layout Standard
-Other approach to logging is to have more than one centrallized logger.
- In this case the loggers have frequently 
+Other approach to logging is to have more than one logger.
+ In this case the tool has frequently 
 \series bold
 producer - consumer
 \series default
- based architecture and are organized to dynamically created hierarchy.
+ based architecture and loggers are organized to dynamically created hierarchy.
  This ease goal of having different output locations for different types
  of messages.
  On the other hand, the architecture is not so easy to understand for anybody
@@ -354,7 +352,7 @@ e to keep the hierarchy of producers and consumers used in application sane.
 \end_layout
 
 \begin_layout Standard
-The last approach to logging and tracing is something called 
+The last approach to logging and tracing is called 
 \series bold
 
 \begin_inset Quotes eld
@@ -378,27 +376,28 @@ Pitfalls
 \end_layout
 
 \begin_layout Standard
-Even if a adequate logging facility is used to debug the software it can
- leads to problems when used under some automated stress testing.
- The amouth of output logs will eventually gets too big for the storage
- capacity or at least for the potential reader of them.
+Even if a adequate logging facility is used to debug the software, there
+ can arise problems when the facility is used under some automated stress
+ testing.
+ The amouth of output logs will eventually gets too big for storage capacity
+ or at least for the potential reader to deal with.
  So the automation tool must be able to communicate with the logging facility
- and in some way dynamically change the amouth of output according the needs.
+ and in some way dynamically change the amouth of output according to needs.
  This must be tuned so the biggest possible portion of unrelated logs is
  thrown away but the crucial information for debugging is preserved for
  failure as the failure could be hard to repeat.
 \end_layout
 
 \begin_layout Standard
-There is one more reason that may be considered for muting the logging output.
+There is one more reason that may be considered for muting logging output.
  The reason is that logging could slow the application down.
- To check how much logging slows down a ordinary application, some measurement
- was done.
+ To check how much logging slows down a ordinary application, some measurements
+ were done.
  
 \end_layout
 
 \begin_layout Standard
-For testing was used real app session server from the SUCKS 
+For testing was used real application - session server from the SUCKS 
 \begin_inset LatexCommand \cite{SUCKS}
 
 \end_inset
@@ -718,11 +717,11 @@ Logging
 \end_layout
 
 \begin_layout Standard
-32/64b binary flag pool, some pre-defined, rest user defined, automatic
- adding of info such as thread id, file, function and line number, defined
- output format (what to include), default stdout, redirected to file, shm,
- network socket.
- 
+32/64b binary flag pool, some pre-defined, rest user defined (statically),
+ automatic adding of info such as thread id, file, function and line number,
+ defined output format (what to include), default stdout, redirected to
+ file, shm, network socket.
+ support for configuration files
 \end_layout
 
 \begin_layout Section
