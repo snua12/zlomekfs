@@ -404,12 +404,11 @@ For testing was used real application - session server from the SUCKS
 
 project.
  The session server was threaded and accessible by network.
- The logging facility was simple centralized logger with pre-definet log
- levels.
- Logger was alternated so it measures the time spent by logging.
- Tests consists of pre-defined workload, output was time spent by the applicatio
-n, time spent by logging and characters printed.
- Test cycle was coposet of one run of all tests for every log level and
+ Logging facility was simple centralized logger with pre-definet log levels.
+ Logger was alternated so it measures time spent by logging.
+ Tests consisted of pre-defined workload, output was time spent by whole
+ application, time spent in logging and characters printed.
+ Test cycle was composet of one run of all tests for every log level and
  log target.
  After finishing the cycle starts again.
  This had been running for approximately thirty hours on two platforms:
@@ -431,6 +430,16 @@ wide false
 sideways false
 status open
 
+\begin_layout Standard
+\begin_inset Graphics
+	filename logSums.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Caption
 Logging load
 \end_layout
@@ -441,7 +450,9 @@ Logging load
 \end_layout
 
 \begin_layout Standard
-Both platforms behave equally, the only difference was in speed.
+Both platforms behaved equally, the only difference was in speed (we must
+ consider, that motorola was connected by network and all console prints
+ must went through ssh).
  From results we can see that all logging targets had the same footprint
  and the only 
 \begin_inset Quotes eld
@@ -455,13 +466,17 @@ slow
  For non-blocking targets, the slowdown was in hundereths of per cent for
  all log levels and the difference between no logging and full logging was
  only one hundereth of per cent.
- So, when we don't need to read the output of application online we can
- log all into some circular buffer which can be flushed to file only when
- error occured and filter the logging output afterwards.
+\end_layout
+
+\begin_layout Standard
+So when we don't need to read the output of application online we can log
+ everything, having as target some circular buffer which can be flushed
+ to file only when error occured.
+ Filtering can be done afterwards by user.
  Another finding is that the logging footprint is in half made of checks
- if something has to be logged or not and to minimalize it, the logging
+ if something has to be logged or not and to minimalize slowdown, logging
  must be entirely deleted in compile time.
- Problem with this is that it makes changes to code, thus in binary image
+ Problem with this is that it makes changes to code, thus to binary image
  too and this changes can lead to different behavior of erroneous code,
  so the bug could be unreproducible with different logging level.
 \end_layout
@@ -469,10 +484,10 @@ slow
 \begin_layout Standard
 Other problem which can arise with logging is that logging can act as synchroniz
 ation primitive which could prevent some collisions to appear.
- Problem with synchronization could be solved by design of logging facility.
+ Problem with synchronization can be solved by design of logging facility.
  The logger must be designed in way that create separated resources for
- every concurrently running entity in beforehand and then the only effect
- done by the logger is slowdown of creation of new 
+ every concurrently running entity in advance and then the only effect done
+ by the logger is slowdown of creation of new 
 \begin_inset Quotes eld
 \end_inset
 
@@ -676,16 +691,16 @@ the output has to be in parseable and user readable format
 \begin_layout Standard
 This enforces writing of own logger, which suits best the needs.
  From models, we can't use aspect oriented logging as there is no implementation
- of aspects for both language (and moreover it will be big requirement for
- developers to use aspects).
+ of aspects for both languages (and moreover it will be big requirement
+ for developers to use aspects).
  The producer-consumer model seems to be too complicated as there will be
- large and non-homogenous group of developers working on zfs.
+ large and non-homogenous group of developers working on zlomek fs.
 \end_layout
 
 \begin_layout Standard
-So the logger has to be centralized, with some sort of tagging with fast
- evaluation.
- The output must be redirectable to some sort of shared resource (shm, network
+So the logger will be centralized, with some sort of tagging with fast evaluatio
+n.
+ The output will be redirectable to some sort of shared resource (shm, network
  socket) which can be used and controlled by test suite.
  The format of written log for failure could be readable by some GUI or
  web based reader such as Chainsaw 
