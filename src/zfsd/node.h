@@ -26,6 +26,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <netdb.h>
+#include "memory.h"
 #include "pthread.h"
 #include "hashtab.h"
 
