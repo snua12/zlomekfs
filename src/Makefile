@@ -21,10 +21,12 @@
 .PHONY: all install uninstall clean
 
 all:
+	@$(MAKE) -C syplog
 	@$(MAKE) -C zfsd
 	@$(MAKE) -C module
 
-install:
+install: 
+	@$(MAKE) -C syplog
 	@$(MAKE) -C zfsd install
 	@$(MAKE) -C module install
 
@@ -32,6 +34,7 @@ uninstall:
 	@$(MAKE) -C zfsd uninstall
 
 clean:
+	@$(MAKE) -C syplog clean
 	@$(MAKE) -C zfsd clean
 	@$(MAKE) -C module clean
 

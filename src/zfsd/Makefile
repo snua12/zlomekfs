@@ -24,7 +24,7 @@ INSTALL = install
 
 CC = gcc
 CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/writers -I`pwd`/../syplog/formaters -DUSE_SYPLOG
 #	-Wwrite-strings
 LD = gcc
 
@@ -40,7 +40,7 @@ ifeq ($(syslog),1)
   LD_OPTS += $(FUSE_LDFLAGS) -lpthread
   CC_OPTS += -DUSE_SYSLOG
 else
-  LD_OPTS += $(FUSE_LDFLAGS) -lpthread
+  LD_OPTS += $(FUSE_LDFLAGS) -lpthread -L`pwd`/../syplog -lsyplog
 endif
 
 
@@ -83,7 +83,8 @@ OO_ZFSD = zfsd.o \
 	  zfs-prot.o
 
 zfsd: $(OO_ZFSD)
-	$(LD) -o $@ $^ $(LD_OPTS)
+	$(LD) -o $@ $^ $(LD_OPTS)  
+
 
 OO_DUMP_METADATA = dump-metadata.o \
 		   alloc-pool.o \
@@ -102,19 +103,24 @@ OO_DUMP_METADATA = dump-metadata.o \
 		   varray.o
 
 dump-metadata: $(OO_DUMP_METADATA)
-	$(LD) $(LD_OPTS) -o $@ $^
+	$(LD) -o $@ $^ $(LD_OPTS)
 
 OO_DUMP_INTERVALS = dump-intervals.o \
 		    alloc-pool.o \
 		    interval.o \
 		    log.o \
+		    node.o \
+		    crc32.o \
+		    hashtab.o \
+		    user-group.o \
+		    pthread.o \
 		    memory.o \
 		    splay-tree.o \
 		    util.o \
 		    varray.o
 
 dump-intervals: $(OO_DUMP_INTERVALS)
-	$(LD) $(LD_OPTS) -o $@ $^
+	$(LD) -o $@ $^ $(LD_OPTS)
 
 
 # Dependencies

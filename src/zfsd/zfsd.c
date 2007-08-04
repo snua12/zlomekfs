@@ -301,6 +301,7 @@ static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
 				ATTRIBUTE_UNUSED const char *arg, int key,
 				ATTRIBUTE_UNUSED struct fuse_args *outargs)
 {
+log_level_t verbose = DEFAULT_LOG_LEVEL;
   switch (key)
     {
     case 'f':
@@ -314,7 +315,8 @@ static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
       return 0;
 
     case 'l':
-      verbose = atoi(strchr(arg,'=')+1);
+      verbose = atoi (strchr(arg,'=')+1);
+      set_log_level (&syplogger, verbose);
       return 0;
 
     case OPTION_HELP:
@@ -437,9 +439,7 @@ main (int argc, char **argv)
   bool update_started = false;
   int ret = EXIT_SUCCESS;
 
-#ifdef USE_SYSLOG
   zfs_openlog();
-#endif
 
   init_constants ();
   init_sig_handlers ();
@@ -468,6 +468,8 @@ main (int argc, char **argv)
     }
   free (config_file);
 #endif
+  update_node_name ();
+
 
 #ifdef DEBUG
   message (LOG_DATA, NULL, "sizeof (pthread_mutex_t) = %u\n", sizeof (pthread_mutex_t));
@@ -512,6 +514,7 @@ main (int argc, char **argv)
         }
 #endif
     }
+  update_node_name ();
 
   if (!network_started)
     {

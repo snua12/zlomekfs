@@ -28,43 +28,11 @@
 #include <stdlib.h>
 #include "pthread.h"
 
-#ifdef USE_SYSLOG
-  #include <syslog.h>
+#include "syplog.h"
 
-// define extras as known syslog's
-  #define LOG_FUNC        LOG_DEBUG
-  #define LOG_LOCK        LOG_DEBUG
-  #define LOG_DATA        LOG_DEBUG
-  #define LOG_LOOPS       LOG_DEBUG
-#else
-  #define LOG_EMERG       0       /* system is unusable */
-  #define LOG_ALERT       1       /* action must be taken immediately */
-  #define LOG_CRIT        2       /* critical conditions */
-  #define LOG_ERR         3       /* error conditions */
-  #define LOG_WARNING     4       /* warning conditions */
-  #define LOG_NOTICE      5       /* normal but significant condition */
-  #define LOG_INFO        6       /* informational */
-  #define LOG_DEBUG       7       /* debug-level messages */
-  #define LOG_FUNC        8       /* function entry and leave */
-  #define LOG_LOCK        9       /* locking info */
-  #define LOG_DATA       10       /* data changes */
-  #define LOG_LOOPS      11       /* loops */
-#endif
+extern struct logger_def syplogger;
 
-// TODO: fix in code
-#define LOG_ERROR         LOG_ERR
-
-
-#ifdef DEBUG
-  #define ENABLE_CHECKING               1
-  #ifndef DEFAULT_VERBOSITY
-    #define DEFAULT_VERBOSITY           7
-  #endif
-#else
-  #ifndef DEFAULT_VERBOSITY
-    #define DEFAULT_VERBOSITY           3
-  #endif
-#endif
+void update_node_name (void);
 
 /*! Redefine abort to be the verbose abort.  */
 #define abort() verbose_abort(__FILE__, __LINE__)
@@ -122,12 +90,7 @@ extern void zfs_openlog(void);
 
 extern void zfs_closelog(void);
 
-/*! Level of verbosity.  Higher number means more messages.  */
-extern int verbose;
-
-/*! Print message to F if LEVEL > VERBOSE.  */
-extern void message (int level, FILE *f, const char *format, ...)
-  ATTRIBUTE_PRINTF_3;
+#define message(level,file,format...) do_log(&syplogger,level,FACILITY_ZFSD, ## format)
 
 /*! Report an internal error.  */
 extern void internal_error (const char *format, ...) ATTRIBUTE_NORETURN;

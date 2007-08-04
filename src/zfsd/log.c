@@ -29,52 +29,45 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include "pthread.h"
+#include <pthread.h>
+
 #include "log.h"
+#include "node.h"
+#include "syplog.h"
+#include "pthread.h"
 
-const char * ZFS_IDENT = "zfsd";
 
-/*! Level of verbosity.  Higher number means more messages.  */
-int verbose = DEFAULT_VERBOSITY;
+struct logger_def syplogger;
 
 void zfs_openlog()
 {
-#ifdef USE_SYSLOG
-  openlog(ZFS_IDENT,0,LOG_DAEMON);
-#endif
-}
-
-void zfs_closelog(void){
-#ifdef USE_SYSLOG
-  closelog();
-#endif
-}
-
-/*! Print message to F if LEVEL > VERBOSE.  */
-void
-message (int level, FILE * f, const char *format, ...)
-{
-  va_list va;
-
-  if (verbose < level)
-    return;
-
-  va_start (va, format);
-
-#ifdef USE_SYSLOG
-  vsyslog(level,format,va);
-#else
-if (f != NULL){
-  vfprintf (f, format, va);
-  fflush (f);
-  }else{
-    vfprintf (stdout, format, va);
-    fflush (f);
+  syp_error ret_code = open_log (&syplogger, "STILL UNDEFINED", 0, NULL);
+  if (ret_code != NOERR)
+  {
+    printf ("could not initialize logger %d: %s\n", ret_code,
+            syp_error_to_string(ret_code));
+    exit(1);
   }
-#endif
-
-  va_end (va);
 }
+
+void update_node_name (void)
+{
+  syp_error ret_code = NOERR;
+  if (node_name.str != NULL)
+    ret_code = set_node_name ( &syplogger, node_name.str);
+  else
+    ret_code = set_node_name (&syplogger, "STILL UNDEFINED");
+
+  if (ret_code != NOERR)
+    message (LOG_WARNING, NULL, "could not set node_name %d: %s\n", ret_code,
+             syp_error_to_string (ret_code));
+}
+
+void zfs_closelog(void)
+{
+  close_log (&syplogger);
+}
+
 
 /*! Print the internal error message and exit.  */
 void
