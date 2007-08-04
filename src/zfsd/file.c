@@ -1590,7 +1590,9 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
       while (1)
 	{
+	  /* not used
 	  long block_start;
+	  */
 
 #ifdef __linux__
 	  r = getdents (fd, (struct dirent *) buf, ZFS_MAXDATA);

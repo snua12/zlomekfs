@@ -35,7 +35,7 @@
  *!see message
 */
 void
-print_hex_buffer (int level, FILE * f, char *buf, unsigned int len)
+print_hex_buffer (int level, ATTRIBUTE_UNUSED FILE * f, char *buf, unsigned int len)
 {
   unsigned int i;
 
