@@ -176,8 +176,8 @@ enum fuse_opcode {
 enum fuse_back_opcode {
 	FUSE_BACK_INVALIDATE_METADATA		= 1,
 	FUSE_BACK_INVALIDATE_DATA		= 2,
-	FUSE_BACK_INVALIDATE_DATA_NO_CACHING	= 3,
-	FUSE_BACK_SYNC_INODE			= 4,
+	FUSE_BACK_SYNC_INODE			= 3,
+	FUSE_BACK_INVALIDATE_DATA_NO_CACHING	= 4,
 };
 
 /* The read buffer is required to be at least 8k, but may be much larger */

@@ -830,9 +830,9 @@ static int (*const back_fns[])(struct fuse_conn *, unsigned long nodeid) =
 {
 	[FUSE_BACK_INVALIDATE_METADATA] = fuse_back_invalidate_metadata,
 	[FUSE_BACK_INVALIDATE_DATA] = fuse_back_invalidate_data,
+	[FUSE_BACK_SYNC_INODE] = fuse_back_sync_inode,
 	[FUSE_BACK_INVALIDATE_DATA_NO_CACHING]
 	= fuse_back_invalidate_data_no_caching,
-	[FUSE_BACK_SYNC_INODE] = fuse_back_sync_inode,
 };
 
 /*
