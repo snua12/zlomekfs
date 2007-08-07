@@ -1,6 +1,6 @@
 /*
   FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
   This program can be distributed under the terms of the GNU GPL.
   See the file COPYING.
@@ -11,6 +11,7 @@
 #include <linux/pagemap.h>
 #include <linux/slab.h>
 #include <linux/kernel.h>
+#include <linux/sched.h>
 
 #ifndef KERNEL_2_6_11_PLUS
 static inline loff_t page_offset(struct page *page)
@@ -75,7 +76,13 @@ void fuse_finish_open(struct inode *inode, struct file *file,
 	if (outarg->open_flags & FOPEN_DIRECT_IO)
 		file->f_op = &fuse_direct_io_file_operations;
 	if (!(outarg->open_flags & FOPEN_KEEP_CACHE))
-		invalidate_inode_pages(inode->i_mapping);
+#ifdef KERNEL_2_6_21_PLUS
+		invalidate_mapping_pages(inode->i_mapping, 0, -1);
+#else
+	invalidate_inode_pages(inode->i_mapping);
+#endif
+        get_fuse_inode(inode)->no_caching = (outarg->open_flags
+					     & FOPEN_NO_CACHING) != 0;
 	ff->fh = outarg->fh;
 	file->private_data = ff;
 }
@@ -645,6 +652,61 @@ static int fuse_file_mmap(struct file *file, struct vm_area_struct *vma)
 	return generic_file_mmap(file, vma);
 }
 
+#ifndef KERNEL_2_6_19_PLUS
+static ssize_t fuse_file_read(struct file *file, char __user *buf, size_t count,
+			      loff_t *ppos)
+{
+	struct inode *inode;
+
+	inode = file->f_dentry->d_inode;
+	if (get_fuse_inode(inode)->no_caching)
+		return fuse_direct_read(file, buf, count, ppos);
+	return generic_file_read(file, buf, count, ppos);
+}
+#else
+static ssize_t fuse_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
+				  unsigned long nr_segs, loff_t pos)
+{
+	struct file *file;
+	struct inode *inode;
+
+	file = iocb->ki_filp;
+	inode = file->f_dentry->d_inode;
+	if (!get_fuse_inode(inode)->no_caching)
+		return generic_file_aio_read(iocb, iov, nr_segs, pos);
+	else {
+		ssize_t retval;
+		size_t count;
+
+		count = 0;
+		retval = generic_segment_checks(iov, &nr_segs, &count,
+						VERIFY_WRITE);
+		if (retval)
+			return retval;
+
+		if (count) {
+			loff_t *ppos;
+			unsigned long seg;
+
+			ppos = &iocb->ki_pos;
+			for (seg = 0; seg < nr_segs; seg++) {
+				ssize_t res;
+
+				res = fuse_direct_read(file, iov[seg].iov_base,
+						       iov[seg].iov_len, ppos);
+				if (res < 0) {
+					if (!retval)
+						retval = res;
+					break;
+				}
+				retval += res;
+			}
+		}
+		return retval;
+	}
+}
+#endif
+
 static int fuse_set_page_dirty(struct page *page)
 {
 	printk("fuse_set_page_dirty: should not happen\n");
@@ -783,7 +845,9 @@ static int fuse_file_lock(struct file *file, int cmd, struct file_lock *fl)
 
 	if (cmd == F_GETLK) {
 		if (fc->no_lock) {
-#ifdef KERNEL_2_6_17_PLUS
+#ifdef KERNEL_2_6_22_PLUS
+			posix_test_lock(file, fl);
+#elif defined(KERNEL_2_6_17_PLUS)
 			if (!posix_test_lock(file, fl, fl))
 				fl->fl_type = F_UNLCK;
 #else
@@ -844,11 +908,11 @@ static sector_t fuse_bmap(struct address_space *mapping, sector_t block)
 static struct file_operations fuse_file_operations = {
 	.llseek		= generic_file_llseek,
 #ifndef KERNEL_2_6_19_PLUS
-	.read		= generic_file_read,
+	.read		= fuse_file_read,
 	.write		= generic_file_write,
 #else
 	.read		= do_sync_read,
-	.aio_read	= generic_file_aio_read,
+	.aio_read	= fuse_file_aio_read,
 	.write		= do_sync_write,
 	.aio_write	= generic_file_aio_write,
 #endif
@@ -934,11 +998,36 @@ int fuse_back_invalidate_data(struct fuse_conn *fc, unsigned long nodeid)
 	if (IS_ERR(inode))
 	    return PTR_ERR(inode);
 	if (inode != NULL) {
+#ifdef KERNEL_2_6_21_PLUS
+		invalidate_mapping_pages(inode->i_mapping, 0, -1);
+#else
 		invalidate_inode_pages(inode->i_mapping);
+#endif
 		iput(inode);
 	}
 	return 0;
 }
+
+int fuse_back_invalidate_data_no_caching(struct fuse_conn *fc,
+					 unsigned long nodeid)
+{
+	struct inode *inode;
+
+	inode = fc_ilookup(fc, nodeid);
+	if (IS_ERR(inode))
+	    return PTR_ERR(inode);
+	if (inode != NULL) {
+#ifdef KERNEL_2_6_21_PLUS
+		invalidate_mapping_pages(inode->i_mapping, 0, -1);
+#else
+		invalidate_inode_pages(inode->i_mapping);
+#endif
+		get_fuse_inode (inode)->no_caching = 1;
+		iput(inode);
+	}
+	return 0;
+}
+
 
 int fuse_back_sync_inode(struct fuse_conn *fc, unsigned long nodeid)
 {

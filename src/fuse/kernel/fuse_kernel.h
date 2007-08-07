@@ -1,6 +1,6 @@
 /*
     FUSE: Filesystem in Userspace
-    Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+    Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
     This program can be distributed under the terms of the GNU GPL.
     See the file COPYING.
@@ -117,9 +117,11 @@ struct fuse_file_lock {
  *
  * FOPEN_DIRECT_IO: bypass page cache for this open file
  * FOPEN_KEEP_CACHE: don't invalidate the data cache on open
+ * FOPEN_NO_CACHING: don't cache data until enabled by a future OPEN request
  */
 #define FOPEN_DIRECT_IO		(1 << 0)
 #define FOPEN_KEEP_CACHE	(1 << 1)
+#define FOPEN_NO_CACHING	(1 << 2)
 
 /**
  * INIT request/reply flags
@@ -172,9 +174,10 @@ enum fuse_opcode {
 };
 
 enum fuse_back_opcode {
-	FUSE_BACK_INVALIDATE_METADATA	= 1,
-	FUSE_BACK_INVALIDATE_DATA	= 2,
-	FUSE_BACK_SYNC_INODE		= 3,
+	FUSE_BACK_INVALIDATE_METADATA		= 1,
+	FUSE_BACK_INVALIDATE_DATA		= 2,
+	FUSE_BACK_INVALIDATE_DATA_NO_CACHING	= 3,
+	FUSE_BACK_SYNC_INODE			= 4,
 };
 
 /* The read buffer is required to be at least 8k, but may be much larger */
@@ -385,7 +388,7 @@ struct fuse_dirent {
 	char name[0];
 };
 
-#define FUSE_NAME_OFFSET ((unsigned) ((struct fuse_dirent *) 0)->name)
+#define FUSE_NAME_OFFSET offsetof(struct fuse_dirent, name)
 #define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__u64) - 1) & ~(sizeof(__u64) - 1))
 #define FUSE_DIRENT_SIZE(d) \
 	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->namelen)

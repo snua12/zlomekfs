@@ -1,6 +1,6 @@
 /*
   FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
   This program can be distributed under the terms of the GNU GPL.
   See the file COPYING.
@@ -9,9 +9,7 @@
 #ifdef FUSE_MAINLINE
 #include <linux/fuse.h>
 #else
-#include "fuse_kernel.h"
 #include <linux/version.h>
-#include <linux/utsname.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,9)
 #error Kernel versions earlier than 2.6.9 are not supported
@@ -41,11 +39,21 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
 #  define KERNEL_2_6_19_PLUS
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,21)
+#  define KERNEL_2_6_21_PLUS
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
+#  define KERNEL_2_6_22_PLUS
+#endif
 
 #if defined(__arm__) && LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
 #define DCACHE_BUG
 #endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
+#define kmem_cache kmem_cache_s
+#endif
 
+#include "fuse_kernel.h"
 #include "config.h"
 #endif /* FUSE_MAINLINE */
 #include <linux/fs.h>
@@ -79,6 +87,12 @@
 #endif
 #ifndef HAVE_CONFIG_BLOCK
 #define CONFIG_BLOCK
+#endif
+#ifndef FS_HAS_SUBTYPE
+#define FS_HAS_SUBTYPE 0
+#endif
+#ifndef FS_SAFE
+#define FS_SAFE 0
 #endif
 
 /** Max number of pages that can be used in a single read request */
@@ -126,6 +140,8 @@ struct fuse_inode {
 	/** Time in jiffies until the file attributes are valid; (u64)-1 if the
 	    inode is forever invalid.  */
 	u64 i_time;
+
+	unsigned int no_caching:1;
 };
 
 /** FUSE specific file data */
@@ -490,6 +506,12 @@ int fuse_back_invalidate_metadata(struct fuse_conn *fc, unsigned long nodeid);
 int fuse_back_invalidate_data(struct fuse_conn *fc, unsigned long nodeid);
 
 /**
+ * Invalidate the page cache of the specified inode and stop caching it
+ */
+int fuse_back_invalidate_data_no_caching(struct fuse_conn *fc,
+					 unsigned long nodeid);
+
+/**
  * Writeback dirty data for the specified inode
  */
 int fuse_back_sync_inode(struct fuse_conn *fc, unsigned long nodeid);
@@ -641,3 +663,8 @@ int fuse_ctl_add_conn(struct fuse_conn *fc);
  * Remove connection from control filesystem
  */
 void fuse_ctl_remove_conn(struct fuse_conn *fc);
+
+/**
+ * Is file type valid?
+ */
+int fuse_valid_type(int m);
