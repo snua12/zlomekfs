@@ -29,7 +29,8 @@ enum {
     KEY_RO,
     KEY_HELP,
     KEY_VERSION,
-    KEY_KERN
+    KEY_KERN,
+    KEY_SUBTYPE,
 };
 
 struct mount_opts {
@@ -48,6 +49,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
     FUSE_OPT_KEY("--help",              KEY_HELP),
     FUSE_OPT_KEY("-V",                  KEY_VERSION),
     FUSE_OPT_KEY("--version",           KEY_VERSION),
+    FUSE_OPT_KEY("subtype=",		KEY_SUBTYPE),
     /* standard FreeBSD mount options */
     FUSE_OPT_KEY("dev",                 KEY_KERN),
     FUSE_OPT_KEY("async",               KEY_KERN),
@@ -158,6 +160,9 @@ static int fuse_mount_opt_proc(void *data, const char *arg, int key,
         mount_version();
         mo->ishelp = 1;
         break;
+
+    case KEY_SUBTYPE:
+        return 0;
     }
     return 1;
 }
