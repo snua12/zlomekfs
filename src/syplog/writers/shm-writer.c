@@ -1,7 +1,8 @@
 /*! \file
-    \brief File writer implementation.  
+    \brief Shared memory writer implementation.  
 
-  File writer takes logs and prints them to defined file.
+  Shm writer takes logs and prints them into shared memory segment.
+  TODO: describe behaviour of fixed sizes (of max size)
 */
 
 /* Copyright (C) 2007 Jiri Zouhar
@@ -29,23 +30,22 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "file-writer.h"
 
-/// Parse file writer specific params.
-/*! Parse file writer specific params
+/// Parse shm writer specific params.
+/*! Parse shm writer specific params
  @param argc argv count
- @param argv std "main" format params (--output-file=/var/log/zfsd.log) (non NULL)
+ @param argv std "main" format params (--segment-key=1024) (non NULL)
  @param settings writer structure where to apply given settings (non NULL)
  @return ERR_BAD_PARAMS on wrong argv or settings, NOERR otherwise
  */
-syp_error file_writer_parse_params (int argc, const char ** argv, writer settings)
+syp_error shm_writer_parse_params (int argc, const char ** argv, writer settings)
 {
   // table with known param types
   const struct option option_table[] = 
   {
-    {PARAM_WRITER_FN_LONG,	1, NULL,			PARAM_WRITER_FN_CHAR},
+    {PARAM_WRITER_SK_LONG,	1, NULL,			PARAM_WRITER_SK_CHAR},
     {NULL, 0, NULL, 0}
   }; 
   
@@ -60,15 +60,13 @@ syp_error file_writer_parse_params (int argc, const char ** argv, writer setting
 #endif
 
   // initialize getopt index to params
-  optind=1;
+  optind=0;
 
   while ( (opt = getopt_long (argc, (char**)argv, "", option_table, NULL)) != -1)
     switch(opt)
     {
-      case PARAM_WRITER_FN_CHAR: // log file name
-        strncpy ( ((file_writer_specific)(settings->type_specific))->file_name,
-                  optarg, 
-                  FILE_NAME_LEN);
+      case PARAM_WRITER_SK_CHAR: // log file name
+        (file_writer_specific)(settings->type_specific))->segment_key = atoi (optarg);
         break;
       case '?':
       default:
@@ -78,11 +76,11 @@ syp_error file_writer_parse_params (int argc, const char ** argv, writer setting
 	return NOERR;
 }
 
-/// Initializes file writer specific parts of writer structure
-syp_error open_file_writer (writer target, int argc, char ** argv)
+/// Initializes shm writer specific parts of writer structure
+syp_error open_shm_writer (writer target, int argc, char ** argv)
 {
   syp_error ret_code = NOERR;
-  file_writer_specific new_specific = NULL;
+  shm_writer_specific new_specific = NULL;
 
 #ifdef ENABLE_CHECKING
   if (target == NULL || argv == NULL)
@@ -91,7 +89,10 @@ syp_error open_file_writer (writer target, int argc, char ** argv)
   }
 #endif
   
-  new_specific = malloc (sizeof (struct file_writer_specific_def));
+  if (target->length <= 0)
+    target->length = DEFAULT_SHM_LOG_SIZE;
+  target->pos = 0;
+  new_specific = malloc (sizeof (struct shm_writer_specific_def));
   if (new_specific == NULL)
   {
     goto FINISHING;
@@ -99,48 +100,46 @@ syp_error open_file_writer (writer target, int argc, char ** argv)
   else
   {
     target->type_specific = new_specific;
-    strncpy (new_specific->file_name, DEFAULT_FILE, FILE_NAME_LEN);
-    new_specific->handler = NULL;
+    new_specific->segment_key = DEFAULT_SHM_KEY;
+    new_specific->shm_start = NULL;
+    new_specific->shmid = INVALID_SHM_ID;
   }
 
-  ret_code = file_writer_parse_params (argc, (const char **)argv, target);
+  ret_code = shm_writer_parse_params (argc, (const char **)argv, target);
   if (ret_code != NOERR)
   {
     goto FINISHING;
   }
-  new_specific->handler = fopen (new_specific->file_name, "r+");
-  if (new_specific->handler == NULL)
-    // heuristic for non-existing file FIXME: find appropriate errno and do this only upon it
-    new_specific->handler = fopen (new_specific->file_name, "w+");
-  if (new_specific->handler == NULL)
+  
+  // NOTE: SILENT shrinkage
+  if (target->length > SHMMAX)
+    target->length = SHMMAX;
+  new_specific->shmid = shmget (new_specific->segment_key, 
+                                target->length,
+                                IPC_CREAT | SHM_HUGETBL | 660);
+  if (new_specific->shmid == INVALID_SHM_ID)
   {
-    ret_code = ERR_FILE_OPEN;
+    ret_code = system_to_syp_error (errno);
     goto FINISHING;
   }
 
-  // set cursor in file to boundaries
-  long pos = ftell (new_specific->handler);
-  target->pos = pos;
-  if (target->length > 0)
+  new_specific->shm_start = shmat (new_specific->shmid, NULL, 0);
+  if (new_specific->shm_start == (void *) -1)
   {
-    if (target->length - pos < target->output_printer->get_max_print_size())
-    {
-      if (fseek (new_specific->handler, 0, SEEK_SET) == SYS_NOERR)
-        target->pos = 0;
-    }
-  }
-  else
-  {
-    fseek (new_specific->handler, 0, SEEK_END);
+    new_specific->shm_start = NULL;
+    ret_code = system_to_syp_error (errno);
+    goto FINISHING;
   }
 
-  target->open_writer = open_file_writer;
-  target->close_writer = close_file_writer;
-  target->write_log = write_file_log;
+  target->open_writer = open_shm_writer;
+  target->close_writer = close_shm_writer;
+  target->write_log = write_shm_log;
 
 FINISHING:
   if (ret_code != NOERR && new_specific!= NULL)
   {
+    if (new_specific->shm_start != NULL)
+      shmdt (new_specific->shm_start);
     free (new_specific);
     target->type_specific = NULL;
   }
@@ -148,8 +147,8 @@ FINISHING:
   return ret_code;
 }
 
-/// Close and destroys file writer specific parts of writer strucutre
-syp_error close_file_writer (writer target){
+/// Close and destroys shm writer specific parts of writer strucutre
+syp_error close_shm_writer (writer target){
 #ifdef ENABLE_CHECKING
   if (target == NULL)
   {
@@ -157,15 +156,15 @@ syp_error close_file_writer (writer target){
   }
 #endif
 
-  fclose ( ((file_writer_specific)(target->type_specific))->handler);
+  shmdt (new_specific->shm_start);
   free (target->type_specific);
   target->type_specific = NULL;
   
   return NOERR;
 }
 
-/// Write log to file
-syp_error write_file_log (writer target, log_struct log){
+/// Write log to shared memory segment
+syp_error write_shm_log (writer target, log_struct log){
 #ifdef ENABLE_CHECKING
   if (target == NULL || log == NULL)
     return ERR_BAD_PARAMS;
@@ -176,19 +175,15 @@ syp_error write_file_log (writer target, log_struct log){
       target->length - target->pos < target->output_printer->get_max_print_size())
   {
   // move to front
-    if (fseek (((file_writer_specific)target->type_specific)->handler,
-               0, SEEK_SET) == SYS_NOERR)
-      target->pos = 0;
-    else
-      return ERR_SYSTEM;
+    target->pos = 0;
   }
   // append
-  int32_t chars_printed = target->output_printer->file (log, 
-                                ((file_writer_specific)target->type_specific)->handler);
+  int32_t chars_printed = target->output_printer->mem (log,
+                                ((file_writer_specific)target->type_specific)->shm_start + pos);
   if (chars_printed > 0)
   {
   // move boundary
-    target->pos += chars_printed;
+    target->pos += target->output_printer->get_max_print_size();
     return NOERR;
   }
   else
