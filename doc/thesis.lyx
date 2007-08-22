@@ -41,6 +41,14 @@ Jiri Zouhar
 Something very smart it is, young adept.
 \end_layout
 
+\begin_layout Abstract
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Introduction
 \end_layout
@@ -91,12 +99,12 @@ Specification testing
 \end_layout
 
 \begin_layout Standard
-We could look on filesystem as a specification of way how to store data
- and associated metedata on some storage media.
+We could look on filesystem as on specification of way how to store data
+ and associated metedata on storage media.
  In this case we can ask if the structures are sufficient for accessing
- the data, if the specfication cover all eventual operations that should
+ stored data, if the specfication covers all eventual operations that should
  be availible and if the transistions are sane.
- testy od stolu, pouze jednou
+ Specification testing is done only once at the begining.
 \end_layout
 
 \begin_layout Paragraph
@@ -108,7 +116,7 @@ Some filesystems don't focus on the way how to store data on media but how
  to make them accessible.
  Well known group of such filesystems are network filesystems.
  They suppose that some other filesystem do the storage and they specify
- only the way how they will be accessible remotely and put some restrictions
+ only the way how data will be accessible remotely and put some restrictions
  on the filesystem behaviour.
  In this case we test the particular implementations if they are conform
  to the specification.
@@ -283,11 +291,11 @@ Models
 \end_layout
 
 \begin_layout Standard
-When an error is detected in software, developer need to have as much informatio
-n about the failure as possible.
+When an error is detected in software, developer needs to have as much informati
+on about the failure as possible.
  What occured is nice to know but in most cases useless without without
  more details about the run.
- Therefore developers uses logging and tracing to get some useful information
+ Therefore developers use logging and tracing to get some useful information
  about the particular run.
 \end_layout
 
@@ -503,7 +511,64 @@ Presentation layer
 \end_layout
 
 \begin_layout Standard
-web, log, app
+Usual test run produce outputs of many types, begining with standart outputs,
+ going on with filesystem changes and debug logs and even including state
+ snapshots, core dumps etc.
+ These are data of very different types.
+ The goal is to present them to user in usable way with structure that can
+ be easilly understood and through ways which are accessible from as much
+ enviroments as possible.
+\end_layout
+
+\begin_layout Paragraph
+Raw data
+\end_layout
+
+\begin_layout Standard
+The easiest way to present results is to leave them as they are produced
+ by application and test suite.
+ When this approach is used the raw data are often made vaailable for downloadin
+g through simple protocol such as FTP or some remote access.
+ Raw data hold always full information, don't suffer by ano losses from
+ transformations.
+ On the other hand raw data are often platform dependent and may have to
+ be interpreted on the system that produced them.
+ The data should be in standart format to allow readability by external
+ tools.
+\end_layout
+
+\begin_layout Paragraph
+Web interface
+\end_layout
+
+\begin_layout Standard
+Dynamic web pages are nowadays very used way of presentation as they are
+ relatively easy to write.
+ Web pages have big advantage in accessibility - nearly every computer have
+ web prowser installed and people are used to get information through these.
+ On the other hand web pages can hardly display some debug outputs such
+ as core dumps and other binary data.
+ In this case data should be downloadable for reading through external tools.
+ Interaction with web is little bit slower than with local application and
+ user comfort is also worst.
+\end_layout
+
+\begin_layout Paragraph
+Special application
+\end_layout
+
+\begin_layout Standard
+Even raw data must be interpreted by application to be presented in readable
+ form.
+ When there aren't appropriate general tools, they should be written as
+ part of test suite.
+ The fact that they must be written is one big disadvantage by itself.
+ Full featured interpreter of debug data with presentation layer may consist
+ of the same amouth of work as test suite itself.
+ Moreover requirements and dependencies of such application could be non-trivial
+ and platform independency is hardly to achieve with this approach.
+ The big pro of special application is that as written specially for a suite
+ it should fits very well the needs.
 \end_layout
 
 \begin_layout Subsection
@@ -511,7 +576,62 @@ Random workload generation
 \end_layout
 
 \begin_layout Standard
-automata
+must be generated from small test units (meta tests, atoms).
+ Depending on subject tested atoms are either defined by tradition (basic
+ operations that can be made on subject tested) or small well defined tests.
+ It is sometimes wanted to group some atoms to create new (bigger) atom.
+ In ideal case run of a beta test doesn't change state of subject tested.
+ But this type of atoms can test only stateless sysatems and operations
+ which are less errorneous and not so big candidates for regresion testing
+ as statefull systems are.
+ For statefull systems (and metat tests) there should be method how to define
+ and check states and legal transistions.
+ Simple method to allow this is to give to tester some way to define pre-
+ and post- run hooks that can initialize state, check transistion and posibly
+ do cleanup after test.
+ While approach with pre and post run hooks is simple yet powerfull, there
+ is one issue connected to it.
+ In this system tester can use statefull tests but in trade of possible
+ waste of resources.
+ When test expected some state different that in which system is, it must
+ either made a state change (non trivial operation out of test scope) or
+ silently pass without testing and let the system run other test.
+ More spohisticated system for resolving state-fullness is to give tester
+ tool to define allowet transistions between tests.
+ Transistions are often given by graph (edges can be allowed transistions
+ or vice versa).
+ 
+\end_layout
+
+\begin_layout Standard
+Sometimes it may be desirable to give some preferences (what should be tested).
+ For random workload this means either binary switching tests on and off
+ or giving preferences in percentage.
+ When state-fullnes is not solved or solved by pre- and post- hooks, precentage
+ is connected to tests.
+ When transistions are used, precentage can be either for tests (implicit
+ edges) or for transistions.
+\end_layout
+
+\begin_layout Standard
+Length of continuous random workload can be simple defined as:
+\end_layout
+
+\begin_layout Itemize
+number of tests (min, max, mean)
+\end_layout
+
+\begin_layout Itemize
+time (resources) used
+\end_layout
+
+\begin_layout Itemize
+by transistions to end point
+\end_layout
+
+\begin_layout Standard
+When user preferences are given system itself is oten simple automata running
+ on satatefull graph.
 \end_layout
 
 \begin_layout Subsection
@@ -519,7 +639,55 @@ Pruning output
 \end_layout
 
 \begin_layout Standard
-rerun with other settings
+When long test (or random test) fails we don't know which step has caused
+ the failure, so we need test outputs (debugging info) to locate the bug.
+ On the other hand output from long and random tests can be huge and most
+ of it may be useless.
+ The goal of pruning output is to provide enough information to find the
+ bug and at the same time hide useless balast.
+ Basically we can divide outputs to developer written log messages, system
+ state snapshots (memory dums, FS state, etc).
+ The second type is more resources consuming, but easy searchable by hand.
+ So as storage capacity is cheap, we can simply leave all snapshots or limit
+ space used by constant and delete old snapshots.
+ As for logs the problem was described in chapter !!! logging !!!.
+ When logging doesn't slow application down and doesn't change behaviour,
+ the best approach is to log all, store all (or last X) and provide tool
+ for filtering and searching logs.
+ With this approach we can be sure that no crucial information was lost
+ by heuristic prunning.
+ In special cases lice low resource platforms (without storage, extremly
+ slow, etc) where we can't afford wasting, some heuristic must be used.
+ For system state this can be last state before recognizing failure and
+ state after.
+ For logs there can be more approaches which can be divided to 
+\end_layout
+
+\begin_layout Itemize
+on-time prunning - test suite changes log level of application according
+ to probability of failure.
+ The question is, how it should know.
+\end_layout
+
+\begin_layout Itemize
+afterwards - log level is constant for test run, logs are stored to cyclic
+ buffer.
+ When failure occurs, test suite will trim the buffer to store just usefull
+ information.
+\end_layout
+
+\begin_layout Itemize
+re-run - tests are runned with logging on minimal level.
+ When failure occur, test suite will rerun the test with more logging 
+\begin_inset Quotes eld
+\end_inset
+
+around
+\begin_inset Quotes erd
+\end_inset
+
+ the failure, possibly skiping some parts of test (as for random generated
+ workload).
 \end_layout
 
 \begin_layout Subsection
