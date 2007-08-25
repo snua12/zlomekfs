@@ -135,7 +135,8 @@ syp_error reader_parse_params(int argc, const char ** argv, reader settings)
         break;
       case '?':
       default:
-          return ERR_BAD_PARAMS;
+//          return ERR_BAD_PARAMS;
+// skip unknown params
         break;
     }
 
@@ -196,11 +197,6 @@ syp_error close_reader (reader target)
   if (ret_code != NOERR)
   {
     goto FINISHING;
-  }
-  else
-  {
-    free (target);
-    target = NULL;
   }
 
 FINISHING:

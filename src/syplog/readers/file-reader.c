@@ -154,7 +154,8 @@ syp_error read_file_log (reader target, log_struct log){
   // check boundaries
   if (feof (((file_reader_specific)target->type_specific)->handler) != 0)
   {
-    return ERR_END_OF_FILE;
+    clearerr (((file_reader_specific)target->type_specific)->handler);
+    return ERR_END_OF_LOG;
   }
 
   // read

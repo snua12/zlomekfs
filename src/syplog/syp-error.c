@@ -36,8 +36,8 @@ char * syp_error_to_string (syp_error error)
       return "Bad params given to function";
     case ERR_FILE_OPEN:
       return "File can't be opened";
-    case ERR_END_OF_FILE:
-      return "End of file reached";
+    case ERR_END_OF_LOG:
+      return "End of log reached";
     case ERR_NOT_IMPLEMENTED:
       return "Functionality not implemented";
     case ERR_SYSTEM:

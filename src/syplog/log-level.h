@@ -83,6 +83,9 @@ typedef uint32_t		log_level_t;
 #define LOG_UNKNOWN    12
 #define LOG_UNKNOWN_NAME	"UNKONWN"
 
+#define LOG_ALL			(uint32_t)-1
+#define LOG_NONE		0
+
 
 // TODO: fix in code
 #define LOG_ERROR      LOG_ERR

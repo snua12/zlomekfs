@@ -45,7 +45,7 @@
 #define PARAM_WRITER_LS_LONG	"size"
 #define PARAM_WRITER_LS_CHAR	's'
 
-#define	PARAM_WRITER_TYPE_LONG	"type"
+#define	PARAM_WRITER_TYPE_LONG	"writer"
 #define	PARAM_WRITER_TYPE_CHAR	'w'
 
 /*! Initializes writer according to parameters.

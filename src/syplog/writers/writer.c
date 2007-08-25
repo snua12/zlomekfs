@@ -143,7 +143,8 @@ syp_error writer_parse_params(int argc, const char ** argv, writer settings)
         break;
       case '?':
       default:
-          return ERR_BAD_PARAMS;
+//          return ERR_BAD_PARAMS;
+// skip unknown params
         break;
     }
 
@@ -204,11 +205,6 @@ syp_error close_writer (writer target)
   if (ret_code != NOERR)
   {
     goto FINISHING;
-  }
-  else
-  {
-    free (target);
-    target = NULL;
   }
 
 FINISHING:

@@ -42,8 +42,8 @@
 #define PARAM_READER_FMT_LONG	"formater"
 #define PARAM_READER_FMT_CHAR	'f'
 
-#define	PARAM_READER_TYPE_LONG	"type"
-#define	PARAM_READER_TYPE_CHAR	'w'
+#define	PARAM_READER_TYPE_LONG	"reader"
+#define	PARAM_READER_TYPE_CHAR	'r'
 
 /*! Initializes reader according to parameters.
   @param argv the same format as in "main", but parses only reader specific options

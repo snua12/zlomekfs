@@ -44,7 +44,7 @@ typedef enum
   /// file can't be opened
   ERR_FILE_OPEN = 10002,
   /// end of file reached
-  ERR_END_OF_FILE = 10003,
+  ERR_END_OF_LOG = 10003,
   /// functionality not implemented
   ERR_NOT_IMPLEMENTED = 10004,
   /// unspecified error from operating system
