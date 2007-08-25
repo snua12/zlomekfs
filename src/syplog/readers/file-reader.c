@@ -1,7 +1,7 @@
 /*! \file
-    \brief File writer implementation.  
+    \brief File reader implementation.  
 
-  File writer takes logs and prints them to defined file.
+  File reader takes logs from file and parses them to structures.
 */
 
 /* Copyright (C) 2007 Jiri Zouhar
@@ -31,21 +31,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "file-writer.h"
+#include "file-reader.h"
 
-/// Parse file writer specific params.
-/*! Parse file writer specific params
+/// Parse file reader specific params.
+/*! Parse file reader specific params
  @param argc argv count
  @param argv std "main" format params (--log-file=/var/log/zfsd.log) (non NULL)
- @param settings writer structure where to apply given settings (non NULL)
+ @param settings reader structure where to apply given settings (non NULL)
  @return ERR_BAD_PARAMS on wrong argv or settings, NOERR otherwise
  */
-syp_error file_writer_parse_params (int argc, const char ** argv, writer settings)
+syp_error file_reader_parse_params (int argc, const char ** argv, reader settings)
 {
   // table with known param types
   const struct option option_table[] = 
   {
-    {PARAM_WRITER_FN_LONG,	1, NULL,			PARAM_WRITER_FN_CHAR},
+    {PARAM_READER_FN_LONG,	1, NULL,			PARAM_READER_FN_CHAR},
     {NULL, 0, NULL, 0}
   }; 
   
@@ -65,8 +65,8 @@ syp_error file_writer_parse_params (int argc, const char ** argv, writer setting
   while ( (opt = getopt_long (argc, (char**)argv, "", option_table, NULL)) != -1)
     switch(opt)
     {
-      case PARAM_WRITER_FN_CHAR: // log file name
-        strncpy ( ((file_writer_specific)(settings->type_specific))->file_name,
+      case PARAM_READER_FN_CHAR: // log file name
+        strncpy ( ((file_reader_specific)(settings->type_specific))->file_name,
                   optarg, 
                   FILE_NAME_LEN);
         break;
@@ -78,11 +78,11 @@ syp_error file_writer_parse_params (int argc, const char ** argv, writer setting
 	return NOERR;
 }
 
-/// Initializes file writer specific parts of writer structure
-syp_error open_file_writer (writer target, int argc, char ** argv)
+/// Initializes file reader specific parts of reader structure
+syp_error open_file_reader (reader target, int argc, char ** argv)
 {
   syp_error ret_code = NOERR;
-  file_writer_specific new_specific = NULL;
+  file_reader_specific new_specific = NULL;
 
 #ifdef ENABLE_CHECKING
   if (target == NULL || argv == NULL)
@@ -91,7 +91,7 @@ syp_error open_file_writer (writer target, int argc, char ** argv)
   }
 #endif
   
-  new_specific = malloc (sizeof (struct file_writer_specific_def));
+  new_specific = malloc (sizeof (struct file_reader_specific_def));
   if (new_specific == NULL)
   {
     goto FINISHING;
@@ -103,40 +103,21 @@ syp_error open_file_writer (writer target, int argc, char ** argv)
     new_specific->handler = NULL;
   }
 
-  ret_code = file_writer_parse_params (argc, (const char **)argv, target);
+  ret_code = file_reader_parse_params (argc, (const char **)argv, target);
   if (ret_code != NOERR)
   {
     goto FINISHING;
   }
-  new_specific->handler = fopen (new_specific->file_name, "r+");
-  if (new_specific->handler == NULL)
-    // heuristic for non-existing file FIXME: find appropriate errno and do this only upon it
-    new_specific->handler = fopen (new_specific->file_name, "w+");
+  new_specific->handler = fopen (new_specific->file_name, "r");
   if (new_specific->handler == NULL)
   {
     ret_code = ERR_FILE_OPEN;
     goto FINISHING;
   }
 
-  // set cursor in file to boundaries
-  long pos = ftell (new_specific->handler);
-  target->pos = pos;
-  if (target->length > 0)
-  {
-    if (target->length - pos < target->output_printer->get_max_print_size())
-    {
-      if (fseek (new_specific->handler, 0, SEEK_SET) == SYS_NOERR)
-        target->pos = 0;
-    }
-  }
-  else
-  {
-    fseek (new_specific->handler, 0, SEEK_END);
-  }
-
-  target->open_writer = open_file_writer;
-  target->close_writer = close_file_writer;
-  target->write_log = write_file_log;
+  target->open_reader = open_file_reader;
+  target->close_reader = close_file_reader;
+  target->read_log = read_file_log;
 
 FINISHING:
   if (ret_code != NOERR && new_specific!= NULL)
@@ -148,8 +129,8 @@ FINISHING:
   return ret_code;
 }
 
-/// Close and destroys file writer specific parts of writer strucutre
-syp_error close_file_writer (writer target){
+/// Close and destroys file reader specific parts of reader strucutre
+syp_error close_file_reader (reader target){
 #ifdef ENABLE_CHECKING
   if (target == NULL)
   {
@@ -157,7 +138,7 @@ syp_error close_file_writer (writer target){
   }
 #endif
 
-  fclose ( ((file_writer_specific)(target->type_specific))->handler);
+  fclose ( ((file_reader_specific)(target->type_specific))->handler);
   free (target->type_specific);
   target->type_specific = NULL;
   
@@ -165,32 +146,26 @@ syp_error close_file_writer (writer target){
 }
 
 /// Write log to file
-syp_error write_file_log (writer target, log_struct log){
+syp_error read_file_log (reader target, log_struct log){
 #ifdef ENABLE_CHECKING
   if (target == NULL || log == NULL)
     return ERR_BAD_PARAMS;
 #endif
-  // TODO: implement
   // check boundaries
-  if (target->length > 0 && 
-      target->length - target->pos < target->output_printer->get_max_print_size())
+  if (feof (((file_reader_specific)target->type_specific)->handler) != 0)
   {
-  // move to front
-    if (fseek (((file_writer_specific)target->type_specific)->handler,
-               0, SEEK_SET) == SYS_NOERR)
-      target->pos = 0;
-    else
-      return ERR_SYSTEM;
+    return ERR_END_OF_FILE;
   }
-  // append
-  int32_t chars_printed = target->output_printer->file_write (log, 
-                                ((file_writer_specific)target->type_specific)->handler);
-  if (chars_printed > 0)
+
+  // read
+  int32_t chars_read = target->input_parser->file_read (log, 
+                                ((file_reader_specific)target->type_specific)->handler);
+  if (chars_read > 0)
   {
   // move boundary
-    target->pos += chars_printed;
+    target->pos += chars_read;
     return NOERR;
   }
   else
-    return -chars_printed;
+    return -chars_read;
 }

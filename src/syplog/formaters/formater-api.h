@@ -45,21 +45,44 @@
   @param socket open ip socket. At maximum "max_print_size" chars will be written
   @return number of bytes printed or -syp_error on error
 */
-typedef int32_t (*stream_format) (log_struct message, int socket);
+typedef int32_t (*stream_write_format) (log_struct message, int socket);
 
 /*! Function type for formating log to memory.
   @param message log message to print (non NULL)
   @param mem_addr pointer to memory where to write log. It should have enough free space according to the actual formater (returned by max_print_size)
   @return number of bytes printed or -syp_error on error
 */
-typedef int32_t (*mem_format) (log_struct message, void * mem_addr);
+typedef int32_t (*mem_write_format) (log_struct message, void * mem_addr);
 
 /*! Function type for formating log to file.
   @param message log message to print (non NULL)
   @param file open file handler. At maximum "max_print_size" chars will be written.
   @return number of bytes printed or -syp_error on error
 */
-typedef int32_t (*file_format) (log_struct message,  FILE * file);
+typedef int32_t (*file_write_format) (log_struct message,  FILE * file);
+
+
+/*! Function type for reading logs from socket-like media.
+  @param message log message to fill (non NULL)
+  @param socket open ip socket.
+  @return number of bytes read or -syp_error on error
+*/
+typedef int32_t (*stream_read_format) (log_struct message, int socket);
+
+/*! Function type for reading logs from memory.
+  @param message log message to fill (non NULL)
+  @param mem_addr pointer to memory where log is stored (non NULL).
+  @return number of bytes read or -syp_error on error
+*/
+typedef int32_t (*mem_read_format) (log_struct message, void * mem_addr);
+
+/*! Function type for reading logs from file.
+  @param message log message to fill (non NULL)
+  @param file open file handler.
+  @return number of bytes read or -syp_error on error
+*/
+typedef int32_t (*file_read_format) (log_struct message,  FILE * file);
+
 
 /*! Returns maximum size used in target by one log print.
   @param message log message to print (non NULL)
@@ -70,9 +93,14 @@ typedef int32_t (*max_print_size) (void);
 
 typedef struct formater_def
 {
-  stream_format stream;
-  mem_format mem;
-  file_format file;
+  stream_write_format stream_write;
+  mem_write_format mem_write;
+  file_write_format file_write;
+
+  stream_read_format stream_read;
+  mem_read_format mem_read;
+  file_read_format file_read;
+
   max_print_size get_max_print_size;
 } * formater;
 

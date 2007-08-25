@@ -28,22 +28,42 @@
 #define	USER_READABLE_FORMATER_NAME	"user"
 
 /*! Format log to socket in user readable manner
-  @see steam_format 
+  @see steam_write_format 
   @see formater-api.h
 */
-int32_t user_readable_stream_format (log_struct message, int socket);
+int32_t user_readable_stream_write (log_struct message, int socket);
 
 /*! Format log to memory in user readable manner
-  @see mem_format 
+  @see mem_write_format 
   @see formater-api.h
 */
-int32_t user_readable_mem_format (log_struct message, void * mem_addr);
+int32_t user_readable_mem_write (log_struct message, void * mem_addr);
 
 /*! Format log to file in user readable manner
-  @see file_format 
+  @see file_write_format 
   @see formater-api.h
 */
-int32_t user_readable_file_format (log_struct message, FILE * file);
+int32_t user_readable_file_write (log_struct message, FILE * file);
+
+
+/*! Read log from socket in user readable manner
+  @see steam_read_format 
+  @see formater-api.h
+*/
+int32_t user_readable_stream_read (log_struct message, int socket);
+
+/*! Read log from memory in user readable manner
+  @see mem_read_format 
+  @see formater-api.h
+*/
+int32_t user_readable_mem_read (log_struct message, void * mem_addr);
+
+/*! Read log from file in user readable manner
+  @see file_read_format 
+  @see formater-api.h
+*/
+int32_t user_readable_file_read (log_struct message, FILE * file);
+
 
 /*! Returns maximum length (in bytes) of space occupied in target medium
   @see max_print_size 

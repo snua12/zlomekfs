@@ -28,22 +28,42 @@
 #define	RAW_FORMATER_NAME	"raw"
 
 /*! Format raw log to socket 
-  @see steam_format 
+  @see steam_write_format 
   @see formater-api.h
 */
-int32_t raw_stream_format (log_struct message, int socket);
+int32_t raw_stream_write (log_struct message, int socket);
 
 /*! Format raw log to memory 
-  @see mem_format 
+  @see mem_write_format 
   @see formater-api.h
 */
-int32_t raw_mem_format (log_struct message, void * mem_addr);
+int32_t raw_mem_write (log_struct message, void * mem_addr);
 
 /*! Format raw log to file
-  @see file_format 
+  @see file_write_format 
   @see formater-api.h
 */
-int32_t raw_file_format (log_struct message, FILE * file);
+int32_t raw_file_write (log_struct message, FILE * file);
+
+
+/*! Read raw log from socket 
+  @see steam_read_format 
+  @see formater-api.h
+*/
+int32_t raw_stream_read (log_struct message, int socket);
+
+/*! Read raw log from memory 
+  @see mem_read_format 
+  @see formater-api.h
+*/
+int32_t raw_mem_read (log_struct message, void * mem_addr);
+
+/*! Read raw log from file
+  @see file_read_format 
+  @see formater-api.h
+*/
+int32_t raw_file_read (log_struct message, FILE * file);
+
 
 /*! Returns maximum length (in bytes) of space occupied in target medium
   @see max_print_size 

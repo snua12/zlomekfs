@@ -41,26 +41,38 @@
 /// typedef for facility
 typedef uint64_t		facility_t;
 
+/// maximum length of stringified facility representation
+#define FACILITY_STRING_LEN	32
+
 /// fallback facility (default)
 #define	FACILITY_UNKNOWN        0x0
+#define	FACILITY_UNKNOWN_NAME		"UNKNOWN/NONTRIVIAL"
 /// log message apply on logging facility
 #define	FACILITY_LOG            0x1
+#define	FACILITY_LOG_NAME		"LOG"
 /// log message apply on threading
 #define	FACILITY_THREADING      0x2
+#define	FACILITY_THREADING_NAME		"THREADING"
 /// log message apply on networking
 #define	FACILITY_NET            0x4
+#define	FACILITY_NET_NAME		"NET"
 /// log message apply on caching
 #define	FACILITY_CACHE          0x8
+#define	FACILITY_CACHE_NAME		"CACHE"
 /// log message apply on data handling
 #define	FACILITY_DATA           0x10
+#define	FACILITY_DATA_NAME		"DATA"
 
 /// facility for global testing
 #define FACILITY_ZFSD		0x10000
+#define	FACILITY_ZFSD_NAME		"ZFSD"
 
 /// do not log messages from any facility
 #define	FACILITY_NOTHING        0x0
+#define	FACILITY_NOTHING_NAME		"NOTHING"
 /// log messages from all facilities
 #define	FACILITY_ALL            (size_t)-1L
+#define	FACILITY_ALL_NAME		"ALL"
 
 
 // TODO: multifacilities
@@ -71,22 +83,48 @@ typedef uint64_t		facility_t;
 static inline const char * facility_to_name (facility_t facility)
 {
   if ((facility & FACILITY_LOG) > 1)
-    return "LOG";
+    return FACILITY_LOG_NAME;
   if ((facility & FACILITY_THREADING) > 1)
-    return "THREADING";
+    return FACILITY_THREADING_NAME;
   if ((facility & FACILITY_NET) > 1)
-    return "NET";
+    return FACILITY_NET_NAME;
   if ((facility & FACILITY_CACHE) > 1)
-    return "CACHE";
+    return FACILITY_CACHE_NAME;
   if ((facility & FACILITY_DATA) > 1)
-    return "DATA";
+    return FACILITY_DATA_NAME;
 
   if (facility == FACILITY_NOTHING)
-    return "NOTHING";
+    return FACILITY_NOTHING_NAME;
   if (facility == FACILITY_ALL)
-    return "ALL";
+    return FACILITY_ALL_NAME;
 
-  return "UNKNOWN/NONTRIVIAL";
+  return FACILITY_UNKNOWN_NAME;
+}
+
+// TODO: multifacilities
+/*! Translates singular facility name to bit representation
+  @param facility_name singular facility name
+  @return bit representation fo facility or FACILITY_UNKNOWN
+*/
+static inline facility_t facility_from_string (const char * facility_name)
+{
+  if (strncmp (facility_name, FACILITY_LOG_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_LOG;
+  if (strncmp (facility_name, FACILITY_THREADING_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_THREADING;
+  if (strncmp (facility_name, FACILITY_NET_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_NET;
+  if (strncmp (facility_name, FACILITY_CACHE_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_CACHE;
+  if (strncmp (facility_name, FACILITY_DATA_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_DATA;
+
+  if (strncmp (facility_name, FACILITY_NOTHING_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_NOTHING;
+  if (strncmp (facility_name, FACILITY_ALL_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_ALL;
+
+  return FACILITY_UNKNOWN;
 }
 
 /// Turn facility on.

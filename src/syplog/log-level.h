@@ -39,30 +39,50 @@
 /// typedef for log level
 typedef uint32_t		log_level_t;
 
+/// maximum length of stringified representation of log level
+#define LOG_LEVEL_STRING_LEN	16
+
 /// system is unusable 
 #define LOG_EMERG       0
+#define LOG_EMERG_NAME		"EMERGENCY"
 /// action must be taken immediately
 #define LOG_ALERT       1
+#define LOG_ALERT_NAME		"ALERT"
 /// critical conditions
 #define LOG_CRIT        2
+#define LOG_CRIT_NAME		"CRITICAL"
 /// error conditions
 #define LOG_ERR         3
+#define LOG_ERR_NAME		"ERROR"
 /// warning conditions
 #define LOG_WARNING     4
+#define LOG_WARNING_NAME	"WARNING"
 /// normal but significant condition
 #define LOG_NOTICE      5
+#define LOG_NOTICE_NAME		"NOTICE"
 /// informational
 #define LOG_INFO        6
+#define LOG_INFO_NAME		"INFO"
 /// debug-level messages
 #define LOG_DEBUG       7
+#define LOG_DEBUG_NAME		"DEBUG"
 /// locking info
 #define LOG_LOCK        8
+#define LOG_LOCK_NAME		"LOCK"
 /// function entry and leave
 #define LOG_FUNC        9
+#define LOG_FUNC_NAME		"FUNCTION"
 /// data changes
 #define LOG_DATA       10
+#define LOG_DATA_NAME		"DATA"
 /// loops
 #define LOG_LOOPS      11
+#define LOG_LOOPS_NAME		"LOOPS"
+
+/// unknown log level
+#define LOG_UNKNOWN    12
+#define LOG_UNKNOWN_NAME	"UNKONWN"
+
 
 // TODO: fix in code
 #define LOG_ERROR      LOG_ERR
@@ -77,33 +97,55 @@ static inline const char * log_level_to_name (log_level_t level)
 {
   switch (level)
   {
-    case LOG_EMERG:
-      return "EMERGENCY";
-    case LOG_ALERT:
-      return "ALERT";
-    case LOG_CRIT:
-      return "CRITICAL";
-    case LOG_ERR:
-      return "ERROR";
-    case LOG_WARNING:
-      return "WARNING";
-    case LOG_NOTICE:
-      return "NOTICE";
-    case LOG_INFO:
-      return "INFO";
-    case LOG_DEBUG:
-      return "DEBUG";
-    case LOG_FUNC:
-      return "FUNCTION";
-    case LOG_LOCK:
-      return "LOCK";
-    case LOG_DATA:
-      return "DATA";
-    case LOG_LOOPS:
-      return "LOOPS";
-    default:
-      return "UNKONWN";
+    case LOG_EMERG: return LOG_EMERG_NAME;
+    case LOG_ALERT: return LOG_ALERT_NAME;
+    case LOG_CRIT: return LOG_CRIT_NAME;
+    case LOG_ERR: return LOG_ERR_NAME;
+    case LOG_WARNING: return LOG_WARNING_NAME;
+    case LOG_NOTICE: return LOG_NOTICE_NAME;
+    case LOG_INFO: return LOG_INFO_NAME;
+    case LOG_DEBUG: return LOG_DEBUG_NAME;
+    case LOG_FUNC: return LOG_FUNC_NAME;
+    case LOG_LOCK: return LOG_LOCK_NAME;
+    case LOG_DATA: return LOG_DATA_NAME;
+    case LOG_LOOPS: return LOG_LOOPS_NAME;
+    default: return LOG_UNKNOWN_NAME;
   }
+}
+
+/// Reads log_level_t from string.
+/*! Read log_level_t from user readable string
+  @param level_name log level name
+  @return log level (or LOG_UNKNOWN)
+*/
+static inline log_level_t log_level_from_string (const char * level_name)
+{
+  if (strncmp (level_name, LOG_EMERG_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_EMERG;
+  if (strncmp (level_name, LOG_ALERT_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_ALERT;
+  if (strncmp (level_name, LOG_CRIT_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_CRIT;
+  if (strncmp (level_name, LOG_ERR_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_ERR;
+  if (strncmp (level_name, LOG_WARNING_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_WARNING;
+  if (strncmp (level_name, LOG_NOTICE_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_NOTICE;
+  if (strncmp (level_name, LOG_INFO_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_INFO;
+  if (strncmp (level_name, LOG_DEBUG_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_DEBUG;
+  if (strncmp (level_name, LOG_FUNC_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_FUNC;
+  if (strncmp (level_name, LOG_LOCK_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_LOCK;
+  if (strncmp (level_name, LOG_DATA_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_DATA;
+  if (strncmp (level_name, LOG_LOOPS_NAME, LOG_LEVEL_STRING_LEN) == 0)
+    return LOG_LOOPS;
+
+  return LOG_UNKNOWN;
 }
 
 

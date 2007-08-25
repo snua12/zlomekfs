@@ -27,9 +27,14 @@
 /*! Definition of user readable formater type */
 struct formater_def user_readable_formater = 
 {
-  .stream = user_readable_stream_format,
-  .mem = user_readable_mem_format,
-  .file = user_readable_file_format,
+  .stream_write = user_readable_stream_write,
+  .mem_write = user_readable_mem_write,
+  .file_write = user_readable_file_write,
+
+  .stream_read = user_readable_stream_read,
+  .mem_read = user_readable_mem_read,
+  .file_read = user_readable_file_read,
+
   .get_max_print_size = user_readable_max_print_size
 };
 
@@ -40,7 +45,7 @@ struct formater_def user_readable_formater =
   @param buffer_len maximal number of chars printed to buffer
   @return number of chars printed or -syp_error on error
 */
-int32_t fill_buffer (log_struct message, char * buffer, int32_t buffer_len)
+int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len)
 {
 
 #ifdef ENABLE_CHECKING
@@ -72,14 +77,59 @@ int32_t fill_buffer (log_struct message, char * buffer, int32_t buffer_len)
 
 }
 
+/// Read message from string buffer
+/*! Read message from string buffer in format defined for user readable formater
+  @param message non NULL pointer to log struct
+  @param buffer non NULL string buffer containing log message in format defined for user readable formater
+  @return number of chars read or -syp_error on error
+*/
+int32_t read_buffer (log_struct message, const char * buffer)
+{
+
+#ifdef ENABLE_CHECKING
+  if (message == NULL || buffer == NULL)
+    return -ERR_BAD_PARAMS;
+#endif
+
+  char time_str[TIME_STRING_LEN] = "";
+  char timezone_str[TIMEZONE_STRING_LEN] = "";
+  char facility_str[FACILITY_STRING_LEN] = "";
+  char log_level_str[LOG_LEVEL_STRING_LEN] = "";
+  int32_t chars_read = 0;
+
+  chars_read = sscanf (buffer, "%s\t%s\t%ld/%s\t%s\t%s\t%s\t%s\t%s\n", 
+           message->hostname,
+           message->node_name,
+           &message->thread_id,
+           message->thread_name,
+           facility_str,
+           log_level_str,
+           time_str,
+           timezone_str,
+           message->message
+           );
+  if (chars_read <=0)
+    return -ERR_SYSTEM;
+
+  time_from_string (time_str, &(message->time));
+  timezone_from_string (timezone_str, &(message->timezone));
+  message->facility = facility_from_string (facility_str);
+  message->level = log_level_from_string (log_level_str);
+
+
+    return chars_read;
+
+}
+
+
 /*! Format log to stream in user readable manner */
-int32_t user_readable_stream_format (log_struct message, int socket)
+int32_t user_readable_stream_write (log_struct message, int socket)
 {
   return -ERR_NOT_IMPLEMENTED;
 }
 
 /*! Format log to memory in user readable manner */
-int32_t user_readable_mem_format (log_struct message, void * mem_addr)
+int32_t user_readable_mem_write (log_struct message, void * mem_addr)
 {
 
 #ifdef ENABLE_CHECKING
@@ -93,7 +143,7 @@ int32_t user_readable_mem_format (log_struct message, void * mem_addr)
 }
 
 /*! Format log to file in user readable manner */
-int32_t user_readable_file_format (log_struct message, FILE * file)
+int32_t user_readable_file_write (log_struct message, FILE * file)
 {
 #ifdef ENABLE_CHECKING
   if (message == NULL || file == NULL)
@@ -110,13 +160,70 @@ int32_t user_readable_file_format (log_struct message, FILE * file)
     return chars_printed;
   }
 
-  chars_printed = fprintf("%s", buffer);
+  chars_printed = fwrite (buffer, 1, chars_printed, file);
 
   if (chars_printed > 0)
     return chars_printed;
   else
     return -ERR_SYSTEM;
 }
+
+
+/*! Read log from stream in user readable manner */
+int32_t user_readable_stream_read (log_struct message, int socket)
+{
+  return -ERR_NOT_IMPLEMENTED;
+}
+
+/*! Read log from memory in user readable manner */
+int32_t user_readable_mem_read (log_struct message, void * mem_addr)
+{
+
+#ifdef ENABLE_CHECKING
+  if (message == NULL || mem_addr == NULL)
+  {
+    return -ERR_BAD_PARAMS;
+  }
+#endif
+
+  return read_buffer (message, (char *) mem_addr);
+}
+
+/*! Read log from file in user readable manner */
+int32_t user_readable_file_read (log_struct message, FILE * file)
+{
+#ifdef ENABLE_CHECKING
+  if (message == NULL || file == NULL)
+  {
+    return -ERR_BAD_PARAMS;
+  }
+#endif
+
+  char buffer[MAX_LOG_STRING_SIZE] = "";
+
+  int32_t chars_read = 0;
+  int32_t chars_parsed = 0;
+
+  chars_read = fread (buffer, 1, MAX_LOG_STRING_SIZE, file);
+  if (ferror (file) != 0)
+  {
+    return -ERR_SYSTEM;
+  }
+
+  chars_parsed = read_buffer (message, buffer);
+  if (chars_parsed < 0)
+  {
+    fseek (file, -chars_read, SEEK_CUR);
+    return chars_parsed;
+  }
+  else
+  {
+    fseek (file, -chars_read + chars_parsed, SEEK_CUR);
+    return chars_parsed;
+  }
+
+}
+
 
 /*! Returns maximum length (in bytes) of space occupied in target medium */
 int32_t user_readable_max_print_size (void)

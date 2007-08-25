@@ -1,8 +1,8 @@
-#ifndef FILE_WRITER_H
-#define FILE_WRITER_H
+#ifndef FILE_READER_H
+#define FILE_READER_H
 
 /*! \file
-    \brief File writer functions definitions.  */
+    \brief File reader functions definitions.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
@@ -26,44 +26,44 @@
 
 #include <stdio.h>
 
-#include "writer-api.h"
+#include "reader-api.h"
 
-/// default file to write logs in. used when no file given
+/// default file to read logs from. used when no file given
 #define DEFAULT_FILE	"/var/log/zfsd.log"
 
-/// name of writer for translation from options (--type=file)
-#define	FILE_WRITER_NAME	"file"
+/// name of reader for translation from options (--type=file)
+#define	FILE_READER_NAME	"file"
 
 /// parameter name of output file name (where to write logs)
-#define PARAM_WRITER_FN_LONG	"log-file"
-/// short parameter name for PARAM_WRITER_FN_LONG - can be used only inside code now
-#define PARAM_WRITER_FN_CHAR	't'
+#define PARAM_READER_FN_LONG	"log-file"
+/// short parameter name for PARAM_READER_FN_LONG - can be used only inside code for now
+#define PARAM_READER_FN_CHAR	't'
 
-/*! Structure that holds internal state info specific for file writer. */
-typedef struct file_writer_specific_def {
+/*! Structure that holds internal state info specific for file reader. */
+typedef struct file_reader_specific_def {
   /// handler of opened file
   FILE * handler;
   /// name of file to write logs to (absolute or relative path)
   char file_name[FILE_NAME_LEN];
-}* file_writer_specific;
+}* file_reader_specific;
 
 
-/*! Parse params and initialize file writer
-  @see open_writer
-  @see writer-api.h
+/*! Parse params and initialize file reader
+  @see open_reader
+  @see reader-api.h
 */
-syp_error open_file_writer (struct writer_def * target, int argc, char ** argv);
+syp_error open_file_reader (struct reader_def * target, int argc, char ** argv);
 
-/*! Close file writer and free file writer specific structures
-  @see close_writer
-  @see writer-api.h
+/*! Close file reader and free file reader specific structures
+  @see close_reader
+  @see reader-api.h
 */
-syp_error close_file_writer (struct writer_def * target);
+syp_error close_file_reader (struct reader_def * target);
 
 /*! Write log into a file.
-  @see open_writer
-  @see writer-api.h
+  @see open_reader
+  @see reader-api.h
 */
-syp_error write_file_log (struct writer_def * target, log_struct log);
+syp_error read_file_log (struct reader_def * target, log_struct log);
 
-#endif /*FILE_WRITER_H*/
+#endif /*FILE_READER_H*/

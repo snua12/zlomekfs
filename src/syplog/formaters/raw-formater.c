@@ -1,5 +1,5 @@
 /*! \file
-    \brief User readable formater implementation.  */
+    \brief Raw formater implementation.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
@@ -28,17 +28,22 @@
 #include "raw-formater.h"
 
 
-/*! Definition of user readable formater type */
+/*! Definition of raw formater type */
 struct formater_def raw_formater = 
 {
-  .stream = raw_stream_format,
-  .mem = raw_mem_format,
-  .file = raw_file_format,
+  .stream_write = raw_stream_write,
+  .mem_write = raw_mem_write,
+  .file_write = raw_file_write,
+
+  .stream_read = raw_stream_read,
+  .mem_read = raw_mem_read,
+  .file_read = raw_file_read,
+
   .get_max_print_size = raw_max_print_size
 };
 
-/*! Format log to stream in user readable manner */
-int32_t raw_stream_format (log_struct message, int socket)
+/*! Format log to stream in raw format */
+int32_t raw_stream_write (log_struct message, int socket)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL)
@@ -50,8 +55,8 @@ int32_t raw_stream_format (log_struct message, int socket)
   return -ERR_NOT_IMPLEMENTED;
 }
 
-/*! Format log to memory in user readable manner */
-int32_t raw_mem_format (log_struct message, void * mem_addr)
+/*! Format log to memory in raw format */
+int32_t raw_mem_write (log_struct message, void * mem_addr)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL || mem_addr == NULL)
@@ -65,8 +70,8 @@ int32_t raw_mem_format (log_struct message, void * mem_addr)
   return sizeof (message);
 }
 
-/*! Format log to file in user readable manner */
-int32_t raw_file_format (log_struct message, FILE * file)
+/*! Format log to file in raw format */
+int32_t raw_file_write (log_struct message, FILE * file)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL || file == NULL)
@@ -84,6 +89,56 @@ int32_t raw_file_format (log_struct message, FILE * file)
   else
     return -ERR_SYSTEM;
 }
+
+
+/*! Read log from stream in raw format */
+int32_t raw_stream_read (log_struct message, int socket)
+{
+#ifdef	ENABLE_CHECKING
+  if (message == NULL)
+  {
+    return -ERR_BAD_PARAMS;
+  }
+#endif
+
+  return -ERR_NOT_IMPLEMENTED;
+}
+
+/*! Read log from memory in raw format */
+int32_t raw_mem_read (log_struct message, void * mem_addr)
+{
+#ifdef	ENABLE_CHECKING
+  if (message == NULL || mem_addr == NULL)
+  {
+    return -ERR_BAD_PARAMS;
+  }
+#endif
+
+  memcpy (message, mem_addr, sizeof (message));
+
+  return sizeof (message);
+}
+
+/*! Read log from file in raw format */
+int32_t raw_file_read (log_struct message, FILE * file)
+{
+#ifdef	ENABLE_CHECKING
+  if (message == NULL || file == NULL)
+  {
+    return -ERR_BAD_PARAMS;
+  }
+#endif
+
+  int32_t chars_read = 0;
+
+  chars_read = fread (message, 1, sizeof (struct log_struct_def), file);
+
+  if (chars_read > 0)
+    return chars_read;
+  else
+    return -ERR_SYSTEM;
+}
+
 
 /*! Returns maximum length (in bytes) of space occupied in target medium */
 int32_t raw_max_print_size (void)

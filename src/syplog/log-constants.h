@@ -44,11 +44,13 @@
 #define	NODE_NAME_LEN	64
 /// maximal length of hostname
 #define	HOSTNAME_LEN	255
-/// maximal length of user readable writer name
 
+/// maximal length of user writer name
 #define WRITER_NAME_LEN 32
-/// maximal length of user readable formater name
+/// maximal length of formater name
 #define FORMATER_NAME_LEN 32
+/// maximal length of reader name
+#define READER_NAME_LEN 32
 
 /// maximal length of filename (absolute or relative path)
 #define	FILE_NAME_LEN		128
@@ -98,6 +100,28 @@ static inline int32_t time_to_string (struct timeval * local_time, char * buffer
     return -ERR_SYSTEM;
 }
 
+/*! read time from string to struct timeval
+  @param local_time non NULL, timeval structure
+  @param buffer string buffer from which to read time (non NULL)
+  @return number of chars printed or -syp_error
+*/
+static inline int32_t time_from_string (const char * buffer, struct timeval * local_time)
+{
+  int32_t chars_read = 0;
+
+#ifdef ENABLE_CHECKING
+  if (time == NULL || buffer == NULL || buffer_len == 0)
+    return -ERR_BAD_PARAMS;
+#endif
+
+  chars_read = sscanf (buffer, "%ld:%ld", &(local_time->tv_sec), &(local_time->tv_usec));
+
+  if (chars_read > 0)
+    return chars_read;
+  else
+    return -ERR_SYSTEM;
+}
+
 /*! Translate timezone (+-sec from greenwich) to string
   @param local_timezone +-sec from greenwich
   @param buffer non NULL buffer where to print timezone to
@@ -115,6 +139,26 @@ static inline int32_t timezone_to_string (uint64_t local_timezone, char * buffer
 
   if (chars_printed > 0)
     return chars_printed;
+  else
+    return -ERR_SYSTEM;
+}
+
+/*! Read timezone (+-sec from greenwich) from string
+  @param local_timezone +-sec from greenwich (non NULL pointer)
+  @param buffer non NULL buffer with timezone
+  @return number of chars read or -syp_error
+*/
+static inline int32_t timezone_from_string (const char * buffer, uint64_t * local_timezone)
+{
+  int32_t chars_read = 0;
+#ifdef ENABLE_CHECKING
+  if (buffer == NULL || local_timezone == NULL)
+    return -ERR_BAD_PARAMS;
+#endif
+  chars_read = sscanf (buffer, "%lu", local_timezone);
+
+  if (chars_read > 0)
+    return chars_read;
   else
     return -ERR_SYSTEM;
 }

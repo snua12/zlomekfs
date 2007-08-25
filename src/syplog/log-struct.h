@@ -43,10 +43,12 @@
 #define	TIME_STRING_LEN	20
 /// max length of timezone printed to string
 #define	TIMEZONE_STRING_LEN	10
+
 /// max length of log printed to string
-#define MAX_LOG_STRING_SIZE	INT_STRING_SIZE * 3 + LONG_LONG_STRING_SIZE + HOSTNAME_LEN \
+#define MAX_LOG_STRING_SIZE	INT_STRING_SIZE + LONG_LONG_STRING_SIZE + HOSTNAME_LEN \
                         + NODE_NAME_LEN + THREAD_NAME_LEN + LOG_MESSAGE_LEN \
-                        + TIME_STRING_LEN + TIMEZONE_STRING_LEN
+                        + TIME_STRING_LEN + TIMEZONE_STRING_LEN + FACILITY_STRING_LEN \
+                        + LOG_LEVEL_STRING_LEN
 
 /*! Structure holding all informations about logging event */
 typedef struct log_struct_def {

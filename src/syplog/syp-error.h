@@ -43,10 +43,12 @@ typedef enum
   ERR_BAD_PARAMS = 10001,
   /// file can't be opened
   ERR_FILE_OPEN = 10002,
+  /// end of file reached
+  ERR_END_OF_FILE = 10003,
   /// functionality not implemented
-  ERR_NOT_IMPLEMENTED = 10003,
+  ERR_NOT_IMPLEMENTED = 10004,
   /// unspecified error from operating system
-  ERR_SYSTEM = 10004
+  ERR_SYSTEM = 10005
 
 } syp_error;
 
