@@ -1,6 +1,6 @@
 /*
     FUSE: Filesystem in Userspace
-    Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+    Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
     This program can be distributed under the terms of the GNU LGPL.
     See the file COPYING.LIB.
@@ -63,8 +63,13 @@ struct fuse_file_info {
         operation.  Introduced in version 2.6 */
     unsigned int flush : 1;
 
+    /** Can be filled in by open, to indicate that data should not be cached,
+	but that a future OPEN may reenable caching by not setting this
+	flag. */
+    unsigned int no_caching : 1;
+
     /** Padding.  Do not use*/
-    unsigned int padding : 29;
+    unsigned int padding : 28;
 
     /** File handle.  May be filled in by filesystem in open().
         Available in all other file operations */
@@ -160,8 +165,20 @@ void fuse_unmount(const char *mountpoint, struct fuse_chan *ch);
 int fuse_parse_cmdline(struct fuse_args *args, char **mountpoint,
                        int *multithreaded, int *foreground);
 
-
+/**
+ * Go into the background
+ *
+ * @param foreground if true, stay in the foreground
+ * @return 0 on success, -1 on failure
+ */
 int fuse_daemonize(int foreground);
+
+/**
+ * Get the version of the library
+ *
+ * @return the version
+ */
+int fuse_version(void);
 
 /* ----------------------------------------------------------- *
  * Signal handling                                             *

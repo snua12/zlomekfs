@@ -28,6 +28,7 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/list.h>
+#include <linux/sched.h>
 #include <linux/wait.h>
 #include <linux/errno.h>
 #include <linux/types.h>

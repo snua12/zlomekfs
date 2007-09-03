@@ -1,6 +1,6 @@
 /*
     FUSE: Filesystem in Userspace
-    Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+    Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
     This program can be distributed under the terms of the GNU GPL.
     See the file COPYING.
@@ -9,6 +9,7 @@
 
 #include <config.h>
 
+#include "mount_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +20,6 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <mntent.h>
-#include <dirent.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
@@ -73,63 +73,11 @@ static void restore_privs(void)
     }
 }
 
-static int do_unmount(const char *mnt, int quiet, int lazy)
-{
-    int res;
-    int status;
-
-    (void) quiet;
-    res = fork();
-    if (res == -1) {
-        perror("fork");
-        return -1;
-    }
-    if (res == 0) {
-        setuid(geteuid());
-        execl("/bin/umount", "/bin/umount", "-i", mnt, lazy ? "-l" : NULL,
-              NULL);
-        perror("execl /bin/umount");
-        exit(1);
-    }
-    res = waitpid(res, &status, 0);
-    if (res == -1) {
-        perror("waitpid");
-        return -1;
-    }
-    if (status != 0)
-        return -1;
-
-    return 0;
-}
-
 #ifndef IGNORE_MTAB
-static int add_mount(const char *fsname, const char *mnt, const char *type,
+static int add_mount(const char *source, const char *mnt, const char *type,
                      const char *opts)
 {
-    int res;
-    int status;
-
-    res = fork();
-    if (res == -1) {
-        perror("fork");
-        return -1;
-    }
-    if (res == 0) {
-        setuid(geteuid());
-        execl("/bin/mount", "/bin/mount", "-i", "-f", "-t", type, "-o", opts,
-              fsname, mnt, NULL);
-        perror("execl /bin/mount");
-        exit(1);
-    }
-    res = waitpid(res, &status, 0);
-    if (res == -1) {
-        perror("waitpid");
-        return -1;
-    }
-    if (status != 0)
-        return -1;
-
-    return 0;
+    return fuse_mnt_add_mount(progname, source, mnt, type, opts);
 }
 
 static int unmount_fuse(const char *mnt, int quiet, int lazy)
@@ -160,7 +108,9 @@ static int unmount_fuse(const char *mnt, int quiet, int lazy)
         while ((entp = getmntent(fp)) != NULL) {
             if (!found && strcmp(entp->mnt_dir, mnt) == 0 &&
                 (strcmp(entp->mnt_type, "fuse") == 0 ||
-                 strcmp(entp->mnt_type, "fuseblk") == 0)) {
+                 strcmp(entp->mnt_type, "fuseblk") == 0 ||
+                 strncmp(entp->mnt_type, "fuse.", 5) == 0 ||
+                 strncmp(entp->mnt_type, "fuseblk.", 8) == 0)) {
                 char *p = strstr(entp->mnt_opts, "user=");
                 if (p && (p == entp->mnt_opts || *(p-1) == ',') &&
                     strcmp(p + 5, user) == 0) {
@@ -187,7 +137,7 @@ static int unmount_fuse(const char *mnt, int quiet, int lazy)
         }
     }
 
-    return do_unmount(mnt, quiet, lazy);
+    return fuse_mnt_umount(progname, mnt, lazy);
 }
 
 static int count_fuse_fs(void)
@@ -202,7 +152,8 @@ static int count_fuse_fs(void)
         return -1;
     }
     while ((entp = getmntent(fp)) != NULL) {
-        if (strcmp(entp->mnt_type, "fuse") == 0)
+        if (strcmp(entp->mnt_type, "fuse") == 0 ||
+            strncmp(entp->mnt_type, "fuse.", 5) == 0)
             count ++;
     }
     endmntent(fp);
@@ -216,10 +167,10 @@ static int count_fuse_fs()
     return 0;
 }
 
-static int add_mount(const char *fsname, const char *mnt, const char *type,
+static int add_mount(const char *source, const char *mnt, const char *type,
                      const char *opts)
 {
-    (void) fsname;
+    (void) source;
     (void) mnt;
     (void) type;
     (void) opts;
@@ -228,7 +179,7 @@ static int add_mount(const char *fsname, const char *mnt, const char *type,
 
 static int unmount_fuse(const char *mnt, int quiet, int lazy)
 {
-    return do_unmount(mnt, quiet, lazy);
+    return fuse_mnt_umount(progname, mnt, lazy);
 }
 #endif /* IGNORE_MTAB */
 
@@ -397,57 +348,26 @@ static int opt_eq(const char *s, unsigned len, const char *opt)
         return 0;
 }
 
-static int check_mountpoint_empty(const char *mnt, mode_t rootmode,
-                                  off_t rootsize)
+static int get_string_opt(const char *s, unsigned len, const char *opt,
+                          char **val)
 {
-    int isempty = 1;
+    unsigned opt_len = strlen(opt);
 
-    if (S_ISDIR(rootmode)) {
-        struct dirent *ent;
-        DIR *dp = opendir(mnt);
-        if (dp == NULL) {
-            fprintf(stderr, "%s: failed to open mountpoint for reading: %s\n",
-                    progname, strerror(errno));
-            return -1;
-        }
-        while ((ent = readdir(dp)) != NULL) {
-            if (strcmp(ent->d_name, ".") != 0 &&
-                strcmp(ent->d_name, "..") != 0) {
-                isempty = 0;
-                break;
-            }
-        }
-        closedir(dp);
-    } else if (rootsize)
-        isempty = 0;
-
-    if (!isempty) {
-        fprintf(stderr, "%s: mountpoint is not empty\n", progname);
-        fprintf(stderr, "%s: if you are sure this is safe, use the 'nonempty' mount option\n", progname);
-        return -1;
+    if (*val)
+        free(*val);
+    *val = (char *) malloc(len - opt_len + 1);
+    if (!*val) {
+        fprintf(stderr, "%s: failed to allocate memory\n", progname);
+        return 0;
     }
-    return 0;
+
+    memcpy(*val, s + opt_len, len - opt_len);
+    (*val)[len - opt_len] = '\0';
+    return 1;
 }
 
-static int has_fuseblk(void)
-{
-    char buf[256];
-    FILE *f = fopen("/proc/filesystems", "r");
-    if (!f)
-        return 1;
-
-    while (fgets(buf, sizeof(buf), f))
-        if (strstr(buf, "fuseblk\n")) {
-            fclose(f);
-            return 1;
-        }
-
-    fclose(f);
-    return 0;
-}
-
-static int do_mount(const char *mnt, const char **type, mode_t rootmode,
-                    int fd, const char *opts, const char *dev, char **fsnamep,
+static int do_mount(const char *mnt, char **typep, mode_t rootmode,
+                    int fd, const char *opts, const char *dev, char **sourcep,
                     char **mnt_optsp, off_t rootsize)
 {
     int res;
@@ -457,6 +377,9 @@ static int do_mount(const char *mnt, const char **type, mode_t rootmode,
     const char *s;
     char *d;
     char *fsname = NULL;
+    char *subtype = NULL;
+    char *source = NULL;
+    char *type = NULL;
     int check_empty = 1;
     int blkdev = 0;
 
@@ -469,18 +392,14 @@ static int do_mount(const char *mnt, const char **type, mode_t rootmode,
     for (s = opts, d = optbuf; *s;) {
         unsigned len;
         const char *fsname_str = "fsname=";
+        const char *subtype_str = "subtype=";
         for (len = 0; s[len] && s[len] != ','; len++);
         if (begins_with(s, fsname_str)) {
-            unsigned fsname_str_len = strlen(fsname_str);
-            if (fsname)
-                free(fsname);
-            fsname = (char *) malloc(len - fsname_str_len + 1);
-            if (!fsname) {
-                fprintf(stderr, "%s: failed to allocate memory\n", progname);
+            if (!get_string_opt(s, len, fsname_str, &fsname))
                 goto err;
-            }
-            memcpy(fsname, s + fsname_str_len, len - fsname_str_len);
-            fsname[len - fsname_str_len] = '\0';
+        } else if (begins_with(s, subtype_str)) {
+            if (!get_string_opt(s, len, subtype_str, &subtype))
+                goto err;
         } else if (opt_eq(s, len, "blkdev")) {
             if (getuid() != 0) {
                 fprintf(stderr, "%s: option blkdev is privileged\n", progname);
@@ -537,34 +456,58 @@ static int do_mount(const char *mnt, const char **type, mode_t rootmode,
 
     sprintf(d, "fd=%i,rootmode=%o,user_id=%i,group_id=%i",
             fd, rootmode, getuid(), getgid());
-    if (fsname == NULL) {
-        fsname = strdup(dev);
-        if (!fsname) {
-            fprintf(stderr, "%s: failed to allocate memory\n", progname);
-            goto err;
-        }
-    }
 
-    if (check_empty && check_mountpoint_empty(mnt, rootmode, rootsize) == -1)
+    if (check_empty &&
+        fuse_mnt_check_empty(progname, mnt, rootmode, rootsize) == -1)
         goto err;
 
-    if (blkdev)
-        *type = "fuseblk";
-    res = mount(fsname, mnt, *type, flags, optbuf);
+    source = malloc((fsname ? strlen(fsname) : 0) +
+                    (subtype ? strlen(subtype) : 0) + strlen(dev) + 32);
+
+    type = malloc((subtype ? strlen(subtype) : 0) + 32);
+    if (!type || !source) {
+        fprintf(stderr, "%s: failed to allocate memory\n", progname);
+        goto err;
+    }
+
+    if (subtype)
+        sprintf(type, "%s.%s", blkdev ? "fuseblk" : "fuse", subtype);
+    else
+        strcpy(type, blkdev ? "fuseblk" : "fuse");
+
+    if (fsname)
+        strcpy(source, fsname);
+    else
+        strcpy(source, subtype ? subtype : dev);
+
+    res = mount(source, mnt, type, flags, optbuf);
+    if (res == -1 && errno == ENODEV && subtype) {
+        /* Probably missing subtype support */
+        strcpy(type, blkdev ? "fuseblk" : "fuse");
+        if (fsname) {
+            if (!blkdev)
+                sprintf(source, "%s#%s", subtype, fsname);
+        } else {
+            strcpy(source, type);
+        }
+
+        res = mount(source, mnt, type, flags, optbuf);
+    }
     if (res == -1 && errno == EINVAL) {
         /* It could be an old version not supporting group_id */
         sprintf(d, "fd=%i,rootmode=%o,user_id=%i", fd, rootmode, getuid());
-        res = mount(fsname, mnt, *type, flags, optbuf);
+        res = mount(source, mnt, type, flags, optbuf);
     }
     if (res == -1) {
         int errno_save = errno;
-        if (blkdev && errno == ENODEV && !has_fuseblk())
-            fprintf(stderr, "%s: 'fuseblk' support missing; try the kernel module from fuse-2.6.0 or later\n", progname);
+        if (blkdev && errno == ENODEV && !fuse_mnt_check_fuseblk())
+            fprintf(stderr, "%s: 'fuseblk' support missing\n", progname);
         else
             fprintf(stderr, "%s: mount failed: %s\n", progname, strerror(errno_save));
         goto err;
     } else {
-        *fsnamep = fsname;
+        *sourcep = source;
+        *typep = type;
         *mnt_optsp = mnt_opts;
     }
     free(optbuf);
@@ -573,6 +516,9 @@ static int do_mount(const char *mnt, const char **type, mode_t rootmode,
 
  err:
     free(fsname);
+    free(subtype);
+    free(source);
+    free(type);
     free(mnt_opts);
     free(optbuf);
     return -1;
@@ -749,9 +695,9 @@ static int mount_fuse(const char *mnt, const char *opts)
     int res;
     int fd;
     char *dev;
-    const char *type = "fuse";
     struct stat stbuf;
-    char *fsname = NULL;
+    char *type = NULL;
+    char *source = NULL;
     char *mnt_opts = NULL;
     const char *real_mnt = mnt;
     int currdir_fd = -1;
@@ -779,7 +725,7 @@ static int mount_fuse(const char *mnt, const char *opts)
         restore_privs();
         if (res != -1)
             res = do_mount(real_mnt, &type, stbuf.st_mode & S_IFMT, fd, opts,
-                           dev, &fsname, &mnt_opts, stbuf.st_size);
+                           dev, &source, &mnt_opts, stbuf.st_size);
     } else
         restore_privs();
 
@@ -796,7 +742,7 @@ static int mount_fuse(const char *mnt, const char *opts)
     }
 
     if (geteuid() == 0) {
-        res = add_mount(fsname, mnt, type, mnt_opts);
+        res = add_mount(source, mnt, type, mnt_opts);
         if (res == -1) {
             umount2(mnt, 2); /* lazy umount */
             close(fd);
@@ -804,77 +750,12 @@ static int mount_fuse(const char *mnt, const char *opts)
         }
     }
 
-    free(fsname);
+    free(source);
+    free(type);
     free(mnt_opts);
     free(dev);
 
     return fd;
-}
-
-static char *resolve_path(const char *orig)
-{
-    char buf[PATH_MAX];
-    char *copy;
-    char *dst;
-    char *end;
-    char *lastcomp;
-    const char *toresolv;
-
-    if (!orig[0]) {
-        fprintf(stderr, "%s: invalid mountpoint '%s'\n", progname, orig);
-        return NULL;
-    }
-
-    copy = strdup(orig);
-    if (copy == NULL) {
-        fprintf(stderr, "%s: failed to allocate memory\n", progname);
-        return NULL;
-    }
-
-    toresolv = copy;
-    lastcomp = NULL;
-    for (end = copy + strlen(copy) - 1; end > copy && *end == '/'; end --);
-    if (end[0] != '/') {
-        char *tmp;
-        end[1] = '\0';
-        tmp = strrchr(copy, '/');
-        if (tmp == NULL) {
-            lastcomp = copy;
-            toresolv = ".";
-        } else {
-            lastcomp = tmp + 1;
-            if (tmp == copy)
-                toresolv = "/";
-        }
-        if (strcmp(lastcomp, ".") == 0 || strcmp(lastcomp, "..") == 0) {
-            lastcomp = NULL;
-            toresolv = copy;
-        }
-        else if (tmp)
-            tmp[0] = '\0';
-    }
-    if (realpath(toresolv, buf) == NULL) {
-        fprintf(stderr, "%s: bad mount point %s: %s\n", progname, orig,
-                strerror(errno));
-        free(copy);
-        return NULL;
-    }
-    if (lastcomp == NULL)
-        dst = strdup(buf);
-    else {
-        dst = (char *) malloc(strlen(buf) + 1 + strlen(lastcomp) + 1);
-        if (dst) {
-            unsigned buflen = strlen(buf);
-            if (buflen && buf[buflen-1] == '/')
-                sprintf(dst, "%s%s", buf, lastcomp);
-            else
-                sprintf(dst, "%s/%s", buf, lastcomp);
-        }
-    }
-    free(copy);
-    if (dst == NULL)
-        fprintf(stderr, "%s: failed to allocate memory\n", progname);
-    return dst;
 }
 
 static int send_fd(int sock_fd, int fd)
@@ -1006,7 +887,7 @@ int main(int argc, char *argv[])
     origmnt = argv[optind];
 
     drop_privs();
-    mnt = resolve_path(origmnt);
+    mnt = fuse_mnt_resolve_path(progname, origmnt);
     restore_privs();
     if (mnt == NULL)
         exit(1);

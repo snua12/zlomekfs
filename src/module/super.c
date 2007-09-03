@@ -67,8 +67,7 @@ static void zfs_init_once(void *foo, struct kmem_cache *cachep,
 {
         struct zfs_inode_info *ei = (struct zfs_inode_info *)foo;
 
-        if ((flags & (SLAB_CTOR_VERIFY | SLAB_CTOR_CONSTRUCTOR)) == SLAB_CTOR_CONSTRUCTOR)
-                inode_init_once(&ei->vfs_inode);
+	inode_init_once(&ei->vfs_inode);
 }
 
 static int zfs_init_inodecache(void)

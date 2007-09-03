@@ -849,7 +849,7 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   dir_list list;
   dir_entry entries[ZFS_MAX_DIR_ENTRIES];
   char *buf;
-  size_t buf_size, buf_offset;
+  size_t buf_offset;
   uint32_t i;
   int err;
 
@@ -866,8 +866,7 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   if (err != 0)
     goto err_list_estale;
 
-  buf_size = args.count;
-  buf = xmalloc (buf_size);
+  buf = xmalloc (size);
   buf_offset = 0;
   for (i = 0; i < list.n; i++)
     {
@@ -890,18 +889,10 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 	continue;
       st.st_ino = fh_to_inode (&lookup_res.file);
       st.st_mode = ftype2dtype[lookup_res.attr.type];
-      sz = fuse_add_direntry (req, buf + buf_offset, buf_size - buf_offset,
+      sz = fuse_add_direntry (req, buf + buf_offset, size - buf_offset,
 			      entry->name.str, &st, entry->cookie);
-      if (buf_offset + sz > buf_size)
-	{
-	  do
-	    buf_size *= 2;
-	  while (buf_offset + sz > buf_size);
-	  buf = xrealloc (buf, buf_size);
-	  sz = fuse_add_direntry (req, buf + buf_offset, buf_size - buf_offset,
-				  entry->name.str, &st, entry->cookie);
-	  assert (buf_offset + sz <= buf_size);
-	}
+      if (buf_offset + sz > size)
+	break;
       buf_offset += sz;
     }
   fuse_reply_buf (req, buf, buf_offset);

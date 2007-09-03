@@ -45,7 +45,7 @@
 #endif
 
 #define ZFS_SUPER_MAGIC *((uint32_t *)"zfs")
-#define ZFS_CHARDEV_MAJOR 251
+#define ZFS_CHARDEV_MAJOR 249
 
 /* Timeout in seconds for request. */
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)

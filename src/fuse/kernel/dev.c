@@ -1,6 +1,6 @@
 /*
   FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
   This program can be distributed under the terms of the GNU GPL.
   See the file COPYING.
@@ -21,7 +21,7 @@
 MODULE_ALIAS_MISCDEV(FUSE_MINOR);
 #endif
 
-static kmem_cache_t *fuse_req_cachep;
+static struct kmem_cache *fuse_req_cachep;
 
 static struct fuse_conn *fuse_get_conn(struct file *file)
 {
@@ -831,6 +831,8 @@ static int (*const back_fns[])(struct fuse_conn *, unsigned long nodeid) =
 	[FUSE_BACK_INVALIDATE_METADATA] = fuse_back_invalidate_metadata,
 	[FUSE_BACK_INVALIDATE_DATA] = fuse_back_invalidate_data,
 	[FUSE_BACK_SYNC_INODE] = fuse_back_sync_inode,
+	[FUSE_BACK_INVALIDATE_DATA_NO_CACHING]
+	= fuse_back_invalidate_data_no_caching,
 };
 
 /*

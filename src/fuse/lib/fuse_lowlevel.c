@@ -1,6 +1,6 @@
 /*
     FUSE: Filesystem in Userspace
-    Copyright (C) 2001-2006  Miklos Szeredi <miklos@szeredi.hu>
+    Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
     This program can be distributed under the terms of the GNU LGPL.
     See the file COPYING.LIB
@@ -149,12 +149,10 @@ static void free_req(fuse_req_t req)
         destroy_req(req);
 }
 
-static int send_reply(fuse_req_t req, int error, const void *arg,
-                      size_t argsize)
+static int send_reply_iov(fuse_req_t req, int error, struct iovec *iov,
+                          int count)
 {
     struct fuse_out_header out;
-    struct iovec iov[2];
-    size_t count;
     int res;
 
     if (error <= -1000 || error > 0) {
@@ -164,23 +162,47 @@ static int send_reply(fuse_req_t req, int error, const void *arg,
 
     out.unique = req->unique;
     out.error = error;
-    count = 1;
     iov[0].iov_base = &out;
     iov[0].iov_len = sizeof(struct fuse_out_header);
-    if (argsize && !error) {
-        count++;
-        iov[1].iov_base = (void *) arg;
-        iov[1].iov_len = argsize;
-    }
     out.len = iov_length(iov, count);
 
-    if (req->f->debug) {
-        printf("   unique: %llu, error: %i (%s), outsize: %i\n",
-               out.unique, out.error, strerror(-out.error), out.len);
-        fflush(stdout);
-    }
+    if (req->f->debug)
+        fprintf(stderr, "   unique: %llu, error: %i (%s), outsize: %i\n",
+                (unsigned long long) out.unique, out.error,
+                strerror(-out.error), out.len);
     res = fuse_chan_send(req->ch, iov, count);
     free_req(req);
+
+    return res;
+}
+
+static int send_reply(fuse_req_t req, int error, const void *arg,
+                      size_t argsize)
+{
+    struct iovec iov[2];
+    int count = 1;
+    if (argsize) {
+        iov[1].iov_base = (void *) arg;
+        iov[1].iov_len = argsize;
+        count++;
+    }
+    return send_reply_iov(req, error, iov, count);
+}
+
+int fuse_reply_iov(fuse_req_t req, const struct iovec *iov, int count)
+{
+    int res;
+    struct iovec *padded_iov;
+
+    padded_iov = malloc((count + 1) * sizeof(struct iovec));
+    if (padded_iov == NULL)
+        return fuse_reply_err(req, -ENOMEM);
+
+    memcpy(padded_iov + 1, iov, count * sizeof(struct iovec));
+    count++;
+
+    res = send_reply_iov(req, 0, padded_iov, count);
+    free(padded_iov);
 
     return res;
 }
@@ -885,10 +907,8 @@ static void do_interrupt(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
     struct fuse_ll *f = req->f;
 
     (void) nodeid;
-    if (f->debug) {
-        printf("INTERRUPT: %llu\n", (unsigned long long) arg->unique);
-        fflush(stdout);
-    }
+    if (f->debug)
+        fprintf(stderr, "INTERRUPT: %llu\n", (unsigned long long) arg->unique);
 
     req->u.i.unique = arg->unique;
 
@@ -940,12 +960,11 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 
     (void) nodeid;
     if (f->debug) {
-        printf("INIT: %u.%u\n", arg->major, arg->minor);
+        fprintf(stderr, "INIT: %u.%u\n", arg->major, arg->minor);
         if (arg->major > 7 || (arg->major == 7 && arg->minor >= 6)) {
-            printf("flags=0x%08x\n", arg->flags);
-            printf("max_readahead=0x%08x\n", arg->max_readahead);
+            fprintf(stderr, "flags=0x%08x\n", arg->flags);
+            fprintf(stderr, "max_readahead=0x%08x\n", arg->max_readahead);
         }
-        fflush(stdout);
     }
     f->conn.proto_major = arg->major;
     f->conn.proto_minor = arg->minor;
@@ -992,11 +1011,10 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
     outarg.max_write = f->conn.max_write;
 
     if (f->debug) {
-        printf("   INIT: %u.%u\n", outarg.major, outarg.minor);
-        printf("   flags=0x%08x\n", outarg.flags);
-        printf("   max_readahead=0x%08x\n", outarg.max_readahead);
-        printf("   max_write=0x%08x\n", outarg.max_write);
-        fflush(stdout);
+        fprintf(stderr, "   INIT: %u.%u\n", outarg.major, outarg.minor);
+        fprintf(stderr, "   flags=0x%08x\n", outarg.flags);
+        fprintf(stderr, "   max_readahead=0x%08x\n", outarg.max_readahead);
+        fprintf(stderr, "   max_write=0x%08x\n", outarg.max_write);
     }
 
     send_reply_ok(req, &outarg, arg->minor < 5 ? 8 : sizeof(outarg));
@@ -1143,13 +1161,11 @@ static void fuse_ll_process(void *data, const char *buf, size_t len,
     const void *inarg = buf + sizeof(struct fuse_in_header);
     struct fuse_req *req;
 
-    if (f->debug) {
-        printf("unique: %llu, opcode: %s (%i), nodeid: %lu, insize: %zu\n",
-               (unsigned long long) in->unique,
-               opname((enum fuse_opcode) in->opcode), in->opcode,
-               (unsigned long) in->nodeid, len);
-        fflush(stdout);
-    }
+    if (f->debug)
+        fprintf(stderr, "unique: %llu, opcode: %s (%i), nodeid: %lu, insize: %zu\n",
+                (unsigned long long) in->unique,
+                opname((enum fuse_opcode) in->opcode), in->opcode,
+                (unsigned long) in->nodeid, len);
 
     req = (struct fuse_req *) calloc(1, sizeof(struct fuse_req));
     if (req == NULL) {
