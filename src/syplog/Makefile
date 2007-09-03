@@ -1,10 +1,10 @@
 
 all: libsyplog.a
 
-CC_OPTS += -I`pwd` -Iformaters -Iwriters -Ireaders -Wall -ggdb -g3 -pthread -DDEBUG
+CFLAGS += -I`pwd` -Iformaters -Iwriters -Ireaders -Wall -ggdb -g3 -pthread -DDEBUG
 
 %.o: %.c
-	$(CC) $(CC_OPTS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 OO_SYPLOG = syplog.o \
 	writers/file-writer.o \
@@ -22,4 +22,4 @@ libsyplog.a: $(OO_SYPLOG)
 
 
 clean:
-	rm *.o writers/*.o formaters/*.o libsyplog.a -rf
+	rm *.o readers/*.o writers/*.o formaters/*.o libsyplog.a -rf

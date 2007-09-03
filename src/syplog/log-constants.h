@@ -32,6 +32,8 @@
 #include <stdint.h>
 #include <linux/types.h>
 
+#undef _GNU_SOURCE
+
 #include "syp-error.h"
 
 /// maximal length of log message (user given string)

@@ -31,6 +31,8 @@
 #include <getopt.h>
 #include <errno.h>
 
+#undef _GNU_SOURCE
+
 #include "writer.h"
 #include "file-writer.h"
 

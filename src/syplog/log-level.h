@@ -32,8 +32,6 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
-#define	_GNU_SOURCE
-
 #include "log-constants.h"
 
 /// typedef for log level

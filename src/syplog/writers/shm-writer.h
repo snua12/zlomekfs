@@ -45,7 +45,7 @@
 /// parameter name of output file name (where to write logs)
 #define PARAM_WRITER_SK_LONG	"shm-key"
 /// short parameter name for PARAM_WRITER_FN_LONG - can be used only inside code now
-#define PARAM_WRITER_FN_CHAR	'k'
+#define PARAM_WRITER_SK_CHAR	'k'
 
 /*! Structure that holds internal state info specific for shm writer. */
 typedef struct shm_writer_specific_def {
@@ -56,7 +56,7 @@ typedef struct shm_writer_specific_def {
   /// key to shared memory segment
   key_t segment_key;
 
-}* file_writer_specific;
+}* shm_writer_specific;
 
 
 /*! Parse params and initialize shm writer

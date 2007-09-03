@@ -25,11 +25,14 @@
 */
 
 #define _GNU_SOURCE
+
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#undef _GNU_SOURCE
 
 #include "file-writer.h"
 

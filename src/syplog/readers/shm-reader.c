@@ -26,10 +26,13 @@
 */
 
 #define _GNU_SOURCE
+
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
+
+#undef _GNU_SOURCE
 
 #include "file-reader.h"
 
@@ -66,7 +69,7 @@ syp_error shm_reader_parse_params (int argc, const char ** argv, reader settings
     switch(opt)
     {
       case PARAM_READER_SK_CHAR: // log file name
-        (file_reader_specific)(settings->type_specific))->segment_key = atoi (optarg);
+        (shm_reader_specific)(settings->type_specific))->segment_key = atoi (optarg);
         break;
       case '?':
       default:
@@ -179,7 +182,7 @@ syp_error read_shm_log (reader target, log_struct log){
   }
   // read
   int32_t chars_read = target->input_parser->mem_read (log,
-                                ((file_reader_specific)target->type_specific)->shm_start + pos);
+                                ((shm_reader_specific)target->type_specific)->shm_start + pos);
   if (chars_read > 0)
   {
   // move boundary
