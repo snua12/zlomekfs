@@ -39,7 +39,7 @@
 #include "log-constants.h"
 
 /// typedef for facility
-typedef uint64_t		facility_t;
+typedef uint32_t		facility_t;
 
 /// maximum length of stringified facility representation
 #define FACILITY_STRING_LEN	32
@@ -64,14 +64,14 @@ typedef uint64_t		facility_t;
 #define	FACILITY_DATA_NAME		"DATA"
 
 /// facility for global testing
-#define FACILITY_ZFSD		0x10000
+#define FACILITY_ZFSD		0x100
 #define	FACILITY_ZFSD_NAME		"ZFSD"
 
 /// do not log messages from any facility
 #define	FACILITY_NOTHING        0x0
 #define	FACILITY_NOTHING_NAME		"NOTHING"
 /// log messages from all facilities
-#define	FACILITY_ALL            (size_t)-1L
+#define	FACILITY_ALL            (uint32_t)-1
 #define	FACILITY_ALL_NAME		"ALL"
 
 
