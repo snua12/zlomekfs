@@ -31,10 +31,11 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #undef _GNU_SOURCE
 
-#include "file-reader.h"
+#include "shm-reader.h"
 
 /// Parse shm reader specific params.
 /*! Parse shm reader specific params
@@ -69,7 +70,7 @@ syp_error shm_reader_parse_params (int argc, const char ** argv, reader settings
     switch(opt)
     {
       case PARAM_READER_SK_CHAR: // log file name
-        (shm_reader_specific)(settings->type_specific))->segment_key = atoi (optarg);
+        ((shm_reader_specific)(settings->type_specific))->segment_key = atoi (optarg);
         break;
       case '?':
       default:
@@ -122,7 +123,7 @@ syp_error open_shm_reader (reader target, int argc, char ** argv)
                                 440);
   if (new_specific->shmid == INVALID_SHM_ID)
   {
-    ret_code = system_to_syp_error (errno);
+    ret_code = sys_to_syp_error (errno);
     goto FINISHING;
   }
 
@@ -130,7 +131,7 @@ syp_error open_shm_reader (reader target, int argc, char ** argv)
   if (new_specific->shm_start == (void *) -1)
   {
     new_specific->shm_start = NULL;
-    ret_code = system_to_syp_error (errno);
+    ret_code = sys_to_syp_error (errno);
     goto FINISHING;
   }
 
@@ -159,7 +160,7 @@ syp_error close_shm_reader (reader target){
   }
 #endif
 
-  shmdt (new_specific->shm_start);
+  shmdt (((shm_reader_specific)target->type_specific)->shm_start);
   free (target->type_specific);
   target->type_specific = NULL;
   
@@ -175,14 +176,14 @@ syp_error read_shm_log (reader target, log_struct log){
   // TODO: implement
   // check boundaries
   if (target->length > 0 && 
-      target->length - target->pos < target->output_printer->get_max_print_size())
+      target->length - target->pos < target->input_parser->get_max_print_size())
   {
   // move to front
     target->pos = 0;
   }
   // read
   int32_t chars_read = target->input_parser->mem_read (log,
-                                ((shm_reader_specific)target->type_specific)->shm_start + pos);
+                                ((shm_reader_specific)target->type_specific)->shm_start + target->pos);
   if (chars_read > 0)
   {
   // move boundary

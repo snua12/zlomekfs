@@ -31,10 +31,12 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #undef _GNU_SOURCE
 
-#include "file-writer.h"
+#include "shm-writer.h"
+#include "syp-error.h"
 
 /// Parse shm writer specific params.
 /*! Parse shm writer specific params
@@ -69,7 +71,7 @@ syp_error shm_writer_parse_params (int argc, const char ** argv, writer settings
     switch(opt)
     {
       case PARAM_WRITER_SK_CHAR: // log file name
-        (shm_writer_specific)(settings->type_specific))->segment_key = atoi (optarg);
+        ((shm_writer_specific)(settings->type_specific))->segment_key = atoi (optarg);
         break;
       case '?':
       default:
@@ -119,10 +121,10 @@ syp_error open_shm_writer (writer target, int argc, char ** argv)
     target->length = SHMMAX;
   new_specific->shmid = shmget (new_specific->segment_key, 
                                 target->length,
-                                IPC_CREAT | SHM_HUGETBL | 660);
+                                IPC_CREAT | 660);
   if (new_specific->shmid == INVALID_SHM_ID)
   {
-    ret_code = system_to_syp_error (errno);
+    ret_code = sys_to_syp_error (errno);
     goto FINISHING;
   }
 
@@ -130,7 +132,7 @@ syp_error open_shm_writer (writer target, int argc, char ** argv)
   if (new_specific->shm_start == (void *) -1)
   {
     new_specific->shm_start = NULL;
-    ret_code = system_to_syp_error (errno);
+    ret_code = sys_to_syp_error (errno);
     goto FINISHING;
   }
 
@@ -159,7 +161,7 @@ syp_error close_shm_writer (writer target){
   }
 #endif
 
-  shmdt (new_specific->shm_start);
+  shmdt (((shm_writer_specific)target->type_specific)->shm_start);
   free (target->type_specific);
   target->type_specific = NULL;
   
@@ -182,7 +184,7 @@ syp_error write_shm_log (writer target, log_struct log){
   }
   // append
   int32_t chars_printed = target->output_printer->mem_write (log,
-                                ((shm_writer_specific)target->type_specific)->shm_start + pos);
+                                ((shm_writer_specific)target->type_specific)->shm_start + target->pos);
   if (chars_printed > 0)
   {
   // move boundary

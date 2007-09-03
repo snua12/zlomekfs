@@ -73,6 +73,9 @@ typedef struct reader_def
 
   /*! position in circular log or number of read chars in non-circular */
   int64_t pos;
+
+  /*! length of log */
+  int64_t length;
 } * reader;
 
 

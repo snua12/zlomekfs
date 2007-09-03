@@ -24,11 +24,20 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
-#include <stdio.h>
-#include <sys/ipc.h>
+#define _GNU_SOURCE
+
 #include <sys/shm.h>
+#include <sys/ipc.h>
+#include <stdio.h>
+
+#undef _GNU_SOURCE
+
 
 #include "writer-api.h"
+
+#ifndef SHMMAX
+#define SHMMAX	0x2000000
+#endif	/*SHMMAX*/
 
 /// invalid shared memory segment id (according to man 2 shmget)
 #define	INVALID_SHM_ID	-1
