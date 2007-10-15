@@ -1,0 +1,42 @@
+rozchozeni &amp; projiti
+	done
+
+hledani &amp; prohlizeni podobnych projektu
+	done
+	seznam v zalozkach (snad zalohovany home ;) 
+	+ neco zmineno v textu
+	+ svn/doc/notes2.txt
+
+nastrel definice chovani FS &amp; pokryti testy
+	definice chovani ma nastrel v svn/doc/notes.txt
+
+model test-suity
+	popsan teoreticky v svn/doc/testformat.odt, neni finalni, nektere zmeny a uvahy pouze v hlave
+
+rozhrani pro def. scenaru
+	pro python by melo byt identicke s pytest
+	pro c by zrejme bylo tvoreno stylem jUnit s spoustenim testu pomoci automatickeho generovani python modulu pro soubory obsahujici jUnity
+	rozhrani pro zavislosti mezi meta testy neexistuje, pouze uvahy nad nim v textu 
+
+zakladni scenare
+	existuji 2 nedodelane test moduly
+	predpoklada se vytvoreni:
+		python based kopie fsx
+		meta test modulu s myslitelnymi fs volanimi
+beta
+	logger
+		done, co chybi viz svn/src/syplog/TODO
+	runner
+		ani tuk, navic je treba znovu projit (prohlednout zmeny) pytest
+	c wrapper
+		proof of concept otestovani, ze jde automatizovane vytvorit modul a spustit testy
+	presenter
+		chybi dokonce i model
+	random test generator
+		by nemel byt slozity, je pouze nepopsana predstava
+	sandboxing & snapshotting
+		bude mozna dvouvrstvy (pripadne z podporou vice vrstev) z duvodu podpory distribuovaneho testovani
+	
+
+beta textu
+final
