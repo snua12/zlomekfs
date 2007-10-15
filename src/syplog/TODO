@@ -1,2 +1,4 @@
 join common for readers and writers 
 locking
+source dependent preallocating (or source dependent targets)
+remote control
