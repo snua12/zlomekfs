@@ -1,9 +1,5 @@
-@misc{RFC-2045,
-   author = {Ned Freed},
-   title = {MIME Part ONE: Format of Internet Message Bodies},   
-   year = {1996},
-   note = {http://www.faqs.org/rfcs/rfc2045.html}
-}
+
+======== LOGGING =======
 
 @misc{SUCKS,
    author = {SUCKS team},
@@ -34,6 +30,14 @@
    author = {Martin Preishuber}
 }
 
+@misc{Chainsaw,
+   note = {http://logging.apache.org/log4j/docs/chainsaw.html},
+   title = {Chainsaw}
+}
+
+
+======== TEST PATTERNS =======
+
 @misc{OpenSolarisFSTest,
    note = {http://src.opensolaris.org/source/xref/sfw/usr/src/cmd/gdb/gdb-6.3/tcl/tests/fileSystem.test}
    title = {OpenSolaris filesystem and VFS tests},
@@ -45,6 +49,20 @@
    note = {http://ltp.sourceforge.net/},
    title = {Linux Test Project}
 }
+
+@misc{netbsd_rtesting,
+   note = {http://netbsd.org/Documentation/internals/en/chap-regress.html#chap-regress-filesystems},
+   title = {NetBSD file system regression testing}
+}
+
+@misc{Simple_Smalltalk_Testing,
+   note = {http://www.xprogramming.com/testfram.htm},
+   title = {Simple Smalltalk Testing:With Patterns},
+   author = {Kent Beck}
+   organization = {First Class Software, Inc.}
+}
+
+======== CHECKPOINTING =======
 
 @misc{Esky,
    note = {http://esky.sourceforge.net/},
@@ -63,28 +81,7 @@
    author = {Victor C. Zandy}
 }
 
-@misc{openVZ,
-   note = {http://openvz.org},
-   title = {OpenVZ}
-}
-
-@misc{Xen,
-	note={http://www.xensource.com/},
-	title={Xen}
-}
-
-@misc{Qemu,
-	note={http://fabrice.bellard.free.fr/qemu/},
-	title={Qemu},
-	author{Fabrice Bellard}
-}
-
-@misc{gcore,
-   note = {http://sourceware.org/gdb/},
-   title = {gcore}
-}
-
-@misc{Asim Shankar checkpointing,
+@misc{Asim_Shankar_checkpointing,
    note = {http://www.geocities.com/asimshankar/checkpointing/},
    author = {Asim Shankar},
    title = {Process checkpointing and restarting (using dumped core)}
@@ -107,29 +104,57 @@
    title = {Berkeley Lab Checkpoint/Restart (BLCR)}
 }
 
-@misc{Checkpointing.org,
+@misc{Checkpointing_org,
    note = {http://www.checkpointing.org/},
    title = {The Home of Checkpointing Packages}
 }
 
-@manual{SUSv3,
-   note = {http://www.unix.org/single_unix_specification/},
-   title = {The Single UNIX Specification Version 3},
-   organization = {The Open group}
-}
-
-@article{Runtime Process Infection,
-   note = {http://www.phrack.org/archives/59/p59-0x08.txt},
-   author = {anonymous <p59_08@author.phrack.org>},
-   title = {Runtime Process Infection},
-   journal = {phrack.org},
-   year = {2002}
+@misc{gcore,
+   note = {http://sourceware.org/gdb/},
+   title = {gcore}
 }
 
 @misc{Elf statifier,
    note = {http://statifier.sourceforge.net/statifier/main.html},
    title = {Elf Statifier},
    author = {Valery Reznic}
+}
+
+
+
+======== VIRTUALIZATION =======
+
+@misc{openVZ,
+   note = {http://openvz.org},
+   title = {OpenVZ}
+}
+
+@misc{Xen,
+	note={http://www.xensource.com/},
+	title={Xen}
+}
+
+@misc{Qemu,
+	note={http://fabrice.bellard.free.fr/qemu/},
+	title={Qemu},
+	author{Fabrice Bellard}
+}
+
+@misc{Vmware,
+   note = {http://www.vmware.com/products/server/},
+   title = {Vmware server}
+}
+
+
+
+============ RUNTIME HACKING ==============
+
+@article{Runtime_Process_Infection,
+   note = {http://www.phrack.org/archives/59/p59-0x08.txt},
+   author = {anonymous <p59_08@author.phrack.org>},
+   title = {Runtime Process Infection},
+   journal = {phrack.org},
+   year = {2002}
 }
 
 @manual{LSB3.1,
@@ -139,30 +164,21 @@
    organization = {Free Standards Group]}
 }
 
-@misc{The BuildBot,
-   note = {http://buildbot.sourceforge.net/},
-   title = {The BUildBot},
-   author = {Brian Warner}
-}
-
-@article{Continuous integration with buildbot,
-   note = {http://agiletesting.blogspot.com/2006/02/continuous-integration-with-buildbot.html},
-   title = {Continuous integration with buildbot},
-   author = {Grig Gheorghiu},
-   year = {2006},
-   journal = {http://agiletesting.blogspot.com}
-}
-
-@misc{netbsd rtesting,
-   note = {http://netbsd.org/Documentation/internals/en/chap-regress.html#chap-regress-filesystems},
-   title = {NetBSD file system regression testing}
-}
-
-@manual{ELF symbol versioning with glibc 2.1,
+@manual{ELF_symbol_versioning,
    note = {http://lists.debian.org/lsb-spec/1999/12/msg00017.html},
    title = {ELF symbol versioning with glibc 2.1 and later},
    year = {1999}
 }
+
+@manual{SUSv3,
+   note = {http://www.unix.org/single_unix_specification/},
+   title = {The Single UNIX Specification Version 3},
+   organization = {The Open group}
+}
+
+
+
+============ DOC ==============
 
 @misc{Epydoc,
    note = {http://epydoc.sourceforge.net/},
@@ -174,7 +190,28 @@
    title = {PythonDoc}
 }
 
-@article{Agile testing with Python test frameworks,
+
+=========== AUTOMATION ================
+
+@misc{The BuildBot,
+   note = {http://buildbot.sourceforge.net/},
+   title = {The BUildBot},
+   author = {Brian Warner}
+}
+
+@article{Continuous_integration_with_buildbot,
+   note = {http://agiletesting.blogspot.com/2006/02/continuous-integration-with-buildbot.html},
+   title = {Continuous integration with buildbot},
+   author = {Grig Gheorghiu},
+   year = {2006},
+   journal = {http://agiletesting.blogspot.com}
+}
+
+
+
+========== TEST FRAMEWORKS ===============
+
+@article{Agile_testing_with_Python,
    note = {http://www.python.org/pycon/2005/papers/10/},
    title = {Agile testing with Python test frameworks},
    author = {Grig Gheorghiu},
@@ -224,17 +261,33 @@
    title = {Software Testing Automation Framework}
 }
 
-@misc{Vmware,
-   note = {http://www.vmware.com/products/server/},
-   title = {Vmware server}
-}
-
-@misc{Agile Alliance,
+@misc{Agile_Alliance,
    note = {http://agilealliance.org/},
    title = {Agile Alliance}
 }
 
-@misc{Chainsaw,
-   note = {http://logging.apache.org/log4j/docs/chainsaw.html},
-   title = {Chainsaw}
+@misc{xUnit,
+   note = {http://www.testingfaqs.org/t-unit.html},
+   title = {Unit testing frameworks list}
+}
+
+@misc{JUnit,
+   note = {http://www.junit.org},
+   title = {JUnit - java unit testing framework},
+   author = {Kent Beck, Erich Gamma and comunity}
+}
+
+@misc{Nose,
+   note = {http://python-nose.googlecode.com},
+   title = {Nose - alternative unit testing for python},
+   author = {Jason Pellerin and col}
+}
+
+===================  MISC  ========================
+
+@misc{PyLib,
+   note = {http://codespeak.net/py/dist/index.html},
+   title = {py.lib library},
+   author = {Holger Krekel, Jens-Uwe Mager, Philipp von Weiterhausen},
+   organization = {Codespeak}
 }

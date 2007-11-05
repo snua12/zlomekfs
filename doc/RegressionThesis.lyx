@@ -1,17 +1,25 @@
-#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
-\lyxformat 245
+#LyX 1.5.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 276
 \begin_document
 \begin_header
 \textclass article
 \language english
 \inputencoding latin2
-\fontscheme default
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
 \graphics default
 \paperfontsize default
 \spacing single
 \papersize default
 \use_geometry false
 \use_amsmath 1
+\use_esint 0
 \cite_engine basic
 \use_bibtopic false
 \paperorientation portrait
@@ -25,6 +33,8 @@
 \paperpagestyle default
 \tracking_changes false
 \output_changes false
+\author "" 
+\author "" 
 \end_header
 
 \begin_body
@@ -42,7 +52,7 @@ Something very smart it is, young adept.
 \end_layout
 
 \begin_layout Abstract
-\begin_inset LatexCommand \tableofcontents{}
+\begin_inset LatexCommand tableofcontents
 
 \end_inset
 
@@ -218,7 +228,7 @@ how long it will take
 \end_layout
 
 \begin_layout Subsection
-Format
+Test format
 \end_layout
 
 \begin_layout Standard
@@ -280,6 +290,523 @@ For component based systems is often used model checking or behaviour protocols.
  It is usefull for checking the design of whole application, but there is
  speed issues when using behaviour protocols for checking larger or complex
  systems.
+\end_layout
+
+\begin_layout Subsection
+Testing frameworks
+\end_layout
+
+\begin_layout Subsubsection
+Unit based
+\end_layout
+
+\begin_layout Standard
+Unit testing is based on Kent Beck's testing pattern 
+\begin_inset LatexCommand cite
+key "Simple_Smalltalk_Testing"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph
+Common principes of unit testing are very simple:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+Every 
+\series bold
+test case
+\series default
+ is executed separately, 
+\emph on
+test case
+\emph default
+ have common interface (in object based languages presented as common super
+ class).
+ The run should be independent on other 
+\emph on
+test cases
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Test case
+\emph default
+ may have 
+\series bold
+fixtures
+\series default
+ - methods to set up environment before test and clean up after test.
+ These methods are very often called 
+\emph on
+setup
+\emph default
+ and 
+\emph on
+teardown
+\emph default
+.
+ 
+\emph on
+Teardown
+\emph default
+ method is executed regardless of result of test.
+\end_layout
+
+\begin_layout Standard
+Expected problem in test is called 
+\series bold
+failure
+\series default
+, non anticipated problem is called 
+\series bold
+error.
+\end_layout
+
+\begin_layout Standard
+There is 
+\series bold
+common method of testing
+\series default
+ if expectations hold.
+ In smalltalk by using 
+\emph on
+should
+\emph default
+ and 
+\emph on
+shouldnt
+\emph default
+ blocks, in 
+\begin_inset Quotes eld
+\end_inset
+
+modern
+\begin_inset Quotes erd
+\end_inset
+
+ languages by using 
+\emph on
+asserts
+\emph default
+.
+ When expectation doesn't hold it is called 
+\emph on
+failure
+\emph default
+.
+ 
+\emph on
+Errors
+\emph default
+ are mostly represented by 
+\emph on
+exceptions
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Result
+\series default
+ of test is a 
+\emph on
+result
+\emph default
+ object.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Test cases
+\emph default
+ are agreagated to 
+\series bold
+test suites
+\series default
+ that can be aggregated too.
+ 
+\end_layout
+
+\begin_layout Standard
+All 
+\emph on
+test cases 
+\emph default
+in 
+\emph on
+test suite
+\emph default
+ are 
+\series bold
+run recursivelly
+\series default
+ by calling 
+\emph on
+run 
+\emph default
+on root 
+\emph on
+test suite
+\emph default
+.
+ Returned value is aggregated 
+\emph on
+Result
+\emph default
+ object.
+\end_layout
+
+\begin_layout Standard
+Unit testing should be 
+\series bold
+automated
+\series default
+, independent on human interaction.
+\end_layout
+
+\begin_layout Paragraph
+Other features:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+Many unit testing frameworks offer more elaborated tests structuring and
+ state handling (
+\emph on
+fixtures
+\emph default
+).
+ Very often tests can be aggregated to classes with common setup and teardown
+ methods that are run before and after every test.
+ 
+\end_layout
+
+\begin_layout Standard
+Moreover there can be additional 
+\emph on
+fixture levels
+\emph default
+ for all code units (depending on programing language these can be 
+\emph on
+class level fixtures
+\emph default
+, 
+\emph on
+module level fixtures
+\emph default
+, 
+\emph on
+package level fixtures
+\emph default
+, etc.).
+ 
+\emph on
+Setup_
+\emph default
+ code is run before entering particular block and 
+\emph on
+teardown_
+\emph default
+ code is run after leaving particular block of tests (for example setup_class
+ is run before running tests in class and teardown_class is run after all
+ tests have run.
+ Around every single test may be setup_method and teardown_method fixtures).
+ Note that this could break the independency requirement.
+\end_layout
+
+\begin_layout Paragraph
+Best practices:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+Unit testing is mostly used for
+\emph on
+ testing 
+\emph default
+s
+\emph on
+mall pieces of code 
+\emph default
+and thus use cases are mostly very fast and simple.
+\end_layout
+
+\begin_layout Standard
+Unit testing is very often used to watch for regressions so all tests should
+ be executed periodically by some automation tool.
+\end_layout
+
+\begin_layout Standard
+There should be 100% code coverage done by unit tests.
+ Every function (method) shoud have at least one test case, class should
+ have test suite as counterpart.
+ 
+\end_layout
+
+\begin_layout Paragraph
+Implementations:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+There is at least one unit testing framework for every programming language
+ (see 
+\begin_inset LatexCommand cite
+key "xUnit"
+
+\end_inset
+
+ for short list).
+ We will focus mainly to these which are C or Python based.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+JUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "JUnit"
+
+\end_inset
+
+ is unit testing for java.
+ This framework is interesting just by it's author: 
+\emph on
+Kent Beck
+\emph default
+, guru of unit testing.
+ Have standard features as test level fixtures, assert methods and aggregation.
+ In last version (JUnit 4) there were added class level fixtures, timeouts
+ for tests, expect exception annotation and requirement of inheriting from
+ TestCase was removed.
+ It is not part of standard distribution.
+\end_layout
+
+\begin_layout Standard
+Python has 
+\series bold
+Unittest 
+\begin_inset LatexCommand cite
+key "unittest"
+
+\end_inset
+
+
+\series default
+ as it's standard (called 
+\emph on
+PyUnit
+\emph default
+ 
+\begin_inset LatexCommand cite
+key "PyUnit"
+
+\end_inset
+
+ before integration to python standard distribution).
+ The api is strongly object oriented, tests must inherit from TestCase class,
+ override specific methods and test with defined methods of TestCase.
+ Doesn't offer more levels of fixtures.
+ It is very pure reimplemenatation of Kent Beck's original smalltalk framework.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Py.test 
+\begin_inset LatexCommand cite
+key "PyTest"
+
+\end_inset
+
+
+\series default
+ is alternative python unit testing framework.
+ It is part of 
+\emph on
+py.lib
+\emph default
+ library 
+\begin_inset LatexCommand cite
+key "PyLib"
+
+\end_inset
+
+, has fixtures support on all levels, doesn't need to inherit from superclass
+ but has fixed naming convention instead.
+ Use standard python assert clause to test for failures, handle exceptions
+ as errors.
+ Moreover, py.test has automated find-run-collect tool for searching for
+ tests in directory trees.
+ Test classes can be marked as conditionally 
+\emph on
+disabled
+\emph default
+ depending on generic boolean expressions.
+ This library has support for generator methods which allows to yield 
+\begin_inset Quotes eld
+\end_inset
+
+more
+\begin_inset Quotes erd
+\end_inset
+
+ tests easily.
+ Py.test most interesting feature is ease of use.
+ It is possible to just write function with 
+\begin_inset Quotes eld
+\end_inset
+
+test
+\begin_inset Quotes erd
+\end_inset
+
+ in name and py.test will collect it, run and if there is failure or error,
+ the output and backtrace will be printed in readable format.
+ Py.test can also take big advantage from py.lib which offers distributed
+ execution through py.execnet etc.
+ Whole py.lib is written to be easy to use but in current implementation
+ with trade off configurability.
+ Note should be taken, that py.lib was developed as grant project and after
+ grant expiration there were little of improvement in project.
+\end_layout
+
+\begin_layout Standard
+Another unit testing framework for python is 
+\series bold
+Nose 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+
+\series default
+.
+ Offers backward compatibility to standard 
+\emph on
+unittest
+\emph default
+, some compatibility with 
+\emph on
+py.test
+\emph default
+ library and try to mimic 
+\emph on
+py.test
+\emph default
+ without 
+\begin_inset Quotes eld
+\end_inset
+
+magic
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Nose provide all features of unittest, moreover it implements py.test's
+ all level fixtures, tests doesn't need to inherit from superclass, has
+ automated find-run-collect tool a use generators.
+ In addition, Nose is very configurable, it has inbuild support for changing
+ naming conventions, tests can have flags and it is possible to define expressio
+ns which tests should be run according to flags.
+ Nose has extensible api with plugin support.
+ There are for example plugins for profiling, doctest, code coverage, etc.
+ 
+\end_layout
+
+\begin_layout Standard
+cunit, check, cutest, cppunit 
+\end_layout
+
+\begin_layout Standard
+fork / don't fork
+\end_layout
+
+\begin_layout Standard
+macro / hand / grep 
+\end_layout
+
+\begin_layout Standard
+setup/teardown
+\end_layout
+
+\begin_layout Standard
+code layout (mixing or separating)
+\end_layout
+
+\begin_layout Standard
+collecting
+\end_layout
+
+\begin_layout Standard
+test framework code readability & flexibility (modular design)
+\end_layout
+
+\begin_layout Standard
+test framework maturity#
+\end_layout
+
+\begin_layout Standard
+!!ATTR and EXPR in nose 
+\end_layout
+
+\begin_layout Standard
+--with-stopwatch --faster-than 5
+\end_layout
+
+\begin_layout Standard
+--with-figleafsecions
+\end_layout
+
+\begin_layout Standard
+config by environment
+\end_layout
+
+\begin_layout Standard
+untestable test with comparision
+\end_layout
+
+\begin_layout Standard
+! when pickling, only names are written for code blocks (methods etc) so
+ before unpickling, the original module must be imported...
+\end_layout
+
+\begin_layout Standard
+the same (^) holds for class data (so be carefull when pickling class with
+ setup_class method)
+\end_layout
+
+\begin_layout Standard
+!!!! this disable pickling of random data....!!!!!
+\end_layout
+
+\begin_layout Standard
+__getstate__(), __setstate__()
+\end_layout
+
+\begin_layout Paragraph
+Mock
+\end_layout
+
+\begin_layout Standard
+interface, network, etc - pretend to be the other side
 \end_layout
 
 \begin_layout Subsection
@@ -406,7 +933,8 @@ There is one more reason that may be considered for muting logging output.
 
 \begin_layout Standard
 For testing was used real application - session server from the SUCKS 
-\begin_inset LatexCommand \cite{SUCKS}
+\begin_inset LatexCommand cite
+key "SUCKS"
 
 \end_inset
 
@@ -448,8 +976,16 @@ status open
 
 \end_layout
 
-\begin_layout Caption
+\begin_layout Standard
+\begin_inset Caption
+
+\begin_layout Standard
 Logging load
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \end_inset
@@ -722,17 +1258,20 @@ There are many projects trying to create full featured checkpoint / resume
  The most frequently missing features are suspend / resume support for:
  networking, devices, threads, signal handlers, shm, shared objects.
  Some of them (BCLR 
-\begin_inset LatexCommand \cite{BLCR}
+\begin_inset LatexCommand cite
+key "BLCR"
 
 \end_inset
 
 , CryptoPID 
-\begin_inset LatexCommand \cite{cryptoPID}
+\begin_inset LatexCommand cite
+key "cryptoPID"
 
 \end_inset
 
 , Chpox 
-\begin_inset LatexCommand \cite{chpox}
+\begin_inset LatexCommand cite
+key "chpox"
 
 \end_inset
 
@@ -748,22 +1287,26 @@ Other possibility, which solve the matter of sandboxing too is to use some
  Nowadays there is many virtualization tools with support for snapshoting
  (for ex.
  openVZ 
-\begin_inset LatexCommand \cite{openVZ}
+\begin_inset LatexCommand cite
+key "openVZ"
 
 \end_inset
 
 , Vmware 
-\begin_inset LatexCommand \cite{Vmware}
+\begin_inset LatexCommand cite
+key "Vmware"
 
 \end_inset
 
 , Xen 
-\begin_inset LatexCommand \cite{Xen}
+\begin_inset LatexCommand cite
+key "Xen"
 
 \end_inset
 
 , Qemu 
-\begin_inset LatexCommand \cite{Qemu}
+\begin_inset LatexCommand cite
+key "Qemu"
 
 \end_inset
 
@@ -776,7 +1319,8 @@ Other possibility, which solve the matter of sandboxing too is to use some
 The last and easiest possibility is to use just snapshoting without resume
  and save the snapshots in some easy to read format.
  For this we can use for example GDB gcore 
-\begin_inset LatexCommand \cite{gcore}
+\begin_inset LatexCommand cite
+key "gcore"
 
 \end_inset
 
@@ -872,7 +1416,8 @@ n.
  socket) which can be used and controlled by test suite.
  The format of written log for failure could be readable by some GUI or
  web based reader such as Chainsaw 
-\begin_inset LatexCommand \cite{Chainsaw}
+\begin_inset LatexCommand cite
+key "Chainsaw"
 
 \end_inset
 
@@ -912,7 +1457,9 @@ Conclusion
 \end_layout
 
 \begin_layout Standard
-\begin_inset LatexCommand \bibtex[plain]{references}
+\begin_inset LatexCommand bibtex
+options "plain"
+bibfiles "references"
 
 \end_inset
 
