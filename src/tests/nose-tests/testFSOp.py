@@ -3,10 +3,14 @@
 
 
 import nose
+import logging
 
 import os
 import shutil
-import random
+from random import Random
+from nose import config
+
+log = logging.getLogger ("nose.testRun")
 
 def tryTouch(fileName):
   try:
@@ -32,11 +36,30 @@ def tryRename(originalFileName,  newFileName):
 
 def tryRead(file):
   try:
-    return file.read()
+    return pickle.load(file)
   except:
     return None
+    
+def tryWrite(file,  data):
+  try:
+    pickle.dump(data,  file)
+    return True
+  except:
+    return False
 
 class testFSOp(object):
+  disabled = False
+  __test__ = False
+  zfs = True
+  
+  
+  
+  def __init__(self):
+    readOnly = config.config.getOption("readOnly")
+    log.debug( "config.readOnly is %s", readOnly)
+    
+    testSetting = config.config.getOption("testSetting")
+    log.debug( "config.testSetting is %s", testSetting)
   
   ##
   # "safe" file for checking
@@ -66,7 +89,7 @@ class testFSOp(object):
   
   ##
   # random data generator
-  generator = Random.init()
+  generator = Random()
   ##
   # test vector - data to write, if insufficient, 
   # they go forever
@@ -75,48 +98,52 @@ class testFSOp(object):
   
   ##
   # setup before every test method
+  @classmethod
   def setup_class(self):
-    generator_seed()
-    clean_files()
-    randomize_data()
+    self.generator.seed()
+    self.clean_files()
+    self.randomize_data()
   
   ##
   # cleanup after every test method
+  @classmethod
   def teardown_class(self):
-    clean_files()
+    self.clean_files()
   
   ##
   # remove files and clean handles
+  @classmethod
   def clean_files(self):
-    try:
-      if safe_file != None:
-        safe_file.close()
-    except:
-      pass
+  # TODO: this wont' work since it is classmethod
+    if self.safe_file != None:
+      self.safe_file.close()
+      self.safe_file = None
     
-    try:
-      if test_file != None:
-        test_file.close()
-    except:
-      pass
+    if os.path.exists(self.safe_file_name):
+      os.remove(self.safe_file_name)
+
+    if self.test_file != None:
+      self.test_file.close()
+      self.test_file = None
     
-    os.remove(safe_file_name)
-    os.remove(test_file_name)
+    if os.path.exists(self.test_file_name):
+      os.remove(self.test_file_name)
     
   ##
   # generate random data for tests
+  @classmethod
   def randomize_data(self):
-    for i in range(data_vector_length):
-      data_vector[i] = generator.random()
+    for i in range(self.data_vector_length):
+      self.data_vector.append(self.generator.random())
     
     
   def testTouch(self):
     assert tryTouch(self.safe_file_name) == tryTouch(self.test_file_name)
-#  testTouch.disabled = config.readOnly
+  testTouch.disabled = config.config.getOption("readOnly") == True
 
   def testUnlink(self):
     assert tryUnlink(self.safe_file_name) == tryUnlink(self.test_file_name)
-#  testUnlink.disabled = config.readOnly
+  testUnlink.disabled = config.config.getOption("readOnly")
   
   def testRename(self):
     safeResult = False
@@ -127,11 +154,11 @@ class testFSOp(object):
       safeResult = True
     
     if tryRename(self.test_file_name,  self.test_file_name + self.file_name_suffix):
-      self.test_file_name = self.test_file_name + test.file_name_suffix
+      self.test_file_name = self.test_file_name + self.file_name_suffix
       testResult = True
     
     assert safeResult == testResult
-#  testRename.disabled = config.readOnly
+  testRename.disabled = config.config.getOption("readOnly")
   
   def testOpen(self):
     safeResult = False
@@ -164,7 +191,7 @@ class testFSOp(object):
     
     try:
       close(self.test_file)
-      test.safe_file = None
+      self.test_file = None
       testResult = True
     except:
       pass
@@ -178,9 +205,9 @@ class testFSOp(object):
     assert safeResult == testResult
   
   def testWrite(self):
-    assert tryWrite(self.safe_file,  self.data_vector,  self.data_vector_length) == \
-                 try_write(self.test_file,  self.data_vector,  self.data_vector_length)
-#  testWrite.disabled = config.readOnly
+    assert tryWrite(self.safe_file,  self.data_vector) == \
+           tryWrite(self.test_file,  self.data_vector)
+  testWrite.disabled = config.config.getOption("readOnly")
 
   def testFlush(self):
     return
@@ -192,7 +219,7 @@ class testFSOp(object):
   
   def testGetpos(self):
     return
-  testGetPos.disabled = True
+  testGetpos.disabled = True
   
   def testSeek(self):
     return
@@ -276,7 +303,7 @@ class testFSOp(object):
   
   def testListxattr(self):
     return
-  test.disabled = True
+  testListxattr.disabled = True
   
   def testRemovexattr(self):
     return

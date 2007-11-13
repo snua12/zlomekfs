@@ -6,9 +6,11 @@ import nose
 import os
 import shutil
 from random import Random
+from nose import config
 import pickle
 
 class TestFile(object):
+    __test__ = True
     
     ##
     # "safe" file for checking
@@ -39,6 +41,7 @@ class TestFile(object):
         self.clean_files()
     ##
     # setup class
+    @classmethod
     def setup_class(self):
         self.generator.seed() 
     
