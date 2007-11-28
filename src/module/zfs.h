@@ -45,7 +45,7 @@
 #endif
 
 #define ZFS_SUPER_MAGIC *((uint32_t *)"zfs")
-#define ZFS_CHARDEV_MAJOR 251
+#define ZFS_CHARDEV_MAJOR 249
 
 /* Timeout in seconds for request. */
 #define ZFS_TIMEOUT (REQUEST_TIMEOUT + 5)
@@ -117,5 +117,15 @@ struct request {
                 /* wait queue of kernel threads (actualy only current thread)
                    which have prepared the request but not received the reply */
 };
+
+extern struct file_operations zfs_chardev_file_operations;
+extern struct file_operations zfs_dir_operations, zfs_file_operations;
+extern struct address_space_operations zfs_file_address_space_operations;
+
+extern struct inode *zfs_ilookup(struct super_block *sb, zfs_fh *fh);
+extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
+
+extern int zfs_open(struct inode *inode, struct file *file);
+extern int zfs_release(struct inode *inode, struct file *file);
 
 #endif

@@ -28,6 +28,7 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/list.h>
+#include <linux/sched.h>
 #include <linux/wait.h>
 #include <linux/errno.h>
 #include <linux/types.h>
@@ -101,8 +102,6 @@ NEXT_REQUEST:
 
         return nbytes;
 }
-
-extern struct inode *zfs_ilookup(struct super_block *sb, zfs_fh *fh);
 
 static ssize_t zfs_chardev_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {

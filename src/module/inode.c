@@ -24,6 +24,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html
  */
 
+#include <linux/bitops.h>
 #include <linux/fs.h>
 #include <linux/errno.h>
 #include <linux/string.h>
@@ -60,7 +61,11 @@ static void zfs_attr_to_iattr(struct inode *inode, fattr *attr)
         inode->i_rdev = attr->rdev;
         inode->i_size = attr->size;
         inode->i_blocks = attr->blocks;
-        inode->i_blksize = attr->blksize;
+	if (attr->blksize == 0 || (attr->blksize & (attr->blksize - 1)) != 0)
+		/* FIXME: different default, or reject the data? */
+		inode->i_blkbits = 9;
+	else
+		inode->i_blkbits = ffs(attr->blksize) - 1;
         inode->i_atime.tv_sec = attr->atime;
         inode->i_atime.tv_nsec = 0;
         inode->i_mtime.tv_sec = attr->mtime;
@@ -92,8 +97,6 @@ static ftype zfs_mode_to_ftype(int mode)
 }
 
 static struct inode_operations zfs_dir_inode_operations, zfs_file_inode_operations, zfs_symlink_inode_operations;
-extern struct file_operations zfs_dir_operations, zfs_file_operations;
-extern struct address_space_operations zfs_file_address_space_operations;
 
 static void zfs_fill_inode(struct inode *inode, fattr *attr)
 {
@@ -174,8 +177,9 @@ static int zfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 
         /* revalidate dentries after time in dentry cache expires */
         if (time_after(jiffies, dentry->d_time + ZFS_DENTRY_MAXAGE * HZ)) {
-                TRACE("'%s possibly expired'", dentry->d_name.name);
                 fattr attr;
+
+                TRACE("'%s possibly expired'", dentry->d_name.name);
 
                 /* invalidate negative dentry */
                 if (!inode) {
@@ -204,7 +208,7 @@ out_invalid:
         return 0;
 }
 
-struct dentry_operations zfs_dentry_operations = {
+static struct dentry_operations zfs_dentry_operations = {
         .d_revalidate   = zfs_d_revalidate,
 };
 
@@ -240,7 +244,7 @@ static int zfs_create(struct inode *dir, struct dentry *dentry, int mode, struct
                 return error;
         }
 
-        inode = zfs_iget(dir->i_sb, &res.file, &res.attr);
+        inode = zfs_iget(dir->i_sb, &res.dor.file, &res.dor.attr);
         if (!inode)
                 return -ENOMEM;
 
@@ -585,7 +589,7 @@ static int zfs_readlink(struct dentry *dentry, char __user *buf, int buflen)
         return vfs_readlink(dentry, buf, buflen, res.path.str);
 }
 
-static int zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
+static void *zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
 {
         struct inode *inode = dentry->d_inode;
         read_link_res res;
@@ -597,10 +601,10 @@ static int zfs_follow_link(struct dentry *dentry, struct nameidata *nd)
         if (error) {
                 if (error == -ESTALE)
                         ZFS_I(inode)->flags |= NEED_REVALIDATE;
-                return error;
+                return ERR_PTR(error);
         }
 
-        return vfs_follow_link(nd, res.path.str);
+        return ERR_PTR(vfs_follow_link(nd, res.path.str));
 }
 
 static struct inode_operations zfs_dir_inode_operations = {

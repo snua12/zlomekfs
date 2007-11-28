@@ -40,15 +40,13 @@ MODULE_ALIAS_CHARDEV_MAJOR(ZFS_CHARDEV_MAJOR);
 struct super_block *zfs_sb;
 struct channel channel;
 
-extern struct file_operations zfs_chardev_file_operations;
-
-static kmem_cache_t *zfs_inode_cachep;
+static struct kmem_cache *zfs_inode_cachep;
 
 static struct inode *zfs_alloc_inode(struct super_block *sb)
 {
         struct zfs_inode_info *ei;
 
-        ei = kmem_cache_alloc(zfs_inode_cachep, SLAB_KERNEL);
+        ei = kmem_cache_alloc(zfs_inode_cachep, GFP_KERNEL);
         if (!ei)
                 return NULL;
 
@@ -64,12 +62,12 @@ static void zfs_destroy_inode(struct inode *inode)
         kmem_cache_free(zfs_inode_cachep, ZFS_I(inode));
 }
 
-static void zfs_init_once(void *foo, kmem_cache_t *cachep, unsigned long flags)
+static void zfs_init_once(void *foo, struct kmem_cache *cachep,
+			  unsigned long flags)
 {
         struct zfs_inode_info *ei = (struct zfs_inode_info *)foo;
 
-        if ((flags & (SLAB_CTOR_VERIFY | SLAB_CTOR_CONSTRUCTOR)) == SLAB_CTOR_CONSTRUCTOR)
-                inode_init_once(&ei->vfs_inode);
+	inode_init_once(&ei->vfs_inode);
 }
 
 static int zfs_init_inodecache(void)
@@ -88,8 +86,7 @@ static int zfs_init_inodecache(void)
 
 static void zfs_destroy_inodecache(void)
 {
-        if (kmem_cache_destroy(zfs_inode_cachep))
-                INFO("zfs_inode_cache: not all structures were freed");
+        kmem_cache_destroy(zfs_inode_cachep);
 }
 
 static void zfs_put_super(struct super_block *sb)
@@ -99,7 +96,7 @@ static void zfs_put_super(struct super_block *sb)
         zfs_sb = NULL;
 }
 
-static int zfs_statfs(struct super_block *sb, struct kstatfs *buf)
+static int zfs_statfs(struct dentry *dentry, struct kstatfs *buf)
 {
         buf->f_type = ZFS_SUPER_MAGIC;
         buf->f_bsize = ZFS_MAXDATA;
@@ -114,8 +111,6 @@ static struct super_operations zfs_super_operations = {
         .put_super	= zfs_put_super,
         .statfs		= zfs_statfs,
 };
-
-extern struct inode *zfs_iget(struct super_block *sb, zfs_fh *fh, fattr *attr);
 
 static int zfs_fill_super(struct super_block *sb, void *data, int silent)
 {
@@ -159,9 +154,10 @@ static int zfs_fill_super(struct super_block *sb, void *data, int silent)
         return 0;
 }
 
-static struct super_block *zfs_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
+static int zfs_get_sb(struct file_system_type *fs_type, int flags,
+		      const char *dev_name, void *data, struct vfsmount *mnt)
 {
-        return get_sb_single(fs_type, flags, data, zfs_fill_super);
+	return get_sb_single(fs_type, flags, data, zfs_fill_super, mnt);
 }
 
 static struct file_system_type zfs_type = {

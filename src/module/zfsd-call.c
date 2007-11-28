@@ -35,6 +35,7 @@
 #include "zfs.h"
 #include "data-coding.h"
 #include "zfs-prot.h"
+#include "zfsd-call.h"
 
 /*
    Send the request and wait for the reply.

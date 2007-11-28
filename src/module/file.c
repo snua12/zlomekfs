@@ -128,13 +128,13 @@ static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbyte
  */
 static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff_t *off)
 {
-        struct inode *inode = file->f_dentry->d_inode;
+	ssize_t res;
 
         TRACE("reading file '%s' from %lld size %u", file->f_dentry->d_name.name, *off, nbytes);
-        TRACE("inode size is: %lld", i_size_read(inode));
+        TRACE("inode size is: %lld", i_size_read(file->f_dentry->d_inode));
         TRACE("calling do_sync_read()");
 
-        ssize_t res = do_sync_read(file, buf, nbytes, off);
+        res = do_sync_read(file, buf, nbytes, off);
 
         TRACE("do_sync_read() result: %u", res);
 
@@ -148,13 +148,13 @@ static ssize_t zfs_read(struct file *file, char __user *buf, size_t nbytes, loff
  */
 static ssize_t zfs_write(struct file *file, const char __user *buf, size_t nbytes, loff_t *off)
 {
-        struct inode *inode = file->f_dentry->d_inode;
+	ssize_t res;
 
         TRACE("writing file '%s' from %lld size %u", file->f_dentry->d_name.name, *off, nbytes);
-        TRACE("inode size is: %lld", i_size_read(inode));
+        TRACE("inode size is: %lld", i_size_read(file->f_dentry->d_inode));
         TRACE("calling do_sync_write()");
 
-        ssize_t res = do_sync_write(file, buf, nbytes, off);
+        res = do_sync_write(file, buf, nbytes, off);
 
         TRACE("do_sync_write() result: %u", res);
 
@@ -235,10 +235,11 @@ int zfs_release(struct inode *inode, struct file *file)
 
         /* invalidates all pages if the file closed is regular */
         if (S_ISREG(inode->i_mode)) {
+		unsigned long inv;
 
                 TRACE("invalidating pages");
 
-                unsigned long inv = invalidate_inode_pages(inode->i_mapping);
+                inv = invalidate_mapping_pages(inode->i_mapping, 0, -1);
 
                 TRACE("invalidated %lu pages", inv);
         }
@@ -505,7 +506,7 @@ static int zfs_commit_write(struct file *file, struct page *page,
         err = _zfs_write_cap(CAP(file->private_data), kaddr + offset,
                                                  (page->index << PAGE_CACHE_SHIFT) + offset, to - offset);
 
-        kunmap(kaddr);
+        kunmap(page);
 
         inode->i_mtime = CURRENT_TIME;
 
