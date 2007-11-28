@@ -495,7 +495,7 @@ set_default_user_mapping (void)
 
   HTAB_FOR_EACH_SLOT (users_id, slot)
     {
-      user_t u = (user_t) slot;
+      user_t u = (user_t)*slot;
 
       user_mapping_create (&u->name, &u->name, NULL);
     }
@@ -592,7 +592,7 @@ group_mapping_create (string *zfs_group, string *node_group, node nod)
     }
   else
     {
-      map_to_node = map_uid_to_node;
+      map_to_node = map_gid_to_node;
       map_to_zfs = map_gid_to_zfs;
     }
 
@@ -675,7 +675,7 @@ set_default_group_mapping (void)
 
   HTAB_FOR_EACH_SLOT (groups_id, slot)
     {
-      group_t g = (group_t) slot;
+      group_t g = (group_t)*slot;
 
       group_mapping_create (&g->name, &g->name, NULL);
     }
