@@ -76,8 +76,7 @@ static int zfs_init_inodecache(void)
                                              sizeof(struct zfs_inode_info),
                                              0,
                                              SLAB_HWCACHE_ALIGN | SLAB_RECLAIM_ACCOUNT,
-                                             zfs_init_once,
-                                             NULL);
+                                             zfs_init_once);
         if (!zfs_inode_cachep)
                 return -ENOMEM;
 
