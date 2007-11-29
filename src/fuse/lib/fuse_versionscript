@@ -149,6 +149,9 @@ FUSE_2.7 {
 		fuse_fs_unlink;
 		fuse_fs_utimens;
 		fuse_fs_write;
+		fuse_kernel_invalidate_metadata;
+		fuse_kernel_invalidate_data;
+		fuse_kernel_sync_inode;
 		fuse_register_module;
 		fuse_version;
 

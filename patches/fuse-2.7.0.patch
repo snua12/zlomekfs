@@ -1,6 +1,6 @@
 diff -Naur a/fuse-2.7.0/include/fuse_common.h b/fuse-2.7.0/include/fuse_common.h
 --- a/fuse-2.7.0/include/fuse_common.h	2007-07-02 13:32:15.000000000 +0200
-+++ b/fuse-2.7.0/include/fuse_common.h	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/include/fuse_common.h	2007-11-29 09:35:41.000000000 +0100
 @@ -63,8 +63,13 @@
          operation.  Introduced in version 2.6 */
      unsigned int flush : 1;
@@ -18,7 +18,7 @@ diff -Naur a/fuse-2.7.0/include/fuse_common.h b/fuse-2.7.0/include/fuse_common.h
          Available in all other file operations */
 diff -Naur a/fuse-2.7.0/include/fuse_kernel.h b/fuse-2.7.0/include/fuse_kernel.h
 --- a/fuse-2.7.0/include/fuse_kernel.h	2007-05-23 16:35:49.000000000 +0200
-+++ b/fuse-2.7.0/include/fuse_kernel.h	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/include/fuse_kernel.h	2007-11-29 09:35:41.000000000 +0100
 @@ -117,9 +117,11 @@
   *
   * FOPEN_DIRECT_IO: bypass page cache for this open file
@@ -61,7 +61,7 @@ diff -Naur a/fuse-2.7.0/include/fuse_kernel.h b/fuse-2.7.0/include/fuse_kernel.h
  struct fuse_dirent {
 diff -Naur a/fuse-2.7.0/include/fuse_lowlevel.h b/fuse-2.7.0/include/fuse_lowlevel.h
 --- a/fuse-2.7.0/include/fuse_lowlevel.h	2007-05-23 16:37:26.000000000 +0200
-+++ b/fuse-2.7.0/include/fuse_lowlevel.h	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/include/fuse_lowlevel.h	2007-11-29 09:35:41.000000000 +0100
 @@ -973,6 +973,33 @@
   */
  int fuse_reply_bmap(fuse_req_t req, uint64_t idx);
@@ -98,7 +98,7 @@ diff -Naur a/fuse-2.7.0/include/fuse_lowlevel.h b/fuse-2.7.0/include/fuse_lowlev
   * ----------------------------------------------------------- */
 diff -Naur a/fuse-2.7.0/kernel/dev.c b/fuse-2.7.0/kernel/dev.c
 --- a/fuse-2.7.0/kernel/dev.c	2007-05-03 12:59:50.000000000 +0200
-+++ b/fuse-2.7.0/kernel/dev.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/kernel/dev.c	2007-11-29 09:35:41.000000000 +0100
 @@ -826,6 +826,15 @@
  			      out->page_zeroing);
  }
@@ -155,7 +155,7 @@ diff -Naur a/fuse-2.7.0/kernel/dev.c b/fuse-2.7.0/kernel/dev.c
  		goto err_unlock;
 diff -Naur a/fuse-2.7.0/kernel/dir.c b/fuse-2.7.0/kernel/dir.c
 --- a/fuse-2.7.0/kernel/dir.c	2007-05-23 16:35:49.000000000 +0200
-+++ b/fuse-2.7.0/kernel/dir.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/kernel/dir.c	2007-11-29 09:35:41.000000000 +0100
 @@ -130,10 +130,20 @@
  static int fuse_dentry_revalidate(struct dentry *entry, struct nameidata *nd)
  {
@@ -194,7 +194,7 @@ diff -Naur a/fuse-2.7.0/kernel/dir.c b/fuse-2.7.0/kernel/dir.c
  		return 0;
 diff -Naur a/fuse-2.7.0/kernel/file.c b/fuse-2.7.0/kernel/file.c
 --- a/fuse-2.7.0/kernel/file.c	2007-07-02 13:32:15.000000000 +0200
-+++ b/fuse-2.7.0/kernel/file.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/kernel/file.c	2007-11-29 09:35:41.000000000 +0100
 @@ -79,8 +79,10 @@
  #ifdef KERNEL_2_6_21_PLUS
  		invalidate_mapping_pages(inode->i_mapping, 0, -1);
@@ -382,7 +382,7 @@ diff -Naur a/fuse-2.7.0/kernel/file.c b/fuse-2.7.0/kernel/file.c
 +}
 diff -Naur a/fuse-2.7.0/kernel/fuse_i.h b/fuse-2.7.0/kernel/fuse_i.h
 --- a/fuse-2.7.0/kernel/fuse_i.h	2007-07-02 13:32:15.000000000 +0200
-+++ b/fuse-2.7.0/kernel/fuse_i.h	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/kernel/fuse_i.h	2007-11-29 09:35:41.000000000 +0100
 @@ -137,8 +137,11 @@
  	/** The request used for sending the FORGET message */
  	struct fuse_req *forget_req;
@@ -441,7 +441,7 @@ diff -Naur a/fuse-2.7.0/kernel/fuse_i.h b/fuse-2.7.0/kernel/fuse_i.h
  void fuse_send_forget(struct fuse_conn *fc, struct fuse_req *req,
 diff -Naur a/fuse-2.7.0/kernel/fuse_kernel.h b/fuse-2.7.0/kernel/fuse_kernel.h
 --- a/fuse-2.7.0/kernel/fuse_kernel.h	2007-05-23 16:35:49.000000000 +0200
-+++ b/fuse-2.7.0/kernel/fuse_kernel.h	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/kernel/fuse_kernel.h	2007-11-29 09:35:41.000000000 +0100
 @@ -117,9 +117,11 @@
   *
   * FOPEN_DIRECT_IO: bypass page cache for this open file
@@ -484,7 +484,7 @@ diff -Naur a/fuse-2.7.0/kernel/fuse_kernel.h b/fuse-2.7.0/kernel/fuse_kernel.h
  struct fuse_dirent {
 diff -Naur a/fuse-2.7.0/kernel/inode.c b/fuse-2.7.0/kernel/inode.c
 --- a/fuse-2.7.0/kernel/inode.c	2007-07-02 13:32:15.000000000 +0200
-+++ b/fuse-2.7.0/kernel/inode.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/kernel/inode.c	2007-11-29 09:35:41.000000000 +0100
 @@ -59,6 +59,7 @@
  
  	fi = get_fuse_inode(inode);
@@ -515,7 +515,7 @@ diff -Naur a/fuse-2.7.0/kernel/inode.c b/fuse-2.7.0/kernel/inode.c
  	sb->s_fs_info = fc;
 diff -Naur a/fuse-2.7.0/lib/fuse_kern_chan.c b/fuse-2.7.0/lib/fuse_kern_chan.c
 --- a/fuse-2.7.0/lib/fuse_kern_chan.c	2007-05-20 13:05:46.000000000 +0200
-+++ b/fuse-2.7.0/lib/fuse_kern_chan.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/lib/fuse_kern_chan.c	2007-11-29 09:35:41.000000000 +0100
 @@ -48,7 +48,8 @@
          return -err;
      }
@@ -528,7 +528,7 @@ diff -Naur a/fuse-2.7.0/lib/fuse_kern_chan.c b/fuse-2.7.0/lib/fuse_kern_chan.c
      return res;
 diff -Naur a/fuse-2.7.0/lib/fuse_lowlevel.c b/fuse-2.7.0/lib/fuse_lowlevel.c
 --- a/fuse-2.7.0/lib/fuse_lowlevel.c	2007-07-02 13:32:17.000000000 +0200
-+++ b/fuse-2.7.0/lib/fuse_lowlevel.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/lib/fuse_lowlevel.c	2007-11-29 09:35:41.000000000 +0100
 @@ -1066,6 +1066,41 @@
      return interrupted;
  }
@@ -571,9 +571,22 @@ diff -Naur a/fuse-2.7.0/lib/fuse_lowlevel.c b/fuse-2.7.0/lib/fuse_lowlevel.c
  static struct {
      void (*func)(fuse_req_t, fuse_ino_t, const void *);
      const char *name;
+diff -Naur a/fuse-2.7.0/lib/fuse_versionscript b/fuse-2.7.0/lib/fuse_versionscript
+--- a/fuse-2.7.0/lib/fuse_versionscript	2007-07-02 13:32:17.000000000 +0200
++++ b/fuse-2.7.0/lib/fuse_versionscript	2007-11-29 09:36:58.000000000 +0100
+@@ -149,6 +149,9 @@
+ 		fuse_fs_unlink;
+ 		fuse_fs_utimens;
+ 		fuse_fs_write;
++		fuse_kernel_invalidate_metadata;
++		fuse_kernel_invalidate_data;
++		fuse_kernel_sync_inode;
+ 		fuse_register_module;
+ 		fuse_reply_iov;
+ 		fuse_version;
 diff -Naur a/fuse-2.7.0/lib/mount_bsd.c b/fuse-2.7.0/lib/mount_bsd.c
 --- a/fuse-2.7.0/lib/mount_bsd.c	2006-05-03 16:46:04.000000000 +0200
-+++ b/fuse-2.7.0/lib/mount_bsd.c	2007-11-28 14:20:07.000000000 +0100
++++ b/fuse-2.7.0/lib/mount_bsd.c	2007-11-29 09:35:41.000000000 +0100
 @@ -29,7 +29,8 @@
      KEY_RO,
      KEY_HELP,

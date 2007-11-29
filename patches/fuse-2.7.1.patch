@@ -571,6 +571,19 @@ diff -Naur a/fuse-2.7.1/lib/fuse_lowlevel.c b/fuse-2.7.1/lib/fuse_lowlevel.c
  static struct {
      void (*func)(fuse_req_t, fuse_ino_t, const void *);
      const char *name;
+diff -Naur a/fuse-2.7.1/lib/fuse_versionscript b/fuse-2.7.1/lib/fuse_versionscript
+--- a/fuse-2.7.1/lib/fuse_versionscript	2007-07-02 13:32:17.000000000 +0200
++++ b/fuse-2.7.1/lib/fuse_versionscript	2007-11-29 09:31:22.000000000 +0100
+@@ -149,6 +149,9 @@
+ 		fuse_fs_unlink;
+ 		fuse_fs_utimens;
+ 		fuse_fs_write;
++		fuse_kernel_invalidate_metadata;
++		fuse_kernel_invalidate_data;
++		fuse_kernel_sync_inode;
+ 		fuse_register_module;
+ 		fuse_reply_iov;
+ 		fuse_version;
 diff -Naur a/fuse-2.7.1/lib/mount_bsd.c b/fuse-2.7.1/lib/mount_bsd.c
 --- a/fuse-2.7.1/lib/mount_bsd.c	2007-10-16 18:35:23.000000000 +0200
 +++ b/fuse-2.7.1/lib/mount_bsd.c	2007-11-28 15:18:49.000000000 +0100
