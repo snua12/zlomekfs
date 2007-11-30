@@ -29,10 +29,10 @@ CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 LD = gcc
 LD_OPTS = $(FUSE_LDFLAGS) -lpthread
 
-#FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
-FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I../fuse/include
-#FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
-FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a
+FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
+#FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I../fuse/include
+FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
+#FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a
 ifndef freebsd
   FUSE_LDFLAGS += -lrt -ldl
 endif
