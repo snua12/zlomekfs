@@ -41,12 +41,25 @@ endif
 .SUFFIXES: .c .o
 .PHONY: all install uninstall clean
 
-BB_ALL = dump-logs fakelog log-control
+BB_ALL = dump-logs fakelog log-control zen-unit
 
 all: $(BB_ALL)
 
 
 # Executables
+
+zen-unit-binary.o: zen-unit-binary.c
+	gcc -c -g -O0 -Wall zen-unit-binary.c -I../zen-unit/include
+
+zen-unit-so.o: zen-unit-so.c
+	gcc -c -g -O0 -Wall -fPIC zen-unit-so.c -I../zen-unit/include
+
+libzenunit.so: zen-unit-so.o
+	gcc  -shared -o libzenunit.so zen-unit-so.o
+
+zen-unit: zen-unit-binary.o libzenunit.so
+	gcc -o zen-unit -L. -lzenunit zen-unit-binary.o
+
 
 OO_DUMP-LOGS = dump-logs.o
 
@@ -82,7 +95,7 @@ include $(OO_ALL:.o=.dep)
 # Other
 
 clean:
-	-rm -f $(BB_ALL) $(OO_ALL) $(OO_ALL:.o=.dep)
+	-rm -f $(BB_ALL) $(OO_ALL) $(OO_ALL:.o=.dep) libzenunit.so *.o
 
 dry-test: dump-logs local.log
 	./dump-logs --reader=file --log-file=local.log --formater=raw
