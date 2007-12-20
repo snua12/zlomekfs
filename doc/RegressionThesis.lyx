@@ -887,15 +887,47 @@ key "RCUNIT"
 \series bold
 Cutee
 \series default
-  
-\begin_inset Quotes eld
+ 
+\begin_inset LatexCommand cite
+key "cutee"
+
 \end_inset
 
-automatic collection
-\begin_inset Quotes erd
+ tends to be as simple as possible.
+ Thus supports only assertions, no fixtures or suites.
+ Tests are collected automatically yet files with tests must be listed in
+ Makefile.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Check
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Check"
+
 \end_inset
 
-, suites, assertions, C++
+ provides assertions, suites and simple fixtures.
+ Forks every test in separate process, can handle timeouts, output can be
+ printed in plaintext or xml.
+ Has no build or collect helpers thus adding test is very annoying.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CuTest
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Cutest"
+
+\end_inset
+
+ simple generation, suites, assertions, 
 \end_layout
 
 \begin_layout Standard
@@ -951,7 +983,7 @@ C integration flaws:
 \end_layout
 
 \begin_layout Standard
-cunit, check, cutest, cppunit 
+cutest, 
 \end_layout
 
 \begin_layout Standard
