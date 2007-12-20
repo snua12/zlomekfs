@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-4.0.dtd">
 <!-- eric4 project file for project zfs -->
-<!-- Saved: 2007-11-17, 17:42:56 -->
+<!-- Saved: 2007-11-19, 00:38:38 -->
 <!-- Copyright (C) 2007 loki, loigu@volny.cz -->
 <Project version="4.0">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -109,6 +109,11 @@
       <Dir>tests</Dir>
       <Dir>nose-tests</Dir>
       <Name>zfs.py</Name>
+    </Source>
+    <Source>
+      <Dir>tests</Dir>
+      <Dir>nose-plugins</Dir>
+      <Name>failure.py</Name>
     </Source>
   </Sources>
   <Forms>
