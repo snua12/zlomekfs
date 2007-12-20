@@ -1,55 +1,24 @@
 import os
-import re
 import textwrap
 import logging
 
 from optparse import OptionConflictError
-from types import MethodType,  TypeType,  ClassType
+from types import TypeType,  ClassType
 from warnings import warn
 from ConfigParser import SafeConfigParser
 
 from nose.plugins import Plugin
 from nose.util import tolist
-from generator import StressGenerator
 
-log = logging.getLogger ("nose.plugins.zfsPlugin")
+log = logging.getLogger ("nose.plugins.zfsConfig")
 
-fixtureMethods = [
-                               'setup', 'setUp',  'setup_method', 
-                               'teardown', 'tearDown', 'teardonw_method',
-                               'setup_class',  'setup_all', 'setupClass', 
-                               'setupAll', 'setUpClass',  'setUpAll', 
-                               'teardown_class', 'teardown_all', 'teardownClass',
-                               'teardownAll', 'tearDownClass', 'tearDownAll' 
-                             ]
-
-class MetaTestCollector(object):
-    map = {}
-    metaClasses = []
-    
-    def isMetaClass (self,  cls):
-        return cls in self.metaClasses
-    
-    def registerMetaClass(self,  cls):
-        self.metaClasses.append(cls)
-    
-    def add(self,  method):
-        classRow = self.map.get(method.im_class,  [])
-        classRow.append(method)
-        self.map[method.im_class] = classRow
-    
-    def getClassMethods(self,  cls):
-        return self.map.get(cls,  None)
-
-class ZfsPlugin(Plugin):
-    """ ZFS test plugin.
-    By now loads file with options for tests and passes object with them to test\'s \'self\'
-    
+class ZfsConfig(Plugin):
+    """ ZFS test accessible config loader and inserter plugin.
     """
     can_configure = False
     enabled = False
     enableOpt = None
-    name = "ZfsPlugin"
+    name = "ZfsConfig"
     # to be sure to run AFTER attrib plugin
     score = 0
     
@@ -65,11 +34,6 @@ class ZfsPlugin(Plugin):
     configFileNames = None
     # ConfigParser object created from configFile (configFileName)
     zfsConfig = None
-    
-    # name of attribute which says if test is meta
-    metaAttrName = "metaTest"
-    metaTestCollector = MetaTestCollector()
-    generator = StressGenerator(log = log)
 
     def __init__(self):
         Plugin.__init__(self)
@@ -105,7 +69,7 @@ class ZfsPlugin(Plugin):
         # add option for configFileName (name of file containing tests config)
         parser.add_option(self.configFileOpt,
                           dest=self.configFileOpt, metavar="file_name", 
-                          action="append",
+                          action="append", type="string", 
                           default=env.get(self.configFileEnvOpt),
                           help="File containing configuration passed to tests %s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.configFileEnvOpt))
@@ -140,92 +104,6 @@ class ZfsPlugin(Plugin):
             # doc sections are often indented; compress the spaces
             return textwrap.dedent(self.__class__.__doc__)
         return "(no help available)"
-    def setOutputStream(self,  stream):
-        return None
-    
-    
-    '''   
-    # Compatiblity shim
-    def tolist(self, val):
-        warn("Plugin.tolist is deprecated. Use nose.util.tolist instead",
-             DeprecationWarning)
-        return tolist(val)
-    
-    def afterTest(self,  test):
-        #TODO: snapshot
-        pass
-    def beforeTest(self,  test):
-        #TODO: snapshot
-        pass
-    
-    def begin(self):
-        #TODO: start zfs ;)
-        pass
-    def finalize(self,  result):
-        #final cleanup
-        pass
-    #handleError handleFailure 
-    
-    def loadTestsFromModule(self,  module):
-      if getattr(module, "zfsModule", None) is None:
-        return
-      #load classes
-      classSuites = [self.loadTestsFromClass(self, cls)
-                     for cls in filter(self.wantClass,  (dir(cls)))]
-      if classSuites is None:#empty
-        return
-      #create context
-      moduleSetup = None
-      moduleTeardown = None
-      #wrap classes
-      return testSuite()
-    
-    def loadTestsFromClass(self,  cls):
-      if getattr(cls,  "zfsClass",  None) is None:
-        return
-      #make tests
-      tests = [self.makeTest(getattr(cls, method))
-        for method in filter(self.wantMethod, dir(cls))]
-      if tests is None:
-        return
-      #sort tests
-      tests.sort()
-      #make suite
-      return    ContextSuite(tests, cls)
-    '''
-    
-#    def makeTest(self,  method):
-#      return MethodTestCase(method)
-    def wantClass(self,  cls):
-        isMeta = getattr(cls,   self.metaAttrName,  False)
-        if isMeta:
-            self.metaTestCollector.registerMetaClass(cls)
-        return
-    
-    def wantMethod(self,  method):
-        if hasattr(method,  self.metaAttrName):
-            isMeta = getattr(method,  self.metaAttrName)
-        else: #collect all methods from "metaClasses" except fixtures
-            isMeta = self.metaTestCollector.isMetaClass(method.im_class) and \
-                        method.__name__ not in fixtureMethods
-        # prevent meta tests to be collected
-        if isMeta:
-            self.metaTestCollector.add(method)
-            log.debug("collecting meta test %s",  method)
-            return False
-        return
-        
-    
-    def loadTestsFromTestClass(self,  cls):
-        log.debug("generating stress tests from class %s methods", cls)
-        allowedMethods = self.metaTestCollector.getClassMethods(cls)
-        log.debug("allowedMethods %s?",allowedMethods)
-        
-        if allowedMethods:
-            return self.generator.generateFromClass(cls, allowedMethods)
-        else:
-            log.debug("no meta tests in class %s",  cls)
-        
     
     def begin(self):
         # load tests config from configFileName
@@ -238,6 +116,23 @@ class ZfsPlugin(Plugin):
                     log.error("read files %s",  read)
             except (ParsingError,  MissingSectionHeaderError),  inst:
                 log.error("Error occured when parsing zfs file %s", inst)
+            
+            #TODO: allow writes by option
+            self.blockConfigWrites(self.zfsConfig)
+            
+            
+    def blockConfigWrites(self, config):
+        def warnWrite(self, *arg,  **kwarg):
+            import zfsConfig
+            import traceback
+            trace = traceback.extract_stack(limit=5)
+            trace.pop()
+            zfsConfig.log.warning("try to write into readOnly config\n%s", trace)
+        
+        setattr(config, "set", warnWrite)
+        setattr(config, "add_section", warnWrite)
+        setattr(config, "remove_option", warnWrite)
+        setattr(config, "remove_section", warnWrite)
     
     def startContext(self, context):
         # pass user tests config to test
@@ -245,4 +140,5 @@ class ZfsPlugin(Plugin):
             log.debug("starting context of class %s",  context)
         if not hasattr(context,  self.configAttrName):
             setattr(context,  self.configAttrName,  self.zfsConfig)
+        
     

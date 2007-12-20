@@ -1,10 +1,15 @@
-#FIXME: when stopProbability == 0 graph for USE_FLAG should loop for infinity
 import unittest
 
 from random import SystemRandom
 from util import getMatchedTypes
 from types import MethodType
 from unittest import TestCase
+
+class DependencyDeffinitionError(Exception):
+    """Error raised when dependency deffinition is illegal
+        or missing
+    """
+    pass
 
 class DependencyGraph(object):
     
@@ -26,9 +31,11 @@ class DependencyGraph(object):
                 self.initRandomStartNode()
             except IndexError:
                 pass
+        self.startNode = self.currentNode
+        
     
     def initRandomStartNode(self):
-        self.currentNode = self.randomGenerator.choice(self.graph.keys())
+        self.restart( self.randomGenerator.choice(self.graph.keys()) )
     
     def setEdge(self,  start,  end,  prob):
         try:
@@ -49,7 +56,15 @@ class DependencyGraph(object):
         self.graph[node] = edges
     
     def setCurrentNode(self,  node):
+        self.currentNode = node
+        
+    def setStartNode(self, node):
         self.startNode = node
+    
+    def restart(self,  startNode = None):
+        if startNode:
+            self.startNode = startNode
+        self.currentNode = self.startNode
     
     @classmethod
     def getNodeListSum(self, list):
@@ -62,7 +77,7 @@ class DependencyGraph(object):
     def getNodeByRangeHit(self, list,  hit):
         for item in list:
             hit -= item[1]
-            if hit <0:
+            if hit <=0:
                 return item[0]
         return None
     
@@ -74,11 +89,16 @@ class DependencyGraph(object):
     """
     def next(self,  stopProbability = 0):
         current = self.currentNode
+        if stopProbability > 0:
+            key = self.randomGenerator.uniform(0, 1)
+            if key < stopProbability:
+                self.currentNode = None
+                return current
+        
         try:
             edges = self.graph[self.currentNode]
             sum = self.getNodeListSum(edges)
             if sum > 1:
-                sum = sum + (sum * stopProbability)
                 key = self.randomGenerator.randint(1, sum )
             else:
                 key = sum
@@ -107,7 +127,32 @@ class testLinearGraph(TestCase):
         assert self.graph.next() == 'lastNode'
         assert self.graph.next() == None
         
+
+class testInfiniteGraph(TestCase):
+    graph = None
+    def setUp(self):
+        self.graph = DependencyGraph(
+                                     {
+                                        'firstNode':[('secondNode', 2)], 
+                                        'secondNode':[('firstNode', 1)]
+                                     }
+                                )
+        self.graph.restart('firstNode')
+        
     
+    def testInfinity(self):
+        for i in range(0, 100):
+            next = self.graph.next()
+            if i % 2:
+                assert next == 'secondNode'
+            else:
+                assert next == 'firstNode'
+        
+    def testTerminatingPercentage(self):
+        next = self.graph.next(1)
+        next = self.graph.next()
+        assert next == None
+        
 
 class GraphBuilder(object):
     defVarName = "definitionType"
@@ -128,8 +173,6 @@ class GraphBuilder(object):
     
     @classmethod
     def generateDependencyGraph(self,  cls,  methods = None):
-        if not cls:
-            raise Exception("class for generation must ge given")
         type = getattr(cls, GraphBuilder.defVarName,  GraphBuilder.USE_FLAT)
         startNode = getattr(cls, GraphBuilder.startVarName,  None)
         if methods and startNode not in methods:
@@ -182,7 +225,7 @@ class GraphBuilder(object):
     def generateUsingGlobal(self,  cls,  methods = None,  startNode = None):
         graph = getattr(cls, GraphBuilder.graphVarName,  None)
         if graph is None:
-            raise Exception("no graph defined while using global graph dependencies")
+            raise DependencyDeffinitionError("no graph defined while using global graph dependencies")
         
         if methods is not None:
             for key in graph.keys():

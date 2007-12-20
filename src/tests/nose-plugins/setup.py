@@ -1,5 +1,6 @@
 """
-Test of nose plugin
+Zfs test accessible plugin,
+zfs stress generator plugin,
 
 """
 try:
@@ -11,16 +12,17 @@ except ImportError:
 from setuptools import setup
 
 setup(
-    name='Zfs config plugin',
-    version='0.0',
+    name='Zfs plugins',
+    version='0.1',
     author='Jiri Zouhar',
     author_email = 'zouhar.jiri@gmail.com',
-    description = 'Example plugin test',
+    description = 'Zfs support plugins for nose',
     license = 'GNU LGPL',
-    py_modules = ['zfsConfig',  'graph',  'util', 'generator'],
+    py_modules = ['zfsConfig',  'graph',  'util', 'zfsStressGenerator'],
     entry_points = {
         'nose.plugins.0.10': [
-            'zfsConfig = zfsConfig:ZfsPlugin'
+            'zfsConfig = zfsConfig:ZfsConfig', 
+            'zfsStressGeerator = zfsStressGenerator:StressGenerator'
             ]
         }
 
