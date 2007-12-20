@@ -732,11 +732,234 @@ ns which tests should be run according to flags.
 \end_layout
 
 \begin_layout Standard
+Curiosity among unit testing frameworks is 
+\series bold
+MinUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "MinUnit"
+
+\end_inset
+
+, which is C based and consist only from three lines of code (two macros
+ and one deffinition).
+ Doesn't offer much, just assert - print message block.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CUnit for Dr.Ando
+\series default
+ 
+\begin_inset LatexCommand cite
+key "CUnitForAndo"
+
+\end_inset
+
+claims to be easy to use C based unit testing framework inspirated by 
+\emph on
+cppunit-x 
+\emph default
+(Interesting piece of code documented in Japanese).
+ In fact it is just another framework which lacks fixtures and offer just
+ test counting beyond 
+\emph on
+MinUnit.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Simple C++ Testing framework
+\series default
+ 
+\begin_inset LatexCommand cite
+key "simplectest"
+
+\end_inset
+
+ is written whole as macros and have somehow weird syntax.
+ Offers basic assertions and testSuites.
+ There is no need to write main listing all tests but this is achieved by
+ wrapping all tests to macros START_TESTS and END_TESTS.
+ So tests must be written in one big chunk.
+ Again, tests files must be compiled and runned by hand.
+ Runs equally in pure C and C++ environment.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CxxTest
+\series default
+ 
+\begin_inset LatexCommand cite
+key "CxxTest"
+
+\end_inset
+
+ is C++ based and all tests have to be wrapped to test suite Classes.
+ This framework has assertions, fixtures and handle exceptions.
+ Automated collection is done by python script (but simplified C++ gramatic
+ is used).
+ May have problems when linking with pure C based code.
+ CxxTest have support for mocking global functions but this support works
+ on base of calling functions in separate namespace, so it is not pure mock
+ and code have to be modified to use mocked functions.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CppTest 
+\series default
+
+\begin_inset LatexCommand cite
+key "CppTest"
+
+\end_inset
+
+ is another C++ based unit test framework.
+ Has basic features such as assertions, fixtures and test suites.
+ Beyond this, CppTest is capable of handling and formating output and offers
+ api for writing output formatters (TextOutput, CompilerOutput and HtmlOutput
+ formatters implemented).
+ As for CxxTest, pure C sources must be modified (add extern C {} block)
+ to run under CppTest.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "CUnit"
+
+\end_inset
+
+ is C based still C++ compatible supports assertions, suites, test counting,
+ has global registry, more user interfaces (for running tests), but no automatic
+ collection and output handling.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+GUnit 
+\series default
+
+\begin_inset LatexCommand cite
+key "gunit"
+
+\end_inset
+
+ is another unit testing framework.
+ Uses GTK+ libraries (for almost anything).
+ Supports assertions, suites and fixtures, has gnome and hildon (embedded)
+ gui and dedicated logging facility.
+ Doesn't offer discovery, however compiles suites as dynamically loadable
+ libraries.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+RCUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "RCUNIT"
+
+\end_inset
+
+ supports assertions, suites (called modules), fixtures, has own logging
+ facility, tests can be disabled.
+ RCUnit has defined interface for writing output handlers, html and plain
+ text handlers are implemented.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Cutee
+\series default
+  
+\begin_inset Quotes eld
+\end_inset
+
+automatic collection
+\begin_inset Quotes erd
+\end_inset
+
+, suites, assertions, C++
+\end_layout
+
+\begin_layout Standard
+C integration:
+\end_layout
+
+\begin_layout Standard
+- swig generate modules, then walk dir() and get by name
+\end_layout
+
+\begin_layout Standard
+- generate binaries by own tool (walk by elf reader)
+\end_layout
+
+\begin_layout Standard
+- generate binaries by own - walk by c parser
+\end_layout
+
+\begin_layout Standard
+- macro based mains with test indexes
+\end_layout
+
+\begin_layout Standard
+- separate binaries with make targets, etc...
+\end_layout
+
+\begin_layout Standard
+- tool generated binaries / search
+\end_layout
+
+\begin_layout Standard
+- extern static registry with registration function
+\end_layout
+
+\begin_layout Standard
+C integration flaws:
+\end_layout
+
+\begin_layout Standard
+- must be usable without test suite (shell driver)
+\end_layout
+
+\begin_layout Standard
+- must be easy to use
+\end_layout
+
+\begin_layout Standard
+- tests have to be easy to write
+\end_layout
+
+\begin_layout Standard
+- must handle dependencies
+\end_layout
+
+\begin_layout Standard
 cunit, check, cutest, cppunit 
 \end_layout
 
 \begin_layout Standard
 fork / don't fork
+\end_layout
+
+\begin_layout Standard
+what with system-dependent errors (nomemory, etc)? how to mock?
 \end_layout
 
 \begin_layout Standard
