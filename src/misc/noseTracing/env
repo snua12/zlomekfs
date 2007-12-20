@@ -1,0 +1,15 @@
+#!/bin/bash
+
+export ZFS_CONFIG_ROOT=`pwd`
+
+export PYTHONPATH=/globalhome/loki/skola/python/nose
+export PATH=$PATH:/globalhome/loki/skola/python/nose/bin
+
+export NOSE_TESTMATCH='((?:^|[\\b_\\./-])[Mm]eta)|((?:^|[\\b_\\./-])[Tt]est)'
+export NOSE_EVAL_ATTR='not disabled'
+
+export NOSE_WITH_ZFSCONFIG=yes
+export ZFS_CONFIG_FILE=$ZFS_CONFIG_ROOT/zfs_test_config
+
+export NOSE_WITH_ZFSSTRESSGENERATOR=yes
+export ZFS_STRESS_TEST_LENGTH=50

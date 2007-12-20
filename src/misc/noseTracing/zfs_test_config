@@ -1,0 +1,7 @@
+[global]
+
+readOnly: no
+zfsRoot: /mnt/zfs
+testRoot: /tmp
+zfsCache=/var/cache/zfs
+
