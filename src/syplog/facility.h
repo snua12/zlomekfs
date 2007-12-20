@@ -82,15 +82,15 @@ typedef uint32_t		facility_t;
 */
 static inline const char * facility_to_name (facility_t facility)
 {
-  if ((facility & FACILITY_LOG) > 1)
+  if ((facility & FACILITY_LOG) > 0)
     return FACILITY_LOG_NAME;
-  if ((facility & FACILITY_THREADING) > 1)
+  if ((facility & FACILITY_THREADING) > 0)
     return FACILITY_THREADING_NAME;
-  if ((facility & FACILITY_NET) > 1)
+  if ((facility & FACILITY_NET) > 0)
     return FACILITY_NET_NAME;
-  if ((facility & FACILITY_CACHE) > 1)
+  if ((facility & FACILITY_CACHE) > 0)
     return FACILITY_CACHE_NAME;
-  if ((facility & FACILITY_DATA) > 1)
+  if ((facility & FACILITY_DATA) > 0)
     return FACILITY_DATA_NAME;
 
   if (facility == FACILITY_NOTHING)

@@ -33,12 +33,16 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
+#define _GNU_SOURCE
 #include <stdio.h>
+#undef _GNU_SOURCE
 
 #include "log-struct.h"
 #include "log-constants.h"
 #include "user-readable-formater.h"
 #include "raw-formater.h"
+
+#define DEFAULT_FORMATER	&user_readable_formater
 
 /*! Function type for formating log to socket-like targets.
   @param message log message to print (non NULL)
@@ -109,6 +113,12 @@ typedef struct formater_def
   @return pointer to static structure holding formater function pointers or NULL on error (unknown name, ...)
 */
 formater formater_for_name (const char * name);
+
+/*! prints formaters options help to fd.
+  @param fd file descriptor to which to write help
+  @param tabs how much tabs prepend to help
+*/
+void print_formaters_help (int fd, int tabs);
 
 
 

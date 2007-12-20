@@ -1,8 +1,8 @@
-#ifndef SHM_READER_H
-#define SHM_READER_H
+#ifndef SHM_MEDIUM_H
+#define SHM_MEDIUM_H
 
 /*! \file
-    \brief Shared memory reader functions definitions.  */
+    \brief Shared memory accessor (for reader and writer) functions definitions.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
@@ -32,7 +32,7 @@
 
 #undef _GNU_SOURCE
 
-#include "reader-api.h"
+#include "medium-api.h"
 #include "syp-error.h"
 
 #ifndef SHMMAX
@@ -43,21 +43,21 @@
 #define	INVALID_SHM_ID	-1
 
 /// default size of shared memory segment (log size)
-#define DEFAULT_SHM_LOG_SIZE	4096
+#define DEFAULT_SHM_SIZE	4096
 
 /// default key to shm segment. used when no key given
 #define DEFAULT_SHM_KEY	4224
 
 /// name of reader for translation from options (--type=file)
-#define	SHM_READER_NAME	"shm"
+#define	SHM_MEDIUM_NAME	"shm"
 
-/// parameter name of output file name (where to write logs)
-#define PARAM_READER_SK_LONG	"shm-key"
-/// short parameter name for PARAM_READER_FN_LONG - can be used only inside code now
-#define PARAM_READER_SK_CHAR	'k'
+/// parameter name of shm segment key
+#define PARAM_SHM_KEY_LONG	"shm-key"
+/// short parameter name for PARAM_SHM_KEY_LONG - can be used only inside code now
+#define PARAM_SHM_KEY_CHAR	'k'
 
-/*! Structure that holds internal state info specific for shm reader. */
-typedef struct shm_reader_specific_def {
+/*! Structure that holds internal state info specific for shm medium. */
+typedef struct shm_medium_def {
   /// shared memory segment start
   void * shm_start;
   /// segment identifier
@@ -65,26 +65,32 @@ typedef struct shm_reader_specific_def {
   /// key to shared memory segment
   key_t segment_key;
 
-}* shm_reader_specific;
+}* shm_medium;
 
 
-/*! Parse params and initialize shm reader
-  @see open_reader
-  @see reader-api.h
+/*! Parse params and initialize shm segment
+  @see open_medium
+  @see medium-api.h
 */
-syp_error open_shm_reader (struct reader_def * target, int argc, char ** argv);
+syp_error open_shm_medium (struct medium_def * target, int argc, char ** argv);
 
-/*! Close shm reader and free shm reader specific structures.
+/*! Close shm medium and free shm medium internals.
   Doesn't destroy shm segment.
-  @see close_reader
-  @see reader-api.h
+  @see close_medium
+  @see medium-api.h
 */
-syp_error close_shm_reader (struct reader_def * target);
+syp_error close_shm_medium (struct medium_def * target);
 
-/*! read log into a shared memory segment.
-  @see open_reader
-  @see reader-api.h
+/*! read log from a shared memory segment.
+  @see access_medium
+  @see medium-api.h
 */
-syp_error read_shm_log (struct reader_def * target, log_struct log);
+syp_error shm_access (struct medium_def * source, log_struct log);
 
-#endif /*SHM_READER_H*/
+/*! prints shm options help to fd.
+  @see print_medium_help
+  @see medium-api.h
+*/
+void print_shm_medium_help (int fd, int tabs);
+
+#endif /*SHM_MEDIUM_H*/

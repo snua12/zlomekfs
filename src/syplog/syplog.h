@@ -46,15 +46,15 @@
 */
 
 #include "log-constants.h"
-#include "writer-api.h"
 #include "syp-error.h"
-#include "facility.h"
 #include "log-level.h"
+#include "facility.h"
+#include "media/medium-api.h"
 
 /*! Structure holding logger state and configuration. */
 typedef struct logger_def {
-  /// writer used
-  struct writer_def printer;
+  /// writer
+  struct medium_def printer;
   /*! Bitmap of facilities to log.
     1 bit means to log facility, 0 bit means not to log messages from facility.
   */
@@ -102,6 +102,13 @@ syp_error do_log (logger glogger, log_level_t level, facility_t facility, const 
 */
 syp_error close_log (logger glogger);
 
+/*! Get actual log level (verbosity) of logger.
+  @param glogger non NULL pointer to initialized logger structure
+  @return log level of logger (non-negative number) or -errno
+*/
+log_level_t get_log_level (logger glogger);
+
+
 /*! Sets actual log level (verbosity) of logger.
   Messages with greater log level than this won't be logged
   @param glogger non NULL pointer to initialized logger structure
@@ -116,7 +123,7 @@ syp_error set_log_level (logger glogger, log_level_t level);
   @param level non NULL pointer to where store log_level
   @return std errors
 */
-syp_error get_log_level (logger glogger, log_level_t * level);
+syp_error get_log_level_to (logger glogger, log_level_t * level);
 
 /*! Turns logging for facility on. 
   When more facilities are given, all of them will be turned on.
@@ -132,7 +139,7 @@ syp_error set_facility (logger glogger, facility_t facility);
   @param facility facility (facilities) to turn off
   @return std errors
 */
-syp_error unset_facility (logger glogger, facility_t facility);
+syp_error reset_facility (logger glogger, facility_t facility);
 
 /*! Sets actual facilities bitmap with facilities which have to be logged.
   Messages with no facility in this bitmab won't be logged.
@@ -170,6 +177,12 @@ syp_error set_timezone (logger glogger, uint64_t timezone);
   @return std errors
 */
 syp_error set_node_name (logger glogger, const char * node_name);
+
+/*! prints syplog specific options help to fd.
+  @param fd file descriptor to which to write help
+  @param tabs how much tabs prepend to help
+*/
+void print_syplog_help (int fd, int tabs);
 
 
 #endif		/*SYPLOG_H*/

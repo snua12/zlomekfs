@@ -42,7 +42,12 @@ char * syp_error_to_string (syp_error error)
       return "Functionality not implemented";
     case ERR_SYSTEM:
       return "General error from operating system";
-
+    case ERR_NOT_INITIALIZED:
+      return "Component not initialized";
+    case ERR_TRUNCATED:
+      return "Data truncated in operation";
+    case ERR_BAD_MESSAGE:
+      return "Bad message type received";
     default:
       return "Unknown error";
   }

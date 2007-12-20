@@ -1,7 +1,7 @@
 /*! \file
     \brief Shared memory reader implementation.  
 
-  Shm reader parses logs from shared memory segment into log structure.
+  Shm medium handles low level access to shared memory for readers and writers.
   TODO: describe behaviour of fixed sizes (of max size)
 */
 
@@ -35,21 +35,35 @@
 
 #undef _GNU_SOURCE
 
-#include "shm-reader.h"
+#include "shm-medium.h"
 
-/// Parse shm reader specific params.
-/*! Parse shm reader specific params
+void print_shm_medium_help (int fd, int tabs)
+{
+  if (fd == 0)
+    fd = 1;
+  
+  tabize_print (tabs, fd, "shm medium writes log to shared memory segment (reads from).\n");
+  tabize_print (tabs, fd, "shm medium options:\n");
+  tabs ++;
+  
+  tabize_print (tabs, fd, "--%s=value, -%c value\tshared memory segment key\n",
+    PARAM_SHM_KEY_LONG, PARAM_SHM_KEY_CHAR);
+  
+}
+
+/// Parse shm medium specific params
+/*! Parse shm medium specific params
  @param argc argv count
  @param argv std "main" format params (--segment-key=1024) (non NULL)
- @param settings reader structure where to apply given settings (non NULL)
+ @param settings medium structure where to apply given settings (non NULL)
  @return ERR_BAD_PARAMS on wrong argv or settings, NOERR otherwise
  */
-syp_error shm_reader_parse_params (int argc, const char ** argv, reader settings)
+syp_error shm_medium_parse_params (int argc, const char ** argv, medium settings)
 {
   // table with known param types
   const struct option option_table[] = 
   {
-    {PARAM_READER_SK_LONG,	1, NULL,			PARAM_READER_SK_CHAR},
+    {PARAM_SHM_KEY_LONG,	1, NULL,			PARAM_SHM_KEY_CHAR},
     {NULL, 0, NULL, 0}
   }; 
   
@@ -69,8 +83,8 @@ syp_error shm_reader_parse_params (int argc, const char ** argv, reader settings
   while ( (opt = getopt_long (argc, (char**)argv, "", option_table, NULL)) != -1)
     switch(opt)
     {
-      case PARAM_READER_SK_CHAR: // log file name
-        ((shm_reader_specific)(settings->type_specific))->segment_key = atoi (optarg);
+      case PARAM_SHM_KEY_CHAR: // log file name
+        ((shm_medium)(settings->type_specific))->segment_key = atoi (optarg);
         break;
       case '?':
       default:
@@ -80,47 +94,72 @@ syp_error shm_reader_parse_params (int argc, const char ** argv, reader settings
 	return NOERR;
 }
 
-/// Initializes shm reader specific parts of reader structure
-syp_error open_shm_reader (reader target, int argc, char ** argv)
+#define	READ_PERMISSIONS	440
+#define	WRITE_PERMISSIONS	660
+
+/// Initializes shm specific parts of reader structure
+syp_error open_shm_medium (medium target, int argc, char ** argv)
 {
   syp_error ret_code = NOERR;
-  shm_reader_specific new_specific = NULL;
+  shm_medium new_specific = NULL;
+  int permissions = 0;
 
 #ifdef ENABLE_CHECKING
   if (target == NULL || argv == NULL)
   {
     return ERR_BAD_PARAMS;
   }
+
+  if (target->kind == NO_OPERATION)
+  {
+    return ERR_NOT_INITIALIZED;
+  }
 #endif
   
   if (target->length <= 0)
-    target->length = DEFAULT_SHM_LOG_SIZE;
+    target->length = DEFAULT_SHM_SIZE;
   target->pos = 0;
-  new_specific = malloc (sizeof (struct shm_reader_specific_def));
+  new_specific = malloc (sizeof (struct shm_medium_def));
   if (new_specific == NULL)
   {
+    ret_code = ERR_SYSTEM;
     goto FINISHING;
   }
   else
   {
+    memset (new_specific, 0, sizeof(struct shm_medium_def));
+
     target->type_specific = new_specific;
     new_specific->segment_key = DEFAULT_SHM_KEY;
     new_specific->shm_start = NULL;
     new_specific->shmid = INVALID_SHM_ID;
   }
 
-  ret_code = shm_reader_parse_params (argc, (const char **)argv, target);
+  ret_code = shm_medium_parse_params (argc, (const char **)argv, target);
   if (ret_code != NOERR)
   {
     goto FINISHING;
   }
-  
+
+  switch (target->kind)
+  {
+    case READ_LOG:
+      permissions = WRITE_PERMISSIONS;
+      break;
+    case WRITE_LOG:
+      permissions = WRITE_PERMISSIONS;
+      break;
+    default:
+      permissions = 0;
+      break;
+  }
+
   // NOTE: SILENT shrinkage
   if (target->length > SHMMAX)
     target->length = SHMMAX;
   new_specific->shmid = shmget (new_specific->segment_key, 
                                 target->length,
-                                440);
+                                permissions);
   if (new_specific->shmid == INVALID_SHM_ID)
   {
     ret_code = sys_to_syp_error (errno);
@@ -135,9 +174,9 @@ syp_error open_shm_reader (reader target, int argc, char ** argv)
     goto FINISHING;
   }
 
-  target->open_reader = open_shm_reader;
-  target->close_reader = close_shm_reader;
-  target->read_log = read_shm_log;
+  target->open_medium = open_shm_medium;
+  target->close_medium = close_shm_medium;
+  target->access_medium = shm_access;
 
 FINISHING:
   if (ret_code != NOERR && new_specific!= NULL)
@@ -152,7 +191,7 @@ FINISHING:
 }
 
 /// Close and destroys shm reader specific parts of reader strucutre
-syp_error close_shm_reader (reader target){
+syp_error close_shm_medium (medium target){
 #ifdef ENABLE_CHECKING
   if (target == NULL)
   {
@@ -160,36 +199,55 @@ syp_error close_shm_reader (reader target){
   }
 #endif
 
-  shmdt (((shm_reader_specific)target->type_specific)->shm_start);
+  shmdt (((shm_medium)target->type_specific)->shm_start);
   free (target->type_specific);
   target->type_specific = NULL;
   
   return NOERR;
 }
 
-/// Read log from shared memory segment
-syp_error read_shm_log (reader target, log_struct log){
+syp_error shm_access (medium target, log_struct log)
+{
 #ifdef ENABLE_CHECKING
   if (target == NULL || log == NULL)
     return ERR_BAD_PARAMS;
+  if (target->kind == NO_OPERATION ||target->used_formatter == NULL ||
+    target->type_specific == NULL || log == NULL)
+    return ERR_NOT_INITIALIZED;
+
 #endif
   // TODO: implement
   // check boundaries
   if (target->length > 0 && 
-      target->length - target->pos < target->input_parser->get_max_print_size())
+      target->length - target->pos < target->used_formatter->get_max_print_size())
   {
   // move to front
     target->pos = 0;
   }
-  // read
-  int32_t chars_read = target->input_parser->mem_read (log,
-                                ((shm_reader_specific)target->type_specific)->shm_start + target->pos);
-  if (chars_read > 0)
+
+  int32_t chars_accessed = 0;
+
+  switch (target->kind)
+  {
+    case READ_LOG:
+      chars_accessed = target->used_formatter->mem_read (log,
+        ((shm_medium)target->type_specific)->shm_start + target->pos);
+      break;
+    case WRITE_LOG:
+      chars_accessed = target->used_formatter->mem_write (log,
+        ((shm_medium)target->type_specific)->shm_start + target->pos);
+      break;
+    default:
+      break;
+
+
+  }
+  if (chars_accessed >= 0)
   {
   // move boundary
-    target->pos += target->input_parser->get_max_print_size();
+    target->pos += target->used_formatter->get_max_print_size();
     return NOERR;
   }
   else
-    return -chars_read;
+    return -chars_accessed;
 }

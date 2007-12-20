@@ -24,20 +24,44 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
+#define _GNU_SOURCE
+
+#include <stdio.h>
 #include <stdarg.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
 
+#undef _GNU_SOURCE
+
 #include "syplog.h"
+#include "media/file-medium.h"
+#include "control/listener.h"
+
+void print_syplog_help (int fd, int tabs)
+{
+  if (fd == 0)
+    fd = 1;
+  
+  tabize_print (tabs, fd, "logging specific options:\n");
+  
+  print_media_help (fd, tabs +1);
+  
+  tabize_print (tabs, fd, "defaults are:\n");
+  tabize_print (tabs, fd, "--" PARAM_MEDIUM_TYPE_LONG "=" FILE_MEDIUM_NAME "\n");
+  tabize_print (tabs, fd, "--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATER_NAME "\n");
+  tabize_print (tabs, fd, "--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME "\n");
+
+}
 
 /// Default options for creating writer. Used when NULL argv is given to open_log
 static char * default_options [] = 
 {
 "syplog",
-"--" PARAM_WRITER_TYPE_LONG "=" FILE_WRITER_NAME,
-"--" PARAM_WRITER_FMT_LONG "=" RAW_FORMATER_NAME
+"--" PARAM_MEDIUM_TYPE_LONG "=" FILE_MEDIUM_NAME,
+"--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATER_NAME,
+"--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME
 };
 
 /// default_options table row count
@@ -100,9 +124,14 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, char ** a
     argc = default_option_count;
   }
   
-  ret_code = open_writer (&glogger->printer, argc, argv);
+  ret_code = open_medium (&glogger->printer, argc, argv);
+  if (ret_code != NOERR)
+    goto FINISHING;
   
-//  FINISHING:
+  ret_code = start_listen_udp (malloc (sizeof (struct listener_def)), glogger,
+    DEFAULT_COMMUNICATION_PORT);
+  
+  FINISHING:
     return ret_code;
 
 }
@@ -118,10 +147,11 @@ syp_error do_log (logger glogger, log_level_t level, facility_t facility, const 
   
   if (facility_get_state (glogger->facilities, facility) != TRUE)
   {
-    printf ("@");
     return NOERR;
   }
   
+  log.level = level;
+  log.facility = facility;
   gettimeofday (&(log.time), NULL);
   strncpy (log.hostname, glogger->hostname, HOSTNAME_LEN);
   strncpy (log.node_name, glogger->node_name, NODE_NAME_LEN);
@@ -134,7 +164,7 @@ syp_error do_log (logger glogger, log_level_t level, facility_t facility, const 
   
   va_end (ap);
   
-  write_log (&(glogger->printer), &log);
+  access_medium (&(glogger->printer), &log);
   
   return NOERR;
 
@@ -144,7 +174,7 @@ syp_error do_log (logger glogger, log_level_t level, facility_t facility, const 
 syp_error close_log (logger glogger)
 {
 
-  close_writer (&(glogger->printer));
+  close_medium (&(glogger->printer));
   return NOERR;
 
 }
@@ -157,8 +187,14 @@ syp_error set_log_level (logger glogger, log_level_t level)
   return NOERR;
 }
 
+/// get actual log level (verbosity) of logger.
+log_level_t get_log_level (logger glogger)
+{
+  return glogger->log_level;
+}
+
 /// Returns actual verbosity of logger
-syp_error get_log_level (logger glogger, log_level_t * level)
+syp_error get_log_level_to (logger glogger, log_level_t * level)
 {
   *level = glogger->log_level;
   
@@ -182,7 +218,7 @@ syp_error set_facilities (logger glogger, facility_t facilities)
 }
 
 /// Turn off logging for messages from facility "facility"
-syp_error unset_facility (logger glogger, facility_t facility)
+syp_error reset_facility (logger glogger, facility_t facility)
 {
   glogger->facilities  = facility_del (glogger->facilities, facility);
   

@@ -48,7 +48,13 @@ typedef enum
   /// functionality not implemented
   ERR_NOT_IMPLEMENTED = 10004,
   /// unspecified error from operating system
-  ERR_SYSTEM = 10005
+  ERR_SYSTEM = 10005,
+  /// try to do operation on uninitialized component
+  ERR_NOT_INITIALIZED = 10006,
+  /// data truncated in operation
+  ERR_TRUNCATED = 10007,
+  /// bad message type received
+  ERR_BAD_MESSAGE = 10008
 
 } syp_error;
 

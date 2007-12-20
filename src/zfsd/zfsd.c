@@ -263,6 +263,8 @@ usage (void)
 	  "Enable debug output (implies -f)\n"
 	  "  -f                           "
 	  "Foreground operation\n");
+
+	print_syplog_help (1, 1);
 }
 
 /*! Display the version, exit the program with exit code EXITCODE.  */

@@ -24,7 +24,7 @@ INSTALL = install
 
 CC = gcc
 CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/writers -I`pwd`/../syplog/formaters -I`pwd`/../syplog/readers
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/formaters -I`pwd`/../syplog/media -I`pwd`/../syplog/control
 #	-Wwrite-strings
 LD = gcc
 
@@ -41,7 +41,7 @@ endif
 .SUFFIXES: .c .o
 .PHONY: all install uninstall clean
 
-BB_ALL = dump-logs
+BB_ALL = dump-logs fakelog log-control
 
 all: $(BB_ALL)
 
@@ -50,13 +50,24 @@ all: $(BB_ALL)
 
 OO_DUMP-LOGS = dump-logs.o
 
+OO_LOG-CONTROL = log-control.o \
+	../syplog/control/control.o \
+	../syplog/syp-error.c
+
+OO_FAKELOG = fakelog.o
+
 dump-logs: $(OO_DUMP-LOGS)
 	$(LD) -o $@ $^ $(LD_OPTS)  
 
+log-control: $(OO_LOG-CONTROL)
+	$(LD) -o $@ $^ $(LD_OPTS)  
+
+fakelog: $(OO_FAKELOG)
+	$(LD) -o $@ $^ $(LD_OPTS)  
 
 # Dependencies
 
-OO_ALL = $(sort $(OO_DUMP-logs))
+OO_ALL = $(sort $(OO_DUMP-LOGS)) $(sort $(OO_FAKELOG))
 
 include $(OO_ALL:.o=.dep)
 

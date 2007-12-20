@@ -59,7 +59,7 @@ int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len
   timezone_to_string (message->timezone, timezone_str, TIMEZONE_STRING_LEN);
   int32_t chars_printed = 0;
 
-  chars_printed = snprintf (buffer, buffer_len, "%s\t%s\t%ld/%s\t%s\t%s\t%s\t%s\t%s\n", 
+  chars_printed = snprintf (buffer, buffer_len, "%s\t%s\t%lu/%s\t%s\t%s\t%s\t%s\t%s\n", 
            message->hostname,
            message->node_name,
            message->thread_id,

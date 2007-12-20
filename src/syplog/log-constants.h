@@ -31,10 +31,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <linux/types.h>
+#include <stdarg.h>
 
 #undef _GNU_SOURCE
 
 #include "syp-error.h"
+
+#define UNUSED	__attribute__ ((__unused__))
 
 /// maximal length of log message (user given string)
 #define	LOG_MESSAGE_LEN	1024
@@ -47,12 +50,10 @@
 /// maximal length of hostname
 #define	HOSTNAME_LEN	255
 
-/// maximal length of user writer name
-#define WRITER_NAME_LEN 32
+/// maximal length of user medium name
+#define MEDIUM_NAME_LEN 32
 /// maximal length of formater name
 #define FORMATER_NAME_LEN 32
-/// maximal length of reader name
-#define READER_NAME_LEN 32
 
 /// maximal length of filename (absolute or relative path)
 #define	FILE_NAME_LEN		128
@@ -137,7 +138,7 @@ static inline int32_t timezone_to_string (uint64_t local_timezone, char * buffer
   if (buffer == NULL || buffer_len == 0)
     return -ERR_BAD_PARAMS;
 #endif
-  chars_printed = snprintf (buffer, buffer_len, "%lu", local_timezone);
+  chars_printed = snprintf (buffer, buffer_len, "%llu", local_timezone);
 
   if (chars_printed > 0)
     return chars_printed;
@@ -157,7 +158,7 @@ static inline int32_t timezone_from_string (const char * buffer, uint64_t * loca
   if (buffer == NULL || local_timezone == NULL)
     return -ERR_BAD_PARAMS;
 #endif
-  chars_read = sscanf (buffer, "%lu", local_timezone);
+  chars_read = sscanf (buffer, "%llu", local_timezone);
 
   if (chars_read > 0)
     return chars_read;
@@ -165,5 +166,18 @@ static inline int32_t timezone_from_string (const char * buffer, uint64_t * loca
     return -ERR_SYSTEM;
 }
 
+
+static inline void tabize_print(int tabs, int fd, const char * fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+
+  for (; tabs>0; tabs --)
+    dprintf(fd,"\t");
+  vdprintf(fd, fmt, ap);
+
+  va_end(ap);
+}
 
 #endif /*LOG_CONSTANTS_H*/

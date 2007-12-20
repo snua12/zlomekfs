@@ -1,6 +1,8 @@
-join common for readers and writers 
+dump-logs default flags
+debug control
+valgrind it
+
 locking
 source dependent preallocating (or source dependent targets)
-remote control
 je treba rychle reseni cteni a zapis do log bloku, cteni nesmi blokovat zapis, zapisy by se nemeli blokovat navzajem
 

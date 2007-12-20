@@ -38,22 +38,18 @@ static char * log_settings [] =
 };
   int log_settings_count = 4;
 
-int main (int argc, char ** argv)
+int main (int argc UNUSED, char ** argv UNUSED)
 {
-  struct medium_def input_parser;
-  struct medium_def output_printer;
-  struct log_struct_def log;
+  struct logger_def output_printer;
+  char * buffer = malloc (1024 * sizeof (char));
+  unsigned int buffer_size = 1024;
+  int i = 0;
+  FILE * sin = stdin;
 
   syp_error ret_value = NOERR;
+  int sys_error = 0;
 
-  ret_value = open_medium (&input_parser, argc, argv);
-  if (ret_value != NOERR)
-  {
-    printf ("init fatal opening input: %d, %s\n", ret_value, syp_error_to_string (ret_value));
-    exit(ret_value);
-  }
-
-  ret_value = open_medium (&output_printer, log_settings_count, log_settings);
+  ret_value = open_log (&output_printer, "fakelog", log_settings_count, log_settings);
   if (ret_value != NOERR)
   {
     printf ("init fatal opening output: %d, %s\n", ret_value, syp_error_to_string (ret_value));
@@ -62,25 +58,25 @@ int main (int argc, char ** argv)
 
   while (TRUE)
   {
-    memset (&log, 0, sizeof (struct log_struct_def));
-    ret_value = access_medium (&input_parser, &log);
-    if (ret_value != NOERR)
+    memset (buffer, 0, 1024);
+    sys_error = getline(&buffer, &buffer_size, sin);
+    if (sys_error <= 0)
+      break;
+    
+    for (i=0; i < 11; i++)
     {
-      printf ("reading ended: %d, %s\n", ret_value, syp_error_to_string (ret_value));
-      goto FINISHING;
+      ret_value = do_log (&output_printer, i, FACILITY_LOG, "%s", buffer);
+      if (ret_value != NOERR)
+      {
+        printf ("reading ended: %d, %s\n", ret_value, syp_error_to_string (ret_value));
+        goto FINISHING;
+      }
     }
     
-    ret_value = access_medium (&output_printer, &log);
-    if (ret_value != NOERR)
-    {
-      printf ("writer print failure %d: %s\n", ret_value, syp_error_to_string (ret_value));
-      goto FINISHING;
-    }
   }
 
 FINISHING:
-  close_medium (&output_printer);
-  close_medium (&input_parser);
+  close_log (&output_printer);
   
   if (ret_value == ERR_END_OF_LOG)
     exit (0);

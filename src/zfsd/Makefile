@@ -24,7 +24,7 @@ INSTALL = install
 
 CC = gcc
 CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/writers -I`pwd`/../syplog/formaters -DUSE_SYPLOG
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/media -I`pwd`/../syplog/formaters -DUSE_SYPLOG
 #	-Wwrite-strings
 LD = gcc
 

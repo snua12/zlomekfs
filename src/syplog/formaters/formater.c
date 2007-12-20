@@ -40,6 +40,24 @@ struct formater_name
   formater fmt;
 };
 
+void print_formaters_help (int fd, int tabs)
+{
+  if (fd == 0)
+    fd = 1;
+  
+  tabize_print (tabs, fd, "formater types:\n");
+  tabs ++;
+  
+  tabize_print (tabs, fd, "%s - store logs \"as is\" in memory \n",
+    RAW_FORMATER_NAME);
+  tabize_print (tabs +1, fd, "NOTE: this format is platform dependent \n");
+
+  tabize_print (tabs, fd, "%s - store logs in user readable format \n",
+    USER_READABLE_FORMATER_NAME);
+  tabize_print (tabs +1, fd, "(similar to /var/log/messages)\n");
+  
+}
+
 /*! Translation table between formater names and pointers. */
 struct formater_name formater_translation_table [] = 
 {

@@ -1,19 +1,39 @@
 from snapshot import SnapshotDescription
+from subprocess import Popen, PIPE
+import signal
+import pysyplog
 
 class ZfsProxy(object):
     zfsRoot = "/mnt/zfs"
-    zfsCache = "/var/cache/zfs"
+    zfsCache = "/var/cache/zfs" # TODO: use in zfs
     running = False
-    def __init__(self,  zfsRoot = None,  zfsCache = None):
+    def __init__(self,  zfsRoot = None,  zfsCache = None,  logger = None):
         if zfsRoot:
             self.zfsRoot = zfsRoot
         if zfsCache:
             self.zfsCache = zfsCache
+            
+        self.logger = logger
         
     def runZfs(self):
+        modprobe = subprocess.Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
+                                stderr=PIPE, universal_newlines=True)
+        modprobe.wait()
+        if modprobe.returncode != 0:
+            raise Exception(modprobe.stderr.readlines()) #FIXME: accurate exception
+        
+        loglevel = 10 # FIXME: read from somewhere (config?)
+        self.zfs = Popen(args=('zfsd', '-o', 'loglevel=' + str(pysyplog.get_log_level(logger)), '-d',
+                                '-f', self.zfsRoot), cwd='/tmp/',
+                                stdout=PIPE, stderr=PIPE, universal_newlines=True) # FIXME: core dump reporting
+        
         self.running = True
         
     def stopZfs(self):
+        #TODO: check status
+        os.kill(self.zfs.pid, signal.SIGTERM)
+        Popen(args=('umount', '-f', self.zfsRoot))
+        Popen(args=('rmmod', '-f', 'fuse'))
         self.running = False
         
     def connectControl(self):
