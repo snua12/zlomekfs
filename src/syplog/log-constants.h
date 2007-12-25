@@ -27,6 +27,7 @@
 #define	_GNU_SOURCE
 
 #include <stdlib.h>
+#include <getopt.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -91,7 +92,7 @@ static inline int32_t time_to_string (struct timeval * local_time, char * buffer
   int32_t chars_printed = 0;
 
 #ifdef ENABLE_CHECKING
-  if (time == NULL || buffer == NULL || buffer_len == 0)
+  if (local_time == NULL || buffer == NULL || buffer_len == 0)
     return -ERR_BAD_PARAMS;
 #endif
 
@@ -113,7 +114,7 @@ static inline int32_t time_from_string (const char * buffer, struct timeval * lo
   int32_t chars_read = 0;
 
 #ifdef ENABLE_CHECKING
-  if (time == NULL || buffer == NULL || buffer_len == 0)
+  if (local_time == NULL || buffer == NULL)
     return -ERR_BAD_PARAMS;
 #endif
 
@@ -178,6 +179,24 @@ static inline void tabize_print(int tabs, int fd, const char * fmt, ...)
   vdprintf(fd, fmt, ap);
 
   va_end(ap);
+}
+
+static inline bool_t opt_table_contains (const struct option * option_table, const char * arg)
+{
+  if (strlen (arg) < 2)
+    return FALSE;
+  
+  int table_index = 0;
+  char * substr = NULL;
+  for (table_index = 0; option_table [table_index].name != NULL; table_index ++)
+  {
+    substr = strstr (arg, option_table [table_index].name);
+    if (substr != NULL && substr == arg + 2 &&
+        substr[ strlen (option_table [table_index].name)] == '=')
+        	return TRUE;
+  }
+
+  return FALSE;
 }
 
 #endif /*LOG_CONSTANTS_H*/

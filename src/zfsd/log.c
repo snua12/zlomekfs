@@ -20,6 +20,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
+#include "log.h"
 #include "system.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -31,7 +32,6 @@
 #include <sys/wait.h>
 #include <pthread.h>
 
-#include "log.h"
 #include "node.h"
 #include "syplog.h"
 #include "pthread.h"
@@ -39,14 +39,21 @@
 
 struct logger_def syplogger;
 
-void zfs_openlog()
+void zfs_openlog(int  argc, char ** argv)
 {
-  syp_error ret_code = open_log (&syplogger, "STILL UNDEFINED", 0, NULL);
+  syp_error ret_code = open_log (&syplogger, "STILL UNDEFINED", argc, argv);
+  if (ret_code != NOERR)
+  {
+    printf ("Bad params for logger initialization %d: %s\n", ret_code,
+            syp_error_to_string (ret_code));
+
+    ret_code = open_log (&syplogger, "STILL_UNDEFINED", 0, NULL);
+  }
+
   if (ret_code != NOERR)
   {
     printf ("could not initialize logger %d: %s\n", ret_code,
-            syp_error_to_string(ret_code));
-    exit(1);
+            syp_error_to_string (ret_code));
   }
 }
 

@@ -68,7 +68,7 @@ typedef struct medium_def
   /*! type specific data of medium like mem pointer or file handler */
   void * type_specific;
   /*! pointer to function for opening medium of specified type */
-  syp_error (*open_medium) (struct medium_def *, int, char **);
+  syp_error (*open_medium) (struct medium_def *, int, const char **);
   /*! pointer to function for closing medium of specified type */
   syp_error (*close_medium) (struct medium_def *);
   /*! pointer to function which actually does operations on medium */

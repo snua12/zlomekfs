@@ -82,6 +82,13 @@ typedef struct logger_def {
 syp_error open_log (logger glogger, const char * node_name, int argc, char ** argv);
 
 
+/*! Check if argument is recognized by syplog
+  @param arg command line argument (in format --argument_name=value)
+  @return TRUE in case of recognition, FALSE otherwise
+*/
+bool_t is_syplog_arg (const char * arg);
+
+
 /*! Sends message to logger.
   @param glogger initialized logger to send message to (non NULL)
   @param level importance of message. 

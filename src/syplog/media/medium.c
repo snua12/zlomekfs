@@ -165,7 +165,7 @@ void print_media_help (int fd, int tabs)
     PARAM_MEDIUM_OP_LONG, PARAM_MEDIUM_OP_CHAR);
   
   tabize_print (tabs +1, fd, "values: %s - read logs, %s - write logs\n",
-    READ_LOG, WRITE_LOG);
+     OPERATION_READ_NAME, OPERATION_WRITE_NAME);
   
   tabize_print (tabs, fd, "--%s=value, -%c value\tdefines size of log (0 means infinite)\n",
     PARAM_MEDIUM_SIZE_LONG, PARAM_MEDIUM_SIZE_CHAR);
@@ -178,6 +178,32 @@ void print_media_help (int fd, int tabs)
   
 }
 
+// table of known options
+const struct option option_table[] = 
+{
+    {PARAM_MEDIUM_TYPE_LONG,	1, NULL,			PARAM_MEDIUM_TYPE_CHAR},
+    {PARAM_MEDIUM_FMT_LONG,	1, NULL,			PARAM_MEDIUM_FMT_CHAR},
+    {PARAM_MEDIUM_OP_LONG,	1, NULL,			PARAM_MEDIUM_OP_CHAR},
+    {PARAM_MEDIUM_SIZE_LONG,	1, NULL,			PARAM_MEDIUM_SIZE_CHAR},
+
+    {NULL, 0, NULL, 0}
+}; 
+
+bool_t is_medium_arg (const char * arg)
+{
+  if (opt_table_contains ((struct option *)option_table, arg))
+    return TRUE;
+  
+  if (is_file_medium_arg (arg))
+    return TRUE;
+    
+  if (is_shm_medium_arg (arg))
+    return TRUE;
+    
+  return FALSE;
+}
+
+
 /// Parse type independent parameters of medium to structure
 /*! Parses parameters of medium and initialize settings 
   @param argc number of items in argv
@@ -188,18 +214,8 @@ void print_media_help (int fd, int tabs)
 syp_error medium_parse_params(int argc, const char ** argv, medium settings)
 {
 
-  // table of known options
-  const struct option option_table[] = 
-  {
-    {PARAM_MEDIUM_TYPE_LONG,	1, NULL,			PARAM_MEDIUM_TYPE_CHAR},
-    {PARAM_MEDIUM_FMT_LONG,	1, NULL,			PARAM_MEDIUM_FMT_CHAR},
-    {PARAM_MEDIUM_OP_LONG,	1, NULL,			PARAM_MEDIUM_OP_CHAR},
-    {PARAM_MEDIUM_SIZE_LONG,	1, NULL,			PARAM_MEDIUM_SIZE_CHAR},
 
-    {NULL, 0, NULL, 0}
-  }; 
-
-  int opt;
+int opt;
 
 
 #ifdef ENABLE_CHECKING
@@ -230,8 +246,6 @@ syp_error medium_parse_params(int argc, const char ** argv, medium settings)
         break;
       case '?':
       default:
-//          return ERR_BAD_PARAMS;
-// skip unknown params
         break;
     }
 
@@ -239,7 +253,7 @@ syp_error medium_parse_params(int argc, const char ** argv, medium settings)
 }
 
 /// Initialize medium structure.
-syp_error open_medium (struct medium_def * target, int argc, char ** argv)
+syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
 {
   syp_error ret_code = NOERR;
 
@@ -253,7 +267,7 @@ syp_error open_medium (struct medium_def * target, int argc, char ** argv)
   target->kind = WRITE_LOG;
   target->used_formatter = DEFAULT_FORMATER;
 
-  ret_code = medium_parse_params (argc, (const char **)argv, target);
+  ret_code = medium_parse_params (argc, argv, target);
   if (ret_code != NOERR)
   {
     goto FINISHING;
@@ -269,8 +283,12 @@ syp_error open_medium (struct medium_def * target, int argc, char ** argv)
       {
         goto FINISHING;
       }
-      break;
-
+    case SHM_MEDIUM:
+      ret_code = open_shm_medium (target, argc, argv);
+      if (ret_code != NOERR)
+      {
+        goto FINISHING;
+      }      break;
     default:
       break;
   }

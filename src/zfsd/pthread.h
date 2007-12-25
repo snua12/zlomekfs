@@ -24,6 +24,7 @@
 #define PTHREAD_H
 
 #include "system.h"
+#include "log.h"
 #include <pthread.h>
 #include <string.h>
 
@@ -49,7 +50,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_destroy (M)) != 0)				\
       {									\
-	message (LOG_WARN, NULL, "pthread_mutex_destroy: %d = %s\n",		\
+	message (LOG_WARNING, NULL, "pthread_mutex_destroy: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\

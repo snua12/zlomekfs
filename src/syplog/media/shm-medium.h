@@ -67,12 +67,18 @@ typedef struct shm_medium_def {
 
 }* shm_medium;
 
+/*! Check if argument is recognized by shared memory medium
+  @param arg command line argument (in format --argument_name=value)
+  @return TRUE in case of recognition, FALSE otherwise
+*/
+bool_t is_shm_medium_arg (const char * arg);
+
 
 /*! Parse params and initialize shm segment
   @see open_medium
   @see medium-api.h
 */
-syp_error open_shm_medium (struct medium_def * target, int argc, char ** argv);
+syp_error open_shm_medium (struct medium_def * target, int argc, const char ** argv);
 
 /*! Close shm medium and free shm medium internals.
   Doesn't destroy shm segment.

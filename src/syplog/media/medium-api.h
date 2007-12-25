@@ -60,7 +60,13 @@
   @return std errors. When error is returned, structure is in undefined state
           but internal pointers are freed
 */
-syp_error open_medium (struct medium_def * target, int argc, char ** argv);
+syp_error open_medium (struct medium_def * target, int  argc, const char ** argv);
+
+/*! Check if argument is recognized by some medium
+  @param arg command line argument (in format --argument_name=value)
+  @return TRUE in case of recognition, FALSE otherwise
+*/
+bool_t is_medium_arg (const char * arg);
 
 /*! Close reader and free internal pointers.
   @param target non NULL pointer to initialized medium

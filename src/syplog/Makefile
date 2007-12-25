@@ -1,7 +1,7 @@
 
 all: libsyplog.a
 
-CFLAGS += -I`pwd` -Wall -ggdb -g3 -pthread -DDEBUG
+CFLAGS += -I`pwd` -Wall -ggdb -g3 -pthread -DDEBUG -O0
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

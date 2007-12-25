@@ -49,12 +49,17 @@ typedef struct file_medium_def {
   char file_name[FILE_NAME_LEN];
 }* file_medium;
 
+/*! Check if argument is recognized by file medium
+  @param arg command line argument (in format --argument_name=value)
+  @return TRUE in case of recognition, FALSE otherwise
+*/
+bool_t is_file_medium_arg (const char * arg);
 
 /*! Parse params and initialize file medium
   @see open_medium
   @see medium-api.h
 */
-syp_error open_file_medium (struct medium_def * target, int argc, char ** argv);
+syp_error open_file_medium (struct medium_def * target, int argc, const char ** argv);
 
 /*! Close file medium and free file medium specific structures
   @see close_medium

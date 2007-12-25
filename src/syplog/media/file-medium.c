@@ -51,6 +51,19 @@ void print_file_medium_help (int fd, int tabs)
   
 }
 
+// table with known param types
+static const struct option option_table[] = 
+{
+  {PARAM_MEDIUM_FN_LONG,	1, NULL,			PARAM_MEDIUM_FN_CHAR},
+  {NULL, 0, NULL, 0}
+}; 
+
+
+bool_t is_file_medium_arg (const char * arg)
+{
+  return opt_table_contains ((struct option *)option_table, arg);
+}
+
 /// Parse file medium specific params.
 /*! Parse file medium specific params
  @param argc argv count
@@ -60,15 +73,8 @@ void print_file_medium_help (int fd, int tabs)
  */
 syp_error file_medium_parse_params (int argc, const char ** argv, medium settings)
 {
-  // table with known param types
-  const struct option option_table[] = 
-  {
-    {PARAM_MEDIUM_FN_LONG,	1, NULL,			PARAM_MEDIUM_FN_CHAR},
-    {NULL, 0, NULL, 0}
-  }; 
-  
   int opt;
-  extern int optind, opterr, optopt;
+  extern int opterr, optopt;
   
 #ifdef ENABLE_CHECKING
   if (argv == NULL || settings == NULL)
@@ -97,7 +103,7 @@ syp_error file_medium_parse_params (int argc, const char ** argv, medium setting
 }
 
 /// Initializes file medium specific parts of medium structure
-syp_error open_file_medium (medium target, int argc, char ** argv)
+syp_error open_file_medium (medium target, int argc, const char ** argv)
 {
   syp_error ret_code = NOERR;
   file_medium new_specific = NULL;

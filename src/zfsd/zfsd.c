@@ -20,6 +20,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
+#include "log.h"
 #include "system.h"
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +33,6 @@
 #include "zfsd.h"
 #include "memory.h"
 #include "semaphore.h"
-#include "log.h"
 #include "hardlink-list.h"
 #include "journal.h"
 #include "config.h"
@@ -245,7 +245,7 @@ disable_sig_handlers (void)
 void
 usage (void)
 {
-  printf ("Usage: zfsd [OPTION]...\n\n"
+  dprintf (1, "Usage: zfsd [OPTION]...\n\n"
 	  "  -o config=FILE               "
           "Specifies the name of the configuration file.\n"
 	  "  -o node=ID:NAME:HOSTNAME     "
@@ -264,6 +264,9 @@ usage (void)
 	  "  -f                           "
 	  "Foreground operation\n");
 
+	sync();
+
+	dprintf (1, "LOGGING OPTIONS:\n");
 	print_syplog_help (1, 1);
 }
 
@@ -303,7 +306,12 @@ static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
 				ATTRIBUTE_UNUSED const char *arg, int key,
 				ATTRIBUTE_UNUSED struct fuse_args *outargs)
 {
-log_level_t verbose = DEFAULT_LOG_LEVEL;
+
+  if (is_logger_arg (arg) == TRUE)
+    return 0;
+
+  log_level_t verbose = DEFAULT_LOG_LEVEL;
+
   switch (key)
     {
     case 'f':
@@ -441,7 +449,7 @@ main (int argc, char **argv)
   bool update_started = false;
   int ret = EXIT_SUCCESS;
 
-  zfs_openlog();
+  zfs_openlog(argc, argv);
 
   init_constants ();
   init_sig_handlers ();
@@ -449,6 +457,8 @@ main (int argc, char **argv)
 #ifndef TEST
   config_file = xstrdup ("/etc/zfs/config");
 #endif
+
+
   process_arguments (argc, argv);
 
   if (!initialize_data_structures ())

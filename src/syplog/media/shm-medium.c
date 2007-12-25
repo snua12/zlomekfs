@@ -51,6 +51,18 @@ void print_shm_medium_help (int fd, int tabs)
   
 }
 
+  // table with known param types
+static const struct option option_table[] = 
+  {
+    {PARAM_SHM_KEY_LONG,	1, NULL,			PARAM_SHM_KEY_CHAR},
+    {NULL, 0, NULL, 0}
+  }; 
+
+bool_t is_shm_medium_arg (const char * arg)
+{
+  return opt_table_contains ((struct option *)option_table, arg);
+}
+
 /// Parse shm medium specific params
 /*! Parse shm medium specific params
  @param argc argv count
@@ -60,15 +72,9 @@ void print_shm_medium_help (int fd, int tabs)
  */
 syp_error shm_medium_parse_params (int argc, const char ** argv, medium settings)
 {
-  // table with known param types
-  const struct option option_table[] = 
-  {
-    {PARAM_SHM_KEY_LONG,	1, NULL,			PARAM_SHM_KEY_CHAR},
-    {NULL, 0, NULL, 0}
-  }; 
   
   int opt;
-  extern int optind, opterr, optopt;
+  extern int opterr, optopt;
   
 #ifdef ENABLE_CHECKING
   if (argv == NULL || settings == NULL)
@@ -98,7 +104,7 @@ syp_error shm_medium_parse_params (int argc, const char ** argv, medium settings
 #define	WRITE_PERMISSIONS	660
 
 /// Initializes shm specific parts of reader structure
-syp_error open_shm_medium (medium target, int argc, char ** argv)
+syp_error open_shm_medium (medium target, int argc, const char ** argv)
 {
   syp_error ret_code = NOERR;
   shm_medium new_specific = NULL;

@@ -64,6 +64,11 @@ static char * default_options [] =
 "--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME
 };
 
+bool_t is_syplog_arg (const char * arg)
+{
+  return is_medium_arg (arg);
+}
+
 /// default_options table row count
 static int default_option_count = 3;
 
@@ -120,7 +125,7 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, char ** a
   
   if (argv == NULL)
   {
-    argv = (char **) default_options;
+    argv = (char **)default_options;
     argc = default_option_count;
   }
   

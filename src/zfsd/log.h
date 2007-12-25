@@ -23,12 +23,12 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "syplog.h"
 #include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "pthread.h"
 
-#include "syplog.h"
 
 extern struct logger_def syplogger;
 
@@ -86,9 +86,11 @@ void update_node_name (void);
 
 #endif //ENABLE_CHECKING
 
-extern void zfs_openlog(void);
+extern void zfs_openlog(int  argc, char ** argv);
 
 extern void zfs_closelog(void);
+
+#define is_logger_arg(arg)	is_syplog_arg (arg)
 
 #define message(level,file,format...) do_log(&syplogger,level,FACILITY_ZFSD, ## format)
 
