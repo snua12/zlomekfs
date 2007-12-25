@@ -63,9 +63,7 @@ zen-unit: zen-unit-binary.o libzenunit.so
 
 OO_DUMP-LOGS = dump-logs.o
 
-OO_LOG-CONTROL = log-control.o \
-	../syplog/control/control.o \
-	../syplog/syp-error.c
+OO_LOG-CONTROL = log-control.o
 
 OO_FAKELOG = fakelog.o
 

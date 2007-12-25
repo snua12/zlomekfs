@@ -2,12 +2,16 @@ from snapshot import SnapshotDescription
 from subprocess import Popen, PIPE
 import signal
 import pysyplog
+import tempfile
 
 class ZfsProxy(object):
     zfsRoot = "/mnt/zfs"
     zfsCache = "/var/cache/zfs" # TODO: use in zfs
+    tempDir = "/tmp/zfsTestProxyTemp"
+    logFileName = "zfsd.log"
+    
     running = False
-    def __init__(self,  zfsRoot = None,  zfsCache = None,  logger = None):
+    def __init__(self,  zfsRoot = None,  zfsCache = None, tempDir = None,  logger = None):
         if zfsRoot:
             self.zfsRoot = zfsRoot
         if zfsCache:
@@ -15,6 +19,10 @@ class ZfsProxy(object):
             
         self.logger = logger
         
+        if tempDir:
+          self.tempDir = tempDir
+        else:
+          self.tempDir =  tempfile.mkdtemp(prefix = "zfsTestTemp")
     def runZfs(self):
         modprobe = subprocess.Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
                                 stderr=PIPE, universal_newlines=True)
@@ -22,9 +30,14 @@ class ZfsProxy(object):
         if modprobe.returncode != 0:
             raise Exception(modprobe.stderr.readlines()) #FIXME: accurate exception
         
-        loglevel = 10 # FIXME: read from somewhere (config?)
-        self.zfs = Popen(args=('zfsd', '-o', 'loglevel=' + str(pysyplog.get_log_level(logger)), '-d',
-                                '-f', self.zfsRoot), cwd='/tmp/',
+        self.zfs = Popen(args=('zfsd',
+                                '-o', 'loglevel=' + str(pysyplog.get_log_level(logger)),
+                                '-d',
+                                "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),
+                                "--" + str(pysyplog.PARAM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATER_NAME),
+                                "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + self.tempDir + os.sep + ZfsProxy.logFileName,
+                                '-f', self.zfsRoot),
+                                cwd='/tmp/',
                                 stdout=PIPE, stderr=PIPE, universal_newlines=True) # FIXME: core dump reporting
         
         self.running = True
@@ -40,14 +53,29 @@ class ZfsProxy(object):
         pass
     def snapshot(self, snapshot):
         #snapshot cache
-        snapshot.addDir(name = "zfsCache",  
+        snapshot.addDir(name = 'zfsCache',  
                         sourceDirName = self.zfsCache,
                         type = SnapshotDescription.TYPE_ZFS_CACHE)
-        #snapshot process
+        #snapshot log
+        snapshot.addFile(name = 'zfsd.log',
+                         sourceFileName = self.tempDir + os.sep + logFileName,
+                         type = SnapshotDescription.TYPE_ZFS_LOG)
         #FIXME : snapshot zfs process
+        (commandFile,  commandFileName) = shutil.mkstemp(prefix = 'gdbCommand')
+        commandFile.write('gcore ' + self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid) + '\n')
+        commandFile.write('quit')
+        commandFile.close()
+        gdb = subprocess.Popen(args=('gdb', '-p',  str(self.zfs.pid),  '-x',  commandFileName ), stdout=PIPE, 
+                                stderr=PIPE, universal_newlines=True)
+        gdb.wait()
+        if gdb.returncode != 0:
+            raise Exception(gdb.stderr.readlines()) #FIXME: accurate exception
+        snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core' + str(self.zfs.pid), 
+                         type = SnapshotDescription.TYPE_ZFS_GCORE)
+                         
         if self.running:
             #set as unresumable
-            snapshot.addEntry("canResume", 
+            snapshot.addEntry('canResume', 
                           (SnapshotDescription.TYPE_BOOL, False))
         
     def resume(self, snapshot):

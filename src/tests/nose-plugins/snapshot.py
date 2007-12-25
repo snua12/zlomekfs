@@ -6,6 +6,7 @@ import os
 import logging
 import unittest
 import struct
+import shutil
 
 from ConfigParser import SafeConfigParser
 from unittest import TestCase
@@ -55,6 +56,7 @@ class SnapshotDescription(object):
     
     TYPE_ENV = 109
     TYPE_COMPARE_FS = 111
+    TYPE_ZFS_LOG = 112
     
     tarTypes = [TYPE_TAR_FILE, TYPE_ZFS_CACHE, TYPE_ZFS_FS, TYPE_COMPARE_FS]
     
@@ -224,6 +226,19 @@ class SnapshotDescription(object):
         dumpFile.close()
         
         return obj
+        
+    def addFile(self, name, sourceFileName, type = TYPE_FILE):
+      self.addEntry (name,  (type,  "source was " +sourceFileName))
+      shutil.copyfile(sourceFileName,  self.directory + os.sep + name)
+      
+    def getFile(self,  name, targetFileName, type = TYPE_FILE):
+      (dumpType,  memo) = self.getEntry(name)
+      if dumpType != type:
+        raise TypeError("dump type (%s) doesn't match load type"  % dumpType)
+        
+      shutil.copyfile(self.directory + os.sep + name,  targetFileName)
+      
+      return targetFileName
 
     
 
@@ -419,6 +434,33 @@ class SnapshotTest(TestCase):
         readSnapshot.getDir('dir', toDir)
         
         assert True #TODO: compare fromDir and toDir
+        
+    def testFileSnapshot(self):
+        writeSnapshot = SnapshotDescription(self.writeDir)
+        
+        originalFile = open('/bin/bash',  'r')
+        originalContent = originalFile.read()
+        originalFile.close()
+        
+        writeSnapshot.addFile(name = "bin.sh", 
+                              sourceFileName = "/bin/sh",
+                              type = SnapshotDescription.TYPE_ZFS_GCORE)
+        
+        writeSnapshot.pack(fileName = self.targetDir +  os.sep + "snapshot")
+        
+        # read snapshot
+        readSnapshot = SnapshotDescription(directory = self.readDir)
+        readSnapshot.unpack(fileName = self.targetDir +  os.sep + "snapshot")
+        readSnapshot.getFile(name="bin.sh", 
+                             targetFileName = self.targetDir + os.sep + "sh", 
+                             type = SnapshotDescription.TYPE_ZFS_GCORE)
+        
+        targetFile = open(self.targetDir + os.sep + 'sh', 'r')
+        targetContent = targetFile.read()
+        targetFile.close()
+        
+        assert originalContent == targetContent
+        
 
 if __name__ == '__main__':
     unittest.main()
