@@ -12,10 +12,10 @@ CFLAGSSO = $(COPT) -shared
 
 SWIG=swig
 PYTHON_INCLUDE=-I/usr/include/python2.5 -I.
-SYPLOG_INCLUDE=-I../syplog -I../syplog/writers -I../syplog/readers -I../syplog/formaters
+SYPLOG_INCLUDE=-I../syplog -I../syplog/media -I../syplog/control -I../syplog/formaters
 
 
-OBJS=pysyplog_wrap.o
+OBJS=pysyplog_wrap.o 
 LIBS=../syplog/libsyplog.a
 
 all: _pysyplog.so
@@ -29,8 +29,8 @@ _pysyplog.so: $(OBJS) $(LIBS)
 pysyplog_wrap.o: pysyplog_wrap.c
 	$(CC) $(CFLAGSWRAP) $(PYTHON_INCLUDE) $(SYPLOG_INCLUDE) -c pysyplog_wrap.c -Dbool=char
 
-pysyplog_wrap.c: pysyplog.i
-	$(SWIG) -python pysyplog.i
+pysyplog_wrap.c: pysyplog.i 
+	$(SWIG) -python pysyplog.i 
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
