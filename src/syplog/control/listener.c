@@ -215,7 +215,7 @@ FINISHING:
   
   return ret_code;
 }
-syp_error start_communication_typeunix (listener controller, logger target, const char * socket_name)
+syp_error start_listen_unix (listener controller, logger target, const char * socket_name)
 {
   return ERR_NOT_IMPLEMENTED;
 }

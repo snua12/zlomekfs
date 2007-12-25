@@ -17,7 +17,8 @@ OO_SYPLOG = syplog.o \
 	media/medium-api.o \
 	syp-error.o \
 	control/control-protocol.o \
-	control/listener.o
+	control/listener.o \
+	control/control.o
 
 libsyplog.a: $(OO_SYPLOG)
 	ar -cru -o $@ $^

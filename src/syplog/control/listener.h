@@ -74,6 +74,6 @@ syp_error start_listen_unix (listener controller, logger target, const char * so
  * 
  * @param controller valid pointer to running listener structure
  */
-syp_error stop_control_listen (listener controller);
+syp_error stop_listen (listener controller);
 
 #endif	/* LISTENER_H */
