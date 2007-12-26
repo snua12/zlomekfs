@@ -86,13 +86,13 @@ void update_node_name (void);
 
 #endif //ENABLE_CHECKING
 
-extern void zfs_openlog(int  argc, char ** argv);
+extern void zfs_openlog(int  argc, const char ** argv);
 
 extern void zfs_closelog(void);
 
 #define is_logger_arg(arg)	is_syplog_arg (arg)
 
-#define message(level,file,format...) do_log(&syplogger,level,FACILITY_ZFSD, ## format)
+#define message(level,facility,format...) do_log(&syplogger,level,facility, ## format)
 
 /*! Report an internal error.  */
 extern void internal_error (const char *format, ...) ATTRIBUTE_NORETURN;

@@ -281,7 +281,7 @@ close_active_fd (int i)
   CHECK_MUTEX_LOCKED (&active_mutex);
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
 
-  message (LOG_INFO, NULL, "Closing FD %d\n", fd);
+  message (LOG_INFO, FACILITY_NET, "Closing FD %d\n", fd);
   close (fd);
 
   wake_all_threads (&fd_data_a[fd], ZFS_CONNECTION_CLOSED);
@@ -398,7 +398,7 @@ volume_master_connected (volume vol)
 static int
 node_connect (node nod)
 {
-  message (LOG_INFO, NULL, "Connecting to node %u\n", nod->id);
+  message (LOG_INFO, FACILITY_NET, "Connecting to node %u\n", nod->id);
 
   struct addrinfo *addr, *a;
   int s = -1;
@@ -418,7 +418,7 @@ node_connect (node nod)
       if (addr)
         abort ();
 #endif
-      message (LOG_WARNING, stderr, "getaddrinfo(%s): %s\n", nod->host_name.str,
+      message (LOG_WARNING, FACILITY_NET, "getaddrinfo(%s): %s\n", nod->host_name.str,
                gai_strerror (err));
       return -1;
     }
@@ -436,20 +436,20 @@ node_connect (node nod)
                 s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
                 if (s < 0)
                   {
-                    message (LOG_WARNING, stderr, "socket(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "socket(): %s\n", strerror (errno));
                     break;
                   }
 
                 flags = fcntl (s, F_GETFL);
                 if (flags == -1)
                   {
-                    message (LOG_WARNING, stderr, "fcntl(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "fcntl(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
                 if (fcntl (s, F_SETFL, flags | O_NONBLOCK) == -1)
                   {
-                    message (LOG_WARNING, stderr, "fcntl(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "fcntl(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
@@ -459,14 +459,14 @@ node_connect (node nod)
                 if (connect (s, a->ai_addr, a->ai_addrlen) < 0
                     && errno != EINPROGRESS)
                   {
-                    message (LOG_WARNING, stderr, "connect(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "connect(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
 
                 if (fcntl (s, F_SETFL, flags) == -1)
                   {
-                    message (LOG_WARNING, stderr, "fcntl(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "fcntl(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
@@ -484,20 +484,20 @@ node_connect (node nod)
                 s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
                 if (s < 0)
                   {
-                    message (LOG_WARNING, stderr, "socket(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "socket(): %s\n", strerror (errno));
                     break;
                   }
 
                 flags = fcntl (s, F_GETFL);
                 if (flags == -1)
                   {
-                    message (LOG_WARNING, stderr, "fcntl(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "fcntl(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
                 if (fcntl (s, F_SETFL, flags | O_NONBLOCK) == -1)
                   {
-                    message (LOG_WARNING, stderr, "fcntl(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "fcntl(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
@@ -508,14 +508,14 @@ node_connect (node nod)
                 if (connect (s, a->ai_addr, a->ai_addrlen) < 0
                     && errno != EINPROGRESS)
                   {
-                    message (LOG_WARNING, stderr, "connect(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "connect(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
 
                 if (fcntl (s, F_SETFL, flags) == -1)
                   {
-                    message (LOG_WARNING, stderr, "fcntl(): %s\n", strerror (errno));
+                    message (LOG_WARNING, FACILITY_NET, "fcntl(): %s\n", strerror (errno));
                     close (s);
                     break;
                   }
@@ -527,12 +527,12 @@ node_connect (node nod)
     }
 
   freeaddrinfo (addr);
-  message (LOG_WARNING, stderr, "Could not connect to %s (%s)\n", nod->name.str,
+  message (LOG_WARNING, FACILITY_NET, "Could not connect to %s (%s)\n", nod->name.str,
            nod->host_name.str);
   return -1;
 
 node_connected:
-  message (LOG_NOTICE, NULL, "Nonblocking connection to node %u initiated on socked %d\n", nod->id, s);
+  message (LOG_NOTICE, FACILITY_NET, "Nonblocking connection to node %u initiated on socked %d\n", nod->id, s);
   freeaddrinfo (addr);
   fd_data_a[s].conn = CONNECTION_CONNECTING;
   fd_data_a[s].speed = CONNECTION_SPEED_NONE;
@@ -618,7 +618,7 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
         {
           if (t1.tv_sec - t0.tv_sec > 1 + CONNECTION_SPEED_FAST_LIMIT / 1000000)
             {
-              message (LOG_INFO, NULL, "Estabilished SLOW connection\n");
+              message (LOG_INFO, FACILITY_NET, "Estabilished SLOW connection\n");
               fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
               return false;
             }
@@ -626,14 +626,14 @@ node_measure_connection_speed (thread *t, int fd, uint32_t sid, int32_t *r)
           delta += (t1.tv_sec - t0.tv_sec) * 1000000 + t1.tv_usec - t0.tv_usec;
           if (delta > CONNECTION_SPEED_FAST_LIMIT)
             {
-              message (LOG_INFO, NULL, "Estabilished SLOW connection\n");
+              message (LOG_INFO, FACILITY_NET, "Estabilished SLOW connection\n");
               fd_data_a[fd].speed = CONNECTION_SPEED_SLOW;
               return false;
             }
         }
     }
 
-  message (LOG_INFO, NULL, "Estabilished FAST connection\n");
+  message (LOG_INFO, FACILITY_NET, "Estabilished FAST connection\n");
   fd_data_a[fd].speed = CONNECTION_SPEED_FAST;
   return false;
 }
@@ -740,7 +740,7 @@ again:
         nod = node_lookup_name (&res1.node);
         if (!nod)
           {
-            message (LOG_WARNING, NULL, "There is the node '%s' on network address"
+            message (LOG_WARNING, FACILITY_NET, "There is the node '%s' on network address"
                      " of the node whose ID = %" PRIu32 "\n",
                      res1.node.str, sid);
             r = ZFS_CONNECTION_CLOSED;
@@ -754,7 +754,7 @@ again:
           }
         if (nod->id != sid)
           {
-            message (LOG_WARNING, NULL, "There is the node '%s' on network address"
+            message (LOG_WARNING, FACILITY_NET, "There is the node '%s' on network address"
                      " of the node whose ID = %" PRIu32 "\n",
                      res1.node.str, sid);
             r = ZFS_COULD_NOT_AUTH;
@@ -770,7 +770,7 @@ again:
 
         /* FIXME: really do authentication */
 
-        message (LOG_INFO, NULL, "FD %d connected to node %s (%s)\n", fd,
+        message (LOG_INFO, FACILITY_NET, "FD %d connected to node %s (%s)\n", fd,
                  nod->name.str, nod->host_name.str);
         zfsd_mutex_unlock (&nod->mutex);
         fd_data_a[fd].auth = AUTHENTICATION_STAGE_1;
@@ -851,7 +851,7 @@ again:
   return fd;
 
 node_authenticate_error:
-  message (LOG_NOTICE, NULL, "not auth\n");
+  message (LOG_NOTICE, FACILITY_NET, "not auth\n");
   zfsd_mutex_lock (&fd_data_a[fd].mutex);
   if (r >= ZFS_ERROR_HAS_DC_REPLY)
     {
@@ -885,7 +885,7 @@ node_connect_and_authenticate (thread *t, node nod, authentication_status auth)
 
   if (!node_has_valid_fd (nod))
     {
-      message (LOG_INFO, NULL, "Connecting+authentizing to node %u\n", nod->id);
+      message (LOG_INFO, FACILITY_NET, "Connecting+authentizing to node %u\n", nod->id);
 
       time_t now;
 
@@ -1038,7 +1038,7 @@ send_request (thread *t, uint32_t request_id, int fd)
       slow = true;
       zfsd_mutex_lock(&pending_slow_reqs_mutex);
       pending_slow_reqs_count++;
-      message (LOG_INFO, NULL, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
+      message (LOG_INFO, FACILITY_NET, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
       zfsd_mutex_unlock(&pending_slow_reqs_mutex);
     }
 
@@ -1074,7 +1074,7 @@ send_request (thread *t, uint32_t request_id, int fd)
           /* decrease the number of requests pending on slow connections */
           zfsd_mutex_lock(&pending_slow_reqs_mutex);
           pending_slow_reqs_count--;
-          message (LOG_INFO, NULL, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
+          message (LOG_INFO, FACILITY_NET, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
           zfsd_cond_signal(&pending_slow_reqs_cond);
           zfsd_mutex_unlock(&pending_slow_reqs_mutex);
         }
@@ -1090,7 +1090,7 @@ send_request (thread *t, uint32_t request_id, int fd)
       /* decrease the number of requests pending on slow connections */
       zfsd_mutex_lock(&pending_slow_reqs_mutex);
       pending_slow_reqs_count--;
-      message (LOG_INFO, NULL, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
+      message (LOG_INFO, FACILITY_NET, "PENDING SLOW REQS: %u\n", pending_slow_reqs_count);
       zfsd_cond_signal(&pending_slow_reqs_cond);
       zfsd_mutex_unlock(&pending_slow_reqs_mutex);
     }
@@ -1112,7 +1112,7 @@ send_reply (thread *t)
 {
   network_thread_data *td = &t->u.network;
 
-  message (LOG_INFO, NULL, "sending reply\n");
+  message (LOG_INFO, FACILITY_NET, "sending reply\n");
   zfsd_mutex_lock (&td->fd_data->mutex);
 
   /* Send a reply if we have not closed the file descriptor
@@ -1194,13 +1194,13 @@ network_worker (void *data)
       if (!decode_request_id (t->u.network.dc, &request_id))
         {
           /* TODO: log too short packet.  */
-          message(LOG_WARNING, stderr, "Too short packet...?\n");
+          message(LOG_WARNING, FACILITY_NET, "Too short packet...?\n");
           goto out;
         }
 
       if (t->u.network.dc->max_length > DC_SIZE)
         {
-          message (LOG_WARNING, NULL, "Packet too long: %u\n",
+          message (LOG_WARNING, FACILITY_NET, "Packet too long: %u\n",
                    t->u.network.dc->max_length);
           if (t->u.network.dir == DIR_REQUEST)
             send_error_reply (t, request_id, ZFS_REQUEST_TOO_LONG);
@@ -1214,7 +1214,7 @@ network_worker (void *data)
           goto out;
         }
 
-      message (LOG_INFO, NULL, "REQUEST: ID=%u function=%u\n", request_id, fn);
+      message (LOG_INFO, FACILITY_NET, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
         {
 #define ZFS_CALL_SERVER
@@ -1338,10 +1338,10 @@ network_dispatch (fd_data_t *fd_data)
             if (!decode_request_id (dc, &request_id))
               {
                 /* TODO: log too short packet.  */
-                message (LOG_WARNING, NULL, "Packet too short.\n");
+                message (LOG_WARNING, FACILITY_NET, "Packet too short.\n");
                 return false;
               }
-            message (LOG_INFO, NULL, "REPLY: ID=%u\n", request_id);
+            message (LOG_INFO, FACILITY_NET, "REPLY: ID=%u\n", request_id);
 
             slot = htab_find_slot_with_hash (fd_data->waiting4reply,
                                              &request_id,
@@ -1350,7 +1350,7 @@ network_dispatch (fd_data_t *fd_data)
             if (!slot)
               {
                 /* TODO: log request was not found.  */
-                message (LOG_WARNING, NULL, "Request (network) ID %d has not been found.\n",
+                message (LOG_WARNING, FACILITY_NET, "Request (network) ID %d has not been found.\n",
                          request_id);
                 return false;
               }
@@ -1455,7 +1455,7 @@ network_main (ATTRIBUTE_UNUSED void *data_)
               if (!slot || !*slot)
                 abort ();
 #endif
-          message (LOG_WARNING, NULL, "TIMEOUTING NETWORK REQUEST ID=%u\n", data->request_id);
+          message (LOG_WARNING, FACILITY_NET, "TIMEOUTING NETWORK REQUEST ID=%u\n", data->request_id);
               data->t->retval = ZFS_REQUEST_TIMEOUT;
               semaphore_up (&data->t->sem, 1);
               htab_clear_slot (active[i]->waiting4reply, slot);
@@ -1480,22 +1480,22 @@ network_main (ATTRIBUTE_UNUSED void *data_)
         }
       n = nactive;
 
-      message (LOG_DEBUG, NULL, "Polling %d sockets\n", n + accept_connections);
+      message (LOG_DEBUG, FACILITY_NET, "Polling %d sockets\n", n + accept_connections);
       zfsd_mutex_lock (&network_pool.main_in_syscall);
       zfsd_mutex_unlock (&active_mutex);
       r = poll (pfd, n + accept_connections, 1000);
       zfsd_mutex_unlock (&network_pool.main_in_syscall);
-      message (LOG_DEBUG, NULL, "Poll returned %d, errno=%d\n", r, errno);
+      message (LOG_DEBUG, FACILITY_NET, "Poll returned %d, errno=%d\n", r, errno);
 
       if (thread_pool_terminate_p (&network_pool))
         {
-          message (LOG_NOTICE, NULL, "Terminating\n");
+          message (LOG_NOTICE, FACILITY_NET, "Terminating\n");
           break;
         }
 
       if (r < 0 && errno != EINTR)
         {
-          message (LOG_NOTICE, stderr, "%s, network_main exiting\n", strerror (errno));
+          message (LOG_NOTICE, FACILITY_NET, "%s, network_main exiting\n", strerror (errno));
           break;
         }
 
@@ -1514,7 +1514,7 @@ network_main (ATTRIBUTE_UNUSED void *data_)
             abort ();
 #endif
 
-          message (LOG_DEBUG, NULL, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
+          message (LOG_DEBUG, FACILITY_NET, "FD %d revents %d\n", pfd[i].fd, pfd[i].revents);
           if ((pfd[i].revents & CANNOT_RW)
               || (fd_data->close
                   && fd_data->busy == 0
@@ -1533,7 +1533,7 @@ network_main (ATTRIBUTE_UNUSED void *data_)
 
                   if (getsockopt (pfd[i].fd, SOL_SOCKET, SO_ERROR, &e, &l) < 0)
                     {
-                      message (LOG_WARNING, NULL, "error on socket %d: %s\n", pfd[i].fd,
+                      message (LOG_WARNING, FACILITY_NET, "error on socket %d: %s\n", pfd[i].fd,
                                strerror (errno));
                       zfsd_mutex_lock (&fd_data->mutex);
                       close_active_fd (i);
@@ -1545,7 +1545,7 @@ network_main (ATTRIBUTE_UNUSED void *data_)
 #endif
                   else if (e != 0)
                     {
-                      message (LOG_WARNING, NULL, "error on socket %d: %s\n", pfd[i].fd,
+                      message (LOG_WARNING, FACILITY_NET, "error on socket %d: %s\n", pfd[i].fd,
                                strerror (e));
                       zfsd_mutex_lock (&fd_data->mutex);
                       close_active_fd (i);
@@ -1561,7 +1561,7 @@ network_main (ATTRIBUTE_UNUSED void *data_)
                 }
               else if (now > fd_data->last_use + NODE_CONNECT_TIMEOUT)
                 {
-                  message (LOG_WARNING, NULL, "timeout on socket %d\n", pfd[i].fd);
+                  message (LOG_WARNING, FACILITY_NET, "timeout on socket %d\n", pfd[i].fd);
                   zfsd_mutex_lock (&fd_data->mutex);
                   close_active_fd (i);
                   zfsd_mutex_unlock (&fd_data->mutex);
@@ -1659,7 +1659,7 @@ network_main (ATTRIBUTE_UNUSED void *data_)
             {
               close (main_socket);
               accept_connections = 0;
-              message (LOG_ERROR, stderr, "error on listening socket\n");
+              message (LOG_ERROR, FACILITY_NET, "error on listening socket\n");
             }
           else if (pfd[n].revents & CAN_READ)
             {
@@ -1689,7 +1689,7 @@ retry_accept:
                   if (idx == -1)
                     {
                       /* All file descriptors are busy so close the new one.  */
-                      message (LOG_NOTICE, NULL, "All filedescriptors are busy.\n");
+                      message (LOG_NOTICE, FACILITY_NET, "All filedescriptors are busy.\n");
                       if (s >= 0)
                         close (s);
                       zfsd_mutex_unlock (&active_mutex);
@@ -1713,12 +1713,12 @@ retry_accept:
                     {
                       close (main_socket);
                       accept_connections = 0;
-                      message (LOG_ERROR, stderr, "accept(): %s\n", strerror (errno));
+                      message (LOG_ERROR, FACILITY_NET, "accept(): %s\n", strerror (errno));
                     }
                 }
               else
                 {
-                  message (LOG_DEBUG, NULL, "accepted FD %d\n", s);
+                  message (LOG_DEBUG, FACILITY_NET, "accepted FD %d\n", s);
                   zfsd_mutex_lock (&fd_data_a[s].mutex);
                   init_fd_data (s);
                   fd_data_a[s].conn = CONNECTION_PASSIVE;
@@ -1734,7 +1734,7 @@ retry_accept:
     close (main_socket);
 
   free (pfd);
-  message (LOG_NOTICE, NULL, "Terminating...\n");
+  message (LOG_NOTICE, FACILITY_NET, "Terminating...\n");
   return NULL;
 }
 
@@ -1829,7 +1829,7 @@ network_start (void)
   main_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (main_socket < 0)
     {
-      message (LOG_WARNING, stderr, "socket(): %s\n", strerror (errno));
+      message (LOG_WARNING, FACILITY_NET, "socket(): %s\n", strerror (errno));
       return false;
     }
 
@@ -1838,7 +1838,7 @@ network_start (void)
   if (setsockopt (main_socket, SOL_SOCKET, SO_REUSEADDR, &socket_options,
               sizeof (socket_options)) != 0)
     {
-      message (LOG_WARNING, stderr, "setsockopt(): %s\n", strerror (errno));
+      message (LOG_WARNING, FACILITY_NET, "setsockopt(): %s\n", strerror (errno));
       close (main_socket);
       return false;
     }
@@ -1849,7 +1849,7 @@ network_start (void)
   sa.sin_addr.s_addr = htonl (INADDR_ANY);
   if (bind (main_socket, (struct sockaddr *) &sa, sizeof (sa)))
     {
-      message (LOG_WARNING, stderr, "bind(): %s\n", strerror (errno));
+      message (LOG_WARNING, FACILITY_NET, "bind(): %s\n", strerror (errno));
       close (main_socket);
       return false;
     }
@@ -1857,7 +1857,7 @@ network_start (void)
   /* Set the queue for incoming connections.  */
   if (listen (main_socket, SOMAXCONN) != 0)
     {
-      message (LOG_WARNING, stderr, "listen(): %s\n", strerror (errno));
+      message (LOG_WARNING, FACILITY_NET, "listen(): %s\n", strerror (errno));
       close (main_socket);
       return false;
     }

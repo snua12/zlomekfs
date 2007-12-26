@@ -45,12 +45,12 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, NULL, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_destroy (M)) != 0)				\
       {									\
-	message (LOG_WARNING, NULL, "pthread_mutex_destroy: %d = %s\n",		\
+	message (LOG_WARNING, FACILITY_THREADING, "pthread_mutex_destroy: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
@@ -60,16 +60,16 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, NULL, "MUTEX %p LOCK, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p LOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_lock (M)) != 0)				\
       {									\
-	message (LOG_ERROR, NULL, "pthread_mutex_lock: %d = %s\n",		\
+	message (LOG_ERROR, FACILITY_THREADING, "pthread_mutex_lock: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
-    message (LOG_INFO, NULL, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
+    message (LOG_INFO, FACILITY_THREADING, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     0; })
@@ -78,12 +78,12 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, NULL, "MUTEX %p UNLOCK, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p UNLOCK, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_unlock (M)) != 0)				\
       {									\
-	message (LOG_ERROR, NULL, "pthread_mutex_unlock: %d = %s\n",		\
+	message (LOG_ERROR, FACILITY_THREADING, "pthread_mutex_unlock: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
@@ -95,7 +95,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 									\
     if ((def_ret = pthread_cond_destroy (C)) != 0)				\
       {									\
-	message (LOG_ERROR, NULL, "pthread_cond_destroy: %d = %s\n",		\
+	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_destroy: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
@@ -105,12 +105,12 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, NULL, "COND %p WAIT with MUTEX %p, by %lu at %s:%d\n",\
+    message (LOG_LOCK, FACILITY_THREADING, "COND %p WAIT with MUTEX %p, by %lu at %s:%d\n",\
 	     (void *) C, (void *) M,					\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_cond_wait (C, M)) != 0)				\
       {									\
-	message (LOG_ERROR, NULL, "pthread_cond_wait: %d = %s\n",		\
+	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_wait: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
@@ -120,12 +120,12 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, NULL, "COND %p SIGNAL, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "COND %p SIGNAL, by %lu at %s:%d\n",		\
 	     (void *) C,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_cond_signal (C)) != 0)				\
       {									\
-	message (LOG_ERROR, NULL, "pthread_cond_signal: %d = %s\n",		\
+	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_signal: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
@@ -135,12 +135,12 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, NULL, "COND %p BROADCAST, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "COND %p BROADCAST, by %lu at %s:%d\n",		\
 	     (void *) C,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_cond_broadcast (C)) != 0)				\
       {									\
-	message (LOG_ERROR, NULL, "pthread_cond_broadcast: %d = %s\n",	\
+	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_broadcast: %d = %s\n",	\
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
@@ -153,7 +153,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
     if (M)								\
       {									\
 									\
-	message (LOG_LOCK, NULL, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
+	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
 		 (void *) M,						\
 		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
 	if( pthread_mutex_lock (M)!= EDEADLK )						\
@@ -168,7 +168,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   do {									\
     if (M)								\
       {									\
-	message (LOG_LOCK, NULL, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
+	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
 		 (void *) M,						\
 		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
 	if (pthread_mutex_lock (M) == EDEADLK)						\

@@ -447,7 +447,7 @@ zfs_fuse_mknod (fuse_req_t req, fuse_ino_t parent, const char *name,
   args.type = ftype_from_mode_t (mode); /* Note that type may be FT_REG */
   if (args.type == FT_BAD)
     {
-      message (1, stderr, "Invalid file type in mknod\n");
+      message (LOG_WARNING, FACILITY_DATA, "Invalid file type in mknod\n");
       free (args.where.name.str);
       err = EINVAL;
       goto err;
@@ -1182,7 +1182,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
 
       if (thread_pool_terminate_p (&kernel_pool))
         {
-          message (LOG_NOTICE, NULL, "Terminating\n");
+          message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_NET | FACILITY_THREADING, "Kernel thread terminating\n");
           break;
         }
 
@@ -1192,9 +1192,9 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       if (recv_res <= 0)
         {
 	  if (recv_res != ENODEV)
-	    message (LOG_NOTICE, stderr, "FUSE unmounted, kernel_main exiting\n");
+	    message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_DATA, "FUSE unmounted, kernel_main exiting\n");
 	  else
-	    message (LOG_NOTICE, stderr, "kernel_main exiting: %s\n",
+	    message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING, "kernel_main exiting: %s\n",
 		     strerror (-recv_res));
           break;
         }
@@ -1208,7 +1208,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       zfsd_mutex_unlock (&buffer_pool_mutex);
     }
 
-  message (LOG_NOTICE, NULL, "Terminating...\n");
+  message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING, "Kernel thread return...\n");
   return NULL;
 }
 

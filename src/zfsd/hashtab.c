@@ -79,7 +79,7 @@ get_higher_prime (unsigned int n)
 
   if (n > MAX_PRIME)
     {
-      message (LOG_CRIT, stderr,
+      message (LOG_CRIT, FACILITY_DATA,
 	       "%d is greater than maximum predefined prime number (%d).\n",
 	       n, MAX_PRIME);
       abort ();

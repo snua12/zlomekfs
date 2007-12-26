@@ -20,6 +20,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
+#include "log.h"
 #include "system.h"
 #include <stdio.h>
 #include <stddef.h>
@@ -29,7 +30,6 @@
 #include <string.h>
 #include <errno.h>
 #include "pthread.h"
-#include "log.h"
 
 /*! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  
  *!see message
@@ -44,13 +44,13 @@ print_hex_buffer (int level, ATTRIBUTE_UNUSED FILE * f, char *buf, unsigned int 
       if (i > 0)
 	{
 	  if (i % 16 == 0)
-	    message (level, f, "\n");
+	    message (level, FACILITY_DATA, "\n");
 	  else if (i % 4 == 0)
-	    message (level, f, " ");
+	    message (level, FACILITY_DATA, " ");
 	}
-      message (level, f, "%02x ", (unsigned char) buf[i]);
+      message (level, FACILITY_DATA, "%02x ", (unsigned char) buf[i]);
     }
-  message (level, f, "\n");
+  message (level, FACILITY_DATA, "\n");
 }
 
 /*! Read LEN bytes from file descriptor FD to buffer BUF.  */
@@ -66,13 +66,13 @@ full_read (int fd, void *buf, size_t len)
       r = read (fd, (char *) buf + total_read, len - total_read);
       if (r <= 0)
 	{
-	  message (LOG_WARNING, NULL, "reading data FAILED: %d (%s)\n",
+	  message (LOG_WARNING, FACILITY_DATA, "reading data FAILED: %d (%s)\n",
 		   errno, strerror (errno));
 	  return false;
 	}
     }
 
-    message (LOG_DEBUG, NULL, "Reading data of length %u from %d to %p:\n",
+    message (LOG_DEBUG, FACILITY_DATA, "Reading data of length %u from %d to %p:\n",
       len, fd, buf);
     print_hex_buffer (LOG_DATA, NULL, (char *) buf, len);
 
@@ -87,7 +87,7 @@ full_write (int fd, void *buf, size_t len)
   ssize_t w;
   unsigned int total_written;
 
-    message (LOG_DEBUG, NULL, "Writing data of length %u to %d from %p:\n",
+    message (LOG_DEBUG, FACILITY_DATA, "Writing data of length %u to %d from %p:\n",
        len, fd, buf);
     print_hex_buffer (LOG_DATA, NULL, (char *) buf, len);
 
@@ -96,7 +96,7 @@ full_write (int fd, void *buf, size_t len)
       w = write (fd, (char *) buf + total_written, len - total_written);
       if (w <= 0)
 	{
-	  message (LOG_NOTICE, NULL, "writing data FAILED: %d (%s)\n",
+	  message (LOG_NOTICE, FACILITY_DATA, "writing data FAILED: %d (%s)\n",
 		   errno, strerror (errno));
 	  return false;
 	}

@@ -892,7 +892,7 @@ open_interval_file (volume vol, internal_fh fh, metadata_type type)
 
   if (lseek (fd, 0, SEEK_END) == (off_t) -1)
     {
-      message (LOG_ERROR, NULL, "lseek: %s\n", strerror (errno));
+      message (LOG_ERROR, FACILITY_DATA, "lseek: %s\n", strerror (errno));
       close (fd);
       RETURN_INT (-1);
     }
@@ -946,7 +946,7 @@ open_journal_file (volume vol, journal_t journal, zfs_fh *fh)
 
   if (lseek (fd, 0, SEEK_END) == (off_t) -1)
     {
-      message (LOG_ERROR, NULL, "lseek: %s\n", strerror (errno));
+      message (LOG_ERROR, FACILITY_DATA, "lseek: %s\n", strerror (errno));
       close (fd);
       RETURN_INT (-1);
     }
@@ -1178,7 +1178,7 @@ init_volume_metadata (volume vol)
 
   if (fstat (fd, &st) < 0)
     {
-      message (LOG_WARNING, NULL, "%s: fstat: %s\n", vol->metadata->file_name,
+      message (LOG_WARNING, FACILITY_DATA, "%s: fstat: %s\n", vol->metadata->file_name,
                strerror (errno));
       zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
       close_volume_metadata (vol);
@@ -1189,7 +1189,7 @@ init_volume_metadata (volume vol)
     {
       if ((st.st_mode & S_IFMT) != S_IFREG)
         {
-          message (LOG_ERROR, NULL, "%s: Not a regular file\n",
+          message (LOG_ERROR, FACILITY_DATA, "%s: Not a regular file\n",
                    vol->metadata->file_name);
           zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
           close_volume_metadata (vol);
@@ -1252,7 +1252,7 @@ init_volume_metadata (volume vol)
 
   if (fstat (fd, &st) < 0)
     {
-      message (LOG_WARNING, NULL, "%s: fstat: %s\n", vol->fh_mapping->file_name,
+      message (LOG_WARNING, FACILITY_DATA, "%s: fstat: %s\n", vol->fh_mapping->file_name,
                strerror (errno));
       zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
       close_volume_metadata (vol);
@@ -1263,7 +1263,7 @@ init_volume_metadata (volume vol)
     {
       if ((st.st_mode & S_IFMT) != S_IFREG)
         {
-          message (LOG_WARNING, NULL, "%s: Not a regular file\n",
+          message (LOG_WARNING, FACILITY_DATA, "%s: Not a regular file\n",
                    vol->fh_mapping->file_name);
           zfsd_mutex_unlock (&metadata_fd_data[fd].mutex);
           close_volume_metadata (vol);
@@ -1448,7 +1448,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
     {
       if (fstat (fd, &st) < 0)
         {
-          message (LOG_WARNING, NULL, "%s: fstat: %s\n", path.str, strerror (errno));
+          message (LOG_WARNING, FACILITY_DATA, "%s: fstat: %s\n", path.str, strerror (errno));
           close (fd);
           free (path.str);
           RETURN_BOOL (false);
@@ -1456,7 +1456,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 
       if ((st.st_mode & S_IFMT) != S_IFREG)
         {
-          message (LOG_WARNING, NULL, "%s: Not a regular file\n", path.str);
+          message (LOG_WARNING, FACILITY_DATA, "%s: Not a regular file\n", path.str);
           close (fd);
           free (path.str);
           RETURN_BOOL (false);
@@ -1464,7 +1464,7 @@ init_interval_tree (volume vol, internal_fh fh, metadata_type type)
 
       if (st.st_size % sizeof (interval) != 0)
         {
-          message (LOG_WARNING, NULL, "%s: Interval list is not aligned\n", path.str);
+          message (LOG_WARNING, FACILITY_DATA, "%s: Interval list is not aligned\n", path.str);
           close (fd);
           free (path.str);
           RETURN_BOOL (false);
@@ -1599,7 +1599,7 @@ append_interval (volume vol, internal_fh fh, metadata_type type,
     {
       if (lseek (tree->fd, 0, SEEK_END) == (off_t) -1)
         {
-          message (LOG_WARNING, NULL, "lseek: %s\n", strerror (errno));
+          message (LOG_WARNING, FACILITY_DATA, "lseek: %s\n", strerror (errno));
           zfsd_mutex_unlock (&metadata_fd_data[tree->fd].mutex);
           RETURN_BOOL (false);
         }
@@ -3152,7 +3152,7 @@ add_journal_entry (volume vol, journal_t journal, zfs_fh *fh, zfs_fh *local_fh,
     {
       if (lseek (journal->fd, 0, SEEK_END) == (off_t) -1)
         {
-          message (LOG_ERROR, NULL, "lseek: %s\n", strerror (errno));
+          message (LOG_ERROR, FACILITY_DATA, "lseek: %s\n", strerror (errno));
           zfsd_mutex_unlock (&metadata_fd_data[journal->fd].mutex);
           RETURN_BOOL (false);
         }

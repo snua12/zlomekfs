@@ -97,12 +97,12 @@
 # include <asm/uaccess.h>
 # include "zfs.h"
 #else
+# include "log.h"
 # include <unistd.h>
 # include <inttypes.h>
 # include <string.h>
 # include <stdio.h>
 # include <stdlib.h>
-# include "log.h"
 # include "util.h"
 # include "md5.h"
 #endif
@@ -225,16 +225,16 @@ dc_destroy_all (void)
 #else
 
 /*! Print DC to file F.  
- *!see message
+ *@see message
 */
 
 void
-print_dc (int level, FILE *f, DC *dc)
+print_dc (int level, FILE *f ATTRIBUTE_UNUSED, DC *dc)
 {
-  message (level, f, "Cur.pos    = %d\n", dc->cur_pos - dc->buffer);
-  message (level, f, "Cur.length = %d\n", dc->cur_length);
-  message (level, f, "Max.length = %d\n", dc->max_length);
-  message (level, f, "Data:\n");
+  message (level, FACILITY_DATA, "Cur.pos    = %d\n", dc->cur_pos - dc->buffer);
+  message (level, FACILITY_DATA, "Cur.length = %d\n", dc->cur_length);
+  message (level, FACILITY_DATA, "Max.length = %d\n", dc->max_length);
+  message (level, FACILITY_DATA, "Data:\n");
   print_hex_buffer (level, f, dc->buffer,
                     (dc->max_length == DC_SIZE
                      ? dc->cur_length : dc->max_length)

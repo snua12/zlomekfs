@@ -2111,16 +2111,16 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	  unsigned int i;
 	  bool complete;
 	  
-	  message (LOG_FUNC, NULL, "zfs_read(): file has local path\n");
+	  message (LOG_FUNC, FACILITY_DATA, "zfs_read(): file has local path\n");
 
 	  count2 = (count < ZFS_UPDATED_BLOCK_SIZE
 		    ? ZFS_UPDATED_BLOCK_SIZE : count);
 	  end = (offset < (uint64_t) -1 - count2
 		 ? offset + count2 : (uint64_t) -1);
 	  
-	  message (LOG_FUNC, NULL, "zfs_read(): calling get_blocks_for_updating()\n");
+	  message (LOG_FUNC, FACILITY_DATA, "zfs_read(): calling get_blocks_for_updating()\n");
 	  get_blocks_for_updating (dentry->fh, offset, end, &blocks);
-	  message (LOG_FUNC, NULL, "zfs_read(): back from get_blocks_for_updating()\n");
+	  message (LOG_FUNC, FACILITY_DATA, "zfs_read(): back from get_blocks_for_updating()\n");
 	  
 	  complete = true;
 	  offset2 = offset + count;
@@ -2145,12 +2145,12 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 
 	  if (complete)
 	    {
-	      message (LOG_DEBUG, NULL, "zfs_read(): nothing to update\n");
+	      message (LOG_DEBUG, FACILITY_DATA, "zfs_read(): nothing to update\n");
 	      r = local_read (res, dentry, offset, count, vol);
 	    }
 	  else
 	    {
-	      message (LOG_DEBUG, NULL, "zfs_read(): will update\n");
+	      message (LOG_DEBUG, FACILITY_DATA, "zfs_read(): will update\n");
 	      bool modified;
 
 	      if (icap->master_busy == 0)
@@ -2169,7 +2169,7 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
 	      zfsd_mutex_unlock (&vol->mutex);
 	      zfsd_mutex_unlock (&fh_mutex);
 	      
-	      message (LOG_FUNC, NULL, "zfs_read(): calling update_file_blocks\n");
+	      message (LOG_FUNC, FACILITY_DATA, "zfs_read(): calling update_file_blocks\n");
               
               /* update the file blocks needed for this read, parameter for slow = false, we don't want to get
                * interrupted here, it's not background update */
@@ -3121,7 +3121,7 @@ cleanup_file_c (void)
   zfsd_mutex_lock (&dir_entry_mutex);
 #ifdef ENABLE_CHECKING
   if (dir_entry_pool->elts_free < dir_entry_pool->elts_allocated)
-    message (LOG_WARNING, NULL, "Memory leak (%u elements) in dir_entry_pool.\n",
+    message (LOG_WARNING, FACILITY_MEMORY, "Memory leak (%u elements) in dir_entry_pool.\n",
 	     dir_entry_pool->elts_allocated - dir_entry_pool->elts_free);
 #endif
   free_alloc_pool (dir_entry_pool);

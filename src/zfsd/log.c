@@ -39,7 +39,7 @@
 
 struct logger_def syplogger;
 
-void zfs_openlog(int  argc, char ** argv)
+void zfs_openlog(int  argc, const char ** argv)
 {
   syp_error ret_code = open_log (&syplogger, "STILL UNDEFINED", argc, argv);
   if (ret_code != NOERR)
@@ -66,7 +66,7 @@ void update_node_name (void)
     ret_code = set_node_name (&syplogger, "STILL UNDEFINED");
 
   if (ret_code != NOERR)
-    message (LOG_WARNING, NULL, "could not set node_name %d: %s\n", ret_code,
+    message (LOG_WARNING, FACILITY_LOG, "could not set node_name %d: %s\n", ret_code,
              syp_error_to_string (ret_code));
 }
 

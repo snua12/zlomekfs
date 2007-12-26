@@ -44,7 +44,7 @@ xcalloc (size_t nmemb, size_t size)
   void *r = calloc (nmemb, size);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   return r;
@@ -57,7 +57,7 @@ xmalloc (size_t size)
   void *r = malloc (size);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   return r;
@@ -70,7 +70,7 @@ xrealloc (void *ptr, size_t size)
   void *r = realloc (ptr, size);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   return r;
@@ -83,7 +83,7 @@ xstrdup (const char *s)
   char *r = strdup (s);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   return r;
@@ -103,7 +103,7 @@ xstrndup (const char *s, size_t n)
   r = (char *) malloc (len + 1);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   memcpy (r, s, len);
@@ -119,7 +119,7 @@ xmkstring (string *dest, const char *s)
   dest->str = (char *) malloc (dest->len + 1);
   if (!dest->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   memcpy (dest->str, s, dest->len + 1);
@@ -137,7 +137,7 @@ xstringdup (string *dest, string *src)
   dest->str = (char *) malloc (dest->len + 1);
   if (!dest->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   memcpy (dest->str, old_str, dest->len + 1);
@@ -150,7 +150,7 @@ xmemdup (const void *src, size_t n)
   void *r = malloc (n);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   memcpy (r, src, n);
@@ -209,7 +209,7 @@ xstrconcat_varray (varray *va)
   r = (char *) malloc (len + 1);
   if (!r)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
 
@@ -247,7 +247,7 @@ xstringconcat_varray (string *dst, varray *va)
   dst->str = (char *) malloc (len + 1);
   if (!dst->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
 
@@ -284,7 +284,7 @@ set_string (string *dst, string *src)
   dst->str = (char *) malloc (dst->len + 1);
   if (!dst->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   memcpy (dst->str, src->str, dst->len + 1);
@@ -302,7 +302,7 @@ set_string_with_length (string *dst, const char *src, int len)
   dst->str = (char *) malloc (dst->len + 1);
   if (!dst->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
   memcpy (dst->str, src, dst->len + 1);
@@ -317,7 +317,7 @@ append_string (string *dst, string *src, const char *str, unsigned int len)
   dst->str = (char *) malloc (dst->len + 1);
   if (!dst->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
 
@@ -334,7 +334,7 @@ append_file_name (string *dst, string *path, const char *name, unsigned int len)
   dst->str = (char *) malloc (dst->len + 1);
   if (!dst->str)
     {
-      message (LOG_ALERT, NULL, "Not enough memory.\n");
+      message (LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
       abort ();
     }
 

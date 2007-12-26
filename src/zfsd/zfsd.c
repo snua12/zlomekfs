@@ -70,7 +70,7 @@ static char *config_file;
 static void
 exit_sighandler (ATTRIBUTE_UNUSED int signum)
 {
-  message (LOG_NOTICE, NULL, "Entering exit_sighandler\n");
+  message (LOG_NOTICE, FACILITY_ZFSD, "Entering exit_sighandler\n");
 
   zfsd_mutex_lock (&running_mutex);
   running = false;
@@ -97,7 +97,7 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
   /* Terminate the sleep.  */
   pthread_kill (main_thread, SIGUSR1);
 
-  message (LOG_NOTICE, NULL, "Leaving exit_sighandler\n");
+  message (LOG_NOTICE, FACILITY_ZFSD, "Leaving exit_sighandler\n");
 }
 
 /*! Report the fatal signal.  */
@@ -154,7 +154,7 @@ hup_sighandler (ATTRIBUTE_UNUSED int signum)
 static void
 dummy_sighandler (ATTRIBUTE_UNUSED int signum)
 {
-  message (LOG_INFO, NULL, "signalled %lu\n", pthread_self ());
+  message (LOG_INFO, FACILITY_ZFSD, "signalled %lu\n", pthread_self ());
 }
 
 /*! Initialize signal handlers.  */
@@ -369,7 +369,7 @@ terminate (void)
 static void ATTRIBUTE_NORETURN
 die (void)
 {
-  message (LOG_EMERG, stderr, "ZFSD could not be started.\n");
+  message (LOG_EMERG, FACILITY_ZFSD, "ZFSD could not be started.\n");
   exit (EXIT_FAILURE);
 }
 
@@ -449,7 +449,7 @@ main (int argc, char **argv)
   bool update_started = false;
   int ret = EXIT_SUCCESS;
 
-  zfs_openlog(argc, argv);
+  zfs_openlog(argc, (const char **)argv);
 
   init_constants ();
   init_sig_handlers ();
@@ -484,24 +484,24 @@ main (int argc, char **argv)
 
 
 #ifdef DEBUG
-  message (LOG_DATA, NULL, "sizeof (pthread_mutex_t) = %u\n", sizeof (pthread_mutex_t));
-  message (LOG_DATA, NULL, "sizeof (pthread_cond_t) = %u\n", sizeof (pthread_cond_t));
-  message (LOG_DATA, NULL, "sizeof (thread) = %u\n", sizeof (thread));
-  message (LOG_DATA, NULL, "sizeof (padded_thread) = %u\n", sizeof (padded_thread));
-  message (LOG_DATA, NULL, "sizeof (internal_fh) = %u\n", sizeof (struct internal_fh_def));
-  message (LOG_DATA, NULL, "sizeof (internal_dentry) = %u\n", sizeof (struct internal_dentry_def));
-  message (LOG_DATA, NULL, "sizeof (internal_cap) = %u\n", sizeof (struct internal_cap_def));
-  message (LOG_DATA, NULL, "sizeof (virtual_dir) = %u\n", sizeof (struct virtual_dir_def));
-  message (LOG_DATA, NULL, "sizeof (fattr) = %u\n", sizeof (fattr));
-  message (LOG_DATA, NULL, "sizeof (varray) = %u\n", sizeof (varray));
-  message (LOG_DATA, NULL, "sizeof (metadata) = %u\n", sizeof (metadata));
-  message (LOG_DATA, NULL, "sizeof (fh_mapping) = %u\n", sizeof (fh_mapping));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (pthread_mutex_t) = %u\n", sizeof (pthread_mutex_t));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (pthread_cond_t) = %u\n", sizeof (pthread_cond_t));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (thread) = %u\n", sizeof (thread));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (padded_thread) = %u\n", sizeof (padded_thread));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (internal_fh) = %u\n", sizeof (struct internal_fh_def));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (internal_dentry) = %u\n", sizeof (struct internal_dentry_def));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (internal_cap) = %u\n", sizeof (struct internal_cap_def));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (virtual_dir) = %u\n", sizeof (struct virtual_dir_def));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (fattr) = %u\n", sizeof (fattr));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (varray) = %u\n", sizeof (varray));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (metadata) = %u\n", sizeof (metadata));
+  message (LOG_DATA, FACILITY_DATA, "sizeof (fh_mapping) = %u\n", sizeof (fh_mapping));
 #endif
 
   /* Keep the pages of the daemon in memory.  */
   if (mlock_zfsd && mlockall (MCL_CURRENT | MCL_FUTURE))
     {
-      message (LOG_CRIT, stderr, "mlockall: %s\n", strerror (errno));
+      message (LOG_CRIT, FACILITY_ZFSD, "mlockall: %s\n", strerror (errno));
       die ();
     }
 

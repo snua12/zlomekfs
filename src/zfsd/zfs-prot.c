@@ -463,7 +463,7 @@ zfs_proc_auth_stage1_server (auth_stage1_args *args, DC *dc, void *data)
     {
       /* FIXME: do the key authorization */
 
-      message (LOG_INFO, NULL, "FD %d connected to %s (%s)\n", fd_data->fd,
+      message (LOG_INFO, FACILITY_NET, "FD %d connected to %s (%s)\n", fd_data->fd,
                nod->name.str, nod->host_name.str);
       fd_data->sid = nod->id;
       fd_data->auth = AUTHENTICATION_STAGE_1;
@@ -665,7 +665,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
-  message (LOG_INFO, NULL, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
+  message (LOG_INFO, FACILITY_NET, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
   start_encoding (t->dc_call);						\
   encode_direction (t->dc_call, CALL_MODE);				\
   encode_request_id (t->dc_call, req_id);				\
@@ -793,14 +793,14 @@ cleanup_zfs_prot_c (void)
   zfsd_mutex_destroy (&request_id_mutex);
 
 #ifdef ENABLE_STATISTICS
-  message (LOG_DEBUG, NULL, "Call statistics:\n"
+  message (LOG_DEBUG, FACILITY_NET, "Call statistics:\n"
     "%-16s%15s%15s\n", "Function", "From kernel", "From network");
 
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   if (call_statistics[CALL_FROM_NETWORK][NUMBER] > 0)			\
     {									\
-      message (LOG_DEBUG, NULL, "%-16s%15" PRIu64 "\n", #FUNCTION,		\
+      message (LOG_DEBUG, FACILITY_NET, "%-16s%15" PRIu64 "\n", #FUNCTION,		\
               call_statistics[CALL_FROM_NETWORK][NUMBER]);		\
     }
 #include "zfs-prot.def"
