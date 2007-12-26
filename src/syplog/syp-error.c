@@ -5,7 +5,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by

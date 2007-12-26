@@ -10,11 +10,16 @@
   This functions shoud be used in some listen loop,
   data received may be checked to be valid and
   if logger needs to be locked, caller should ensure this.
+
+  On server side (logger listen) *_receive should be called.
+  Caller should check the type of first message on network stack
+  beforehand (for example by PEEK the type).
+  On client side (remote control) *_send functions should be called.
 */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by

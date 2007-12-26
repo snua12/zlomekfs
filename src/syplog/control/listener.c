@@ -5,7 +5,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
@@ -34,6 +34,10 @@
 #include "listener.h"
 #include "control-protocol.h"
 
+/** handle ping message
+ * @param controller initialized listener with ping message on top of net stack.
+ * @return NOERR;
+ */
 syp_error handle_ping (listener controller)
 {
   struct sockaddr from;
@@ -50,6 +54,12 @@ syp_error handle_ping (listener controller)
   return NOERR;
 }
 
+/** handle set_log_level message (receive log level and set it to logger)
+ * @param controller initialized listener with set_log_level message on top of net stack.
+ * @see set_level_receive
+ * @see set_log_level
+ * @return the same as set_level_receive and set_log_level
+ */
 syp_error handle_set_level (listener controller)
 {
   log_level_t new_level = LOG_ALL;
@@ -61,6 +71,12 @@ syp_error handle_set_level (listener controller)
   return ret_code;
 }
 
+/** handle set_facility message (receive facility and set it as to be logged)
+ * @param controller initialized listener with set_facility message on top of net stack.
+ * @see set_facility_receive
+ * @see set_facility
+ * @return the same as set_facility_receive and set_facility
+ */
 syp_error handle_set_facility (listener controller)
 {
   facility_t new_facility = FACILITY_ALL;
@@ -72,6 +88,12 @@ syp_error handle_set_facility (listener controller)
   return ret_code;
 }
 
+/** handle reset_facility message (receive facility and set it as not to be logged)
+ * @param controller initialized listener with reset_facility message on top of net stack.
+ * @see reset_facility_receive
+ * @see reset_facility
+ * @return the same as reset_facility_receive and reset_facility
+ */
 syp_error handle_reset_facility (listener controller)
 {
   facility_t new_facility = FACILITY_ALL;
@@ -83,6 +105,10 @@ syp_error handle_reset_facility (listener controller)
   return ret_code;
 }
 
+/** handle unknown message (discard it from net stack and report it)
+ * @param controller initialized listener unempty net stack
+ * @return NOERR
+ */
 syp_error handle_invalid_message (listener controller)
 {  
   ssize_t bytes_read = 0;
@@ -99,6 +125,11 @@ syp_error handle_invalid_message (listener controller)
   return NOERR;
 }
 
+/** Listening thread main loop function.
+ * Check for messages and receive them
+ * @param data pointer to initialized listener
+ * @return NULL
+ */
 void * listen_loop (void * data)
 {
   syp_error status = NOERR;
@@ -115,7 +146,7 @@ void * listen_loop (void * data)
       status = ERR_NOT_INITIALIZED;
       goto NEXT;
     }
-    
+    // TODO: use non-blocking variant with timeout
     bytes_read = recv (controller->socket, &next_message, sizeof (message_type),
       MSG_PEEK);
     if (bytes_read != sizeof (message_type))

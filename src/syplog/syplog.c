@@ -6,7 +6,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ bool_t is_syplog_arg (const char * arg)
 static int default_option_count = 3;
 
 /// Opens log and initializes logger structure
-syp_error open_log (logger glogger,  const char * node_name, int argc, char ** argv)
+syp_error open_log (logger glogger,  const char * node_name, int argc, const char ** argv)
 {
   syp_error ret_code = NOERR;
   int sys_ret_code = 0;
@@ -125,7 +125,7 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, char ** a
   
   if (argv == NULL)
   {
-    argv = (char **)default_options;
+    argv = (const char **)default_options;
     argc = default_option_count;
   }
   

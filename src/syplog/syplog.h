@@ -27,7 +27,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ typedef struct logger_def {
   @param argv arguments in standart "main" function format. Options for logger, writer and formater in one.
   @return std errors
 */
-syp_error open_log (logger glogger, const char * node_name, int argc, char ** argv);
+syp_error open_log (logger glogger, const char * node_name, int argc, const char ** argv);
 
 
 /*! Check if argument is recognized by syplog

@@ -6,11 +6,15 @@
     When logger needs to be remotely controlled, it is needed to
     start listener on it. Listener then receives messages and 
     change log level and facilities.
+
+    Simply call start_listen_udp (providing logger to be controlled)
+    to start listening loop (will fork separate thread),
+    call stop_listen to close listening socket and stop listening thread.
 */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by

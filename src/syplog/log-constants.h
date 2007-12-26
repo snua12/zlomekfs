@@ -6,7 +6,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
@@ -167,7 +167,12 @@ static inline int32_t timezone_from_string (const char * buffer, uint64_t * loca
     return -ERR_SYSTEM;
 }
 
-
+/** Print formatted string to file descriptor
+  Prepend tabs tabs to it.
+ * @param tabs how many tabs prepend to string
+ * @param fmt format as in case of printf
+ * @param ... auxiliary parameters to fmt
+*/
 static inline void tabize_print(int tabs, int fd, const char * fmt, ...)
 {
   va_list ap;
@@ -181,6 +186,12 @@ static inline void tabize_print(int tabs, int fd, const char * fmt, ...)
   va_end(ap);
 }
 
+/** Checks, if arg is present in table.
+ * @param option_table option table as given to getopt_long
+ * @param arg argument as given from command line
+    in format "--" option_table[x].name "=" value
+ * @return TRUE if argument found, FALSE otherwise
+*/
 static inline bool_t opt_table_contains (const struct option * option_table, const char * arg)
 {
   if (strlen (arg) < 2)

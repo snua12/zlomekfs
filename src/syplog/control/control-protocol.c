@@ -5,7 +5,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
@@ -33,6 +33,15 @@
 #include "syp-error.h"
 #include "control-protocol.h"
 
+/** send raw message to net socket
+ * @param socket socket file descriptor. Socket must be initialized.
+ * @param message pointer to raw message data in network byte order.
+ * @param message_len message length in bytes
+ * @param to in case of statefull protocols (tcp) NULL, 
+    in case of stateless protocols (udp) valid pointer to receiver's address
+ * @param tolen length of to (sizeof in bytes)
+ * @return ERR_BAD_PARAMS, ERR_TRUNCATED, system related errors
+*/
 syp_error send_message_to (int socket, const void * message, size_t message_len, 
   const struct sockaddr * to, socklen_t tolen)
 {
@@ -53,7 +62,18 @@ syp_error send_message_to (int socket, const void * message, size_t message_len,
    return NOERR;
 }
 
-
+/** receive raw message from net socket (blocking call)
+ * @param socket socket file descriptor. Socket must be initialized.
+ * @param message pointer to buffer, where to store received data.
+    Data will be stored in network byte order.
+ * @param message_len message buffer length in bytes (maximum bytes to receive).
+    Upon successfull receivement the number of bytes received will be stored here.
+ * @param from if not NULL and underlying protocol provides source address,
+    the sender's address will be stored here
+ * @param fromlen if not NULL, the length of from (size in bytes) will be stored here.
+    Must be NULL if from is NULL and vice versa.
+ * @return ERR_BAD_PARAMS, ERR_TRUNCATED, system related errors
+*/
 syp_error receive_message_from (int socket, void * message, ssize_t * message_len,
   struct sockaddr *from, socklen_t *fromlen)
 {
@@ -74,6 +94,15 @@ syp_error receive_message_from (int socket, void * message, ssize_t * message_le
    return NOERR;
 }
 
+/** Format message and send it.
+ * Params socket, to, tolen have the same meaning as in function send_message_to
+ * @see send_message_to
+ * @param type command enum (what to do). In local byte order.
+ * @see message_type
+ * @param data data for action - log level for set_log_level, 
+    facilities for set_facilities, etc. In local byte order.
+ * @return the same errors as send_message_to
+*/
 syp_error send_uint32_action_to (int socket, message_type type, uint32_t data,
   const struct sockaddr * to, socklen_t tolen)
 {
@@ -86,6 +115,16 @@ syp_error send_uint32_action_to (int socket, message_type type, uint32_t data,
     to, tolen);
 }
 
+/** Receive message from socket and parse it.
+ * Params socket, from and fromlen have the same meaning as in function receive_message_from
+ * @see receive_message_from
+ * @param type Valid pointer, command enum (what to do) in local byte order will be set.
+ * @see message_type
+ * @param data Valid pointer, data for action - log level for set_log_level,
+    facilities for set_facilities, etc in local byte order will be filled.
+ * @return the same errors as send_message_to 
+    + ERR_TRUNCATED in case of short message
+*/
 syp_error receive_uint32_action_from (int socket, message_type * type, 
   uint32_t * data, struct sockaddr *from, socklen_t *fromlen)
 {
@@ -107,6 +146,14 @@ syp_error receive_uint32_action_from (int socket, message_type * type,
   return NOERR;
 }
 
+/** Receive first message from socket (discards) and checks if type is correct.
+ * params socket, data, from and fromlen have the same meaning as receive_uint32_action_from
+ * @see receive_uint32_action_from
+ * @param type required type to receive. If the received message doesn't have this type,
+    ERR_BAD_MESSAGE will be returned.
+ * @return the same errors as receive_uint32_action_from 
+    + ERR_BAD_MESSAGE in case of type mismatch
+ */
 syp_error receive_typed_uint32_action_from (int socket, message_type type,
   uint32_t * data, struct sockaddr *from, socklen_t *fromlen)
 {
@@ -122,7 +169,6 @@ syp_error receive_typed_uint32_action_from (int socket, message_type type,
   
   return NOERR;
 }
-
 
 syp_error set_level_sendto (int socket, log_level_t level, 
   const struct sockaddr * to, socklen_t tolen)

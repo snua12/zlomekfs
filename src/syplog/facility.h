@@ -18,7 +18,7 @@
 
 /* Copyright (C) 2007 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
    ZFS is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
@@ -62,6 +62,12 @@ typedef uint32_t		facility_t;
 /// log message apply on data handling
 #define	FACILITY_DATA           0x10
 #define	FACILITY_DATA_NAME		"DATA"
+/// log message apply on memory
+#define	FACILITY_MEMORY      0x20
+#define	FACILITY_MEMORY_NAME		"MEMORY"
+/// log message apply on configuration
+#define	FACILITY_CONFIG      0x40
+#define	FACILITY_CONFIG_NAME		"CONFIG"
 
 /// facility for global testing
 #define FACILITY_ZFSD		0x100
@@ -92,6 +98,10 @@ static inline const char * facility_to_name (facility_t facility)
     return FACILITY_CACHE_NAME;
   if ((facility & FACILITY_DATA) > 0)
     return FACILITY_DATA_NAME;
+  if ((facility & FACILITY_MEMORY) > 0)
+    return FACILITY_MEMORY_NAME;
+  if ((facility & FACILITY_CONFIG) > 0)
+    return FACILITY_CONFIG_NAME;
 
   if (facility == FACILITY_NOTHING)
     return FACILITY_NOTHING_NAME;
@@ -118,6 +128,10 @@ static inline facility_t facility_from_string (const char * facility_name)
     return FACILITY_CACHE;
   if (strncmp (facility_name, FACILITY_DATA_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_DATA;
+  if (strncmp (facility_name, FACILITY_MEMORY_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_MEMORY;
+  if (strncmp (facility_name, FACILITY_CONFIG_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_CONFIG;
 
   if (strncmp (facility_name, FACILITY_NOTHING_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_NOTHING;
