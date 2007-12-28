@@ -200,7 +200,7 @@ class StressGenerator(Plugin):
         log.debug("wrapping method sequence %s for stress testing"
                         "from class %s",  methodSequence,  cls)
         inst = cls()
-        for i in range(0, len(methodSequence)):
+        for i in range(0, len(methodSequence) - 1):
             yield ChainedTestCase(method = methodSequence[i], instance = inst,  chain = methodSequence,  index = i)
         
         
@@ -225,6 +225,7 @@ class StressGenerator(Plugin):
             else:
                 log.debug("catched non-stress failure (%s)",  testInst)
                 return False
+    #TODO: catch last (successfull) run of stress test
 
 
 class ChainedTestCase(MethodTestCase):
