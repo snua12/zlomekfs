@@ -106,6 +106,33 @@ class DependencyGraph(object):
         except KeyError:
             self.currentNode = None
         return current
+        
+    def getShortestPath (self,  start,  end):
+        visited = []
+        queue = [(start, [])]
+        
+        while queue:
+            (node, ancestors) = queue.pop (0)
+            if node == end:
+                ancestors.append(end)
+                return ancestors
+                
+            if node in visited:
+                continue
+                
+            visited.append(node)
+            
+            newAncestors = list(ancestors)
+            newAncestors.append(node)
+            try:
+                successors = self.graph[node]
+                for (next, prob) in successors:
+                    if prob > 0:
+                        queue.append((next, newAncestors))
+            except KeyError:
+                continue
+            
+        return None
     
 
 class testLinearGraph(TestCase):
@@ -127,6 +154,32 @@ class testLinearGraph(TestCase):
         assert self.graph.next() == 'lastNode'
         assert self.graph.next() == None
         
+
+class testShortestPath(TestCase):
+    graph = None
+    def setUp(self):
+        self.graph = DependencyGraph(
+                                     {
+                                     '1': [('2', 1), ('3', 1)], 
+                                     '2': [('4', 1), ('5', 1)], 
+                                     '3': [('4', 1), ('6', 1)], 
+                                     '4': [('5', 1)], 
+                                     '5': [('6', 1)], 
+                                     '6': []
+                                     }, 
+                                     '1')
+    
+    def testTrivialpath(self):
+        assert self.graph.getShortestPath('4', '5') == ['4', '5']
+    
+    def testFullPath(self):
+        assert self.graph.getShortestPath('1', '6') == ['1', '3', '6']
+    
+    def testNonExisting(self):
+        assert self.graph.getShortestPath('2', '3') == None
+    
+    def testPartialPath(self):
+        assert self.graph.getShortestPath('2', '6') == ['2', '5', '6']
 
 class testInfiniteGraph(TestCase):
     graph = None
