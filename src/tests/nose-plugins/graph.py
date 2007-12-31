@@ -107,8 +107,11 @@ class DependencyGraph(object):
             self.currentNode = None
         return current
         
-    def getShortestPath (self,  start,  end):
-        visited = []
+    def getShortestPath (self,  start,  end,  ignoredNodes = None):
+        if ignoredNodes:
+            visited = ignoredNodes
+        else:
+            visited = []
         queue = [(start, [])]
         
         while queue:
@@ -169,7 +172,7 @@ class testShortestPath(TestCase):
                                      }, 
                                      '1')
     
-    def testTrivialpath(self):
+    def testTrivialPath(self):
         assert self.graph.getShortestPath('4', '5') == ['4', '5']
     
     def testFullPath(self):
@@ -180,6 +183,9 @@ class testShortestPath(TestCase):
     
     def testPartialPath(self):
         assert self.graph.getShortestPath('2', '6') == ['2', '5', '6']
+    
+    def testPathWithBlockedNodes(self):
+        assert self.graph.getShortestPath('1', '6', ['3']) == ['1', '2', '5', '6']
 
 class testInfiniteGraph(TestCase):
     graph = None

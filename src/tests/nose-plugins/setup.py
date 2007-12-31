@@ -18,7 +18,7 @@ setup(
     author_email = 'zouhar.jiri@gmail.com',
     description = 'Zfs support plugins for nose',
     license = 'GNU LGPL',
-    py_modules = ['zfsConfig',  'graph',  'util', 'zfsStressGenerator'],
+    py_modules = ['zfsConfig',  'graph', 'failure',  'report',  'util', 'zfsStressGenerator'],
     entry_points = {
         'nose.plugins.0.10': [
             'zfsConfig = zfsConfig:ZfsConfig', 

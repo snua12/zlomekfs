@@ -5,6 +5,8 @@ import os
 
 from optparse import OptionConflictError
 from warnings import warn
+from failure import ZfsTestFailure
+from report import ReportProxy
 
 from nose.case import FunctionTestCase,  MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
@@ -69,12 +71,15 @@ class StressGenerator(Plugin):
     maxTestLength = 100
     
     # unconfigurable variables
-    testsByClass = 1
+    testsByClass = 2
     stopProbability = 0
+    useShortestPath = True
+    retriesAfterFailure = 3
     
     # name of attribute which says if test is meta
     metaAttrName = "metaTest"
     metaTestCollector = MetaTestCollector()
+    reportProxy = ReportProxy()
 
     def __init__(self):
         Plugin.__init__(self)
@@ -123,6 +128,7 @@ class StressGenerator(Plugin):
         if not self.can_configure:
             return
         self.conf = conf
+        self.suiteClass = ContextSuiteFactory(config=conf)
         if hasattr(options, self.enableOpt):
             self.enabled = getattr(options, self.enableOpt)
         
@@ -168,47 +174,100 @@ class StressGenerator(Plugin):
             log.debug("no meta tests in class %s",  cls)
         
     
-    def generateFromClass(self,  cls,  allowedMethods):
+    def generateOneStress(self, cls, allowedMethods):
         if not allowedMethods:
-            return
+            return None
         
         methodNames = []
         for method in allowedMethods:
             methodNames.append(method.__name__)
         tests = []
         
-        for i in range(0, self.testsByClass):
-            classGraph = GraphBuilder.generateDependencyGraph(cls, methodNames)
-            methodSequence = list()
-            length = 0
-            next = classGraph.next(stopProbability = self.stopProbability)
-            
-            while length < self.maxTestLength and next:
-                methodSequence.append(getattr(cls, next))
-                length += 1
-                next = classGraph.next(self.stopProbability)
-            if methodSequence:
-                for wrapper in self.wrapMethodSequence(cls, methodSequence): 
-                    tests.append(wrapper)
+        classGraph = GraphBuilder.generateDependencyGraph(cls, methodNames)
+        methodSequence = list()
+        length = 0
+        next = classGraph.next(stopProbability = self.stopProbability)
+        
+        while length < self.maxTestLength and next:
+            methodSequence.append(getattr(cls, next))
+            length += 1
+            next = classGraph.next(self.stopProbability)
+        if methodSequence:
+            for wrapper in self.wrapMethodSequence(cls, methodSequence): 
+                tests.append(wrapper)
         
         if tests:
             log.debug("returning tests %s", tests)
-            return tests
+            suite = self.suiteClass(ContextList(tests, context=cls))
+            def runWithStopSuiteOnTestFail(self, result):
+                #NOTE: keep this in sync with nose.suite.ContextSuite.run
+                # proxy the result for myself
+                if self.resultProxy:
+                    result, orig = self.resultProxy(result, self), result
+                else:
+                    result, orig = result, result
+                try:
+                    self.setUp()
+                except KeyboardInterrupt:
+                    raise
+                except:
+                    result.addError(self, self.exc_info())
+                    return
+                try:
+                    for test in self._tests:
+                        if result.shouldStop:
+                            log.debug("stopping")
+                            break
+                        # each nose.case.Test will create its own result proxy
+                        # so the cases need the original result, to avoid proxy
+                        # chains
+                        test(orig)
+                        
+                        if getattr(test,'stopContext', None):
+                            test.stopContext = None
+                            break;
+                finally:
+                    self.has_run = True
+                    try:
+                        self.tearDown()
+                    except KeyboardInterrupt:
+                        raise
+                    except:
+                        result.addError(self, self.exc_info())
+            setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
+            return suite
         return None
+
+    
+    def generateFromClass(self,  cls,  allowedMethods):
+        tests = []
+        for i in range(0, self.testsByClass):
+            test = self.generateOneStress(cls, allowedMethods)
+            if test:
+                tests.append(test)
+        return tests
         
     def wrapMethodSequence(self, cls, methodSequence):
         log.debug("wrapping method sequence %s for stress testing"
                         "from class %s",  methodSequence,  cls)
         inst = cls()
-        for i in range(0, len(methodSequence) - 1):
+        for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
             yield ChainedTestCase(method = methodSequence[i], instance = inst,  chain = methodSequence,  index = i)
         
+    def prepareTest(self, test): #for THE onle root testcase
+        self.rootCase = test
+    
+    def retry(self, test):
+        setattr(test, 'stopContext',  False)
+        self.rootCase.addTest(test)
         
-        """
-        return FunctionTestCase(
-                                StressRun(context = cls,  methodSequence = methodSequence)
-                                )
-        """
+    def storePath(self, test):
+        pass
+       
+    def isChainedTestCase(self, test):
+        if test.__class__ is ChainedTestCase:
+            return True
+        return False
     
     def handleFailure(self, test, err):
         testInst = getattr(test, "test", None)
@@ -216,19 +275,42 @@ class StressGenerator(Plugin):
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
             return
         else:
-            if testInst.__class__ is ChainedTestCase:
+            if self.isChainedTestCase(testInst):
                 log.debug("catched stress test failure (%s)",  testInst)
                 log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
-                #TODO: register
-                #TODO: forward to prunner
+                setattr(test,  'stopContext',  True)
+                testInst.failureBuffer.append(ZfsTestFailure(test, err))
+                if len(testInst.failureBuffer) < self.retriesAfterFailure + 1:
+                    self.retry(testInst)
+                    return True
+                else:
+                    self.storePath(testInst)
+                    self.reportProxy.reportFailure(testInst.failureBuffer.pop())
+        return False
+    
+    def handleError(self, test, err):
+        return self.handleFailure(test, err)
+    
+    def addSuccess(self, test):
+        testInst = getattr(test, "test", None)
+        if not testInst:
+            log.error("unexpected attr in handleFailure,  doesn't have test attr")
+            return None
+        else:
+            if self.isChainedTestCase(testInst):
+                if testInst.failureBuffer:
+                    self.storePath(testInst)
+                    self.reportProxy.reportFailure(testInst.failureBuffer.pop())
+                chain = getattr(testInst, 'chain', None)
+                index = getattr(testInst, 'index', None)
+                if index == len(chain) - 1:
+                    self.reportProxy.reportSuccess(testInst)
                 return True
-            else:
-                log.debug("catched non-stress failure (%s)",  testInst)
-                return False
-    #TODO: catch last (successfull) run of stress test
-
+        return None
+        
 
 class ChainedTestCase(MethodTestCase):
+    failureBuffer = []
     
     def snapshotChain(self, snapshot):
         snapshot.addObject("stressChain", self.chain)
@@ -245,7 +327,11 @@ class ChainedTestCase(MethodTestCase):
         self.index = snapshot.getEntry("stressChainIndex")
         self.chain = snapshot.getObject("stressChain")
         
+    def generateSavedPath(self, file): #TODO: implement this
+        pass
+        
     def __init__(self, method, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = 0):
+        #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
         self.method = method
         self.test = test
         self.arg = arg

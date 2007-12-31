@@ -43,7 +43,7 @@ class MetaSort(object):
   def meta1(self):
     log.debug("test1")
   meta1.ancestors = [
-                     ('meta1', 15), 
+                     ('meta1', 5), 
                      ('meta2', 0), 
                      ('meta3',  20), 
                      #not necessary
@@ -67,6 +67,9 @@ class MetaSort(object):
   def failMeta(self):
     log.debug("failing at your command, sir")
     assert 0
+  failMeta.ancestors = [
+                     ('meta5', 100)
+                     ]
   
   def testDisabled(self):
     log.debug("disabled test shouldn't run")

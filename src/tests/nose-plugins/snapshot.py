@@ -93,6 +93,11 @@ class SnapshotDescription(object):
     def getEntry(self, name):
         return self.entries[name]
         
+    def delete(self):
+        shutil.rmtree(  	self.directory, ignore_errors = True)
+        self.directory = None
+        return True
+        
     def pack(self,  fileName):
         #store snapshot description version
         descVFileName = self.directory + os.sep + self.descriptionVersionFileName
@@ -240,6 +245,27 @@ class SnapshotDescription(object):
       
       return targetFileName
 
+    
+class SnapshotBuffer(object):
+    snapshots = []
+    
+    def __init__(self, temp = "/tmp",  maxSnapshots = 3):
+        self.temp = temp
+        self.maxSnapshots = maxSnapshots
+        
+    def addSnapshot(self, snapshot):
+        if self.maxSnapshots <= len(self.snapshots):
+            old = self.snapshots.pop(0)
+            old.delete()
+            
+        self.snapshots.append(snapshot)
+        return True
+        
+    def getSnapshots(self):
+        return self.snapshots
+    
+    
+    
     
 
 class SnapshotTest(TestCase):
