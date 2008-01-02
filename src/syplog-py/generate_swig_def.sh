@@ -5,7 +5,7 @@ echo '//
 //
 
 %module pysyplog
-%{
+
 
 // This tells SWIG to treat char ** as a special case
 %typemap(in) char ** {
@@ -31,10 +31,11 @@ echo '//
   }
 }
 
-// This cleans up the char ** array we malloc'd before the function call
+// This cleans up the char ** array we mallocd before the function call
 %typemap(freearg) char ** {
   free((char *) $1);
 }
+%{
 
 ' > $1
 
