@@ -52,21 +52,20 @@ syp_error send_uint32_by_function (uint32_t data,
  * @see send_uint32_by_function
  * @see set_log_level
  */
-#define set_level_udp(level,addr,port)	send_uint32_by_function(level,set_level_sendto,addr,port)
+syp_error set_level_udp (log_level_t level, const char * addr, uint16_t port);
+
 
 
 /** Send command to set facility to facility to logger listening on addr:port address
  * @see send_uint32_by_function
  * @see set_facility
  */
-#define set_facility_udp(facility,addr,port) \
-	send_uint32_by_function(facility,set_facility_sendto,addr,port)
+syp_error set_facility_udp (facility_t facility, const char * addr, uint16_t port);
 
 /** Send command to reset facility facility to logger listening on addr:port address
  * @see send_uint32_by_function
  * @see reset_facility
  */
-#define reset_facility_udp(facility,addr,port) \
-	send_uint32_by_function(facility,reset_facility_sendto,addr,port)
+syp_error reset_facility_udp (facility_t facility, const char * addr, uint16_t port);
 
 #endif	/* CONTROL_H */

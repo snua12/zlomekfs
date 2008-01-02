@@ -43,12 +43,10 @@ typedef struct listener_def
   logger target;
   /// type of communication (udp, unix socket, etc)
   communication_type type;
-  union {
     /// port on which to listen in upd mode
     uint16_t port;
     /// unix socket name
     char socket_name[FILE_NAME_LEN];
-  };
   /// socket file descriptor 
   int socket;
   /// thread id which performs listening loops

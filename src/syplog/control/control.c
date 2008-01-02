@@ -86,3 +86,18 @@ FINISHING:
     
   return ret_code;
 }
+
+syp_error set_level_udp (log_level_t level, const char * addr, uint16_t port)
+{
+  return send_uint32_by_function (level, set_level_sendto, addr,port);
+}
+
+syp_error set_facility_udp (facility_t facility, const char * addr, uint16_t port)
+{
+  return send_uint32_by_function (facility, set_facility_sendto, addr, port);
+}
+
+syp_error reset_facility_udp (facility_t facility, const char * addr, uint16_t port)
+{
+  return send_uint32_by_function (facility, reset_facility_sendto, addr, port);
+}
