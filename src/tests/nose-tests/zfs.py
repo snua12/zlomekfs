@@ -2,55 +2,98 @@ from snapshot import SnapshotDescription
 from subprocess import Popen, PIPE
 import signal
 import pysyplog
+import tarfile
 import tempfile
+import shutil
 
 class ZfsProxy(object):
+    usedCompression = ""
+    running = False
     zfsRoot = "/mnt/zfs"
-    zfsCache = "/var/cache/zfs" # TODO: use in zfs
     tempDir = "/tmp/zfsTestProxyTemp"
+    zfsCache = tempDir + os.sep + "cache"
     logFileName = "zfsd.log"
+    config = tempDir + os.sep + "etc" + os.sep + "config"
     
     running = False
-    def __init__(self,  zfsRoot = None,  zfsCache = None, tempDir = None,  logger = None):
+    def __init__(self, metaTar, zfsRoot = None,  tempDir = None,   logger = None):
         if zfsRoot:
             self.zfsRoot = zfsRoot
         if zfsCache:
             self.zfsCache = zfsCache
+        if config:
+            self.config = config
             
         self.logger = logger
+        
+        self.metaTar = metaTar
         
         if tempDir:
           self.tempDir = tempDir
         else:
           self.tempDir =  tempfile.mkdtemp(prefix = "zfsTestTemp")
-    def runZfs(self):
+          
+    def installModules(self):
         modprobe = subprocess.Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
                                 stderr=PIPE, universal_newlines=True)
         modprobe.wait()
         if modprobe.returncode != 0:
             raise Exception(modprobe.stderr.readlines()) #FIXME: accurate exception
         
+    def removeModules(self):
+        Popen(args=('rmmod', '-f', 'fuse'))
+        
+    def unpackData(self):
+        tarFile = tarfile.open(name = self.metaTar, 
+                               mode = 'r' + self.usedCompression)
+        tarFile.extractall(self.tempDir)
+        tarFile.close()
+        
+    def cleanup(self): #TODO: cleanup without tempDir removal
+        shutil.rmtree(self.tempDir, True)
+        os.mkdir(self.tempDir)
+        
+    def connectControl(self):
+        pass
+        
+    def disconnectControl(self):
+        pass
+        
+    def changeZfsLogLevel(self, loglevel):
+        if not self.running:
+            raise Exception("zfs not running") #TODO: accurate exception
+        
+        pysyplog.set_level_udp(loglevel, None, 0)
+        
+    def runZfs(self):
+        self.unpackData()
+        self.installModules()
+        loglevel = pysyplog.DEFAULT_LOG_LEVEL
+        if self.logger:
+            loglevel = pysyplog.get_log_level(logger)
         self.zfs = Popen(args=('zfsd',
-                                '-o', 'loglevel=' + str(pysyplog.get_log_level(logger)),
+                                '-o', 'loglevel=' + str(loglevel) +
+                                ',config=' + self.config, 
                                 '-d',
                                 "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),
                                 "--" + str(pysyplog.PARAM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATER_NAME),
                                 "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + self.tempDir + os.sep + ZfsProxy.logFileName,
-                                '-f', self.zfsRoot),
-                                cwd='/tmp/',
+                                self.zfsRoot),
+                                cwd='self.tempDir',
                                 stdout=PIPE, stderr=PIPE, universal_newlines=True) # FIXME: core dump reporting
         
         self.running = True
+        self.connectControl()
         
     def stopZfs(self):
         #TODO: check status
+        self.disconnectControl()
         os.kill(self.zfs.pid, signal.SIGTERM)
         Popen(args=('umount', '-f', self.zfsRoot))
-        Popen(args=('rmmod', '-f', 'fuse'))
         self.running = False
+        self.removeModules()
+        self.cleanup()
         
-    def connectControl(self):
-        pass
     def snapshot(self, snapshot):
         #snapshot cache
         snapshot.addDir(name = 'zfsCache',  
@@ -93,9 +136,10 @@ class ZfsTest(object):
         config = getattr(self, zfsConfig.zfsConfig.configAttrName)
         self.zfsRoot = config.get("global", "zfsRoot")
         self.zfsCache = config.get("global", "zfsCache")
+        self.zfsMetaTar = config.get("global", "zfsMetaTar")
         
     def setup_class(self):
-        self.zfs = ZfsProxy(zfsRoot = self.zfsRoot,  zfsCache = self.zfsCache)
+        self.zfs = ZfsProxy(zfsRoot = self.zfsRoot,  metaTar = self.zfsMetaTar)
     
     def setup(self):
         self.zfs.runZfs()
