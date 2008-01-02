@@ -1181,12 +1181,14 @@ process_line_volume (char *line, const char *file_name, unsigned int line_num,
 	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Volume name must not be empty\n",
 		   file_name, line_num);
 	}
+#ifdef	DISABLE_LOCAL_PATH
       else if (parts[2].str[0] != '/')
 	{
 	  message (LOG_ERROR, FACILITY_CONFIG,
 		   "%s:%d: Volume mountpoint must be an absolute path\n",
 		   file_name, line_num);
 	}
+#endif
       else if (vid == VOLUME_ID_CONFIG && saved_vid == 0)
 	{
 	  volume vol;
