@@ -24,6 +24,8 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
+#include "log-struct.h"
+
 /// user readable name of user readable formater (used also as parameter when creating new formater)
 #define	USER_READABLE_FORMATER_NAME	"user"
 
