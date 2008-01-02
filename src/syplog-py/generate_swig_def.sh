@@ -35,6 +35,9 @@ echo '//
 %typemap(freearg) char ** {
   free((char *) $1);
 }
+
+%include "stdint.i"
+
 %{
 
 ' > $1
