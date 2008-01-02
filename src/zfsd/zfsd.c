@@ -292,7 +292,7 @@ enum
 };
 
 static const struct fuse_opt main_options[] = {
-  FUSE_OPT_KEY ("config=", 'f'),
+  FUSE_OPT_KEY ("config=", 'c'),
   FUSE_OPT_KEY ("node=", 'n'),
   FUSE_OPT_KEY ("-v", 'v'),
   FUSE_OPT_KEY ("loglevel=", 'l'),
@@ -314,7 +314,7 @@ static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
 
   switch (key)
     {
-    case 'f':
+    case 'c':
       free (config_file);
       config_file = xstrdup (strchr (arg, '=') + 1);
       return 0;
