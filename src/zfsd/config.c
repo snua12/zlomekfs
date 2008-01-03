@@ -405,12 +405,14 @@ read_local_volume_info (string *path, bool reread)
 		       "%s:%d: Volume ID must not be 0 or %" PRIu32 "\n",
 		       file, line_num, (uint32_t) -1);
 	    }
+#ifdef	DISABLE_LOCAL_PATH
 	  else if (parts[1].str[0] != '/')
 	    {
 	      message (LOG_ERROR, FACILITY_CONFIG,
 		       "%s:%d: Local path must be an absolute path\n",
 		       file, line_num);
 	    }
+#endif
 	  else
 	    {
 	      zfsd_mutex_lock (&fh_mutex);
