@@ -1,10 +1,15 @@
 from snapshot import SnapshotDescription
 from subprocess import Popen, PIPE
+import subprocess
 import signal
 import pysyplog
 import tarfile
 import tempfile
+import os
 import shutil
+
+import graph
+import zfsConfig
 
 class ZfsProxy(object):
     usedCompression = ""
@@ -19,11 +24,7 @@ class ZfsProxy(object):
     def __init__(self, metaTar, zfsRoot = None,  tempDir = None,   logger = None):
         if zfsRoot:
             self.zfsRoot = zfsRoot
-        if zfsCache:
-            self.zfsCache = zfsCache
-        if config:
-            self.config = config
-            
+           
         self.logger = logger
         
         self.metaTar = metaTar
@@ -72,15 +73,15 @@ class ZfsProxy(object):
         if self.logger:
             loglevel = pysyplog.get_log_level(logger)
         self.zfs = Popen(args=('zfsd',
-                                '-o', 'loglevel=' + str(loglevel) +
-                                ',config=' + self.config, 
                                 '-d',
                                 "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),
-                                "--" + str(pysyplog.PARAM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATER_NAME),
+                                "--" + str(pysyplog.PARAM_MEDIUM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATER_NAME),
                                 "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + self.tempDir + os.sep + ZfsProxy.logFileName,
+                                '-o', 'loglevel=' + str(loglevel) +
+                                ',config=' + self.config, 
                                 self.zfsRoot),
-                                cwd='self.tempDir',
-                                stdout=PIPE, stderr=PIPE, universal_newlines=True) # FIXME: core dump reporting
+                                cwd = self.tempDir,
+                                stdout = PIPE, stderr = PIPE, universal_newlines=True) # FIXME: core dump reporting
         
         self.running = True
         self.connectControl()
@@ -132,13 +133,13 @@ class ZfsProxy(object):
 
 class ZfsTest(object):
 
-    def __init__(self):
-        config = getattr(self, zfsConfig.zfsConfig.configAttrName)
+    @classmethod
+    def setup_class(self):
+        config = getattr(self, zfsConfig.ZfsConfig.configAttrName)
         self.zfsRoot = config.get("global", "zfsRoot")
         self.zfsCache = config.get("global", "zfsCache")
         self.zfsMetaTar = config.get("global", "zfsMetaTar")
-        
-    def setup_class(self):
+
         self.zfs = ZfsProxy(zfsRoot = self.zfsRoot,  metaTar = self.zfsMetaTar)
     
     def setup(self):
@@ -148,6 +149,7 @@ class ZfsTest(object):
         #TODO: raise exception if zfs is down
         self.zfs.stopZfs()
         
+    @classmethod
     def teardown_class(self):
         self.zfs = None
     
