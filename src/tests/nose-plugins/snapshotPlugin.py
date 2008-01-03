@@ -120,15 +120,22 @@ class SnapshotPlugin(Plugin):
         return "(no help available)"
     
     def begin(self):
-        os.makedirs(self.snapshotsRootDir)
+        if not os.path.exists(self.snapshotsRootDir):
+            os.makedirs(self.snapshotsRootDir)
+        if not os.path.isdir(self.snapshotsRootDir):
+            raise Exception("Snapshots root dir (%s) can't be created" 
+                            % self.snapshotsRootDir)
     
     def snapshotTest(self, test):
-        toDir = tempfile.mkdtemp()
+        toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir)
-        if hasattr(test.test, "snapshot"):
-            test.test.snapshot(snapshot)
+        if hasattr(test.test, "inst") and hasattr(test.test.inst, "snapshot"):
+            log.debug("snapshotting %s",  str(test))
+            test.test.inst.snapshot(snapshot)
         else:
-            snapshot.addObject(name = str(test.test), object = test.test,  type = TYPE_PICKLED_TEST)
+            log.debug("can't snapshot %s. doesn't define snapshot() function",  str(test))
+            print ("trying to snapshot %s of type %s" %(test,  test.__class__))
+            #snapshot.addObject(name = str(test.test), object = test,  type = SnapshotDescription.TYPE_PICKLED_TEST)
         
         if hasattr(test.test, "snapshotBuffer"):
             if len(test.test.snapshotBuffer) >= self.maxSnapshots:
@@ -148,3 +155,9 @@ class SnapshotPlugin(Plugin):
     def handleFailure(self, test, err):
         self.snapshotTest(test)
         
+    def addSuccess(self, test):
+    #TODO: make sure that this won't delete snapshots used in stressGenerator
+        if hasattr(test.test, "snapshotBuffer"):
+            for snapshot in test.test.snapshotBuffer:
+                snapshot.delete()
+

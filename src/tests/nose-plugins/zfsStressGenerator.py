@@ -7,6 +7,7 @@ from optparse import OptionConflictError
 from warnings import warn
 from failure import ZfsTestFailure
 from report import ReportProxy
+from snapshot import SnapshotDescription
 
 from nose.case import FunctionTestCase,  MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
@@ -291,7 +292,7 @@ class StressGenerator(Plugin):
     def handleError(self, test, err):
         return self.handleFailure(test, err)
     
-    def addSuccess(self, test):
+    def afterTest(self, test):
         testInst = getattr(test, "test", None)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
@@ -313,19 +314,25 @@ class ChainedTestCase(MethodTestCase):
     failureBuffer = []
     
     def snapshotChain(self, snapshot):
-        snapshot.addObject("stressChain", self.chain)
+        stringChain = []
+        for meth in self.chain:
+            stringChain.append(str(meth))
+        snapshot.addObject("stressChain", stringChain)
         snapshot.addEntry("stressChainIndex", 
                           (SnapshotDescription.TYPE_INT, self.index))
         
-        if getattr(self, "snapshotInstFunc", None):
-            self.snapshotInstFunc(self.inst, snapshot)
+        if getattr(self.inst, "snapshotInstFunc", None):
+            self.inst.snapshotInstFunc(snapshot)
         
     def resumeChain(self, snapshot):
-        if getattr(self, "resumeInstFunc", None):
-            self.snapshotInstFunc(self.inst, snapshot)
+        if getattr(self.inst, "resumeInstFunc", None):
+            self.inst.snapshotInstFunc(self.inst, snapshot)
             
         self.index = snapshot.getEntry("stressChainIndex")
-        self.chain = snapshot.getObject("stressChain")
+        stringChain = snapshot.getObject("stressChain")
+        self.chain = []
+        for methodName in stringChain:
+            self.chain.append(getattr(self.inst, methodName))
         
     def generateSavedPath(self, file): #TODO: implement this
         pass
@@ -342,11 +349,13 @@ class ChainedTestCase(MethodTestCase):
         self.inst = instance
         
         # redirect 
-        self.snapshotInstFunc = getattr(self.inst, "snapshot", None)
-        setattr(self.inst, "snapshot", self.snapshotChain)
+        if not hasattr(self.inst, "snapshotInstFunc"):
+            setattr(self.inst, "snapshotInstFunc", getattr(self.inst, "snapshot", None))
+            setattr(self.inst, "snapshot", self.snapshotChain)
         
-        self.resumeInstFunc = getattr(self.inst, "resume", None)
-        setattr(self.inst, "resume", self.resumeChain)
+        if not hasattr(self.inst, "resumeInstFunc"):
+            setattr(self.inst, "resumeInstFunc", getattr(self.inst, "resume", None))
+            setattr(self.inst, "resume", self.resumeChain)
         
         if self.test is None:
             method_name = self.method.__name__

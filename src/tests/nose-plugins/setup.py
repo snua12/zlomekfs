@@ -13,16 +13,17 @@ from setuptools import setup
 
 setup(
     name='Zfs plugins',
-    version='0.1',
+    version='0.2',
     author='Jiri Zouhar',
     author_email = 'zouhar.jiri@gmail.com',
     description = 'Zfs support plugins for nose',
     license = 'GNU LGPL',
-    py_modules = ['zfsConfig',  'graph', 'failure',  'report',  'util', 'zfsStressGenerator'],
+    py_modules = ['zfsConfig', 'snapshotPlugin', 'graph', 'failure',  'report', 'snapshot',  'util', 'zfsStressGenerator'],
     entry_points = {
         'nose.plugins.0.10': [
             'zfsConfig = zfsConfig:ZfsConfig', 
-            'zfsStressGeerator = zfsStressGenerator:StressGenerator'
+            'zfsStressGeerator = zfsStressGenerator:StressGenerator', 
+            'snapshotPlugin = snapshotPlugin:SnapshotPlugin'
             ]
         }
 
