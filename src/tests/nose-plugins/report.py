@@ -22,8 +22,8 @@ class ReportProxy(object):
         file.write("test %s failed\n" % str(failure.test))
         file.write(str(failure.failure))
         file.close()
-        if hasattr(failure.test, "snapshotBuffer"):
-            for snapshot in failure.test.snapshotBuffer:
-                snapshot.pack(targetDir + os.sep + "failureSnapshot-" + str(failure) + "-" + id(snapshot))
+        if hasattr(failure.test, "test") and hasattr(failure.test.test, "snapshotBuffer"):
+            for snapshot in failure.test.test.snapshotBuffer:
+                snapshot.pack(self.targetDir + os.sep + "failureSnapshot-" + str(failure) + "-" + str(id(snapshot)))
         
         
