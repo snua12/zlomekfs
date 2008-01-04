@@ -20,7 +20,7 @@ class ZfsConfig(Plugin):
     enableOpt = None
     name = "ZfsConfig"
     # to be sure to run AFTER attrib plugin
-    score = 0
+    score = 10
     
     # option string for passing config file name to plugin
     configFileOpt = "--zfsConfig"

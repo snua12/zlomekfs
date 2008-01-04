@@ -16,9 +16,9 @@ class ZfsProxy(object):
     running = False
     zfsRoot = "/mnt/zfs"
     tempDir = "/tmp/zfsTestProxyTemp"
-    zfsCache = tempDir + os.sep + "cache"
+    zfsCacheDir = "cache"
     logFileName = "zfsd.log"
-    config = tempDir + os.sep + "etc" + os.sep + "config"
+    config = "etc" + os.sep + "config"
     
     running = False
     def __init__(self, metaTar, zfsRoot = None,  tempDir = None,   logger = None):
@@ -78,7 +78,7 @@ class ZfsProxy(object):
                                 "--" + str(pysyplog.PARAM_MEDIUM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATER_NAME),
                                 "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + self.tempDir + os.sep + ZfsProxy.logFileName,
                                 '-o', 'loglevel=' + str(loglevel) +
-                                ',config=' + self.config, 
+                                ',config=' + self.tempDir + os.sep + self.config, 
                                 self.zfsRoot),
                                 cwd = self.tempDir,
                                 stdout = PIPE, stderr = PIPE, universal_newlines=True) # FIXME: core dump reporting
@@ -97,27 +97,34 @@ class ZfsProxy(object):
         
     def snapshot(self, snapshot):
         #snapshot cache
-        snapshot.addDir(name = 'zfsCache',  
-                        sourceDirName = self.zfsCache,
+        try:
+            snapshot.addDir(name = 'zfsCache',  
+                        sourceDirName = self.tempDir + os.sep + self.zfsCacheDir,
                         type = SnapshotDescription.TYPE_ZFS_CACHE)
+        except OSError: #can arise before first run
+            pass
         #snapshot log
-        snapshot.addFile(name = 'zfsd.log',
-                         sourceFileName = self.tempDir + os.sep + logFileName,
+        #NOTE: this could fail when zfsd doesn't start yet
+        try:
+            snapshot.addFile(name = 'zfsd.log',
+                         sourceFileName = self.tempDir + os.sep + self.logFileName,
                          type = SnapshotDescription.TYPE_ZFS_LOG)
-        #FIXME : snapshot zfs process
-        (commandFile,  commandFileName) = shutil.mkstemp(prefix = 'gdbCommand')
-        commandFile.write('gcore ' + self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid) + '\n')
-        commandFile.write('quit')
-        commandFile.close()
-        gdb = subprocess.Popen(args=('gdb', '-p',  str(self.zfs.pid),  '-x',  commandFileName ), stdout=PIPE, 
-                                stderr=PIPE, universal_newlines=True)
-        gdb.wait()
-        if gdb.returncode != 0:
-            raise Exception(gdb.stderr.readlines()) #FIXME: accurate exception
-        snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core' + str(self.zfs.pid), 
-                         type = SnapshotDescription.TYPE_ZFS_GCORE)
-                         
+        except IOError:
+            pass
+
         if self.running:
+        #snapshot zfs process
+            if not self.zfs.returncode:
+                gdb = subprocess.Popen(args=('gdb', '-p',  str(self.zfs.pid), ), stdin = PIPE, 
+                                        stdout=PIPE, stderr=PIPE, universal_newlines=True)
+                gdb.stdin.write('gcore ' + self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid) + '\n')
+                gdb.stdin.write('quit' + '\n')
+                gdb.wait()
+                if gdb.returncode != 0:
+                    raise Exception(gdb.stderr.readlines()) #FIXME: accurate exception
+                snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid), 
+                                 type = SnapshotDescription.TYPE_ZFS_GCORE)
+                         
             #set as unresumable
             snapshot.addEntry('canResume', 
                           (SnapshotDescription.TYPE_BOOL, False))
@@ -160,7 +167,7 @@ class ZfsTest(object):
         snapshot.addObject("zfsProxy", self.zfs)
         
         # snapshot config
-        config = getattr(self, zfsConfig.zfsConfig.configAttrName,  None)
+        config = getattr(self, zfsConfig.ZfsConfig.configAttrName,  None)
         if config:
             snapshot.addConfig(config)
         #TODO: snapshot script (it may change)
@@ -171,7 +178,7 @@ class ZfsTest(object):
             config = snapshot.getConfig()
         except KeyError:
             pass
-        setattr(self, zfsConfig.zfsConfig.configAttrName,  config)
+        setattr(self, zfsConfig.ZfsConfig.configAttrName,  config)
         
         self.zfs = snapshot.getObject("zfsProxy")
         

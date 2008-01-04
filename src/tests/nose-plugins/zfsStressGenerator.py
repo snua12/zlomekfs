@@ -60,7 +60,7 @@ class StressGenerator(Plugin):
     name = "ZfsStressGenerator"
 
     # to be sure to run AFTER attrib plugin
-    score = 0
+    score = 6
     
     # maxTestLength related variables
     # option string for passing max stress test length to plugin

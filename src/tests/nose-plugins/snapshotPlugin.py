@@ -21,7 +21,7 @@ class SnapshotPlugin(Plugin):
     enableOpt = None
     name = "SnapshotPlugin"
     # to be sure to run AFTER attrib plugin and before zfsStressGenerator
-    score = 1
+    score = 8
     
     # option string for passing maximum number of snapshots (last N will be preserved)
     maxSnapshotsOpt = "--maxSnapshots"

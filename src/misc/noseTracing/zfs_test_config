@@ -3,7 +3,5 @@
 readOnly: no
 zfsRoot: /mnt/zfs
 testRoot: /tmp
-zfsCache=/var/cache/zfs
-zfsConfigFile=/etc/zfs/config
 zfsMetaTar=zfsMeta.tar
 
