@@ -127,6 +127,8 @@ class SnapshotPlugin(Plugin):
                             % self.snapshotsRootDir)
     
     def snapshotTest(self, test):
+	if not hasattr(test, "test"): #not normal test, possibly suite
+		return
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir)
         if hasattr(test.test, "inst") and hasattr(test.test.inst, "snapshot"):

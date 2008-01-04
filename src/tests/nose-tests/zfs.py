@@ -122,12 +122,19 @@ class ZfsProxy(object):
                 gdb.wait()
                 if gdb.returncode != 0:
                     raise Exception(gdb.stderr.readlines()) #FIXME: accurate exception
-                snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid), 
+		try:
+                    snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid), 
                                  type = SnapshotDescription.TYPE_ZFS_GCORE)
+                except IOError:
+                    pass #FIXME: this should not happen
                          
             #set as unresumable
             snapshot.addEntry('canResume', 
                           (SnapshotDescription.TYPE_BOOL, False))
+        if hasattr(self,"zfs"):
+                snapshot.addObject("zfsStderr",self.zfs.stderr.readlines())
+                snapshot.addObject("zfsStdout",self.zfs.stdout.readlines())
+
         
     def resume(self, snapshot):
         try:
@@ -144,7 +151,6 @@ class ZfsTest(object):
     def setup_class(self):
         config = getattr(self, zfsConfig.ZfsConfig.configAttrName)
         self.zfsRoot = config.get("global", "zfsRoot")
-        self.zfsCache = config.get("global", "zfsCache")
         self.zfsMetaTar = config.get("global", "zfsMetaTar")
 
         self.zfs = ZfsProxy(zfsRoot = self.zfsRoot,  metaTar = self.zfsMetaTar)
@@ -165,6 +171,7 @@ class ZfsTest(object):
         self.zfs.snapshot(snapshot)
         
         snapshot.addObject("zfsProxy", self.zfs)
+	snapshot.addObject("test",self)
         
         # snapshot config
         config = getattr(self, zfsConfig.ZfsConfig.configAttrName,  None)
