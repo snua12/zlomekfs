@@ -25,6 +25,13 @@ TIME_ZONE = 'Europe/Prague'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
+ugettext = lambda s: s
+
+LANGUAGES = (
+    ('cs', ugettext('Czech')),
+    ('en', ugettext('English')),
+)
+
 LANGUAGE_CODE = 'cs-cz'
 
 SITE_ID = 1
@@ -60,11 +67,17 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',
 )
+
+SESSION_ENGINE = "django.contrib.sessions.backends.file"
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_FILE_PATH = '/tmp'
 
 ROOT_URLCONF = 'TestResultStorage.urls'
 
@@ -76,6 +89,7 @@ TEMPLATE_DIRS = (
 
 INSTALLED_APPS = (
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
