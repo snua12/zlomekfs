@@ -1,30 +1,59 @@
 from failure import ZfsTestFailure
+
 import os
+import datetime
+import uuid
+import socket
+
+
+from django.db import models
+from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
 
 class ReportProxy(object):
-    targetDirEnvOpt = "RESULT_DIR"
-    targetDir = "/tmp"
-    
-    successFile = "successess"
-    failFile = "failures"
     def __init__(self):
-        try:
-            self.targetDir =  os.environ[ReportProxy.targetDirEnvOpt]
-        except KeyError:
-            pass
+        self.batch = BatchRun()
+        self.batch.startTime = datetime.datetime.now()
+        self.batch.batchUuid = uuid.uuid1()
+#        self.batch.duration = 0
+        self.batch.description = "report.py direct generated batch"
+        self.batch.machineName = socket.gethostname()
+#        self.batch.repositoryRevision = 0
         
+        self.batch.save()
+        if not self.batch.id:
+            print ("Error: batch id is null")
+    
+    def generateDefaultRun(self, test):
+        run = TestRun()
+        run.batchId = self.batch
+        run.startTime = datetime.datetime.now()
+        run.runUuid = uuid.uuid1()
+        run.testName = str(test.test)
+        run.duration = 15
+        
+        return run
+    
     def reportSuccess(self, test):
-        file = open(self.targetDir + os.sep + self.successFile, "a")
-        file.write("test %s successed\n\n" % str(test))
-        file.close()
+        run = self.generateDefaultRun(test)
+        run.result = 0
+        
+        run.save()
+    
     def reportFailure(self, failure):
-        file = open(self.targetDir + os.sep + self.failFile, "a")
-        file.write("\ttest %s failed\n" % str(failure.test))
-        file.write(str(failure.failure))
+        run = self.generateDefaultRun(failure.test)
+        run.result = 1
+        
+        run.save()
+        
+        runData = TestRunData()
+        runData.runId = run.id
+        runData.backtrace = str(failure.failure[3])
+        runData.errText = str(failure.failure[:2])
+        
         if hasattr(failure.test, "test") and hasattr(failure.test.test, "snapshotBuffer"):
             for snapshot in failure.test.test.snapshotBuffer:
                 snapshot.pack(self.targetDir + os.sep + "failureSnapshot-" + str(failure) + "-" + str(id(snapshot)))
-                file.write("\tappended snapshot failureSnapshot-%s\n" % str(failure) + "-" + str(id(snapshot)))
-        file.write("\n")
-        file.close()
+                runData.dumpFile = self.targetDir + os.sep + "failureSnapshot-" + str(failure) + "-" + str(id(snapshot))
         
+        
+        runData.save()
