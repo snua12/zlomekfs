@@ -7,8 +7,10 @@ import logging
 
 import os
 import shutil
+import zfsConfig
 from random import Random
 from nose import config
+from zfs import ZfsTest
 
 log = logging.getLogger ("nose.testRun")
 
@@ -47,29 +49,14 @@ def tryWrite(file,  data):
   except:
     return False
 
-class testFSOp(object):
+class testFSOp(ZfsTest):
   disabled = False
-  __test__ = False
   zfs = True
   
   
   
   def __init__(self):
-    readOnly = config.config.getOption("readOnly")
-    log.debug( "config.readOnly is %s", readOnly)
-    
-    testSetting = config.config.getOption("testSetting")
-    log.debug( "config.testSetting is %s", testSetting)
-  
-  ##
-  # "safe" file for checking
-  safe_file = None
-  safe_file_name = "/tmp/testfile" 
-  
-  ##
-  # file on test
-  test_file = None
-  test_file_name = "./testfile"
+    ZfsTest.__init__(self)
   
   ##
   # suffix to append when try to rename file
@@ -96,10 +83,20 @@ class testFSOp(object):
   data_vector  = []
   data_vector_length = 1024
   
+  safe_file = None
+  test_file = None
+  
   ##
   # setup before every test method
   @classmethod
   def setup_class(self):
+    super(testFSOp,self).setup_class()
+    config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
+    self.safeRoot = config.get("global","testRoot")
+    self.safe_file_name = self.safeRoot + os.sep + "testfile"
+    
+    self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+ 
     self.generator.seed()
     self.clean_files()
     self.randomize_data()
@@ -108,6 +105,7 @@ class testFSOp(object):
   # cleanup after every test method
   @classmethod
   def teardown_class(self):
+    super(testFSOp,self).teardown_class()
     self.clean_files()
   
   ##
@@ -139,11 +137,9 @@ class testFSOp(object):
     
   def testTouch(self):
     assert tryTouch(self.safe_file_name) == tryTouch(self.test_file_name)
-  testTouch.disabled = config.config.getOption("readOnly") == True
 
   def testUnlink(self):
     assert tryUnlink(self.safe_file_name) == tryUnlink(self.test_file_name)
-  testUnlink.disabled = config.config.getOption("readOnly")
   
   def testRename(self):
     safeResult = False
@@ -158,7 +154,6 @@ class testFSOp(object):
       testResult = True
     
     assert safeResult == testResult
-  testRename.disabled = config.config.getOption("readOnly")
   
   def testOpen(self):
     safeResult = False
@@ -207,7 +202,6 @@ class testFSOp(object):
   def testWrite(self):
     assert tryWrite(self.safe_file,  self.data_vector) == \
            tryWrite(self.test_file,  self.data_vector)
-  testWrite.disabled = config.config.getOption("readOnly")
 
   def testFlush(self):
     return
