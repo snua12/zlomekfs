@@ -10,6 +10,8 @@ from django.db import models
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
 
 class ReportProxy(object):
+    targetDir = '/tmp'
+
     def __init__(self):
         self.batch = BatchRun()
         self.batch.startTime = datetime.datetime.now()
@@ -46,9 +48,11 @@ class ReportProxy(object):
         run.save()
         
         runData = TestRunData()
-        runData.runId = run.id
-        runData.backtrace = str(failure.failure[3])
-        runData.errText = str(failure.failure[:2])
+        runData.runId = run
+	import traceback
+        runData.backtrace = str(traceback.format_tb(failure.failure[2]))
+        runData.errText = str(traceback.format_exception_only(
+                failure.failure[0], failure.failure[1]))
         
         if hasattr(failure.test, "test") and hasattr(failure.test.test, "snapshotBuffer"):
             for snapshot in failure.test.test.snapshotBuffer:

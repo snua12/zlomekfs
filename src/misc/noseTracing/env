@@ -2,7 +2,7 @@
 
 export ZFS_CONFIG_ROOT=`pwd`
 
-export PYTHONPATH=`pwd`:`pwd`/../../tests/nose-tests:`pwd`/../../syplog-py:/globalhome/loki/skola/python/nose
+export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`:`pwd`/../..:/../../tests/nose-tests:`pwd`/../../syplog-py:/globalhome/loki/skola/python/nose
 export PATH=$PATH:/globalhome/loki/skola/python/nose/bin
 
 export NOSE_TESTMATCH='((?:^|[\\b_\\./-])[Mm]eta)|((?:^|[\\b_\\./-])[Tt]est)'
@@ -13,6 +13,8 @@ export ZFS_CONFIG_FILE=$ZFS_CONFIG_ROOT/zfs_test_config
 
 export NOSE_WITH_ZFSSTRESSGENERATOR=yes
 export ZFS_STRESS_TEST_LENGTH=50
+
+export DJANGO_SETTUP_MODULE=setup
 
 export NOSE_WITH_SNAPSHOTPLUGIN=yes
 

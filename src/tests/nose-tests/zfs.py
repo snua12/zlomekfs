@@ -69,7 +69,7 @@ class ZfsProxy(object):
     def runZfs(self):
         self.unpackData()
         self.installModules()
-        loglevel = pysyplog.DEFAULT_LOG_LEVEL
+        loglevel = pysyplog.LOG_LOOPS
         if self.logger:
             loglevel = pysyplog.get_log_level(logger)
         self.zfs = Popen(args=('zfsd',
@@ -132,8 +132,8 @@ class ZfsProxy(object):
             snapshot.addEntry('canResume', 
                           (SnapshotDescription.TYPE_BOOL, False))
         if hasattr(self,"zfs"):
-                snapshot.addObject("zfsStderr",self.zfs.stderr.readlines())
-                snapshot.addObject("zfsStdout",self.zfs.stdout.readlines())
+                snapshot.addObject("zfsStderr",self.zfs.stderr)#TODO: don't block waiting
+                snapshot.addObject("zfsStdout",self.zfs.stdout)
 
         
     def resume(self, snapshot):
