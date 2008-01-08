@@ -283,12 +283,14 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
       {
         goto FINISHING;
       }
+      break;
     case SHM_MEDIUM:
       ret_code = open_shm_medium (target, argc, argv);
       if (ret_code != NOERR)
       {
         goto FINISHING;
-      }      break;
+      }
+      break;
     default:
       break;
   }
