@@ -578,6 +578,7 @@ main (int argc, char **argv)
 
   cleanup_data_structures ();
   disable_sig_handlers ();
+  zfs_closelog();
 
   return ret;
 }

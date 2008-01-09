@@ -34,10 +34,12 @@
 
 #include "node.h"
 #include "syplog.h"
+#include "control/listener.h"
 #include "pthread.h"
 
 
 struct logger_def syplogger;
+struct listener_def control;
 
 void zfs_openlog(int  argc, const char ** argv)
 {
@@ -54,6 +56,15 @@ void zfs_openlog(int  argc, const char ** argv)
   {
     printf ("could not initialize logger %d: %s\n", ret_code,
             syp_error_to_string (ret_code));
+    return;
+  }
+
+  ret_code = start_listen_udp (&control, &syplogger,
+    DEFAULT_COMMUNICATION_PORT);
+  if(ret_code != NOERR)
+  {
+    message(LOG_WARNING,FACILITY_CONFIG | FACILITY_LOG, "Can't initialize listen loop %d:%s\n",
+      ret_code, syp_error_to_string(ret_code));
   }
 }
 
@@ -72,6 +83,7 @@ void update_node_name (void)
 
 void zfs_closelog(void)
 {
+  stop_listen (&control);
   close_log (&syplogger);
 }
 
