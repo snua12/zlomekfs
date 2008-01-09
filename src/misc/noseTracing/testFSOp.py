@@ -11,8 +11,10 @@ import zfsConfig
 from random import Random
 from nose import config
 from zfs import ZfsTest
+from traceback import format_exc
+import pickle
 
-log = logging.getLogger ("nose.testRun")
+log = logging.getLogger ("nose.testFSOp")
 
 def tryTouch(fileName):
   try:
@@ -20,6 +22,7 @@ def tryTouch(fileName):
     handle.touch()
     return safeHandle.isFile()
   except:
+    log.debug(format_exc())
     return False
 
 def tryUnlink(fileName):
@@ -27,27 +30,31 @@ def tryUnlink(fileName):
     os.unlink(fileName)
     return True
   except:
-    return False
+   log.debug(format_exc())
+   return False
 
 def tryRename(originalFileName,  newFileName):
   try:
     os.rename(originalFileName,  newFileName)
     return True
   except:
-    return False
+   log.debug(format_exc())
+   return False
 
 def tryRead(file):
   try:
     return pickle.load(file)
   except:
-    return None
+   log.debug(format_exc())
+   return None
     
 def tryWrite(file,  data):
   try:
     pickle.dump(data,  file)
     return True
   except:
-    return False
+   log.debug(format_exc())
+   return False
 
 class testFSOp(ZfsTest):
   disabled = False
@@ -85,6 +92,7 @@ class testFSOp(ZfsTest):
   
   safe_file = None
   test_file = None
+  safe_subdir_name = 'safedir'
   
   ##
   # setup before every test method
@@ -93,12 +101,11 @@ class testFSOp(ZfsTest):
     super(testFSOp,self).setup_class()
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
-    self.safe_file_name = self.safeRoot + os.sep + "testfile"
+    self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + "testfile"
     
     self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
  
     self.generator.seed()
-    self.clean_files()
     self.randomize_data()
   
   ##
@@ -106,27 +113,42 @@ class testFSOp(ZfsTest):
   @classmethod
   def teardown_class(self):
     super(testFSOp,self).teardown_class()
+  
+  def setup(self):
+    ZfsTest.setup(self)
+    self.prepare_files()
+  
+  def teardown(self):
+    ZfsTest.teardown(self)
     self.clean_files()
+  
+  def prepare_files(self):
+    try:
+      os.mkdir(self.safeRoot + os.sep + self.safe_subdir_name, True)
+    except IOError:
+      pass
   
   ##
   # remove files and clean handles
-  @classmethod
   def clean_files(self):
   # TODO: this wont' work since it is classmethod
     if self.safe_file != None:
-      self.safe_file.close()
+      try:
+        self.safe_file.close()
+      except IOError:
+        pass
       self.safe_file = None
     
-    if os.path.exists(self.safe_file_name):
-      os.remove(self.safe_file_name)
-
     if self.test_file != None:
-      self.test_file.close()
+      try:
+        self.test_file.close()
+      except IOError:
+        pass
       self.test_file = None
     
-    if os.path.exists(self.test_file_name):
-      os.remove(self.test_file_name)
-    
+    import shutil
+    shutil.rmtree(self.safeRoot + os.sep + self.safe_subdir_name, True)
+  
   ##
   # generate random data for tests
   @classmethod
@@ -163,13 +185,15 @@ class testFSOp(ZfsTest):
       self.safe_file = open(self.safe_file_name,  self.file_access_mode)
       safeResult = True
     except:
+      log.debug(format_exc())
       pass
     
     try:
       self.test_file = open(self.test_file_name,  self.file_access_mode)
       testResult = True
     except:
-      pass
+     log.debug(format_exc())
+     pass
     
     assert testResult == safeResult
     
@@ -182,14 +206,16 @@ class testFSOp(ZfsTest):
       self.safe_file = None
       safeResult = True
     except:
-      pass
+     log.debug(format_exc())
+     pass
     
     try:
       close(self.test_file)
       self.test_file = None
       testResult = True
     except:
-      pass
+     log.debug(format_exc())
+     pass
     
     assert testResult == safeResult
   
