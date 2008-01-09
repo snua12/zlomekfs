@@ -133,7 +133,7 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, const cha
   if (ret_code != NOERR)
     goto FINISHING;
   
-  ret_code = start_listen_udp (malloc (sizeof (struct listener_def)), glogger,
+  start_listen_udp (malloc (sizeof (struct listener_def)), glogger,
     DEFAULT_COMMUNICATION_PORT);
   
   FINISHING:
