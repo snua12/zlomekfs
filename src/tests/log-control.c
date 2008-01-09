@@ -47,7 +47,7 @@ int main (int argc, char ** argv)
       case 'a': // medium type
         action = atoi (optarg);
         break;
-      case 'd': // formater type
+      case 'd': // formatter type
         data = atoi (optarg);
         break;
       case 'h':

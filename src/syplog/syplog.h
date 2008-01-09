@@ -11,7 +11,7 @@
     <li>writer - which define how and where to write the message
                  (for example write logs <i>in user readable format</i>
                   to <i>file)</i>
-                 (part of writer is <i>formater</i> which define the format)
+                 (part of writer is <i>formatter</i> which define the format)
                  Writer api is defined in writer-api.h.
     </li>
     <li>log level - in general verbosity of logger. See log-level.h for
@@ -76,7 +76,7 @@ typedef struct logger_def {
   @param node_name name of this node. it will be cached for use in message metadata
          (maximum length with \0 is NODE_NAME_LEN) end will be truncated
   @param argc argv arguments count
-  @param argv arguments in standart "main" function format. Options for logger, writer and formater in one.
+  @param argv arguments in standart "main" function format. Options for logger, writer and formatter in one.
   @return std errors
 */
 syp_error open_log (logger glogger, const char * node_name, int argc, const char ** argv);

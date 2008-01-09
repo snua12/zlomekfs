@@ -38,7 +38,7 @@
 #include "medium-api.h"
 #include "file-medium.h"
 #include "shm-medium.h"
-#include "formaters/formater-api.h"
+#include "formatters/formatter-api.h"
 
 
 
@@ -159,7 +159,7 @@ void print_media_help (int fd, int tabs)
     
   tabize_print (tabs, fd, "--%s=value, -%c value\tdefines how to format logs\n",
     PARAM_MEDIUM_FMT_LONG, PARAM_MEDIUM_FMT_CHAR);
-  print_formaters_help (fd, tabs);
+  print_formatters_help (fd, tabs);
   
   tabize_print (tabs, fd, "--%s=value, -%c value\tdefines if read or write logs\n",
     PARAM_MEDIUM_OP_LONG, PARAM_MEDIUM_OP_CHAR);
@@ -231,8 +231,8 @@ int opt;
       case PARAM_MEDIUM_TYPE_CHAR: // medium type
         settings->type = medium_name_to_enum (optarg);
         break;
-      case PARAM_MEDIUM_FMT_CHAR: // formater type
-        settings->used_formatter = formater_for_name (optarg);
+      case PARAM_MEDIUM_FMT_CHAR: // formatter type
+        settings->used_formatter = formatter_for_name (optarg);
         if (settings->used_formatter == NULL)
         {
           return ERR_BAD_PARAMS;
@@ -265,7 +265,7 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
   //TODO init
   memset(target,0,sizeof(struct medium_def));
   target->kind = WRITE_LOG;
-  target->used_formatter = DEFAULT_FORMATER;
+  target->used_formatter = DEFAULT_FORMATTER;
 
   ret_code = medium_parse_params (argc, argv, target);
   if (ret_code != NOERR)

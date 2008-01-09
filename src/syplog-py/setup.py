@@ -12,7 +12,7 @@ setup(name="pysyplog",
                              library_dirs=['../syplog'],
                              libraries=['syplog'],
                              include_dirs=['../syplog',
-                             '../syplog/media', '../syplog/formaters',
+                             '../syplog/media', '../syplog/formatters',
                              '../syplog/control'])
                   ]
 )

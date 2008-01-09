@@ -8,9 +8,9 @@
   how and from where to read or write logs;
 
   Medium state is dependent on type (file, memory, socket reader).
-  Medium uses formaters to parse logs
+  Medium uses formatters to parse logs
  
-  @see formater-api.h
+  @see formatter-api.h
  */
 
 /* Copyright (C) 2007 Jiri Zouhar
@@ -33,10 +33,10 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
-#include "formaters/formater-api.h"
+#include "formatters/formatter-api.h"
 #include "medium.h"
 
-#define PARAM_MEDIUM_FMT_LONG	"formater"
+#define PARAM_MEDIUM_FMT_LONG	"formatter"
 #define PARAM_MEDIUM_FMT_CHAR	'f'
 
 #define	PARAM_MEDIUM_TYPE_LONG	"medium"

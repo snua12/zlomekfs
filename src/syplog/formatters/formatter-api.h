@@ -1,5 +1,5 @@
-#ifndef FORMATER_API_H
-#define FORMATER_API_H
+#ifndef FORMATTER_API_H
+#define FORMATTER_API_H
 
 /*! \file
     \brief Api for formating functions.
@@ -8,7 +8,7 @@
   to different targets. It should give (if possible) the same
   result upon every target (memory, file, socket, etc).
   
-  Some formater can write log as user readable string,
+  Some formatter can write log as user readable string,
   other as a raw data or xml.
 
 */
@@ -39,10 +39,10 @@
 
 #include "log-struct.h"
 #include "log-constants.h"
-#include "user-readable-formater.h"
-#include "raw-formater.h"
+#include "user-readable-formatter.h"
+#include "raw-formatter.h"
 
-#define DEFAULT_FORMATER	&user_readable_formater
+#define DEFAULT_FORMATTER	&user_readable_formatter
 
 /*! Function type for formating log to socket-like targets.
   @param message log message to print (non NULL)
@@ -53,7 +53,7 @@ typedef int32_t (*stream_write_format) (log_struct message, int socket);
 
 /*! Function type for formating log to memory.
   @param message log message to print (non NULL)
-  @param mem_addr pointer to memory where to write log. It should have enough free space according to the actual formater (returned by max_print_size)
+  @param mem_addr pointer to memory where to write log. It should have enough free space according to the actual formatter (returned by max_print_size)
   @return number of bytes printed or -syp_error on error
 */
 typedef int32_t (*mem_write_format) (log_struct message, void * mem_addr);
@@ -95,7 +95,7 @@ typedef int32_t (*file_read_format) (log_struct message,  FILE * file);
 */
 typedef int32_t (*max_print_size) (void);
 
-typedef struct formater_def
+typedef struct formatter_def
 {
   stream_write_format stream_write;
   mem_write_format mem_write;
@@ -106,22 +106,22 @@ typedef struct formater_def
   file_read_format file_read;
 
   max_print_size get_max_print_size;
-} * formater;
+} * formatter;
 
-/*! Returns pointer to formater according to name.
-  @param name user readable formater name (used in "constructor" parameters)
-  @return pointer to static structure holding formater function pointers or NULL on error (unknown name, ...)
+/*! Returns pointer to formatter according to name.
+  @param name user readable formatter name (used in "constructor" parameters)
+  @return pointer to static structure holding formatter function pointers or NULL on error (unknown name, ...)
 */
-formater formater_for_name (const char * name);
+formatter formatter_for_name (const char * name);
 
-/*! prints formaters options help to fd.
+/*! prints formatters options help to fd.
   @param fd file descriptor to which to write help
   @param tabs how much tabs prepend to help
 */
-void print_formaters_help (int fd, int tabs);
+void print_formatters_help (int fd, int tabs);
 
 
 
 
 
-#endif /*FORMATER_API_H*/
+#endif /*FORMATTER_API_H*/

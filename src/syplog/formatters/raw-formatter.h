@@ -1,8 +1,8 @@
-#ifndef RAW_FORMATER_H
-#define RAW_FORMATER_H
+#ifndef RAW_FORMATTER_H
+#define RAW_FORMATTER_H
 
 /*! \file
-    \brief Raw formater definitions.  */
+    \brief Raw formatter definitions.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
@@ -27,53 +27,53 @@
 
 #include "log-struct.h"
 
-/// user readable name of raw formater (used also as parameter when creating new formater)
-#define	RAW_FORMATER_NAME	"raw"
+/// user readable name of raw formatter (used also as parameter when creating new formatter)
+#define	RAW_FORMATTER_NAME	"raw"
 
 /*! Format raw log to socket 
   @see steam_write_format 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_stream_write (log_struct message, int socket);
 
 /*! Format raw log to memory 
   @see mem_write_format 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_mem_write (log_struct message, void * mem_addr);
 
 /*! Format raw log to file
   @see file_write_format 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_file_write (log_struct message, FILE * file);
 
 
 /*! Read raw log from socket 
   @see steam_read_format 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_stream_read (log_struct message, int socket);
 
 /*! Read raw log from memory 
   @see mem_read_format 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_mem_read (log_struct message, void * mem_addr);
 
 /*! Read raw log from file
   @see file_read_format 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_file_read (log_struct message, FILE * file);
 
 
 /*! Returns maximum length (in bytes) of space occupied in target medium
   @see max_print_size 
-  @see formater-api.h
+  @see formatter-api.h
 */
 int32_t raw_max_print_size (void);
 
-extern struct formater_def raw_formater;
+extern struct formatter_def raw_formatter;
 
-#endif /*RAW_FORMATER_H*/
+#endif /*RAW_FORMATTER_H*/

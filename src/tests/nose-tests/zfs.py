@@ -75,14 +75,15 @@ class ZfsProxy(object):
         self.zfs = Popen(args=('zfsd',
                                 '-d',
                                 "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),
-                                "--" + str(pysyplog.PARAM_MEDIUM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATER_NAME),
+                                "--" + str(pysyplog.PARAM_MEDIUM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATTER_NAME),
                                 "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + self.tempDir + os.sep + ZfsProxy.logFileName,
                                 '-o', 'loglevel=' + str(loglevel) +
                                 ',config=' + self.tempDir + os.sep + self.config, 
                                 self.zfsRoot),
                                 cwd = self.tempDir,
                                 stdout = PIPE, stderr = PIPE, universal_newlines=True) # FIXME: core dump reporting
-        
+        import time
+        time.sleep(1)
         self.running = True
         self.connectControl()
         

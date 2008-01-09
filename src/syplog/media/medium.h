@@ -61,8 +61,8 @@ not implemented yet
 /*! Holds functions pointers and state of medium */
 typedef struct medium_def
 {
-  /*! formater used for prints and parsing */
-  struct formater_def * used_formatter;
+  /*! formatter used for prints and parsing */
+  struct formatter_def * used_formatter;
   /*! discriminator of type_specific - what logger this actually is */
   medium_type type;
   /*! type specific data of medium like mem pointer or file handler */

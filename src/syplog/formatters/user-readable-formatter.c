@@ -1,5 +1,5 @@
 /*! \file
-    \brief User readable formater implementation.  */
+    \brief User readable formatter implementation.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
@@ -21,11 +21,11 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
-#include "formater-api.h"
-#include "user-readable-formater.h"
+#include "formatter-api.h"
+#include "user-readable-formatter.h"
 
-/*! Definition of user readable formater type */
-struct formater_def user_readable_formater = 
+/*! Definition of user readable formatter type */
+struct formatter_def user_readable_formatter = 
 {
   .stream_write = user_readable_stream_write,
   .mem_write = user_readable_mem_write,
@@ -39,7 +39,7 @@ struct formater_def user_readable_formater =
 };
 
 /// Print message to string buffer
-/*! Print message to string buffer in format defined for user readable formater
+/*! Print message to string buffer in format defined for user readable formatter
   @param message non NULL pointer to log struct
   @param buffer non NULL string buffer with length at least buffer_len
   @param buffer_len maximal number of chars printed to buffer
@@ -78,9 +78,9 @@ int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len
 }
 
 /// Read message from string buffer
-/*! Read message from string buffer in format defined for user readable formater
+/*! Read message from string buffer in format defined for user readable formatter
   @param message non NULL pointer to log struct
-  @param buffer non NULL string buffer containing log message in format defined for user readable formater
+  @param buffer non NULL string buffer containing log message in format defined for user readable formatter
   @return number of chars read or -syp_error on error
 */
 int32_t read_buffer (log_struct message, const char * buffer)

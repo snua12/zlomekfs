@@ -1,5 +1,5 @@
-#ifndef		FORMATER_H
-#define		FORMATER_H
+#ifndef		FORMATTER_H
+#define		FORMATTER_H
 /*! \file
     \brief Formater specific definitions.
 
@@ -26,6 +26,6 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
-#include "formater-api.h"
+#include "formatter-api.h"
 
-#endif		/*FORMATER_H*/
+#endif		/*FORMATTER_H*/

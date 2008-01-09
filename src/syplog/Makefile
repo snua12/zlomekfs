@@ -7,10 +7,10 @@ CFLAGS += -I`pwd` -Wall -ggdb -g3 -pthread -DDEBUG -O0
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 OO_SYPLOG = syplog.o \
-	formaters/formater.o \
+	formatters/formatter.o \
 	settings-loader.o \
-	formaters/user-readable-formater.o \
-	formaters/raw-formater.o \
+	formatters/user-readable-formatter.o \
+	formatters/raw-formatter.o \
 	media/medium.o \
 	media/file-medium.o \
 	media/shm-medium.o \
@@ -25,4 +25,4 @@ libsyplog.a: $(OO_SYPLOG)
 
 
 clean:
-	rm *.o media/*.o formaters/*.o control/*.o libsyplog.a -f
+	rm *.o media/*.o formatters/*.o control/*.o libsyplog.a -f

@@ -50,7 +50,7 @@ void print_syplog_help (int fd, int tabs)
   
   tabize_print (tabs, fd, "defaults are:\n");
   tabize_print (tabs, fd, "--" PARAM_MEDIUM_TYPE_LONG "=" FILE_MEDIUM_NAME "\n");
-  tabize_print (tabs, fd, "--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATER_NAME "\n");
+  tabize_print (tabs, fd, "--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATTER_NAME "\n");
   tabize_print (tabs, fd, "--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME "\n");
 
 }
@@ -60,7 +60,7 @@ static char * default_options [] =
 {
 "syplog",
 "--" PARAM_MEDIUM_TYPE_LONG "=" FILE_MEDIUM_NAME,
-"--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATER_NAME,
+"--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATTER_NAME,
 "--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME
 };
 

@@ -24,7 +24,7 @@ INSTALL = install
 
 CC = gcc
 CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/formaters -I`pwd`/../syplog/media -I`pwd`/../syplog/control
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/formatters -I`pwd`/../syplog/media -I`pwd`/../syplog/control
 #	-Wwrite-strings
 LD = gcc
 
@@ -96,4 +96,4 @@ clean:
 	-rm -f $(BB_ALL) $(OO_ALL) $(OO_ALL:.o=.dep) libzenunit.so *.o
 
 dry-test: dump-logs local.log
-	./dump-logs --reader=file --log-file=local.log --formater=raw
+	./dump-logs --reader=file --log-file=local.log --formatter=raw

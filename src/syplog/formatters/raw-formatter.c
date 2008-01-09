@@ -1,5 +1,5 @@
 /*! \file
-    \brief Raw formater implementation.  */
+    \brief Raw formatter implementation.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 
@@ -25,12 +25,12 @@
 #include <stdio.h>
 #define _GNU_SOURCE
 
-#include "formater-api.h"
-#include "raw-formater.h"
+#include "formatter-api.h"
+#include "raw-formatter.h"
 
 
-/*! Definition of raw formater type */
-struct formater_def raw_formater = 
+/*! Definition of raw formatter type */
+struct formatter_def raw_formatter = 
 {
   .stream_write = raw_stream_write,
   .mem_write = raw_mem_write,

@@ -7,7 +7,7 @@
 
 SWIG=swig
 PYTHON_INCLUDE=-I/usr/include/python2.5 -I.
-SYPLOG_INCLUDE=-I../syplog -I../syplog/media -I../syplog/control -I../syplog/formaters
+SYPLOG_INCLUDE=-I../syplog -I../syplog/media -I../syplog/control -I../syplog/formatters
 
 
 LIBS=../syplog/libsyplog.a

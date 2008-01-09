@@ -53,8 +53,8 @@
 
 /// maximal length of user medium name
 #define MEDIUM_NAME_LEN 32
-/// maximal length of formater name
-#define FORMATER_NAME_LEN 32
+/// maximal length of formatter name
+#define FORMATTER_NAME_LEN 32
 
 /// maximal length of filename (absolute or relative path)
 #define	FILE_NAME_LEN		128
