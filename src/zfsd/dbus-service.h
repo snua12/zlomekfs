@@ -1,7 +1,7 @@
 /*! \file
-    \brief ZFS daemon.  */
+    \brief ZFS dbus provider.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2007 Jiri Zouhar
 
    This file is part of ZFS.
 
@@ -20,18 +20,12 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef ZFSD_H
-#define ZFSD_H
+#ifndef DBUS_SERVICE_H
+#define DBUS_SERVICE_H
 
 #include "dbus-service-descriptors.h"
-#include "pthread.h"
+#include "system.h"
 
-/*! Thread ID of the main thread.  */
-extern pthread_t main_thread;
+void * dbus_service_loop (void * data ATTRIBUTE_UNUSED);
 
-extern zfsd_state_e zfsd_state;
-
-extern void terminate (void);
-extern void usage (void);
-
-#endif
+#endif /* DBUS_SERVICE_H */

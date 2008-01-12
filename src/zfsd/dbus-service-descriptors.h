@@ -1,7 +1,7 @@
 /*! \file
-    \brief ZFS daemon.  */
+    \brief ZFS dbus descriptors.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2007 Jiri Zouhar
 
    This file is part of ZFS.
 
@@ -20,18 +20,23 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef ZFSD_H
-#define ZFSD_H
+#ifndef DBUS_SERVICE_DESCRIPTORS_H
+#define DBUS_SERVICE_DESCRIPTORS_H
 
-#include "dbus-service-descriptors.h"
-#include "pthread.h"
+#include <dbus/dbus.h>
 
-/*! Thread ID of the main thread.  */
-extern pthread_t main_thread;
+#define	ZFSD_DBUS_NAME			"zfsd.default"
+#define	ZFSD_DBUS_INTERFACE		"zfsd.info"
 
-extern zfsd_state_e zfsd_state;
 
-extern void terminate (void);
-extern void usage (void);
+#define SFSD_STATUS__INFO_MESSAGE_NAME	"status"
+#define	ZFSD_STATUS_INFO_DBUS_TYPE	DBUS_TYPE_UINT32
 
-#endif
+typedef enum {
+  ZFSD_STATE_STARTING = 0,
+  ZFSD_STATE_RUNNING = 1,
+  ZFSD_STATE_TERMINATING = 10
+} zfsd_state_e;
+
+
+#endif /* DBUS_SERVICE_DESCRIPTORS_H */

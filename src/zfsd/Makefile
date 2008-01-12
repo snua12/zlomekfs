@@ -81,7 +81,8 @@ OO_ZFSD = zfsd.o \
 	  thread.o \
 	  update.o user-group.o util.o \
 	  varray.o volume.o\
-	  zfs-prot.o
+	  zfs-prot.o \
+	  dbus-service.o
 
 zfsd: $(OO_ZFSD)
 	$(LD) -o $@ $^ $(LD_OPTS)  

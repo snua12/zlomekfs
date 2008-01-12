@@ -50,6 +50,7 @@
 #include "metadata.h"
 #include "user-group.h"
 #include "update.h"
+#include "dbus-service.h"
 
 #ifdef TEST
 #include "test.h"
@@ -57,6 +58,11 @@
 
 /*! Thread ID of the main thread.  */
 pthread_t main_thread;
+
+/*! Dbus listening thread */
+pthread_t dbus_thread;
+
+zfsd_state_e zfsd_state = ZFSD_STATE_STARTING;
 
 /*! Name of the configuration file.  */
 static char *config_file;
@@ -451,6 +457,11 @@ main (int argc, char **argv)
 
   zfs_openlog(argc, (const char **)argv);
 
+  if (pthread_create (&(dbus_thread), NULL,
+                      dbus_service_loop, NULL) != 0)
+    message (LOG_WARNING, FACILITY_DBUS, "Can't dispatch dbus listening thread\n");
+
+
   init_constants ();
   init_sig_handlers ();
 
@@ -538,6 +549,8 @@ main (int argc, char **argv)
       kernel_started = kernel_start ();
     }
 
+  zfsd_state = ZFSD_STATE_RUNNING;
+
   /* Workaround valgrind bug (PR/77369),
      i.e. prevent from waiting for joinee threads while signal is received.  */
   while (running)
@@ -545,6 +558,8 @@ main (int argc, char **argv)
       /* Sleep gets interrupted by the signal.  */
       sleep (1000000);
     }
+
+  zfsd_state = ZFSD_STATE_TERMINATING;
 
   if (update_started)
     {
@@ -578,6 +593,10 @@ main (int argc, char **argv)
 
   cleanup_data_structures ();
   disable_sig_handlers ();
+
+  pthread_cancel (dbus_thread);
+  pthread_join (dbus_thread, NULL);
+
   zfs_closelog();
 
   return ret;
