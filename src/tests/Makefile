@@ -49,6 +49,9 @@ BB_ALL = dump-logs fakelog log-control zen-unit
 
 all: $(BB_ALL)
 
+../syplog/libsyplog.a:
+	make -C ../syplog
+
 
 # Executables
 
@@ -71,13 +74,13 @@ OO_LOG-CONTROL = log-control.o
 
 OO_FAKELOG = fakelog.o
 
-dump-logs: $(OO_DUMP-LOGS)
+dump-logs: $(OO_DUMP-LOGS) ../syplog/libsyplog.a
 	$(LD) -o $@ $^ $(LD_OPTS)  
 
-log-control: $(OO_LOG-CONTROL)
+log-control: $(OO_LOG-CONTROL) ../syplog/libsyplog.a
 	$(LD) -o $@ $^ $(LD_OPTS)  
 
-fakelog: $(OO_FAKELOG)
+fakelog: $(OO_FAKELOG) ../syplog/libsyplog.a
 	$(LD) -o $@ $^ $(LD_OPTS)  
 
 # Dependencies

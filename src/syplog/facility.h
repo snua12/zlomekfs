@@ -63,12 +63,15 @@ typedef uint32_t		facility_t;
 #define	FACILITY_DATA           0x10
 #define	FACILITY_DATA_NAME		"DATA"
 /// log message apply on memory
-#define	FACILITY_MEMORY      0x20
+#define	FACILITY_MEMORY         0x20
 #define	FACILITY_MEMORY_NAME		"MEMORY"
 /// log message apply on configuration
-#define	FACILITY_CONFIG      0x40
+#define	FACILITY_CONFIG         0x40
 #define	FACILITY_CONFIG_NAME		"CONFIG"
 
+/// log message apply on dbus
+#define FACILITY_DBUS           0x80
+#define FACILITY_DBUS_NAME		"DBUS"
 /// facility for global testing
 #define FACILITY_ZFSD		0x100
 #define	FACILITY_ZFSD_NAME		"ZFSD"
@@ -102,6 +105,8 @@ static inline const char * facility_to_name (facility_t facility)
     return FACILITY_MEMORY_NAME;
   if ((facility & FACILITY_CONFIG) > 0)
     return FACILITY_CONFIG_NAME;
+  if ((facility & FACILITY_DBUS) > 0)
+    return FACILITY_DBUS_NAME;
 
   if (facility == FACILITY_NOTHING)
     return FACILITY_NOTHING_NAME;
@@ -132,6 +137,8 @@ static inline facility_t facility_from_string (const char * facility_name)
     return FACILITY_MEMORY;
   if (strncmp (facility_name, FACILITY_CONFIG_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_CONFIG;
+  if (strncmp (facility_name, FACILITY_DBUS_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_DBUS;
 
   if (strncmp (facility_name, FACILITY_NOTHING_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_NOTHING;
