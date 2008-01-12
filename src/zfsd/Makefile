@@ -22,9 +22,11 @@ PREFIX ?= /usr
 
 INSTALL = install
 
+
 CC = gcc
 CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/media -I`pwd`/../syplog/formatters -DUSE_SYPLOG
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread 
+
 #	-Wwrite-strings
 LD = gcc
 
@@ -36,12 +38,11 @@ ifndef freebsd
   FUSE_LDFLAGS += -lrt -ldl
 endif
 
-ifeq ($(syslog),1)
-  LD_OPTS += $(FUSE_LDFLAGS) -lpthread
-  CC_OPTS += -DUSE_SYSLOG
-else
-  LD_OPTS += $(FUSE_LDFLAGS) -lpthread -L`pwd`/../syplog -lsyplog
-endif
+  LD_OPTS += $(FUSE_LDFLAGS) -lpthread -ldbus-1 -lsyplog -L`pwd`/../syplog
+  CC_OPTS += -DUSE_SYSLOG -I`pwd`/../syplog -I`pwd`/../syplog/media \
+	-I`pwd`/../syplog/formatters -DUSE_SYPLOG \
+	-I/usr/include/dbus-1.0 \
+	-I/usr/lib/dbus-1.0/include
 
 
 ifeq ($(debug), 1)

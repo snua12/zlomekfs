@@ -48,6 +48,8 @@ char * syp_error_to_string (syp_error error)
       return "Data truncated in operation";
     case ERR_BAD_MESSAGE:
       return "Bad message type received";
+    case ERR_DBUS:
+      return "Error in communication with dbus";
     default:
       return "Unknown error";
   }

@@ -55,7 +55,6 @@ syp_error send_uint32_by_function (uint32_t data,
 syp_error set_level_udp (log_level_t level, const char * addr, uint16_t port);
 
 
-
 /** Send command to set facility to facility to logger listening on addr:port address
  * @see send_uint32_by_function
  * @see set_facility
@@ -67,5 +66,30 @@ syp_error set_facility_udp (facility_t facility, const char * addr, uint16_t por
  * @see reset_facility
  */
 syp_error reset_facility_udp (facility_t facility, const char * addr, uint16_t port);
+
+
+/** Send ping to logger through dbus and check if responses
+ * @return NOERR if loggger has responded
+ */
+syp_error ping_syplog_dbus (const char * logger_name);
+
+/** Send command to set log_level to level to logger listening on dbus with name name
+ * @param level log level to set
+ * @param logger_name dbus name of logger
+ */
+syp_error set_level_dbus (log_level_t level, const char * logger_name);
+
+
+/** Send command to set facility to facility to logger listening on dbus with name name
+ * @param facility to set on
+ * @param logger_name dbus name of logger */
+syp_error set_facility_dbus (facility_t facility, const char * logger_name);
+
+/** Send command to reset facility facility to logger  listening on dbuswith name name
+ * @param facility facility to reset
+ * @param logger_name dbus name of logger
+ */
+syp_error reset_facility_dbus (facility_t facility, const char * logger_name);
+
 
 #endif	/* CONTROL_H */

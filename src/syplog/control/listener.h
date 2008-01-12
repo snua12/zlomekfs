@@ -32,6 +32,8 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
+#include "dbus/dbus.h"
+
 #include "syp-error.h"
 #include "syplog.h"
 #include "control-protocol.h"
@@ -45,8 +47,10 @@ typedef struct listener_def
   communication_type type;
     /// port on which to listen in upd mode
     uint16_t port;
-    /// unix socket name
-    char socket_name[FILE_NAME_LEN];
+    /// dbus connection handler
+    DBusConnection* dbus_conn;
+    /// dbus error buffer
+    DBusError dbus_err;
   /// socket file descriptor 
   int socket;
   /// thread id which performs listening loops
@@ -64,13 +68,15 @@ typedef struct listener_def
  */
 syp_error start_listen_udp (listener controller, logger target, uint16_t port);
 
-/** start listening on socket name
+/** start listening on dbus
  *
  * @param controller pointer to uninitalized structure of listener which will hold the state
  * @param target logger to control
- * @param socket_name file name of unix socket to listen on
+ * @param name unique name of this logger (if NULL, default will be used)
  */
-syp_error start_listen_unix (listener controller, logger target, const char * socket_name);
+syp_error start_listen_dbus (listener controller, logger target, const char * name);
+
+
 
 /** stop control listening
  * 

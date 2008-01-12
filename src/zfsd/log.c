@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <pthread.h>
+#include <syslog.h>
 
 #include "node.h"
 #include "syplog.h"
@@ -59,8 +60,8 @@ void zfs_openlog(int  argc, const char ** argv)
     return;
   }
 
-  ret_code = start_listen_udp (&control, &syplogger,
-    DEFAULT_COMMUNICATION_PORT);
+  ret_code = start_listen_dbus (&control, &syplogger,
+    NULL);
   if(ret_code != NOERR)
   {
     message(LOG_WARNING,FACILITY_CONFIG | FACILITY_LOG, "Can't initialize listen loop %d:%s\n",

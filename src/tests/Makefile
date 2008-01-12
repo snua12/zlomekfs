@@ -24,11 +24,15 @@ INSTALL = install
 
 CC = gcc
 CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
-	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef -pthread -I`pwd`/../syplog -I`pwd`/../syplog/formatters -I`pwd`/../syplog/media -I`pwd`/../syplog/control
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef  \
+	-pthread -I`pwd`/../syplog -I`pwd`/../syplog/formatters \
+	-I`pwd`/../syplog/media -I`pwd`/../syplog/control -I/usr/include/dbus-1.0 \
+	-I/usr/lib/dbus-1.0/include
+
 #	-Wwrite-strings
 LD = gcc
 
-LD_OPTS += -lpthread -L`pwd`/../syplog -lsyplog
+LD_OPTS += -lpthread -L`pwd`/../syplog -lsyplog -ldbus-1
 
 
 ifeq ($(debug), 1)

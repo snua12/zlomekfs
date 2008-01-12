@@ -50,6 +50,36 @@
 /// default ip address on which to listen when using udp control
 #define DEFAULT_COMMUNICATION_ADDRESS	"127.0.0.1"
 
+#include <dbus/dbus.h>
+
+
+/// timeout for receiving message in s
+#define	DBUS_WAIT_TIMEOUT			1
+/// default source name
+#define	SYPLOG_DEFAULT_DBUS_SOURCE		"syplog.default.source"
+/// default target name
+#define SYPLOG_DEFAULT_DBUS_TARGET		"syplog.default.target"
+/// default object to call on
+#define	SYPLOG_DEFAULT_DBUS_OBJECT		"/syplog/default/control"
+/// interface name for control syplog
+#define	SYPLOG_DBUS_INTERFACE			"syplog.signal.control"
+/// name of the signal for setting facility
+#define	SYPLOG_SIGNAL_SET_FACILITY_NAME		"set_facility"
+/// name of the signal for reseting facility
+#define	SYPLOG_SIGNAL_RESET_FACILITY_NAME	"reset_facility"
+/// name of the signal for setting log leve
+#define	SYPLOG_SIGNAL_SET_LOG_LEVEL_NAME	"set_log_level"
+/// name of the ping message
+#define SYPLOG_MESSAGE_PING_NAME		"ping"
+
+/// type of payload data for log level
+#define SYPLOG_LOG_LEVEL_DBUS_TYPE		DBUS_TYPE_UINT32
+/// type of payload data for facility
+#define SYPLOG_FACILITY_DBUS_TYPE		DBUS_TYPE_UINT32
+/// type of payload data for ping
+#define SYPLOG_PING_DBUS_TYPE			DBUS_TYPE_STRING
+
+
 /** communication types enum,
  * used as internal discriminator in listener struct
  */
@@ -59,8 +89,8 @@ typedef enum communication_type_def
   COMM_NONE = 0,
   /// listener listens on udp
   COMM_UDP = 1,
-  /// listener listens on unix socket
-  COMM_UNIX = 2
+  /// listener listens on dbus
+  COMM_DBUS = 2
 } communication_type;
 
 

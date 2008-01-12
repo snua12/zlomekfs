@@ -54,7 +54,9 @@ typedef enum
   /// data truncated in operation
   ERR_TRUNCATED = 10007,
   /// bad message type received
-  ERR_BAD_MESSAGE = 10008
+  ERR_BAD_MESSAGE = 10008,
+  /// dbus communication error
+  ERR_DBUS = 10009
 
 } syp_error;
 

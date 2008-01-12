@@ -61,15 +61,17 @@ int main (int argc, char ** argv)
   switch (action)
   {
     case MESSAGE_SET_LEVEL:
-      ret_code = set_level_udp(data,NULL,0);
+      ret_code = set_level_dbus (data, NULL);
       break;
     case MESSAGE_SET_FACILITY:
-      ret_code = set_facility_udp(data,NULL,0);
+      ret_code = set_facility_dbus (data, NULL);
       break;
     case MESSAGE_RESET_FACILITY:
-      ret_code = reset_facility_udp(data,NULL,0);
+      ret_code = reset_facility_dbus (data, NULL);
       break;
     case MESSAGE_PING:
+      ret_code = ping_syplog_dbus (NULL);
+      break;
     default:
       printf ("unsupported action %d\n", action);
       exit (1);

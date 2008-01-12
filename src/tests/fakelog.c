@@ -25,6 +25,7 @@
 #define _GNU_SOURCE
 
 #include "syplog.h"
+#include "control/listener.h"
 #include "medium-api.h"
 #include "file-medium.h"
 
@@ -41,6 +42,7 @@ static char * log_settings [] =
 int main (int argc UNUSED, char ** argv UNUSED)
 {
   struct logger_def output_printer;
+  struct listener_def controller;
   char * buffer = malloc (1024 * sizeof (char));
   unsigned int buffer_size = 1024;
   int i = 0;
@@ -56,6 +58,11 @@ int main (int argc UNUSED, char ** argv UNUSED)
     exit(ret_value);
   }
 
+  ret_value = start_listen_dbus (&controller, &output_printer, NULL);
+  if (ret_value != NOERR)
+  {
+    printf ("init fatal listening: %d, %s\n", ret_value, syp_error_to_string (ret_value));
+  }
   while (TRUE)
   {
     memset (buffer, 0, 1024);

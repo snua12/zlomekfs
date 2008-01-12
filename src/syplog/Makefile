@@ -1,7 +1,7 @@
 
 all: libsyplog.a
 
-CFLAGS += -I`pwd` -Wall -ggdb -g3 -pthread -DDEBUG -O0
+CFLAGS += -I`pwd` -Wall -ggdb -g3 -pthread -DDEBUG -O0 -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
