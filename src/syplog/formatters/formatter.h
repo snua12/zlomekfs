@@ -1,7 +1,7 @@
 #ifndef		FORMATTER_H
 #define		FORMATTER_H
 /*! \file
-    \brief Formater specific definitions.
+    \brief Formatter specific definitions.
 
   Things which user should not care about.
 */

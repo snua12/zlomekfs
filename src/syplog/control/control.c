@@ -121,7 +121,7 @@ syp_error dbus_sendsignal(const char * target UNUSED, char * signal_name, int va
   dbus_error_init (&err);
 
   // connect to the DBUS system bus, and check for errors
-  conn = dbus_bus_get (DBUS_BUS_SESSION, &err);
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, &err);
   if (dbus_error_is_set (&err)) { 
     dbus_error_free (&err); 
   }
@@ -186,7 +186,7 @@ void * dbus_query(const char * target_name, char * method_name, int arg_type, vo
   dbus_error_init(&err);
 
   // connect to the system bus and check for errors
-  conn = dbus_bus_get (DBUS_BUS_SESSION, &err);
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, &err);
   if (dbus_error_is_set (&err)) { 
     dbus_error_free(&err);
   }

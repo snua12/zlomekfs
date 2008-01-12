@@ -439,7 +439,7 @@ syp_error start_listen_dbus (listener controller, logger target, const char * na
   dbus_error_init(&(controller->dbus_err));
 
   // connect to the bus and check for errors
-  controller->dbus_conn = dbus_bus_get(DBUS_BUS_SESSION, &(controller->dbus_err));
+  controller->dbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &(controller->dbus_err));
   if (dbus_error_is_set(&(controller->dbus_err))) { 
     do_log (target, LOG_ERROR, FACILITY_LOG, "Connection Error (%s)\n", 
             controller->dbus_err.message);

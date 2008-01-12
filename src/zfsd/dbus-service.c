@@ -72,7 +72,7 @@ void * dbus_service_loop(void * data ATTRIBUTE_UNUSED)
   dbus_error_init (&err);
   
   // connect to the bus and check for errors
-  conn = dbus_bus_get (DBUS_BUS_SESSION, &err);
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, &err);
   if (dbus_error_is_set (&err)) { 
     message (LOG_ERROR, FACILITY_DBUS, "Connection Error (%s)\n", err.message); 
     dbus_error_free (&err); 
