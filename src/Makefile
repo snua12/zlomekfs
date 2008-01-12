@@ -23,10 +23,15 @@
 all:
 	@$(MAKE) -C syplog
 	@$(MAKE) -C zfsd
+	@$(MAKE) -C tests
+
 	@$(MAKE) -C module
 
 install: 
+	@$(MAKE) -C syplog-py install
+
 	@$(MAKE) -C syplog
+	@$(MAKE) -C zfsd-status-py install
 	@$(MAKE) -C zfsd install
 	@$(MAKE) -C module install
 
@@ -37,4 +42,7 @@ clean:
 	@$(MAKE) -C syplog clean
 	@$(MAKE) -C zfsd clean
 	@$(MAKE) -C module clean
+	@$(MAKE) -C syplog-py clean
+	@$(MAKE) -C zfsd-status-py clean
+	@$(MAKE) -C tests clean
 
