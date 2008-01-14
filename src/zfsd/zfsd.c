@@ -454,11 +454,12 @@ main (int argc, char **argv)
   bool network_started = false;
   bool update_started = false;
   int ret = EXIT_SUCCESS;
+  bool_t dbus_should_exit = FALSE;
 
   zfs_openlog(argc, (const char **)argv);
 
   if (pthread_create (&(dbus_thread), NULL,
-                      dbus_service_loop, NULL) != 0)
+                      dbus_service_loop, &dbus_should_exit) != 0)
     message (LOG_WARNING, FACILITY_DBUS, "Can't dispatch dbus listening thread\n");
 
 
@@ -593,6 +594,10 @@ main (int argc, char **argv)
 
   cleanup_data_structures ();
   disable_sig_handlers ();
+
+  dbus_should_exit = TRUE;
+  
+  usleep (DBUS_CONNECTION_TIMEOUT * 2000);
 
   pthread_cancel (dbus_thread);
   pthread_join (dbus_thread, NULL);

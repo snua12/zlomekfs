@@ -387,9 +387,11 @@ void * dbus_listen_loop (void * data)
 
     // loop again if we haven't got a message
     if (NULL == msg) { 
+      sleep (DBUS_WAIT_TIMEOUT / 1000);
+
       goto NEXT;
     }
-      
+    do_log (controller->target, LOG_DEBUG, FACILITY_DBUS, "we got a message\n");  
     // check what signal or message this is
     if (dbus_message_is_method_call(msg, SYPLOG_DBUS_INTERFACE, SYPLOG_MESSAGE_PING_NAME)) 
       dbus_reply_to_ping(controller, msg, controller->dbus_conn);
@@ -409,6 +411,9 @@ void * dbus_listen_loop (void * data)
 NEXT:
     pthread_mutex_unlock (&(controller->mutex));
   }
+
+  dbus_bus_release_name (controller->dbus_conn, SYPLOG_DEFAULT_DBUS_TARGET, NULL);
+  dbus_connection_unref (controller->dbus_conn);
   
   return NULL;
 } //TODO: implement this

@@ -55,7 +55,8 @@ class ZfsProxy(object):
         os.mkdir(self.tempDir)
         
     def connectControl(self):
-        pass
+        if pysyplog.ping_syplog_dbus() != pysyplog.NOERR:
+          raise Exception ("Syplog offline")
         
     def disconnectControl(self):
         pass
@@ -82,8 +83,13 @@ class ZfsProxy(object):
                                 self.zfsRoot),
                                 cwd = self.tempDir,
                                 stdout = PIPE, stderr = PIPE, universal_newlines=True) # FIXME: core dump reporting
-        import time
-        time.sleep(1)
+        import zfsd_status,  time
+        for i in [0.1, 0.5, 1, 3]:
+            if zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING:
+              break
+            time.sleep(i)
+        if zfsd_status.ping_zfsd() != zfsd_status.ZFSD_STATE_RUNNING:
+            raise Exception("Zfsd doesn't start")
         self.running = True
         self.connectControl()
         

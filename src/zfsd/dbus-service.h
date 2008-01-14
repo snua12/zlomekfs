@@ -26,6 +26,9 @@
 #include "dbus-service-descriptors.h"
 #include "system.h"
 
+#define DBUS_CONNECTION_TIMEOUT		1000
+
 void * dbus_service_loop (void * data ATTRIBUTE_UNUSED);
+
 
 #endif /* DBUS_SERVICE_H */

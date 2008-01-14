@@ -20,6 +20,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
+#include <unistd.h>
+
 #include "dbus-service.h"
 #include "zfsd.h"
 #include "log.h"
@@ -59,7 +61,7 @@ void reply_to_ping(DBusMessage* msg, DBusConnection* conn)
 /**
  * Server that exposes a method call and waits for it to be called
  */
-void * dbus_service_loop(void * data ATTRIBUTE_UNUSED) 
+void * dbus_service_loop(void * should_exit) 
 {
   DBusMessage* msg;
   DBusConnection* conn;
@@ -104,24 +106,28 @@ void * dbus_service_loop(void * data ATTRIBUTE_UNUSED)
   message (LOG_TRACE, FACILITY_DBUS, "Match rule sent\n");
 
   // loop, testing for new messages
-  while (true) {
+  while ((*((bool_t*)should_exit)) != TRUE) {
     // non blocking read of the next available message
-    dbus_connection_read_write (conn, 1);
+    dbus_connection_read_write (conn, DBUS_CONNECTION_TIMEOUT);
     msg = dbus_connection_pop_message (conn);
 
     // loop again if we haven't got a message
     if (NULL == msg) {  
+       sleep (DBUS_CONNECTION_TIMEOUT / 1000);
        continue; 
     }
     
     // check this is a method call for the right interface & method
     if (dbus_message_is_method_call (msg, ZFSD_DBUS_INTERFACE, 
-                                    SFSD_STATUS__INFO_MESSAGE_NAME))
+                                    ZFSD_STATUS_INFO_MESSAGE_NAME))
       reply_to_ping (msg, conn);
 
     // free the message
     dbus_message_unref (msg);
   }
+
+  dbus_bus_release_name (conn, ZFSD_DBUS_NAME, NULL);
+  dbus_connection_unref (conn);
 
 }
 

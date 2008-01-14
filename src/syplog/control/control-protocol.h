@@ -54,7 +54,7 @@
 
 
 /// timeout for receiving message in s
-#define	DBUS_WAIT_TIMEOUT			1
+#define	DBUS_WAIT_TIMEOUT			1000
 /// default source name
 #define	SYPLOG_DEFAULT_DBUS_SOURCE		"syplog.default.source"
 /// default target name

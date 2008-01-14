@@ -29,7 +29,7 @@
 #define	ZFSD_DBUS_INTERFACE		"zfsd.info"
 
 
-#define SFSD_STATUS__INFO_MESSAGE_NAME	"status"
+#define ZFSD_STATUS_INFO_MESSAGE_NAME	"status"
 #define	ZFSD_STATUS_INFO_DBUS_TYPE	DBUS_TYPE_UINT32
 
 typedef enum {
