@@ -32,7 +32,7 @@ zfsd_state_e ping_zfsd()
   msg = dbus_message_new_method_call (ZFSD_DBUS_NAME, // target for the method call
                                       "/zfsd/object", // object to call on - ignored
                                       ZFSD_DBUS_INTERFACE, // interface to call on
-                                      SFSD_STATUS__INFO_MESSAGE_NAME); // method name
+                                      ZFSD_STATUS_INFO_MESSAGE_NAME); // method name
   if (NULL == msg) { 
     fprintf (stderr, "Can't create new call\n");
     goto FINISHING;
