@@ -459,7 +459,7 @@ main (int argc, char **argv)
   zfs_openlog(argc, (const char **)argv);
 
   if (pthread_create (&(dbus_thread), NULL,
-                      dbus_service_loop, &dbus_should_exit) != 0)
+                      dbus_zfsd_service_loop, &dbus_should_exit) != 0)
     message (LOG_WARNING, FACILITY_DBUS, "Can't dispatch dbus listening thread\n");
 
 
