@@ -27,6 +27,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "dbus-provider.h"
 #include "pthread.h"
 
 
@@ -89,6 +90,28 @@ void update_node_name (void);
 extern void zfs_openlog(int  argc, const char ** argv);
 
 extern void zfs_closelog(void);
+
+/** Register log names to dbus connection
+ *
+ * @see dbus_name_add_t
+*/
+int dbus_add_log_name (DBusConnection * connection, 
+                       DBusError * err_struct);
+
+/** Release log names from dbus connection
+ *
+ * @see dbus_name_release_t
+*/
+int dbus_release_log_name (DBusConnection * connection, 
+                           DBusError * err_struct);
+
+/** Try to handle log dbus message
+ *
+ * @see dbus_message_handler_t
+ */
+message_handle_state_e dbus_handle_log_message (DBusConnection * connection, 
+                                                DBusError * err_struct,
+                                                DBusMessage * msg);
 
 #define is_logger_arg(arg)	is_syplog_arg (arg)
 

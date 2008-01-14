@@ -20,7 +20,6 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#include "log.h"
 #include "system.h"
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +49,10 @@
 #include "metadata.h"
 #include "user-group.h"
 #include "update.h"
-#include "dbus-service.h"
+#include "log.h"
+#include "dbus-provider.h"
+#include "dbus-zfsd-service.h"
+
 
 #ifdef TEST
 #include "test.h"
@@ -58,9 +60,6 @@
 
 /*! Thread ID of the main thread.  */
 pthread_t main_thread;
-
-/*! Dbus listening thread */
-pthread_t dbus_thread;
 
 zfsd_state_e zfsd_state = ZFSD_STATE_STARTING;
 
@@ -454,13 +453,33 @@ main (int argc, char **argv)
   bool network_started = false;
   bool update_started = false;
   int ret = EXIT_SUCCESS;
-  bool_t dbus_should_exit = FALSE;
+
+  struct dbus_state_holder_def dbus_provider;
+  
 
   zfs_openlog(argc, (const char **)argv);
 
-  if (pthread_create (&(dbus_thread), NULL,
-                      dbus_zfsd_service_loop, &dbus_should_exit) != 0)
-    message (LOG_WARNING, FACILITY_DBUS, "Can't dispatch dbus listening thread\n");
+  if (dbus_provider_init (&dbus_provider) != TRUE)
+    message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
+             "Can't initialize dbus provider\n");
+  else
+  {
+    if (dbus_provider_add_listener (&dbus_provider, dbus_add_zfsd_name, 
+                                dbus_release_zfsd_name, dbus_handle_zfsd_message)
+        != TRUE)
+      message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
+               "Can't add dbus zfsd state provider\n");
+
+    if (dbus_provider_add_listener (&dbus_provider, dbus_add_log_name, 
+                                dbus_release_log_name, dbus_handle_log_message)
+        != TRUE)
+      message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
+               "Can't add dbus log control\n");
+
+    if (dbus_provider_start (&dbus_provider, DBUS_BUS_SYSTEM) != TRUE)
+      message (LOG_ERROR, FACILITY_DBUS | FACILITY_ZFSD,
+               "Can't start dbus provider\n");
+  }
 
 
   init_constants ();
@@ -595,12 +614,7 @@ main (int argc, char **argv)
   cleanup_data_structures ();
   disable_sig_handlers ();
 
-  dbus_should_exit = TRUE;
-  
-  usleep (DBUS_CONNECTION_TIMEOUT * 2000);
-
-  pthread_cancel (dbus_thread);
-  pthread_join (dbus_thread, NULL);
+  dbus_provider_end (&dbus_provider);
 
   zfs_closelog();
 

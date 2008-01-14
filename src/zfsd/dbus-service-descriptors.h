@@ -1,3 +1,6 @@
+#ifndef DBUS_SERVICE_DESCRIPTORS_H
+#define DBUS_SERVICE_DESCRIPTORS_H
+
 /*! \file
     \brief ZFS dbus descriptors.  */
 
@@ -19,9 +22,6 @@
    ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
-
-#ifndef DBUS_SERVICE_DESCRIPTORS_H
-#define DBUS_SERVICE_DESCRIPTORS_H
 
 #include <dbus/dbus.h>
 

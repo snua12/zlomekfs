@@ -1,3 +1,6 @@
+#ifndef DBUS_ZFSD_SERVICE_H
+#define DBUS_ZFSD_SERVICE_H
+
 /*! \file
     \brief ZFS dbus provider.  */
 
@@ -20,10 +23,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef DBUS_SERVICE_H
-#define DBUS_SERVICE_H
-
 #include "dbus-service-descriptors.h"
+#include "dbus-provider.h"
 #include "system.h"
 
 /// timeout for receiving message in miliseconds
@@ -36,46 +37,31 @@
  *
  * @param data int * pointer if set to TRUE, the loop will terminate
  * @return NULL
+ * @deprecated
  */
 void * dbus_zfsd_service_loop (void * data);
 
 /** Register zfsd names to dbus connection
  *
- * @param connection initialized dbus connection
- * @param err_struct initialized dbus error struct 
- * @return TRUE if successfully added, FALSE otherwise
- *
+ * @see dbus_name_add_t
 */
 int dbus_add_zfsd_name (DBusConnection * connection, 
-                                DBusError * err_struct);
+                        DBusError * err_struct);
 
 /** Release zfsd names from dbus connection
  *
- * @param connection initialized dbus connection
- * @param err_struct initialized dbus error struct 
- * @return TRUE if successfully released, FALSE otherwise
- *
+ * @see dbus_name_release_t
 */
 int dbus_release_zfsd_name (DBusConnection * connection,
-                                    DBusError * err_struct);
+                            DBusError * err_struct);
 
-typedef enum {
-  ZFSD_MESSAGE_HANDLED = 0,
-  ZFSD_MESSAGE_UNKNOWN = 1,
-  ZFSD_HANDLE_ERROR = 2
-} message_handle_state_e;
-
-/** Try to handle dbus message
- * @param conn valid dbus connection with syplog names registered
- * @param err_struct initialized dbus error struct
- * @param msg message received
- * @return ZFSD_MESSAGE_HANDLED if handled,
-           ZFSD_HANDLE_ERROR if message is known bud error occured in processing,
-           ZFSD_MESSAGE_UKNONWN if zfsd doesn't known message type
+/** Try to handle zfsd dbus message
+ *
+ * @see dbus_message_handler_t
  */
 message_handle_state_e dbus_handle_zfsd_message (DBusConnection * conn, 
                                                  DBusError * err_struct,
                                                  DBusMessage * msg);
 
 
-#endif /* DBUS_SERVICE_H */
+#endif /* DBUS_ZFSD_SERVICE_H */

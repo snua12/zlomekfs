@@ -22,7 +22,7 @@
 
 #include <unistd.h>
 
-#include "dbus-service.h"
+#include "dbus-zfsd-service.h"
 #include "zfsd.h"
 #include "log.h"
 
@@ -57,7 +57,7 @@ message_handle_state_e reply_to_ping(DBusMessage* msg, DBusConnection* conn)
 
 /// Register zfsd names to dbus connection
 int dbus_add_zfsd_name (DBusConnection * connection, 
-                           DBusError * err_struct)
+                        DBusError * err_struct)
 {
   int ret = 0;
   // request our name on the bus and check for errors
@@ -94,7 +94,7 @@ int dbus_add_zfsd_name (DBusConnection * connection,
 
 /// Release zfsd names from dbus connection
 int dbus_release_zfsd_name (DBusConnection * connection,
-                                    DBusError * err_struct)
+                            DBusError * err_struct)
 {
   int ret_code = TRUE;
 
