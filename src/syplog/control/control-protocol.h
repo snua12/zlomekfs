@@ -53,7 +53,7 @@
 #include <dbus/dbus.h>
 
 
-/// timeout for receiving message in s
+/// timeout for receiving message in miliseconds
 #define	DBUS_WAIT_TIMEOUT			1000
 /// default source name
 #define	SYPLOG_DEFAULT_DBUS_SOURCE		"syplog.default.source"
@@ -79,6 +79,8 @@
 /// type of payload data for ping
 #define SYPLOG_PING_DBUS_TYPE			DBUS_TYPE_STRING
 
+
+#define	SYPLOG_SIGNAL_RECEIVE_RULE		"type='signal',interface='" SYPLOG_DBUS_INTERFACE "'"
 
 /** communication types enum,
  * used as internal discriminator in listener struct

@@ -254,45 +254,64 @@ FINISHING:
 
 //------------------------ DBUS ----------------------------------
 
-void dbus_reply_to_ping( listener controller, DBusMessage* msg, DBusConnection* conn)
+
+/** reply to ping message received through dbus
+ *
+ * @param target initialized logger where to put error messages
+ * @param msg received message of type SYPLOG_MESSAGE_PING_NAME
+ * @param conn connection to which send the reply
+ * @return std errors
+ */
+syp_error dbus_reply_to_ping( logger target, DBusMessage* msg, DBusConnection* conn)
 {
-  DBusMessage* reply = NULL;
+  DBusMessage * reply = NULL;
   DBusMessageIter args;
-  const char* param = NULL;
+  const char * param = NULL;
+  syp_error ret_code = NOERR;
 
   // read the arguments
   if (!dbus_message_iter_init (msg, &args))
   {
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Syplog ping without arg\n");
     param = "";
   }
-  else if (SYPLOG_PING_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+  else if (SYPLOG_PING_DBUS_TYPE != dbus_message_iter_get_arg_type(&args))
+  {
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Wrong argument type to syplog ping\n");
+    ret_code = ERR_DBUS;
+    param = "ping";
+  }
   else 
     dbus_message_iter_get_basic (&args, &param);
 
-  do_log (controller->target, LOG_DEBUG, FACILITY_LOG, 
+  do_log (target, LOG_DEBUG, FACILITY_LOG, 
           "ping called with %s\n", param);
   // create a reply from the message
   reply = dbus_message_new_method_return (msg);
   if (reply == NULL)
+  {
+    ret_code = ERR_DBUS;
     goto FINISHING;
+  }
 
   // add the arguments to the reply
   dbus_message_iter_init_append (reply, &args);
   if (!dbus_message_iter_append_basic (&args, SYPLOG_PING_DBUS_TYPE, &param)) 
   { 
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Out of memory in sending reply to ping\n");
+    ret_code = ERR_NO_MEMORY;
     goto FINISHING;
   }
 
   // send the reply && flush the connection
-  if (!dbus_connection_send (conn, reply, NULL)) {
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
-            "Out of memory in sending reply to ping\n");
+  if (!dbus_connection_send (conn, reply, NULL))
+  {
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
+            "Error when sending reply to ping\n");
+    ret_code = ERR_DBUS;
     goto FINISHING;
   }
   dbus_connection_flush (conn);
@@ -301,70 +320,223 @@ FINISHING:
   // free the reply
   if (reply != NULL)
     dbus_message_unref (reply);
+
+  return ret_code;
 }
 
-void handle_dbus_reset_facility (listener controller, DBusMessage* msg) {
+/** handle dbus signal to reset facility
+ *
+ * @param target initialized logger where to reset facility
+ * @param msg received message of type SYPLOG_SIGNAL_RESET_FACILITY_NAME
+ * @return std errors
+ */
+syp_error handle_dbus_reset_facility (logger target, DBusMessage* msg) {
   DBusMessageIter args;
   facility_t facility = FACILITY_NOTHING;
+  syp_error ret_code = NOERR;
 
   // read the parameters
   if (!dbus_message_iter_init (msg, &args))
   {
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Can't get args for reset_facility \n");
+    ret_code = ERR_DBUS;
   }
   else if (SYPLOG_FACILITY_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
   {
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Wrong arg type for reset facility\n");
+    ret_code = ERR_DBUS;
   }
   else 
   {
     dbus_message_iter_get_basic (&args, &facility);
-    do_log (controller->target, LOG_DATA, FACILITY_LOG, 
+    do_log (target, LOG_DATA, FACILITY_LOG, 
             "Got reset facility with value %d\n", facility);
-    reset_facility (controller->target, facility);
+    ret_code = reset_facility (target, facility);
   }
+
+  return ret_code;
 }
 
-void handle_dbus_set_facility (listener controller, DBusMessage* msg) {
+/** handle dbus signal to set facility
+ *
+ * @param target initialized logger where to reset facility
+ * @param msg received message of type SYPLOG_SIGNAL_SET_FACILITY_NAME
+ * @return std errors
+ */
+syp_error handle_dbus_set_facility (logger target, DBusMessage* msg) {
   DBusMessageIter args;
   facility_t facility = FACILITY_NOTHING;
+  syp_error ret_code = NOERR;
 
   // read the parameters
   if (!dbus_message_iter_init (msg, &args))
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+  {
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Can't get args for set_facility \n");
-  else if (SYPLOG_FACILITY_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
-            "Wrong arg type for set facility\n");
-  else {
-    dbus_message_iter_get_basic (&args, &facility);
-    do_log (controller->target, LOG_DATA, FACILITY_LOG, 
-            "Got set facility with value %d\n", facility);
-    set_facility (controller->target, facility);
+    ret_code = ERR_DBUS;
   }
+  else if (SYPLOG_FACILITY_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
+  {
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
+            "Wrong arg type for set facility\n");
+    ret_code = ERR_DBUS;
+  }
+  else
+  {
+    dbus_message_iter_get_basic (&args, &facility);
+    do_log (target, LOG_DATA, FACILITY_LOG, 
+            "Got set facility with value %d\n", facility);
+    ret_code = set_facility (target, facility);
+  }
+
+  return ret_code;
 }
 
-void handle_dbus_set_log_level(listener controller, DBusMessage* msg) {
+/** handle dbus signal to set log level
+ *
+ * @param target initialized logger where to reset facility
+ * @param msg received message of type SYPLOG_SIGNAL_SET_LOG_LEVEL_NAME
+ * @return std errors
+ */
+syp_error handle_dbus_set_log_level (logger target, DBusMessage* msg) {
   DBusMessageIter args;
   log_level_t level = LOG_NONE;
+  syp_error ret_code = NOERR;
 
   // read the parameters
   if (!dbus_message_iter_init (msg, &args))
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
+  {
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
             "Can't get args for set level \n");
-  else if (SYPLOG_FACILITY_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
-    do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
-            "Wrong arg type for set level\n");
-  else {
-    dbus_message_iter_get_basic (&args, &level);
-    do_log (controller->target, LOG_DATA, FACILITY_LOG, 
-            "Got set level with value %d\n", level);
-    set_log_level (controller->target, level);
+    ret_code = ERR_DBUS;
   }
+  else if (SYPLOG_FACILITY_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
+  {
+    do_log (target, LOG_WARNING, FACILITY_LOG, 
+            "Wrong arg type for set level\n");
+    ret_code = ERR_DBUS;
+  }
+  else 
+  {
+    dbus_message_iter_get_basic (&args, &level);
+    do_log (target, LOG_DATA, FACILITY_LOG, 
+            "Got set level with value %d\n", level);
+    ret_code = set_log_level (target, level);
+  }
+
+  return ret_code;
 }
 
+/// Register syplog names to dbus connection
+ syp_error dbus_add_syplog_name (DBusConnection * connection, 
+                                DBusError * err_struct, logger err_target)
+{
+  syp_error ret_code = NOERR;
+  int sys_ret = 0;
+
+  // request our name on the bus and check for errors
+  sys_ret = dbus_bus_request_name(connection, SYPLOG_DEFAULT_DBUS_TARGET,
+                              DBUS_NAME_FLAG_REPLACE_EXISTING, 
+                              err_struct);
+  if (dbus_error_is_set(err_struct)) { 
+    if (err_target != NULL)
+      do_log (err_target, LOG_ERROR, FACILITY_LOG, "Dbus name Error (%s)\n",
+              err_struct->message);
+    dbus_error_free (err_struct);
+    ret_code = ERR_DBUS;
+    goto FINISHING;
+  }
+  if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != sys_ret) { 
+    if (err_target != NULL)
+      do_log (err_target, LOG_ERROR, FACILITY_LOG, "Dbus not Primary Owner (%d)\n",
+              sys_ret);
+    ret_code = ERR_DBUS;
+    goto FINISHING;
+  }
+
+
+  // add a rule for which messages we want to see
+  dbus_bus_add_match(connection,
+                     SYPLOG_SIGNAL_RECEIVE_RULE,
+                     err_struct); // see signals from the given interface
+  dbus_connection_flush(connection);
+  if (dbus_error_is_set(err_struct)) { 
+    if (err_target != NULL)
+      do_log (err_target, LOG_ERROR, FACILITY_LOG, 
+              "Can't register dbus signal match (%s)\n",
+              err_struct->message);
+    dbus_error_free (err_struct);
+    ret_code = ERR_DBUS;
+    goto FINISHING;
+  }
+
+FINISHING:
+  if (ret_code != NOERR)
+  {
+    // we should release name and match here
+  }
+
+  return ret_code;
+}
+
+/// Release syplog names from dbus connection
+ syp_error dbus_release_syplog_name (DBusConnection * connection,
+                                    DBusError * err_struct, logger err_target)
+{
+  syp_error ret_code = NOERR;
+  dbus_bus_remove_match (connection, SYPLOG_SIGNAL_RECEIVE_RULE, err_struct);
+  if (dbus_error_is_set(err_struct)) { 
+    if (err_target != NULL)
+      do_log (err_target, LOG_WARNING, FACILITY_LOG | FACILITY_DBUS, 
+              "Can't unergister syplog dbus signal match (%s)\n",
+              err_struct->message);
+    dbus_error_free (err_struct);
+    ret_code = ERR_DBUS;
+  }
+  
+  dbus_bus_release_name (connection, SYPLOG_DEFAULT_DBUS_TARGET, err_struct);
+  if (dbus_error_is_set(err_struct)) { 
+    if (err_target != NULL)
+      do_log (err_target, LOG_WARNING, FACILITY_LOG | FACILITY_DBUS,
+              "Can't release syplog dbus name (%s)\n",
+              err_struct->message);
+    dbus_error_free (err_struct);
+    ret_code = ERR_DBUS;
+  }
+
+  return ret_code;
+}
+
+/// Try to handle dbus message for syplog
+syp_error dbus_handle_syplog_message (DBusConnection * conn, 
+                                DBusError * err_struct UNUSED, DBusMessage * msg,
+                                logger target)
+{
+  if (dbus_message_is_method_call (msg, SYPLOG_DBUS_INTERFACE, SYPLOG_MESSAGE_PING_NAME)) 
+    return dbus_reply_to_ping (target, msg, conn);
+
+  if (dbus_message_is_signal (msg, SYPLOG_DBUS_INTERFACE, SYPLOG_SIGNAL_SET_LOG_LEVEL_NAME))
+    return handle_dbus_set_log_level (target, msg);
+
+  if (dbus_message_is_signal (msg, SYPLOG_DBUS_INTERFACE, SYPLOG_SIGNAL_SET_FACILITY_NAME))
+    return handle_dbus_set_facility (target, msg);
+
+  if (dbus_message_is_signal (msg, SYPLOG_DBUS_INTERFACE, SYPLOG_SIGNAL_RESET_FACILITY_NAME))
+    return handle_dbus_reset_facility (target, msg);
+
+  return ERR_BAD_MESSAGE;
+}
+
+/** loops listening on dbus connection waiting for new messages
+    and handle the syplog ones
+    to stop the loop lock listener and NULL the dbus_conn pointer
+ *
+ * @param data pointer to struct listener_def
+          initialized for usage with dbus (opened connection with names registered)
+ * @return NULL
+*/
 void * dbus_listen_loop (void * data)
 {
   syp_error status = NOERR;
@@ -391,34 +563,35 @@ void * dbus_listen_loop (void * data)
 
       goto NEXT;
     }
-    do_log (controller->target, LOG_DEBUG, FACILITY_DBUS, "we got a message\n");  
-    // check what signal or message this is
-    if (dbus_message_is_method_call(msg, SYPLOG_DBUS_INTERFACE, SYPLOG_MESSAGE_PING_NAME)) 
-      dbus_reply_to_ping(controller, msg, controller->dbus_conn);
+    do_log (controller->target, LOG_DEBUG, FACILITY_DBUS | FACILITY_LOG,
+            "we got a message\n");
 
-    if (dbus_message_is_signal(msg, SYPLOG_DBUS_INTERFACE, SYPLOG_SIGNAL_SET_LOG_LEVEL_NAME))
-      handle_dbus_set_log_level(controller, msg);
+    // check what signal or message this is and try to handle
+    status = dbus_handle_syplog_message (controller->dbus_conn, &(controller->dbus_err),
+                                         msg, controller->target);
+    if (status == ERR_BAD_MESSAGE)
+    {
+      do_log (controller->target, LOG_ERROR, FACILITY_DBUS | FACILITY_LOG, 
+              "Unknown message received by syplog dbus loop.");
+    }
+    else if (status != NOERR)
+      do_log (controller->target, LOG_ERROR, FACILITY_DBUS | FACILITY_LOG, 
+              "Unknown error when handling dbus message %d: %s", status,
+              syp_error_to_string (status));
 
-    if (dbus_message_is_signal(msg, SYPLOG_DBUS_INTERFACE, SYPLOG_SIGNAL_SET_FACILITY_NAME))
-      handle_dbus_set_facility(controller, msg);
-
-    if (dbus_message_is_signal(msg, SYPLOG_DBUS_INTERFACE, SYPLOG_SIGNAL_RESET_FACILITY_NAME))
-      handle_dbus_reset_facility(controller, msg);
-
+    status = NOERR;
     // free the message
     dbus_message_unref(msg);
 
 NEXT:
     pthread_mutex_unlock (&(controller->mutex));
   }
-
-  dbus_bus_release_name (controller->dbus_conn, SYPLOG_DEFAULT_DBUS_TARGET, NULL);
-  dbus_connection_unref (controller->dbus_conn);
   
   return NULL;
 } //TODO: implement this
 
-syp_error start_listen_dbus (listener controller, logger target, const char * name)
+syp_error start_listen_dbus (listener controller, logger target, 
+                             const char * name UNUSED)
 {
   syp_error ret_code = NOERR;
   int sys_ret = 0;
@@ -427,9 +600,6 @@ syp_error start_listen_dbus (listener controller, logger target, const char * na
   if (controller == NULL || target == NULL)
     return ERR_BAD_PARAMS;
 #endif
-
-  if (name == NULL)
-    name = SYPLOG_DEFAULT_DBUS_TARGET;
 
   // init structure
   memset (controller, 0, sizeof (struct listener_def));
@@ -460,34 +630,11 @@ syp_error start_listen_dbus (listener controller, logger target, const char * na
     goto FINISHING;
   }
 
-  // request our name on the bus and check for errors
-  sys_ret = dbus_bus_request_name(controller->dbus_conn, name,
-                              DBUS_NAME_FLAG_REPLACE_EXISTING, 
-                              &(controller->dbus_err));
-  if (dbus_error_is_set(&(controller->dbus_err))) { 
-    do_log (target, LOG_ERROR, FACILITY_LOG, "Dbus name Error (%s)\n", 
-            controller->dbus_err.message); 
-    ret_code = ERR_DBUS;
-    goto FINISHING;
-  }
-  if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != sys_ret) { 
-    do_log (target, LOG_ERROR, FACILITY_LOG, "Dbus not Primary Owner (%d)\n", sys_ret);
-    ret_code = ERR_DBUS;
-    goto FINISHING;
-  }
 
-
-  // add a rule for which messages we want to see
-  dbus_bus_add_match(controller->dbus_conn,
-                     "type='signal',interface='" SYPLOG_DBUS_INTERFACE "'",
-                     &(controller->dbus_err)); // see signals from the given interface
-  dbus_connection_flush(controller->dbus_conn);
-  if (dbus_error_is_set(&(controller->dbus_err))) { 
-    do_log (target, LOG_ERROR, FACILITY_LOG, "Can't register dbus signal match (%s)\n",
-            controller->dbus_err.message);
-    ret_code = ERR_DBUS;
+  ret_code = dbus_add_syplog_name (controller->dbus_conn, &(controller->dbus_err), controller->target);
+  if (ret_code != NOERR)
     goto FINISHING;
-  }
+
 
   sys_ret = pthread_create (&(controller->thread_id), NULL,
     dbus_listen_loop, (void*)controller);
@@ -509,6 +656,12 @@ FINISHING:
   return ret_code;
 }
 
+
+/** Send signal to udp listening thread to terminate
+ *
+ * @param controller initialized listener listening on udp socket
+ * @return NOERR
+*/
 syp_error stop_listen_udp(listener controller)
 {
   close (controller->socket);
@@ -517,9 +670,18 @@ syp_error stop_listen_udp(listener controller)
   return NOERR;
 }
 
+/** Send signal to dbus listening thread to terminate
+ *
+ * @param controller initialized listener listening on dbus
+ * @return NOERR
+*/
 syp_error stop_listen_dbus(listener controller)
 {
+  dbus_release_syplog_name (controller->dbus_conn, &(controller->dbus_err), 
+                            controller->target);
+  dbus_connection_unref (controller->dbus_conn);
   dbus_error_free(&(controller->dbus_err));
+  controller->dbus_conn = NULL;
 
   return NOERR;
 }

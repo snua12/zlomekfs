@@ -76,12 +76,48 @@ syp_error start_listen_udp (listener controller, logger target, uint16_t port);
  */
 syp_error start_listen_dbus (listener controller, logger target, const char * name);
 
-
-
 /** stop control listening
  * 
  * @param controller valid pointer to running listener structure
  */
 syp_error stop_listen (listener controller);
+
+// ---------------- dbus export --------------------
+// dbus handling functions for usage with other dbus listener
+
+
+/** Register syplog names to dbus connection
+ *
+ * @param connection initialized dbus connection
+ * @param err_struct initialized dbus error struct 
+ * @param logger syplog where to send error messages to or NULL
+ * @return NOERR or ERR_DBUS
+ *
+*/
+syp_error dbus_add_syplog_name (DBusConnection * connection, 
+                                DBusError * err_struct, logger err_target);
+
+/** Release syplog names from dbus connection
+ *
+ * @param connection initialized dbus connection
+ * @param err_struct initialized dbus error struct 
+ * @param logger syplog where to send error messages to or NULL
+ * @return NOERR or ERR_DBUS
+ *
+*/
+syp_error dbus_release_syplog_name (DBusConnection * connection,
+                                    DBusError * err_struct, logger err_target);
+
+/** Try to handle dbus message
+ * @param conn valid dbus connection with syplog names registered
+ * @param err_struct initialized dbus error struct
+ * @param msg message received
+ * @param logger logger to operate on
+ * @return ERR_BAD_MESSAGE when message is not known,
+           NOERR when message got handled or
+           other error codes
+ */
+syp_error dbus_handle_syplog_message (DBusConnection * conn, DBusError * err_struct,
+                                       DBusMessage * msg, logger target);
 
 #endif	/* LISTENER_H */

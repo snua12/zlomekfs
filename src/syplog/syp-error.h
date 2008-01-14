@@ -56,7 +56,9 @@ typedef enum
   /// bad message type received
   ERR_BAD_MESSAGE = 10008,
   /// dbus communication error
-  ERR_DBUS = 10009
+  ERR_DBUS = 10009,
+  /// out of memory
+  ERR_NO_MEMORY = 10010,
 
 } syp_error;
 

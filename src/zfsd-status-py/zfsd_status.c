@@ -79,7 +79,7 @@ zfsd_state_e ping_zfsd()
   if (!dbus_message_iter_init(msg, &args))
     fprintf (stderr, "no return code from ping\n");
   else if (ZFSD_STATUS_INFO_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
-      fprintf(stderr, "Return code invalid!\n"); 
+      fprintf(stderr, "Return code invalid!\n");
   else
     dbus_message_iter_get_basic(&args, &ret_code);
 

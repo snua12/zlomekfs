@@ -50,6 +50,8 @@ char * syp_error_to_string (syp_error error)
       return "Bad message type received";
     case ERR_DBUS:
       return "Error in communication with dbus";
+    case ERR_NO_MEMORY:
+      return "Out of memory";
     default:
       return "Unknown error";
   }
