@@ -25,7 +25,7 @@ $(LIBS):
 	sh -c 'CFLAGS="-fPIC -shared " make -C ../syplog'
 
 clean:
-	rm -f $(LIBS) pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so
+	rm -rf $(LIBS) pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build
 
 install: setup.py pysyplog_wrap.c $(LIBS)
 	./setup.py install

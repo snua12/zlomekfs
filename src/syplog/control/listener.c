@@ -262,8 +262,11 @@ void dbus_reply_to_ping( listener controller, DBusMessage* msg, DBusConnection* 
 
   // read the arguments
   if (!dbus_message_iter_init (msg, &args))
+  {
     do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
-            "Syplog ping without arg\n"); 
+            "Syplog ping without arg\n");
+    param = "";
+  }
   else if (SYPLOG_PING_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
     do_log (controller->target, LOG_WARNING, FACILITY_LOG, 
             "Wrong argument type to syplog ping\n");

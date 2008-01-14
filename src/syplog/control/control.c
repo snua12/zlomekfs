@@ -25,6 +25,7 @@
 
 #define _GNU_SOURCE
 #include <unistd.h>
+#include <stdio.h>
 #undef _GNU_SOURCE
 
 #include "control.h"
@@ -102,41 +103,88 @@ syp_error reset_facility_udp (facility_t facility, const char * addr, uint16_t p
   return send_uint32_by_function (facility, reset_facility_sendto, addr, port);
 }
 
+syp_error dbus_connect (DBusConnection ** connection)
+{
+  DBusError err;
+  int ret = 0;
+  syp_error ret_code = NOERR;
+
+#ifdef ENABLE_CHECKING
+  if (connection == NULL)
+    return ERR_BAD_PARAMS;
+#endif
+
+  // initialise the error value
+  dbus_error_init (&err);
+
+  // connect to the DBUS system bus, and check for errors
+  *connection = dbus_bus_get (DBUS_BUS_SYSTEM, &err);
+  if (dbus_error_is_set (&err)) { 
+    fprintf (stderr, "Can't acquire bus: %s\n", err.message);
+    dbus_error_free (&err); 
+  }
+  if (NULL == *connection) { 
+    ret_code = ERR_DBUS;
+    goto FINISHING;
+  }
+
+  // register our name on the bus, and check for errors
+  ret = dbus_bus_request_name (*connection, SYPLOG_DEFAULT_DBUS_SOURCE, DBUS_NAME_FLAG_REPLACE_EXISTING , &err);
+  if (dbus_error_is_set (&err)) { 
+    fprintf (stderr, "Can't get name: %s\n", err.message);
+    dbus_error_free (&err); 
+  }
+  if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != ret) { 
+    fprintf (stderr, "Not primary owner\n");
+    ret_code = ERR_DBUS;
+    goto FINISHING;
+  }
+
+
+FINISHING:
+  if (ret_code != NOERR && (*connection) != NULL)
+  {
+    dbus_bus_release_name (*connection, SYPLOG_DEFAULT_DBUS_SOURCE, NULL);
+    dbus_connection_unref(*connection);
+    *connection = NULL;
+  }
+
+  return ret_code;
+}
+
+syp_error dbus_disconnect(DBusConnection ** connection)
+{
+
+#ifdef ENABLE_CHECKING
+  if (connection == NULL)
+    return ERR_BAD_PARAMS;
+  if (*connection == NULL)
+    return ERR_NOT_INITIALIZED;
+#endif
+
+  dbus_bus_release_name (*connection, SYPLOG_DEFAULT_DBUS_SOURCE, NULL);
+  dbus_connection_unref(*connection);
+  *connection = NULL;
+
+  return NOERR;
+}
+
 //-------------------------- DBUS -----------------------------------
 
 /**
  * Connect to the DBUS bus and send a broadcast signal
  * TODO: non broadcasting signals
  */
-syp_error dbus_sendsignal(const char * target UNUSED, char * signal_name, int value_type, void * signal_value)
+syp_error dbus_sendsignal (const char * target UNUSED,
+                          char * signal_name, int value_type, void * signal_value)
 {
-  DBusMessage* msg;
+  DBusMessage* msg = NULL;
   DBusMessageIter args;
-  DBusConnection* conn;
-  DBusError err;
-  int ret;
-
-
-  // initialise the error value
-  dbus_error_init (&err);
-
-  // connect to the DBUS system bus, and check for errors
-  conn = dbus_bus_get (DBUS_BUS_SYSTEM, &err);
-  if (dbus_error_is_set (&err)) { 
-    dbus_error_free (&err); 
-  }
-  if (NULL == conn) { 
-    return ERR_DBUS;
-  }
-
-  // register our name on the bus, and check for errors
-  ret = dbus_bus_request_name (conn, SYPLOG_DEFAULT_DBUS_SOURCE, DBUS_NAME_FLAG_REPLACE_EXISTING , &err);
-  if (dbus_error_is_set (&err)) { 
-    dbus_error_free (&err); 
-  }
-  if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != ret) { 
-    return ERR_DBUS;
-  }
+  DBusConnection * conn;
+  syp_error ret_code = NOERR;
+  ret_code = dbus_connect (&conn);
+  if (ret_code != NOERR || conn == NULL)
+    goto FINISHING;
 
   // create a signal & check for errors 
   msg = dbus_message_new_signal (SYPLOG_DEFAULT_DBUS_OBJECT, // object name of the signal
@@ -144,64 +192,49 @@ syp_error dbus_sendsignal(const char * target UNUSED, char * signal_name, int va
                                  signal_name); // name of the signal
   if (NULL == msg) 
   { 
-    return ERR_DBUS;
+    ret_code = ERR_DBUS;
+    goto FINISHING;
   }
 
    // append arguments onto signal
   dbus_message_iter_init_append (msg, &args);
   if (!dbus_message_iter_append_basic (&args, value_type, signal_value)) {
-    return ERR_DBUS;
+    fprintf (stderr, "No memory in init append\n");
+    ret_code = ERR_DBUS;
+    goto FINISHING;
   }
 
   // send the message and flush the connection
   if (!dbus_connection_send (conn, msg, NULL)) {
-    return ERR_DBUS;
+    fprintf (stderr, "Can't send message\n");
+    ret_code = ERR_DBUS;
+    goto FINISHING;
   }
   dbus_connection_flush (conn);
   
+FINISHING:
   // free the message 
-  dbus_message_unref(msg);
+  if (msg)
+    dbus_message_unref (msg);
+  if (conn)
+    dbus_disconnect (&conn);
 
-  return NOERR;
+  return ret_code;
 }
 
 /**
  * Call a method on a remote object
  */
-void * dbus_query(const char * target_name, char * method_name, int arg_type, void * method_arg ) 
+const void * dbus_query(DBusConnection * conn, const char * target_name, char * method_name, int arg_type, void * method_arg ) 
 {
   DBusMessage* msg;
   DBusMessageIter args;
-  DBusConnection* conn;
-  DBusError err;
   DBusPendingCall* pending;
-  int ret;
   int try = 0;
-  char * response = NULL;
+  const char * response = NULL;
 
   if (target_name == NULL)
     target_name = SYPLOG_DEFAULT_DBUS_TARGET;
-
-  // initialiset the errors
-  dbus_error_init(&err);
-
-  // connect to the system bus and check for errors
-  conn = dbus_bus_get (DBUS_BUS_SYSTEM, &err);
-  if (dbus_error_is_set (&err)) { 
-    dbus_error_free(&err);
-  }
-  if (NULL == conn) { 
-    return NULL;
-  }
-
-  // request our name on the bus
-  ret = dbus_bus_request_name (conn, SYPLOG_DEFAULT_DBUS_SOURCE, DBUS_NAME_FLAG_REPLACE_EXISTING , &err);
-  if (dbus_error_is_set (&err)) { 
-     dbus_error_free (&err);
-  }
-  if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != ret) { 
-    return NULL;
-  }
 
   // create a new method call and check for errors
   msg = dbus_message_new_method_call (target_name, // target for the method call
@@ -209,22 +242,30 @@ void * dbus_query(const char * target_name, char * method_name, int arg_type, vo
                                       SYPLOG_DBUS_INTERFACE, // interface to call on
                                       method_name); // method name
   if (NULL == msg) { 
-    return NULL;
+    fprintf (stderr, "Can't create new call\n");
+    response = NULL;
+    goto FINISHING;
   }
 
   // append arguments
   dbus_message_iter_init_append(msg, &args);
   if (!dbus_message_iter_append_basic (&args, arg_type, &method_arg)) {
-    return NULL;
+    fprintf (stderr, "No memory in init_append\n");
+    response = NULL;
+    goto FINISHING;
   }
 
   // send message and get a handle for a reply
   if (!dbus_connection_send_with_reply (conn, msg, &pending, -1)) { // -1 is default timeout
-    return NULL;
+    fprintf (stderr, "Can't send message\n");
+    response = NULL;
+    goto FINISHING;
   }
   
   if (NULL == pending) { 
-    return NULL;
+    fprintf (stderr, "Not pending\n");
+    response = NULL;
+    goto FINISHING;
   }
   dbus_connection_flush (conn);
   
@@ -241,13 +282,17 @@ void * dbus_query(const char * target_name, char * method_name, int arg_type, vo
   }
 
   if (!dbus_pending_call_get_completed (pending)) {
-     dbus_pending_call_cancel (pending);
-     return NULL;
+    dbus_pending_call_cancel (pending);
+    fprintf (stderr, "Timeout in send\n");
+    response = NULL;
+    goto FINISHING;
   }
 
   msg = dbus_pending_call_steal_reply (pending);
   if (NULL == msg) {
-    return NULL;
+    fprintf (stderr, "Can't get reply\n");
+    response = NULL;
+    goto FINISHING;
   }
   // free the pending message handle
   dbus_pending_call_unref (pending);
@@ -256,8 +301,11 @@ void * dbus_query(const char * target_name, char * method_name, int arg_type, vo
   if (dbus_message_iter_init(msg, &args))
     dbus_message_iter_get_basic(&args, &response);
 
-  // free reply 
-  dbus_message_unref(msg);
+
+FINISHING:
+  // free the message 
+  if (msg)
+    dbus_message_unref (msg);
 
   return response;
 }
@@ -266,15 +314,28 @@ void * dbus_query(const char * target_name, char * method_name, int arg_type, vo
 
 syp_error ping_syplog_dbus (const char * logger_name)
 {
-  const char * data = dbus_query (logger_name, SYPLOG_MESSAGE_PING_NAME, SYPLOG_PING_DBUS_TYPE, PING_STR);
+  DBusConnection * conn = NULL;
+  syp_error ret_code = NOERR;
+  
+  ret_code = dbus_connect (&conn);
+  if (ret_code != NOERR || conn == NULL)
+    goto FINISHING;
+
+  const char * data = dbus_query (conn, logger_name, SYPLOG_MESSAGE_PING_NAME, SYPLOG_PING_DBUS_TYPE, PING_STR);
   if (data == NULL)
-    return ERR_DBUS;
-  if (strncmp (data, PING_STR, 4) == 0)
   {
-    return NOERR;
+    ret_code = ERR_DBUS;
+    goto FINISHING;
+  }
+  if (strncmp (data, PING_STR, 4) != 0)
+  {
+    ret_code = ERR_DBUS;
   }
 
-  return ERR_DBUS;
+FINISHING:
+  if (conn)
+    dbus_disconnect (&conn);
+  return ret_code;
 }
 
 syp_error set_level_dbus (log_level_t level, const char * logger_name)
