@@ -45,6 +45,8 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
+#include <pthread.h>
+
 #include "log-constants.h"
 #include "syp-error.h"
 #include "log-level.h"
@@ -67,6 +69,10 @@ typedef struct logger_def {
   char node_name[NODE_NAME_LEN];
   /// cached timezone - set on opening to avoid getting on every message
   uint64_t timezone;
+
+  /// mutex to lock logger structure in non-atomic operations
+  /// NOTE: this mutex doesn't lock medium (printer) - medium atomicity should enforce medium itself
+  pthread_mutex_t mutex;
 } * logger;
 
 /*! Open log with given settings.

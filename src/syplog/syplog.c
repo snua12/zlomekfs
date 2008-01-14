@@ -55,6 +55,132 @@ void print_syplog_help (int fd, int tabs)
 
 }
 
+bool_t is_syplog_arg (const char * arg)
+{
+  return is_medium_arg (arg);
+}
+
+/// Set actual verbosity of logger
+syp_error set_log_level (logger glogger, log_level_t level)
+{
+  glogger->log_level = level;
+  
+  return NOERR;
+}
+
+/// get actual log level (verbosity) of logger.
+log_level_t get_log_level (logger glogger)
+{
+  return glogger->log_level;
+}
+
+/// Returns actual verbosity of logger
+syp_error get_log_level_to (logger glogger, log_level_t * level)
+{
+  *level = glogger->log_level;
+  
+  return NOERR;
+}
+
+/// Turn on logging for messages from facility "facility"
+syp_error set_facility (logger glogger, facility_t facility)
+{
+  pthread_mutex_lock (&(glogger->mutex));
+  glogger->facilities  = facility_add (glogger->facilities, facility);
+  pthread_mutex_unlock (&(glogger->mutex));
+
+  return NOERR;
+}
+
+/// Set facilities logging policy.
+syp_error set_facilities (logger glogger, facility_t facilities)
+{
+  glogger->facilities = facilities;
+  
+  return NOERR;
+}
+
+/// Turn off logging for messages from facility "facility"
+syp_error reset_facility (logger glogger, facility_t facility)
+{
+  pthread_mutex_lock (&(glogger->mutex));
+  glogger->facilities  = facility_del (glogger->facilities, facility);
+  pthread_mutex_unlock (&(glogger->mutex));
+
+  return NOERR;
+}
+
+/// Get actual facilities logging policy
+syp_error get_facilities (logger glogger, facility_t * facilities)
+{
+  *facilities = glogger->facilities;
+  
+  return NOERR;
+}
+
+
+syp_error set_hostname_locked (logger glogger, const char * hostname)
+{
+  strncpy (glogger->hostname, hostname, HOSTNAME_LEN);
+  return NOERR;
+}
+/// Set cached hostname.
+syp_error set_hostname (logger glogger, const char * hostname)
+{
+#ifdef ENABLE_CHECKING
+  if (glogger == NULL || hostname == NULL)
+    return ERR_BAD_PARAMS;
+#endif
+
+  pthread_mutex_lock (&(glogger->mutex));
+  set_hostname_locked (glogger, hostname);
+  pthread_mutex_unlock (&(glogger->mutex));
+  
+  return NOERR;
+}
+
+syp_error set_timezone_locked (logger glogger, uint64_t timezone)
+{
+  glogger->timezone = timezone;
+  return NOERR;
+}
+
+/// Set cached timezone
+syp_error set_timezone (logger glogger, uint64_t timezone)
+{
+#ifdef ENABLE_CHECKING
+  if (glogger == NULL)
+    return ERR_BAD_PARAMS;
+#endif
+
+  pthread_mutex_lock (&(glogger->mutex));
+  set_timezone_locked (glogger, timezone);
+  pthread_mutex_unlock (&(glogger->mutex));
+  
+  return NOERR;
+}
+
+syp_error set_node_name_locked (logger glogger, const char * node_name)
+{
+  strncpy (glogger->node_name, node_name, NODE_NAME_LEN);
+  return NOERR;
+}
+/// Set cached node name.
+syp_error set_node_name (logger glogger, const char * node_name)
+{
+#ifdef ENABLE_CHECKING
+  if (glogger == NULL || node_name == NULL)
+    return ERR_BAD_PARAMS;
+#endif
+
+  pthread_mutex_lock (&(glogger->mutex));
+  set_node_name_locked (glogger, node_name);
+  pthread_mutex_unlock (&(glogger->mutex));
+  
+  return NOERR;
+}
+
+
 /// Default options for creating writer. Used when NULL argv is given to open_log
 static char * default_options [] = 
 {
@@ -63,11 +189,6 @@ static char * default_options [] =
 "--" PARAM_MEDIUM_FMT_LONG "=" RAW_FORMATTER_NAME,
 "--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME
 };
-
-bool_t is_syplog_arg (const char * arg)
-{
-  return is_medium_arg (arg);
-}
 
 /// default_options table row count
 static int default_option_count = 3;
@@ -91,36 +212,40 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, const cha
   }
 #endif
 
+  pthread_mutex_init (&(glogger->mutex), NULL);
+  pthread_mutex_lock (&(glogger->mutex));
+
   ret_code = set_facilities ( glogger, FACILITY_ALL);
 #ifdef ENABLE_CHECKING
   if (ret_code != NOERR)
-    return ret_code;
+    goto FINISHING;
 #endif
 
   ret_code = set_log_level (glogger, DEFAULT_LOG_LEVEL);
 #ifdef ENABLE_CHECKING
   if (ret_code != NOERR)
-    return ret_code;
+    goto FINISHING;
 #endif
 
-  ret_code = set_node_name (glogger, node_name);
+  ret_code = set_node_name_locked (glogger, node_name);
 #ifdef ENABLE_CHECKING
   if (ret_code != NOERR)
-    return ret_code;
+    goto FINISHING;
 #endif
   
   // load enviroment variable TZ to extern long timezone
   tzset ();
-  ret_code = set_timezone (glogger, timezone);
+  ret_code = set_timezone_locked (glogger, timezone);
 #ifdef ENABLE_CHECKING
   if (ret_code != NOERR)
-    return ret_code;
+    goto FINISHING;
 #endif
 
   sys_ret_code = gethostname (glogger->hostname, HOSTNAME_LEN);
   if (sys_ret_code != SYS_NOERR)
   {
-    return sys_to_syp_error (sys_ret_code);
+    ret_code = sys_to_syp_error (sys_ret_code);
+    goto FINISHING;
   }
   
   if (argv == NULL)
@@ -134,6 +259,10 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, const cha
     goto FINISHING;
   
   FINISHING:
+    pthread_mutex_unlock (&(glogger->mutex));
+    if (ret_code != NOERR)
+      pthread_mutex_destroy (&(glogger->mutex));
+
     return ret_code;
 
 }
@@ -175,98 +304,12 @@ syp_error do_log (logger glogger, log_level_t level, facility_t facility, const 
 /// Close log, deinitialize structure and free internal data (not structure itself)
 syp_error close_log (logger glogger)
 {
-
+  pthread_mutex_lock (&(glogger->mutex));
   close_medium (&(glogger->printer));
+  pthread_mutex_unlock (&(glogger->mutex));
+
+  pthread_mutex_destroy (&(glogger->mutex));
+
   return NOERR;
 
-}
-
-/// Set actual verbosity of logger
-syp_error set_log_level (logger glogger, log_level_t level)
-{
-  glogger->log_level = level;
-  
-  return NOERR;
-}
-
-/// get actual log level (verbosity) of logger.
-log_level_t get_log_level (logger glogger)
-{
-  return glogger->log_level;
-}
-
-/// Returns actual verbosity of logger
-syp_error get_log_level_to (logger glogger, log_level_t * level)
-{
-  *level = glogger->log_level;
-  
-  return NOERR;
-}
-
-/// Turn on logging for messages from facility "facility"
-syp_error set_facility (logger glogger, facility_t facility)
-{
-  glogger->facilities  = facility_add (glogger->facilities, facility);
-  
-  return NOERR;
-}
-
-/// Set facilities logging policy.
-syp_error set_facilities (logger glogger, facility_t facilities)
-{
-  glogger->facilities = facilities;
-  
-  return NOERR;
-}
-
-/// Turn off logging for messages from facility "facility"
-syp_error reset_facility (logger glogger, facility_t facility)
-{
-  glogger->facilities  = facility_del (glogger->facilities, facility);
-  
-  return NOERR;
-}
-
-/// Get actual facilities logging policy
-syp_error get_facilities (logger glogger, facility_t * facilities)
-{
-  *facilities = glogger->facilities;
-  
-  return NOERR;
-}
-
-/// Set cached hostname.
-syp_error set_hostname (logger glogger, const char * hostname)
-{
-#ifdef ENABLE_CHECKING
-  if (glogger == NULL || hostname == NULL)
-    return ERR_BAD_PARAMS;
-#endif
-  strncpy (glogger->hostname, hostname, HOSTNAME_LEN);
-  
-  return NOERR;
-}
-
-/// Set cached timezone
-syp_error set_timezone (logger glogger, uint64_t timezone)
-{
-#ifdef ENABLE_CHECKING
-  if (glogger == NULL)
-    return ERR_BAD_PARAMS;
-#endif
-  glogger->timezone = timezone;
-  
-  return NOERR;
-}
-
-/// Set cached node name.
-syp_error set_node_name (logger glogger, const char * node_name)
-{
-#ifdef ENABLE_CHECKING
-  if (glogger == NULL || node_name == NULL)
-    return ERR_BAD_PARAMS;
-#endif
-  strncpy (glogger->node_name, node_name, NODE_NAME_LEN);
-  
-  return NOERR;
 }
