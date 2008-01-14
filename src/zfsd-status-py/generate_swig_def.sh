@@ -41,6 +41,7 @@ echo '//
 %{
 
 #include  "../zfsd/dbus-service-descriptors.h"
+#include  "zfsd_status.h"
 
 %}
 
@@ -50,6 +51,7 @@ echo '//
 
 echo '
 %include "../zfsd/dbus-service-descriptors.h"
+%include "zfsd_status.h"
 %inline
 %{
 %}

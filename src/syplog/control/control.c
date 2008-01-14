@@ -298,7 +298,11 @@ const void * dbus_query(DBusConnection * conn, const char * target_name, char * 
   dbus_pending_call_unref (pending);
 
   // read the parameters
-  if (dbus_message_iter_init(msg, &args))
+  if (!dbus_message_iter_init(msg, &args))
+    fprintf (stderr, "no reply code to ping\n");
+  else if (SYPLOG_PING_DBUS_TYPE != dbus_message_iter_get_arg_type(&args)) 
+    fprintf (stderr, "Wrong reply type to ping\n");
+  else
     dbus_message_iter_get_basic(&args, &response);
 
 
