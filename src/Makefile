@@ -27,6 +27,9 @@ all:
 
 	@$(MAKE) -C module
 
+test:
+	true
+
 install: 
 	@$(MAKE) -C syplog-py install
 

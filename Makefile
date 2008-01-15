@@ -8,6 +8,12 @@ bin:
 doc:
 	@$(MAKE) -C doc
 
+install:
+	@$(MAKE) -C src
+
+test:
+	@$(MAKE) _C src
+
 clean:
 	@$(MAKE) -C src clean
 	@$(MAKE) -C doc clean
