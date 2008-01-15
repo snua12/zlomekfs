@@ -20,7 +20,7 @@
 
 .PHONY: all install uninstall clean
 
-all:
+all: fuse/lib/.libs/libfuse.a
 	@$(MAKE) -C syplog
 	@$(MAKE) -C zfsd
 	@$(MAKE) -C tests
@@ -29,6 +29,12 @@ all:
 
 test:
 	true
+
+fuse/lib/.libs/libfuse.a:
+	sh -c "cd fuse && \
+	./makeconf.sh && \
+	./configure && \
+	make"
 
 install: 
 	@$(MAKE) -C syplog-py install
@@ -48,4 +54,5 @@ clean:
 	@$(MAKE) -C syplog-py clean
 	@$(MAKE) -C zfsd-status-py clean
 	@$(MAKE) -C tests clean
+	rm -rf fuse/lib/.libs
 
