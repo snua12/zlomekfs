@@ -12,7 +12,7 @@ install:
 	@$(MAKE) -C src
 
 test:
-	@$(MAKE) _C src
+	@$(MAKE) -C src
 
 clean:
 	@$(MAKE) -C src clean

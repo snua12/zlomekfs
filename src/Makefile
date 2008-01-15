@@ -27,7 +27,7 @@ all: fuse/lib/.libs/libfuse.a
 
 	@$(MAKE) -C module
 
-test:
+test: install
 	true
 
 fuse/lib/.libs/libfuse.a:
