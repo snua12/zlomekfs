@@ -32,15 +32,6 @@
 
 #define	ZFSD_DBUS_SIGNAL_MATCH_RULE	"type='signal',interface='" ZFSD_DBUS_INTERFACE "'"
 
-/** open dbus connection, listen for messages and reply
-    finalize connection upon exit
- *
- * @param data int * pointer if set to TRUE, the loop will terminate
- * @return NULL
- * @deprecated
- */
-void * dbus_zfsd_service_loop (void * data);
-
 /** Register zfsd names to dbus connection
  *
  * @see dbus_name_add_t
