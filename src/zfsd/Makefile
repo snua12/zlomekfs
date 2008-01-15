@@ -49,7 +49,7 @@ ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -DENABLE_CHECKING -O0 -ggdb -g3
   LD_OPTS += -g
 else
-  CC_OPTS += -O2 -g
+  CC_OPTS += -O0 -g
 endif
 
 .SUFFIXES: .c .o

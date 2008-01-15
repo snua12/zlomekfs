@@ -36,9 +36,12 @@ int dbus_provider_init (dbus_state_holder settings_struct)
   if (settings_struct == NULL)
     return FALSE;
 #endif
-  memset (settings_struct,0, sizeof (struct dbus_state_holder_def));
+  memset (settings_struct, 0, sizeof (struct dbus_state_holder_def));
+  dbus_threads_init_default ();
 
-  pthread_mutex_init (&(settings_struct->mutex), NULL);
+  if (pthread_mutex_init (&(settings_struct->mutex), NULL) != 0)
+    message (LOG_ERROR, FACILITY_THREADING | FACILITY_DBUS,
+             "can't init dbus mutex\n");
 
   return TRUE;
 }
@@ -82,12 +85,16 @@ void * dbus_provider_loop (void * data)
 
     // loop again if we haven't got a message
     if (NULL == msg) {  
-       continue; 
+      goto NEXT;
     }
+
+    message (LOG_DEBUG, FACILITY_DBUS, "received message '%s' on iface '%s'\n",
+             dbus_message_get_member (msg), dbus_message_get_interface (msg));
     
     for (listener_index = 0; listener_index < settings->listener_count;
          listener_index ++)
     {
+      message (LOG_LOOPS, FACILITY_DBUS, "trying listener %d\n", listener_index);
       state = settings->listeners[listener_index].handle_message 
                                                         (settings->connection,
                                                          &(settings-> error),
@@ -99,7 +106,8 @@ void * dbus_provider_loop (void * data)
     }
     if (state !=  ZFSD_MESSAGE_HANDLED)
     {
-      message (LOG_WARNING, FACILITY_DBUS, "Can't handle message\n");
+      message (LOG_WARNING, FACILITY_DBUS, "Can't handle message (%d)\n",
+               state);
       state =  ZFSD_MESSAGE_HANDLED;
     }
 
@@ -151,6 +159,8 @@ int dbus_provider_start (dbus_state_holder settings_struct, DBusBusType bus_type
                                                      &(settings_struct->error)
                                                     ) != TRUE)
       message (LOG_WARNING, FACILITY_DBUS, "Can't add name for listener");
+    else
+      message (LOG_DEBUG, FACILITY_DBUS, "Listener %d Added\n", listener_index);
   }
   
   if (pthread_create (&(settings_struct->loop_thread), NULL,
@@ -234,6 +244,6 @@ int dbus_provider_add_listener (dbus_state_holder settings_struct,
 
 FINISHING:
   pthread_mutex_unlock (&(settings_struct->mutex));
-
+  message (LOG_DEBUG, FACILITY_DBUS, "listener registration ended with %d\n", ret_code);
   return ret_code;
 }

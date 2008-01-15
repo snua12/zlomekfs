@@ -104,8 +104,6 @@ void zfs_openlog(int  argc, const char ** argv)
     return;
   }
 
-  ret_code = start_listen_dbus (&control, &syplogger,
-    NULL);
   if(ret_code != NOERR)
   {
     message(LOG_WARNING,FACILITY_CONFIG | FACILITY_LOG, "Can't initialize listen loop %d:%s\n",
@@ -128,7 +126,6 @@ void update_node_name (void)
 
 void zfs_closelog(void)
 {
-  stop_listen (&control);
   close_log (&syplogger);
 }
 

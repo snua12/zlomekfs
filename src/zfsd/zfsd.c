@@ -443,32 +443,22 @@ daemon_mode (void)
 {
 }
 
-/*! Entry point of ZFS daemon.  */
+struct dbus_state_holder_def dbus_provider;
 
-int
-main (int argc, char **argv)
+void init_dbus()
 {
-  lock_info li[MAX_LOCKED_FILE_HANDLES]; //NOTE: for what? macros for memory??? TODO: better name
-  bool kernel_started = false;
-  bool network_started = false;
-  bool update_started = false;
-  int ret = EXIT_SUCCESS;
-
-  struct dbus_state_holder_def dbus_provider;
-  
-
-  zfs_openlog(argc, (const char **)argv);
-
   if (dbus_provider_init (&dbus_provider) != TRUE)
     message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
              "Can't initialize dbus provider\n");
   else
   {
+
     if (dbus_provider_add_listener (&dbus_provider, dbus_add_zfsd_name, 
                                 dbus_release_zfsd_name, dbus_handle_zfsd_message)
         != TRUE)
       message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
                "Can't add dbus zfsd state provider\n");
+
 
     if (dbus_provider_add_listener (&dbus_provider, dbus_add_log_name, 
                                 dbus_release_log_name, dbus_handle_log_message)
@@ -481,6 +471,23 @@ main (int argc, char **argv)
                "Can't start dbus provider\n");
   }
 
+}
+ 
+/*! Entry point of ZFS daemon.  */
+
+int
+main (int argc, char **argv)
+{
+  lock_info li[MAX_LOCKED_FILE_HANDLES]; //NOTE: for what? macros for memory??? TODO: better name
+  bool kernel_started = false;
+  bool network_started = false;
+  bool update_started = false;
+  int ret = EXIT_SUCCESS;
+
+
+  zfs_openlog(argc, (const char **)argv);
+  
+  init_dbus();
 
   init_constants ();
   init_sig_handlers ();
@@ -529,6 +536,7 @@ main (int argc, char **argv)
   message (LOG_DATA, FACILITY_DATA, "sizeof (fh_mapping) = %u\n", sizeof (fh_mapping));
 #endif
 
+
   /* Keep the pages of the daemon in memory.  */
   if (mlock_zfsd && mlockall (MCL_CURRENT | MCL_FUTURE))
     {
@@ -536,14 +544,17 @@ main (int argc, char **argv)
       die ();
     }
 
+
   daemon_mode ();
 
   fd_data_init ();
+
 
   /* Start the threads.  */
   update_started = update_start ();//NOTE:where checked?
   network_started = network_start ();
   kernel_started = false;
+
 
   if (network_started)
     {
