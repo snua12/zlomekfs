@@ -107,6 +107,8 @@ static inline const char * facility_to_name (facility_t facility)
     return FACILITY_CONFIG_NAME;
   if ((facility & FACILITY_DBUS) > 0)
     return FACILITY_DBUS_NAME;
+  if ((facility & FACILITY_ZFSD) > 0)
+    return FACILITY_ZFSD_NAME;
 
   if (facility == FACILITY_NOTHING)
     return FACILITY_NOTHING_NAME;
@@ -139,6 +141,8 @@ static inline facility_t facility_from_string (const char * facility_name)
     return FACILITY_CONFIG;
   if (strncmp (facility_name, FACILITY_DBUS_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_DBUS;
+  if (strncmp (facility_name, FACILITY_ZFSD_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_ZFSD;
 
   if (strncmp (facility_name, FACILITY_NOTHING_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_NOTHING;
