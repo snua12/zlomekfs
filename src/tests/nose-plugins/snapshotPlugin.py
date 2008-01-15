@@ -38,6 +38,11 @@ class SnapshotPlugin(Plugin):
     snapshotsRootDirEnvOpt = "SNAPSHOTS_ROOT_DIR"
     # file name of config passed to plugins
     snapshotsRootDir = "/tmp"
+
+    snapshotStart = False
+    snapshotSuccess = False
+    snapshotFailure = True
+    snapshotError = True
     
     def __init__(self):
         Plugin.__init__(self)
@@ -149,13 +154,16 @@ class SnapshotPlugin(Plugin):
         test.test.snapshotBuffer.append(snapshot)
         
     def startTest(self, test):
-        self.snapshotTest(test)
+        if self.snapshotStart:
+            self.snapshotTest(test)
         
     def handleError(self, test, err):
-        self.snapshotTest(test)
+        if self.snapshotError:
+            self.snapshotTest(test)
         
     def handleFailure(self, test, err):
-        self.snapshotTest(test)
+        if self.snapshotFailure:
+            self.snapshotTest(test)
         
     def addSuccess(self, test):
     #TODO: make sure that this won't delete snapshots used in stressGenerator
