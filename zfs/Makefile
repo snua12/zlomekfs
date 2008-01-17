@@ -38,7 +38,7 @@ fuse/lib/.libs/libfuse.a:
 	make"
 
 install: 
-	@$(MAKE) -C zfsd-status-py install
+#	@$(MAKE) -C zfsd-status-py install
 	@$(MAKE) -C zfsd install
 #	@$(MAKE) -C module install
 	@$(MAKE) -C fuse install
@@ -52,4 +52,12 @@ clean:
 #	@$(MAKE) -C module clean
 	@$(MAKE) -C zfsd-status-py clean
 	@$(MAKE) -C fuse clean
+	rm -rf zlomekfs-0.0.tar.gz
 
+rpm: clean
+	rm -rf /tmp/zlomekfs-build
+	mkdir -p /tmp/zlomekfs-build/zlomekfs-0.0
+	cp -rf  conf  fuse  Makefile  misc  module  proxy  tests  zfsd  zlomekfs-0.0.spec /tmp/zlomekfs-build/zlomekfs-0.0
+	tar -C /tmp/zlomekfs-build -czf zlomekfs-0.0.tar.gz zlomekfs-0.0
+	rpmbuild -ta zlomekfs-0.0.tar.gz
+	

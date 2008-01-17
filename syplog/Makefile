@@ -22,7 +22,7 @@
 PREFIX ?= /usr
 INSTALL = install -o root -g root 
 
-all: doc lib py
+all: lib py doc
 
 doc: doc/html
 
@@ -44,16 +44,15 @@ clean:
 	@$(MAKE) -C py clean
 	rm -rf doc/*
 	rm -f doxy-warnings
+	rm -f syplog-0.3.tar.gz
 
 install: 
 	@$(MAKE) -C src install
-	@$(MAKE) -C py install
 	mkdir -p $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d
-	@$(INSTALL) -m 444 conf/etc/dbus-1/system.d/syplog.conf -t $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d
+	$(INSTALL) -m 444 conf/etc/dbus-1/system.d/syplog.conf -t $(DESTDIR)/etc/dbus-1/system.d
 
 uninstall: 
 	@$(MAKE) -C src uninstall
-	@$(MAKE) -C py uninstall
 	rm -f $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d/syplog.conf
 
 
@@ -64,3 +63,11 @@ install-doc: doc
 
 uninstall-doc:
 	rm -rf $(DESTDIR)/$(PREFIX)/share/doc/syplog
+
+rpm: clean
+	rm -rf /tmp/syplog-build
+	mkdir -p /tmp/syplog-build/syplog-0.3
+	cp ./* /tmp/syplog-build/syplog-0.3 -rf
+	tar -C /tmp/syplog-build -czf syplog-0.3.tar.gz syplog-0.3
+	rpmbuild -ta syplog-0.3.tar.gz
+	

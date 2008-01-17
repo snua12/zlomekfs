@@ -8,8 +8,8 @@ Group: System Environment/Daemons
 Source: zlomekfs-0.0.tar.gz
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
-BuildPrereq: dbus-1-devel syplog kernel-source
-Requires: dbus-1 libpthread.so.0 syplog
+BuildPrereq: dbus-devel syplog kernel-devel
+Requires: dbus libpthread.so.0 syplog
 
 %description
 Distributed file system

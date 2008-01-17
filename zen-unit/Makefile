@@ -21,7 +21,7 @@
 PREFIX ?= /usr
 INSTALL = install -o root -g root 
 
-all: doc lib
+all: lib doc
 
 doc: doc/html doc/man
 
@@ -42,11 +42,12 @@ clean:
 	@$(MAKE) -C src clean
 	@$(MAKE) -C tests clean
 	rm -f doxy-warnings
+	rm -f zen-unit-0.1.tar.gz
 
 install: lib include/zen-unit.h
 	mkdir -p $(DESTDIR)/$(PREFIX)/lib
 	mkdir -p $(DESTDIR)/$(PREFIX)/include
-	$(INSTALL) -m 755 src/libzen-unit.so -t $(DESTDIR)/ $(PREFIX)/lib
+	$(INSTALL) -m 755 src/libzen-unit.so -t $(DESTDIR)/$(PREFIX)/lib
 	$(INSTALL) -m 444 include/zen-unit.h -t $(DESTDIR)/$(PREFIX)/include
 
 uninstall: 
@@ -60,10 +61,17 @@ install-doc: doc
 	mkdir -p $(DESTDIR)/$(PREFIX)/share/man/man3
 	$(INSTALL) -m 444 doc/man/man3/zen-unit.h.3 -t $(DESTDIR)/$(PREFIX)/share/man/man3
 	$(INSTALL) -m 444 doc/man/man3/ZEN_ASSERT.3 -t $(DESTDIR)/$(PREFIX)/share/man/man3
-	$(INSTALL) -m 444 doc/man/man3/ZEN_TEST.3 -t$(DESTDIR)/ $(PREFIX)/share/man/man3
+	$(INSTALL) -m 444 doc/man/man3/ZEN_TEST.3 -t$(DESTDIR)/$(PREFIX)/share/man/man3
 
 uninstall-doc:
 	rm -rf $(DESTDIR)/$(PREFIX)/share/doc/zen-unit
 	rm -rf $(DESTDIR)/$(PREFIX)/share/man/man3/zen-unit.h.3
 	rm -rf $(DESTDIR)/$(PREFIX)/share/man/man3/ZEN_ASSERT.3
 	rm -rf $(DESTDIR)/$(PREFIX)/share/man/man3/ZEN_TEST.3
+
+rpm: clean
+	rm -rf /tmp/zen-unit-build
+	mkdir -p /tmp/zen-unit-build/zen-unit-0.1
+	cp -rf ./* /tmp/zen-unit-build/zen-unit-0.1
+	tar -C /tmp/zen-unit-build -czf zen-unit-0.1.tar.gz zen-unit-0.1
+	rpmbuild -ta zen-unit-0.1.tar.gz

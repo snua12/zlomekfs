@@ -37,9 +37,12 @@ DESTDIR=$RPM_BUILD_ROOT make install install-doc
 rm -rf %RPM_BUILD_ROOT
 
 %files
-/usr/lib/lib*.so
+/usr/lib/libzen-unit.so
 /usr/include/zen-unit.h
-/usr/share/man/man3/*
+/usr/share/man/man3/zen-unit.h.3
+/usr/share/man/man3/ZEN_ASSERT.3
+/usr/share/man/man3/ZEN_TEST.3
+
 
 %files doc
 /usr/share/doc/zen-unit/*

@@ -7,8 +7,8 @@ URL: http://loki.name/syplog
 Group: Developement/Libraries
 Source: syplog-0.3.tar.gz
 Prefix: %{_prefix}
-BuildPrereq: dbus-1-devel
-Requires: dbus-1 libpthread.so.0
+BuildPrereq: dbus-devel
+Requires: dbus libpthread.so.0
 
 %description
 Syplog is C based logging library.
@@ -42,8 +42,8 @@ DESTDIR=$RPM_BUILD_ROOT make install install-doc
 rm -rf %RPM_BUILD_ROOT
 
 %files
-/usr/lib/lib*.so
-/usr/lib/lib*.a
+/usr/lib/libsyplog.so
+/usr/lib/libsyplog.a
 /usr/include/syplog/*
 /etc/dbus-1/system.d/syplog.conf
 
