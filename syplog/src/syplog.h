@@ -7,43 +7,69 @@
   Log opening, closing and using main functions and definitions.
 
   Logger is defined by
-  <ul>
-    <li>writer - which define how and where to write the message
+
+  \li writer - which define how and where to write the message
                  (for example write logs <i>in user readable format</i>
                   to <i>file)</i>
                  (part of writer is <i>formatter</i> which define the format)
                  Writer api is defined in writer-api.h.
-    </li>
-    <li>log level - in general verbosity of logger. See log-level.h for
+
+  \li log level - in general verbosity of logger. See log-level.h for
                     log level enumeration and more elaborated description.
-    </li>
-    <li>facilities - rules for logging (or not logging) mesages from 
+
+  \li facilities - rules for logging (or not logging) mesages from 
                      different parts of application.
                      For more read file facility.h.
-    </li>
 
-  </ul>
 */
 
-/* Copyright (C) 2007 Jiri Zouhar
+/*!
+ \mainpage Syplog - C based logging library
+
+  \section Features
+     \li facilities
+     \li log levels
+     \li plugable targets
+     \li plugable formatting
+     \li easy integration & configuration
+     \li remotely controllable
+
+  \section Parts
+     \li writer - which define how and where to write the message
+                 (for example write logs <i>in user readable format</i>
+                  to <i>file)</i>
+                 (part of writer is <i>formatter</i> which define the format)
+                 Writer api is defined in writer-api.h.
+
+     \li log level - in general verbosity of logger. See log-level.h for
+                    log level enumeration and more elaborated description.
+
+     \li facilities - rules for logging (or not logging) mesages from 
+                     different parts of application.
+                     For more read file facility.h.
+
+*/
+
+/* Copyright (C) 2007, 2008 Jiri Zouhar
 
    This file is part of Syplog.
 
-   ZFS is free software; you can redistribute it and/or modify it
+   Syplog is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2, or (at your option)
    any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   Syplog is distributed in the hope that it will be useful, but WITHOUT
    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
    You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
+
 
 #include <pthread.h>
 
