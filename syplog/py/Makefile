@@ -46,7 +46,7 @@ $(LIBS):
 	make -C ${PROJECT_ROOT}/src libsyplog.so
 
 clean:
-	rm -rf $(LIBS) pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist
+	rm -rf $(LIBS) pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist MANIFEST
 
 install: setup.py build
 	./setup.py install

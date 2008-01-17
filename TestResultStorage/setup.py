@@ -8,7 +8,7 @@ setup(name="TestResultStorage",
       author="Jiri Zouhar",
       author_email="zouhar.jiri@gmail.com",
       url="http://www.loki.name/insecticide",
-      package_dir={'TestResultStorage': '.'},
+      package_dir={'TestResultStorage': 'src'},
       packages = ['TestResultStorage', 'TestResultStorage.resultRepository']
 #      py_modules = ['TestResultStorage/__init__', 'TestResultStorage/manage',
 #              'TestResultStorage/settings', 'TestResultStorage/urls',
