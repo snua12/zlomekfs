@@ -8,7 +8,7 @@ Group: Developement/Libraries
 Source: syplog-0.3.tar.gz
 Prefix: %{_prefix}
 BuildPrereq: dbus-1-devel
-Requires: dbus-1 pthread
+Requires: dbus-1 libpthread.so.0
 
 %description
 Syplog is C based logging library.

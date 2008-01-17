@@ -20,39 +20,36 @@
 
 .PHONY: all install uninstall clean
 
+INSTALL = install
+
+PREFIX ?= /usr
+
 all: fuse/lib/.libs/libfuse.a
-	@$(MAKE) -C syplog
 	@$(MAKE) -C zfsd
-	@$(MAKE) -C tests
+#	@$(MAKE) -C module
 
-	@$(MAKE) -C module
-
-test: install
+test: all
 	true
 
 fuse/lib/.libs/libfuse.a:
 	sh -c "cd fuse && \
 	./makeconf.sh && \
-	./configure && \
+	./configure --prefix=$(PREFIX) && \
 	make"
 
 install: 
-	@$(MAKE) -C syplog-py install
-
-	@$(MAKE) -C syplog
 	@$(MAKE) -C zfsd-status-py install
 	@$(MAKE) -C zfsd install
-	@$(MAKE) -C module install
+#	@$(MAKE) -C module install
+	@$(MAKE) -C fuse install
+	@$(MAKE) -C conf install
 
 uninstall:
 	@$(MAKE) -C zfsd uninstall
 
 clean:
-	@$(MAKE) -C syplog clean
 	@$(MAKE) -C zfsd clean
-	@$(MAKE) -C module clean
-	@$(MAKE) -C syplog-py clean
+#	@$(MAKE) -C module clean
 	@$(MAKE) -C zfsd-status-py clean
-	@$(MAKE) -C tests clean
-	rm -rf fuse/lib/.libs
+	@$(MAKE) -C fuse clean
 

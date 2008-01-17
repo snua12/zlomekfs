@@ -48,10 +48,13 @@ clean:
 install: 
 	@$(MAKE) -C src install
 	@$(MAKE) -C py install
+	mkdir -p $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d
+	@$(INSTALL) -m 444 conf/etc/dbus-1/system.d/syplog.conf -t $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d
 
 uninstall: 
 	@$(MAKE) -C src uninstall
 	@$(MAKE) -C py uninstall
+	rm -f $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d/syplog.conf
 
 
 

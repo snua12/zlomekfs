@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """
 Zfs test accessible plugin,
 zfs stress generator plugin,
@@ -12,28 +14,30 @@ except ImportError:
 from setuptools import setup
 
 setup(
-    name='Zfs plugins',
+    name='insecticide',
     version='0.2',
     author='Jiri Zouhar',
     author_email = 'zouhar.jiri@gmail.com',
     description = 'Zfs support plugins for nose',
     license = 'GNU LGPL',
-    py_modules = [
-                    'zfsConfig',
-                    'snapshotPlugin',
-                    'zfsStressGenerator', 
-                    'zfsReportPlugin', 
-                    'graph',
-                    'failure', 
-                    'report',
-                    'snapshot',
-                    'util'],
+    package_dir = {'insecticide': '.'},
+    packages = ['insecticide'],
+#    py_modules = [
+#                    'zfsConfig',
+#                    'snapshotPlugin',
+#                    'zfsStressGenerator', 
+#                    'zfsReportPlugin', 
+#                    'graph',
+#                    'failure', 
+#                    'report',
+#                    'snapshot',
+#                    'util'],
     entry_points = {
         'nose.plugins.0.10': [
-            'zfsConfig = zfsConfig:ZfsConfig', 
-            'zfsStressGeerator = zfsStressGenerator:StressGenerator', 
-            'snapshotPlugin = snapshotPlugin:SnapshotPlugin', 
-            'zfsReportPlugin = zfsReportPlugin:ZfsReportPlugin'
+            'zfsConfig = insecticide.zfsConfig:ZfsConfig', 
+            'zfsStressGeerator = insecticide.zfsStressGenerator:StressGenerator', 
+            'snapshotPlugin = insecticide.snapshotPlugin:SnapshotPlugin', 
+            'zfsReportPlugin = insecticide.zfsReportPlugin:ZfsReportPlugin'
             ]
         }
 

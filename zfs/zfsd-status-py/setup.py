@@ -10,7 +10,7 @@ setup(name="zfsd_status",
       py_modules = ['zfsd_status'],
       ext_modules=[Extension("_zfsd_status", ["zfsd_status_wrap.c", "zfsd_status.c"],
                              libraries=['dbus-1'],
-                             include_dirs=['../zfsd',
+                             include_dirs=['/usr/include',
                              '/usr/include/dbus-1.0',
                              '/usr/lib/dbus-1.0/include'])
                   ]

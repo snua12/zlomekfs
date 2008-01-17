@@ -38,9 +38,8 @@ ifndef freebsd
   FUSE_LDFLAGS += -lrt -ldl
 endif
 
-  LD_OPTS += $(FUSE_LDFLAGS) -lpthread -ldbus-1 -lsyplog -L`pwd`/../syplog
-  CC_OPTS += -DUSE_SYSLOG -I`pwd`/../syplog -I`pwd`/../syplog/media \
-	-I`pwd`/../syplog/formatters -DUSE_SYPLOG \
+LD_OPTS += $(FUSE_LDFLAGS) -lpthread -ldbus-1 -lsyplog
+CC_OPTS += -DUSE_SYSLOG -I/usr/include/syplog \
 	-I/usr/include/dbus-1.0 \
 	-I/usr/lib/dbus-1.0/include
 
@@ -49,7 +48,7 @@ ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -DENABLE_CHECKING -O0 -ggdb -g3
   LD_OPTS += -g
 else
-  CC_OPTS += -O0 -g
+  CC_OPTS += -O2 -g
 endif
 
 .SUFFIXES: .c .o
@@ -85,7 +84,7 @@ OO_ZFSD = zfsd.o \
 	  dbus-zfsd-service.o \
 	  dbus-provider.o
 
-zfsd: $(OO_ZFSD)
+zfsd: $(OO_ZFSD) ../fuse/lib/.libs/libfuse.a
 	$(LD) -o $@ $^ $(LD_OPTS)  
 
 
@@ -105,7 +104,7 @@ OO_DUMP_METADATA = dump-metadata.o \
 		   util.o \
 		   varray.o
 
-dump-metadata: $(OO_DUMP_METADATA)
+dump-metadata: $(OO_DUMP_METADATA) ../fuse/lib/.libs/libfuse.a
 	$(LD) -o $@ $^ $(LD_OPTS)
 
 OO_DUMP_INTERVALS = dump-intervals.o \
@@ -122,7 +121,7 @@ OO_DUMP_INTERVALS = dump-intervals.o \
 		    util.o \
 		    varray.o
 
-dump-intervals: $(OO_DUMP_INTERVALS)
+dump-intervals: $(OO_DUMP_INTERVALS) ../fuse/lib/.libs/libfuse.a
 	$(LD) -o $@ $^ $(LD_OPTS)
 
 
@@ -131,6 +130,12 @@ dump-intervals: $(OO_DUMP_INTERVALS)
 OO_ALL = $(sort $(OO_ZFSD) $(OO_DUMP_METADATA) $(OO_DUMP_INTERVALS))
 
 include $(OO_ALL:.o=.dep)
+
+../fuse/lib/.libs/libfuse.a:
+	cd ../fuse &&\
+	./makeconf.sh &&\
+	./configure --prefix=$(PREFIX)&&\
+	make
 
 %.dep: %.c
 	set -e ; $(CC) -MM $(CC_OPTS) $< | sed 's/\($*\)\.o *:/\1.o $@:/g' > $@
@@ -146,10 +151,14 @@ clean:
 	-rm -f $(BB_ALL) $(OO_ALL) $(OO_ALL:.o=.dep)
 
 install: zfsd dump-intervals dump-metadata
-	$(INSTALL) -m 755 zfsd $(PREFIX)/sbin
-	$(INSTALL) -m 755 dump-intervals dump-metadata $(PREFIX)/bin
+	mkdir -p $(DESTDIR)/$(PREFIX)/sbin
+	mkdir -p $(DESTDIR)/$(PREFIX)/bin
+	mkdir -p $(DESTDIR)/$(PREFIX)/include
+	$(INSTALL) -m 755 zfsd $(DESTDIR)/$(PREFIX)/sbin
+	$(INSTALL) -m 755 dump-intervals dump-metadata $(DESTDIR)/$(PREFIX)/bin
+	$(INSTALL) -m 444 dbus-service-descriptors.h $(DESTDIR)/$(PREFIX)/include
 
 uninstall:
-	-rm -f $(PREFIX)/sbin/zfsd
-	-rm -f $(PREFIX)/bin/dump-intervals $(PREFIX)/bin/dump-metadata
+	-rm -f $(DESTDIR)/$(PREFIX)/sbin/zfsd
+	-rm -f $(DESTDIR)/$(PREFIX)/bin/dump-intervals $(DESTDIR)/$(PREFIX)/bin/dump-metadata
 
