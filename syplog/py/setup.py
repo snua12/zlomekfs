@@ -9,11 +9,8 @@ setup(name="pysyplog",
       url="http://www.loki.name/syplog",
       py_modules = ['pysyplog'],
       ext_modules=[Extension("_pysyplog", ["pysyplog_wrap.c"],
-                             library_dirs=['../syplog'],
                              libraries=['syplog', 'dbus-1'],
-                             include_dirs=['../syplog',
-                             '../syplog/media', '../syplog/formatters',
-                             '../syplog/control',
+                             include_dirs=['/usr/include/syplog',
                              '/usr/include/dbus-1.0',
                              '/usr/lib/dbus-1.0/include'])
                   ]

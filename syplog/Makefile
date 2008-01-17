@@ -19,37 +19,45 @@
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 
+PREFIX ?= /usr
+INSTALL = install -o root -g root 
 
-SWIG=swig
+all: doc lib py
 
-PROJECT_ROOT=`pwd`/..
+doc: doc/html
 
-PYTHON_INCLUDE=-I/usr/include/python2.5 -I.
-SYPLOG_INCLUDE=-I${PROJECT_ROOT}/src
+doc/html: Doxyfile
+	doxygen Doxyfile
 
+lib: 
+	@$(MAKE) -C src
 
+py:
+	@$(MAKE) -C py
 
-LIBS=${PROJECT_ROOT}/src/libsyplog.so
-
-all: build
-
-pysyplog.i: generate_swig_def.sh
-	./generate_swig_def.sh pysyplog.i
-
-pysyplog_wrap.c: pysyplog.i
-	$(SWIG) -python pysyplog.i
-
-build: pysyplog_wrap.c ${LIBS}
-	python setup.py build
-
-$(LIBS):
-	make -C ${PROJECT_ROOT}/src libsyplog.so
+test:
+	@$(MAKE) -C tests test
 
 clean:
-	rm -rf $(LIBS) pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist
+	@$(MAKE) -C src clean
+	@$(MAKE) -C tests clean
+	@$(MAKE) -C py clean
+	rm -rf doc/*
+	rm -f doxy-warnings
 
-install: setup.py build
-	./setup.py install
+install: 
+	@$(MAKE) -C src install
+	@$(MAKE) -C py install
 
-# EOB
+uninstall: 
+	@$(MAKE) -C src uninstall
+	@$(MAKE) -C py uninstall
 
+
+
+install-doc: doc
+	mkdir -p $(DESTDIR)/$(PREFIX)/share/doc/syplog
+	$(INSTALL) -m 444 doc/html/* -t $(DESTDIR)/$(PREFIX)/share/doc/syplog
+
+uninstall-doc:
+	rm -rf $(DESTDIR)/$(PREFIX)/share/doc/syplog
