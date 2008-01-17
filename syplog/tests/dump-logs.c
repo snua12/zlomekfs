@@ -25,8 +25,8 @@
 #define _GNU_SOURCE
 
 #include "syplog.h"
-#include "medium-api.h"
-#include "file-medium.h"
+#include "media/medium-api.h"
+#include "media/file-medium.h"
 
 static char * log_settings [] = 
 {

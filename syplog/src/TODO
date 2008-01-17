@@ -1,0 +1,8 @@
+dump-logs default flags
+debug control
+valgrind it
+
+locking
+source dependent preallocating (or source dependent targets)
+je treba rychle reseni cteni a zapis do log bloku, cteni nesmi blokovat zapis, zapisy by se nemeli blokovat navzajem
+

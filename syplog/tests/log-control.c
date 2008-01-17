@@ -7,7 +7,7 @@
 
 #undef _GNU_SOURCE
 
-#include "control.h"
+#include "control/control.h"
 
 void print_help()
 {

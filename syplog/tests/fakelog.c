@@ -26,8 +26,8 @@
 
 #include "syplog.h"
 #include "control/listener.h"
-#include "medium-api.h"
-#include "file-medium.h"
+#include "media/medium-api.h"
+#include "media/file-medium.h"
 
 static char * log_settings [] = 
 {
