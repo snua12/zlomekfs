@@ -53,6 +53,7 @@ package: clean
 	mkdir /tmp/pysyplog-build/pysyplog-${VERSION} -p
 	cp -rf ./* /tmp/pysyplog-build/pysyplog-${VERSION}
 	tar -C /tmp/pysyplog-build -czf pysyplog-${VERSION}.tar.gz pysyplog-${VERSION}
+	rm -rf /tmp/pysyplog-build
 
 rpm: package
 	rpmbuild -ta pysyplog-${VERSION}.tar.gz

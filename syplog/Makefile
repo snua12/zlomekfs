@@ -72,6 +72,7 @@ package: clean
 	cp ./* /tmp/syplog-build/syplog-$(VERSION) -rf
 	rm -rf /tmp/syplog-build/syplog-$(VERSION)/py
 	tar -C /tmp/syplog-build -czf syplog-$(VERSION).tar.gz syplog-$(VERSION)
+	rm -rf /tmp/syplog-build
 
 rpm: package
 	rpmbuild -ta syplog-$(VERSION).tar.gz

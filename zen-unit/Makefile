@@ -78,6 +78,7 @@ package: clean
 	mkdir -p /tmp/zen-unit-build/zen-unit-${VERSION}
 	cp -rf ./* /tmp/zen-unit-build/zen-unit-${VERSION}
 	tar -C /tmp/zen-unit-build -czf zen-unit-${VERSION}.tar.gz zen-unit-${VERSION}
+	rm -rf /tmp/zen-unit-build
 
 rpm: package
 	rpmbuild -ta zen-unit-${VERSION}.tar.gz

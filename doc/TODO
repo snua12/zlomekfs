@@ -3,4 +3,4 @@ je treba rychle reseni cteni a zapis do log bloku, cteni nesmi blokovat zapis, z
 je treba se zamyslet (nezapomenout zamyslet) nad rozhranim pro multithrading a distribuovanost (podpurne prostredky) az se bude delat konsolidace
 vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
 
-HEH? umi nose skutecne setup_class??? - jo, je to ale bugle...
+append revision to version (for packaging and rpm)

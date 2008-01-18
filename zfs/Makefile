@@ -55,10 +55,13 @@ clean:
 	@$(MAKE) -C fuse clean
 	rm -rf zlomekfs-*.tar.gz
 
-rpm: clean
+package: clean
 	rm -rf /tmp/zlomekfs-build
 	mkdir -p /tmp/zlomekfs-build/zlomekfs-${VERSION}
 	cp -rf  conf  fuse  Makefile  misc  module  proxy  tests  zfsd  zlomekfs-${VERSION}.spec /tmp/zlomekfs-build/zlomekfs-${VERSION}
 	tar -C /tmp/zlomekfs-build -czf zlomekfs-${VERSION}.tar.gz zlomekfs-${VERSION}
+	rm -rf /tmp/zlomekfs-build
+
+rpm: package
 	rpmbuild -ta zlomekfs-${VERSION}.tar.gz
 	

@@ -39,6 +39,7 @@ package: clean
 	mkdir -p /tmp/insecticide-build/insecticide-$(VERSION)
 	cp -rf ./* /tmp/insecticide-build/insecticide-$(VERSION)
 	tar -C /tmp/insecticide-build -czf insecticide-$(VERSION).tar.gz insecticide-$(VERSION)
+	rm -rf /tmp/insecticide-build
 
 rpm: package
 	rpmbuild -ta insecticide-$(VERSION).tar.gz

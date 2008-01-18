@@ -37,6 +37,7 @@ package: clean
 	mkdir -p /tmp/TestResultStorage-build/TestResultStorage-${VERSION}
 	cp -rf ./* /tmp/TestResultStorage-build/TestResultStorage-${VERSION}
 	tar -C /tmp/TestResultStorage-build -czf TestResultStorage-${VERSION}.tar.gz TestResultStorage-${VERSION}
+	rm -rf /tmp/TestResultStorage-build
 
 rpm: package
 	rpmbuild -ta TestResultStorage-${VERSION}.tar.gz

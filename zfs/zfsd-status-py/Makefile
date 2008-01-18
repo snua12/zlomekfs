@@ -45,6 +45,7 @@ package: clean
 	mkdir -p /tmp/zfsd-status-build/zfsd-status-${VERSION}
 	cp ./* /tmp/zfsd-status-build/zfsd-status-${VERSION}
 	tar -C /tmp/zfsd-status-build -czf zfsd-status-${VERSION}.tar.gz zfsd-status-${VERSION}
+	rm -rf /tmp/zfsd-status-build
 
 rpm: package
 	rpmbuild -ta zfsd-status-${VERSION}.tar.gz
