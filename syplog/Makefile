@@ -20,6 +20,8 @@
 
 
 PREFIX ?= /usr
+VERSION ?= `cat VERSION`
+
 INSTALL = install -o root -g root 
 
 all: lib py doc
@@ -44,7 +46,7 @@ clean:
 	@$(MAKE) -C py clean
 	rm -rf doc/*
 	rm -f doxy-warnings
-	rm -f syplog-0.3.tar.gz
+	rm -f syplog-*.tar.gz
 
 install: 
 	@$(MAKE) -C src install
@@ -64,10 +66,13 @@ install-doc: doc
 uninstall-doc:
 	rm -rf $(DESTDIR)/$(PREFIX)/share/doc/syplog
 
-rpm: clean
+package: clean
 	rm -rf /tmp/syplog-build
-	mkdir -p /tmp/syplog-build/syplog-0.3
-	cp ./* /tmp/syplog-build/syplog-0.3 -rf
-	tar -C /tmp/syplog-build -czf syplog-0.3.tar.gz syplog-0.3
-	rpmbuild -ta syplog-0.3.tar.gz
+	mkdir -p /tmp/syplog-build/syplog-$(VERSION)
+	cp ./* /tmp/syplog-build/syplog-$(VERSION) -rf
+	rm -rf /tmp/syplog-build/syplog-$(VERSION)/py
+	tar -C /tmp/syplog-build -czf syplog-$(VERSION).tar.gz syplog-$(VERSION)
+
+rpm: package
+	rpmbuild -ta syplog-$(VERSION).tar.gz
 	

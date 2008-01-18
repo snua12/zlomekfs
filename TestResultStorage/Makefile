@@ -21,6 +21,7 @@
 all: build
 
 PREFIX ?= /usr/local
+VERSION ?= `cat VERSION`
 
 build:
 	./setup.py build
@@ -29,4 +30,13 @@ install:
 	./setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
 
 clean:
-	rm -rf MANIFEST build dist *.pyc resultRepository/*.pyc
+	rm -rf MANIFEST build dist *.pyc resultRepository/*.pyc TestResultStorage-*.tar.gz *.egg-info
+
+package: clean
+	rm -rf /tmp/TestResultStorage-build
+	mkdir -p /tmp/TestResultStorage-build/TestResultStorage-${VERSION}
+	cp -rf ./* /tmp/TestResultStorage-build/TestResultStorage-${VERSION}
+	tar -C /tmp/TestResultStorage-build -czf TestResultStorage-${VERSION}.tar.gz TestResultStorage-${VERSION}
+
+rpm: package
+	rpmbuild -ta TestResultStorage-${VERSION}.tar.gz

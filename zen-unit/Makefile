@@ -19,6 +19,8 @@
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 PREFIX ?= /usr
+VERSION ?= `cat VERSION`
+
 INSTALL = install -o root -g root 
 
 all: lib doc
@@ -42,7 +44,7 @@ clean:
 	@$(MAKE) -C src clean
 	@$(MAKE) -C tests clean
 	rm -f doxy-warnings
-	rm -f zen-unit-0.1.tar.gz
+	rm -f zen-unit-*.tar.gz
 
 install: lib include/zen-unit.h
 	mkdir -p $(DESTDIR)/$(PREFIX)/lib
@@ -69,9 +71,13 @@ uninstall-doc:
 	rm -rf $(DESTDIR)/$(PREFIX)/share/man/man3/ZEN_ASSERT.3
 	rm -rf $(DESTDIR)/$(PREFIX)/share/man/man3/ZEN_TEST.3
 
-rpm: clean
+
+
+package: clean
 	rm -rf /tmp/zen-unit-build
-	mkdir -p /tmp/zen-unit-build/zen-unit-0.1
-	cp -rf ./* /tmp/zen-unit-build/zen-unit-0.1
-	tar -C /tmp/zen-unit-build -czf zen-unit-0.1.tar.gz zen-unit-0.1
-	rpmbuild -ta zen-unit-0.1.tar.gz
+	mkdir -p /tmp/zen-unit-build/zen-unit-${VERSION}
+	cp -rf ./* /tmp/zen-unit-build/zen-unit-${VERSION}
+	tar -C /tmp/zen-unit-build -czf zen-unit-${VERSION}.tar.gz zen-unit-${VERSION}
+
+rpm: package
+	rpmbuild -ta zen-unit-${VERSION}.tar.gz

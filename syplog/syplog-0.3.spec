@@ -5,9 +5,9 @@ Release: 0
 License : GPL
 URL: http://loki.name/syplog
 Group: Developement/Libraries
-Source: syplog-0.3.tar.gz
+Source: syplog-%{version}.tar.gz
 Prefix: %{_prefix}
-BuildPrereq: dbus-devel
+BuildPrereq: dbus-devel doxygen
 Requires: dbus libpthread.so.0
 
 %description

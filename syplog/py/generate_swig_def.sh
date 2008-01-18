@@ -20,8 +20,14 @@
 # along with syplog; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-if [ -z "$PROJECT_ROOT" ]; then
- PROJECT_ROOT=`pwd`/..
+if [ -z "$PROJECT_ROOT"]; then
+  if [ -d "../src" ]; then
+    INCLUDE_DIR="`pwd`/../src"
+  else
+    INCLUDE_DIR="/usr/include/syplog"
+  fi
+else
+  INCLUDE_DIR="$(PROJECT_ROOT)/src"
 fi
 
 echo '//
@@ -66,7 +72,7 @@ echo '//
 
 ' > $1
 
-find ${PROJECT_ROOT}/src -iname '*.h' | while read file; do echo '#include "'$file'"'; done >> $1
+find ${INCLUDE_DIR} -iname '*.h' | while read file; do echo '#include "'$file'"'; done >> $1
 
 echo '
 %}
@@ -74,7 +80,7 @@ echo '
 // Produce constants and helper functions for structures and unions
 ' >>$1
 
-find ${PROJECT_ROOT}/src -iname '*.h' | while read file; do echo '%include "'$file'"'; done >> $1
+find ${INCLUDE_DIR} -iname '*.h' | while read file; do echo '%include "'$file'"'; done >> $1
 
 echo '
 

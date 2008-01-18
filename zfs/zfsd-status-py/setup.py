@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from distutils.core import setup, Extension
+from  setuptools import setup, Extension
 
 setup(name="zfsd_status",
       version="0.1",

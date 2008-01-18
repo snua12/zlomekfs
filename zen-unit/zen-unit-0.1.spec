@@ -6,7 +6,7 @@ Release: 0
 License : GPL
 URL: http://loki.name/zen-unit
 Group: Developement/Libraries
-Source: zen-unit-0.1.tar.gz
+Source: zen-unit-%{version}.tar.gz
 Prefix: %{_prefix}
 BuildPrereq: libelf0-devel doxygen
 Requires: libelf0 libpthread.so.0

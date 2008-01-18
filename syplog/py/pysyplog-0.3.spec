@@ -1,20 +1,20 @@
 
 #note: this package is better to build through python setup.py bdist_rpm
 
-Summary: Repository for test results
-Name: TestResultStorage
-Version: 0.1
+Summary: Python wrapper for syplog
+Name: pysyplog
+Version: 0.3
 Release: 0
 License : GPL
 URL: http://www.loki.name/TestResultStorage
-Group: System Environment/Daemons
-Source: TestResultStorage-%{version}.tar.gz
+Group: Developement/Libraries
+Source: pysyplog-%{version}.tar.gz
 Prefix: %{_prefix}
-#TODO: switch kernel-source and kernel-devel according distro
-Requires: django python
+BuildRequires: dbus-devel
+Requires: python syplog dbus
 
 %description
-Repo
+see syplog
 
 %prep
 %setup -q

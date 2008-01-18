@@ -21,15 +21,14 @@
 
 
 SWIG=swig
-
-PROJECT_ROOT=`pwd`/..
+VERSION ?= `cat VERSION`
 
 PYTHON_INCLUDE=-I/usr/include/python2.5 -I.
-SYPLOG_INCLUDE=-I${PROJECT_ROOT}/src
 
+#PROJECT_ROOT=`pwd`/..
+#SYPLOG_INCLUDE=-I${PROJECT_ROOT}/src
+#LIBS = ${PROJECT_ROOT}/src/libsyplog.so
 
-
-LIBS=${PROJECT_ROOT}/src/libsyplog.so
 
 all: build
 
@@ -39,17 +38,21 @@ pysyplog.i: generate_swig_def.sh
 pysyplog_wrap.c: pysyplog.i
 	$(SWIG) -python pysyplog.i
 
-build: pysyplog_wrap.c ${LIBS}
+build: pysyplog_wrap.c 
 	python setup.py build
 
-$(LIBS):
-	make -C ${PROJECT_ROOT}/src libsyplog.so
 
 clean:
-	rm -rf $(LIBS) pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist MANIFEST
+	rm -rf pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist MANIFEST pysyplog-*.tar.gz
 
 install: setup.py build
 	./setup.py install
 
-# EOB
+package: clean
+	rm -rf /tmp/pysyplog-build
+	mkdir /tmp/pysyplog-build/pysyplog-${VERSION} -p
+	cp -rf ./* /tmp/pysyplog-build/pysyplog-${VERSION}
+	tar -C /tmp/pysyplog-build -czf pysyplog-${VERSION}.tar.gz pysyplog-${VERSION}
 
+rpm: package
+	rpmbuild -ta pysyplog-${VERSION}.tar.gz

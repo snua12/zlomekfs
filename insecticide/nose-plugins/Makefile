@@ -20,6 +20,8 @@
 
 PREFIX ?= "/usr/local"
 
+VERSION ?= `cat VERSION`
+
 all: build
 
 build:
@@ -27,3 +29,17 @@ build:
 
 install:
 	python setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
+
+clean: 
+	python setup.py clean
+	rm -rf insecticide-*.tar.gz
+
+package: clean
+	rm -rf /tmp/insecticide-build
+	mkdir -p /tmp/insecticide-build/insecticide-$(VERSION)
+	cp -rf ./* /tmp/insecticide-build/insecticide-$(VERSION)
+	tar -C /tmp/insecticide-build -czf insecticide-$(VERSION).tar.gz insecticide-$(VERSION)
+
+rpm: package
+	rpmbuild -ta insecticide-$(VERSION).tar.gz
+	

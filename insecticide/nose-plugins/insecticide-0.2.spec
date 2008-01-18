@@ -1,13 +1,14 @@
 #note: this package is better to build with python setup.py bdist_rpm
 
+
 Summary: Plugins for nose
 Name: insecticide
-Version: 0.1
+Version: 0.2
 Release: 0
 License : GPL
 URL: http://www.loki.name/insecticide
 Group: Developement / libraries
-Source: insecticide-0.2.tar.gz
+Source: insecticide-%{version}.tar.gz
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
 Requires: TestResultStorage python
@@ -23,10 +24,8 @@ make all
 
 %install
 rm -rf $RPM_BUILD_ROOT
-DESTDIR=$RPM_BUILD_ROOT make install
-
+python setup.py install --single-version-externally-managed --record=INSTALLED_FILES
 %clean
 rm -rf %RPM_BUILD_ROOT
 
-%files
-/usr/local/lib/python2.5/site-packages/*
+%files -f INSTALLED_FILES

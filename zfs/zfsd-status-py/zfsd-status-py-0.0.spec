@@ -1,15 +1,15 @@
 Summary: Zfsd-dbus service client
-Name: zfsd-status-py
-Version: 0.0
+Name: zfsd-status
+Version: 0.1
 Release: 0
 License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
 Group: System Environment/Daemons
-Source: zfsd-status-py-0.0.tar.gz
+Source: zfsd-status-%{version}.tar.gz
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
-BuildPrereq: dbus-1-devel zlomekfs
-Requires: dbus-1 libpthread.so.0
+BuildPrereq: dbus-devel zlomekfs
+Requires: dbus libpthread.so.0
 
 %description
 Python wrapper for zfsd dbus service.

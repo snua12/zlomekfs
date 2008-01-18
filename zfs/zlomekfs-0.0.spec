@@ -5,11 +5,12 @@ Release: 0
 License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
 Group: System Environment/Daemons
-Source: zlomekfs-0.0.tar.gz
+Source: zlomekfs-%{version}.tar.gz
 Prefix: %{_prefix}
+Exclusiveos: linux
 #TODO: switch kernel-source and kernel-devel according distro
-BuildPrereq: dbus-devel syplog kernel-devel
-Requires: dbus libpthread.so.0 syplog
+BuildPrereq: dbus-devel syplog kernel-devel libtool autoconf automake gettext-devel
+Requires: dbus libpthread.so.0 syplog gettext
 
 %description
 Distributed file system
