@@ -48,17 +48,17 @@ install:
 uninstall:
 	@$(MAKE) -C zfsd uninstall
 
-clean:
+clean: 
 	@$(MAKE) -C zfsd clean
 #	@$(MAKE) -C module clean
 	@$(MAKE) -C zfsd-status-py clean
-	@$(MAKE) -C fuse clean
+	@$(MAKE) -C fuse clean || true
 	rm -rf zlomekfs-*.tar.gz
 
 package: clean
 	rm -rf /tmp/zlomekfs-build
 	mkdir -p /tmp/zlomekfs-build/zlomekfs-${VERSION}
-	cp -rf  conf  fuse  Makefile  misc  module  proxy  tests  zfsd  zlomekfs-${VERSION}.spec /tmp/zlomekfs-build/zlomekfs-${VERSION}
+	cp -rf  conf  fuse  Makefile  misc  module  proxy  tests  zfsd  zlomekfs.spec /tmp/zlomekfs-build/zlomekfs-${VERSION}
 	tar -C /tmp/zlomekfs-build -czf zlomekfs-${VERSION}.tar.gz zlomekfs-${VERSION}
 	rm -rf /tmp/zlomekfs-build
 

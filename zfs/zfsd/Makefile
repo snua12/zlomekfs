@@ -153,10 +153,10 @@ clean:
 install: zfsd dump-intervals dump-metadata
 	mkdir -p $(DESTDIR)/$(PREFIX)/sbin
 	mkdir -p $(DESTDIR)/$(PREFIX)/bin
-	mkdir -p $(DESTDIR)/$(PREFIX)/include
+	mkdir -p $(DESTDIR)/$(PREFIX)/include/zfsd
 	$(INSTALL) -m 755 zfsd $(DESTDIR)/$(PREFIX)/sbin
 	$(INSTALL) -m 755 dump-intervals dump-metadata $(DESTDIR)/$(PREFIX)/bin
-	$(INSTALL) -m 444 dbus-service-descriptors.h $(DESTDIR)/$(PREFIX)/include
+	$(INSTALL) -m 444 dbus-service-descriptors.h $(DESTDIR)/$(PREFIX)/include/zfsd
 
 uninstall:
 	-rm -f $(DESTDIR)/$(PREFIX)/sbin/zfsd

@@ -11,7 +11,7 @@ Group: Developement / libraries
 Source: insecticide-%{version}.tar.gz
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
-Requires: TestResultStorage python
+Requires: TestResultStorage python 
 
 %description
 plugins

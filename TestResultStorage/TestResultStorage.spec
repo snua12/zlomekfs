@@ -11,7 +11,7 @@ Group: System Environment/Daemons
 Source: TestResultStorage-%{version}.tar.gz
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
-Requires: django python
+Requires: python-django-snapshot python
 
 %description
 Repo
