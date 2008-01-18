@@ -38,7 +38,7 @@ rm -rf %RPM_BUILD_ROOT
 /sbin/mount.fuse
 /usr/bin/dump-intervals
 /usr/bin/dump-metadata
-/usr/include/dbus-service-descriptors.h
+/usr/include/zfsd/dbus-service-descriptors.h
 /usr/sbin/zfsd
 /var/zfs/zfs_config/group_list
 /var/zfs/zfs_config/user_list
