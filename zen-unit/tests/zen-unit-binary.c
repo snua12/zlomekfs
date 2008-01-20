@@ -20,18 +20,21 @@
 
 #include "zen-unit.h"
 
+#define TRUE 1
+#define FALSE 0
+
 ZEN_TEST(bin_pass)
 {
 	ZEN_ASSERT(TRUE, "this should not be printed");
 
-	return TRUE;
+	return PASS;
 }
 
 ZEN_TEST(bin_fail)
 {
 	ZEN_ASSERT(FALSE, "this should be printed");
 
-	return TRUE;
+	return PASS;
 }
 
 #define UNUSED	__attribute__ ((__unused__))

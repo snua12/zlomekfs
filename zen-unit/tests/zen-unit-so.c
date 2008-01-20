@@ -34,6 +34,6 @@ ZEN_TEST(so_pass)
 ZEN_TEST(so_fail)
 {
 	ZEN_ASSERT(FALSE, "this should be printed");
-
-	return FAIL;
+// should not reach
+	return PASS;
 }
