@@ -61,4 +61,4 @@ clean:
 	-rm -f *.o dump-logs log-control fakelog
 
 test: dump-logs fakelog log-control
-	true
+	LD_PRELOAD=libzen-unit.so ./fakelog

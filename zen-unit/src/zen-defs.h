@@ -36,6 +36,14 @@ extern "C"
 
 typedef int	bool_t;
 
+#ifndef	TRUE
+#define	TRUE	1
+#endif
+
+#ifndef	FALSE
+#define	FALSE	0
+#endif
+
 #define		MAX_TESTS	1024
 
 #define		NAME_LEN	64

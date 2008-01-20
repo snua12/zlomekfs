@@ -48,7 +48,7 @@ void LIB_CONSTRUCTOR init (void)
 	{
 		printf ("calling function %s\n", tests[index].name);
 		ret = tests[index].function_ptr (NULL);
-		if (ret != 0)
+		if (ret != PASS)
 		{
 			printf ("function failed with errcode %d\n", ret);
 		}

@@ -27,6 +27,7 @@
 
 #include "formatter-api.h"
 #include "user-readable-formatter.h"
+#include "zen-unit.h"
 
 /*! Translation table between formatter names and pointers 
   to static formatter type specific structures.
@@ -91,4 +92,12 @@ formatter formatter_for_name (const char * formatter_name)
   }
   else
     return NULL;
+}
+
+ZEN_TEST (formatter_to_name)
+{
+  ZEN_ASSERT(formatter_for_name (RAW_FORMATTER_NAME) == &raw_formatter, "bad formatter returned for " RAW_FORMATTER_NAME);
+  ZEN_ASSERT(formatter_for_name (USER_READABLE_FORMATTER_NAME) == &user_readable_formatter, "bad formatter returned for " USER_READABLE_FORMATTER_NAME);
+
+  return PASS;
 }
