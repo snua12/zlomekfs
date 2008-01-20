@@ -31,7 +31,7 @@ build: setup.py zfsd_status_wrap.c
 	./setup.py build
 
 test:
-	python -c 'import zfsd-status'
+	python -c 'import zfsd_status'
 
 clean:
 	rm -rf *.i *.so *.pyc build dist MANIFEST zfsd_status_wrap.c zfsd_status.py *.tar.gz
