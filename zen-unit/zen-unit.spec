@@ -40,9 +40,9 @@ rm -rf %RPM_BUILD_ROOT
 %files
 /usr/lib/libzen-unit.so
 /usr/include/zen-unit.h
-/usr/share/man/man3/zen-unit.h.3
-/usr/share/man/man3/ZEN_ASSERT.3
-/usr/share/man/man3/ZEN_TEST.3
+/usr/share/man/man3/zen-unit.h.3.gz
+/usr/share/man/man3/ZEN_ASSERT.3.gz
+/usr/share/man/man3/ZEN_TEST.3.gz
 
 
 %files doc
