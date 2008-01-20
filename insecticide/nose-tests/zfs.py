@@ -1,4 +1,4 @@
-from snapshot import SnapshotDescription
+from insecticide.snapshot import SnapshotDescription
 from subprocess import Popen, PIPE
 import subprocess
 import signal
@@ -10,8 +10,8 @@ import shutil
 import zfsd_status  
 import time
 
-import graph
-import zfsConfig
+from insecticide import graph
+from insecticide import zfsConfig
 
 class ZfsProxy(object):
     usedCompression = ""

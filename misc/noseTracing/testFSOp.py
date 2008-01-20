@@ -7,7 +7,7 @@ import logging
 
 import os
 import shutil
-import zfsConfig
+from insecticide import zfsConfig
 from random import Random
 from nose import config
 from zfs import ZfsTest

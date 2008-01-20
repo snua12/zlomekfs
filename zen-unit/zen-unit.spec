@@ -10,6 +10,7 @@ Source: zen-unit-%{version}.tar.gz
 Prefix: %{_prefix}
 BuildPrereq: libelf0-devel doxygen
 Requires: libelf0 libpthread.so.0
+BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 
 %description
 Zen-unit is C/C++ unit testing library which make writing tests easier.

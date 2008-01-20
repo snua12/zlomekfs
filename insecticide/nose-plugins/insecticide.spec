@@ -29,3 +29,4 @@ python setup.py install --single-version-externally-managed --record=INSTALLED_F
 rm -rf %RPM_BUILD_ROOT
 
 %files -f INSTALLED_FILES
+%defattr(-,root,root)

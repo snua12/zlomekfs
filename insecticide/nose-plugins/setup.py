@@ -22,16 +22,6 @@ setup(
     license = 'GNU LGPL',
     package_dir = {'insecticide': '.'},
     packages = ['insecticide'],
-#    py_modules = [
-#                    'zfsConfig',
-#                    'snapshotPlugin',
-#                    'zfsStressGenerator', 
-#                    'zfsReportPlugin', 
-#                    'graph',
-#                    'failure', 
-#                    'report',
-#                    'snapshot',
-#                    'util'],
     entry_points = {
         'nose.plugins.0.10': [
             'zfsConfig = insecticide.zfsConfig:ZfsConfig', 

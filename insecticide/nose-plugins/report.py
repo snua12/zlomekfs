@@ -1,4 +1,4 @@
-from failure import ZfsTestFailure
+from insecticide.failure import ZfsTestFailure
 
 import os
 import datetime

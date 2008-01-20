@@ -3,7 +3,7 @@ import textwrap
 import logging
 import tempfile
 
-from snapshot import SnapshotDescription
+from insecticide.snapshot import SnapshotDescription
 from optparse import OptionConflictError
 from types import TypeType,  ClassType
 from warnings import warn

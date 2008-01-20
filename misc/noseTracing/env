@@ -2,8 +2,7 @@
 
 export ZFS_CONFIG_ROOT=`pwd`
 
-export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`:`pwd`/../..:`pwd`/../../tests/nose-tests:`pwd`/../../syplog-py:/globalhome/loki/skola/python/nose
-export PATH=$PATH:/globalhome/loki/skola/python/nose/bin
+export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/../../insecticide/nose-tests
 
 export NOSE_TESTMATCH='((?:^|[\\b_\\./-])[Mm]eta)|((?:^|[\\b_\\./-])[Tt]est)'
 export NOSE_EVAL_ATTR='not disabled'

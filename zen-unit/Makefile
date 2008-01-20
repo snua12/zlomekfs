@@ -21,6 +21,8 @@
 PREFIX ?= /usr
 VERSION ?= `cat VERSION`
 
+#svnversion | sed -e 's/\([0-9]*\).*/\1/'`
+
 INSTALL = install -o root -g root 
 
 all: lib doc
@@ -81,4 +83,4 @@ package: clean
 	rm -rf /tmp/zen-unit-build
 
 rpm: package
-	rpmbuild -ta zen-unit-${VERSION}.tar.gz
+	rpmbuild -ta zen-unit-${VERSION}.tar.gz --clean 

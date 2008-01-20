@@ -5,9 +5,9 @@ import os
 
 from optparse import OptionConflictError
 from warnings import warn
-from failure import ZfsTestFailure
-from report import ReportProxy
-from snapshot import SnapshotDescription
+from insecticide.failure import ZfsTestFailure
+from insecticide.report import ReportProxy
+from insecticide.snapshot import SnapshotDescription
 
 from nose.case import FunctionTestCase,  MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
@@ -16,7 +16,7 @@ from nose.config import Config
 from nose.util import tolist
 from nose.plugins import Plugin
 
-from graph import GraphBuilder
+from insecticide.graph import GraphBuilder
 
 log = logging.getLogger ("nose.plugins.zfsStressGenerator")
 

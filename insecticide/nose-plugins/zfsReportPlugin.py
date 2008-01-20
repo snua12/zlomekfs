@@ -8,8 +8,8 @@ from ConfigParser import SafeConfigParser
 
 from nose.plugins import Plugin
 from nose.util import tolist
-from failure import ZfsTestFailure
-from report import ReportProxy
+from insecticide.failure import ZfsTestFailure
+from insecticide.report import ReportProxy
 
 class ZfsReportPlugin(Plugin):
     """ Report test results to repository
