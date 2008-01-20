@@ -38,6 +38,9 @@ pysyplog.i: generate_swig_def.sh
 pysyplog_wrap.c: pysyplog.i
 	$(SWIG) -python pysyplog.i
 
+test: 
+	python -c 'import pysyplog'
+
 build: pysyplog_wrap.c 
 	python setup.py build
 

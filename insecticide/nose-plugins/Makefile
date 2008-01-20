@@ -30,6 +30,9 @@ build:
 install:
 	python setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
 
+test:
+	python -c 'import insecticide'
+
 clean: 
 	python setup.py clean
 	rm -rf insecticide-*.tar.gz

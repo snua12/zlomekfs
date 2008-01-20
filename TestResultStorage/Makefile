@@ -26,6 +26,10 @@ VERSION ?= `cat VERSION`
 build:
 	./setup.py build
 
+test:
+	python -c 'import TestResultStorage'
+	python -c 'import TestResultStorage.resultRepository'
+
 install:
 	./setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
 
