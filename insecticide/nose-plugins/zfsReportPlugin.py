@@ -78,11 +78,17 @@ class ZfsReportPlugin(Plugin):
         return "(no help available)"
     
     def addFailure(self, test, err):
-	if hasattr(test, "test"): #ignore context suites
-            self.reporter.reportFailure(ZfsTestFailure(test, err))
+        if hasattr(test, "test"): #ignore context suites
+            try:
+                self.reporter.reportFailure(ZfsTestFailure(test, err))
+            except:
+                pass #TODO: specific exception and log
     
     addError = addFailure
     
     def addSuccess(self, test):
-        self.reporter.reportSuccess(test)
+        try:
+            self.reporter.reportSuccess(test)
+        except:
+            pass #TODO: specific exception and log
     

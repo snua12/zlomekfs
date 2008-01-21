@@ -184,10 +184,10 @@ class ZfsTest(object):
     
     def snapshot(self, snapshot):        
         # snapshot zfs
-        self.zfs.snapshot(snapshot)
-        
-        snapshot.addObject("zfsProxy", self.zfs)
-	snapshot.addObject("test",self)
+        if getattr(self, 'zfs', None):
+            self.zfs.snapshot(snapshot)
+            snapshot.addObject("zfsProxy", self.zfs)
+        #snapshot.addObject("test",self)
         
         # snapshot config
         config = getattr(self, zfsConfig.ZfsConfig.configAttrName,  None)
@@ -195,6 +195,8 @@ class ZfsTest(object):
             snapshot.addConfig(config)
         #TODO: snapshot script (it may change)
         
+    snapshot.metaTest = False
+    
     def resume(self,  snapshot):
         # resume config
         try:
@@ -207,7 +209,7 @@ class ZfsTest(object):
         
         # resume zfs
         self.zfs.resume(snapshot)
-        
+    resume.metaTest = False
 
 class ZfsStressTest(ZfsTest):
     metaTest = True
@@ -223,11 +225,16 @@ class ZfsStressTest(ZfsTest):
         pass
         
     # do the before test setup only once before all tests
+    @classmethod
     def setup_class(self):
-        ZfsTest.setup_class(self)
-        ZfsTest.setup(self)
+        super(ZfsStressTest,self).setup_class()
+        self.zfs.runZfs()
         
     # do the after test cleanup only once after all tests
+    @classmethod
     def teardown_class(self):
-        ZfsTest.teardown(self)
-        ZfsTest.teardown_class(self)
+        if getattr(self, 'zfs', None):
+            self.zfs.stopZfs()
+        super(ZfsStressTest,self).teardown_class()
+        
+    

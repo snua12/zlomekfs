@@ -47,7 +47,7 @@ class DependencyGraph(object):
         
     
     """
-        Set node and it's ancestors
+        Set node and it's successors
         node should be string
         edges should be list of pairs (nodeName, score)
         where nodeName is string and score is integer
@@ -115,23 +115,23 @@ class DependencyGraph(object):
         queue = [(start, [])]
         
         while queue:
-            (node, ancestors) = queue.pop (0)
+            (node, successors) = queue.pop (0)
             if node == end:
-                ancestors.append(end)
-                return ancestors
+                successors .append(end)
+                return successors
                 
             if node in visited:
                 continue
                 
             visited.append(node)
             
-            newAncestors = list(ancestors)
-            newAncestors.append(node)
+            newSuccessors = list(successors)
+            newSuccessors.append(node)
             try:
                 successors = self.graph[node]
                 for (next, prob) in successors:
                     if prob > 0:
-                        queue.append((next, newAncestors))
+                        queue.append((next, newSuccessors))
             except KeyError:
                 continue
             
@@ -221,7 +221,7 @@ class GraphBuilder(object):
     USE_PROB = 3
     
     graphVarName = "graph"
-    ancestorsVarName = "ancestors"
+    nodeGraphVarName = "successors"
     probVarName = "score"
     startVarName = "startingPoint"
     
@@ -271,9 +271,9 @@ class GraphBuilder(object):
         
         for method in methods:
             obj = getattr(cls,  method)
-            ancestors = getattr(obj, GraphBuilder.ancestorsVarName,  None )
-            if ancestors is not None:
-                graph.setNode(method, ancestors)
+            successors = getattr(obj, GraphBuilder.nodeGraphVarName,  None )
+            if successors is not None:
+                graph.setNode(method, successors)
         
         if startNode is None:
             graph.initRandomStartNode()
@@ -321,22 +321,22 @@ class testGraphGenerator(TestCase):
         
         def startNode(self):
             pass
-        startNode.ancestors = [('unreachableNode', 0), ('secondNode', 100) ]
+        startNode.successors = [('unreachableNode', 0), ('secondNode', 100) ]
         startNode.score = 0
         def unreachableNode(self):
             pass
-        unreachableNode.ancestors = []
+        unreachableNode.successors = []
         def secondNode(self):
             pass
-        secondNode.ancestors = [('switchNode', 100)]
+        secondNode.successors = [('switchNode', 100)]
         def lastNode(self):
             pass
         lastNode.score = 1
-        lastNode.ancestors = []
+        lastNode.successors = []
         def switchNode(self):
             pass
         switchNode.score = 0
-        switchNode.ancestors = [('startNode',50),  ('lastNode', 50)]
+        switchNode.successors = [('startNode',50),  ('lastNode', 50)]
         
         graph =    {
                          'startNode': [('unreachableNode', 0), ('secondNode', 100) ], 

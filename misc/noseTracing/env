@@ -18,3 +18,5 @@ export DJANGO_SETTINGS_MODULE=settings
 export NOSE_WITH_SNAPSHOTPLUGIN=yes
 
 export NOSE_WITH_ZFSREPORTPLUGIN=yes
+
+export PATH=$PATH:/sbin:/usr/sbin

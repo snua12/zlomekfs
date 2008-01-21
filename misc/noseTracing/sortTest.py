@@ -32,7 +32,7 @@ class MetaSort(object):
   
   def metaStart(self):
     log.debug("metaStart")
-  metaStart.ancestors = [
+  metaStart.successors = [
                                      ('meta1', 100), 
                                      ('meta2', 10), 
                                      ('meta3', 10), 
@@ -42,7 +42,7 @@ class MetaSort(object):
   
   def meta1(self):
     log.debug("test1")
-  meta1.ancestors = [
+  meta1.successors = [
                      ('meta1', 5), 
                      ('meta2', 0), 
                      ('meta3',  20), 
@@ -67,7 +67,7 @@ class MetaSort(object):
   def failMeta(self):
     log.debug("failing at your command, sir")
     assert 0
-  failMeta.ancestors = [
+  failMeta.successors = [
                      ('meta5', 100)
                      ]
   

@@ -305,7 +305,10 @@ class StressGenerator(Plugin):
                 chain = getattr(testInst, 'chain', None)
                 index = getattr(testInst, 'index', None)
                 if index == len(chain) - 1:
-                    self.reportProxy.reportSuccess(testInst)
+                    try:
+                        self.reportProxy.reportSuccess(testInst)
+                    except:
+                        pass #TODO: accurate exception 
                 return True
         return None
         
