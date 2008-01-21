@@ -2,7 +2,7 @@
 Summary: Minimalistic approach to unit testing (c, c++)
 Name: zen-unit
 Version: 0.1
-Release: 0
+Release: 2
 License : GPL
 URL: http://loki.name/zen-unit
 Group: Developement/Libraries
