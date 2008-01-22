@@ -10,15 +10,15 @@ from nose import config
 import pickle
 from zfs import ZfsStressTest
 from insecticide.graph import GraphBuilder
+from insecticide.zfsConfig import ZfsConfig
 
-class TestFile(ZfsStressTest):
+class testFSOps(ZfsStressTest):
   disabled = False
-  zfs = True
-  
-  
+  metaTest = True
+  definitionType = GraphBuilder.USE_FLAT
   
   def __init__(self):
-    ZfsTest.__init__(self)
+    ZfsStressTest.__init__(self)
   
   ##
   # suffix to append when try to rename file
@@ -49,42 +49,36 @@ class TestFile(ZfsStressTest):
   test_file = None
   safe_subdir_name = 'safedir'
   
-  ##
-  # setup before every test method
   @classmethod
   def setup_class(self):
-    super(testFSOp,self).setup_class()
-    config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
+    super(testFSOps,self).setup_class()
+    config = getattr(self,ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
     self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + "testfile"
     
     self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
- 
+    
     self.generator.seed()
     self.randomize_data()
+    self.prepare_files()
   
   ##
   # cleanup after every test method
   @classmethod
   def teardown_class(self):
-    super(testFSOp,self).teardown_class()
-  
-  def setup(self):
-    ZfsTest.setup(self)
-    self.prepare_files()
-  
-  def teardown(self):
-    ZfsTest.teardown(self)
+    super(testFSOps,self).teardown_class()
     self.clean_files()
   
+  @classmethod
   def prepare_files(self):
     try:
       os.mkdir(self.safeRoot + os.sep + self.safe_subdir_name, True)
-    except IOError:
-      pass
+    except OSError:
+      pass #already exists
   
   ##
   # remove files and clean handles
+  @classmethod
   def clean_files(self):
   # TODO: this wont' work since it is classmethod
     if self.safe_file != None:
@@ -111,29 +105,29 @@ class TestFile(ZfsStressTest):
     for i in range(self.data_vector_length):
       self.data_vector.append(self.generator.random())
       
-    def test_write_read(self):
-        self.safe_file = open(self.safe_file_name, 'w+')
-        self.test_file = open(self.test_file_name, 'w+')
-        
-        pickle.dump(self.data_vector,  self.safe_file)
-        self.safe_file.flush()
-        pickle.dump(self.data_vector,  self.test_file)
-        self.test_file.flush()
-        
-        self.safe_file.seek(0)
-        self.test_file.seek(0)
-        
-        self.safe_data = pickle.load(self.safe_file)
-        self.test_data = pickle.load(self.test_file)
-        
-        assert self.safe_data == self.test_data
+  def test_write_read(self):
+    self.safe_file = open(self.safe_file_name, 'w+')
+    self.test_file = open(self.test_file_name, 'w+')
     
-    def test_write_readonly(self):
-        fd = os.open(self.test_file_name,  os.O_CREAT | os.O_RDONLY)
-        self.test_file = os.fdopen(fd)
-        
-        try:
-            pickle.dump(self.data_vector,  self.test_file)
-            raise Exception('Reached','Unreachable branch reached.')
-        except IOError:
-            print 'everything is o.k., can\'t write'
+    pickle.dump(self.data_vector,  self.safe_file)
+    self.safe_file.flush()
+    pickle.dump(self.data_vector,  self.test_file)
+    self.test_file.flush()
+    
+    self.safe_file.seek(0)
+    self.test_file.seek(0)
+    
+    self.safe_data = pickle.load(self.safe_file)
+    self.test_data = pickle.load(self.test_file)
+    
+    assert self.safe_data == self.test_data
+
+  def test_write_readonly(self):
+    fd = os.open(self.test_file_name,  os.O_CREAT | os.O_RDONLY)
+    self.test_file = os.fdopen(fd)
+    
+    try:
+        pickle.dump(self.data_vector,  self.test_file)
+        raise Exception('Reached','Unreachable branch reached.')
+    except IOError:
+        print 'everything is o.k., can\'t write'
