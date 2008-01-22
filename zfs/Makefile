@@ -29,8 +29,8 @@ all: fuse/lib/.libs/libfuse.a
 	@$(MAKE) -C zfsd
 #	@$(MAKE) -C module
 
-test: all
-	true
+test: 
+	@$(MAKE) -C tests test
 
 fuse/lib/.libs/libfuse.a:
 	sh -c "cd fuse && \

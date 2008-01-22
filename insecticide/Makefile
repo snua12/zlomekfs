@@ -23,6 +23,3 @@ all:
 
 install:
 	@$(MAKE) -C nose-plugins install
-
-test: 
-	@$(MAKE) -C nose-tests test
