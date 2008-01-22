@@ -98,7 +98,10 @@ class ZfsProxy(object):
         #TODO: check status
         self.disconnectControl()
         for i in [0.1, 0.5, 1]:
-            os.kill(self.zfs.pid, signal.SIGTERM)
+            try:
+                os.kill(self.zfs.pid, signal.SIGTERM)
+            except OSError:
+                break #assume no such process
             time.sleep(i)
             if self.zfs.poll():
                 break
@@ -165,6 +168,7 @@ class ZfsTest(object):
 
     @classmethod
     def setup_class(self):
+        print "setup_class"
         config = getattr(self, zfsConfig.ZfsConfig.configAttrName)
         self.zfsRoot = config.get("global", "zfsRoot")
         self.zfsMetaTar = config.get("global", "zfsMetaTar")
@@ -172,15 +176,18 @@ class ZfsTest(object):
         self.zfs = ZfsProxy(zfsRoot = self.zfsRoot,  metaTar = self.zfsMetaTar)
     
     def setup(self):
+        print "setup"
         self.zfs.runZfs()
         
     def teardown(self):
+        print "teardown"
         #TODO: raise exception if zfs is down
         self.zfs.stopZfs()
         
     @classmethod
     def teardown_class(self):
-        self.zfs = None
+        print "teardown_class"
+        # self.zfs = None
     
     def snapshot(self, snapshot):        
         # snapshot zfs
@@ -195,7 +202,6 @@ class ZfsTest(object):
             snapshot.addConfig(config)
         #TODO: snapshot script (it may change)
         
-    snapshot.metaTest = False
     
     def resume(self,  snapshot):
         # resume config
@@ -209,7 +215,6 @@ class ZfsTest(object):
         
         # resume zfs
         self.zfs.resume(snapshot)
-    resume.metaTest = False
 
 class ZfsStressTest(ZfsTest):
     metaTest = True
@@ -220,21 +225,25 @@ class ZfsStressTest(ZfsTest):
     
     # we don't want to reset state after every test
     def setup(self):
+        print "stress setup"
         pass
+        
     def teardown(self):
+        print "stress teardown"
         pass
         
     # do the before test setup only once before all tests
     @classmethod
     def setup_class(self):
         super(ZfsStressTest,self).setup_class()
+        print "stres setup_class"
         self.zfs.runZfs()
         
     # do the after test cleanup only once after all tests
     @classmethod
     def teardown_class(self):
-        if getattr(self, 'zfs', None):
-            self.zfs.stopZfs()
-        super(ZfsStressTest,self).teardown_class()
+        self.zfs.stopZfs()
+        print "stress teardown_class"
+        #super(ZfsStressTest,self).teardown_class()
         
     

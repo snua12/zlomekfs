@@ -26,7 +26,8 @@ fixtureMethods = [
                                'setup_class',  'setup_all', 'setupClass', 
                                'setupAll', 'setUpClass',  'setUpAll', 
                                'teardown_class', 'teardown_all', 'teardownClass',
-                               'teardownAll', 'tearDownClass', 'tearDownAll' 
+                               'teardownAll', 'tearDownClass', 'tearDownAll' ,
+                               'snapshot', 'resume'
                              ]
 
 class MetaTestCollector(object):

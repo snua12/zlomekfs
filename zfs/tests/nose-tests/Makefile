@@ -21,4 +21,4 @@
 TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
-	nosetests $(TESTS)
+	. ./env && nosetests $(TESTS)
