@@ -1,6 +1,5 @@
 from insecticide.snapshot import SnapshotDescription
-from subprocess import Popen, PIPE
-import subprocess
+from subprocess import Popen, PIPE, STDOUT
 import signal
 import pysyplog
 import tarfile
@@ -9,6 +8,9 @@ import os
 import shutil
 import zfsd_status  
 import time
+import logging
+
+log = logging.getLogger ("nose.test.zfs")
 
 from insecticide import graph
 from insecticide import zfsConfig
@@ -36,15 +38,25 @@ class ZfsProxy(object):
         else:
           self.tempDir =  tempfile.mkdtemp(prefix = "zfsTestTemp")
           
+          
+    def killall(self):
+        Popen(args=('killall', '-9', 'zfsd'), stdout=PIPE, 
+                                stderr=STDOUT)
+        self.unmount()
+        self.removeModules()
+        
     def installModules(self):
-        modprobe = subprocess.Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
-                                stderr=PIPE, universal_newlines=True)
+        modprobe = Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
+                                stderr=STDOUT, universal_newlines=True)
         modprobe.wait()
         if modprobe.returncode != 0:
             raise Exception(modprobe.stderr.readlines()) #FIXME: accurate exception
         
     def removeModules(self):
-        Popen(args=('rmmod', '-f', 'fuse'))
+        Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
+        
+    def unmount(self):
+        Popen(args=('umount', '-f', self.zfsRoot), stderr = STDOUT, stdout = PIPE)
         
     def unpackData(self):
         tarFile = tarfile.open(name = self.metaTar, 
@@ -70,6 +82,7 @@ class ZfsProxy(object):
         pysyplog.set_level_udp(loglevel, None, 0)
         
     def runZfs(self):
+        self.killall() #destroy previous zfsd instances
         self.unpackData()
         self.installModules()
         loglevel = pysyplog.LOG_LOOPS
@@ -107,10 +120,11 @@ class ZfsProxy(object):
                 break
         
         if self.zfs.poll () is None:
-          os.kill(self.zfs.pid, signal.SIGKILL)
-
-        Popen(args=('umount', '-f', self.zfsRoot))
+            os.kill(self.zfs.pid, signal.SIGKILL)
+          
         self.running = False
+        # to be sure that we don't leave zombies
+        self.unmount()
         self.removeModules()
         self.cleanup()
         
@@ -134,7 +148,7 @@ class ZfsProxy(object):
         if self.running:
         #snapshot zfs process
             if not self.zfs.returncode:
-                gdb = subprocess.Popen(args=('gdb', '-p',  str(self.zfs.pid), ), stdin = PIPE, 
+                gdb = Popen(args=('gdb', '-p',  str(self.zfs.pid), ), stdin = PIPE, 
                                         stdout=PIPE, stderr=PIPE, universal_newlines=True)
                 gdb.stdin.write('gcore ' + self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid) + '\n')
                 gdb.stdin.write('quit' + '\n')
@@ -168,7 +182,7 @@ class ZfsTest(object):
 
     @classmethod
     def setup_class(self):
-        print "setup_class"
+        log.debug("setup_class")
         config = getattr(self, zfsConfig.ZfsConfig.configAttrName)
         self.zfsRoot = config.get("global", "zfsRoot")
         self.zfsMetaTar = config.get("global", "zfsMetaTar")
@@ -176,17 +190,17 @@ class ZfsTest(object):
         self.zfs = ZfsProxy(zfsRoot = self.zfsRoot,  metaTar = self.zfsMetaTar)
     
     def setup(self):
-        print "setup"
+        log.debug("setup")
         self.zfs.runZfs()
         
     def teardown(self):
-        print "teardown"
+        log.debug("teardown")
         #TODO: raise exception if zfs is down
         self.zfs.stopZfs()
         
     @classmethod
     def teardown_class(self):
-        print "teardown_class"
+        log.debug("teardown_class")
         # self.zfs = None
     
     def snapshot(self, snapshot):        
@@ -225,25 +239,25 @@ class ZfsStressTest(ZfsTest):
     
     # we don't want to reset state after every test
     def setup(self):
-        print "stress setup"
+        log.debug("stress setup")
         pass
         
     def teardown(self):
-        print "stress teardown"
+        log.debug("stress teardown")
         pass
         
     # do the before test setup only once before all tests
     @classmethod
     def setup_class(self):
         super(ZfsStressTest,self).setup_class()
-        print "stres setup_class"
+        log.debug("stres setup_class")
         self.zfs.runZfs()
         
     # do the after test cleanup only once after all tests
     @classmethod
     def teardown_class(self):
         self.zfs.stopZfs()
-        print "stress teardown_class"
+        log.debug("stress teardown_class")
         #super(ZfsStressTest,self).teardown_class()
         
     

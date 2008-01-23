@@ -14,48 +14,9 @@ from nose import config
 from zfs import ZfsStressTest
 from traceback import format_exc
 import pickle
+from testFSOp import tryTouch, tryUnlink, tryRename, tryRead, tryWrite
 
-log = logging.getLogger ("nose.testFSOp")
-
-def tryTouch(fileName):
-  try:
-    handle = os.path(fileName)
-    handle.touch()
-    return safeHandle.isFile()
-  except:
-    log.debug(format_exc())
-    return False
-
-def tryUnlink(fileName):
-  try:
-    os.unlink(fileName)
-    return True
-  except:
-   log.debug(format_exc())
-   return False
-
-def tryRename(originalFileName,  newFileName):
-  try:
-    os.rename(originalFileName,  newFileName)
-    return True
-  except:
-   log.debug(format_exc())
-   return False
-
-def tryRead(file):
-  try:
-    return pickle.load(file)
-  except:
-   log.debug(format_exc())
-   return None
-    
-def tryWrite(file,  data):
-  try:
-    pickle.dump(data,  file)
-    return True
-  except:
-   log.debug(format_exc())
-   return False
+log = logging.getLogger ("nose.tests.testStressFSOp")
 
 class testStressFSOp(ZfsStressTest):
   disabled = False

@@ -14,13 +14,14 @@ from zfs import ZfsTest
 from traceback import format_exc
 import pickle
 
-log = logging.getLogger ("nose.testFSOp")
+log = logging.getLogger ("nose.tests.testFSOp")
 
 def tryTouch(fileName):
   try:
-    handle = os.path(fileName)
-    handle.touch()
-    return safeHandle.isFile()
+    fd = os.open(fileName, os.O_WRONLY | os.O_CREAT, 0666)
+    os.close(fd)
+    os.utime(fileName, None)
+    return True
   except:
     log.debug(format_exc())
     return False
@@ -53,8 +54,8 @@ def tryWrite(file,  data):
     pickle.dump(data,  file)
     return True
   except:
-   log.debug(format_exc())
-   return False
+    log.debug(format_exc())
+    return False
 
 class testFSOp(ZfsTest):
   disabled = False
