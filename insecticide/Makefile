@@ -18,8 +18,32 @@
 # along with insecticide; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-all:
-	@$(MAKE) -C nose-plugins all
+PREFIX ?= "/usr/local"
+
+VERSION ?= `cat VERSION`
+
+all: build
+
+build:
+	python setup.py build
 
 install:
-	@$(MAKE) -C nose-plugins install
+	python setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
+
+test:
+	python -c 'import insecticide'
+
+clean: 
+	python setup.py clean
+	rm -rf insecticide-*.tar.gz
+
+package: clean
+	rm -rf /tmp/insecticide-build
+	mkdir -p /tmp/insecticide-build/insecticide-$(VERSION)
+	cp -rf ./* /tmp/insecticide-build/insecticide-$(VERSION)
+	tar -C /tmp/insecticide-build -czf insecticide-$(VERSION).tar.gz insecticide-$(VERSION)
+	rm -rf /tmp/insecticide-build
+
+rpm: package
+	rpmbuild -ta insecticide-$(VERSION).tar.gz
+	
