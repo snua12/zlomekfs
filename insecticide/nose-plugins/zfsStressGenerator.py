@@ -22,7 +22,7 @@ log = logging.getLogger ("nose.plugins.zfsStressGenerator")
 
 fixtureMethods = [
                                'setup', 'setUp',  'setup_method', 
-                               'teardown', 'tearDown', 'teardonw_method',
+                               'teardown', 'tearDown', 'teardown_method',
                                'setup_class',  'setup_all', 'setupClass', 
                                'setupAll', 'setUpClass',  'setUpAll', 
                                'teardown_class', 'teardown_all', 'teardownClass',
@@ -82,6 +82,8 @@ class StressGenerator(Plugin):
     metaAttrName = "metaTest"
     metaTestCollector = MetaTestCollector()
     reportProxy = ReportProxy()
+    
+    chainQueue = []
 
     def __init__(self):
         Plugin.__init__(self)
@@ -237,7 +239,7 @@ class StressGenerator(Plugin):
                     except:
                         result.addError(self, self.exc_info())
             setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
-            return suite
+            self.chainQueue.append(suite)
         return None
 
     
@@ -258,6 +260,8 @@ class StressGenerator(Plugin):
         
     def prepareTest(self, test): #for THE onle root testcase
         self.rootCase = test
+        for chain in self.chainQueue:
+            self.rootCase.addTest(chain)
     
     def retry(self, test):
         setattr(test, 'stopContext',  False)
