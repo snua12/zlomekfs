@@ -72,17 +72,24 @@ class StressGenerator(Plugin):
     # max length of stress test (in meta test executions)
     maxTestLength = 100
     
-    # maximum stress test chains generated for one class
-    # command line option
+
+    # command line option for testsByClass
     testsByClassOpt = "--stressTestsByClass"
-    # environment variable name
+    # environment variable name  for testsByClass
     testsByClassEnvOpt = "STRESS_TESTS_BY_CLASS"
+    # maximum stress test chains generated for one class
     testsByClass = 2
+    
+    # command line option for retriesAfterFailure
+    retriesAfterFailureOpt = "--stressRetriesAfterFailure"
+    # environment variable name  for retriesAfterFailure
+    retriesAfterFailureEnvOpt = "STRESS_RETRIES_AFTER_FAILURE"
+    # how many times we should try to prune the chain and rerun
+    retriesAfterFailure = 3
     
     # unconfigurable variables
     stopProbability = 0
     useShortestPath = True
-    retriesAfterFailure = 3
     
     # name of attribute which says if test is meta
     metaAttrName = "metaTest"
@@ -130,7 +137,7 @@ class StressGenerator(Plugin):
                                 "%s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.maxTestLengthEnvOpt))
                           
-        # add option for max stress test count by class
+        # add option for max stress test generated for class
         parser.add_option(self.testsByClassOpt,
                           dest=self.testsByClassOpt, metavar="test_count", 
                           action="store", type="int", 
@@ -139,6 +146,14 @@ class StressGenerator(Plugin):
                                 "%s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
         
+        # add option for max pruned reruns of failed chains
+        parser.add_option(self.retriesAfterFailureOpt,
+                          dest=self.retriesAfterFailureOpt, metavar="retry_count", 
+                          action="store", type="int", 
+                          default=env.get(self.retriesAfterFailureEnvOpt),
+                          help="Number of retries after chain failure."
+                                "%s (see %s) [%s]" %
+                          (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
     
     def configure(self, options, conf):
         """Configure the plugin and system, based on selected options.
@@ -162,8 +177,11 @@ class StressGenerator(Plugin):
             self.maxTestLength = getattr(options,  self.maxTestLengthOpt,  self.maxTestLength)
             
         if hasattr(options,  self.testsByClassOpt):
-            self.testsByClass = getattr(options,  self.testsByClassOpt,  self.testsByClassOpt)
-            log.debug ("got testsByClassOpt " + str(self.testsByClass))
+            self.testsByClass = getattr(options,  self.testsByClassOpt,  self.testsByClass)
+            
+        if hasattr(options,  self.retriesAfterFailureOpt):
+            self.retriesAfterFailure = getattr(options,  self.retriesAfterFailureOpt,  self.retriesAfterFailure)
+            
         
     
     def help(self):
@@ -308,7 +326,7 @@ class StressGenerator(Plugin):
                 log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
                 setattr(test,  'stopContext',  True)
                 testInst.failureBuffer.append(ZfsTestFailure(test, err))
-                if len(testInst.failureBuffer) < self.retriesAfterFailure + 1:
+                if len(testInst.failureBuffer) < self.retriesAfterFailure:
                     self.retry(testInst)
                     return True
                 else:
