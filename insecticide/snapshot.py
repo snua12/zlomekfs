@@ -14,8 +14,6 @@ from unittest import TestCase
 class SnapshotError(Exception):
     pass
 
-log = logging.getLogger(__name__)
-
 #FIXME: name must not be file name
 class SnapshotDescription(object):
     """
@@ -65,10 +63,15 @@ class SnapshotDescription(object):
     directory = None
     file = None
     
-    def __init__(self,  directory):
+    log = logging.getLogger("nose." + __name__)
+    
+    def __init__(self,  directory, parentLog = None):
         self.directory = directory
         self.entries = {}
         self.addEntry('uuid', (SnapshotDescription.TYPE_STRING, str(uuid.uuid4())))
+        
+        if parentLog:
+            self.log = parentLog
         
     def __iter__(self):
         return self.entries.iteritems()
@@ -102,7 +105,7 @@ class SnapshotDescription(object):
         #store snapshot description version
         descVFileName = self.directory + os.sep + self.descriptionVersionFileName
         if os.path.exists(descVFileName):
-            log.warning("warning, file %s in snapshot will be overriden", 
+            self.log.warning("warning, file %s in snapshot will be overriden", 
                             descVFileName)
         descVFile = open(descVFileName , "w")
         #TODO: why do not use pickle?
@@ -115,7 +118,7 @@ class SnapshotDescription(object):
         #write entries
         entriesFullName = self.directory +  os.sep + self.entriesFileName
         if os.path.exists(entriesFullName):
-            log.warning("warning, file %s in snapshot will be overriden", 
+            self.log.warning("warning, file %s in snapshot will be overriden", 
                             entriesFullName)
         entriesFile = open(entriesFullName , "w")
         #add info about entries file into entries
@@ -165,7 +168,7 @@ class SnapshotDescription(object):
         #TODO: escape name
         fullFileName = self.directory + os.sep + name
         if os.path.exists(fullFileName):
-            log.warning("overriding file %s by config",  name)
+            self.log.warning("overriding file %s by config",  name)
         file = open(fullFileName, 'w')
         config.write(file)
         file.close()

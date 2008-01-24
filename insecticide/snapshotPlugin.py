@@ -135,7 +135,7 @@ class SnapshotPlugin(Plugin):
 	if not hasattr(test, "test"): #not normal test, possibly suite
 		return
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
-        snapshot = SnapshotDescription(toDir)
+        snapshot = SnapshotDescription(toDir, log)
         if hasattr(test.test, "inst") and hasattr(test.test.inst, "snapshot"):
             log.debug("snapshotting %s",  str(test))
             test.test.inst.snapshot(snapshot)
