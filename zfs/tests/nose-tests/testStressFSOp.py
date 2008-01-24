@@ -6,6 +6,7 @@ import nose
 import logging
 
 import os
+import random
 import shutil
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
@@ -20,10 +21,25 @@ log = logging.getLogger ("nose.tests.testStressFSOp")
 
 class testStressFSOp(ZfsStressTest):
   disabled = False
-  definitionType = GraphBuilder.USE_FLAT
+  definitionType = GraphBuilder.USE_GLOBAL
   zfs = True
   
+  noFileSuccessors = [('testTouch', 3), ('testGenerateName', 1), ('testOpen', 5)]
+  fileExistSuccessors = [('testRename', 1), ('testUnlink', 1),
+                    ('testOpen', 1), ('testTouch', 1), ('testGenerateName', 1)]
+  openedFileSuccessors = [('testClose', 1), ('testRead', 1), ('testWrite', 1)]
   
+  graph = {
+                'testGenerateName' : noFileSuccessors,
+                'testTouch' : fileExistSuccessors,
+                'testRename' : fileExistSuccessors,
+                'testUnlink' : noFileSuccessors,
+                'testOpen' : openedFileSuccessors,
+                'testClose' : fileExistSuccessors,
+                'testRead' : openedFileSuccessors,
+                'testWrite' : openedFileSuccessors
+                }
+  startingPoint = "testGenerateName"
   
   def __init__(self):
     ZfsStressTest.__init__(self)
@@ -65,7 +81,6 @@ class testStressFSOp(ZfsStressTest):
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
     self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + "testfile"
-    
     self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
  
     self.generator.seed()
@@ -123,7 +138,25 @@ class testStressFSOp(ZfsStressTest):
   def randomize_data(self):
     for i in range(self.data_vector_length):
       self.data_vector.append(self.generator.random())
-    
+  
+  @classmethod
+  def generateRandomFileName(self):
+    allowedChars = 'abcdefghijklmnopqrstuvwxyz0123456789-_.'
+    min = 5
+    max = 15
+    total = 1000000
+    newName  = ''
+    for count in xrange(1,total):
+        for x in random.sample(allowedChars,random.randint(min,max)):
+            newName += x
+            
+    return newName
+  
+  def testGenerateName(self):
+    name = self.generateRandomFileName()
+    self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + name
+    self.test_file_name = self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
+  testGenerateName.metaTest = True
     
   def testTouch(self):
     assert tryTouch(self.safe_file_name) == tryTouch(self.test_file_name)
@@ -137,12 +170,16 @@ class testStressFSOp(ZfsStressTest):
     safeResult = False
     testResult = False
     
-    if tryRename(self.safe_file_name,  self.safe_file_name + self.file_name_suffix):
-      self.safe_file_name = self.safe_file_name + self.file_name_suffix
+    newName = self.generateRandomFileName()
+    newSafeFileName = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + newName
+    newTestFileName = self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + newName
+    
+    if tryRename(self.safe_file_name,  newSafeFileName):
+      self.safe_file_name = newSafeFileName
       safeResult = True
     
-    if tryRename(self.test_file_name,  self.test_file_name + self.file_name_suffix):
-      self.test_file_name = self.test_file_name + self.file_name_suffix
+    if tryRename(self.test_file_name,  newTestFileName):
+      self.test_file_name = newTestFileName
       testResult = True
     
     assert safeResult == testResult
@@ -305,4 +342,8 @@ class testStressFSOp(ZfsStressTest):
   def testRemovexattr(self):
     return
   testRemovexattr.disabled = True
+  
+class testStressFSOpRandomly (testStressFSOp):
+    disabled = True
+    definitionType = GraphBuilder.USE_FLAT
 
