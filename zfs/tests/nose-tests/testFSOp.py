@@ -68,19 +68,19 @@ class testFSOp(ZfsTest):
   
   ##
   # suffix to append when try to rename file
-  file_name_suffix = ".renamed"
+  fileNameSuffix = ".renamed"
   
   ##
   # mode for file opening
-  file_access_mode = "w"
+  fileAccessMode = "w"
   
   ##
   # file mode for chmod
-  file_mode = 666
+  fileMode = 666
   
   ##
   # file owner
-  file_owner = "root:root"
+  fileOwner = "root:root"
   
   ##
   # random data generator
@@ -88,92 +88,92 @@ class testFSOp(ZfsTest):
   ##
   # test vector - data to write, if insufficient, 
   # they go forever
-  data_vector  = []
-  data_vector_length = 1024
+  dataVector  = []
+  dataVectorLength = 1024
   
-  safe_file = None
-  test_file = None
-  safe_subdir_name = 'safedir'
+  safeFile = None
+  testFile = None
+  safeSubdirName = 'safedir'
   
   ##
   # setup before every test method
   @classmethod
-  def setup_class(self):
-    super(testFSOp,self).setup_class()
+  def setupClass(self):
+    super(testFSOp,self).setupClass()
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
-    self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + "testfile"
+    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
     
-    self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+    self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
  
     self.generator.seed()
-    self.randomize_data()
+    self.randomizeData()
   
   ##
   # cleanup after every test method
   @classmethod
-  def teardown_class(self):
-    super(testFSOp,self).teardown_class()
+  def teardownClass(self):
+    super(testFSOp,self).teardownClass()
   
   def setup(self):
     ZfsTest.setup(self)
-    self.prepare_files()
+    self.prepareFiles()
   
   def teardown(self):
     ZfsTest.teardown(self)
-    self.clean_files()
+    self.cleanFiles()
   
-  def prepare_files(self):
+  def prepareFiles(self):
     try:
-      os.mkdir(self.safeRoot + os.sep + self.safe_subdir_name, True)
+      os.mkdir(self.safeRoot + os.sep + self.safeSubdirName, True)
     except IOError:
       pass
   
   ##
   # remove files and clean handles
-  def clean_files(self):
+  def cleanFiles(self):
   # TODO: this wont' work since it is classmethod
-    if self.safe_file != None:
+    if self.safeFile != None:
       try:
-        self.safe_file.close()
+        self.safeFile.close()
       except IOError:
         pass
-      self.safe_file = None
+      self.safeFile = None
     
-    if self.test_file != None:
+    if self.testFile != None:
       try:
-        self.test_file.close()
+        self.testFile.close()
       except IOError:
         pass
-      self.test_file = None
+      self.testFile = None
     
     import shutil
-    shutil.rmtree(self.safeRoot + os.sep + self.safe_subdir_name, True)
+    shutil.rmtree(self.safeRoot + os.sep + self.safeSubdirName, True)
   
   ##
   # generate random data for tests
   @classmethod
-  def randomize_data(self):
-    for i in range(self.data_vector_length):
-      self.data_vector.append(self.generator.random())
+  def randomizeData(self):
+    for i in range(self.dataVectorLength):
+      self.dataVector.append(self.generator.random())
     
     
   def testTouch(self):
-    assert tryTouch(self.safe_file_name) == tryTouch(self.test_file_name)
+    assert tryTouch(self.safeFileName) == tryTouch(self.testFileName)
 
   def testUnlink(self):
-    assert tryUnlink(self.safe_file_name) == tryUnlink(self.test_file_name)
+    assert tryUnlink(self.safeFileName) == tryUnlink(self.testFileName)
   
   def testRename(self):
     safeResult = False
     testResult = False
     
-    if tryRename(self.safe_file_name,  self.safe_file_name + self.file_name_suffix):
-      self.safe_file_name = self.safe_file_name + self.file_name_suffix
+    if tryRename(self.safeFileName,  self.safeFileName + self.fileNameSuffix):
+      self.safeFileName = self.safeFileName + self.fileNameSuffix
       safeResult = True
     
-    if tryRename(self.test_file_name,  self.test_file_name + self.file_name_suffix):
-      self.test_file_name = self.test_file_name + self.file_name_suffix
+    if tryRename(self.testFileName,  self.testFileName + self.fileNameSuffix):
+      self.testFileName = self.testFileName + self.fileNameSuffix
       testResult = True
     
     assert safeResult == testResult
@@ -183,14 +183,14 @@ class testFSOp(ZfsTest):
     testResult = False
     
     try:
-      self.safe_file = open(self.safe_file_name,  self.file_access_mode)
+      self.safeFile = open(self.safeFileName,  self.fileAccessMode)
       safeResult = True
     except:
       log.debug(format_exc())
       pass
     
     try:
-      self.test_file = open(self.test_file_name,  self.file_access_mode)
+      self.testFile = open(self.testFileName,  self.fileAccessMode)
       testResult = True
     except:
      log.debug(format_exc())
@@ -203,18 +203,18 @@ class testFSOp(ZfsTest):
     testResult = False
     
     try:
-      if self.safe_file:
-        self.safe_file.close()
-      self.safe_file = None
+      if self.safeFile:
+        self.safeFile.close()
+      self.safeFile = None
       safeResult = True
     except:
      log.debug(format_exc())
      pass
     
     try:
-      if self.safe_file:
-        self.safe_file.close()
-      self.test_file = None
+      if self.testFile:
+        self.testFile.close()
+      self.testFile = None
       testResult = True
     except:
      log.debug(format_exc())
@@ -223,14 +223,14 @@ class testFSOp(ZfsTest):
     assert testResult == safeResult
   
   def testRead(self):
-    safeResult = tryRead(self.safe_file)
-    testResult = tryRead(self.test_file)
+    safeResult = tryRead(self.safeFile)
+    testResult = tryRead(self.testFile)
     
     assert safeResult == testResult
   
   def testWrite(self):
-    assert tryWrite(self.safe_file,  self.data_vector) == \
-           tryWrite(self.test_file,  self.data_vector)
+    assert tryWrite(self.safeFile,  self.dataVector) == \
+           tryWrite(self.testFile,  self.dataVector)
 
   def testFlush(self):
     return

@@ -155,7 +155,7 @@ class ZfsProxy(object):
                 gdb.wait()
                 if gdb.returncode != 0:
                     raise Exception(gdb.stderr.readlines()) #FIXME: accurate exception
-		try:
+                try:
                     snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid), 
                                  type = SnapshotDescription.TYPE_ZFS_GCORE)
                 except IOError:
@@ -181,8 +181,8 @@ class ZfsProxy(object):
 class ZfsTest(object):
 
     @classmethod
-    def setup_class(self):
-        log.debug("setup_class")
+    def setupClass(self):
+        log.debug("setupClass")
         config = getattr(self, zfsConfig.ZfsConfig.configAttrName)
         self.zfsRoot = config.get("global", "zfsRoot")
         self.zfsMetaTar = config.get("global", "zfsMetaTar")
@@ -199,8 +199,8 @@ class ZfsTest(object):
         self.zfs.stopZfs()
         
     @classmethod
-    def teardown_class(self):
-        log.debug("teardown_class")
+    def teardownClass(self):
+        log.debug("teardownClass")
         # self.zfs = None
     
     def snapshot(self, snapshot):        
@@ -248,16 +248,16 @@ class ZfsStressTest(ZfsTest):
         
     # do the before test setup only once before all tests
     @classmethod
-    def setup_class(self):
-        super(ZfsStressTest,self).setup_class()
-        log.debug("stres setup_class")
+    def setupClass(self):
+        super(ZfsStressTest,self).setupClass()
+        log.debug("stres setupClass")
         self.zfs.runZfs()
         
     # do the after test cleanup only once after all tests
     @classmethod
-    def teardown_class(self):
+    def teardownClass(self):
         self.zfs.stopZfs()
-        log.debug("stress teardown_class")
-        #super(ZfsStressTest,self).teardown_class()
+        log.debug("stress teardownClass")
+        #super(ZfsStressTest,self).teardownClass()
         
     

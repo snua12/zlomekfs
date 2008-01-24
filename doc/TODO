@@ -3,3 +3,12 @@ je treba se zamyslet (nezapomenout zamyslet) nad rozhranim pro multithrading a d
 vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
 
 append revision to version (for packaging and rpm)
+
+core rerun (for stress)
+valid graph for zfs stress
+append reruns correctly
+save path
+include django report reference to buildbot status
+useCamelCaseWherePossible
+join testFSOp and testStressFSOp to one
+finalize zen-unit

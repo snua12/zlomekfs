@@ -22,19 +22,19 @@ class testFSOps(ZfsStressTest):
   
   ##
   # suffix to append when try to rename file
-  file_name_suffix = ".renamed"
+  fileNameSuffix = ".renamed"
   
   ##
   # mode for file opening
-  file_access_mode = "w"
+  fileAccessMode = "w"
   
   ##
   # file mode for chmod
-  file_mode = 666
+  fileMode = 666
   
   ##
   # file owner
-  file_owner = "root:root"
+  fileOwner = "root:root"
   
   ##
   # random data generator
@@ -42,92 +42,92 @@ class testFSOps(ZfsStressTest):
   ##
   # test vector - data to write, if insufficient, 
   # they go forever
-  data_vector  = []
-  data_vector_length = 1024
+  dataVector  = []
+  dataVectorLength = 1024
   
-  safe_file = None
-  test_file = None
-  safe_subdir_name = 'safedir'
+  safeFile = None
+  testFile = None
+  safeSubdirName = 'safedir'
   
   @classmethod
-  def setup_class(self):
-    super(testFSOps,self).setup_class()
+  def setupClass(self):
+    super(testFSOps,self).setupClass()
     config = getattr(self,ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
-    self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + "testfile"
+    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
     
-    self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+    self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
     
     self.generator.seed()
-    self.randomize_data()
-    self.prepare_files()
+    self.randomizeData()
+    self.prepareFiles()
   
   ##
   # cleanup after every test method
   @classmethod
-  def teardown_class(self):
-    super(testFSOps,self).teardown_class()
-    self.clean_files()
+  def teardownClass(self):
+    super(testFSOps,self).teardownClass()
+    self.cleanFiles()
   
   @classmethod
-  def prepare_files(self):
+  def prepareFiles(self):
     try:
-      os.mkdir(self.safeRoot + os.sep + self.safe_subdir_name, True)
+      os.mkdir(self.safeRoot + os.sep + self.safeSubdirName, True)
     except OSError:
       pass #already exists
   
   ##
   # remove files and clean handles
   @classmethod
-  def clean_files(self):
+  def cleanFiles(self):
   # TODO: this wont' work since it is classmethod
-    if self.safe_file != None:
+    if self.safeFile != None:
       try:
-        self.safe_file.close()
+        self.safeFile.close()
       except IOError:
         pass
-      self.safe_file = None
+      self.safeFile = None
     
-    if self.test_file != None:
+    if self.testFile != None:
       try:
-        self.test_file.close()
+        self.testFile.close()
       except IOError:
         pass
-      self.test_file = None
+      self.testFile = None
     
     import shutil
-    shutil.rmtree(self.safeRoot + os.sep + self.safe_subdir_name, True)
+    shutil.rmtree(self.safeRoot + os.sep + self.safeSubdirName, True)
   
   ##
   # generate random data for tests
   @classmethod
-  def randomize_data(self):
-    for i in range(self.data_vector_length):
-      self.data_vector.append(self.generator.random())
+  def randomizeData(self):
+    for i in range(self.dataVectorLength):
+      self.dataVector.append(self.generator.random())
       
-  def test_write_read(self):
-    self.safe_file = open(self.safe_file_name, 'w+')
-    self.test_file = open(self.test_file_name, 'w+')
+  def testWriteRead(self):
+    self.safeFile = open(self.safeFileName, 'w+')
+    self.testFile = open(self.testFileName, 'w+')
     
-    pickle.dump(self.data_vector,  self.safe_file)
-    self.safe_file.flush()
-    pickle.dump(self.data_vector,  self.test_file)
-    self.test_file.flush()
+    pickle.dump(self.dataVector,  self.safeFile)
+    self.safeFile.flush()
+    pickle.dump(self.dataVector,  self.testFile)
+    self.testFile.flush()
     
-    self.safe_file.seek(0)
-    self.test_file.seek(0)
+    self.safeFile.seek(0)
+    self.testFile.seek(0)
     
-    self.safe_data = pickle.load(self.safe_file)
-    self.test_data = pickle.load(self.test_file)
+    self.safe_data = pickle.load(self.safeFile)
+    self.test_data = pickle.load(self.testFile)
     
     assert self.safe_data == self.test_data
 
-  def test_write_readonly(self):
-    fd = os.open(self.test_file_name,  os.O_CREAT | os.O_RDONLY)
-    self.test_file = os.fdopen(fd)
+  def testWriteReadonly(self):
+    fd = os.open(self.testFileName,  os.O_CREAT | os.O_RDONLY)
+    self.testFile = os.fdopen(fd)
     
     try:
-        pickle.dump(self.data_vector,  self.test_file)
+        pickle.dump(self.dataVector,  self.testFile)
         raise Exception('Reached','Unreachable branch reached.')
     except IOError:
         print 'everything is o.k., can\'t write'

@@ -46,19 +46,19 @@ class testStressFSOp(ZfsStressTest):
   
   ##
   # suffix to append when try to rename file
-  file_name_suffix = ".renamed"
+  fileNameSuffix = ".renamed"
   
   ##
   # mode for file opening
-  file_access_mode = "w"
+  fileAccessMode = "w"
   
   ##
   # file mode for chmod
-  file_mode = 666
+  fileMode = 666
   
   ##
   # file owner
-  file_owner = "root:root"
+  fileOwner = "root:root"
   
   ##
   # random data generator
@@ -66,33 +66,33 @@ class testStressFSOp(ZfsStressTest):
   ##
   # test vector - data to write, if insufficient, 
   # they go forever
-  data_vector  = []
-  data_vector_length = 1024
+  dataVector  = []
+  dataVectorLength = 1024
   
-  safe_file = None
-  test_file = None
-  safe_subdir_name = 'safedir'
+  safeFile = None
+  testFile = None
+  safeSubdirName = 'safedir'
   
   ##
   # setup before every test method
   @classmethod
-  def setup_class(self):
-    super(testStressFSOp,self).setup_class()
+  def setupClass(self):
+    super(testStressFSOp,self).setupClass()
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
-    self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + "testfile"
-    self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
+    self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
  
     self.generator.seed()
-    self.randomize_data()
-    self.prepare_files()
+    self.randomizeData()
+    self.prepareFiles()
   
   ##
   # cleanup after every test method
   @classmethod
-  def teardown_class(self):
-    super(testStressFSOp,self).teardown_class()
-    self.clean_files()
+  def teardownClass(self):
+    super(testStressFSOp,self).teardownClass()
+    self.cleanFiles()
   
   def setup(self):
     ZfsStressTest.setup(self)
@@ -102,9 +102,9 @@ class testStressFSOp(ZfsStressTest):
     ZfsStressTest.teardown(self)
   
   @classmethod
-  def prepare_files(self):
+  def prepareFiles(self):
     try:
-      os.mkdir(self.safeRoot + os.sep + self.safe_subdir_name, True)
+      os.mkdir(self.safeRoot + os.sep + self.safeSubdirName, True)
     except IOError:
       pass
     except OSError:
@@ -113,31 +113,31 @@ class testStressFSOp(ZfsStressTest):
   ##
   # remove files and clean handles
   @classmethod
-  def clean_files(self):
+  def cleanFiles(self):
   # TODO: this wont' work since it is classmethod
-    if self.safe_file != None:
+    if self.safeFile != None:
       try:
-        self.safe_file.close()
+        self.safeFile.close()
       except IOError:
         pass
-      self.safe_file = None
+      self.safeFile = None
     
-    if self.test_file != None:
+    if self.testFile != None:
       try:
-        self.test_file.close()
+        self.testFile.close()
       except IOError:
         pass
-      self.test_file = None
+      self.testFile = None
     
     import shutil
-    shutil.rmtree(self.safeRoot + os.sep + self.safe_subdir_name, True)
+    shutil.rmtree(self.safeRoot + os.sep + self.safeSubdirName, True)
   
   ##
   # generate random data for tests
   @classmethod
-  def randomize_data(self):
-    for i in range(self.data_vector_length):
-      self.data_vector.append(self.generator.random())
+  def randomizeData(self):
+    for i in range(self.dataVectorLength):
+      self.dataVector.append(self.generator.random())
   
   @classmethod
   def generateRandomFileName(self):
@@ -154,16 +154,16 @@ class testStressFSOp(ZfsStressTest):
   
   def testGenerateName(self):
     name = self.generateRandomFileName()
-    self.safe_file_name = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + name
-    self.test_file_name = self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
+    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + name
+    self.testFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
   testGenerateName.metaTest = True
     
   def testTouch(self):
-    assert tryTouch(self.safe_file_name) == tryTouch(self.test_file_name)
+    assert tryTouch(self.safeFileName) == tryTouch(self.testFileName)
   testTouch.metaTest = True
 
   def testUnlink(self):
-    assert tryUnlink(self.safe_file_name) == tryUnlink(self.test_file_name)
+    assert tryUnlink(self.safeFileName) == tryUnlink(self.testFileName)
   testUnlink.metaTest = True
   
   def testRename(self):
@@ -171,15 +171,15 @@ class testStressFSOp(ZfsStressTest):
     testResult = False
     
     newName = self.generateRandomFileName()
-    newSafeFileName = self.safeRoot + os.sep + self.safe_subdir_name + os.sep + newName
-    newTestFileName = self.test_file_name = self.zfsRoot + os.sep + "bug_tree" + os.sep + newName
+    newSafeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + newName
+    newTestFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + newName
     
-    if tryRename(self.safe_file_name,  newSafeFileName):
-      self.safe_file_name = newSafeFileName
+    if tryRename(self.safeFileName,  newSafeFileName):
+      self.safeFileName = newSafeFileName
       safeResult = True
     
-    if tryRename(self.test_file_name,  newTestFileName):
-      self.test_file_name = newTestFileName
+    if tryRename(self.testFileName,  newTestFileName):
+      self.testFileName = newTestFileName
       testResult = True
     
     assert safeResult == testResult
@@ -190,14 +190,14 @@ class testStressFSOp(ZfsStressTest):
     testResult = False
     
     try:
-      self.safe_file = open(self.safe_file_name,  self.file_access_mode)
+      self.safeFile = open(self.safeFileName,  self.fileAccessMode)
       safeResult = True
     except:
       log.debug(format_exc())
       pass
     
     try:
-      self.test_file = open(self.test_file_name,  self.file_access_mode)
+      self.testFile = open(self.testFileName,  self.fileAccessMode)
       testResult = True
     except:
      log.debug(format_exc())
@@ -211,18 +211,18 @@ class testStressFSOp(ZfsStressTest):
     testResult = False
     
     try:
-      if self.safe_file:
-        self.safe_file.close()
-      self.safe_file = None
+      if self.safeFile:
+        self.safeFile.close()
+      self.safeFile = None
       safeResult = True
     except:
      log.debug(format_exc())
      pass
     
     try:
-      if self.test_file:
-        self.test_file.close()
-      self.test_file = None
+      if self.testFile:
+        self.testFile.close()
+      self.testFile = None
       testResult = True
     except:
      log.debug(format_exc())
@@ -232,15 +232,15 @@ class testStressFSOp(ZfsStressTest):
   testClose.metaTest = True
   
   def testRead(self):
-    safeResult = tryRead(self.safe_file)
-    testResult = tryRead(self.test_file)
+    safeResult = tryRead(self.safeFile)
+    testResult = tryRead(self.testFile)
     
     assert safeResult == testResult
   testRead.metaTest = True
   
   def testWrite(self):
-    assert tryWrite(self.safe_file,  self.data_vector) == \
-           tryWrite(self.test_file,  self.data_vector)
+    assert tryWrite(self.safeFile,  self.dataVector) == \
+           tryWrite(self.testFile,  self.dataVector)
   testWrite.metaTest = True
   
   def testFlush(self):
