@@ -287,7 +287,7 @@ class StressGenerator(Plugin):
     
     def retry(self, test):
         setattr(test, 'stopContext',  False)
-        self.retryQueue.append(test)
+        self.rerunQueue.append(test)
         
     def storePath(self, test):
         pass
