@@ -1,5 +1,4 @@
 
-je treba rychle reseni cteni a zapis do log bloku, cteni nesmi blokovat zapis, zapisy by se nemeli blokovat navzajem
 je treba se zamyslet (nezapomenout zamyslet) nad rozhranim pro multithrading a distribuovanost (podpurne prostredky) az se bude delat konsolidace
 vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
 
