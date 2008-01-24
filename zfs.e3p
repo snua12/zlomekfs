@@ -125,52 +125,42 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>zfsConfig.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>report.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>util.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>zfsReportPlugin.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>zfsStressGenerator.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>snapshotPlugin.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>snapshot.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>setup.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>graph.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -180,7 +170,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -190,7 +179,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -200,7 +188,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -210,7 +197,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -220,7 +206,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -230,7 +215,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -240,7 +224,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -250,7 +233,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -260,7 +242,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -270,7 +251,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -283,7 +263,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -296,7 +275,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -309,7 +287,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -322,7 +299,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -335,7 +311,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -348,7 +323,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -361,7 +335,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -374,7 +347,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Dir>build</Dir>
       <Dir>bdist.linux-i686</Dir>
       <Dir>rpm</Dir>
@@ -387,12 +359,10 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>failure.py</Name>
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>nose-plugins</Dir>
       <Name>__init__.py</Name>
     </Source>
     <Source>

@@ -68,12 +68,18 @@ class StressGenerator(Plugin):
     maxTestLengthOpt = "--stressTestLength"
     # environment variable from which default max stress test length
     # should be read
-    maxTestLengthEnvOpt = "ZFS_STRESS_TEST_LENGTH"
+    maxTestLengthEnvOpt = "STRESS_TEST_LENGTH"
     # max length of stress test (in meta test executions)
     maxTestLength = 100
     
-    # unconfigurable variables
+    # maximum stress test chains generated for one class
+    # command line option
+    testsByClassOpt = "--stressTestsByClass"
+    # environment variable name
+    testsByClassEnvOpt = "STRESS_TESTS_BY_CLASS"
     testsByClass = 2
+    
+    # unconfigurable variables
     stopProbability = 0
     useShortestPath = True
     retriesAfterFailure = 3
@@ -83,7 +89,10 @@ class StressGenerator(Plugin):
     metaTestCollector = MetaTestCollector()
     reportProxy = ReportProxy()
     
+    # generated chains - have to be appended to root case before run
     chainQueue = []
+    # queue of pruned chains for next run
+    rerunQueue = []
 
     def __init__(self):
         Plugin.__init__(self)
@@ -114,12 +123,21 @@ class StressGenerator(Plugin):
         
         # add option for max stress test length
         parser.add_option(self.maxTestLengthOpt,
-                          dest=self.maxTestLengthOpt, metavar="test_count", 
+                          dest=self.maxTestLengthOpt, metavar="test_length", 
                           action="store", type="int", 
                           default=env.get(self.maxTestLengthEnvOpt),
                           help="Maximal number of meta test executions in one stress test."
                                 "%s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.maxTestLengthEnvOpt))
+                          
+        # add option for max stress test count by class
+        parser.add_option(self.testsByClassOpt,
+                          dest=self.testsByClassOpt, metavar="test_count", 
+                          action="store", type="int", 
+                          default=env.get(self.testsByClassEnvOpt),
+                          help="Number of stress tests generated from one class."
+                                "%s (see %s) [%s]" %
+                          (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
         
     
     def configure(self, options, conf):
@@ -142,6 +160,10 @@ class StressGenerator(Plugin):
         # try to get name of file containing tests config
         if hasattr(options,  self.maxTestLengthOpt):
             self.maxTestLength = getattr(options,  self.maxTestLengthOpt,  self.maxTestLength)
+            
+        if hasattr(options,  self.testsByClassOpt):
+            self.testsByClass = getattr(options,  self.testsByClassOpt,  self.testsByClassOpt)
+            log.debug ("got testsByClassOpt " + str(self.testsByClass))
         
     
     def help(self):
@@ -265,7 +287,7 @@ class StressGenerator(Plugin):
     
     def retry(self, test):
         setattr(test, 'stopContext',  False)
-        self.rootCase.addTest(test)
+        self.retryQueue.append(test)
         
     def storePath(self, test):
         pass

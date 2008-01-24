@@ -174,7 +174,8 @@ class testStressFSOp(ZfsStressTest):
     testResult = False
     
     try:
-      close(self.safe_file)
+      if self.safe_file:
+        self.safe_file.close()
       self.safe_file = None
       safeResult = True
     except:
@@ -182,7 +183,8 @@ class testStressFSOp(ZfsStressTest):
      pass
     
     try:
-      close(self.test_file)
+      if self.test_file:
+        self.test_file.close()
       self.test_file = None
       testResult = True
     except:

@@ -203,7 +203,8 @@ class testFSOp(ZfsTest):
     testResult = False
     
     try:
-      close(self.safe_file)
+      if self.safe_file:
+        self.safe_file.close()
       self.safe_file = None
       safeResult = True
     except:
@@ -211,7 +212,8 @@ class testFSOp(ZfsTest):
      pass
     
     try:
-      close(self.test_file)
+      if self.safe_file:
+        self.safe_file.close()
       self.test_file = None
       testResult = True
     except:
