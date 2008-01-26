@@ -50,7 +50,7 @@ class ZfsProxy(object):
                                 stderr=STDOUT, universal_newlines=True)
         modprobe.wait()
         if modprobe.returncode != 0:
-            raise Exception(modprobe.stderr.readlines()) #FIXME: accurate exception
+            raise Exception(modprobe.stdout.readlines()) #FIXME: accurate exception
         
     def removeModules(self):
         Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)

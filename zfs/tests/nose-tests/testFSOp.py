@@ -8,7 +8,7 @@ import logging
 import os
 import shutil
 from insecticide import zfsConfig
-from random import Random
+from random import Random, sample, randint
 from nose import config
 from zfs import ZfsTest
 from traceback import format_exc
@@ -61,14 +61,8 @@ class testFSOp(ZfsTest):
   disabled = False
   zfs = True
   
-  
-  
   def __init__(self):
     ZfsTest.__init__(self)
-  
-  ##
-  # suffix to append when try to rename file
-  fileNameSuffix = ".renamed"
   
   ##
   # mode for file opening
@@ -123,10 +117,13 @@ class testFSOp(ZfsTest):
     ZfsTest.teardown(self)
     self.cleanFiles()
   
+  @classmethod
   def prepareFiles(self):
     try:
       os.mkdir(self.safeRoot + os.sep + self.safeSubdirName, True)
     except IOError:
+      pass
+    except OSError:
       pass
   
   ##
@@ -157,6 +154,23 @@ class testFSOp(ZfsTest):
     for i in range(self.dataVectorLength):
       self.dataVector.append(self.generator.random())
     
+  @classmethod
+  def generateRandomFileName(self):
+    allowedChars = 'abcdefghijklmnopqrstuvwxyz0123456789-_.'
+    min = 5
+    max = 15
+    total = 1000000
+    newName  = ''
+    for count in xrange(1,total):
+        for x in sample(allowedChars,randint(min,max)):
+            newName += x
+            
+    return newName
+  
+  def testGenerateName(self):
+    name = self.generateRandomFileName()
+    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + name
+    self.testFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
     
   def testTouch(self):
     assert tryTouch(self.safeFileName) == tryTouch(self.testFileName)
@@ -168,12 +182,16 @@ class testFSOp(ZfsTest):
     safeResult = False
     testResult = False
     
-    if tryRename(self.safeFileName,  self.safeFileName + self.fileNameSuffix):
-      self.safeFileName = self.safeFileName + self.fileNameSuffix
+    newName = self.generateRandomFileName()
+    newSafeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + newName
+    newTestFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + newName
+    
+    if tryRename(self.safeFileName,  newSafeFileName):
+      self.safeFileName = newSafeFileName
       safeResult = True
     
-    if tryRename(self.testFileName,  self.testFileName + self.fileNameSuffix):
-      self.testFileName = self.testFileName + self.fileNameSuffix
+    if tryRename(self.testFileName,  newTestFileName):
+      self.testFileName = newTestFileName
       testResult = True
     
     assert safeResult == testResult
