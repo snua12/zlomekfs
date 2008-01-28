@@ -2,7 +2,7 @@
 from twisted.application import service
 from buildbot.slave.bot import BuildSlave
 
-basedir = r'/home/buildslave/testproject'
+basedir = r'/home/buildslave/zlofs'
 buildmaster_host = '10.0.0.2'
 port = 9989
 slavename = 'vboxi386'
