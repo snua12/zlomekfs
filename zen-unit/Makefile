@@ -26,6 +26,7 @@ VERSION ?= `cat VERSION`
 INSTALL = install -o root -g root 
 
 all: lib doc
+	echo ${PARROT}
 
 doc: doc/html doc/man
 
