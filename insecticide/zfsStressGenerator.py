@@ -1,6 +1,7 @@
 import logging
 import textwrap
 import os
+import tempfile
 
 from optparse import OptionConflictError
 from warnings import warn
@@ -13,6 +14,7 @@ from nose.suite import ContextSuiteFactory, ContextList
 from nose.plugins import Plugin
 
 from insecticide.graph import GraphBuilder
+import pickle
 
 log = logging.getLogger ("nose.plugins.zfsStressGenerator")
 
@@ -86,6 +88,7 @@ class StressGenerator(Plugin):
     # unconfigurable variables
     stopProbability = 0
     useShortestPath = True
+    savedPathDir = os.path.join( os.getcwd(), 'savedPaths')
     
     # name of attribute which says if test is meta
     metaAttrName = "metaTest"
@@ -305,7 +308,15 @@ class StressGenerator(Plugin):
         self.rerunQueue.append(test)
         
     def storePath(self, test):
-        pass
+        try:
+            os.mkdir(self.savedPathDir)
+        except OSError: #directory exists
+            pass
+        (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir, prefix = test.inst.__class__.__name__, suffix = '.savedPath')
+        file = os.fdopen(fd, 'w')
+        test.generateSavedPath(file)
+        file.close()
+        
        
     def isChainedTestCase(self, test):
         if test.__class__ is ChainedTestCase:
@@ -380,7 +391,11 @@ class ChainedTestCase(MethodTestCase):
             self.chain.append(getattr(self.inst, methodName))
         
     def generateSavedPath(self, file): #TODO: implement this
-        pass
+        stringChain = [self.inst.__class__]
+        for meth in self.chain:
+            stringChain.append(meth.__name__)
+        pickle.dump(stringChain, file)
+        
         
     def __init__(self, method, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = 0):
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
