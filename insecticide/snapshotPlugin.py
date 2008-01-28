@@ -5,11 +5,9 @@ import tempfile
 
 from insecticide.snapshot import SnapshotDescription
 from optparse import OptionConflictError
-from types import TypeType,  ClassType
 from warnings import warn
 
 from nose.plugins import Plugin
-from nose.util import tolist
 
 log = logging.getLogger ("nose.plugins.snapshotPlugin")
 

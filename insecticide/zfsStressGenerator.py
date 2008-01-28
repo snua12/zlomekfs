@@ -1,5 +1,4 @@
 import logging
-import unittest
 import textwrap
 import os
 
@@ -9,11 +8,8 @@ from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy
 from insecticide.snapshot import SnapshotDescription
 
-from nose.case import FunctionTestCase,  MethodTestCase,  TestBase
+from nose.case import MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
-from nose.util import try_run
-from nose.config import Config
-from nose.util import tolist
 from nose.plugins import Plugin
 
 from insecticide.graph import GraphBuilder
@@ -175,6 +171,7 @@ class StressGenerator(Plugin):
         # try to get name of file containing tests config
         if hasattr(options,  self.maxTestLengthOpt):
             self.maxTestLength = getattr(options,  self.maxTestLengthOpt,  self.maxTestLength)
+            log.debug("max stress test length is set to %s", self.maxTestLength)
             
         if hasattr(options,  self.testsByClassOpt):
             self.testsByClass = getattr(options,  self.testsByClassOpt,  self.testsByClass)

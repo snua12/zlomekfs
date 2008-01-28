@@ -2,19 +2,13 @@
 # Tests for FS operations, should be used as metatests
 
 
-import nose
 import logging
 
 import os
-import shutil
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
-from random import Random
-from nose import config
 from zfs import ZfsStressTest
-from traceback import format_exc
-import pickle
-from testFSOp import tryTouch, tryUnlink, tryRename, tryRead, tryWrite, testFSOp
+from testFSOp import testFSOp
 
 log = logging.getLogger ("nose.tests.testStressFSOp")
 

@@ -87,7 +87,7 @@ class ZfsProxy(object):
         self.installModules()
         loglevel = pysyplog.LOG_LOOPS
         if self.logger:
-            loglevel = pysyplog.get_log_level(logger)
+            loglevel = pysyplog.get_log_level(self.logger)
         self.zfs = Popen(args=('zfsd',
                                 '-d',
                                 "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),

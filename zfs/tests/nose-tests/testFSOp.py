@@ -2,14 +2,11 @@
 # Tests for FS operations, should be used as metatests
 
 
-import nose
 import logging
 
 import os
-import shutil
 from insecticide import zfsConfig
 from random import Random, sample, randint
-from nose import config
 from zfs import ZfsTest
 from traceback import format_exc
 import pickle

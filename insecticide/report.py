@@ -1,12 +1,10 @@
-from insecticide.failure import ZfsTestFailure
 
 import os
 import datetime
 import uuid
 import socket
+import traceback
 
-
-from django.db import models
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
 
 class ReportProxy(object):
@@ -49,7 +47,6 @@ class ReportProxy(object):
         
         runData = TestRunData()
         runData.runId = run
-	import traceback
         runData.backtrace = str(traceback.format_tb(failure.failure[2]))
         runData.errText = str(traceback.format_exception_only(
                 failure.failure[0], failure.failure[1]))

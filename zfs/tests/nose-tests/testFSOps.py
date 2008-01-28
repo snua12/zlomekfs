@@ -2,11 +2,8 @@
 # Test bundles of operations and check, if the result is on both files
 ##
 
-import nose
 import os
-import shutil
 from random import Random
-from nose import config
 import pickle
 from zfs import ZfsStressTest
 from insecticide.graph import GraphBuilder

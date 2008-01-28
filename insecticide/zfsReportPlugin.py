@@ -1,13 +1,9 @@
 import os
 import textwrap
-import logging
 from optparse import OptionConflictError
-from types import TypeType,  ClassType
 from warnings import warn
-from ConfigParser import SafeConfigParser
 
 from nose.plugins import Plugin
-from nose.util import tolist
 from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy
 

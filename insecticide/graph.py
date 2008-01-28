@@ -43,7 +43,7 @@ class DependencyGraph(object):
             edges.append((end, prob))
             
         except KeyError:
-            graph[start] = [(end, prob)]
+            self.graph[start] = [(end, prob)]
         
     
     """
@@ -302,7 +302,7 @@ class GraphBuilder(object):
         edges = []
         for method in methods:
             obj = getattr(cls,  method)
-            score = getattr(method,  probVarName,  defaultProbability)
+            score = getattr(method,  GraphBuilder.probVarName,  defaultProbability)
             if score:
                 edges.append((method,  score))
         

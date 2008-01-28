@@ -2,7 +2,6 @@ import tarfile
 import uuid
 import pickle
 import os.path
-import os
 import logging
 import unittest
 import struct
