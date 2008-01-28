@@ -361,7 +361,7 @@ class ChainedTestCase(MethodTestCase):
     def snapshotChain(self, snapshot):
         stringChain = []
         for meth in self.chain:
-            stringChain.append(str(meth))
+            stringChain.append(meth.__name__)
         snapshot.addObject("stressChain", stringChain)
         snapshot.addEntry("stressChainIndex", 
                           (SnapshotDescription.TYPE_INT, self.index))
