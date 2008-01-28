@@ -21,9 +21,9 @@
 TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
-	. ./env && nosetests testFSOp.py
+	nosetests testFSOp.py
 	killall -9 zfsd; umount /mnt/zfs || true
-	. ./env && nosetests testStressFSOp.py
+	nosetests testStressFSOp.py
 	killall -9 zfsd; umount /mnt/zfs || true
-	. ./env && nosetests testFSOps.py
+	nosetests testFSOps.py
 	killall -9 zfsd; umount /mnt/zfs || true
