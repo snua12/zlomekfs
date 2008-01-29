@@ -437,5 +437,5 @@ class ChainedTestCase(MethodTestCase):
         TestBase.__init__(self)
         
     def shortDescription(self):
-        return self.method.__name__ + " in chain %s" % self.chain
+        return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
     
