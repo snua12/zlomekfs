@@ -22,12 +22,8 @@ TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
 	nosetests testFSOp.py
-	killall -9 zfsd; umount /mnt/zfs || true
 	nosetests testStressFSOp.py
-	killall -9 zfsd; umount /mnt/zfs || true
 	nosetests testFSOps.py
-	killall -9 zfsd; umount /mnt/zfs || true
-	nosetests sortTest.py
 
 clean:
 	rm -rf ./*.pyc
