@@ -27,3 +27,4 @@ test:
 	killall -9 zfsd; umount /mnt/zfs || true
 	nosetests testFSOps.py
 	killall -9 zfsd; umount /mnt/zfs || true
+	nosetests sortTest.py

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-3.9.dtd">
 <!-- Project file for project zfs -->
-<!-- Saved: 2008-01-23, 18:53:16 -->
+<!-- Saved: 2008-01-24, 15:26:20 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="3.9">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -161,204 +161,6 @@
     </Source>
     <Source>
       <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>failure.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>graph.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>report.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>setup.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>snapshot.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>snapshotPlugin.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>util.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>zfsConfig.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>zfsReportPlugin.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Name>zfsStressGenerator.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>failure.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>graph.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>report.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>snapshot.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>snapshotPlugin.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>util.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>zfsConfig.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>zfsReportPlugin.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
-      <Dir>build</Dir>
-      <Dir>bdist.linux-i686</Dir>
-      <Dir>rpm</Dir>
-      <Dir>BUILD</Dir>
-      <Dir>insecticide-0.2</Dir>
-      <Dir>build</Dir>
-      <Dir>lib</Dir>
-      <Dir>insecticide</Dir>
-      <Name>zfsStressGenerator.py</Name>
-    </Source>
-    <Source>
-      <Dir>insecticide</Dir>
       <Name>failure.py</Name>
     </Source>
     <Source>
@@ -445,9 +247,9 @@ s.</VcsOtherData>
   </Vcs>
   <FiletypeAssociations>
     <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
-    <FiletypeAssociation pattern="*.ui" type="FORMS" />
-    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
-    <FiletypeAssociation pattern="*.py" type="SOURCES" />
     <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
+    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
+    <FiletypeAssociation pattern="*.ui" type="FORMS" />
+    <FiletypeAssociation pattern="*.py" type="SOURCES" />
   </FiletypeAssociations>
 </Project>

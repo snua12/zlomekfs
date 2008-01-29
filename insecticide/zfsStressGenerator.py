@@ -2,6 +2,7 @@ import logging
 import textwrap
 import os
 import tempfile
+import pysvn
 
 from optparse import OptionConflictError
 from warnings import warn
@@ -93,6 +94,7 @@ class StressGenerator(Plugin):
     # name of attribute which says if test is meta
     metaAttrName = "metaTest"
     metaTestCollector = MetaTestCollector()
+    svnClient = pysvn.Client()
     reportProxy = ReportProxy()
     
     # generated chains - have to be appended to root case before run
@@ -310,12 +312,17 @@ class StressGenerator(Plugin):
     def storePath(self, test):
         try:
             os.mkdir(self.savedPathDir)
+            self.svnClient.add(self.savedPathDir)
         except OSError: #directory exists
             pass
+        except pysvn._pysvn_2_5.ClientError:
+            pass # under control
         (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir, prefix = test.inst.__class__.__name__, suffix = '.savedPath')
         file = os.fdopen(fd, 'w')
         test.generateSavedPath(file)
         file.close()
+        # write a file foo.txt
+        self.svnClient.add (fileName)
         
        
     def isChainedTestCase(self, test):
@@ -365,6 +372,11 @@ class StressGenerator(Plugin):
                 return True
         return None
         
+    def finalize(self, result):
+        try:
+            self.svnClient.checkin([self.savedPathDir], 'New saved paths from batch ' + os.environ[BATCHUUID])
+        except:
+            pass #TODO: handle
 
 class ChainedTestCase(MethodTestCase):
     failureBuffer = []
