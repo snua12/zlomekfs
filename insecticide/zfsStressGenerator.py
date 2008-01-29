@@ -9,6 +9,7 @@ from warnings import warn
 from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy
 from insecticide.snapshot import SnapshotDescription
+from traceback import format_exc
 
 from nose.case import MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
@@ -86,6 +87,14 @@ class StressGenerator(Plugin):
     # how many times we should try to prune the chain and rerun
     retriesAfterFailure = 3
     
+    # command line option for commitSavedPaths
+    commitSavedPathsOpt = "--commitSavedPaths"
+    # environment variable name  for retriesAfterFailure
+    commitSavedPathsEnvOpt = "COMMIT_SAVED_PATHS"
+    # indicates if saved failed stress tests should be commited into repo
+    commitSavedPaths = False
+    
+    
     # unconfigurable variables
     stopProbability = 0
     useShortestPath = True
@@ -155,6 +164,16 @@ class StressGenerator(Plugin):
                           help="Number of retries after chain failure."
                                 "%s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
+                          
+        # add option for commiting failed stress tests
+        parser.add_option(self.commitSavedPathsOpt,
+                          dest=self.commitSavedPathsOpt, metavar="yes", 
+                          action="store_true",
+                          default=env.get(self.commitSavedPathsEnvOpt),
+                          help="If stored paths (of failed stress tests) should be commited into repo."
+                                "%s (see %s) [%s]" %
+                          (self.__class__.__name__, self.__class__.__name__, self.commitSavedPathsEnvOpt))
+        
     
     def configure(self, options, conf):
         """Configure the plugin and system, based on selected options.
@@ -183,6 +202,9 @@ class StressGenerator(Plugin):
             
         if hasattr(options,  self.retriesAfterFailureOpt):
             self.retriesAfterFailure = getattr(options,  self.retriesAfterFailureOpt,  self.retriesAfterFailure)
+            
+        if hasattr(options,  self.commitSavedPathsOpt):
+            self.commitSavedPaths = getattr(options,  self.commitSavedPathsOpt,  self.commitSavedPaths)
             
         
     
@@ -374,12 +396,15 @@ class StressGenerator(Plugin):
                         pass #TODO: accurate exception 
                 return True
         return None
-        
+    
     def finalize(self, result):
-        try:
-            self.svnClient.checkin([self.savedPathDir], 'New saved paths from batch ' + os.environ[BATCHUUID])
-        except:
-            pass #TODO: handle
+        log.debug("finalizing")
+        if self.commitSavedPaths:
+            try:
+                self.svnClient.checkin([self.savedPathDir], 'New saved paths from batch ' + os.environ['BATCHUUID'])
+            except:
+                log.debug("can't commit: %s", format_exc())
+        
 
 class ChainedTestCase(MethodTestCase):
     failureBuffer = []
