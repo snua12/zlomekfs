@@ -310,12 +310,15 @@ class StressGenerator(Plugin):
         self.rerunQueue.append(test)
         
     def storePath(self, test):
+        log.debug("trying to store %s", str(test))
         try:
             os.mkdir(self.savedPathDir)
             self.svnClient.add(self.savedPathDir)
         except OSError: #directory exists
+            log.debug("storing path for %s failed: %s", str(test), format_exc())
             pass
         except pysvn._pysvn_2_5.ClientError:
+            log.debug("storing path for %s failed: %s", str(test), format_exc())
             pass # under control
         (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir, prefix = test.inst.__class__.__name__, suffix = '.savedPath')
         file = os.fdopen(fd, 'w')
