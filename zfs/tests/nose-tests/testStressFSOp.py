@@ -8,7 +8,7 @@ import os
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
 from zfs import ZfsStressTest
-from testFSOp import testFSOp
+from testFSOp import testFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename
 
 log = logging.getLogger ("nose.tests.testStressFSOp")
 
@@ -95,6 +95,189 @@ class testStressFSOp(ZfsStressTest, testFSOp):
       self.dataVector.append(self.generator.random())
       
   
+  def testGenerateName(self):
+    name = self.generateRandomFileName()
+    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + name
+    self.testFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
+    
+  def testTouch(self):
+    assert tryTouch(self.safeFileName) == tryTouch(self.testFileName)
+
+  def testUnlink(self):
+    assert tryUnlink(self.safeFileName) == tryUnlink(self.testFileName)
+  
+  def testRename(self):
+    safeResult = False
+    testResult = False
+    
+    newName = self.generateRandomFileName()
+    newSafeFileName = os.path.join(self.safeRoot , self.safeSubdirName, newName)
+    newTestFileName = os.path.join(self.zfsRoot, "bug_tree", newName)
+    
+    if tryRename(self.safeFileName,  newSafeFileName):
+      self.safeFileName = newSafeFileName
+      safeResult = True
+    
+    if tryRename(self.testFileName,  newTestFileName):
+      self.testFileName = newTestFileName
+      testResult = True
+    
+    assert safeResult == testResult
+  
+  def testOpen(self):
+    safeResult = False
+    testResult = False
+    
+    try:
+      self.safeFile = open(self.safeFileName,  self.fileAccessMode)
+      safeResult = True
+    except:
+      log.debug(format_exc())
+      pass
+    
+    try:
+      self.testFile = open(self.testFileName,  self.fileAccessMode)
+      testResult = True
+    except:
+     log.debug(format_exc())
+     pass
+    
+    assert testResult == safeResult
+    
+  def testClose(self):
+    safeResult = False
+    testResult = False
+    
+    try:
+      if self.safeFile:
+        self.safeFile.close()
+      self.safeFile = None
+      safeResult = True
+    except:
+     log.debug(format_exc())
+     pass
+    
+    try:
+      if self.testFile:
+        self.testFile.close()
+      self.testFile = None
+      testResult = True
+    except:
+     log.debug(format_exc())
+     pass
+    
+    assert testResult == safeResult
+  
+  def testRead(self):
+    safeResult = tryRead(self.safeFile)
+    testResult = tryRead(self.testFile)
+    
+    assert safeResult == testResult
+  
+  def testWrite(self):
+    assert tryWrite(self.safeFile,  self.dataVector) == \
+           tryWrite(self.testFile,  self.dataVector)
+
+  def testFlush(self):
+    return
+  testFlush.disabled = True
+  
+  def testMknod(self):
+    return
+  testMknod.disabled = True
+  
+  def testGetpos(self):
+    return
+  testGetpos.disabled = True
+  
+  def testSeek(self):
+    return
+  testSeek.disabled = True
+  
+  def testTruncate(self):
+    return
+  testTruncate.disabled = True
+  
+  def testFeof(self):
+    return
+  testFeof.disabled = True
+  
+  def testGetAtime(self):
+    return
+  testGetAtime.disabled = True
+  
+  def testGetCtime(self):
+    return
+  testGetCtime.disabled = True
+  
+  def testGetMtime(self):
+    return
+  testGetMtime.disabled = True
+
+  def testGetattr(self):
+    return
+  testGetattr.disabled = True
+  
+  def testSetattr(self):
+    return
+  testSetattr.disabled = True
+  
+  def testFlock(self):
+    return
+  testFlock.disabled = True
+  
+  def testFunlock(self):
+    return
+  testFunlock.disabled = True
+  
+  def testSymlink(self):
+    return
+  testSymlink.disabled = True
+  
+  def testReadlink(self):
+    return
+  testReadlink.disabled = True
+  
+  def testMkdir(self):
+    return
+  testMkdir.disabled = True
+  
+  def testRmdir(self):
+    return
+  testRmdir.disabled = True
+  
+  def testReaddir(self):
+    return
+  testReaddir.disabled = True
+  
+  def testLink(self):
+    return
+  testLink.disabled = True
+
+  def testChmod(self):
+    return
+  testChmod.disabled = True
+  
+  def testChown(self):
+    return
+  testChown.disabled = True
+
+  def testSetxattr(self):
+    return
+  testSetxattr.disabled = True
+  
+  def testGetxattr(self):
+    return
+  testGetxattr.disabled = True
+  
+  def testListxattr(self):
+    return
+  testListxattr.disabled = True
+  
+  def testRemovexattr(self):
+    return
+  testRemovexattr.disabled = True
+
 
 class testStressFSOpRandomly (testStressFSOp):
     disabled = True

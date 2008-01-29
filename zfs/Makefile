@@ -50,6 +50,7 @@ uninstall:
 
 clean: 
 	@$(MAKE) -C zfsd clean
+	@$(MAKE) -C tests clean
 #	@$(MAKE) -C module clean
 	@$(MAKE) -C zfsd-status-py clean
 	@$(MAKE) -C fuse clean || true

@@ -28,3 +28,6 @@ test:
 	nosetests testFSOps.py
 	killall -9 zfsd; umount /mnt/zfs || true
 	nosetests sortTest.py
+
+clean:
+	rm -rf ./*.pyc

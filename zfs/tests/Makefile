@@ -25,3 +25,6 @@ INSTALL = install
 
 test:
 	@$(MAKE) -C nose-tests test
+
+clean:
+	@$(MAKE) -C nose-tests clean

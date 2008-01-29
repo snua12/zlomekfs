@@ -6,6 +6,7 @@ import logging
 
 import os
 from insecticide import zfsConfig
+from insecticide.snapshot import SnapshotDescription
 from random import Random, sample, randint
 from zfs import ZfsTest
 from traceback import format_exc
@@ -15,6 +16,7 @@ log = logging.getLogger ("nose.tests.testFSOp")
 
 def tryTouch(fileName):
   try:
+    log.debug ("try to touch file %s", fileName)
     fd = os.open(fileName, os.O_WRONLY | os.O_CREAT, 0666)
     os.close(fd)
     os.utime(fileName, None)
@@ -25,6 +27,7 @@ def tryTouch(fileName):
 
 def tryUnlink(fileName):
   try:
+    log.debug ("try to unlink file %s", fileName)
     os.unlink(fileName)
     return True
   except:
@@ -33,6 +36,7 @@ def tryUnlink(fileName):
 
 def tryRename(originalFileName,  newFileName):
   try:
+    log.debug ("try to rename file %s to file %s", originalFileName, newFileName)
     os.rename(originalFileName,  newFileName)
     return True
   except:
@@ -41,6 +45,7 @@ def tryRename(originalFileName,  newFileName):
 
 def tryRead(file):
   try:
+    log.debug ("try read from file %s", file.name)
     return pickle.load(file)
   except:
    log.debug(format_exc())
@@ -48,6 +53,7 @@ def tryRead(file):
     
 def tryWrite(file,  data):
   try:
+    log.debug ("try write to file %s", file.name)
     pickle.dump(data,  file)
     return True
   except:
@@ -86,34 +92,51 @@ class testFSOp(ZfsTest):
   testFile = None
   safeSubdirName = 'safedir'
   
+  def snapshot(self, snapshot):
+    snapshot.addDir('compareDir', os.path.join(self.safeRoot,
+                                self.safeSubdirName), type = SnapshotDescription.TYPE_COMPARE_FS)
+    ZfsTest.snapshot(self, snapshot)
+  
+  def resume(self, snapshot):
+    ZfsTest.resume(self, snapshot)
+    snapshot.getDir('compareDir', os.path.join(self.safeRoot, self.safeSubdirName))
+    
   ##
   # setup before every test method
   @classmethod
   def setupClass(self):
+    log.debug(self.__name__ + "setupclass")
     super(testFSOp,self).setupClass()
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
     self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
     
     self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
- 
+    
     self.generator.seed()
     self.randomizeData()
+    log.debug(self.__name__ + "setupclass finish")
   
   ##
   # cleanup after every test method
   @classmethod
   def teardownClass(self):
+    log.debug(self.__name__ + "teardownclass")
     super(testFSOp,self).teardownClass()
+    log.debug(self.__name__ + "teardownclass finish")
   
   def setup(self):
+    log.debug(self.__class__.__name__ + "setup")
     ZfsTest.setup(self)
     self.prepareFiles()
-  
+    log.debug(self.__class__.__name__ + "setup finish")
+    
   def teardown(self):
-    ZfsTest.teardown(self)
-    self.cleanFiles()
-  
+   log.debug(self.__class__.__name__ + "teardown")
+   ZfsTest.teardown(self)
+   self.cleanFiles()
+   log.debug(self.__class__.__name__ + "teardown finish")
+   
   @classmethod
   def prepareFiles(self):
     try:
@@ -154,196 +177,13 @@ class testFSOp(ZfsTest):
   @classmethod
   def generateRandomFileName(self):
     allowedChars = 'abcdefghijklmnopqrstuvwxyz0123456789-_.'
-    min = 5
-    max = 15
-    total = 1000000
+    min = 2
+    max = 5
+    total = 5
     newName  = ''
     for count in xrange(1,total):
         for x in sample(allowedChars,randint(min,max)):
             newName += x
             
+    log.debug ("new name is " + newName)
     return newName
-  
-  def testGenerateName(self):
-    name = self.generateRandomFileName()
-    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + name
-    self.testFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
-    
-  def testTouch(self):
-    assert tryTouch(self.safeFileName) == tryTouch(self.testFileName)
-
-  def testUnlink(self):
-    assert tryUnlink(self.safeFileName) == tryUnlink(self.testFileName)
-  
-  def testRename(self):
-    safeResult = False
-    testResult = False
-    
-    newName = self.generateRandomFileName()
-    newSafeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + newName
-    newTestFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + newName
-    
-    if tryRename(self.safeFileName,  newSafeFileName):
-      self.safeFileName = newSafeFileName
-      safeResult = True
-    
-    if tryRename(self.testFileName,  newTestFileName):
-      self.testFileName = newTestFileName
-      testResult = True
-    
-    assert safeResult == testResult
-  
-  def testOpen(self):
-    safeResult = False
-    testResult = False
-    
-    try:
-      self.safeFile = open(self.safeFileName,  self.fileAccessMode)
-      safeResult = True
-    except:
-      log.debug(format_exc())
-      pass
-    
-    try:
-      self.testFile = open(self.testFileName,  self.fileAccessMode)
-      testResult = True
-    except:
-     log.debug(format_exc())
-     pass
-    
-    assert testResult == safeResult
-    
-  def testClose(self):
-    safeResult = False
-    testResult = False
-    
-    try:
-      if self.safeFile:
-        self.safeFile.close()
-      self.safeFile = None
-      safeResult = True
-    except:
-     log.debug(format_exc())
-     pass
-    
-    try:
-      if self.testFile:
-        self.testFile.close()
-      self.testFile = None
-      testResult = True
-    except:
-     log.debug(format_exc())
-     pass
-    
-    assert testResult == safeResult
-  
-  def testRead(self):
-    safeResult = tryRead(self.safeFile)
-    testResult = tryRead(self.testFile)
-    
-    assert safeResult == testResult
-  
-  def testWrite(self):
-    assert tryWrite(self.safeFile,  self.dataVector) == \
-           tryWrite(self.testFile,  self.dataVector)
-
-  def testFlush(self):
-    return
-  testFlush.disabled = True
-  
-  def testMknod(self):
-    return
-  testMknod.disabled = True
-  
-  def testGetpos(self):
-    return
-  testGetpos.disabled = True
-  
-  def testSeek(self):
-    return
-  testSeek.disabled = True
-  
-  def testTruncate(self):
-    return
-  testTruncate.disabled = True
-  
-  def testFeof(self):
-    return
-  testFeof.disabled = True
-  
-  def testGetAtime(self):
-    return
-  testGetAtime.disabled = True
-  
-  def testGetCtime(self):
-    return
-  testGetCtime.disabled = True
-  
-  def testGetMtime(self):
-    return
-  testGetMtime.disabled = True
-
-  def testGetattr(self):
-    return
-  testGetattr.disabled = True
-  
-  def testSetattr(self):
-    return
-  testSetattr.disabled = True
-  
-  def testFlock(self):
-    return
-  testFlock.disabled = True
-  
-  def testFunlock(self):
-    return
-  testFunlock.disabled = True
-  
-  def testSymlink(self):
-    return
-  testSymlink.disabled = True
-  
-  def testReadlink(self):
-    return
-  testReadlink.disabled = True
-  
-  def testMkdir(self):
-    return
-  testMkdir.disabled = True
-  
-  def testRmdir(self):
-    return
-  testRmdir.disabled = True
-  
-  def testReaddir(self):
-    return
-  testReaddir.disabled = True
-  
-  def testLink(self):
-    return
-  testLink.disabled = True
-
-  def testChmod(self):
-    return
-  testChmod.disabled = True
-  
-  def testChown(self):
-    return
-  testChown.disabled = True
-
-  def testSetxattr(self):
-    return
-  testSetxattr.disabled = True
-  
-  def testGetxattr(self):
-    return
-  testGetxattr.disabled = True
-  
-  def testListxattr(self):
-    return
-  testListxattr.disabled = True
-  
-  def testRemovexattr(self):
-    return
-  testRemovexattr.disabled = True
-
