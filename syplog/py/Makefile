@@ -46,7 +46,7 @@ build: pysyplog_wrap.c
 
 
 clean:
-	rm -rf pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist MANIFEST pysyplog-*.tar.gz
+	rm -rf pysyplog.i pysyplog.py pysyplog_wrap.c _pysyplog.so build dist MANIFEST pysyplog-*.tar.gz pysyplog.egg-info
 
 install: setup.py build
 	./setup.py install

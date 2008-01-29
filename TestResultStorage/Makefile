@@ -34,7 +34,7 @@ install:
 	./setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
 
 clean:
-	rm -rf MANIFEST build dist *.pyc resultRepository/*.pyc TestResultStorage-*.tar.gz *.egg-info
+	rm -rf MANIFEST build dist src/*.pyc src/resultRepository/*.pyc TestResultStorage-*.tar.gz *.egg-info
 
 package: clean
 	rm -rf /tmp/TestResultStorage-build
