@@ -24,6 +24,7 @@ test:
 	nosetests testFSOp.py
 	nosetests testStressFSOp.py
 	nosetests testFSOps.py
+	nosetests -w savedPaths
 
 clean:
 	rm -rf ./*.pyc

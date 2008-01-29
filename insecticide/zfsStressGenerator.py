@@ -2,7 +2,9 @@ import logging
 import textwrap
 import os
 import tempfile
+import re
 import pysvn
+import pickle
 
 from optparse import OptionConflictError
 from warnings import warn
@@ -10,6 +12,7 @@ from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy
 from insecticide.snapshot import SnapshotDescription
 from traceback import format_exc
+from types import TypeType, ClassType
 
 from nose.case import MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
@@ -99,6 +102,10 @@ class StressGenerator(Plugin):
     stopProbability = 0
     useShortestPath = True
     savedPathDir = os.path.join( os.getcwd(), 'savedPaths')
+    savedPathSuffix = '.savedPath'
+    savedPathRegex = re.compile(r'.*%s$' % savedPathSuffix)
+    fromSavedPathAttr = 'fromSavedPath'
+
     
     # name of attribute which says if test is meta
     metaAttrName = "metaTest"
@@ -230,7 +237,22 @@ class StressGenerator(Plugin):
             return False
         return
         
-    
+    def wantFile(self, file):
+        log.debug('queried for file %s', file)
+        return self.savedPathRegex.match(file)
+        
+    def loadTestsFromFile(self, filename):
+        log.debug('queried to load tests from file %s', filename)
+        if not self.savedPathRegex.match(filename):
+            return None
+        
+        methodSequence = ChainedTestCase.getMethodSequenceFromSavedPath(filename)
+        if methodSequence:
+            suite = self.wrapMethodSequence(methodSequence[0].im_class, methodSequence, fromSavedPath = True)
+            self.chainQueue.append(suite)
+            log.debug('saved path %s loaded', str(methodSequence))
+        return [False]
+        
     def loadTestsFromTestClass(self,  cls):
         log.debug("generating stress tests from class %s methods", cls)
         allowedMethods = self.metaTestCollector.getClassMethods(cls)
@@ -242,6 +264,44 @@ class StressGenerator(Plugin):
             log.debug("no meta tests in class %s",  cls)
         
     
+    def monkeyPatchSuite(self, suite):
+        def runWithStopSuiteOnTestFail(self, result):
+            #NOTE: keep this in sync with nose.suite.ContextSuite.run
+            # proxy the result for myself
+            if self.resultProxy:
+                result, orig = self.resultProxy(result, self), result
+            else:
+                result, orig = result, result
+            try:
+                self.setUp()
+            except KeyboardInterrupt:
+                raise
+            except:
+                result.addError(self, self.exc_info())
+                return
+            try:
+                for test in self._tests:
+                    if result.shouldStop:
+                        log.debug("stopping")
+                        break
+                    # each nose.case.Test will create its own result proxy
+                    # so the cases need the original result, to avoid proxy
+                    # chains
+                    test(orig)
+                    
+                    if getattr(test,'stopContext', None):
+                        test.stopContext = None
+                        break;
+            finally:
+                self.has_run = True
+                try:
+                    self.tearDown()
+                except KeyboardInterrupt:
+                    raise
+                except:
+                    result.addError(self, self.exc_info())
+        setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
+
     def generateOneStress(self, cls, allowedMethods):
         if not allowedMethods:
             return None
@@ -249,7 +309,6 @@ class StressGenerator(Plugin):
         methodNames = []
         for method in allowedMethods:
             methodNames.append(method.__name__)
-        tests = []
         
         classGraph = GraphBuilder.generateDependencyGraph(cls, methodNames)
         methodSequence = list()
@@ -261,48 +320,7 @@ class StressGenerator(Plugin):
             length += 1
             next = classGraph.next(self.stopProbability)
         if methodSequence:
-            for wrapper in self.wrapMethodSequence(cls, methodSequence): 
-                tests.append(wrapper)
-        
-        if tests:
-            log.debug("returning tests %s", tests)
-            suite = self.suiteClass(ContextList(tests, context=cls))
-            def runWithStopSuiteOnTestFail(self, result):
-                #NOTE: keep this in sync with nose.suite.ContextSuite.run
-                # proxy the result for myself
-                if self.resultProxy:
-                    result, orig = self.resultProxy(result, self), result
-                else:
-                    result, orig = result, result
-                try:
-                    self.setUp()
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    result.addError(self, self.exc_info())
-                    return
-                try:
-                    for test in self._tests:
-                        if result.shouldStop:
-                            log.debug("stopping")
-                            break
-                        # each nose.case.Test will create its own result proxy
-                        # so the cases need the original result, to avoid proxy
-                        # chains
-                        test(orig)
-                        
-                        if getattr(test,'stopContext', None):
-                            test.stopContext = None
-                            break;
-                finally:
-                    self.has_run = True
-                    try:
-                        self.tearDown()
-                    except KeyboardInterrupt:
-                        raise
-                    except:
-                        result.addError(self, self.exc_info())
-            setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
+            suite = self.wrapMethodSequence(cls, methodSequence)
             self.chainQueue.append(suite)
         return None
 
@@ -315,12 +333,25 @@ class StressGenerator(Plugin):
                 tests.append(test)
         return tests
         
-    def wrapMethodSequence(self, cls, methodSequence):
+    def wrapMethodSequence(self, cls, methodSequence, fromSavedPath = False):
         log.debug("wrapping method sequence %s for stress testing"
                         "from class %s",  methodSequence,  cls)
         inst = cls()
+        testCases = []
         for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
-            yield ChainedTestCase(method = methodSequence[i], instance = inst,  chain = methodSequence,  index = i)
+            case = ChainedTestCase(method = methodSequence[i], 
+                                        instance = inst,  chain = methodSequence,
+                                        index = i)
+            setattr(case, self.fromSavedPathAttr, fromSavedPath)
+            testCases.append(case)
+            
+        if testCases:
+            log.debug("returning tests %s", str(testCases))
+            suite = self.suiteClass(ContextList(testCases, context=cls))
+            self.monkeyPatchSuite(suite)
+            return suite
+        return None
+
         
     def prepareTest(self, test): #for THE onle root testcase
         self.rootCase = test
@@ -342,10 +373,10 @@ class StressGenerator(Plugin):
         except pysvn._pysvn_2_5.ClientError:
             log.debug("storing path for %s failed: %s", str(test), format_exc())
             pass # under control
-        (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir, prefix = test.inst.__class__.__name__, suffix = '.savedPath')
-        file = os.fdopen(fd, 'w')
-        test.generateSavedPath(file)
-        file.close()
+        (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir,
+                                            prefix = test.inst.__class__.__name__,
+                                            suffix = self.savedPathSuffix)
+        test.generateSavedPath(fileName)
         # write a file foo.txt
         self.svnClient.add (fileName)
         
@@ -370,7 +401,8 @@ class StressGenerator(Plugin):
                     self.retry(testInst)
                     return True
                 else:
-                    self.storePath(testInst)
+                    if not getattr(testInst,  self.fromSavedPathAttr, None):
+                        self.storePath(testInst)
                     self.reportProxy.reportFailure(testInst.failureBuffer.pop())
         return False
     
@@ -430,12 +462,45 @@ class ChainedTestCase(MethodTestCase):
         for methodName in stringChain:
             self.chain.append(getattr(self.inst, methodName))
         
-    def generateSavedPath(self, file): #TODO: implement this
+    def generateSavedPath(self, filename): #TODO: implement this
+        file = open(filename, 'w')
         stringChain = [self.inst.__class__]
         for meth in self.chain:
             stringChain.append(meth.__name__)
         pickle.dump(stringChain, file)
+        file.close()
         
+    @classmethod
+    def getMethodSequenceFromSavedPath(self, filename):
+        #TODO: report error type
+        try:
+            file = open(filename, 'r')
+            chain = pickle.load(file)
+            file.close()
+        except:
+            return None
+            
+        #we expect non empty list
+        if not isinstance(chain, (list, tuple)) or len(chain) == 0:
+            return None
+        
+        #with class on first possition
+        if type(chain[0]) not in (ClassType, TypeType):
+            return None
+            
+        cls = chain[0]
+        
+        methods = []
+        #and strings - method names on others
+        for methodName in chain[1:]:
+            if not isinstance(methodName, str):
+                return None
+            try:
+                methods.append(getattr(cls, methodName))
+            except AttributeError:
+                return None
+        return methods
+
         
     def __init__(self, method, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = 0):
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
