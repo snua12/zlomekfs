@@ -11,15 +11,19 @@ class ReportProxy(object):
     targetDir = '/tmp'
 
     def __init__(self):
-        self.batch = BatchRun()
-        self.batch.startTime = datetime.datetime.now()
-        self.batch.batchUuid = uuid.uuid1()
-#        self.batch.duration = 0
-        self.batch.description = "report.py direct generated batch"
-        self.batch.machineName = socket.gethostname()
-#        self.batch.repositoryRevision = 0
-        
-        self.batch.save()
+    
+        try:
+            self.batch = BatchRun.objects.filter(batchUuid = os.environ['BATCHUUID'])
+        except KeyError: #no batch predefined
+            self.batch = BatchRun()
+            self.batch.startTime = datetime.datetime.now()
+            self.batch.batchUuid = uuid.uuid1()
+    #        self.batch.duration = 0
+            self.batch.description = "report.py direct generated batch"
+            self.batch.machineName = socket.gethostname()
+    #        self.batch.repositoryRevision = 0
+            
+            self.batch.save()
         if not self.batch.id:
             print ("Error: batch id is null")
     
