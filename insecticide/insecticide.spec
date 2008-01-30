@@ -2,10 +2,9 @@
 %define _unpackaged_files_terminate_build 0 
 #note: this package is better to build with python setup.py bdist_rpm
 
-
 Summary: Plugins for nose
 Name: insecticide
-Version: 0.2
+Version: %{VERSION}.%{REVISION}
 Release: 0
 License : GPL
 URL: http://www.loki.name/insecticide

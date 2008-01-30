@@ -20,7 +20,15 @@
 
 PREFIX ?= "/usr/local"
 
-VERSION ?= `cat VERSION`
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
+
 
 DIST_FILES = *.py Makefile insecticide.spec VERSION 
 
@@ -41,12 +49,12 @@ clean:
 
 package: clean
 	rm -rf build/package
-	mkdir -p build/package/insecticide-$(VERSION)
-	cp -rf ${DIST_FILES} build/package/insecticide-$(VERSION)
+	mkdir -p build/package/insecticide-$(VERSION).$(REVISION)
+	cp -rf ${DIST_FILES} build/package/insecticide-$(VERSION).$(REVISION)
 	#TODO: exclude .svn
-	tar -C build/package -czf insecticide-$(VERSION).tar.gz insecticide-$(VERSION)
+	tar -C build/package -czf insecticide-$(VERSION).$(REVISION).tar.gz insecticide-$(VERSION).$(REVISION)
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta insecticide-$(VERSION).tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta insecticide-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
 	
