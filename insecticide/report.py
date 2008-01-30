@@ -16,6 +16,8 @@ class ReportProxy(object):
             batchQuery = BatchRun.objects.filter(batchUuid = os.environ['BATCHUUID'])
             if batchQuery:
                 self.batch = batchQuery[0]
+            else:
+                raise KeyError('empty result')
             
         except KeyError: #no batch predefined
             self.batch = BatchRun()
