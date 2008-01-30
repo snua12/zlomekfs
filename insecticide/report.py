@@ -13,7 +13,10 @@ class ReportProxy(object):
     def __init__(self):
     
         try:
-            self.batch = BatchRun.objects.filter(batchUuid = os.environ['BATCHUUID'])
+            batchQuery = BatchRun.objects.filter(batchUuid = os.environ['BATCHUUID'])
+            if batchQuery:
+                self.batch = batchQuery[0]
+            
         except KeyError: #no batch predefined
             self.batch = BatchRun()
             self.batch.startTime = datetime.datetime.now()
