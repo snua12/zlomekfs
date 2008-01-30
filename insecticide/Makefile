@@ -22,6 +22,8 @@ PREFIX ?= "/usr/local"
 
 VERSION ?= `cat VERSION`
 
+DIST_FILES = *.py Makefile insecticide.spec VERSION 
+
 all: build
 
 build:
@@ -35,15 +37,16 @@ test:
 
 clean: 
 	python setup.py clean
-	rm -rf insecticide-*.tar.gz
+	rm -rf insecticide-*.tar.gz build dist *.pyc build insecticide.egg-info
 
 package: clean
-	rm -rf /tmp/insecticide-build
-	mkdir -p /tmp/insecticide-build/insecticide-$(VERSION)
-	cp -rf ./* /tmp/insecticide-build/insecticide-$(VERSION)
-	tar -C /tmp/insecticide-build -czf insecticide-$(VERSION).tar.gz insecticide-$(VERSION)
-	rm -rf /tmp/insecticide-build
+	rm -rf build/package
+	mkdir -p build/package/insecticide-$(VERSION)
+	cp -rf ${DIST_FILES} build/package/insecticide-$(VERSION)
+	#TODO: exclude .svn
+	tar -C build/package -czf insecticide-$(VERSION).tar.gz insecticide-$(VERSION)
 
 rpm: package
-	rpmbuild -ta insecticide-$(VERSION).tar.gz
+	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
+	rpmbuild -ta insecticide-$(VERSION).tar.gz --clean --define _topdir`pwd`/build
 	

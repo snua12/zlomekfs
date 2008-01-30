@@ -2,3 +2,5 @@ libtool autoconf automake gettext gettext-devel
 kernel-devel dbus-1 dbus-1-devel libelf0 libelf0-devel
 pysvn
 TODO: buildbot packaging, revisions in rpm version
+
+buildslave should have full access to repo

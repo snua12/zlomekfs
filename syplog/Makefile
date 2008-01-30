@@ -21,8 +21,11 @@
 
 PREFIX ?= /usr
 VERSION ?= `cat VERSION`
+PACKAGE_FILES = src Doxyfile conf doc tests TODO VERSION syplog.spec Makefile
 
-INSTALL = install -o root -g root 
+
+INSTALL = install
+# -o root -g root 
 
 all: lib py doc
 
@@ -44,13 +47,13 @@ clean:
 	@$(MAKE) -C src clean
 	@$(MAKE) -C tests clean
 	@$(MAKE) -C py clean
-	rm -rf doc/*
+	rm -rf doc/* build
 	rm -f doxy-warnings
 	rm -f syplog-*.tar.gz
 
 install: 
 	@$(MAKE) -C src install
-	mkdir -p $(DESTDIR)/$(PREFIX)/etc/dbus-1/system.d
+	mkdir -p $(DESTDIR)/etc/dbus-1/system.d
 	$(INSTALL) -m 444 conf/etc/dbus-1/system.d/syplog.conf -t $(DESTDIR)/etc/dbus-1/system.d
 
 uninstall: 
@@ -67,13 +70,14 @@ uninstall-doc:
 	rm -rf $(DESTDIR)/$(PREFIX)/share/doc/syplog
 
 package: clean
-	rm -rf /tmp/syplog-build
-	mkdir -p /tmp/syplog-build/syplog-$(VERSION)
-	cp ./* /tmp/syplog-build/syplog-$(VERSION) -rf
-	rm -rf /tmp/syplog-build/syplog-$(VERSION)/py
-	tar -C /tmp/syplog-build -czf syplog-$(VERSION).tar.gz syplog-$(VERSION)
-	rm -rf /tmp/syplog-build
+	rm -rf build/package
+	mkdir -p build/package/syplog-$(VERSION)
+	cp ${PACKAGE_FILES} build/package/syplog-$(VERSION) -rf
+	#todo: remove .svn files
+	rm -rf build/package/syplog-$(VERSION)/py
+	tar -C build/package -czf syplog-$(VERSION).tar.gz syplog-$(VERSION)
 
 rpm: package
-	rpmbuild -ta syplog-$(VERSION).tar.gz
+	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
+	rpmbuild -ta syplog-$(VERSION).tar.gz --clean --define _topdir`pwd`/build
 	

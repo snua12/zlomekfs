@@ -20,6 +20,8 @@
 
 .PHONY: all install uninstall clean
 
+PACKAGE_FILES = conf  fuse  Makefile  module  proxy  tests  zfsd  zlomekfs.spec
+
 INSTALL = install
 
 PREFIX ?= /usr
@@ -54,15 +56,14 @@ clean:
 #	@$(MAKE) -C module clean
 	@$(MAKE) -C zfsd-status-py clean
 	@$(MAKE) -C fuse clean || true
-	rm -rf zlomekfs-*.tar.gz
+	rm -rf zlomekfs-*.tar.gz build
 
 package: clean
-	rm -rf /tmp/zlomekfs-build
-	mkdir -p /tmp/zlomekfs-build/zlomekfs-${VERSION}
-	cp -rf  conf  fuse  Makefile  module  proxy  tests  zfsd  zlomekfs.spec /tmp/zlomekfs-build/zlomekfs-${VERSION}
-	tar -C /tmp/zlomekfs-build -czf zlomekfs-${VERSION}.tar.gz zlomekfs-${VERSION}
-	rm -rf /tmp/zlomekfs-build
+	mkdir -p build/package/zlomekfs-${VERSION}
+	cp -rf  ${PACKAGE_FILES} build/package/zlomekfs-${VERSION}
+	tar -C build/package -czf zlomekfs-${VERSION}.tar.gz zlomekfs-${VERSION}
 
 rpm: package
-	rpmbuild -ta zlomekfs-${VERSION}.tar.gz
+	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
+	rpmbuild -ta zlomekfs-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
 	

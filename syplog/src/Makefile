@@ -23,7 +23,8 @@ all: libsyplog.a libsyplog.so
 
 CFLAGS += -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include -I.
 CSFLAGS = $(CFLAGS) -fPIC
-INSTALL = install -o root -g root 
+INSTALL = install 
+#-o root -g root 
 
 PREFIX ?= /usr
 

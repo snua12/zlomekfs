@@ -7,6 +7,8 @@ URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
 Group: System Environment/Daemons
 Source: zfsd-status-%{version}.tar.gz
 Prefix: %{_prefix}
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+Exclusiveos: linux
 #TODO: switch kernel-source and kernel-devel according distro
 BuildPrereq: dbus-devel zlomekfs
 Requires: dbus libpthread.so.0
@@ -21,11 +23,12 @@ Python wrapper for zfsd dbus service.
 make all
 
 %install
-rm -rf $RPM_BUILD_ROOT
-python setup.py install --single-version-externally-managed --record=INSTALLED_FILES
+rm -rf %{buildroot}
+python setup.py install --single-version-externally-managed --record=INSTALLED_FILES --root=%{buildroot}
 
 %clean
-rm -rf %RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files -f INSTALLED_FILES
+/usr/lib/python2.5/site-packages/zfsd_status.pyo
 %defattr(-,root,root)

@@ -23,6 +23,8 @@ all: build
 PREFIX ?= /usr/local
 VERSION ?= `cat VERSION`
 
+PACKAGE_FILES = Makefile setup.py src VERSION TestResultStorage.spec
+
 build:
 	./setup.py build
 
@@ -34,14 +36,15 @@ install:
 	./setup.py install --prefix "$(DESTDIR)/$(PREFIX)"
 
 clean:
-	rm -rf MANIFEST build dist src/*.pyc src/resultRepository/*.pyc TestResultStorage-*.tar.gz *.egg-info
+	rm -rf MANIFEST build dist src/*.pyc src/resultRepository/*.pyc TestResultStorage-*.tar.gz *.egg-info build
 
 package: clean
-	rm -rf /tmp/TestResultStorage-build
-	mkdir -p /tmp/TestResultStorage-build/TestResultStorage-${VERSION}
-	cp -rf ./* /tmp/TestResultStorage-build/TestResultStorage-${VERSION}
-	tar -C /tmp/TestResultStorage-build -czf TestResultStorage-${VERSION}.tar.gz TestResultStorage-${VERSION}
-	rm -rf /tmp/TestResultStorage-build
+	rm -rf build/package
+	mkdir -p build/package/TestResultStorage-${VERSION}
+	cp -rf ${PACKAGE_FILES} build/package/TestResultStorage-${VERSION}
+	tar -C build/package -czf TestResultStorage-${VERSION}.tar.gz TestResultStorage-${VERSION}
+	rm -rf build/package
 
 rpm: package
-	rpmbuild -ta TestResultStorage-${VERSION}.tar.gz
+	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
+	rpmbuild -ta TestResultStorage-${VERSION}.tar.gz --clean --define _topdir`pwd`/build

@@ -6,12 +6,15 @@ License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
 Group: System Environment/Daemons
 Source: zlomekfs-%{version}.tar.gz
+ExclusiveOS: linux
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 Exclusiveos: linux
 #TODO: switch kernel-source and kernel-devel according distro
 BuildPrereq: dbus-devel syplog kernel-devel libtool autoconf automake gettext-devel
 Requires: dbus libpthread.so.0 syplog gettext
-
+# we don't want to install all fuse files
+%define _unpackaged_files_terminate_build 0 
 %description
 Distributed file system
 
@@ -22,11 +25,11 @@ Distributed file system
 make all
 
 %install
-rm -rf $RPM_BUILD_ROOT
-DESTDIR=$RPM_BUILD_ROOT make install
+rm -rf %{buildroot}
+DESTDIR=%{buildroot} make install
 
 %clean
-rm -rf %RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files
 /dev/fuse
@@ -43,6 +46,7 @@ rm -rf %RPM_BUILD_ROOT
 /var/zfs/zfs_config/group_list
 /var/zfs/zfs_config/user_list
 /var/zfs/zfs_config/volume_list
+/var/zfs/zfs_config/node_list
 /var/zfs/zfs_config/group/*
 /var/zfs/zfs_config/user/*
 /var/zfs/zfs_config/volume/*

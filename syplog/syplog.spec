@@ -9,6 +9,7 @@ Source: syplog-%{version}.tar.gz
 Prefix: %{_prefix}
 BuildPrereq: dbus-devel doxygen
 Requires: dbus libpthread.so.0
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
 Syplog is C based logging library.
@@ -36,7 +37,7 @@ make lib doc
 
 %install
 rm -rf $RPM_BUILD_ROOT
-DESTDIR=$RPM_BUILD_ROOT make install install-doc
+DESTDIR=%{buildroot} make install install-doc
 
 %clean
 rm -rf %RPM_BUILD_ROOT

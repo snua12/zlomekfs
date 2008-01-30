@@ -23,7 +23,10 @@ VERSION ?= `cat VERSION`
 
 #svnversion | sed -e 's/\([0-9]*\).*/\1/'`
 
-INSTALL = install -o root -g root 
+INSTALL = install 
+#-o root -g root 
+
+PACKAGE_FILES = doc include src tests Makefile zen-unit.spec VERSION Doxyfile
 
 all: lib doc
 	echo ${PARROT}
@@ -43,7 +46,7 @@ test:
 	@$(MAKE) -C tests test
 
 clean:
-	rm -rf doc/*
+	rm -rf doc/* build
 	@$(MAKE) -C src clean
 	@$(MAKE) -C tests clean
 	rm -f doxy-warnings
@@ -77,11 +80,11 @@ uninstall-doc:
 
 
 package: clean
-	rm -rf /tmp/zen-unit-build
-	mkdir -p /tmp/zen-unit-build/zen-unit-${VERSION}
-	cp -rf ./* /tmp/zen-unit-build/zen-unit-${VERSION}
-	tar -C /tmp/zen-unit-build -czf zen-unit-${VERSION}.tar.gz zen-unit-${VERSION}
-	rm -rf /tmp/zen-unit-build
+	rm -rf build/package
+	mkdir -p build/package/zen-unit-${VERSION}
+	cp -rf ${PACKAGE_FILES} build/package/zen-unit-${VERSION}
+	tar -C build/package -czf zen-unit-${VERSION}.tar.gz zen-unit-${VERSION}
 
 rpm: package
-	rpmbuild -ta zen-unit-${VERSION}.tar.gz --clean 
+	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
+	rpmbuild -ta zen-unit-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
