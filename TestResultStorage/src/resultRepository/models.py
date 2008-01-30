@@ -11,9 +11,16 @@ TEST_DESC_LEN = 256
 FILE_NAME_LEN = 100
 PROFILE_NAME_LEN = 100
 DUMP_DIRECTORY = "dumps"
+ENV_LEN = 128
 
 class ProfileInfo(models.Model):
+    variableName = models.CharField(max_length = ENV_LEN, unique = False,
+                verbose_name = _("Environment variable name"))
+    variableValue = models.CharField(max_length = ENV_LEN, unique = False,
+                verbose_name = _("Environment variable value"))
     pass
+    class Meta:
+        unique_together = ("variableName", "variableValue")
 
 class BatchRun(models.Model):
     startTime = models.DateTimeField(
