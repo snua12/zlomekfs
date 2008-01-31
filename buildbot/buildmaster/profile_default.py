@@ -2,6 +2,7 @@
 import os
 
 profile_default = {
+            'PROFILE_NAME' : 'default_profile',
             'NOSE_TESTMATCH' : '((?:^|[\\b_\\./-])[Mm]eta)|((?:^|[\\b_\\./-])[Tt]est)',
             'NOSE_EVAL_ATTR' : 'not disabled',
             'NOSE_WITH_ZFSCONFIG' : 'yes',
