@@ -9,13 +9,20 @@ PREFIX ?= /usr/local
 SWIG=swig
 
 
-PROJECT_ROOT=`pwd`/..
-VERSION ?= `cat VERSION`
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
 
 PACKAGE_FILES = generate_swig_def.sh Makefile setup.py VERSION zfsd_status.c zfsd_status.h zfsd-status.spec
 
 PYTHON_INCLUDE=-I/usr/include/python2.5 -I.
 
+#PROJECT_ROOT=`pwd`/..
 #if [ -f "/usr/include/dbus-service-descriptors.h" ]; then
 #	PYTHON_INCLUDE += -I$(PROJECT_ROOT)/zfsd
 #fi
@@ -47,13 +54,13 @@ install: build
 
 package: clean
 	rm -rf build/package
-	mkdir -p build/package/zfsd-status-${VERSION}
-	cp ${PACKAGE_FILES} build/package/zfsd-status-${VERSION}
-	tar -C build/package -czf zfsd-status-${VERSION}.tar.gz zfsd-status-${VERSION}
+	mkdir -p build/package/zfsd-status-${VERSION}.${REVISION}
+	cp ${PACKAGE_FILES} build/package/zfsd-status-${VERSION}.${REVISION}
+	tar -C build/package -czf zfsd-status-${VERSION}.${REVISION}.tar.gz zfsd-status-${VERSION}.${REVISION}
 	rm -rf build/package
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta zfsd-status-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta zfsd-status-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
 # EOB
 

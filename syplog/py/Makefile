@@ -21,7 +21,15 @@
 
 
 SWIG=swig
-VERSION ?= `cat VERSION`
+
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
 
 PYTHON_INCLUDE=-I/usr/include/python2.5 -I.
 
@@ -54,11 +62,11 @@ install: setup.py build
 
 package: clean
 	rm -rf build/package
-	mkdir build/package/pysyplog-${VERSION} -p
-	cp -rf ${PACKAGE_FILES} build/package/pysyplog-${VERSION}
-	tar -C build/package -czf pysyplog-${VERSION}.tar.gz pysyplog-${VERSION}
+	mkdir build/package/pysyplog-${VERSION}.${REVISION} -p
+	cp -rf ${PACKAGE_FILES} build/package/pysyplog-${VERSION}.${REVISION}
+	tar -C build/package -czf pysyplog-${VERSION}.${REVISION}.tar.gz pysyplog-${VERSION}.${REVISION}
 	rm -rf build/package
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta pysyplog-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta pysyplog-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"

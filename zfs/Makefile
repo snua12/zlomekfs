@@ -25,7 +25,15 @@ PACKAGE_FILES = conf  fuse  Makefile  module  proxy  tests  zfsd  zlomekfs.spec
 INSTALL = install
 
 PREFIX ?= /usr
-VERSION ?= `cat VERSION`
+
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
 
 all: fuse/lib/.libs/libfuse.a
 	@$(MAKE) -C zfsd
@@ -59,11 +67,11 @@ clean:
 	rm -rf zlomekfs-*.tar.gz build
 
 package: clean
-	mkdir -p build/package/zlomekfs-${VERSION}
-	cp -rf  ${PACKAGE_FILES} build/package/zlomekfs-${VERSION}
-	tar -C build/package -czf zlomekfs-${VERSION}.tar.gz zlomekfs-${VERSION}
+	mkdir -p build/package/zlomekfs-${VERSION}.${REVISION}
+	cp -rf  ${PACKAGE_FILES} build/package/zlomekfs-${VERSION}.${REVISION}
+	tar -C build/package -czf zlomekfs-${VERSION}.${REVISION}.tar.gz zlomekfs-${VERSION}.${REVISION}
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta zlomekfs-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta zlomekfs-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
 	

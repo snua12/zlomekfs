@@ -1,6 +1,6 @@
 Summary: Distributed file system
 Name: zlomekfs
-Version: 0.0
+Version: %{VERSION}.%{REVISION}
 Release: 0
 License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS

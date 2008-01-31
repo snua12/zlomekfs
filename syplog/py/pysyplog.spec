@@ -4,7 +4,7 @@
 
 Summary: Python wrapper for syplog
 Name: pysyplog
-Version: 0.3
+Version: %{VERSION}.%{REVISION}
 Release: 0
 License : GPL
 URL: http://www.loki.name/TestResultStorage

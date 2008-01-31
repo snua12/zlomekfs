@@ -19,7 +19,15 @@
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 PREFIX ?= /usr
-VERSION ?= `cat VERSION`
+
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
 
 #svnversion | sed -e 's/\([0-9]*\).*/\1/'`
 
@@ -81,10 +89,10 @@ uninstall-doc:
 
 package: clean
 	rm -rf build/package
-	mkdir -p build/package/zen-unit-${VERSION}
-	cp -rf ${PACKAGE_FILES} build/package/zen-unit-${VERSION}
-	tar -C build/package -czf zen-unit-${VERSION}.tar.gz zen-unit-${VERSION}
+	mkdir -p build/package/zen-unit-${VERSION}.${REVISION}
+	cp -rf ${PACKAGE_FILES} build/package/zen-unit-${VERSION}.${REVISION}
+	tar -C build/package -czf zen-unit-${VERSION}.${REVISION}.tar.gz zen-unit-${VERSION}.${REVISION}
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta zen-unit-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta zen-unit-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"

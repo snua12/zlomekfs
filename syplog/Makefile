@@ -20,7 +20,16 @@
 
 
 PREFIX ?= /usr
-VERSION ?= `cat VERSION`
+
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
+
 PACKAGE_FILES = src Doxyfile conf doc tests TODO VERSION syplog.spec Makefile
 
 
@@ -71,13 +80,12 @@ uninstall-doc:
 
 package: clean
 	rm -rf build/package
-	mkdir -p build/package/syplog-$(VERSION)
-	cp ${PACKAGE_FILES} build/package/syplog-$(VERSION) -rf
+	mkdir -p build/package/syplog-$(VERSION).$(REVISION)
+	cp ${PACKAGE_FILES} build/package/syplog-$(VERSION).$(REVISION) -rf
 	#todo: remove .svn files
-	rm -rf build/package/syplog-$(VERSION)/py
-	tar -C build/package -czf syplog-$(VERSION).tar.gz syplog-$(VERSION)
+	tar -C build/package -czf syplog-$(VERSION).$(REVISION).tar.gz syplog-$(VERSION).$(REVISION)
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta syplog-$(VERSION).tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta syplog-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
 	

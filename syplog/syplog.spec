@@ -1,6 +1,6 @@
 Summary: Full-featured remote controllable log
 Name: syplog
-Version: 0.3
+Version: %{VERSION}.%{REVISION}
 Release: 0
 License : GPL
 URL: http://loki.name/syplog

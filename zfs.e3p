@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-3.9.dtd">
 <!-- Project file for project zfs -->
-<!-- Saved: 2008-01-24, 15:26:20 -->
+<!-- Saved: 2008-01-31, 01:51:21 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="3.9">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -67,11 +67,6 @@
       <Dir>misc</Dir>
       <Dir>noseTracing</Dir>
       <Name>testInstances.py</Name>
-    </Source>
-    <Source>
-      <Dir>misc</Dir>
-      <Dir>noseTracing</Dir>
-      <Name>testFSOps.py</Name>
     </Source>
     <Source>
       <Dir>misc</Dir>
@@ -247,9 +242,9 @@ s.</VcsOtherData>
   </Vcs>
   <FiletypeAssociations>
     <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
-    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
-    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
     <FiletypeAssociation pattern="*.ui" type="FORMS" />
+    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
+    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
     <FiletypeAssociation pattern="*.py" type="SOURCES" />
   </FiletypeAssociations>
 </Project>

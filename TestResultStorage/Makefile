@@ -21,7 +21,15 @@
 all: build
 
 PREFIX ?= /usr/local
-VERSION ?= `cat VERSION`
+
+VERSION ?= $(shell cat VERSION)
+
+ifeq ($(REVISION),)
+        REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
+endif
+ifeq ($(REVISION),)
+	REVISION = 0
+endif
 
 PACKAGE_FILES = Makefile setup.py src VERSION TestResultStorage.spec
 
@@ -40,11 +48,11 @@ clean:
 
 package: clean
 	rm -rf build/package
-	mkdir -p build/package/TestResultStorage-${VERSION}
-	cp -rf ${PACKAGE_FILES} build/package/TestResultStorage-${VERSION}
-	tar -C build/package -czf TestResultStorage-${VERSION}.tar.gz TestResultStorage-${VERSION}
+	mkdir -p build/package/TestResultStorage-${VERSION}.${REVISION}
+	cp -rf ${PACKAGE_FILES} build/package/TestResultStorage-${VERSION}.${REVISION}
+	tar -C build/package -czf TestResultStorage-${VERSION}.${REVISION}.tar.gz TestResultStorage-${VERSION}.${REVISION}
 	rm -rf build/package
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta TestResultStorage-${VERSION}.tar.gz --clean --define _topdir`pwd`/build
+	rpmbuild -ta TestResultStorage-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
