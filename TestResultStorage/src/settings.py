@@ -42,9 +42,17 @@ USE_I18N = True
 
 import os
 
+try:
+    DATA_ROOT = os.environ["TEST_RESULT_STORAGE_DATA_ROOT"]
+except KeyError:
+    if os.path.isdir('/var/lib/TestResultStorage'):
+        DATA_ROOT = '/var/lib/TestResultStorage'
+    else:
+        DATA_ROOT = os.environ["HOME"]
+
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-MEDIA_ROOT = os.environ["HOME"] + os.sep + "trs_media"
+MEDIA_ROOT = os.path.join(DATA_ROOT, "trs_media")
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -82,6 +90,7 @@ SESSION_FILE_PATH = '/tmp'
 ROOT_URLCONF = 'TestResultStorage.urls'
 
 TEMPLATE_DIRS = (
+    os.path.join(DATA_ROOT, "templates"),
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.

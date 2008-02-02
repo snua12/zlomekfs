@@ -6,8 +6,12 @@ urlpatterns = patterns('',
     # (r'^TestResultStorage/', include('TestResultStorage.foo.urls')),
 
     # Uncomment this for admin:
+    (r'^$', 'TestResultStorage.resultRepository.views.index'),
+    (r'^batchs/$', 'TestResultStorage.resultRepository.batchViews.batchList'),
+    (r'^batchs/(?P<batchUuid>[a-z0-9-]+)/$', 'TestResultStorage.resultRepository.batchViews.batch'),
     (r'^admin/', include('django.contrib.admin.urls')),
     (r'^i18n/', include('django.conf.urls.i18n')),
+
 )
 
 

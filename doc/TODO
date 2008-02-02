@@ -2,12 +2,11 @@
 je treba se zamyslet (nezapomenout zamyslet) nad rozhranim pro multithrading a distribuovanost (podpurne prostredky) az se bude delat konsolidace
 vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
 
-append revision to version (for packaging and rpm)
+change duration type to timestamp
 core rerun (for stress)
 append reruns correctly
-batch generation in master
+create django overview page
 include django report reference to buildbot status
-join testFSOp and testStressFSOp to one
 finalize zen-unit
 implement fsx
 STABILIZE

@@ -1,0 +1,14 @@
+<h1>Latest batchs</h1>
+{% if batchList %}
+    <ul>
+    {% for batch in batchList %}
+        <li><a href="/batchs/{{ batch.batchUuid }}/"> {{ batch.batchUuid }} </a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No batchs are available.</p>
+{% endif %}
+
+{% if batchCount %}
+total: {{ batchCount }}
+{% endif %}

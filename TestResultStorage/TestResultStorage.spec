@@ -30,9 +30,13 @@ make all
 %install
 rm -rf %{buildroot}
 python setup.py install --record=INSTALLED_FILES --root=%{buildroot} --no-compile --single-version-externally-managed
+DESTDIR=%{buildroot} make install-data
 
 %clean
 rm -rf %{buildroot}
 
 %files -f INSTALLED_FILES
+/var/lib/TestResultStorage/templates/resultRepository/batch.html
+/var/lib/TestResultStorage/templates/resultRepository/batchList.html
+
 %defattr(-,root,root)
