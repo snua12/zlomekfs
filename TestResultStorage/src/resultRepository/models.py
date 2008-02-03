@@ -34,7 +34,16 @@ class Project(models.Model):
     class Admin:
         pass
         
-    
+    def __unicode__(self):
+        return self.projectName
+   
+TEST_RESULT_CHOICES = (
+    (0, _('Success')),
+    (1, _('Failure')),
+    (2, _('Error')),
+    (-1, _('Skipped')),
+    (-2, _('Unknown')),
+) 
 
 class BatchRun(models.Model):
     startTime = models.DateTimeField(
@@ -43,6 +52,9 @@ class BatchRun(models.Model):
     duration = models.PositiveIntegerField(
                 verbose_name = _("Duration of batch (should be set at the end or derived from last test values)"),
                 blank = True, null = True)
+    result = models.IntegerField(choices=TEST_RESULT_CHOICES,
+                verbose_name = _("If test has successed, failed or what"),
+                db_index = True)
     hasFinished = models.BooleanField(verbose_name = _("If this batch still runs or not"),
                 default = False)
     batchUuid = models.CharField(max_length = UUID_LEN, unique = True,
@@ -66,7 +78,10 @@ class BatchRun(models.Model):
                 blank = True, db_index = True)
     
     def __unicode__(self):
-        return self.description
+        if self.repositoryRevision:
+            return self.project.__unicode__() + ":" + str(self.repositoryRevision) + " (" + str(self.startTime) + ")"
+        else:
+            return self.project.__unicode__() + " (" + str(self.startTime) + ")"
         
     class Meta:
         get_latest_by = "order_startTime"
@@ -74,14 +89,6 @@ class BatchRun(models.Model):
     
     class Admin:
         pass
-
-TEST_RESULT_CHOICES = (
-    (0, _('Success')),
-    (1, _('Failure')),
-    (2, _('Error')),
-    (-1, _('Skipped')),
-    (-2, _('Unknown')),
-)
 
 class TestRun(models.Model):
     batchId = models.ForeignKey(BatchRun, verbose_name = _("Batch in which this test has run"),
@@ -96,7 +103,7 @@ class TestRun(models.Model):
     description = models.CharField(max_length = TEST_DESC_LEN,
                 verbose_name = _("Short description of test run"),
                 blank = True)
-    result = models.PositiveIntegerField(choices=TEST_RESULT_CHOICES,
+    result = models.IntegerField(choices=TEST_RESULT_CHOICES,
                 verbose_name = _("If test has successed, failed or what"),
                 db_index = True)
     sourceRepositoryPath = models.CharField(max_length = FILE_NAME_LEN,

@@ -25,6 +25,9 @@ PREFIX ?= /usr/local
 VERSION ?= $(shell cat VERSION)
 
 TEMPLATES = templates/resultRepository/batch.html templates/resultRepository/batchList.html
+MEDIA = webMedia/style.css
+PACKAGE_FILES = Makefile setup.py src VERSION TestResultStorage.spec templates webMedia
+
 
 ifeq ($(REVISION),)
         REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
@@ -32,8 +35,6 @@ endif
 ifeq ($(REVISION),)
 	REVISION = 0
 endif
-
-PACKAGE_FILES = Makefile setup.py src VERSION TestResultStorage.spec templates
 
 build:
 	./setup.py build
@@ -47,8 +48,10 @@ install:
 
 install-data:
 	mkdir -p $(DESTDIR)/var/lib/TestResultStorage/templates/resultRepository
-	mkdir -p $(DESTDIR)/var/lib/TestResultStorage/trs-media
+	mkdir -p $(DESTDIR)/var/lib/TestResultStorage/data
+	mkdir -p $(DESTDIR)/var/lib/TestResultStorage/webMedia
 	cp $(TEMPLATES) $(DESTDIR)/var/lib/TestResultStorage/templates/resultRepository
+	cp $(MEDIA) $(DESTDIR)/var/lib/TestResultStorage/webMedia
 	
 
 clean:

@@ -1,10 +1,42 @@
-<h1>Latest batchs</h1>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><title>{% block title %}Latest batchs{% endblock %}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Language" content="en" />
+<link rel="stylesheet" type="text/css" href="/webMedia/style.css">
+</head>
+<body>
+
+<div id="header">
+{% if profile %}
+  <h1>Latest batchs for {{ profile.profileName}} </h1>
+{% else %}
+  <h1>Latest batchs</h1>
+{% endif %}
+</div>
+<div id="centerList">
 {% if batchList %}
-    <ul>
+    <table>
+        <tr>
+          <th>Project</th>
+          <th>Branch</th>
+          <th>Rev</th>
+          <th>Start time</th>
+          <th>Uuid</th>
+          <th>Finished</th>
+          <th>Result</th>
     {% for batch in batchList %}
-        <li><a href="/batchs/{{ batch.batchUuid }}/"> {{ batch.batchUuid }} </a></li>
+            <tr id="{{ batch.resId }}" >
+              <td>{{ batch.project.projectName }}</td>
+              <td>{{ batch.branch }}</td>
+              <td>{{ batch.repositoryRevision }}</td>
+              <td>{{ batch.startTime }}</td>
+              <td><a href="/batch/{{ batch.batchUuid }}/">{{ batch.batchUuid }}</a></td>
+              <td>{{ batch.fin }} </td>
+              <td>{{ batch.res }}</td> 
+            </tr>
     {% endfor %}
-    </ul>
+    </table>
 {% else %}
     <p>No batchs are available.</p>
 {% endif %}
@@ -12,3 +44,14 @@
 {% if batchCount %}
 total: {{ batchCount }}
 {% endif %}
+</div>
+
+<div id = "leftList">
+{% if projectList %}
+    {% for project in projectList %}
+        <a href="/batchs/{{ project.id }}/"> {{ project.projectName }} </a><br/>
+    {% endfor %}
+{% endif %}
+</div>
+</body>
+</html>
