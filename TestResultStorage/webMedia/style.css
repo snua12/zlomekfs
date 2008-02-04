@@ -1,19 +1,26 @@
 p    {text-indent: 30px; margin: 0px 0px 0px 0px, }
-a        {text-decoration: none; color: black}
 a:hover  {color: red; text-decoration: underline}
 h2     {color: blue; font-style: italic}
 h1    {color: green; text-align: center}
 
-#centerList {position: absolute; width: 500px; top: 120px; left: 150px}
+#content {position: absolute; width: 100%; height: 100%}
 
-#header {position: absolute; width: 100%; height: 120px; top: 0px; left: 0px}
+#centerList {position: absolute; width: 500px; top: 120px; left: 150px; margin: 5px}
 
-#leftList {position: absolute; width: 150px; top: 120px; left: 0px}
+#header {position: absolute; height: 120px; width: 100%; top: 0px; left: 150px}
+
+#leftList {position: absolute; width: 150px; top: 123px; left: 0px; margin: 5px}
+
+#rightList {position: absolute; width: 150px; top: 123px; left: 650px}
+
+#small-header{font-weight: bold; font-size: medium}
+
+#keyword {font-style: italic}
 
 #foot{position: absolute; width: 110px; top: 120px; left: 650px}
 
 #failure{background-color: red}
 
-#success{background-color: green}
+#success{background-color: #72ff75}
 
 #unknown{background-color: yellow}

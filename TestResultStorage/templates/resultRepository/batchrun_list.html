@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><title>{% block title %}Latest batches{% endblock %}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Language" content="en" />
+<link rel="stylesheet" type="text/css" href="/webMedia/style.css">
+</head>
+<body>
+<div id="content>
+
+<div id="header">
+<h1>Latest batches 
+    {% if project %}
+        for <span id="keyword">{{ project.projectName }}</span>
+    {% endif %}
+    {% if branch %}
+        branch <span id="keyword">{{ branch }}</span>
+    {% endif %}
+
+</h1>
+
+</div>
+<div id="centerList">
+{% if batchCount %}
+    <table>
+        <tr>
+          <th>Project</th>
+          <th>Branch</th>
+          <th>Rev</th>
+          <th>Start time</th>
+          <th>Batch</th>
+          <th>Finished</th>
+          <th>Result</th>
+    {% for batch in batchList %}
+            <tr id="{{ batch.resId }}" >
+              <td><a href="/batches/1/{{ batch.project.id }}/{% if branch %}{{ branch }}{% endif %}">{{ batch.project.projectName }}</a></td>
+              <td><a href="/batches/1/{% if project %}{{ project.id }}{% endif %}/{{ batch.branch }}">{{ batch.branch }}</a></td>
+              <td>{{ batch.repositoryRevision }}</td>
+              <td>{{ batch.startTime }}</td>
+              <td><a href="/batch/{{ batch.batchUuid }}/">{{ batch.batchUuid }}</a></td>
+              <td>{{ batch.fin }} </td>
+              <td>{{ batch.get_result_display }}</td> 
+            </tr>
+    {% endfor %}
+    </table>
+{% else %}
+    <p>No batches are available.</p>
+{% endif %}
+
+{% if project %}
+<a href="/batches/1//{% if branch %}{{ branch }}{% endif %}">Show all projects</a><br/>
+{% endif %}
+{% if branch %}
+<a href="/batches/1/{% if project %}{{ project.id }}{% endif %}//">Show all branches</a><br/>
+{% endif %}
+
+page: {{ page }}
+pages: 
+{% for pgnum in pages %}
+    &nbsp;
+    <a href="/batches/{{ pgnum }}/{% if project %}{{ project.id }}{% endif %}/{% if branch %}{{ branch }}{% endif %}">{{ pgnum }}</a>
+    &nbsp;
+{% endfor %}
+<br/>
+
+{% if batchCount %}
+total: {{ batchCount }}<br/>
+{% endif %}
+
+</div>
+
+{{ globalMenu }}
+
+</div>
+</body>
+</html>
