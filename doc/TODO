@@ -2,10 +2,12 @@
 je treba se zamyslet (nezapomenout zamyslet) nad rozhranim pro multithrading a distribuovanost (podpurne prostredky) az se bude delat konsolidace
 vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
 
-change duration type to timestamp
+user friendly duration
+environment info in batch detail
+test data in test detail
+report stress just one time
 core rerun (for stress)
-append reruns correctly
-create django overview page
+append reruns & stress correctly
 include django report reference to buildbot status
 finalize zen-unit
 implement fsx

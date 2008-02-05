@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-3.9.dtd">
 <!-- Project file for project zfs -->
-<!-- Saved: 2008-01-31, 01:51:21 -->
+<!-- Saved: 2008-02-04, 00:47:59 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="3.9">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -172,6 +172,22 @@
       <Dir>py</Dir>
       <Name>setup.py</Name>
     </Source>
+    <Source>
+      <Dir>zfs</Dir>
+      <Dir>tests</Dir>
+      <Dir>nose-tests</Dir>
+      <Name>sortTest.py</Name>
+    </Source>
+    <Source>
+      <Dir>misc</Dir>
+      <Name>profile_loader.py</Name>
+    </Source>
+    <Source>
+      <Dir>TestResultStorage</Dir>
+      <Dir>src</Dir>
+      <Dir>resultRepository</Dir>
+      <Name>batchViews.py</Name>
+    </Source>
   </Sources>
   <Forms>
   </Forms>
@@ -180,6 +196,30 @@
   <Interfaces>
   </Interfaces>
   <Others>
+    <Other>
+      <Dir></Dir>
+      <Dir>globalhome</Dir>
+      <Dir>loki</Dir>
+      <Dir>skola</Dir>
+      <Dir>zfs</Dir>
+      <Dir>zouhar</Dir>
+      <Dir>TestResultStorage</Dir>
+      <Dir>templates</Dir>
+      <Dir>resultRepository</Dir>
+      <Name>batch.html</Name>
+    </Other>
+    <Other>
+      <Dir></Dir>
+      <Dir>globalhome</Dir>
+      <Dir>loki</Dir>
+      <Dir>skola</Dir>
+      <Dir>zfs</Dir>
+      <Dir>zouhar</Dir>
+      <Dir>TestResultStorage</Dir>
+      <Dir>templates</Dir>
+      <Dir>resultRepository</Dir>
+      <Name>batchList.html</Name>
+    </Other>
   </Others>
   <Vcs>
     <VcsType>Subversion</VcsType>
@@ -244,7 +284,7 @@ s.</VcsOtherData>
     <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
     <FiletypeAssociation pattern="*.ui" type="FORMS" />
     <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
-    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
     <FiletypeAssociation pattern="*.py" type="SOURCES" />
+    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
   </FiletypeAssociations>
 </Project>

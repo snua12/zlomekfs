@@ -1,7 +1,6 @@
 
 import os
 import datetime
-import uuid
 import socket
 import traceback
 
@@ -13,16 +12,13 @@ class ReportProxy(object):
     def __init__(self):
     
         try:
-            batchQuery = BatchRun.objects.filter(batchUuid = os.environ['BATCHUUID'])
-            if batchQuery:
-                self.batch = batchQuery[0]
-            else:
+            self.batch = BatchRun.objects.get(id = int(os.environ['BATCHUUID']))
+            if not self.batch:
                 raise KeyError('empty result')
             
         except KeyError: #no batch predefined
             self.batch = BatchRun()
             self.batch.startTime = datetime.datetime.now()
-            self.batch.batchUuid = uuid.uuid1()
     #        self.batch.duration = 0
             self.batch.description = "report.py direct generated batch"
             self.batch.machineName = socket.gethostname()
@@ -36,7 +32,6 @@ class ReportProxy(object):
         run = TestRun()
         run.batchId = self.batch
         run.startTime = datetime.datetime.now()
-        run.runUuid = uuid.uuid1()
         run.testName = str(test.test)
         run.duration = 15
         
