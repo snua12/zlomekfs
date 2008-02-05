@@ -4,7 +4,7 @@ import datetime
 import socket
 import traceback
 
-from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
+from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData, Project
 
 class ReportProxy(object):
     targetDir = '/tmp'
@@ -20,6 +20,7 @@ class ReportProxy(object):
             self.batch = BatchRun()
             self.batch.startTime = datetime.datetime.now()
             self.batch.result = -2
+            self.batch.project = Project.objects.get_or_create(projectName = 'Unknown')
     #        self.batch.duration = 0
             self.batch.description = "report.py direct generated batch"
             self.batch.machineName = socket.gethostname()
