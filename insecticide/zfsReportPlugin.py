@@ -2,6 +2,7 @@ import os
 import textwrap
 from optparse import OptionConflictError
 from warnings import warn
+import datetime
 
 from nose.plugins import Plugin
 from insecticide.failure import ZfsTestFailure
@@ -16,6 +17,9 @@ class ZfsReportPlugin(Plugin):
     name = "ZfsReportPlugin"
     # to be sure to run LAST
     score = 2
+    #NOTE: we assume linear test running (no overlap)
+    duration = 0
+    testStartTime = None
     
     def __init__(self):
         Plugin.__init__(self)
@@ -72,11 +76,27 @@ class ZfsReportPlugin(Plugin):
             # doc sections are often indented; compress the spaces
             return textwrap.dedent(self.__class__.__doc__)
         return "(no help available)"
+        
+    def startTest(self, test):
+        self.testStartTime = datetime.datetime.now()
+        
+    def stopTest(self, test):
+        if self.testStartTime:
+            testEndTime = datetime.datetime.now()
+            #we assume that run is shorter than month
+            duration = testEndTime.day - self.testStartTime.day
+            duration = duration * 24 + testEndTime.hour - self.testStartTime.hour
+            duration = duration * 60 + testEndTime.minute - self.testStartTime.minute
+            duration = duration * 60 + testEndTime.second - self.testStartTime.second
+            duration = duration * 1000 + (testEndTime.microsecond - self.testStartTime.microsecond) / 1000
+            self.testStartTime = None
+            self.duration = duration
+        
     
     def addFailure(self, test, err):
         if hasattr(test, "test"): #ignore context suites
             try:
-                self.reporter.reportFailure(ZfsTestFailure(test, err))
+                self.reporter.reportFailure(ZfsTestFailure(test, err), self.duration)
             except:
                 pass #TODO: specific exception and log
     
@@ -84,7 +104,7 @@ class ZfsReportPlugin(Plugin):
     
     def addSuccess(self, test):
         try:
-            self.reporter.reportSuccess(test)
+            self.reporter.reportSuccess(test, self.duration)
         except:
             pass #TODO: specific exception and log
     

@@ -30,23 +30,26 @@ class ReportProxy(object):
         if not self.batch.id:
             print ("Error: batch id is null")
     
-    def generateDefaultRun(self, test):
+    def generateDefaultRun(self, test, duration = None):
         run = TestRun()
         run.batchId = self.batch
         run.startTime = datetime.datetime.now()
         run.testName = str(test.test)
-        run.duration = 15 #FIXME: real duration
+        if duration:
+            run.duration = duration
+        else:
+            run.duration = 15 #FIXME: real duration
         
         return run
     
-    def reportSuccess(self, test):
-        run = self.generateDefaultRun(test)
+    def reportSuccess(self, test, duration = None):
+        run = self.generateDefaultRun(test, duration)
         run.result = 0
         
         run.save()
     
-    def reportFailure(self, failure):
-        run = self.generateDefaultRun(failure.test)
+    def reportFailure(self, failure, duration = None):
+        run = self.generateDefaultRun(failure.test, duration)
         run.result = 1
         
         run.save()
