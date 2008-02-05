@@ -20,7 +20,7 @@ class ReportProxy(object):
             self.batch = BatchRun()
             self.batch.startTime = datetime.datetime.now()
             self.batch.result = -2
-            self.batch.project = Project.objects.get_or_create(projectName = 'Unknown')
+            self.batch.project = Project.objects.get_or_create(projectName = 'Unknown')[0]
     #        self.batch.duration = 0
             self.batch.description = "report.py direct generated batch"
             self.batch.machineName = socket.gethostname()
@@ -35,7 +35,7 @@ class ReportProxy(object):
         run.batchId = self.batch
         run.startTime = datetime.datetime.now()
         run.testName = str(test.test)
-        run.duration = 15
+        run.duration = 15 #FIXME: real duration
         
         return run
     
