@@ -1,5 +1,6 @@
 
 from django.utils.translation import ugettext as _
+from django.core.paginator import ObjectPaginator, InvalidPage
 
 # internationalize string -- _(string)
 
@@ -10,16 +11,34 @@ testListDir = 'tests'
 batchDetailDir = 'batchDetail'
 batchListDir = 'batches'
 projectListDir = 'projects'
-projectDetailDir = 'projectDetail'
-
 
 globalMenu = "".join([
-        '<span id = "small-header">Goto:</span><br>',
+        '<span id = "small-header">View:</span><br>',
         '<a href="/' + batchListDir + '/">Batches</a><br/>',
         '<a href="/' + projectListDir + '/">Projects</a><br/>',
         '<a href="/' + testListDir + '/">Tests</a><br/>'])
     
-from django.core.paginator import ObjectPaginator, InvalidPage
+def formatDuration(duration):
+    milis = duration % 1000
+    duration /= 1000
+    sec = duration % 60
+    duration /= 60
+    min = duration % 60
+    ''' ignore long lasting tests
+    duration /= 60
+    hour = duration % 24
+    duration /= 24
+    day = duration
+    '''
+    string = str(milis)
+    while len(string) < 3:
+        string = '0' + string
+        
+    string = str(sec) + "." + string + "s"
+    if min:
+        string = str(min) + " min " + string
+    
+    return string
 
 def generatePagination(baseUrl, attrs, objects, pageSize):
     '''
@@ -79,11 +98,11 @@ def switchAttrValue(dictionary, attr, value):
             pass
     return back
     
-def generateAddress(baseUrl, attrs, excludeAttr = None, switchAttr = None):
+def generateAddress(baseUrl, attrs = None, excludeAttr = None, switchAttr = None):
     if switchAttr:
         back = switchAttrValue(attrs, switchAttr[0], switchAttr[1])
     if not attrs:
-        return baseUrl + "?"
+        return baseUrl
     addr = baseUrl + "?"
     for key in attrs.keys():
         if key != excludeAttr:

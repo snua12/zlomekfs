@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from models import BatchRun, Project, TestRun
 from django.core.paginator import ObjectPaginator, InvalidPage
-from views import globalMenu, generateLink, DEFAULT_PAGING
+from views import globalMenu, generateLink, DEFAULT_PAGING, formatDuration
 from views import generatePagination, generateAttrReleasementLinks
 from views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir
 
@@ -50,7 +50,7 @@ def generateBatchDescription(batch):
     html += '<td>' +  str(batch.startTime) + '</td></tr>'
     
     html += '<tr><td>Duration</td>'
-    html += '<td>' + str(batch.duration) + '</td></tr>'
+    html += '<td>' + formatDuration(batch.duration) + '</td></tr>'
     
     html += '<tr><td>Result</td>'
     html += '<td>' +  batch.get_result_display() + '</td></tr>'
@@ -83,8 +83,11 @@ def generateBatchDescription(batch):
     html += '<tr><td>Profile</td>'
     html += '<td>' +  batch.profileName + '</td></tr>'
     
-    html += '<tr><td>Environment</td>'
-    html += '<td>' + "" + '</td></tr>'
+    html += '<tr><td valign="top">Environment</td>'
+    html += '<td>' 
+    for env in batch.profileInfo.all():
+        html += env.variableName + "=" + env.variableValue + "<br/>"
+    html += '</td></tr>'
     
     html += '<tr><td>Host</td>'
     html += '<td>' + batch.machineName  + '</td></tr>'
@@ -95,7 +98,7 @@ def generateBatchDescription(batch):
 def generateBatchTable(baseUrl, batchList, attrs):
     html = ' \
     <table> \
-        <tr> \
+        <tr align="left"> \
           <th>Project</th> \
           <th>Branch</th> \
           <th>Rev</th> \
@@ -122,7 +125,7 @@ def generateBatchTable(baseUrl, batchList, attrs):
                         switchAttr = ('host', batch.machineName)) + "</td>" #host
         html += "<td>" + str(batch.startTime) + "</td>" #startTime
         if batch.duration:
-            html += "<td>" + str(batch.duration) + "</td>" #duration
+            html += "<td>" + formatDuration(batch.duration) + "</td>" #duration
         else:
             html += "<td>Unknown</td>" #duration
         html += "<td>" + str(batch.id) + "&nbsp;" + \

@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import *
 from django.conf import settings
-from resultRepository.views import testDetailDir, testListDir, batchDetailDir, batchListDir
+from resultRepository.views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir
 
 urlpatterns = patterns('',
     # Example:
@@ -12,6 +12,7 @@ urlpatterns = patterns('',
     (r'^' + batchDetailDir + '/$', 'TestResultStorage.resultRepository.batchViews.batchDetail'),
     (r'^' + testListDir + '/$', 'TestResultStorage.resultRepository.testViews.testList'),
     (r'^' + testDetailDir + '/$', 'TestResultStorage.resultRepository.testViews.testDetail'),
+    (r'^' + projectListDir + '/$', 'TestResultStorage.resultRepository.projectViews.projectList'),
     (r'^admin/', include('django.contrib.admin.urls')),
     (r'^i18n/', include('django.conf.urls.i18n')),
     (r'^webMedia/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.WEB_MEDIA_ROOT}),

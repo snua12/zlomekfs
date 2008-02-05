@@ -36,10 +36,12 @@ DESTDIR=%{buildroot} make install-data
 rm -rf %{buildroot}
 
 %files -f INSTALLED_FILES
+/var/lib/TestResultStorage/templates/resultRepository/default_page.html
 /var/lib/TestResultStorage/templates/resultRepository/batchrun_detail.html
 /var/lib/TestResultStorage/templates/resultRepository/batchrun_list.html
 /var/lib/TestResultStorage/templates/resultRepository/testrun_detail.html
 /var/lib/TestResultStorage/templates/resultRepository/testrun_list.html
+/var/lib/TestResultStorage/templates/resultRepository/project_list.html
 /var/lib/TestResultStorage/webMedia/style.css
 
 %defattr(-,root,root)

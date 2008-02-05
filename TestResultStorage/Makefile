@@ -24,10 +24,13 @@ PREFIX ?= /usr/local
 
 VERSION ?= $(shell cat VERSION)
 
-TEMPLATES = templates/resultRepository/batchrun_detail.html \
+TEMPLATES = \
+	templates/resultRepository/default_page.html \
+	templates/resultRepository/batchrun_detail.html \
 	templates/resultRepository/batchrun_list.html \
 	templates/resultRepository/testrun_detail.html \
-	templates/resultRepository/testrun_list.html
+	templates/resultRepository/testrun_list.html \
+	templates/resultRepository/project_list.html
 
 MEDIA = webMedia/style.css
 PACKAGE_FILES = Makefile \
