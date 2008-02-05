@@ -125,8 +125,9 @@ def generateBatchTable(baseUrl, batchList, attrs):
             html += "<td>" + str(batch.duration) + "</td>" #duration
         else:
             html += "<td>Unknown</td>" #duration
-        html += "<td>" + generateLink('/' + batchDetailDir, {'batch' : batch.id},
-                        str(batch.id)) + "</td>" #batch
+        html += "<td>" + str(batch.id) + "&nbsp;" + \
+                        generateLink('/' + batchDetailDir, {'batch' : batch.id},
+                        "Detail") + "</td>" #batch
         html += "<td>" + generateLink(baseUrl, attrs, str(batch.hasFinished == 1),
                         switchAttr = ('hasFinished', batch.hasFinished)) + "</td>" #hasFinished
         html += "<td>" + generateLink(baseUrl, attrs, batch.get_result_display(),
