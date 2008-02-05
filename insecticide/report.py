@@ -19,6 +19,7 @@ class ReportProxy(object):
         except KeyError: #no batch predefined
             self.batch = BatchRun()
             self.batch.startTime = datetime.datetime.now()
+            self.batch.result = -2
     #        self.batch.duration = 0
             self.batch.description = "report.py direct generated batch"
             self.batch.machineName = socket.gethostname()
