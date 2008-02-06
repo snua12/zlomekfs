@@ -1,3 +1,5 @@
+""" Module with functions and fields needed for generating html code about test batches 
+    Uses `views` module for basic operation, `models` module for database handling."""
 
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse
@@ -9,6 +11,7 @@ from views import generatePagination, generateAttrReleasementLinks
 from views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir
 
 batchListAttrs = ['page', 'paging', 'result', 'branch', 'project', 'orderBy', 'revision', 'hasFinished', 'host']
+""" List of attributes recognized by batchList page """
 
 def filterByResult(objects, resultValue):
     return objects.filter( result = resultValue)
@@ -24,6 +27,16 @@ def filterByHost(objects, hostValue):
     return objects.filter( machineName = hostValue)
 
 def filterByAttrs(objects, attrs):
+    """ filter objects by attributes values
+    
+    :Parameters:
+        objects: objects to filter (django Model.objects instance)
+        attrs: dictionary with pairs {attr:value}. 
+            currently recognized are `result`, `branch`, `project`, `revision`, `hasFinished` and `host` attributes
+    
+    :Return:
+        new QueryObject containing subset of objects
+    """
     for attr in ('result', 'branch', 'project', 'revision', 'hasFinished', 'host'):
         try:
             objects = {
@@ -39,6 +52,14 @@ def filterByAttrs(objects, attrs):
     return objects
 
 def generateBatchDescription(batch):
+    """Generate html code describing batch object
+    
+    :Parameters:
+        batc: `TestResultStorage.resultRepository.models.BatchRun` instance
+        
+    :Return:
+        html code (table) describing given object.
+    """
     html = "<table> "
     '''
         <tr> \
@@ -96,6 +117,18 @@ def generateBatchDescription(batch):
     return html
     
 def generateBatchTable(baseUrl, batchList, attrs):
+    """Generate html code with list (table) containing batch overview and filtering links
+    
+    :Parameters:
+        baseUrl: url to current page (without attributes). 
+            Will be used as base for filtering links
+        batchList: iterable object containing `TestResultStorage.resultRepository.models.BatchRun` instances
+        attrs: attributes given to current page (will be used to generate links)
+        
+    :Return:
+        html code (table) with batches descriptions and filtering links
+            links will point to `baseUrl` giving `attrs` and filtering attr
+    """
     html = ' \
     <table> \
         <tr align="left"> \
@@ -150,6 +183,15 @@ def generateBatchTable(baseUrl, batchList, attrs):
     return html
 
 def batchList(request):
+    """Handle request for list of batches according `request`.
+    
+    :Parameters:
+        request: django html request (`path` and `REQUEST` will be used)
+        .. See: batchListAttrs for used attributes
+        
+    :Return:
+        html code (full page) with list of batches matching filtering attributes
+    """
     attrs = {}
     for attr in batchListAttrs:
         try: 
@@ -183,6 +225,16 @@ def batchList(request):
                                                 })
     
 def batchDetail(request):
+    """Handle request for batch details.
+    
+    :Parameters:
+        request: django html request (`path` and `REQUEST` will be used)
+            should contain 'batch' attribute - id of `BatchRun` object
+        
+    :Return:
+        html code (full page) with batch description
+    """
+
     try:
         batch = get_object_or_404(BatchRun, id = request.REQUEST['batch'])
         header = batch.description

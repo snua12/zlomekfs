@@ -1,3 +1,5 @@
+""" Module with django database models description """
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -12,6 +14,10 @@ DUMP_DIRECTORY = "dumps"
 ENV_LEN = 128
 
 class ProfileInfo(models.Model):
+    """Object holding one-liner: environment variable name and value (Django database wrapper)
+    
+        .. See: verbose_name for field descriptions.
+    """
     variableName = models.CharField(max_length = ENV_LEN, unique = False,
                 verbose_name = _("Environment variable name"))
     variableValue = models.CharField(max_length = ENV_LEN, unique = False,
@@ -26,6 +32,10 @@ class ProfileInfo(models.Model):
         return self.variableName + "=" + self.variableValue
 
 class Project(models.Model):
+    """Object holding project information: name and repository url. (Django database wrapper)
+    
+        .. See: verbose_name for field descriptions.
+    """
     sourceRepositoryUrl = models.URLField(verify_exists = False,
                 verbose_name = _("Url to repository from which sources has been fetched"),
                 blank = True)
@@ -44,8 +54,15 @@ TEST_RESULT_CHOICES = (
     (-1, 'Skipped'),
     (-2, 'Unknown'),
 ) 
+""" Possible test results. """
 
 class BatchRun(models.Model):
+    """Object holding information about batch run. (Django database wrapper)
+    
+    Batch run is collection of tests runned in one batch.
+    This object describes common setup for all tests.
+        .. See: verbose_name for field descriptions.
+    """
     startTime = models.DateTimeField(
                 verbose_name = _("Date and time when the BatchRUn has started"),
                 db_index = True)
@@ -91,6 +108,10 @@ class BatchRun(models.Model):
         pass
 
 class TestRun(models.Model):
+    """Object holding information about one test run. (Django database wrapper)
+    
+        .. See: verbose_name for field descriptions.
+    """
     batchId = models.ForeignKey(BatchRun, verbose_name = _("Batch in which this test has run"),
                 db_index = True)
     startTime = models.DateTimeField(verbose_name = _("Date and time when the test has started"))
@@ -121,6 +142,12 @@ class TestRun(models.Model):
         pass
 
 class TestRunData(models.Model):
+    """ Object holding information about data related to some test run. (Django database wrapper)
+    
+    Contains backtrace, error text (if any) and dump file path.
+    
+    .. See: verbose_name for field descriptions.
+    """
     runId = models.ForeignKey(TestRun, verbose_name = _("Test run which generates this data"),
                 db_index = True)
     dumpFile = models.FileField(verbose_name = _("Tar with dumped test run data (snapshots, etc)"),

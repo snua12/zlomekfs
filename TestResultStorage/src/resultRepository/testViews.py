@@ -1,3 +1,6 @@
+""" Module with functions and fields needed for generating html code about test results 
+    Uses `views` module for basic operation, `models` module for database handling."""
+
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
@@ -10,8 +13,16 @@ from batchViews import generateBatchDescription
 
 
 testListAttrs = ['page', 'paging', 'result', 'batch', 'testName', 'orderBy']
+""" attributes recognized by testList page """
 
 def generateHeaderForAttrs(attrs):
+    """ Generate header line for test list (include used attribtes)
+    
+    :Parameters:
+        attrs: dictionary containing attributes used for filtering
+    :Return:
+        plain text describing list (for ex. TestList for myTest in batch firstBatch)
+    """
     html = 'Test list'
     if 'testName' in attrs:
         html += ' for ' + attrs['testName']
@@ -22,15 +33,52 @@ def generateHeaderForAttrs(attrs):
     return html
 
 def filterByResult(objects, resultValue):
+    """ filter objects by result
+    
+    :Parameters:
+        objects: objects to filter (django Model.objects instance)
+        resultValue: `TEST_RESULT_CHOICES` int value
+    
+    :Return:
+        new QueryObject containing subset of objects
+    """
     return objects.filter(result = resultValue)
     
 def filterByBatch(objects, batch):
+    """ filter objects by batch
+    
+    :Parameters:
+        objects: objects to filter (django Model.objects instance)
+        batch: batchId (int)
+    
+    :Return:
+        new QueryObject containing subset of objects
+    """
     return objects.filter(batchId = batch)
     
 def filterByTestName(objects, name):
+    """ filter objects by testName
+    
+    :Parameters:
+        objects: objects to filter (django Model.objects instance)
+        name: testName field value
+    
+    :Return:
+        new QueryObject containing subset of objects
+    """
     return objects.filter(testName = name)
 
 def filterByAttrs(objects, attrs):
+    """ filter objects by attributes values
+    
+    :Parameters:
+        objects: objects to filter (django Model.objects instance)
+        attrs: dictionary with pairs {attr:value}. 
+            currently recognized are `result`, `batch` and `testName` attributes
+    
+    :Return:
+        new QueryObject containing subset of objects
+    """
     for attr in ('result', 'batch', 'testName'):
         try:
             objects = {
@@ -43,6 +91,14 @@ def filterByAttrs(objects, attrs):
     return objects
     
 def generateTestDescription(test):
+    """Generate html code describing test object
+    
+    :Parameters:
+        test: `TestResultStorage.resultRepository.models.TestRun` instance
+        
+    :Return:
+        html code (table) describing given object.
+    """
     html = "<table>"
     html += "<tr><td>Name</td>"
     html += "<td>" + test.testName + "</td></tr>"
@@ -67,6 +123,18 @@ def generateTestDescription(test):
     return html
     
 def generateTestTable(baseUrl, testList, attrs):
+    """Generate html code with list (table) containing tests overview and filtering links
+    
+    :Parameters:
+        baseUrl: url to current page (without attributes). 
+            Will be used as base for filtering links
+        testList: iterable object containing `TestResultStorage.resultRepository.models.TestRun` instances
+        attrs: attributes given to current page (will be used to generate links)
+        
+    :Return:
+        html code (table) with tests descriptions and filtering links
+            links will point to `baseUrl` giving `attrs` and filtering attr
+    """
     html = "<table> \
         <tr align=\"left\">  \
           <th>Test name</th> \
@@ -98,7 +166,15 @@ def generateTestTable(baseUrl, testList, attrs):
     return html
 
 def testList(request):
+    """Handle request for list of tests according `request`.
     
+    :Parameters:
+        request: django html request (`path` and `REQUEST` will be used)
+        .. See: testListAttrs for used attributes
+        
+    :Return:
+        html code (full page) with list of tests matching filtering attributes
+    """
     attrs = {}
     for attr in testListAttrs:
         try: 
@@ -135,6 +211,15 @@ def testList(request):
 INVALID_TEST_ID = -1
 
 def testDetail(request):
+    """Handle request for test details.
+    
+    :Parameters:
+        request: django html request (`path` and `REQUEST` will be used)
+            should contain 'test' attribute - id of `TestRun` object
+        
+    :Return:
+        html code (full page) with test description
+    """
     try:
         test = get_object_or_404(TestRun, id = request.REQUEST['test'])
         header = test.testName
