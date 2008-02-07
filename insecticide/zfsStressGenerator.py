@@ -6,7 +6,6 @@ import re
 import pysvn
 import pickle
 import nose
-import threading
 
 from optparse import OptionConflictError
 from warnings import warn
@@ -354,8 +353,7 @@ class StressGenerator(Plugin):
                         pass
             testCases.append(theCase)
         '''
-        theCase = ChainedTestCase(instance = inst,
-                                        chain = methodSequence, index = 0) 
+        theCase = ChainedTestCase(chain = methodSequence) 
         if carryAttributes:
             for key in carryAttributes:
                 try:
@@ -452,14 +450,21 @@ class StressGenerator(Plugin):
                 if testInst.failureBuffer:
                     self.storePath(testInst)
                     self.reportProxy.reportFailure(testInst.failureBuffer.pop())
+                    return True
+        return None
+        
+    def addSuccess(self, test):
+        testInst = getattr(test, "test", None)
+        if not testInst:
+            log.error("unexpected attr in handleFailure,  doesn't have test attr")
+            return None
+        else:
+            if self.isChainedTestCase(testInst):
                 chain = getattr(testInst, 'chain', None)
                 index = getattr(testInst, 'index', None)
-                if index == len(chain) - 1:
-                    try:
-                        self.reportProxy.reportSuccess(testInst)
-                    except:
-                        pass #TODO: accurate exception 
-                return True
+                if index < len(chain) - 1: #do not report partial tests for suite
+                    log.debug("blocking success of %s", test)
+                    return True
         return None
     
     def finalize(self, result):
@@ -535,7 +540,7 @@ class ChainedTestCase(MethodTestCase):
         return methods
 
         
-    def __init__(self, method = None, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = 0):
+    def __init__(self, method = None, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = -1):
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
         self.test = test
         self.arg = arg
@@ -568,13 +573,12 @@ class ChainedTestCase(MethodTestCase):
         TestBase.__init__(self)
         
     def runTest(self):
-        if len(self.chain) > self.index:
-            ret = MethodTestCase.runTest(self)
-        if len(self.chain) > self.index + 1:
+        if len(self.chain) > self.index - 1:
             self.index += 1
             self.method = self.chain[self.index]
             method_name = self.method.__name__
-            self.test = getattr(self.inst, method_name)    
+            self.test = getattr(self.inst, method_name)   
+            ret = MethodTestCase.runTest(self)
         return ret
         
     def shortDescription(self):

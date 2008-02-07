@@ -3,10 +3,13 @@ import textwrap
 from optparse import OptionConflictError
 from warnings import warn
 import datetime
+import logging
 
 from nose.plugins import Plugin
 from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy
+
+log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 
 class ZfsReportPlugin(Plugin):
     """ Report test results to repository
@@ -104,6 +107,7 @@ class ZfsReportPlugin(Plugin):
     
     def addSuccess(self, test):
         try:
+            log.debug("reporting success of %s", test)
             self.reporter.reportSuccess(test, self.duration)
         except:
             pass #TODO: specific exception and log

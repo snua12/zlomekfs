@@ -34,7 +34,16 @@ class ReportProxy(object):
         run = TestRun()
         run.batchId = self.batch
         run.startTime = datetime.datetime.now()
-        run.testName = str(test.test)
+        from insecticide.zfsStressGenerator import ChainedTestCase
+        if test.test.__class__ is ChainedTestCase:
+            run.testName = "Chain for " + test.test.__class__.__name__
+            description = "Method sequence < "
+            for testM in test.test.chain:
+                description += testM.__name__  + " "
+            description += ">"
+            run.description = description
+        else:
+            run.testName = str(test.test)
         if duration:
             run.duration = duration
         else:
