@@ -83,7 +83,7 @@ def generateBatchDescription(batch):
     if batch.hasFinished:
         testCount = batch.testCount
     else:
-        testCount = TestRun.objects.filter(batchId = batch.id)
+        testCount = TestRun.objects.filter(batchId = batch.id).count()
     html += '<td>' +  str(testCount) + '</td></tr>'
     
     html += '<tr><td>Project</td>'

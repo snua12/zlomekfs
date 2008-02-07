@@ -40,6 +40,8 @@ def formatDuration(duration):
     :Return: 
         string - user readable representation of duration
     """
+    if not isinstance(duration, int):
+        return "Unknown"
     milis = duration % 1000
     duration /= 1000
     sec = duration % 60
