@@ -568,11 +568,13 @@ class ChainedTestCase(MethodTestCase):
         TestBase.__init__(self)
         
     def runTest(self):
-        ret = MethodTestCase.runTest(self)
-        self.index += 1
-        self.method = self.chain[self.index]
-        method_name = self.method.__name__
-        self.test = getattr(self.inst, method_name)    
+        if len(self.chain) > self.index:
+            ret = MethodTestCase.runTest(self)
+        if len(self.chain) > self.index + 1:
+            self.index += 1
+            self.method = self.chain[self.index]
+            method_name = self.method.__name__
+            self.test = getattr(self.inst, method_name)    
         return ret
         
     def shortDescription(self):
