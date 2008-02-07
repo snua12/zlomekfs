@@ -71,6 +71,8 @@ class SnapshotDescription(object):
         
         if parentLog:
             self.log = parentLog
+            
+        self.log.debug("created snapshot with dir %s", self.directory)
         
     def __iter__(self):
         return self.entries.iteritems()
@@ -96,7 +98,8 @@ class SnapshotDescription(object):
         return self.entries[name]
         
     def delete(self):
-        shutil.rmtree(  	self.directory, ignore_errors = True)
+        self.log.debug("removing snapshot %s with directory %s", self, self.directory)
+        shutil.rmtree(self.directory, ignore_errors = True)
         self.directory = None
         return True
         

@@ -5,6 +5,8 @@ import tempfile
 import re
 import pysvn
 import pickle
+import nose
+import threading
 
 from optparse import OptionConflictError
 from warnings import warn
@@ -248,7 +250,8 @@ class StressGenerator(Plugin):
         
         methodSequence = ChainedTestCase.getMethodSequenceFromSavedPath(filename)
         if methodSequence:
-            suite = self.wrapMethodSequence(methodSequence[0].im_class, methodSequence, fromSavedPath = True)
+            suite = self.wrapMethodSequence(methodSequence[0].im_class, methodSequence,
+                                carryAttributes = {"fromSavedPath" : True})
             self.chainQueue.append(suite)
             log.debug('saved path %s loaded', str(methodSequence))
         return [False]
@@ -333,18 +336,36 @@ class StressGenerator(Plugin):
                 tests.append(test)
         return tests
         
-    def wrapMethodSequence(self, cls, methodSequence, fromSavedPath = False):
+    def wrapMethodSequence(self, cls, methodSequence, carryAttributes = None):
         log.debug("wrapping method sequence %s for stress testing"
                         "from class %s",  methodSequence,  cls)
         inst = cls()
         testCases = []
+        
+        '''
         for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
-            case = ChainedTestCase(method = methodSequence[i], 
-                                        instance = inst,  chain = methodSequence,
-                                        index = i)
-            setattr(case, self.fromSavedPathAttr, fromSavedPath)
-            testCases.append(case)
-            
+            theCase = ChainedTestCase(instance = inst, method = methodSequence[i],
+                                            chain = methodSequence, index = i) 
+            if carryAttributes:
+                for key in carryAttributes:
+                    try:
+                        setattr(theCase, key, carryAttributes[key])
+                    except KeyError:
+                        pass
+            testCases.append(theCase)
+        '''
+        theCase = ChainedTestCase(instance = inst,
+                                        chain = methodSequence, index = 0) 
+        if carryAttributes:
+            for key in carryAttributes:
+                try:
+                    setattr(theCase, key, carryAttributes[key])
+                except KeyError:
+                    pass
+        
+        for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
+            testCases.append(theCase)
+        
         if testCases:
             log.debug("returning tests %s", str(testCases))
             suite = self.suiteClass(ContextList(testCases, context=cls))
@@ -355,12 +376,23 @@ class StressGenerator(Plugin):
         
     def prepareTest(self, test): #for THE onle root testcase
         self.rootCase = test
-        for chain in self.chainQueue:
-            self.rootCase.addTest(chain)
+        #for chain in self.chainQueue:
+        #    self.rootCase.addTest(chain)
+        wrapper = SuiteRunner(self.chainQueue)
+        self.rootCase.addTest(wrapper)
+        self.rootCase = wrapper
     
     def retry(self, test):
         log.debug("query %s for retry", str(test))
-        self.rerunQueue.append(test)
+        #self.rerunQueue.append(test)
+        carry = {}
+        for key in ['failureBuffer', 'snapshotBuffer']:
+            try:
+                carry[key] = getattr(test, key)
+            except AttributeError:
+                pass
+        suite = self.wrapMethodSequence(test.cls, test.chain, carryAttributes = carry)
+        self.rootCase.addTest(suite)
         
     def storePath(self, test):
         log.debug("trying to store %s", str(test))
@@ -396,8 +428,9 @@ class StressGenerator(Plugin):
                 log.debug("catched stress test failure (%s)",  testInst)
                 log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
                 setattr(test,  'stopContext',  True)
+                log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
                 testInst.failureBuffer.append(ZfsTestFailure(test, err))
-                if len(testInst.failureBuffer) < self.retriesAfterFailure:
+                if len(testInst.failureBuffer) <= self.retriesAfterFailure:
                     self.retry(testInst)
                     return True
                 else:
@@ -415,7 +448,7 @@ class StressGenerator(Plugin):
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
             return None
         else:
-            if self.isChainedTestCase(testInst):
+            if self.isChainedTestCase(testInst) and testInst.index >= len(testInst.chain) -1:
                 if testInst.failureBuffer:
                     self.storePath(testInst)
                     self.reportProxy.reportFailure(testInst.failureBuffer.pop())
@@ -502,13 +535,12 @@ class ChainedTestCase(MethodTestCase):
         return methods
 
         
-    def __init__(self, method, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = 0):
+    def __init__(self, method = None, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = 0):
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
-        self.method = method
         self.test = test
         self.arg = arg
         self.descriptor = descriptor
-        self.cls = method.im_class
+        self.cls = chain[0].im_class
         if instance is None:
             instance = self.cls()
         self.inst = instance
@@ -522,13 +554,57 @@ class ChainedTestCase(MethodTestCase):
             setattr(self.inst, "resumeInstFunc", getattr(self.inst, "resume", None))
             setattr(self.inst, "resume", self.resumeChain)
         
+        self.chain = chain
+        self.index = index
+        if not method:
+            self.method = chain[index]
+        else:
+            self.method = method
+            
         if self.test is None:
             method_name = self.method.__name__
             self.test = getattr(self.inst, method_name)            
-        self.chain = chain
-        self.index = index
+
         TestBase.__init__(self)
+        
+    def runTest(self):
+        ret = MethodTestCase.runTest(self)
+        self.index += 1
+        self.method = self.chain[self.index]
+        method_name = self.method.__name__
+        self.test = getattr(self.inst, method_name)    
+        return ret
         
     def shortDescription(self):
         return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
+        
+        
+    
+#class aix(threading.Condition):
+    
+class SuiteRunner(nose.suite.ContextSuite):
+    def __init__(self, tests):
+        self.context=None
+        self.factory=None
+        self.config=None
+        self.resultProxy=None
+        log.debug(self.__class__.__name__ + ".__init__()")
+        self.tests = tests
+        self.rest = []
+        
+    def addTest(self, test):
+        self.tests.append(test)
+        
+    def __call__(self, *arg, **kwargs):
+        log.debug(self.__class__.__name__ + ".__call__()")
+        self.run(*arg, **kwargs)
+        
+    def run(self, result):
+        log.debug(self.__class__.__name__ + ".run()")
+        while self.tests:
+            self.tests.pop(0)(result)
+    
+    def shortDescription(self):
+        log.debug(self.__class__.__name__ + ".shortDescription()")
+        return self.__class__.__name__
     

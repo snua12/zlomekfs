@@ -4,6 +4,7 @@ import logging
 import tempfile
 
 from insecticide.snapshot import SnapshotDescription
+from insecticide.zfsStressGenerator import ChainedTestCase
 from optparse import OptionConflictError
 from warnings import warn
 
@@ -130,21 +131,21 @@ class SnapshotPlugin(Plugin):
                             % self.snapshotsRootDir)
     
     def snapshotTest(self, test):
-	if not hasattr(test, "test"): #not normal test, possibly suite
-		return
+        if not hasattr(test, "test"): #not normal test, possibly suite
+            return
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir, log)
         if hasattr(test.test, "inst") and hasattr(test.test.inst, "snapshot"):
-            log.debug("snapshotting %s",  str(test))
+            log.debug("snapshotting %s (%s) into dir %s",  str(test), snapshot, toDir)
             test.test.inst.snapshot(snapshot)
         else:
             log.debug("can't snapshot %s. doesn't define snapshot() function",  str(test))
-            print ("trying to snapshot %s of type %s" %(test,  test.__class__))
             #snapshot.addObject(name = str(test.test), object = test,  type = SnapshotDescription.TYPE_PICKLED_TEST)
         
         if hasattr(test.test, "snapshotBuffer"):
             if len(test.test.snapshotBuffer) >= self.maxSnapshots:
                 oldSnapshot = test.test.snapshotBuffer.pop(0)
+                log.debug("removing old snapshot %s", oldSnapshot)
                 oldSnapshot.delete()
         else:
             setattr(test.test, "snapshotBuffer", [])
@@ -164,8 +165,9 @@ class SnapshotPlugin(Plugin):
             self.snapshotTest(test)
         
     def addSuccess(self, test):
-    #TODO: make sure that this won't delete snapshots used in stressGenerator
-        if hasattr(test.test, "snapshotBuffer"):
-            for snapshot in test.test.snapshotBuffer:
-                snapshot.delete()
+        if not hasattr(test,"test"): #ignore non-tests
+            return
+        if hasattr(test.test, "snapshotBuffer") and test.test.__class__ is not ChainedTestCase :
+            while test.test.snapshotBuffer:
+                test.test.snapshotBuffer.pop(0).delete()
 
