@@ -1,13 +1,19 @@
-
+import logging
 import os
 import datetime
 import socket
 import traceback
 
-from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData, Project
+from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData, Project, computeDuration
+
+log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 
 class ReportProxy(object):
     targetDir = '/tmp'
+    
+    
+    startTimeAttr = "startTime"
+    endTimeAttr = "endTime"
 
     def __init__(self):
     
@@ -28,37 +34,46 @@ class ReportProxy(object):
             
             self.batch.save()
         if not self.batch.id:
-            print ("Error: batch id is null")
+            log.error ("Error: batch id is null")
     
-    def generateDefaultRun(self, test, duration = None):
+    def generateDefaultRun(self, test, duration = None, name = None, description = None):
         run = TestRun()
         run.batchId = self.batch
-        run.startTime = datetime.datetime.now()
-        from insecticide.zfsStressGenerator import ChainedTestCase
-        if test.test.__class__ is ChainedTestCase:
-            run.testName = "Chain for " + test.test.__class__.__name__
-            description = "Method sequence < "
-            for testM in test.test.chain:
-                description += testM.__name__  + " "
-            description += ">"
-            run.description = description
+        if name:
+            run.testName = name
         else:
             run.testName = str(test.test)
+            
+        if description:
+            run.description = description
+        elif hasattr(test.test, "shortDescription"):
+            run.description = test.shortDescription()
+            
+        if hasattr(test, self.startTimeAttr):
+            run.startTime = getattr(test, self.startTimeAttr)
+        else:
+            run.startTime = datetime.datetime.now()
+            
         if duration:
             run.duration = duration
-        else:
-            run.duration = 15 #FIXME: real duration
-        
+        elif hasattr(test, self.startTimeAttr):
+            if hasattr(test, self.endTimeAttr):                
+                run.duration = computeDuration(getattr(test, self.startTimeAttr),
+                                getattr(test, self.endTimeAttr))
+            else:
+                run.duration = computeDuration(getattr(test, self.startTimeAttr),
+                                datetime.datetime.now())
+            
         return run
     
-    def reportSuccess(self, test, duration = None):
-        run = self.generateDefaultRun(test, duration)
+    def reportSuccess(self, test, duration = None, name = None, description = None):
+        run = self.generateDefaultRun(test, duration, name, description)
         run.result = 0
         
         run.save()
     
-    def reportFailure(self, failure, duration = None):
-        run = self.generateDefaultRun(failure.test, duration)
+    def reportFailure(self, failure, duration = None, name = None, description = None):
+        run = self.generateDefaultRun(failure.test, duration, name, description)
         run.result = 1
         
         run.save()
