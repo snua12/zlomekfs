@@ -434,29 +434,27 @@ class StressGenerator(Plugin):
                 else:
                     if not getattr(testInst,  self.fromSavedPathAttr, None):
                         self.storePath(testInst)
-                    self.reportProxy.reportFailure(testInst.failureBuffer.pop())
         return False
     
-    def handleError(self, test, err):
-        return self.handleFailure(test, err)
+    handleError = handleFailure
     
-    def afterTest(self, test):
+    def addFailure(self, test, err):
         testInst = getattr(test, "test", None)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
             return None
         else:
-            if self.isChainedTestCase(testInst) and testInst.index >= len(testInst.chain) -1:
-                if testInst.failureBuffer:
-                    self.storePath(testInst)
-                    self.reportProxy.reportFailure(testInst.failureBuffer.pop())
-                    return True
-        return None
-        
+            if self.isChainedTestCase(testInst):
+                (testName, description) = self.generateDescription(test)
+                self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
+                return True
+    
+    addError = addFailure
+    
     def addSuccess(self, test):
         testInst = getattr(test, "test", None)
         if not testInst:
-            log.error("unexpected attr in handleFailure,  doesn't have test attr")
+            log.error("unexpected attr in addSuccess,  doesn't have test attr")
             return None
         else:
             if self.isChainedTestCase(testInst):
@@ -464,8 +462,25 @@ class StressGenerator(Plugin):
                 index = getattr(testInst, 'index', None)
                 if index < len(chain) - 1: #do not report partial tests for suite
                     log.debug("blocking success of %s", test)
-                    return True
+                elif testInst.failureBuffer:
+                    self.storePath(testInst)
+                    self.reportProxy.reportFailure(testInst.failureBuffer.pop())
+                else:
+                    (testName, description) = self.generateDescription(test)
+                    self.reportProxy.reportSuccess(test, name = testName, description = description)
+                return True
         return None
+        
+    @classmethod
+    def generateDescription(self, test):
+        if test.test.__class__ is ChainedTestCase:
+            testName = "Chain for " + test.test.__class__.__name__
+            description = "Method sequence < "
+            for testM in test.test.chain:
+                description += testM.__name__  + " "
+            description += ">"
+            description = description
+        return (testName, description)
     
     def finalize(self, result):
         log.debug("finalizing")

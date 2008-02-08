@@ -78,7 +78,10 @@ class ZfsReportPlugin(Plugin):
         return "(no help available)"
         
     def startTest(self, test):
-        setattr(test,ReportProxy.startTimeAttr, datetime.datetime.now())
+        if hasattr(test, "test"): #only real tests
+            if not hasattr(test.test, ReportProxy.startTimeAttr): #prevent rewrite
+                log.debug("setting time %s for test %s", str(datetime.datetime.now()), str(test.test))
+                setattr(test.test, ReportProxy.startTimeAttr, datetime.datetime.now())
         
     
     def addFailure(self, test, err):

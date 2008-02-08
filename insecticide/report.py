@@ -49,20 +49,21 @@ class ReportProxy(object):
         elif hasattr(test.test, "shortDescription"):
             run.description = test.shortDescription()
             
-        if hasattr(test, self.startTimeAttr):
-            run.startTime = getattr(test, self.startTimeAttr)
+        if hasattr(test.test, self.startTimeAttr):
+            run.startTime = getattr(test.test, self.startTimeAttr)
         else:
             run.startTime = datetime.datetime.now()
             
         if duration:
             run.duration = duration
-        elif hasattr(test, self.startTimeAttr):
-            if hasattr(test, self.endTimeAttr):                
-                run.duration = computeDuration(getattr(test, self.startTimeAttr),
-                                getattr(test, self.endTimeAttr))
+        elif hasattr(test.test, self.startTimeAttr):
+            if hasattr(test.test, self.endTimeAttr):                
+                run.duration = computeDuration(getattr(test.test, self.startTimeAttr),
+                                getattr(test.test, self.endTimeAttr))
             else:
-                run.duration = computeDuration(getattr(test, self.startTimeAttr),
+                run.duration = computeDuration(getattr(test.test, self.startTimeAttr),
                                 datetime.datetime.now())
+                                
             
         return run
     
