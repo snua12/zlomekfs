@@ -11,14 +11,24 @@ TEST_DESC_LEN = 256
 FILE_NAME_LEN = 100
 PROFILE_NAME_LEN = 100
 DUMP_DIRECTORY = "dumps"
-ENV_LEN = 128
+ENV_LEN = 254 # for PATHs
+
+def computeDuration(startTime, endTime):
+    #we assume that run is shorter than month
+    duration = endTime.day - startTime.day
+    duration = duration * 24 + endTime.hour - startTime.hour
+    duration = duration * 60 + endTime.minute - startTime.minute
+    duration = duration * 60 + endTime.second - startTime.second
+    duration = duration * 1000 + (endTime.microsecond - startTime.microsecond) / 1000
+    
+    return duration
 
 class ProfileInfo(models.Model):
     """Object holding one-liner: environment variable name and value (Django database wrapper)
     
         .. See: verbose_name for field descriptions.
     """
-    variableName = models.CharField(max_length = ENV_LEN, unique = False,
+    variableName = models.CharField(max_length = NAME_LEN, unique = False,
                 verbose_name = _("Environment variable name"))
     variableValue = models.CharField(max_length = ENV_LEN, unique = False,
                 verbose_name = _("Environment variable value"))

@@ -40,26 +40,27 @@ def formatDuration(duration):
     :Return: 
         string - user readable representation of duration
     """
-    if not isinstance(duration, int):
-        return "Unknown"
-    milis = duration % 1000
-    duration /= 1000
-    sec = duration % 60
-    duration /= 60
-    min = duration % 60
-    ''' ignore long lasting tests
-    duration /= 60
-    hour = duration % 24
-    duration /= 24
-    day = duration
-    '''
-    string = str(milis)
-    while len(string) < 3:
-        string = '0' + string
-        
-    string = str(sec) + "." + string + "s"
-    if min:
-        string = str(min) + " min " + string
+    try:
+        milis = duration % 1000
+        duration /= 1000
+        sec = duration % 60
+        duration /= 60
+        min = duration % 60
+        ''' ignore long lasting tests
+        duration /= 60
+        hour = duration % 24
+        duration /= 24
+        day = duration
+        '''
+        string = str(milis)
+        while len(string) < 3:
+            string = '0' + string
+            
+        string = str(sec) + "." + string + "s"
+        if min:
+            string = str(min) + " min " + string
+    except TypeError: #not int or None
+        string = "Unknown"
     
     return string
 
