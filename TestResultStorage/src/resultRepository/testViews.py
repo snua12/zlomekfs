@@ -104,7 +104,7 @@ def generateTestDescription(test):
     html += "<td>" + test.testName + "</td></tr>"
     
     html += "<tr><td>Description</td>"
-    html += "<td>" + test.description + "</td></tr>"
+    html += "<td>" + str(test.description) + "</td></tr>"
     
     html += "<tr><td>Start time</td>"
     html += "<td>" + str(test.startTime) + "</td></tr>"

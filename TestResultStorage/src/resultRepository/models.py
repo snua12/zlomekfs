@@ -131,7 +131,7 @@ class TestRun(models.Model):
                 db_index = True)
     description = models.CharField(max_length = TEST_DESC_LEN,
                 verbose_name = _("Short description of test run"),
-                blank = True)
+                blank = True, null = True)
     result = models.IntegerField(choices=TEST_RESULT_CHOICES,
                 verbose_name = _("If test has successed, failed or what"),
                 db_index = True)
