@@ -1,6 +1,7 @@
 import os
 import textwrap
 from optparse import OptionConflictError
+from traceback import format_exc
 from warnings import warn
 import datetime
 import logging
@@ -89,6 +90,7 @@ class ZfsReportPlugin(Plugin):
             try:
                 self.reporter.reportFailure(ZfsTestFailure(test, err))
             except:
+                log.debug("exception when reporting failure:\n%s", format_exc())
                 pass #TODO: specific exception and log
     
     addError = addFailure
@@ -98,5 +100,6 @@ class ZfsReportPlugin(Plugin):
             log.debug("reporting success of %s", test)
             self.reporter.reportSuccess(test)
         except:
+            log.debug("exception when reporting success:\n%s", format_exc())
             pass #TODO: specific exception and log
     
