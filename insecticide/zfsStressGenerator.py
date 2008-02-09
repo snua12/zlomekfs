@@ -380,6 +380,27 @@ class StressGenerator(Plugin):
         self.rootCase.addTest(wrapper)
         self.rootCase = wrapper
     
+    def prune(self, test):
+        if self.useShortestPath:
+            allowedMethods = self.metaTestCollector.getClassMethods(test.cls)
+            log.debug("allowedMethods %s?",allowedMethods)
+            methodNames = []
+            for method in allowedMethods:
+                methodNames.append(method.__name__)
+            graph = GraphBuilder.generateDependencyGraph(test.cls, methodNames) #maybe use only chain methods
+            log.debug("new graph is %s", str(graph.graph))
+            log.debug("searching shortest path from %s to %s", test.chain[0].__name__, test.chain[test.index].__name__)
+            path = graph.getShortestPath (test.chain[0].__name__, test.chain[test.index].__name__)
+            if not path: #this should not happen - we should find at least old path
+                raise Exception ("sys error: we don't find existing path")
+            chain = []
+            for name in path:
+                chain.append(getattr(test.cls, name))
+            
+            return chain
+        
+        return test.chain
+    
     def retry(self, test):
         log.debug("query %s for retry", str(test))
         #self.rerunQueue.append(test)
@@ -389,7 +410,8 @@ class StressGenerator(Plugin):
                 carry[key] = getattr(test, key)
             except AttributeError:
                 pass
-        suite = self.wrapMethodSequence(test.cls, test.chain, carryAttributes = carry)
+        newChain = self.prune(test)
+        suite = self.wrapMethodSequence(test.cls, newChain, carryAttributes = carry)
         self.rootCase.addTest(suite)
         
     def storePath(self, test):
@@ -464,7 +486,9 @@ class StressGenerator(Plugin):
                     log.debug("blocking success of %s", test)
                 elif testInst.failureBuffer:
                     self.storePath(testInst)
-                    self.reportProxy.reportFailure(testInst.failureBuffer.pop())
+                    failure = testInst.failureBuffer.pop()
+                    (testName, description) = self.generateDescription(failure.test)
+                    self.reportProxy.reportFailure(failure, name = testName, description = description)
                 else:
                     (testName, description) = self.generateDescription(test)
                     self.reportProxy.reportSuccess(test, name = testName, description = description)
