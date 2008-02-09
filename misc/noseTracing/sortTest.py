@@ -1,7 +1,7 @@
 
 import logging
 from ConfigParser import ConfigParser
-from graph import GraphBuilder
+from insecticide.graph import GraphBuilder
 
 log = logging.getLogger("nose.sortTest")
 
