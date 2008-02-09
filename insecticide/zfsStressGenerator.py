@@ -42,7 +42,7 @@ class MetaTestCollector(object):
     
     def add(self,  method):
         classRow = self.map.get(method.im_class,  [])
-        classRow.append(method)
+        classRow.append(method.__name__)
         self.map[method.im_class] = classRow
     
     def getClassMethods(self,  cls):
@@ -247,9 +247,9 @@ class StressGenerator(Plugin):
         if not self.savedPathRegex.match(filename):
             return None
         
-        methodSequence = ChainedTestCase.getMethodSequenceFromSavedPath(filename)
+        (cls, methodSequence) = ChainedTestCase.getMethodSequenceFromSavedPath(filename)
         if methodSequence:
-            suite = self.wrapMethodSequence(methodSequence[0].im_class, methodSequence,
+            suite = self.wrapMethodSequence(cls, methodSequence,
                                 carryAttributes = {"fromSavedPath" : True})
             self.chainQueue.append(suite)
             log.debug('saved path %s loaded', str(methodSequence))
@@ -308,17 +308,14 @@ class StressGenerator(Plugin):
         if not allowedMethods:
             return None
         
-        methodNames = []
-        for method in allowedMethods:
-            methodNames.append(method.__name__)
         
-        classGraph = GraphBuilder.generateDependencyGraph(cls, methodNames)
+        classGraph = GraphBuilder.generateDependencyGraph(cls, allowedMethods)
         methodSequence = list()
         length = 0
         next = classGraph.next(stopProbability = self.stopProbability)
         
         while length < self.maxTestLength and next:
-            methodSequence.append(getattr(cls, next))
+            methodSequence.append(next)
             length += 1
             next = classGraph.next(self.stopProbability)
         if methodSequence:
@@ -353,7 +350,7 @@ class StressGenerator(Plugin):
                         pass
             testCases.append(theCase)
         '''
-        theCase = ChainedTestCase(chain = methodSequence) 
+        theCase = ChainedTestCase(cls = cls, chain = methodSequence) 
         if carryAttributes:
             for key in carryAttributes:
                 try:
@@ -384,20 +381,13 @@ class StressGenerator(Plugin):
         if self.useShortestPath:
             allowedMethods = self.metaTestCollector.getClassMethods(test.cls)
             log.debug("allowedMethods %s?",allowedMethods)
-            methodNames = []
-            for method in allowedMethods:
-                methodNames.append(method.__name__)
-            graph = GraphBuilder.generateDependencyGraph(test.cls, methodNames) #maybe use only chain methods
+            graph = GraphBuilder.generateDependencyGraph(test.cls, allowedMethods) #maybe use only chain methods
             log.debug("new graph is %s", str(graph.graph))
-            log.debug("searching shortest path from %s to %s", test.chain[0].__name__, test.chain[test.index].__name__)
-            path = graph.getShortestPath (test.chain[0].__name__, test.chain[test.index].__name__)
+            log.debug("searching shortest path from %s to %s", test.chain[0], test.chain[test.index])
+            path = graph.getShortestPath (test.chain[0], test.chain[test.index])
             if not path: #this should not happen - we should find at least old path
                 raise Exception ("sys error: we don't find existing path")
-            chain = []
-            for name in path:
-                chain.append(getattr(test.cls, name))
-            
-            return chain
+            return path
         
         return test.chain
     
@@ -498,12 +488,8 @@ class StressGenerator(Plugin):
     @classmethod
     def generateDescription(self, test):
         if test.test.__class__ is ChainedTestCase:
-            testName = "Chain for " + test.test.__class__.__name__
-            description = "Method sequence < "
-            for testM in test.test.chain:
-                description += testM.__name__  + " "
-            description += ">"
-            description = description
+            testName = "Chain for " + test.test.cls.__name__
+            description = "Method sequence: " + str(test.test.chain)
         return (testName, description)
     
     def finalize(self, result):
@@ -519,10 +505,8 @@ class ChainedTestCase(MethodTestCase):
     failureBuffer = []
     
     def snapshotChain(self, snapshot):
-        stringChain = []
-        for meth in self.chain:
-            stringChain.append(meth.__name__)
-        snapshot.addObject("stressChain", stringChain)
+        snapshot.addObject("testClass", self.cls)
+        snapshot.addObject("stressChain", self.chain)
         snapshot.addEntry("stressChainIndex", 
                           (SnapshotDescription.TYPE_INT, self.index))
         
@@ -533,17 +517,16 @@ class ChainedTestCase(MethodTestCase):
         if getattr(self.inst, "resumeInstFunc", None):
             self.inst.snapshotInstFunc(self.inst, snapshot)
             
+        self.cls = snapshot.getObject("testClass")
         self.index = snapshot.getEntry("stressChainIndex")
-        stringChain = snapshot.getObject("stressChain")
-        self.chain = []
-        for methodName in stringChain:
-            self.chain.append(getattr(self.inst, methodName))
+        self.chain = snapshot.getObject("stressChain")
+        self.method = getattr(self.cls, self.chain[self.index])
+        self.test = self.method
         
     def generateSavedPath(self, filename): #TODO: implement this
         file = open(filename, 'w')
         stringChain = [self.inst.__class__]
-        for meth in self.chain:
-            stringChain.append(meth.__name__)
+        stringChain.append(self.chain)
         pickle.dump(stringChain, file)
         file.close()
         
@@ -567,24 +550,17 @@ class ChainedTestCase(MethodTestCase):
             
         cls = chain[0]
         
-        methods = []
-        #and strings - method names on others
-        for methodName in chain[1:]:
-            if not isinstance(methodName, str):
-                return None
-            try:
-                methods.append(getattr(cls, methodName))
-            except AttributeError:
-                return None
-        return methods
+        methods = chain[1:]
+        return (cls,methods)
 
         
-    def __init__(self, method = None, test=None, arg=tuple(), descriptor=None, instance = None,  chain = None,  index = -1):
+    def __init__(self, cls, method = None, test=None, arg=tuple(),
+                descriptor=None, instance = None,  chain = None,  index = -1):
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
         self.test = test
         self.arg = arg
         self.descriptor = descriptor
-        self.cls = chain[0].im_class
+        self.cls = cls
         if instance is None:
             instance = self.cls()
         self.inst = instance
@@ -601,7 +577,7 @@ class ChainedTestCase(MethodTestCase):
         self.chain = chain
         self.index = index
         if not method:
-            self.method = chain[index]
+            self.method = getattr(self.cls, chain[index])
         else:
             self.method = method
             
@@ -614,7 +590,7 @@ class ChainedTestCase(MethodTestCase):
     def runTest(self):
         if len(self.chain) > self.index - 1:
             self.index += 1
-            self.method = self.chain[self.index]
+            self.method = getattr(self.cls, self.chain[self.index])
             method_name = self.method.__name__
             self.test = getattr(self.inst, method_name)   
             ret = MethodTestCase.runTest(self)
