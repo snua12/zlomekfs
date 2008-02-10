@@ -64,7 +64,7 @@ def formatDuration(duration):
     
     return string
 
-
+    
 def generatePagination(baseUrl, attrs, objects, pageSize):
     """generates division to pages of objects
     

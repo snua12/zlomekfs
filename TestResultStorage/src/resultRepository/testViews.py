@@ -1,10 +1,13 @@
 """ Module with functions and fields needed for generating html code about test results 
     Uses `views` module for basic operation, `models` module for database handling."""
 
+import pickle
 from django.utils.translation import ugettext as _
+from django.utils.html import escape
+from TestResultStorage.settings import MEDIA_ROOT
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
-from models import TestRun, BatchRun, TEST_RESULT_CHOICES 
+from models import TestRun, TestRunData, BatchRun, TEST_RESULT_CHOICES 
 from django.core.paginator import ObjectPaginator, InvalidPage
 from views import globalMenu, generateLink, DEFAULT_PAGING, formatDuration
 from views import generatePagination, generateAttrReleasementLinks
@@ -103,8 +106,8 @@ def generateTestDescription(test):
     html += "<tr><td>Name</td>"
     html += "<td>" + test.testName + "</td></tr>"
     
-    html += "<tr><td>Description</td>"
-    html += "<td>" + str(test.description) + "</td></tr>"
+    html += "<tr valign=\"top\"><td>Description</td>"
+    html += "<td>" + escape(str(test.description)) + "</td></tr>"
     
     html += "<tr><td>Start time</td>"
     html += "<td>" + str(test.startTime) + "</td></tr>"
@@ -119,6 +122,25 @@ def generateTestDescription(test):
     html += "<td>" + test.get_result_display() + "</td></tr>"
     html += "<tr><td>Repository path</td>"
     html += "<td>" + test.sourceRepositoryPath + "</td></tr>"
+    data = TestRunData.objects.filter(runId = test.id)
+    for item in data:
+        if item.errText:
+            html += "<tr valign=\"top\"><td>Error</td>"
+            html += "<td>" + escape(item.errText) + "</td></tr>"
+        if item.backtrace:
+            html += "<tr valign=\"top\"><td>Backtrace</td>"
+            html += "<td>"
+            try:
+                backtrace = pickle.loads(item.backtrace)
+                for line in backtrace:
+                    html += escape(line) + "<br/>"
+            except:
+                html += "Can't load - invalid database format"
+            html += "</td></tr>"
+        if item.dumpFile:
+            html += "<tr valign=\"top\"><td>Snapshot</td>"
+            html += "<td>" + generateLink(baseUrl = "/" + MEDIA_ROOT + "/" + escape(item.dumpFile),
+                                                name = escape(item.dumpFile)) + "</td></tr>"
     html += "</table>"
     return html
     

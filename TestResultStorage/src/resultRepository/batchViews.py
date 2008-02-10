@@ -107,7 +107,7 @@ def generateBatchDescription(batch):
     html += '<tr><td valign="top">Environment</td>'
     html += '<td>' 
     for env in batch.profileInfo.all():
-        html += env.variableName + "=" + env.variableValue + "<br/>"
+        html += env.variableName + "=" + escape(env.variableValue) + "<br/>"
     html += '</td></tr>'
     
     html += '<tr><td>Host</td>'
