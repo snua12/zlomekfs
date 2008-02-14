@@ -1,4 +1,4 @@
-#LyX 1.5.2 created this file. For more info see http://www.lyx.org/
+#LyX 1.5.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 276
 \begin_document
 \begin_header
@@ -14,15 +14,19 @@
 \font_sf_scale 100
 \font_tt_scale 100
 \graphics default
-\paperfontsize default
+\paperfontsize 12
 \spacing single
 \papersize default
-\use_geometry false
+\use_geometry true
 \use_amsmath 1
 \use_esint 0
 \cite_engine basic
 \use_bibtopic false
 \paperorientation portrait
+\leftmargin 3.5cm
+\topmargin 3cm
+\rightmargin 2.5cm
+\bottommargin 3cm
 \secnumdepth 3
 \tocdepth 3
 \paragraph_separation indent
@@ -927,133 +931,8 @@ key "Cutest"
 
 \end_inset
 
- simple generation, suites, assertions, 
-\end_layout
-
-\begin_layout Standard
-C integration:
-\end_layout
-
-\begin_layout Standard
-- swig generate modules, then walk dir() and get by name
-\end_layout
-
-\begin_layout Standard
-- generate binaries by own tool (walk by elf reader)
-\end_layout
-
-\begin_layout Standard
-- generate binaries by own - walk by c parser
-\end_layout
-
-\begin_layout Standard
-- macro based mains with test indexes
-\end_layout
-
-\begin_layout Standard
-- separate binaries with make targets, etc...
-\end_layout
-
-\begin_layout Standard
-- tool generated binaries / search
-\end_layout
-
-\begin_layout Standard
-- extern static registry with registration function
-\end_layout
-
-\begin_layout Standard
-C integration flaws:
-\end_layout
-
-\begin_layout Standard
-- must be usable without test suite (shell driver)
-\end_layout
-
-\begin_layout Standard
-- must be easy to use
-\end_layout
-
-\begin_layout Standard
-- tests have to be easy to write
-\end_layout
-
-\begin_layout Standard
-- must handle dependencies
-\end_layout
-
-\begin_layout Standard
-cutest, 
-\end_layout
-
-\begin_layout Standard
-fork / don't fork
-\end_layout
-
-\begin_layout Standard
-what with system-dependent errors (nomemory, etc)? how to mock?
-\end_layout
-
-\begin_layout Standard
-macro / hand / grep 
-\end_layout
-
-\begin_layout Standard
-setup/teardown
-\end_layout
-
-\begin_layout Standard
-code layout (mixing or separating)
-\end_layout
-
-\begin_layout Standard
-collecting
-\end_layout
-
-\begin_layout Standard
-test framework code readability & flexibility (modular design)
-\end_layout
-
-\begin_layout Standard
-test framework maturity#
-\end_layout
-
-\begin_layout Standard
-!!ATTR and EXPR in nose 
-\end_layout
-
-\begin_layout Standard
---with-stopwatch --faster-than 5
-\end_layout
-
-\begin_layout Standard
---with-figleafsecions
-\end_layout
-
-\begin_layout Standard
-config by environment
-\end_layout
-
-\begin_layout Standard
-untestable test with comparision
-\end_layout
-
-\begin_layout Standard
-! when pickling, only names are written for code blocks (methods etc) so
- before unpickling, the original module must be imported...
-\end_layout
-
-\begin_layout Standard
-the same (^) holds for class data (so be carefull when pickling class with
- setup_class method)
-\end_layout
-
-\begin_layout Standard
-!!!! this disable pickling of random data....!!!!!
-\end_layout
-
-\begin_layout Standard
-__getstate__(), __setstate__()
+ from basic features provides assertions and suites.
+ Has scripted tool for executable generation.
 \end_layout
 
 \begin_layout Paragraph
@@ -1583,15 +1462,190 @@ key "gcore"
 \end_layout
 
 \begin_layout Subsection
+Automation
+\end_layout
+
+\begin_layout Standard
+To be effective, testing should be performed on regular basis.
+ Hence automation must be provided.
+ 
+\end_layout
+
+\begin_layout Standard
+Commonly are used two approaches to achieve automated build and check:
+\end_layout
+
+\begin_layout Standard
+First is to use some post 
+\series bold
+commit hooks
+\series default
+ (we assume that version control system is used) which executes tests or
+ launch separate process to execute them on background.
+ This approach can ensure that no wrong code gets into repository - commit
+ that won't pass all tests can be rejected.
+ Running all tests can be relatively long lasting task and therefore environment
+ is rarely set to execute all tests before commit and more commonly commit
+ is delayed only after vital tests pass.
+ More in-deep checking tests are executed afterwards in stand-alone process.
+ Implementation is often bound to one version control system.
+\end_layout
+
+\begin_layout Standard
+Other option is to don't check validity in commit hooks but to use 
+\series bold
+independent service
+\series default
+ which monitors state of repository and runs tests either for every change
+ (commit) or on regular basis (night builds).
+ Benefits of this approach are that it doesn't slow down commits and tools
+ using this approach have frequently more features and better configurability.
+ These solutions are generally independent on version control system (support
+ for distinct version control systems are provided by plugins) but sometimes
+ use hooks to get alert upon change.
+\end_layout
+
+\begin_layout Standard
+Often this combination is used:
+\end_layout
+
+\begin_layout Itemize
+pre-commit hooks are used to enforce repository rules and coding conventions
+\end_layout
+
+\begin_layout Itemize
+separate service builds project (upon commit or nightly) and executes all
+ tests checking if change breaks something
+\end_layout
+
+\begin_layout Standard
+Pure commit driven environment when commit is delayed after all tests had
+ passed doesn't need presentation layer at all, there is just the error
+ message send to commiter.
+ But as this variant is rare, nearly all automation systems need 
+\series bold
+presentation
+\series default
+ layer.
+ The complexity vary from simple text (html) file statically served by web
+ server to rich database backed gui.
+ Standard tools offer html overview and detail pages.
+ Optionally there can be email, instant messaging notifiers.
+ Output formats tend to be plain text, sometimes there are output formats
+ readable by applications.
+\end_layout
+
+\begin_layout Subsection
 Distributed testing
+\end_layout
+
+\begin_layout Standard
+Testing doesn't need to be run on the same machine as control service.
+ When tests runs elsewhere we call it distributed testing.
+ In some cases it is possible to run many separate machinse each running
+ separate build and check service achieving nearly the same result.
+ But managing such system is huge overhead and collecting results is non
+ trivial too.
+\end_layout
+
+\begin_layout Paragraph
+There can be many reasons for distributing:
+\end_layout
+
+\begin_layout Standard
+It is crucial do distribute testing for 
+\series bold
+multiplatform applications
+\series default
+.
+ Bad code can behave badly only on one of target platforms and therefore
+ testing on only one platform can left errors undiscovered.
+ In this case distributed testing is the only way to cover specifics of
+ all platforms.
+\end_layout
+
+\begin_layout Standard
+Some tests or projects could be 
+\series bold
+dangerous
+\series default
+ to system itself or the project is part of base system.
+ These should run them in separation of production system in some sort of
+ sandbox.
+ As virtualization is nowadays easy to deploy, the best way (and in case
+ of base system parts the only way) to sandbox project tests in virtual
+ machine.
+ This must be considered as distributed testing too because the comunication
+ with virtual machine must be done in the same way as if the virtual machine
+ were in other network.
+ There are in general less security barriers between the host machine and
+ guest machine but it don't affect the connection method itself.
+\end_layout
+
+\begin_layout Standard
+Another reason for running tests on other machine can be 
+\series bold
+resource consumption
+\series default
+.
+ As the control system should be visible to wide network (at least the presentat
+ion layer) it is frequently run on production server which hosts other applicati
+ons too.
+ In this case it is not good idea to slow down or even block whole system
+ by tests.
+ Again tests are given to another machine to execute.
+\end_layout
+
+\begin_layout Standard
+time
+\end_layout
+
+\begin_layout Paragraph
+Distribution can be acchieved by:
+\end_layout
+
+\begin_layout Standard
+Sending commands through remote terminal.
+ For example on unix data could be copied to target machine by scp, tests
+ executed through ssh and results again retrieved through scp.
+ This is the easiest way used in simple cases where no synchronization or
+ overview is needed.
+ Data in general doesn't need to be delivered through the same way as commands.
+ Client can fetch them himself upon test command, or there can be shared
+ network storage where control server should put data for tests.
+\end_layout
+
+\begin_layout Standard
+Most common way to connect control server with machines executing tests
+ (sometimes called slaves or bots) is to use remote procedure call.
+ As remote procedure call we mean not only RPC but any method that allows
+ us to call procedures on remote system.
+ There are many rpc tools such as RPC, CORBA, dcom, python twisted, py.execnet,
+ etc.
+\end_layout
+
+\begin_layout Standard
+Sometimes own methods for communication is used, 
+\end_layout
+
+\begin_layout Standard
+something weird
+\end_layout
+
+\begin_layout Standard
+buildbot
+\end_layout
+
+\begin_layout Standard
+py.execnet
+\end_layout
+
+\begin_layout Standard
+ssh driven
 \end_layout
 
 \begin_layout Subsection
 Sandboxing
-\end_layout
-
-\begin_layout Subsection
-Automation
 \end_layout
 
 \begin_layout Subsection
@@ -1626,8 +1680,22 @@ python
 Used tools
 \end_layout
 
+\begin_layout Standard
+
+\series bold
+Testing environment
+\end_layout
+
+\begin_layout Standard
+nose
+\end_layout
+
 \begin_layout Paragraph
-Web result presentation
+Web result presentation and result repository
+\end_layout
+
+\begin_layout Standard
+django
 \end_layout
 
 \begin_layout Paragraph
@@ -1683,8 +1751,16 @@ key "Chainsaw"
 Build bot
 \end_layout
 
+\begin_layout Standard
+buildbot
+\end_layout
+
 \begin_layout Paragraph
 Documentation
+\end_layout
+
+\begin_layout Standard
+doxygen, new python docstring standard
 \end_layout
 
 \begin_layout Paragraph
@@ -1705,6 +1781,136 @@ Logging
  defined output format (what to include), default stdout, redirected to
  file, shm, network socket.
  support for configuration files
+\end_layout
+
+\begin_layout Subsection
+Tests
+\end_layout
+
+\begin_layout Standard
+C integration:
+\end_layout
+
+\begin_layout Standard
+- swig generate modules, then walk dir() and get by name
+\end_layout
+
+\begin_layout Standard
+- generate binaries by own tool (walk by elf reader)
+\end_layout
+
+\begin_layout Standard
+- generate binaries by own - walk by c parser
+\end_layout
+
+\begin_layout Standard
+- macro based mains with test indexes
+\end_layout
+
+\begin_layout Standard
+- separate binaries with make targets, etc...
+\end_layout
+
+\begin_layout Standard
+- tool generated binaries / search
+\end_layout
+
+\begin_layout Standard
+- extern static registry with registration function
+\end_layout
+
+\begin_layout Standard
+C integration flaws:
+\end_layout
+
+\begin_layout Standard
+- must be usable without test suite (shell driver)
+\end_layout
+
+\begin_layout Standard
+- must be easy to use
+\end_layout
+
+\begin_layout Standard
+- tests have to be easy to write
+\end_layout
+
+\begin_layout Standard
+- must handle dependencies
+\end_layout
+
+\begin_layout Standard
+cutest, 
+\end_layout
+
+\begin_layout Standard
+fork / don't fork
+\end_layout
+
+\begin_layout Standard
+what with system-dependent errors (nomemory, etc)? how to mock?
+\end_layout
+
+\begin_layout Standard
+macro / hand / grep 
+\end_layout
+
+\begin_layout Standard
+setup/teardown
+\end_layout
+
+\begin_layout Standard
+code layout (mixing or separating)
+\end_layout
+
+\begin_layout Standard
+collecting
+\end_layout
+
+\begin_layout Standard
+test framework code readability & flexibility (modular design)
+\end_layout
+
+\begin_layout Standard
+test framework maturity#
+\end_layout
+
+\begin_layout Standard
+!!ATTR and EXPR in nose 
+\end_layout
+
+\begin_layout Standard
+--with-stopwatch --faster-than 5
+\end_layout
+
+\begin_layout Standard
+--with-figleafsecions
+\end_layout
+
+\begin_layout Standard
+config by environment
+\end_layout
+
+\begin_layout Standard
+untestable test with comparision
+\end_layout
+
+\begin_layout Standard
+! when pickling, only names are written for code blocks (methods etc) so
+ before unpickling, the original module must be imported...
+\end_layout
+
+\begin_layout Standard
+the same (^) holds for class data (so be carefull when pickling class with
+ setup_class method)
+\end_layout
+
+\begin_layout Standard
+!!!! this disable pickling of random data....!!!!!
+\end_layout
+
+\begin_layout Standard
+__getstate__(), __setstate__()
 \end_layout
 
 \begin_layout Section
