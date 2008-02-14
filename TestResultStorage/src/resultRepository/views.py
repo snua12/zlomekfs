@@ -8,6 +8,8 @@ from django.core.paginator import ObjectPaginator, InvalidPage
 
 DEFAULT_PAGING = 20
 
+dataDir = 'data'
+""" relative html path where data files should be queried """
 
 testDetailDir = 'testDetail' 
 """ relative html path where details of tests should be queried """

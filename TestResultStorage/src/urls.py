@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import *
 from django.conf import settings
-from resultRepository.views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir
+from resultRepository.views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir, dataDir
 
 urlpatterns = patterns('',
     # Example:
@@ -15,8 +15,9 @@ urlpatterns = patterns('',
     (r'^' + projectListDir + '/$', 'TestResultStorage.resultRepository.projectViews.projectList'),
     (r'^admin/', include('django.contrib.admin.urls')),
     (r'^i18n/', include('django.conf.urls.i18n')),
+    #NOTE: this path is hardcoded in templates
     (r'^webMedia/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.WEB_MEDIA_ROOT}),
-    (r'^data/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
+    (r'^' + dataDir + '/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
 
 )
 

@@ -3,13 +3,18 @@ import os
 import datetime
 import socket
 import traceback
+import pickle
 
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData, Project, computeDuration
 
 log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 
 class ReportProxy(object):
-    targetDir = '/tmp'
+    try:
+        from TestResultStorage.settings import MEDIA_ROOT
+        dataDir = MEDIA_ROOT
+    except ImportError:
+        dataDir = '/tmp'
     
     
     startTimeAttr = "startTime"
@@ -81,14 +86,15 @@ class ReportProxy(object):
         
         runData = TestRunData()
         runData.runId = run
-        runData.backtrace = str(traceback.format_tb(failure.failure[2]))
-        runData.errText = str(traceback.format_exception_only(
-                failure.failure[0], failure.failure[1]))
+        runData.backtrace = pickle.dumps(traceback.format_tb(failure.failure[2]), protocol = 0)
+        log.debug("backtrace saved: %s", runData.backtrace)
+        runData.errText = traceback.format_exception_only(
+                failure.failure[0], failure.failure[1])[0]
         
         if hasattr(failure.test, "test") and hasattr(failure.test.test, "snapshotBuffer"):
-            for snapshot in failure.test.test.snapshotBuffer:
-                snapshot.pack(self.targetDir + os.sep + "failureSnapshot-" + str(failure) + "-" + str(id(snapshot)))
-                runData.dumpFile = self.targetDir + os.sep + "failureSnapshot-" + str(failure) + "-" + str(id(snapshot))
+            snapshot = failure.test.test.snapshotBuffer.pop()
+            snapshot.pack(self.dataDir + os.sep + "failureSnapshot-" + str(runData.id))
+            runData.dumpFile = "failureSnapshot-" + str(failure) + "-" + str(id(snapshot))
         
         
         runData.save()

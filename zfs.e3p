@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-3.9.dtd">
 <!-- Project file for project zfs -->
-<!-- Saved: 2008-02-04, 00:47:59 -->
+<!-- Saved: 2008-02-06, 00:24:40 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="3.9">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -188,6 +188,12 @@
       <Dir>resultRepository</Dir>
       <Name>batchViews.py</Name>
     </Source>
+    <Source>
+      <Dir>TestResultStorage</Dir>
+      <Dir>src</Dir>
+      <Dir>resultRepository</Dir>
+      <Name>testViews.py</Name>
+    </Source>
   </Sources>
   <Forms>
   </Forms>
@@ -282,9 +288,9 @@ s.</VcsOtherData>
   </Vcs>
   <FiletypeAssociations>
     <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
-    <FiletypeAssociation pattern="*.ui" type="FORMS" />
-    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
-    <FiletypeAssociation pattern="*.py" type="SOURCES" />
     <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
+    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
+    <FiletypeAssociation pattern="*.ui" type="FORMS" />
+    <FiletypeAssociation pattern="*.py" type="SOURCES" />
   </FiletypeAssociations>
 </Project>

@@ -11,7 +11,7 @@ from models import TestRun, TestRunData, BatchRun, TEST_RESULT_CHOICES
 from django.core.paginator import ObjectPaginator, InvalidPage
 from views import globalMenu, generateLink, DEFAULT_PAGING, formatDuration
 from views import generatePagination, generateAttrReleasementLinks
-from views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir
+from views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir, dataDir
 from batchViews import generateBatchDescription
 
 
@@ -139,8 +139,8 @@ def generateTestDescription(test):
             html += "</td></tr>"
         if item.dumpFile:
             html += "<tr valign=\"top\"><td>Snapshot</td>"
-            html += "<td>" + generateLink(baseUrl = "/" + MEDIA_ROOT + "/" + escape(item.dumpFile),
-                                                name = escape(item.dumpFile)) + "</td></tr>"
+            html += "<td>" + generateLink(baseUrl = "/" + dataDir + "/" + escape(item.dumpFile),
+                                                attrs = None, name = escape(item.dumpFile)) + "</td></tr>"
     html += "</table>"
     return html
     

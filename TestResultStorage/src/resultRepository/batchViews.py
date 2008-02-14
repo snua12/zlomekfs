@@ -3,6 +3,7 @@
 
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse
+from django.utils.html import escape
 from django.shortcuts import render_to_response, get_object_or_404
 from models import BatchRun, Project, TestRun
 from django.core.paginator import ObjectPaginator, InvalidPage
