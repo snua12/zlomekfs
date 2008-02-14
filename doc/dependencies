@@ -1,0 +1,30 @@
+libtool autoconf automake gettext gettext-devel
+kernel-devel dbus-1 dbus-1-devel libelf0 libelf0-devel
+pysvn
+TODO: buildbot packaging, revisions in rpm version
+
+buildslave should have full access to repo
+
+master:
+#create user
+useradd -d /home/buildmaster -s /bin/bash buildmaster
+chown buildmaster /home/buildmaster
+#install dependencies
+yum install buildbot python-sqlite2 mysql-server MySQL-python
+rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.noarch.rpm
+#enable mysql
+/sbin/chkconfig mysqld on
+#set root password for mysql
+/usr/bin/mysqladmin -u root password 'secret'
+/usr/bin/mysqladmin -u root -h bravo.vsln password 'secret'
+#create tables
+cat /usr/lib/python2.5/site-packages/TestResultStorage/prepare.sql | mysql --user=root --password=secret
+#checkout data
+su buildmaster
+cd /home/buildmaster
+svn checkout http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmaster zlofs
+#TODO: set init
+DJANGO_SETTINGS_MODULE=TestResultStorage.settings buildbot start zlofs 
+#set firewall (open 8010, 9989)
+system-config-firewall
+#TODO: selinux?
