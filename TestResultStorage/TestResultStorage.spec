@@ -16,7 +16,7 @@ Prefix: %{_prefix}
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 #TODO: switch kernel-source and kernel-devel according distro
-Requires: python-django-snapshot python
+Requires: python-django-snapshot python mysql-server MySQL-python
 
 %description
 Repo
