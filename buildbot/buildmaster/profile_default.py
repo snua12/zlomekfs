@@ -11,10 +11,9 @@ profile_default = {
             'STRESS_TEST_LENGTH' : '10',
             'STRESS_TESTS_BY_CLASS' : '1',
             'STRESS_RETRIES_AFTER_FAILURE' : '0',
-            'DJANGO_SETTINGS_MODULE' : 'settings',
+            'DJANGO_SETTINGS_MODULE' : 'TestResultStorage.settings',
             'NOSE_WITH_SNAPSHOTPLUGIN' : 'yes',
             'NOSE_WITH_ZFSREPORTPLUGIN' : 'yes',
-            'PYTHONPATH' : '/home/loki/skola/zfs/zouhar/zfs/tests/nose-tests',
                   }
 try:
     path = os.environ['PATH']

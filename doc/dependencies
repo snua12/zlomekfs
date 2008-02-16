@@ -19,12 +19,23 @@ rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.noarch.rpm
 /usr/bin/mysqladmin -u root -h bravo.vsln password 'secret'
 #create tables
 cat /usr/lib/python2.5/site-packages/TestResultStorage/prepare.sql | mysql --user=root --password=secret
+cd /usr/lib/python2.5/site-packages/TestResultStorage
+python manage.py syncdb
 #checkout data
 su buildmaster
 cd /home/buildmaster
-svn checkout http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmaster zlofs
+svn export http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmaster zlofs
 #TODO: set init
 DJANGO_SETTINGS_MODULE=TestResultStorage.settings buildbot start zlofs 
 #set firewall (open 8010, 9989)
-system-config-firewall
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 8010 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 9989 -j ACCEPT
 #TODO: selinux?
+#configure bot links
+#configure services to start at boot
+
+
+slave:
+#configure bots (settings, cfg)
+#install all rpms (or build projects in proper order)
+#configure services
