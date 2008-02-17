@@ -53,8 +53,14 @@ class ZfsProxy(object):
             raise Exception(modprobe.stdout.readlines()) #FIXME: accurate exception
             
     def makeDirs(self):
-        os.makedirs(self.zfsRoot)
-        os.makedirs(self.tempDir)
+        try:
+            os.makedirs(self.zfsRoot)
+        except OSError: #exists
+            pass
+        try:
+            os.makedirs(self.tempDir)
+        except OSError: #exists
+            pass
         
     def removeModules(self):
         Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
