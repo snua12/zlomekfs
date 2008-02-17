@@ -46,7 +46,8 @@ rm -rf %RPM_BUILD_ROOT
 /usr/lib/libsyplog.so
 /usr/lib/libsyplog.a
 /usr/include/syplog/*
-/etc/dbus-1/system.d/syplog.conf
+%config /etc/dbus-1/system.d/syplog.conf
 
 %files doc
-/usr/share/doc/syplog/*
+%docdir /usr/share/doc/syplog/
+/usr/share/doc/syplog/

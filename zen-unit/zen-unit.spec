@@ -45,5 +45,6 @@ rm -rf %{buildroot}
 
 
 %files doc
-/usr/share/doc/zen-unit/*
+%docdir /usr/share/doc/zen-unit/
+/usr/share/doc/zen-unit/
 

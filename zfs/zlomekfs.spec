@@ -33,21 +33,21 @@ rm -rf %{buildroot}
 
 %files
 /dev/fuse
-/etc/dbus-1/system.d/zfsd.conf
-/etc/udev/rules.d/99-fuse.rules
-/etc/zfs/config
-/etc/zfs/this_node
-/etc/zfs/volume_info
+%config /etc/dbus-1/system.d/zfsd.conf
+%config /etc/udev/rules.d/99-fuse.rules
+%config /etc/zfs/config
+%config /etc/zfs/this_node
+%config /etc/zfs/volume_info
 /sbin/mount.fuse
 /usr/bin/dump-intervals
 /usr/bin/dump-metadata
 /usr/include/zfsd/dbus-service-descriptors.h
 /usr/sbin/zfsd
-/var/zfs/zfs_config/group_list
-/var/zfs/zfs_config/user_list
-/var/zfs/zfs_config/volume_list
-/var/zfs/zfs_config/node_list
-/var/zfs/zfs_config/group/*
-/var/zfs/zfs_config/user/*
-/var/zfs/zfs_config/volume/*
-/var/zfs/zfs_root
+%config /var/zfs/zfs_config/group_list
+%config /var/zfs/zfs_config/user_list
+%config /var/zfs/zfs_config/volume_list
+%config /var/zfs/zfs_config/node_list
+%config /var/zfs/zfs_config/group/*
+%config /var/zfs/zfs_config/user/*
+%config /var/zfs/zfs_config/volume/*
+%config /var/zfs/zfs_root

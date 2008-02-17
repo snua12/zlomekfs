@@ -16,7 +16,7 @@ Prefix: %{_prefix}
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 #TODO: switch kernel-source and kernel-devel according distro
-Requires: python-django-snapshot python mysql-server MySQL-python
+Requires: python-django-snapshot python MySQL-python
 
 %description
 Repo
@@ -36,6 +36,7 @@ DESTDIR=%{buildroot} make install-data
 rm -rf %{buildroot}
 
 %files -f INSTALLED_FILES
+%config /usr/lib/python2.5/site-packages/TestResultStorage/settings.py
 /var/lib/TestResultStorage/templates/resultRepository/default_page.html
 /var/lib/TestResultStorage/templates/resultRepository/batchrun_detail.html
 /var/lib/TestResultStorage/templates/resultRepository/batchrun_list.html
@@ -43,6 +44,6 @@ rm -rf %{buildroot}
 /var/lib/TestResultStorage/templates/resultRepository/testrun_list.html
 /var/lib/TestResultStorage/templates/resultRepository/project_list.html
 /var/lib/TestResultStorage/webMedia/style.css
-/var/lib/TestResultStorage/data
+%dir /var/lib/TestResultStorage/data
 
 %defattr(-,root,root)
