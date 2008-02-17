@@ -16,7 +16,7 @@ BuildArch: noarch
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
 BuildRequires: python-setuptools
-Requires: TestResultStorage python py25_pysvn_svn144
+Requires: TestResultStorage python py25_pysvn_svn144 python-nose
 
 %description
 plugins
