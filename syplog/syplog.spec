@@ -43,9 +43,9 @@ DESTDIR=%{buildroot} make install install-doc
 rm -rf %RPM_BUILD_ROOT
 
 %files
-/usr/lib/libsyplog.so
-/usr/lib/libsyplog.a
-/usr/include/syplog/*
+%{_libdir}/libsyplog.so
+%{_libdir}/libsyplog.a
+%{_includedir}/syplog/*
 %config /etc/dbus-1/system.d/syplog.conf
 
 %files doc

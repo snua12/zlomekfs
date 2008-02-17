@@ -28,6 +28,13 @@ INSTALL = install
 
 PREFIX ?= /usr
 
+arch:= $(shell arch)
+ifeq (x86_64,$(arch))
+	libdir = $(PREFIX)/lib64
+else
+	libdir = $(PREFIX)/lib
+endif
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
@@ -71,20 +78,20 @@ libsyplog.so: $(OO_SYPLOG_SO)
 
 
 install: libsyplog.a libsyplog.so
-	mkdir -p $(DESTDIR)/$(PREFIX)/lib
+	mkdir -p $(DESTDIR)/$(libdir)
 	mkdir -p $(DESTDIR)/$(PREFIX)/include/syplog
 	mkdir -p $(DESTDIR)/$(PREFIX)/include/syplog/formatters
 	mkdir -p $(DESTDIR)/$(PREFIX)/include/syplog/control
 	mkdir -p $(DESTDIR)/$(PREFIX)/include/syplog/media
-	$(INSTALL) -m 755 libsyplog.a libsyplog.so -t $(DESTDIR)/$(PREFIX)/lib
+	$(INSTALL) -m 755 libsyplog.a libsyplog.so -t $(DESTDIR)/$(libdir)
 	$(INSTALL) -m 444  *.h -t $(DESTDIR)/$(PREFIX)/include/syplog
 	$(INSTALL) -m 444  formatters/*.h -t $(DESTDIR)/$(PREFIX)/include/syplog/formatters
 	$(INSTALL) -m 444  control/*.h -t $(DESTDIR)/$(PREFIX)/include/syplog/control
 	$(INSTALL) -m 444  media/*.h -t $(DESTDIR)/$(PREFIX)/include/syplog/media
 
 uninstall:
-	-rm -f $(DESTDIR)/$(PREFIX)/lib/libsyplog.a
-	-rm -f $(DESTDIR)/$(PREFIX)/lib/libsyplog.so
+	-rm -f $(DESTDIR)/$(libdir)/libsyplog.a
+	-rm -f $(DESTDIR)/$(libdir)/libsyplog.so
 	-rm -rf $(DESTDIR)/$(PREFIX)/include/syplog
 
 clean:
