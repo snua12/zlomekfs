@@ -2,7 +2,7 @@
 from twisted.application import service
 from buildbot.master import BuildMaster
 
-basedir = r'/globalhome/buildmaster/zlofs'
+basedir = r'/home/buildmaster/zlofs'
 configfile = r'master.cfg'
 
 application = service.Application('buildmaster')
