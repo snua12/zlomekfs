@@ -51,6 +51,10 @@ class ZfsProxy(object):
         modprobe.wait()
         if modprobe.returncode != 0:
             raise Exception(modprobe.stdout.readlines()) #FIXME: accurate exception
+            
+    def makeDirs(self):
+        os.makedirs(self.zfsRoot)
+        os.makedirs(self.tempDir)
         
     def removeModules(self):
         Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
@@ -83,6 +87,7 @@ class ZfsProxy(object):
         
     def runZfs(self):
         self.killall() #destroy previous zfsd instances
+        self.makeDirs()
         self.unpackData()
         self.installModules()
         loglevel = pysyplog.LOG_LOOPS
