@@ -15,7 +15,7 @@ ExclusiveOS: linux
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildArch: noarch
 
-BuildRequires: dbus-devel
+BuildRequires: dbus-devel python-setuptools
 Requires: python syplog dbus
 
 %description

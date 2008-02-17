@@ -11,7 +11,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 Exclusiveos: linux
 #TODO: switch kernel-source and kernel-devel according distro
-BuildPrereq: dbus-devel syplog kernel-devel libtool autoconf automake gettext-devel
+BuildRequires: dbus-devel syplog kernel-devel libtool autoconf automake gettext-devel
 Requires: dbus libpthread.so.0 syplog gettext
 # we don't want to install all fuse files
 %define _unpackaged_files_terminate_build 0 

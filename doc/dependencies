@@ -34,12 +34,24 @@ DJANGO_SETTINGS_MODULE=TestResultStorage.settings buildbot start zlofs
 #TODO: selinux?
 #configure bot links
 #configure services to start at boot
+# for example add this line to crontab:
+# @reboot make start -C /home/buildmaster/zlofs
 
 
 slave:
 #get and install pysvn http://pysvn.tigris.org/
-yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel libtool autoconf automake gettext gettext-devel
-rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm
+yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel libtool autoconf automake gettext gettext-devel python-setuptools
+rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm py25_pysvn_svn144-*.rpm
+# change /usr/lib/python2.5/site-packages/TestResultStorage/settings.py to store data on master
+# create user
+useradd -d /home/buildslave -s /bin/bash buildslave
+#export config
+svn export https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildslave zlofs
+# change zlofs/buildbot.tac to connect to actual master with accurate auth
+# configure services to start at boot
+# for example add this line to crontab:
+# @reboot buildbot start /home/buildslave/zlofs
+
 
 #configure bots (settings, cfg)
 #install all rpms (or build projects in proper order)

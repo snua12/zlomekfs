@@ -10,7 +10,7 @@ Prefix: %{_prefix}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Exclusiveos: linux
 #TODO: switch kernel-source and kernel-devel according distro
-BuildPrereq: dbus-devel zlomekfs
+BuildRequires: dbus-devel zlomekfs python-setuptools
 Requires: dbus libpthread.so.0
 
 %description
