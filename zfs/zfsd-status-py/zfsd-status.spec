@@ -30,5 +30,5 @@ python setup.py install --single-version-externally-managed --record=INSTALLED_F
 rm -rf %{buildroot}
 
 %files -f INSTALLED_FILES
-/usr/lib/python2.5/site-packages/zfsd_status.pyo
+%{_libdir}/python2.5/site-packages/zfsd_status.pyo
 %defattr(-,root,root)

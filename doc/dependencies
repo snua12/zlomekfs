@@ -42,6 +42,7 @@ slave:
 #get and install pysvn http://pysvn.tigris.org/
 yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel libtool autoconf automake gettext gettext-devel python-setuptools python-nose
 rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm py25_pysvn_svn144-*.rpm
+# bootstrap all projects by stable rpms
 # change /usr/lib/python2.5/site-packages/TestResultStorage/settings.py to store data on master
 # create user
 useradd -d /home/buildslave -s /bin/bash buildslave
