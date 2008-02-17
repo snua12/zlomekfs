@@ -114,6 +114,7 @@ class ZfsProxy(object):
             if zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING:
               break
         if zfsd_status.ping_zfsd() != zfsd_status.ZFSD_STATE_RUNNING:
+            self.killall() #be sure that we don't leave orphans
             raise Exception("Zfsd doesn't start")
         self.running = True
         self.connectControl()
