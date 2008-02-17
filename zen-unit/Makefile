@@ -29,6 +29,13 @@ ifeq ($(REVISION),)
 	REVISION = 0
 endif
 
+arch:= $(shell arch)
+ifeq (x86_64,$(arch))
+	libdir = $(PREFIX)/lib64
+else
+	libdir = $(PREFIX)/lib
+endif
+
 #svnversion | sed -e 's/\([0-9]*\).*/\1/'`
 
 INSTALL = install 
@@ -61,13 +68,13 @@ clean:
 	rm -f zen-unit-*.tar.gz
 
 install: lib include/zen-unit.h
-	mkdir -p $(DESTDIR)/$(PREFIX)/lib
+	mkdir -p $(DESTDIR)/$(libdir)
 	mkdir -p $(DESTDIR)/$(PREFIX)/include
-	$(INSTALL) -m 755 src/libzen-unit.so -t $(DESTDIR)/$(PREFIX)/lib
+	$(INSTALL) -m 755 src/libzen-unit.so -t $(DESTDIR)/$(libdir)
 	$(INSTALL) -m 444 include/zen-unit.h -t $(DESTDIR)/$(PREFIX)/include
 
 uninstall: 
-	-rm -f $(DESTDIR)/$(PREFIX)/lib/libzen-unit.so
+	-rm -f $(DESTDIR)/$(libdir)/libzen-unit.so
 	-rm -f $(DESTDIR)/$(PREFIX)/include/zen-unit.h
 
 

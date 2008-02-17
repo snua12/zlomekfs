@@ -37,8 +37,8 @@ DESTDIR=%{buildroot} make install install-doc
 rm -rf %{buildroot}
 
 %files
-/usr/lib/libzen-unit.so
-/usr/include/zen-unit.h
+%{_libdir}/libzen-unit.so
+%{_includedir}/zen-unit.h
 /usr/share/man/man3/zen-unit.h.3.gz
 /usr/share/man/man3/ZEN_ASSERT.3.gz
 /usr/share/man/man3/ZEN_TEST.3.gz
