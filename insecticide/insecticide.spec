@@ -15,7 +15,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildArch: noarch
 Prefix: %{_prefix}
 #TODO: switch kernel-source and kernel-devel according distro
-Requires: TestResultStorage python py25_pysvn_svn144.i386
+Requires: TestResultStorage python py25_pysvn_svn144
 
 %description
 plugins
