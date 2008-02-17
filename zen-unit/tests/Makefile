@@ -27,7 +27,7 @@ PROJECT_ROOT=`pwd`/..
 CC = gcc
 CC_OPTS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef \
-	-I${PROJECT_ROOT}/include
+	-I${PROJECT_ROOT}/includev -fPIC
 
 LD = gcc
 
