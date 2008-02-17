@@ -25,6 +25,7 @@ python manage.py syncdb
 su buildmaster
 cd /home/buildmaster
 svn export http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmaster zlofs
+# tweak zlofs/master.cfg zlofs/buildbot.tac to reflect actual settings
 #TODO: set init
 DJANGO_SETTINGS_MODULE=TestResultStorage.settings buildbot start zlofs 
 #set firewall (open 8010, 9989)
