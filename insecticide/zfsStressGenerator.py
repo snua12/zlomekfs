@@ -1,3 +1,5 @@
+""" Module with stress generator plugin for nose """
+
 import logging
 import textwrap
 import os
@@ -33,103 +35,191 @@ fixtureMethods = [
                                'teardownAll', 'tearDownClass', 'tearDownAll' ,
                                'snapshot', 'resume'
                              ]
+""" method names that are considered as non-tests by default """
 
 class MetaTestCollector(object):
+    """ Class which collects meta tests from classes and returns them as list of attribute names. """
     map = {}
-    
+    """ map of class : methodList pairs"""
+    #NOTE: we rely on attrib plugin assuming that no disabled test method goes to stress plugin 
+    #   and on stress plugin to give us meta methods before asking for collection.
+    #   Since this is valid and saved paths are loaded with method list, it works well.
     def isMetaClass (self,  cls):
+        """ Tests if class is meta class (should contain meta tests
+            
+            :Parameters:
+                cls: class object to check
+            :Return:
+                True if is metaclass, False otherwise
+        """
         return getattr(cls, StressGenerator.metaAttrName,  False)
     
     def add(self,  method):
+        """ Adds method to list of meta tests for class
+        
+        :Parameters:
+            method: method object
+        """
         classRow = self.map.get(method.im_class,  [])
         classRow.append(method.__name__)
         self.map[method.im_class] = classRow
     
     def getClassMethods(self,  cls):
+        """ Returns methods recognized as meta for given class
+        
+        :Parameters:
+            cls: class object
+        :Return:
+            list of attribute names (strings) which are recognized as meta methods for given class
+        """
         return self.map.get(cls,  None)
 
 class StressGenerator(Plugin):
 #FIXME: be robust against invalid meta classes (and report failures)
-    """ ZFS stress test generator.
-        testsByClass - how many stress tests will be generated from one class
-        maxTestLength - maximum length of stress test (how many metatest executions)
-        stopProbability - probability of terminating stress test after any metatest (in addition to dependencyGraph)
-            0.1 means 10% to stop
+    """ ZFS stress test generator. 
+        Plugin for nose. If enabled, tries to find meta tests inside classes 
+        and generate chains from them. If there are some failed chains 
+        from past, plugin tries to load them too.
+        
+        :Configuration Options:
+            stressTestsByClass: how many stress tests will be generated from one class
+            stressTestLength: maximum length of stress test (how many metatest executions)
+            stressRetriesAfterFailure: how many times try to prune test after failure
+            commitSavedPaths: if saved path is generated, plugin adds it to subversion. 
+                When this option is enabled, it commits all saved paths after batch finalization.
+            stopProbability: probability of terminating stress test after any metatest 
+                (in addition to dependencyGraph) 0.1 means 10% to stop
+                
+            All options have both environment and parameter configuration option,
+            parameter is always stronger.
+            
+        .. See: nose plugin interface
     """
     # enable related variables
     can_configure = False
+    """ If configuration options should be used 
+        (mainly used for blocking if there is option collision) 
+        
+        .. See: nose plugin interface
+    """
     enabled = False
+    """ If this plugin is enabled (should be False by default) 
+        
+        .. See: nose plugin interface
+    """
+    
     enableOpt = None
+    """ Option name for enabling this plugin, if None, default will be used 
+        
+        .. See: nose plugin interface
+    """
     
     # plugin name
     name = "ZfsStressGenerator"
-
+    """ Name used to identify this plugin in nose
+        
+        .. See: nose plugin interface
+    """
+    
     # to be sure to run AFTER attrib plugin
     score = 6
+    """ Plugin ordering field within nose, used in descending order 
+        
+        .. See: nose plugin interface
+    """
     
     # maxTestLength related variables
-    # option string for passing max stress test length to plugin
     maxTestLengthOpt = "--stressTestLength"
-    # environment variable from which default max stress test length
-    # should be read
+    """ option string for passing max stress test length to plugin """
+    
     maxTestLengthEnvOpt = "STRESS_TEST_LENGTH"
-    # max length of stress test (in meta test executions)
+    """  Environment variable from which default max stress test length
+        should be read.
+    """
     maxTestLength = 100
+    """ Max length of stress test (in meta test executions) """
     
-
-    # command line option for testsByClass
+    # testsByClass related variables
     testsByClassOpt = "--stressTestsByClass"
-    # environment variable name  for testsByClass
+    """ Command line option for testsByClass """
+    
     testsByClassEnvOpt = "STRESS_TESTS_BY_CLASS"
-    # maximum stress test chains generated for one class
+    """ Environment variable name  for testsByClass """
+    
     testsByClass = 2
+    """ Maximum stress test chains generated for one class"""
     
-    # command line option for retriesAfterFailure
+    # retriesAfterFailure related variables
     retriesAfterFailureOpt = "--stressRetriesAfterFailure"
-    # environment variable name  for retriesAfterFailure
-    retriesAfterFailureEnvOpt = "STRESS_RETRIES_AFTER_FAILURE"
-    # how many times we should try to prune the chain and rerun
-    retriesAfterFailure = 3
+    """ Command line option for retriesAfterFailure """
     
-    # command line option for commitSavedPaths
+    retriesAfterFailureEnvOpt = "STRESS_RETRIES_AFTER_FAILURE"
+    """ Environment variable name  for retriesAfterFailure"""
+    
+    retriesAfterFailure = 3
+    """ How many times we should try to prune the chain and rerun """
+    
+    # commitSavedPaths related variables
     commitSavedPathsOpt = "--commitSavedPaths"
-    # environment variable name  for retriesAfterFailure
+    """ Command line option for commitSavedPaths """
+    
     commitSavedPathsEnvOpt = "COMMIT_SAVED_PATHS"
-    # indicates if saved failed stress tests should be commited into repo
+    """ Environment variable name  for retriesAfterFailure """
+    
     commitSavedPaths = False
+    """ Indicates if saved failed stress tests should be commited into repo """
     
     
     # unconfigurable variables
     stopProbability = 0
+    """ Probability of terminating chain after test. 0.1 means 10% """
+    
     useShortestPath = True
+    """ If use shortest path algorithm when prunning failed stress chains """
+    
+    # savedPath related variables
     savedPathDir = os.path.join( os.getcwd(), 'savedPaths')
+    """  Directory where to put saved paths for failed chains. """
+    
     savedPathSuffix = '.savedPath'
+    """ Filename suffix for saved path files. """
+    
     savedPathRegex = re.compile(r'.*%s$' % savedPathSuffix)
+    """ Regex which must match for filename to be considered as saved path. """
+    
     fromSavedPathAttr = 'fromSavedPath'
-
+    """ Attribute name which is set for chain if chain was loaded from saved path """
     
-    # name of attribute which says if test is meta
+    stopContextAttr = 'stopContext'
+    """ Name of attribute that should be checked for on test case object. If set to true,
+        suite should stop and skip remaining cases.
+    """
+    
     metaAttrName = "metaTest"
-    metaTestCollector = MetaTestCollector()
-    svnClient = pysvn.Client()
-    reportProxy = ReportProxy()
+    """ Name of attribute which says if class (method) is meta """
     
-    # generated chains - have to be appended to root case before run
+    metaTestCollector = MetaTestCollector()
+    """ MetaTestCollector class instance. Used for collecting meta methods. """
+    
+    svnClient = pysvn.Client()
+    """ Pysvn svn client instance. Used for adding saved paths into subversion. """
+    
+    reportProxy = ReportProxy()
+    """ Report proxy object used for reporting chain successes or failures """
+    
+    
     chainQueue = []
-    # queue of pruned chains for next run
-    rerunQueue = []
-
+    """ List of generated chains, have to be appended to root case before run. """
+    
     def __init__(self):
         Plugin.__init__(self)
     
     def addOptions(self, parser, env=os.environ):
-        #for backward conpatibility
+        # for backward conpatibility
         self.add_options(parser, env)
         
     def add_options(self, parser, env=os.environ):
-        """Non-camel-case version of func name for backwards compatibility.
-        """
-        # FIXME raise deprecation warning if wasn't called by wrapper 
+        # Non-camel-case version of func name for backwards compatibility.
         try:
             self.options(parser, env)
             self.can_configure = True
@@ -140,9 +230,10 @@ class StressGenerator(Plugin):
             self.can_configure = False
             
     def options(self, parser, env=os.environ):
-        """New plugin API: override to just set options. Implement
-        this method instead of addOptions or add_options for normal
-        options behavior with protection from OptionConflictErrors.
+        """ Adds options for this plugin: maxTestLength, testsByClass,
+            retriesAfterFailure, commitSavedPaths.
+            
+            .. See: nose plugin interface
         """
         Plugin.options(self,  parser,  env)
         
@@ -184,10 +275,11 @@ class StressGenerator(Plugin):
         
     
     def configure(self, options, conf):
-        """Configure the plugin and system, based on selected options.
-        
-        The base plugin class sets the plugin to enabled if the enable option
-        for the plugin (self.enableOpt) is true.
+        """ Checks options for this plugin: enableOpt, maxTestLength, 
+            testsByClass, retriesAfterFailure, commitSavedPaths 
+            and configure plugin according them.
+            
+            .. See: nose plugin interface
         """
         Plugin.configure(self,  options,  conf)
         if not self.can_configure:
@@ -219,6 +311,8 @@ class StressGenerator(Plugin):
     def help(self):
         """Return help for this plugin. This will be output as the help
         section of the --with-$name option that enables the plugin.
+        
+        .. See: nose plugin interface
         """
         if self.__class__.__doc__:
             # doc sections are often indented; compress the spaces
@@ -226,6 +320,11 @@ class StressGenerator(Plugin):
         return "(no help available)"
     
     def wantMethod(self,  method):
+        """ Returns False if method is meta to block
+            running of meta tests as normal.
+            
+            .. See: nose plugin interface
+        """
         if hasattr(method,  self.metaAttrName):
             isMeta = getattr(method,  self.metaAttrName)
         else: #collect all methods from "metaClasses" except fixtures
@@ -239,14 +338,26 @@ class StressGenerator(Plugin):
         return
         
     def wantFile(self, file):
+        """ Tests if files are saved paths and returns true if so. 
+            
+            .. See: nose plugin interface
+        """
         log.debug('queried for file %s', file)
         return self.savedPathRegex.match(file)
         
     def loadTestsFromFile(self, filename):
+        """ Try to load chain from saved path file.
+            Store them into queue, they should be appended at the end.
+            
+            .. See: nose plugin interface
+        """
+        
+        # ignore non saved paths
         log.debug('queried to load tests from file %s', filename)
         if not self.savedPathRegex.match(filename):
             return None
         
+        # load saved path from file
         (cls, methodSequence) = ChainedTestCase.getMethodSequenceFromSavedPath(filename)
         if methodSequence:
             suite = self.wrapMethodSequence(cls, methodSequence,
@@ -256,6 +367,11 @@ class StressGenerator(Plugin):
         return [False]
         
     def loadTestsFromTestClass(self,  cls):
+        """ Yields chains from test class if possible. 
+            They will be stored in queue for append just before main run starts.
+            
+            .. See: nose plugin interface
+        """
         log.debug("generating stress tests from class %s methods", cls)
         allowedMethods = self.metaTestCollector.getClassMethods(cls)
         log.debug("allowedMethods %s?",allowedMethods)
@@ -267,6 +383,13 @@ class StressGenerator(Plugin):
         
     
     def monkeyPatchSuite(self, suite):
+        """ Patches suite object (its class) switching 'run' method to stop when
+            stopContext flag on test is found. This is needed for stopping chain after
+            failure and not running remaining meta tests.
+            
+            :Parameters:
+                suite: nose context suite object
+        """
         def runWithStopSuiteOnTestFail(self, result):
             #NOTE: keep this in sync with nose.suite.ContextSuite.run
             # proxy the result for myself
@@ -291,8 +414,9 @@ class StressGenerator(Plugin):
                     # chains
                     test(orig)
                     
-                    if getattr(test,'stopContext', None):
-                        test.stopContext = None
+                    from insecticide.zfsStressGenerator import StressGenerator
+                    if getattr(test, StressGenerator.stopContextAttr, None):
+                        setattr(test, StressGenerator.stopContextAttr, None)
                         break;
             finally:
                 self.has_run = True
@@ -305,6 +429,16 @@ class StressGenerator(Plugin):
         setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
 
     def generateOneStress(self, cls, allowedMethods):
+        """ Generates stress test suite from test class and list of allowed methods.
+            
+            :Parameters:
+                cls: class object for which stress chain should be created
+                allowedMethods: list of names of methods (string form)
+                    which should be considered as meta on class
+            
+            :Return:
+                None. Chain suite will be appended to self.chainQueue.
+        """
         if not allowedMethods:
             return None
         
@@ -325,6 +459,15 @@ class StressGenerator(Plugin):
 
     
     def generateFromClass(self,  cls,  allowedMethods):
+        """ Generate self.testsByClass chains for given class
+            
+            :Parameters:
+                cls: class object for which chains should be created
+                allowedMethods: method list (in string form) which to consider as meta
+                
+            :Return: 
+                None. Suites will be appended to self.chainQueue.
+        """
         tests = []
         for i in range(0, self.testsByClass):
             test = self.generateOneStress(cls, allowedMethods)
@@ -333,13 +476,24 @@ class StressGenerator(Plugin):
         return tests
         
     def wrapMethodSequence(self, cls, methodSequence, carryAttributes = None):
+        """
+            :Parameters:
+                cls: class for which suite (chain) should be created
+                methodSequence: ordered list of meta tests (string form) in order in which they should run in chan.
+                carryAttributes: map of attributeName : value. 
+                    Attributes that will be set on every test case object to given value.
+                    Used to carry snapshot buffers, failure buffers and so on.
+            
+            :Return:
+                nose context suite object
+        """
         log.debug("wrapping method sequence %s for stress testing"
                         "from class %s",  methodSequence,  cls)
         inst = cls()
         testCases = []
         
-        '''
-        for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
+        # this was code that has created one case for every meta test
+        '''for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
             theCase = ChainedTestCase(instance = inst, method = methodSequence[i],
                                             chain = methodSequence, index = i) 
             if carryAttributes:
@@ -368,8 +522,13 @@ class StressGenerator(Plugin):
             return suite
         return None
 
-        
-    def prepareTest(self, test): #for THE onle root testcase
+    # called once for THE one root testcase
+    def prepareTest(self, test):  
+        """ Apends chained test cases from classes or saved paths
+            into queue. Wrap them into special suite for better handling
+            
+            .. See: nose plugin interface
+        """
         self.rootCase = test
         #for chain in self.chainQueue:
         #    self.rootCase.addTest(chain)
@@ -378,6 +537,16 @@ class StressGenerator(Plugin):
         self.rootCase = wrapper
     
     def prune(self, test):
+        """ Prune stress test chain. 
+            Try to find shorter sequence from first method to last used (where index points to).
+            It could use other methods that listed in chain too.
+            The only pruning method used now is shortest path. If disabled, returns chain itself.
+            
+            :Parameters:
+                test: ChainedTestCase instance with index set to last method that should be used in chain
+            :Return:
+                ordered list of methods - shorter path between first and indexed method. 
+        """
         if self.useShortestPath:
             allowedMethods = self.metaTestCollector.getClassMethods(test.cls)
             log.debug("allowedMethods %s?",allowedMethods)
@@ -389,9 +558,14 @@ class StressGenerator(Plugin):
                 raise Exception ("sys error: we don't find existing path")
             return path
         
-        return test.chain
+        return test.chain[:test.index + 1] # TODO: check if boundary is correct
     
     def retry(self, test):
+        """ Query test for retry.
+            
+            :Parameters:
+                test: ChainedTestCase instance
+        """
         log.debug("query %s for retry", str(test))
         #self.rerunQueue.append(test)
         carry = {}
@@ -405,6 +579,14 @@ class StressGenerator(Plugin):
         self.rootCase.addTest(suite)
         
     def storePath(self, test):
+        """ Store path of failed stress test. Test will be stored to file
+            using it's method generateSavedPath.
+            Saved path file will be added to subversion (if possible).
+            
+            :Parameters:
+                test: ChainedTestCase instance
+        """
+        
         log.debug("trying to store %s", str(test))
         try:
             os.mkdir(self.savedPathDir)
@@ -413,22 +595,40 @@ class StressGenerator(Plugin):
             log.debug("storing path for %s failed: %s", str(test), format_exc())
             pass
         except pysvn._pysvn_2_5.ClientError:
-            log.debug("storing path for %s failed: %s", str(test), format_exc())
+            log.debug("creating stored path dir for %s failed: %s", str(test), format_exc())
             pass # under control
         (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir,
                                             prefix = test.inst.__class__.__name__,
                                             suffix = self.savedPathSuffix)
         test.generateSavedPath(fileName)
         # write a file foo.txt
-        self.svnClient.add (fileName)
+        try:
+            self.svnClient.add (fileName)
+        except pysvn._pysvn_2_5.ClientError:
+            log.debug("storing failed due to svn error: %s", format_exc())
+            pass
         
        
     def isChainedTestCase(self, test):
+        """ Checks if test is ChainedTestCase
+        
+            :Parameters:
+                test: TestCase instance
+                
+            :Return:
+                True if instance of ChainedTestCase, False otherwise
+        """
         if test.__class__ is ChainedTestCase:
             return True
         return False
     
-    def handleFailure(self, test, err):
+    def handleFailure(self, test, err, error = False):
+        """ Catches stress test failure. Blocks all subsequent plugins 
+            from seeing it (non stress failures are ignored).
+            If retries are allowed, calls retry, if not saves path.
+            
+            .. See: nose plugin interface
+        """
         testInst = getattr(test, "test", None)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
@@ -437,7 +637,7 @@ class StressGenerator(Plugin):
             if self.isChainedTestCase(testInst):
                 log.debug("catched stress test failure (%s)",  testInst)
                 log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
-                setattr(test,  'stopContext',  True)
+                setattr(test,  stopContextAttr,  True)
                 log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
                 testInst.failureBuffer.append(ZfsTestFailure(test, err))
                 if len(testInst.failureBuffer) <= self.retriesAfterFailure:
@@ -448,9 +648,18 @@ class StressGenerator(Plugin):
                         self.storePath(testInst)
         return False
     
-    handleError = handleFailure
+    def handleError (self, test, err):
+        """ Calls handleFailure with flag that this is error.
+            
+            .. See: nose plugin interface
+        """
+        return self.handleFailure (test, err, error = True)
     
-    def addFailure(self, test, err):
+    def addFailure(self, test, err, error = False):
+        """ Reports stress test failure. Blocks subsequent plugins from seeing it.
+            
+            .. See: nose plugin interface
+        """
         testInst = getattr(test, "test", None)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
@@ -461,9 +670,20 @@ class StressGenerator(Plugin):
                 self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
                 return True
     
-    addError = addFailure
+    def addError(self, test, err):
+        """ Calls addFailure with flag that this is error. 
+            
+            .. See: nose plugin interface
+        """
+        return self.addFailure(test, err, error = True)
     
     def addSuccess(self, test):
+        """ Reports stress test success if this is first pass.
+            If subsequent call of failed test is detected, reports failure from last run instead.
+            Blocks subsequent plugins from seeing stress success (other tests are ignored).
+            
+            .. See: nose plugin interface
+        """
         testInst = getattr(test, "test", None)
         if not testInst:
             log.error("unexpected attr in addSuccess,  doesn't have test attr")
@@ -487,12 +707,26 @@ class StressGenerator(Plugin):
         
     @classmethod
     def generateDescription(self, test):
+        """ Generate description for ChainedTestCase.
+            Since chain is not described sufficiently by it's name, we should
+            generate special strings for testName and description for TestResultStorage.
+            
+            :Parameters:
+                test: ChainedTestCase instance
+            
+            :Return:
+                tuple (testName, description) strings. First is short test name, second longer description.
+        """
         if test.test.__class__ is ChainedTestCase:
             testName = "Chain for " + test.test.cls.__name__
             description = "Method sequence: " + str(test.test.chain)
         return (testName, description)
     
     def finalize(self, result):
+        """ Commits saved paths (if any) if enabled into repository
+            
+            .. See: nose plugin interface
+        """
         log.debug("finalizing")
         if self.commitSavedPaths:
             try:
@@ -502,9 +736,22 @@ class StressGenerator(Plugin):
         
 
 class ChainedTestCase(MethodTestCase):
+    """ Wrapper class for chained cases. One instance serve
+        for all tests in chain, current possition is given by index.
+    """
     failureBuffer = []
+    """ Buffer of failures (insecticide.failure.ZfsFailure) from previous runs. """
     
     def snapshotChain(self, snapshot):
+        """ Monkeypatch function for snapshotting test in chain.
+            Snapshots chain related attributes and calls test snapshot 
+            function afterwards (if provided).
+            
+            :Parameters:
+                snapshot: insecticide.snapshot.SnapshotDescription 
+                    instance to store information into
+        """
+        
         snapshot.addObject("testClass", self.cls)
         snapshot.addObject("stressChain", self.chain)
         snapshot.addEntry("stressChainIndex", 
@@ -514,6 +761,15 @@ class ChainedTestCase(MethodTestCase):
             self.inst.snapshotInstFunc(snapshot)
         
     def resumeChain(self, snapshot):
+        """ Monkeypatch function for resuming test in chain.
+            Calls test resume function (if provided) and
+            resume chain related state afterwards.
+            
+            :Parameters:
+                snapshot: insecticide.snapshot.SnapshotDescription 
+                    instance to load state from
+        """
+        
         if getattr(self.inst, "resumeInstFunc", None):
             self.inst.snapshotInstFunc(self.inst, snapshot)
             
@@ -523,7 +779,14 @@ class ChainedTestCase(MethodTestCase):
         self.method = getattr(self.cls, self.chain[self.index])
         self.test = self.method
         
-    def generateSavedPath(self, filename): #TODO: implement this
+    def generateSavedPath(self, filename):
+        """ Saves test sequence described by this case into file.
+            Currently pickling of list is used, first item is meta test class object,
+            following items are ordered method names.
+            
+            :Parameters:
+                filename: name of file to write saved path description into
+        """
         file = open(filename, 'w')
         stringChain = [self.inst.__class__]
         stringChain.append(self.chain)
@@ -532,6 +795,18 @@ class ChainedTestCase(MethodTestCase):
         
     @classmethod
     def getMethodSequenceFromSavedPath(self, filename):
+        """ Retrieves test sequence (saved path) from file
+            Assumes that file format is: pickled list, first item is meta test class object,
+            following items are ordered method names.
+            
+            :Parameters:
+                filename: name of file to load saved path description from
+                
+            :Return:
+                tuple (class, methods). Where class is class object and 
+                    methods is sequence of method names (string form)
+                or None when nothing can be loaded
+        """
         #TODO: report error type
         try:
             file = open(filename, 'r')
@@ -556,6 +831,10 @@ class ChainedTestCase(MethodTestCase):
         
     def __init__(self, cls, method = None, test=None, arg=tuple(),
                 descriptor=None, instance = None,  chain = None,  index = -1):
+        """ Initializes whole chain.
+            
+            ..See: nose.case.MethodTestCase.__init__
+        """
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
         self.test = test
         self.arg = arg
@@ -588,6 +867,10 @@ class ChainedTestCase(MethodTestCase):
         TestBase.__init__(self)
         
     def runTest(self):
+        """ Run current test in chain. And shift the index.
+            
+            ..See: nose.case.MethodTestCase.runTest
+        """
         if len(self.chain) > self.index - 1:
             self.index += 1
             self.method = getattr(self.cls, self.chain[self.index])
@@ -597,35 +880,40 @@ class ChainedTestCase(MethodTestCase):
         return ret
         
     def shortDescription(self):
+        """ Return short description for current test
+            
+            ..See: nose.case.MethodTestCase.shortDescription
+        """
+        # FIXME: return correct test before run, in run and after run :/
         return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
         
-        
-    
-#class aix(threading.Condition):
     
 class SuiteRunner(nose.suite.ContextSuite):
+    """ ContextSuite successor with slightly modified run method.
+        Reason for this modification is to allow addition of new suites
+        in runtime.
+        It is used as wrapper containing all stress test suites.
+        
+        ..See: nose.suite.ContextSuite
+    """
+    
     def __init__(self, tests):
         self.context=None
         self.factory=None
         self.config=None
         self.resultProxy=None
-        log.debug(self.__class__.__name__ + ".__init__()")
         self.tests = tests
-        self.rest = []
         
     def addTest(self, test):
         self.tests.append(test)
         
     def __call__(self, *arg, **kwargs):
-        log.debug(self.__class__.__name__ + ".__call__()")
         self.run(*arg, **kwargs)
         
     def run(self, result):
-        log.debug(self.__class__.__name__ + ".run()")
         while self.tests:
             self.tests.pop(0)(result)
     
     def shortDescription(self):
-        log.debug(self.__class__.__name__ + ".shortDescription()")
         return self.__class__.__name__
     
