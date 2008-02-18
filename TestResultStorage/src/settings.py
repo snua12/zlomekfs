@@ -49,22 +49,27 @@ except KeyError:
         DATA_ROOT = '/var/lib/TestResultStorage'
     else:
         DATA_ROOT = os.environ["HOME"]
+""" DATA_ROOT is directory where static data (css, templates) and dynamic data (uploaded files) are stored """
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = os.path.join(DATA_ROOT, "data")
+""" directory for uploaded files """
 
 WEB_MEDIA_ROOT = os.path.join(DATA_ROOT, "webMedia")
+""" directory for css, images etc """
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = ''
+""" :Unused: """
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
 ADMIN_MEDIA_PREFIX = '/media/'
+""" :Unused: """
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'e+pomj@z1rwjxwo11i_p2r9bejwzejr@j8a5crcu0u2_31y97-'
@@ -93,6 +98,7 @@ ROOT_URLCONF = 'TestResultStorage.urls'
 
 TEMPLATE_DIRS = (
     os.path.join(DATA_ROOT, "templates"),
+    """ directory where templates are stored """
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.

@@ -3,18 +3,37 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from TestResultStorage import settings
+
+# length of uuid field
 UUID_LEN = 36
+# default length of name (any)
 NAME_LEN = 64
+# length of test name
 TEST_NAME_LEN = NAME_LEN
+# length of machine name (hostname)
 MACHINE_NAME_LEN = NAME_LEN
+# length of batch description
 TEST_DESC_LEN = 256
+# length of file name
 FILE_NAME_LEN = 100
+# length of profile name
 PROFILE_NAME_LEN = 100
-DUMP_DIRECTORY = "dumps"
+# where to put dumps
+DUMP_DIRECTORY = settings.MEDIA_ROOT
+# length of environment variable value
 ENV_LEN = 254 # for PATHs
 
 def computeDuration(startTime, endTime):
-    #we assume that run is shorter than month
+    """ Compute duration of time segment in miliseconds
+        Ignores month and above.
+        
+        :Parameters:
+            startTime: datetime.datetime.now() output - start of time segment
+            endTime: datetime.datetime.now() output - end of time segment
+        :Return:
+            integer - length in miliseconds
+    """
     duration = endTime.day - startTime.day
     duration = duration * 24 + endTime.hour - startTime.hour
     duration = duration * 60 + endTime.minute - startTime.minute
