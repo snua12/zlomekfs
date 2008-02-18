@@ -6,7 +6,7 @@
 Summary: Repository for test results
 Name: TestResultStorage
 Version: %{VERSION}.%{REVISION}
-Release: 0
+Release: %{RELEASE}
 License : GPL
 URL: http://www.loki.name/TestResultStorage
 Group: System Environment/Daemons

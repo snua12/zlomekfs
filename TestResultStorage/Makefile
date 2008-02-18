@@ -24,6 +24,8 @@ PREFIX ?= /usr/local
 
 VERSION ?= $(shell cat VERSION)
 
+RELEASE ?= $(shell if [ -f "RELEASE" ]; then cat RELEASE; else echo 0; fi)
+
 TEMPLATES = \
 	templates/resultRepository/default_page.html \
 	templates/resultRepository/batchrun_detail.html \
@@ -79,4 +81,5 @@ package: clean
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta TestResultStorage-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
+	expr ${RELEASE} + 1 > RELEASE
+	rpmbuild -ta TestResultStorage-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}"

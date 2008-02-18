@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-3.9.dtd">
 <!-- Project file for project zfs -->
-<!-- Saved: 2008-02-06, 00:24:40 -->
+<!-- Saved: 2008-02-18, 01:32:01 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="3.9">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -28,12 +28,6 @@
       <Dir>tests</Dir>
       <Dir>nose-tests</Dir>
       <Name>testFSOp.py</Name>
-    </Source>
-    <Source>
-      <Dir>zfs</Dir>
-      <Dir>tests</Dir>
-      <Dir>nose-tests</Dir>
-      <Name>settings.py</Name>
     </Source>
     <Source>
       <Dir>zfs</Dir>
@@ -288,9 +282,9 @@ s.</VcsOtherData>
   </Vcs>
   <FiletypeAssociations>
     <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
-    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
-    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
     <FiletypeAssociation pattern="*.ui" type="FORMS" />
+    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
+    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
     <FiletypeAssociation pattern="*.py" type="SOURCES" />
   </FiletypeAssociations>
 </Project>

@@ -23,6 +23,8 @@ PREFIX ?= /usr
 
 VERSION ?= $(shell cat VERSION)
 
+RELEASE ?= $(shell if [ -f "RELEASE" ]; then cat RELEASE; else echo 0; fi)
+
 ifeq ($(REVISION),)
         REVISION:= $(shell svnversion | sed -e 's/\([0-9]*\).*/\1/')
 endif
@@ -87,5 +89,6 @@ package: clean
 
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
-	rpmbuild -ta syplog-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}"
+	expr ${RELEASE} + 1 > RELEASE
+	rpmbuild -ta syplog-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}
 	
