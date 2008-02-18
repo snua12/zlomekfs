@@ -10,3 +10,4 @@ STABILIZE
 document
 start scripts
 check boundary in prune when shortest path is forbitten
+rpm defaults for RELEASE, VERSION, REVISION variables

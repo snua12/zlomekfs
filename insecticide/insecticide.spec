@@ -5,7 +5,7 @@
 Summary: Plugins for nose
 Name: insecticide
 Version: %{VERSION}.%{REVISION}
-Release: 0
+Release: %{RELEASE}
 License : GPL
 URL: http://www.loki.name/insecticide
 Group: Developement / libraries

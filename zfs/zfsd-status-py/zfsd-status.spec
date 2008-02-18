@@ -1,7 +1,7 @@
 Summary: Zfsd-dbus service client
 Name: zfsd-status
 Version: %{VERSION}.%{REVISION}
-Release: 0
+Release: %{RELEASE}
 License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
 Group: System Environment/Daemons
