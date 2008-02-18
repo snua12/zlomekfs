@@ -1462,13 +1462,80 @@ key "gcore"
 \end_layout
 
 \begin_layout Subsection
+Continuous integration
+\end_layout
+
+\begin_layout Standard
+Existence of tests is not enough to provide stable developement cyclus.
+ For stability of project it is vital to test it for errors (run tests)
+ as often as possible, preferably after each change (commit).
+ The approach when changes are often merged into 
+\emph on
+mainline
+\emph default
+ is called 
+\series bold
+Continuous integration
+\series default
+ (good overview of this method is in 
+\begin_inset LatexCommand cite
+key "Continuous_integration"
+
+\end_inset
+
+).
+ To achieve regular tests it is convenient to use some tool (server) which
+ automates the process.
+ There is no need to develop own system as there are many proprietal solution
+ and even more opensource solutions.
+ It is interesting how many organizations deploy their own systems (for
+ example Mozilla Foundation uses Tinderbox 
+\begin_inset LatexCommand cite
+key "Tinderbox"
+
+\end_inset
+
+, Redhat has Frysk 
+\begin_inset LatexCommand cite
+key "Frysk"
+
+\end_inset
+
+, ThoughWorks has 
+\begin_inset LatexCommand cite
+key "Cruise_Control"
+
+\end_inset
+
+.
+ Apache foundation even two projects - Continuum 
+\begin_inset LatexCommand cite
+key "Continuum"
+
+\end_inset
+
+ and Gump 
+\begin_inset LatexCommand cite
+key "Gump"
+
+\end_inset
+
+ - that is only from opensourced projects).
+ It is obvious why it is this way: core features of continuous integration
+ server are easy to write and after some time when more features are needed,
+ project may be bound to integration server so tightly that it is nearly
+ impossible to switch to another system.
+\end_layout
+
+\begin_layout Subsubsection
 Automation
 \end_layout
 
 \begin_layout Standard
-To be effective, testing should be performed on regular basis.
- Hence automation must be provided.
- 
+Best approach to achieve stable build and check cycle is to automate it.
+ Some projects use manually driven systems but there are hazard of human
+ failure (developer could omit tests, forgot about them or ignore them at
+ all).
 \end_layout
 
 \begin_layout Standard
@@ -1492,7 +1559,7 @@ commit hooks
 \end_layout
 
 \begin_layout Standard
-Other option is to don't check validity in commit hooks but to use 
+Other option is don't check validity in commit hooks but use 
 \series bold
 independent service
 \series default
@@ -1519,30 +1586,39 @@ separate service builds project (upon commit or nightly) and executes all
 \end_layout
 
 \begin_layout Standard
+Because one of steps should be building the source there sould be support
+ for build system used by project.
+ Again, many tools are plugin based and have plugins for most common build
+ systems used.
+ Particular set depends on aim of tool.
+\end_layout
+
+\begin_layout Standard
 Pure commit driven environment when commit is delayed after all tests had
  passed doesn't need presentation layer at all, there is just the error
  message send to commiter.
- But as this variant is rare, nearly all automation systems need 
+ But as this variant is rare, nearly all automation systems have 
 \series bold
 presentation
 \series default
  layer.
  The complexity vary from simple text (html) file statically served by web
  server to rich database backed gui.
- Standard tools offer html overview and detail pages.
- Optionally there can be email, instant messaging notifiers.
- Output formats tend to be plain text, sometimes there are output formats
- readable by applications.
+ Standard tools offer html overview and detail pages, tools bound to specific
+ environment usually provide gui for that environment.
+ Very often there are email or instant messaging notifiers too.
+ If there are other output than test count and results, it tends to be plain
+ text, sometimes there are output format readable by applications.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Distributed testing
 \end_layout
 
 \begin_layout Standard
 Testing doesn't need to be run on the same machine as control service.
- When tests runs elsewhere we call it distributed testing.
- In some cases it is possible to run many separate machinse each running
+ When tests run elsewhere we call it distributed testing.
+ In some cases it is possible to run many separate machines each running
  separate build and check service achieving nearly the same result.
  But managing such system is huge overhead and collecting results is non
  trivial too.
@@ -1597,7 +1673,14 @@ ons too.
 \end_layout
 
 \begin_layout Standard
+Sometimes tests takes long 
+\series bold
 time
+\series default
+ to complete.
+ Then it is convenient to spread tests over more machines each running only
+ part of tests.
+ By this we achieve shorter build and check cycle.
 \end_layout
 
 \begin_layout Paragraph
@@ -1625,23 +1708,15 @@ Most common way to connect control server with machines executing tests
 \end_layout
 
 \begin_layout Standard
-Sometimes own methods for communication is used, 
+Older systems tends to use e-mail communication.
+ It consists of specially formatted messages sent between master and clients.
+ This approach has many drawbacks as security problems, frangibility and
+ non-deterministic behaviour.
 \end_layout
 
 \begin_layout Standard
-something weird
-\end_layout
-
-\begin_layout Standard
-buildbot
-\end_layout
-
-\begin_layout Standard
-py.execnet
-\end_layout
-
-\begin_layout Standard
-ssh driven
+Sometimes own methods for communication is used, that mimic remote procedure
+ call by sending raw data within special protocol.
 \end_layout
 
 \begin_layout Subsection
@@ -1748,11 +1823,110 @@ key "Chainsaw"
 \end_layout
 
 \begin_layout Paragraph
-Build bot
+Continuous integration
 \end_layout
 
 \begin_layout Standard
-buildbot
+When choosing tools for continuous integration, we consider only opensource
+ projects with reliable comunity around it.
+ Specially deeper investigation were made on Cruise Control 
+\begin_inset LatexCommand cite
+key "Cruise_Control"
+
+\end_inset
+
+, Continuum 
+\begin_inset LatexCommand cite
+key "Continuum"
+
+\end_inset
+
+, Gump 
+\begin_inset LatexCommand cite
+key "Gump"
+
+\end_inset
+
+, Cabie 
+\begin_inset LatexCommand cite
+key "Cabie"
+
+\end_inset
+
+, Tinderbox 
+\begin_inset LatexCommand cite
+key "Tinderbox"
+
+\end_inset
+
+, Frysk 
+\begin_inset LatexCommand cite
+key "Frysk"
+
+\end_inset
+
+and Buildbot 
+\begin_inset LatexCommand cite
+key "BuildBot"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+We use buildbot 
+\begin_inset LatexCommand cite
+key "BuildBot"
+
+\end_inset
+
+ as continuous integration server.
+ 
+\end_layout
+
+\begin_layout Paragraph
+It was chosen for these reasons:
+\end_layout
+
+\begin_layout Itemize
+Compatibility with our build system.
+ Buildbot can use shell comnmands and python code as build steps.
+ It can do output parsing for configure, make and gcc output too.
+\end_layout
+
+\begin_layout Itemize
+It is small and easy to deploy.
+ There is no need to write big xml configuration files to run 
+\emph on
+hello world
+\emph default
+, buildbot code is relativelly small and easy to read.
+\end_layout
+
+\begin_layout Itemize
+Written in python.
+ Since whole Buildbot is written in python, we can easilly integrate it
+ with other tools used in project (as they are written in python too).
+\end_layout
+
+\begin_layout Itemize
+Extendable architecture.
+ Buildbot parts are written as objects, so it is possible to inherit from
+ them and tweak behaviour according our needs.
+\end_layout
+
+\begin_layout Itemize
+Support for distributed testing.
+ As ZlomekFS is intended to run on multiple architectures (and in future
+ possibly on multiple operating systems) the support for distributed testing
+ is essential.
+\end_layout
+
+\begin_layout Itemize
+Active development.
+ Buildbot is often used and has active comunity which ensures that it will
+ be maintained in future too.
 \end_layout
 
 \begin_layout Paragraph
