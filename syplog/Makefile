@@ -90,5 +90,5 @@ package: clean
 rpm: package
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
 	expr ${RELEASE} + 1 > RELEASE
-	rpmbuild -ta syplog-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}
+	rpmbuild -ta syplog-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}"
 	
