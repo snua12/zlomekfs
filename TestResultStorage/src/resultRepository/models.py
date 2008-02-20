@@ -14,7 +14,7 @@ TEST_NAME_LEN = NAME_LEN
 # length of machine name (hostname)
 MACHINE_NAME_LEN = NAME_LEN
 # length of batch description
-TEST_DESC_LEN = 256
+#TEST_DESC_LEN = 256
 # length of file name
 FILE_NAME_LEN = 100
 # length of profile name
@@ -112,9 +112,8 @@ class BatchRun(models.Model):
     repositoryRevision = models.PositiveIntegerField(
                 verbose_name = _("Revision of sources build for tests"),
                 blank = True, null = True)
-    description = models.CharField(max_length = TEST_DESC_LEN,
-                verbose_name = _("Short description of batch"),
-                blank = True)
+    description = models.TextField(verbose_name = _("Short description of batch"),
+                blank = True) #max_length = TEST_DESC_LEN,
     profileName = models.CharField(max_length = PROFILE_NAME_LEN,
                 verbose_name = _("Profile in which sources had been build for tests"),
                 blank = True, db_index = True)
@@ -148,9 +147,8 @@ class TestRun(models.Model):
     testName = models.CharField(max_length = TEST_NAME_LEN,
                 verbose_name = _("Name of test ie module.class.testName or simple testName"),
                 db_index = True)
-    description = models.CharField(max_length = TEST_DESC_LEN,
-                verbose_name = _("Short description of test run"),
-                blank = True, null = True)
+    description = models.TextField(verbose_name = _("Short description of test run"),
+                blank = True, null = True) # max_length = TEST_DESC_LEN,
     result = models.IntegerField(choices=TEST_RESULT_CHOICES,
                 verbose_name = _("If test has successed, failed or what"),
                 db_index = True)
