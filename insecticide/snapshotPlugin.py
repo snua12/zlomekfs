@@ -143,7 +143,7 @@ class SnapshotPlugin(Plugin):
             #snapshot.addObject(name = str(test.test), object = test,  type = SnapshotDescription.TYPE_PICKLED_TEST)
         
         if hasattr(test.test, "snapshotBuffer"):
-            if len(test.test.snapshotBuffer) >= self.maxSnapshots:
+            if test.test.snapshotBuffer and len(test.test.snapshotBuffer) >= self.maxSnapshots:
                 oldSnapshot = test.test.snapshotBuffer.pop(0)
                 log.debug("removing old snapshot %s", oldSnapshot)
                 oldSnapshot.delete()

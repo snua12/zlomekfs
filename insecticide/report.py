@@ -4,6 +4,13 @@ import datetime
 import socket
 import traceback
 import pickle
+try:
+    from _mysql_exceptions import Warning as  SqlWarning
+except ImportError:
+    class SqlWarning(Exception):
+        pass
+
+#TODO: report exceptions
 
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData, Project, computeDuration
 
@@ -38,6 +45,7 @@ class ReportProxy(object):
     #        self.batch.repositoryRevision = 0
             
             self.batch.save()
+        
         if not self.batch.id:
             log.error ("Error: batch id is null")
     
@@ -76,13 +84,26 @@ class ReportProxy(object):
         run = self.generateDefaultRun(test, duration, name, description)
         run.result = 0
         
-        run.save()
+        try:
+            run.save()
+        except SqlWarning: # heuristic: truncate data
+            run.description = run.description[:256]
+            run.save()
+            log.debug(traceback.format_exc())
+            pass
+
     
     def reportFailure(self, failure, duration = None, name = None, description = None):
         run = self.generateDefaultRun(failure.test, duration, name, description)
         run.result = 1
         
-        run.save()
+        try:
+            run.save()
+        except SqlWarning: # heuristic: truncate data
+            run.description = run.description[:256]
+            run.save()
+            log.debug(traceback.format_exc())
+            pass
         
         runData = TestRunData()
         runData.runId = run
@@ -96,5 +117,9 @@ class ReportProxy(object):
             snapshot.pack(self.dataDir + os.sep + "failureSnapshot-" + str(runData.id))
             runData.dumpFile = "failureSnapshot-" + str(failure) + "-" + str(id(snapshot))
         
-        
-        runData.save()
+        try:
+            runData.save()
+        except SqlWarning: #ignore truncation warnings
+            log.debug(traceback.format_exc())
+            pass
+

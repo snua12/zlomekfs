@@ -5,12 +5,19 @@
 import logging
 
 import os
+import time
+from traceback import format_exc
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
-from zfs import ZfsStressTest
+from zfs import ZfsStressTest, ZfsProxy
 from testFSOp import testFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename
 
+from insecticide.timeoutPlugin import timed
+
 log = logging.getLogger ("nose.tests.testStressFSOp")
+
+def abortDeadlock():
+    ZfsProxy.killall()
 
 class testStressFSOp(ZfsStressTest, testFSOp):
   disabled = False
@@ -95,17 +102,22 @@ class testStressFSOp(ZfsStressTest, testFSOp):
       self.dataVector.append(self.generator.random())
       
   
+  @timed(0.5, abortDeadlock)
   def testGenerateName(self):
     name = self.generateRandomFileName()
     self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + name
     self.testFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
-    
+  #testGenerateName.disabled = True
+  
+  @timed(1, abortDeadlock)  
   def testTouch(self):
     assert tryTouch(self.safeFileName) == tryTouch(self.testFileName)
-
+    
+  @timed(5, abortDeadlock)  
   def testUnlink(self):
     assert tryUnlink(self.safeFileName) == tryUnlink(self.testFileName)
   
+  @timed(5, abortDeadlock)  
   def testRename(self):
     safeResult = False
     testResult = False
@@ -124,6 +136,7 @@ class testStressFSOp(ZfsStressTest, testFSOp):
     
     assert safeResult == testResult
   
+  @timed(2, abortDeadlock)  
   def testOpen(self):
     safeResult = False
     testResult = False
@@ -139,11 +152,12 @@ class testStressFSOp(ZfsStressTest, testFSOp):
       self.testFile = open(self.testFileName,  self.fileAccessMode)
       testResult = True
     except:
-     log.debug(format_exc())
-     pass
+      log.debug(format_exc())
+      pass
     
     assert testResult == safeResult
     
+  @timed(2, abortDeadlock)  
   def testClose(self):
     safeResult = False
     testResult = False
@@ -168,12 +182,14 @@ class testStressFSOp(ZfsStressTest, testFSOp):
     
     assert testResult == safeResult
   
+  @timed(5, abortDeadlock)  
   def testRead(self):
     safeResult = tryRead(self.safeFile)
     testResult = tryRead(self.testFile)
     
     assert safeResult == testResult
   
+  @timed(5, abortDeadlock)  
   def testWrite(self):
     assert tryWrite(self.safeFile,  self.dataVector) == \
            tryWrite(self.testFile,  self.dataVector)

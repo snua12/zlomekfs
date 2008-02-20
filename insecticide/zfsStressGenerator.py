@@ -637,7 +637,7 @@ class StressGenerator(Plugin):
             if self.isChainedTestCase(testInst):
                 log.debug("catched stress test failure (%s)",  testInst)
                 log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
-                setattr(test,  stopContextAttr,  True)
+                setattr(test,  StressGenerator.stopContextAttr,  True)
                 log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
                 testInst.failureBuffer.append(ZfsTestFailure(test, err))
                 if len(testInst.failureBuffer) <= self.retriesAfterFailure:
@@ -719,7 +719,7 @@ class StressGenerator(Plugin):
         """
         if test.test.__class__ is ChainedTestCase:
             testName = "Chain for " + test.test.cls.__name__
-            description = "Method sequence: " + str(test.test.chain)
+            description = "Method sequence: " + str(test.test.chain) # TODO: truncate
         return (testName, description)
     
     def finalize(self, result):

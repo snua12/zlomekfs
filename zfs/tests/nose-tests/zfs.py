@@ -39,6 +39,7 @@ class ZfsProxy(object):
           self.tempDir =  tempfile.mkdtemp(prefix = "zfsTestTemp")
           
           
+    @classmethod
     def killall(self):
         Popen(args=('killall', '-9', 'zfsd'), stdout=PIPE, 
                                 stderr=STDOUT)
@@ -62,9 +63,11 @@ class ZfsProxy(object):
         except OSError: #exists
             pass
         
+    @classmethod
     def removeModules(self):
         Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
         
+    @classmethod
     def unmount(self):
         Popen(args=('umount', '-f', self.zfsRoot), stderr = STDOUT, stdout = PIPE)
         
@@ -121,6 +124,10 @@ class ZfsProxy(object):
         
     def stopZfs(self):
         #TODO: check status
+        if self.zfs.poll():
+            #death zfs
+            #TODO: collect core dumps
+            pass
         self.disconnectControl()
         for i in [0.1, 0.5, 1]:
             try:
