@@ -667,7 +667,10 @@ class StressGenerator(Plugin):
         else:
             if self.isChainedTestCase(testInst):
                 (testName, description) = self.generateDescription(test)
-                self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
+                if error:
+                    self.reportProxy.reportError(ZfsTestFailure(test,err), name = testName, description = description)
+                else:
+                    self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
                 return True
     
     def addError(self, test, err):
@@ -733,6 +736,7 @@ class StressGenerator(Plugin):
                 self.svnClient.checkin([self.savedPathDir], 'New saved paths from batch ' + os.environ['BATCHUUID'])
             except:
                 log.debug("can't commit: %s", format_exc())
+        self.reportProxy.finalize()
         
 
 class ChainedTestCase(MethodTestCase):

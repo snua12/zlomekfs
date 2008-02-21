@@ -9,6 +9,8 @@ implement fsx
 STABILIZE
 document
 start scripts
+export result codes
+report in stress plugin according to settins of reportPlugin
 check boundary in prune when shortest path is forbitten
 rpm defaults for RELEASE, VERSION, REVISION variables
 catch segfault and create core dump (RLIMIT_CORE, RLIMIT_FSIZE)

@@ -1,7 +1,7 @@
 
 import os
 
-profile_default = {
+env = {
             'PROFILE_NAME' : 'default_profile',
             'NOSE_TESTMATCH' : '((?:^|[\\b_\\./-])[Mm]eta)|((?:^|[\\b_\\./-])[Tt]est)',
             'NOSE_EVAL_ATTR' : 'not disabled',
@@ -15,6 +15,7 @@ profile_default = {
             'NOSE_WITH_SNAPSHOTPLUGIN' : 'yes',
             'NOSE_WITH_ZFSREPORTPLUGIN' : 'yes',
                   }
+
 try:
     path = os.environ['PATH']
 except KeyError:
@@ -22,4 +23,4 @@ except KeyError:
 
 path += ':/sbin:/usr/sbin'
 
-profile_default['PATH'] = path
+env['PATH'] = path

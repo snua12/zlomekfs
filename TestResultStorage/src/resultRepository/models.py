@@ -42,6 +42,7 @@ def computeDuration(startTime, endTime):
     
     return duration
 
+
 class ProfileInfo(models.Model):
     """Object holding one-liner: environment variable name and value (Django database wrapper)
     
@@ -69,9 +70,11 @@ class Project(models.Model):
                 verbose_name = _("Url to repository from which sources has been fetched"),
                 blank = True)
     projectName = models.CharField(max_length = NAME_LEN, verbose_name = _("Project name"),
-                db_index = True, unique = True)
+                db_index = True)
     class Admin:
         pass
+    class Meta:
+        unique_together = (("projectName", "sourceRepositoryUrl"),)
         
     def __unicode__(self):
         return self.projectName

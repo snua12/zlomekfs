@@ -8,7 +8,7 @@ import logging
 
 from nose.plugins import Plugin
 from insecticide.failure import ZfsTestFailure
-from insecticide.report import ReportProxy
+from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
 
 log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 
@@ -80,9 +80,9 @@ class ZfsReportPlugin(Plugin):
         
     def startTest(self, test):
         if hasattr(test, "test"): #only real tests
-            if not hasattr(test.test, ReportProxy.startTimeAttr): #prevent rewrite
+            if not hasattr(test.test, startTimeAttr): #prevent rewrite
                 log.debug("setting time %s for test %s", str(datetime.datetime.now()), str(test.test))
-                setattr(test.test, ReportProxy.startTimeAttr, datetime.datetime.now())
+                setattr(test.test, startTimeAttr, datetime.datetime.now())
         
     
     def addFailure(self, test, err):
@@ -103,3 +103,6 @@ class ZfsReportPlugin(Plugin):
             log.debug("exception when reporting success:\n%s", format_exc())
             pass #TODO: specific exception and log
     
+    def finalize(self, result):
+        self.reporter.finalize()
+

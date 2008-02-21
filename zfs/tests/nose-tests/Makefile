@@ -21,10 +21,10 @@
 TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
-	nosetests testFSOp.py
-	nosetests testStressFSOp.py
-	nosetests testFSOps.py
-	nosetests -w savedPaths
+	./test.py testFSOp.py
+	./test.py testStressFSOp.py
+	./test.py testFSOps.py
+	./test.py -w savedPaths
 
 clean:
 	rm -rf ./*.pyc
