@@ -25,4 +25,4 @@ res = main(exit=False)
 
 finalizeBatch(batch.id)
 
-sys.exit(res.success)
+sys.exit(not res.success)
