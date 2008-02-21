@@ -103,7 +103,7 @@ def generateLocalBatch(project = None):
             loadProfile(batch, profile)
         except EnvironmentError:
             log.warning("Batch created without profile")
-            log.warning(tracebach.format_exc())
+            log.warning(traceback.format_exc())
         
     return batch
     
