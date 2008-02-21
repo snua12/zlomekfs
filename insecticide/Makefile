@@ -44,7 +44,7 @@ install:
 
 test:
 	python -c 'import insecticide'
-	nosetests graph.py snapshot.py
+	./test.py graph.py snapshot.py
 
 clean: 
 	python setup.py clean
