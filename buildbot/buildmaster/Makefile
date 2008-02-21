@@ -7,8 +7,6 @@
 # The 'reconfig' target will tell a buildmaster to reload its config file.
 
 start:
-	DJANGO_SETTINGS_MODULE=TestResultStorage.settings \
-	PYTHONPATH=`pwd` \
 	twistd --no_save -y buildbot.tac
 
 stop:
