@@ -21,10 +21,8 @@
 TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
-	./test.py testFSOp.py
-	./test.py testStressFSOp.py
-	./test.py testFSOps.py
-	./test.py -w savedPaths
+	#./test.py -w savedPaths
+	./test.py testFSOp.py testStressFSOp.py testFSOps.py
 
 clean:
 	rm -rf ./*.pyc
