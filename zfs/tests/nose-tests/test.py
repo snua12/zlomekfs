@@ -3,7 +3,7 @@
 
 import os
 import sys
-traceback
+import traceback
 
 if 'DJANGO_SETTINGS_MODULE' not in os.environ:
     os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
