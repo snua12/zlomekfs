@@ -2,8 +2,9 @@
 import os
 
 env = {
-            'PROFILE_NAME' : 'default_profile',
-            'NOSE_EVAL_ATTR' : 'not disabled',
-            'NOSE_WITH_ZFSREPORTPLUGIN' : 'yes',
-                  }
+    'PROFILE_NAME' : __name__,
+    'NOSE_EVAL_ATTR' : 'not disabled',
+    'NOSE_WITH_ZFSREPORTPLUGIN' : 'yes',
+    'DJANGO_SETTINGS_MODULE': 'TestResultStorage.settings',
+      }
 

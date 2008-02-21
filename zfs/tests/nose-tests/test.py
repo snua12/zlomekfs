@@ -3,6 +3,7 @@
 
 import os
 import sys
+traceback
 
 if 'DJANGO_SETTINGS_MODULE' not in os.environ:
     os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
@@ -15,7 +16,7 @@ try:
     branch = str(entry.url)[len(entry.repos) + 1:len(entry.url) - len('tests/nose-tests') - 1]
     os.environ[branchEnvOpt] = branch
 except:
-    pass
+    print traceback.format_exc()
 
 batch = generateLocalBatch('zfs')
 
@@ -23,6 +24,7 @@ from nose import main
 
 res = main(exit=False)
 
-finalizeBatch(batch.id)
+if batch and batch.id:
+    finalizeBatch(batch.id)
 
 sys.exit(not res.success)

@@ -79,6 +79,7 @@ def generateLocalBatch(project = None):
             project = os.environ[projectnameEnvOpt]
         except KeyError:
             project = 'Unknown'
+            
     batch = BatchRun()
     
     batch.startTime = datetime.datetime.now()
