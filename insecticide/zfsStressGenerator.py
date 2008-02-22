@@ -829,7 +829,7 @@ class ChainedTestCase(MethodTestCase):
         """
         file = open(filename, 'w')
         stringChain = [self.inst.__class__]
-        stringChain.append(self.chain)
+        stringChain.extend(self.chain)
         pickle.dump(stringChain, file)
         file.close()
         
