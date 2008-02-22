@@ -34,10 +34,10 @@ class MetaSort(object):
     log.debug("metaStart")
   metaStart.successors = [
                                      ('meta1', 100), 
-                                     ('meta2', 10), 
-                                     ('meta3', 10), 
-                                     ('meta4', 10), 
-                                     ('meta5', 10)
+                                     ('meta2', 1), 
+                                     ('meta3', 1), 
+                                     ('meta4', 1), 
+                                     ('meta5', 1)
                                         ]
   
   def meta1(self):
@@ -45,10 +45,10 @@ class MetaSort(object):
   meta1.successors = [
                      ('meta1', 5), 
                      ('meta2', 0), 
-                     ('meta3',  20), 
+                     ('meta3',  2), 
                      #not necessary
                      #('meta4',0), 
-                     ('meta5',  30) , 
+                     ('meta5',  3) , 
                      ('failMeta', 100)
                      ]
   

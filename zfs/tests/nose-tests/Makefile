@@ -22,7 +22,10 @@ TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
 	#./test.py -w savedPaths
-	./test.py testFSOp.py testStressFSOp.py testFSOps.py
-
+	if ls savedPaths/* >/dev/null 2>&1; then \
+		./test.py; \
+	else \
+		.test.py ./* savedPaths/*;
+	fi
 clean:
 	rm -rf ./*.pyc

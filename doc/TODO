@@ -8,10 +8,6 @@ finalize zen-unit
 implement fsx
 STABILIZE
 document
-let timeout exception through
-start scripts
-report everything into resultStorage
-report in stress plugin according to settins of reportPlugin
 check boundary in prune when shortest path is forbitten
 rpm defaults for RELEASE, VERSION, REVISION variables
 

@@ -1,5 +1,6 @@
 import logging
 import os
+import os
 import pysvn
 import datetime
 import socket
@@ -39,7 +40,7 @@ def loadProfile(batch, profileName):
                     % (profileName, e)
         
     profile = mod.env
-    for key in profile.keys():
+    for key in profile.keys(): #note we override ALL commandline given args
         info = ProfileInfo.objects.get_or_create(variableName = str(key),
                                     variableValue = str(profile[key]))
         batch.profileInfo.add(info[0])
@@ -145,7 +146,14 @@ def finalizeBatch(batchId = None):
     
     batch.save()
     
-def generateDefaultRun(batch, test, duration = None, name = None, description = None):
+
+def generateDefaultRun(batch, test = None, duration = None, name = None, description = None):
+    if not batch:
+        raise Exception ("Batch id not defined (%s)" % batch)
+    if not test:
+        class fake:
+            test = "fake"
+        test = fake()
     run = TestRun()
     run.batchId = batch
     if name:
@@ -176,7 +184,46 @@ def generateDefaultRun(batch, test, duration = None, name = None, description = 
         
     return run
 
-
+def appendDataToRun(run, exception = None, backtrace = None, dataDir = None, test = None):
+    runData = TestRunData()
+    runData.runId = run
+    if backtrace:
+        runData.backtrace = pickle.dumps(traceback.format_tb(backtrace), protocol = 0)
+        
+    runData.errText = str(exception)
+    
+    if test and hasattr(test, "test") and hasattr(test.test, "snapshotBuffer"):
+        snapshot = test.test.snapshotBuffer.pop()
+        snapshot.pack(dataDir + os.sep + "failureSnapshot-" + str(runData.id))
+        runData.dumpFile = "failureSnapshot-" + str(run) + "-" + str(id(snapshot))
+    else:
+        runData.dumpFile = None
+            
+    runData.save()
+    
+    
+def reportSystemError(batch, name = None, description = None, exception = None, backtrace = None):
+    if not batch:
+        raise Exception("batch id not defined (%s)" % batch)
+    if not name:
+        name = "Unknown"
+    if not description:
+        description = "Unknown system error"
+    
+    run = generateDefaultRun(batch = batch, name = name, description = description)
+    run.result = RESULT_ERROR
+    run.duration = 0
+    
+    run.save()
+    if not backtrace:
+        backtrace = sys.exc_info()[2]
+    if not exception and sys.exc_type:
+        exception = sys.exc_info()[1]
+        
+    appendDataToRun(run = run , exception = exception, backtrace = backtrace)
+    
+    
+    
 class ReportProxy(object):
     batch = None
     selfContainedBatch = False
@@ -232,23 +279,10 @@ class ReportProxy(object):
             log.debug(traceback.format_exc())
             pass
         
-        runData = TestRunData()
-        runData.runId = run
-        runData.backtrace = pickle.dumps(traceback.format_tb(failure.failure[2]), protocol = 0)
-        log.debug("backtrace saved: %s", runData.backtrace)
-        runData.errText = traceback.format_exception_only(
-                failure.failure[0], failure.failure[1])[0]
-        
-        if hasattr(failure.test, "test") and hasattr(failure.test.test, "snapshotBuffer"):
-            snapshot = failure.test.test.snapshotBuffer.pop()
-            snapshot.pack(self.dataDir + os.sep + "failureSnapshot-" + str(runData.id))
-            runData.dumpFile = "failureSnapshot-" + str(failure) + "-" + str(id(snapshot))
-        
-        try:
-            runData.save()
-        except SqlWarning: #ignore truncation warnings
-            log.debug(traceback.format_exc())
-            pass
+        appendDataToRun(run = run, exception = failure.failure[1],
+            backtrace = failure.failure[2], dataDir = self.dataDir, 
+            test = failure.test)
+
     
     def reportError(self, failure, duration = None, name = None, description = None):
         return self.reportFailure(failure, duration, name, description, error = True)

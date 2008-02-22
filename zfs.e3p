@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-3.9.dtd">
 <!-- Project file for project zfs -->
-<!-- Saved: 2008-02-18, 01:32:01 -->
+<!-- Saved: 2008-02-22, 17:30:17 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="3.9">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -188,6 +188,41 @@
       <Dir>resultRepository</Dir>
       <Name>testViews.py</Name>
     </Source>
+    <Source>
+      <Dir>zfs</Dir>
+      <Dir>tests</Dir>
+      <Dir>nose-tests</Dir>
+      <Name>test.py</Name>
+    </Source>
+    <Source>
+      <Dir>zfs</Dir>
+      <Dir>tests</Dir>
+      <Dir>nose-tests</Dir>
+      <Name>profile_default.py</Name>
+    </Source>
+    <Source>
+      <Dir>misc</Dir>
+      <Dir>noseTracing</Dir>
+      <Name>pruneTests.py</Name>
+    </Source>
+    <Source>
+      <Dir>TestResultStorage</Dir>
+      <Dir>src</Dir>
+      <Dir>resultRepository</Dir>
+      <Name>projectViews.py</Name>
+    </Source>
+    <Source>
+      <Dir>insecticide</Dir>
+      <Name>profile_default.py</Name>
+    </Source>
+    <Source>
+      <Dir>insecticide</Dir>
+      <Name>test.py</Name>
+    </Source>
+    <Source>
+      <Dir>insecticide</Dir>
+      <Name>timeoutPlugin.py</Name>
+    </Source>
   </Sources>
   <Forms>
   </Forms>
@@ -281,10 +316,10 @@ I1
 s.</VcsOtherData>
   </Vcs>
   <FiletypeAssociations>
-    <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
-    <FiletypeAssociation pattern="*.ui" type="FORMS" />
-    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
-    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
     <FiletypeAssociation pattern="*.py" type="SOURCES" />
+    <FiletypeAssociation pattern="*.ui.h" type="FORMS" />
+    <FiletypeAssociation pattern="*.idl" type="INTERFACES" />
+    <FiletypeAssociation pattern="*.ui" type="FORMS" />
+    <FiletypeAssociation pattern="*.ptl" type="SOURCES" />
   </FiletypeAssociations>
 </Project>
