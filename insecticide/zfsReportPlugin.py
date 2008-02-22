@@ -85,15 +85,19 @@ class ZfsReportPlugin(Plugin):
                 setattr(test.test, startTimeAttr, datetime.datetime.now())
         
     
-    def addFailure(self, test, err):
+    def addFailure(self, test, err, error = False):
         if hasattr(test, "test"): #ignore context suites
             try:
-                self.reporter.reportFailure(ZfsTestFailure(test, err))
+                if error:
+                    self.reporter.reportError(ZfsTestFailure(test, err))
+                else:
+                    self.reporter.reportFailure(ZfsTestFailure(test, err))
             except:
                 log.debug("exception when reporting failure:\n%s", format_exc())
                 pass #TODO: specific exception and log
     
-    addError = addFailure
+    def addError(self, test, err):
+        return self.addFailure(test = test, err = err, error = True)
     
     def addSuccess(self, test):
         try:
