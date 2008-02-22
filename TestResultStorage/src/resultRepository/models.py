@@ -24,6 +24,12 @@ DUMP_DIRECTORY = settings.MEDIA_ROOT
 # length of environment variable value
 ENV_LEN = 254 # for PATHs
 
+RESULT_SUCCESS=0
+RESULT_FAILURE=1
+RESULT_ERROR=2
+RESULT_SKIPPED=-1
+RESULT_UNKNOWN=-2
+
 def computeDuration(startTime, endTime):
     """ Compute duration of time segment in miliseconds
         Ignores month and above.
@@ -80,11 +86,11 @@ class Project(models.Model):
         return self.projectName
    
 TEST_RESULT_CHOICES = (
-    (0, 'Success'),
-    (1, 'Failure'),
-    (2, 'Error'),
-    (-1, 'Skipped'),
-    (-2, 'Unknown'),
+    (RESULT_SUCCESS, 'Success'),
+    (RESULT_FAILURE, 'Failure'),
+    (RESULT_ERROR, 'Error'),
+    (RESULT_SKIPPED, 'Skipped'),
+    (RESULT_UNKNOWN, 'Unknown'),
 ) 
 """ Possible test results. """
 

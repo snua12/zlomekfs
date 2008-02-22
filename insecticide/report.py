@@ -11,7 +11,11 @@ except ImportError:
     class SqlWarning(Exception):
         pass
 
-from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData, ProfileInfo, Project, computeDuration
+from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
+from TestResultStorage.resultRepository.models import  ProfileInfo, Project, computeDuration
+from TestResultStorage.resultRepository.models import  RESULT_UNKNOWN, RESULT_SKIPPED
+from TestResultStorage.resultRepository.models import  RESULT_FAILURE, RESULT_SUCCESS
+from TestResultStorage.resultRepository.models import  RESULT_ERROR
 
 log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 
@@ -83,7 +87,7 @@ def generateLocalBatch(project = None):
     batch = BatchRun()
     
     batch.startTime = datetime.datetime.now()
-    batch.result = -2
+    batch.result = RESULT_UNKNOWN
     project = Project.objects.get_or_create(projectName = project, sourceRepositoryUrl = repository)
     if project:
         batch.project = project[0]
@@ -125,16 +129,16 @@ def finalizeBatch(batchId = None):
     if tests:
         batch.testCount = tests.count()
         
-        if tests.filter(result = 0).count():
-            batch.result = 0
-        if tests.filter(result=2).count(): #errors
-            batch.result = 2
-        elif tests.filter(result=1).count(): #failures
-            batch.result = 1
+        if tests.filter(result = RESULT_SUCCESS).count():
+            batch.result = RESULT_SUCCESS
+        if tests.filter(result = RESULT_ERROR).count(): #errors
+            batch.result = RESULT_ERROR
+        elif tests.filter(result = RESULT_FAILURE).count(): #failures
+            batch.result = RESULT_FAILURE
         else: #unknown tests.filter(result=-2).count()
             pass
     else: #we assume skipped tests as o.k.
-        batch.result = 0
+        batch.result = RESULT_SUCCESS
         batch.testCount = 0
     
     batch.hasFinished = True
@@ -203,13 +207,11 @@ class ReportProxy(object):
     def reportSuccess(self, test, duration = None, name = None, description = None):
         run = generateDefaultRun(batch = self.batch, test = test, duration = duration,
                                             name = name, description = description)
-        run.result = 0
+        run.result = RESULT_SUCCESS
         
         try:
             run.save()
         except SqlWarning: # heuristic: truncate data
-            run.description = run.description[:256]
-            run.save()
             log.debug(traceback.format_exc())
             pass
 
@@ -218,9 +220,9 @@ class ReportProxy(object):
         run = generateDefaultRun(batch = self.batch, test = failure.test,
                                     duration = duration, name = name, description = description)
         if error:
-            run.result = 2
+            run.result = RESULT_ERROR
         else:
-            run.result = 1
+            run.result = RESULT_FAILURE
         
         try:
             run.save()
