@@ -492,9 +492,8 @@ class StressGenerator(Plugin):
         inst = cls()
         testCases = []
         
-        # this was code that has created one case for every meta test
-        '''for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
-            theCase = ChainedTestCase(instance = inst, method = methodSequence[i],
+        for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
+            theCase = ChainedTestCase(cls = cls, instance = inst,
                                             chain = methodSequence, index = i) 
             if carryAttributes:
                 for key in carryAttributes:
@@ -503,6 +502,8 @@ class StressGenerator(Plugin):
                     except KeyError:
                         pass
             testCases.append(theCase)
+            
+        # this was code that has created one case for whole chain
         '''
         theCase = ChainedTestCase(cls = cls, chain = methodSequence) 
         if carryAttributes:
@@ -514,6 +515,7 @@ class StressGenerator(Plugin):
         
         for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
             testCases.append(theCase)
+        '''
         
         if testCases:
             log.debug("returning tests %s", str(testCases))
@@ -743,8 +745,42 @@ class ChainedTestCase(MethodTestCase):
     """ Wrapper class for chained cases. One instance serve
         for all tests in chain, current possition is given by index.
     """
-    failureBuffer = []
-    """ Buffer of failures (insecticide.failure.ZfsFailure) from previous runs. """
+    inst = None
+    """ TestClass instance. Holds tests state and global chain state. """
+    
+    __globalAttributes = ['failureBuffer', 'snapshotBuffer', 'chain', 'cls']
+    """  List of attributes which shoud not be accessed locally on TestCase.
+        They are stored in self.inst instead
+        :Items:
+            failureBuffer: Buffer of failures (insecticide.failure.ZfsFailure) from previous runs. 
+            snapshotBuffer: buffer of chain snapshots
+            chain: ordered list of names of methods which should be called in chain
+            cls: class from which chan was generated
+    """
+    
+    def __getattribute__(self, name):
+        """ Overriding getattribute method for object attributes
+            redirects ChainedTestCase.__globalAttributes to self.inst
+        """
+        if name in ChainedTestCase.__globalAttributes:
+            if self.inst:
+                return self.inst.__getattribute__(name)
+            else:
+                raise AttributeError()
+                
+        return super(ChainedTestCase, self).__getattribute__(name)
+        
+    def __setattr__(self, name, value):
+        """ Overriding access method for object attributes
+            redirects ChainedTestCase.__globalAttributes to self.inst
+        """
+        if name in ChainedTestCase.__globalAttributes:
+            if self.inst:
+                self.inst.__setattr__(name, value)
+            else:
+                raise AttributeError()
+                
+        super(ChainedTestCase, self).__setattr__(name, value)
     
     def snapshotChain(self, snapshot):
         """ Monkeypatch function for snapshotting test in chain.
@@ -834,19 +870,22 @@ class ChainedTestCase(MethodTestCase):
 
         
     def __init__(self, cls, method = None, test=None, arg=tuple(),
-                descriptor=None, instance = None,  chain = None,  index = -1):
+                descriptor=None, instance = None,  chain = None,  index = 0):
         """ Initializes whole chain.
             
             ..See: nose.case.MethodTestCase.__init__
         """
         #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
+        #NOTE: self.inst should be set first, because some other attributes are redirected do self.inst.<attr>
+        if instance is None:
+            instance = cls()
+        self.inst = instance
+        self.cls = cls
+        setattr(self, 'failureBuffer', [])
+        setattr(self, 'snapshotBuffer', [])
         self.test = test
         self.arg = arg
         self.descriptor = descriptor
-        self.cls = cls
-        if instance is None:
-            instance = self.cls()
-        self.inst = instance
         
         # redirect 
         if not hasattr(self.inst, "snapshotInstFunc"):
@@ -869,19 +908,6 @@ class ChainedTestCase(MethodTestCase):
             self.test = getattr(self.inst, method_name)            
 
         TestBase.__init__(self)
-        
-    def runTest(self):
-        """ Run current test in chain. And shift the index.
-            
-            ..See: nose.case.MethodTestCase.runTest
-        """
-        if len(self.chain) > self.index - 1:
-            self.index += 1
-            self.method = getattr(self.cls, self.chain[self.index])
-            method_name = self.method.__name__
-            self.test = getattr(self.inst, method_name)   
-            ret = MethodTestCase.runTest(self)
-        return ret
         
     def shortDescription(self):
         """ Return short description for current test
