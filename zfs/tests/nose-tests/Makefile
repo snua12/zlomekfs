@@ -21,11 +21,6 @@
 TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
-	#./test.py -w savedPaths
-	if ls savedPaths/* >/dev/null 2>&1; then \
-		./test.py; \
-	else \
-		.test.py ./* savedPaths/*;
-	fi
+	./test.py ${TESTS}
 clean:
 	rm -rf ./*.pyc
