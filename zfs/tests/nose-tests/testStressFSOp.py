@@ -5,6 +5,7 @@
 import logging
 
 import os
+import signal
 import time
 from traceback import format_exc
 from insecticide import zfsConfig
@@ -17,7 +18,8 @@ from insecticide.timeoutPlugin import timed
 log = logging.getLogger ("nose.tests.testStressFSOp")
 
 def abortDeadlock():
-    ZfsProxy.killall()
+    ZfsProxy.signalAll(signal.SIGABRT)
+    #ZfsProxy.killall()
 
 class testStressFSOp(ZfsStressTest, testFSOp):
   disabled = False

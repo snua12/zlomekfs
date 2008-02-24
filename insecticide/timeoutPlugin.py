@@ -1,6 +1,8 @@
 from nose.tools import make_decorator, TimeExpired
 from threading import Thread, Timer
 from subprocess import Popen
+from unittest import TestCase
+import unittest
 import thread
 import signal
 import time
@@ -30,7 +32,50 @@ def timed(limit, handler = raiseTimeout):
         newfunc = make_decorator(func)(newfunc)
         return newfunc
     return decorate
+    
 
+@timed(0.1)
+def sleeper():
+    time.sleep(1)
+
+handlerUsed = []
+def writeLocalHandler(h = handlerUsed):
+    h.append('i')
+    
+@timed(0.1, writeLocalHandler)
+def handledSleeper():
+    time.sleep(1)
+
+@timed(5)
+def passer():
+    time.sleep(1)
+    
+class TimeoutTest(TestCase):    
+
+    def testPass(self):
+        try:
+            passer()
+        except TimeExpired:
+            assert False
+        assert True
+        
+    def testDefaultAction(self):
+        try:
+            sleeper()
+        except TimeExpired:
+            return
+        assert False
+        
+    def testWriteHandler(self):
+        try:
+            handledSleeper()
+        except TimeExpired:
+            if handlerUsed:
+                return
+        assert False
+        
+    
+    
 '''    
             block = [os.getppid()]
             def handler(signum, stack):
@@ -81,3 +126,6 @@ def timed(limit, handler = raiseTimeout):
                 raise TimeExpired("Time limit (%s) exceeded" % limit)
 
 '''
+
+if __name__ == '__main__':
+    unittest.main()

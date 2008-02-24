@@ -406,18 +406,25 @@ class StressGenerator(Plugin):
                 return
             try:
                 for test in self._tests:
+                    from insecticide.zfsStressGenerator import StressGenerator
+                    if getattr(test, StressGenerator.stopContextAttr, None):
+                        setattr(test, StressGenerator.stopContextAttr, None)
+                        log.debug('caught stopContextAttr before test %s', str(id(test)))
+                        break;
                     if result.shouldStop:
                         log.debug("stopping")
                         break
                     # each nose.case.Test will create its own result proxy
                     # so the cases need the original result, to avoid proxy
                     # chains
+                    
                     test(orig)
                     
-                    from insecticide.zfsStressGenerator import StressGenerator
                     if getattr(test, StressGenerator.stopContextAttr, None):
                         setattr(test, StressGenerator.stopContextAttr, None)
+                        log.debug('caught stopContextAttr after test %s', str(id(test)))
                         break;
+                    
             finally:
                 self.has_run = True
                 try:
@@ -640,6 +647,7 @@ class StressGenerator(Plugin):
                 log.debug("catched stress test failure (%s)",  testInst)
                 log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
                 setattr(test,  StressGenerator.stopContextAttr,  True)
+                log.debug('set stopContextAttr on %s to True', str(id(test)))
                 log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
                 testInst.failureBuffer.append(ZfsTestFailure(test, err))
                 if len(testInst.failureBuffer) <= self.retriesAfterFailure:

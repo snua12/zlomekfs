@@ -184,13 +184,17 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
         
     return run
 
-def appendDataToRun(run, exception = None, backtrace = None, dataDir = None, test = None):
+def appendDataToRun(run, errInfo = None, dataDir = None, test = None):
     runData = TestRunData()
     runData.runId = run
-    if backtrace:
-        runData.backtrace = pickle.dumps(traceback.format_tb(backtrace), protocol = 0)
-        
-    runData.errText = str(exception)
+    if errInfo:
+        runData.backtrace = pickle.dumps(traceback.format_tb(errInfo[2]), protocol = 0)
+        runData.errText = traceback.format_exception_only(errInfo[0], errInfo[1])
+        if len(runData.errText) == 1:
+            runData.errText = runData.errText[0]
+        else:
+            runData.errText = str(runData.errText)
+        #runData.errText = pickle.dumps(traceback.format_exception_only(errInfo[0], errInfo[1]), protocol = 0)
     
     if test and hasattr(test, "test") and hasattr(test.test, "snapshotBuffer"):
         snapshot = test.test.snapshotBuffer.pop()
@@ -202,7 +206,7 @@ def appendDataToRun(run, exception = None, backtrace = None, dataDir = None, tes
     runData.save()
     
     
-def reportSystemError(batch, name = None, description = None, exception = None, backtrace = None):
+def reportSystemError(batch, name = None, description = None, errInfo = None):
     if not batch:
         raise Exception("batch id not defined (%s)" % batch)
     if not name:
@@ -215,12 +219,10 @@ def reportSystemError(batch, name = None, description = None, exception = None, 
     run.duration = 0
     
     run.save()
-    if not backtrace:
-        backtrace = sys.exc_info()[2]
-    if not exception and sys.exc_type:
-        exception = sys.exc_info()[1]
+    if not errInfo:
+        errInfo = sys.exc_info()
         
-    appendDataToRun(run = run , exception = exception, backtrace = backtrace)
+    appendDataToRun(run = run , errInfo = errInfo)
     
     
     
@@ -279,8 +281,7 @@ class ReportProxy(object):
             log.debug(traceback.format_exc())
             pass
         
-        appendDataToRun(run = run, exception = failure.failure[1],
-            backtrace = failure.failure[2], dataDir = self.dataDir, 
+        appendDataToRun(run = run, errInfo = failure.failure, dataDir = self.dataDir, 
             test = failure.test)
 
     

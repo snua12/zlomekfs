@@ -7,32 +7,6 @@ get and put for rpms
 finalize zen-unit
 implement fsx
 STABILIZE
+don't report killed zfs twice
 document
-check boundary in prune when shortest path is forbitten
 rpm defaults for RELEASE, VERSION, REVISION variables
-
-
-catch segfault and create core dump (RLIMIT_CORE, RLIMIT_FSIZE)
-
-       *      The process is executing a  set-user-ID  (set-group-ID)  program
-              that is owned by a user (group) other than the real user (group)
-              ID of  the  process.   (However,  see  the  description  of  the
-              prctl(2)  PR_SET_DUMPABLE  operation, and the description of the
-              /proc/sys/fs/suid_dumpable file in proc(5).)
-
-   Naming of core dump files
-       By default, a core dump file is  named  core,  but  the  /proc/sys/ker-
-       nel/core_pattern file (since Linux 2.6 and 2.4.21) can be set to define
-       a template that is used to name core dump files.  The template can con-
-       tain  % specifiers which are substituted by the following values when a
-       core file is created:
-
-         %%  A single % character
-         %p  PID of dumped process
-         %u  real UID of dumped process
-         %g  real GID of dumped process
-         %s  number of signal causing dump
-         %t  time of dump (seconds since 0:00h, 1 Jan 1970)
-         %h  hostname (same as ’nodename’ returned by uname(2))
-         %e  executable filename
-

@@ -1,5 +1,3 @@
-from insecticide.snapshot import SnapshotDescription
-from subprocess import Popen, PIPE, STDOUT
 import signal
 import pysyplog
 import tarfile
@@ -10,10 +8,18 @@ import zfsd_status
 import time
 import logging
 
+from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
+from insecticide.snapshot import SnapshotDescription
+from subprocess import Popen, PIPE, STDOUT
+
 log = logging.getLogger ("nose.test.zfs")
 
 from insecticide import graph
 from insecticide import zfsConfig
+
+class ZfsRuntimeException(Exception):
+    """ Exception raised upon zfs daemon failure """
+    pass
 
 class ZfsProxy(object):
     usedCompression = ""
@@ -22,9 +28,10 @@ class ZfsProxy(object):
     tempDir = "/tmp/zfsTestProxyTemp"
     zfsCacheDir = "cache"
     logFileName = "zfsd.log"
-    config = "etc" + os.sep + "config"
+    config = os.path.join("etc", "config")
+    oldRlimitCore = None
+    oldRlimitFsize = None
     
-    running = False
     def __init__(self, metaTar, zfsRoot = None,  tempDir = None,   logger = None):
         if zfsRoot:
             self.zfsRoot = zfsRoot
@@ -41,17 +48,48 @@ class ZfsProxy(object):
           
     @classmethod
     def killall(self):
-        Popen(args=('killall', '-9', 'zfsd'), stdout=PIPE, 
-                                stderr=STDOUT)
+        self.signalAll()
         self.unmount()
         self.removeModules()
         
+    @classmethod
+    def signalAll(self, sigNum = None):
+        if not sigNum:
+            sigNum = signal.SIGKILL
+        log.debug('signalling -' + str(sigNum))
+        Popen(args=('killall', '-' + str(sigNum), 'zfsd'), stdout=PIPE, 
+                                stderr=STDOUT)
+        
+    def allowCoreDumps(self):
+        self.oldRlimitCore = getrlimit(RLIMIT_CORE)
+        self.oldRlimitFsize = getrlimit(RLIMIT_FSIZE)
+        #infinite limits
+        setrlimit(RLIMIT_CORE, (-1, -1))
+        setrlimit(RLIMIT_FSIZE, (-1, -1))
+        
+    def revertCoreDumpSettings(self):
+        if self.oldRlimitCore:
+            setrlimit(RLIMIT_CORE, self.oldRlimitCore)
+            self.oldRlimitCore = None
+        if self.oldRlimitFsize:
+            setrlimit(RLIMIT_FSIZE, self.oldRlimitFsize)
+            self.oldRlimitFsize = None
+            
+    def collectCoreDumps(self, snapshot):
+        #NOTE: assume core.pid format
+        log.debug('collecting core dumps in %s', self.tempDir)
+        if self.zfs.pid and os.path.isfile(os.path.join(self.tempDir,'core.' + str(self.zfs.pid))):
+            log.debug('found core %s', 'core.' + str(self.zfs.pid))
+            snapshot.addFile(name = 'zfs.core',  sourceFileName = os.path.join(self.tempDir, 'core.' + str(self.zfs.pid)), 
+                                 type = SnapshotDescription.TYPE_ZFS_GCORE)
+            os.unlink(os.path.join(self.tempDir, 'core.' + str(self.zfs.pid)))
+            
     def installModules(self):
         modprobe = Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
                                 stderr=STDOUT, universal_newlines=True)
         modprobe.wait()
         if modprobe.returncode != 0:
-            raise Exception(modprobe.stdout.readlines()) #FIXME: accurate exception
+            raise SystemError(modprobe.stdout.readlines())
             
     def makeDirs(self):
         try:
@@ -89,11 +127,13 @@ class ZfsProxy(object):
         pass
         
     def changeZfsLogLevel(self, loglevel):
-        if not self.running:
+        if not self.isRunning():
             raise Exception("zfs not running") #TODO: accurate exception
         
         pysyplog.set_level_udp(loglevel, None, 0)
         
+    def isRunning(self):
+        return self.running and self.zfs.poll() is None
     def runZfs(self):
         self.killall() #destroy previous zfsd instances
         self.makeDirs()
@@ -102,13 +142,14 @@ class ZfsProxy(object):
         loglevel = pysyplog.LOG_LOOPS
         if self.logger:
             loglevel = pysyplog.get_log_level(self.logger)
+        self.allowCoreDumps()
         self.zfs = Popen(args=('zfsd',
                                 '-d',
                                 "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),
                                 "--" + str(pysyplog.PARAM_MEDIUM_FMT_LONG) + "=" + str(pysyplog.USER_READABLE_FORMATTER_NAME),
-                                "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + self.tempDir + os.sep + ZfsProxy.logFileName,
+                                "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + os.path.join(self.tempDir, ZfsProxy.logFileName),
                                 '-o', 'loglevel=' + str(loglevel) +
-                                ',config=' + self.tempDir + os.sep + self.config, 
+                                ',config=' + os.path.join(self.tempDir, self.config), 
                                 self.zfsRoot),
                                 cwd = self.tempDir,
                                 stdout = PIPE, stderr = PIPE, universal_newlines=True) # FIXME: core dump reporting
@@ -118,16 +159,12 @@ class ZfsProxy(object):
               break
         if zfsd_status.ping_zfsd() != zfsd_status.ZFSD_STATE_RUNNING:
             self.killall() #be sure that we don't leave orphans
+            self.revertCoreDumpSettings()
             raise Exception("Zfsd doesn't start")
         self.running = True
         self.connectControl()
         
     def stopZfs(self):
-        #TODO: check status
-        if self.zfs.poll():
-            #death zfs
-            #TODO: collect core dumps
-            pass
         self.disconnectControl()
         for i in [0.1, 0.5, 1]:
             try:
@@ -146,12 +183,13 @@ class ZfsProxy(object):
         self.unmount()
         self.removeModules()
         self.cleanup()
+        self.revertCoreDumpSettings()
         
     def snapshot(self, snapshot):
         #snapshot cache
         try:
             snapshot.addDir(name = 'zfsCache',  
-                        sourceDirName = self.tempDir + os.sep + self.zfsCacheDir,
+                        sourceDirName = os.path.join(self.tempDir, self.zfsCacheDir),
                         type = SnapshotDescription.TYPE_ZFS_CACHE)
         except OSError: #can arise before first run
             pass
@@ -159,12 +197,12 @@ class ZfsProxy(object):
         #NOTE: this could fail when zfsd doesn't start yet
         try:
             snapshot.addFile(name = 'zfsd.log',
-                         sourceFileName = self.tempDir + os.sep + self.logFileName,
+                         sourceFileName = os.path.join(self.tempDir, self.logFileName),
                          type = SnapshotDescription.TYPE_ZFS_LOG)
         except IOError:
             pass
 
-        if self.running:
+        if self.isRunning():
         #snapshot zfs process
             if not self.zfs.returncode:
                 gdb = Popen(args=('gdb', '-p',  str(self.zfs.pid), ), stdin = PIPE, 
@@ -173,16 +211,16 @@ class ZfsProxy(object):
                 gdb.stdin.write('quit' + '\n')
                 gdb.wait()
                 if gdb.returncode != 0:
-                    raise Exception(gdb.stderr.readlines()) #FIXME: accurate exception
-                try:
-                    snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid), 
+                    raise SystemError(gdb.stderr.readlines())
+                snapshot.addFile(name = 'zfs.core',  sourceFileName = self.tempDir + os.sep + 'zfsd.core.' + str(self.zfs.pid), 
                                  type = SnapshotDescription.TYPE_ZFS_GCORE)
-                except IOError:
-                    pass #FIXME: this should not happen
                          
             #set as unresumable
             snapshot.addEntry('canResume', 
                           (SnapshotDescription.TYPE_BOOL, False))
+        else:
+            self.collectCoreDumps(snapshot)
+            
         if hasattr(self,"zfs"):
                 snapshot.addObject("zfsStderr",self.zfs.stderr)#TODO: don't block waiting
                 snapshot.addObject("zfsStdout",self.zfs.stdout)
@@ -258,10 +296,14 @@ class ZfsStressTest(ZfsTest):
     
     # we don't want to reset state after every test
     def setup(self):
+        if not self.zfs.isRunning():
+            raise ZfsRuntimeException("Zfsd died before test start")
         log.debug("stress setup")
         pass
         
     def teardown(self):
+        if not self.zfs.isRunning():
+            raise ZfsRuntimeException("Zfsd died upon test execution")
         log.debug("stress teardown")
         pass
         
