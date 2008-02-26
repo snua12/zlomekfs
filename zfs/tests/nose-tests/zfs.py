@@ -134,6 +134,10 @@ class ZfsProxy(object):
         
     def isRunning(self):
         return self.running and self.zfs.poll() is None
+    
+    def hasDied(self):
+        return self.running and self.zfs.poll()
+        
     def runZfs(self):
         self.killall() #destroy previous zfsd instances
         self.makeDirs()
@@ -172,7 +176,7 @@ class ZfsProxy(object):
             except OSError:
                 break #assume no such process
             time.sleep(i)
-            if self.zfs.poll():
+            if self.zfs.poll() is not None:
                 break
         
         if self.zfs.poll () is None:
@@ -286,6 +290,11 @@ class ZfsTest(object):
         
         # resume zfs
         self.zfs.resume(snapshot)
+        
+    def raiseExceptionIfDied(self):
+        if self.zfs.hasDied():
+            self.zfs.stopZfs()
+            raise ZfsRuntimeException("Zfsd died upon test execution")
 
 class ZfsStressTest(ZfsTest):
     metaTest = True
@@ -296,14 +305,12 @@ class ZfsStressTest(ZfsTest):
     
     # we don't want to reset state after every test
     def setup(self):
-        if not self.zfs.isRunning():
-            raise ZfsRuntimeException("Zfsd died before test start")
+        self.raiseExceptionIfDied()
         log.debug("stress setup")
         pass
         
     def teardown(self):
-        if not self.zfs.isRunning():
-            raise ZfsRuntimeException("Zfsd died upon test execution")
+        self.raiseExceptionIfDied()
         log.debug("stress teardown")
         pass
         

@@ -14,6 +14,18 @@ import pickle
 
 log = logging.getLogger ("nose.tests.testFSOp")
 
+def tryGetSize(file):
+    try:
+        return os.path.getsize(file.name)
+    except os.error:
+        return -1
+    
+def tryGetPos(file):
+    try:
+        return file.tell()
+    except (OSError, IOError):
+        return -1
+
 def tryTouch(fileName):
   try:
     log.debug ("try to touch file %s", fileName)
@@ -21,7 +33,7 @@ def tryTouch(fileName):
     os.close(fd)
     os.utime(fileName, None)
     return True
-  except:
+  except (OSError, IOError):
     log.debug(format_exc())
     return False
 
@@ -30,7 +42,7 @@ def tryUnlink(fileName):
     log.debug ("try to unlink file %s", fileName)
     os.unlink(fileName)
     return True
-  except:
+  except (OSError, IOError):
    log.debug(format_exc())
    return False
 
@@ -39,27 +51,36 @@ def tryRename(originalFileName,  newFileName):
     log.debug ("try to rename file %s to file %s", originalFileName, newFileName)
     os.rename(originalFileName,  newFileName)
     return True
-  except:
+  except (OSError, IOError):
    log.debug(format_exc())
    return False
 
-def tryRead(file):
+def tryRead(file, bytes):
   try:
     log.debug ("try read from file %s", file.name)
-    return pickle.load(file)
-  except:
+    return file.read(bytes)
+  except (IOError, OSError):
    log.debug(format_exc())
    return None
     
 def tryWrite(file,  data):
   try:
     log.debug ("try write to file %s", file.name)
-    pickle.dump(data,  file)
+    file.write(str(data))
     return True
-  except:
+  except (IOError, OSError):
     log.debug(format_exc())
     return False
 
+def trySeek(file, newPos):
+    try:
+        log.debug("try to seek to %s", str(newPos))
+        file.seek(newPos, os.SEEK_SET)
+    except (IOError, OSError):
+        log.debug(format_exc())
+        
+    return file.tell()
+    
 class testFSOp(ZfsTest):
   disabled = False
   zfs = True
