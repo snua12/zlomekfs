@@ -5,8 +5,11 @@ from unittest import TestCase
 import unittest
 import thread
 import signal
-import time
+import datetime
 import os
+import logging
+
+log = logging.getLogger('nose.plugins.timeoutPlugin')
 
 def raiseTimeout():
     pass
@@ -23,12 +26,21 @@ def timed(limit, handler = raiseTimeout):
     def decorate(func):
         def newfunc(*arg, **kw):
             timer = Timer(limit, handler)
+            log.debug('starting timer in %s for %s', str(datetime.datetime.now()), str(limit))
             timer.start()
-            func(*arg, **kw)
+            try:
+                ret = func(*arg, **kw)
+            except:
+                timer.cancel()
+                log.debug('canceled timer in %s because of failure', str(datetime.datetime.now()))
+                raise
             if timer.isAlive():
                 timer.cancel()
+                log.debug('canceled timer in %s', str(datetime.datetime.now()))
             else:
+                log.debug('timer has expired', str(datetime.datetime.now()))
                 raise TimeExpired("time limit exceeded")
+            return ret
         newfunc = make_decorator(func)(newfunc)
         return newfunc
     return decorate

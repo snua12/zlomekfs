@@ -136,7 +136,8 @@ class SnapshotPlugin(Plugin):
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir, log)
         if hasattr(test.test, "inst") and hasattr(test.test.inst, "snapshot"):
-            log.debug("snapshotting %s (%s) into dir %s",  str(test), snapshot, toDir)
+            import datetime
+            log.debug("snapshotting %s (%s) into dir %s at %s",  str(test), snapshot, toDir, str(datetime.datetime.now()))
             test.test.inst.snapshot(snapshot)
         else:
             log.debug("can't snapshot %s. doesn't define snapshot() function",  str(test))
@@ -158,16 +159,21 @@ class SnapshotPlugin(Plugin):
         
     def handleError(self, test, err):
         if self.snapshotError:
+            log.debug("error %s", str(err))
             self.snapshotTest(test)
         
     def handleFailure(self, test, err):
         if self.snapshotFailure:
+            log.debug("failure %s", str(err))
             self.snapshotTest(test)
         
+    @classmethod
+    def dropSnapshots(self,test):
+        while test.test.snapshotBuffer:
+            test.test.snapshotBuffer.pop(0).delete()
+            
     def addSuccess(self, test):
         if not hasattr(test,"test"): #ignore non-tests
             return
         if hasattr(test.test, "snapshotBuffer") and test.test.__class__ is not ChainedTestCase :
-            while test.test.snapshotBuffer:
-                test.test.snapshotBuffer.pop(0).delete()
-
+            self.dropSnapshots(test)

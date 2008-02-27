@@ -88,6 +88,7 @@ class ZfsReportPlugin(Plugin):
     def addFailure(self, test, err, error = False):
         if hasattr(test, "test"): #ignore context suites
             try:
+                log.debug("reporting failure of %s", test)
                 if error:
                     self.reporter.reportError(ZfsTestFailure(test, err))
                 else:

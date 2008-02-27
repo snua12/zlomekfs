@@ -567,7 +567,7 @@ class StressGenerator(Plugin):
                 raise Exception ("sys error: we don't find existing path")
             return path
         
-        return test.chain[:test.index + 1] # TODO: check if boundary is correct
+        return test.chain[:test.index + 1]
     
     def retry(self, test):
         """ Query test for retry.
@@ -645,7 +645,7 @@ class StressGenerator(Plugin):
         else:
             if self.isChainedTestCase(testInst):
                 log.debug("catched stress test failure (%s)",  testInst)
-                log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
+                #log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
                 setattr(test,  StressGenerator.stopContextAttr,  True)
                 log.debug('set stopContextAttr on %s to True', str(id(test)))
                 log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
@@ -677,6 +677,7 @@ class StressGenerator(Plugin):
         else:
             if self.isChainedTestCase(testInst):
                 (testName, description) = self.generateDescription(test)
+                log.debug("reporting %s failure from addFailure", testInst.method.__name__)
                 if error:
                     self.reportProxy.reportError(ZfsTestFailure(test,err), name = testName, description = description)
                 else:
@@ -711,6 +712,7 @@ class StressGenerator(Plugin):
                     self.storePath(testInst)
                     failure = testInst.failureBuffer.pop()
                     (testName, description) = self.generateDescription(failure.test)
+                    log.debug("reporting %s failure from addSuccess", testInst.method.__name__)
                     self.reportProxy.reportFailure(failure, name = testName, description = description)
                 else:
                     (testName, description) = self.generateDescription(test)
@@ -732,7 +734,7 @@ class StressGenerator(Plugin):
         """
         if test.test.__class__ is ChainedTestCase:
             testName = "Chain for " + test.test.cls.__name__
-            description = "Method sequence: " + str(test.test.chain) # TODO: truncate
+            description = "Method " + test.test.chain[test.test.index] + " at " + str(test.test.index) + " in sequence: " + str(test.test.chain) # TODO: truncate
         return (testName, description)
     
     def finalize(self, result):
@@ -923,7 +925,11 @@ class ChainedTestCase(MethodTestCase):
             ..See: nose.case.MethodTestCase.shortDescription
         """
         # FIXME: return correct test before run, in run and after run :/
-        return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
+        if len(self.chain) > 10:
+            return self.method.__name__ + " in chain " + str(self.chain[:5]) + \
+                " .. " + str(self.chain[self.chain.index - 2: self.chain.index + 1])  + "[" + str(self.index) + "]"
+        else:
+            return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
         
     
 class SuiteRunner(nose.suite.ContextSuite):

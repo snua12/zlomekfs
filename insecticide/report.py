@@ -261,8 +261,11 @@ class ReportProxy(object):
         try:
             run.save()
         except SqlWarning: # heuristic: truncate data
+            #note: this may generate extra report entry
+            run.description = run.description[:256]
+            run.save()
             log.debug(traceback.format_exc())
-            pass
+    
 
     
     def reportFailure(self, failure, duration = None, name = None, description = None, error = False):
@@ -276,10 +279,10 @@ class ReportProxy(object):
         try:
             run.save()
         except SqlWarning: # heuristic: truncate data
+            #note: this may generate extra report entry
             run.description = run.description[:256]
             run.save()
             log.debug(traceback.format_exc())
-            pass
         
         appendDataToRun(run = run, errInfo = failure.failure, dataDir = self.dataDir, 
             test = failure.test)
