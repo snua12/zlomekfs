@@ -198,8 +198,12 @@ def appendDataToRun(run, errInfo = None, dataDir = None, test = None):
     
     if test and hasattr(test, "test") and hasattr(test.test, "snapshotBuffer"):
         snapshot = test.test.snapshotBuffer.pop()
+        log.debug("appending snapshot %s", snapshot.directory)
         snapshot.pack(dataDir + os.sep + "failureSnapshot-" + str(runData.id))
+        snapshot.delete()
         runData.dumpFile = "failureSnapshot-" + str(run) + "-" + str(id(snapshot))
+        for snapshot in test.test.snapshotBuffer:
+            snapshot.delete()
     else:
         runData.dumpFile = None
             
