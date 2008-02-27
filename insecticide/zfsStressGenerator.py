@@ -927,7 +927,7 @@ class ChainedTestCase(MethodTestCase):
         # FIXME: return correct test before run, in run and after run :/
         if len(self.chain) > 10:
             return self.method.__name__ + " in chain " + str(self.chain[:5]) + \
-                " .. " + str(self.chain[self.chain.index - 2: self.chain.index + 1])  + "[" + str(self.index) + "]"
+                " .. " + str(self.chain[self.index - 2: self.index + 1])  + "[" + str(self.index) + "]"
         else:
             return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
         
