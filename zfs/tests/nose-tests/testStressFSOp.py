@@ -7,6 +7,7 @@ import logging
 import os
 import signal
 import time
+import datetime
 import random
 from traceback import format_exc
 from insecticide import zfsConfig
@@ -19,7 +20,7 @@ from insecticide.timeoutPlugin import timed
 log = logging.getLogger ("nose.tests.testStressFSOp")
 
 def abortDeadlock():
-    log.debug("killing locked zfs")
+    log.debug("killing locked zfs in %s", str(datetime.datetime.now()))
     ZfsProxy.signalAll(signal.SIGABRT)
     #ZfsProxy.killall()
 
@@ -31,7 +32,7 @@ class testStressFSOp(ZfsStressTest, testFSOp):
   noFileSuccessors = [('testTouch', 3), ('testGenerateName', 1), ('testOpen', 5)]
   fileExistSuccessors = [('testRename', 1), ('testUnlink', 1),
                     ('testOpen', 1), ('testTouch', 1), ('testGenerateName', 1)]
-  openedFileSuccessors = [('testClose', 1), ('testRead', 1), ('testWrite', 1), ('testSeek', 1), ('testGetSize', 1), ('testGetPos', 1)]
+  openedFileSuccessors = [('testClose', 1), ('testRead', 1), ('testWrite', 1), ('testSeek', 1), ('testGetPos', 1), ('testGetSize', 1)]
   
   graph = {
                 'testGenerateName' : noFileSuccessors,

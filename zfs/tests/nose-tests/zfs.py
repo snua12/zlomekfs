@@ -12,7 +12,7 @@ from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
 from insecticide.snapshot import SnapshotDescription
 from subprocess import Popen, PIPE, STDOUT
 
-log = logging.getLogger ("nose.test.zfs")
+log = logging.getLogger ("nose.tests.zfs")
 
 from insecticide import graph
 from insecticide import zfsConfig
@@ -56,7 +56,7 @@ class ZfsProxy(object):
     def signalAll(self, sigNum = None):
         if not sigNum:
             sigNum = signal.SIGKILL
-        log.debug('signalling -' + str(sigNum))
+        log.debug('signalling ' + str(sigNum))
         Popen(args=('killall', '-' + str(sigNum), 'zfsd'), stdout=PIPE, 
                                 stderr=STDOUT)
         
@@ -103,11 +103,17 @@ class ZfsProxy(object):
         
     @classmethod
     def removeModules(self):
-        Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
+        rm = Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
+        rm.wait()
+        if rm.returncode:
+            log.debug("rmmod: %d output is %s", rm.returncode, rm.stdout.readlines())
         
     @classmethod
     def unmount(self):
-        Popen(args=('umount', '-f', self.zfsRoot), stderr = STDOUT, stdout = PIPE)
+        um = Popen(args=('umount', '-f', self.zfsRoot), stderr = STDOUT, stdout = PIPE)
+        um.wait()
+        if um.returncode:
+            log.debug("umount: %d output is %s", um.returncode, um.stdout.readlines())
         
     def unpackData(self):
         tarFile = tarfile.open(name = self.metaTar, 
@@ -293,8 +299,10 @@ class ZfsTest(object):
         
     def raiseExceptionIfDied(self):
         if self.zfs.hasDied():
+            log.debug("zfs has died")
             self.zfs.stopZfs()
             raise ZfsRuntimeException("Zfsd died upon test execution")
+        
 
 class ZfsStressTest(ZfsTest):
     metaTest = True
