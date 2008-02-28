@@ -1,6 +1,4 @@
 
-import os
-
 env = {
     'PROFILE_NAME' : __name__,
     'NOSE_EVAL_ATTR' : 'not disabled',

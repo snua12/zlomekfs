@@ -8,7 +8,7 @@ import logging
 
 from nose.plugins import Plugin
 from insecticide.failure import ZfsTestFailure
-from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
+from insecticide.report import ReportProxy, startTimeAttr
 
 log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 

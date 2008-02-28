@@ -1,12 +1,8 @@
 from nose.tools import make_decorator, TimeExpired
-from threading import Thread, Timer
-from subprocess import Popen
+from threading import Timer
 from unittest import TestCase
 import unittest
-import thread
-import signal
 import datetime
-import os
 import logging
 import time
 

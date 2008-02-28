@@ -1,11 +1,11 @@
 import logging
 import os
-import os
+import sys
 import pysvn
 import datetime
-import socket
 import traceback
 import pickle
+
 try:
     from _mysql_exceptions import Warning as  SqlWarning
 except ImportError:
@@ -14,7 +14,7 @@ except ImportError:
 
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
 from TestResultStorage.resultRepository.models import  ProfileInfo, Project, computeDuration
-from TestResultStorage.resultRepository.models import  RESULT_UNKNOWN, RESULT_SKIPPED
+from TestResultStorage.resultRepository.models import  RESULT_UNKNOWN
 from TestResultStorage.resultRepository.models import  RESULT_FAILURE, RESULT_SUCCESS
 from TestResultStorage.resultRepository.models import  RESULT_ERROR
 

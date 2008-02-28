@@ -5,7 +5,7 @@ import logging
 from optparse import OptionConflictError
 from types import TypeType,  ClassType
 from warnings import warn
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, ParsingError, MissingSectionHeaderError
 
 from nose.plugins import Plugin
 from nose.util import tolist

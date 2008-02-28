@@ -1,6 +1,5 @@
 import os
 import sys
-import traceback
 
 
 def noseWrapper(project = None, stripPath = None):
@@ -20,7 +19,7 @@ def noseWrapper(project = None, stripPath = None):
         os.environ[branchEnvOpt] = branch
     except:
         info = sys.exc_info()
-        print e
+        print info
     else:
         info = None
     

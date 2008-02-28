@@ -22,7 +22,6 @@ from nose.suite import ContextSuiteFactory, ContextList
 from nose.plugins import Plugin
 
 from insecticide.graph import GraphBuilder
-import pickle
 
 log = logging.getLogger ("nose.plugins.zfsStressGenerator")
 
