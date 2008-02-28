@@ -6,11 +6,9 @@ import datetime
 import traceback
 import pickle
 
-try:
-    from _mysql_exceptions import Warning as  SqlWarning
-except ImportError:
-    class SqlWarning(Exception):
-        pass
+
+from _mysql_exceptions import Warning as  SqlWarning
+
 
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
 from TestResultStorage.resultRepository.models import  ProfileInfo, Project, computeDuration
