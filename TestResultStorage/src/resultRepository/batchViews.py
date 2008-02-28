@@ -2,14 +2,12 @@
     Uses `views` module for basic operation, `models` module for database handling."""
 
 from django.utils.translation import ugettext as _
-from django.http import HttpResponse
 from django.utils.html import escape
 from django.shortcuts import render_to_response, get_object_or_404
-from models import BatchRun, Project, TestRun
-from django.core.paginator import ObjectPaginator, InvalidPage
+from models import BatchRun, TestRun
 from views import globalMenu, generateLink, DEFAULT_PAGING, formatDuration
 from views import generatePagination, generateAttrReleasementLinks
-from views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir
+from views import testListDir, batchDetailDir
 
 batchListAttrs = ['page', 'paging', 'result', 'branch', 'project', 'orderBy', 'revision', 'hasFinished', 'host']
 """ List of attributes recognized by batchList page """

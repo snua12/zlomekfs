@@ -4,15 +4,11 @@
 import pickle
 from django.utils.translation import ugettext as _
 from django.utils.html import escape
-from TestResultStorage.settings import MEDIA_ROOT
-from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
-from models import TestRun, TestRunData, BatchRun, TEST_RESULT_CHOICES 
-from django.core.paginator import ObjectPaginator, InvalidPage
 from views import globalMenu, generateLink, DEFAULT_PAGING, formatDuration
 from views import generatePagination, generateAttrReleasementLinks
-from views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir, dataDir
-from batchViews import generateBatchDescription
+from views import testDetailDir, projectListDir, dataDir
+from models import TestRun, TestRunData
 
 
 testListAttrs = ['page', 'paging', 'result', 'batch', 'testName', 'orderBy']

@@ -1,8 +1,8 @@
 """ Module with generic functions and fields for generating resultRepository html """
 
 
-from django.utils.translation import ugettext as _
-from django.core.paginator import ObjectPaginator, InvalidPage
+#from django.utils.translation import ugettext as _
+from django.core.paginator import ObjectPaginator
 
 # internationalize string -- _(string)
 

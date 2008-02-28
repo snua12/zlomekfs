@@ -1,6 +1,5 @@
 from views import globalMenu, generateLink, batchListDir, generatePagination, DEFAULT_PAGING
 from models import Project
-from django.http import HttpResponse
 from django.shortcuts import render_to_response
 
 def generateProjectList(projects):

@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import patterns, include
 from django.conf import settings
 from resultRepository.views import testDetailDir, testListDir, batchDetailDir, batchListDir, projectListDir, dataDir
 
