@@ -1,3 +1,7 @@
+""" Module with code handling test dependency graphs.
+    Load them from test class, create graph and generate random path through graph.
+ """
+
 import unittest
 
 from random import SystemRandom
@@ -12,15 +16,37 @@ class DependencyDeffinitionError(Exception):
     pass
 
 class DependencyGraph(object):
-    
+    """ Representation of dependency graph between test methods in test class.
+        Provides abstraction for transistions and graph walk.
+    """
     graph = None
+    """ Graph of transistions (directory) in format:
+        methodName: [(nameOfMethodToWhichEdgeExists, EdgeScore), ... ]
+    """
     currentNode = None
+    """ State information in graph walk. """
+    
     randomGenerator = SystemRandom()
+    """ Random generator used to generate random path through graph. """
     
     def equals(self,  graph):
+        """ Compares this graph with given and returns if they contains equal information.
+            
+            :Parameters:
+                graph: DependencyGraph instance
+                
+            :Return:
+                True if graphs and currentNode are the same.
+        """
         return self.graph == graph.graph and self.currentNode == graph.currentNode
     
     def __init__(self,  graph = None, startNode = None):
+        """ Constructor. Takes optional arguments to bootstrap state.
+            
+            :Parameters:
+                graph: graph to start with in directory format
+                startNode: method name which should go first
+        """
         if graph:
             self.graph = graph
         else:
@@ -35,9 +61,17 @@ class DependencyGraph(object):
         
     
     def initRandomStartNode(self):
+        """ Reset graph walk state by set startNode = currentNode to new, random possition in graph. """
         self.restart( self.randomGenerator.choice(self.graph.keys()) )
     
     def setEdge(self,  start,  end,  prob):
+        """ Appends edge to graph. NOTE: multiple paths start -> end are allowd.
+            
+            :Parameters:
+                start: method name from which transistion should be set
+                end: method name to which transistion should lead
+                probability: score of edge
+        """
         try:
             edges = self.graph[start]
             edges.append((end, prob))
@@ -46,28 +80,52 @@ class DependencyGraph(object):
             self.graph[start] = [(end, prob)]
         
     
-    """
-        Set node and it's successors
-        node should be string
-        edges should be list of pairs (nodeName, score)
-        where nodeName is string and score is integer
-    """
     def setNode(self,  node,  edges):
+        """ Set node and it's successors.
+            
+            :Parameters:
+                node: should be string (method name)
+                edges: should be list of pairs (nodeName, score)
+                    where nodeName is string and score is integer
+        """
         self.graph[node] = edges
     
     def setCurrentNode(self,  node):
+        """ Set current possition in graph (next item returned).
+            
+            :Parameters:
+                node: node name
+        """
         self.currentNode = node
         
     def setStartNode(self, node):
+        """ Set start node in graph. Doesn't reset current node.
+            
+            :Parameters:
+                node: node name
+        """
         self.startNode = node
     
     def restart(self,  startNode = None):
+        """ Restart graph walkthrough. 
+            
+            :Parameters:
+                startNode: name of first node returned (if given)
+        """
         if startNode:
             self.startNode = startNode
         self.currentNode = self.startNode
     
     @classmethod
     def getNodeListSum(self, list):
+        """ Returns sum of scores of all edges in list.
+            
+            :Parameters:
+                list: list of edges (as stored in graph for one node)
+            
+            :Return:
+                sum(item[1] where item in list)
+        """
         sum = 0
         for item in list:
             sum += item[1]
@@ -75,6 +133,16 @@ class DependencyGraph(object):
 
     @classmethod
     def getNodeByRangeHit(self, list,  hit):
+        """ Return node in edge such as sum of scores of previous edges is less than hit 
+            and sum + edge score is greater than hit.
+            
+            :Parameters:
+                list: edge list as stored in graph for one node
+                hit: int in range (0, sum(edge[1] where edge in list)
+            
+            :Return:
+                node name or None (if outside of range)
+        """
         for item in list:
             hit -= item[1]
             if hit <=0:
@@ -82,12 +150,22 @@ class DependencyGraph(object):
         return None
     
     def getCurrent(self):
+        """ Return current node
+            
+            :Return:
+                self.currentNode
+        """
         return self.currentNode
     
-    """
-        Returns current and shift to next
-    """
     def next(self,  stopProbability = 0):
+        """ Returns current node and shift to next.
+            
+            :Parameter:
+                stopProbability: probability (0,1) of walk termination
+                
+            :Return:
+                node or None
+        """
         current = self.currentNode
         if stopProbability > 0:
             key = self.randomGenerator.uniform(0, 1)
@@ -108,6 +186,16 @@ class DependencyGraph(object):
         return current
         
     def getShortestPath (self,  start,  end,  ignoredNodes = None):
+        """ Finds shortest path before start and end node, ignoring listed nodes.
+            
+            :Parameters:
+                start: start node (first in path)
+                end: end node (last in path)
+                ignoredNodes: nodes that should not appear in path
+                
+            :Return:
+                ordered list of nodes [start, ..., end] or None
+        """
         if ignoredNodes:
             visited = ignoredNodes
         else:
@@ -139,6 +227,7 @@ class DependencyGraph(object):
     
 
 class testLinearGraph(TestCase):
+    """ TestCase for operations on linear graph (path) """
     graph = None
     def setUp(self):
         self.graph = DependencyGraph(
@@ -159,6 +248,7 @@ class testLinearGraph(TestCase):
         
 
 class testShortestPath(TestCase):
+    """ TestCase for test of shortestPath method """
     graph = None
     def setUp(self):
         self.graph = DependencyGraph(
@@ -188,6 +278,9 @@ class testShortestPath(TestCase):
         assert self.graph.getShortestPath('1', '6', ['3']) == ['1', '2', '5', '6']
 
 class testInfiniteGraph(TestCase):
+    """ TestCase for testing infinite graph walkthrough
+        NOTE: tests are heuristic, we can't test infinity :)
+    """
     graph = None
     def setUp(self):
         self.graph = DependencyGraph(
@@ -214,17 +307,38 @@ class testInfiniteGraph(TestCase):
         
 
 class GraphBuilder(object):
+    """ Class that defines helper functions to extract transistions between methods 
+        from TestClass and transform them into DependencyGraph object.
+    """
+    
     defVarName = "definitionType"
+    """ TestClass attribute name which specifies used definition type """
+    
     USE_FLAT = 0
+    """ Constant for definitionType with meaning 'all transistions are possible, scores are even' """
+    
     USE_LOCAL = 1
+    """ Constant for definitionType with meaning 'get edges from method from method attribute' """
+    
     USE_GLOBAL = 2
+    """ Constant for definitionType with meaning 'all transistions (whole graph) is defined in class itself' """
+    
     USE_PROB = 3
+    """ Constant for definitionType with meaning 'all transistions are possible, all edges to given node 
+    has score defined in method attribute'
+   """
     
     graphVarName = "graph"
-    nodeGraphVarName = "successors"
-    probVarName = "score"
-    startVarName = "startingPoint"
+    """ TestCase class attribute name which defines whole graph. """
     
+    nodeGraphVarName = "successors"
+    """ Method attribute name defining edges from this method. """
+    
+    probVarName = "score"
+    """ Method attribute name defining probability of usage of this method. """
+    
+    startVarName = "startingPoint"
+    """ TestCase class attribute name which defines first method called """
     
     
     def __init__(self):
@@ -232,6 +346,17 @@ class GraphBuilder(object):
     
     @classmethod
     def generateDependencyGraph(self,  cls,  methods = None):
+        """ Generate dependency graph for given class using given methods.
+            
+            :Parameters:
+                cls: class to generate graph from
+                methods: methods allowed to use. 
+                    Only these will be used in resulting graph.
+                    If None, all methods from class will be used.
+            
+            :Return:
+                DependencyGraph instance
+        """
         type = getattr(cls, GraphBuilder.defVarName,  GraphBuilder.USE_FLAT)
         startNode = getattr(cls, GraphBuilder.startVarName,  None)
         if methods and startNode not in methods:
@@ -246,6 +371,11 @@ class GraphBuilder(object):
     
     @classmethod    
     def generateUsingDefaults(self,  cls,  methods = None,  startNode = None):
+        """ Generate dependency graph with flat probabilities (all edges are even, 
+            from every node goes edges to all other nodes including self)
+            
+            .. See generateDependencyGraph
+        """
         graph = DependencyGraph(graph = {}, startNode = startNode)
         if methods is None:
             methods = getMatchedTypes(cls,   [MethodType])
@@ -264,6 +394,11 @@ class GraphBuilder(object):
     
     @classmethod
     def generateUsingLocal(self,  cls,  methods = None,  startNode = None):
+        """ Generate dependency graph using local transistion deffinitions.
+            Edges from method are specified in method attribute.
+            
+            .. See generateDependencyGraph
+        """
         graph = DependencyGraph(graph = {}, startNode = startNode)
         
         if methods is None:
@@ -282,6 +417,11 @@ class GraphBuilder(object):
     
     @classmethod
     def generateUsingGlobal(self,  cls,  methods = None,  startNode = None):
+        """ Generate dependency graph from graph defined in class.
+            Transistions from and to methods not listed will be discarded.
+            
+            .. See generateDependencyGraph
+        """
         graph = getattr(cls, GraphBuilder.graphVarName,  None)
         if graph is None:
             raise DependencyDeffinitionError("no graph defined while using global graph dependencies")
@@ -295,6 +435,12 @@ class GraphBuilder(object):
     
     @classmethod
     def generateUsingProbability(self,  cls,  methods = None,  defaultProbability = 0,  startNode = None):
+        """ Generate dependency graph with using probabilities.
+            From every node goes edges to all other nodes including self,
+            score of edge is defined by attribute of target node (method)
+            
+            .. See generateDependencyGraph
+        """
         graph = DependencyGraph(graph = {}, startNode = startNode)
         if methods is None:
             methods = getMatchedTypes(cls,   [MethodType])
@@ -315,7 +461,7 @@ class GraphBuilder(object):
         return graph
 
 class testGraphGenerator(TestCase):
-    
+    """ Tests for GraphGenerator """
     class GraphClass(object):
         startingPoint = 'startNode'
         
