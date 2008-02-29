@@ -6,7 +6,7 @@ from types import MethodType
 from unittest import TestCase
 
 class DependencyDeffinitionError(Exception):
-    """Error raised when dependency deffinition is illegal
+    """ Error raised when dependency deffinition is illegal
         or missing
     """
     pass
