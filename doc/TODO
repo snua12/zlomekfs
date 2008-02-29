@@ -2,6 +2,7 @@ vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat 
 
 improve snapshot view in web
 remote tests?
+report according to reportPlugin settings
 autoconf
 support for "infinite tests" (to run between post-commit tests)
 get for rpms

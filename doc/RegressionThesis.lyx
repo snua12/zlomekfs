@@ -2249,14 +2249,6 @@ RPM
  For other systems, .tar.gz source packages can be generated.
 \end_layout
 
-\begin_layout Subsection
-
-\end_layout
-
-\begin_layout Section
-Tool relations
-\end_layout
-
 \begin_layout Chapter
 Implementation details
 \end_layout
@@ -2266,11 +2258,117 @@ Logging
 \end_layout
 
 \begin_layout Standard
-32/64b binary flag pool, some pre-defined, rest user defined (statically),
- automatic adding of info such as thread id, file, function and line number,
- defined output format (what to include), default stdout, redirected to
- file, shm, network socket.
- support for configuration files
+Original message printing system (two levels, hardcoded values) was switched
+ to 
+\series bold
+new logger
+\series default
+ (
+\emph on
+Syplog
+\emph default
+) developed specially for ZlomekFS.
+ 
+\end_layout
+
+\begin_layout Standard
+Logger supports eleven 
+\series bold
+log levels
+\series default
+.
+ Log level is 32bit unsigned integer (typedef), log levels are defined by
+ macro constants (from LOG_EMERG to LOG_LOOPS).
+ There is conversion function available to convert log levels to user-readable
+ strings.
+\end_layout
+
+\begin_layout Standard
+For concern separation logger distinguish 
+\series bold
+facilities
+\series default
+.
+ Facilites are disjunct one-bit flags which can be ORed.
+ Log message can be labeled as belonging to any number of facilities.
+ Again, there is conversion function to convert facilityes to user-readable
+ strings.
+\end_layout
+
+\begin_layout Standard
+Log levels can be used to 
+\series bold
+filter
+\series default
+ what types of messages (of which importance) should be recorded and which
+ should be discarded.
+ Both log level and facility set can be regulated in runtime.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Output
+\series default
+ from logger can be written to file or shared memory, api is open for extension
+ such as socket write.
+ Format of output files can be user readable strings or raw memory dumps.
+ For all formats and output targets there is both writer and reader support,
+ so transformation between formats is trivial.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Settings
+\series default
+ is read in format of program arguments (array of string with given array
+ size).
+ Logger ignores unknown options, so direct configuration from command line
+ is possible (and currently used).
+\end_layout
+
+\begin_layout Standard
+For 
+\series bold
+integration
+\series default
+ with external driving component (Nose testing environment) there is 
+\series bold
+d-bus
+\series default
+ control api.
+ Both log level and facility set is adjustable through d-bus.
+ For further integration there is full-featured python wrapper for syplog.
+\end_layout
+
+\begin_layout Standard
+Log level and facility list can be 
+\series bold
+extended
+\series default
+ by listing constants for new log levels and facilities in header files.
+ Output formats and targets are defined by static structures holding pointers
+ to functions with specified behaviour.
+ New formats and targets can be provided by implementing given function
+ set and providing description structure.
+ For further reference please read doxygen documentation of library 
+\emph on
+Syplog
+\emph default
+.
+\end_layout
+
+\begin_layout Section
+Reporting and result database
+\end_layout
+
+\begin_layout Section
+Driving
+\end_layout
+
+\begin_layout Section
+Generating
 \end_layout
 
 \begin_layout Section
@@ -2403,8 +2501,16 @@ the same (^) holds for class data (so be carefull when pickling class with
 __getstate__(), __setstate__()
 \end_layout
 
+\begin_layout Section
+The big picture
+\end_layout
+
 \begin_layout Chapter
 Conclusion
+\end_layout
+
+\begin_layout Standard
+work enlightens
 \end_layout
 
 \begin_layout Chapter
@@ -3460,6 +3566,10 @@ end{codeblock}
 \end_inset
 
 
+\end_layout
+
+\begin_layout Section
+Installation
 \end_layout
 
 \begin_layout Standard
