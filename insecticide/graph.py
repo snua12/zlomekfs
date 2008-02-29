@@ -3,6 +3,7 @@
  """
 
 import unittest
+import copy
 
 from random import SystemRandom
 from util import getMatchedTypes
@@ -367,7 +368,7 @@ class GraphBuilder(object):
           GraphBuilder.USE_LOCAL:     self.generateUsingLocal,
           GraphBuilder.USE_GLOBAL:  self.generateUsingGlobal,
           GraphBuilder.USE_PROB:       self.generateUsingProbability,
-        }[type](cls,  methods,  startNode)    
+        }[type](cls = cls,  methods = methods,  startNode = startNode)    
     
     @classmethod    
     def generateUsingDefaults(self,  cls,  methods = None,  startNode = None):
@@ -425,6 +426,8 @@ class GraphBuilder(object):
         graph = getattr(cls, GraphBuilder.graphVarName,  None)
         if graph is None:
             raise DependencyDeffinitionError("no graph defined while using global graph dependencies")
+        else:
+            graph = copy.copy(graph)
         
         if methods is not None:
             for key in graph.keys():
@@ -434,7 +437,7 @@ class GraphBuilder(object):
         return DependencyGraph(graph = graph,  startNode = startNode)
     
     @classmethod
-    def generateUsingProbability(self,  cls,  methods = None,  defaultProbability = 0,  startNode = None):
+    def generateUsingProbability(self,  cls,  methods = None, startNode = None, defaultProbability = 0):
         """ Generate dependency graph with using probabilities.
             From every node goes edges to all other nodes including self,
             score of edge is defined by attribute of target node (method)
@@ -448,7 +451,7 @@ class GraphBuilder(object):
         edges = []
         for method in methods:
             obj = getattr(cls,  method)
-            score = getattr(method,  GraphBuilder.probVarName,  defaultProbability)
+            score = getattr(obj,  GraphBuilder.probVarName,  defaultProbability)
             if score:
                 edges.append((method,  score))
         
@@ -521,7 +524,7 @@ class testGraphGenerator(TestCase):
                          'switchNode': [('startNode',50),  ('lastNode', 50)],
                         }
     nonUniformMethodsShort = ['startNode', 'secondNode', 'switchNode', 'unreachableNode']
-    """
+    
     def testBlockedMethodGlobal(self):
         assert self.buildGraphsAndCompare(self.nonUniformGraphShort, GraphBuilder.USE_GLOBAL, self.nonUniformMethodsShort)
     
@@ -530,9 +533,7 @@ class testGraphGenerator(TestCase):
     
     uniformMethods = ['startNode',  'lastNode', 'unreachableNode']
     uniformProbGraph = {
-                            'startNode':[('lastNode', 1)], 
-                            'lastNode':[('lastNode', 1)], 
-                            'unreachableNode':[('lastNode', 1)], 
+                            'lastNode':[('lastNode', 1)]
                          }
     
     def testProbability(self):
@@ -546,7 +547,7 @@ class testGraphGenerator(TestCase):
     
     def testFlat(self):
         assert self.buildGraphsAndCompare(self.uniformFlatGraph, GraphBuilder.USE_FLAT, self.uniformMethods)
-"""
+
 
 if __name__ == '__main__':
     unittest.main()
