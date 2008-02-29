@@ -269,7 +269,6 @@ class ReportProxy(object):
             run.save()
             log.debug(traceback.format_exc())
     
-
     
     def reportFailure(self, failure, duration = None, name = None, description = None, error = False):
         run = generateDefaultRun(batch = self.batch, test = failure.test,
@@ -289,7 +288,9 @@ class ReportProxy(object):
         
         appendDataToRun(run = run, errInfo = failure.failure, dataDir = self.dataDir, 
             test = failure.test)
-
     
     def reportError(self, failure, duration = None, name = None, description = None):
         return self.reportFailure(failure, duration, name, description, error = True)
+    
+    def reportSystemError(self, name = None, description = None, errInfo = None):
+        return reportSystemError(self.batch, name, description, errInfo)
