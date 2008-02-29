@@ -13,7 +13,6 @@ Source: pysyplog-%{version}.tar.gz
 Prefix: %{_prefix}
 ExclusiveOS: linux
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildArch: noarch
 
 BuildRequires: dbus-devel python-setuptools
 Requires: python syplog dbus
