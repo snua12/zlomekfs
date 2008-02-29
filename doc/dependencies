@@ -41,7 +41,7 @@ DJANGO_SETTINGS_MODULE=TestResultStorage.settings buildbot start zlofs
 
 slave:
 #get and install pysvn http://pysvn.tigris.org/
-yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel libtool autoconf automake gettext gettext-devel python-setuptools python-nose
+yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel libtool autoconf automake gettext gettext-devel python-setuptools python-nose pyflakes
 rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm py25_pysvn_svn144-*.rpm
 # bootstrap all projects by stable rpms
 # restart dbus with new config

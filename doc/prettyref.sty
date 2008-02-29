@@ -18,13 +18,13 @@
   \@namedef{pr@#1}##1{#2}}
 \newrefformat{eq}{\textup{(\ref{#1})}}
 \newrefformat{lem}{Lemma \ref{#1}}
-\newrefformat{thm}{Teor\'em \ref{#1}}
-\newrefformat{cha}{Kapitola \ref{#1}}
-\newrefformat{sec}{Sekce \ref{#1}}
-\newrefformat{sub}{Sekce \ref{#1}}
-\newrefformat{par}{Odstavec \vref{#1}}
-\newrefformat{tab}{Tabulka \vref{#1}}
-\newrefformat{fig}{Obr\'azek \vref{#1}}
+\newrefformat{thm}{Theorem \ref{#1}}
+\newrefformat{cha}{Chapter \ref{#1}}
+\newrefformat{sec}{Section \ref{#1}}
+\newrefformat{sub}{Subsection \ref{#1}}
+\newrefformat{par}{Paragraph \vref{#1}}
+\newrefformat{tab}{Table \vref{#1}}
+\newrefformat{fig}{Figure \vref{#1}}
 \def\prettyref#1{\@prettyref#1:}
 \def\@prettyref#1:#2:{%
   \expandafter\ifx\csname pr@#1\endcsname\relax%

@@ -1,12 +1,12 @@
-
-je treba se zamyslet (nezapomenout zamyslet) nad rozhranim pro multithrading a distribuovanost (podpurne prostredky) az se bude delat konsolidace
 vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
 
 improve snapshot view in web
-get and put for rpms
+remote tests?
+autoconf
+support for "infinite tests" (to run between post-commit tests)
+get for rpms
 finalize zen-unit
 implement fsx
 STABILIZE
-don't report killed zfs twice
 document
 rpm defaults for RELEASE, VERSION, REVISION variables

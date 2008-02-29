@@ -2,7 +2,23 @@
 \lyxformat 276
 \begin_document
 \begin_header
-\textclass article
+\textclass book
+\begin_preamble
+\newcommand{\textstylecode}[1]{
+ \begin{quote}
+  \texttt{#1}
+ \end{quote}
+}
+
+\newenvironment{codeblock}{
+\begin{quote}
+\begin{ttfamily}}{
+\end{ttfamily}
+\end{quote}
+}
+
+\usepackage{listings}
+\end_preamble
 \language english
 \inputencoding latin2
 \font_roman default
@@ -25,8 +41,8 @@
 \paperorientation portrait
 \leftmargin 3.5cm
 \topmargin 3cm
-\rightmargin 2.5cm
-\bottommargin 3cm
+\rightmargin 3.5cm
+\bottommargin 5cm
 \secnumdepth 3
 \tocdepth 3
 \paragraph_separation indent
@@ -51,11 +67,11 @@ Regression Testing For zlomekFS
 Jiri Zouhar
 \end_layout
 
-\begin_layout Abstract
+\begin_layout Standard
 Something very smart it is, young adept.
 \end_layout
 
-\begin_layout Abstract
+\begin_layout Standard
 \begin_inset LatexCommand tableofcontents
 
 \end_inset
@@ -63,15 +79,15 @@ Something very smart it is, young adept.
 
 \end_layout
 
-\begin_layout Section
+\begin_layout Chapter
 Introduction
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Motivation
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Goals
 \end_layout
 
@@ -94,11 +110,11 @@ Make all the developer documentation an integral part of the zlomekFS project
  using appropriate tools such as DoxyGen.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Structure of the Thesis
 \end_layout
 
-\begin_layout Section
+\begin_layout Chapter
 Filesystem testing
 \end_layout
 
@@ -108,7 +124,7 @@ Filesystem can be seen as many things and thus it can be tested from at
  
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Specification testing
 \end_layout
 
@@ -121,7 +137,7 @@ We could look on filesystem as on specification of way how to store data
  Specification testing is done only once at the begining.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Api conformity
 \end_layout
 
@@ -137,7 +153,7 @@ Some filesystems don't focus on the way how to store data on media but how
  stabilni iface / protokol
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Functional testing
 \end_layout
 
@@ -205,7 +221,7 @@ As the ZloFS is multi-threaded, distributed filesystem, the suite should
  of distributed enviroment.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Benchmarking
 \end_layout
 
@@ -231,7 +247,7 @@ how long it will take
 
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Test format
 \end_layout
 
@@ -296,11 +312,11 @@ For component based systems is often used model checking or behaviour protocols.
  systems.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Testing frameworks
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Subsection
 Unit based
 \end_layout
 
@@ -314,7 +330,7 @@ key "Simple_Smalltalk_Testing"
 .
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Common principes of unit testing are very simple:
 \newline
 
@@ -479,7 +495,7 @@ automated
 , independent on human interaction.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Other features:
 \newline
 
@@ -530,7 +546,7 @@ teardown_
  Note that this could break the independency requirement.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Best practices:
 \newline
 
@@ -560,7 +576,7 @@ There should be 100% code coverage done by unit tests.
  
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Implementations:
 \newline
 
@@ -935,7 +951,7 @@ key "Cutest"
  Has scripted tool for executable generation.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Mock
 \end_layout
 
@@ -943,11 +959,17 @@ Mock
 interface, network, etc - pretend to be the other side
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Logging, tracing
+\begin_inset LatexCommand label
+name "sub:Logging,-tracing"
+
+\end_inset
+
+
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Models
 \end_layout
 
@@ -1040,7 +1062,7 @@ aspect oriented programing
  
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Pitfalls
 \end_layout
 
@@ -1176,8 +1198,14 @@ threads
 .
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Presentation layer
+\begin_inset LatexCommand label
+name "sub:Presentation-layer"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1190,7 +1218,7 @@ Usual test run produce outputs of many types, begining with standart outputs,
  enviroments as possible.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Raw data
 \end_layout
 
@@ -1207,7 +1235,7 @@ g through simple protocol such as FTP or some remote access.
  tools.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Web interface
 \end_layout
 
@@ -1223,7 +1251,7 @@ Dynamic web pages are nowadays very used way of presentation as they are
  user comfort is also worst.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Special application
 \end_layout
 
@@ -1241,7 +1269,7 @@ Even raw data must be interpreted by application to be presented in readable
  it should fits very well the needs.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Random workload generation
 \end_layout
 
@@ -1304,7 +1332,7 @@ When user preferences are given system itself is oten simple automata running
  on satatefull graph.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Pruning output
 \end_layout
 
@@ -1360,8 +1388,14 @@ around
  workload).
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Checkpointing
+\begin_inset LatexCommand label
+name "sub:Checkpointing"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1461,7 +1495,7 @@ key "gcore"
  command (which creates gdb core dumps) to pause and snapshot the application.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Continuous integration
 \end_layout
 
@@ -1527,7 +1561,7 @@ key "Gump"
  impossible to switch to another system.
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Subsection
 Automation
 \end_layout
 
@@ -1611,8 +1645,14 @@ presentation
  text, sometimes there are output format readable by applications.
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Subsection
 Distributed testing
+\begin_inset LatexCommand label
+name "sub:Distributed-testing"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1624,8 +1664,10 @@ Testing doesn't need to be run on the same machine as control service.
  trivial too.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 There can be many reasons for distributing:
+\newline
+
 \end_layout
 
 \begin_layout Standard
@@ -1683,8 +1725,10 @@ time
  By this we achieve shorter build and check cycle.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 Distribution can be acchieved by:
+\newline
+
 \end_layout
 
 \begin_layout Standard
@@ -1719,110 +1763,171 @@ Sometimes own methods for communication is used, that mimic remote procedure
  call by sending raw data within special protocol.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Sandboxing
 \end_layout
 
-\begin_layout Subsection
-Filesystem test patterns
+\begin_layout Standard
+When tests need more privileges over hosting environment or the tested component
+ itself is part of operating system there is big probability that running
+ tests can broke anything.
+ In this case they must be executed in so called sandbox.
+ It is either part of system with restricted access to some resources or
+ whole separate system.
+ Obviously there must be possibility to restore easilly previous state of
+ sandbox after breakage from test.
+ 
 \end_layout
 
-\begin_layout Paragraph
-fstest
+\begin_layout Standard
+When choosing sandboxing method to use other requirements must be considered
+ too.
+ 
 \end_layout
 
-\begin_layout Paragraph
-fsx
+\begin_layout Standard
+As we described in 
+\begin_inset LatexCommand prettyref
+reference "sub:Logging,-tracing"
+
+\end_inset
+
+, execution logs are crucial to track failure (bug) found by automated testing.
+ Therefore it should be possible to get logs (and other data) from sandbox
+ at least after failure but prefferably to send them back to master straight
+ upon generation.
+ This is more logger feature, but to use it the sandbox must allow communication
+ with outside.
 \end_layout
 
-\begin_layout Paragraph
-solaris
+\begin_layout Standard
+When testing is distributed (see 
+\begin_inset LatexCommand prettyref
+reference "sub:Distributed-testing"
+
+\end_inset
+
+) it should be considered to use the remote machine as sandbox too.
+ Again, there should be method to easilly restore state of whole remote
+ machine after breakage from test.
+ Note that this would be problematic with real (non-virtualized) hosts.
 \end_layout
 
-\begin_layout Paragraph
-ltp
+\begin_layout Standard
+In 
+\begin_inset LatexCommand prettyref
+reference "sub:Checkpointing"
+
+\end_inset
+
+ we have analysed problem of providing information about test state to developer.
+ If sandbox is represented by full operating system then checkpointing of
+ whole sandbox would be in most cases big overhead.
+ Still it should be taken into account in some cases.
+ One case where sandbox snapshots may be convenient is when test depends
+ heavily on system state or changes system state.
+ Then without system snapshot some information to track failure may be missing.
+ Other case when full snapshots may be generated is when test has caused
+ system failure (therefore normal snapshots can't be created).
 \end_layout
 
 \begin_layout Section
+Filesystem test patterns
+\end_layout
+
+\begin_layout Standard
+muhehe
+\end_layout
+
+\begin_layout Standard
+fstest
+\end_layout
+
+\begin_layout Standard
+fsx
+\end_layout
+
+\begin_layout Standard
+solaris
+\end_layout
+
+\begin_layout Standard
+ltp
+\end_layout
+
+\begin_layout Chapter
 The test suite architecture
 \end_layout
 
-\begin_layout Standard
-python
+\begin_layout Section
+Programming language
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Standard
+Since ZlomekFS tends to be multiplatform and support more operating systems
+ (currently only linux is supported) we need language which runs on any
+ platform and at least under UNIX-like operating systems.
+ For testing the language should be flexible enough but on other hand since
+ we will be testing file system, speed must be considered too.
+ Last but not least need is that the language sould allow integration with
+ existing code.
+\end_layout
+
+\begin_layout Standard
+Because of this criteria 
+\series bold
+python 
+\series default
+
+\begin_inset LatexCommand cite
+key "Python"
+
+\end_inset
+
+ was chosen as main programing language for driving component.
+ Since python can integrate with most compiled languages, not all components
+ must be written in python.
+ Performance critical parts and integration libraties are writen in ZlomekFS
+ native language - 
+\series bold
+C
+\series default
+.
+\end_layout
+
+\begin_layout Section
 Used tools
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 
 \series bold
 Testing environment
 \end_layout
 
 \begin_layout Standard
-nose
-\end_layout
-
-\begin_layout Paragraph
-Web result presentation and result repository
-\end_layout
-
-\begin_layout Standard
-django
-\end_layout
-
-\begin_layout Paragraph
-Logging
-\end_layout
-
-\begin_layout Standard
-We need logger with this features:
-\end_layout
-
-\begin_layout Itemize
-it can be controlled externally
-\end_layout
-
-\begin_layout Itemize
-it has simple still full featured interface
-\end_layout
-
-\begin_layout Itemize
-it has to have implementations in both languages in which is written test
- suite and zfs 
-\end_layout
-
-\begin_layout Itemize
-the output has to be in parseable and user readable format
-\end_layout
-
-\begin_layout Standard
-This enforces writing of own logger, which suits best the needs.
- From models, we can't use aspect oriented logging as there is no implementation
- of aspects for both languages (and moreover it will be big requirement
- for developers to use aspects).
- The producer-consumer model seems to be too complicated as there will be
- large and non-homogenous group of developers working on zlomek fs.
-\end_layout
-
-\begin_layout Standard
-So the logger will be centralized, with some sort of tagging with fast evaluatio
-n.
- The output will be redirectable to some sort of shared resource (shm, network
- socket) which can be used and controlled by test suite.
- The format of written log for failure could be readable by some GUI or
- web based reader such as Chainsaw 
+For very specific purpose of testing distributed file system we have found
+ no existing solution.
+ Instead of develop new system it was decided to tweak existing some existing
+ tool (if possible) to fit our needs.
+ From general purpose testing tools written in python 
+\series bold
+Nose
+\series default
+ 
 \begin_inset LatexCommand cite
-key "Chainsaw"
+key "Nose"
 
 \end_inset
 
-.
+ was found as the most suitable for our needs.
+ Moreover every feature that we need and nose doesn't implement can be delivered
+ as plugin for nose within modifiing nose core code.
+ Nose plugin architecture was found as flexible enough for further extending
+ of test suite too.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Subsection
 Continuous integration
 \end_layout
 
@@ -1875,7 +1980,11 @@ key "BuildBot"
 \end_layout
 
 \begin_layout Standard
-We use buildbot 
+We use 
+\series bold
+buildbot
+\series default
+ 
 \begin_inset LatexCommand cite
 key "BuildBot"
 
@@ -1885,7 +1994,7 @@ key "BuildBot"
  
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Standard
 It was chosen for these reasons:
 \end_layout
 
@@ -1929,23 +2038,230 @@ Active development.
  be maintained in future too.
 \end_layout
 
-\begin_layout Paragraph
+\begin_layout Subsection
+Web result presentation and result repository
+\end_layout
+
+\begin_layout Standard
+Test results in buildbot are presented as textual output from commands.
+ This is not enough from two reasons: when failure or error is found, the
+ textual output may be messy.
+ Bigger problem is, that it can't provide enough information and binary
+ data can't be provided in this way at all.
+\end_layout
+
+\begin_layout Standard
+So there was need for another way to represent test results.
+ Since test outputs can contain binrary data (snapshots, core dumps, filesystem
+ state, etc), the presentation layer should be able to distinguish several
+ types of data and present them according type.
+ As data and information for test run are related to each other we decided
+ to use database driven storage.
+ 
+\end_layout
+
+\begin_layout Standard
+The solution which fits our needs best was 
+\series bold
+Django 
+\series default
+
+\begin_inset LatexCommand cite
+key "Django"
+
+\end_inset
+
+.
+ It is written in python, offers object oriented database abstraction layer,
+ web pages generating tools.
+ It's configuration format is pure python, so it is easy to integrate it
+ with other parts of project.
+\end_layout
+
+\begin_layout Subsection
+Logging
+\end_layout
+
+\begin_layout Standard
+We need logger with this features:
+\end_layout
+
+\begin_layout Itemize
+it can be controlled externally
+\end_layout
+
+\begin_layout Itemize
+it has simple still full featured interface
+\end_layout
+
+\begin_layout Itemize
+it has to have implementations in both languages in which is written test
+ suite and zfs 
+\end_layout
+
+\begin_layout Itemize
+the output has to be in parseable and user readable format
+\end_layout
+
+\begin_layout Standard
+This enforces us to write 
+\series bold
+new logger
+\series default
+, which suits best the needs.
+ From models, we can't use aspect oriented logging as there is no implementation
+ of aspects for both languages (and moreover it will be big requirement
+ for developers to use aspects).
+ The producer-consumer model seems to be too complicated as there will be
+ large and non-homogenous group of developers working on zlomek fs.
+\end_layout
+
+\begin_layout Standard
+So the logger will be centralized, with some sort of tagging with fast evaluatio
+n.
+ The output will be redirectable to some sort of shared resource (shm, network
+ socket) which can be used and controlled by test suite.
+ The format of written log for failure may be preferably readable by some
+ GUI or web based reader such as Chainsaw 
+\begin_inset LatexCommand cite
+key "Chainsaw"
+
+\end_inset
+
+, if not possible, user readable output should be used.
+\end_layout
+
+\begin_layout Subsection
+C based unit testing
+\end_layout
+
+\begin_layout Subsection
 Documentation
 \end_layout
 
 \begin_layout Standard
-doxygen, new python docstring standard
+For documenting C code 
+\series bold
+Doxygen
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Doxygen"
+
+\end_inset
+
+ was chosen.
+ Main argument was that ZlomekFS is documented in Doxygen, secondary Doxygen
+ is nowadays nearly standard tool for documenting C code.
 \end_layout
 
-\begin_layout Paragraph
-Coding standard
+\begin_layout Standard
+For Python code, Doxygen has some support, but the support is problematic,
+ needs usage of imput filters such as Doxypy 
+\begin_inset LatexCommand cite
+key "Doxypy"
+
+\end_inset
+
+ and even then results are not ideal.
+ 
 \end_layout
 
-\begin_layout Section
-Implementation details
+\begin_layout Standard
+There is standard docstring format for python 
+\begin_inset LatexCommand cite
+key "PEP257"
+
+\end_inset
+
+, but it doesn't support more than plain-text formating.
+ 
+\end_layout
+
+\begin_layout Standard
+Another option is to use some non-standard documentation tools for python
+ (most of them are listed in PEP256 
+\begin_inset LatexCommand cite
+key "PEP256"
+
+\end_inset
+
+).
+ Their problems are mainly listed in mentioned PEP256.
+\end_layout
+
+\begin_layout Standard
+Finally, 
+\series bold
+reStructuredText Docstring Format
+\series default
+ 
+\begin_inset LatexCommand cite
+key "PEP258,reStructuredText"
+
+\end_inset
+
+ was chosen.
+ Main reason was that Nose 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ uses this format, secondary reStructuredText is easy readable in 
+\series bold
+Pydoc 
+\begin_inset LatexCommand cite
+key "Pydoc"
+
+\end_inset
+
+
+\series default
+ output and there is html formating tools too.
 \end_layout
 
 \begin_layout Subsection
+Build system
+\end_layout
+
+\begin_layout Subsection
+Packaging
+\end_layout
+
+\begin_layout Standard
+Target audience of both ZlomekFS and regresion testing framework uses mainly
+ 
+\series bold
+Redhat
+\series default
+ or 
+\series bold
+Fedora
+\series default
+ based systems.
+ To ease installation and upgrades it was decided to provide automatic build
+ targets for 
+\series bold
+RPM
+\series default
+ packages.
+ For other systems, .tar.gz source packages can be generated.
+\end_layout
+
+\begin_layout Subsection
+
+\end_layout
+
+\begin_layout Section
+Tool relations
+\end_layout
+
+\begin_layout Chapter
+Implementation details
+\end_layout
+
+\begin_layout Section
 Logging
 \end_layout
 
@@ -1957,7 +2273,7 @@ Logging
  support for configuration files
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Tests
 \end_layout
 
@@ -2087,8 +2403,1063 @@ the same (^) holds for class data (so be carefull when pickling class with
 __getstate__(), __setstate__()
 \end_layout
 
-\begin_layout Section
+\begin_layout Chapter
 Conclusion
+\end_layout
+
+\begin_layout Chapter
+Apendix
+\end_layout
+
+\begin_layout Section
+Coding conventions
+\end_layout
+
+\begin_layout Subsection*
+C based code
+\end_layout
+
+\begin_layout Standard
+For code in C, original formating from ZlomekFS was adopted.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Identifiers
+\series default
+ ah are in lower case, words separated by underscore.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+uint32_t log_level;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Defines
+\series default
+ (macros) are in upper case, words separated by underscore.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+#define MY_MACRO_CONSTANT 5
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Typedefs 
+\series default
+are in lower case with suffix 
+\emph on
+_t
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+typedef uint32_t fibheapkey_t;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Braces around code block
+\series default
+ should be on new lines, indentation level as previous code.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+syp_error set_log_level (logger target, log_level_t level) 
+\end_layout
+
+\begin_layout Standard
+{ 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+target->log_level = level;
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+return NOERR; 
+\end_layout
+
+\begin_layout Standard
+}
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Braces around function arguments
+\series default
+ sould be separated from function name by one space, if argument list is
+ multiline, ending brace should be right after last argument (on same line).
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+syp_error send_uint32_by_function (uint32_t data, 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+syp_error (*function)
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+(int, uint32_t, const struct sockaddr *, socklen_t),
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+const char * ip, uint16_t port);
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+I
+\series bold
+ndentation
+\series default
+ should be two spaces per level.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+syp_error dbus_disconnect(DBusConnection ** connection) 
+\end_layout
+
+\begin_layout Standard
+{
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+if (connection == NULL)
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return ERR_BAD_PARAMS; 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+if (*connection == NULL) 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return ERR_NOT_INITIALIZED;
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+dbus_bus_release_name (*connection, 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+SYPLOG_DEFAULT_DBUS_SOURCE, NULL);
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+dbus_connection_unref(*connection);
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+*connection = NULL;
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+return NOERR; 
+\end_layout
+
+\begin_layout Standard
+}
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Operators 
+\series default
+should be separated from arguments by one space on both sides.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+file_position\InsetSpace ~
++=\InsetSpace ~
+bytes_written;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Comments 
+\series default
+have one space between comment makr and comment text.
+ They are on line before code they are describing.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/*!\InsetSpace ~
+Structure holding logger state and configuration.\InsetSpace ~
+*/
+\end_layout
+
+\begin_layout Standard
+typedef struct logger_def 
+\end_layout
+
+\begin_layout Standard
+{ 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+///\InsetSpace ~
+input - output medium definition struct
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+struct medium_def printer;
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Filenames 
+\series default
+consisting from more words should have dash between words.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+control-protocol.h
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Python code
+\end_layout
+
+\begin_layout Standard
+For code in python, formatting from Nose 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ was adopted.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Identifiers
+\series default
+ ah are in CamelCase, class names with first letter in upper case, instance
+ names with first letter in lower case.
+\end_layout
+
+\begin_layout Standard
+I
+\series bold
+ndentation
+\series default
+ should be four spaces per level.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+class DependencyGraph(object):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+graph = None 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+currentNode = None 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+randomGenerator = SystemRandom()
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+def equals(self, graph):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return self.graph == graph.graph and 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+self.currentNode == graph.currentNode 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+def initRandomStartNode(self): 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+self.restart(self.randomGenerator.choice(self.graph.keys()))
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Braces around function arguments
+\series default
+ sould be right after function name.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Arguments
+\series default
+ should be separated by one space.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+def testLocal(self,\InsetSpace ~
+empty):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+assert self.buildGraphsAndCompare(reference = self.nonUniformGraph,
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+buildMethod = GraphBuilder.USE_LOCAL,
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+methods = self.nonUniformMethods)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Operators 
+\series default
+should be separated from arguments by one space on both sides.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+file_position\InsetSpace ~
++=\InsetSpace ~
+bytes_written;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Documentation comments 
+\series default
+should have one space between comment makr and comment text.
+ They should be on line after element they are describing.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+def isMetaClass (self, cls):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+"""\InsetSpace ~
+Tests if class is meta class (should contain meta tests)
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+:Parameters:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+cls: class object to check
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+:Return: 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+True if is metaclass, False otherwise
+\end_layout
+
+\begin_layout Standard
+"""
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Code comments
+\series default
+ should have one space between comment mark and comment text.
+ They should be on line before code they are describing.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+def countNiceElements(list):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+''' Count elements which are nice :) '''
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+count = 0
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+for element in list:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+if isNice(element):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+count += 1
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return count
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
