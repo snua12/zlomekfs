@@ -228,7 +228,7 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
     elif test and hasattr(test.test, "shortDescription"):
         run.description = test.shortDescription()
     else:
-        trun.description = "Unknown"
+        run.description = "Unknown"
         
     if hasattr(test.test, startTimeAttr):
         run.startTime = getattr(test.test, startTimeAttr)
