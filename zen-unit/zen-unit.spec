@@ -1,7 +1,7 @@
 Summary: Minimalistic approach to unit testing (c, c++)
 Name: zen-unit
-Version: %{VERSION}.%{REVISION}
-Release: %{RELEASE}
+Version: %{VERSION}
+Release: %{REVISION}.%{RELEASE}
 License : GPL
 URL: http://loki.name/zen-unit
 Group: Developement/Libraries
@@ -27,24 +27,28 @@ Html documentation for zen-unit.
 %setup -q
 
 %build
-make lib doc
+./configure --prefix=%{prefix}
+make all doc
 
 %install
 rm -rf %{buildroot}
 DESTDIR=%{buildroot} make install install-doc
+rm -rf %{buildroot}%{_libdir}/libzenunit.la
 
 %clean
 rm -rf %{buildroot}
 
 %files
-%{_libdir}/libzen-unit.so
+%{_libdir}/libzenunit.so
+%{_libdir}/libzenunit.so.0
+%{_libdir}/libzenunit.so.0.0.0
 %{_includedir}/zen-unit.h
-/usr/share/man/man3/zen-unit.h.3.gz
-/usr/share/man/man3/ZEN_ASSERT.3.gz
-/usr/share/man/man3/ZEN_TEST.3.gz
+%{prefix}/share/man/man3/zen-unit.h.3.gz
+%{prefix}/share/man/man3/ZEN_ASSERT.3.gz
+%{prefix}/share/man/man3/ZEN_TEST.3.gz
 
 
 %files doc
-%docdir /usr/share/doc/zen-unit/
-/usr/share/doc/zen-unit/
+%docdir ${prefix}/share/doc/zen-unit/
+%{prefix}/share/doc/zen-unit/
 
