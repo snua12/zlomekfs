@@ -28,7 +28,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 #include <ucontext.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "zfsd.h"
 #include "memory.h"
 #include "semaphore.h"

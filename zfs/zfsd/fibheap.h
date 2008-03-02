@@ -47,7 +47,7 @@
 
 #include "system.h"
 #include <inttypes.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "alloc-pool.h"
 
 /*! Type of Fibonacci heap key.  */

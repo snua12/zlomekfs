@@ -1,4 +1,4 @@
-# Makefile.
+# Makefile.am
 # Copyright (C) 2003, 2004 Josef Zlomek
 # Copyright (C) 2007, 2008 Jiri Zouhar
 # Copyright (C) other contributors as outlined in CREDITS
@@ -19,12 +19,6 @@
 # along with zlomekFS; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-PREFIX ?= /usr
-
-INSTALL = install
-
-test:
 	@$(MAKE) -C nose-tests test
 
-clean:
-	@$(MAKE) -C nose-tests clean
+SUBDIRS = nose-tests

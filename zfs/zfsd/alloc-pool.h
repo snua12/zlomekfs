@@ -29,7 +29,7 @@
 
 #include "system.h"
 #include <stddef.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "log.h"
 
 /*! Type of ID of the alloc pool.  */

@@ -27,7 +27,7 @@
 #include <fuse_lowlevel.h>
 
 #include "system.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "thread.h"
 
 /*! Arguments from main (), after parsing the zfsd-specific options */

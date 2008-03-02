@@ -28,7 +28,7 @@
 #define HASHTAB_H
 
 #include "system.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 
 /*! Insert operation.  */
 enum insert

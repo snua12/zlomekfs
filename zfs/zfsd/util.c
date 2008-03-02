@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 
 /*! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers.  
  *!see message

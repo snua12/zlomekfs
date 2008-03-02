@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "constant.h"
 #include "semaphore.h"
 #include "memory.h"

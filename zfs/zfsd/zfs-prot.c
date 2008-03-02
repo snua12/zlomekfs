@@ -38,7 +38,7 @@
 # include <unistd.h>
 # include <errno.h>
 # include "zfs-prot.h"
-# include "pthread.h"
+#include "pthread-wrapper.h"
 # include "data-coding.h"
 # include "config.h"
 # include "thread.h"

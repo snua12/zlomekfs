@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "fh.h"
 #include "cap.h"
 #include "alloc-pool.h"

@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "data-coding.h"
 #include "hashtab.h"
 #include "fh.h"

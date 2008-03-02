@@ -26,7 +26,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <stdio.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "zfs-prot.h"
 
 /*! Number of random bytes used to compute VERIFY.  */

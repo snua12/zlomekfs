@@ -1,7 +1,7 @@
 Summary: Distributed file system
 Name: zlomekfs
-Version: %{VERSION}.%{REVISION}
-Release: %{RELEASE}
+Version: %{VERSION}
+Release: %{REVISION}.%{RELEASE}
 License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
 Group: System Environment/Daemons
@@ -22,6 +22,7 @@ Distributed file system
 %setup -q
 
 %build
+./configure --prefix=%{prefix}
 make all
 
 %install
@@ -41,7 +42,7 @@ rm -rf %{buildroot}
 /sbin/mount.fuse
 /usr/bin/dump-intervals
 /usr/bin/dump-metadata
-/usr/include/zfsd/dbus-service-descriptors.h
+/usr/include/zlomekfs/dbus-service-descriptors.h
 /usr/sbin/zfsd
 %config /var/zfs/zfs_config/group_list
 %config /var/zfs/zfs_config/user_list

@@ -21,7 +21,7 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "semaphore.h"
 
 /*! Initialize semaphore SEM and set its value to N.  */

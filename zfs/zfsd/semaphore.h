@@ -24,7 +24,7 @@
 #define SEMAPHORE_H
 
 #include "system.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 
 //NOTE: why do not use posix semaphores?
 

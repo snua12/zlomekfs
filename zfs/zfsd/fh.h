@@ -30,7 +30,7 @@ typedef struct volume_def *volume;
 #include <inttypes.h>
 #include <stdio.h>
 #include <time.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "memory.h"
 #include "crc32.h"
 #include "hashtab.h"

@@ -26,7 +26,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <inttypes.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "memory.h"
 #include "semaphore.h"
 #include "thread.h"

@@ -24,7 +24,7 @@
 #define ZFSD_H
 
 #include "dbus-service-descriptors.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 
 /*! Thread ID of the main thread.  */
 extern pthread_t main_thread;

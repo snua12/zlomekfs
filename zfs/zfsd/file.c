@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "constant.h"
 #include "memory.h"
 #include "alloc-pool.h"

@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <netdb.h>
 #include "memory.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "hashtab.h"
 
 /*! \brief Node description.  */

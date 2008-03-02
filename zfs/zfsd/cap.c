@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "cap.h"
 #include "crc32.h"
 #include "md5.h"

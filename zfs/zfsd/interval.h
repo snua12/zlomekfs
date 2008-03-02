@@ -25,7 +25,7 @@
 
 #include "system.h"
 #include <inttypes.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "log.h"
 #include "splay-tree.h"
 #include "varray.h"

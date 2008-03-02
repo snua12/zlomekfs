@@ -27,8 +27,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "crc32.h"
 #include "hashtab.h"
 #include "log.h"

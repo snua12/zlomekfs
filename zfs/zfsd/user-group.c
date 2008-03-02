@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "log.h"
 #include "memory.h"
 #include "user-group.h"

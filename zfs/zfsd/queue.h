@@ -25,7 +25,7 @@
 
 #include "system.h"
 #include <stddef.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "alloc-pool.h"
 
 /*! \brief Node of the queue. */

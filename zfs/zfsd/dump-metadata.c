@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "constant.h"
 #include "memory.h"
 #include "hashfile.h"

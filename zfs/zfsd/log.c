@@ -36,7 +36,7 @@
 #include "node.h"
 #include "syplog.h"
 #include "control/listener.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 
 
 struct logger_def syplogger;

@@ -26,7 +26,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <time.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "constant.h"
 #include "data-coding.h"
 #include "hashtab.h"

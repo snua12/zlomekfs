@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "hashfile.h"
 #include "log.h"
 #include "memory.h"

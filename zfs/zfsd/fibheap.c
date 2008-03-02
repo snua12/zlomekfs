@@ -27,7 +27,7 @@
 #include "system.h"
 #include <stdlib.h>
 #include <string.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "fibheap.h"
 #include "memory.h"
 #include "log.h"

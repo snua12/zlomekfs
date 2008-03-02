@@ -34,7 +34,7 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "constant.h"
 #include "semaphore.h"
 #include "hashtab.h"

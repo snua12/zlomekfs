@@ -31,7 +31,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "config.h"
 #include "constant.h"
 #include "log.h"

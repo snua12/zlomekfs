@@ -3,7 +3,7 @@
 if [ -d "../zfsd" ]; then
   INCLUDE_DIR="`pwd`/../"
 else
-  INCLUDE_DIR="/usr/include/"
+  INCLUDE_DIR="/usr/include"
 fi
 
 echo '//
@@ -46,7 +46,7 @@ echo '//
 
 %{
 ' > $1
-echo "#include  \"${INCLUDE_DIR}zfsd/dbus-service-descriptors.h\"" >> $1
+echo "#include  \"${INCLUDE_DIR}/zlomekfs/dbus-service-descriptors.h\"" >> $1
 echo '
 #include  "zfsd_status.h"
 
@@ -55,7 +55,7 @@ echo '
 // Produce constants and helper functions for structures and unions
 ' >>$1
 
-echo "%include  \"${INCLUDE_DIR}zfsd/dbus-service-descriptors.h\"" >> $1
+echo "%include  \"${INCLUDE_DIR}/zlomekfs/dbus-service-descriptors.h\"" >> $1
 echo '
 %include "zfsd_status.h"
 %inline

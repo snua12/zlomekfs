@@ -23,13 +23,14 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "syplog.h"
+
 #include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "dbus-provider.h"
-#include "pthread.h"
+#include "pthread-wrapper.h"
 
+#include "syplog.h"
 
 extern struct logger_def syplogger;
 

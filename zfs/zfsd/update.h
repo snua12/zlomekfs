@@ -25,7 +25,7 @@
 
 #include "system.h"
 #include <inttypes.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "varray.h"
 #include "queue.h"
 #include "thread.h"

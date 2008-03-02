@@ -28,7 +28,7 @@
 #include "system.h"
 #include <stdlib.h>
 #include <inttypes.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "alloc-pool.h"
 #include "memory.h"
 

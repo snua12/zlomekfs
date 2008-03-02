@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "interval.h"
 #include "log.h"
 #include "memory.h"

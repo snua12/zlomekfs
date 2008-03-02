@@ -23,7 +23,7 @@
 #include "system.h"
 #include <inttypes.h>
 #include <stdlib.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "fh.h"
 #include "hashtab.h"
 #include "hashfile.h"

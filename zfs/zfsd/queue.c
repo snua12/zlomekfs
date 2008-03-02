@@ -22,7 +22,7 @@
 
 #include "system.h"
 #include <stdlib.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "queue.h"
 #include "log.h"
 #include "memory.h"

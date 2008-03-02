@@ -24,7 +24,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "hardlink-list.h"
 #include "memory.h"
 #include "crc32.h"

@@ -30,7 +30,7 @@
 #include <fcntl.h>
 #include <utime.h>
 #include <errno.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "log.h"
 #include "memory.h"
 #include "fh.h"

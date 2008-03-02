@@ -29,7 +29,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "pthread.h"
+#include "pthread-wrapper.h"
 #include "constant.h"
 #include "update.h"
 #include "md5.h"
