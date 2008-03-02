@@ -1,6 +1,7 @@
 default: all
 
 all:
+	cd fuse && ./makeconf.sh
 	libtoolize
 	aclocal
 	autoheader
