@@ -41,7 +41,7 @@ EXTRA_DIST = \
 rpm: dist
 	./make-rpm.sh
 
-test: all
+test:
 	@$(MAKE) -C tests test
 
 doc: 
