@@ -27,7 +27,7 @@ Html documentation for zen-unit.
 %setup -q
 
 %build
-./configure --prefix=%{prefix}
+./configure --prefix=%{prefix} --libdir=%{_libdir}
 make all doc
 
 %install

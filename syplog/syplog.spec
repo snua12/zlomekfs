@@ -33,7 +33,7 @@ Html documentation for syplog
 %setup -q
 
 %build
-./configure --prefix=%{prefix}
+./configure --prefix=%{prefix} --libdir=%{_libdir}
 make all doc
 
 %install

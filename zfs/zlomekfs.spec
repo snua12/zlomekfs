@@ -22,7 +22,7 @@ Distributed file system
 %setup -q
 
 %build
-./configure --prefix=%{prefix}
+./configure --prefix=%{prefix} --libdir=%{_libdir}
 make all
 
 %install

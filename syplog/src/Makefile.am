@@ -65,6 +65,5 @@ libsyplog_la_SOURCES = \
 	control/control.c
 
 libsyplog_la_CFLAGS = -pthread -fPIC
-libsyplog_LA_LDFLAGS = -shared
 libsyplog_la_LIBADD = -lpthread -ldbus-1
 
