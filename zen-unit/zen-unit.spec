@@ -8,7 +8,7 @@ Group: Developement/Libraries
 Source: zen-unit-%{version}.tar.gz
 Exclusiveos: linux
 Prefix: %{_prefix}
-BuildRequires: libelf0-devel doxygen
+BuildRequires: libelf0-devel doxygen automake autoconf autoheader libtool gettext gettext-devel
 Requires: libelf0 libpthread.so.0
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
