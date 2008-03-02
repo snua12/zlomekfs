@@ -32,7 +32,7 @@ SUBDIRS = \
 rpm: dist
 	./make-rpm.sh
 
-test:
+test: all
 	@$(MAKE) -C tests test
 
 doc: 
