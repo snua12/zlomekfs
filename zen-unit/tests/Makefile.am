@@ -1,4 +1,4 @@
-# Makefile.
+# Makefile.am
 # Copyright (C) 2007, 2008 Jiri Zouhar
 # Copyright (C) other contributors as outlined in CREDITS
 #
@@ -18,36 +18,16 @@
 # along with Zen-unit; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-EXTRA_DIST = \
-	zen-unit.spec \
-	Doxyfile
 
+INCLUDES = -I$(top_srcdir)/include
 
-SUBDIRS = \
-	include \
-	src \
-	tests
+noinst_LTLIBRARIES = libzentests.la
+noinst_PROGRAMS = zentests
 
-rpm: dist
-	./make-rpm.sh
+libzentests_la_SOURCES = zen-unit-so.c
 
-doc: 
-	doxygen
+zentests_SOURCES = zen-unit-binary.c
+zentest_LIBADD = libzentests.la
 
-test:
-	@$(MAKE) -C tests test
-
-html: doc
-
-install-doc: doc
-	mkdir -p $(DESTDIR)/$(prefix)/share/doc/zen-unit
-	$(INSTALL) -m 444 doc/html/* -t $(DESTDIR)/$(prefix)/share/doc/zen-unit
-	mkdir -p $(DESTDIR)/$(prefix)/share/man/man3
-	$(INSTALL) -m 444 doc/man/man3/zen-unit.h.3 -t $(DESTDIR)/$(prefix)/share/man/man3
-	$(INSTALL) -m 444 doc/man/man3/ZEN_ASSERT.3 -t $(DESTDIR)/$(prefix)/share/man/man3
-	$(INSTALL) -m 444 doc/man/man3/ZEN_TEST.3 -t$(DESTDIR)/$(prefix)/share/man/man3
-
-install-html: install-doc
-
-clean-local:
-	rm -rf build
+test: libzentests.la zentests
+	LD_PRELOAD=libzenunit.so LD_LIBRARY_PATH=.:$(top_builddir)/src/.libs ./zentests
