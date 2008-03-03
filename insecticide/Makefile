@@ -50,14 +50,14 @@ clean:
 	python setup.py clean
 	rm -rf insecticide-*.tar.gz build dist *.pyc build insecticide.egg-info
 
-package: clean
+dist: clean
 	rm -rf build/package
 	mkdir -p build/package/insecticide-$(VERSION).$(REVISION)
 	cp -rf ${DIST_FILES} build/package/insecticide-$(VERSION).$(REVISION)
 	#TODO: exclude .svn
 	tar -C build/package -czf insecticide-$(VERSION).$(REVISION).tar.gz insecticide-$(VERSION).$(REVISION)
 
-rpm: package
+rpm: dist
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
 	expr ${RELEASE} + 1 > RELEASE
 	rpmbuild -ta insecticide-$(VERSION).$(REVISION).tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}"

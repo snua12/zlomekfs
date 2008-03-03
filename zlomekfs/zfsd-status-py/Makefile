@@ -54,14 +54,14 @@ install: build
 		./setup.py install --prefix "$(DESTDIR)/$(PREFIX)"; \
 	fi
 
-package: clean
+dist: clean
 	rm -rf build/package
 	mkdir -p build/package/zfsd-status-${VERSION}.${REVISION}
 	cp ${PACKAGE_FILES} build/package/zfsd-status-${VERSION}.${REVISION}
 	tar -C build/package -czf zfsd-status-${VERSION}.${REVISION}.tar.gz zfsd-status-${VERSION}.${REVISION}
 	rm -rf build/package
 
-rpm: package
+rpm: dist
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
 	expr ${RELEASE} + 1 > RELEASE
 	rpmbuild -ta zfsd-status-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}"

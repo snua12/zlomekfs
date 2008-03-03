@@ -72,14 +72,14 @@ install-data:
 clean:
 	rm -rf MANIFEST build dist src/*.pyc src/resultRepository/*.pyc TestResultStorage-*.tar.gz *.egg-info build
 
-package: clean
+dist: clean
 	rm -rf build/package
 	mkdir -p build/package/TestResultStorage-${VERSION}.${REVISION}
 	cp -rf ${PACKAGE_FILES} build/package/TestResultStorage-${VERSION}.${REVISION}
 	tar -C build/package -czf TestResultStorage-${VERSION}.${REVISION}.tar.gz TestResultStorage-${VERSION}.${REVISION}
 	rm -rf build/package
 
-rpm: package
+rpm: dist
 	mkdir -p build/RPMS build/BUILD build/SRPMS build/SPECS
 	expr ${RELEASE} + 1 > RELEASE
 	rpmbuild -ta TestResultStorage-${VERSION}.${REVISION}.tar.gz --clean --define "_topdir `pwd`/build" --define "REVISION ${REVISION}" --define "VERSION ${VERSION}" --define "RELEASE ${RELEASE}"
