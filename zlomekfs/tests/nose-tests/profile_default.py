@@ -8,7 +8,7 @@ env = {
     'NOSE_WITH_ZFSCONFIG' : 'yes',
     'ZFS_CONFIG_FILE' : 'zfs_test_config',
     'NOSE_WITH_ZFSSTRESSGENERATOR' : 'yes',
-    'STRESS_TEST_LENGTH' : '2000',
+    'STRESS_TEST_LENGTH' : '20',
     'STRESS_TESTS_BY_CLASS' : '1',
     'STRESS_RETRIES_AFTER_FAILURE' : '0',
     'DJANGO_SETTINGS_MODULE' : 'TestResultStorage.settings',
