@@ -18,6 +18,7 @@
 }
 
 \usepackage{listings}
+\usepackage{varioref}
 \end_preamble
 \language english
 \inputencoding latin2
@@ -2221,34 +2222,6 @@ key "Pydoc"
  output and there is html formating tools too.
 \end_layout
 
-\begin_layout Subsection
-Build system
-\end_layout
-
-\begin_layout Subsection
-Packaging
-\end_layout
-
-\begin_layout Standard
-Target audience of both ZlomekFS and regresion testing framework uses mainly
- 
-\series bold
-Redhat
-\series default
- or 
-\series bold
-Fedora
-\series default
- based systems.
- To ease installation and upgrades it was decided to provide automatic build
- targets for 
-\series bold
-RPM
-\series default
- packages.
- For other systems, .tar.gz source packages can be generated.
-\end_layout
-
 \begin_layout Chapter
 Implementation details
 \end_layout
@@ -2453,11 +2426,54 @@ Testing environment
 \end_layout
 
 \begin_layout Standard
-tables / objects
+All tests should be executed under 
+\series bold
+Nose
+\series default
+.
+ Settings for plugins can be given by command line options, but prefered
+ way is to store them as 
+\series bold
+environment variable
+\series default
+s.
+ Environment variables are used to pass values between components too.
+ This way is used to ensure all test runs within one batch run will be reported
+ properly.
+ To ease repeated runs with the same configuration, support for 
+\series bold
+profiles
+\series default
+ is implemented.
+ If environment variable 
+\emph on
+PROFILE_NAME
+\emph default
+ is found, system tries to load module with given name and read environment
+ variables from it.
+ 
 \end_layout
 
 \begin_layout Standard
-environment
+If 
+\series bold
+zfsReportPlugin 
+\series default
+is enabled, results are reported to django driven 
+\series bold
+TestResultStorage
+\series default
+.
+ Settings for it is read from module which name is in environment variable
+\series bold
+\emph on
+ 
+\series default
+DJANGO_SETTINGS_MODULE.
+
+\emph default
+ Default place for it is TestResultStorage.settings (on most systems in /usr/lib/
+python/site-packages/TestResultStorage/settings.py).
 \end_layout
 
 \begin_layout Subsection
@@ -2472,14 +2488,21 @@ Zfsd control from python is implemented in ZfsProxy.
 \end_layout
 
 \begin_layout Standard
-Normal zfs tests should inherit from class ZfsTest which implements basic
- fixtures for zfs.
+Normal 
+\series bold
+zfs tests
+\series default
+ should inherit from class ZfsTest which implements basic fixtures for zfs.
  New daemon is started for every test to run.
 \end_layout
 
 \begin_layout Standard
-Stress test classes listing meta tests should inherit from class ZfsStressTest
- which runs all tests on single instance of zfsd.
+
+\series bold
+Stress test
+\series default
+ classes listing meta tests should inherit from class ZfsStressTest which
+ runs all tests on single instance of zfsd.
 \end_layout
 
 \begin_layout Standard
@@ -2609,6 +2632,19 @@ File transfer
 \end_layout
 
 \begin_layout Standard
+Django stores objects as rows in tables, one table for one class (plus some
+ indices and many-to-many relation tables).
+ We use TestRun class for information about one run of single test, TestRunData
+ class to hold auxiliary information for (mostly failed) tests - backtraces,
+ exceptions, file names of snapshots.
+ Set of TestRuns that were executed together are connected by BatchRun object
+ which holds common attributes such as machine that executes tests, branch,
+ revision and profile.
+ Projects and profile information are represented as foreign key to tables
+ Project and ProfileInfo because they repeats a lot.
+\end_layout
+
+\begin_layout Standard
 In 
 \series bold
 Nose
@@ -2647,32 +2683,76 @@ web interface
 \end_layout
 
 \begin_layout Subsection
-Driving
+Options
 \end_layout
 
 \begin_layout Standard
-nose
+Test sets can be 
+\series bold
+filtered
+\series default
+ in three ways:
+\end_layout
+
+\begin_layout Itemize
+by passing to executable only files (modules, classes, tests) that should
+ be run (disables search)
+\end_layout
+
+\begin_layout Itemize
+by nose.attrib plugin.
+ User can define expression that must evaluate to true for given test attributes.
+ For example expression '
+\emph on
+not disabled
+\emph default
+' will discard tests where 
+\emph on
+test.disabled
+\emph default
+ evaluates to True.
+ Tests loaded from saved path bypasses this filtering.
+\end_layout
+
+\begin_layout Itemize
+by name regular expressions.
+ By default, test name must match regular expression 
+\emph on
+(?:^|[
+\backslash
+
+\backslash
+b_
+\backslash
+
+\backslash
+./-])[Tt]est).
+ 
+\emph default
+But this expression is configurable through 
+\emph on
+NOSE_TESTMATCH
+\emph default
+ environment variable.
 \end_layout
 
 \begin_layout Standard
-profiles
+
+\series bold
+ZfsConfig 
+\series default
+plugin provides user-definable configs straight to tests.
+ List of configuration files (in defined format) can be passed to plugin.
+ Plugin will read them, convert to python object and pass this object to
+ all tests.
 \end_layout
 
 \begin_layout Standard
-attributes
-\end_layout
-
-\begin_layout Standard
-filtering
-\end_layout
-
-\begin_layout Standard
-configuration
-\end_layout
-
-\begin_layout Standard
-To handle deadlocks and unfinite loops both in zfsd and malformed test,
- there is 
+To handle 
+\series bold
+deadlocks 
+\series default
+and unfinite loops both in zfsd and malformed test, there is 
 \series bold
 \emph on
 timed
@@ -2762,6 +2842,24 @@ saved paths
 
 \begin_layout Subsection
 Extendability
+\end_layout
+
+\begin_layout Standard
+Extending tests should be pretty straightforward.
+ As python is object oriented language, inheritance should be used.
+ 
+\end_layout
+
+\begin_layout Standard
+If new features are needed on the level of driving component (Nose), they
+ should be delivered as new plugins.
+ Plugins are nearly independent, but the ordering of their execution should
+ be preserved.
+ Excution order is given by their 
+\emph on
+score
+\emph default
+ attribute ascending.
 \end_layout
 
 \begin_layout Section
@@ -2902,12 +3000,107 @@ The big picture
 Build system
 \end_layout
 
+\begin_layout Standard
+Original ZlomekFS build system (make) was switched to 
+\series bold
+automake
+\series default
+ due to problems on 64bit systems with library directories (lib vs lib64).
+ Hence for C based components 
+\series bold
+autoconf
+\series default
+, 
+\series bold
+automake
+\series default
+ and 
+\series bold
+libtool
+\series default
+ are used, for python based components 
+\series bold
+setuptools
+\series default
+ are used with make wrapper for better compatibility with other tools.
+\end_layout
+
+\begin_layout Standard
+Target audience of both ZlomekFS and regresion testing framework uses mainly
+ 
+\series bold
+Redhat
+\series default
+ or 
+\series bold
+Fedora
+\series default
+ based systems.
+ To ease installation and upgrades it was decided to provide automatic build
+ targets for 
+\series bold
+RPM
+\series default
+ packages.
+ For other systems, .tar.gz source packages can be generated.
+\end_layout
+
 \begin_layout Subsection
 Standard targets
 \end_layout
 
+\begin_layout Standard
+All components understands following make targets:
+\end_layout
+
+\begin_layout Itemize
+all - build all binaries and libraries
+\end_layout
+
+\begin_layout Itemize
+doc - build documentation
+\end_layout
+
+\begin_layout Itemize
+dist - build .tar.gz source package
+\end_layout
+
+\begin_layout Itemize
+rpm - build all available rpm packages (source, doc, binary)
+\end_layout
+
+\begin_layout Itemize
+clean - remove generated data
+\end_layout
+
+\begin_layout Itemize
+test - run available tests
+\end_layout
+
 \begin_layout Section
 Buildbot configuration
+\end_layout
+
+\begin_layout Standard
+Buildbot is configured to create builder for every component on every host.
+ Thanks to build system unification, build step sequence is equal for all
+ components it goes update - build - test - make rpm - install - upload.
+ 
+\end_layout
+
+\begin_layout Standard
+Change source is svn polling, schedulers are configured to wait some time
+ after change before builder is run.
+ 
+\end_layout
+
+\begin_layout Standard
+Test driving (Nose) was included in way, that doesn't need external configuratio
+n, only django needs to have 
+\emph on
+DJANGO_SETTINGS_MODULE
+\emph default
+ present in environment, so it is exported in start time of buildbot.
 \end_layout
 
 \begin_layout Chapter
@@ -3841,6 +4034,10 @@ True if is metaclass, False otherwise
 \end_layout
 
 \begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
 """
 \end_layout
 
@@ -3894,7 +4091,7 @@ def countNiceElements(list):
 \InsetSpace ~
 \InsetSpace ~
 \InsetSpace ~
-''' Count elements which are nice :) '''
+""" Count elements which are nice :) """
 \end_layout
 
 \begin_layout Standard
@@ -3975,6 +4172,921 @@ end{codeblock}
 
 \begin_layout Section
 Installation
+\end_layout
+
+\begin_layout Standard
+This guide is based on new Fedora 8 installation, installation to other
+ systems may be different.
+ In example, we have buildmaster on IP 192.168.16.253, buildslave on IP 192.168.16.252
+ and development system on IP 192.168.16.128.
+\end_layout
+
+\begin_layout Subsection
+Buildmaster
+\end_layout
+
+\begin_layout Standard
+Create user account under which buildbot will run on buildmaster.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+useradd -d /home/buildmaster -s /bin/bash buildmaster
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then, install external packages and tools.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+yum install buildbot python-sqlite2 mysql-server MySQL-python
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Install TestResultStorage.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set mysql to start on boot and start it.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/chkconfig mysqld on
+\end_layout
+
+\begin_layout Standard
+/etc/init.d/mysqld start
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Change root password for mysql.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/usr/bin/mysqladmin -u root password 'secret'
+\end_layout
+
+\begin_layout Standard
+/usr/bin/mysqladmin -u root -h 192.168.16.253 password 'secret'
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Create database for TestResultStorage.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+echo '
+\end_layout
+
+\begin_layout Standard
+CREATE DATABASE trs character set utf8;
+\end_layout
+
+\begin_layout Standard
+GRANT all ON trs.* TO nose@localhost IDENTIFIED BY 'secret';
+\end_layout
+
+\begin_layout Standard
+GRANT all ON trs.* TO nose@192.168.16.252 IDENTIFIED BY 'secret';
+\end_layout
+
+\begin_layout Standard
+GRANT all ON trs.* TO nose@192.168.16.128 IDENTIFIED BY 'secret';
+\end_layout
+
+\begin_layout Standard
+FLUSH PRIVILEGES;
+\end_layout
+
+\begin_layout Standard
+'| mysql --user=root --password=secret
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Setup TestResultStorage to use local mysql database with right credentials
+ (
+\begin_inset LatexCommand prettyref
+reference "fig:settings_py"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+DATABASE_ENGINE = 'mysql' 
+\end_layout
+
+\begin_layout Standard
+DATABASE_NAME = 'trs'
+\end_layout
+
+\begin_layout Standard
+DATABASE_USER = 'nose'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PASSWORD = 'secret' 
+\end_layout
+
+\begin_layout Standard
+DATABASE_HOST = 'localhost'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PORT = '' 
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:settings_py"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+TestResultStorage/settings.py
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Create TestResultStorage tables.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+cd /usr/lib/python2.5/site-packages/TestResultStorage
+\end_layout
+
+\begin_layout Standard
+python manage.py syncdb
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Checkout (export) buildmaster's configuration
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+su buildmaster
+\end_layout
+
+\begin_layout Standard
+cd /home/buildmaster
+\end_layout
+
+\begin_layout Standard
+svn export http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmas
+ter zlofs
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Setup buildmaster to allow client connections and to start www server on
+ right port (
+\begin_inset LatexCommand prettyref
+reference "fig:master_cfg"
+
+\end_inset
+
+, 
+\begin_inset LatexCommand prettyref
+reference "fig:buildbot_tac"
+
+\end_inset
+
+).
+ Note that if svn url or branching schema changes, they should be tweaked
+ too.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+WAIT_BEFORE_BUILD = 1
+\newline
+
+\end_layout
+
+\begin_layout Standard
+c['slaves'] = [BuildSlave("bug", "secret"),BuildSlave("zen", "secret")]
+\end_layout
+
+\begin_layout Standard
+c['slavePortnum'] = "tcp:9989"
+\newline
+
+\end_layout
+
+\begin_layout Standard
+c['projectName'] = 'ZlomekFS'
+\end_layout
+
+\begin_layout Standard
+c['projectURL'] = 'http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS'
+\newline
+
+\end_layout
+
+\begin_layout Standard
+c['buildbotURL'] = 'http://192.168.16.253:8010'
+\newline
+
+\end_layout
+
+\begin_layout Standard
+svnurl = 'https://shiva.ms.mff.cuni.cz/svn/zzzzzfs'
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:master_cfg"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+master.cfg
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+basedir = r'/home/buildmaster/zlofs'
+\end_layout
+
+\begin_layout Standard
+configfile = r'master.cfg' 
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildbot_tac"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+buildbot.tac
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set buildbot to start on boot, for example by adding crontab entry (
+\begin_inset LatexCommand prettyref
+reference "fig:buildmaster_cron"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+@reboot make start -C /home/buildmaster/zlofs
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildmaster_cron"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Caption
+
+\begin_layout Standard
+buildmaster.cron
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Start buildmaster.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+make start -C /home/buildmaster/zlofs 
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Open ports 3306, 8010, 9989 (or other, if setting in master.cfg is different)
+ on firewall.
+ Rules below are only examples, they should be pernament (for example written
+ in /etc/sysconfig/iptables).
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp
+ --dport 8010 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp
+ --dport 9989 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp
+ --dport 3306 --source 192.168.16.0/24 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Buildslave
+\end_layout
+
+\begin_layout Standard
+#get and install pysvn http://pysvn.tigris.org/
+\end_layout
+
+\begin_layout Standard
+yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel
+ libtool autoconf automake gettext gettext-devel python-setuptools python-nose
+ pyflakes
+\end_layout
+
+\begin_layout Standard
+rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm py25_pysvn_svn144-*.r
+pm
+\end_layout
+
+\begin_layout Standard
+# bootstrap all projects by stable rpms
+\end_layout
+
+\begin_layout Standard
+# restart dbus with new config
+\end_layout
+
+\begin_layout Standard
+/etc/init.d/messagebus restart
+\end_layout
+
+\begin_layout Standard
+# change /usr/lib/python2.5/site-packages/TestResultStorage/settings.py to
+ store data on master
+\end_layout
+
+\begin_layout Standard
+# create user
+\end_layout
+
+\begin_layout Standard
+useradd -d /home/buildslave -s /bin/bash buildslave
+\end_layout
+
+\begin_layout Standard
+#export config
+\end_layout
+
+\begin_layout Standard
+svn export https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildsl
+ave zlofs
+\end_layout
+
+\begin_layout Standard
+# change zlofs/buildbot.tac to connect to actual master with accurate auth
+\end_layout
+
+\begin_layout Standard
+# configure services to start at boot
+\end_layout
+
+\begin_layout Standard
+# for example add this line to crontab:
+\end_layout
+
+\begin_layout Standard
+# @reboot buildbot start /home/buildslave/zlofs
+\end_layout
+
+\begin_layout Subsection
+Development system
 \end_layout
 
 \begin_layout Section
