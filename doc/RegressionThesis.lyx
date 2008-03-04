@@ -4235,7 +4235,22 @@ begin{codeblock}
 
 \end_inset
 
-yum install buildbot python-sqlite2 mysql-server MySQL-python
+
+\end_layout
+
+\begin_layout Standard
+yum install buildbot python-sqlite2 mysql-server\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+MySQL-python screen
+\end_layout
+
+\begin_layout Standard
 \begin_inset ERT
 status open
 
@@ -4253,6 +4268,7 @@ end{codeblock}
 
 \begin_layout Standard
 Install TestResultStorage.
+ Django in version version 0.97 (pre) is required.
 \end_layout
 
 \begin_layout Standard
@@ -4440,7 +4456,7 @@ end{codeblock}
 Setup TestResultStorage to use local mysql database with right credentials
  (
 \begin_inset LatexCommand prettyref
-reference "fig:settings_py"
+reference "fig:settings_py_master"
 
 \end_inset
 
@@ -4520,7 +4536,7 @@ end{codeblock}
 
 \begin_layout Standard
 \begin_inset LatexCommand label
-name "fig:settings_py"
+name "fig:settings_py_master"
 
 \end_inset
 
@@ -4528,7 +4544,7 @@ name "fig:settings_py"
 \begin_inset Caption
 
 \begin_layout Standard
-TestResultStorage/settings.py
+TestResultStorage/settings.py (buildmaster)
 \end_layout
 
 \end_inset
@@ -4618,8 +4634,23 @@ cd /home/buildmaster
 \end_layout
 
 \begin_layout Standard
-svn export http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmas
-ter zlofs
+svn export\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildmaster\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zlomekfs
 \end_layout
 
 \begin_layout Standard
@@ -4648,7 +4679,7 @@ reference "fig:master_cfg"
 
 , 
 \begin_inset LatexCommand prettyref
-reference "fig:buildbot_tac"
+reference "fig:buildbot_tac_master"
 
 \end_inset
 
@@ -4687,7 +4718,15 @@ WAIT_BEFORE_BUILD = 1
 \end_layout
 
 \begin_layout Standard
-c['slaves'] = [BuildSlave("bug", "secret"),BuildSlave("zen", "secret")]
+c['slaves'] = [BuildSlave("bug", "secret"),
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+BuildSlave("zen", "secret")]
 \end_layout
 
 \begin_layout Standard
@@ -4791,7 +4830,7 @@ begin{codeblock}
 \end_layout
 
 \begin_layout Standard
-basedir = r'/home/buildmaster/zlofs'
+basedir = r'/home/buildmaster/zlomekfs'
 \end_layout
 
 \begin_layout Standard
@@ -4820,7 +4859,7 @@ end{codeblock}
 
 \begin_layout Standard
 \begin_inset LatexCommand label
-name "fig:buildbot_tac"
+name "fig:buildbot_tac_master"
 
 \end_inset
 
@@ -4828,7 +4867,7 @@ name "fig:buildbot_tac"
 \begin_inset Caption
 
 \begin_layout Standard
-buildbot.tac
+buildbot.tac (master)
 \end_layout
 
 \end_inset
@@ -4883,7 +4922,38 @@ begin{codeblock}
 \end_layout
 
 \begin_layout Standard
-@reboot make start -C /home/buildmaster/zlofs
+@reboot make start -C /home/buildmaster/zlomekfs
+\end_layout
+
+\begin_layout Standard
+@reboot screen -d -m -S\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+TestResultStorage python\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+/usr/lib/python2.5/site-packages/TestResultStorage/manage.py\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+runserver 192.168.16.253:8020 
+\end_layout
+
+\begin_layout Standard
 \begin_inset ERT
 status open
 
@@ -4935,7 +5005,7 @@ Start buildmaster.
 
 \begin_layout Standard
 \begin_inset ERT
-status open
+status collapsed
 
 \begin_layout Standard
 
@@ -4946,7 +5016,7 @@ begin{codeblock}
 
 \end_inset
 
-make start -C /home/buildmaster/zlofs 
+make start -C /home/buildmaster/zlomekfs 
 \begin_inset ERT
 status open
 
@@ -4986,23 +5056,465 @@ begin{codeblock}
 \end_layout
 
 \begin_layout Standard
-/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp
- --dport 8010 -j ACCEPT
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
-/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp
- --dport 9989 -j ACCEPT
+\InsetSpace ~
+-m tcp -p tcp --dport 8010 -j ACCEPT
 \end_layout
 
 \begin_layout Standard
-/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp
- --dport 3306 --source 192.168.16.0/24 -j ACCEPT
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 9989 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 3306 --source 192.168.16.0/24 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This is all except for file transfers.
+ If you want to use nfs for file transfers, read nfs configuration below.
+\end_layout
+
+\begin_layout Standard
+Set data directory to be exported (
+\begin_inset LatexCommand ref
+reference "fig:exports"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/var/lib/TestResultStorage/data 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+192.168.16.252(fsid=0,rw,root_squash,sync)\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+192.168.16.128(fsid=0,rw,root_squash,sync)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:exports"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/exports
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Tell portmap to allow connections to services (
+\begin_inset LatexCommand ref
+reference "fig:hosts_allow"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+portmap: 192.168.16.128 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+lockd: 192.168.16.128 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+rquotad: 192.168.16.128 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+mountd: 192.168.16.128 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+statd: 192.168.16.128 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:hosts_allow"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/hosts.allow
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set mount daemon to use specific port - needed for firewall settings (
+\begin_inset LatexCommand ref
+reference "fig:sysconfig_nfs"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+MOUNTD_PORT=32773
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:sysconfig_nfs"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/sysconfig/nfs
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Open ports on firewall.
+ Note that you must make this rules pernament for example through 
+\emph on
+system-config-firewall
+\emph default
+.
 \end_layout
 
 \begin_layout Standard
 \begin_inset ERT
 status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 2049 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m udp -p udp --dport 2049 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 111 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m udp -p udp --dport 111 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m udp -p udp --dport 32773 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Run nfs and make it start upon boot.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/service nfs start
+\end_layout
+
+\begin_layout Standard
+/sbin/chkconfig nfs on
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
 
 \begin_layout Standard
 
@@ -5021,26 +5533,151 @@ Buildslave
 \end_layout
 
 \begin_layout Standard
-#get and install pysvn http://pysvn.tigris.org/
+First install required packages.
+ Note that not all are available from Fedora repositories.
+ For i386 and x86_64 architecture they can be found on thesis cd.
 \end_layout
 
 \begin_layout Standard
-yum install buildbot python-sqlite2 MySQL-python kernel-devel dbus dbus-devel
- libtool autoconf automake gettext gettext-devel python-setuptools python-nose
- pyflakes
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm py25_pysvn_svn144-*.r
-pm
+yum install buildbot python-sqlite2 MySQL-python kernel-devel\InsetSpace ~
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
-# bootstrap all projects by stable rpms
+\InsetSpace ~
+dbus dbus-devel libtool autoconf automake gettext gettext-devel\InsetSpace ~
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
-# restart dbus with new config
+\InsetSpace ~
+python-setuptools python-nose pyflakes
+\end_layout
+
+\begin_layout Standard
+rpm -ivh python-django-snapshot-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+TestResultStorage-*.rpm py25_pysvn_svn144-*.rpm
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Install packages from all components.
+ This can be skipped, but when further builds will go in wrong order, dependency
+ problems could arrive.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+rpm -ivh zen-unit-*.rpm syplog-*.rpm pysyplog-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zlomekfs-*.rpm zfsd-status-*.rpm TestResultStorage-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+insecticide-*.rpm
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Restart D-bus to use new configuration (allow syplog and zfsd communication).
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -5048,41 +5685,503 @@ pm
 \end_layout
 
 \begin_layout Standard
-# change /usr/lib/python2.5/site-packages/TestResultStorage/settings.py to
- store data on master
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-# create user
+Change TestResultStorage settings to store results on buildmaster (
+\begin_inset LatexCommand ref
+reference "fig:settings_py_slave"
+
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
-useradd -d /home/buildslave -s /bin/bash buildslave
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-#export config
+...
 \end_layout
 
 \begin_layout Standard
-svn export https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildsl
-ave zlofs
+DATABASE_ENGINE = 'mysql' 
 \end_layout
 
 \begin_layout Standard
-# change zlofs/buildbot.tac to connect to actual master with accurate auth
+DATABASE_NAME = 'trs'
 \end_layout
 
 \begin_layout Standard
-# configure services to start at boot
+DATABASE_USER = 'nose'
 \end_layout
 
 \begin_layout Standard
-# for example add this line to crontab:
+DATABASE_PASSWORD = 'secret' 
 \end_layout
 
 \begin_layout Standard
-# @reboot buildbot start /home/buildslave/zlofs
+DATABASE_HOST = '192.168.16.253'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PORT = ''3306'
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:settings_py_slave"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+TestResultStorage/settings.py (buildslave)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If you use nfs for file transfers, set nfs mount (
+\begin_inset LatexCommand ref
+reference "fig:fstab"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+192.168.16.253:/var/lib/TestResultStorage/data\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+/var/lib/TestResultStorage/data nfs defaults 0 0 
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:fstab"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/fstab
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Create directory for builds and fetch config.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+mkdir -p /var/buildbot
+\end_layout
+
+\begin_layout Standard
+cd /var/buildbot
+\end_layout
+
+\begin_layout Standard
+svn export\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/buildbot/buildslave\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zlomekfs
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Change buildbot configuration to connect to master and use actual credentials
+ (
+\begin_inset LatexCommand ref
+reference "fig:buildbot_tac_slave"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+basedir = r'/var/buildbot/zlomekfs'
+\end_layout
+
+\begin_layout Standard
+buildmaster_host = '192.168.16.253'
+\end_layout
+
+\begin_layout Standard
+port = 9989
+\end_layout
+
+\begin_layout Standard
+slavename = 'zen'
+\end_layout
+
+\begin_layout Standard
+passwd = 'secret'
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildbot_tac_slave"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+buildbot.tac (slave)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Configure buildbot to start on boot (for example via crontab 
+\begin_inset LatexCommand ref
+reference "fig:buildslave_cron"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+@reboot buildbot start /var/buildbot/zlomekfs 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildslave_cron"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Caption
+
+\begin_layout Standard
+buildslave.cron
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Start buildbot
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+buildbot start /var/buildbot/zlomekfs
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection

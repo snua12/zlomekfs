@@ -38,6 +38,31 @@ DJANGO_SETTINGS_MODULE=TestResultStorage.settings buildbot start zlofs
 # for example add this line to crontab:
 # @reboot make start -C /home/buildmaster/zlofs
 
+nfs:
+firewall
+
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 2049 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m udp -p udp --dport 2049 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 111 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m udp -p udp --dport 111 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m udp -p udp --dport 32773 -j ACCEPT
+
+/etc/hosts.allow:
+
+portmap: 192.168.16.128 , 192.168.16.252
+lockd: 192.168.16.128 , 192.168.16.252
+rquotad: 192.168.16.128 , 192.168.16.252
+mountd: 192.168.16.128 , 192.168.16.252
+statd: 192.168.16.128 , 192.168.16.252
+
+/etc/sysconfig/nfs:
+
+MOUNTD_PORT=32773
+
+/etc/exports:
+/var/lib/TestResultStorage/data       192.168.16.252(fsid=0,rw,root_squash,sync,no_subtree_check) 192.168.16.128(fsid=0,rw,root_squash,sync,no_subtree_check)
+
+
 
 slave:
 #get and install pysvn http://pysvn.tigris.org/
