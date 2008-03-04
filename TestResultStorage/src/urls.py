@@ -23,7 +23,8 @@ urlpatterns = patterns('',
     #NOTE: this path is hardcoded in templates
     (r'^webMedia/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.WEB_MEDIA_ROOT}),
     # uploaded files
-    (r'^' + dataDir + '/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
+    (r'^' + dataDir + '/(?P<path>.*)$', 'django.views.static.serve',
+        {'document_root': settings.MEDIA_ROOT, 'show_indexes' : True}),
 
 )
 
