@@ -276,7 +276,7 @@ def appendDataToRun(run, errInfo = None, dataDir = None, test = None):
         targetFileName = os.path.join(dataDir, "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot)))
         snapshot.pack(targetFileName)
         snapshot.delete()
-        runData.dumpFile = targetFileName
+        runData.dumpFile = "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot))
         log.debug("appending snapshot from dir '%s' into file '%s'", snapshot.directory, targetFileName)
         for snapshot in test.test.snapshotBuffer:
             snapshot.delete()
