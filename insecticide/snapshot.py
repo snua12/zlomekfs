@@ -1,3 +1,4 @@
+""" Module with snapshot helper functions and classes """
 import tarfile
 import uuid
 import pickle
@@ -11,58 +12,125 @@ from ConfigParser import SafeConfigParser
 from unittest import TestCase
 
 class SnapshotError(Exception):
+    """ Error generated when incorect data were passed. """
     pass
 
 #FIXME: name must not be file name
 class SnapshotDescription(object):
     """
-    Entries are pairs name:parameters
-        name should be arbitrary string ~ filename relative to snapshot directory
-        parameters should be pair (type,values) . types are enumerated here
+        Helper object holding snapshot state.
+        Primitive types are stored in memory, big data (files, etc are stored on disk)
     """
     
     # these MUST NOT change between versions
     descriptionVersionFileName = "descriptionVersion"
+    """ 
+        In snapshot tar (directory) should be file with this name
+        which should contain number (description version).
+        From this number format of other data should be derived.
+    """
+    
     usedCompression = ':gz'
+    """ Compression used for tar. Directly passed to tarfile module. """
+    
+    
+    entries = None
+    """
+        Entries are dictionary pairs name:parameters
+        name should be arbitrary string ~ filename relative to snapshot directory or just variable name
+        parameters should be pair (type,values) . types are enumerated here
+    """
+    
+    entriesFileName = "entries"
+    """
+        File under snapshot directory (relative) where entries should be stored into
+        in descriptionVersion 1 format of this file is pickled object with pickle protocol 2.
+    """
+    
     TYPE_FILE = 0
+    """ Generic file type. Entry name is name of file, description is user readable string. """
+    
     TYPE_STRING = 1
+    """ String value. Name is variable name, description is variable value (string). """
+    
     TYPE_INT = 2
+    """ Integer value. Name is variable name, description is variable value (integer). """
+    
     TYPE_BOOL = 3
+    """ Boolean value. Name is variable name, description is variable value (boolean). """
+    
     TYPE_FLOAT = 4
+    """ Float value. Name is variable name, description is variable value (float). """
     
     # version dependent variables
     descriptionVersion = 1
+    """ Version number of snapshot content format in which data will be by default stored and load. """
+    
     usedPickleProtocol = 2
+    """ Protocol number of pickle module (format of pickled object files). """
     
     # generic types (fallback)
     TYPE_TAR_FILE = 201
+    """ Generic tar file type. Entry name is name of tar file, description is user readable string. """
+    
     TYPE_GCORE = 202
+    """ Core dump file type. Entry name is name of file, description is user readable string. """
+    
     TYPE_PICKLED_OBJECT = 203
+    """ Object pickled to file. Entry name is name of file, description is user readable string. """
     
     # specific types
     TYPE_ZFS_GCORE = 101
+    """ Subtype of TYPE_GCORE, fields have the same meaning, content is core dump of zfsd. """
+    
     TYPE_ZFS_CACHE = 102
+    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, content is tared zfs cache. """
+        
     TYPE_ZFS_FS = 103
+    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, content is tared zfs file system. """
+    
     TYPE_PICKLED_TEST = 104
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, content is tared nose test object. """
+    
     TYPE_LOG = 105
-    TYPE_TEST_BACKTRACE = 106
+    """ Subtype of TYPE_FILE, fields have the same meaning, file contains logs. """
+    
     TYPE_TEST_DATA = 107
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, file contains pickled test data. """
     
     TYPE_TEST_CONFIG = 108
+    """ Subtype of TYPE_FILE, fields have the same meaning, file is ConfigParser's config file. """
+    
     defaultConfigSnapshotFileName = "testConfig"
+    """ Default name where to store config of test. """
     
     TYPE_ENV = 109
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, file contains logs. """
+    
     TYPE_COMPARE_FS = 111
+    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, content is tared compare file system. """
+    
     TYPE_ZFS_LOG = 112
+    """ Subtype of TYPE_LOG, fields have the same meaning, file contains zfs (syplog) log. """
     
     tarTypes = [TYPE_TAR_FILE, TYPE_ZFS_CACHE, TYPE_ZFS_FS, TYPE_COMPARE_FS]
+    """ enumeration of types, that are tar files """
     
-    entries = None
-    entriesFileName = "entries"
     directory = None
+    """ 
+        Directory name (should be empty, dedicated to this snapshot only)
+        where snapshot data should be stored
+    """
+    
     file = None
+    """
+        Filename of packed snapshot. This is used after pack or before unpack.
+    """
     
     log = logging.getLogger("nose." + __name__)
+    """
+        Default logger.
+    """
     
     def __init__(self,  directory, parentLog = None):
         self.directory = directory
