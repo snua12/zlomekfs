@@ -45,6 +45,8 @@ rm -rf %{buildroot}
 /var/lib/TestResultStorage/templates/resultRepository/testrun_list.html
 /var/lib/TestResultStorage/templates/resultRepository/project_list.html
 /var/lib/TestResultStorage/webMedia/style.css
-%dir /var/lib/TestResultStorage/data
 
 %defattr(-,root,root)
+
+%post
+mkdir -p /var/lib/TestResultStorage/data
