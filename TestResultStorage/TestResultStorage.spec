@@ -49,4 +49,4 @@ rm -rf %{buildroot}
 %defattr(-,root,root)
 
 %post
-mkdir -p /var/lib/TestResultStorage/data || echo Warning: /var/lib/TestResultStorage/data couldn't be created
+mkdir -p /var/lib/TestResultStorage/data || echo Warning: /var/lib/TestResultStorage/data couldn\'t be created
