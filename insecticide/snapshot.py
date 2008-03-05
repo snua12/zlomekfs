@@ -133,6 +133,13 @@ class SnapshotDescription(object):
     """
     
     def __init__(self,  directory, parentLog = None):
+        """ Create new instance...
+            
+            :Parameters:
+                directory: name of directory where to store big data from snapshot.
+                    Must be empty and dedicated to this snapshot only
+                parentLog: alternaative logger where to log. if not specified, nose.SnapshotDescription will be used
+        """
         self.directory = directory
         self.entries = {}
         self.addEntry('uuid', (SnapshotDescription.TYPE_STRING, str(uuid.uuid4())))
@@ -143,35 +150,95 @@ class SnapshotDescription(object):
         self.log.debug("created snapshot with dir %s", self.directory)
         
     def __iter__(self):
+        """ Returns terator for entries. """
         return self.entries.iteritems()
         
     def setEntry(self, name,  params):
+        """ Set entry, please don't use this directly.
+            
+            :Parameters:
+                name: name of entry to set
+                params: tuple (entryType, description)
+            
+            :Return:
+                True
+        """
         self.entries[name] = params
         return True
         
     def addEntry(self, name, params):
+        """ Add entry of raise exception if exists.
+            Use only for primitive types (string, int, bool, float).
+            
+            :Parameters:
+                name: name of entry to set
+                params: tuple (entryType, description)
+            
+            :Return:
+                True
+            
+            :Raise:
+                KeyError: upon duplicit entry
+        """
         if not self.entries.get(name, None):
             return self.setEntry(name, params)
         else:
             raise KeyError("duplicit entry")
         
     def removeEntry(self, name):
+        """ Remove entry. 
+            Use only for primitive types (string, int, bool, float).
+            
+            :Parameters:
+                name: name of entry to set
+                params: tuple (entryType, description)
+            
+            :Raise:
+                KeyError: when entry is not present
+        """
         self.entries.pop(name, None)
         
     def getEntries(self):
+        """ Get entry names list.
+            
+            :Return:
+                generator for key names
+        """    
         for key in self.entries.keys():
             yield (key, self.entries[key])
             
     def getEntry(self, name):
+        """ Get entry parameters.
+            Use only for primitive types (string, int, bool, float).
+            
+            :Parameters:
+                name: name of entry to set
+            
+            :Return:
+                params tuple (entryType, description)
+            
+            :Raise:
+                KeyError: when entry is not present
+        """
         return self.entries[name]
         
     def delete(self):
+        """ Remove snapshot content from file system.
+            
+            :Return:
+                True
+        """
         self.log.debug("removing snapshot %s with directory %s", self, self.directory)
         shutil.rmtree(self.directory, ignore_errors = True)
         self.directory = None
         return True
         
     def pack(self,  fileName):
+        """ Pack snapshot content (files, entries, info) into file (tar.gz).
+            
+            :Parameters:
+                fileName: absolute path to file where to store
+        """
         #store snapshot description version
         descVFileName = self.directory + os.sep + self.descriptionVersionFileName
         if os.path.exists(descVFileName):
@@ -204,6 +271,16 @@ class SnapshotDescription(object):
         
         
     def unpack(self,  fileName,  directory = None):
+        """ Unpack snapshot content (files, entries, info) from file (tar.gz) to self.directory
+            
+            :Parameters:
+                fileName: absolute path to file where packed snapshot is
+                directory: directory where to unpack (same as in __init__)
+            
+            :Raise:
+                ValueError: if file is not found
+                SnapshotError: if snapshot content is invalid
+        """
         if directory:
             self.directory = directory
         if not os.path.exists(fileName):
@@ -235,6 +312,15 @@ class SnapshotDescription(object):
         entriesFile.close()
         
     def addConfig(self, config,  name = defaultConfigSnapshotFileName):
+        """ Add ConfigParser configuration into snapshot.
+            
+            :Parameters:
+                name: name of entry in snapshot
+                config: ConfigParser instance
+                
+            :Raise:
+                KeyError: if entry of that name exists
+        """
         #TODO: escape name
         fullFileName = self.directory + os.sep + name
         if os.path.exists(fullFileName):
@@ -247,6 +333,19 @@ class SnapshotDescription(object):
                         "config.write written test config"))
         
     def getConfig(self,  name = defaultConfigSnapshotFileName):
+        """ Retrive ConfigParser configuration from snapshot
+            
+            :Parameters:
+                name: name of config entry in snapshot (must have TYPE_TEST_CONFIG)
+            
+            :Return:
+                ConfigParser instance
+                
+            :Raise:
+                TypeError: if entry type is invalid
+                KeyError: if entry is not found
+                SnapshotError: if config file (in snapshot) is corrupted
+        """
         (type, desc) = self.getEntry(name)
         if type != SnapshotDescription.TYPE_TEST_CONFIG:
             raise TypeError ("entry %s has not type TYPE_TEST_CONFIG" % type)
@@ -261,6 +360,16 @@ class SnapshotDescription(object):
         return config
     
     def addDir(self, name, sourceDirName,  type = TYPE_TAR_FILE):
+        """ Add filesystem directory content into snapshot.
+            
+            :Parameters:
+                name: name of entry in snapshot
+                sourceDirName: absolute path to directory
+                type: override type for entry type (for example TYPE_ZFS_CACHE). use only tar types
+                
+            :Raise:
+                KeyError: if entry of that name exists
+        """
         self.addEntry(name, (type, sourceDirName))
         
         tarFile = tarfile.open(name = self.directory + os.sep + name,
@@ -270,6 +379,19 @@ class SnapshotDescription(object):
         
         
     def getDir(self, name, targetDirName):
+        """ Unpack filesystem directory content from snapshot.
+            
+            :Parameters:
+                name: name of entry in snapshot
+                targetDirName: absolute path to directory where to unpack content
+                
+            :Return:
+                None
+                
+            :Raise:
+                TypeError: if entry type is not in tar types
+                KeyError: if entry is not found
+        """
         (type, origin) = self.getEntry(name)
         if type not in SnapshotDescription.tarTypes:
             raise TypeError ("entry has wrong type %s", type)
@@ -282,6 +404,17 @@ class SnapshotDescription(object):
         tarFile.close()
         
     def addObject(self, name, object, type = TYPE_PICKLED_OBJECT, pickleMethod = None):
+        """ Add python object to snapshot
+            
+            :Parameters:
+                name: name of entry in snapshot
+                object: object to snapshot
+                type: override type for entry type (for example TYPE_PICKLED_TEST).
+                pickleMethod: override pickle protocol
+                
+            :Raise:
+                KeyError: if entry of that name exists
+        """
         if not pickleMethod:
             pickleMethod = pickle.dump
             
@@ -293,6 +426,20 @@ class SnapshotDescription(object):
         dumpFile.close()
     
     def getObject(self, name, type = TYPE_PICKLED_OBJECT, unpickleMethod = None):
+        """ Get python object from snapshot
+            
+            :Parameters:
+                name: name of entry in snapshot
+                type: require entry of given type  (for example TYPE_PICKLED_TEST). 
+                unpickleMethod: override pickle protocol for load
+            
+            :Return:
+                python object
+                
+            :Raise:
+                TypeError: if type is invalid
+                KeyError: if entry is not found
+        """
         if not unpickleMethod:
             unpickleMethod = pickle.load
         
@@ -306,43 +453,46 @@ class SnapshotDescription(object):
         return obj
         
     def addFile(self, name, sourceFileName, type = TYPE_FILE):
-      self.addEntry (name,  (type,  "source was " +sourceFileName))
-      shutil.copyfile(sourceFileName,  self.directory + os.sep + name)
+        """ Add file content into snapshot.
+            
+            :Parameters:
+                name: name of entry in snapshot
+                sourceFileName: absolute path to file to snapshot
+                type: override type for entry type (for example TYPE_ZFS_LOG).
+                
+            :Raise:
+                KeyError: if entry of that name exists
+        """
+        self.addEntry (name,  (type,  "source was " +sourceFileName))
+        shutil.copyfile(sourceFileName,  self.directory + os.sep + name)
       
     def getFile(self,  name, targetFileName, type = TYPE_FILE):
-      (dumpType,  memo) = self.getEntry(name)
-      if dumpType != type:
-        raise TypeError("dump type (%s) doesn't match load type"  % dumpType)
-        
-      shutil.copyfile(self.directory + os.sep + name,  targetFileName)
-      
-      return targetFileName
-
-    
-class SnapshotBuffer(object):
-    snapshots = []
-    
-    def __init__(self, temp = "/tmp",  maxSnapshots = 3):
-        self.temp = temp
-        self.maxSnapshots = maxSnapshots
-        
-    def addSnapshot(self, snapshot):
-        if self.maxSnapshots <= len(self.snapshots):
-            old = self.snapshots.pop(0)
-            old.delete()
+        """ Unpack file content from snapshot.
             
-        self.snapshots.append(snapshot)
-        return True
-        
-    def getSnapshots(self):
-        return self.snapshots
-    
-    
+            :Parameters:
+                name: name of entry in snapshot
+                targetFileName: absolute path to file where to unpack content
+                type: check if target entry type is equivalent  (for example TYPE_ZFS_LOG).
+                
+            :Return:
+                None
+                
+            :Raise:
+                TypeError: if entry type is not in tar types
+                KeyError: if entry is not found
+        """
+        (dumpType,  memo) = self.getEntry(name)
+        if dumpType != type:
+            raise TypeError("dump type (%s) doesn't match load type"  % dumpType)
+            
+            shutil.copyfile(self.directory + os.sep + name,  targetFileName)
+            
+            return targetFileName
     
     
 
 class SnapshotTest(TestCase):
-    
+    """ unit test tests for SnapshotDescription """
     def setUp(self):
         self.files = []
         import tempfile
