@@ -14,6 +14,7 @@ from warnings import warn
 from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy
 from insecticide.snapshot import SnapshotDescription
+from insecticide.zfsReportPlugin import ZfsReportPlugin
 from traceback import format_exc
 from types import TypeType, ClassType
 
@@ -127,6 +128,9 @@ class StressGenerator(Plugin):
         .. See: nose plugin interface
     """
     
+    shouldReport = False
+    """ If we should report successes or failures """
+    
     # maxTestLength related variables
     maxTestLengthOpt = "--stressTestLength"
     """ option string for passing max stress test length to plugin """
@@ -203,7 +207,7 @@ class StressGenerator(Plugin):
     svnClient = pysvn.Client()
     """ Pysvn svn client instance. Used for adding saved paths into subversion. """
     
-    reportProxy = ReportProxy()
+    reportProxy = None
     """ Report proxy object used for reporting chain successes or failures """
     
     
@@ -290,6 +294,14 @@ class StressGenerator(Plugin):
         
         if self.enabled == False:
             return
+            
+        # hack: try to find out if we should report
+        if hasattr(options,  ZfsReportPlugin.enableOpt):
+            self.shouldReport = getattr(options,  ZfsReportPlugin.enableOpt,  self.shouldReport)
+            log.debug("stress test generator will report: %s", self.shouldReport)
+            
+        if self.shouldReport:
+            self.reportProxy = ReportProxy()
         
         # try to get name of file containing tests config
         if hasattr(options,  self.maxTestLengthOpt):
@@ -676,11 +688,12 @@ class StressGenerator(Plugin):
         else:
             if self.isChainedTestCase(testInst):
                 (testName, description) = self.generateDescription(test)
-                log.debug("reporting %s failure from addFailure", testInst.method.__name__)
-                if error:
-                    self.reportProxy.reportError(ZfsTestFailure(test,err), name = testName, description = description)
-                else:
-                    self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
+                if self.shouldReport:
+                    log.debug("reporting %s failure from addFailure", testInst.method.__name__)
+                    if error:
+                        self.reportProxy.reportError(ZfsTestFailure(test,err), name = testName, description = description)
+                    else:
+                        self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
                 return True
     
     def addError(self, test, err):
@@ -711,11 +724,13 @@ class StressGenerator(Plugin):
                     self.storePath(testInst)
                     failure = testInst.failureBuffer.pop()
                     (testName, description) = self.generateDescription(failure.test)
-                    log.debug("reporting %s failure from addSuccess", testInst.method.__name__)
-                    self.reportProxy.reportFailure(failure, name = testName, description = description)
+                    if self.shouldReport:
+                        log.debug("reporting %s failure from addSuccess", testInst.method.__name__)
+                        self.reportProxy.reportFailure(failure, name = testName, description = description)
                 else:
                     (testName, description) = self.generateDescription(test)
-                    self.reportProxy.reportSuccess(test, name = testName, description = description)
+                    if self.shouldReport:
+                        self.reportProxy.reportSuccess(test, name = testName, description = description)
                 return True
         return None
         
@@ -747,7 +762,8 @@ class StressGenerator(Plugin):
                 self.svnClient.checkin([self.savedPathDir], 'New saved paths from batch ' + os.environ['BATCHUUID'])
             except:
                 log.debug("can't commit: %s", format_exc())
-        self.reportProxy.finalize()
+        if self.reportProxy:
+            self.reportProxy.finalize()
         
 
 class ChainedTestCase(MethodTestCase):

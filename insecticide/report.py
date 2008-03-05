@@ -8,6 +8,9 @@ import datetime
 import traceback
 import pickle
 
+if 'DJANGO_SETTINGS_MODULE' not in os.environ:
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
+
 from TestResultStorage.resultRepository.models import BatchRun, TestRun, TestRunData
 from TestResultStorage.resultRepository.models import  ProfileInfo, Project, computeDuration
 from TestResultStorage.resultRepository.models import  RESULT_UNKNOWN

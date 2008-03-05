@@ -38,7 +38,7 @@ class ZfsReportPlugin(Plugin):
         .. See: nose plugin interface
     """
     
-    enableOpt = None
+    enableOpt = '--with-ZfsReportPlugin'
     """ Option name for enabling this plugin, if None, default will be used 
         
         .. See: nose plugin interface
