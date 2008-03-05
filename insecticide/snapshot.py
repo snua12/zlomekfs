@@ -484,10 +484,9 @@ class SnapshotDescription(object):
         (dumpType,  memo) = self.getEntry(name)
         if dumpType != type:
             raise TypeError("dump type (%s) doesn't match load type"  % dumpType)
+        shutil.copyfile(self.directory + os.sep + name,  targetFileName)
             
-            shutil.copyfile(self.directory + os.sep + name,  targetFileName)
-            
-            return targetFileName
+        return targetFileName
     
     
 
