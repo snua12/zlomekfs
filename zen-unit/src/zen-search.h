@@ -41,6 +41,7 @@ typedef struct zen_test_def
 {
 	zen_test_template function_ptr;
 	char name [NAME_LEN];
+	int result;
 }* zen_test;
 
 void zen_search_init (void);

@@ -42,17 +42,28 @@ void LIB_CONSTRUCTOR init (void)
 	if (ret_code != ZEN_NOERR)
 		goto FINISHING;
 
-	printf ("got %d functions\n", test_count);
+	int sout = dup(0);
+	int serr = dup(1);
+	close(0);
+	close(1);
+
+	
+
+//	printf ("got %d functions\n", test_count);
+	for (index = 0; index < test_count; index ++)
+	{
+		tests[index].result = tests[index].function_ptr (NULL);
+		if (tests[index].result != PASS)
+			ret_code = FAIL;
+	}
 
 	for (index = 0; index < test_count; index ++)
 	{
-		printf ("calling function %s\n", tests[index].name);
-		ret = tests[index].function_ptr (NULL);
-		if (ret != PASS)
-		{
-			printf ("function failed with errcode %d\n", ret);
-		}
+		dprintf (sout, "%s\t%s(%d)\n", tests[index].name,
+			tests[index].result ? "FAIL" : "PASS",
+			tests[index].result);
 	}
+		
 
 FINISHING:
 	zen_search_destroy ();

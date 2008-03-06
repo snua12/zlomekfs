@@ -100,7 +100,7 @@ void report_symbol (const char * name, void * func_ptr, callback_holder data)
 
 	if (name_match (name) == TRUE)
 	{
-		printf ("%d:catch function %s at %p\n", data->test_count, name, func_ptr);
+//		printf ("%d:catch function %s at %p\n", data->test_count, name, func_ptr);
 		data->tests[data->test_count].function_ptr = func_ptr;
 		snprintf (data->tests[data->test_count].name, NAME_LEN, "%s", name);
 		data->test_count ++;
