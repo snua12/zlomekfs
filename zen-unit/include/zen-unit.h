@@ -66,13 +66,21 @@ make all
     \li run tests on your binary
 
  \code
-LD_PRELOAD=libzen-unit.so my_binary
+LD_PRELOAD=libzenunit.so my_binary
  \endcode
 
     \li output should look like:
 
  \code
-TODO: paste example
+[bug@bot src]# LD_PRELOAD= bzenunit.so my_binary
+zen_formatter_to_name_test      PASS(0)
+ \endcode
+
+    \li to test shared library use following (output will be equivalent)
+
+ \code
+[root@bug src]# LD_PRELOAD=libmylib.so zenunit
+zen_formatter_to_name_test      PASS(0)
  \endcode
 
  \see zen-unit.h
