@@ -34,6 +34,7 @@ rpm: dist
 
 test: all
 	@$(MAKE) -C tests test
+	@$(MAKE) -C src test
 
 doc: 
 	doxygen

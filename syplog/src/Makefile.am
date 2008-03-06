@@ -67,3 +67,5 @@ libsyplog_la_SOURCES = \
 libsyplog_la_CFLAGS = -pthread -fPIC
 libsyplog_la_LIBADD = -lpthread -ldbus-1
 
+test:
+	LD_PRELOAD=libsyplog.so LD_LIBRARY_PATH=./.libs zenunit
