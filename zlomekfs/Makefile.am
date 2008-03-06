@@ -43,6 +43,7 @@ rpm: dist
 
 test:
 	@$(MAKE) -C tests test
+	@$(MAKE) -C zfsd test
 
 doc: 
 	doxygen

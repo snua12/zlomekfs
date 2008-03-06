@@ -247,3 +247,24 @@ FINISHING:
   message (LOG_DEBUG, FACILITY_DBUS, "listener registration ended with %d\n", ret_code);
   return ret_code;
 }
+
+#include "zen-unit.h"
+
+ZEN_TEST(add_l){
+  struct dbus_state_holder_def prov;
+  void * add_name = 0x1;
+  void * rel_name = 0x2;
+  void * handle = 0x3;
+
+  int ret =  dbus_provider_init (&prov);
+  ZEN_ASSERT(ret == TRUE, "failed to initialize provider struct");
+
+  ret = dbus_provider_add_listener (&prov, add_name, rel_name, handle);
+  ZEN_ASSERT(ret == TRUE, "_add_listener has failed");
+  ZEN_ASSERT(prov.listener_count == 1, "wrong listener count");
+  ZEN_ASSERT(prov.listeners[0].handle_message == handle, "invalid handler set");
+  ZEN_ASSERT(prov.listeners[0].add_name == add_name, "invalid add function set");
+  ZEN_ASSERT(prov.listeners[0].release_name == rel_name, "invalid release function set");
+  
+  return PASS;
+}

@@ -32,7 +32,8 @@ AM_CFLAGS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes \
 	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG
 
-
+${top_builddir}/fuse/lib/.libs/libfuse.a:
+	make -C ${top_builddir}/fuse/
 
 bin_PROGRAMS = dump-metadata dump-intervals
 sbin_PROGRAMS = zfsd
@@ -104,3 +105,6 @@ dump_intervals_SOURCES = dump-intervals.c \
 		    util.c \
 		    varray.c
 dump_intervals_LDADD = ${top_builddir}/fuse/lib/.libs/libfuse.a
+
+test:
+	LD_PRELOAD=libzenunit.so ./zfsd
