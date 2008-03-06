@@ -106,5 +106,5 @@ dump_intervals_SOURCES = dump-intervals.c \
 		    varray.c
 dump_intervals_LDADD = ${top_builddir}/fuse/lib/.libs/libfuse.a
 
-test:
+test: zfsd
 	LD_PRELOAD=libzenunit.so ./zfsd
