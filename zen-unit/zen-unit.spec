@@ -46,6 +46,7 @@ rm -rf %{buildroot}
 %{prefix}/share/man/man3/zen-unit.h.3.gz
 %{prefix}/share/man/man3/ZEN_ASSERT.3.gz
 %{prefix}/share/man/man3/ZEN_TEST.3.gz
+%{prefix}/bin/zenunit
 
 
 %files doc

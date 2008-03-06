@@ -21,6 +21,7 @@
 INCLUDES = -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libzenunit.la
+bin_PROGRAMS = zenunit
 
 noinst_HEADERS = \
 	zen-defs.h \
@@ -36,6 +37,11 @@ libzenunit_la_SOURCES = \
 	zen-shared-search.c \
 	zen-elf-search.c \
 	zen-library-run.c
+
 libzenunit_la_CFLAGS = -pthread -fPIC
 libzenunit_la_LDFLAGS = --no-undefined -shared
 libzenunit_la_LIBADD = -lelf -lpthread
+
+zenunit_SOURCES = zen-run.c
+zenunit_LDADD = ${top_builddir}/src/libzenunit.la
+
