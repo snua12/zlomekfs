@@ -21,13 +21,15 @@
 
 INCLUDES = -I$(top_srcdir)/include
 
-noinst_LTLIBRARIES = libzentests.la
-noinst_PROGRAMS = zentests
+noinst_PROGRAMS = zentests_fail zentests_pass
 
-libzentests_la_SOURCES = zen-unit-so.c
+zentests_pass_SOURCES = zen-unit-pass.c
+zentests_fail_SOURCES = zen-unit-fail.c
 
-zentests_SOURCES = zen-unit-binary.c
-zentest_LIBADD = libzentests.la
 
-test: libzentests.la zentests
-	LD_PRELOAD=libzenunit.so LD_LIBRARY_PATH=.:$(top_builddir)/src/.libs ./zentests
+
+
+test: zentests_pass zentests_fail
+	LD_PRELOAD=libzenunit.so LD_LIBRARY_PATH=.:../src/.libs ./zentests_pass
+	if LD_PRELOAD=libzenunit.so LD_LIBRARY_PATH=.:../src/.libs ./zentests_fail; then false; else true; fi
+

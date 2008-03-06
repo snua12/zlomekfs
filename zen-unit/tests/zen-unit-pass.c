@@ -31,9 +31,10 @@ ZEN_TEST(so_pass)
 	return PASS;
 }
 
-ZEN_TEST(so_fail)
+#define UNUSED  __attribute__ ((__unused__))
+
+int main (int argc UNUSED, char ** argv UNUSED)
 {
-	ZEN_ASSERT(FALSE, "this should be printed");
-// should not reach
-	return PASS;
+        exit (1);
 }
+
