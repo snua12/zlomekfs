@@ -250,7 +250,7 @@ FINISHING:
 
 #include "zen-unit.h"
 
-ZEN_TEST(add_l){
+ZEN_TEST(add_listener){
   struct dbus_state_holder_def prov;
   void * add_name = 0x1;
   void * rel_name = 0x2;
