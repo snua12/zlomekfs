@@ -93,6 +93,7 @@ typedef struct callback_holder_def
 
 void report_symbol (const char * name, void * func_ptr, callback_holder data)
 {
+	int pos = 0;
 	pthread_mutex_lock (&(data->mutex));
 
 	if (data->test_count >= data->max_tests)
@@ -101,9 +102,16 @@ void report_symbol (const char * name, void * func_ptr, callback_holder data)
 	if (name_match (name) == TRUE)
 	{
 //		printf ("%d:catch function %s at %p\n", data->test_count, name, func_ptr);
-		data->tests[data->test_count].function_ptr = func_ptr;
-		snprintf (data->tests[data->test_count].name, NAME_LEN, "%s", name);
-		data->test_count ++;
+		for (pos = 0; pos < data->test_count - 1; pos ++)
+			if (data->tests[pos].function_ptr == func_ptr)
+				break;
+
+		if (data->tests[pos].function_ptr != func_ptr)
+		{
+			data->tests[data->test_count].function_ptr = func_ptr;
+			snprintf (data->tests[data->test_count].name, NAME_LEN, "%s", name);
+			data->test_count ++;
+		}
 	}
 
 FINISHING:
