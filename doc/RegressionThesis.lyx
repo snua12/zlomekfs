@@ -69,7 +69,56 @@ Jiri Zouhar
 \end_layout
 
 \begin_layout Standard
-Something very smart it is, young adept.
+ZlomekFS is distributed file system aimed to transparent sharing of directory
+ trees.
+ 
+\end_layout
+
+\begin_layout Standard
+This thesis sumarizes actual methods used for software testing, debugging
+ and bug tracing.
+ Where applicable, emphasis is put on specific application of these methods
+ on filesystems.
+ 
+\end_layout
+
+\begin_layout Standard
+On basis of this the actual system for ZlomekFS is considered and build.
+ System consists of six parts.
+\end_layout
+
+\begin_layout Standard
+Unit testing framework for C code, providing automatic test discovery and
+ minimalistic api.
+\end_layout
+
+\begin_layout Standard
+Logging facility with C and python interface, using message importance and
+ concern for filtering.
+ The logger is remotelly controllable.
+\end_layout
+
+\begin_layout Standard
+Workload generator which can generate random test sequence.
+ Rules for random workload can be defined by tests content and dependency
+ graph describing order constrains.
+ Failed sequences can be saved for later reproduction.
+ The generator can try to find the shortest path to repoduce error.
+\end_layout
+
+\begin_layout Standard
+Test controlling and reporting framework.
+ This part controls test execution, prepares sane environment, executes
+ tests and collects data for further failure investigation.
+\end_layout
+
+\begin_layout Standard
+Test result repository with user interface where test results are stored.
+\end_layout
+
+\begin_layout Standard
+Continouous integration server which triggers events and runs automatic
+ builds.
 \end_layout
 
 \begin_layout Standard
@@ -86,6 +135,40 @@ Introduction
 
 \begin_layout Section
 Motivation
+\end_layout
+
+\begin_layout Standard
+Main motivation I had for this thesis was my wish to learn more about linux
+ kernel internals.
+ I have used linux from year 1997 but when it have come to writing kernel
+ module or to fix problems with kernel compilation.
+ Moreover ZlomekFS seemed to be interesting filesystem for which I could
+ find usage.
+ 
+\end_layout
+
+\begin_layout Standard
+I was interested in quality assurance too.
+ Methods how to secure that program will 
+\emph on
+just work
+\emph default
+ and programs that 
+\emph on
+just works
+\emph default
+ were my enthusiasm long before I started to write this thesis.
+ 
+\end_layout
+
+\begin_layout Standard
+With this is related testing and 
+\emph on
+extreme programming 
+\emph default
+methods such as test driven development and continuous integration.
+ This thesis have offered chance to apply these principes on non-trivial
+ project.
 \end_layout
 
 \begin_layout Section
@@ -115,8 +198,32 @@ Make all the developer documentation an integral part of the zlomekFS project
 Structure of the Thesis
 \end_layout
 
+\begin_layout Standard
+second - what goes on, current practices
+\end_layout
+
+\begin_layout Standard
+third - what we use
+\end_layout
+
+\begin_layout Standard
+fourth - how we use it
+\end_layout
+
+\begin_layout Standard
+fifth - how it have crashed
+\end_layout
+
+\begin_layout Standard
+apendix - removed due to appendicitis
+\end_layout
+
 \begin_layout Chapter
 Filesystem testing
+\end_layout
+
+\begin_layout Section
+Test types
 \end_layout
 
 \begin_layout Standard
@@ -125,7 +232,7 @@ Filesystem can be seen as many things and thus it can be tested from at
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Specification testing
 \end_layout
 
@@ -138,7 +245,7 @@ We could look on filesystem as on specification of way how to store data
  Specification testing is done only once at the begining.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Api conformity
 \end_layout
 
@@ -154,12 +261,8 @@ Some filesystems don't focus on the way how to store data on media but how
  stabilni iface / protokol
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Functional testing
-\end_layout
-
-\begin_layout Standard
-implementation
 \end_layout
 
 \begin_layout Standard
@@ -222,7 +325,7 @@ As the ZloFS is multi-threaded, distributed filesystem, the suite should
  of distributed enviroment.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Benchmarking
 \end_layout
 
@@ -314,11 +417,7 @@ For component based systems is often used model checking or behaviour protocols.
 \end_layout
 
 \begin_layout Section
-Testing frameworks
-\end_layout
-
-\begin_layout Subsection
-Unit based
+Unit based testing frameworks
 \end_layout
 
 \begin_layout Standard
@@ -950,14 +1049,6 @@ key "Cutest"
 
  from basic features provides assertions and suites.
  Has scripted tool for executable generation.
-\end_layout
-
-\begin_layout Standard
-Mock
-\end_layout
-
-\begin_layout Standard
-interface, network, etc - pretend to be the other side
 \end_layout
 
 \begin_layout Section
@@ -2136,6 +2227,41 @@ key "Chainsaw"
 C based unit testing
 \end_layout
 
+\begin_layout Standard
+All existing C based unit testing tools have one of two major problems (or
+ both).
+ 
+\end_layout
+
+\begin_layout Itemize
+Many tools are very complicated and writing simple test for 
+\begin_inset Quotes eld
+\end_inset
+
+a + b
+\begin_inset Quotes erd
+\end_inset
+
+ could take five minutes to do in them.
+ 
+\end_layout
+
+\begin_layout Itemize
+No one of C based unit testing tools have automatic test discovery.
+ Thus tests must be listed somewhere and collected manually (even in case
+ of hierarchies).
+ The best that some of them have is heuristic search by grep or other tool
+ using non complete C syntax.
+\end_layout
+
+\begin_layout Standard
+We think about external complicated tools as non-trivial for integration
+ to project and writing of simple C based unit testing is trivial, we choose
+ to implement our own C based unit testing library.
+ Moreover we manage to implement automatic test discovery based on elf binary
+ format.
+\end_layout
+
 \begin_layout Subsection
 Documentation
 \end_layout
@@ -2867,129 +2993,108 @@ C test
 \end_layout
 
 \begin_layout Standard
-C integration:
+For unit testing of C source code 
+\series bold
+Zen-unit
+\series default
+ library was developed.
+ 
 \end_layout
 
 \begin_layout Standard
-- swig generate modules, then walk dir() and get by name
+Library has very minimalistic api consisting of single file with four defines:
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+ZEN_TEST
+\series default
+ macro used to declare test header
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+ZEN_ASSERT
+\series default
+ to test conditions in tests
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+PASS
+\series default
+ which is value that should be returnded from passing tests.
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+FAIL
+\series default
+ which is value that should be returned from failing tests.
+ 
 \end_layout
 
 \begin_layout Standard
-- generate binaries by own tool (walk by elf reader)
+where 
+\emph on
+FAIL
+\emph default
+ is recomended, but any return value different from 
+\emph on
+PASS
+\emph default
+ is considered as failed test.
 \end_layout
 
 \begin_layout Standard
-- generate binaries by own - walk by c parser
+Searching for tests is made using libelf, tests are looked for in dyntab
+ and symtab of binary and all linked libraries.
+ Shared libraries can be tested by 
+\emph on
+LD_PRELOAD
+\emph default
+ to 
+\emph on
+zentest
+\emph default
+ binary.
 \end_layout
 
 \begin_layout Standard
-- macro based mains with test indexes
+There were more options to use for test collection:
+\end_layout
+
+\begin_layout Itemize
+user listed tests in some type of #ifdef declared main.
+ This doesn't remove the need of listing and moreover create some dificulties
+ in main source file.
+\end_layout
+
+\begin_layout Itemize
+to use full C grammar to search for tests in source files and to generate
+ main file.
+ This remove need of listing tests, but requires full C parser.
+\end_layout
+
+\begin_layout Itemize
+to use some C preprocessor to generate simply parsable overview (xml) and
+ generate test list from them.
+ This posibility was not fully explored but was considered far more complicated
+ that binary format based discovery.
 \end_layout
 
 \begin_layout Standard
-- separate binaries with make targets, etc...
+For integration with nose we use output parsing.
+ We have considered generation of test lists or test libraries (through
+ swig) but we found it to be redundant overhead.
 \end_layout
 
 \begin_layout Standard
-- tool generated binaries / search
-\end_layout
 
-\begin_layout Standard
-- extern static registry with registration function
-\end_layout
-
-\begin_layout Standard
-C integration flaws:
-\end_layout
-
-\begin_layout Standard
-- must be usable without test suite (shell driver)
-\end_layout
-
-\begin_layout Standard
-- must be easy to use
-\end_layout
-
-\begin_layout Standard
-- tests have to be easy to write
-\end_layout
-
-\begin_layout Standard
-- must handle dependencies
-\end_layout
-
-\begin_layout Standard
-cutest, 
-\end_layout
-
-\begin_layout Standard
-fork / don't fork
-\end_layout
-
-\begin_layout Standard
-what with system-dependent errors (nomemory, etc)? how to mock?
-\end_layout
-
-\begin_layout Standard
-macro / hand / grep 
-\end_layout
-
-\begin_layout Standard
-setup/teardown
-\end_layout
-
-\begin_layout Standard
-code layout (mixing or separating)
-\end_layout
-
-\begin_layout Standard
-collecting
-\end_layout
-
-\begin_layout Standard
-test framework code readability & flexibility (modular design)
-\end_layout
-
-\begin_layout Standard
-test framework maturity#
-\end_layout
-
-\begin_layout Standard
-!!ATTR and EXPR in nose 
-\end_layout
-
-\begin_layout Standard
---with-stopwatch --faster-than 5
-\end_layout
-
-\begin_layout Standard
---with-figleafsecions
-\end_layout
-
-\begin_layout Standard
-config by environment
-\end_layout
-
-\begin_layout Standard
-untestable test with comparision
-\end_layout
-
-\begin_layout Standard
-! when pickling, only names are written for code blocks (methods etc) so
- before unpickling, the original module must be imported...
-\end_layout
-
-\begin_layout Standard
-the same (^) holds for class data (so be carefull when pickling class with
- setup_class method)
-\end_layout
-
-\begin_layout Standard
-!!!! this disable pickling of random data....!!!!!
-\end_layout
-
-\begin_layout Standard
-__getstate__(), __setstate__()
 \end_layout
 
 \begin_layout Section
@@ -3108,7 +3213,74 @@ Conclusion
 \end_layout
 
 \begin_layout Standard
-work enlightens
+goals fullfilment
+\newline
+Goal of this thesis was to extend existing ZlomekFS implementat
+ion and implement regression testing framework.
+ After exploration of ZlomekFS there were clear need of logging facility
+ and remote state discovery to allow reliable testing.
+ From research done on related projects we decided to create new logger
+ and made status information available through d-bus.
+\end_layout
+
+\begin_layout Standard
+As regression testing framework we have used existing solution - Nose.
+ Under it it is possible to write tests with both approaches.
+ As example there is implementation of one test which identify filesystem
+ errors by deviations of implicit filesystem behaviour and implementation
+ of one test which identify filesystem errors by comparison with other (reliable
+) filesystem.
+\end_layout
+
+\begin_layout Standard
+By plugin we provide posibility to generate random workload to filesystem
+ which can be constrained to valid sequences only.
+ Plugin can prune sequence to find minimal sequence needed to reproduce
+ the error.
+ 
+\end_layout
+
+\begin_layout Standard
+Snapshoting plugin offer chance to have as much state information and protocol
+ for tracing and debuging the problem which have caused the problem.
+ Current implementation provides core dump of daemon, log files, sequence
+ which have caused the error, cache content, comparison file system (if
+ used) snapshot and python component state.
+ This snapshot plugin can include most of possible data types that can be
+ required when debugging and thus tester can easilly define other data to
+ include to snapshots.
+\end_layout
+
+\begin_layout Standard
+Changing network conditions is currently not possible but through d-bus
+ interface there is possibility to change behaviour of filesystem (offline,
+ slow connection, full speed) directly without need of network control.
+ For filesystem state change, network conditions were evaluated as problematic
+ tool to work with.
+ When there will be need to provide network protocol robustness testing,
+ it will need use sofisticated external tool which is beyond scope of this
+ thesis.
+\end_layout
+
+\begin_layout Standard
+Developer documentation for C code was written in DoxyGen and there are
+ build target for generating html documentation available (moreover RPM
+ packages with documentation can be build too).
+ For python we use language provided __doc__ attributes with predefined
+ syntax.
+\end_layout
+
+\begin_layout Standard
+contribution / innovation - generation with graphs, tracable filesystem
+ testing, zen based discovery
+\end_layout
+
+\begin_layout Standard
+real usage - we found some bugs (size, deadlock)
+\end_layout
+
+\begin_layout Standard
+author word - it was fun :(
 \end_layout
 
 \begin_layout Chapter
@@ -4179,6 +4351,8 @@ This guide is based on new Fedora 8 installation, installation to other
  systems may be different.
  In example, we have buildmaster on IP 192.168.16.253, buildslave on IP 192.168.16.252
  and development system on IP 192.168.16.128.
+ We assume that buildslave has basic developement packages (such as gcc)
+ installed.
 \end_layout
 
 \begin_layout Subsection
@@ -6188,8 +6362,16 @@ end{codeblock}
 Development system
 \end_layout
 
+\begin_layout Standard
+install dependencies, build & install zfs run tests (disable report plugin)
+\end_layout
+
 \begin_layout Section
 Sample session
+\end_layout
+
+\begin_layout Section
+Enclosed CD
 \end_layout
 
 \begin_layout Standard
