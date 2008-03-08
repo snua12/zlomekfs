@@ -107,4 +107,4 @@ dump_intervals_SOURCES = dump-intervals.c \
 dump_intervals_LDADD = ${top_builddir}/fuse/lib/.libs/libfuse.a
 
 test: zfsd
-	LD_PRELOAD=libzenunit.so ./zfsd
+	./test.py ./zfsd

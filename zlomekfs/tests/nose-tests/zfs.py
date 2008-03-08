@@ -8,8 +8,9 @@ import zfsd_status
 import time
 import logging
 
-from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
+
 from insecticide.snapshot import SnapshotDescription
+from insecticide.util import allowCoreDumps, setCoreDumpSettings
 from subprocess import Popen, PIPE, STDOUT
 
 log = logging.getLogger ("nose.tests.zfs")
@@ -29,8 +30,7 @@ class ZfsProxy(object):
     zfsCacheDir = "cache"
     logFileName = "zfsd.log"
     config = os.path.join("etc", "config")
-    oldRlimitCore = None
-    oldRlimitFsize = None
+    coreDumpSettings = None
     
     def __init__(self, metaTar, zfsRoot = None,  tempDir = None,   logger = None):
         if zfsRoot:
@@ -57,25 +57,15 @@ class ZfsProxy(object):
         if not sigNum:
             sigNum = signal.SIGKILL
         log.debug('signalling ' + str(sigNum))
-        Popen(args=('killall', '-' + str(sigNum), 'zfsd'), stdout=PIPE, 
+        sig = Popen(args=('killall', '-' + str(sigNum), 'zfsd'), stdout=PIPE, 
                                 stderr=STDOUT)
+        sig.wait()
+        if sig.returncode:
+            log.debug("signalAll: %d output is %s", sig.returncode, sig.stdout.readlines())
         
-    def allowCoreDumps(self):
-        self.oldRlimitCore = getrlimit(RLIMIT_CORE)
-        self.oldRlimitFsize = getrlimit(RLIMIT_FSIZE)
-        #infinite limits
-        setrlimit(RLIMIT_CORE, (-1, -1))
-        setrlimit(RLIMIT_FSIZE, (-1, -1))
         
-    def revertCoreDumpSettings(self):
-        if self.oldRlimitCore:
-            setrlimit(RLIMIT_CORE, self.oldRlimitCore)
-            self.oldRlimitCore = None
-        if self.oldRlimitFsize:
-            setrlimit(RLIMIT_FSIZE, self.oldRlimitFsize)
-            self.oldRlimitFsize = None
             
-    def collectCoreDumps(self, snapshot):
+    def collectZfsCoreDump(self, snapshot):
         #NOTE: assume core.pid format
         log.debug('collecting core dumps in %s', self.tempDir)
         if self.zfs.pid and os.path.isfile(os.path.join(self.tempDir,'core.' + str(self.zfs.pid))):
@@ -152,7 +142,7 @@ class ZfsProxy(object):
         loglevel = pysyplog.LOG_LOOPS
         if self.logger:
             loglevel = pysyplog.get_log_level(self.logger)
-        self.allowCoreDumps()
+        self.coreDumpSettings = allowCoreDumps()
         self.zfs = Popen(args=('zfsd',
                                 '-d',
                                 "--" + str(pysyplog.PARAM_MEDIUM_TYPE_LONG) + "=" + str(pysyplog.FILE_MEDIUM_NAME),
@@ -162,14 +152,16 @@ class ZfsProxy(object):
                                 ',config=' + os.path.join(self.tempDir, self.config), 
                                 self.zfsRoot),
                                 cwd = self.tempDir,
-                                stdout = PIPE, stderr = PIPE, universal_newlines=True) # FIXME: core dump reporting
+                                stdout = PIPE, stderr = PIPE, universal_newlines=True)
         for i in [0.2, 0.5, 1, 3]:
             time.sleep(i)
             if zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING:
               break
         if zfsd_status.ping_zfsd() != zfsd_status.ZFSD_STATE_RUNNING:
             self.killall() #be sure that we don't leave orphans
-            self.revertCoreDumpSettings()
+            if self.coreDumpSettings:
+                setCoreDumpSettings(self.coreDumpSettings)
+                self.coreDumpSettings = None
             raise Exception("Zfsd doesn't start")
         self.running = True
         self.connectControl()
@@ -193,7 +185,9 @@ class ZfsProxy(object):
         self.unmount()
         self.removeModules()
         self.cleanup()
-        self.revertCoreDumpSettings()
+        if self.coreDumpSettings:
+            setCoreDumpSettings(self.coreDumpSettings)
+            self.coreDumpSettings = None
         
     def snapshot(self, snapshot):
         #snapshot cache
@@ -229,7 +223,7 @@ class ZfsProxy(object):
             snapshot.addEntry('canResume', 
                           (SnapshotDescription.TYPE_BOOL, False))
         else:
-            self.collectCoreDumps(snapshot)
+            self.collectZfsCoreDump(snapshot)
             
         if hasattr(self,"zfs"):
                 snapshot.addObject("zfsStderr",self.zfs.stderr)#TODO: don't block waiting
