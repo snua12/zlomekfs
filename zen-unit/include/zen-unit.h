@@ -129,10 +129,10 @@ extern "C"
 /** Assertion macro - use for assumption testing
  *
  * @param test logical expression - must evaluate to 0 (failed) or 1 (assumption holds)
- * @param message textual message (zero termiated string) which has to be printed when failed
+ * @param message textual message (zero termiated string) which has to be printed when failed (one-liner)
  * @return if assertion fails it make the test function return with FALSE
 */
-#define ZEN_ASSERT(test,message) do { if (!(test)) { printf("%s\n", message); return FAIL; } } while (0)
+#define ZEN_ASSERT(test,message) do { if (!(test)) { fprintf(stderr,  "%s:\t%s\n", __func__, message); return FAIL; } } while (0)
 
 #define C_IDENTIFIER_CHARS	"-_a-zA-Z0-9"
 

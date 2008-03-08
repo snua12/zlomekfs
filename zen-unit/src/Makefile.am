@@ -23,6 +23,8 @@ INCLUDES = -I$(top_srcdir)/include
 lib_LTLIBRARIES = libzenunit.la
 bin_PROGRAMS = zenunit
 
+AM_CFLAGS = -O0 -g
+
 noinst_HEADERS = \
 	zen-defs.h \
 	zen-elf-search.h \

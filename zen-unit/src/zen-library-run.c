@@ -41,10 +41,10 @@ void LIB_CONSTRUCTOR init (void)
 	if (ret_code != ZEN_NOERR)
 		goto FINISHING;
 
-	int sout = dup(0);
-	int serr = dup(1);
-	close(0);
-	close(1);
+//	int sout = dup(0);
+//	int serr = dup(1);
+//	close(0);
+//	close(1);
 
 	
 
@@ -54,11 +54,12 @@ void LIB_CONSTRUCTOR init (void)
 		tests[index].result = tests[index].function_ptr (NULL);
 		if (tests[index].result != PASS)
 			failed_test_count ++;
-	}	
+	}
 
+	fprintf(stdout, "\n==============================\n");
 	for (index = 0; index < test_count; index ++)
 	{
-		dprintf (sout, "%s\t%s(%d)\n", tests[index].name,
+		fprintf(stdout, "%s\t%s(%d)\n", tests[index].name,
 			tests[index].result ? "FAIL" : "PASS",
 			tests[index].result);
 	}
