@@ -27,7 +27,8 @@ setup(
             'zfsConfig = insecticide.zfsConfig:ZfsConfig', 
             'zfsStressGeerator = insecticide.zfsStressGenerator:StressGenerator', 
             'snapshotPlugin = insecticide.snapshotPlugin:SnapshotPlugin', 
-            'zfsReportPlugin = insecticide.zfsReportPlugin:ZfsReportPlugin'
+            'zfsReportPlugin = insecticide.zfsReportPlugin:ZfsReportPlugin',
+            'zenPlugin = insecticide.zenPlugin:ZenPlugin'
             ]
         }
 

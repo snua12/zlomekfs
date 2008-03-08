@@ -1,5 +1,6 @@
 import os
 import sys
+from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
 
 
 def noseWrapper(project = None, stripPath = None):
@@ -59,3 +60,25 @@ def getMatchedTypes(obj,  types):
             ret.append(name)
         
         return ret
+
+class CoreDumpSettings(object):
+    rLimitCore = None
+    rLimitFsize = None
+    
+def allowCoreDumps():
+    settings = CoreDumpSettings()
+    settings.oldRlimitCore = getrlimit(RLIMIT_CORE)
+    settings.oldRlimitFsize = getrlimit(RLIMIT_FSIZE)
+    #infinite limits
+    setrlimit(RLIMIT_CORE, (-1, -1))
+    setrlimit(RLIMIT_FSIZE, (-1, -1))
+    
+    return settings
+    
+def setCoreDumpSettings(settings):
+    if settings.rLimitCore is not None:
+        setrlimit(RLIMIT_CORE, settings.oldRlimitCore)
+    if settings.oldRlimitFsize is not None:
+        setrlimit(RLIMIT_FSIZE, settings.oldRlimitFsize)
+        
+    
