@@ -2,7 +2,12 @@
 #define		ZEN_SHARED_SEARCH_H
 
 /*! \file
-    \brief 
+    \brief Definitions of functions searching in shared objects for zen-unit test functions.
+    @see zen-elf-search.h
+
+  Functions here defined are wrappers about zen-elf-search functins,
+  they only search for shared libraries and calls zen-elf-search's functions
+  for every shared object found.
 */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar
@@ -33,6 +38,15 @@ extern "C"
 {
 #endif
 
+/** Walk through linker structures looking for shared objects that we have
+  and call walk_elf_file on all of them.
+ *
+ * @param callback_func callback function for reporting function symbols
+ * @param data cookie structure for callback_func
+ * @return std errors
+ * @see report_callback_def
+ * @see walk_elf_file
+*/
 zen_error walk_loaded_libraries ( report_callback_def callback_func, void * data);
 
 #ifdef __cplusplus

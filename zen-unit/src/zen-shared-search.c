@@ -1,5 +1,6 @@
 /*! \file
-    \brief 
+    \brief Implementation of search in shared libraries.
+    @see zen-shared-search.h
 
 */
 
@@ -31,13 +32,30 @@
 #include "zen-elf-search.h"
 #include "zen-shared-search.h"
 
-
+/// Structure wrapping callback_func and callback_data.
+/** Structure wrapping callback_func and callback_data
+  for dl_iterate_phdr callback function which gets only one auxiliary parameter
+*/
 typedef struct callback_info_def
 {
+	/// callback function for walk_elf_file
 	report_callback_def callback_func;
+	/// callback data struct (cookie) for walk_elf_file
 	void * callback_data;
 } * callback_info;
 
+/// Callback function for dl_iterate_phdr
+/** Callback function for dl_iterate_phdr (see link.h).
+  Linker routines will call this function for every program header
+  found in current process.
+ *
+ * @param info program header description structure (see link.h)
+ * @param size size of info structure
+ * @param callback callback structure holding information that should be
+   given to walk_elf_file
+ * @see callback_info
+ * @see walk_elf_file
+*/
 int process_shared_library (struct dl_phdr_info * info, size_t size, void * callback)
 {
 
@@ -49,6 +67,7 @@ int process_shared_library (struct dl_phdr_info * info, size_t size, void * call
 }
 
 
+/// Search for test functions in loaded shared objects.
 zen_error walk_loaded_libraries ( report_callback_def callback_func, void * data)
 {
 	struct callback_info_def callback = {callback_func, data};

@@ -50,4 +50,4 @@ install-doc: doc
 install-html: install-doc
 
 clean-local:
-	rm -rf build
+	rm -rf build doc/*

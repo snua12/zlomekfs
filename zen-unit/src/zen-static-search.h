@@ -2,8 +2,8 @@
 #define		ZEN_STATIC_SEARCH_H
 
 /*! \file
-    \brief 
-
+    \brief Definition of intefrace for search in static code (our executable).
+    @see zen-elf-search.h
 */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar
@@ -34,6 +34,13 @@ extern "C"
 {
 #endif
 
+/** Search for tests in current executable.
+ *
+ * @param callback_func callback used for reporting function symbols
+ * @param data structure holding statefull information (tests found)
+ * @see walk_elf_file
+ * @see report_callback_def
+*/
 zen_error walk_self_exe ( report_callback_def callback_func, void * data);
 
 #ifdef __cplusplus

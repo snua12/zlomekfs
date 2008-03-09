@@ -2,7 +2,7 @@
 #define		ZEN_DEFS_H
 
 /*! \file
-    \brief
+    \brief Data types and constants definitions.
 
 */
 
@@ -34,21 +34,29 @@ extern "C"
 {
 #endif
 
+/// boolean type
 typedef int	bool_t;
 
+/// True boolean constant
 #ifndef	TRUE
 #define	TRUE	1
 #endif
 
+/// False boolean constant
 #ifndef	FALSE
 #define	FALSE	0
 #endif
 
+/// Maximum count of tests (rest will be discarded).
 #define		MAX_TESTS	1024
 
+/// Maximum length of name of test function.
 #define		NAME_LEN	64
 
+/// Linux linker library constructor function marker.
 #define LIB_CONSTRUCTOR __attribute__((constructor))
+
+/// Linux linker library destructor function marker.
 #define LIB_DESTRUCTOR __attribute__((destructor))
 
 

@@ -43,6 +43,7 @@ extern "C"
 {
 #endif
 
+/// Callback function typedef.
 /** Callback function typedef. Will be called for every function symbol found.
  *
  * @param name name of symbol found

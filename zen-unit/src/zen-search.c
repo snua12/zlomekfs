@@ -100,8 +100,9 @@ void zen_search_destroy (void)
 		regfree (&compiled_match);
 }
 
-/** structure holding state information for callback functions and
-  zen_elf_search caller
+/// Structure holding state information for callback functions.
+/** Structure holding state information for callback functions and
+  zen_elf_search caller.
  * @see report_callback_def
  * @see walk_elf_file
  */

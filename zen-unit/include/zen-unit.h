@@ -51,7 +51,7 @@
  \code
 ZEN_TEST(my_first_test) {
   do something
-  ZEN_ASSERT(1==2,"This test should failed until math broke");
+  ZEN_ASSERT(1==2,"This test should fail until math broke");
 
   return TRUE
 }
@@ -84,6 +84,13 @@ zen_formatter_to_name_test      PASS(0)
  \endcode
 
  \see zen-unit.h
+
+  \section Note
+
+If you are user don't read other parts of documentation,
+it would only confuse you.
+The rest of documentation describes internal function of library 
+and is intended to developers only.
 
 */
 

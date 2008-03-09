@@ -1,5 +1,6 @@
 /*! \file
-    \brief
+    \brief Implementation of search in static elf code (the binary itself).
+    @see zen-static-search.h
 
 */
 
@@ -25,6 +26,7 @@
 
 #include "zen-static-search.h"
 
+/// Walk through current executable.
 zen_error walk_self_exe ( report_callback_def callback_func, void * data)
 {
 	return walk_elf_file ("/proc/self/exe", callback_func, data, 0);
