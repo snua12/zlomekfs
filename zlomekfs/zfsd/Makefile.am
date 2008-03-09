@@ -30,7 +30,7 @@ AM_LDFLAGS = -lrt -ldl -lpthread -ldbus-1
 
 AM_CFLAGS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes \
-	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG
+	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG 
 
 ${top_builddir}/fuse/lib/.libs/libfuse.a:
 	make -C ${top_builddir}/fuse/

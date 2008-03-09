@@ -135,22 +135,21 @@ void
 internal_error (const char *format, ...)
 {
   va_list va;
+  char msg[1024];
 #ifdef ENABLE_CHECKING
   int pid;
 #endif
 
   va_start (va, format);
 
-#ifdef USE_SYSLOG
-  syslog(LOG_EMERG,"Zfsd terminating due to internal error...");
-  vsyslog(LOG_EMERG,format,va);
-#else
-  fprintf (stderr, "\nInternal error: ");
-  vfprintf (stderr, format, va);
-  fprintf (stderr, "\n");
-#endif
 
+  message (LOG_EMERG, FACILITY_ALL, "Zfsd terminating due to internal error...");
+
+  va_start (va, format);
+  vsnprintf(msg, 1024, format, va);
   va_end (va);
+  
+  message (LOG_EMERG, FACILITY_ALL, msg);
 
 #ifdef ENABLE_CHECKING
   pid = fork ();
