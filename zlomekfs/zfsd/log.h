@@ -42,7 +42,7 @@ void update_node_name (void);
 #ifdef ENABLE_CHECKING
 
 	/*! Print which function we are in with additional information.  */
-	#define TRACE(format, ...) message (LOG_FUNC, stderr,				       \
+	#define TRACE(format, ...) message (LOG_FUNC, FACILITY_UNKNOWN,	       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
