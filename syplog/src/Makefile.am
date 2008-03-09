@@ -26,6 +26,9 @@ INCLUDES = \
 	-I/usr/include/dbus-1.0 \
 	-I/usr/lib/dbus-1.0/include
 
+
+AM_CFLAGS = -DENABLE_CHECKING
+
 lib_LTLIBRARIES = libsyplog.la
 
 nobase_pkginclude_HEADERS = \
