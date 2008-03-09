@@ -39,7 +39,7 @@ void update_node_name (void);
 /*! Redefine abort to be the verbose abort.  */
 #define abort() verbose_abort(__FILE__, __LINE__)
 
-#ifdef ENABLE_CHECKING
+#ifdef ENABLE_TRACE
 
 	/*! Print which function we are in with additional information.  */
 	#define TRACE(format, ...) message (LOG_FUNC, FACILITY_UNKNOWN,	       \
@@ -78,7 +78,7 @@ void update_node_name (void);
 	  } while (0)
 
 
-#else //ENABLE_CHECKING not defined
+#else //ENABLE_TRACE not defined
 
   #define TRACE(...)
   #define RETURN_INT(RETVAL) return (RETVAL)
@@ -86,7 +86,7 @@ void update_node_name (void);
   #define RETURN_BOOL(RETVAL) return (RETVAL)
   #define RETURN_VOID return
 
-#endif //ENABLE_CHECKING
+#endif //ENABLE_TRACE
 
 extern void zfs_openlog(int  argc, const char ** argv);
 
