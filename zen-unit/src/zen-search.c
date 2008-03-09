@@ -1,7 +1,6 @@
 /*! \file
     \brief Elf search implementation.
-
-  Zen-unit is minimalistic approach to unit testing.
+    @see zen-search.h
 
 */
 
@@ -39,9 +38,18 @@
 #include "zen-defs.h"
 #include "zen-unit.h"
 
+/// compiled regexp that should function name comply to identify as test
 regex_t compiled_match;
+
+/// if compiled_match is initialized
 bool_t match_initialized = FALSE;
 
+/// Compile regexp used for name match.
+/** Compile regexp defining test function names into regex_t structure.
+  Doesn't do any checks about compiled_match state.
+ *
+ * @return TRUE upon compilation success, FALSE otherwise
+*/
 bool_t compile_regex()
 {
 	int ext_return = 0;
@@ -60,6 +68,13 @@ bool_t compile_regex()
 	return TRUE;
 }
 
+/// Match symbol name with predefined regexp.
+/** Match symbol name with predefined regexp.
+ *
+ * @param name name of symbol to match
+ * @return TRUE if name comply regexp FALSE otherwise
+ * @see ZEN_NAME_REGEX
+*/
 bool_t name_match (const char * name)
 {
 	if (match_initialized == FALSE)
@@ -71,26 +86,43 @@ bool_t name_match (const char * name)
 	return FALSE;
 }
 
+/// Initialize zen search structures.
 void zen_search_init (void)
 {
 	if ((match_initialized = compile_regex()) == FALSE)
 		fail(ZEN_ERR_INTERNAL, "can't compile match regexp\n");
 }
 
+/// Destroy zen search structures and free memory.
 void zen_search_destroy (void)
 {
 	if (match_initialized)
 		regfree (&compiled_match);
 }
 
+/** structure holding state information for callback functions and
+  zen_elf_search caller
+ * @see report_callback_def
+ * @see walk_elf_file
+ */
 typedef struct callback_holder_def
 {
+	/// test array
 	zen_test tests;
+	/// size of tests
 	int max_tests;
+	/// actual item count in tests
 	int test_count;
+	/// mutex locking this structure
 	pthread_mutex_t mutex;
 } * callback_holder;
 
+/** Callback function for registering functions.
+ * Will store function pointers that matches regex into data structure.
+ * Tests over limit will be discarded.
+ *
+ * @see report_callback_def
+*/
 void report_symbol (const char * name, void * func_ptr, callback_holder data)
 {
 	int pos = 0;
@@ -101,7 +133,6 @@ void report_symbol (const char * name, void * func_ptr, callback_holder data)
 
 	if (name_match (name) == TRUE)
 	{
-//		printf ("%d:catch function %s at %p\n", data->test_count, name, func_ptr);
 		for (pos = 0; pos < data->test_count - 1; pos ++)
 			if (data->tests[pos].function_ptr == func_ptr)
 				break;
@@ -118,6 +149,7 @@ FINISHING:
 	pthread_mutex_unlock (&(data->mutex));
 }
 
+/// Get test functions found in current process memory map.
 zen_error get_test_functions (zen_test target, int * size)
 {
 	zen_error ret_code = ZEN_NOERR;

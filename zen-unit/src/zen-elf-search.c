@@ -1,5 +1,6 @@
 /*! \file
-    \brief
+    \brief Implementation of elf binary search.
+    @see zen-elf-search.h
 
 */
 
@@ -33,6 +34,17 @@
 
 #include "zen-elf-search.h"
 
+/// Walk through  elf symbol table.
+/** Walk through one elf symbol and calls callback_func on every function symbol found in table.
+ *
+ * @param elf libelf opened elf object handler
+ * @param section elf section descriptor
+ * @param header elf section header descriptor
+ * @param callback_func callback for reporting symbols
+ * @param data cookie for callbacks and reporting structure at the same time.
+ * @param offset where the object is mapped into memory
+ * @see report_callback_def
+*/
 void walk_symtab (Elf * elf, Elf_Scn * section, GElf_Shdr * header,
 	report_callback_def callback_func, void * callback_data, off_t offset)
 {
@@ -54,14 +66,26 @@ void walk_symtab (Elf * elf, Elf_Scn * section, GElf_Shdr * header,
 			|| symbol.st_shndx == SHN_UNDEF)
 			continue;
 
-		if (symbol.st_value != 0 &&
-			(name = elf_strptr(elf,header->sh_link, symbol.st_name)) != NULL)
+		if (symbol.st_value != 0 && // only resolved symbols
+			(name = elf_strptr(elf,header->sh_link, symbol.st_name))
+			!= NULL && // with name
+			GELF_ST_TYPE(symbol.st_info) == STT_FUNC) // only functions
 		{
 			callback_func (name, (void *)(offset + symbol.st_value), callback_data);
 		}
 	}
 }
 
+/// Walk through elf file (opened).
+/** Walk through elf file and calls walk_symtab on every symbol table found.
+ *
+ * @param desc libelf opened elf object handler
+ * @param callback_func callback for reporting symbols
+ * @param data cookie for callbacks and reporting structure at the same time.
+ * @param offset where the object is mapped into memory
+ * @see report_callback_def
+ * @see walk_symtab
+*/
 zen_error walk_sections (Elf * desc, report_callback_def callback_func,
 	void * data, off_t offset)
 {
@@ -81,7 +105,7 @@ zen_error walk_sections (Elf * desc, report_callback_def callback_func,
 
 }
 
-
+/// search in elf file for symbols
 zen_error walk_elf_file (const char * name, report_callback_def callback_func, 
 	void * data, off_t offset)
 {

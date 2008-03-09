@@ -2,7 +2,15 @@
 #define		ZEN_ELF_SEARCH
 
 /*! \file
-    \brief 
+    \brief Header for functions which are capable of searching for symbols in elf files.
+
+  Caller will provide function callback for reporting symbols, pointer to data structure 
+  where callback function should store data and offset where file is mapped into memory.
+  
+  Then walk_elf_file will walk through elf file and calls
+  callback_function (symbol_name, symbol_address, data).
+
+  Any information usefull for walk_elf_file caller should be stored in data structure by callback.
 */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar
@@ -35,8 +43,28 @@ extern "C"
 {
 #endif
 
+/** Callback function typedef. Will be called for every function symbol found.
+ *
+ * @param name name of symbol found
+ * @param func_ptr value of symbol (we are interested only in functions)
+ * @param data auxiliary function data provided with handler 
+  (all calls will get the same). In this function should callbacks store
+  any data needed and report for walk_* caller should be stored here too.
+*/
 typedef void (*report_callback_def) (const char * name, void * func_ptr, void * data);
 
+
+/** Search for function symbols in elf file
+ *
+ * @param name name of elf file (relative or absolute path)
+ * @param callback_func function pointer of callback that will be called for every symbol found.
+ * @param data statefull data holder (sometimes called cookie) for functions. Report information should
+   be stored here too. Will be given to every call of callback
+ * @param offset offset on which elf file is loaded in memory
+ * @return std errors
+ * @see report_callback_def
+ * @see walk_sections
+*/
 zen_error walk_elf_file (const char * name, report_callback_def callback_func, 
 	void * data, off_t offset);
 

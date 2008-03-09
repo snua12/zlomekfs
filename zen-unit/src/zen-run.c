@@ -1,6 +1,11 @@
 /*! \file
-    \brief
+    \brief Main function for zen-unit binary.
+    @see zen-library-run.h
 
+  This function is just fake, won't be called.
+  The real work is done by loaded shared library which 
+  constructor will execute the tests and exit before this
+  main can be executed.
 */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar
@@ -28,6 +33,8 @@
 
 int main (int * argc, char ** argv)
 {
-	exit(1);
+	// try to segfault to make BIG alarm that something is wrong
+	memset (0, 0, 10000);
+	exit (1);
 }
 

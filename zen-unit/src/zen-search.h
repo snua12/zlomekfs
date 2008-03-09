@@ -4,7 +4,8 @@
 /*! \file
     \brief Elf search interface.
 
-  Zen-unit is minimalistic approach to unit testing.
+  This file defines api for global search within process memory map for
+  all tests in main binary and all libraries loaded.
 
 */
 
@@ -37,16 +38,33 @@ extern "C"
 {
 #endif
 
+/// structure holding information about one zen test.
 typedef struct zen_test_def
 {
+	/// pointer to the test function (callable)
 	zen_test_template function_ptr;
+	/// test name (currently function / symbol name)
 	char name [NAME_LEN];
+	/// result of test call
 	int result;
 }* zen_test;
 
+/** Initialize search structures. */
 void zen_search_init (void);
+
+/** Destroy search structures and free memory. */
 void zen_search_destroy (void);
 
+/** Search for tests and fill information about them
+  into structure. Don't execute them.
+ *
+ * @param target array of uninitialized zen_test structures to fill
+   with tests. Size of *size, here should be tests found inserted.
+ * @param size upon call it contains length of target array,
+   upon return it should be set to actual count of valid items in
+   target array.
+ * @return std errors
+*/
 zen_error get_test_functions (zen_test target, int * size);
 
 

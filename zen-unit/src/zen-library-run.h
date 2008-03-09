@@ -1,5 +1,12 @@
+#ifndef  ZEN_LIBRARY_RUN_H 
+#define  ZEN_LIBRARY_RUN_H 
+
 /*! \file
-    \brief
+    \brief 'Main' function for zen library (definition).
+
+  The library 'main' function is implemented as library constructor and thus will be
+  called by linker before binary real main. It will call exit preventing 
+  real binary to run.
 
 */
 
@@ -26,54 +33,6 @@
 #include "zen-defs.h"
 #include "zen-search.h"
 
-struct zen_test_def tests [MAX_TESTS];
-int test_count = MAX_TESTS;
+void LIB_CONSTRUCTOR init (void);
 
-void LIB_CONSTRUCTOR init (void)
-{
-	zen_error ret_code = ZEN_NOERR;
-	int index = 0;
-	int ret = 0;
-	int failed_test_count = 0;
-	zen_search_init ();
-
-	ret_code = get_test_functions (tests, &test_count);
-	if (ret_code != ZEN_NOERR)
-		goto FINISHING;
-
-	int sout = dup(0);
-	int serr = dup(1);
-	close(0);
-	close(1);
-
-	
-
-//	printf ("got %d functions\n", test_count);
-	for (index = 0; index < test_count; index ++)
-	{
-		tests[index].result = tests[index].function_ptr (NULL);
-		if (tests[index].result != PASS)
-			failed_test_count ++;
-	}	
-
-	for (index = 0; index < test_count; index ++)
-	{
-		dprintf (sout, "%s\t%s(%d)\n", tests[index].name,
-			tests[index].result ? "FAIL" : "PASS",
-			tests[index].result);
-	}
-		
-
-FINISHING:
-	zen_search_destroy ();
-	if (ret_code != ZEN_NOERR)
-		exit (ret_code);
-	else
-		exit(failed_test_count);
-}
-
-int main (int * argc, char ** argv)
-{
-	init();
-}
-
+#endif /* ZEN_LIBRARY_RUN_H */

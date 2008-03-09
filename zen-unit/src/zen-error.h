@@ -2,7 +2,7 @@
 #define		ZEN_ERROR_H
 
 /*! \file
-    \brief 
+    \brief Error definitions for zen-unit library.
 */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar
@@ -32,19 +32,42 @@ extern "C"
 {
 #endif
 
-// big numbers to avoid collision with std errors, 20000 > to avoid collision with syp_error range
+/* Big numbers to avoid collision with std errors, 20000 > to avoid collision with syp_error range.
+  Collision should be harmless but this way it is easier to found forgotten translation.
+*/
+/** Enumeration of errors that could be returned by zen-unit library. */
 typedef enum 
 {
+	/// no error, everything is o.k.
 	ZEN_NOERR = 0,
+	/// internal error of zen-unit (bug)
 	ZEN_ERR_INTERNAL = 20001,
+	/// bad file (type, corrupted, bad permissions) given to library to parse
 	ZEN_ERR_BAD_FILE = 20002,
+	/// general (unspecified, unknown) error of libelf library
 	ZEN_ERR_ELF = 20003,
 } zen_error;
 
-#define fail(ret,x,args...) do { printf (x, ## args); exit (ret); } while (0)
+/** Fail and print error to stderr.
+ *
+ * @param ret exit code
+ * @param x message to print (printf formatting string)
+ * @param args auxiliary args for printf
+*/
+#define fail(ret,x,args...) do { fprintf (stderr, x, ## args); exit (ret); } while (0)
 
-#define report_error(x,args...) printf (x, ## args)
+/** Report library error (don't exit). Should print string to stderr.
+ *
+ * @param x message to print (printf formatting string)
+ * @param args auxiliary args for printf
+*/
+#define report_error(x,args...) fprintf (stderr, x, ## args)
 
+/** Translate libelf error to zen_error.
+ *
+ * @param err error returned from libelf function call
+ * @return zen_error associated with given libelf error
+*/
 static inline zen_error elf_to_zen_err (int err)
 {
 	return ZEN_ERR_ELF;

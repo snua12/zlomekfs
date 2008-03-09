@@ -1,6 +1,6 @@
 /*! \file
-    \brief
-
+    \brief 'Main' function for zen library (implementation).
+    @see zen-library-run.h
 */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar
@@ -49,6 +49,7 @@ void LIB_CONSTRUCTOR init (void)
 	
 
 //	printf ("got %d functions\n", test_count);
+	fprintf(stdout, "\n");
 	for (index = 0; index < test_count; index ++)
 	{
 		tests[index].result = tests[index].function_ptr (NULL);
