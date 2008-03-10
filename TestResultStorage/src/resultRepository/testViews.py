@@ -100,7 +100,7 @@ def generateTestDescription(test):
     """
     html = "<table>"
     html += "<tr><td>Name</td>"
-    html += "<td>" + test.testName + "</td></tr>"
+    html += "<td>" + escape(test.testName) + "</td></tr>"
     
     html += "<tr valign=\"top\"><td>Description</td>"
     html += "<td>" + escape(str(test.description)) + "</td></tr>"
