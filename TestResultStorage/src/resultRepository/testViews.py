@@ -166,7 +166,7 @@ def generateTestTable(baseUrl, testList, attrs):
     for test in testList:
         html += "<tr id=\"" + test.get_result_display() + "\">"
         
-        html += "<td>" + generateLink(baseUrl, attrs, test.testName,
+        html += "<td>" + generateLink(baseUrl, attrs, escape(test.testName),
                         switchAttr = ('testName', test.testName)) + "</td>" #name
         html += "<td>" + formatDuration(test.duration) + "</td>" #duration
         html += "<td>" + generateLink(baseUrl, attrs, _(test.get_result_display()),
@@ -240,7 +240,7 @@ def testDetail(request):
     """
     try:
         test = get_object_or_404(TestRun, id = request.REQUEST['test'])
-        header = test.testName
+        header = escape(test.testName)
         mainTableHtml = generateTestDescription(test)
     #    mainTableHtml += generateBatchDescription(test.batchId)
     except KeyError:
