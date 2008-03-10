@@ -11,12 +11,14 @@ import logging
 
 from insecticide.snapshot import SnapshotDescription
 from insecticide.util import allowCoreDumps, setCoreDumpSettings
+
 from subprocess import Popen, PIPE, STDOUT
+from traceback import format_exc
+from insecticide import graph
+from insecticide import zfsConfig
 
 log = logging.getLogger ("nose.tests.zfs")
 
-from insecticide import graph
-from insecticide import zfsConfig
 
 class ZfsRuntimeException(Exception):
     """ Exception raised upon zfs daemon failure """
