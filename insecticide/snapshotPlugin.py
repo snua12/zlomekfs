@@ -2,6 +2,7 @@ import os
 import textwrap
 import logging
 import tempfile
+import datetime
 
 from insecticide.snapshot import SnapshotDescription
 from insecticide.zfsStressGenerator import ChainedTestCase
@@ -129,43 +130,57 @@ class SnapshotPlugin(Plugin):
         if not os.path.isdir(self.snapshotsRootDir):
             raise Exception("Snapshots root dir (%s) can't be created" 
                             % self.snapshotsRootDir)
-    
-    def snapshotTest(self, test):
-        if not hasattr(test, "test"): #not normal test, possibly suite
+        
+    def snapshotIt(self, obj):
+        # test - we want to snapshot inner test case
+        if hasattr(obj, "test"): 
+            target = obj.test
+            
+        # suite - we depend on suite class / instance itself
+        else:
+            target = obj
+            
+        if hasattr(target, 'snapshotedObject') and hasattr(target.snapshotedObject, 'snapshot'):
+            snapshotedObject = target.snapshotedObject
+        elif  hasattr(target, "inst") and hasattr(target.inst, "snapshot"):
+            snapshotedObject = target.inst
+        else:
+            log.debug("can't snapshot %s. doesn't define snapshot() function",  str(target))
             return
+        log.debug('snapshotedObject is %s', snapshotedObject)
+            
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir, log)
-        if hasattr(test.test, "inst") and hasattr(test.test.inst, "snapshot"):
-            import datetime
-            log.debug("snapshotting %s (%s) into dir %s at %s",  str(test), snapshot, toDir, str(datetime.datetime.now()))
-            test.test.inst.snapshot(snapshot)
-        else:
-            log.debug("can't snapshot %s. doesn't define snapshot() function",  str(test))
-            #snapshot.addObject(name = str(test.test), object = test,  type = SnapshotDescription.TYPE_PICKLED_TEST)
         
-        if hasattr(test.test, "snapshotBuffer"):
-            if test.test.snapshotBuffer and len(test.test.snapshotBuffer) >= self.maxSnapshots:
-                oldSnapshot = test.test.snapshotBuffer.pop(0)
+
+        log.debug("snapshotting %s (%s) into dir %s at %s",  str(target), snapshot, toDir, str(datetime.datetime.now()))
+        snapshotedObject.snapshot(snapshot)
+        
+        if hasattr(target, "snapshotBuffer"):
+            if target.snapshotBuffer and len(target.snapshotBuffer) >= self.maxSnapshots:
+                oldSnapshot =target.snapshotBuffer.pop(0)
                 log.debug("removing old snapshot %s", oldSnapshot)
                 oldSnapshot.delete()
         else:
-            setattr(test.test, "snapshotBuffer", [])
+            setattr(target, "snapshotBuffer", [])
         
-        test.test.snapshotBuffer.append(snapshot)
-        
+        target.snapshotBuffer.append(snapshot)
+            
     def startTest(self, test):
         if self.snapshotStart:
-            self.snapshotTest(test)
+            self.snapshotIt(test)
         
     def handleError(self, test, err):
         if self.snapshotError:
             log.debug("error %s", str(err))
-            self.snapshotTest(test)
+            self.snapshotIt(test)
+        return None
         
     def handleFailure(self, test, err):
         if self.snapshotFailure:
             log.debug("failure %s", str(err))
-            self.snapshotTest(test)
+            self.snapshotIt(test)
+        return None
         
     @classmethod
     def dropSnapshots(self,test):

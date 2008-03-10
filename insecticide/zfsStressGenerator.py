@@ -393,7 +393,7 @@ class StressGenerator(Plugin):
             log.debug("no meta tests in class %s",  cls)
         
     
-    def monkeyPatchSuite(self, suite):
+    def monkeyPatchSuiteRun(self, suite):
         """ Patches suite object (its class) switching 'run' method to stop when
             stopContext flag on test is found. This is needed for stopping chain after
             failure and not running remaining meta tests.
@@ -401,8 +401,14 @@ class StressGenerator(Plugin):
             :Parameters:
                 suite: nose context suite object
         """
+        #NOTE: keep this in sync with nose.suite.ContextSuite.run
         def runWithStopSuiteOnTestFail(self, result):
-            #NOTE: keep this in sync with nose.suite.ContextSuite.run
+            """ Our implementation of suite run method.
+                We need this to allow stop suite only after test failure
+                (skip other in suite).
+                
+                .. See: nose.suite.ContextSuite
+            """
             # proxy the result for myself
             if self.resultProxy:
                 result, orig = self.resultProxy(result, self), result
@@ -445,6 +451,18 @@ class StressGenerator(Plugin):
                 except:
                     result.addError(self, self.exc_info())
         setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
+        
+    def monkeyPatchSuiteSnapshot(self, suite, snapshotedObject):
+        """ Provide snapshot function redirection for suites too 
+            (redirect to instance in case of stress suites)
+            
+            :Parameters:
+                suite: suite to patch
+                snapshotedObject: object whose 'snapshot' function should be called
+        """
+        
+        #it's simple, since inst is the thing snapshot is called on, we only need to set this
+        setattr (suite, 'snapshotedObject', snapshotedObject)
 
     def generateOneStress(self, cls, allowedMethods):
         """ Generates stress test suite from test class and list of allowed methods.
@@ -538,7 +556,10 @@ class StressGenerator(Plugin):
         if testCases:
             log.debug("returning tests %s", str(testCases))
             suite = self.suiteClass(ContextList(testCases, context=cls))
-            self.monkeyPatchSuite(suite)
+            # we need our run method to allow stop suite after failure
+            self.monkeyPatchSuiteRun(suite)
+            # we provide instance for possibility of snapshots - instance is the thing we want to snapshot
+            self.monkeyPatchSuiteSnapshot(suite = suite, snapshotedObject = inst)
             return suite
         return None
 
@@ -649,6 +670,7 @@ class StressGenerator(Plugin):
             
             .. See: nose plugin interface
         """
+        log.debug('in handle failure with %s', test)
         testInst = getattr(test, "test", None)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
@@ -656,11 +678,11 @@ class StressGenerator(Plugin):
         else:
             if self.isChainedTestCase(testInst):
                 log.debug("catched stress test failure (%s)",  testInst)
-                #log.debug("chain is %s,  index %d",  testInst.chain,  testInst.index)
+                log.debug('set %s on %s to True', StressGenerator.stopContextAttr, test)
                 setattr(test,  StressGenerator.stopContextAttr,  True)
                 log.debug('set stopContextAttr on %s to True', str(id(test)))
                 log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
-                testInst.failureBuffer.append(ZfsTestFailure(test, err))
+                testInst.failureBuffer.append(ZfsTestFailure(test.test, err))
                 if len(testInst.failureBuffer) <= self.retriesAfterFailure:
                     self.retry(testInst)
                     return True

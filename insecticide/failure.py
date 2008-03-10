@@ -8,6 +8,7 @@ class ZfsTestFailure(object):
             
             :Parameters:
                 test: test which has failed
+                    (the object which has inst, snapshotBuffer, etc)
                 failure: sys.exc_info tuple
         """
         self.test = test

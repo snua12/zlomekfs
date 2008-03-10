@@ -199,10 +199,11 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
         
         :Parameters:
             batch: batch to which test belongs
-            test: nose Test object which contains TestCase instance if run belongs to real test run
+            test: nose TestCase instance  if run belongs to real test run
+                or ContextSuite instance.
                 None otherwise (when reporting system errors, etc)
             duration: duration of test. If None, will be computed from test attributes.
-            name: name of TestRun. If None, test.test.__str__ will be used
+            name: name of TestRun. If None, test.__str__ will be used
             description: description of TestRun. If None, test.shortDescription will be used
             
         :Return:
@@ -215,38 +216,43 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
         raise Exception ("Batch id not defined (%s)" % batch)
     if not test:
         class fake:
-            test = "fake"
+            def __init__(self):
+                self.inst = self
         test = fake()
     run = TestRun()
     run.batchId = batch
-    if name:
+    
+    if name and len(name) > 0:
         run.testName = name
     elif test:
-        run.testName = str(test.test)
+        run.testName = str(test)
     else:
         run.testName = "Unknown"
         
+        
     if description:
         run.description = description
-    elif test and hasattr(test.test, "shortDescription"):
+    elif test and hasattr(test, "shortDescription"):
         run.description = test.shortDescription()
     else:
         run.description = "Unknown"
         
-    if hasattr(test.test, startTimeAttr):
-        run.startTime = getattr(test.test, startTimeAttr)
+    if hasattr(test, startTimeAttr):
+        run.startTime = getattr(test, startTimeAttr)
     else:
         run.startTime = datetime.datetime.now()
         
     if duration:
         run.duration = duration
-    elif hasattr(test.test, startTimeAttr):
-        if hasattr(test.test, endTimeAttr):                
-            run.duration = computeDuration(getattr(test.test, startTimeAttr),
-                            getattr(test.test, endTimeAttr))
+    elif hasattr(test, startTimeAttr):
+        if hasattr(test, endTimeAttr):                
+            run.duration = computeDuration(getattr(test, startTimeAttr),
+                            getattr(test, endTimeAttr))
         else:
-            run.duration = computeDuration(getattr(test.test, startTimeAttr),
+            run.duration = computeDuration(getattr(test, startTimeAttr),
                             datetime.datetime.now())
+    else:
+        run.duration = 0
                             
         
     return run
@@ -274,14 +280,14 @@ def appendDataToRun(run, errInfo = None, dataDir = None, test = None):
             runData.errText = str(runData.errText)
         #runData.errText = pickle.dumps(traceback.format_exception_only(errInfo[0], errInfo[1]), protocol = 0)
     
-    if test and hasattr(test, "test") and hasattr(test.test, "snapshotBuffer"):
-        snapshot = test.test.snapshotBuffer.pop()
+    if test and hasattr(test, "snapshotBuffer"):
+        snapshot = test.snapshotBuffer.pop()
         targetFileName = os.path.join(dataDir, "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot)))
         snapshot.pack(targetFileName)
         snapshot.delete()
         runData.dumpFile = "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot))
         log.debug("appending snapshot from dir '%s' into file '%s'", snapshot.directory, targetFileName)
-        for snapshot in test.test.snapshotBuffer:
+        for snapshot in test.snapshotBuffer:
             snapshot.delete()
     else:
         runData.dumpFile = None

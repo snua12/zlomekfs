@@ -96,7 +96,7 @@ class ZfsReportPlugin(Plugin):
         if self.enabled == False:
             return
         
-        self.reporter = ReportProxy()
+        self.reportProxy = ReportProxy()
     
     def help(self):
         """Return help for this plugin. This will be output as the help
@@ -118,8 +118,28 @@ class ZfsReportPlugin(Plugin):
             if not hasattr(test.test, startTimeAttr): #prevent rewrite
                 log.debug("setting time %s for test %s", str(datetime.datetime.now()), str(test.test))
                 setattr(test.test, startTimeAttr, datetime.datetime.now())
+                
+    @classmethod
+    def getTarget(self, test):
+        """ Distinguish test from suite.
+            Their api should be the same, but test is wrapped into Test class
+            
+            :Parameters:
+                test: Test wrapping TestCase instance or ContextSuite instance 
+                    (the thing given to addFailure)
+                    
+            :Return:
+                object on which instance, snapshotBuffer, failureBuffer etc are
+        """
+        # test is wrapped
+        if hasattr(test, 'test'):
+            return test.test
+            
+        # suite is direct
+        else:
+            return test
         
-    
+        
     def addFailure(self, test, err, error = False):
         """ Report failures and errors
             
@@ -133,23 +153,25 @@ class ZfsReportPlugin(Plugin):
                 
             .. See: nose plugin interface
         """
-        if hasattr(test, "test"): #ignore context suites
+        # we must distinquish test and suite failure
+        target = self.getTarget(test)
+            
+        try:
+            log.debug("reporting failure of %s", target)
+            if error:
+                self.reportProxy.reportError(ZfsTestFailure(target, err))
+            else:
+                self.reportProxy.reportFailure(ZfsTestFailure(target, err))
+        except:
+            info = sys.exc_info()
             try:
-                log.debug("reporting failure of %s", test)
-                if error:
-                    self.reporter.reportError(ZfsTestFailure(test, err))
-                else:
-                    self.reporter.reportFailure(ZfsTestFailure(test, err))
+                self.reportProxy.reportSystemError(name = "Exception in zfsReportPlugin",
+                    description = "Unexpected exception in ZfsReportPlugin.addFailure",
+                    errInfo = info)
             except:
-                info = sys.exc_info()
-                try:
-                    self.reporter.reportSystemError(name = "Exception in zfsReportPlugin",
-                        description = "Unexpected exception in ZfsReportPlugin.addFailure",
-                        errInfo = info)
-                except:
-                    log.debug("exception when reporting failure:\n%s", format_exc())
-                    
-    
+                log.debug("exception when reporting failure:\n%s", format_exc())
+                
+        
     def addError(self, test, err):
         """ Report test error. Redirects to addFailure with error = True
             
@@ -162,13 +184,18 @@ class ZfsReportPlugin(Plugin):
             
             .. See: nose plugin interface
         """
+        # we must distinquish test and suite failure
+        target = self.getTarget(test)
+        
         try:
-            log.debug("reporting success of %s", test)
-            self.reporter.reportSuccess(test)
+            log.debug("reporting success of %s", target)
+            self.reportProxy.reportSuccess(target)
+        except KeyboardInterrupt:
+            raise
         except:
             info = sys.exc_info()
             try:
-                self.reporter.reportSystemError(name = "Exception in zfsReportPlugin",
+                self.reportProxy.reportSystemError(name = "Exception in zfsReportPlugin",
                     description = "Unexpected exception in ZfsReportPlugin.addSuccess",
                     errInfo = info)
             except:
@@ -180,5 +207,5 @@ class ZfsReportPlugin(Plugin):
             
             .. See: nose plugin interface
         """
-        self.reporter.finalize()
+        self.reportProxy.finalize()
 
