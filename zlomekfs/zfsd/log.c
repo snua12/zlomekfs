@@ -150,15 +150,16 @@ internal_error (const char *format, ...)
   va_end (va);
   
   message (LOG_EMERG, FACILITY_ALL, msg);
+  sleep (2);
 
 #ifdef ENABLE_CHECKING
   pid = fork ();
   if (pid == 0)
     {
       char buf[24];
-
+      fprintf (stderr, "killing");
       sprintf (buf, "%d", getppid ());
-      execlp ("gdb", "gdb", "zfsd", buf, NULL);
+      execlp ("kill", "kill", "-SIGKILL", buf, NULL); //TODO: fix
     }
   else if (pid > 0)
     {

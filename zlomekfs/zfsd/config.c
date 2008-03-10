@@ -405,7 +405,7 @@ read_local_volume_info (string *path, bool reread)
 		       "%s:%d: Volume ID must not be 0 or %" PRIu32 "\n",
 		       file, line_num, (uint32_t) -1);
 	    }
-#ifdef	DISABLE_LOCAL_PATH
+#ifndef	ENABLE_LOCAL_PATH
 	  else if (parts[1].str[0] != '/')
 	    {
 	      message (LOG_ERROR, FACILITY_CONFIG,
@@ -1183,7 +1183,7 @@ process_line_volume (char *line, const char *file_name, unsigned int line_num,
 	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Volume name must not be empty\n",
 		   file_name, line_num);
 	}
-#ifdef	DISABLE_LOCAL_PATH
+#ifndef	ENABLE_LOCAL_PATH
       else if (parts[2].str[0] != '/')
 	{
 	  message (LOG_ERROR, FACILITY_CONFIG,

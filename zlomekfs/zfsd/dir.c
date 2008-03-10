@@ -259,8 +259,18 @@ file_name_from_path (string *dst, string *path)
   TRACE ("");
 #ifdef ENABLE_CHECKING
   if (path->str[0] != '/')
+  {
+#ifndef ENABLE_LOCAL_PATH
+    message (LOG_ERROR, FACILITY_DATA | FACILITY_CONFIG | FACILITY_ZFSD,
+      "invalid path %s\n", path->str);
     abort ();
-#endif
+#else /* ENABLE_LOCAL_PATH */
+    message (LOG_INFO, FACILITY_DATA | FACILITY_CONFIG | FACILITY_ZFSD,
+      "local path %s\n", path->str);
+
+#endif /* ENABLE_LOCAL_PATH */
+  }
+#endif /* ENABLE_CHECKING */
 
   for (dst->str = path->str + path->len; *dst->str != '/'; dst->str--)
     ;
@@ -1256,7 +1266,7 @@ zfs_volume_root (dir_op_res *res, uint32_t vid)
 }
 
 /*! Get attributes of local file PATH and store them to ATTR.  */
-
+/*BOOKMARK*/
 static int32_t
 local_getattr_path (fattr *attr, string *path)
 {

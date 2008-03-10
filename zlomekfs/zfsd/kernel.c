@@ -249,6 +249,7 @@ sattr_from_req (sattr *attr, fuse_req_t req)
   attr->mtime = -1;
 }
 
+/*BOOKMARK*/
 static void
 stat_from_fattr (struct stat *st, const fattr *fa, fuse_ino_t ino)
 {
