@@ -6,14 +6,17 @@ import logging
 
 import os
 import signal
-import time
 import datetime
 import random
+
 from traceback import format_exc
+
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
+
 from zfs import ZfsStressTest, ZfsProxy
 from testFSOp import testFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename, trySeek, tryGetSize, tryGetPos
+
 
 from insecticide.timeoutPlugin import timed
 

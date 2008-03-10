@@ -3,9 +3,11 @@
 ##
 
 import os
-from random import Random
 import pickle
+
+from random import Random
 from zfs import ZfsStressTest
+
 from insecticide.graph import GraphBuilder
 from insecticide.zfsConfig import ZfsConfig
 

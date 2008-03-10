@@ -3,14 +3,15 @@
 
 
 import logging
-
 import os
+
+from traceback import format_exc
+from random import Random, sample, randint
+
 from insecticide import zfsConfig
 from insecticide.snapshot import SnapshotDescription
-from random import Random, sample, randint
+
 from zfs import ZfsTest
-from traceback import format_exc
-import pickle
 
 log = logging.getLogger ("nose.tests.testFSOp")
 
