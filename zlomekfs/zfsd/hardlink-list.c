@@ -317,7 +317,7 @@ cleanup_hardlink_list_c (void)
   zfsd_mutex_lock (&hardlink_list_mutex);
 #ifdef ENABLE_CHECKING
   if (hardlink_list_pool->elts_free < hardlink_list_pool->elts_allocated)
-    message (LOG_WARNING, NULL, "Memory leak (%u elements) in hardlink_list_pool.\n",
+    message (LOG_WARNING, FACILITY_MEMORY, "Memory leak (%u elements) in hardlink_list_pool.\n",
 	     hardlink_list_pool->elts_allocated - hardlink_list_pool->elts_free);
 #endif
   free_alloc_pool (hardlink_list_pool);
