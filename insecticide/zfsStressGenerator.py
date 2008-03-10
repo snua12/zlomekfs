@@ -682,7 +682,7 @@ class StressGenerator(Plugin):
                 setattr(test,  StressGenerator.stopContextAttr,  True)
                 log.debug('set stopContextAttr on %s to True', str(id(test)))
                 log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
-                testInst.failureBuffer.append(ZfsTestFailure(test.test, err))
+                testInst.failureBuffer.append(ZfsTestFailure(testInst, err))
                 if len(testInst.failureBuffer) <= self.retriesAfterFailure:
                     self.retry(testInst)
                     return True
@@ -713,9 +713,9 @@ class StressGenerator(Plugin):
                 if self.shouldReport:
                     log.debug("reporting %s failure from addFailure", testInst.method.__name__)
                     if error:
-                        self.reportProxy.reportError(ZfsTestFailure(test,err), name = testName, description = description)
+                        self.reportProxy.reportError(ZfsTestFailure(testInst,err), name = testName, description = description)
                     else:
-                        self.reportProxy.reportFailure(ZfsTestFailure(test,err), name = testName, description = description)
+                        self.reportProxy.reportFailure(ZfsTestFailure(testInst,err), name = testName, description = description)
                 return True
     
     def addError(self, test, err):
@@ -752,7 +752,7 @@ class StressGenerator(Plugin):
                 else:
                     (testName, description) = self.generateDescription(test)
                     if self.shouldReport:
-                        self.reportProxy.reportSuccess(test, name = testName, description = description)
+                        self.reportProxy.reportSuccess(testInst, name = testName, description = description)
                 return True
         return None
         
