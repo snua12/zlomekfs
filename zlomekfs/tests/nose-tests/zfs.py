@@ -190,12 +190,15 @@ class ZfsProxy(object):
             self.coreDumpSettings = None
         
     def snapshot(self, snapshot):
+        log.debug('snapshoting proxy')
         #snapshot cache
         try:
             snapshot.addDir(name = 'zfsCache',  
                         sourceDirName = os.path.join(self.tempDir, self.zfsCacheDir),
                         type = SnapshotDescription.TYPE_ZFS_CACHE)
-        except OSError: #can arise before first run
+        except (OSError, IOError):
+            #ignore no dir errors, etc
+            log.debug("can't snapshot zfsCache dir: %s", format_exc())
             pass
         #snapshot log
         #NOTE: this could fail when zfsd doesn't start yet
@@ -264,7 +267,8 @@ class ZfsTest(object):
         log.debug("teardownClass")
         # self.zfs = None
     
-    def snapshot(self, snapshot):        
+    def snapshot(self, snapshot):    
+        log.debug('snapshoting test')
         # snapshot zfs
         if getattr(self, 'zfs', None):
             self.zfs.snapshot(snapshot)

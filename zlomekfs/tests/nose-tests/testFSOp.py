@@ -114,8 +114,13 @@ class testFSOp(ZfsTest):
   safeSubdirName = 'safedir'
   
   def snapshot(self, snapshot):
-    snapshot.addDir('compareDir', os.path.join(self.safeRoot,
+    try:
+        snapshot.addDir('compareDir', os.path.join(self.safeRoot,
                                 self.safeSubdirName), type = SnapshotDescription.TYPE_COMPARE_FS)
+    except (OSError, IOError):
+        #ignore no dir errors, etc
+        log.debug("can't snapshot compare dir: %s", format_exc())
+        pass
     ZfsTest.snapshot(self, snapshot)
   
   def resume(self, snapshot):
