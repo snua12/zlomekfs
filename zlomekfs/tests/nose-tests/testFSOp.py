@@ -5,6 +5,7 @@
 import logging
 import tempfile
 import os
+import shutil
 
 from traceback import format_exc
 from random import Random, sample, randint
@@ -69,6 +70,7 @@ def tryWrite(file,  data):
   try:
     log.debug ("try write to file %s", file.name)
     file.write(data)
+    file.flush()
     return True
   except (IOError, OSError):
     log.debug(format_exc())
@@ -160,6 +162,7 @@ class testFSOp(ZfsTest):
   def teardownClass(self):
     log.debug(self.__name__ + "teardownclass")
     super(testFSOp,self).teardownClass()
+    shutil.rmtree(self.safeRoot, True)
     log.debug(self.__name__ + "teardownclass finish")
   
   def setup(self):
