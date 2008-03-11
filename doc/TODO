@@ -1,13 +1,13 @@
-vycistit soubory s poznamkami a rozumne je strukturovat (pripadne preformulovat do textu diplomky)
-
 improve snapshot view in web
 remote tests?
 support for "infinite tests" (to run between post-commit tests)
 get for rpms
-document zen-unit
 
 fix nfs permissions
 fix zfs synchronization
 fix zfs deadlock
+clean old data script
 STABILIZE
 document
+skip function pruning
+half path pruning

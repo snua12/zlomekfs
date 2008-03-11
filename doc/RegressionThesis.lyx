@@ -1061,7 +1061,7 @@ name "sub:Logging,-tracing"
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Models
 \end_layout
 
@@ -1154,7 +1154,7 @@ aspect oriented programing
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Pitfalls
 \end_layout
 
@@ -1310,7 +1310,7 @@ Usual test run produce outputs of many types, begining with standart outputs,
  enviroments as possible.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsubsection
 Raw data
 \end_layout
 
@@ -1327,7 +1327,7 @@ g through simple protocol such as FTP or some remote access.
  tools.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Web interface
 \end_layout
 
@@ -1343,7 +1343,7 @@ Dynamic web pages are nowadays very used way of presentation as they are
  user comfort is also worst.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Special application
 \end_layout
 
@@ -1927,24 +1927,114 @@ reference "sub:Checkpointing"
 Filesystem test patterns
 \end_layout
 
-\begin_layout Standard
-muhehe
+\begin_layout Subsection
+FSX
+\begin_inset LatexCommand label
+name "sub:FSX"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-fstest
+Originally written by Avadis Tevanian, Jr.
+ for Apple Computer, Inc.
+ and other bsd-style operationg systems.
+ There are more versions used but the main part stay the same 
+\begin_inset LatexCommand cite
+key "FSX"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
-fsx
+Test consists of single source file written in C, compilable on most Unix
+ based operating systems.
+ Test operates on one file, does loop with random operation in every cycle
+ - one of read, write, truncate, close and open, map read and map write.
+ Memory mapped operations can be disabled.
+ Checks in FSX are made by comparison of write buffer and data read, additional
+ check of file size is made too.
+ Failure report from FSX is dump of operation sequence and buffer dump.
+\end_layout
+
+\begin_layout Subsection
+LTP
 \end_layout
 
 \begin_layout Standard
-solaris
+Linux testing project 
+\begin_inset LatexCommand cite
+key "LTP"
+
+\end_inset
+
+ is collection of test suites for linux operating system internals.
+ The part dedicated to filesystems contains previously mentioned FSX (
+\begin_inset LatexCommand prettyref
+reference "sub:FSX"
+
+\end_inset
+
+) and own filesystem testing scripts.
+ There are both types of tests: predefined loops with random arguments (file
+ sizes, etc) and stress tests consisting of random sequences of operations.
+ There is vast amouth of operations implemented.
+ Log contains arguments to tests.
+\end_layout
+
+\begin_layout Subsection
+Mongo
 \end_layout
 
 \begin_layout Standard
-ltp
+Mongo benchmark 
+\begin_inset LatexCommand cite
+key "Mongo"
+
+\end_inset
+
+ is test program written in perl, aimed to linux filesystem performance
+ and functionality testing (developed by reiserfs team).
+ Is very tightly coupled with standard tools and filesystem usage.
+ Does everything from mkfs, through mount to clasic operations.
+ The version examined was mainly benchmarking tool, there were no checks
+ if things goes well, just if they goes.
+\end_layout
+
+\begin_layout Subsection
+OpenSolaris ZFS / NFSv4 Test Suite
+\end_layout
+
+\begin_layout Standard
+Very exhaustive test suite for filesystems 
+\begin_inset LatexCommand cite
+key "OpenSolarisZFS"
+
+\end_inset
+
+.
+ There is two sets of tests: one for NFSv4 and one for ZFS, but the techniques
+ used in them are the same.
+ Just ZFS test suite have extra stress tests.
+\end_layout
+
+\begin_layout Standard
+System is Makefile driven with default targets, tests are generally shell
+ scripts (ksh) with few compiled support programs and tests.
+ Testing is deterministic, cleanup is done after set of tests (directory).
+ Errors are printed to stderr.
+ 
+\end_layout
+
+\begin_layout Standard
+What should be noted is the coverage of these tests, there are tests for
+ nearly every operation possible even for zones, acl or redundancy.
+ In zfs there are simple stress tests too - predefined loops with configurable
+ length.
 \end_layout
 
 \begin_layout Chapter
@@ -3271,8 +3361,22 @@ Developer documentation for C code was written in DoxyGen and there are
 \end_layout
 
 \begin_layout Standard
-contribution / innovation - generation with graphs, tracable filesystem
- testing, zen based discovery
+It is possible to use this system for testing of any other filesystem.
+ Especially in case of userspace based filesystem the modification needed
+ will be only change of daemon binary and settings (which will be obviously
+ different).
+ If filesystem will have kernel component (especially in case of full kernel
+ based filesystems) there will be need of 
+\emph on
+kdump
+\emph default
+ integration for snapshoting state of filesystem in case of failure.
+ According our informations it is currently the only project for testing
+ filesystem capable of storing step sequence for reproducing error and snapshoti
+ng state of filesystem.
+ Other projects found in this area consists from random workload generator
+ and checker that will only report that failure has happened, but without
+ any further specification what have caused the failure.
 \end_layout
 
 \begin_layout Standard
@@ -5704,6 +5808,12 @@ end{codeblock}
 
 \begin_layout Subsection
 Buildslave
+\begin_inset LatexCommand label
+name "sub:Buildslave"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -6363,7 +6473,39 @@ Development system
 \end_layout
 
 \begin_layout Standard
-install dependencies, build & install zfs run tests (disable report plugin)
+When installing on development system without need of automatic builds,
+ just install required packages and build projects in correct order.
+\end_layout
+
+\begin_layout Standard
+For testing all componets except ZlomekFS can be tested without install
+ (make test).
+ The reason why this is not possible for ZlomekFS is need of fuse build,
+ which is integrated and needs to create device links, install kernel modules
+ etc.
+\end_layout
+
+\begin_layout Standard
+If you want environment as close to buildslave as possible, you can install
+ your system in the same way as is described in 
+\begin_inset LatexCommand prettyref
+reference "sub:Buildslave"
+
+\end_inset
+
+.
+ But even in this case development should be done without buildbot checkouts.
+ Changing buildbot checkouts could lead into conflicts upon automatic builds.
+ 
+\end_layout
+
+\begin_layout Standard
+To not spoil central TestResultRepository with your builds you enable out
+ your own TestResultRepository on local machine (create mysql database)
+ and report into it.
+ This should be done in case of slow connection to master too.
+ Running automatic tests without ZfsReportPlugin is discouraged - there
+ would be little backtrace provided in that case.
 \end_layout
 
 \begin_layout Section
