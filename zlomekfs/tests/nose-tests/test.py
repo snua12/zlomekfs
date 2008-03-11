@@ -3,4 +3,4 @@
 
 from insecticide.util import noseWrapper
 
-noseWrapper(project = 'zfs', stripPath = 'tests/nose-tests')
+noseWrapper(project = 'zlomekfs', stripPath = 'tests/nose-tests')

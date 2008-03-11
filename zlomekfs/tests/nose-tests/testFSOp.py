@@ -3,6 +3,7 @@
 
 
 import logging
+import tempfile
 import os
 
 from traceback import format_exc
@@ -67,7 +68,7 @@ def tryRead(file, bytes):
 def tryWrite(file,  data):
   try:
     log.debug ("try write to file %s", file.name)
-    file.write(str(data))
+    file.write(data)
     return True
   except (IOError, OSError):
     log.debug(format_exc())
@@ -135,7 +136,16 @@ class testFSOp(ZfsTest):
     log.debug(self.__name__ + "setupclass")
     super(testFSOp,self).setupClass()
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
-    self.safeRoot = config.get("global","testRoot")
+    
+    globalSafeRoot = config.get("global","testRoot")
+    try:
+        os.makedirs(globalSafeRoot, True)
+    except OSError:
+        # directory exists
+        pass
+    self.safeRoot =  tempfile.mkdtemp(prefix = "testCompareDir",
+        dir = globalSafeRoot)
+    
     self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
     
     self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"

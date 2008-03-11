@@ -217,8 +217,11 @@ class testStressFSOp(ZfsStressTest, testFSOp):
   
   @timed(15, abortDeadlock)  
   def testWrite(self):
-    safe = tryWrite(self.safeFile,  self.dataVector)
-    test = tryWrite(self.testFile,  self.dataVector)
+    data = str(self.dataVector)
+    log.debug('writing %d bytes into safe', len(data))
+    safe = tryWrite(self.safeFile,  data)
+    log.debug('writing %d bytes into test', len(data))
+    test = tryWrite(self.testFile,  data)
     
     self.raiseExceptionIfDied()
     assert safe == test

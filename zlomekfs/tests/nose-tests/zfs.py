@@ -115,7 +115,6 @@ class ZfsProxy(object):
         
     def cleanup(self): #TODO: cleanup without tempDir removal
         shutil.rmtree(self.tempDir, True)
-        os.mkdir(self.tempDir)
         
     def connectControl(self):
         if pysyplog.ping_syplog_dbus(None) != pysyplog.NOERR:
@@ -186,7 +185,6 @@ class ZfsProxy(object):
         # to be sure that we don't leave zombies
         self.unmount()
         self.removeModules()
-        self.cleanup()
         if self.coreDumpSettings:
             setCoreDumpSettings(self.coreDumpSettings)
             self.coreDumpSettings = None
@@ -263,6 +261,7 @@ class ZfsTest(object):
         log.debug("teardown")
         #TODO: raise exception if zfs is down
         self.zfs.stopZfs()
+        self.zfs.cleanup()
         
     @classmethod
     def teardownClass(self):
@@ -333,6 +332,7 @@ class ZfsStressTest(ZfsTest):
     @classmethod
     def teardownClass(self):
         self.zfs.stopZfs()
+        self.zfs.cleanup()
         log.debug("stress teardownClass")
         #super(ZfsStressTest,self).teardownClass()
         
