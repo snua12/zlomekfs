@@ -110,7 +110,7 @@ syp_error open_file_medium (medium target, int argc, const char ** argv)
   file_medium new_specific = NULL;
 
 #ifdef ENABLE_CHECKING
-  if (target == NULL || argv == NULL)
+  if (target == NULL)
   {
     return ERR_BAD_PARAMS;
   }
@@ -128,7 +128,8 @@ syp_error open_file_medium (medium target, int argc, const char ** argv)
     new_specific->handler = NULL;
   }
 
-  ret_code = file_medium_parse_params (argc, (const char **)argv, target);
+  if (argv != NULL)
+  	ret_code = file_medium_parse_params (argc, (const char **)argv, target);
   if (ret_code != NOERR)
   {
     goto FINISHING;

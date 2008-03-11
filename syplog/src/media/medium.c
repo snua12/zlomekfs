@@ -263,7 +263,6 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
     return ERR_BAD_PARAMS;
 #endif
   
-  //TODO init
   memset(target,0,sizeof(struct medium_def));
   target->kind = WRITE_LOG;
   target->used_formatter = DEFAULT_FORMATTER;
@@ -277,6 +276,11 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
   switch( target->type)
   {
     case NO_MEDIUM:
+      ret_code = open_file_medium (target, 0, NULL);
+      if (ret_code != NOERR)
+      {
+        goto FINISHING;
+      }
       break;
     case FILE_MEDIUM:
       ret_code = open_file_medium (target, argc, argv);

@@ -58,6 +58,8 @@ typedef struct file_medium_def {
 bool_t is_file_medium_arg (const char * arg);
 
 /*! Parse params and initialize file medium
+  If NULL argv is given, defaults will be used.
+
   @see open_medium
   @see medium-api.h
 */
