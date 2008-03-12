@@ -65,7 +65,7 @@ Regression Testing For zlomekFS
 \end_layout
 
 \begin_layout Author
-Jiri Zouhar
+Jiří Zouhar
 \end_layout
 
 \begin_layout Standard
@@ -75,7 +75,7 @@ ZlomekFS is distributed file system aimed to transparent sharing of directory
 \end_layout
 
 \begin_layout Standard
-This thesis sumarizes actual methods used for software testing, debugging
+This thesis summarizes actual methods used for software testing, debugging
  and bug tracing.
  Where applicable, emphasis is put on specific application of these methods
  on filesystems.
@@ -89,13 +89,13 @@ On basis of this the actual system for ZlomekFS is considered and build.
 
 \begin_layout Standard
 Unit testing framework for C code, providing automatic test discovery and
- minimalistic api.
+ minimalistic interface.
 \end_layout
 
 \begin_layout Standard
 Logging facility with C and python interface, using message importance and
  concern for filtering.
- The logger is remotelly controllable.
+ The logger is remotely controllable.
 \end_layout
 
 \begin_layout Standard
@@ -103,7 +103,7 @@ Workload generator which can generate random test sequence.
  Rules for random workload can be defined by tests content and dependency
  graph describing order constrains.
  Failed sequences can be saved for later reproduction.
- The generator can try to find the shortest path to repoduce error.
+ The generator can try to find the shortest path to reproduce error.
 \end_layout
 
 \begin_layout Standard
@@ -117,8 +117,7 @@ Test result repository with user interface where test results are stored.
 \end_layout
 
 \begin_layout Standard
-Continouous integration server which triggers events and runs automatic
- builds.
+Continuous integration server which triggers events and runs automatic builds.
 \end_layout
 
 \begin_layout Standard
@@ -138,9 +137,9 @@ Motivation
 \end_layout
 
 \begin_layout Standard
-Main motivation I had for this thesis was my wish to learn more about linux
+Main motivation I had for this thesis was my wish to learn more about Linux
  kernel internals.
- I have used linux from year 1997 but when it have come to writing kernel
+ I have used Linux from year 1997 but when it have come to writing kernel
  module or to fix problems with kernel compilation.
  Moreover ZlomekFS seemed to be interesting filesystem for which I could
  find usage.
@@ -167,7 +166,7 @@ With this is related testing and
 extreme programming 
 \emph default
 methods such as test driven development and continuous integration.
- This thesis have offered chance to apply these principes on non-trivial
+ This thesis have offered chance to apply these principles on non-trivial
  project.
 \end_layout
 
@@ -215,7 +214,7 @@ fifth - how it have crashed
 \end_layout
 
 \begin_layout Standard
-apendix - removed due to appendicitis
+appendix - removed due to appendicitis
 \end_layout
 
 \begin_layout Chapter
@@ -240,9 +239,9 @@ Specification testing
 We could look on filesystem as on specification of way how to store data
  and associated metedata on storage media.
  In this case we can ask if the structures are sufficient for accessing
- stored data, if the specfication covers all eventual operations that should
- be availible and if the transistions are sane.
- Specification testing is done only once at the begining.
+ stored data, if the specification covers all eventual operations that should
+ be available and if the transitions are sane.
+ Specification testing is done only once at the beginning.
 \end_layout
 
 \begin_layout Subsection
@@ -255,21 +254,22 @@ Some filesystems don't focus on the way how to store data on media but how
  Well known group of such filesystems are network filesystems.
  They suppose that some other filesystem do the storage and they specify
  only the way how data will be accessible remotely and put some restrictions
- on the filesystem behaviour.
+ on the filesystem behavior.
  In this case we test the particular implementations if they are conform
  to the specification.
- stabilni iface / protokol
+ For example in case of NFS there are test suites for checking interface
+ stability, protocol conformity.
 \end_layout
 
 \begin_layout Subsection
-Functional testing
+Functional testingfilesystem
 \end_layout
 
 \begin_layout Standard
 Filesystems have many things in common with normal pieces of code such as
  server or desktop applications.
- But in the means of tesing there is big problem in simulating normal enviroment
- for filesystems.
+ But in the means of testing there is big problem in simulating normal environme
+nt for filesystems.
  This is caused by their low level nature and could be one of key reasons
  why most of the test suites are designed as black box testing.
 \end_layout
@@ -283,8 +283,8 @@ The most desired feature on testing framework is ease of use tightly coupled
  with automation.
  To achieve this, the tests have to be written in understandable format,
  close to the tested code.
- By the meaning of regression testing, they have to be runned automatically,
- in scheduled periods (defined by amouth of time or changes), the results
+ By the meaning of regression testing, they have to be run automatically,
+ in scheduled periods (defined by amount of time or changes), the results
  must be collected and presented in readable format somewhere.
 \end_layout
 
@@ -300,8 +300,8 @@ For tracing the code execution, there may be some tracing tools and logging
 \begin_layout Standard
 The output of tests could be accompanied with some state information from
  the time of failure.
- This can be achieved by using some snapshoting tool which may or may not
- support resuming.
+ This can be achieved by using some tool for creating snapshots which may
+ or may not support resuming.
  
 \end_layout
 
@@ -311,16 +311,16 @@ For filesystem testing, it is hard to find good testing patterns, which
  So it is good idea to have some random workload generator, which can randomly
  exercise the filesystem.
  The problem with this approach is, that outputs of such testing tends to
- be very big and only a small portion of them is related to the occured
+ be very big and only a small portion of them is related to the occurred
  error.
- To allow random testing and avoid the unwanted side efects, some pruning
+ To allow random testing and avoid the unwanted side effects, some pruning
  algorithm has to be used.
- The reruns of tests may use the snapshots, if the method used for snapshoting
- make the resume possible.
+ The reruns of tests may use the snapshots, if the method used for creating
+ snapshots make the resume possible.
 \end_layout
 
 \begin_layout Standard
-As the ZloFS is multi-threaded, distributed filesystem, the suite should
+As the ZlomekFS is multi-threaded, distributed filesystem, the suite should
  have some support or at least extensibility to allow control or simulation
  of distributed enviroment.
 \end_layout
@@ -344,7 +344,7 @@ how long it will take
  invalid shortcuts.
  Their goal is to compare more implementations or filesystems.
  This thesis won't consider this type of tests, because there is only one
- implementation of ZFS.
+ implementation of ZlomekFS.
 \end_layout
 
 \begin_layout Standard
@@ -365,12 +365,12 @@ When tests are expected to be executed manually, then the format could vary.
 
 \begin_layout Standard
 The basic choice is to write tests in native language of the application.
- Sometimes there is support for inlining tests to normal code with some
- flags saying 
+ Sometimes there is support for embody tests to normal code with some flags
+ saying 
 \begin_inset Quotes eld
 \end_inset
 
-this is test code, it should be runned when testing
+this is test code, it should be run when testing
 \begin_inset Quotes erd
 \end_inset
 
@@ -385,7 +385,7 @@ this is test code, it should be runned when testing
 For automated testing are often used scripting languages to write either
  control logic or whole thing including tests.
  Scripting languages are ideal for the logic because of their flexibility.
- The reason for writing tests in the same languate goo is that it could
+ The reason for writing tests in the same language goo is that it could
  be easier integrated in that way.
 \end_layout
 
@@ -398,21 +398,21 @@ Another possibility is to have tests in some proper format.
 \end_layout
 
 \begin_layout Standard
-Some testing tools uses configuration (tests) in xml or xml with embedded
+Some testing tools uses configuration (tests) in XML or XML with embedded
  code.
- Main reason for using xml is option of using external tools for editing
- or xml-based transformation.
- On other hand, xml is very unsuitable format for hand written code and
+ Main reason for using XML is option of using external tools for editing
+ or XML-based transformation.
+ On other hand, XML is very unsuitable format for hand written code and
  the DTD of configuration is often hard to understand too.
 \end_layout
 
 \begin_layout Standard
-For component based systems is often used model checking or behaviour protocols.
+For component based systems is often used model checking or behavior protocols.
  For this approach, there is some meta-language for defining actions and
  requirements of interfaces and some logic algebra to define states and
  conditions which must hold.
- It is usefull for checking the design of whole application, but there is
- speed issues when using behaviour protocols for checking larger or complex
+ It is useful for checking the design of whole application, but there is
+ speed issues when using behavior protocols for checking larger or complex
  systems.
 \end_layout
 
@@ -431,7 +431,7 @@ key "Simple_Smalltalk_Testing"
 \end_layout
 
 \begin_layout Standard
-Common principes of unit testing are very simple:
+Common principles of unit testing are very simple:
 \newline
 
 \end_layout
@@ -502,7 +502,7 @@ should
 \emph default
  and 
 \emph on
-shouldnt
+shouldn't
 \emph default
  blocks, in 
 \begin_inset Quotes eld
@@ -550,7 +550,7 @@ result
 \emph on
 Test cases
 \emph default
- are agreagated to 
+ are aggregated to 
 \series bold
 test suites
 \series default
@@ -569,7 +569,7 @@ test suite
 \emph default
  are 
 \series bold
-run recursivelly
+run recursively
 \series default
  by calling 
 \emph on
@@ -671,7 +671,7 @@ Unit testing is very often used to watch for regressions so all tests should
 
 \begin_layout Standard
 There should be 100% code coverage done by unit tests.
- Every function (method) shoud have at least one test case, class should
+ Every function (method) should have at least one test case, class should
  have test suite as counterpart.
  
 \end_layout
@@ -714,7 +714,7 @@ Kent Beck
  Have standard features as test level fixtures, assert methods and aggregation.
  In last version (JUnit 4) there were added class level fixtures, timeouts
  for tests, expect exception annotation and requirement of inheriting from
- TestCase was removed.
+ base class (TestCase) was removed.
  It is not part of standard distribution.
 \end_layout
 
@@ -740,10 +740,10 @@ key "PyUnit"
 \end_inset
 
  before integration to python standard distribution).
- The api is strongly object oriented, tests must inherit from TestCase class,
- override specific methods and test with defined methods of TestCase.
+ The interface is strongly object oriented, tests must inherit from TestCase
+ class, override specific methods and test with defined methods of TestCase.
  Doesn't offer more levels of fixtures.
- It is very pure reimplemenatation of Kent Beck's original smalltalk framework.
+ It is very pure reimplementation of Kent Beck's original smalltalk framework.
 \end_layout
 
 \begin_layout Standard
@@ -843,7 +843,7 @@ magic
  Nose provide all features of unittest, moreover it implements py.test's
  all level fixtures, tests doesn't need to inherit from superclass, has
  automated find-run-collect tool a use generators.
- In addition, Nose is very configurable, it has inbuild support for changing
+ In addition, Nose is very configurable, it has in build support for changing
  naming conventions, tests can have flags and it is possible to define expressio
 ns which tests should be run according to flags.
  Nose has extensible api with plugin support.
@@ -863,7 +863,7 @@ key "MinUnit"
 \end_inset
 
 , which is C based and consist only from three lines of code (two macros
- and one deffinition).
+ and one definition).
  Doesn't offer much, just assert - print message block.
 \end_layout
 
@@ -878,7 +878,7 @@ key "CUnitForAndo"
 
 \end_inset
 
-claims to be easy to use C based unit testing framework inspirated by 
+claims to be easy to use C based unit testing framework inspired by 
 \emph on
 cppunit-x 
 \emph default
@@ -901,11 +901,11 @@ key "simplectest"
 \end_inset
 
  is written whole as macros and have somehow weird syntax.
- Offers basic assertions and testSuites.
+ Offers basic assertions and test suites.
  There is no need to write main listing all tests but this is achieved by
  wrapping all tests to macros START_TESTS and END_TESTS.
  So tests must be written in one big chunk.
- Again, tests files must be compiled and runned by hand.
+ Again, tests files must be compiled and run by hand.
  Runs equally in pure C and C++ environment.
 \end_layout
 
@@ -922,7 +922,7 @@ key "CxxTest"
 
  is C++ based and all tests have to be wrapped to test suite Classes.
  This framework has assertions, fixtures and handle exceptions.
- Automated collection is done by python script (but simplified C++ gramatic
+ Automated collection is done by python script (but simplified C++ grammar
  is used).
  May have problems when linking with pure C based code.
  CxxTest have support for mocking global functions but this support works
@@ -943,7 +943,7 @@ key "CppTest"
 
  is another C++ based unit test framework.
  Has basic features such as assertions, fixtures and test suites.
- Beyond this, CppTest is capable of handling and formating output and offers
+ Beyond this, CppTest is capable of handling and formatting output and offers
  api for writing output formatters (TextOutput, CompilerOutput and HtmlOutput
  formatters implemented).
  As for CxxTest, pure C sources must be modified (add extern C {} block)
@@ -980,7 +980,7 @@ key "gunit"
  is another unit testing framework.
  Uses GTK+ libraries (for almost anything).
  Supports assertions, suites and fixtures, has gnome and hildon (embedded)
- gui and dedicated logging facility.
+ GUI and dedicated logging facility.
  Doesn't offer discovery, however compiles suites as dynamically loadable
  libraries.
 \end_layout
@@ -998,7 +998,7 @@ key "RCUNIT"
 
  supports assertions, suites (called modules), fixtures, has own logging
  facility, tests can be disabled.
- RCUnit has defined interface for writing output handlers, html and plain
+ RCUnit has defined interface for writing output handlers, HTML and plain
  text handlers are implemented.
 \end_layout
 
@@ -1032,7 +1032,7 @@ key "Check"
 
  provides assertions, suites and simple fixtures.
  Forks every test in separate process, can handle timeouts, output can be
- printed in plaintext or xml.
+ printed in plain text or XML.
  Has no build or collect helpers thus adding test is very annoying.
 \end_layout
 
@@ -1068,7 +1068,7 @@ Models
 \begin_layout Standard
 When an error is detected in software, developer needs to have as much informati
 on about the failure as possible.
- What occured is nice to know but in most cases useless without without
+ What occurred is nice to know but in most cases useless without without
  more details about the run.
  Therefore developers use logging and tracing to get some useful information
  about the particular run.
@@ -1082,16 +1082,15 @@ Tracing we mean storing information about call sequence in the program,
 \end_layout
 
 \begin_layout Standard
-The simpliest logging tool used is insertion of 
+The simplest logging tool used is insertion of 
 \series bold
 direct message prints
 \series default
 .
  Printing may provide the information needed, but it suffer by not having
  centralized control of what has to be printed.
- This leads to excessive logging, in which is hard to find a usefull information
-, and if we want to avoid this it force us to changing the code on many
- places.
+ This leads to excessive logging, in which is hard to find a useful information,
+ and if we want to avoid this it force us to changing the code on many places.
 \end_layout
 
 \begin_layout Standard
@@ -1102,13 +1101,13 @@ centralized facility
 \series default
 .
  The importance levels are in most cases directly given in advance.
- Providing this it is possible to change the amount of information centraly
+ Providing this it is possible to change the amount of information centrally
  and even redirect the messages to distinct places.
 \end_layout
 
 \begin_layout Standard
-When simple distinguishment by importance is not enough then more advanced
- logging facilities comes with 
+When simple distinction by importance is not enough then more advanced logging
+ facilities comes with 
 \series bold
 tagging of messages
 \series default
@@ -1162,10 +1161,10 @@ Pitfalls
 Even if a adequate logging facility is used to debug the software, there
  can arise problems when the facility is used under some automated stress
  testing.
- The amouth of output logs will eventually gets too big for storage capacity
+ The amount of output logs will eventually gets too big for storage capacity
  or at least for the potential reader to deal with.
  So the automation tool must be able to communicate with the logging facility
- and in some way dynamically change the amouth of output according to needs.
+ and in some way dynamically change the amount of output according to needs.
  This must be tuned so the biggest possible portion of unrelated logs is
  thrown away but the crucial information for debugging is preserved for
  failure as the failure could be hard to repeat.
@@ -1188,24 +1187,24 @@ key "SUCKS"
 
 project.
  The session server was threaded and accessible by network.
- Logging facility was simple centralized logger with pre-definet log levels.
+ Logging facility was simple centralized logger with predefined log levels.
  Logger was alternated so it measures time spent by logging.
- Tests consisted of pre-defined workload, output was time spent by whole
+ Tests consisted of predefined workload, output was time spent by whole
  application, time spent in logging and characters printed.
- Test cycle was composet of one run of all tests for every log level and
+ Test cycle was composed of one run of all tests for every log level and
  log target.
  After finishing the cycle starts again.
  This had been running for approximately thirty hours on two platforms:
 \end_layout
 
 \begin_layout Enumerate
-intel centrino with core2duo cpu set to static frequency of 1Ghz with 2GB
+Intel centrino with core2duo CPU set to static frequency of 1Ghz with 2GB
  memory (most unused) running kernel 2.6.20.1 x86_64.
  
 \end_layout
 
 \begin_layout Enumerate
-motorola ppc MPC8241 (177 bogomips) with 128MB memory running kernel 2.4.32
+Motorola ppc MPC8241 (177 bogomips) with 128MB memory running kernel 2.4.32
 \end_layout
 
 \begin_layout Standard
@@ -1243,7 +1242,7 @@ Logging load
 
 \begin_layout Standard
 Both platforms behaved equally, the only difference was in speed (we must
- consider, that motorola was connected by network and all console prints
+ consider, that Motorola was connected by network and all console prints
  must went through ssh).
  From results we can see that all logging targets had the same footprint
  and the only 
@@ -1255,18 +1254,18 @@ slow
 \end_inset
 
  target was console write.
- For non-blocking targets, the slowdown was in hundereths of per cent for
+ For non-blocking targets, the slowdown was in hundreds of per cent for
  all log levels and the difference between no logging and full logging was
- only one hundereth of per cent.
+ only one hundred of per cent.
 \end_layout
 
 \begin_layout Standard
 So when we don't need to read the output of application online we can log
  everything, having as target some circular buffer which can be flushed
- to file only when error occured.
- Filtering can be done afterwards by user.
+ to file only when error occurred.
+ Filtering can be done afterward by user.
  Another finding is that the logging footprint is in half made of checks
- if something has to be logged or not and to minimalize slowdown, logging
+ if something has to be logged or not and to minimize slowdown, logging
  must be entirely deleted in compile time.
  Problem with this is that it makes changes to code, thus to binary image
  too and this changes can lead to different behavior of erroneous code,
@@ -1301,13 +1300,13 @@ name "sub:Presentation-layer"
 \end_layout
 
 \begin_layout Standard
-Usual test run produce outputs of many types, begining with standart outputs,
+Usual test run produce outputs of many types, beginning with standard outputs,
  going on with filesystem changes and debug logs and even including state
  snapshots, core dumps etc.
  These are data of very different types.
  The goal is to present them to user in usable way with structure that can
- be easilly understood and through ways which are accessible from as much
- enviroments as possible.
+ be easily understood and through ways which are accessible from as much
+ environments as possible.
 \end_layout
 
 \begin_layout Subsubsection
@@ -1317,13 +1316,13 @@ Raw data
 \begin_layout Standard
 The easiest way to present results is to leave them as they are produced
  by application and test suite.
- When this approach is used the raw data are often made vaailable for downloadin
+ When this approach is used the raw data are often made available for downloadin
 g through simple protocol such as FTP or some remote access.
- Raw data hold always full information, don't suffer by ano losses from
+ Raw data hold always full information, don't suffer by any losses from
  transformations.
  On the other hand raw data are often platform dependent and may have to
  be interpreted on the system that produced them.
- The data should be in standart format to allow readability by external
+ The data should be in standard format to allow readability by external
  tools.
 \end_layout
 
@@ -1335,7 +1334,7 @@ Web interface
 Dynamic web pages are nowadays very used way of presentation as they are
  relatively easy to write.
  Web pages have big advantage in accessibility - nearly every computer have
- web prowser installed and people are used to get information through these.
+ web browser installed and people are used to get information through these.
  On the other hand web pages can hardly display some debug outputs such
  as core dumps and other binary data.
  In this case data should be downloadable for reading through external tools.
@@ -1354,7 +1353,7 @@ Even raw data must be interpreted by application to be presented in readable
  part of test suite.
  The fact that they must be written is one big disadvantage by itself.
  Full featured interpreter of debug data with presentation layer may consist
- of the same amouth of work as test suite itself.
+ of the same amount of work as test suite itself.
  Moreover requirements and dependencies of such application could be non-trivial
  and platform independency is hardly to achieve with this approach.
  The big pro of special application is that as written specially for a suite
@@ -1371,24 +1370,24 @@ must be generated from small test units (meta tests, atoms).
  operations that can be made on subject tested) or small well defined tests.
  It is sometimes wanted to group some atoms to create new (bigger) atom.
  In ideal case run of a beta test doesn't change state of subject tested.
- But this type of atoms can test only stateless sysatems and operations
- which are less errorneous and not so big candidates for regresion testing
- as statefull systems are.
- For statefull systems (and metat tests) there should be method how to define
- and check states and legal transistions.
+ But this type of atoms can test only stateless systems and operations which
+ are less erroneous and not so big candidates for regression testing as
+ state-full systems are.
+ For state-full systems (and meta tests) there should be method how to define
+ and check states and legal transitions.
  Simple method to allow this is to give to tester some way to define pre-
- and post- run hooks that can initialize state, check transistion and posibly
+ and post- run hooks that can initialize state, check transition and possibly
  do cleanup after test.
- While approach with pre and post run hooks is simple yet powerfull, there
+ While approach with pre and post run hooks is simple yet powerful, there
  is one issue connected to it.
- In this system tester can use statefull tests but in trade of possible
+ In this system tester can use state-full tests but in trade of possible
  waste of resources.
  When test expected some state different that in which system is, it must
  either made a state change (non trivial operation out of test scope) or
  silently pass without testing and let the system run other test.
- More spohisticated system for resolving state-fullness is to give tester
- tool to define allowet transistions between tests.
- Transistions are often given by graph (edges can be allowed transistions
+ More sophisticated system for resolving state-fullness is to give tester
+ tool to define allowed transitions between tests.
+ Transitions are often given by graph (edges can be allowed transitions
  or vice versa).
  
 \end_layout
@@ -1397,10 +1396,10 @@ must be generated from small test units (meta tests, atoms).
 Sometimes it may be desirable to give some preferences (what should be tested).
  For random workload this means either binary switching tests on and off
  or giving preferences in percentage.
- When state-fullnes is not solved or solved by pre- and post- hooks, precentage
+ When state-fullness is not solved or solved by pre- and post- hooks, percentage
  is connected to tests.
- When transistions are used, precentage can be either for tests (implicit
- edges) or for transistions.
+ When transitions are used, percentage can be either for tests (implicit
+ edges) or for transitions.
 \end_layout
 
 \begin_layout Standard
@@ -1416,12 +1415,12 @@ time (resources) used
 \end_layout
 
 \begin_layout Itemize
-by transistions to end point
+by transitions to end point
 \end_layout
 
 \begin_layout Standard
-When user preferences are given system itself is oten simple automata running
- on satatefull graph.
+When user preferences are given system itself is often simple automata running
+ on state-full graph.
 \end_layout
 
 \begin_layout Section
@@ -1434,19 +1433,19 @@ When long test (or random test) fails we don't know which step has caused
  On the other hand output from long and random tests can be huge and most
  of it may be useless.
  The goal of pruning output is to provide enough information to find the
- bug and at the same time hide useless balast.
+ bug and at the same time hide useless ballast.
  Basically we can divide outputs to developer written log messages, system
- state snapshots (memory dums, FS state, etc).
- The second type is more resources consuming, but easy searchable by hand.
+ state snapshots (memory dumps, filesystem state, etc).
+ The second type is more resources consuming, but searchable  by hand.
  So as storage capacity is cheap, we can simply leave all snapshots or limit
  space used by constant and delete old snapshots.
  As for logs the problem was described in chapter !!! logging !!!.
- When logging doesn't slow application down and doesn't change behaviour,
+ When logging doesn't slow application down and doesn't change behavior,
  the best approach is to log all, store all (or last X) and provide tool
  for filtering and searching logs.
  With this approach we can be sure that no crucial information was lost
- by heuristic prunning.
- In special cases lice low resource platforms (without storage, extremly
+ by heuristic pruning.
+ In special cases lice low resource platforms (without storage, extremely
  slow, etc) where we can't afford wasting, some heuristic must be used.
  For system state this can be last state before recognizing failure and
  state after.
@@ -1454,20 +1453,20 @@ When long test (or random test) fails we don't know which step has caused
 \end_layout
 
 \begin_layout Itemize
-on-time prunning - test suite changes log level of application according
+on-time pruning - test suite changes log level of application according
  to probability of failure.
  The question is, how it should know.
 \end_layout
 
 \begin_layout Itemize
-afterwards - log level is constant for test run, logs are stored to cyclic
+afterward - log level is constant for test run, logs are stored to cyclic
  buffer.
- When failure occurs, test suite will trim the buffer to store just usefull
- information.
+ When failure occurs, test suite will trim the buffer to store just use
+ full information.
 \end_layout
 
 \begin_layout Itemize
-re-run - tests are runned with logging on minimal level.
+re-run - tests are run with logging on minimal level.
  When failure occur, test suite will rerun the test with more logging 
 \begin_inset Quotes eld
 \end_inset
@@ -1476,7 +1475,7 @@ around
 \begin_inset Quotes erd
 \end_inset
 
- the failure, possibly skiping some parts of test (as for random generated
+ the failure, possibly skipping some parts of test (as for random generated
  workload).
 \end_layout
 
@@ -1495,7 +1494,7 @@ As some failures are hardly reproducible, developer wants as much information
  about the faulty run as possible.
  Sometimes logs are not sufficient and state of application in time of failure
  is needed.
- That's why some snapshoting support might be usefull.
+ That's why some snapshoting support might be useful.
  
 \end_layout
 
@@ -1504,19 +1503,19 @@ Moreover, as the runs to failure could be very long, the test suite may
  try to repeat just short parts of them or skip some steps to find the shortest
  possible run to bring about the bug.
  For reruns is best, when the second run has the same start conditions.
- The snapshots (checkopoints) can help with it by resuming from stored state
+ The snapshots (checkpoints) can help with it by resuming from stored state
  (if possible).
 \end_layout
 
 \begin_layout Standard
 There are many projects trying to create full featured checkpoint / resume
  support for applications.
- They can be divided in two groups: userspace only tools and kernel-based
+ They can be divided in two groups: user-space only tools and kernel-based
  tools.
  The main problem among them is, that none of them have full support for
  every resource an application could use.
  The most frequently missing features are suspend / resume support for:
- networking, devices, threads, signal handlers, shm, shared objects.
+ networking, devices, threads, signal handlers, shared memory, shared objects.
  Some of them (BCLR 
 \begin_inset LatexCommand cite
 key "BLCR"
@@ -1541,8 +1540,8 @@ key "chpox"
 \end_layout
 
 \begin_layout Standard
-Other possibility, which solve the matter of sandboxing too is to use some
- virtualization tool and run application (not necessarilly test suite) inside
+Other possibility, which solve the matter of sandbox too is to use some
+ virtualization tool and run application (not necessarily test suite) inside
  virtual machine.
  Nowadays there is many virtualization tools with support for snapshoting
  (for ex.
@@ -1592,7 +1591,7 @@ Continuous integration
 \end_layout
 
 \begin_layout Standard
-Existence of tests is not enough to provide stable developement cyclus.
+Existence of tests is not enough to provide stable development cycle.
  For stability of project it is vital to test it for errors (run tests)
  as often as possible, preferably after each change (commit).
  The approach when changes are often merged into 
@@ -1612,7 +1611,7 @@ key "Continuous_integration"
 ).
  To achieve regular tests it is convenient to use some tool (server) which
  automates the process.
- There is no need to develop own system as there are many proprietal solution
+ There is no need to develop own system as there are many proprietary solution
  and even more opensource solutions.
  It is interesting how many organizations deploy their own systems (for
  example Mozilla Foundation uses Tinderbox 
@@ -1646,7 +1645,7 @@ key "Gump"
 
 \end_inset
 
- - that is only from opensourced projects).
+ - that is only from opensource projects).
  It is obvious why it is this way: core features of continuous integration
  server are easy to write and after some time when more features are needed,
  project may be bound to integration server so tightly that it is nearly
@@ -1680,7 +1679,7 @@ commit hooks
  Running all tests can be relatively long lasting task and therefore environment
  is rarely set to execute all tests before commit and more commonly commit
  is delayed only after vital tests pass.
- More in-deep checking tests are executed afterwards in stand-alone process.
+ More in-deep checking tests are executed afterward in stand-alone process.
  Implementation is often bound to one version control system.
 \end_layout
 
@@ -1712,7 +1711,7 @@ separate service builds project (upon commit or nightly) and executes all
 \end_layout
 
 \begin_layout Standard
-Because one of steps should be building the source there sould be support
+Because one of steps should be building the source there should be support
  for build system used by project.
  Again, many tools are plugin based and have plugins for most common build
  systems used.
@@ -1728,10 +1727,10 @@ Pure commit driven environment when commit is delayed after all tests had
 presentation
 \series default
  layer.
- The complexity vary from simple text (html) file statically served by web
- server to rich database backed gui.
- Standard tools offer html overview and detail pages, tools bound to specific
- environment usually provide gui for that environment.
+ The complexity vary from simple text (HTML) file statically served by web
+ server to rich database backed GUI.
+ Standard tools offer HTML overview and detail pages, tools bound to specific
+ environment usually provide GUI for that environment.
  Very often there are email or instant messaging notifiers too.
  If there are other output than test count and results, it tends to be plain
  text, sometimes there are output format readable by applications.
@@ -1785,7 +1784,7 @@ dangerous
  As virtualization is nowadays easy to deploy, the best way (and in case
  of base system parts the only way) to sandbox project tests in virtual
  machine.
- This must be considered as distributed testing too because the comunication
+ This must be considered as distributed testing too because the communication
  with virtual machine must be done in the same way as if the virtual machine
  were in other network.
  There are in general less security barriers between the host machine and
@@ -1818,14 +1817,14 @@ time
 \end_layout
 
 \begin_layout Standard
-Distribution can be acchieved by:
+Distribution can be achieved by:
 \newline
 
 \end_layout
 
 \begin_layout Standard
 Sending commands through remote terminal.
- For example on unix data could be copied to target machine by scp, tests
+ For example on UNIX data could be copied to target machine by scp, tests
  executed through ssh and results again retrieved through scp.
  This is the easiest way used in simple cases where no synchronization or
  overview is needed.
@@ -1839,7 +1838,7 @@ Most common way to connect control server with machines executing tests
  (sometimes called slaves or bots) is to use remote procedure call.
  As remote procedure call we mean not only RPC but any method that allows
  us to call procedures on remote system.
- There are many rpc tools such as RPC, CORBA, dcom, python twisted, py.execnet,
+ There are many RPC tools such as RPC, CORBA, dcom, python twisted, py.execnet,
  etc.
 \end_layout
 
@@ -1847,7 +1846,7 @@ Most common way to connect control server with machines executing tests
 Older systems tends to use e-mail communication.
  It consists of specially formatted messages sent between master and clients.
  This approach has many drawbacks as security problems, frangibility and
- non-deterministic behaviour.
+ non-deterministic behavior.
 \end_layout
 
 \begin_layout Standard
@@ -1866,7 +1865,7 @@ When tests need more privileges over hosting environment or the tested component
  In this case they must be executed in so called sandbox.
  It is either part of system with restricted access to some resources or
  whole separate system.
- Obviously there must be possibility to restore easilly previous state of
+ Obviously there must be possibility to restore easily previous state of
  sandbox after breakage from test.
  
 \end_layout
@@ -1886,7 +1885,7 @@ reference "sub:Logging,-tracing"
 
 , execution logs are crucial to track failure (bug) found by automated testing.
  Therefore it should be possible to get logs (and other data) from sandbox
- at least after failure but prefferably to send them back to master straight
+ at least after failure but preferably to send them back to master straight
  upon generation.
  This is more logger feature, but to use it the sandbox must allow communication
  with outside.
@@ -1900,8 +1899,8 @@ reference "sub:Distributed-testing"
 \end_inset
 
 ) it should be considered to use the remote machine as sandbox too.
- Again, there should be method to easilly restore state of whole remote
- machine after breakage from test.
+ Again, there should be method to easily restore state of whole remote machine
+ after breakage from test.
  Note that this would be problematic with real (non-virtualized) hosts.
 \end_layout
 
@@ -1912,7 +1911,7 @@ reference "sub:Checkpointing"
 
 \end_inset
 
- we have analysed problem of providing information about test state to developer.
+ we have analyzed problem of providing information about test state to developer.
  If sandbox is represented by full operating system then checkpointing of
  whole sandbox would be in most cases big overhead.
  Still it should be taken into account in some cases.
@@ -1940,7 +1939,7 @@ name "sub:FSX"
 \begin_layout Standard
 Originally written by Avadis Tevanian, Jr.
  for Apple Computer, Inc.
- and other bsd-style operationg systems.
+ and other BSD-style operating systems.
  There are more versions used but the main part stay the same 
 \begin_inset LatexCommand cite
 key "FSX"
@@ -1972,7 +1971,7 @@ key "LTP"
 
 \end_inset
 
- is collection of test suites for linux operating system internals.
+ is collection of test suites for Linux operating system internals.
  The part dedicated to filesystems contains previously mentioned FSX (
 \begin_inset LatexCommand prettyref
 reference "sub:FSX"
@@ -1982,7 +1981,7 @@ reference "sub:FSX"
 ) and own filesystem testing scripts.
  There are both types of tests: predefined loops with random arguments (file
  sizes, etc) and stress tests consisting of random sequences of operations.
- There is vast amouth of operations implemented.
+ There is vast amount of operations implemented.
  Log contains arguments to tests.
 \end_layout
 
@@ -1997,10 +1996,10 @@ key "Mongo"
 
 \end_inset
 
- is test program written in perl, aimed to linux filesystem performance
+ is test program written in Perl, aimed to Linux filesystem performance
  and functionality testing (developed by reiserfs team).
  Is very tightly coupled with standard tools and filesystem usage.
- Does everything from mkfs, through mount to clasic operations.
+ Does everything from mkfs, through mount to classic operations.
  The version examined was mainly benchmarking tool, there were no checks
  if things goes well, just if they goes.
 \end_layout
@@ -2032,8 +2031,8 @@ System is Makefile driven with default targets, tests are generally shell
 
 \begin_layout Standard
 What should be noted is the coverage of these tests, there are tests for
- nearly every operation possible even for zones, acl or redundancy.
- In zfs there are simple stress tests too - predefined loops with configurable
+ nearly every operation possible even for zones, ACL or redundancy.
+ In ZFS there are simple stress tests too - predefined loops with configurable
  length.
 \end_layout
 
@@ -2047,11 +2046,11 @@ Programming language
 
 \begin_layout Standard
 Since ZlomekFS tends to be multiplatform and support more operating systems
- (currently only linux is supported) we need language which runs on any
+ (currently only Linux is supported) we need language which runs on any
  platform and at least under UNIX-like operating systems.
  For testing the language should be flexible enough but on other hand since
  we will be testing file system, speed must be considered too.
- Last but not least need is that the language sould allow integration with
+ Last but not least need is that the language should allow integration with
  existing code.
 \end_layout
 
@@ -2069,7 +2068,7 @@ key "Python"
  was chosen as main programing language for driving component.
  Since python can integrate with most compiled languages, not all components
  must be written in python.
- Performance critical parts and integration libraties are writen in ZlomekFS
+ Performance critical parts and integration libraries are written in ZlomekFS
  native language - 
 \series bold
 C
@@ -2104,7 +2103,7 @@ key "Nose"
 
  was found as the most suitable for our needs.
  Moreover every feature that we need and nose doesn't implement can be delivered
- as plugin for nose within modifiing nose core code.
+ as plugin for nose without modifying nose core code.
  Nose plugin architecture was found as flexible enough for further extending
  of test suite too.
 \end_layout
@@ -2115,7 +2114,7 @@ Continuous integration
 
 \begin_layout Standard
 When choosing tools for continuous integration, we consider only opensource
- projects with reliable comunity around it.
+ projects with reliable community around it.
  Specially deeper investigation were made on Cruise Control 
 \begin_inset LatexCommand cite
 key "Cruise_Control"
@@ -2182,29 +2181,29 @@ It was chosen for these reasons:
 
 \begin_layout Itemize
 Compatibility with our build system.
- Buildbot can use shell comnmands and python code as build steps.
+ Buildbot can use shell commands and python code as build steps.
  It can do output parsing for configure, make and gcc output too.
 \end_layout
 
 \begin_layout Itemize
 It is small and easy to deploy.
- There is no need to write big xml configuration files to run 
+ There is no need to write big XML configuration files to run 
 \emph on
 hello world
 \emph default
-, buildbot code is relativelly small and easy to read.
+, buildbot code is relatively small and easy to read.
 \end_layout
 
 \begin_layout Itemize
 Written in python.
- Since whole Buildbot is written in python, we can easilly integrate it
- with other tools used in project (as they are written in python too).
+ Since whole Buildbot is written in python, we can easily integrate it with
+ other tools used in project (as they are written in python too).
 \end_layout
 
 \begin_layout Itemize
 Extendable architecture.
  Buildbot parts are written as objects, so it is possible to inherit from
- them and tweak behaviour according our needs.
+ them and tweak behavior according our needs.
 \end_layout
 
 \begin_layout Itemize
@@ -2216,7 +2215,7 @@ Support for distributed testing.
 
 \begin_layout Itemize
 Active development.
- Buildbot is often used and has active comunity which ensures that it will
+ Buildbot is often used and has active community which ensures that it will
  be maintained in future too.
 \end_layout
 
@@ -2234,7 +2233,7 @@ Test results in buildbot are presented as textual output from commands.
 
 \begin_layout Standard
 So there was need for another way to represent test results.
- Since test outputs can contain binrary data (snapshots, core dumps, filesystem
+ Since test outputs can contain binary data (snapshots, core dumps, filesystem
  state, etc), the presentation layer should be able to distinguish several
  types of data and present them according type.
  As data and information for test run are related to each other we decided
@@ -2278,7 +2277,7 @@ it has simple still full featured interface
 
 \begin_layout Itemize
 it has to have implementations in both languages in which is written test
- suite and zfs 
+ suite and ZFS 
 \end_layout
 
 \begin_layout Itemize
@@ -2295,14 +2294,14 @@ new logger
  of aspects for both languages (and moreover it will be big requirement
  for developers to use aspects).
  The producer-consumer model seems to be too complicated as there will be
- large and non-homogenous group of developers working on zlomek fs.
+ large and non-homogeneous group of developers working on ZlomekFS.
 \end_layout
 
 \begin_layout Standard
 So the logger will be centralized, with some sort of tagging with fast evaluatio
 n.
- The output will be redirectable to some sort of shared resource (shm, network
- socket) which can be used and controlled by test suite.
+ The output will be redirectable to some sort of shared resource (shared
+ memory, network socket) which can be used and controlled by test suite.
  The format of written log for failure may be preferably readable by some
  GUI or web based reader such as Chainsaw 
 \begin_inset LatexCommand cite
@@ -2359,7 +2358,7 @@ Documentation
 \begin_layout Standard
 For documenting C code 
 \series bold
-Doxygen
+DoxyGen
 \series default
  
 \begin_inset LatexCommand cite
@@ -2368,13 +2367,13 @@ key "Doxygen"
 \end_inset
 
  was chosen.
- Main argument was that ZlomekFS is documented in Doxygen, secondary Doxygen
+ Main argument was that ZlomekFS is documented in DoxyGen, secondary DoxyGen
  is nowadays nearly standard tool for documenting C code.
 \end_layout
 
 \begin_layout Standard
-For Python code, Doxygen has some support, but the support is problematic,
- needs usage of imput filters such as Doxypy 
+For Python code, DoxyGen has some support, but the support is problematic,
+ needs usage of impute filters such as Doxypy 
 \begin_inset LatexCommand cite
 key "Doxypy"
 
@@ -2391,7 +2390,7 @@ key "PEP257"
 
 \end_inset
 
-, but it doesn't support more than plain-text formating.
+, but it doesn't support more than plain-text formatting.
  
 \end_layout
 
@@ -2435,7 +2434,7 @@ key "Pydoc"
 
 
 \series default
- output and there is html formating tools too.
+ output and there is HTML formatting tools too.
 \end_layout
 
 \begin_layout Chapter
@@ -2482,9 +2481,9 @@ For concern separation logger distinguish
 facilities
 \series default
 .
- Facilites are disjunct one-bit flags which can be ORed.
+ Facilities are distinct one-bit flags which can be OR-ed.
  Log message can be labeled as belonging to any number of facilities.
- Again, there is conversion function to convert facilityes to user-readable
+ Again, there is conversion function to convert facilities to user-readable
  strings.
 \end_layout
 
@@ -2495,7 +2494,7 @@ filter
 \series default
  what types of messages (of which importance) should be recorded and which
  should be discarded.
- Both log level and facility set can be regulated in runtime.
+ Both log level and facility set can be regulated in run-time.
 \end_layout
 
 \begin_layout Standard
@@ -2543,10 +2542,10 @@ extended
 \series default
  by listing constants for new log levels and facilities in header files.
  Output formats and targets are defined by static structures holding pointers
- to functions with specified behaviour.
+ to functions with specified behavior.
  New formats and targets can be provided by implementing given function
  set and providing description structure.
- For further reference please read doxygen documentation of
+ For further reference please read DoxyGen documentation of
 \emph on
  Syplog
 \emph default
@@ -2560,7 +2559,7 @@ Control component
 \begin_layout Standard
 The driving component needs to know in which state ZlomekFS daemon is (starting,
  running, terminating).
- To acomodate this need 
+ To accommodate this need 
 \series bold
 D-bus
 \series default
@@ -2587,8 +2586,8 @@ D-bus message handlers.
 \series bold
 Integration
 \series default
- of this two components with zfsd daemon is following: On begining, zfsd
- creates and inicializes D-bus provider handler (structure).
+ of this two components with zfsd daemon is following: On beginning, zfsd
+ creates and initializes D-bus provider handler (structure).
  Then, it registers zfsd D-bus message handlers by calling 
 \emph on
 dbus_provider_add_listener
@@ -2647,7 +2646,7 @@ All tests should be executed under
 Nose
 \series default
 .
- Settings for plugins can be given by command line options, but prefered
+ Settings for plugins can be given by command line options, but preferred
  way is to store them as 
 \series bold
 environment variable
@@ -2675,7 +2674,7 @@ If
 \series bold
 zfsReportPlugin 
 \series default
-is enabled, results are reported to django driven 
+is enabled, results are reported to Django driven 
 \series bold
 TestResultStorage
 \series default
@@ -2706,7 +2705,7 @@ Zfsd control from python is implemented in ZfsProxy.
 \begin_layout Standard
 Normal 
 \series bold
-zfs tests
+ZlomekFS tests
 \series default
  should inherit from class ZfsTest which implements basic fixtures for zfs.
  New daemon is started for every test to run.
@@ -2747,8 +2746,8 @@ snapshotPlugin
 \series default
  creates snapshot of predefined components.
  Snapshot plugin can be configured to create snapshots before tests and
- after successfull tests too but while zfsd core dump has more than 150Mb
- it takes non-trivial amouth of time to create it.
+ after successful tests too but while zfsd core dump has more than 150Mb
+ it takes non-trivial amount of time to create it.
 \end_layout
 
 \begin_layout Paragraph
@@ -2784,7 +2783,7 @@ python exception and backtrace (if any)
 \end_layout
 
 \begin_layout Standard
-Developer can specifi any 
+Developer can specify any 
 \series bold
 further data
 \series default
@@ -2820,7 +2819,7 @@ Reporting and result repository
 \begin_layout Standard
 Test results are stored in 
 \series bold
-mysql database
+MySQL database
 \series default
  to which access is provided through 
 \series bold
@@ -2841,7 +2840,7 @@ Small data (textual information, return codes, etc) are stored in database.
 File transfer
 \series default
  between slave and master must be handled externally.
- Prefered method how to handle this is map storage directory (for example
+ Preferred method how to handle this is map storage directory (for example
  /var/lib/TestResultStorage/data) between master and slave by NFS in case
  of separate hosts or by method provided by virtualization software if master
  and slave are virtualized on the same machine.
@@ -2876,9 +2875,9 @@ ReportProxy
 zfsReportPlugin
 \series default
 .
- This plugin implemnts startTest hook for test duration measurements and
+ This plugin implements startTest hook for test duration measurements and
  addFailure, addError and addSuccess hooks to catch and report test results.
- When there is a unhandled system error (python Exception), it is cought
+ When there is a unhandled system error (python Exception), it is caught
  by outer try-except block and reported to database too.
 \end_layout
 
@@ -2891,7 +2890,7 @@ web interface
  options), detail pages for test run and batch run and project list page.
  If snapshot is available for test run, it can be downloaded from test run
  detail page.
- Older results can be deleted from administration inteface.
+ Older results can be deleted from administration interface.
 \end_layout
 
 \begin_layout Standard
@@ -2957,7 +2956,7 @@ NOSE_TESTMATCH
 \series bold
 ZfsConfig 
 \series default
-plugin provides user-definable configs straight to tests.
+plugin provides user-definable configuration files straight to tests.
  List of configuration files (in defined format) can be passed to plugin.
  Plugin will read them, convert to python object and pass this object to
  all tests.
@@ -2968,7 +2967,7 @@ To handle
 \series bold
 deadlocks 
 \series default
-and unfinite loops both in zfsd and malformed test, there is 
+and infinite loops both in zfsd and malformed test, there is 
 \series bold
 \emph on
 timed
@@ -3046,7 +3045,7 @@ If random workload test fails, the path which causes failure is saved into
 \series bold
 saved paths
 \series default
- aren't commited into repository but it can be enabled to do so.
+ aren't committed into repository but it can be enabled to do so.
  ZfsStressGenerator plugin can try to
 \series bold
  strip failed tests
@@ -3071,7 +3070,7 @@ If new features are needed on the level of driving component (Nose), they
  should be delivered as new plugins.
  Plugins are nearly independent, but the ordering of their execution should
  be preserved.
- Excution order is given by their 
+ Execution order is given by their 
 \emph on
 score
 \emph default
@@ -3116,7 +3115,7 @@ ZEN_ASSERT
 \series bold
 PASS
 \series default
- which is value that should be returnded from passing tests.
+ which is value that should be returned from passing tests.
 \end_layout
 
 \begin_layout Enumerate
@@ -3133,7 +3132,7 @@ where
 \emph on
 FAIL
 \emph default
- is recomended, but any return value different from 
+ is recommended, but any return value different from 
 \emph on
 PASS
 \emph default
@@ -3160,7 +3159,7 @@ There were more options to use for test collection:
 
 \begin_layout Itemize
 user listed tests in some type of #ifdef declared main.
- This doesn't remove the need of listing and moreover create some dificulties
+ This doesn't remove the need of listing and moreover create some difficulties
  in main source file.
 \end_layout
 
@@ -3171,9 +3170,9 @@ to use full C grammar to search for tests in source files and to generate
 \end_layout
 
 \begin_layout Itemize
-to use some C preprocessor to generate simply parsable overview (xml) and
+to use some C preprocessor to generate simply parseable overview (XML) and
  generate test list from them.
- This posibility was not fully explored but was considered far more complicated
+ This possibility was not fully explored but was considered far more complicated
  that binary format based discovery.
 \end_layout
 
@@ -3221,7 +3220,7 @@ setuptools
 \end_layout
 
 \begin_layout Standard
-Target audience of both ZlomekFS and regresion testing framework uses mainly
+Target audience of both ZlomekFS and regression testing framework uses mainly
  
 \series bold
 Redhat
@@ -3284,7 +3283,7 @@ Buildbot is configured to create builder for every component on every host.
 \end_layout
 
 \begin_layout Standard
-Change source is svn polling, schedulers are configured to wait some time
+Change source is SVN polling, schedulers are configured to wait some time
  after change before builder is run.
  
 \end_layout
@@ -3303,7 +3302,7 @@ Conclusion
 \end_layout
 
 \begin_layout Standard
-goals fullfilment
+goals fulfillment
 \newline
 Goal of this thesis was to extend existing ZlomekFS implementat
 ion and implement regression testing framework.
@@ -3317,13 +3316,13 @@ ion and implement regression testing framework.
 As regression testing framework we have used existing solution - Nose.
  Under it it is possible to write tests with both approaches.
  As example there is implementation of one test which identify filesystem
- errors by deviations of implicit filesystem behaviour and implementation
+ errors by deviations of implicit filesystem behavior and implementation
  of one test which identify filesystem errors by comparison with other (reliable
 ) filesystem.
 \end_layout
 
 \begin_layout Standard
-By plugin we provide posibility to generate random workload to filesystem
+By plugin we provide possibility to generate random workload to filesystem
  which can be constrained to valid sequences only.
  Plugin can prune sequence to find minimal sequence needed to reproduce
  the error.
@@ -3332,29 +3331,29 @@ By plugin we provide posibility to generate random workload to filesystem
 
 \begin_layout Standard
 Snapshoting plugin offer chance to have as much state information and protocol
- for tracing and debuging the problem which have caused the problem.
+ for tracing and debugging the problem which have caused the problem.
  Current implementation provides core dump of daemon, log files, sequence
  which have caused the error, cache content, comparison file system (if
  used) snapshot and python component state.
  This snapshot plugin can include most of possible data types that can be
- required when debugging and thus tester can easilly define other data to
+ required when debugging and thus tester can easily define other data to
  include to snapshots.
 \end_layout
 
 \begin_layout Standard
 Changing network conditions is currently not possible but through d-bus
- interface there is possibility to change behaviour of filesystem (offline,
+ interface there is possibility to change behavior of filesystem (offline,
  slow connection, full speed) directly without need of network control.
  For filesystem state change, network conditions were evaluated as problematic
  tool to work with.
  When there will be need to provide network protocol robustness testing,
- it will need use sofisticated external tool which is beyond scope of this
+ it will need use sophisticated external tool which is beyond scope of this
  thesis.
 \end_layout
 
 \begin_layout Standard
 Developer documentation for C code was written in DoxyGen and there are
- build target for generating html documentation available (moreover RPM
+ build target for generating HTML documentation available (moreover RPM
  packages with documentation can be build too).
  For python we use language provided __doc__ attributes with predefined
  syntax.
@@ -3371,7 +3370,7 @@ It is possible to use this system for testing of any other filesystem.
 kdump
 \emph default
  integration for snapshoting state of filesystem in case of failure.
- According our informations it is currently the only project for testing
+ According our information it is currently the only project for testing
  filesystem capable of storing step sequence for reproducing error and snapshoti
 ng state of filesystem.
  Other projects found in this area consists from random workload generator
@@ -3388,7 +3387,7 @@ author word - it was fun :(
 \end_layout
 
 \begin_layout Chapter
-Apendix
+Appendix
 \end_layout
 
 \begin_layout Section
@@ -3400,7 +3399,7 @@ C based code
 \end_layout
 
 \begin_layout Standard
-For code in C, original formating from ZlomekFS was adopted.
+For code in C, original formatting from ZlomekFS was adopted.
 \end_layout
 
 \begin_layout Standard
@@ -3480,7 +3479,11 @@ end{codeblock}
 \begin_layout Standard
 
 \series bold
-Typedefs 
+Typedef
+\series default
+s
+\series bold
+ 
 \series default
 are in lower case with suffix 
 \emph on
@@ -3587,7 +3590,7 @@ end{codeblock}
 \series bold
 Braces around function arguments
 \series default
- sould be separated from function name by one space, if argument list is
+ should be separated from function name by one space, if argument list is
  multiline, ending brace should be right after last argument (on same line).
 \end_layout
 
@@ -3801,7 +3804,7 @@ end{codeblock}
 \series bold
 Comments 
 \series default
-have one space between comment makr and comment text.
+have one space between comment mark and comment text.
  They are on line before code they are describing.
 \end_layout
 
@@ -3867,7 +3870,7 @@ end{codeblock}
 \begin_layout Standard
 
 \series bold
-Filenames 
+File names 
 \series default
 consisting from more words should have dash between words.
 \end_layout
@@ -4071,7 +4074,7 @@ end{codeblock}
 \series bold
 Braces around function arguments
 \series default
- sould be right after function name.
+ should be right after function name.
  
 \end_layout
 
@@ -4196,7 +4199,7 @@ end{codeblock}
 \series bold
 Documentation comments 
 \series default
-should have one space between comment makr and comment text.
+should have one space between comment mark and comment text.
  They should be on line after element they are describing.
 \end_layout
 
@@ -4455,7 +4458,7 @@ This guide is based on new Fedora 8 installation, installation to other
  systems may be different.
  In example, we have buildmaster on IP 192.168.16.253, buildslave on IP 192.168.16.252
  and development system on IP 192.168.16.128.
- We assume that buildslave has basic developement packages (such as gcc)
+ We assume that buildslave has basic development packages (such as gcc)
  installed.
 \end_layout
 
@@ -6478,7 +6481,7 @@ When installing on development system without need of automatic builds,
 \end_layout
 
 \begin_layout Standard
-For testing all componets except ZlomekFS can be tested without install
+For testing all components except ZlomekFS can be tested without install
  (make test).
  The reason why this is not possible for ZlomekFS is need of fuse build,
  which is integrated and needs to create device links, install kernel modules
