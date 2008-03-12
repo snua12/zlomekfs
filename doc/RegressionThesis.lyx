@@ -75,26 +75,23 @@ ZlomekFS is distributed file system aimed to transparent sharing of directory
 \end_layout
 
 \begin_layout Standard
-This thesis summarizes actual methods used for software testing, debugging
+This thesis summarizes actual methods used for software testing, debugging,
  and bug tracing.
  Where applicable, emphasis is put on specific application of these methods
  on filesystems.
- 
-\end_layout
-
-\begin_layout Standard
-On basis of this the actual system for ZlomekFS is considered and build.
+ On the basis of this research actual system for ZlomekFS is considered
+ and build.
  System consists of six parts.
 \end_layout
 
 \begin_layout Standard
-Unit testing framework for C code, providing automatic test discovery and
+Unit testing framework for C code providing automatic test discovery with
  minimalistic interface.
 \end_layout
 
 \begin_layout Standard
-Logging facility with C and python interface, using message importance and
- concern for filtering.
+Logging facility with C and python interface using message importance and
+ concerns separation for filtering.
  The logger is remotely controllable.
 \end_layout
 
@@ -103,13 +100,13 @@ Workload generator which can generate random test sequence.
  Rules for random workload can be defined by tests content and dependency
  graph describing order constrains.
  Failed sequences can be saved for later reproduction.
- The generator can try to find the shortest path to reproduce error.
+ The generator can try to find the shortest sequence to reproduce error.
 \end_layout
 
 \begin_layout Standard
 Test controlling and reporting framework.
  This part controls test execution, prepares sane environment, executes
- tests and collects data for further failure investigation.
+ tests, and collects data for further failure investigation.
 \end_layout
 
 \begin_layout Standard
@@ -139,8 +136,8 @@ Motivation
 \begin_layout Standard
 Main motivation I had for this thesis was my wish to learn more about Linux
  kernel internals.
- I have used Linux from year 1997 but when it have come to writing kernel
- module or to fix problems with kernel compilation.
+ I had used Linux from year 1997 but when it come to writing kernel module
+ or to fix problems with kernel compilation.
  Moreover ZlomekFS seemed to be interesting filesystem for which I could
  find usage.
  
@@ -148,20 +145,16 @@ Main motivation I had for this thesis was my wish to learn more about Linux
 
 \begin_layout Standard
 I was interested in quality assurance too.
- Methods how to secure that program will 
+ Methods how to ensure that program will 
 \emph on
-just work
+just work,
 \emph default
  and programs that 
 \emph on
 just works
 \emph default
- were my enthusiasm long before I started to write this thesis.
- 
-\end_layout
-
-\begin_layout Standard
-With this is related testing and 
+ were my enthusiasm long before I have started to write this thesis.
+ This is related with testing and 
 \emph on
 extreme programming 
 \emph default
@@ -194,31 +187,83 @@ Make all the developer documentation an integral part of the zlomekFS project
 \end_layout
 
 \begin_layout Section
-Structure of the Thesis
+Structure of the thesis
 \end_layout
 
 \begin_layout Standard
-second - what goes on, current practices
+Chapter 2 describes common techniques used for testing.
+ Basic test types are listed with their usage and aims.
+ Reasons are given for what tools should be used when testing and how they
+ can help debuging.
+ 
 \end_layout
 
 \begin_layout Standard
-third - what we use
+Chapter 3 summarizes tools used in final system, gives reasons for why they
+ were chosen and describes their main features.
+ 
 \end_layout
 
 \begin_layout Standard
-fourth - how we use it
+Chapter 4 describes internals of the system: changes made in ZlomekFS are
+ written down, then component interaction is described, and finally each
+ component function is documented.
 \end_layout
 
 \begin_layout Standard
-fifth - how it have crashed
-\end_layout
-
-\begin_layout Standard
-appendix - removed due to appendicitis
+Chapter 5 sumarizes the work done, how goals are met and what new ideas
+ are developed.
 \end_layout
 
 \begin_layout Chapter
 Filesystem testing
+\end_layout
+
+\begin_layout Standard
+The most desired feature on testing framework is ease of use, tightly coupled
+ with automation.
+ To achieve this, the tests have to be written in readable format.
+ There is tendency to place small unit tests as near to actual code as possible
+ to allow easy maintenance.
+ By the mean of regression testing, they have to be run automatically, in
+ scheduled periods (defined by amount of time or number of changes), the
+ results must be collected and presented on well known place.
+\end_layout
+
+\begin_layout Standard
+For tracing the code execution, there may be some tracing tools and logging
+ tools.
+ They have to have minimal footprint, but collect as much information as
+ possible.
+ Their output must be formatted in way compatible with the automation framework.
+\end_layout
+
+\begin_layout Standard
+The output of tests should be accompanied with some state information from
+ the time of failure.
+ This can be achieved by using some tool for creating snapshots, that may
+ or may not support resuming.
+ 
+\end_layout
+
+\begin_layout Standard
+For filesystem testing, it is hard to find good testing patterns, which
+ will cover all cases, that can occur.
+ So it is good idea to have some random workload generator, which can randomly
+ exercise the filesystem.
+ The problem with this approach is, that outputs of such testing tends to
+ be very big and only a small portion of them is related to the occurred
+ error.
+ To allow random testing and avoid this unwanted side effects, some pruning
+ algorithm has to be used.
+ The reruns of tests may use the snapshots, if the method used for creating
+ snapshots make the resume possible.
+\end_layout
+
+\begin_layout Standard
+As the ZlomekFS is multi-threaded, distributed filesystem, the suite should
+ have some support, or at least extensibility to allow control or simulation
+ of distributed enviroment.
 \end_layout
 
 \begin_layout Section
@@ -226,8 +271,8 @@ Test types
 \end_layout
 
 \begin_layout Standard
-Filesystem can be seen as many things and thus it can be tested from at
- least the same number points of view.
+Filesystem can be seen as many things, and thus it can be tested from many
+ points of view.
  
 \end_layout
 
@@ -238,10 +283,12 @@ Specification testing
 \begin_layout Standard
 We could look on filesystem as on specification of way how to store data
  and associated metedata on storage media.
- In this case we can ask if the structures are sufficient for accessing
- stored data, if the specification covers all eventual operations that should
- be available and if the transitions are sane.
- Specification testing is done only once at the beginning.
+ In this case we can ask if the structures specified are sufficient for
+ accessing stored data, if the specification covers all eventual operations
+ that should be available, and if the transitions made by operations are
+ sane and leads from correct state to correct state.
+ Specification testing is generally done only once at the beginning, before
+ actual implementation work is done.
 \end_layout
 
 \begin_layout Subsection
@@ -252,77 +299,26 @@ Api conformity
 Some filesystems don't focus on the way how to store data on media but how
  to make them accessible.
  Well known group of such filesystems are network filesystems.
- They suppose that some other filesystem do the storage and they specify
- only the way how data will be accessible remotely and put some restrictions
+ They suppose that some other filesystem does the storage, and they specify
+ only the way how data will be accessible remotely, and put some restrictions
  on the filesystem behavior.
- In this case we test the particular implementations if they are conform
+ In this case, we test the particular implementations if they are conform
  to the specification.
- For example in case of NFS there are test suites for checking interface
+ For example in case of NFS, there are test suites for checking interface
  stability, protocol conformity.
 \end_layout
 
 \begin_layout Subsection
-Functional testingfilesystem
+Functional testing
 \end_layout
 
 \begin_layout Standard
-Filesystems have many things in common with normal pieces of code such as
- server or desktop applications.
+Filesystems have many things in common with normal pieces of code, such
+ as server or desktop applications.
  But in the means of testing there is big problem in simulating normal environme
 nt for filesystems.
  This is caused by their low level nature and could be one of key reasons
  why most of the test suites are designed as black box testing.
-\end_layout
-
-\begin_layout Standard
-is the one we will be doing.
-\end_layout
-
-\begin_layout Standard
-The most desired feature on testing framework is ease of use tightly coupled
- with automation.
- To achieve this, the tests have to be written in understandable format,
- close to the tested code.
- By the meaning of regression testing, they have to be run automatically,
- in scheduled periods (defined by amount of time or changes), the results
- must be collected and presented in readable format somewhere.
-\end_layout
-
-\begin_layout Standard
-For tracing the code execution, there may be some tracing tools and logging
- tools.
- They have to have minimal footprint and collect as much information as
- possible.
- Their output must be formatted in way compatible with the automation framework
- and with the presentation tool too, if possible.
-\end_layout
-
-\begin_layout Standard
-The output of tests could be accompanied with some state information from
- the time of failure.
- This can be achieved by using some tool for creating snapshots which may
- or may not support resuming.
- 
-\end_layout
-
-\begin_layout Standard
-For filesystem testing, it is hard to find good testing patterns, which
- will cover all cases, which can occur.
- So it is good idea to have some random workload generator, which can randomly
- exercise the filesystem.
- The problem with this approach is, that outputs of such testing tends to
- be very big and only a small portion of them is related to the occurred
- error.
- To allow random testing and avoid the unwanted side effects, some pruning
- algorithm has to be used.
- The reruns of tests may use the snapshots, if the method used for creating
- snapshots make the resume possible.
-\end_layout
-
-\begin_layout Standard
-As the ZlomekFS is multi-threaded, distributed filesystem, the suite should
- have some support or at least extensibility to allow control or simulation
- of distributed enviroment.
 \end_layout
 
 \begin_layout Subsection
@@ -330,7 +326,7 @@ Benchmarking
 \end_layout
 
 \begin_layout Standard
-Are tests which should answer the question 
+Benchmarking gives answer the question 
 \begin_inset Quotes eld
 \end_inset
 
@@ -339,16 +335,13 @@ how long it will take
 \end_inset
 
  for every operation we could do with filesystem.
- They measure the performance of specific implementation in conjunction
- with given setup assuming the implementation is sane and doesn't do any
- invalid shortcuts.
+ Measurements are done on different filesystem implementations, or filesystems
+ with similar purpose.
+ There should be similar setup for all subjects tested.
+ Most of benchmarking tools assumes that the implementation is sane and
+ doesn't do any invalid shortcuts.
  Their goal is to compare more implementations or filesystems.
- This thesis won't consider this type of tests, because there is only one
- implementation of ZlomekFS.
-\end_layout
-
-\begin_layout Standard
-
+ 
 \end_layout
 
 \begin_layout Section
@@ -359,14 +352,14 @@ Test format
 When tests are expected to be executed manually, then the format could vary.
  On the other hand, when they have to be executed automatically, then for
  every format there must be support in all components of the test suite.
- Because of this there is tendency to minimize number of formats.
+ Because of this there is tendency to minimize the number of formats.
  
 \end_layout
 
 \begin_layout Standard
 The basic choice is to write tests in native language of the application.
  Sometimes there is support for embody tests to normal code with some flags
- saying 
+ saying, 
 \begin_inset Quotes eld
 \end_inset
 
@@ -376,41 +369,41 @@ this is test code, it should be run when testing
 
 .
  This allow tests as close to code as possible.
- It is ideal for short tests of functionality of separated parts (objects,
- libraries, etc).
+ It is ideal for short tests of functionality of separated parts (functions,
+ objects, etc).
  
 \end_layout
 
 \begin_layout Standard
-For automated testing are often used scripting languages to write either
- control logic or whole thing including tests.
+For automated testing scripting languages are often used to write either
+ control logic or everything including tests.
  Scripting languages are ideal for the logic because of their flexibility.
- The reason for writing tests in the same language goo is that it could
- be easier integrated in that way.
+ The reason for writing tests in the same language goo is that it integration
+ is easier in that way.
 \end_layout
 
 \begin_layout Standard
 Another possibility is to have tests in some proper format.
  This offer possibility of having the format very suitable for the needs
- of particular software, but this bring disadvantage of having to change
- the format every time a lag is found in specification or a new requirement
+ of particular software, but brings disadvantage of having to change the
+ format every time a lag is found in specification, or if new requirement
  is found.
 \end_layout
 
 \begin_layout Standard
-Some testing tools uses configuration (tests) in XML or XML with embedded
+Some testing tools use configuration (tests) in XML or XML with embedded
  code.
- Main reason for using XML is option of using external tools for editing
- or XML-based transformation.
+ Main reason for XML is option of using external tools for editing or XML-based
+ transformations.
  On other hand, XML is very unsuitable format for hand written code and
- the DTD of configuration is often hard to understand too.
+ the DTD of configuration is often hard to understand.
 \end_layout
 
 \begin_layout Standard
 For component based systems is often used model checking or behavior protocols.
- For this approach, there is some meta-language for defining actions and
- requirements of interfaces and some logic algebra to define states and
- conditions which must hold.
+ For this approach, there is meta-language for defining actions and requirements
+ of interfaces and logic algebra to define states and conditions which must
+ hold.
  It is useful for checking the design of whole application, but there is
  speed issues when using behavior protocols for checking larger or complex
  systems.
@@ -430,10 +423,8 @@ key "Simple_Smalltalk_Testing"
 .
 \end_layout
 
-\begin_layout Standard
-Common principles of unit testing are very simple:
-\newline
-
+\begin_layout Subsection
+Common principles
 \end_layout
 
 \begin_layout Standard
@@ -447,7 +438,7 @@ test case
 \emph default
  have common interface (in object based languages presented as common super
  class).
- The run should be independent on other 
+ The run of test should be independent on other 
 \emph on
 test cases
 \emph default
@@ -517,7 +508,7 @@ modern
 asserts
 \emph default
 .
- When expectation doesn't hold it is called 
+ When assertion doesn't hold it is called 
 \emph on
 failure
 \emph default
@@ -595,29 +586,34 @@ automated
 , independent on human interaction.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Other features:
-\newline
-
 \end_layout
 
 \begin_layout Standard
-Many unit testing frameworks offer more elaborated tests structuring and
- state handling (
+Many unit testing frameworks offer more 
+\series bold
+elaborated tests structuring and state handling
+\series default
+ (
 \emph on
 fixtures
 \emph default
 ).
- Very often tests can be aggregated to classes with common setup and teardown
+ Very often, tests can be aggregated to classes with common setup and teardown
  methods that are run before and after every test.
  
 \end_layout
 
 \begin_layout Standard
-Moreover there can be additional 
+Moreover there can be 
+\series bold
+additional
 \emph on
-fixture levels
+ 
 \emph default
+fixture levels
+\series default
  for all code units (depending on programing language these can be 
 \emph on
 class level fixtures
@@ -635,51 +631,61 @@ package level fixtures
 \emph on
 Setup_
 \emph default
- code is run before entering particular block and 
+ code is run before entering particular block, and 
 \emph on
 teardown_
 \emph default
- code is run after leaving particular block of tests (for example setup_class
- is run before running tests in class and teardown_class is run after all
- tests have run.
- Around every single test may be setup_method and teardown_method fixtures).
+ code is run after leaving particular block of tests.
+ For example setup_class is run before running tests in class and teardown_class
+ is run after all tests have run.
+ Around every single test may be setup_method and teardown_method fixtures.
  Note that this could break the independency requirement.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Best practices:
-\newline
-
 \end_layout
 
 \begin_layout Standard
 Unit testing is mostly used for
 \emph on
- testing 
+ 
+\series bold
 \emph default
-s
+testing 
 \emph on
-mall pieces of code 
+s
+\emph default
+mall pieces of code
+\series default
+\emph on
+ 
 \emph default
 and thus use cases are mostly very fast and simple.
 \end_layout
 
 \begin_layout Standard
 Unit testing is very often used to watch for regressions so all tests should
- be executed periodically by some automation tool.
+ be 
+\series bold
+executed periodically
+\series default
+ by some automation tool.
 \end_layout
 
 \begin_layout Standard
-There should be 100% code coverage done by unit tests.
+There should be 
+\series bold
+100% code coverage
+\series default
+ done by unit tests.
  Every function (method) should have at least one test case, class should
  have test suite as counterpart.
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Subsection
 Implementations:
-\newline
-
 \end_layout
 
 \begin_layout Standard
@@ -711,11 +717,11 @@ key "JUnit"
 Kent Beck
 \emph default
 , guru of unit testing.
- Have standard features as test level fixtures, assert methods and aggregation.
+ Has standard features as test level fixtures, assert methods and aggregation.
  In last version (JUnit 4) there were added class level fixtures, timeouts
  for tests, expect exception annotation and requirement of inheriting from
  base class (TestCase) was removed.
- It is not part of standard distribution.
+ It is not part of standard language distribution.
 \end_layout
 
 \begin_layout Standard
@@ -740,8 +746,8 @@ key "PyUnit"
 \end_inset
 
  before integration to python standard distribution).
- The interface is strongly object oriented, tests must inherit from TestCase
- class, override specific methods and test with defined methods of TestCase.
+ The interface is strongly object oriented, test must inherit from TestCase
+ class, override specific methods, and assert using defined methods of TestCase.
  Doesn't offer more levels of fixtures.
  It is very pure reimplementation of Kent Beck's original smalltalk framework.
 \end_layout
@@ -768,9 +774,9 @@ key "PyLib"
 
 \end_inset
 
-, has fixtures support on all levels, doesn't need to inherit from superclass
+, has fixture support on all levels, doesn't need to inherit from superclass,
  but has fixed naming convention instead.
- Use standard python assert clause to test for failures, handle exceptions
+ Uses standard python assert clause to test for failures, handle exceptions
  as errors.
  Moreover, py.test has automated find-run-collect tool for searching for
  tests in directory trees.
@@ -779,31 +785,46 @@ key "PyLib"
 disabled
 \emph default
  depending on generic boolean expressions.
- This library has support for generator methods which allows to yield 
-\begin_inset Quotes eld
-\end_inset
-
-more
-\begin_inset Quotes erd
-\end_inset
-
- tests easily.
+ This library has support for generator methods which 
+\emph on
+allows to yield more
+\emph default
+ 
+\emph on
+tests
+\emph default
+ easily.
  Py.test most interesting feature is ease of use.
  It is possible to just write function with 
-\begin_inset Quotes eld
-\end_inset
-
+\emph on
 test
-\begin_inset Quotes erd
-\end_inset
-
- in name and py.test will collect it, run and if there is failure or error,
- the output and backtrace will be printed in readable format.
- Py.test can also take big advantage from py.lib which offers distributed
- execution through py.execnet etc.
- Whole py.lib is written to be easy to use but in current implementation
- with trade off configurability.
- Note should be taken, that py.lib was developed as grant project and after
+\emph default
+ in name and 
+\emph on
+py.test
+\emph default
+ will collect it, run, and if there is failure or error, the output and
+ backtrace will be printed in readable format.
+ 
+\emph on
+Py.test
+\emph default
+ can also take big advantage from 
+\emph on
+py.lib
+\emph default
+ which offers distributed execution through 
+\emph on
+py.execnet
+\emph default
+ etc.
+ Whole 
+\emph on
+py.lib
+\emph default
+ is written to be easy to use, but in current implementation with trade
+ off configurability.
+ Note should be taken, that py.lib was developed as grant project, and after
  grant expiration there were little of improvement in project.
 \end_layout
 
@@ -827,28 +848,24 @@ unittest
 \emph on
 py.test
 \emph default
- library and try to mimic 
+ library, and try to mimic 
 \emph on
 py.test
 \emph default
- without 
-\begin_inset Quotes eld
-\end_inset
-
-magic
-\begin_inset Quotes erd
-\end_inset
-
-.
- Nose provide all features of unittest, moreover it implements py.test's
+ without magic.
+ Nose provides all features of unittest, moreover it implements py.test's
  all level fixtures, tests doesn't need to inherit from superclass, has
- automated find-run-collect tool a use generators.
+ automated find-run-collect tool, and uses generators.
  In addition, Nose is very configurable, it has in build support for changing
- naming conventions, tests can have flags and it is possible to define expressio
-ns which tests should be run according to flags.
+ naming conventions, tests can have flags, and it is possible to define
+ expressions which tests should be run according to these flags.
  Nose has extensible api with plugin support.
  There are for example plugins for profiling, doctest, code coverage, etc.
  
+\end_layout
+
+\begin_layout Standard
+BOOKMARK
 \end_layout
 
 \begin_layout Standard
