@@ -865,10 +865,6 @@ py.test
 \end_layout
 
 \begin_layout Standard
-BOOKMARK
-\end_layout
-
-\begin_layout Standard
 Curiosity among unit testing frameworks is 
 \series bold
 MinUnit
@@ -879,7 +875,7 @@ key "MinUnit"
 
 \end_inset
 
-, which is C based and consist only from three lines of code (two macros
+, which is C based, and consist only from three lines of code (two macros
  and one definition).
  Doesn't offer much, just assert - print message block.
 \end_layout
@@ -900,7 +896,7 @@ claims to be easy to use C based unit testing framework inspired by
 cppunit-x 
 \emph default
 (Interesting piece of code documented in Japanese).
- In fact it is just another framework which lacks fixtures and offer just
+ In fact, it is just another framework, which lacks fixtures and offer just
  test counting beyond 
 \emph on
 MinUnit.
@@ -917,10 +913,10 @@ key "simplectest"
 
 \end_inset
 
- is written whole as macros and have somehow weird syntax.
+ is written whole as macros, and have somehow weird syntax.
  Offers basic assertions and test suites.
- There is no need to write main listing all tests but this is achieved by
- wrapping all tests to macros START_TESTS and END_TESTS.
+ There is no need to write main function listing all tests, but this is
+ achieved by wrapping all tests to macros START_TESTS and END_TESTS.
  So tests must be written in one big chunk.
  Again, tests files must be compiled and run by hand.
  Runs equally in pure C and C++ environment.
@@ -937,12 +933,12 @@ key "CxxTest"
 
 \end_inset
 
- is C++ based and all tests have to be wrapped to test suite Classes.
- This framework has assertions, fixtures and handle exceptions.
+ is C++ based, all tests have to be wrapped to test suite Classes.
+ This framework has assertions, fixtures, and handle exceptions.
  Automated collection is done by python script (but simplified C++ grammar
  is used).
  May have problems when linking with pure C based code.
- CxxTest have support for mocking global functions but this support works
+ CxxTest have support for mocking global functions, but this support works
  on base of calling functions in separate namespace, so it is not pure mock
  and code have to be modified to use mocked functions.
 \end_layout
@@ -959,9 +955,9 @@ key "CppTest"
 \end_inset
 
  is another C++ based unit test framework.
- Has basic features such as assertions, fixtures and test suites.
- Beyond this, CppTest is capable of handling and formatting output and offers
- api for writing output formatters (TextOutput, CompilerOutput and HtmlOutput
+ Has basic features such as assertions, fixtures, and test suites.
+ Beyond this, CppTest is capable of handling and formatting output, offers
+ api for writing output formatters (TextOutput, CompilerOutput, and HtmlOutput
  formatters implemented).
  As for CxxTest, pure C sources must be modified (add extern C {} block)
  to run under CppTest.
@@ -978,9 +974,9 @@ key "CUnit"
 
 \end_inset
 
- is C based still C++ compatible supports assertions, suites, test counting,
- has global registry, more user interfaces (for running tests), but no automatic
- collection and output handling.
+ is C based (still C++ compatible), supports assertions, suites, test counting,
+ has global registry, more user interfaces (for running tests), but has
+ no automatic collection and output handling.
 \end_layout
 
 \begin_layout Standard
@@ -997,7 +993,7 @@ key "gunit"
  is another unit testing framework.
  Uses GTK+ libraries (for almost anything).
  Supports assertions, suites and fixtures, has gnome and hildon (embedded)
- GUI and dedicated logging facility.
+ GUI, dedicated logging facility.
  Doesn't offer discovery, however compiles suites as dynamically loadable
  libraries.
 \end_layout
@@ -1015,8 +1011,8 @@ key "RCUNIT"
 
  supports assertions, suites (called modules), fixtures, has own logging
  facility, tests can be disabled.
- RCUnit has defined interface for writing output handlers, HTML and plain
- text handlers are implemented.
+ RCUnit has defined interface for writing output handlers.
+ HTML and plain text handlers are implemented.
 \end_layout
 
 \begin_layout Standard
@@ -1047,10 +1043,10 @@ key "Check"
 
 \end_inset
 
- provides assertions, suites and simple fixtures.
+ provides assertions, suites, and simple fixtures.
  Forks every test in separate process, can handle timeouts, output can be
  printed in plain text or XML.
- Has no build or collect helpers thus adding test is very annoying.
+ Has no build or collect helpers, adding test is very annoying.
 \end_layout
 
 \begin_layout Standard
@@ -1085,15 +1081,15 @@ Models
 \begin_layout Standard
 When an error is detected in software, developer needs to have as much informati
 on about the failure as possible.
- What occurred is nice to know but in most cases useless without without
- more details about the run.
+ What occurred is nice to know, but in most cases useless without more details
+ about circumstances.
  Therefore developers use logging and tracing to get some useful information
  about the particular run.
 \end_layout
 
 \begin_layout Standard
-Tracing we mean storing information about call sequence in the program,
- by logging we mean saving information about data changes or notes about
+By tracing we mean storing information about call sequence in the program,
+ by logging we mean saving information about data changes, or notes about
  states of system inserted by developer.
  In most cases this features are provided by one tool.
 \end_layout
@@ -1104,8 +1100,8 @@ The simplest logging tool used is insertion of
 direct message prints
 \series default
 .
- Printing may provide the information needed, but it suffer by not having
- centralized control of what has to be printed.
+ Messages may provide the information needed, but this approach suffers
+ by not having centralized control of what has to be printed.
  This leads to excessive logging, in which is hard to find a useful information,
  and if we want to avoid this it force us to changing the code on many places.
 \end_layout
@@ -1117,14 +1113,14 @@ So the next logical step is to send logging messages (accompanied by importance
 centralized facility
 \series default
 .
- The importance levels are in most cases directly given in advance.
- Providing this it is possible to change the amount of information centrally
+ The importance level list is in most cases directly given in advance.
+ Providing this it is possible to change the amount of output centrally
  and even redirect the messages to distinct places.
 \end_layout
 
 \begin_layout Standard
-When simple distinction by importance is not enough then more advanced logging
- facilities comes with 
+When simple distinction by importance is not enough, then more advanced
+ logging facilities come with 
 \series bold
 tagging of messages
 \series default
@@ -1153,18 +1149,10 @@ e to keep the hierarchy of producers and consumers used in application sane.
 \begin_layout Standard
 The last approach to logging and tracing is called 
 \series bold
-
-\begin_inset Quotes eld
-\end_inset
-
 aspect oriented programing
 \series default
-
-\begin_inset Quotes erd
-\end_inset
-
 .
- In this case the logging is not present in code itself but it is separated
+ In this case the logging is not present in code itself, but it is separated
  as independent concern to aspect - logical definition what and where has
  to be logged.
  
@@ -1178,18 +1166,25 @@ Pitfalls
 Even if a adequate logging facility is used to debug the software, there
  can arise problems when the facility is used under some automated stress
  testing.
- The amount of output logs will eventually gets too big for storage capacity
- or at least for the potential reader to deal with.
+ The amount of output 
+\series bold
+logs would eventually grow too big
+\series default
+ for storage capacity, or at least for the potential reader to deal with.
  So the automation tool must be able to communicate with the logging facility
- and in some way dynamically change the amount of output according to needs.
+ and dynamically change the amount of output according to actual needs.
  This must be tuned so the biggest possible portion of unrelated logs is
- thrown away but the crucial information for debugging is preserved for
+ thrown away, but the crucial information for debugging is preserved for
  failure as the failure could be hard to repeat.
 \end_layout
 
 \begin_layout Standard
 There is one more reason that may be considered for muting logging output.
- The reason is that logging could slow the application down.
+ The reason is that 
+\series bold
+logging could slow the application down
+\series default
+.
  To check how much logging slows down a ordinary application, some measurements
  were done.
  
@@ -1263,13 +1258,9 @@ Both platforms behaved equally, the only difference was in speed (we must
  must went through ssh).
  From results we can see that all logging targets had the same footprint
  and the only 
-\begin_inset Quotes eld
-\end_inset
-
+\emph on
 slow
-\begin_inset Quotes erd
-\end_inset
-
+\emph default
  target was console write.
  For non-blocking targets, the slowdown was in hundreds of per cent for
  all log levels and the difference between no logging and full logging was
@@ -1278,31 +1269,28 @@ slow
 
 \begin_layout Standard
 So when we don't need to read the output of application online we can log
- everything, having as target some circular buffer which can be flushed
+ everything, having as target some circular buffer, which can be flushed
  to file only when error occurred.
  Filtering can be done afterward by user.
  Another finding is that the logging footprint is in half made of checks
- if something has to be logged or not and to minimize slowdown, logging
- must be entirely deleted in compile time.
- Problem with this is that it makes changes to code, thus to binary image
- too and this changes can lead to different behavior of erroneous code,
- so the bug could be unreproducible with different logging level.
+ if something has to be logged or not.
+ Thus to minimize slowdown, logging must be entirely removed from binary
+ in compile time.
+ Problem with this is that it makes changes to binary image, and this changes
+ can lead to different behavior of erroneous code, so the bug could be unreprodu
+cible with different logging level.
 \end_layout
 
 \begin_layout Standard
-Other problem which can arise with logging is that logging can act as synchroniz
-ation primitive which could prevent some collisions to appear.
+Other problem, which can arise with logging is that logging can act as synchroni
+zation primitive, which could prevent some collisions to appear.
  Problem with synchronization can be solved by design of logging facility.
- The logger must be designed in way that create separated resources for
- every concurrently running entity in advance and then the only effect done
- by the logger is slowdown of creation of new 
-\begin_inset Quotes eld
-\end_inset
-
+ The logger must be designed in way that creates separated resources for
+ every concurrently running entity in advance, and then the only effect
+ done by the logger is slowdown of creation of new 
+\emph on
 threads
-\begin_inset Quotes erd
-\end_inset
-
+\emph default
 .
 \end_layout
 
@@ -1318,15 +1306,15 @@ name "sub:Presentation-layer"
 
 \begin_layout Standard
 Usual test run produce outputs of many types, beginning with standard outputs,
- going on with filesystem changes and debug logs and even including state
- snapshots, core dumps etc.
+ going on with filesystem changes, debug logs, even including state snapshots,
+ core dumps, etc.
  These are data of very different types.
  The goal is to present them to user in usable way with structure that can
- be easily understood and through ways which are accessible from as much
+ be easily understood, and through ways, which are accessible from as much
  environments as possible.
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Subsection
 Raw data
 \end_layout
 
@@ -1334,11 +1322,11 @@ Raw data
 The easiest way to present results is to leave them as they are produced
  by application and test suite.
  When this approach is used the raw data are often made available for downloadin
-g through simple protocol such as FTP or some remote access.
+g through simple protocol such as FTP or remote console.
  Raw data hold always full information, don't suffer by any losses from
  transformations.
- On the other hand raw data are often platform dependent and may have to
- be interpreted on the system that produced them.
+ On the other hand, raw data are often platform dependent and may have to
+ be interpreted on the system that have produced them.
  The data should be in standard format to allow readability by external
  tools.
 \end_layout
@@ -1348,11 +1336,11 @@ Web interface
 \end_layout
 
 \begin_layout Standard
-Dynamic web pages are nowadays very used way of presentation as they are
+Dynamic web pages are nowadays very used way of presentation, as they are
  relatively easy to write.
  Web pages have big advantage in accessibility - nearly every computer have
  web browser installed and people are used to get information through these.
- On the other hand web pages can hardly display some debug outputs such
+ On the other hand, web pages can hardly display some debug outputs such
  as core dumps and other binary data.
  In this case data should be downloadable for reading through external tools.
  Interaction with web is little bit slower than with local application and
@@ -1373,8 +1361,8 @@ Even raw data must be interpreted by application to be presented in readable
  of the same amount of work as test suite itself.
  Moreover requirements and dependencies of such application could be non-trivial
  and platform independency is hardly to achieve with this approach.
- The big pro of special application is that as written specially for a suite
- it should fits very well the needs.
+ The big advantage of special application is that as written specially for
+ a suite it should fits very well the needs.
 \end_layout
 
 \begin_layout Section
@@ -1382,22 +1370,23 @@ Random workload generation
 \end_layout
 
 \begin_layout Standard
-must be generated from small test units (meta tests, atoms).
+Random workload for stress testing must be generated from small tests (operation
+s, meta tests, atoms).
  Depending on subject tested atoms are either defined by tradition (basic
- operations that can be made on subject tested) or small well defined tests.
+ operations that can be made on subject tested), or small well defined tests.
  It is sometimes wanted to group some atoms to create new (bigger) atom.
- In ideal case run of a beta test doesn't change state of subject tested.
+ In ideal case, run of meta test doesn't change state of subject tested.
  But this type of atoms can test only stateless systems and operations which
  are less erroneous and not so big candidates for regression testing as
  state-full systems are.
  For state-full systems (and meta tests) there should be method how to define
  and check states and legal transitions.
- Simple method to allow this is to give to tester some way to define pre-
- and post- run hooks that can initialize state, check transition and possibly
+ Simple method to allow this is to give to tester way to define pre and
+ post run hooks that can initialize state, check transition, and possibly
  do cleanup after test.
  While approach with pre and post run hooks is simple yet powerful, there
  is one issue connected to it.
- In this system tester can use state-full tests but in trade of possible
+ In this system tester can use state-full tests, but in trade of possible
  waste of resources.
  When test expected some state different that in which system is, it must
  either made a state change (non trivial operation out of test scope) or
@@ -1405,15 +1394,15 @@ must be generated from small test units (meta tests, atoms).
  More sophisticated system for resolving state-fullness is to give tester
  tool to define allowed transitions between tests.
  Transitions are often given by graph (edges can be allowed transitions
- or vice versa).
+ or tests).
  
 \end_layout
 
 \begin_layout Standard
 Sometimes it may be desirable to give some preferences (what should be tested).
- For random workload this means either binary switching tests on and off
- or giving preferences in percentage.
- When state-fullness is not solved or solved by pre- and post- hooks, percentage
+ For random workload this means either switching meta tests on and off or
+ giving preferences in percentage.
+ When state-fullness is not solved or solved by pre and post hooks, percentage
  is connected to tests.
  When transitions are used, percentage can be either for tests (implicit
  edges) or for transitions.
@@ -1424,7 +1413,7 @@ Length of continuous random workload can be simple defined as:
 \end_layout
 
 \begin_layout Itemize
-number of tests (min, max, mean)
+number of tests (minimum, maximum, mean)
 \end_layout
 
 \begin_layout Itemize
@@ -1445,53 +1434,67 @@ Pruning output
 \end_layout
 
 \begin_layout Standard
-When long test (or random test) fails we don't know which step has caused
- the failure, so we need test outputs (debugging info) to locate the bug.
+When long test (or random test) fails it could not be clear which step has
+ caused the failure.
+ So we need test outputs (debugging info) to locate the bug.
  On the other hand output from long and random tests can be huge and most
  of it may be useless.
  The goal of pruning output is to provide enough information to find the
  bug and at the same time hide useless ballast.
- Basically we can divide outputs to developer written log messages, system
- state snapshots (memory dumps, filesystem state, etc).
- The second type is more resources consuming, but searchable  by hand.
+ Basically we can divide outputs to developer written log messages, run
+ backtrace, and system state snapshots (memory dumps, filesystem state,
+ etc).
+ Data automatically generated is more resources consuming, but searchable
+  by hand.
  So as storage capacity is cheap, we can simply leave all snapshots or limit
  space used by constant and delete old snapshots.
- As for logs the problem was described in chapter !!! logging !!!.
- When logging doesn't slow application down and doesn't change behavior,
- the best approach is to log all, store all (or last X) and provide tool
+ As for logs the problem was described in 
+\begin_inset LatexCommand prettyref
+reference "sub:Logging,-tracing"
+
+\end_inset
+
+: when logging doesn't slow application down and doesn't change behavior,
+ the best approach is to log all, store all (or last N), and provide tool
  for filtering and searching logs.
- With this approach we can be sure that no crucial information was lost
+ With this approach, we can be sure that no crucial information was lost
  by heuristic pruning.
- In special cases lice low resource platforms (without storage, extremely
- slow, etc) where we can't afford wasting, some heuristic must be used.
- For system state this can be last state before recognizing failure and
- state after.
+ In special cases, like low resource platforms (without storage, extremely
+ slow, etc), where we can't afford wasting, some heuristic must be used.
+ For system state this can be the state in time of failure.
  For logs there can be more approaches which can be divided to 
 \end_layout
 
 \begin_layout Itemize
-on-time pruning - test suite changes log level of application according
- to probability of failure.
+
+\series bold
+on-time pruning
+\series default
+ - test suite changes log level of application according to probability
+ of failure.
  The question is, how it should know.
 \end_layout
 
 \begin_layout Itemize
-afterward - log level is constant for test run, logs are stored to cyclic
- buffer.
- When failure occurs, test suite will trim the buffer to store just use
- full information.
+
+\series bold
+afterward
+\series default
+ - log level is constant for test run, logs are stored to cyclic buffer.
+ When failure occurs, test suite will trim the buffer to store just useful
+ information.
 \end_layout
 
 \begin_layout Itemize
-re-run - tests are run with logging on minimal level.
+
+\series bold
+re-run
+\series default
+ - tests are run with logging on minimal level.
  When failure occur, test suite will rerun the test with more logging 
-\begin_inset Quotes eld
-\end_inset
-
+\emph on
 around
-\begin_inset Quotes erd
-\end_inset
-
+\emph default
  the failure, possibly skipping some parts of test (as for random generated
  workload).
 \end_layout
@@ -1507,20 +1510,20 @@ name "sub:Checkpointing"
 \end_layout
 
 \begin_layout Standard
-As some failures are hardly reproducible, developer wants as much information
- about the faulty run as possible.
+Some failures are hardly reproducible and thus developer wants as much informati
+on about the faulty run as possible.
  Sometimes logs are not sufficient and state of application in time of failure
  is needed.
- That's why some snapshoting support might be useful.
+ That's why some snapshot creation support might be useful.
  
 \end_layout
 
 \begin_layout Standard
 Moreover, as the runs to failure could be very long, the test suite may
- try to repeat just short parts of them or skip some steps to find the shortest
- possible run to bring about the bug.
+ try to repeat just short parts of them, or skip some steps to find the
+ shortest possible run to bring about the bug.
  For reruns is best, when the second run has the same start conditions.
- The snapshots (checkpoints) can help with it by resuming from stored state
+ The snapshot (checkpoint) can help with it by resuming from stored state
  (if possible).
 \end_layout
 
@@ -1557,10 +1560,10 @@ key "chpox"
 \end_layout
 
 \begin_layout Standard
-Other possibility, which solve the matter of sandbox too is to use some
+Other possibility, which solve the matter of sandbox too, is to use some
  virtualization tool and run application (not necessarily test suite) inside
  virtual machine.
- Nowadays there is many virtualization tools with support for snapshoting
+ Nowadays, there is many virtualization tools with support for snapshoting
  (for ex.
  openVZ 
 \begin_inset LatexCommand cite
@@ -1600,7 +1603,7 @@ key "gcore"
 
 \end_inset
 
- command (which creates gdb core dumps) to pause and snapshot the application.
+ command (which creates gdb core dumps) to snapshot the application.
 \end_layout
 
 \begin_layout Section
@@ -1626,8 +1629,8 @@ key "Continuous_integration"
 \end_inset
 
 ).
- To achieve regular tests it is convenient to use some tool (server) which
- automates the process.
+ To achieve regular testing, it is convenient to use some tool (server)
+ which automates the process.
  There is no need to develop own system as there are many proprietary solution
  and even more opensource solutions.
  It is interesting how many organizations deploy their own systems (for
@@ -1650,7 +1653,7 @@ key "Cruise_Control"
 \end_inset
 
 .
- Apache foundation even two projects - Continuum 
+ Apache foundation has even two projects - Continuum 
 \begin_inset LatexCommand cite
 key "Continuum"
 
