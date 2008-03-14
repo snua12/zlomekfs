@@ -1,3 +1,5 @@
+""" Module with base classes to inherit from when creating tests for zlomekfs. """
+
 import signal
 import pysyplog
 import tarfile
@@ -25,18 +27,55 @@ class ZfsRuntimeException(Exception):
     pass
 
 class ZfsProxy(object):
+    """ Proxy object which defines basic operations for zlomekfs filesystem,
+        such as start (mount), stop (umount), etc.
+    """
+    
     usedCompression = ""
+    """ How zfsMeta.tar is compressed (no compression) """
+    
     running = False
+    """ If zfs is running (our estimate - was started && not stoped) """
+    
     zfsRoot = "/mnt/zfs"
+    """ Where to mount zfs to. """
+    
     tempDir = "/tmp/zfsTestProxyTemp"
+    """ Temporary ditectory where to unpack data needed
+        (such as zfsMeta.tar with configuration, logs, etc)
+    """
+    
     zfsCacheDir = "cache"
+    """ Name of directory, where zfs should put it's cache """
+    
     logFileName = "zfsd.log"
+    """ File name for log from zfsd """
+    
     config = os.path.join("etc", "config")
+    """ File name of zfsd config. """
+    
     coreDumpSettings = None
+    """ Previous core dump settings (to restore settings after zfsd stop. """
+    
     zfs = None
+    """ Popen object of running zfsd process. """
+    
+    zfsModules = 'fuse'
+    """ List of kernel modules that are needed by zfsd """
     
     def __init__(self, metaTar, zfsRoot = None,  tempDir = None,
         logger = None):
+        """ Constructor for proxy.
+            
+            :Parameters:
+                metaTar: name of file containing basic zfs data 
+                    (config, cache structure)
+                zfsRoot: where to mount zfs to
+                tempDir: where to create dir with our session data
+                logger: logging module based logger (to put logs to)
+        """
+        
+        
         if zfsRoot:
             self.zfsRoot = zfsRoot
            
@@ -52,12 +91,19 @@ class ZfsProxy(object):
           
     @classmethod
     def killall(cls):
-        cls.signalAll()
+        """ Kill all zfsd instances, unmount and remove modules. """
+        cls.signalAll(signal.SIGKILL)
         cls.unmount()
         cls.removeModules()
         
     @classmethod
     def signalAll(cls, sigNum = None):
+        """ Send given signal to all zfsd instances. 
+            
+            :Parameters:
+                sigNum: unix signal number
+        """
+        
         if not sigNum:
             sigNum = signal.SIGKILL
         log.debug('signalling ' + str(sigNum))
@@ -67,10 +113,18 @@ class ZfsProxy(object):
         if sig.returncode:
             log.debug("signalAll: %d output is %s", sig.returncode,
                 sig.stdout.readlines())
-        
-        
+            
+            
             
     def collectZfsCoreDump(self, snapshot):
+        """ Try to find core dump of our zfsd and append it to snapshot.
+            The core dump found is deleted after append.
+            
+            :Parameters:
+                snapshot: SnapshotDescription instance to which 
+                    core dump should be inserted
+        """
+        
         #NOTE: assume core.pid format
         log.debug('collecting core dumps in %s', self.tempDir)
         if self.zfs.pid and os.path.isfile(os.path.join(self.tempDir,
@@ -84,13 +138,28 @@ class ZfsProxy(object):
                 'core.' + str(self.zfs.pid)))
             
     def installModules(self):
-        modprobe = Popen(args=('modprobe', 'fuse'), stdout=PIPE, 
+        """ Install needed modules into kernel. """
+        
+        modprobe = Popen(args=('modprobe', self.zfsModules), stdout=PIPE, 
                                 stderr=STDOUT, universal_newlines=True)
         modprobe.wait()
         if modprobe.returncode != 0:
             raise SystemError(modprobe.stdout.readlines())
             
+    @classmethod
+    def removeModules(cls):
+        """ Counterpart for installModules, remove modules needed by zfsd """
+        
+        rmmod = Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
+        rmmod.wait()
+        if rmmod.returncode:
+            log.debug("rmmod: %d output is %s", rmmod.returncode,
+                rmmod.stdout.readlines())
+        
+        
     def makeDirs(self):
+        """ Create dirs needed for zfsd run. """
+        
         try:
             os.makedirs(self.zfsRoot)
         except OSError: #exists
@@ -100,17 +169,11 @@ class ZfsProxy(object):
         except OSError: #exists
             pass
         
-    @classmethod
-    def removeModules(cls):
-        rmmod = Popen(args=('rmmod', '-f', 'fuse'), stderr = STDOUT, stdout = PIPE)
-        rmmod.wait()
-        if rmmod.returncode:
-            log.debug("rmmod: %d output is %s", rmmod.returncode,
-                rmmod.stdout.readlines())
-        
     #FIXME: not classmethod
     @classmethod
     def unmount(cls):
+        """ Do unmount call on zfsRoot. """
+        
         umount = Popen(args=('umount', '-f', cls.zfsRoot), stderr = STDOUT,
             stdout = PIPE)
         umount.wait()
@@ -119,34 +182,62 @@ class ZfsProxy(object):
                 umount.stdout.readlines())
         
     def unpackData(self):
+        """ Unpack zfsMeta.tar to tempDir. """
+        
         tarFile = tarfile.open(name = self.metaTar, 
                                mode = 'r' + self.usedCompression)
         tarFile.extractall(self.tempDir)
         tarFile.close()
         
-    def cleanup(self): #TODO: cleanup without tempDir removal
+    def cleanup(self):
+        """ Remove data used by this session (tempDir and it's content)."""
+        
         shutil.rmtree(self.tempDir, True)
         
     def connectControl(self):
+        """ Connect to syplog control """
+        
         if pysyplog.ping_syplog_dbus(None) != pysyplog.NOERR:
             raise Exception ("Syplog offline")
         
     def disconnectControl(self):
+        """ Disconnects from syplog control. """
+        
         pass
         
     def changeZfsLogLevel(self, loglevel):
+        """ Change logLevel of zfsd's syplog. 
+            
+            :Parameters:
+                loglevel: log level to set
+        """
+        
         if not self.isRunning():
             raise Exception("zfs not running") #TODO: accurate exception
         
         pysyplog.set_level_udp(loglevel, None, 0)
         
     def isRunning(self):
+        """ Check if zfs is really running.
+            
+            :Return:
+                True: if we thinks that zfs is running and zfsd proccess is alive.
+        """
+        
         return self.running and self.zfs.poll() is None
     
     def hasDied(self):
+        """ Check if zfs has died.
+            
+            :Return:
+                True: if we thinks that zfs is running, but zfsd process is not alive
+        """
+        
         return self.running and self.zfs.poll()
         
     def runZfs(self):
+        """ Kill previously running zfsd instances and run our own zfsd. """
+        
         self.killall() #destroy previous zfsd instances
         self.makeDirs()
         self.unpackData()
@@ -182,6 +273,7 @@ class ZfsProxy(object):
         self.connectControl()
         
     def stopZfs(self):
+        """ Stop our zfsd instance. """
         self.disconnectControl()
         for i in [0.1, 0.5, 1]:
             try:
@@ -204,6 +296,14 @@ class ZfsProxy(object):
             self.coreDumpSettings = None
         
     def snapshot(self, snapshot):
+        """ Snapshot zfsd related state (cache, core dump, etc)
+            
+            :Parameters:
+                snapshot: SnapshotDescription instance to which data should be
+                    appended
+                    
+        """
+        
         log.debug('snapshoting proxy')
         #snapshot cache
         try:
@@ -252,6 +352,13 @@ class ZfsProxy(object):
             snapshot.addObject("zfsStdout", self.zfs.stdout)
         
     def resume(self, snapshot):
+        """ Resume state (if possible). This is usefull only to ease mimic of 
+            environment in failure time.
+            
+            :Parameters:
+                snapshot: SnapshotDescription instance holding zfsd state
+        """
+        
         try:
             (entryType, canResume) = snapshot.getEntry("canResume")
             if entryType == SnapshotDescription.TYPE_BOOL and not canResume:
@@ -261,11 +368,15 @@ class ZfsProxy(object):
         
 
 class ZfsTest(object):
+    """ Class representing TestCase for zfsd, simple separated tests. """
     
     zfs = None
+    """ ZfsProxy instance """
     
     @classmethod
     def setupClass(cls):
+        """ Setup zfsd according to zfsConfig """
+        
         log.debug("setupClass")
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
         cls.zfsRoot = config.get("global", "zfsRoot")
@@ -274,10 +385,13 @@ class ZfsTest(object):
         cls.zfs = ZfsProxy(zfsRoot = cls.zfsRoot,  metaTar = cls.zfsMetaTar)
     
     def setup(self):
+        """ Run zfsd for the test. """
+        
         log.debug("setup")
         self.zfs.runZfs()
         
     def teardown(self):
+        """ Stop zfsd after test. """
         log.debug("teardown")
         self.raiseExceptionIfDied()
         self.zfs.stopZfs()
@@ -285,10 +399,15 @@ class ZfsTest(object):
         
     @classmethod
     def teardownClass(cls):
+        """ Do cleanup after tests (currently void) """
+        
         log.debug("teardownClass")
         # self.zfs = None
     
     def snapshot(self, snapshot):    
+        """ Snapshot current test.  
+            Appends zfsd state and this object state information.
+        """
         log.debug('snapshoting test')
         # snapshot zfs
         if getattr(self, 'zfs', None):
@@ -303,6 +422,7 @@ class ZfsTest(object):
         
     
     def resume(self,  snapshot):
+        """ Resume test state """
         # resume config
         try:
             config = snapshot.getConfig()
@@ -323,31 +443,46 @@ class ZfsTest(object):
         
 
 class ZfsStressTest(ZfsTest):
+    """ Class representing TestCase for stress testing.
+        Meta test holder classes should inherit from this class.
+    """
+    
     metaTest = True
+    """ mark this class as meta test holder. """
+    
     definitionType = graph.GraphBuilder.USE_FLAT
+    """ Default definition type is flat (use all tests) """
     
     def __init__(self):
         ZfsTest.__init__(self)
     
-    # we don't want to reset state after every test
     def setup(self):
+        """ Void function to override default behavior.
+            We don't want to reset state after every test.
+            Raise exception upon unexpected zfsd process termination.
+        """
+        
         self.raiseExceptionIfDied()
         log.debug("stress setup")
         
     def teardown(self):
+        """ Void function to override default behavior.
+            We don't want to reset state after every test.
+            Raise exception upon unexpected zfsd process termination.
+        """
         self.raiseExceptionIfDied()
         log.debug("stress teardown")
         
-    # do the before test setup only once before all tests
     @classmethod
     def setupClass(cls):
+        """ Do the before test setup only once before all tests. """
         super(ZfsStressTest, cls).setupClass()
         log.debug("stres setupClass")
         cls.zfs.runZfs()
         
-    # do the after test cleanup only once after all tests
     @classmethod
     def teardownClass(cls):
+        """ Do the after test cleanup only once after all tests. """
         cls.zfs.stopZfs()
         cls.zfs.cleanup()
         log.debug("stress teardownClass")
