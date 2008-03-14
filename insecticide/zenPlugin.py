@@ -106,6 +106,9 @@ class ZenPlugin(Plugin):
     __test__ = False
     """ Loader for zen-unit tests.
     
+        :Configuration Options:
+            There are no options except for enabling this plugins' functionality.
+        
         .. See: nose plugin interface
     """
     

@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
-"""
-Zfs test accessible plugin,
-zfs stress generator plugin,
+""" insecticide module setuptools script. """
 
-"""
 try:
     import ez_setup
     ez_setup.use_setuptools()

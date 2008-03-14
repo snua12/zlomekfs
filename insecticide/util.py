@@ -1,9 +1,21 @@
+""" General helper functions used in insecticide """
+
 import os
 import sys
 from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
 
 
 def noseWrapper(project = None, stripPath = None):
+    """ Wrapper function which executes nose within TestResultStorage BatchRun.
+        
+        :Parameters:
+            project: project name for which tests are executed
+            stripPath: last part of repository path, 
+                which is local to branch and should be striped from branch name
+                
+        :Return:
+            exits with return code from nose
+    """
     if 'DJANGO_SETTINGS_MODULE' not in os.environ:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
 
@@ -53,6 +65,17 @@ def noseWrapper(project = None, stripPath = None):
     
 
 def getMatchedTypes(obj,  types):
+    """ Returns attributes of object that are of one of defined types.
+        
+        :Parameters:
+            obj: object from which attributes should be fetched
+            types: list of types that should be returned
+            
+        :Return:
+            list of attributes of given object that is of defined type
+            (for example for types = [MethodType] 
+            returns all methods of given object)
+    """
     ret = []
     for name in dir(obj):
         item = getattr(obj,  name,  None)
@@ -62,10 +85,21 @@ def getMatchedTypes(obj,  types):
         return ret
 
 class CoreDumpSettings(object):
+    """ Wrapper object for rlimit settngs
+        (defines system core dumping settings)
+    """
     rLimitCore = None
+    """ Limit of core dump size for one process. """
+    
     rLimitFsize = None
+    """ Limit of file size for current process. """
     
 def allowCoreDumps():
+    """ Allow core dump generating by defining infinite core dump size.
+        
+        :Return:
+            previous settings used by operating system
+    """
     settings = CoreDumpSettings()
     settings.oldRlimitCore = getrlimit(RLIMIT_CORE)
     settings.oldRlimitFsize = getrlimit(RLIMIT_FSIZE)
@@ -76,6 +110,13 @@ def allowCoreDumps():
     return settings
     
 def setCoreDumpSettings(settings):
+    """ Set core dump settings to given values
+        
+        :Parameters:
+            settings: CoreDumpSettings instance defining 
+                wanted behavior
+    """
+    
     if settings.rLimitCore is not None:
         setrlimit(RLIMIT_CORE, settings.oldRlimitCore)
     if settings.oldRlimitFsize is not None:

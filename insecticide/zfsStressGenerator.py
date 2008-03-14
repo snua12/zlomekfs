@@ -997,4 +997,12 @@ class SuiteRunner(nose.suite.ContextSuite):
     
     def shortDescription(self):
         return self.__class__.__name__
+        
+class InfiniteChainedTestCase(ChainedTestCase):
+    def __init__():
+        pass
+#or generator array object
+
+class InfiniteChainedTestSuite:
+    pass
     

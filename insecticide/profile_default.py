@@ -1,3 +1,4 @@
+""" Default profile for insecticide testing """
 
 env = {
     'PROFILE_NAME' : __name__,

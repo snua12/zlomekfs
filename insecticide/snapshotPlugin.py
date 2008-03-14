@@ -1,48 +1,104 @@
+""" Module with SnapshotPlugin for nose.
+    This plugin provides snapshoting functionality
+    (tests can describe what is their state and plugin will
+    store the state upon defined circumstances.
+"""
+
 import os
 import textwrap
 import logging
 import tempfile
 import datetime
 
-from insecticide.snapshot import SnapshotDescription
-from insecticide.zfsStressGenerator import ChainedTestCase
 from optparse import OptionConflictError
 from warnings import warn
-
 from nose.plugins import Plugin
 
+from insecticide.snapshot import SnapshotDescription
+from insecticide.zfsStressGenerator import ChainedTestCase
+
 log = logging.getLogger ("nose.plugins.snapshotPlugin")
+""" Logger used in this module. """
 
 class SnapshotPlugin(Plugin):
-    """ Automatic test snapshots creation
+    """ Snapshot creation plugn.
+        Plugin for nose. If enabled, creates snapshots of test state
+        in predefined times.
+        
+        :Configuration Options:
+            maxSnapshots: how many old snapshots to preserve (1 = only the last)
+            snapshotsRootDir: root dir where snapshot directories 
+                should be created (for example /tmp)
+                
+            All options have both environment and parameter configuration option,
+            parameter is always stronger.
+            
+        .. See: nose plugin interface
     """
+    
+    # enable related variables
     can_configure = False
+    """ If configuration options should be used 
+        (mainly used for blocking if there is option collision) 
+        
+        .. See: nose plugin interface
+    """
     enabled = False
+    """ If this plugin is enabled (should be False by default) 
+        
+        .. See: nose plugin interface
+    """
+    
     enableOpt = None
+    """ Option name for enabling this plugin, if None, default will be used 
+        
+        .. See: nose plugin interface
+    """
+    
+    # plugin name
     name = "SnapshotPlugin"
+    """ Name used to identify this plugin in nose
+        
+        .. See: nose plugin interface
+    """
+    
     # to be sure to run AFTER attrib plugin and before zfsStressGenerator
     score = 8
+    """ Plugin ordering field within nose, used in descending order 
+        
+        .. See: nose plugin interface
+    """    
     
-    # option string for passing maximum number of snapshots (last N will be preserved)
     maxSnapshotsOpt = "--maxSnapshots"
-    # environment variable from which default snapshot number
-    # should be read
-    maxSnapshotsEnvOpt = "MAX_SNAPSHOTS"
-    # file name of config passed to plugins
-    maxSnapshots = 1
+    """ Option string for passing maximum number of snapshots (last N will be preserved) """
     
-    # option string for passing snapshot temp dir (where snapshots should be stored)
+    maxSnapshotsEnvOpt = "MAX_SNAPSHOTS"
+    """ Environment variable from which default snapshot number should be read """
+    
+    maxSnapshots = 1
+    """ Maximum snapshots to preserve. """
+    
     snapshotsRootDirOpt = "--snapshotsRootDir"
-    # environment variable from which default snapshot number
-    # should be read
+    """ Option string for passing snapshot temp dir (where snapshots should be stored) """
+    
     snapshotsRootDirEnvOpt = "SNAPSHOTS_ROOT_DIR"
-    # file name of config passed to plugins
+    """ Environment variable from which default snapshot number should be read """
+    
     snapshotsRootDir = "/tmp"
-
+    """ Directory where snapshotDir for snapshots will be created """
+    
+    # unconfigurable variables
     snapshotStart = False
+    """ If create test snapshot upon test start. """
+    
     snapshotSuccess = False
+    """ If create test snapshot upon test success. """
+    
     snapshotFailure = True
+    """ If create test snapshot upon test Failure. """
+    
     snapshotError = True
+    """ If create test snapshot upon test Error. """
     
     def __init__(self):
         Plugin.__init__(self)
@@ -69,9 +125,9 @@ class SnapshotPlugin(Plugin):
             self.can_configure = False
             
     def options(self, parser, env=os.environ):
-        """New plugin API: override to just set options. Implement
-        this method instead of addOptions or add_options for normal
-        options behavior with protection from OptionConflictErrors.
+        """ Adds options for this plugin: maxSnapshots, snapshotsRootDir
+            
+            .. See: nose plugin interface
         """
         Plugin.options(self,  parser,  env)
         
@@ -93,10 +149,10 @@ class SnapshotPlugin(Plugin):
 
     
     def configure(self, options, conf):
-        """Configure the plugin and system, based on selected options.
-        
-        The base plugin class sets the plugin to enabled if the enable option
-        for the plugin (self.enableOpt) is true.
+        """ Checks options for this plugin: maxSnapshots, snapshotsRootDir
+            and configure plugin according them.
+            
+            .. See: nose plugin interface
         """
         Plugin.configure(self,  options,  conf)
         if not self.can_configure:
@@ -125,6 +181,7 @@ class SnapshotPlugin(Plugin):
         return "(no help available)"
     
     def begin(self):
+        """ Create snapshotRootDir if doesn't exist. """
         if not os.path.exists(self.snapshotsRootDir):
             os.makedirs(self.snapshotsRootDir)
         if not os.path.isdir(self.snapshotsRootDir):
@@ -132,6 +189,13 @@ class SnapshotPlugin(Plugin):
                             % self.snapshotsRootDir)
         
     def snapshotIt(self, obj):
+        """ Create snapshot of given object and append it to buffer
+            
+            :Parameters:
+                obj: object to call 'snapshot' function on
+                    and where snapshotBuffer is located.
+                    (for example test class instance)
+        """
         # test - we want to snapshot inner test case
         if hasattr(obj, "test"): 
             target = obj.test
@@ -167,28 +231,36 @@ class SnapshotPlugin(Plugin):
         target.snapshotBuffer.append(snapshot)
             
     def startTest(self, test):
+        """ Nose plugin hook, create test snapshot if desired """
         if self.snapshotStart:
             self.snapshotIt(test)
         
     def handleError(self, test, err):
+        """ Nose plugin hook, create test snapshot if desired """
         if self.snapshotError:
             log.debug("error %s", str(err))
             self.snapshotIt(test)
         return None
         
     def handleFailure(self, test, err):
+        """ Nose plugin hook, create test snapshot if desired """
         if self.snapshotFailure:
             log.debug("failure %s", str(err))
             self.snapshotIt(test)
         return None
         
     @classmethod
-    def dropSnapshots(self,test):
-        while test.test.snapshotBuffer:
-            test.test.snapshotBuffer.pop(0).delete()
+    def dropSnapshots(self, test):
+        """ Remove all snapshots from test's snapshotBuffer
+            and delete their data fromdisk
+        """
+        while test.snapshotBuffer:
+            test.snapshotBuffer.pop(0).delete()
             
     def addSuccess(self, test):
         if not hasattr(test,"test"): #ignore non-tests
             return
-        if hasattr(test.test, "snapshotBuffer") and test.test.__class__ is not ChainedTestCase :
-            self.dropSnapshots(test)
+        
+        #do not drop snapshots of ChainedTestCases before whole chain have finished
+        if hasattr(test.test, "snapshotBuffer") and not isinstance(test.test, ChainedTestCase) :
+            self.dropSnapshots(test.test)
