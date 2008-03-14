@@ -42,7 +42,7 @@ void update_node_name (void);
 #ifdef ENABLE_TRACE
 
 	/*! Print which function we are in with additional information.  */
-	#define TRACE(format, ...) message (LOG_FUNC, FACILITY_UNKNOWN,	       \
+	#define TRACE(format, ...) message (LOG_FUNC, FACILITY_ZFSD,	       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)

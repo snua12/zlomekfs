@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include <syslog.h>
 
+
 #include "node.h"
 #include "syplog.h"
 #include "control/listener.h"
@@ -137,7 +138,7 @@ internal_error (const char *format, ...)
   va_list va;
   char msg[1024];
 #ifdef ENABLE_CHECKING
-  int pid;
+  int pid = getpid();
 #endif
 
   va_start (va, format);
@@ -153,18 +154,7 @@ internal_error (const char *format, ...)
   sleep (2);
 
 #ifdef ENABLE_CHECKING
-  pid = fork ();
-  if (pid == 0)
-    {
-      char buf[24];
-      fprintf (stderr, "killing");
-      sprintf (buf, "%d", getppid ());
-      execlp ("kill", "kill", "-SIGKILL", buf, NULL); //TODO: fix
-    }
-  else if (pid > 0)
-    {
-      waitpid (pid, NULL, 0);
-    }
+  kill (pid, SIGABRT);
 #endif
 
   /* Exit because in case of failure the state of data structures may be
