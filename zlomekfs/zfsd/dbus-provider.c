@@ -28,6 +28,7 @@
 #define message(x)	/*no logging*/
 #endif
 
+/// dbus timeout (how often to check for end) in miliseconds
 #define DBUS_CONNECTION_TIMEOUT		1000
 
 int dbus_provider_init (dbus_state_holder settings_struct)
@@ -116,6 +117,7 @@ void * dbus_provider_loop (void * data)
     
 NEXT:
     pthread_mutex_unlock (&(settings->mutex));
+    pthread_yield();
   }
   
   return NULL;
@@ -203,8 +205,8 @@ int dbus_provider_end (dbus_state_holder settings_struct)
   dbus_error_free(&(settings_struct->error));
 
   pthread_mutex_unlock (&(settings_struct->mutex));
-  
-  sleep (DBUS_CONNECTION_TIMEOUT / 500);
+  pthread_yield ();
+  sleep (DBUS_CONNECTION_TIMEOUT / 300);
   
   pthread_mutex_lock (&(settings_struct->mutex));
   
@@ -212,7 +214,7 @@ int dbus_provider_end (dbus_state_holder settings_struct)
   pthread_join (settings_struct->loop_thread, NULL);
   settings_struct->loop_thread = 0;
 
-  pthread_mutex_unlock (&(settings_struct->mutex));	
+  pthread_mutex_unlock (&(settings_struct->mutex));
   
   return TRUE;
 }
