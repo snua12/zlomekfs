@@ -218,6 +218,10 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
         class fake:
             def __init__(self):
                 self.inst = self
+                
+            def shortDescripton(self):
+                return "Unknown"
+                
         test = fake()
     run = TestRun()
     run.batchId = batch
