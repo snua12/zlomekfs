@@ -7,6 +7,9 @@ fix nfs permissions
 fix zfs synchronization
 fix zfs deadlock
 clean old data script
+check if getsize fails on normal fs too
+report nose log too
+facility change in ZfsProxy
 STABILIZE
 document
 skip function pruning

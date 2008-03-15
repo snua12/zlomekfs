@@ -136,12 +136,12 @@ ZlomekFS is special distributed filesystem aimed to allow transparent sharing
 
 \begin_layout Standard
 Unit of sharing (local directory) is called volume.
- In ZlomekFS there is no server and client nodes, the hierarchy is general
+ In ZlomekFS, there is no server and client nodes, the hierarchy is general
  graph where every node can exports volume.
- Neverthless, when two nodes connects, for each volume one of them must
- be master providing content, and the other client.
+ Neverthless, when two nodes connects, for volume one of them must be master
+ providing content, and the other client.
  This relationship can be bidirectional (client for one volume could be
- master for another and provide it to master of first volume).
+ master for another).
 \end_layout
 
 \begin_layout Standard
@@ -188,8 +188,9 @@ slow connection
 As in any software, in filesystems could be bugs too.
  But in case of filesystems, there is even bigger need for reliability.
  This is caused by low-level character of filesystems, where all other applicati
-ons depends on proper work of components beneath them and nearly every applicati
-on needs to store pernament data (for which filesystems are widely used).
+ons depends on proper work of components beneath them, and nearly every
+ application needs to store pernament data (for which filesystems are widely
+ used).
  To ensure reliability of software, tests are used.
  They should cover maximum of use-cases software could be use for.
  This is convenient for one term software development, but essential when
@@ -201,8 +202,8 @@ However, ZlomekFS lacks any tests or testing environment.
  As described, ZlomekFS is very complex and special filesystem, and there
  is only few similar filesystems.
  Because of this, there is need to develop special framework for testing.
- It should provide tools for providing debuging and tracing information
- if bugs are found.
+ It should be able to provide debuging and tracing information, if bugs
+ are found.
 \end_layout
 
 \begin_layout Standard
@@ -1688,8 +1689,7 @@ key "Continuous_integration"
 ).
  To achieve regular testing, it is convenient to use some tool (server)
  which automates the process.
- There is no need to develop own system as there are many proprietary solution
- and even more opensource solutions.
+ There are many proprietary solution and even more opensource solutions.
  It is interesting how many organizations deploy their own systems (for
  example Mozilla Foundation uses Tinderbox 
 \begin_inset LatexCommand cite
@@ -1723,10 +1723,6 @@ key "Gump"
 \end_inset
 
  - that is only from opensource projects).
- It is obvious why it is this way: core features of continuous integration
- server are easy to write and after some time when more features are needed,
- project may be bound to integration server so tightly, that it is nearly
- impossible to switch to another system.
 \end_layout
 
 \begin_layout Subsection
@@ -2101,19 +2097,20 @@ key "LTP"
 \end_inset
 
  is collection of test suites for Linux operating system internals.
+ Tests are compiled programs or scripts, driving is done by control script.
  The part dedicated to filesystems contains previously mentioned FSX (
 \begin_inset LatexCommand prettyref
 reference "sub:FSX"
 
 \end_inset
 
-) and own filesystem testing scripts.
+) and own filesystem testing binaries.
+ Checking is mostly done by comparison between results and expected values.
  There are both types of tests: predefined loops with random arguments (file
  sizes, etc) and stress tests consisting of random sequences of operations.
- Tests are compiled programs, driving is done by control script.
  No cleanup is provided.
- There is vast amount of operations implemented.
  Failure log contains only arguments to last tests.
+ There is vast amount of operations implemented.
 \end_layout
 
 \begin_layout Subsection
@@ -2178,7 +2175,7 @@ Programming language
 \begin_layout Standard
 Since ZlomekFS tends to be multiplatform and support more operating systems
  (currently only Linux is supported), language which runs on any platform
- or at least under UNIX-like operating systems is needed.
+ (or at least under UNIX-like operating systems) is needed.
  For testing, the language should be flexible enough, but on other hand
  since file system will be tested, speed must be considered too.
  Last but not least need is that the language should allow integration with
@@ -2199,8 +2196,8 @@ key "Python"
  was chosen as main programing language for driving component.
  Python can integrate with most compiled languages and thus not all components
  must be written in python.
- Performance critical parts and integration libraries are written in ZlomekFS
- native language - 
+ Performance critical parts and integration libraries can be written in
+ ZlomekFS native language - 
 \series bold
 C
 \series default
@@ -2220,8 +2217,8 @@ Testing environment
 \begin_layout Standard
 For very specific purpose of testing distributed file system, no suitable
  existing solution was found.
- Instead of development of new system it was decided to tweak existing tool
- (if possible) to fit the needs.
+ Instead of development of new system, it was decided to tweak existing
+ tool (if possible) to fit the needs.
  From general purpose testing tools written in python 
 \series bold
 Nose
@@ -2246,49 +2243,6 @@ Continuous integration
 \begin_layout Standard
 When choosing tools for continuous integration, only opensource projects
  with reliable community around it were considered.
- Investigation was made on Cruise Control 
-\begin_inset LatexCommand cite
-key "Cruise_Control"
-
-\end_inset
-
-, Continuum 
-\begin_inset LatexCommand cite
-key "Continuum"
-
-\end_inset
-
-, Gump 
-\begin_inset LatexCommand cite
-key "Gump"
-
-\end_inset
-
-, Cabie 
-\begin_inset LatexCommand cite
-key "Cabie"
-
-\end_inset
-
-, Tinderbox 
-\begin_inset LatexCommand cite
-key "Tinderbox"
-
-\end_inset
-
-, Frysk 
-\begin_inset LatexCommand cite
-key "Frysk"
-
-\end_inset
-
-and Buildbot 
-\begin_inset LatexCommand cite
-key "BuildBot"
-
-\end_inset
-
-.
 \end_layout
 
 \begin_layout Standard
@@ -2477,8 +2431,8 @@ No one of C based unit testing tools have automatic test discovery.
 
 \begin_layout Standard
 Since external are non-trivial for integration to project and writing of
- simple C based unit testing is trivial, new C based unit testing library
- was implemented.
+ simple C based unit testing is relatively easy, new C based unit testing
+ library was implemented.
 \end_layout
 
 \begin_layout Subsection
@@ -2497,8 +2451,8 @@ key "Doxygen"
 \end_inset
 
  was chosen.
- Main argument was that ZlomekFS is documented in DoxyGen, secondary DoxyGen
- is nowadays nearly standard tool for documenting C code.
+ Main argument was that ZlomekFS is documented in DoxyGen.
+ Secondary, DoxyGen is nowadays nearly standard tool for documenting C code.
 \end_layout
 
 \begin_layout Standard
@@ -2509,7 +2463,7 @@ key "Doxypy"
 
 \end_inset
 
- and even then results are not ideal.
+, and even then results are not ideal.
  
 \end_layout
 
@@ -3331,14 +3285,6 @@ For integration with nose we use parsing of test output.
 \end_layout
 
 \begin_layout Section
-The big picture
-\end_layout
-
-\begin_layout Standard
-TODO
-\end_layout
-
-\begin_layout Section
 Build system
 \end_layout
 
@@ -3443,6 +3389,145 @@ n, only django needs to have
 DJANGO_SETTINGS_MODULE
 \emph default
  present in environment, so it is exported in start time of buildbot.
+\end_layout
+
+\begin_layout Section
+Global architecture
+\end_layout
+
+\begin_layout Subsection
+Typical call sequence
+\end_layout
+
+\begin_layout Standard
+When testing is invoked (through buildbot or manually by 
+\emph on
+make test
+\emph default
+), the cooperation and calls between components are as follows.
+\end_layout
+
+\begin_layout Standard
+First component used is nose wrapper, which loads profile, creates BatchRun
+ object and commits it to TestResultRepository.
+ Then, control is passed to nose (environment and command line options are
+ preserved).
+ 
+\end_layout
+
+\begin_layout Standard
+Nose parses environment and command line options and configure enabled plugins
+ according to them.
+ Here is initialization phase of SnapshotPlugin, ZfsConfig plugin, ZfsStressGene
+rator, ZfsReportPlugin executed.
+ ZfsConfig plugin tries to load configuration files for tests, that contains
+ for example paths for zfsd and zfsd configuration.
+ SnapshotPlugin ensure, that required directories exists.
+ ZfsReportPlugin calls TestResultRepository fetching previously created
+ object of BatchRun.
+\end_layout
+
+\begin_layout Standard
+After initialization phase, nose will search for tests.
+ Standard tests are handled directly by nose, plugins are not involved in
+ this process.
+ When file with meta class is found (or directly passed), ZfsStressGenerator
+ will load all tests from it to cache and block their normal execution.
+ The same is done for saved path files.
+ If binary file (or library) is found, ZenPlugin will try to execute it
+ as 
+\emph on
+zen test suite
+\emph default
+ - that means executing it with LD_PRELOAD of libzenunit.so.
+ Then output is parsed and if there were test run, ZenPlugin will create
+ report for it.
+\end_layout
+
+\begin_layout Standard
+Before execution of tests begins, ZfsStressGenerator will appends ContextSuite
+ containing stress tests into main ContextSuite of nose.
+\end_layout
+
+\begin_layout Standard
+Then, execution phase is reached.
+ For every ContextSuite (TestCase) it's context is initialized.
+ In initialization, ZfsConfig plugin passes ConfigParser object (representation
+ of config files) to test.
+ In case of clasic (non stress) tests, initialization of zfsd is made in
+ setup and teardown methods in scope of method, in case of stress tests,
+ initialization of zfsd is made in setupClass and teardownClass - methods
+ in scope of class fixtures.
+ In setup and teardown methods of stress test, there is only check, if zfsd
+ is still running and if not, execution is raised.
+\end_layout
+
+\begin_layout Standard
+Initialization of zfsd is encapsulated into ZfsProxy object, consists of:
+ unpacking configuration, reading configuration and fork of actual zfsd
+ (passing given parameters).
+ After fork, there is wait loop where proxy object tries to connect to zfsd
+ through d-bus, and check if it have started correctly.
+ Eventually, when something goes wrong, exception is raised.
+\end_layout
+
+\begin_layout Standard
+In next phase, tests are executed.
+ Each test is considered as passing if there is no exception raised.
+ There are two types of exceptions distinquished.
+ If the exception is of type AssertionException (raised by assert clause),
+ test is considered as failed.
+ Other exceptions are handled as not-expected, thus error is reported.
+ Tests can modify zfsd behavior by calls on ZfsProxy instance, for example
+ there is posibility to change log level or facility set (this can be convenient
+ in tests of special scope - if test is aimed to locking problems, it can
+ constrain log messages to threading related only).
+\end_layout
+
+\begin_layout Standard
+If failure or error is detected, SnapshotPlugin will create snapshot of
+ failed test, where arbitrary data defined by developer are apended in test
+ class 
+\emph on
+snapshot
+\emph default
+ method.
+ In current implementation of ZfsTest class, it means test object, test
+ data, ZfsProxy object, zfsd log file, zfsd core dump, zfs cache directory,
+ in case of comparing tests the directory on compare filesystem.
+ In case of stress test call sequence is stored too.
+\end_layout
+
+\begin_layout Standard
+Reporting of clasic tests are handled by ZfsReportPlugin which creates TestRun
+ object with appropriate parameters and commits it to TestResultStorage.
+ If test has failed, ZfsReportPlugin will append failure data (snapshot,
+ backtrace, excpetion) to TestRunData.
+ Stress tests are handled and reported by ZfsStressGenerator plugin.
+ This special case is separated to prevent multiple reports of the same
+ call sequence.
+\end_layout
+
+\begin_layout Standard
+After stresstest fails, ZfsStressGenrator can try to prune the call sequence
+ and put it back to test queue.
+ This is done only given number of times, then the last failure (some pruned
+ sequences may not fail) is stored by ZfsStressGenerator to saved path file.
+\end_layout
+
+\begin_layout Standard
+When all tests have run, control is passed to nose wrapper, which finalizes
+ BatchRun - sets it's duration and result.
+ If there is exception, that is not handled in nose, it is caught by wrapper
+ and reported as system failure in current BatchRun.
+\end_layout
+
+\begin_layout Subsection
+Nose plugins api extensions
+\end_layout
+
+\begin_layout Standard
+special attirbutes of tests
 \end_layout
 
 \begin_layout Chapter
