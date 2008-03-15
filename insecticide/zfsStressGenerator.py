@@ -11,18 +11,20 @@ import nose
 
 from optparse import OptionConflictError
 from warnings import warn
-from insecticide.failure import ZfsTestFailure
-from insecticide.report import ReportProxy
-from insecticide.snapshot import SnapshotDescription
-from insecticide.zfsReportPlugin import ZfsReportPlugin
 from traceback import format_exc
 from types import TypeType, ClassType
+
+from insecticide.failure import ZfsTestFailure
+from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
+from insecticide.snapshot import SnapshotDescription
+from insecticide.snapshotPlugin import snapshotRedirectAttrName
+from insecticide.zfsReportPlugin import ZfsReportPlugin
+from insecticide.graph import GraphBuilder
 
 from nose.case import MethodTestCase,  TestBase
 from nose.suite import ContextSuiteFactory, ContextList
 from nose.plugins import Plugin
 
-from insecticide.graph import GraphBuilder
 
 log = logging.getLogger ("nose.plugins.zfsStressGenerator")
 
@@ -462,7 +464,7 @@ class StressGenerator(Plugin):
         """
         
         #it's simple, since inst is the thing snapshot is called on, we only need to set this
-        setattr (suite, 'snapshotedObject', snapshotedObject)
+        setattr (suite, snapshotRedirectAttrName, snapshotedObject)
 
     def generateOneStress(self, cls, allowedMethods):
         """ Generates stress test suite from test class and list of allowed methods.
@@ -795,7 +797,7 @@ class ChainedTestCase(MethodTestCase):
     inst = None
     """ TestClass instance. Holds tests state and global chain state. """
     
-    __globalAttributes = ['failureBuffer', 'snapshotBuffer', 'chain', 'cls']
+    __globalAttributes = ['failureBuffer', 'snapshotBuffer', 'chain', 'cls', startTimeAttr, endTimeAttr]
     """  List of attributes which shoud not be accessed locally on TestCase.
         They are stored in self.inst instead
         :Items:
@@ -816,6 +818,15 @@ class ChainedTestCase(MethodTestCase):
                 raise AttributeError()
                 
         return super(ChainedTestCase, self).__getattribute__(name)
+        
+    def __hasattr__(self, name):
+        if name in ChainedTestCase.__globalAttributes:
+            if self.inst:
+                return self.inst.__hasattr__(name)
+            else:
+                raise AttributeError()
+                
+        return super(ChainedTestCase, self).__hasattr__(name)    
         
     def __setattr__(self, name, value):
         """ Overriding access method for object attributes

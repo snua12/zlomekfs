@@ -249,7 +249,7 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
     if duration:
         run.duration = duration
     elif hasattr(test, startTimeAttr):
-        if hasattr(test, endTimeAttr):                
+        if hasattr(test, TimeAttr):                
             run.duration = computeDuration(getattr(test, startTimeAttr),
                             getattr(test, endTimeAttr))
         else:

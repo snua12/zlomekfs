@@ -10,6 +10,11 @@ import logging
 import tempfile
 import datetime
 
+snapshotRedirectAttrName = 'snapshotedObject'
+""" Name of attribute of test which if specified is snapshoted
+    instead of 'inst'
+"""
+
 from optparse import OptionConflictError
 from warnings import warn
 from nose.plugins import Plugin
@@ -204,8 +209,8 @@ class SnapshotPlugin(Plugin):
         else:
             target = obj
             
-        if hasattr(target, 'snapshotedObject') and hasattr(target.snapshotedObject, 'snapshot'):
-            snapshotedObject = target.snapshotedObject
+        if hasattr(target, snapshotRedirectAttrName):
+            snapshotedObject = getattr(target, snapshotRedirectAttrName)
         elif  hasattr(target, "inst") and hasattr(target.inst, "snapshot"):
             snapshotedObject = target.inst
         else:
