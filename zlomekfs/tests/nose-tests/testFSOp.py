@@ -87,7 +87,6 @@ def trySeek(file, newPos):
     
 class testFSOp(ZfsTest):
   disabled = False
-  zfs = True
   
   def __init__(self):
     ZfsTest.__init__(self)
@@ -113,18 +112,21 @@ class testFSOp(ZfsTest):
   dataVector  = []
   dataVectorLength = 1024
   
+  safeRoot = None
   safeFile = None
   testFile = None
   safeSubdirName = 'safedir'
   
   def snapshot(self, snapshot):
-    try:
-        snapshot.addDir('compareDir', os.path.join(self.safeRoot,
-                                self.safeSubdirName), type = SnapshotDescription.TYPE_COMPARE_FS)
-    except (OSError, IOError):
-        #ignore no dir errors, etc
-        log.debug("can't snapshot compare dir: %s", format_exc())
-        pass
+    if self.safeRoot and self.safeSubdirName:
+        try:
+            
+            snapshot.addDir('compareDir', os.path.join(self.safeRoot,
+                                    self.safeSubdirName), type = SnapshotDescription.TYPE_COMPARE_FS)
+        except (OSError, IOError):
+            #ignore no dir errors, etc
+            log.debug("can't snapshot compare dir: %s", format_exc())
+            pass
     ZfsTest.snapshot(self, snapshot)
   
   def resume(self, snapshot):

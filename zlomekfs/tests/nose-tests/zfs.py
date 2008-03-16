@@ -224,7 +224,7 @@ class ZfsProxy(object):
                 True: if we thinks that zfs is running and zfsd proccess is alive.
         """
         
-        return self.running and self.zfs.poll() is None
+        return self.running and self.zfs.poll() is None and zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING
     
     def hasDied(self):
         """ Check if zfs has died.
@@ -233,7 +233,7 @@ class ZfsProxy(object):
                 True: if we thinks that zfs is running, but zfsd process is not alive
         """
         
-        return self.running and self.zfs.poll()
+        return self.running and (self.zfs.poll() or zfsd_status.ping_zfsd() != zfsd_status.ZFSD_STATE_RUNNING)
         
     def runZfs(self):
         """ Kill previously running zfsd instances and run our own zfsd. """
