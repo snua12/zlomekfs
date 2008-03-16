@@ -17,14 +17,17 @@ from types import TypeType, ClassType
 from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
 from insecticide.snapshot import SnapshotDescription
-from insecticide.snapshotPlugin import snapshotRedirectAttrName
 from insecticide.zfsReportPlugin import ZfsReportPlugin
 from insecticide.graph import GraphBuilder
 
-from nose.case import MethodTestCase,  TestBase
-from nose.suite import ContextSuiteFactory, ContextList
+from nose.case import MethodTestCase,  TestBase, Test
+from nose.proxy import ResultProxyFactory
 from nose.plugins import Plugin
+from nose.suite import LazySuite
 
+
+LENGTH_INFINITE = -1
+""" Define for infinite tests. This is 'virtual' length of infinite chain. """
 
 log = logging.getLogger ("nose.plugins.zfsStressGenerator")
 
@@ -218,7 +221,7 @@ class StressGenerator(Plugin):
     
     def __init__(self):
         Plugin.__init__(self)
-    
+        
     def addOptions(self, parser, env=os.environ):
         # for backward conpatibility
         self.add_options(parser, env)
@@ -278,7 +281,6 @@ class StressGenerator(Plugin):
                                 "%s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.commitSavedPathsEnvOpt))
         
-    
     def configure(self, options, conf):
         """ Checks options for this plugin: enableOpt, maxTestLength, 
             testsByClass, retriesAfterFailure, commitSavedPaths 
@@ -289,8 +291,11 @@ class StressGenerator(Plugin):
         Plugin.configure(self,  options,  conf)
         if not self.can_configure:
             return
+            
+        # config and resultProxy - we will need them to construct 
+        # our own ContextSuites
         self.conf = conf
-        self.suiteClass = ContextSuiteFactory(config=conf)
+        self.resultProxy = ResultProxyFactory(config=conf)
         if hasattr(options, self.enableOpt):
             self.enabled = getattr(options, self.enableOpt)
         
@@ -394,78 +399,6 @@ class StressGenerator(Plugin):
         else:
             log.debug("no meta tests in class %s",  cls)
         
-    
-    def monkeyPatchSuiteRun(self, suite):
-        """ Patches suite object (its class) switching 'run' method to stop when
-            stopContext flag on test is found. This is needed for stopping chain after
-            failure and not running remaining meta tests.
-            
-            :Parameters:
-                suite: nose context suite object
-        """
-        #NOTE: keep this in sync with nose.suite.ContextSuite.run
-        def runWithStopSuiteOnTestFail(self, result):
-            """ Our implementation of suite run method.
-                We need this to allow stop suite only after test failure
-                (skip other in suite).
-                
-                .. See: nose.suite.ContextSuite
-            """
-            # proxy the result for myself
-            if self.resultProxy:
-                result, orig = self.resultProxy(result, self), result
-            else:
-                result, orig = result, result
-            try:
-                self.setUp()
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, self.exc_info())
-                return
-            try:
-                for test in self._tests:
-                    from insecticide.zfsStressGenerator import StressGenerator
-                    if getattr(test, StressGenerator.stopContextAttr, None):
-                        setattr(test, StressGenerator.stopContextAttr, None)
-                        log.debug('caught stopContextAttr before test %s', str(id(test)))
-                        break;
-                    if result.shouldStop:
-                        log.debug("stopping")
-                        break
-                    # each nose.case.Test will create its own result proxy
-                    # so the cases need the original result, to avoid proxy
-                    # chains
-                    
-                    test(orig)
-                    
-                    if getattr(test, StressGenerator.stopContextAttr, None):
-                        setattr(test, StressGenerator.stopContextAttr, None)
-                        log.debug('caught stopContextAttr after test %s', str(id(test)))
-                        break;
-                    
-            finally:
-                self.has_run = True
-                try:
-                    self.tearDown()
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    result.addError(self, self.exc_info())
-        setattr(suite.__class__, 'run', runWithStopSuiteOnTestFail)
-        
-    def monkeyPatchSuiteSnapshot(self, suite, snapshotedObject):
-        """ Provide snapshot function redirection for suites too 
-            (redirect to instance in case of stress suites)
-            
-            :Parameters:
-                suite: suite to patch
-                snapshotedObject: object whose 'snapshot' function should be called
-        """
-        
-        #it's simple, since inst is the thing snapshot is called on, we only need to set this
-        setattr (suite, snapshotRedirectAttrName, snapshotedObject)
-
     def generateOneStress(self, cls, allowedMethods):
         """ Generates stress test suite from test class and list of allowed methods.
             
@@ -482,20 +415,17 @@ class StressGenerator(Plugin):
         
         
         classGraph = GraphBuilder.generateDependencyGraph(cls, allowedMethods)
-        methodSequence = list()
-        length = 0
-        next = classGraph.next(stopProbability = self.stopProbability)
+        classGraph.setStopProbability(self.stopProbability)
         
-        while length < self.maxTestLength and next:
-            methodSequence.append(next)
-            length += 1
-            next = classGraph.next(self.stopProbability)
+        # we use LazyTestChain to allow virtually infinite chains
+        methodSequence = LazyTestChain(graph = classGraph, 
+            maxLength = self.maxTestLength)
+        
         if methodSequence:
             suite = self.wrapMethodSequence(cls, methodSequence)
             self.chainQueue.append(suite)
         return None
-
-    
+        
     def generateFromClass(self,  cls,  allowedMethods):
         """ Generate self.testsByClass chains for given class
             
@@ -517,54 +447,36 @@ class StressGenerator(Plugin):
         """
             :Parameters:
                 cls: class for which suite (chain) should be created
-                methodSequence: ordered list of meta tests (string form) in order in which they should run in chan.
+                methodSequence: ordered list of meta tests (string form) in order in which they should run in chain.
+                    If self.maxTestLength is LENGTH_INFINITE, it should be LazyTestChain instance.
                 carryAttributes: map of attributeName : value. 
                     Attributes that will be set on every test case object to given value.
                     Used to carry snapshot buffers, failure buffers and so on.
             
             :Return:
-                nose context suite object
+                nose ContextSuite object (actually InfiniteChainedTestSuite 
+                    is used to allow more virtual tests as one object)
         """
         log.debug("wrapping method sequence %s for stress testing"
                         "from class %s",  methodSequence,  cls)
         inst = cls()
-        testCases = []
         
-        for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
-            theCase = ChainedTestCase(cls = cls, instance = inst,
-                                            chain = methodSequence, index = i) 
-            if carryAttributes:
-                for key in carryAttributes:
-                    try:
-                        setattr(theCase, key, carryAttributes[key])
-                    except KeyError:
-                        pass
-            testCases.append(theCase)
-            
-        # this was code that has created one case for whole chain
-        '''
-        theCase = ChainedTestCase(cls = cls, chain = methodSequence) 
+        theCase = ChainedTestCase(cls = cls, instance = inst,
+                                        chain = methodSequence, index = 0) 
         if carryAttributes:
             for key in carryAttributes:
                 try:
                     setattr(theCase, key, carryAttributes[key])
                 except KeyError:
                     pass
-        
-        for i in range(0, len(methodSequence)): #NOTE: the range is o.k.
-            testCases.append(theCase)
-        '''
-        
-        if testCases:
-            log.debug("returning tests %s", str(testCases))
-            suite = self.suiteClass(ContextList(testCases, context=cls))
-            # we need our run method to allow stop suite after failure
-            self.monkeyPatchSuiteRun(suite)
-            # we provide instance for possibility of snapshots - instance is the thing we want to snapshot
-            self.monkeyPatchSuiteSnapshot(suite = suite, snapshotedObject = inst)
+            
+        if theCase:
+            log.debug("returning tests %s", str(theCase))
+            suite = InfiniteChainedTestSuite(theCase, context=cls, 
+                config = self.conf, resultProxy = self.resultProxy)
             return suite
         return None
-
+        
     # called once for THE one root testcase
     def prepareTest(self, test):  
         """ Apends chained test cases from classes or saved paths
@@ -578,7 +490,7 @@ class StressGenerator(Plugin):
         wrapper = SuiteRunner(self.chainQueue)
         self.rootCase.addTest(wrapper)
         self.rootCase = wrapper
-    
+        
     def prune(self, test):
         """ Prune stress test chain. 
             Try to find shorter sequence from first method to last used (where index points to).
@@ -602,7 +514,7 @@ class StressGenerator(Plugin):
             return path
         
         return test.chain[:test.index + 1]
-    
+        
     def retry(self, test):
         """ Query test for retry.
             
@@ -664,7 +576,7 @@ class StressGenerator(Plugin):
         if test.__class__ is ChainedTestCase:
             return True
         return False
-    
+        
     def handleFailure(self, test, err, error = False):
         """ Catches stress test failure. Blocks all subsequent plugins 
             from seeing it (non stress failures are ignored).
@@ -692,14 +604,14 @@ class StressGenerator(Plugin):
                     if not getattr(testInst,  self.fromSavedPathAttr, None):
                         self.storePath(testInst)
         return False
-    
+        
     def handleError (self, test, err):
         """ Calls handleFailure with flag that this is error.
             
             .. See: nose plugin interface
         """
         return self.handleFailure (test, err, error = True)
-    
+        
     def addFailure(self, test, err, error = False):
         """ Reports stress test failure. Blocks subsequent plugins from seeing it.
             
@@ -719,14 +631,14 @@ class StressGenerator(Plugin):
                     else:
                         self.reportProxy.reportFailure(ZfsTestFailure(testInst,err), name = testName, description = description)
                 return True
-    
+        
     def addError(self, test, err):
         """ Calls addFailure with flag that this is error. 
             
             .. See: nose plugin interface
         """
         return self.addFailure(test, err, error = True)
-    
+        
     def addSuccess(self, test):
         """ Reports stress test success if this is first pass.
             If subsequent call of failed test is detected, reports failure from last run instead.
@@ -745,13 +657,14 @@ class StressGenerator(Plugin):
                 if index < len(chain) - 1: #do not report partial tests for suite
                     log.debug("blocking success of %s", test)
                 elif testInst.failureBuffer:
+                    log.debug("%s failure from addSuccess", testInst.method.__name__)
                     self.storePath(testInst)
                     failure = testInst.failureBuffer.pop()
                     (testName, description) = self.generateDescription(failure.test)
                     if self.shouldReport:
-                        log.debug("reporting %s failure from addSuccess", testInst.method.__name__)
                         self.reportProxy.reportFailure(failure, name = testName, description = description)
                 else:
+                    log.debug("%s success from addSuccess ", str(testInst))
                     (testName, description) = self.generateDescription(test)
                     if self.shouldReport:
                         self.reportProxy.reportSuccess(testInst, name = testName, description = description)
@@ -772,7 +685,8 @@ class StressGenerator(Plugin):
         """
         if test.test.__class__ is ChainedTestCase:
             testName = "Chain for " + test.test.cls.__name__
-            description = "Method " + test.test.chain[test.test.index] + " at " + str(test.test.index) + " in sequence: " + str(test.test.chain) # TODO: truncate
+            
+            description = test.shortDescription()
         return (testName, description)
     
     def finalize(self, result):
@@ -927,9 +841,33 @@ class ChainedTestCase(MethodTestCase):
         return (cls,methods)
 
         
+        
+    def setIndexTo(self, index, method = None, test = None):
+        """ Shift this TestCase to be for test on index 'index' in chain.
+            
+            :Parameters:
+                index: index in chain (zero based)
+                method: override method on chain[index] with method
+                test: override test with test
+                
+            :Raise:
+                IndexError: if index is out of range
+        """
+        if not method:
+            self.method = getattr(self.cls, self.chain[index])
+        else:
+            self.method = method
+            
+        if test is None:
+            method_name = self.method.__name__
+            self.test = getattr(self.inst, method_name) 
+        
+        self.index = index
+        
     def __init__(self, cls, method = None, test=None, arg=tuple(),
                 descriptor=None, instance = None,  chain = None,  index = 0):
         """ Initializes whole chain.
+            TODO: parameters
             
             ..See: nose.case.MethodTestCase.__init__
         """
@@ -941,7 +879,6 @@ class ChainedTestCase(MethodTestCase):
         self.cls = cls
         setattr(self, 'failureBuffer', [])
         setattr(self, 'snapshotBuffer', [])
-        self.test = test
         self.arg = arg
         self.descriptor = descriptor
         
@@ -955,17 +892,18 @@ class ChainedTestCase(MethodTestCase):
             setattr(self.inst, "resume", self.resumeChain)
         
         self.chain = chain
-        self.index = index
-        if not method:
-            self.method = getattr(self.cls, chain[index])
-        else:
-            self.method = method
-            
-        if self.test is None:
-            method_name = self.method.__name__
-            self.test = getattr(self.inst, method_name)            
-
+        
+        self.setIndexTo(index, method, test)
+        
         TestBase.__init__(self)
+        
+    def shiftToNext(self):
+        """ Transform this TestCase to next test in chain.
+            
+            :Raise:
+                IndexError: if end of chain is reached
+        """
+        self.setIndexTo(self.index +  1)
         
     def shortDescription(self):
         """ Return short description for current test
@@ -974,10 +912,10 @@ class ChainedTestCase(MethodTestCase):
         """
         # FIXME: return correct test before run, in run and after run :/
         if len(self.chain) > 10:
-            return self.method.__name__ + " in chain " + str(self.chain[:5]) + \
-                " .. " + str(self.chain[self.index - 2: self.index + 1])  + "[" + str(self.index) + "]"
+            return self.method.__name__ + " at " + str(self.index) + " in chain " + str(self.chain[:5]) + \
+                " .. " + str(self.chain[self.index - 2: self.index + 1])
         else:
-            return self.method.__name__ + " in chain " + str(self.chain) + "[" + str(self.index) + "]"
+            return self.method.__name__ + " in chain " + str(self.chain)
         
     
 class SuiteRunner(nose.suite.ContextSuite):
@@ -1009,11 +947,219 @@ class SuiteRunner(nose.suite.ContextSuite):
     def shortDescription(self):
         return self.__class__.__name__
         
-class InfiniteChainedTestCase(ChainedTestCase):
-    def __init__():
-        pass
-#or generator array object
+        
 
-class InfiniteChainedTestSuite:
-    pass
+class LazyTestChain(object):
+    """ Lazy array of stress test method names.
+        Used instead of normal array to provide
+        virtually infinite sequences (arrays).
+    """
+    __overridenAttributes = ['__overridenAttributes', '__extendedAttributes', \
+        '__init__', '__expand__', '__getitem__', '__setitem__', 'array', \
+        'graph', 'maxLength', '__len__', '__str__', '__repr__']
     
+    def __getattribute__(self, name):
+        """ Overriding getattribute method for object attributes
+            redirects all except ChainedTestCase.__overridenAttributes to
+            self.array (array of used items)
+        """
+        if name in LazyTestChain.__overridenAttributes:
+            return super(LazyTestChain, self).__getattribute__(name)
+        elif not hasattr(self, 'array') or self.array is None:
+            raise AttributeError()
+        else:
+            return self.array.__getattribute__(name)
+                
+    __getattr__ = __getattribute__
+        
+    def __setattr__(self, name, value):
+        """ Overriding access method for object attributes
+            redirects all except ChainedTestCase.__overridenAttributes to
+            self.array (array of used items).
+        """
+        if name in LazyTestChain.__overridenAttributes:
+            return super(LazyTestChain, self).__setattr__(name, value)
+        elif not self.array:
+            raise AttributeError()
+        else:
+            return self.array.__setattr__(name, value)
+    
+    def __init__(self, graph, maxLength = 0):
+        """ Constructor. Sets length, graph to use and first item.
+            
+            :Parameters:
+                graph: DependencyGraph instance to generate method seqence from
+                maxLength: maximum length of chain (array)
+        """
+        self.array = []
+        self.graph = graph
+        self.maxLength = maxLength
+        
+        # we need at least the first test
+        self.__expand__(0)
+        
+        
+    def __expand__(self, key):
+        """ Try to expand this chain (array) to length given by key.
+            Expand will stop expanding if self.maxLength is reached or
+            self.graph.next returns None.
+            
+            :Parameters:
+                key: integer (length of array) 
+                    or slice instance - key.stop is usd
+            
+            :Raise:
+                TypeError: if other type of key is given
+        """
+        log.debug('%d expand to %s', id(self), str(key))
+        if isinstance(key, int):
+            if key < 0:
+                return
+            toGenerate = key - len(self) + 2
+        elif isinstance(key, slice):
+            if key.stop and key.stop >= 0:
+                toGenerate = key.stop - len(self) + 2
+            else:
+                return
+        else:
+            raise TypeError
+            
+        currentLength = len(self)
+        if self.maxLength != LENGTH_INFINITE and \
+            currentLength + toGenerate > self.maxLength:
+            toGenerate = self.maxLength - currentLength
+        while toGenerate > 0:
+            method = self.graph.next()
+            if method:
+                self.array.append(method)
+            else:
+                break;
+            toGenerate -= 1
+    
+    def __iter__(self):
+        """ Iteragor provider, redirected to self.array. """
+        return self.array.__iter__()
+        
+    def __getitem__(self, key):
+        """ Container method override, If key points behind actual array length,
+            tries to expand it and redirects call to self.array. 
+            """
+        self.__expand__(key)
+        return self.array.__getitem__(key)
+        
+    def __setitem__(self, key, value):
+        """ Container method override, If key points behind actual array length,
+            tries to expand it and redirects call to self.array. 
+        """
+        self.__expand__(key)
+        return self.array.__setitem__(key, value)
+        
+    def __len__(self):
+        """ Container method override, redirects call to self.array. 
+        """
+        return len(self.array)
+    
+    def __str__(self):
+        """ String representation of instance - returns array.__str__. """
+        return self.array.__str__()
+        
+    __repr__ = __str__
+    
+
+
+class InfiniteChainedTestSuite(nose.suite.ContextSuite):
+    """ TestSuite for infinite test sequence.
+        Most parts are used with default behavior, just there is only
+        one TestCase used - should be ChainedTestCase, and
+        further tests are generated by .shiftToNext method
+    """
+    
+    def __init__(self, test, context=None, factory = None,
+        config=None, resultProxy=None):
+        """ Constructor override.
+            
+            :Parameters:
+                test: ChainedTestCase with index set to begin
+                context: context class (class form which chain was generated
+                factory: factory that has generated this suite (if any)
+                config: nose configuration object
+                resultProxy: nose.proxy.ResultProxy object
+                
+            .. See: nose.suite.ContextSuite
+        """
+        
+        self.context=context
+        self.factory = factory
+        self.config=config
+        self.resultProxy=resultProxy
+        self.test = Test(test, config=self.config, resultProxy=self.resultProxy)
+        self.snapshotedObject = test.inst
+        self.has_run = False
+        
+        LazySuite.__init__(self, test.chain)
+        
+    def run(self, result):
+        """ Our implementation of suite run method.
+            We need this to allow stop suite only after test failure
+            (skip other in suite).
+            
+            .. See: nose.suite.ContextSuite
+        """
+        # proxy the result for myself
+        if self.resultProxy:
+            result, orig = self.resultProxy(result, self), result
+        else:
+            result, orig = result, result
+        try:
+            self.setUp()
+        except KeyboardInterrupt:
+            raise
+        except:
+            result.addError(self, self.exc_info())
+            return
+        try:
+            while True:
+                from insecticide.zfsStressGenerator import StressGenerator
+                if getattr(self.test, StressGenerator.stopContextAttr, None):
+                    setattr(self.test, StressGenerator.stopContextAttr, None)
+                    log.debug('caught stopContextAttr before test %s', str(id(self.test)))
+                    break;
+                if result.shouldStop:
+                    log.debug("stopping")
+                    break
+                    
+                self.test(orig)
+                
+                if getattr(self.test, StressGenerator.stopContextAttr, None):
+                    setattr(self.test, StressGenerator.stopContextAttr, None)
+                    log.debug('caught stopContextAttr after test %s', str(id(self.test)))
+                    break;
+                    
+                try:
+                    self.test.test.shiftToNext()
+                except IndexError:
+                    log.debug('end of world reached')
+                    break;
+                except AttributeError:
+                    log.warning('TestCase without shiftToNext passed to InfiniteTestCase')
+            
+        finally:
+            self.has_run = True
+            try:
+                self.tearDown()
+            except KeyboardInterrupt:
+                raise
+            except:
+                result.addError(self, self.exc_info())
+        
+        pass
+        
+    def shortDescription(self):
+        """ Return short description for this suite
+        
+            .. See: nose interface
+        """
+        if hasattr(self.test, 'shortDescription'):
+            return self.test.shortDescription()
+        else:
+            return self.__class__.__name__
