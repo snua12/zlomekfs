@@ -30,6 +30,9 @@ class DependencyGraph(object):
     randomGenerator = SystemRandom()
     """ Random generator used to generate random path through graph. """
     
+    stopProbability = 0
+    """ Probability to stop after test. 0.1 means 10% """
+    
     def equals(self,  graph):
         """ Compares this graph with given and returns if they contains equal information.
             
@@ -149,7 +152,16 @@ class DependencyGraph(object):
             if hit <=0:
                 return item[0]
         return None
-    
+        
+    def setStopProbability(self, probability):
+        """ Set default stop probability for this graph.
+            
+            :Parameters:
+                probability: probablility of terminating graph walk early.
+                    0.1 means 10% to stop 
+        """
+        self.stopProbability = probability
+        
     def getCurrent(self):
         """ Return current node
             
@@ -163,11 +175,15 @@ class DependencyGraph(object):
             
             :Parameter:
                 stopProbability: probability (0,1) of walk termination
+                    just for this call, if not defined, default from class will be used
                 
             :Return:
                 node or None
         """
         current = self.currentNode
+        if stopProbability == 0:
+            stopProbability = self.stopProbability
+            
         if stopProbability > 0:
             key = self.randomGenerator.uniform(0, 1)
             if key < stopProbability:
