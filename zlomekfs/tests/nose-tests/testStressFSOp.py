@@ -30,7 +30,6 @@ def abortDeadlock():
 class testStressFSOp(ZfsStressTest, testFSOp):
   disabled = False
   definitionType = GraphBuilder.USE_GLOBAL
-  zfs = True
   
   noFileSuccessors = [('testTouch', 3), ('testGenerateName', 1), ('testOpen', 5)]
   fileExistSuccessors = [('testRename', 1), ('testUnlink', 1),
