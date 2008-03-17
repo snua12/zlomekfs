@@ -19,7 +19,11 @@ log = logging.getLogger ("nose.tests.testFSOp")
 
 def tryGetSize(file):
     try:
-        return os.path.getsize(file.name)
+        pos = file.tell()
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(pos, os.SEEK_SET)
+        return size
     except os.error:
         return -1
     
@@ -70,7 +74,6 @@ def tryWrite(file,  data):
   try:
     log.debug ("try write to file %s", file.name)
     file.write(data)
-    file.flush()
     return True
   except (IOError, OSError):
     log.debug(format_exc())
@@ -85,7 +88,7 @@ def trySeek(file, newPos):
         
     return file.tell()
     
-class testFSOp(ZfsTest):
+class TestFSOp(ZfsTest):
   disabled = False
   
   def __init__(self):
@@ -138,7 +141,7 @@ class testFSOp(ZfsTest):
   @classmethod
   def setupClass(self):
     log.debug(self.__name__ + "setupclass")
-    super(testFSOp,self).setupClass()
+    super(TestFSOp,self).setupClass()
     config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
     
     globalSafeRoot = config.get("global","testRoot")
@@ -163,7 +166,7 @@ class testFSOp(ZfsTest):
   @classmethod
   def teardownClass(self):
     log.debug(self.__name__ + "teardownclass")
-    super(testFSOp,self).teardownClass()
+    super(TestFSOp,self).teardownClass()
     shutil.rmtree(self.safeRoot, True)
     log.debug(self.__name__ + "teardownclass finish")
   

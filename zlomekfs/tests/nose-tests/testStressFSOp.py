@@ -15,7 +15,7 @@ from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
 
 from zfs import ZfsStressTest, ZfsProxy
-from testFSOp import testFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename, trySeek, tryGetSize, tryGetPos
+from testFSOp import TestFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename, trySeek, tryGetSize, tryGetPos
 
 
 from insecticide.timeoutPlugin import timed
@@ -27,7 +27,7 @@ def abortDeadlock():
     ZfsProxy.signalAll(signal.SIGABRT)
     #ZfsProxy.killall()
 
-class testStressFSOp(ZfsStressTest, testFSOp):
+class testStressFSOp(ZfsStressTest, TestFSOp):
   disabled = False
   definitionType = GraphBuilder.USE_GLOBAL
   

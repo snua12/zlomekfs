@@ -11,7 +11,7 @@ from zfs import ZfsStressTest
 from insecticide.graph import GraphBuilder
 from insecticide.zfsConfig import ZfsConfig
 
-class testFSOps(ZfsStressTest):
+class TestFSOps(ZfsStressTest):
   disabled = False
   metaTest = True
   definitionType = GraphBuilder.USE_FLAT
@@ -50,7 +50,7 @@ class testFSOps(ZfsStressTest):
   
   @classmethod
   def setupClass(self):
-    super(testFSOps,self).setupClass()
+    super(TestFSOps,self).setupClass()
     config = getattr(self,ZfsConfig.configAttrName)
     self.safeRoot = config.get("global","testRoot")
     self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
@@ -65,7 +65,7 @@ class testFSOps(ZfsStressTest):
   # cleanup after every test method
   @classmethod
   def teardownClass(self):
-    super(testFSOps,self).teardownClass()
+    super(TestFSOps,self).teardownClass()
     self.cleanFiles()
   
   @classmethod
