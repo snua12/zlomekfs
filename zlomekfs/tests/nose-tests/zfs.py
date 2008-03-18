@@ -294,6 +294,10 @@ class ZfsProxy(object):
         if self.coreDumpSettings:
             setCoreDumpSettings(self.coreDumpSettings)
             self.coreDumpSettings = None
+            
+        #remove zombies
+        if self.zfs:
+            self.zfs.wait()
         
     def snapshot(self, snapshot):
         """ Snapshot zfsd related state (cache, core dump, etc)
