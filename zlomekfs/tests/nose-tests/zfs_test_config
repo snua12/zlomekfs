@@ -1,7 +1,5 @@
 [global]
 
-readOnly: no
 zfsRoot: /mnt/zfs
-testRoot: /tmp
 zfsMetaTar=zfsMeta.tar
 

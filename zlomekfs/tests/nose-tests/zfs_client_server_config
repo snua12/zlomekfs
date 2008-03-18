@@ -1,0 +1,10 @@
+[locaZfs]
+
+zfsRoot: /mnt/zfs
+zfsMetaTar: localZfsMeta.tar
+
+[remoteZfs]
+
+zfsRoot: /mnt/zfs
+zfsMetaTar: remoteZfsMeta.tar
+hostname: buildslave
