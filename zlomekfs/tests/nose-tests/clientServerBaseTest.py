@@ -9,13 +9,11 @@ import shutil
 
 from subprocess import Popen, PIPE, STDOUT
 from os.path import walk
-from twisted.spread import pb
 from insecticide import zfsConfig
 from insecticide.snapshot import SnapshotDescription
 
 from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException
-from remoteZfs import uploadFile, downloadFile
-from remoteZfs import GetRemoteControl, SimpleRemoteCall
+from remoteZfs import RemoteControlWrapper, ReactorWrapper, RemoteException
 from testFSOp import TestFSOp
 from nose.tools import TimeExpired
 
@@ -27,13 +25,21 @@ local_files = ['zfs.py', 'remoteZfs.py', 'testFSOps.py, testFSOp.py', \
 log = logging.getLogger('nose.tests.clientServerBaseTest')
 
 class ClientServerBaseTest(ZfsStressTest, TestFSOp):
-    reactor = None
-    reactorThread = None
+    reactorWrapper = None
+    remoteControlWrapper = None 
     remoteZfs = None
     
     
     @classmethod
-    def getRpms(cls, tempDir = '/tmp/'):
+    def uploadFiles(cls, files):
+        #upload files
+        for fileName in files:
+            if os.path.isfile(fileName):
+                cls.remoteControlWrapper.uploadFile(fromFile = fileName)
+    
+    @classmethod
+    def syncRpms(cls):
+        tempDir = tempfile.mkdtemp()
         rpms = []
         regex = '('
         
@@ -68,18 +74,26 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
                     
         walk(tempDir, reportFile, (rpms, match))
         
-        return rpms
+        cls.uploadFiles(rpms)
+        
+        cmd = ['rpm', '-Uvh', '--force']
+        cmd.extend(rpms)
+        
+        update = cls.remoteControlWrapper.call('system', cmdLine = cmd)
+        if update != 0:
+            raise OSError('rpm update failed: %d' % update)
+        
+        shutil.rmtree(tempDir, True)
+        # TODO: delete remote rpms too
         
     @classmethod
-    def connect(cls, timeout = 10):
+    def connect(cls):
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
         targetHost = config.get("remoteZfs", "hostname")
         
-        cls.remoteControl = GetRemoteControl.callDirect(timeout = timeout, 
-            reactor = cls.reactor, host = targetHost)
-        if not isinstance(cls.remoteControl, pb.RemoteReference):
-            raise Exception ("can't get remoteControl")
-        
+        cls.remoteControlWrapper = RemoteControlWrapper(cls.reactorWrapper,
+            host =  targetHost)
+            
         
     @classmethod
     def setupRemoteZfs(cls):
@@ -87,11 +101,8 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         remoteRoot = config.get("remoteZfs", "zfsRoot")
         remoteTar = config.get("remoteZfs", "zfsMetaTar")
         
-        cls.remoteZfs = SimpleRemoteCall.callDirect( timeout = 20,  
-            reactor = cls.reactor, remoteReference = cls.remoteControl, 
-            _name = 'getZfs', metaTar = remoteTar, zfsRoot = remoteRoot)
-        if not isinstance(cls.remoteZfs, pb.RemoteReference):
-            raise Exception('getZfs failed')
+        cls.remoteZfs = cls.remoteControlWrapper.getRemoteObject('getZfs', 
+            metaTar = remoteTar, zfsRoot = remoteRoot)
         
         
     @classmethod
@@ -106,40 +117,30 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
     def setupClass(cls):
         
         # start twisted and get root handle
-        cls.reactor, cls.reactorThread = threaded_reactor()
+        reactor, reactorThread = threaded_reactor()
+        cls.reactorWrapper = ReactorWrapper(reactor, reactorThread)
+        
         cls.connect()
         
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
         remoteTar = config.get("remoteZfs", "zfsMetaTar")
         local_files.append(remoteTar)
-        #upload files
-        for fileName in local_files:
-            if os.path.isfile(fileName):
-                uploadFile(cls.reactor, cls.remoteControl, fromFile = fileName)
+        
+        cls.uploadFiles(local_files)
         
         # upload rpms
-        tempDir = tempfile.mkdtemp()
-        rpms = []#rpms = cls.getRpms(tempDir)
-        
-        for rpm in rpms:
-            uploadFile(cls.reactor, cls.remoteControl, fromFile = rpm)
-            
-        rpms = ['/var/lib/TestResultStorage/data/zen-unit-0.1-2797.6.x86_64.rpm']
-        cmd = ['rpm', '-Uvh', '--force']
-        cmd.extend(rpms)
-        update = SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteControl,'system', cmdLine = cmd)
-        if isinstance(update, pb.CopiedFailure) or update != 0:
-            raise Exception('rpm update failed: %d' % update)
-        
-        shutil.rmtree(tempDir, True)
+        #cls.syncRpms()
         
         # restart
         try:
-            restart = SimpleRemoteCall.callDirect(cls.reactor, 2, cls.remoteControl, 'restart')
-            raise Exception("can't restart: " + str(restart))
+            cls.reactorWrapper.setTimeout(2)
+            restart = cls.remoteControlWrapper.call('restart')
+            raise RemoteException("Restart returned (not expected): " + str(restart))
         except TimeExpired:
             pass
-        
+        finally:
+            cls.reactorWrapper.setTimeout(20)
+            
         cls.connect()
         
         # configure
@@ -147,35 +148,36 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         cls.setupLocalZfs()
         
         #start
-        SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteZfs, 'start')
+        cls.remoteZfs.call('start')
         cls.localZfs.runZfs()
         
     @classmethod
     def teardownClass(cls):
         #shutdown remote zfs
-        stop_reactor()
-        cls.reactorThread = None
         
         cls.localZfs.stopZfs()
-        cls.localZfs.clenaup()
+        cls.localZfs.cleanup()
         
-        SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteZfs, 'stop')
-        SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteZfs, 'cleanup')
+        cls.remoteZfs.call('stop')
+        cls.remoteZfs.call('cleanup')
+        
+        stop_reactor()
+        cls.reactorWrapper = None
+        cls.remoteControlWrapper = None
+        cls.remoteZfs = None
         
     def snapshot(self, snapshot):
         self.localZfs.snapshot(snapshot)
         
-        remoteFile = SimpleRemoteCall.callDirect(self.remoteZfs, 'snapshot')
-        if isinstance(remoteFile, pb.CopiedFailure):
-            raise Exception("can't snapshot: " + str(remoteFile))
+        remoteFile = self.remoteZfs.getRemoteObject('snapshot')
         (handle, tempName) = tempfile.mkstemp()
-        downloadFile(toFile = tempName, remoteFile = remoteFile)
+        self.remoteControlWrapper.downloadFile(toFile = tempName, remoteFile = remoteFile)
         
         snapshot.addFile('remoteZfsSnapshot', tempName, 
             type = SnapshotDescription.TYPE_TAR_FILE)
         
         os.unlink(tempName)
-        SimpleRemoteCall.callDirect(remoteFile, 'delete')
+        remoteFile.call('delete')
         
     def setup(self):
         self.raiseExceptionIfDied()
@@ -185,10 +187,10 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         
     def raiseExceptionIfDied(self):
         if self.localZfs.hasDied() or \
-            SimpleRemoteCall.callDirect(self.remoteZfs, 'hasDied'):
+            self.remoteZfs.call('hasDied'):
             log.debug("zfs has died")
             
             self.localZfs.stopZfs()
-            SimpleRemoteCall.callDirect(self.remoteZfs, 'stop')
+            self.remoteZfs.call('stop')
             raise ZfsRuntimeException("Zfsd died upon test execution")
 

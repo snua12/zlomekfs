@@ -1,18 +1,27 @@
 #! /bin/env python
 
+"""
+    locally, we wrap every RemoteReference into RemoteObject
+"""
+
 from twisted.spread import pb
 from twisted.internet import reactor
 import sys
 import os
-from insecticide.snapshot import SnapshotDescription
 import tempfile
+from insecticide.snapshot import SnapshotDescription
+from insecticide.timeoutPlugin import TimeExpired
 from subprocess import Popen
 from threading import Condition
 from zfs import ZfsProxy
-from nose.tools import TimeExpired
 
+
+
+class RemoteException(Exception):
+    pass
 
 LISTEN_PORT = 8007
+CHUNK_SIZE = 4096
 
 class RemoteFile(pb.Referenceable):
     def __init__(self, fileName, mode):
@@ -129,16 +138,6 @@ class SimpleRemoteCall(object):
         deref = remoteReference.callRemote(*arg, **kwargs)
         deref.addCallbacks(self.successHandler, self.errorHandler)
         
-        
-    @classmethod
-    def callDirect(cls, reactor, timeout = None, *arg, **kwargs):
-        call = cls(*arg, **kwargs)
-        reactor.callFromThread(call)
-        #call = cls(*arg, **kwargs)
-        call.wait(timeout = timeout)
-        
-        return call.returncode
-        
     def wait(self, timeout = None):
         self.cond.acquire()
         if not self.returned:
@@ -147,12 +146,8 @@ class SimpleRemoteCall(object):
         self.cond.release()
         if not self.returned:
             raise TimeExpired('timeout')
-
-
-def printit(obj):
-    print obj
     
-class GetRemoteControl(SimpleRemoteCall):
+class GetRootObject(SimpleRemoteCall):
     def __init__(self, reactor, host = 'localhost', port = LISTEN_PORT):
         self.cond = Condition()
         
@@ -162,71 +157,114 @@ class GetRemoteControl(SimpleRemoteCall):
         deref = factory.getRootObject()
         deref.addCallbacks(getattr(self,'successHandler'), getattr(self, 'errorHandler'))
         
-    @classmethod
-    def callDirect(cls, reactor, timeout = None, *arg, **kwargs):
-        call = cls(reactor, *arg, **kwargs)
-        reactor.callFromThread(call)
+
+class ReactorWrapper(object):
+    def __init__(self, reactor, reactorThread, timeout = 10):
+        self.reactor = reactor
+        self.reactorThread = reactorThread
+        self.timeout = timeout
+        
+    def setTimeout(self, timeout):
+        self.timeout = timeout
+        
+    def call(self, remoteReference, *arg, **kwargs):
+        call = SimpleRemoteCall(remoteReference, *arg, **kwargs)
+        
+        self.reactor.callFromThread(call)
         #call = cls(*arg, **kwargs)
-        call.wait(timeout = timeout)
+        call.wait(timeout = self.timeout)
         
-        return call.returncode
+        if isinstance(call.returncode, pb.CopiedFailure):
+            raise RemoteException(str(call.returncode))
+        else:
+            return call.returncode
         
-    
-CHUNK_SIZE = 4096
+    def getRemoteObject(self, remoteReference, *args, **kwargs):
+        ret = self.call(remoteReference, *args, **kwargs)
+        
+        if not isinstance(ret, pb.RemoteReference):
+            raise TypeError('Invalid return value of type %s', str(type(ret)))
+        else:
+            return RemoteObjectWrapper(self, ret)
+        
 
-def uploadFile(reactor, remoteControl, fromFile, toFile = None, remoteFile = None):
-    print 'uploading ' + fromFile
-    if not toFile:
-        toFile = fromFile
+class RemoteObjectWrapper(object):
+    def __init__(self, reactorWrapper, remoteReference):
+        self.remoteReference = remoteReference
+        self.reactorWrapper = reactorWrapper
         
-    if not remoteFile:
-        dir = os.path.dirname(toFile)
-        if dir:
-            SimpleRemoteCall.callDirect(reactor, 10, remoteControl, 'makedirs', dir)
-        remoteFile = SimpleRemoteCall.callDirect(reactor, 10, remoteControl, 'open', toFile, 'wb+')
-        if isinstance(remoteFile, pb.CopiedFailure):
-            raise Exception("can't open remote file: " + str(remoteFile))
+    def call(self, *args, **kwargs):
+        return self.reactorWrapper.call(self.remoteReference, *args, **kwargs)
         
-    localFile = open(fromFile, 'r')
+    def getRemoteObject(self, *args, **kwargs):
+        return self.reactorWrapper.getRemoteObject(self.remoteReference, *args,
+            **kwargs)
+        
+
+class RemoteControlWrapper(RemoteObjectWrapper):
     
-    chunk = localFile.read(CHUNK_SIZE)
-    while chunk:
-        SimpleRemoteCall.callDirect(reactor, 20, remoteFile, 'write', chunk)
+    def __init__(self, reactorWrapper, host = 'localhost', port = LISTEN_PORT):
+        
+        call = GetRootObject(reactorWrapper.reactor, host = host, 
+            port = port)
+            
+        reactorWrapper.reactor.callFromThread(call)
+        call.wait(reactorWrapper.timeout)
+        
+        if not isinstance(call.returncode, pb.RemoteReference):
+            raise RemoteException("Can't get remoteControl " + str(call.returncode))
+            
+        RemoteObjectWrapper.__init__(self, reactorWrapper, call.returncode)
+        
+    def uploadFile(self, fromFile, toFile = None, remoteFile = None):
+        if not toFile:
+            toFile = fromFile
+            
+        if not remoteFile:
+            dir = os.path.dirname(toFile)
+            if dir:
+                self.call('makedirs', dir)
+            remoteFile = self.getRemoteObject('open', toFile, 'wb+')
+            
+        localFile = open(fromFile, 'r')
+        
         chunk = localFile.read(CHUNK_SIZE)
+        while chunk:
+            remoteFile.call('write', chunk)
+            chunk = localFile.read(CHUNK_SIZE)
+            
+        localFile.close()
+        remoteFile.call('close')
         
-    localFile.close()
-    SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'close')
-    
 
-def downloadFile(reactor, remoteControl, fromFile = None, toFile = None, remoteFile = None):
-    if not toFile and not fromFile:
-        raise Exception('either source or target must be specified')
+    def downloadFile(self, fromFile = None, toFile = None, remoteFile = None):
+        if not toFile and not fromFile:
+            raise AttributeError('either source or target must be specified')
+            
+        if not toFile and fromFile:
+            toFile = fromFile
+        elif not fromFile and toFile:
+            fromFile = toFile
+            
+        if not remoteFile:
+            dir = os.path.dirname(toFile)
+            if dir:
+                try:
+                    os.makedirs(dir)
+                except OSError:
+                    pass
+            remoteFile = self.getRemoteObject('open', fromFile, 'r')
+            
+        localFile = open(toFile, 'wb+')
         
-    if not toFile and fromFile:
-        toFile = fromFile
-    elif not fromFile and toFile:
-        fromFile = toFile
+        chunk = remoteFile.call('read', CHUNK_SIZE)
+        while chunk:
+            localFile.write(chunk)
+            chunk = remoteFile.call('read', CHUNK_SIZE)
+            
+        localFile.close()
+        remoteFile.call('close')
         
-    if not remoteFile:
-        dir = os.path.dirname(toFile)
-        if dir:
-            try:
-                os.makedirs(dir)
-            except OSError:
-                pass
-        remoteFile = SimpleRemoteCall.callDirect(reactor, 10, remoteControl, 'open', fromFile, 'r')
-        if isinstance(remoteFile, pb.CopiedFailure):
-            raise Exception("can't open remote file: " + str(remoteFile))
-        
-    localFile = open(toFile, 'w+b')
-    
-    chunk = SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'read', CHUNK_SIZE)
-    while chunk:
-        localFile.write(chunk)
-        chunk = SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'read', CHUNK_SIZE)
-        
-    localFile.close()
-    SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'close')
 
 if __name__ == '__main__':
     reactor.listenTCP(LISTEN_PORT, pb.PBServerFactory(RemoteControl()))
