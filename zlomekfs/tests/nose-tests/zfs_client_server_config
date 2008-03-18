@@ -1,4 +1,4 @@
-[locaZfs]
+[localZfs]
 
 zfsRoot: /mnt/zfs
 zfsMetaTar: localZfsMeta.tar

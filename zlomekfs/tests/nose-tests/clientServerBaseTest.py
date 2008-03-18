@@ -17,8 +17,11 @@ from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException
 from remoteZfs import uploadFile, downloadFile
 from remoteZfs import GetRemoteControl, SimpleRemoteCall
 from testFSOp import TestFSOp
+from nose.tools import TimeExpired
 
 rpm_list = ['zlomekfs', 'syplog', 'pysyplog', 'zfsd-status', 'insecticide']
+local_files = ['zfs.py', 'remoteZfs.py', 'testFSOps.py, testFSOp.py', \
+    'testStressFSOp.py']
 # + all local files
 
 log = logging.getLogger('nose.tests.clientServerBaseTest')
@@ -32,10 +35,10 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
     @classmethod
     def getRpms(cls, tempDir = '/tmp/'):
         rpms = []
-        regex = ''
+        regex = '('
         
         # to force existence of /dev/fuse 
-        modprobe = Popen(args = ('modprobe', 'fuse'), STDOUT = PIPE,
+        modprobe = Popen(args = ('modprobe', 'fuse'), stdout = PIPE,
             stderr = STDOUT)
         modprobe.wait()
         if modprobe.returncode != 0:
@@ -53,7 +56,7 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
                 raise Exception('packager failed: %d(%s)' \
                     % (packager.returncode, str(packager.stdout.readlines())))
             
-        regex = regex[:len(regex) - 1] + '.*\.rpm'
+        regex = regex[:len(regex) - 1] + ').*\.rpm'
         match = re.compile(regex)
         
         def reportFile(rpmsSpec, dir, files):
@@ -68,11 +71,12 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         return rpms
         
     @classmethod
-    def connect(cls):
+    def connect(cls, timeout = 10):
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
         targetHost = config.get("remoteZfs", "hostname")
         
-        cls.remoteControl = GetRemoteControl.callDirect(cls.reactor, targetHost)
+        cls.remoteControl = GetRemoteControl.callDirect(timeout = timeout, 
+            reactor = cls.reactor, host = targetHost)
         if not isinstance(cls.remoteControl, pb.RemoteReference):
             raise Exception ("can't get remoteControl")
         
@@ -83,8 +87,9 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         remoteRoot = config.get("remoteZfs", "zfsRoot")
         remoteTar = config.get("remoteZfs", "zfsMetaTar")
         
-        cls.remoteZfs = SimpleRemoteCall.callDirect(cls.remoteControl, 'getZfs',
-            metaTar = remoteTar, zfsRoot = remoteRoot)
+        cls.remoteZfs = SimpleRemoteCall.callDirect( timeout = 20,  
+            reactor = cls.reactor, remoteReference = cls.remoteControl, 
+            _name = 'getZfs', metaTar = remoteTar, zfsRoot = remoteRoot)
         if not isinstance(cls.remoteZfs, pb.RemoteReference):
             raise Exception('getZfs failed')
         
@@ -104,35 +109,45 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         cls.reactor, cls.reactorThread = threaded_reactor()
         cls.connect()
         
+        config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
+        remoteTar = config.get("remoteZfs", "zfsMetaTar")
+        local_files.append(remoteTar)
         #upload files
-        localFiles = os.listdir('.')
-        for fileName in localFiles:
-            uploadFile(remoteControl = cls.remoteControl, fromFile = fileName)
+        for fileName in local_files:
+            if os.path.isfile(fileName):
+                uploadFile(cls.reactor, cls.remoteControl, fromFile = fileName)
         
         # upload rpms
         tempDir = tempfile.mkdtemp()
-        rpms = cls.getRpms(tempDir)
+        rpms = []#rpms = cls.getRpms(tempDir)
         
         for rpm in rpms:
-            uploadFile(remoteControl = cls.remoteControl, fromFile = rpm)
+            uploadFile(cls.reactor, cls.remoteControl, fromFile = rpm)
             
-        update = SimpleRemoteCall.callDirect(cls.remoteControl,'system', ['rpm', '-Uvh'].extend(rpms))
-        if update != 0:
+        rpms = ['/var/lib/TestResultStorage/data/zen-unit-0.1-2797.6.x86_64.rpm']
+        cmd = ['rpm', '-Uvh', '--force']
+        cmd.extend(rpms)
+        update = SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteControl,'system', cmdLine = cmd)
+        if isinstance(update, pb.CopiedFailure) or update != 0:
             raise Exception('rpm update failed: %d' % update)
         
         shutil.rmtree(tempDir, True)
         
         # restart
-        restart = SimpleRemoteCall(cls.remoteControl, 'restart')
-        # TODO: bypass errors, etc
+        try:
+            restart = SimpleRemoteCall.callDirect(cls.reactor, 2, cls.remoteControl, 'restart')
+            raise Exception("can't restart: " + str(restart))
+        except TimeExpired:
+            pass
         
         cls.connect()
         
         # configure
-        cls.startRemoteZfs()
+        cls.setupRemoteZfs()
+        cls.setupLocalZfs()
         
         #start
-        SimpleRemoteCall.callDirect(cls.remoteZfs, 'start')
+        SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteZfs, 'start')
         cls.localZfs.runZfs()
         
     @classmethod
@@ -144,13 +159,15 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         cls.localZfs.stopZfs()
         cls.localZfs.clenaup()
         
-        SimpleRemoteCall.callDirect(cls.remoteZfs, 'stop')
-        SimpleRemoteCall.callDirect(cls.remoteZfs, 'cleanup')
+        SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteZfs, 'stop')
+        SimpleRemoteCall.callDirect(cls.reactor, 10, cls.remoteZfs, 'cleanup')
         
     def snapshot(self, snapshot):
         self.localZfs.snapshot(snapshot)
         
         remoteFile = SimpleRemoteCall.callDirect(self.remoteZfs, 'snapshot')
+        if isinstance(remoteFile, pb.CopiedFailure):
+            raise Exception("can't snapshot: " + str(remoteFile))
         (handle, tempName) = tempfile.mkstemp()
         downloadFile(toFile = tempName, remoteFile = remoteFile)
         

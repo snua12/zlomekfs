@@ -9,6 +9,8 @@ import tempfile
 from subprocess import Popen
 from threading import Condition
 from zfs import ZfsProxy
+from nose.tools import TimeExpired
+
 
 LISTEN_PORT = 8007
 
@@ -45,8 +47,8 @@ class RemoteFile(pb.Referenceable):
         os.unlink(self.fh.name)
 
 class RemoteZfs(pb.Referenceable):
-    def __init__(self, args):
-        self.zfs = ZfsProxy(args)
+    def __init__(self, *arg, **kwargs):
+        self.zfs = ZfsProxy(*arg, **kwargs)
         
     def remote_start(self):
         return self.zfs.runZfs()
@@ -74,16 +76,20 @@ class RemoteZfs(pb.Referenceable):
         
 
 class RemoteControl(pb.Root):
-    def remote_system(self, args):
-         proc = Popen(args = args)
-         proc.wait()
-         return proc.returncode
-         
+    def remote_system(self, cmdLine):
+        print 'executing ' + str(cmdLine)
+        proc = Popen(args = cmdLine)
+        proc.wait()
+        return proc.returncode
+        
     def remote_open(self, fileName, mode):
         return RemoteFile(fileName, mode)
         
     def remote_makedirs(self, dirName):
-        return os.makedirs(dirName)
+        try:
+            return os.makedirs(dirName)
+        except OSError:
+            pass
         
     def remote_delete(self, fileName):
         return os.unlink(fileName)
@@ -115,15 +121,21 @@ class SimpleRemoteCall(object):
         self.returncode = object
         self.signal()
         
+    def __call__(*arg, **kwargs):
+        pass
+        
     def __init__(self, remoteReference, *arg, **kwargs):
-        deref = remoteReference.callRemote(*arg, **kwargs)
         self.cond = Condition()
+        deref = remoteReference.callRemote(*arg, **kwargs)
         deref.addCallbacks(self.successHandler, self.errorHandler)
         
+        
     @classmethod
-    def callDirect(cls, *arg, **kwargs):
+    def callDirect(cls, reactor, timeout = None, *arg, **kwargs):
         call = cls(*arg, **kwargs)
-        call.wait()
+        reactor.callFromThread(call)
+        #call = cls(*arg, **kwargs)
+        call.wait(timeout = timeout)
         
         return call.returncode
         
@@ -134,37 +146,59 @@ class SimpleRemoteCall(object):
             
         self.cond.release()
         if not self.returned:
-            raise Exception('timeout')
+            raise TimeExpired('timeout')
+
+
+def printit(obj):
+    print obj
     
 class GetRemoteControl(SimpleRemoteCall):
     def __init__(self, reactor, host = 'localhost', port = LISTEN_PORT):
+        self.cond = Condition()
+        
         factory = pb.PBClientFactory()
         reactor.connectTCP(host, port, factory)
+        
         deref = factory.getRootObject()
-        deref.addCallbacks(self.successHandler, self.errorHandler)
+        deref.addCallbacks(getattr(self,'successHandler'), getattr(self, 'errorHandler'))
+        
+    @classmethod
+    def callDirect(cls, reactor, timeout = None, *arg, **kwargs):
+        call = cls(reactor, *arg, **kwargs)
+        reactor.callFromThread(call)
+        #call = cls(*arg, **kwargs)
+        call.wait(timeout = timeout)
+        
+        return call.returncode
+        
     
 CHUNK_SIZE = 4096
 
-def uploadFile(remoteControl, fromFile, toFile = None, remoteFile = None):
+def uploadFile(reactor, remoteControl, fromFile, toFile = None, remoteFile = None):
+    print 'uploading ' + fromFile
     if not toFile:
         toFile = fromFile
         
     if not remoteFile:
-        SimpleRemoteCall.callDirect(remoteControl, 'makedirs', os.path.basename(toFile))
-        remoteFile = SimpleRemoteCall.callDirect(remoteControl, open, toFile, 'w')
+        dir = os.path.dirname(toFile)
+        if dir:
+            SimpleRemoteCall.callDirect(reactor, 10, remoteControl, 'makedirs', dir)
+        remoteFile = SimpleRemoteCall.callDirect(reactor, 10, remoteControl, 'open', toFile, 'wb+')
+        if isinstance(remoteFile, pb.CopiedFailure):
+            raise Exception("can't open remote file: " + str(remoteFile))
         
     localFile = open(fromFile, 'r')
     
     chunk = localFile.read(CHUNK_SIZE)
     while chunk:
-        SimpleRemoteCall.callDirect(remoteFile, 'write', chunk)
+        SimpleRemoteCall.callDirect(reactor, 20, remoteFile, 'write', chunk)
         chunk = localFile.read(CHUNK_SIZE)
         
     localFile.close()
-    SimpleRemoteCall.callDirect(remoteFile, 'close')
+    SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'close')
     
 
-def downloadFile(remoteControl, fromFile = None, toFile = None, remoteFile = None):
+def downloadFile(reactor, remoteControl, fromFile = None, toFile = None, remoteFile = None):
     if not toFile and not fromFile:
         raise Exception('either source or target must be specified')
         
@@ -174,18 +208,25 @@ def downloadFile(remoteControl, fromFile = None, toFile = None, remoteFile = Non
         fromFile = toFile
         
     if not remoteFile:
-        os.makedirs(os.path.basename(toFile))
-        remoteFile = SimpleRemoteCall.callDirect(remoteControl, open, fromFile, 'r')
+        dir = os.path.dirname(toFile)
+        if dir:
+            try:
+                os.makedirs(dir)
+            except OSError:
+                pass
+        remoteFile = SimpleRemoteCall.callDirect(reactor, 10, remoteControl, 'open', fromFile, 'r')
+        if isinstance(remoteFile, pb.CopiedFailure):
+            raise Exception("can't open remote file: " + str(remoteFile))
         
-    localFile = open(toFile, 'w')
+    localFile = open(toFile, 'w+b')
     
-    chunk = SimpleRemoteCall.callDirect(remoteFile, 'read', CHUNK_SIZE)
+    chunk = SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'read', CHUNK_SIZE)
     while chunk:
         localFile.write(chunk)
-        chunk = SimpleRemoteCall.callDirect(remoteFile, 'read', CHUNK_SIZE)
+        chunk = SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'read', CHUNK_SIZE)
         
     localFile.close()
-    SimpleRemoteCall.callDirect(remoteFile, 'close')
+    SimpleRemoteCall.callDirect(reactor, 10, remoteFile, 'close')
 
 if __name__ == '__main__':
     reactor.listenTCP(LISTEN_PORT, pb.PBServerFactory(RemoteControl()))
