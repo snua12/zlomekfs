@@ -34,6 +34,8 @@ class SnapshotPlugin(Plugin):
             maxSnapshots: how many old snapshots to preserve (1 = only the last)
             snapshotsRootDir: root dir where snapshot directories 
                 should be created (for example /tmp)
+            snapshotNoseLog: if set to True, nose log will be appended to every
+                snapshot
                 
             All options have both environment and parameter configuration option,
             parameter is always stronger.
@@ -73,6 +75,15 @@ class SnapshotPlugin(Plugin):
         
         .. See: nose plugin interface
     """    
+
+    snapshotNoseLogOpt = "--snapshotNoseLog"
+    """ Option to enable snapshoting of nose log """
+    
+    snapshotNoseLogEnvOpt = "SNAPSHOT_NOSE_LOG"
+    """ Environment variable to enable snapshot of nose log """
+    
+    snapshotNoseLog = False
+    """ If nose log should be appended to snapshot """
     
     maxSnapshotsOpt = "--maxSnapshots"
     """ Option string for passing maximum number of snapshots (last N will be preserved) """
@@ -104,6 +115,15 @@ class SnapshotPlugin(Plugin):
     
     snapshotError = True
     """ If create test snapshot upon test Error. """
+    
+    noseLogHandler = None
+    """ Log handler that we use to catch output """
+    
+    noseLogFileName = None
+    """ Name of file where nose logs are stored """
+    
+    messageFormat = '%(created)f\t%(name)s\t%(levelname)s\t%(message)s'
+    """ Format of log message """
     
     def __init__(self):
         Plugin.__init__(self)
@@ -151,6 +171,16 @@ class SnapshotPlugin(Plugin):
                           default=env.get(self.snapshotsRootDirEnvOpt),
                           help="Where snapshots should be stored %s (see %s) [%s]" %
                           (self.__class__.__name__, self.__class__.__name__, self.snapshotsRootDirEnvOpt))
+        
+        # add option for enabling log snapshoting
+        parser.add_option(self.snapshotNoseLogOpt,
+                          dest=self.snapshotNoseLogOpt, metavar="yes", 
+                          action="store_true",
+                          default=env.get(self.snapshotNoseLogEnvOpt),
+                          help="If append nose log to snapshot too.."
+                                "%s (see %s) [%s]" %
+                          (self.__class__.__name__, self.__class__.__name__, self.snapshotNoseLogEnvOpt))
+                          
 
     
     def configure(self, options, conf):
@@ -174,6 +204,12 @@ class SnapshotPlugin(Plugin):
             
         if hasattr(options, self.snapshotsRootDirOpt):
             self.maxSnapshots = getattr(options, self.snapshotsRootDirOpt)
+            
+        if hasattr(options,  self.snapshotNoseLogOpt):
+            self.snapshotNoseLog = getattr(options,  self.snapshotNoseLogOpt,  self.snapshotNoseLog)
+        
+        if self.snapshotNoseLog:
+            self.setLogOutput()
         
     
     def help(self):
@@ -192,6 +228,65 @@ class SnapshotPlugin(Plugin):
         if not os.path.isdir(self.snapshotsRootDir):
             raise Exception("Snapshots root dir (%s) can't be created" 
                             % self.snapshotsRootDir)
+                            
+                            
+    def finalize(self, result):
+        """ Finalize plugin.
+            Close log output, if snapshoting of log were enabled.
+            
+            ... See: nose plugin interface
+        """
+        self.stopLogOutput()
+        
+        
+    @classmethod
+    def hackNoseLogger(cls):
+        """ Hack nose logger to allow second handler """
+        noseLogger = logging.getLogger('nose')
+        noseLogger.propagate = 1
+        
+        loggerLevel = noseLogger.getEffectiveLevel()
+        for handler in noseLogger.handlers:
+            if handler.level < loggerLevel or handler.level == 0:
+                handler.setLevel(loggerLevel)
+                
+        noseLogger.setLevel(logging.NOTSET)
+        
+    def setLogOutput(self):
+        """ Set logger to log everything for our needs.
+            Currently logging is done through python logger module handler.
+        """
+        self.hackNoseLogger()
+        
+        rootLogger = logging.getLogger()
+        rootLogger.setLevel(0)
+        
+        fh, self.noseLogFileName = tempfile.mkstemp('.log', 'insecticide', self.snapshotsRootDir)
+        self.noseLogHandler = logging.FileHandler(self.noseLogFileName)
+        self.noseLogHandler.setLevel(0)
+        
+        outputFormatter = logging.Formatter(fmt = self.messageFormat,
+            datefmt = '%(asctime)s')
+        self.noseLogHandler.setFormatter(outputFormatter)
+        
+        rootLogger.addHandler(self.noseLogHandler)
+        
+    def stopLogOutput(self):
+        """ Stop nose logging for snapshots.
+            Removes trace file.
+        """
+        if self.noseLogFileName:
+            os.unlink(self.noseLogFileName)
+        
+    def appendNoseLog(self, snapshot):
+        """ Appends nose log into snapshot
+            
+            :Parameters:
+                snapshot: snapshot to which log should be added
+        """
+        self.noseLogHandler.flush()
+        snapshot.addFile('nose.log', self.noseLogFileName, 
+            SnapshotDescription.TYPE_LOG)
         
     def snapshotIt(self, obj):
         """ Create snapshot of given object and append it to buffer
@@ -224,6 +319,9 @@ class SnapshotPlugin(Plugin):
 
         log.debug("snapshotting %s (%s) into dir %s at %s",  str(target), snapshot, toDir, str(datetime.datetime.now()))
         snapshotedObject.snapshot(snapshot)
+        
+        if self.snapshotNoseLog:
+            self.appendNoseLog(snapshot)
         
         if hasattr(target, "snapshotBuffer"):
             if target.snapshotBuffer and len(target.snapshotBuffer) >= self.maxSnapshots:

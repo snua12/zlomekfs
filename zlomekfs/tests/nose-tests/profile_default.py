@@ -13,6 +13,7 @@ env = {
     'STRESS_RETRIES_AFTER_FAILURE' : '0',
     'DJANGO_SETTINGS_MODULE' : 'TestResultStorage.settings',
     'NOSE_WITH_SNAPSHOTPLUGIN' : 'yes',
+    'SNAPSHOT_NOSE_LOG' : 'yes',
     'NOSE_WITH_ZFSREPORTPLUGIN' : 'yes',
       }
 
