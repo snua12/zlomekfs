@@ -661,7 +661,7 @@ class StressGenerator(Plugin):
             return
             
         if self.isChainedTestCase(testInst):
-            (testName, description) = self.generateDescription(test)
+            (testName, description) = self.generateDescription(testInst)
             if self.shouldReport:
                 log.debug("reporting %s failure from addFailure", testInst.method.__name__)
                 if error:
@@ -719,7 +719,7 @@ class StressGenerator(Plugin):
                         testInst.failureBuffer.pop().delete()
             else:
                 log.debug("%s success from addSuccess ", str(testInst))
-                (testName, description) = self.generateDescription(test)
+                (testName, description) = self.generateDescription(testInst)
                 if self.shouldReport:
                     self.reportProxy.reportSuccess(testInst, name = testName, description = description)
             return True
@@ -738,10 +738,11 @@ class StressGenerator(Plugin):
                 tuple (testName, description) strings. First is short test name, second longer description.
         """
         if isinstance(test,ChainedTestCase):
-            testName = "Chain for " + test.cls.__name__
-            
-            description = test.shortDescription()
-            return (testName, description)
+            return ("Chain for " + test.cls.__name__,
+                test.shortDescription())
+        elif isinstance(test, InfiniteChainedTestSuite):
+            return ("Chain for " + test.test.test.cls.__name__, 
+                test.shortDescription())
         else:
             return (test.shortDescription(), test.shortDescription())
     

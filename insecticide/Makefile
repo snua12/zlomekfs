@@ -44,7 +44,7 @@ install:
 
 test:
 	python -c 'import insecticide'
-	./test.py graph.py snapshot.py timeoutPlugin.py zenPlugin.py
+	./test.py graph.py snapshot.py timeoutPlugin.py zenPlugin.py zfsStressGenerator.py
 
 clean: 
 	python setup.py clean
