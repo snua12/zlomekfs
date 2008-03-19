@@ -503,9 +503,9 @@ class StressGenerator(Plugin):
         """
         if self.useShortestPath:
             allowedMethods = self.metaTestCollector.getClassMethods(test.cls)
-            log.debug("allowedMethods %s?",allowedMethods)
+            #log.debug("allowedMethods %s?",allowedMethods)
             graph = GraphBuilder.generateDependencyGraph(test.cls, allowedMethods) #maybe use only chain methods
-            log.debug("new graph is %s", str(graph.graph))
+            #log.debug("new graph is %s", str(graph.graph))
             log.debug("searching shortest path from %s to %s", test.chain[0], test.chain[test.index])
             path = graph.getShortestPath (test.chain[0], test.chain[test.index])
             if not path: #this should not happen - we should find at least old path
@@ -513,6 +513,20 @@ class StressGenerator(Plugin):
             return path
         
         return test.chain[:test.index + 1]
+        
+    def shouldRetry(self, test):
+        """ Check, if there should be another retry for given test.
+            
+            :Parameters:
+                test: ChainedTestCase instance
+                
+            :Return
+                True if test iteration count is smaller than 
+                    self.retriesAfterFailure
+        """
+        iteration = getattr(test, 'retryIteration', 0)
+        
+        return self.retriesAfterFailure > iteration
         
     def retry(self, test):
         """ Query test for retry.
@@ -522,8 +536,12 @@ class StressGenerator(Plugin):
         """
         log.debug("query %s for retry", str(test))
         #self.rerunQueue.append(test)
+        if hasattr(test, 'retryIteration'):
+            setattr(test, 'retryIteration', test.retryIteration + 1)
+        else:
+            setattr(test, 'retryIteration', 1)
         carry = {}
-        for key in ['failureBuffer', 'snapshotBuffer']:
+        for key in ['failureBuffer', 'snapshotBuffer', 'retryIteration']:
             try:
                 carry[key] = getattr(test, key)
             except AttributeError:
@@ -572,9 +590,26 @@ class StressGenerator(Plugin):
             :Return:
                 True if instance of ChainedTestCase, False otherwise
         """
-        if test.__class__ is ChainedTestCase:
+        if isinstance(test, ChainedTestCase):
             return True
         return False
+        
+    @classmethod
+    def getTestInstance(cls, test):
+        """ Get actual TestCase instance for test.
+            
+            :Parameters:
+                test: Test or InfiniteChainedTestSuite
+                
+            :Return:
+                TestCase instnace
+        """
+        if isinstance(test, Test):
+            return test.test
+        elif isinstance(test, InfiniteChainedTestSuite):
+            return test.test.test
+        else:
+            return None
         
     def handleFailure(self, test, err, error = False):
         """ Catches stress test failure. Blocks all subsequent plugins 
@@ -584,24 +619,26 @@ class StressGenerator(Plugin):
             .. See: nose plugin interface
         """
         log.debug('in handle failure with %s', test)
-        testInst = getattr(test, "test", None)
+        
+        testInst = self.getTestInstance(test)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
             return
-        else:
-            if self.isChainedTestCase(testInst):
-                log.debug("catched stress test failure (%s)",  testInst)
-                log.debug('set %s on %s to True', StressGenerator.stopContextAttr, test)
-                setattr(test,  StressGenerator.stopContextAttr,  True)
-                log.debug('set stopContextAttr on %s to True', str(id(test)))
-                log.debug("failureBuffer is %s (%s)", testInst.failureBuffer, str(id(testInst.failureBuffer)))
-                testInst.failureBuffer.append(ZfsTestFailure(testInst, err))
-                if len(testInst.failureBuffer) <= self.retriesAfterFailure:
-                    self.retry(testInst)
-                    return True
-                else:
-                    if not getattr(testInst,  self.fromSavedPathAttr, None):
-                        self.storePath(testInst)
+            
+            
+        if self.isChainedTestCase(testInst):
+            log.debug("catched stress test failure (%s)",  testInst)
+            log.debug('set %s on %s to True', StressGenerator.stopContextAttr, test)
+            setattr(test,  StressGenerator.stopContextAttr,  True)
+            log.debug('set stopContextAttr on %s to True', str(id(test)))
+            log.debug("failureBuffer is %s (%d)", testInst.failureBuffer, id(testInst.failureBuffer))
+            testInst.failureBuffer.append(ZfsTestFailure(testInst, err))
+            if self.shouldRetry(testInst):
+                self.retry(testInst)
+                return True
+            else:
+                if not getattr(testInst,  self.fromSavedPathAttr, None):
+                    self.storePath(testInst)
         return False
         
     def handleError (self, test, err):
@@ -616,24 +653,25 @@ class StressGenerator(Plugin):
             
             .. See: nose plugin interface
         """
-        testInst = getattr(test, "test", None)
+        testInst = self.getTestInstance(test)
         if not testInst:
             log.error("unexpected attr in handleFailure,  doesn't have test attr")
-            return None
-        else:
-            if self.isChainedTestCase(testInst):
-                (testName, description) = self.generateDescription(test)
-                if self.shouldReport:
-                    log.debug("reporting %s failure from addFailure", testInst.method.__name__)
-                    if error:
-                        self.reportProxy.reportError(ZfsTestFailure(testInst,err), name = testName, description = description)
-                    else:
-                        self.reportProxy.reportFailure(ZfsTestFailure(testInst,err), name = testName, description = description)
-                if hasattr(testInst, 'failureBuffer'):
-                    # delete old data
-                    while testInst.failureBuffer:
-                        testInst.failureBuffer.pop().delete()
-                return True
+            return
+            
+        if self.isChainedTestCase(testInst):
+            (testName, description) = self.generateDescription(test)
+            if self.shouldReport:
+                log.debug("reporting %s failure from addFailure", testInst.method.__name__)
+                if error:
+                    self.reportProxy.reportError(ZfsTestFailure(testInst,err), name = testName, description = description)
+                else:
+                    self.reportProxy.reportFailure(ZfsTestFailure(testInst,err), name = testName, description = description)
+            if hasattr(testInst, 'failureBuffer'):
+                # delete old data
+                log.debug('cleaning failureBuffer for %s', str(testInst))
+                while testInst.failureBuffer:
+                    testInst.failureBuffer.pop().delete()
+            return True
         
     def addError(self, test, err):
         """ Calls addFailure with flag that this is error. 
@@ -649,17 +687,21 @@ class StressGenerator(Plugin):
             
             .. See: nose plugin interface
         """
-        testInst = getattr(test, "test", None)
+        testInst = self.getTestInstance(test)
         if not testInst:
-            log.error("unexpected attr in addSuccess,  doesn't have test attr")
-            return None
-        else:
-            if self.isChainedTestCase(testInst):
-                chain = getattr(testInst, 'chain', None)
-                index = getattr(testInst, 'index', None)
-                if index < len(chain) - 1: #do not report partial tests for suite
-                    log.debug("blocking success of %s", test)
-                elif testInst.failureBuffer:
+            log.error("unexpected attr in handleFailure,  doesn't have test attr")
+            return
+            
+        if self.isChainedTestCase(testInst):
+            chain = getattr(testInst, 'chain', None)
+            index = getattr(testInst, 'index', None)
+            if index < len(chain) - 1: #do not report partial tests for suite
+                log.debug("blocking success of %s", test)
+            elif testInst.failureBuffer:
+                if self.shouldRetry(testInst):
+                    self.retry(testInst.failureBuffer[ \
+                        len(testInst.failureBuffer) - 1].test)
+                else:
                     log.debug("%s failure from addSuccess", testInst.method.__name__)
                     self.storePath(testInst)
                     failure = testInst.failureBuffer.pop()
@@ -667,14 +709,15 @@ class StressGenerator(Plugin):
                     if self.shouldReport:
                         self.reportProxy.reportFailure(failure, name = testName, description = description)
                     #delete old data
+                    log.debug('cleaning failureBuffer for %s', str(testInst))
                     while testInst.failureBuffer:
                         testInst.failureBuffer.pop().delete()
-                else:
-                    log.debug("%s success from addSuccess ", str(testInst))
-                    (testName, description) = self.generateDescription(test)
-                    if self.shouldReport:
-                        self.reportProxy.reportSuccess(testInst, name = testName, description = description)
-                return True
+            else:
+                log.debug("%s success from addSuccess ", str(testInst))
+                (testName, description) = self.generateDescription(test)
+                if self.shouldReport:
+                    self.reportProxy.reportSuccess(testInst, name = testName, description = description)
+            return True
         return None
         
     @classmethod
@@ -689,11 +732,13 @@ class StressGenerator(Plugin):
             :Return:
                 tuple (testName, description) strings. First is short test name, second longer description.
         """
-        if test.test.__class__ is ChainedTestCase:
-            testName = "Chain for " + test.test.cls.__name__
+        if isinstance(test,ChainedTestCase):
+            testName = "Chain for " + test.cls.__name__
             
             description = test.shortDescription()
-        return (testName, description)
+            return (testName, description)
+        else:
+            return (test.shortDescription(), test.shortDescription())
     
     def finalize(self, result):
         """ Commits saved paths (if any) if enabled into repository
@@ -1016,7 +1061,6 @@ class LazyTestChain(object):
             :Raise:
                 TypeError: if other type of key is given
         """
-        log.debug('%d expand to %s', id(self), str(key))
         if isinstance(key, int):
             if key < 0:
                 return
