@@ -1224,8 +1224,18 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
             
 
 
-class StressPluginTest(unittest.TestCase):
-    """ Tests for retry, report, etc of StressGenerator plugin. """
+class StressPluginReportRetryTest(unittest.TestCase):
+    """ Tests for retry, report, etc of StressGenerator plugin. 
+        Variants:
+            report of: success / failure
+            chain possition: middle / end
+            failure in: class method / instance method
+            try: first try / middle try / last try
+            retry: yes/no
+            type: failure / error
+    """
+    #comment header:
+    #function | chain possition | failure in | try | retry? | report of
     class FakeReport(object):
         """ Mock object for ReportProxy """
         def __init__(self):
@@ -1282,24 +1292,28 @@ class StressPluginTest(unittest.TestCase):
             blocks and reports when retries are disabled.
         """
         self.plugin.retriesAfterFailure = 0
+        # failure - middle - instance - first - no - failure
         assert self.plugin.handleFailure(Test(self.case), sys.exc_info()) == False
         
-        self.plugin.addFailure(Test(self.case), sys.exc_info())
-        assert self.plugin.reportProxy.failures and \
+        assert self.plugin.addFailure(Test(self.case), sys.exc_info())
+        assert not self.test.failureBuffer
+        assert len(self.plugin.reportProxy.failures) == 1 and \
             self.plugin.reportProxy.failures[0].test == self.case
         self.plugin.reportProxy.failures.pop()
         
-        self.plugin.addFailure(self.suite, sys.exc_info())
-        assert self.plugin.reportProxy.failures
-        assert self.plugin.reportProxy.failures[0].test == self.case
+        # error - middle - class - first - no - error
+        assert self.plugin.handleError(self.suite, sys.exc_info()) == False
+        
+        assert self.plugin.addError(self.suite, sys.exc_info())
+        assert not self.test.failureBuffer
+        assert self.plugin.reportProxy.errors
+        assert self.plugin.reportProxy.errors[0].test == self.case
         
     def testReportSuccess(self):
         """ Test if addSuccess
-            report when retries are disabled.
+            report if chain on end
         """
-        self.plugin.addSuccess(Test(self.case))
-        assert not self.plugin.reportProxy.successes 
-        
+        # success - end - method - first - no - success
         self.case.setIndexTo(2)
         self.plugin.addSuccess(Test(self.case))
         assert self.plugin.reportProxy.successes
@@ -1307,16 +1321,18 @@ class StressPluginTest(unittest.TestCase):
         
     def testBlockPrematureSuccess(self):
         """ Test if non-finished success reports are blocked. """
-        self.plugin.addSuccess(Test(self.case))
+        # success - middle - method - first - no - success
+        assert self.plugin.addSuccess(Test(self.case))
         assert not self.plugin.reportProxy.successes 
         
-        assert self.plugin.addSuccess(Test(self.case))
-        assert not self.plugin.reportProxy.successes
         
     def testRetryFromFailure(self):
-        """ Test if failed test is retried upon failure. """
+        """ Test if failed test is retried upon failure. 
+            And reported in last rerun.
+        """
         self.plugin.retriesAfterFailure = 1
         
+        # failure - middle - instance - first - retry - failure
         assert self.plugin.handleFailure(Test(self.case), sys.exc_info())
         
         assert self.plugin.rootCase.tests
@@ -1327,6 +1343,7 @@ class StressPluginTest(unittest.TestCase):
         assert not self.plugin.rootCase.tests
         assert retry.test.test.index == 0
         
+        # failure - middle - instance - last - retry - failure
         assert not self.plugin.handleFailure(retry.test, sys.exc_info())
         assert not self.plugin.reportProxy.failures
         assert not self.plugin.rootCase.tests
@@ -1334,17 +1351,21 @@ class StressPluginTest(unittest.TestCase):
         assert len(self.plugin.reportProxy.failures) == 1
         assert not self.plugin.reportProxy.successes
         
+        # error - middle - class - last - retry - error
         assert not self.plugin.handleError(retry, sys.exc_info())
         assert not self.plugin.rootCase.tests
         assert len(self.plugin.reportProxy.failures) == 1
         assert not self.plugin.reportProxy.successes
+        
+        # success - middle - instance - end - retry - error
         retry.test.test.failureBuffer[0].error = True
-        assert self.plugin.addSuccess(retry)
+        assert self.plugin.addSuccess(retry.test)
         assert len(self.plugin.reportProxy.errors) == 1
         
     def testRetrySuiteFromFailure(self):
         """ Test if failed suite is retried upon failure. """
         self.plugin.retriesAfterFailure = 1
+        # failure - middle - class - first - retry - failure
         assert self.plugin.handleFailure(self.suite, sys.exc_info())
         
         assert self.plugin.rootCase.tests
@@ -1356,19 +1377,35 @@ class StressPluginTest(unittest.TestCase):
         """ Test if succeeded retry generates new retry """
         self.plugin.retriesAfterFailure = 3
         
-        # get failed
+        # failure - middle - method - first - retry - failure
         assert self.plugin.handleFailure(Test(self.case), sys.exc_info())
         assert not self.plugin.reportProxy.successes
         assert not self.plugin.reportProxy.failures
         
         retry = self.plugin.rootCase.tests.pop()
+        assert retry.test.test.failureBuffer[0].error == False
         assert not self.plugin.rootCase.tests
         assert retry.test.test.index == 0
         
+        # success - end - method - middle - retry - failure
         retry.test.test.setIndexTo(len(retry.test.test.chain) - 1)
         assert self.plugin.addSuccess(retry.test)
         
         assert not self.plugin.reportProxy.successes
         assert self.plugin.rootCase.tests
         
+        
+        retry = self.plugin.rootCase.tests.pop()
+        assert not self.plugin.rootCase.tests
+        assert retry.test.test.index == 0
+        
+        # error - middle - class - middle - retry - error
+        assert self.plugin.handleError(retry, sys.exc_info())
+        
+        assert not self.plugin.reportProxy.successes
+        assert not self.plugin.reportProxy.failures
+        assert not self.plugin.reportProxy.errors
+        
+        assert self.plugin.rootCase.tests
+        assert self.plugin.rootCase.tests[0].test.test.failureBuffer[1].error == True
     
