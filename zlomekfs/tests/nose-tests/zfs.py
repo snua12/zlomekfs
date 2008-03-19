@@ -264,6 +264,9 @@ class ZfsProxy(object):
         """ Kill previously running zfsd instances and run our own zfsd. """
         
         self.killall() #destroy previous zfsd instances
+        if self.zfs:
+            self.zfs.wait()
+            
         self.makeDirs()
         self.unpackData()
         self.installModules()
@@ -284,7 +287,7 @@ class ZfsProxy(object):
             self.zfsRoot),
             cwd = self.tempDir,
             stdout = PIPE, stderr = PIPE, universal_newlines=True)
-        for i in [0.2, 0.5, 1, 3]:
+        for i in [0.2, 0.5, 1, 3, 5, 100]:
             time.sleep(i)
             if zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING:
                 break
@@ -311,6 +314,10 @@ class ZfsProxy(object):
         
         if self.zfs.poll () is None:
             os.kill(self.zfs.pid, signal.SIGKILL)
+            
+        #remove zombies
+        if self.zfs:
+            self.zfs.wait()
           
         self.running = False
         # to be sure that we don't leave zombies
@@ -320,9 +327,6 @@ class ZfsProxy(object):
             setCoreDumpSettings(self.coreDumpSettings)
             self.coreDumpSettings = None
             
-        #remove zombies
-        if self.zfs:
-            self.zfs.wait()
         
     def snapshot(self, snapshot):
         """ Snapshot zfsd related state (cache, core dump, etc)
@@ -413,10 +417,12 @@ class ZfsTest(object):
         
         log.debug("setupClass")
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
-        cls.zfsRoot = config.get("global", "zfsRoot")
+        #cls.zfsRoot = config.get("global", "zfsRoot")
+        cls.zfsRoot = tempfile.mkdtemp(prefix = 'zfsMountPoint')
         cls.zfsMetaTar = config.get("global", "zfsMetaTar")
 
         cls.zfs = ZfsProxy(zfsRoot = cls.zfsRoot,  metaTar = cls.zfsMetaTar)
+        shutil.rmtree(cls.zfsRoot)
     
     def setup(self):
         """ Run zfsd for the test. """

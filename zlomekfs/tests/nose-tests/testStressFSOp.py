@@ -72,10 +72,18 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   
   def setup(self):
     ZfsStressTest.setup(self)
-
   
   def teardown(self):
     ZfsStressTest.teardown(self)
+    
+  def forceClose(self, file):
+    try:
+        if file and not file.closed:
+            file.close()
+    except KeyboardInterrupt:
+        raise
+    except Exception:
+        pass
   
   ##
   # remove files and clean handles

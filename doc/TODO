@@ -1,20 +1,19 @@
-improve snapshot view in web
-remote tests?
-support for "infinite tests" (to run between post-commit tests)
+fix zfsd startup on second run
+fix zfsd mount point on remote
+fix logging
+what about getAllowedMethods
+test remote tests
+enable & test infinite tests
 get for rpms
 
 fix nfs permissions
 fix zfs synchronization
 fix zfs deadlock
 clean old data script
-check if getsize fails on normal fs too
-report nose log too
-facility change in ZfsProxy
 STABILIZE
 document
 skip function pruning
 half path pruning
-test report time in zfs too
 FIX percentage (bad overal transforms?
 
 pylint  --module-rgx='(([a-z][a-z0-9]*)|([a-z][a-zA-Z0-9]+))$' --const-rgx='(([a-z][a-z0-9]*)|([a-z][a-zA-Z0-9]+))$' --class-rgx='[A-Z][a-zA-Z0-9]+$' --function-rgx='[a-z][a-zA-Z0-9]{2,30}$' --method-rgx='(([a-z][a-zA-Z0-9]{2,30})|(__[a-z][a-zA-Z0-9]{2,30}__))$' --attr-rgx='[a-z][a-z0-9A-Z]{2,30}$' --argument-rgx='[a-z][a-zA-Z0-9]{2,30}$' --variable-rgx='[a-z][a-z0-9A-Z]{2,30}$' --inlinevar-rgx='[A-Za-z][A-Za-z0-9]*$'
