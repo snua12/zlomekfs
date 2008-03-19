@@ -10,7 +10,7 @@ UUID_LEN = 36
 # default length of name (any)
 NAME_LEN = 64
 # length of test name
-TEST_NAME_LEN = NAME_LEN
+TEST_NAME_LEN = 128
 # length of machine name (hostname)
 MACHINE_NAME_LEN = NAME_LEN
 # length of batch description
