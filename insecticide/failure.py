@@ -3,7 +3,7 @@
 class ZfsTestFailure(object):
     """ Wrapper for test failure (currently rather empty).
     """
-    def __init__(self,  test,  failure):
+    def __init__(self,  test,  failure, error = False):
         """ Set failure info.
             
             :Parameters:
@@ -13,6 +13,7 @@ class ZfsTestFailure(object):
         """
         self.test = test
         self.failure = failure
+        self.error = error
         
     def delete(self):
         """ Remove all related data (such as snapshots) """

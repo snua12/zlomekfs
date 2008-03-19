@@ -374,6 +374,9 @@ class GraphBuilder(object):
             :Return:
                 DependencyGraph instance
         """
+        if not methods:
+            methods = getMatchedTypes(cls,   [MethodType])
+        
         type = getattr(cls, GraphBuilder.defVarName,  GraphBuilder.USE_FLAT)
         startNode = getattr(cls, GraphBuilder.startVarName,  None)
         if methods and startNode not in methods:
@@ -387,15 +390,13 @@ class GraphBuilder(object):
         }[type](cls = cls,  methods = methods,  startNode = startNode)    
     
     @classmethod    
-    def generateUsingDefaults(self,  cls,  methods = None,  startNode = None):
+    def generateUsingDefaults(self,  cls,  methods,  startNode = None):
         """ Generate dependency graph with flat probabilities (all edges are even, 
             from every node goes edges to all other nodes including self)
             
             .. See generateDependencyGraph
         """
         graph = DependencyGraph(graph = {}, startNode = startNode)
-        if methods is None:
-            methods = getMatchedTypes(cls,   [MethodType])
         
         edges = []
         for method in methods:
@@ -410,7 +411,7 @@ class GraphBuilder(object):
         return graph
     
     @classmethod
-    def generateUsingLocal(self,  cls,  methods = None,  startNode = None):
+    def generateUsingLocal(self,  cls,  methods,  startNode = None):
         """ Generate dependency graph using local transistion deffinitions.
             Edges from method are specified in method attribute.
             
@@ -418,8 +419,6 @@ class GraphBuilder(object):
         """
         graph = DependencyGraph(graph = {}, startNode = startNode)
         
-        if methods is None:
-            methods = getMatchedTypes(cls,   [MethodType])
         
         for method in methods:
             obj = getattr(cls,  method)
@@ -445,7 +444,7 @@ class GraphBuilder(object):
         else:
             graph = copy.copy(graph)
         
-        if methods is not None:
+        if methods:
             for key in graph.keys():
                 if key not in methods:
                     graph.pop(key)
@@ -453,7 +452,7 @@ class GraphBuilder(object):
         return DependencyGraph(graph = graph,  startNode = startNode)
     
     @classmethod
-    def generateUsingProbability(self,  cls,  methods = None, startNode = None, defaultProbability = 0):
+    def generateUsingProbability(self,  cls,  methods, startNode = None, defaultProbability = 0):
         """ Generate dependency graph with using probabilities.
             From every node goes edges to all other nodes including self,
             score of edge is defined by attribute of target node (method)
@@ -461,8 +460,6 @@ class GraphBuilder(object):
             .. See generateDependencyGraph
         """
         graph = DependencyGraph(graph = {}, startNode = startNode)
-        if methods is None:
-            methods = getMatchedTypes(cls,   [MethodType])
         
         edges = []
         for method in methods:
