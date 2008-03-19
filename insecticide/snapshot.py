@@ -15,7 +15,6 @@ class SnapshotError(Exception):
     """ Error generated when incorect data were passed. """
     pass
 
-#FIXME: name must not be file name
 class SnapshotDescription(object):
     """
         Helper object holding snapshot state.

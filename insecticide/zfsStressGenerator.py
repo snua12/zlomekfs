@@ -80,7 +80,6 @@ class MetaTestCollector(object):
         return self.map.get(cls,  None)
 
 class StressGenerator(Plugin):
-#FIXME: be robust against invalid meta classes (and report failures)
     """ ZFS stress test generator. 
         Plugin for nose. If enabled, tries to find meta tests inside classes 
         and generate chains from them. If there are some failed chains 
@@ -910,7 +909,6 @@ class ChainedTestCase(MethodTestCase):
             
             ..See: nose.case.MethodTestCase.shortDescription
         """
-        # FIXME: return correct test before run, in run and after run :/
         if len(self.chain) > 10:
             return self.method.__name__ + " at " + str(self.index) + " in chain " + str(self.chain[:5]) + \
                 " .. " + str(self.chain[self.index - 2: self.index + 1])
