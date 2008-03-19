@@ -8,6 +8,7 @@ import os
 import shutil
 import zfsd_status  
 import time
+import datetime
 import logging
 
 
@@ -93,7 +94,8 @@ class ZfsProxy(object):
     def killall(cls):
         """ Kill all zfsd instances, unmount and remove modules. """
         cls.signalAll(signal.SIGKILL)
-        cls.unmount()
+        # NOTE: this may not be correct, but we could hope :)
+        cls.unmount(cls.zfsRoot)
         cls.removeModules()
         
     @classmethod
@@ -169,12 +171,11 @@ class ZfsProxy(object):
         except OSError: #exists
             pass
         
-    #FIXME: not classmethod
     @classmethod
-    def unmount(cls):
+    def unmount(cls, path):
         """ Do unmount call on zfsRoot. """
         
-        umount = Popen(args=('umount', '-f', cls.zfsRoot), stderr = STDOUT,
+        umount = Popen(args=('umount', '-f', path), stderr = STDOUT,
             stdout = PIPE)
         umount.wait()
         if umount.returncode:
@@ -213,9 +214,33 @@ class ZfsProxy(object):
         """
         
         if not self.isRunning():
-            raise Exception("zfs not running") #TODO: accurate exception
+            raise ZfsRuntimeException("zfs not running")
         
-        pysyplog.set_level_udp(loglevel, None, 0)
+        pysyplog.set_level_dbus(loglevel, None, 0)
+        
+    def setZfsFacility(self, facility):
+        """ set zfs facility to be logged
+            
+            :Parameters:
+                facility: facility to enable
+        """
+        
+        if not self.isRunning():
+            raise ZfsRuntimeException("zfs not running")
+        
+        pysyplog.set_facility_dbus(facility, None, 0)
+        
+    def resetZfsFacility(self, facility):
+        """ set zfs facility to not be logged
+            
+            :Parameters:
+                facility: facility to disable
+        """
+        
+        if not self.isRunning():
+            raise ZfsRuntimeException("zfs not running")
+        
+        pysyplog.reset_facility_dbus(facility, None, 0)
         
     def isRunning(self):
         """ Check if zfs is really running.
@@ -289,7 +314,7 @@ class ZfsProxy(object):
           
         self.running = False
         # to be sure that we don't leave zombies
-        self.unmount()
+        self.unmount(self.zfsRoot)
         self.removeModules()
         if self.coreDumpSettings:
             setCoreDumpSettings(self.coreDumpSettings)
@@ -350,10 +375,9 @@ class ZfsProxy(object):
         else:
             self.collectZfsCoreDump(snapshot)
             
-        if hasattr(self,"zfs"):
-            #TODO: don't block waiting
-            snapshot.addObject("zfsStderr", self.zfs.stderr)
-            snapshot.addObject("zfsStdout", self.zfs.stdout)
+        if hasattr(self,"zfs") and self.zfs.poll() is not None:
+            snapshot.addObject("zfsStderr", self.zfs.stderr.readlines())
+            snapshot.addObject("zfsStdout", self.zfs.stdout.readlines())
         
     def resume(self, snapshot):
         """ Resume state (if possible). This is usefull only to ease mimic of 
@@ -370,6 +394,12 @@ class ZfsProxy(object):
         except KeyError:
             pass
         
+
+def abortDeadlock():
+    log.debug("killing locked zfs in %s", str(datetime.datetime.now()))
+    ZfsProxy.signalAll(signal.SIGABRT)
+    #ZfsProxy.killall()
+    
 
 class ZfsTest(object):
     """ Class representing TestCase for zfsd, simple separated tests. """

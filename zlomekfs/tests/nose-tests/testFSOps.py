@@ -6,10 +6,11 @@ import os
 import pickle
 
 from random import Random
-from zfs import ZfsStressTest
+from zfs import ZfsStressTest, abortDeadlock
 
 from insecticide.graph import GraphBuilder
 from insecticide.zfsConfig import ZfsConfig
+from insecticide.timeoutPlugin import timed
 
 class TestFSOps(ZfsStressTest):
   disabled = False
@@ -104,23 +105,26 @@ class TestFSOps(ZfsStressTest):
     for i in range(self.dataVectorLength):
       self.dataVector.append(self.generator.random())
       
+  @timed(10, abortDeadlock)
   def testWriteRead(self):
-    self.safeFile = open(self.safeFileName, 'w+')
-    self.testFile = open(self.testFileName, 'w+')
+    try:
+        self.testFile = open(self.testFileName, 'w+')
+        
+        pickle.dump(self.dataVector,  self.testFile)
+        self.testFile.flush()
+        
+        self.testFile.seek(0)
+        
+        self.test_data = pickle.load(self.testFile)
+    except IOException:
+        # could be timeout
+        pass
     
-    pickle.dump(self.dataVector,  self.safeFile)
-    self.safeFile.flush()
-    pickle.dump(self.dataVector,  self.testFile)
-    self.testFile.flush()
+    self.raiseExceptionIfDied()
     
-    self.safeFile.seek(0)
-    self.testFile.seek(0)
-    
-    self.safe_data = pickle.load(self.safeFile)
-    self.test_data = pickle.load(self.testFile)
-    
-    assert self.safe_data == self.test_data
-
+    assert self.dataVector == self.test_data
+  
+  @timed(10, abortDeadlock)
   def testWriteReadonly(self):
     fd = os.open(self.testFileName,  os.O_CREAT | os.O_RDONLY)
     self.testFile = os.fdopen(fd)
@@ -130,3 +134,5 @@ class TestFSOps(ZfsStressTest):
         raise Exception('Reached','Unreachable branch reached.')
     except IOError:
         print 'everything is o.k., can\'t write'
+    finally:
+        self.raiseExceptionIfDied()

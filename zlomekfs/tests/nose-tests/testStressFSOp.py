@@ -14,18 +14,13 @@ from traceback import format_exc
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
 
-from zfs import ZfsStressTest, ZfsProxy
+from zfs import ZfsStressTest, ZfsProxy, abortDeadlock
 from testFSOp import TestFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename, trySeek, tryGetSize, tryGetPos
 
 
 from insecticide.timeoutPlugin import timed
 
 log = logging.getLogger ("nose.tests.testStressFSOp")
-
-def abortDeadlock():
-    log.debug("killing locked zfs in %s", str(datetime.datetime.now()))
-    ZfsProxy.signalAll(signal.SIGABRT)
-    #ZfsProxy.killall()
 
 class testStressFSOp(ZfsStressTest, TestFSOp):
   disabled = False
@@ -252,6 +247,7 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
     self.raiseExceptionIfDied()
     assert safe == test
     
+  #TODO: implement
   def testFlush(self):
     return
   testFlush.disabled = True
