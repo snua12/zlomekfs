@@ -116,7 +116,7 @@ class TestFSOps(ZfsStressTest):
         self.testFile.seek(0)
         
         self.test_data = pickle.load(self.testFile)
-    except IOException:
+    except IOError:
         # could be timeout
         pass
     

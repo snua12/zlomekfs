@@ -5,8 +5,6 @@
 import logging
 
 import os
-import signal
-import datetime
 import random
 
 from traceback import format_exc
@@ -14,7 +12,7 @@ from traceback import format_exc
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
 
-from zfs import ZfsStressTest, ZfsProxy, abortDeadlock
+from zfs import ZfsStressTest, abortDeadlock
 from testFSOp import TestFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename, trySeek, tryGetSize, tryGetPos
 
 
