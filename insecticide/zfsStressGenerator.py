@@ -629,6 +629,10 @@ class StressGenerator(Plugin):
                         self.reportProxy.reportError(ZfsTestFailure(testInst,err), name = testName, description = description)
                     else:
                         self.reportProxy.reportFailure(ZfsTestFailure(testInst,err), name = testName, description = description)
+                if hasattr(testInst, 'failureBuffer'):
+                    # delete old data
+                    while testInst.failureBuffer:
+                        testInst.failureBuffer.pop().delete()
                 return True
         
     def addError(self, test, err):
@@ -662,6 +666,9 @@ class StressGenerator(Plugin):
                     (testName, description) = self.generateDescription(failure.test)
                     if self.shouldReport:
                         self.reportProxy.reportFailure(failure, name = testName, description = description)
+                    #delete old data
+                    while testInst.failureBuffer:
+                        testInst.failureBuffer.pop().delete()
                 else:
                     log.debug("%s success from addSuccess ", str(testInst))
                     (testName, description) = self.generateDescription(test)

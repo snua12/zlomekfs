@@ -14,3 +14,11 @@ class ZfsTestFailure(object):
         self.test = test
         self.failure = failure
         
+    def delete(self):
+        """ Remove all related data (such as snapshots) """
+        if hasattr(self.test, 'snapshotBuffer'):
+            while self.test.snapshotBuffer:
+                self.test.snapshotBuffer.pop().delete()
+        self.test = None
+        self.failure = None
+        
