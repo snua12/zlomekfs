@@ -199,7 +199,7 @@ class ZfsProxy(object):
         """ Connect to syplog control """
         
         if pysyplog.ping_syplog_dbus(None) != pysyplog.NOERR:
-            raise Exception ("Syplog offline")
+            raise ZfsRuntimeException ("Syplog offline")
         
     def disconnectControl(self):
         """ Disconnects from syplog control. """
@@ -293,7 +293,7 @@ class ZfsProxy(object):
             if self.coreDumpSettings:
                 setCoreDumpSettings(self.coreDumpSettings)
                 self.coreDumpSettings = None
-            raise Exception("Zfsd doesn't start")
+            raise ZfsRuntimeException("Zfsd doesn't start")
         self.running = True
         self.connectControl()
         
