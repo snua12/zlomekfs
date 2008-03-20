@@ -15,12 +15,13 @@ from optparse import OptionConflictError
 from warnings import warn
 from traceback import format_exc
 from types import TypeType, ClassType
+from random import randint
 
 from insecticide.failure import ZfsTestFailure
 from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
 from insecticide.snapshot import SnapshotDescription
 from insecticide.zfsReportPlugin import ZfsReportPlugin
-from insecticide.graph import GraphBuilder
+from insecticide.graph import GraphBuilder, DependencyDeffinitionError
 
 from nose.case import MethodTestCase,  TestBase, Test
 from nose.proxy import ResultProxyFactory
@@ -80,6 +81,261 @@ class MetaTestCollector(object):
             list of attribute names (strings) which are recognized as meta methods for given class
         """
         return self.map.get(cls,  None)
+       
+class PruneLogic(object):
+    maxIterations = 2
+    """ Maximum known level where prune functions care about forbidden 
+        variants. On maxIterations + 1, they could use anything.
+    """
+    
+    def __call__(self, test, useAllMethods = False):
+        """ Prune stress test chain. 
+            Try to find shorter sequence from first method to last used (where index points to).
+            It could use other methods that listed in chain too.
+            NOTE: this method assumes that all runs share the same graph
+            :Pruning methods: 
+                shortest path - shortest path between chain start and chain[index] (failed method)
+                disable function - random function (all occurences) in chain will be replaced with 
+                    shortest path between previous and next function
+                skip part - replace random part of graph with shortest path
+            
+            :Parameters:
+                test: ChainedTestCase instance with index set to last method that should be used in chain
+                useAllMethods: If use all pruning methods.
+                    If False, use preferably pruning method that were not used yet.
+            :Return:
+                ordered list of methods - shorter path between first and indexed method. 
+        """
+        graph = getattr(test.chain, 'graph', None)
+        if not graph:
+            raise DependencyDeffinitionError('No graph for test ' + str(test))
+        
+        if not useAllMethods:
+            forbiddenVariants = getattr(graph, 'forbiddenVariants', [])
+        else:
+            forbiddenVariants = []
+            
+        setattr(graph, 'forbiddenVariants', forbiddenVariants)
+            
+        # try new method
+        for iteration in range(self.maxIterations + 1):
+            for method in [self.shortestPath, self.disableFunction, self.skipPart]:
+                chain = method(graph, test.chain, test.index + 1, forbiddenVariants, iteration)
+                if chain:
+                    log.debug('method used: %s in iteration %d', method.__name__, iteration)
+                    log.debug('f:%s', str(forbiddenVariants))
+                    return chain
+                
+        # nothing can be done
+        return test.chain[:test.index + 1]
+    
+    def shortestPath(self, graph, chain, chainLength, forbiddenVariants, iteration):
+        """ Try to prune chain by searching for shortest path between.
+            first and failed test.
+            
+            :Iterations:
+                 first: (and last) shortest path
+            
+            :Parameters:
+                graph: graph used for generating chain
+                chain: chain to prune
+                chainLength: length of chain used - index of failed test + 1
+                forbiddenVariants: list of key values determining 
+                    method that had been used on this chain
+                    format of keys is str(pruningMethod)[:own parameters]
+                iteration: how many times were pruning used on this chain
+                    withou success.
+                    The greater is iteration, the more brutal force methods are
+                    used for pruning.
+                
+            :Return:
+                shorter chain or None
+        """
+        # we know only one method how to prune
+        if 'shortestPath' in forbiddenVariants:
+            return None
+        else:
+            forbiddenVariants.append('shortestPath')
+            
+        path = graph.getShortestPath (chain[0], chain[chainLength - 1])
+        if not path: #this should not happen - we should find at least old path
+            raise Exception ("sys error: we don't find existing path")
+        else:
+            return path
+            
+            
+    def skipPart(self, graph, chain, chainLength, forbiddenVariants, iteration):
+        """ Try to prune chain by skiping part of chain (yet preserve
+            dependencies).
+            
+            :Iterations:
+                first: try to skip random part by searching for shorter path
+                    between start and end
+                second: check for all function:function intervals,
+                    where both functions are the same - merge them to one
+                    skipping functions between them.
+                last: try to skip all possible subsequences
+            
+            :Parameters:
+                graph: graph used for generating chain
+                chain: chain to prune
+                chainLength: length of chain used - index of failed test + 1
+                forbiddenVariants: list of key values determining 
+                    method that had been used on this chain
+                    format of keys is str(pruningMethod)[:own parameters]
+                iteration: how many times were pruning used on this chain
+                    withou success.
+                    The greater is iteration, the more brutal force methods are
+                    used for pruning.
+                
+            :Return:
+                shorter chain or None
+        """
+        if iteration == 0:
+            # first iteration, check for function level
+            if 'skipPart' in forbiddenVariants:
+                return None
+            else:
+                forbiddenVariants.append('skipPart')
+                start = randint( 1, chainLength - 2)
+                end = randint( start + 1, chainLength - 1)
+                path = graph.getShortestPath(chain[start], chain[end])
+                if not len(path) < end - start + 1:
+                    return None
+                else:
+                    forbiddenVariants.append('skipPart:' + str(start) + ':' + str(end))
+                    return chain[0:start] + path + chain[end + 1:]
+                    
+        elif iteration == 1:
+            # second iteration, check for all function to function
+            functionsToUse = graph.getNodeList()
+            functionsToUse.remove(chain[0])
+            try:
+                functionsToUse.remove(chain[chainLength - 1])
+            except ValueError:
+                # could be the same as first
+                pass
+            for function in functionsToUse:
+                if 'skipPart:' + function in forbiddenVariants:
+                    #there is no pair of this function
+                    continue
+                try:
+                    start = chain.index(function)
+                    end = None
+                except ValueError:
+                    forbiddenVariants.append('skipPart:' + function)
+                    continue
+                try:
+                    end = start + chain[start + 1:].index(function) + 1
+                except ValueError:
+                    forbiddenVariants.append('skipPart:' + function)
+                    continue
+                    
+                if start is not None and \
+                    end is not None and \
+                    'skipPart:' + str(start) + ':' + str(end) \
+                    not in forbiddenVariants:
+                    break
+                
+            if start is None or \
+                end is None or \
+                'skipPart:' + str(start) + ':' + str(end) \
+                in forbiddenVariants:
+                return None
+            else:
+                #log.debug('skip: (%d,%d) %s\n %s - %s', start, end, 
+                #    str(chain[start : end]), chain[0:start], chain[end:])
+                forbiddenVariants.append('skipPart:' + str(start) + ':' + str(end))
+                return chain[0:start] + chain[end:]
+            
+        elif iteration == self.maxIterations:
+            # check for all intervals
+            for index in range(chainLength - 2):
+                for length in range(2, 2 + chainLength - 2 - index):
+                    if 'skipPart:' + str(index) + ':' + str(index + length)\
+                        in forbiddenVariants:
+                        continue
+                    bypass = graph.getShortestPath(chain[index],
+                        chain[index + length])
+                    forbiddenVariants.append('skipPart:' + str(index) + ':' + str(index + length))
+                    if len(bypass) <= length:
+                        #log.debug('skip: (%d,%d) %s\n %s - %s - %s', index, index+length, 
+                        #      chain, chain[0:index], bypass, chain[index + length + 1:])
+                        return chain[0:index] + bypass + chain[index + length + 1:]
+        else:
+            return None
+        
+    def disableFunction(self, graph, chain, chainLength, forbiddenVariants, iteration):
+        """ Try to prune chain by disabling one function. Any function occurence
+            is skipped, if there is bypass between previous and next function.
+            
+            :Iterations:
+                first: try to disable random function
+                last: try to skip any function
+            
+            :Parameters:
+                graph: graph used for generating chain
+                chain: chain to prune
+                chainLength: length of chain used - index of failed test + 1
+                forbiddenVariants: list of key values determining 
+                    method that had been used on this chain
+                    format of keys is str(pruningMethod)[:own parameters]
+                iteration: how many times were pruning used on this chain
+                    withou success.
+                    The greater is iteration, the more brutal force methods are
+                    used for pruning.
+                
+            :Return:
+                shorter chain or None
+        """
+        # by default, skip anything except first and last
+        functionsToUse = graph.getNodeList()
+        functionsToUse.remove(chain[0])
+        try:
+            functionsToUse.remove(chain[chainLength - 1])
+        except ValueError:
+            #could be the same
+            pass
+            
+        if iteration == 0:
+            #check for function level
+            if 'disableFunction' in forbiddenVariants:
+                # only one try on first level
+                functionsToUse = []
+            else:
+                forbiddenVariants.append('disableFunction')
+        elif iteration == self.maxIterations:
+            # try all functions on last level
+            functionsToUse = [function for function in functionsToUse \
+                if 'disableFunction:' + function not in forbiddenVariants]
+        else:
+            functionsToUse = []
+            
+        if not functionsToUse:
+            return None
+            
+        function = functionsToUse[0]
+        forbiddenVariants.append('disableFunction:' + function)
+        newChain = [chain[0]]
+        for index in range(1,chainLength - 2):
+            if not chain[index] == function:
+                newChain.append(chain[index])
+            else:
+                # get bypass
+                replacePath = graph.getShortestPath(newChain[len(newChain) - 1],
+                    chain[index + 1], [function])
+                
+                if replacePath:
+                    # we found bypass
+                    newChain.extend(replacePath[1:len(replacePath) - 1])
+                else:
+                    # there is no bypass
+                    newChain.append(chain[index])
+                    
+        newChain.extend(chain[chainLength - 2:])
+            
+        return newChain
+        
 
 class StressGenerator(Plugin):
     """ ZFS stress test generator. 
@@ -183,11 +439,9 @@ class StressGenerator(Plugin):
     stopProbability = 0
     """ Probability of terminating chain after test. 0.1 means 10% """
     
-    useShortestPath = True
-    """ If use shortest path algorithm when prunning failed stress chains """
     
     # savedPath related variables
-    savedPathDir = os.path.join( os.getcwd(), 'savedPaths')
+    savedPathDir = None
     """  Directory where to put saved paths for failed chains. """
     
     savedPathSuffix = '.savedPath'
@@ -207,21 +461,29 @@ class StressGenerator(Plugin):
     metaAttrName = "metaTest"
     """ Name of attribute which says if class (method) is meta """
     
-    metaTestCollector = MetaTestCollector()
+    metaTestCollector = None
     """ MetaTestCollector class instance. Used for collecting meta methods. """
     
-    svnClient = pysvn.Client()
+    pruneLogic = None
+    """ Instance of pruning class """
+    
+    svnClient = None
     """ Pysvn svn client instance. Used for adding saved paths into subversion. """
     
     reportProxy = None
     """ Report proxy object used for reporting chain successes or failures """
     
     
-    chainQueue = []
+    chainQueue = None
     """ List of generated chains, have to be appended to root case before run. """
     
     def __init__(self):
         Plugin.__init__(self)
+        self.svnClient = pysvn.Client()
+        self.metaTestCollector = MetaTestCollector()
+        self.pruneLogic = PruneLogic()
+        self.chainQueue = []
+        self.savedPathDir = os.path.join( os.getcwd(), 'savedPaths')
         
     def addOptions(self, parser, env=os.environ):
         # for backward conpatibility
@@ -492,29 +754,7 @@ class StressGenerator(Plugin):
         self.rootCase.addTest(wrapper)
         self.rootCase = wrapper
         
-    def prune(self, test):
-        """ Prune stress test chain. 
-            Try to find shorter sequence from first method to last used (where index points to).
-            It could use other methods that listed in chain too.
-            The only pruning method used now is shortest path. If disabled, returns chain itself.
-            
-            :Parameters:
-                test: ChainedTestCase instance with index set to last method that should be used in chain
-            :Return:
-                ordered list of methods - shorter path between first and indexed method. 
-        """
-        if self.useShortestPath:
-            allowedMethods = self.metaTestCollector.getClassMethods(test.cls)
-            #log.debug("allowedMethods %s?",allowedMethods)
-            graph = GraphBuilder.generateDependencyGraph(test.cls, allowedMethods) #maybe use only chain methods
-            #log.debug("new graph is %s", str(graph.graph))
-            log.debug("searching shortest path from %s to %s", test.chain[0], test.chain[test.index])
-            path = graph.getShortestPath (test.chain[0], test.chain[test.index])
-            if not path: #this should not happen - we should find at least old path
-                raise Exception ("sys error: we don't find existing path")
-            return path
-        
-        return test.chain[:test.index + 1]
+
         
     def shouldRetry(self, test):
         """ Check, if there should be another retry for given test.
@@ -530,7 +770,7 @@ class StressGenerator(Plugin):
         
         return self.retriesAfterFailure > iteration and not hasattr(test, 'fromSavedPath')
         
-    def retry(self, test):
+    def retry(self, test, fromFailure = True):
         """ Query test for retry.
             
             :Parameters:
@@ -548,7 +788,7 @@ class StressGenerator(Plugin):
                 carry[key] = getattr(test, key)
             except AttributeError:
                 pass
-        newChain = self.prune(test)
+        newChain = self.pruneLogic(test, fromFailure)
         suite = self.wrapMethodSequence(test.cls, newChain, carryAttributes = carry)
         self.rootCase.addTest(suite)
         
@@ -1089,7 +1329,7 @@ class LazyTestChain(object):
             
         currentLength = len(self)
         if self.maxLength != LENGTH_INFINITE and \
-            currentLength + toGenerate > self.maxLength:
+            currentLength + toGenerate >= self.maxLength:
             toGenerate = self.maxLength - currentLength
         while toGenerate > 0:
             method = self.graph.next()
@@ -1127,6 +1367,7 @@ class LazyTestChain(object):
         return self.array.__str__()
         
     __repr__ = __str__
+    
     
 
 
@@ -1271,11 +1512,14 @@ class StressPluginReportRetryTest(unittest.TestCase):
             pass
             
     def setUp(self):
+        def noPrune(test, useAllMethods = True):
+            return test.chain
         log.debug('setup')
         self.plugin = StressGenerator()
         self.plugin.reportProxy = self.FakeReport()
         setattr(self.plugin, 'conf', None)
         setattr(self.plugin, 'resultProxy', None)
+        setattr(self.plugin, 'pruneLogic', noPrune)
         self.plugin.shouldReport = True
         self.plugin.rootCase =  SuiteRunner([])
         self.plugin.metaTestCollector.map[self.FakeTest] = ['first', 'second', 'last']
@@ -1354,6 +1598,8 @@ class StressPluginReportRetryTest(unittest.TestCase):
         assert not self.plugin.handleFailure(retry.test, sys.exc_info())
         assert not self.plugin.reportProxy.failures
         assert not self.plugin.rootCase.tests
+        
+        retry.test.test.setIndexTo(len(retry.test.test.chain) - 1)
         assert self.plugin.addSuccess(retry.test)
         assert len(self.plugin.reportProxy.failures) == 1
         assert not self.plugin.reportProxy.successes
@@ -1426,4 +1672,60 @@ class StressPluginReportRetryTest(unittest.TestCase):
         
         assert not self.plugin.rootCase.tests
         
-
+class TestPruner(unittest.TestCase):
+    class FakeTestCase(object):
+        graph = {
+            'first': [('second',1), ('third', 1)],
+            'second': [('first', 1)],
+            'third': [('second', 1), ('fourth', 1), ('fifth',1)],
+            'fourth': [('second', 1)],
+            'fifth':[('fifth',1), ('sixth', 1)],
+            'sixth':[('fifth', 1), ('sevnth', 1)],
+            'sevnth':[('sevnth', 1), ('sixth', 1)]
+            }
+        startingPoint = 'first'
+        def first(self):
+            pass
+        second = third = fourth = fifth = sixth = sevnth = first
+        
+        definitionType = GraphBuilder.USE_GLOBAL
+        
+    def setUp(self):
+        self.pruneLogic = PruneLogic()
+        self.chain = LazyTestChain( \
+            GraphBuilder.generateDependencyGraph(self.FakeTestCase),
+            20)
+        self.case = ChainedTestCase(cls = self.FakeTestCase, instance = self.FakeTestCase(),
+            chain = self.chain,  index = 0)
+        self.case.setIndexTo(19)
+    def tearDown(self):
+        self.pruneLogic = None
+        self.chain = None
+        self.case = None
+        
+    def checkValidity(self, chain):
+        for index in range(0,len(chain) - 1):
+            successors = self.FakeTestCase.graph[chain[index]]
+            next = chain[index+1]
+            for suc in successors:
+                if suc[0] == next:
+                    break
+            if next != suc[0]:
+                assert False
+                
+        return True
+        
+        
+    def test(self):
+        iterations = 100
+        log.debug('default: (%d)%s', len(self.chain), str(self.chain))
+        while iterations:
+            log.debug('.')
+            iterations -= 1
+            next = self.pruneLogic(self.case)
+            #log.debug( 'next   : (%d)%s', len(next), str(next))
+            if next == None:
+                return
+            assert self.checkValidity(next)
+            assert next != self.chain
+    

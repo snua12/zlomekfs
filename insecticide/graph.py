@@ -7,6 +7,7 @@ import copy
 
 from random import SystemRandom
 from util import getMatchedTypes
+from copy import copy
 from types import MethodType
 from unittest import TestCase
 
@@ -44,6 +45,14 @@ class DependencyGraph(object):
         """
         return self.graph == graph.graph and self.currentNode == graph.currentNode
     
+    def getNodeList(self):
+        """ Return list of known nodes
+            
+            :Return:
+                list of nodes in this graph
+        """
+        return copy(self.graph.keys())
+        
     def __init__(self,  graph = None, startNode = None):
         """ Constructor. Takes optional arguments to bootstrap state.
             
@@ -217,26 +226,30 @@ class DependencyGraph(object):
             visited = ignoredNodes
         else:
             visited = []
-        queue = [(start, [])]
+            
+        queue = []
+        for (next, prob) in self.graph[start]:
+            if prob > 0:
+                queue.append((next, [start]))
         
         while queue:
-            (node, successors) = queue.pop (0)
+            (node, ancestors) = queue.pop (0)
             if node == end:
-                successors .append(end)
-                return successors
+                ancestors.append(end)
+                return ancestors
                 
             if node in visited:
                 continue
                 
             visited.append(node)
             
-            newSuccessors = list(successors)
-            newSuccessors.append(node)
+            newAncestors = list(ancestors)
+            newAncestors.append(node)
             try:
-                successors = self.graph[node]
-                for (next, prob) in successors:
+                ancestors = self.graph[node]
+                for (next, prob) in ancestors:
                     if prob > 0:
-                        queue.append((next, newSuccessors))
+                        queue.append((next, newAncestors))
             except KeyError:
                 continue
             
@@ -275,10 +288,23 @@ class testShortestPath(TestCase):
                                      '3': [('4', 1), ('6', 1)], 
                                      '4': [('5', 1)], 
                                      '5': [('6', 1)], 
-                                     '6': []
+                                     '6': [],
+                                     
+                                     '7':[('7', 1)],
+                                     
+                                     '8':[('9',1)],
+                                     '9':[('8',1)],
+                                     
                                      }, 
                                      '1')
     
+    def testCycle(self):
+        assert self.graph.getShortestPath('7', '7') == ['7', '7']
+        assert self.graph.getShortestPath('8', '8') == ['8', '9', '8']
+        assert self.graph.getShortestPath('9', '9') == ['9', '8', '9']
+        assert self.graph.getShortestPath('9', '9', ['8']) == None
+        
+        
     def testTrivialPath(self):
         assert self.graph.getShortestPath('4', '5') == ['4', '5']
     
@@ -293,6 +319,22 @@ class testShortestPath(TestCase):
     
     def testPathWithBlockedNodes(self):
         assert self.graph.getShortestPath('1', '6', ['3']) == ['1', '2', '5', '6']
+        
+class testBrokenShortests(unittest.TestCase):
+    graph = {
+        'first': [('second',1), ('third', 1)],
+        'second': [('first', 1)],
+        'third': [('second', 1), ('fourth', 1)],
+        'fourth': [('second', 1)],
+        }
+        
+    def setUp(self):
+        self.dependencyGraph = DependencyGraph(self.graph)
+    def tearDown(self):
+        self.graph = None
+        
+    def testFirstToFirst(self):
+        assert self.dependencyGraph.getShortestPath('first', 'first', ['second']) == None
 
 class testInfiniteGraph(TestCase):
     """ TestCase for testing infinite graph walkthrough
@@ -442,7 +484,7 @@ class GraphBuilder(object):
         if graph is None:
             raise DependencyDeffinitionError("no graph defined while using global graph dependencies")
         else:
-            graph = copy.copy(graph)
+            graph = copy(graph)
         
         if methods:
             for key in graph.keys():
