@@ -3,7 +3,6 @@
  """
 
 import unittest
-import copy
 
 from random import SystemRandom
 from util import getMatchedTypes
