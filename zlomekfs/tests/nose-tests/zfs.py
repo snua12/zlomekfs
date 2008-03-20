@@ -75,11 +75,6 @@ class ZfsProxy(object):
                 tempDir: where to create dir with our session data
                 logger: logging module based logger (to put logs to)
         """
-        
-        
-        if zfsRoot:
-            self.zfsRoot = zfsRoot
-           
         self.logger = logger
         
         self.metaTar = metaTar
@@ -88,6 +83,12 @@ class ZfsProxy(object):
             self.tempDir = tempDir
         else:
             self.tempDir =  tempfile.mkdtemp(prefix = "zfsTestTemp")
+            
+        if zfsRoot:
+            self.zfsRoot = zfsRoot
+        else:
+            self.zfsRoot = tempfile.mkdtemp(prefix='zfsMountPoint', 
+                dir = self.tempDir)
           
           
     @classmethod
