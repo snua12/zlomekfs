@@ -22,7 +22,8 @@ class instance.
 ZfsStressGenerator plugin usess attribute failureBuffer on test class instance 
 to store failure reports between runs of the same stress chain with diferrent 
 pruning. This approach is used to report only the shortests version of failed 
-chain, while the last version can success.
+chain, while the last version can success. For control of number of reruns
+there is retryIteration attribute (zero on begining, 1 on first retry, ...).
 
 ZfsStressGenerator distinguishes metaTests by metaTest attribute. It can be 
 defined on test class, or test method. Test method attribute has precedence, 

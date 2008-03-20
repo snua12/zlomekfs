@@ -528,7 +528,7 @@ class StressGenerator(Plugin):
         """
         iteration = getattr(test, 'retryIteration', 0)
         
-        return self.retriesAfterFailure > iteration
+        return self.retriesAfterFailure > iteration and not hasattr(test, 'fromSavedPath')
         
     def retry(self, test):
         """ Query test for retry.
@@ -1043,14 +1043,19 @@ class LazyTestChain(object):
         else:
             return self.array.__setattr__(name, value)
     
-    def __init__(self, graph, maxLength = 0):
+    def __init__(self, graph, maxLength = 0, array = None):
         """ Constructor. Sets length, graph to use and first item.
             
             :Parameters:
                 graph: DependencyGraph instance to generate method seqence from
                 maxLength: maximum length of chain (array)
+                array: first part of chain
         """
-        self.array = []
+        if array:
+            self.array = array
+        else:
+            self.array = []
+            
         self.graph = graph
         self.maxLength = maxLength
         
@@ -1310,6 +1315,7 @@ class StressPluginReportRetryTest(unittest.TestCase):
         assert self.plugin.reportProxy.errors
         assert self.plugin.reportProxy.errors[0].test == self.case
         
+        
     def testReportSuccess(self):
         """ Test if addSuccess
             report if chain on end
@@ -1409,4 +1415,15 @@ class StressPluginReportRetryTest(unittest.TestCase):
         
         assert self.plugin.rootCase.tests
         assert self.plugin.rootCase.tests[0].test.test.failureBuffer[1].error == True
-    
+        
+    def testReportSavedPath(self):
+        """ Test that savedPaths are not retried. """
+        self.plugin.retriesAfterFailure = 1
+        
+        # failure - middle - instance - first - retry - failure from saved path
+        setattr(self.case, 'fromSavedPath', True)
+        assert self.plugin.handleFailure(Test(self.case), sys.exc_info()) == False
+        
+        assert not self.plugin.rootCase.tests
+        
+
