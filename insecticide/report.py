@@ -284,7 +284,7 @@ def appendDataToRun(run, errInfo = None, dataDir = None, test = None):
             runData.errText = str(runData.errText)
         #runData.errText = pickle.dumps(traceback.format_exception_only(errInfo[0], errInfo[1]), protocol = 0)
     
-    if test and hasattr(test, "snapshotBuffer"):
+    if test and hasattr(test, "snapshotBuffer") and test.snapshotBuffer:
         snapshot = test.snapshotBuffer.pop()
         targetFileName = os.path.join(dataDir, "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot)))
         log.debug("appending snapshot from dir '%s' into file '%s'", snapshot.directory, targetFileName)
