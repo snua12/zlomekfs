@@ -23,6 +23,28 @@ from insecticide import zfsConfig
 log = logging.getLogger ("nose.tests.zfs")
 
 
+def forceCloseFile(file):
+    try:
+        if file and not file.closed:
+            file.close()
+    except KeyboardInterrupt:
+        raise
+    except:
+        log.debug('problem with close')
+        pass
+        
+
+def forceDeleteFile(file):
+    if file:
+        forceCloseFile(file)
+        try:
+            os.unlink(file.name)
+        except KeyboardInterrupt:
+            raise
+        except:
+            log.debug('problem with delete')
+            pass
+            
 class ZfsRuntimeException(Exception):
     """ Exception raised upon zfs daemon failure """
     pass
@@ -263,6 +285,8 @@ class ZfsProxy(object):
         
     def runZfs(self):
         """ Kill previously running zfsd instances and run our own zfsd. """
+        self.stdout = open(os.path.join(self.tempDir, 'zfsd.stdout'), 'wb+')
+        self.stderr = open(os.path.join(self.tempDir, 'zfsd.stderr'), 'wb+')
         
         self.killall() #destroy previous zfsd instances
         if self.zfs:
@@ -285,9 +309,9 @@ class ZfsProxy(object):
                 os.path.join(self.tempDir, ZfsProxy.logFileName),
             '-o', 'loglevel=' + str(loglevel) +
             ',config=' + os.path.join(self.tempDir, self.config), 
-            self.zfsRoot),
+            self.zfsRoot), bufsize=0,
             cwd = self.tempDir,
-            stdout = PIPE, stderr = PIPE, universal_newlines=True)
+            stdout = self.stdout, stderr = self.stderr, close_fds = True, universal_newlines=True)
         for i in [0.2, 0.5, 1, 3, 5, 100]:
             time.sleep(i)
             if zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING:
@@ -328,6 +352,8 @@ class ZfsProxy(object):
             setCoreDumpSettings(self.coreDumpSettings)
             self.coreDumpSettings = None
             
+        self.stdout.close()
+        self.stderr.close()
         
     def snapshot(self, snapshot):
         """ Snapshot zfsd related state (cache, core dump, etc)
@@ -380,9 +406,11 @@ class ZfsProxy(object):
         else:
             self.collectZfsCoreDump(snapshot)
             
-        if hasattr(self,"zfs") and self.zfs.poll() is not None:
-            snapshot.addObject("zfsStderr", self.zfs.stderr.readlines())
-            snapshot.addObject("zfsStdout", self.zfs.stdout.readlines())
+        if self.stdout:
+            snapshot.addFile("zfsStdout", self.stdout.name)
+        if self.stderr:
+            snapshot.addFile("zfsStderr", self.stderr.name)
+            
         
     def resume(self, snapshot):
         """ Resume state (if possible). This is usefull only to ease mimic of 

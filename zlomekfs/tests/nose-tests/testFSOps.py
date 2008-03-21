@@ -6,13 +6,24 @@ import os
 import pickle
 
 from random import Random
-from zfs import ZfsStressTest, abortDeadlock
+from zfs import ZfsStressTest, abortDeadlock, forceDeleteFile
+from testFSOp import TestFSOp
 
 from insecticide.graph import GraphBuilder
 from insecticide.zfsConfig import ZfsConfig
 from insecticide.timeoutPlugin import timed
 
-class TestFSOps(ZfsStressTest):
+class TestGlobalState(object):
+    def __init__(self):
+        self.testFile = None
+    
+    def clean(self):
+        if self.testFile:
+            forceDeleteFile(self.testFile)
+        self.testFile = None
+    
+
+class TestFSOps(ZfsStressTest, TestFSOp):
   disabled = False
   metaTest = True
   definitionType = GraphBuilder.USE_FLAT
@@ -45,18 +56,15 @@ class TestFSOps(ZfsStressTest):
   dataVector  = []
   dataVectorLength = 1024
   
-  safeFile = None
-  testFile = None
-  safeSubdirName = 'safedir'
+  globalState = None
   
   @classmethod
   def setupClass(self):
     super(TestFSOps,self).setupClass()
     config = getattr(self,ZfsConfig.configAttrName)
-    self.safeRoot = config.get("global","testRoot")
-    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
     
     self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+    self.globalState = TestGlobalState()
     
     self.generator.seed()
     self.randomizeData()
@@ -66,56 +74,30 @@ class TestFSOps(ZfsStressTest):
   # cleanup after every test method
   @classmethod
   def teardownClass(self):
-    super(TestFSOps,self).teardownClass()
     self.cleanFiles()
+    self.globalState = None
+    super(TestFSOps,self).teardownClass()
   
-  @classmethod
-  def prepareFiles(self):
-    try:
-      os.mkdir(self.safeRoot + os.sep + self.safeSubdirName, True)
-    except OSError:
-      pass #already exists
   
   ##
   # remove files and clean handles
   @classmethod
   def cleanFiles(self):
-  # TODO: this wont' work since it is classmethod
-    if self.safeFile != None:
-      try:
-        self.safeFile.close()
-      except IOError:
-        pass
-      self.safeFile = None
+    self.globalState.clean()
     
-    if self.testFile != None:
-      try:
-        self.testFile.close()
-      except IOError:
-        pass
-      self.testFile = None
-    
-    import shutil
-    shutil.rmtree(self.safeRoot + os.sep + self.safeSubdirName, True)
-  
-  ##
-  # generate random data for tests
-  @classmethod
-  def randomizeData(self):
-    for i in range(self.dataVectorLength):
-      self.dataVector.append(self.generator.random())
       
   @timed(10, abortDeadlock)
   def testWriteRead(self):
     try:
-        self.testFile = open(self.testFileName, 'w+')
+        self.globalState.testFile = open(self.testFileName, 'w+')
         
-        pickle.dump(self.dataVector,  self.testFile)
-        self.testFile.flush()
+        pickle.dump(self.dataVector,  self.globalState.testFile)
+        self.globalState.testFile.flush()
         
-        self.testFile.seek(0)
+        self.globalState.testFile.seek(0)
         
-        self.test_data = pickle.load(self.testFile)
+        self.test_data = pickle.load(self.globalState.testFile)
+        self.globalState.testFile.close()
     except IOError:
         # could be timeout
         pass
@@ -127,12 +109,13 @@ class TestFSOps(ZfsStressTest):
   @timed(10, abortDeadlock)
   def testWriteReadonly(self):
     fd = os.open(self.testFileName,  os.O_CREAT | os.O_RDONLY)
-    self.testFile = os.fdopen(fd)
+    self.globalState.testFile = os.fdopen(fd)
     
     try:
-        pickle.dump(self.dataVector,  self.testFile)
+        pickle.dump(self.dataVector,  self.globalState.testFile)
         raise Exception('Reached','Unreachable branch reached.')
     except IOError:
         print 'everything is o.k., can\'t write'
     finally:
+        self.globalState.testFile.close()
         self.raiseExceptionIfDied()

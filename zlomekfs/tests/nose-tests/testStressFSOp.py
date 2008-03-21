@@ -4,7 +4,9 @@
 
 import logging
 
+import sys
 import os
+import time
 import random
 
 from traceback import format_exc
@@ -12,7 +14,7 @@ from traceback import format_exc
 from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
 
-from zfs import ZfsStressTest, abortDeadlock
+from zfs import ZfsStressTest, abortDeadlock, forceDeleteFile
 from testFSOp import TestFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename, trySeek, tryGetSize, tryGetPos
 
 
@@ -20,9 +22,27 @@ from insecticide.timeoutPlugin import timed
 
 log = logging.getLogger ("nose.tests.testStressFSOp")
 
+class TestGlobalState(object):
+    def __init__(self):
+        self.safeFile = None
+        self.testFile = None
+        
+            
+    def clean(self):
+        if self.safeFile:
+            forceDeleteFile(self.safeFile)
+            self.safeFile = None
+            
+        if self.testFile:
+            forceDeleteFile(self.testFile)
+            self.testFile = None
+
 class testStressFSOp(ZfsStressTest, TestFSOp):
   disabled = False
   definitionType = GraphBuilder.USE_GLOBAL
+  globalState = None
+
+    
   
   noFileSuccessors = [('testTouch', 3), ('testGenerateName', 1), ('testOpen', 5)]
   fileExistSuccessors = [('testRename', 1), ('testUnlink', 1),
@@ -51,22 +71,16 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   # setup before every test method
   @classmethod
   def setupClass(self):
+    self.globalState = TestGlobalState()
     super(testStressFSOp,self).setupClass()
-    config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
-    self.safeRoot = config.get("global","testRoot")
-    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
-    self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
- 
-    self.generator.seed()
-    self.randomizeData()
-    self.prepareFiles()
   
   ##
   # cleanup after every test method
   @classmethod
   def teardownClass(self):
-    super(testStressFSOp,self).teardownClass()
     self.cleanFiles()
+    self.globalState = None
+    super(testStressFSOp,self).teardownClass()
   
   def setup(self):
     ZfsStressTest.setup(self)
@@ -74,50 +88,20 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   def teardown(self):
     ZfsStressTest.teardown(self)
     
-  def forceClose(self, file):
-    try:
-        if file and not file.closed:
-            file.close()
-    except KeyboardInterrupt:
-        raise
-    except Exception:
-        pass
-  
   ##
   # remove files and clean handles
   @classmethod
   def cleanFiles(self):
-  # TODO: this wont' work since it is classmethod
-    if self.safeFile != None:
-      try:
-        self.safeFile.close()
-      except IOError:
-        pass
-      self.safeFile = None
+    log.debug('cleaning')
+    self.globalState.clean()
     
-    if self.testFile != None:
-      try:
-        self.testFile.close()
-      except IOError:
-        pass
-      self.testFile = None
-    
-    import shutil
-    shutil.rmtree(self.safeRoot + os.sep + self.safeSubdirName, True)
-  
-  ##
-  # generate random data for tests
-  @classmethod
-  def randomizeData(self):
-    for i in range(self.dataVectorLength):
-      self.dataVector.append(self.generator.random())
-      
-  
+    super(testStressFSOp,self).cleanFiles()
+        
   @timed(2, abortDeadlock)
   def testGenerateName(self):
     name = self.generateRandomFileName()
-    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + name
-    self.testFileName = self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + name
+    self.safeFileName = os.path.join(self.safeRoot, name)
+    self.testFileName = os.path.join(self.zfsRoot, "bug_tree", name)
   #testGenerateName.disabled = True
   
   @timed(5, abortDeadlock)  
@@ -127,6 +111,10 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
     test =  tryTouch(self.testFileName)
     self.raiseExceptionIfDied()
     assert safe == test
+    
+    @timed(1, abortDeadlock)
+    def testSkip(self):
+        time.sleep(0.1)
     
   @timed(10, abortDeadlock)  
   def testUnlink(self):
@@ -142,7 +130,7 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
     testResult = False
     
     newName = self.generateRandomFileName()
-    newSafeFileName = os.path.join(self.safeRoot , self.safeSubdirName, newName)
+    newSafeFileName = os.path.join(self.safeRoot, newName)
     newTestFileName = os.path.join(self.zfsRoot, "bug_tree", newName)
     
     if tryRename(self.safeFileName,  newSafeFileName):
@@ -162,14 +150,14 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
     testResult = False
     
     try:
-      self.safeFile = open(self.safeFileName,  self.fileAccessMode)
+      self.globalState.safeFile = open(self.safeFileName,  self.fileAccessMode)
       safeResult = True
     except:
       log.debug(format_exc())
       pass
     
     try:
-      self.testFile = open(self.testFileName,  self.fileAccessMode)
+      self.globalState.testFile = open(self.testFileName,  self.fileAccessMode)
       testResult = True
     except:
       log.debug(format_exc())
@@ -184,18 +172,18 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
     testResult = False
     
     try:
-      if self.safeFile:
-        self.safeFile.close()
-      self.safeFile = None
+      if self.globalState.safeFile:
+        self.globalState.safeFile.close()
+      self.globalState.safeFile = None
       safeResult = True
     except:
      log.debug(format_exc())
      pass
     
     try:
-      if self.testFile:
-        self.testFile.close()
-      self.testFile = None
+      if self.globalState.testFile:
+        self.globalState.testFile.close()
+      self.globalState.testFile = None
       testResult = True
     except:
      log.debug(format_exc())
@@ -206,11 +194,11 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   
   @timed(10, abortDeadlock)  
   def testRead(self):
-    pos = tryGetPos(self.safeFile)
-    len = tryGetSize(self.safeFile)
+    pos = tryGetPos(self.globalState.safeFile)
+    len = tryGetSize(self.globalState.safeFile)
     
-    safeResult = tryRead(self.safeFile, len - pos)
-    testResult = tryRead(self.testFile, len - pos)
+    safeResult = tryRead(self.globalState.safeFile, len - pos)
+    testResult = tryRead(self.globalState.testFile, len - pos)
     
     self.raiseExceptionIfDied()
     assert safeResult == testResult
@@ -219,24 +207,24 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   def testWrite(self):
     data = str(self.dataVector)
     log.debug('writing %d bytes into safe', len(data))
-    safe = tryWrite(self.safeFile,  data)
+    safe = tryWrite(self.globalState.safeFile,  data)
     log.debug('writing %d bytes into test', len(data))
-    test = tryWrite(self.testFile,  data)
+    test = tryWrite(self.globalState.testFile,  data)
     
     self.raiseExceptionIfDied()
     assert safe == test
     
   @timed(15, abortDeadlock)
   def testGetSize(self):
-        safeSize = tryGetSize(self.safeFile)
-        testSize = tryGetSize(self.testFile)
+        safeSize = tryGetSize(self.globalState.safeFile)
+        testSize = tryGetSize(self.globalState.testFile)
         self.raiseExceptionIfDied()
         assert safeSize == testSize
         
   @timed(10, abortDeadlock)
   def testGetPos(self):
-    safePos = tryGetPos(self.safeFile)
-    testPos = tryGetPos(self.testFile)
+    safePos = tryGetPos(self.globalState.safeFile)
+    testPos = tryGetPos(self.globalState.testFile)
     
     self.raiseExceptionIfDied()
     assert safePos == testPos
@@ -244,11 +232,11 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   @timed(10, abortDeadlock)
   def testSeek(self):    
     # we don't get size of tested filesystem file - it is tested by testGetSize
-    safeSize = tryGetSize(self.safeFile)
+    safeSize = tryGetSize(self.globalState.safeFile)
     newPos = random.randint(0, safeSize)
     
-    safe = trySeek(self.safeFile, safeSize) 
-    test = trySeek(self.testFile, safeSize)
+    safe = trySeek(self.globalState.safeFile, safeSize) 
+    test = trySeek(self.globalState.testFile, safeSize)
     
     self.raiseExceptionIfDied()
     assert safe == test

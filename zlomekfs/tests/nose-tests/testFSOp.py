@@ -12,8 +12,9 @@ from random import Random, sample, randint
 
 from insecticide import zfsConfig
 from insecticide.snapshot import SnapshotDescription
+from insecticide.timeoutPlugin import timed
 
-from zfs import ZfsTest
+from zfs import ZfsTest, abortDeadlock
 
 log = logging.getLogger ("nose.tests.testFSOp")
 
@@ -118,14 +119,12 @@ class TestFSOp(ZfsTest):
   safeRoot = None
   safeFile = None
   testFile = None
-  safeSubdirName = 'safedir'
   
   def snapshot(self, snapshot):
-    if self.safeRoot and self.safeSubdirName:
+    if self.safeRoot:
         try:
             
-            snapshot.addDir('compareDir', os.path.join(self.safeRoot,
-                                    self.safeSubdirName), type = SnapshotDescription.TYPE_COMPARE_FS)
+            snapshot.addDir('compareDir', self.safeRoot, type = SnapshotDescription.TYPE_COMPARE_FS)
         except (OSError, IOError):
             #ignore no dir errors, etc
             log.debug("can't snapshot compare dir: %s", format_exc())
@@ -134,28 +133,17 @@ class TestFSOp(ZfsTest):
   
   def resume(self, snapshot):
     ZfsTest.resume(self, snapshot)
-    snapshot.getDir('compareDir', os.path.join(self.safeRoot, self.safeSubdirName))
+    snapshot.getDir('compareDir', self.safeRoot)
     
   ##
   # setup before every test method
   @classmethod
   def setupClass(self):
-    log.debug(self.__name__ + "setupclass")
     super(TestFSOp,self).setupClass()
-    config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
+    self.prepareFiles()
     
-    globalSafeRoot = config.get("global","testRoot")
-    try:
-        os.makedirs(globalSafeRoot, True)
-    except OSError:
-        # directory exists
-        pass
-    self.safeRoot =  tempfile.mkdtemp(prefix = "testCompareDir",
-        dir = globalSafeRoot)
-    
-    self.safeFileName = self.safeRoot + os.sep + self.safeSubdirName + os.sep + "testfile"
-    
-    self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+    self.safeFileName = os.path.join(self.safeRoot, "testfile")
+    self.testFileName = os.path.join(self.zfsRoot, 'bug_tree', "testfile")
     
     self.generator.seed()
     self.randomizeData()
@@ -165,16 +153,11 @@ class TestFSOp(ZfsTest):
   # cleanup after every test method
   @classmethod
   def teardownClass(self):
-    log.debug(self.__name__ + "teardownclass")
     super(TestFSOp,self).teardownClass()
-    shutil.rmtree(self.safeRoot, True)
-    log.debug(self.__name__ + "teardownclass finish")
   
   def setup(self):
-    log.debug(self.__class__.__name__ + "setup")
     ZfsTest.setup(self)
     self.prepareFiles()
-    log.debug(self.__class__.__name__ + "setup finish")
     
   def teardown(self):
    log.debug(self.__class__.__name__ + "teardown")
@@ -184,33 +167,25 @@ class TestFSOp(ZfsTest):
    
   @classmethod
   def prepareFiles(self):
+    config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
+    globalSafeRoot = config.get("global","testRoot")
     try:
-      os.mkdir(self.safeRoot + os.sep + self.safeSubdirName, True)
-    except IOError:
-      pass
+        os.makedirs(globalSafeRoot, True)
     except OSError:
-      pass
+        # directory exists
+        pass
+    self.safeRoot =  tempfile.mkdtemp(prefix = "testCompareDir",
+        dir = globalSafeRoot)
   
-  ##
-  # remove files and clean handles
+  @classmethod
   def cleanFiles(self):
-  # TODO: this wont' work since it is classmethod
-    if self.safeFile != None:
-      try:
-        self.safeFile.close()
-      except IOError:
-        pass
-      self.safeFile = None
-    
-    if self.testFile != None:
-      try:
-        self.testFile.close()
-      except IOError:
-        pass
-      self.testFile = None
-    
-    import shutil
-    shutil.rmtree(self.safeRoot + os.sep + self.safeSubdirName, True)
+    try:
+      import shutil
+      shutil.rmtree(self.safeRoot)
+    except KeyboardInterrupt:
+      raise
+    except:
+      pass
   
   ##
   # generate random data for tests
