@@ -942,7 +942,7 @@ class StressGenerator(Plugin):
             elif testInst.failureBuffer:
                 if self.shouldRetry(testInst):
                     self.retry(testInst.failureBuffer[ \
-                        len(testInst.failureBuffer) - 1].test)
+                        len(testInst.failureBuffer) - 1].test, fromFailure = False)
                 else:
                     log.debug("%s failure from addSuccess", testInst.method.__name__)
                     self.storePath(testInst)
