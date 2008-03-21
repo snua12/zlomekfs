@@ -110,19 +110,22 @@ class PruneLogic(object):
         if not graph:
             raise DependencyDeffinitionError('No graph for test ' + str(test))
         
-        if not useAllMethods:
-            forbiddenVariants = getattr(graph, 'forbiddenVariants', [])
-        else:
-            forbiddenVariants = []
+        forbiddenVariants = getattr(graph, 'forbiddenVariants', [])
             
         setattr(graph, 'forbiddenVariants', forbiddenVariants)
             
         # try new method
         for iteration in range(self.maxIterations + 1):
+            if iteration:
+                # in further iterations, we don't want to ignore blocks from 
+                # previous iterations
+                useAllMethods = False
             for method in [self.shortestPath, self.disableFunction, self.skipPart]:
-                chain = method(graph, test.chain, test.index + 1, forbiddenVariants, iteration)
-                if chain:
+                chain = method(graph, test.chain, test.index + 1, forbiddenVariants, iteration, useAllMethods)
+                if chain and chain != test.chain[:test.index + 1]:
+                    # we don't want to return the same chain
                     log.debug('method used: %s in iteration %d', method.__name__, iteration)
+                    log.debug('len old: %d new %d',test.index + 1, len(chain))
                     log.debug('f:%s', str(forbiddenVariants))
                     
                     return LazyTestChain(graph, maxLength = len(chain),
@@ -132,12 +135,14 @@ class PruneLogic(object):
         return LazyTestChain(graph, maxLength = test.index + 1,
             array = test.chain[:test.index + 1])
     
-    def shortestPath(self, graph, chain, chainLength, forbiddenVariants, iteration):
+    def shortestPath(self, graph, chain, chainLength, forbiddenVariants, 
+        iteration, reuseOldVariants):
         """ Try to prune chain by searching for shortest path between.
             first and failed test.
             
             :Iterations:
-                 first: (and last) shortest path
+                 first: shortest path (just one time)
+                 last: shortest path, but try if there is change in first or last test
             
             :Parameters:
                 graph: graph used for generating chain
@@ -150,15 +155,30 @@ class PruneLogic(object):
                     withou success.
                     The greater is iteration, the more brutal force methods are
                     used for pruning.
+                reuseOldVariants: if old variants should be reused - shortestPath ignore this
                 
             :Return:
                 shorter chain or None
         """
-        # we know only one method how to prune
-        if 'shortestPath' in forbiddenVariants:
-            return None
+        if iteration == 0:
+            # on first iteration, try only if were used
+            if 'shortestPath' in forbiddenVariants:
+                return None
+            else:
+                forbiddenVariants.append('shortestPath')
+            
+        elif iteration == self.maxIterations:
+            # on last iteration, check if there is new start or end
+            if 'shortestPath:' + chain[0] + ':' \
+                    + chain[chainLength - 1] in forbiddenVariants:
+                        return
+                        
         else:
-            forbiddenVariants.append('shortestPath')
+            # in between iterations are ignored
+            return
+            
+        forbiddenVariants.append('shortestPath:' + chain[0] + ':' \
+            + chain[chainLength - 1])
             
         path = graph.getShortestPath (chain[0], chain[chainLength - 1])
         if not path: #this should not happen - we should find at least old path
@@ -167,7 +187,8 @@ class PruneLogic(object):
             return path
             
             
-    def skipPart(self, graph, chain, chainLength, forbiddenVariants, iteration):
+    def skipPart(self, graph, chain, chainLength, forbiddenVariants, iteration,
+        reuseOldVariants):
         """ Try to prune chain by skiping part of chain (yet preserve
             dependencies).
             
@@ -190,11 +211,23 @@ class PruneLogic(object):
                     withou success.
                     The greater is iteration, the more brutal force methods are
                     used for pruning.
+                reuseOldVariants: if old variants should be reused - 
+                    skip part will assume that chain is different and remove all old
+                    occurences
                 
             :Return:
                 shorter chain or None
         """
+        # we need to preserve array object (for further iterations)
+        # and do backward loop not to fuzz with index
+        variantIndex = len(forbiddenVariants) - 1
+        while variantIndex >=0:
+            if forbiddenVariants[variantIndex].startswith('skipPart'):
+                forbiddenVariants.pop(variantIndex)
+            variantIndex -= 1
+                
         if iteration == 0:
+                
             # first iteration, check for function level
             if 'skipPart' in forbiddenVariants:
                 return None
@@ -207,7 +240,7 @@ class PruneLogic(object):
                     return None
                 else:
                     forbiddenVariants.append('skipPart:' + str(start) + ':' + str(end))
-                    return chain[0:start] + path + chain[end + 1:]
+                    return chain[0:start] + path + chain[end + 1:chainLength]
                     
         elif iteration == 1:
             # second iteration, check for all function to function
@@ -230,6 +263,9 @@ class PruneLogic(object):
                     continue
                 try:
                     end = start + chain[start + 1:].index(function) + 1
+                    if end >= chainLength:
+                        #don't skip after failure
+                        end = None
                 except ValueError:
                     forbiddenVariants.append('skipPart:' + function)
                     continue
@@ -249,7 +285,7 @@ class PruneLogic(object):
                 #log.debug('skip: (%d,%d) %s\n %s - %s', start, end, 
                 #    str(chain[start : end]), chain[0:start], chain[end:])
                 forbiddenVariants.append('skipPart:' + str(start) + ':' + str(end))
-                return chain[0:start] + chain[end:]
+                return chain[0:start] + chain[end:chainLength]
             
         elif iteration == self.maxIterations:
             # check for all intervals
@@ -264,11 +300,12 @@ class PruneLogic(object):
                     if len(bypass) <= length:
                         #log.debug('skip: (%d,%d) %s\n %s - %s - %s', index, index+length, 
                         #      chain, chain[0:index], bypass, chain[index + length + 1:])
-                        return chain[0:index] + bypass + chain[index + length + 1:]
+                        return chain[0:index] + bypass + chain[index + length + 1:chainLength]
         else:
             return None
         
-    def disableFunction(self, graph, chain, chainLength, forbiddenVariants, iteration):
+    def disableFunction(self, graph, chain, chainLength, forbiddenVariants, 
+        iteration, reuseOldVariants):
         """ Try to prune chain by disabling one function. Any function occurence
             is skipped, if there is bypass between previous and next function.
             
@@ -287,6 +324,10 @@ class PruneLogic(object):
                     withou success.
                     The greater is iteration, the more brutal force methods are
                     used for pruning.
+                reuseOldVariants: if old variants should be reused -
+                    disableFunction ignores this - the function are there no more
+                    (NOTE: there is some possibility that skipPart could enable
+                    new paths, but it will find them too)
                 
             :Return:
                 shorter chain or None
@@ -335,7 +376,7 @@ class PruneLogic(object):
                     # there is no bypass
                     newChain.append(chain[index])
                     
-        newChain.extend(chain[chainLength - 2:])
+        newChain.extend(chain[chainLength - 2:chainLength])
             
         return newChain
         
@@ -771,6 +812,7 @@ class StressGenerator(Plugin):
         """
         iteration = getattr(test, 'retryIteration', 0)
         
+        # we don't want to rerun tests from savedPath - we don't have dependency graph
         return self.retriesAfterFailure > iteration and not hasattr(test, 'fromSavedPath')
         
     def retry(self, test, fromFailure = True):
