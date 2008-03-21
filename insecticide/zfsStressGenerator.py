@@ -105,6 +105,7 @@ class PruneLogic(object):
                     If False, use preferably pruning method that were not used yet.
             :Return:
                 ordered list of methods - shorter path between first and indexed method. 
+                or None when there is no possibility how to prune
         """
         graph = getattr(test.chain, 'graph', None)
         if not graph:
@@ -132,8 +133,7 @@ class PruneLogic(object):
                         array = chain)
                 
         # nothing can be done
-        return LazyTestChain(graph, maxLength = test.index + 1,
-            array = test.chain[:test.index + 1])
+        return None
     
     def shortestPath(self, graph, chain, chainLength, forbiddenVariants, 
         iteration, reuseOldVariants):
@@ -333,6 +333,7 @@ class PruneLogic(object):
                 shorter chain or None
         """
         # by default, skip anything except first and last
+        # TODO: consider only functions from path
         functionsToUse = graph.getNodeList()
         functionsToUse.remove(chain[0])
         try:
@@ -834,8 +835,9 @@ class StressGenerator(Plugin):
             except AttributeError:
                 pass
         newChain = self.pruneLogic(test, fromFailure)
-        suite = self.wrapMethodSequence(test.cls, newChain, carryAttributes = carry)
-        self.rootCase.addTest(suite)
+        if newChain:
+            suite = self.wrapMethodSequence(test.cls, newChain, carryAttributes = carry)
+            self.rootCase.addTest(suite)
         
     def storePath(self, test):
         """ Store path of failed stress test. Test will be stored to file
