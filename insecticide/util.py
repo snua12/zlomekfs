@@ -30,6 +30,8 @@ def noseWrapper(project = None, stripPath = None):
         else:
             branch = str(entry.url)[len(entry.repos) + 1:]
         os.environ[branchEnvOpt] = branch
+    except KeyboardInterrupt:
+        raise
     except:
         info = sys.exc_info()
         print info
@@ -44,11 +46,12 @@ def noseWrapper(project = None, stripPath = None):
             description = "Pysvn error in test.py", errInfo = info)
 
     from nose import main
-
+    res = None
     try:
         res = main(exit=False)
+    except KeyboardInterrupt:
+        print sys.exc_info()
     except:
-        res = None
         if batch:
             info = sys.exc_info()
             reportSystemError(batch, name = info[0].__name__,
