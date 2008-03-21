@@ -14,6 +14,10 @@ from insecticide.zfsConfig import ZfsConfig
 from insecticide.timeoutPlugin import timed
 
 class TestGlobalState(object):
+    """ Global state holder for TestFSOps
+        Holds file handle (to allow close from within
+        class context.
+        """
     def __init__(self):
         self.testFile = None
     
