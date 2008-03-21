@@ -4,14 +4,12 @@
 
 import logging
 
-import sys
 import os
 import time
 import random
 
 from traceback import format_exc
 
-from insecticide import zfsConfig
 from insecticide.graph import GraphBuilder
 
 from zfs import ZfsStressTest, abortDeadlock, forceDeleteFile

@@ -5,16 +5,14 @@
 import logging
 import tempfile
 import os
-import shutil
 
 from traceback import format_exc
 from random import Random, sample, randint
 
 from insecticide import zfsConfig
 from insecticide.snapshot import SnapshotDescription
-from insecticide.timeoutPlugin import timed
 
-from zfs import ZfsTest, abortDeadlock
+from zfs import ZfsTest
 
 log = logging.getLogger ("nose.tests.testFSOp")
 
