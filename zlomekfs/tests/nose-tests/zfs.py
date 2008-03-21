@@ -23,27 +23,37 @@ from insecticide import zfsConfig
 log = logging.getLogger ("nose.tests.zfs")
 
 
-def forceCloseFile(file):
+def forceCloseFile(fileToClose):
+    """ Try to close file with maximum effort.
+        No exceptions raised
+        
+        :Parameters:
+            fileToClose: python file object
+    """
     try:
-        if file and not file.closed:
-            file.close()
+        if fileToClose and not fileToClose.closed:
+            fileToClose.close()
     except KeyboardInterrupt:
         raise
     except:
         log.debug('problem with close')
-        pass
         
 
-def forceDeleteFile(file):
-    if file:
-        forceCloseFile(file)
+def forceDeleteFile(fileToDelete):
+    """ Try to delete file with maximum effort.
+        No exceptions raised
+        
+        :Parameters:
+            fileToClose: python file object
+    """
+    if fileToDelete:
+        forceCloseFile(fileToDelete)
         try:
-            os.unlink(file.name)
+            os.unlink(fileToDelete.name)
         except KeyboardInterrupt:
             raise
         except:
             log.debug('problem with delete')
-            pass
             
 class ZfsRuntimeException(Exception):
     """ Exception raised upon zfs daemon failure """
@@ -71,6 +81,12 @@ class ZfsProxy(object):
     zfsCacheDir = "cache"
     """ Name of directory, where zfs should put it's cache """
     
+    stdout = None
+    """ File handle of file to which zfsd stdout redirected. """
+
+    stderr = None
+    """ File handle of file to which zfsd stdout redirected. """   
+    
     logFileName = "zfsd.log"
     """ File name for log from zfsd """
     
@@ -87,7 +103,7 @@ class ZfsProxy(object):
     """ List of kernel modules that are needed by zfsd """
     
     def __init__(self, metaTar, zfsRoot = None,  tempDir = None,
-        logger = None):
+        logger = None, config = None):
         """ Constructor for proxy.
             
             :Parameters:
@@ -96,10 +112,14 @@ class ZfsProxy(object):
                 zfsRoot: where to mount zfs to
                 tempDir: where to create dir with our session data
                 logger: logging module based logger (to put logs to)
+                config: name of zfsd config file within meta tar
         """
         self.logger = logger
         
         self.metaTar = metaTar
+        
+        if config:
+            self.config = config
         
         if tempDir:
             self.tempDir = tempDir
@@ -446,11 +466,15 @@ class ZfsTest(object):
         
         log.debug("setupClass")
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
-        #cls.zfsRoot = config.get("global", "zfsRoot")
-        cls.zfsRoot = tempfile.mkdtemp(prefix = 'zfsMountPoint')
+        zfsConfigFile = config.get("global", "zfsConfigFile")
         cls.zfsMetaTar = config.get("global", "zfsMetaTar")
         
-        cls.zfs = ZfsProxy(zfsRoot = cls.zfsRoot,  metaTar = cls.zfsMetaTar)
+        # create random temporary mount point to avoid collisions with
+        # unclean root from previous sessions
+        cls.zfsRoot = tempfile.mkdtemp(prefix = 'zfsMountPoint')
+        
+        cls.zfs = ZfsProxy(zfsRoot = cls.zfsRoot,  metaTar = cls.zfsMetaTar, 
+            config = zfsConfigFile)
         
     @classmethod
     def teardownClass(cls):

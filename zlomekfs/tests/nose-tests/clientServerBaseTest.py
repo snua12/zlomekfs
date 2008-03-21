@@ -98,21 +98,24 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
     @classmethod
     def setupRemoteZfs(cls):
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
-        #remoteRoot = config.get("remoteZfs", "zfsRoot")
+        
         remoteTar = config.get("remoteZfs", "zfsMetaTar")
+        remoteZfsConfig = config.get("remoteZfs", "zfsConfigFile")
         
         cls.remoteZfs = cls.remoteControlWrapper.getRemoteObject('getZfs', 
-            metaTar = remoteTar)
+            metaTar = remoteTar, config = remoteZfsConfig)
         
         
     @classmethod
     def setupLocalZfs(cls):
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
-        #localRoot = config.get("localZfs", "zfsRoot")
+        
         localRoot = tempfile.mkdtemp(prefix = 'zfsMountPoint')
         localTar = config.get("localZfs", "zfsMetaTar")
+        localZfsConfig = config.get("localZfs", "zfsConfigFile")
         
-        cls.localZfs = ZfsProxy(metaTar = localTar, zfsRoot = localRoot)
+        cls.localZfs = ZfsProxy(metaTar = localTar, zfsRoot = localRoot,
+            config = localZfsConfig)
         
     @classmethod
     def setupClass(cls):

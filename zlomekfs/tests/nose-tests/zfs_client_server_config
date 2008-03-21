@@ -2,9 +2,11 @@
 
 zfsMetaTar: localZfsMeta.tar
 zfsVolumeDir: bug_tree
+zfsConfigFile: etc/config
 
 [remoteZfs]
 
 zfsVolumeDir: bug_tree
 zfsMetaTar: remoteZfsMeta.tar
 hostname: buildslave
+zfsConfigFile: etc/config

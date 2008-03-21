@@ -3,4 +3,5 @@
 zfsVolumeDir: bug_tree
 testRoot: /tmp
 zfsMetaTar: zfsMeta.tar
+zfsConfigFile: etc/config
 
