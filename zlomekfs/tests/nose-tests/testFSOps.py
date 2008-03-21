@@ -10,7 +10,6 @@ from zfs import ZfsStressTest, abortDeadlock, forceDeleteFile
 from testFSOp import TestFSOp
 
 from insecticide.graph import GraphBuilder
-from insecticide.zfsConfig import ZfsConfig
 from insecticide.timeoutPlugin import timed
 
 class TestGlobalState(object):
