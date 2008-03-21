@@ -124,10 +124,13 @@ class PruneLogic(object):
                 if chain:
                     log.debug('method used: %s in iteration %d', method.__name__, iteration)
                     log.debug('f:%s', str(forbiddenVariants))
-                    return chain
+                    
+                    return LazyTestChain(graph, maxLength = len(chain),
+                        array = chain)
                 
         # nothing can be done
-        return test.chain[:test.index + 1]
+        return LazyTestChain(graph, maxLength = test.index + 1,
+            array = test.chain[:test.index + 1])
     
     def shortestPath(self, graph, chain, chainLength, forbiddenVariants, iteration):
         """ Try to prune chain by searching for shortest path between.
