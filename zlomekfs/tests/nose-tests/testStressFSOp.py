@@ -99,7 +99,7 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
   def testGenerateName(self):
     name = self.generateRandomFileName()
     self.safeFileName = os.path.join(self.safeRoot, name)
-    self.testFileName = os.path.join(self.zfsRoot, "bug_tree", name)
+    self.testFileName = os.path.join(self.zfsRoot, self.zfsVolumeDir, name)
   #testGenerateName.disabled = True
   
   @timed(5, abortDeadlock)  
@@ -129,7 +129,7 @@ class testStressFSOp(ZfsStressTest, TestFSOp):
     
     newName = self.generateRandomFileName()
     newSafeFileName = os.path.join(self.safeRoot, newName)
-    newTestFileName = os.path.join(self.zfsRoot, "bug_tree", newName)
+    newTestFileName = os.path.join(self.zfsRoot, self.zfsVolumeDir, newName)
     
     if tryRename(self.safeFileName,  newSafeFileName):
       self.safeFileName = newSafeFileName

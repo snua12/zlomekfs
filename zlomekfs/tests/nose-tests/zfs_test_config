@@ -1,6 +1,6 @@
 [global]
 
-zfsRoot: /mnt/zfs
+zfsVolumeDir: bug_tree
 testRoot: /tmp
-zfsMetaTar=zfsMeta.tar
+zfsMetaTar: zfsMeta.tar
 

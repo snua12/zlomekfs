@@ -140,8 +140,10 @@ class TestFSOp(ZfsTest):
     super(TestFSOp,self).setupClass()
     self.prepareFiles()
     
+    config = getattr(self,zfsConfig.ZfsConfig.configAttrName)
+    self.zfsVolumeDir = config.get('global', 'zfsVolumeDir')
     self.safeFileName = os.path.join(self.safeRoot, "testfile")
-    self.testFileName = os.path.join(self.zfsRoot, 'bug_tree', "testfile")
+    self.testFileName = os.path.join(self.zfsRoot, self.zfsVolumeDir, "testfile")
     
     self.generator.seed()
     self.randomizeData()

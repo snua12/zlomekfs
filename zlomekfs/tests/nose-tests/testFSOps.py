@@ -61,9 +61,7 @@ class TestFSOps(ZfsStressTest, TestFSOp):
   @classmethod
   def setupClass(self):
     super(TestFSOps,self).setupClass()
-    config = getattr(self,ZfsConfig.configAttrName)
-    
-    self.testFileName = self.zfsRoot + os.sep + "bug_tree" + os.sep + "testfile"
+    self.testFileName = os.path.join(self.zfsRoot, self.zfsVolumeDir,  "testfile")
     self.globalState = TestGlobalState()
     
     self.generator.seed()

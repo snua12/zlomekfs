@@ -1,10 +1,10 @@
 [localZfs]
 
-zfsRoot: /mnt/zfs
 zfsMetaTar: localZfsMeta.tar
+zfsVolumeDir: bug_tree
 
 [remoteZfs]
 
-zfsRoot: /mnt/zfs
+zfsVolumeDir: bug_tree
 zfsMetaTar: remoteZfsMeta.tar
 hostname: buildslave
