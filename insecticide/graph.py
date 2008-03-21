@@ -423,7 +423,7 @@ class GraphBuilder(object):
         """ Generate dependency graph for given class using given methods.
             
             :Parameters:
-                cls: class to generate graph from
+                sourceClass: class to generate graph from
                 methods: methods allowed to use. 
                     Only these will be used in resulting graph.
                     If None, all methods from class will be used.

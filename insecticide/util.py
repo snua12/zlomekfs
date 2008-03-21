@@ -19,14 +19,16 @@ def noseWrapper(project = None, stripPath = None):
     if 'DJANGO_SETTINGS_MODULE' not in os.environ:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
 
-    from insecticide.report import generateLocalBatch, finalizeBatch, branchEnvOpt, reportSystemError
+    from insecticide.report import generateLocalBatch, finalizeBatch, \
+        branchEnvOpt, reportSystemError
 
 
     try:
         import pysvn
         entry = pysvn.Client().info('.')
         if stripPath:
-            branch = str(entry.url)[len(entry.repos) + 1:len(entry.url) - len(stripPath) - 1]
+            branch = str(entry.url)[len(entry.repos) + 1:
+                len(entry.url) - len(stripPath) - 1]
         else:
             branch = str(entry.url)[len(entry.repos) + 1:]
         os.environ[branchEnvOpt] = branch
@@ -38,7 +40,8 @@ def noseWrapper(project = None, stripPath = None):
     else:
         info = None
     
-    # we can't do anything about batch creation exceptions. When batch can't be created, we have no way how to report potential failure.
+    # we can't do anything about batch creation exceptions. 
+    # When batch can't be created, we have no way how to report potential failure.
     batch = generateLocalBatch(project = project)
 
     if batch and info:

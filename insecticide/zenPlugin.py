@@ -445,10 +445,10 @@ class ZenExceptionCase(TestBase):
             
         if self.stdout:
             snapshot.addObject("stdout", self.stdout, 
-                type = SnapshotDescription.TYPE_PICKLED_OUTPUT)
+                entryType = SnapshotDescription.TYPE_PICKLED_OUTPUT)
         if self.stderr:
             snapshot.addObject("stderr", self.stderr, 
-                type = SnapshotDescription.TYPE_PICKLED_OUTPUT)
+                entryType = SnapshotDescription.TYPE_PICKLED_OUTPUT)
         
         
 class ZenTypeCheckTest(TestCase):

@@ -36,88 +36,124 @@ class SnapshotDescription(object):
     entries = None
     """
         Entries are dictionary pairs name:parameters
-        name should be arbitrary string ~ filename relative to snapshot directory or just variable name
+        name should be arbitrary string ~ filename relative to snapshot 
+            directory or just variable name
         parameters should be pair (type,values) . types are enumerated here
     """
     
     entriesFileName = "entries"
     """
         File under snapshot directory (relative) where entries should be stored into
-        in descriptionVersion 1 format of this file is pickled object with pickle protocol 2.
+        in descriptionVersion 1 format of this file is pickled object 
+            with pickle protocol 2.
     """
     
     TYPE_FILE = 0
-    """ Generic file type. Entry name is name of file, description is user readable string. """
+    """ Generic file type. Entry name is name of file,
+        description is user readable string. 
+    """
     
     TYPE_STRING = 1
     """ String value. Name is variable name, description is variable value (string). """
     
     TYPE_INT = 2
-    """ Integer value. Name is variable name, description is variable value (integer). """
+    """ Integer value. Name is variable name,
+        description is variable value (integer). 
+    """
     
     TYPE_BOOL = 3
-    """ Boolean value. Name is variable name, description is variable value (boolean). """
+    """ Boolean value. Name is variable name,
+        description is variable value (boolean).
+    """
     
     TYPE_FLOAT = 4
     """ Float value. Name is variable name, description is variable value (float). """
     
     # version dependent variables
     descriptionVersion = 1
-    """ Version number of snapshot content format in which data will be by default stored and load. """
+    """ Version number of snapshot content format in 
+        which data will be by default stored and load. 
+    """
     
     usedPickleProtocol = 2
     """ Protocol number of pickle module (format of pickled object files). """
     
     # generic types (fallback)
     TYPE_TAR_FILE = 201
-    """ Generic tar file type. Entry name is name of tar file, description is user readable string. """
+    """ Generic tar file type. Entry name is name of tar file, 
+        description is user readable string. 
+    """
     
     TYPE_GCORE = 202
-    """ Core dump file type. Entry name is name of file, description is user readable string. """
+    """ Core dump file type. Entry name is name of file, 
+        description is user readable string. 
+    """
     
     TYPE_PICKLED_OBJECT = 203
-    """ Object pickled to file. Entry name is name of file, description is user readable string. """
+    """ Object pickled to file. Entry name is name of file, 
+        description is user readable string. 
+    """
     
     # specific types
     TYPE_ZFS_GCORE = 101
-    """ Subtype of TYPE_GCORE, fields have the same meaning, content is core dump of zfsd. """
+    """ Subtype of TYPE_GCORE, fields have the same meaning, 
+        content is core dump of zfsd. 
+    """
     
     TYPE_ZFS_CACHE = 102
-    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, content is tared zfs cache. """
+    """ Subtype of TYPE_TAR_FILE, fields have the same meaning,
+        content is tared zfs cache. 
+    """
         
     TYPE_ZFS_FS = 103
-    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, content is tared zfs file system. """
+    """ Subtype of TYPE_TAR_FILE, fields have the same meaning,
+        content is tared zfs file system. 
+    """
     
     TYPE_PICKLED_TEST = 104
-    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, content is tared nose test object. """
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning,
+        content is tared nose test object. 
+    """
     
     TYPE_LOG = 105
     """ Subtype of TYPE_FILE, fields have the same meaning, file contains logs. """
     
     TYPE_TEST_DATA = 107
-    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, file contains pickled test data. """
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, 
+        file contains pickled test data. 
+    """
     
     TYPE_TEST_CONFIG = 108
-    """ Subtype of TYPE_FILE, fields have the same meaning, file is ConfigParser's config file. """
+    """ Subtype of TYPE_FILE, fields have the same meaning, 
+        file is ConfigParser's config file. 
+    """
     
     defaultConfigSnapshotFileName = "testConfig"
     """ Default name where to store config of test. """
     
     TYPE_ENV = 109
-    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, file contains logs. """
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, 
+        file contains logs. 
+    """
     
     TYPE_COMPARE_FS = 111
-    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, content is tared compare file system. """
+    """ Subtype of TYPE_TAR_FILE, fields have the same meaning, 
+        content is tared compare file system. 
+    """
     
     TYPE_ZFS_LOG = 112
-    """ Subtype of TYPE_LOG, fields have the same meaning, file contains zfs (syplog) log. """
+    """ Subtype of TYPE_LOG, fields have the same meaning,
+        file contains zfs (syplog) log. 
+    """
     
     TYPE_ZEN_TEST = 113
-    """ Subtype of TYPE_FILE, fields have the same meaning, file contains binary with zen tests """
+    """ Subtype of TYPE_FILE, fields have the same meaning, 
+        file contains binary with zen tests 
+    """
     
     TYPE_PICKLED_OUTPUT = 114
-    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, file contains pickled list
-        of lines generated by binary
+    """ Subtype of TYPE_PICKLED_OBJECT, fields have the same meaning, 
+        file contains pickled list of lines generated by binary.
     """
     
     tarTypes = [TYPE_TAR_FILE, TYPE_ZFS_CACHE, TYPE_ZFS_FS, TYPE_COMPARE_FS]
@@ -278,7 +314,8 @@ class SnapshotDescription(object):
         
         
     def unpack(self,  fileName,  directory = None):
-        """ Unpack snapshot content (files, entries, info) from file (tar.gz) to self.directory
+        """ Unpack snapshot content (files, entries, info) 
+            from file (tar.gz) to self.directory.
             
             :Parameters:
                 fileName: absolute path to file where packed snapshot is
@@ -301,8 +338,8 @@ class SnapshotDescription(object):
             raise SnapshotError ("snapshot doesn't contain version information")
             
         versionFile = open(descVFileName)
-        (snapshotVersion, ) = struct.unpack('!l', 
-                                            versionFile.read(struct.calcsize('!l')))
+        snapshotVersion = struct.unpack('!l', 
+                                            versionFile.read(struct.calcsize('!l')))[0]
         versionFile.close()
         if snapshotVersion != self.descriptionVersion:
             raise SnapshotError ("SnapshotDescription version (%s)"
@@ -332,9 +369,9 @@ class SnapshotDescription(object):
         fullFileName = self.directory + os.sep + name
         if os.path.exists(fullFileName):
             self.log.warning("overriding file %s by config",  name)
-        file = open(fullFileName, 'w')
-        config.write(file)
-        file.close()
+        fileObject = open(fullFileName, 'w')
+        config.write(fileObject)
+        fileObject.close()
         self.addEntry(name, 
                         (self.TYPE_TEST_CONFIG, 
                         "config.write written test config"))
@@ -353,9 +390,9 @@ class SnapshotDescription(object):
                 KeyError: if entry is not found
                 SnapshotError: if config file (in snapshot) is corrupted
         """
-        (type, desc) = self.getEntry(name)
-        if type != SnapshotDescription.TYPE_TEST_CONFIG:
-            raise TypeError ("entry %s has not type TYPE_TEST_CONFIG" % type)
+        entryType = self.getEntry(name)[0]
+        if entryType != SnapshotDescription.TYPE_TEST_CONFIG:
+            raise TypeError ("entry %s has not type TYPE_TEST_CONFIG" % entryType)
         config = SafeConfigParser()
         fullFileName = self.directory +  os.sep + name
         if not os.path.exists(fullFileName):
@@ -366,18 +403,18 @@ class SnapshotDescription(object):
         
         return config
     
-    def addDir(self, name, sourceDirName,  type = TYPE_TAR_FILE):
+    def addDir(self, name, sourceDirName,  entryType = TYPE_TAR_FILE):
         """ Add filesystem directory content into snapshot.
             
             :Parameters:
                 name: name of entry in snapshot
                 sourceDirName: absolute path to directory
-                type: override type for entry type (for example TYPE_ZFS_CACHE). use only tar types
+                entryType: override type for entry type (for example TYPE_ZFS_CACHE). use only tar types
                 
             :Raise:
                 KeyError: if entry of that name exists
         """
-        self.addEntry(name, (type, sourceDirName))
+        self.addEntry(name, (entryType, sourceDirName))
         
         tarFile = tarfile.open(name = self.directory + os.sep + name,
                                mode = 'w' + self.usedCompression)
@@ -399,9 +436,9 @@ class SnapshotDescription(object):
                 TypeError: if entry type is not in tar types
                 KeyError: if entry is not found
         """
-        (type, origin) = self.getEntry(name)
-        if type not in SnapshotDescription.tarTypes:
-            raise TypeError ("entry has wrong type %s", type)
+        (entryType, origin) = self.getEntry(name)
+        if entryType not in SnapshotDescription.tarTypes:
+            raise TypeError ("entry has wrong type %s", entryType)
         if not targetDirName:
             targetDirName = origin
         
@@ -410,13 +447,13 @@ class SnapshotDescription(object):
         tarFile.extractall(targetDirName)
         tarFile.close()
         
-    def addObject(self, name, object, type = TYPE_PICKLED_OBJECT, pickleMethod = None):
+    def addObject(self, name, obj, entryType = TYPE_PICKLED_OBJECT, pickleMethod = None):
         """ Add python object to snapshot
             
             :Parameters:
                 name: name of entry in snapshot
-                object: object to snapshot
-                type: override type for entry type (for example TYPE_PICKLED_TEST).
+                obj: object to snapshot
+                entryType: override type for entry type (for example TYPE_PICKLED_TEST).
                 pickleMethod: override pickle protocol
                 
             :Raise:
@@ -427,17 +464,17 @@ class SnapshotDescription(object):
             
         dumpFile = open(self.directory + os.sep + name , "w")
         #add info about entries file into entries
-        self.addEntry(name, (type, "pickled using " + str(pickleMethod)))
+        self.addEntry(name, (entryType, "pickled using " + str(pickleMethod)))
 
-        pickleMethod(object, dumpFile, self.usedPickleProtocol)
+        pickleMethod(obj, dumpFile, self.usedPickleProtocol)
         dumpFile.close()
     
-    def getObject(self, name, type = TYPE_PICKLED_OBJECT, unpickleMethod = None):
+    def getObject(self, name, requiredType = TYPE_PICKLED_OBJECT, unpickleMethod = None):
         """ Get python object from snapshot
             
             :Parameters:
                 name: name of entry in snapshot
-                type: require entry of given type  (for example TYPE_PICKLED_TEST). 
+                requiredType: require entry of given type  (for example TYPE_PICKLED_TEST). 
                 unpickleMethod: override pickle protocol for load
             
             :Return:
@@ -450,8 +487,8 @@ class SnapshotDescription(object):
         if not unpickleMethod:
             unpickleMethod = pickle.load
         
-        (dumpType, memo ) = self.getEntry(name)
-        if dumpType != type:
+        dumpType = self.getEntry(name)[0]
+        if dumpType != requiredType:
             raise TypeError("dump type (%s) doesn't match load type" % dumpType)
         dumpFile = open(self.directory + os.sep + name , "r")
         obj = unpickleMethod(dumpFile)
@@ -459,27 +496,27 @@ class SnapshotDescription(object):
         
         return obj
         
-    def addFile(self, name, sourceFileName, type = TYPE_FILE):
+    def addFile(self, name, sourceFileName, entryType = TYPE_FILE):
         """ Add file content into snapshot.
             
             :Parameters:
                 name: name of entry in snapshot
                 sourceFileName: absolute path to file to snapshot
-                type: override type for entry type (for example TYPE_ZFS_LOG).
+                entryType: override type for entry type (for example TYPE_ZFS_LOG).
                 
             :Raise:
                 KeyError: if entry of that name exists
         """
-        self.addEntry (name,  (type,  "source was " +sourceFileName))
+        self.addEntry (name,  (entryType,  "source was " +sourceFileName))
         shutil.copyfile(sourceFileName,  self.directory + os.sep + name)
       
-    def getFile(self,  name, targetFileName, type = TYPE_FILE):
+    def getFile(self,  name, targetFileName, requiredType = TYPE_FILE):
         """ Unpack file content from snapshot.
             
             :Parameters:
                 name: name of entry in snapshot
                 targetFileName: absolute path to file where to unpack content
-                type: check if target entry type is equivalent  (for example TYPE_ZFS_LOG).
+                requiredType: check if target entry type is equivalent  (for example TYPE_ZFS_LOG).
                 
             :Return:
                 None
@@ -488,8 +525,8 @@ class SnapshotDescription(object):
                 TypeError: if entry type is not in tar types
                 KeyError: if entry is not found
         """
-        (dumpType,  memo) = self.getEntry(name)
-        if dumpType != type:
+        dumpType = self.getEntry(name)[0]
+        if dumpType != requiredType:
             raise TypeError("dump type (%s) doesn't match load type"  % dumpType)
         shutil.copyfile(self.directory + os.sep + name,  targetFileName)
             
@@ -516,12 +553,11 @@ class SnapshotTest(TestCase):
         self.files.append(self.readDir)
         
     def tearDown(self):
-        import shutil
-        for file in self.files:
-            shutil.rmtree(file, True)
+        for fileName in self.files:
+            shutil.rmtree(fileName, True)
         
     @classmethod
-    def configIsSubset(self, config1, config2):
+    def configIsSubset(cls, config1, config2):
         for section in config1.sections():
             if not config2.has_section(section):
                 return False
@@ -535,8 +571,9 @@ class SnapshotTest(TestCase):
         return True
     
     @classmethod
-    def configEqual(self, config1, config2):
-        return self.configIsSubset(config1, config2) and self.configIsSubset(config2, config1)
+    def configEqual(cls, config1, config2):
+        return cls.configIsSubset(config1, config2) and \
+            cls.configIsSubset(config2, config1)
     
     def testEmptySnapshot(self):
         writeSnapshot = SnapshotDescription(self.writeDir)
@@ -548,17 +585,17 @@ class SnapshotTest(TestCase):
         # there should be no other info
         assert readSnapshot.entries == writeSnapshot.entries
         
-    def entrySnapshot(self, object, type):
+    def entrySnapshot(self, obj, entryType):
         writeSnapshot = SnapshotDescription(self.writeDir)
-        writeSnapshot.addEntry("_testType_", (type, object))
+        writeSnapshot.addEntry("_testType_", (entryType, obj))
         writeSnapshot.pack(self.targetDir + os.sep + "snapshot")
         
         readSnapshot = SnapshotDescription(self.readDir)
         readSnapshot.unpack(self.targetDir + os.sep + "snapshot")
         (readType, readObject) = readSnapshot.getEntry("_testType_")
-        if readType != type:
+        if readType != entryType:
             raise TypeError("got other type (%s)than inserted (%s)", 
-                            readType, type)
+                            readType, entryType)
         
         return readObject
         
@@ -580,19 +617,19 @@ class SnapshotTest(TestCase):
         
         assert writeBool == readBool
         
-    def objectSnapshot(self, object, type = None):
+    def objectSnapshot(self, obj, objectType = None):
         writeSnapshot = SnapshotDescription(self.writeDir)
-        if type:
-            writeSnapshot.addObject("testObject", object, type)
+        if objectType:
+            writeSnapshot.addObject("testObject", obj, objectType)
         else:
-            writeSnapshot.addObject("testObject", object)
+            writeSnapshot.addObject("testObject", obj)
         writeSnapshot.pack(self.targetDir + os.sep + "snapshot")
         
         readSnapshot = SnapshotDescription(self.readDir)
         readSnapshot.unpack(self.targetDir + os.sep + "snapshot")
         
-        if type:
-            readObject = readSnapshot.getObject("testObject", type)
+        if objectType:
+            readObject = readSnapshot.getObject("testObject", objectType)
         else:
             readObject = readSnapshot.getObject("testObject")
         
@@ -604,7 +641,8 @@ class SnapshotTest(TestCase):
         writeConfig.add_section("section")
         writeConfig.set("section", "option", "value")
         
-        readConfig = self.objectSnapshot(writeConfig, SnapshotDescription.TYPE_PICKLED_TEST)
+        readConfig = self.objectSnapshot(writeConfig,
+            SnapshotDescription.TYPE_PICKLED_TEST)
         
         assert self.configEqual(writeConfig, readConfig)
         
@@ -633,7 +671,8 @@ class SnapshotTest(TestCase):
         configFile2.close()
         
         writeConfig = SafeConfigParser()
-        writeConfig.read([self.targetDir + os.sep + "config1", self.targetDir + os.sep + "config2"])
+        writeConfig.read([self.targetDir + os.sep + "config1",
+            self.targetDir + os.sep + "config2"])
         
         writeSnapshot = SnapshotDescription(self.writeDir)
         writeSnapshot.addConfig(writeConfig)
@@ -699,7 +738,7 @@ class SnapshotTest(TestCase):
         
         writeSnapshot.addFile(name = "bin.sh", 
                               sourceFileName = "/bin/sh",
-                              type = SnapshotDescription.TYPE_ZFS_GCORE)
+                              entryType = SnapshotDescription.TYPE_ZFS_GCORE)
         
         writeSnapshot.pack(fileName = self.targetDir +  os.sep + "snapshot")
         
@@ -708,7 +747,7 @@ class SnapshotTest(TestCase):
         readSnapshot.unpack(fileName = self.targetDir +  os.sep + "snapshot")
         readSnapshot.getFile(name="bin.sh", 
                              targetFileName = self.targetDir + os.sep + "sh", 
-                             type = SnapshotDescription.TYPE_ZFS_GCORE)
+                             requiredType = SnapshotDescription.TYPE_ZFS_GCORE)
         
         targetFile = open(self.targetDir + os.sep + 'sh', 'r')
         targetContent = targetFile.read()

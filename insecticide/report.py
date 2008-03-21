@@ -24,13 +24,19 @@ log = logging.getLogger ("nose.plugins.zfsReportPlugin")
 #TODO: report exceptions
 
 profileEnvOpt = 'PROFILE_NAME'
-""" environment variable name from which to try to load name of module to load as profile """
+""" environment variable name from which to try to load name of module 
+    to load as profile 
+"""
 
 slavenameEnvOpt = 'SLAVE_NAME'
-""" Environment variable name from which to try to load name of this machine (buildslave) """
+""" Environment variable name from which to try to load name of this machine 
+    (buildslave) 
+"""
 
 batchuuidEnvOpt = 'BATCHUUID'
-""" Environment variable name from which to try to load batch id if batch is provided from outside """
+""" Environment variable name from which to try to load batch id if batch is 
+    provided from outside 
+"""
 
 projectnameEnvOpt = 'PROJECT_NAME'
 """ Environment variable name from which to try to load project name. """
@@ -39,10 +45,14 @@ branchEnvOpt = 'BRANCH'
 """ Environment variable name from which to try to load branch name (path). """
 
 startTimeAttr = "startTime"
-""" Name of attribute which will be used on test to store to (and load from) it's start time. """
+""" Name of attribute which will be used on test to store to (and load from) 
+    it's start time. 
+"""
 
 endTimeAttr = "endTime"
-""" Name of attribute which will be used on test to store to (and load from) it's end time. """
+""" Name of attribute which will be used on test to store to (and load from) 
+    it's end time. 
+"""
 
 def loadProfile(batch, profileName):
     """ Try to import profile to current os.environ and set batch .profileInfo.
@@ -60,10 +70,11 @@ def loadProfile(batch, profileName):
         """
     try:
         mod = __import__(profileName, {}, {}, [''])
-    except ImportError, e:
+    except ImportError, err:
         raise EnvironmentError, \
-                    "Could not import profile '%s' (Is it on sys.path? Does it have syntax errors?): %s" \
-                    % (profileName, e)
+            "Could not import profile '%s' (Is it on sys.path?"  \
+           + " Does it have syntax errors?): %s" \
+            % (profileName, err)
         
     profile = mod.env
     for key in profile.keys(): #note we override ALL commandline given args
@@ -128,7 +139,8 @@ def generateLocalBatch(project = None):
     
     batch.startTime = datetime.datetime.now()
     batch.result = RESULT_UNKNOWN
-    project = Project.objects.get_or_create(projectName = project, sourceRepositoryUrl = repository)
+    project = Project.objects.get_or_create(projectName = project, 
+        sourceRepositoryUrl = repository)
     if project:
         batch.project = project[0]
     batch.branch = branch
@@ -194,7 +206,8 @@ def finalizeBatch(batchId = None):
     batch.save()
     
 
-def generateDefaultRun(batch, test = None, duration = None, name = None, description = None):
+def generateDefaultRun(batch, test = None, duration = None, name = None,
+    description = None):
     """ Generate TestRun instance according to given arguments. 
         
         :Parameters:
@@ -215,14 +228,15 @@ def generateDefaultRun(batch, test = None, duration = None, name = None, descrip
     if not batch:
         raise Exception ("Batch id not defined (%s)" % batch)
     if not test:
-        class fake:
+        class Fake:
             def __init__(self):
                 self.inst = self
                 
             def shortDescripton(self):
                 return "Unknown"
                 
-        test = fake()
+        
+        test = Fake()
     run = TestRun()
     run.batchId = batch
     
@@ -282,12 +296,13 @@ def appendDataToRun(run, errInfo = None, dataDir = None, test = None):
             runData.errText = runData.errText[0]
         else:
             runData.errText = str(runData.errText)
-        #runData.errText = pickle.dumps(traceback.format_exception_only(errInfo[0], errInfo[1]), protocol = 0)
     
     if test and hasattr(test, "snapshotBuffer") and test.snapshotBuffer:
         snapshot = test.snapshotBuffer.pop()
-        targetFileName = os.path.join(dataDir, "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot)))
-        log.debug("appending snapshot from dir '%s' into file '%s'", snapshot.directory, targetFileName)
+        targetFileName = os.path.join(dataDir, 
+            "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot)))
+        log.debug("appending snapshot from dir '%s' into file '%s'",
+            snapshot.directory, targetFileName)
         snapshot.pack(targetFileName)
         snapshot.delete()
         runData.dumpFile = "failureSnapshot-" + str(run.id) + "-" + str(id(snapshot))
@@ -365,7 +380,8 @@ class ReportProxy(object):
             log.error ("Error: batch id is null")
         
     def finalize(self):
-        """ Finalizes data. If we have our own batch (not creted from outside), finalizes it
+        """ Finalizes data. If we have our own batch (not creted from outside),
+            finalizes it.
         """
         if self.batch and self.selfContainedBatch:
             log.debug("finalizing self contained")
@@ -395,7 +411,8 @@ class ReportProxy(object):
             log.debug(traceback.format_exc())
     
     
-    def reportFailure(self, failure, duration = None, name = None, description = None, error = False):
+    def reportFailure(self, failure, duration = None, name = None,
+        description = None, error = False):
         """ Report test failure (or error).
             
             :Parameters:
@@ -408,7 +425,7 @@ class ReportProxy(object):
             .. See generateDefaultRun
         """
         run = generateDefaultRun(batch = self.batch, test = failure.test,
-                                    duration = duration, name = name, description = description)
+            duration = duration, name = name, description = description)
         if error:
             run.result = RESULT_ERROR
         else:
