@@ -449,9 +449,17 @@ class ZfsTest(object):
         #cls.zfsRoot = config.get("global", "zfsRoot")
         cls.zfsRoot = tempfile.mkdtemp(prefix = 'zfsMountPoint')
         cls.zfsMetaTar = config.get("global", "zfsMetaTar")
-
+        
         cls.zfs = ZfsProxy(zfsRoot = cls.zfsRoot,  metaTar = cls.zfsMetaTar)
+        
+    @classmethod
+    def teardownClass(cls):
+        """ Do cleanup after tests.
+            (Remove zfsRoot)"""
+        
+        log.debug("teardownClass")
         shutil.rmtree(cls.zfsRoot)
+        # self.zfs = None
     
     def setup(self):
         """ Run zfsd for the test. """
@@ -466,12 +474,6 @@ class ZfsTest(object):
         self.zfs.stopZfs()
         self.zfs.cleanup()
         
-    @classmethod
-    def teardownClass(cls):
-        """ Do cleanup after tests (currently void) """
-        
-        log.debug("teardownClass")
-        # self.zfs = None
     
     def snapshot(self, snapshot):    
         """ Snapshot current test.  
@@ -555,6 +557,6 @@ class ZfsStressTest(ZfsTest):
         cls.zfs.stopZfs()
         cls.zfs.cleanup()
         log.debug("stress teardownClass")
-        #super(ZfsStressTest,self).teardownClass()
+        super(ZfsStressTest, cls).teardownClass()
         
     
