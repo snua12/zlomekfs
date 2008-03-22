@@ -13,9 +13,10 @@ import logging
 
 
 from insecticide.snapshot import SnapshotDescription
-from insecticide.util import allowCoreDumps, setCoreDumpSettings
+from insecticide.util import allowCoreDumps, setCoreDumpSettings, RotatingFile
 
 from subprocess import Popen, PIPE, STDOUT
+from threading import Thread
 from traceback import format_exc
 from insecticide import graph
 from insecticide import zfsConfig
@@ -38,6 +39,10 @@ def forceCloseFile(fileToClose):
     except:
         log.debug('problem with close')
         
+
+def pipe(fromFile, toFile):
+    for line in fromFile:
+        toFile.write(line)
 
 def forceDeleteFile(fileToDelete):
     """ Try to delete file with maximum effort.
@@ -87,8 +92,20 @@ class ZfsProxy(object):
     stderr = None
     """ File handle of file to which zfsd stdout redirected. """   
     
+    # 10M
+    maxOutputSize = 1024 * 1024 * 10
+    """ Maximum size of stdout / stderr.
+        (Last N bytes preserved)
+    """
+    
+    outputBackLog = 1
+    """ How many old output logs should be preserved. """
+    
     logFileName = "zfsd.log"
     """ File name for log from zfsd """
+    
+    maxZfsLogSize = "50M"
+    """ Maximum size of zfsd log (circular log). 0 means infinite """
     
     config = os.path.join("etc", "config")
     """ File name of zfsd config. """
@@ -307,8 +324,10 @@ class ZfsProxy(object):
         
     def runZfs(self):
         """ Kill previously running zfsd instances and run our own zfsd. """
-        self.stdout = open(os.path.join(self.tempDir, 'zfsd.stdout'), 'wb+')
-        self.stderr = open(os.path.join(self.tempDir, 'zfsd.stderr'), 'wb+')
+        self.stdout = RotatingFile(os.path.join(self.tempDir, 'zfsd.stdout'),
+            'wb+', maxBytes = self.maxOutputSize,backupCount = self.outputBackLog)
+        self.stderr = RotatingFile(os.path.join(self.tempDir, 'zfsd.stderr'),
+            'wb+', maxBytes = self.maxOutputSize,backupCount = self.outputBackLog)
         
         self.killall() #destroy previous zfsd instances
         if self.zfs:
@@ -327,14 +346,24 @@ class ZfsProxy(object):
                 str(pysyplog.FILE_MEDIUM_NAME),
             "--" + str(pysyplog.PARAM_MEDIUM_FMT_LONG) + "=" + \
                 str(pysyplog.USER_READABLE_FORMATTER_NAME),
+            "--" + str(pysyplog.PARAM_MEDIUM_SIZE_LONG) + "=" + \
+                self.maxZfsLogSize,
             "--" + str(pysyplog.PARAM_MEDIUM_FN_LONG) + "=" + \
                 os.path.join(self.tempDir, ZfsProxy.logFileName),
             '-o', 'loglevel=' + str(loglevel) +
             ',config=' + os.path.join(self.tempDir, self.config), 
             self.zfsRoot), bufsize=0,
             cwd = self.tempDir,
-            stdout = self.stdout, stderr = self.stderr, close_fds = True, 
+            stdout = PIPE, stderr = PIPE, close_fds = True, 
                 universal_newlines=True)
+        
+        self.stdoutPipe = Thread(target = pipe, args=(self.zfs.stdout, self.stdout))
+        self.stdoutPipe.setDaemon(True)
+        self.stdoutPipe.start()
+        self.stderrPipe = Thread(target = pipe, args=(self.zfs.stderr, self.stderr))
+        self.stderrPipe.setDaemon(True)
+        self.stderrPipe.start()
+        
         for i in [0.2, 0.5, 1, 3, 5, 100]:
             time.sleep(i)
             if zfsd_status.ping_zfsd() == zfsd_status.ZFSD_STATE_RUNNING:
@@ -375,6 +404,8 @@ class ZfsProxy(object):
             setCoreDumpSettings(self.coreDumpSettings)
             self.coreDumpSettings = None
             
+        self.stdoutPipe.join()
+        self.stderrPipe.join()
         self.stdout.close()
         self.stderr.close()
         
@@ -431,8 +462,16 @@ class ZfsProxy(object):
             
         if self.stdout:
             snapshot.addFile("zfsStdout", self.stdout.name)
+            for backLogNumber in range(1, self.outputBackLog + 1):
+                backLogName = self.stdout.name + '.' + str(backLogNumber) 
+                if os.path.isfile(backLogName):
+                    snapshot.addFile("zfsStdout." + str(backLogNumber), backLogName)
         if self.stderr:
             snapshot.addFile("zfsStderr", self.stderr.name)
+            for backLogNumber in range(1, self.outputBackLog + 1):
+                backLogName = self.stdout.name + '.' + str(backLogNumber) 
+                if os.path.isfile(backLogName):
+                    snapshot.addFile("zfsStderr." + str(backLogNumber), backLogName)
             
         
     def resume(self, snapshot):
