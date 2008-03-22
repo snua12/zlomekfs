@@ -14,8 +14,8 @@ from TestResultStorage.resultRepository.models import TestRunData
 
 
 dateBeforeLunarMonth = datetime.datetime.now() - datetime.timedelta(days=1)
-unixTimeBeforeLunarMonth = time.time() - 60 * 60 * 24 * 1
-unixTimeBeforeDay = time.time() - 60 * 60 * 1
+unixTimeBeforeLunarMonth = time.time() - 60 * 60 * 24 * 28
+unixTimeBeforeDay = time.time() - 60 * 60 * 24
 
 def removeOldBatches():
     """ Remove batches older than 28 days. """
