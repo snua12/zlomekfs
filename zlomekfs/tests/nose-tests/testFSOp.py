@@ -122,7 +122,7 @@ class TestFSOp(ZfsTest):
     if self.safeRoot:
         try:
             
-            snapshot.addDir('compareDir', self.safeRoot, type = SnapshotDescription.TYPE_COMPARE_FS)
+            snapshot.addDir('compareDir', self.safeRoot, entryType = SnapshotDescription.TYPE_COMPARE_FS)
         except (OSError, IOError):
             #ignore no dir errors, etc
             log.debug("can't snapshot compare dir: %s", format_exc())
