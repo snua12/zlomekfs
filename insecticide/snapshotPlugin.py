@@ -18,6 +18,7 @@ snapshotRedirectAttrName = 'snapshotedObject'
 from optparse import OptionConflictError
 from warnings import warn
 from nose.plugins import Plugin
+from logging.handlers import RotatingFileHandler
 
 from insecticide.snapshot import SnapshotDescription
 from insecticide.zfsStressGenerator import ChainedTestCase
@@ -118,6 +119,16 @@ class SnapshotPlugin(Plugin):
     
     noseLogHandler = None
     """ Log handler that we use to catch output """
+    
+    #30M
+    maxNoseLogSize = 1024 * 1024 * 30
+    """ Maximum size of one nose log file. """
+    
+    noseLogBackupCount = 1
+    """ Count of backup logs, for example 1 means, that there 
+        can be two files (log and log.1) with maximum size.
+        Logging module does rotating.
+    """
     
     noseLogFileName = None
     """ Name of file where nose logs are stored """
@@ -261,8 +272,11 @@ class SnapshotPlugin(Plugin):
         rootLogger = logging.getLogger()
         rootLogger.setLevel(0)
         
-        fh, self.noseLogFileName = tempfile.mkstemp('.log', 'insecticide', self.snapshotsRootDir)
-        self.noseLogHandler = logging.FileHandler(self.noseLogFileName)
+        self.noseLogFileName = tempfile.mkstemp('.log', 'insecticide', 
+            self.snapshotsRootDir)[1]
+        self.noseLogHandler = RotatingFileHandler(filename = self.noseLogFileName, 
+            maxBytes = self.maxNoseLogSize, 
+            backupCount = self.noseLogBackupCount)
         self.noseLogHandler.setLevel(0)
         
         outputFormatter = logging.Formatter(fmt = self.messageFormat,
@@ -285,8 +299,15 @@ class SnapshotPlugin(Plugin):
                 snapshot: snapshot to which log should be added
         """
         self.noseLogHandler.flush()
-        snapshot.addFile('nose.log', self.noseLogFileName, 
-            SnapshotDescription.TYPE_LOG)
+        if os.path.isfile(self.noseLogFileName):
+            snapshot.addFile('nose.log', self.noseLogFileName, 
+                SnapshotDescription.TYPE_LOG)
+        for backLogNumber in range(self.noseLogBackupCount, self.noseLogBackupCount + 1):
+            backLogName = self.noseLogFileName + '.' + str(backLogNumber) 
+            if os.path.isfile(backLogName):
+                snapshot.addFile('nose.log' + '.' + str(backLogNumber), 
+                    backLogName, 
+                    SnapshotDescription.TYPE_LOG)
         
     def snapshotIt(self, obj):
         """ Create snapshot of given object and append it to buffer
