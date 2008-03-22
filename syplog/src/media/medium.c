@@ -55,7 +55,7 @@ struct
 }  medium_operation_translation_table [] = 
 {
   {OPERATION_READ_NAME,	READ_LOG},
-  {OPERATION_WRITE_NAME,WRITE_LOG},
+  {OPERATION_WRITE_NAME, WRITE_LOG},
   {NULL,		-1}
 };
 
