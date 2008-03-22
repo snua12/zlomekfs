@@ -133,8 +133,8 @@ class RotatingFile(object):
     """ File object wrapper that watch for file size and
         rotate it.
     """
-    __overridenAttributes = ['__overridenAttributes', '__init__', 'writelines',
-        'write', 'rotate', 'realFile', 'maxBytes', 'backupCount', 'bufsize']
+    __overridenAttributes = ['__overridenAttributes', '__init__', 'rotate',
+        'realFile', 'maxBytes', 'backupCount', 'bufsize', '__class__']
     """ Attributes that are monkey patched and doesn't go directly to File object """
     
     def __getattribute__(self, name):
@@ -147,6 +147,7 @@ class RotatingFile(object):
         elif not hasattr(self, 'realFile') or self.realFile is None:
             raise AttributeError()
         else:
+            self.rotate()
             return self.realFile.__getattribute__(name)
                 
     __getattr__ = __getattribute__
@@ -196,21 +197,12 @@ class RotatingFile(object):
         self.bufsize = bufsize
         self.realFile = open(filename, mode, bufsize)
     
-    def write(self, str, *args, **kwargs):
-        """Overriden write function of File object,
-            before actual write, check of size is made
-        """
-        currentPos = self.realFile.tell()
-        if self.maxBytes and currentPos + len(str) > self.maxBytes:
-            self.rotate()
-        return self.realFile.write(str, *args, **kwargs)
-        
-    def writelines(self, sequence, *args, **kwargs):
-        for line in sequence:
-            self.write(line, *args, **kwargs)
-    
-    def rotate(self):
-        print 'rotate'
+    def rotate(self, size = None):
+        if not size:
+            size = self.realFile.tell()
+        if size < self.maxBytes:
+            return
+            
         oldName = self.realFile.name
         
         if os.path.isfile(oldName + '.' + str(self.backupCount)):
