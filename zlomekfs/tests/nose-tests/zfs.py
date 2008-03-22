@@ -13,10 +13,9 @@ import logging
 
 
 from insecticide.snapshot import SnapshotDescription
-from insecticide.util import allowCoreDumps, setCoreDumpSettings, RotatingFile
+from insecticide.util import allowCoreDumps, setCoreDumpSettings
 
 from subprocess import Popen, PIPE, STDOUT
-from threading import Thread
 from traceback import format_exc
 from insecticide import graph
 from insecticide import zfsConfig
