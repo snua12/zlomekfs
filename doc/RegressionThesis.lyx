@@ -3235,8 +3235,8 @@ saved paths
  strip failed tests
 \series default
  to see, if shorter test sequence would cause failure too.
- Actual algorithm to strip sequences is shortest path between first meta-test
- and the failing meta-test.
+ Actual algorithms to strip sequences is shortest path, disable function,
+ and skip part.
 \end_layout
 
 \begin_layout Subsection
@@ -4946,6 +4946,9 @@ This guide is based on new Fedora 8 installation, installation to other
  and development system on IP 192.168.16.128.
  We assume that buildslave has basic development packages (such as gcc)
  installed.
+ Not that routing description is not included.
+ Routing should be set if domain names are used (in build system configuration
+ or remote testing).
 \end_layout
 
 \begin_layout Subsection
@@ -5652,7 +5655,8 @@ buildbot.tac (master)
 \end_layout
 
 \begin_layout Standard
-Set buildbot to start on boot, for example by adding crontab entry (
+Set buildbot to start on boot, for example by adding crontab entry.
+ (first line in 
 \begin_inset LatexCommand prettyref
 reference "fig:buildmaster_cron"
 
@@ -5721,6 +5725,10 @@ runserver 192.168.16.253:8020
 \end_layout
 
 \begin_layout Standard
+0 2 * * * /home/buildmaster/cleanup.py
+\end_layout
+
+\begin_layout Standard
 \begin_inset ERT
 status open
 
@@ -5764,6 +5772,79 @@ buildmaster.cron
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Setup automatic cleanup of old data.
+ It can be done by cleanup.sh located in 
+\emph on
+misc
+\emph default
+ directory in repository.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+svn cat\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/misc/cleanup.py\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+>\InsetSpace ~
+/home/buildmaster/cleanup.py
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set cron to execute this script every day on 2 a.m.
+ (second line in 
+\begin_inset LatexCommand prettyref
+reference "fig:buildmaster_cron"
+
+\end_inset
+
+)
 \end_layout
 
 \begin_layout Standard
@@ -6344,7 +6425,7 @@ dbus dbus-devel libtool autoconf automake gettext gettext-devel\InsetSpace ~
 
 \begin_layout Standard
 \InsetSpace ~
-python-setuptools python-nose pyflakes
+python-setuptools python-nose pyflakes rpmrebuild
 \end_layout
 
 \begin_layout Standard
