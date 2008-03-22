@@ -168,8 +168,10 @@ void print_media_help (int fd, int tabs)
   tabize_print (tabs +1, fd, "values: %s - read logs, %s - write logs\n",
      OPERATION_READ_NAME, OPERATION_WRITE_NAME);
   
-  tabize_print (tabs, fd, "--%s=value, -%c value\tdefines size of log (0 means infinite)\n",
+  tabize_print (tabs, fd, "--%s=value, -%c value\tdefines size of log (approximatelly)\n",
     PARAM_MEDIUM_SIZE_LONG, PARAM_MEDIUM_SIZE_CHAR);
+  tabize_print (tabs, fd, 
+    "(0 means infinite), K, M, G suffixes allowed (1, 1K, 1M, 1G, etc)\n");
 
   tabize_print (tabs, fd, "\n");
   tabize_print (tabs, fd, "medium specific options:\n");
@@ -205,6 +207,37 @@ bool_t is_medium_arg (const char * arg)
 }
 
 
+/** Extracts unit multiplier from string
+ *
+ * @param size_string string in format number[multiplier]
+  for example 1M, 15G, 12, 10K
+ * @return 1 for no multiplier, 1024 for K, ...
+*/
+int unit_multiplier (char * size_string)
+{
+  int thousants = 0;
+  int ret = 1;
+  switch (size_string[strlen(size_string) - 1])
+  {
+    case 'K':
+      thousants = 1;
+      break;
+    case 'M':
+      thousants = 2;
+      break;
+    case 'G':
+      thousants = 3;
+      break;
+  }
+  while (thousants > 0)
+  {
+    ret *= 1024;
+    thousants --;
+  }
+  
+  return ret;
+}
+
 /// Parse type independent parameters of medium to structure
 /*! Parses parameters of medium and initialize settings 
   @param argc number of items in argv
@@ -216,7 +249,7 @@ syp_error medium_parse_params(int argc, const char ** argv, medium settings)
 {
 
 
-int opt;
+  int opt;
 
 
 #ifdef ENABLE_CHECKING
@@ -243,7 +276,7 @@ int opt;
         settings->kind = operation_name_to_enum (optarg);
         break;
       case PARAM_MEDIUM_SIZE_CHAR:
-        settings->length = atoll(optarg);
+        settings->length = atoll(optarg) * unit_multiplier(optarg);
         break;
       case '?':
       default:
