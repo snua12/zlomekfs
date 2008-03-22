@@ -26,19 +26,24 @@ INCLUDES = \
 	-I/usr/include/dbus-1.0 \
 	-I/usr/lib/dbus-1.0/include
 
-noinst_PROGRAMS = dumpLogs logControl fakelog
+AM_CFLAGS = -pthread
+
+noinst_PROGRAMS = dumpLogs logControl fakelog infinite-log
 
 dumpLogs_SOURCES = dump-logs.c
 dumpLogs_LDADD = ${top_builddir}/src/libsyplog.la -lpthread -ldbus-1
-dumpLogs_CFLAGS = -pthread
 
 logControl_SOURCES = log-control.c
 logControl_LDADD = ${top_builddir}/src/libsyplog.la -lpthread -ldbus-1
-logControl_CFLAGS = -pthread
 
 fakelog_SOURCES = fakelog.c
 fakelog_LDADD = ${top_builddir}/src/libsyplog.la -lpthread -ldbus-1
-fakelog_CFLAGS = -pthread
+
+infinite_log_SOURCES = infinite-log.c
+infinite_log_LDADD = ${top_builddir}/src/libsyplog.la -lpthread -ldbus-1
 
 test: dumpLogs fakelog logControl
 	LD_PRELOAD=libzenunit.so ./fakelog
+
+clean-local:
+	rm -rf biglog

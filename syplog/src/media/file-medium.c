@@ -103,6 +103,34 @@ syp_error file_medium_parse_params (int argc, const char ** argv, medium setting
 	return NOERR;
 }
 
+/// Check file boundary and seek to 0 if needed.
+/** Shift position in file to 0, if log is constrained
+  to some specific size and there is no room for new log.
+
+ * @param target opened log with file target
+ * @return std errors
+*/
+static inline syp_error shift_to_begin_if_needed(medium target)
+{
+  // set cursor in file to boundaries
+  long pos = 0;
+  
+#ifdef ENABLE_CHECKING
+  if (target == NULL || target->type_specific == NULL)
+    return ERR_BAD_PARAMS;
+#endif
+
+  pos = ftell (((file_medium)target->type_specific)->handler);
+  target->pos = pos;
+  if (target->length > 0)
+    if (target->length - pos < target->used_formatter->get_max_print_size())
+      if (fseek (((file_medium)target->type_specific)
+        ->handler, 0, SEEK_SET) == SYS_NOERR)
+        target->pos = 0;
+
+  return NOERR;
+}
+
 /// Initializes file medium specific parts of medium structure
 syp_error open_file_medium (medium target, int argc, const char ** argv)
 {
@@ -161,21 +189,8 @@ syp_error open_file_medium (medium target, int argc, const char ** argv)
 
   if (target->kind == WRITE_LOG)
   {
-    // set cursor in file to boundaries
-    long pos = ftell (new_specific->handler);
-    target->pos = pos;
-    if (target->length > 0)
-    {
-      if (target->length - pos < target->used_formatter->get_max_print_size())
-      {
-        if (fseek (new_specific->handler, 0, SEEK_SET) == SYS_NOERR)
-          target->pos = 0;
-       }
-    }
-    else
-    {
-      fseek (new_specific->handler, 0, SEEK_END);
-    }
+    fseek (new_specific->handler, 0, SEEK_END);
+    shift_to_begin_if_needed(target);
   }
 
 
@@ -226,7 +241,8 @@ syp_error file_access (medium target, log_struct log){
     clearerr (((file_medium)target->type_specific)->handler);
     return ERR_END_OF_LOG;
   }
-
+  if (target->kind == WRITE_LOG)
+    shift_to_begin_if_needed(target);
   int chars_accessed = 0;
   switch (target->kind)
   {
@@ -248,6 +264,16 @@ syp_error file_access (medium target, log_struct log){
   // move boundary
     target->pos += chars_accessed;
     return NOERR;
+  }
+  else if (chars_accessed == 0)
+  {
+    if (target->kind == WRITE_LOG)
+    {
+    // if we have written zero bytes, there should be feof and no space
+      if (fseek (((file_medium)target->type_specific)
+        ->handler, 0, SEEK_SET) == SYS_NOERR)
+        target->pos = 0;
+    }
   }
   else
     return -chars_accessed;

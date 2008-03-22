@@ -1,22 +1,24 @@
 /*! \file
-    \brief Dump logs from target.  */
+    \brief Read messages from console and logs them into /dev/tty \
+	on all levels. Used for testing, if control messages arrives.
+*/
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2007, 2008 Jiri Zouhar
 
-   This file is part of ZFS.
+   This file is part of Syplog.
 
-   ZFS is free software; you can redistribute it and/or modify it
+   Syplog is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2, or (at your option)
    any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   Syplog is distributed in the hope that it will be useful, but WITHOUT
    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
    You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
@@ -51,7 +53,7 @@ int main (int argc UNUSED, char ** argv UNUSED)
   syp_error ret_value = NOERR;
   int sys_error = 0;
 
-  ret_value = open_log (&output_printer, "fakelog", log_settings_count, log_settings);
+  ret_value = open_log (&output_printer, "fakelog", log_settings_count, (const char**)log_settings);
   if (ret_value != NOERR)
   {
     printf ("init fatal opening output: %d, %s\n", ret_value, syp_error_to_string (ret_value));

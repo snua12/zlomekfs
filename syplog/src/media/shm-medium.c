@@ -162,7 +162,7 @@ syp_error open_shm_medium (medium target, int argc, const char ** argv)
   }
 
   // NOTE: SILENT shrinkage
-  if (target->length > SHMMAX)
+  if (target->length > SHMMAX || target->length == 0)
     target->length = SHMMAX;
   new_specific->shmid = shmget (new_specific->segment_key, 
                                 target->length,
@@ -223,7 +223,6 @@ syp_error shm_access (medium target, log_struct log)
     return ERR_NOT_INITIALIZED;
 
 #endif
-  // TODO: implement
   // check boundaries
   if (target->length > 0 && 
       target->length - target->pos < target->used_formatter->get_max_print_size())

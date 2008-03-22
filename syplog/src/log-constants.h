@@ -34,7 +34,7 @@
 #include <stdint.h>
 #include <linux/types.h>
 #include <stdarg.h>
-
+#include <time.h>
 #undef _GNU_SOURCE
 
 #include "syp-error.h"
