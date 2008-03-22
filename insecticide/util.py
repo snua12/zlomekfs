@@ -134,7 +134,7 @@ class RotatingFile(object):
         rotate it.
     """
     __overridenAttributes = ['__overridenAttributes', '__init__', 'rotate',
-        'realFile', 'maxBytes', 'backupCount', 'bufsize', '__class__']
+        'realFile', 'maxBytes', 'backupCount', 'bufsize']
     """ Attributes that are monkey patched and doesn't go directly to File object """
     
     def __getattribute__(self, name):
@@ -198,6 +198,8 @@ class RotatingFile(object):
         self.realFile = open(filename, mode, bufsize)
     
     def rotate(self, size = None):
+        if not self.realFile or self.realFile.closed:
+            return
         if not size:
             size = self.realFile.tell()
         if size < self.maxBytes:
