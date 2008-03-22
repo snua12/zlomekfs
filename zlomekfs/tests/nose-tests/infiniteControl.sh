@@ -13,7 +13,9 @@ if [ "$1" == "start" ]; then
         while [ -d "$LOCK_DIR" ]; do
             sleep 1
         done
-
+        
+        svn up 
+        
         PROFILE_NAME=profile_infinite ./test.py testStressFSOp.py
         echo $! > ${WORKER_PIDFILE}
         wait
