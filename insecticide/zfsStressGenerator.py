@@ -1494,7 +1494,22 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
                     break;
                 except AttributeError:
                     log.warning('TestCase without shiftToNext passed to InfiniteTestCase')
-            
+                except KeyboardInterrupt:
+                    raise
+        except KeyboardInterrupt:
+            # we want to report old failures even when user want to stop current
+            if hasattr(self.test.test, 'failureBuffer') \
+                and len(self.test.test.failureBuffer) > 0:
+                reportProxy = ReportProxy()
+                
+                failure = self.test.test.failureBuffer.pop()
+                if failure.error:
+                    reportProxy.reportError(failure)
+                else:
+                    reportProxy.reportFailure(failure)
+                
+                reportProxy.finalize()
+                
         finally:
             self.has_run = True
             try:
