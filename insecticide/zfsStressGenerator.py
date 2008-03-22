@@ -1300,13 +1300,13 @@ class LazyTestChain(object):
         Used instead of normal array to provide
         virtually infinite sequences (arrays).
     """
-    __overridenAttributes = ['__overridenAttributes', '__extendedAttributes', \
+    __overridenAttributes = ['__overridenAttributes', \
         '__init__', '__expand__', '__getitem__', '__setitem__', 'array', \
         'graph', 'maxLength', '__len__', '__str__', '__repr__']
     
     def __getattribute__(self, name):
         """ Overriding getattribute method for object attributes
-            redirects all except ChainedTestCase.__overridenAttributes to
+            redirects all except LazyTestChain.__overridenAttributes to
             self.array (array of used items)
         """
         if name in LazyTestChain.__overridenAttributes:
@@ -1320,7 +1320,7 @@ class LazyTestChain(object):
         
     def __setattr__(self, name, value):
         """ Overriding access method for object attributes
-            redirects all except ChainedTestCase.__overridenAttributes to
+            redirects all except LazyTestChain.__overridenAttributes to
             self.array (array of used items).
         """
         if name in LazyTestChain.__overridenAttributes:

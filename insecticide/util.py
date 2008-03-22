@@ -128,4 +128,108 @@ def setCoreDumpSettings(settings):
     if settings.oldRlimitFsize is not None:
         setrlimit(RLIMIT_FSIZE, settings.oldRlimitFsize)
         
+
+class RotatingFile(object):
+    """ File object wrapper that watch for file size and
+        rotate it.
+    """
+    __overridenAttributes = ['__overridenAttributes', '__init__', 'writelines',
+        'write', 'rotate', 'realFile', 'maxBytes', 'backupCount', 'bufsize']
+    """ Attributes that are monkey patched and doesn't go directly to File object """
     
+    def __getattribute__(self, name):
+        """ Overriding getattribute method for object attributes
+            redirects all except RotatingFile.__overridenAttributes to
+            self.array (array of used items)
+        """
+        if name in RotatingFile.__overridenAttributes:
+            return super(RotatingFile, self).__getattribute__(name)
+        elif not hasattr(self, 'realFile') or self.realFile is None:
+            raise AttributeError()
+        else:
+            return self.realFile.__getattribute__(name)
+                
+    __getattr__ = __getattribute__
+        
+    def __setattr__(self, name, value):
+        """ Overriding access method for object attributes
+            redirects all except RotatingFile.__overridenAttributes to
+            self.array (array of used items).
+        """
+        if name in RotatingFile.__overridenAttributes:
+            return super(RotatingFile, self).__setattr__(name, value)
+        elif not hasattr(self, 'realFile') or self.realFile is None:
+            raise AttributeError()
+        else:
+            return self.realFile.__setattr__(name, value)
+    
+    def __hasattr__(self, name):
+        """ Overriding getattribute method for object attributes
+            redirects all except RotatingFile.__overridenAttributes to
+            self.array (array of used items).
+            
+            It creates at most backupCount backups named filename.[backupNumber]
+            for example there would be file, file.1, file.2, file.3 
+        """
+        if name in RotatingFile.__overridenAttributes:
+            return super(RotatingFile, self).__hasattr__(name)
+        elif not hasattr(self, 'realFile') or self.realFile is None:
+            raise AttributeError()
+        else:
+            return self.realFile.__hasattr__(name)
+                
+    __getattr__ = __getattribute__
+    
+    def __init__(self, filename, mode = 'a', bufsize = -1, maxBytes = 0,
+        backupCount = 0):
+        """ Constructor of rotating file. 
+            
+            :Parameters:
+                filename: goes directly to buildin open() function
+                mode: goes directly to buildin open() function
+                bufsize: goes directly to buildin open() function
+                maxBytes: maximum size of file in bytes.
+                backupCount: how many backups should be there.
+        """
+        self.maxBytes = maxBytes
+        self.backupCount = backupCount
+        self.bufsize = bufsize
+        self.realFile = open(filename, mode, bufsize)
+    
+    def write(self, str, *args, **kwargs):
+        """Overriden write function of File object,
+            before actual write, check of size is made
+        """
+        currentPos = self.realFile.tell()
+        if self.maxBytes and currentPos + len(str) > self.maxBytes:
+            self.rotate()
+        return self.realFile.write(str, *args, **kwargs)
+        
+    def writelines(self, sequence, *args, **kwargs):
+        for line in sequence:
+            self.write(line, *args, **kwargs)
+    
+    def rotate(self):
+        print 'rotate'
+        oldName = self.realFile.name
+        
+        if os.path.isfile(oldName + '.' + str(self.backupCount)):
+            os.unlink(oldName + '.' + str(self.backupCount))
+        backupNumber = self.backupCount - 1
+        while backupNumber > 0:
+            if os.path.isfile(oldName + '.' + str(backupNumber)):
+                os.rename(oldName + '.' + str(backupNumber),
+                    oldName + '.' + str(backupNumber + 1))
+            backupNumber -= 1
+        
+        if not self.realFile.closed:
+            self.realFile.close()
+            
+        if self.backupCount > 0:
+            os.rename(oldName, oldName + '.' + '1')
+        else:
+            os.unlink(oldName)
+        
+        newFile = open(oldName, self.realFile.mode, self.bufsize)
+        self.realFile = newFile
+        
