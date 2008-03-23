@@ -11,8 +11,10 @@ from subprocess import Popen, PIPE, STDOUT
 from os.path import walk
 from insecticide import zfsConfig
 from insecticide.snapshot import SnapshotDescription
+from insecticide.timeoutPlugin import timed
+from insecticide.graph import GraphBuilder
 
-from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException
+from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException, abortDeadlock
 from remoteZfs import RemoteControlWrapper, ReactorWrapper, RemoteException
 from testFSOp import TestFSOp
 from nose.tools import TimeExpired
@@ -24,10 +26,14 @@ local_files = ['zfs.py', 'remoteZfs.py', 'testFSOps.py, testFSOp.py', \
 
 log = logging.getLogger('nose.tests.clientServerBaseTest')
 
-class ClientServerBaseTest(ZfsStressTest, TestFSOp):
+class TestClientServer(ZfsStressTest, TestFSOp):
     reactorWrapper = None
     remoteControlWrapper = None 
     remoteZfs = None
+    
+    definitionType = GraphBuilder.USE_FLAT
+    
+    startingPoint = "testGenerateNewName"
     
     
     @classmethod
@@ -104,6 +110,10 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         
         cls.remoteZfs = cls.remoteControlWrapper.getRemoteObject('getZfs', 
             metaTar = remoteTar, config = remoteZfsConfig)
+            
+        remoteRoot = cls.remoteZfs.call('getMountPoint')
+        cls.remoteZfsDir = os.path.join(remoteRoot, 
+            config.get("remoteZfs", "zfsVolumeDir"))
         
         
     @classmethod
@@ -116,6 +126,9 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         
         cls.localZfs = ZfsProxy(metaTar = localTar, zfsRoot = localRoot,
             config = localZfsConfig)
+            
+        cls.localZfsDir = os.path.join(localRoot, 
+            config.get("localZfs", "zfsVolumeDir"))
         
     @classmethod
     def setupClass(cls):
@@ -127,6 +140,7 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
         cls.connect()
         
         config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
+        cls.config = config
         remoteTar = config.get("remoteZfs", "zfsMetaTar")
         local_files.append(remoteTar)
         
@@ -197,4 +211,49 @@ class ClientServerBaseTest(ZfsStressTest, TestFSOp):
             self.localZfs.stopZfs()
             self.remoteZfs.call('stop')
             raise ZfsRuntimeException("Zfsd died upon test execution")
-
+            
+    @timed(10, abortDeadlock)
+    def testRemoteWriteLocalRead(self):
+        remoteFile = self.remoteControlWrapper.getRemoteObject(
+            'open', self.remoteFileName, 'w')
+            
+        data = "Kdyz se dobre hospodari, tak se dobre dari."
+        remoteFile.call('write', data)
+        remoteFile.call('flush')
+        remoteFile.call('close')
+        
+        localFile = open(self.localFileName, 'r')
+        readData = localFile.read()
+        localFile.close()
+        
+        log.debug('remoteFile:' + self.remoteFileName)
+        log.debug('localFile:' + self.localFileName)
+        log.debug( "data is :" + str(data))
+        log.debug("readData is:" + str(readData))
+        assert data == readData
+        
+    @timed(10, abortDeadlock)
+    def tesLocalWriteRemoteRead(self):
+        data = "Kdyz se dobre hospodari, tak se dobre dari."
+        localFile = open(self.localFileName, 'w')
+        localFile.write(data)
+        localFile.close()
+        
+        remoteFile = self.remoteControlWrapper.getRemoteObject(
+            'open', self.remoteFileName, 'r')
+        readData = remoteFile.call('read')
+        remoteFile.call('close')
+        
+        log.debug('remoteFile:' + self.remoteFileName)
+        log.debug('localFile:' + self.localFileName)
+        log.debug( "data is :" + str(data))
+        log.debug("readData is:" + str(readData))
+        
+        assert data == readData
+        
+    def testGenerateNewName(self):
+        fileName = self.generateRandomFileName()
+        
+        self.localFileName = os.path.join(self.localZfsDir, fileName)
+        self.remoteFileName = os.path.join(self.remoteZfsDir, fileName)
+        

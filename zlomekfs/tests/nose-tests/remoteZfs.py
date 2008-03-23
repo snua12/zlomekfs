@@ -30,8 +30,11 @@ class RemoteFile(pb.Referenceable):
     def remote_write(self, data):
         return self.fh.write(data)
         
-    def remote_read(self, size):
-        return self.fh.read(size)
+    def remote_read(self, size = None):
+        if size:
+            return self.fh.read(size)
+        else:
+            return self.fh.read()
         
     def remote_getSize(self):
         pos = self.fh.tell()
@@ -54,6 +57,9 @@ class RemoteFile(pb.Referenceable):
         
     def remote_delete(self):
         os.unlink(self.fh.name)
+        
+    def remote_flush(self):
+        self.fh.flush()
 
 class RemoteZfs(pb.Referenceable):
     def __init__(self, *arg, **kwargs):
@@ -82,6 +88,9 @@ class RemoteZfs(pb.Referenceable):
         snapshot.pack(fileName)
         snapshot.delete()
         return RemoteFile(fileName, 'r')
+        
+    def remote_getMountPoint(self):
+        return self.zfs.zfsRoot
         
 
 class RemoteControl(pb.Root):
