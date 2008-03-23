@@ -4,8 +4,7 @@
 from insecticide.util import noseWrapper
 
 
-from signal import signal, SIGINT, SIG_IGN
-from traceback import extract_stack
+from signal import signal, SIGINT
 
 def raiseKeyboardInterrupt(sig, stack):
     raise KeyboardInterrupt()#, None, extract_stack(stack)
