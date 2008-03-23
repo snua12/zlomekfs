@@ -1,10 +1,6 @@
 
 
-if [ -d "../zfsd" ]; then
-  INCLUDE_DIR="`pwd`/../"
-else
   INCLUDE_DIR="/usr/include"
-fi
 
 echo '//
 //	ipc.i	WJ103

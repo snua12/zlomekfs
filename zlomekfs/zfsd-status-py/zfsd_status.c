@@ -1,13 +1,12 @@
 #include <dbus/dbus.h>
 #include <stdio.h>
-
+#include <unistd.h>
 #include "zfsd_status.h"
 
 zfsd_state_e ping_zfsd()
 {
  DBusError err;
  DBusConnection * conn = NULL;
- int ret = 0;
  zfsd_state_e ret_code = ZFSD_STATE_UNKNOWN;
  DBusMessage* msg;
  DBusMessageIter args;
