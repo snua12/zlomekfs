@@ -11,9 +11,24 @@ function terminate()
     exit 0
 }
 
+function killWithWait()
+{
+    kill -SIGINT $1 >/dev/null 2>&1
+    for i in 1 2 3 5 10; do
+        if ! kill -0 $1 >/dev/null 2>&1; then
+            break
+        fi
+        sleep $i
+    done
+    if kill -0 $1 >/dev/null 2>&1; then
+        kill -SIGKILL $1 >/dev/null 2>&1
+    fi
+}
+
 trap  terminate SIGINT
 
 if [ "$1" == "run" ]; then
+    
     echo $$ > ${CONTROL_PIDFILE}
     rmdir "${LOCKDIR}" >/dev/null 2>&1
     while true; do
@@ -28,44 +43,32 @@ if [ "$1" == "run" ]; then
         while [ ! -d "${LOCKDIR}" ]; do
             sleep 1
         done
-        kill -2 `cat ${WORKER_PIDFILE}` >/dev/null 2>&1
+        killWithWait `cat ${WORKER_PIDFILE}` 
     done
-
+    
 elif [ "$1" == "stop" ]; then
 
     mkdir -p "${LOCKDIR}"
 
-    kill -SIGINT `cat ${WORKER_PIDFILE}` >/dev/null 2>&1
-    for i in 1 2 3 5; do
-        if ! kill -0 `cat ${WORKER_PIDFILE}` >/dev/null 2>&1; then
-            break
-        fi
-        sleep $i
-    done
+    killWithWait `cat ${WORKER_PIDFILE}`
+    killWithWait `cat ${CONTROL_PIDFILE}`
     
-#    if kill -0 `cat ${WORKER_PIDFILE}`; then
-#        kill -SIGKILL `cat ${WORKER_PIDFILE}`
-#    fi
-    
-    kill -SIGINT `cat ${CONTROL_PIDFILE}` >/dev/null 2>&1
-    for i in 1 2 3; do
-        sleep $i
-    done
-    if kill -0 `cat ${CONTROL_PIDFILE}` >/dev/null 2>&1; then
-        kill -SIGKILL `cat ${CONTROL_PIDFILE}` >/dev/null 2>&1
-    fi
-
     rmdir "${LOCKDIR}"
 
 elif [ "$1" == "pause" ]; then
 
     mkdir -p "${LOCKDIR}"
-    kill -SIGINT `cat ${WORKER_PIDFILE}` >/dev/null 2>&1
+    killWithWait `cat ${WORKER_PIDFILE}`
 
 elif [ "$1" == "unpause" ]; then
 
     rmdir "${LOCKDIR}" >/dev/null 2>&1
-
+    
 else
+    
    echo "unknown command"
+   exit 1
+   
 fi
+
+exit 0
