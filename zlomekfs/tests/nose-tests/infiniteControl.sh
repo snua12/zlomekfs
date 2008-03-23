@@ -42,6 +42,9 @@ if [ "$1" == "run" ]; then
         echo $! > "${WORKER_PIDFILE}"
         while [ ! -d "${LOCKDIR}" ]; do
             sleep 1
+            if ! kill -0 `cat ${WORKER_PIDFILE}` >/dev/null 2>&1; then
+                break
+            fi
         done
         killWithWait `cat ${WORKER_PIDFILE}` 
     done
