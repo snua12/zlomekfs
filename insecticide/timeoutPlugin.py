@@ -7,6 +7,7 @@ import unittest
 import datetime
 import logging
 import time
+import sys
 
 from threading import Timer
 from unittest import TestCase
@@ -50,9 +51,13 @@ def timed(limit, handler = voidTimeoutHandler):
             try:
                 ret = func(*arg, **kw)
             except:
-                timer.cancel()
-                log.debug('canceled timer in %s because of failure', str(datetime.datetime.now()))
-                raise
+                if timer.isAlive():
+                    timer.cancel()
+                    log.debug('canceled timer in %s because of failure', str(datetime.datetime.now()))
+                    raise
+                else:
+                    raise TimeExpired('Time expired ( and test raised: ' \
+                        + str(sys.exc_info()) + ')')
             if timer.isAlive():
                 timer.cancel()
                 log.debug('canceled timer in %s', str(datetime.datetime.now()))
