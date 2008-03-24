@@ -71,10 +71,9 @@ def loadProfile(batch, profileName):
     try:
         mod = __import__(profileName, {}, {}, [''])
     except ImportError, err:
-        raise EnvironmentError, \
-            "Could not import profile '%s' (Is it on sys.path?"  \
-           + " Does it have syntax errors?): %s" \
-            % (profileName, err)
+        raise EnvironmentError( \
+            "Could not import profile '" + profileName + "' (Is it on sys.path?"  \
+           + " Does it have syntax errors?): " + str(err))
         
     profile = mod.env
     for key in profile.keys(): #note we override ALL commandline given args
