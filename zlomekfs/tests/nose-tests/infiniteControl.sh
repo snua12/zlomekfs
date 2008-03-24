@@ -14,7 +14,7 @@ function terminate()
 function killWithWait()
 {
     kill -SIGINT $1 >/dev/null 2>&1
-    for i in 1 2 3 5 10; do
+    for i in 1 2 3 5 10 10 10 30; do
         if ! kill -0 $1 >/dev/null 2>&1; then
             break
         fi
@@ -37,7 +37,7 @@ if [ "$1" == "run" ]; then
         done
         
         svn up 
-        
+        killWithWait `cat ${WORKER_PIDFILE}`
         PROFILE_NAME=profile_infinite ./test.py testStressFSOp.py &
         echo $! > "${WORKER_PIDFILE}"
         while [ ! -d "${LOCKDIR}" ]; do
