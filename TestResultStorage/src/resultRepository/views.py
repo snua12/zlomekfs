@@ -48,19 +48,22 @@ def formatDuration(duration):
         sec = duration % 60
         duration /= 60
         min = duration % 60
-        ''' ignore long lasting tests
         duration /= 60
         hour = duration % 24
         duration /= 24
         day = duration
-        '''
+        
         string = str(milis)
         while len(string) < 3:
             string = '0' + string
             
         string = str(sec) + "." + string + "s"
-        if min:
-            string = str(min) + " min " + string
+        if min >= 1:
+            string = str(min) + " m " + string
+        if hour >= 1:
+            string = str(hour) + " h " + string
+        if day >= 1:
+            string = str(day) + " d " + string
     except TypeError: #not int or None
         string = "Unknown"
     
