@@ -296,10 +296,10 @@ class SnapshotPlugin(Plugin):
             self.noseLogHandler = None
         if self.noseLogFileName:
             os.unlink(self.noseLogFileName)
-        for backLogNumber in range(self.noseLogBackupCount, self.noseLogBackupCount + 1):
-            backLogName = self.noseLogFileName + '.' + str(backLogNumber) 
-            if os.path.isfile(backLogName):
-                os.unlink(backLogName)
+            for backLogNumber in range(self.noseLogBackupCount, self.noseLogBackupCount + 1):
+                backLogName = self.noseLogFileName + '.' + str(backLogNumber) 
+                if os.path.isfile(backLogName):
+                    os.unlink(backLogName)
         
         
     def appendNoseLog(self, snapshot):
