@@ -50,4 +50,4 @@ rm -rf %{buildroot}
 
 %post
 mkdir -p /var/lib/TestResultStorage/data || echo Warning: /var/lib/TestResultStorage/data couldn\'t be created
-chmod a+rw /var/lib/TestResultStorage/data
+chmod a+rw /var/lib/TestResultStorage/data || echo Warning: permissions of /var/lib/TestResultStorage/data couldn\'t be changed
