@@ -1529,12 +1529,12 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
             return
         try:
             while True:
-                if result.shouldStop or self.shouldStopCOntext():
+                if result.shouldStop or self.shouldStopContext():
                     break
                     
                 self.test(orig)
                 
-                if self.shouldStopCOntext():
+                if self.shouldStopContext():
                     break
                     
                 try:
