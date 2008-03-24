@@ -80,6 +80,9 @@ class RemoteZfs(pb.Referenceable):
     def remote_hasDied(self):
         return self.zfs.hasDied()
         
+    def remote_signalAll(self, signal):
+        return self.zfs.signalAll(signal)
+        
     def remote_snapshot(self):
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir)
