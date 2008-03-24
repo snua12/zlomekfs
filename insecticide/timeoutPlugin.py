@@ -56,8 +56,8 @@ def timed(limit, handler = voidTimeoutHandler):
                     log.debug('canceled timer in %s because of failure', str(datetime.datetime.now()))
                     raise
                 else:
-                    raise TimeExpired('Time expired ( and test raised: ' \
-                        + str(sys.exc_info()) + ')')
+                    raise TimeExpired, 'Time expired ( and test raised: ' \
+                        + str(sys.exc_info()) + ')', sys.exc_info()[2]
             if timer.isAlive():
                 timer.cancel()
                 log.debug('canceled timer in %s', str(datetime.datetime.now()))
