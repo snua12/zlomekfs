@@ -46,7 +46,7 @@ if [ "$1" == "run" ]; then
                 break
             fi
         done
-        killWithWait `cat ${WORKER_PIDFILE}` 
+        #killWithWait `cat ${WORKER_PIDFILE}`
     done
     
 elif [ "$1" == "stop" ]; then
