@@ -5,6 +5,12 @@ CONTROL_PIDFILE=/var/run/infiniteControl.pid
 
 LOCKDIR=/tmp/insecticide.lockdir
 
+# interrupted nose could leak some temporary data... this function removes them
+function collectGarbage()
+{
+    rm -rf /tmp/nose* /tmp/zfs* /tmp/insecticide*.log* /tmp/testCompareDir*
+}
+
 function terminate()
 {
     wait
@@ -46,6 +52,7 @@ if [ "$1" == "run" ]; then
                 break
             fi
         done
+	collectGarbage
         #killWithWait `cat ${WORKER_PIDFILE}`
     done
     
