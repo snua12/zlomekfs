@@ -50,6 +50,10 @@ def timed(limit, handler = voidTimeoutHandler):
                 log.debug('starting timer in %s for %s', str(datetime.datetime.now()), str(limit))
                 timer.start()
                 ret = func(*arg, **kw)
+            except KeyboardInterrupt:
+                if timer.isAlive:
+                    timer.cancel()
+                raise
             except:
                 if timer.isAlive():
                     timer.cancel()
