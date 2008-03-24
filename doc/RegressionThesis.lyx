@@ -2838,19 +2838,132 @@ ZfsStressTest
 \end_layout
 
 \begin_layout Standard
-TODO: WOODOO
+For 
+\series bold
+distributed testing
+\series default
+, there are wrappers for 
+\emph on
+ZfsProxy
+\emph default
+ and 
+\emph on
+remote file
+\emph default
+ objects.
+ Communication is done through 
+\emph on
+twisted perspective brooker.
+ 
+\emph default
+Twisted were used as RPC, because there is direct support for it in 
+\emph on
+Nose.
 \end_layout
 
 \begin_layout Standard
-multi-thread
+Example distributed test is represented by 
+\emph on
+TestClientServer
+\emph default
+.
+ On remote system, used in test, there should be 
+\emph on
+remoteZfs.py 
+\emph default
+script running.
+ It runs twisted reactor and listens for incoming connections.
+ 
 \end_layout
 
 \begin_layout Standard
-distributed
+
+\emph on
+TestClientServer
+\emph default
+ is stress testing meta class, thus all setup is done in 
+\emph on
+setupClass 
+\emph default
+method.
+ Configuration for local and remote 
+\emph on
+ZfsProxy
+\emph default
+ is stored in 
+\emph on
+zfs_client_server_config
+\emph default
+, configuration for ZlomekFS daemons is in 
+\emph on
+localZfsMeta.tar
+\emph default
+ and 
+\emph on
+remoteZfsMeta.tar
+\emph default
+.
+ These options are provided to test by
+\emph on
+ zfsConfig 
+\emph default
+plugin.
 \end_layout
 
 \begin_layout Standard
-infinite
+Local 
+\emph on
+ZfsProxy
+\emph default
+ is initialized in the same way as it would be in case of non-distributed
+ testing.
+ Remote 
+\emph on
+ZfsProxy
+\emph default
+ is initialized through calls performed on wrapper objects.
+ Tests then opens local files as usual and remote files by calls to 
+\emph on
+RemoteControlWrapper
+\emph default
+ object.
+ 
+\end_layout
+
+\begin_layout Standard
+In this manner, any topology of zfs providers and clients could be made.
+ There should be 
+\emph on
+remoteZfs.py 
+\emph default
+running on every machine used in testing.
+ On machine where 
+\emph on
+Nose
+\emph default
+ will run, there should be configuration tarball for every client machine
+ and configuration file for 
+\emph on
+zfsConfig 
+\emph default
+plugin.
+ Test then connects to all machines, configures their zfsd and operates
+ on local and remote files.
+\end_layout
+
+\begin_layout Standard
+When failure is detected, state of both local and remote ZlomekFS daemon
+ is provided by snapshot method.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Infinite
+\series default
+ testing loops are handled in insecticie in the same way as other tests.
+ Only difference is, that there should be special profile for infinite testing,
+ since normal testing should not run for such a long time.
 \end_layout
 
 \begin_layout Subsection
@@ -3481,6 +3594,17 @@ DJANGO_SETTINGS_MODULE
  present in environment, so it is exported in start time of buildbot.
 \end_layout
 
+\begin_layout Standard
+For infinite testing loops it was decided to run them outside of buildbot.
+ Running them inside buildbot would displace other build results outside
+ view.
+ Since there can be only one ZlomekFS daemon running at the time, synchronizatio
+n to avoid collision were needed.
+ Thus in every ZlomekFS build, there is step signalling infinite loop controller
+ to pause run (before buildbot cycle) and step signalling to unpause run
+ (after buildbot cycle).
+\end_layout
+
 \begin_layout Section
 Typical call sequence
 \end_layout
@@ -3866,10 +3990,6 @@ Developer documentation for C code was written in DoxyGen and there are
  packages with documentation can be build too).
  For python we use language provided __doc__ attributes with predefined
  syntax.
-\end_layout
-
-\begin_layout Standard
-TODO:real usage - we found some bugs (size, deadlock)
 \end_layout
 
 \begin_layout Chapter
@@ -5821,6 +5941,10 @@ https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/misc/cleanup.py\InsetSp
 \end_layout
 
 \begin_layout Standard
+chmod +x /home/buildmaster/cleanup.py
+\end_layout
+
+\begin_layout Standard
 \begin_inset ERT
 status open
 
@@ -6916,7 +7040,68 @@ buildbot.tac (slave)
 \end_layout
 
 \begin_layout Standard
-Configure buildbot to start on boot (for example via crontab 
+If infinite testing loop should run on host, checkout it's testing configuration.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+cd /var/buildbot
+\end_layout
+
+\begin_layout Standard
+svn checkout\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/branches/zouhar/zlomekfs/tests/nose-tests\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zfsTests
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Configure buildbot to start on boot and if host should do infinite testing
+ loop, configure start on boot too (for example via crontab 
 \begin_inset LatexCommand ref
 reference "fig:buildslave_cron"
 
@@ -6954,6 +7139,18 @@ begin{codeblock}
 
 \begin_layout Standard
 @reboot buildbot start /var/buildbot/zlomekfs 
+\end_layout
+
+\begin_layout Standard
+@reboot screen -d -m cd /var/buildbot/zfsTests\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+&& ./infiniteControl.sh run 
 \end_layout
 
 \begin_layout Standard
@@ -6999,7 +7196,7 @@ buildslave.cron
 \end_layout
 
 \begin_layout Standard
-Start buildbot
+Start buildbot and infinite testing loop.
 \end_layout
 
 \begin_layout Standard
@@ -7020,6 +7217,14 @@ begin{codeblock}
 
 \begin_layout Standard
 buildbot start /var/buildbot/zlomekfs
+\end_layout
+
+\begin_layout Standard
+cd /var/buildbot/zfsTests
+\end_layout
+
+\begin_layout Standard
+screen -d -m ./infiniteControl.sh run
 \end_layout
 
 \begin_layout Standard
