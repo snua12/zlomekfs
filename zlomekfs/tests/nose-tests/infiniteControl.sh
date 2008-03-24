@@ -8,7 +8,7 @@ LOCKDIR=/tmp/insecticide.lockdir
 # interrupted nose could leak some temporary data... this function removes them
 function collectGarbage()
 {
-    rm -rf /tmp/nose* /tmp/zfs* /tmp/insecticide*.log* /tmp/testCompareDir*
+    rm -rf /tmp/nose* /tmp/zfs* /tmp/insecticide*.log* /tmp/testCompareDir* >/dev/null 2>&1
 }
 
 function terminate()
