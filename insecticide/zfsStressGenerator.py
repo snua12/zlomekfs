@@ -10,6 +10,7 @@ import re
 import pysvn
 import pickle
 import nose
+import datetime
 
 from optparse import OptionConflictError
 from warnings import warn
@@ -941,6 +942,8 @@ class StressGenerator(Plugin):
             log.debug('set stopContextAttr on %s to True', str(id(test)))
             log.debug("failureBuffer is %s (%d)", testInst.failureBuffer,
                 id(testInst.failureBuffer))
+            # set end time to prevent confusion
+            setattr(testInst, endTimeAttr, datetime.datetime.now())
             testInst.failureBuffer.append(ZfsTestFailure(testInst, err, error))
             if self.shouldRetry(testInst):
                 self.retry(testInst)
