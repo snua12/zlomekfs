@@ -87,7 +87,9 @@ class SnapshotPlugin(Plugin):
     """ If nose log should be appended to snapshot """
     
     maxSnapshotsOpt = "--maxSnapshots"
-    """ Option string for passing maximum number of snapshots (last N will be preserved) """
+    """ Option string for passing maximum number of snapshots 
+        (last N will be preserved) 
+    """
     
     maxSnapshotsEnvOpt = "MAX_SNAPSHOTS"
     """ Environment variable from which default snapshot number should be read """
@@ -96,7 +98,9 @@ class SnapshotPlugin(Plugin):
     """ Maximum snapshots to preserve. """
     
     snapshotsRootDirOpt = "--snapshotsRootDir"
-    """ Option string for passing snapshot temp dir (where snapshots should be stored) """
+    """ Option string for passing snapshot temp dir 
+        (where snapshots should be stored) 
+    """
     
     snapshotsRootDirEnvOpt = "SNAPSHOTS_ROOT_DIR"
     """ Environment variable from which default snapshot number should be read """
@@ -150,13 +154,12 @@ class SnapshotPlugin(Plugin):
     def add_options(self, parser, env=os.environ):
         """Non-camel-case version of func name for backwards compatibility.
         """
-        # FIXME raise deprecation warning if wasn't called by wrapper 
         try:
             self.options(parser, env)
             self.can_configure = True
-        except OptionConflictError, e:
+        except OptionConflictError, exc:
             warn("Plugin %s has conflicting option string: %s and will "
-                 "be disabled" % (self, e), RuntimeWarning)
+                 "be disabled" % (self, exc), RuntimeWarning)
             self.enabled = False
             self.can_configure = False
             
@@ -169,28 +172,30 @@ class SnapshotPlugin(Plugin):
         
         # add option for maxSnapshots (maximum number of snapshots preserved)
         parser.add_option(self.maxSnapshotsOpt,
-                          dest=self.maxSnapshotsOpt, metavar="snapshots_num", 
-                          action="store", type="int", 
-                          default=env.get(self.maxSnapshotsEnvOpt),
-                          help="How many last snapshots should be preserved %s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.maxSnapshotsEnvOpt))
+            dest=self.maxSnapshotsOpt, metavar="snapshots_num", 
+            action="store", type="int", 
+            default=env.get(self.maxSnapshotsEnvOpt),
+            help="How many last snapshots should be preserved %s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__, self.maxSnapshotsEnvOpt))
         
         # add option for snapshotsRootDir (where  snapshots should be stored)
         parser.add_option(self.snapshotsRootDirOpt,
-                          dest=self.snapshotsRootDirOpt, metavar="snapshots_dir", 
-                          action="store", type="string", 
-                          default=env.get(self.snapshotsRootDirEnvOpt),
-                          help="Where snapshots should be stored %s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.snapshotsRootDirEnvOpt))
+            dest=self.snapshotsRootDirOpt, metavar="snapshots_dir", 
+            action="store", type="string", 
+            default=env.get(self.snapshotsRootDirEnvOpt),
+            help="Where snapshots should be stored %s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__,
+            self.snapshotsRootDirEnvOpt))
         
         # add option for enabling log snapshoting
         parser.add_option(self.snapshotNoseLogOpt,
-                          dest=self.snapshotNoseLogOpt, metavar="yes", 
-                          action="store_true",
-                          default=env.get(self.snapshotNoseLogEnvOpt),
-                          help="If append nose log to snapshot too.."
-                                "%s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.snapshotNoseLogEnvOpt))
+            dest=self.snapshotNoseLogOpt, metavar="yes", 
+            action="store_true",
+            default=env.get(self.snapshotNoseLogEnvOpt),
+            help="If append nose log to snapshot too.."
+            "%s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__,
+            self.snapshotNoseLogEnvOpt))
                           
 
     
@@ -217,7 +222,8 @@ class SnapshotPlugin(Plugin):
             self.maxSnapshots = getattr(options, self.snapshotsRootDirOpt)
             
         if hasattr(options,  self.snapshotNoseLogOpt):
-            self.snapshotNoseLog = getattr(options,  self.snapshotNoseLogOpt,  self.snapshotNoseLog)
+            self.snapshotNoseLog = getattr(options,  self.snapshotNoseLogOpt,
+                self.snapshotNoseLog)
         
         if self.snapshotNoseLog:
             self.setLogOutput()
@@ -296,7 +302,8 @@ class SnapshotPlugin(Plugin):
             self.noseLogHandler = None
         if self.noseLogFileName:
             os.unlink(self.noseLogFileName)
-            for backLogNumber in range(self.noseLogBackupCount, self.noseLogBackupCount + 1):
+            for backLogNumber in range(self.noseLogBackupCount, 
+                self.noseLogBackupCount + 1):
                 backLogName = self.noseLogFileName + '.' + str(backLogNumber) 
                 if os.path.isfile(backLogName):
                     os.unlink(backLogName)
@@ -340,7 +347,8 @@ class SnapshotPlugin(Plugin):
         elif  hasattr(target, "inst") and hasattr(target.inst, "snapshot"):
             snapshotedObject = target.inst
         else:
-            log.debug("can't snapshot %s. doesn't define snapshot() function",  str(target))
+            log.debug("can't snapshot %s. doesn't define snapshot() function",
+                str(target))
             return
         log.debug('snapshotedObject is %s', snapshotedObject)
             
@@ -348,15 +356,17 @@ class SnapshotPlugin(Plugin):
         snapshot = SnapshotDescription(toDir, log)
         
 
-        log.debug("snapshotting %s (%s) into dir %s at %s",  str(target), snapshot, toDir, str(datetime.datetime.now()))
+        log.debug("snapshotting %s (%s) into dir %s at %s",  str(target), snapshot,
+            toDir, str(datetime.datetime.now()))
         snapshotedObject.snapshot(snapshot)
         
         if self.snapshotNoseLog:
             self.appendNoseLog(snapshot)
         
         if hasattr(target, "snapshotBuffer"):
-            if target.snapshotBuffer and len(target.snapshotBuffer) >= self.maxSnapshots:
-                oldSnapshot =target.snapshotBuffer.pop(0)
+            if target.snapshotBuffer and \
+                len(target.snapshotBuffer) >= self.maxSnapshots:
+                oldSnapshot = target.snapshotBuffer.pop(0)
                 log.debug("removing old snapshot %s", oldSnapshot)
                 oldSnapshot.delete()
         else:
@@ -384,7 +394,7 @@ class SnapshotPlugin(Plugin):
         return None
         
     @classmethod
-    def dropSnapshots(self, test):
+    def dropSnapshots(cls, test):
         """ Remove all snapshots from test's snapshotBuffer
             and delete their data fromdisk
         """
@@ -392,9 +402,14 @@ class SnapshotPlugin(Plugin):
             test.snapshotBuffer.pop(0).delete()
             
     def addSuccess(self, test):
+        """ Nose plugin hook, discards snapshots of
+            non-stress tests upon success.
+        """
         if not hasattr(test,"test"): #ignore non-tests
             return
         
-        #do not drop snapshots of ChainedTestCases before whole chain have finished
-        if hasattr(test.test, "snapshotBuffer") and not isinstance(test.test, ChainedTestCase) :
+        #do not drop snapshots of ChainedTestCases
+        # before whole chain have finished
+        if hasattr(test.test, "snapshotBuffer") \
+            and not isinstance(test.test, ChainedTestCase) :
             self.dropSnapshots(test.test)

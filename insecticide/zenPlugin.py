@@ -63,8 +63,8 @@ def isSharedLibrary(fileName):
         :Raise:
             Exception if execution of file fails
     """
-    type = getFileType(fileName)
-    if sharedLibraryRegex.match(type):
+    fileType = getFileType(fileName)
+    if sharedLibraryRegex.match(fileType):
         return True
     return False
 
@@ -80,8 +80,8 @@ def isExecutable(fileName):
         :Raise:
             Exception if execution of file fails
     """
-    type = getFileType(fileName)
-    if executableRegex.match(type):
+    fileType = getFileType(fileName)
+    if executableRegex.match(fileType):
         return True
     return False
     
@@ -97,8 +97,8 @@ def isZenType(fileName):
         :Raise:
             Exception if execution of file fails
     """
-    type = getFileType(fileName)
-    if executableRegex.match(type) or sharedLibraryRegex.match(type):
+    fileType = getFileType(fileName)
+    if executableRegex.match(fileType) or sharedLibraryRegex.match(fileType):
         return True
     return False
 
@@ -166,9 +166,9 @@ class ZenPlugin(Plugin):
         try:
             self.options(parser, env)
             self.can_configure = True
-        except OptionConflictError, e:
+        except OptionConflictError, exc:
             warn("Plugin %s has conflicting option string: %s and will "
-                 "be disabled" % (self, e), RuntimeWarning)
+                 "be disabled" % (self, exc), RuntimeWarning)
             self.enabled = False
             self.can_configure = False
             
@@ -205,29 +205,29 @@ class ZenPlugin(Plugin):
             return textwrap.dedent(self.__class__.__doc__)
         return "(no help available)"
         
-    def wantFile(self, file):
+    def wantFile(self, fileName):
         """ Tests if file could contain zen tests (is elf executable or shared library)
             
             .. See: nose plugin interface
         """
-        if isZenType(file):
+        if isZenType(fileName):
             return True
             
-    def loadTestsFromFile(self, filename):
+    def loadTestsFromFile(self, fileName):
         """ Try to load tests from binary.
             Since zen-unit doesn't provide test listing, we must run them now.
             
             .. See: nose plugin interface
         """
-        if isSharedLibrary(filename):
-            (prefix, file) = path.split(filename)
+        if isSharedLibrary(fileName):
+            (prefix, stripedFileName) = path.split(fileName)
             args = ('zenunit')
-            env = {'LD_PRELOAD':file}
+            env = {'LD_PRELOAD':stripedFileName}
             if prefix:
                 env['LD_LIBRARY_PATH'] = prefix
-        elif isExecutable(filename):
+        elif isExecutable(fileName):
             prefix = None
-            args = (filename)
+            args = (fileName)
             env = {'LD_PRELOAD':'libzenunit.so'}
         else:
             return [None]
@@ -254,7 +254,7 @@ class ZenPlugin(Plugin):
                 result.stderr.readlines())
                 
     @classmethod
-    def splitTestStatus(self, statusLine):
+    def splitTestStatus(cls, statusLine):
         """ Split zen test status line ('name<tab>STATUS(errCode)') into pieces.
             
             :Parameters:
@@ -274,7 +274,7 @@ class ZenPlugin(Plugin):
         return (name, status, int(errCode))
     
     @classmethod
-    def findErrorMessage(self, testName, stderr):
+    def findErrorMessage(cls, testName, stderr):
         """ Search in stderr for error mesage conected to given test.
             
             :Parameters:
@@ -294,7 +294,7 @@ class ZenPlugin(Plugin):
                     return line
         
     @classmethod
-    def parseZenOutputToTests(self, stdout, stderr):
+    def parseZenOutputToTests(cls, stdout, stderr):
         """ Parse zenunit output to tests and results
             
             :Parameters:
@@ -311,7 +311,7 @@ class ZenPlugin(Plugin):
         for line in stdout:
             firstTestIndex += 1
             if delimiter.match(line):
-                break;
+                break
                 
         # no tests
         if firstTestIndex > len(stdout):
@@ -319,13 +319,13 @@ class ZenPlugin(Plugin):
         
         cases = []
         for testStatus in stdout [firstTestIndex:]:
-            (name, status, err) = self.splitTestStatus(testStatus)
+            (name, status, err) = cls.splitTestStatus(testStatus)
             if err:
-                message = self.findErrorMessage(name, stderr)
+                message = cls.findErrorMessage(name, stderr)
             else:
                 message = None
             cases.append(ZenTestCase(name = name, errorCode = err,
-                message = message, config = self.config))
+                message = message, config = cls.config))
                 
         return cases
 
@@ -333,8 +333,10 @@ class ZenTestCase(TestBase):
     """ Wrapper which represents one zen-test result. """
     
     __test__ = False
-    def __init__(self, name, errorCode, message = None, config=None, resultProxy=None):
-        """ Initialize instance with all test information (test has finishied by this time)
+    def __init__(self, name, errorCode, message = None, config=None, 
+        resultProxy=None):
+        """ Initialize instance with all test information 
+            (test has finishied by this time)
             
             :Parameters:
                 name: function name of the test
@@ -362,7 +364,8 @@ class ZenTestCase(TestBase):
     def report(self):
         """ Wrapper test function, called as 'test'. """
         if self.errorCode != 0:
-            raise AssertionError('Test '  + self.name + ' failed with retCode ' + str(self.errorCode))
+            raise AssertionError('Test '  + self.name + \
+                ' failed with retCode ' + str(self.errorCode))
         
     def __str__(self):
         return self.name
@@ -413,14 +416,16 @@ class ZenExceptionCase(TestBase):
     def shortDescription(self):
         return "Zen-unit LD_PRELOAD=" + self.library + " " + self.binary
         
-    def runTest(self, result):
+    def runTest(self):
         if self.exception:
             raise self.exception
         else:
-            raise ZenException ("Zen-unit has failed with error code " + str(self.errorCode))
+            raise ZenException ("Zen-unit has failed with error code " \
+                + str(self.errorCode))
         
     def snapshot(self, snapshot):
-        """ Since this class (it's instance) is used as test instance too, we snapshot 'test status'
+        """ Since this class (it's instance) is used as test instance too, 
+            we snapshot 'test status'
             by calling this method - we append all given informatin here.
         """
         if path.basename(self.binary) == 'zenunit':
@@ -436,8 +441,10 @@ class ZenExceptionCase(TestBase):
                 path.join(self.ldPath, self.library),  
                 SnapshotDescription.TYPE_ZEN_TEST)
             
-        snapshot.addEntry('LD_LIBRARY_PATH', (SnapshotDescription.TYPE_STRING, self.ldPath))
-        snapshot.addEntry('errorCode', (SnapshotDescription.TYPE_INT, self.errorCode))
+        snapshot.addEntry('LD_LIBRARY_PATH', (SnapshotDescription.TYPE_STRING,
+            self.ldPath))
+        snapshot.addEntry('errorCode', (SnapshotDescription.TYPE_INT,
+            self.errorCode))
         
         if self.core:
             snapshot.addFile(path.basename(self.binary) + '.core', self.core,  

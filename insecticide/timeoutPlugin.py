@@ -44,12 +44,13 @@ def timed(limit, handler = voidTimeoutHandler):
                 time.sleep(.2)
     """
     def decorate(func):
-        def newfunc(*arg, **kw):
+        def newfunc(*arg, **kwargs):
             timer = Timer(limit, handler)
             try:
-                log.debug('starting timer in %s for %s', str(datetime.datetime.now()), str(limit))
+                log.debug('starting timer in %s for %s', 
+                    str(datetime.datetime.now()), str(limit))
                 timer.start()
-                ret = func(*arg, **kw)
+                ret = func(*arg, **kwargs)
             except KeyboardInterrupt:
                 if timer.isAlive:
                     timer.cancel()
@@ -57,7 +58,8 @@ def timed(limit, handler = voidTimeoutHandler):
             except:
                 if timer.isAlive():
                     timer.cancel()
-                    log.debug('canceled timer in %s because of failure', str(datetime.datetime.now()))
+                    log.debug('canceled timer in %s because of failure', 
+                        str(datetime.datetime.now()))
                     raise
                 else:
                     raise TimeExpired, 'Time expired ( and test raised: ' \
@@ -88,11 +90,11 @@ handlerUsed = []
         #handler have run
 """
 
-def writeLocalHandler(h = handlerUsed):
+def writeLocalHandler(handlerFlag = handlerUsed):
     """ Handler used in unittest. 
         Indicates it's run by appending into handlerUsed array.
     """
-    h.append('i')
+    handlerFlag.append('i')
     
 @timed(0.1, writeLocalHandler)
 def handledSleeper():

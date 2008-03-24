@@ -69,9 +69,9 @@ class ZfsReportPlugin(Plugin):
         try:
             self.options(parser, env)
             self.can_configure = True
-        except OptionConflictError, e:
+        except OptionConflictError, exc:
             warn("Plugin %s has conflicting option string: %s and will "
-                 "be disabled" % (self, e), RuntimeWarning)
+                 "be disabled" % (self, exc), RuntimeWarning)
             self.enabled = False
             self.can_configure = False
             
@@ -116,11 +116,12 @@ class ZfsReportPlugin(Plugin):
         """
         if hasattr(test, "test"): #only real tests
             if not hasattr(test.test, startTimeAttr): #prevent rewrite
-                log.debug("setting time %s for test %s", str(datetime.datetime.now()), str(test.test))
+                log.debug("setting time %s for test %s", 
+                    str(datetime.datetime.now()), str(test.test))
                 setattr(test.test, startTimeAttr, datetime.datetime.now())
                 
     @classmethod
-    def getTarget(self, test):
+    def getTarget(cls, test):
         """ Distinguish test from suite.
             Their api should be the same, but test is wrapped into Test class
             
@@ -162,13 +163,17 @@ class ZfsReportPlugin(Plugin):
                 self.reportProxy.reportError(ZfsTestFailure(target, err))
             else:
                 self.reportProxy.reportFailure(ZfsTestFailure(target, err))
-        except:
+        except KeyboardInterrupt:
+            raise
+        except Exception:
             info = sys.exc_info()
             try:
                 self.reportProxy.reportSystemError(name = "Exception in zfsReportPlugin",
                     description = "Unexpected exception in ZfsReportPlugin.addFailure",
                     errInfo = info)
-            except:
+            except KeyboardInterrupt:
+                raise
+            except Exception:
                 log.debug("exception when reporting failure:\n%s", format_exc())
                 
         
@@ -192,13 +197,13 @@ class ZfsReportPlugin(Plugin):
             self.reportProxy.reportSuccess(target)
         except KeyboardInterrupt:
             raise
-        except:
+        except Exception:
             info = sys.exc_info()
             try:
                 self.reportProxy.reportSystemError(name = "Exception in zfsReportPlugin",
                     description = "Unexpected exception in ZfsReportPlugin.addSuccess",
                     errInfo = info)
-            except:
+            except Exception:
                 log.debug("exception when reporting success:\n%s", format_exc())
                     
     

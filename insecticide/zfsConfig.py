@@ -102,9 +102,9 @@ class ZfsConfig(Plugin):
         try:
             self.options(parser, env)
             self.can_configure = True
-        except OptionConflictError, e:
+        except OptionConflictError, exc:
             warn("Plugin %s has conflicting option string: %s and will "
-                 "be disabled" % (self, e), RuntimeWarning)
+                 "be disabled" % (self, exc), RuntimeWarning)
             self.enabled = False
             self.can_configure = False
             
@@ -120,8 +120,10 @@ class ZfsConfig(Plugin):
                           dest=self.configFileOpt, metavar="file_name", 
                           action="append", type="string", 
                           default=env.get(self.configFileEnvOpt),
-                          help="File containing configuration passed to tests %s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.configFileEnvOpt))
+                          help="File containing configuration passed to tests" \
+                         + " %s (see %s) [%s]" %
+                          (self.__class__.__name__, self.__class__.__name__, 
+                          self.configFileEnvOpt))
         
     
     def configure(self, options, conf):
