@@ -46,9 +46,9 @@ def timed(limit, handler = voidTimeoutHandler):
     def decorate(func):
         def newfunc(*arg, **kw):
             timer = Timer(limit, handler)
-            log.debug('starting timer in %s for %s', str(datetime.datetime.now()), str(limit))
-            timer.start()
             try:
+                log.debug('starting timer in %s for %s', str(datetime.datetime.now()), str(limit))
+                timer.start()
                 ret = func(*arg, **kw)
             except:
                 if timer.isAlive():
