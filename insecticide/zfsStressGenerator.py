@@ -1497,7 +1497,7 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
         except KeyboardInterrupt:
             # we want to report failures and errors from previous runs even upon keyboardInterrupt
             reportProxy = ReportProxy()
-            (testName, description) = self.generateDescription(self.test.test)
+            (testName, description) = StressGenerator.generateDescription(self.test.test)
             
             if hasattr(self.test.test, 'failureBuffer') \
                 and len(self.test.test.failureBuffer) > 0:
