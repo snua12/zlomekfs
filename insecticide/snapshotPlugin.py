@@ -289,8 +289,18 @@ class SnapshotPlugin(Plugin):
         """ Stop nose logging for snapshots.
             Removes trace file.
         """
+        if self.noseLogHandler:
+            rootLogger = logging.getLogger()
+            rootLogger.removeHandler(self.noseLogHandler)
+            self.noseLogHandler.close()
+            self.noseLogHandler = None
         if self.noseLogFileName:
             os.unlink(self.noseLogFileName)
+        for backLogNumber in range(self.noseLogBackupCount, self.noseLogBackupCount + 1):
+            backLogName = self.noseLogFileName + '.' + str(backLogNumber) 
+            if os.path.isfile(backLogName):
+                os.unlink(backLogName)
+        
         
     def appendNoseLog(self, snapshot):
         """ Appends nose log into snapshot
