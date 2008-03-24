@@ -29,7 +29,7 @@ from nose.plugins import Plugin
 from nose.suite import LazySuite
 
 
-LENGTH_INFINITE = -1
+lengthInfinite = -1
 """ Define for infinite tests. This is 'virtual' length of infinite chain. """
 
 log = logging.getLogger ("nose.plugins.zfsStressGenerator")
@@ -46,12 +46,15 @@ fixtureMethods = [
 """ method names that are considered as non-tests by default """
 
 class MetaTestCollector(object):
-    """ Class which collects meta tests from classes and returns them as list of attribute names. """
+    """ Class which collects meta tests from classes and returns them
+        as list of attribute names. 
+    """
     map = {}
     """ map of class : methodList pairs"""
-    #NOTE: we rely on attrib plugin assuming that no disabled test method goes to stress plugin 
-    #   and on stress plugin to give us meta methods before asking for collection.
-    #   Since this is valid and saved paths are loaded with method list, it works well.
+    #NOTE: we rely on attrib plugin assuming that no disabled test
+    # method goes to stress plugin and on stress plugin to give us meta methods
+    # before asking for collection. Since this is valid and saved paths are 
+    # loaded with method list, it works well.
     def isMetaClass (self,  cls):
         """ Tests if class is meta class (should contain meta tests
             
@@ -83,6 +86,9 @@ class MetaTestCollector(object):
         return self.map.get(cls,  None)
        
 class PruneLogic(object):
+    """ Class with pruning logic and functions. 
+        ... See: __call__ method
+    """
     maxIterations = 2
     """ Maximum known level where prune functions care about forbidden 
         variants. On maxIterations + 1, they could use anything.
@@ -122,11 +128,13 @@ class PruneLogic(object):
                 # previous iterations
                 useAllMethods = False
             for method in [self.shortestPath, self.disableFunction, self.skipPart]:
-                chain = method(graph, test.chain, test.index + 1, forbiddenVariants, iteration, useAllMethods)
+                chain = method(graph, test.chain, test.index + 1,
+                    forbiddenVariants, iteration, useAllMethods)
                 if chain and chain != test.chain[:test.index + 1]:
                     # we don't want to return the same chain
-                    log.debug('method used: %s in iteration %d', method.__name__, iteration)
-                    log.debug('len old: %d new %d',test.index + 1, len(chain))
+                    log.debug('method used: %s in iteration %d',
+                        method.__name__, iteration)
+                    log.debug('len old: %d new %d', test.index + 1, len(chain))
                     log.debug('f:%s', str(forbiddenVariants))
                     
                     return LazyTestChain(graph, maxLength = len(chain),
@@ -170,9 +178,9 @@ class PruneLogic(object):
         elif iteration == self.maxIterations:
             # on last iteration, check if there is new start or end
             if 'shortestPath:' + chain[0] + ':' \
-                    + chain[chainLength - 1] in forbiddenVariants:
-                        return
-                        
+                + chain[chainLength - 1] in forbiddenVariants:
+                return
+                
         else:
             # in between iterations are ignored
             return
@@ -221,7 +229,7 @@ class PruneLogic(object):
         # we need to preserve array object (for further iterations)
         # and do backward loop not to fuzz with index
         variantIndex = len(forbiddenVariants) - 1
-        while variantIndex >=0:
+        while variantIndex >= 0:
             if forbiddenVariants[variantIndex].startswith('skipPart'):
                 forbiddenVariants.pop(variantIndex)
             variantIndex -= 1
@@ -296,10 +304,12 @@ class PruneLogic(object):
                         continue
                     bypass = graph.getShortestPath(chain[index],
                         chain[index + length])
-                    forbiddenVariants.append('skipPart:' + str(index) + ':' + str(index + length))
+                    forbiddenVariants.append('skipPart:' + str(index) + ':' \
+                        + str(index + length))
                     if len(bypass) <= length:
-                        #log.debug('skip: (%d,%d) %s\n %s - %s - %s', index, index+length, 
-                        #      chain, chain[0:index], bypass, chain[index + length + 1:])
+                        # log.debug('skip: (%d,%d) %s\n %s - %s - %s', index, 
+                        # index+length, chain, chain[0:index], bypass,
+                        # chain[index + length + 1:])
                         return chain[0:index] + bypass + chain[index + length + 1:chainLength]
         else:
             return None
@@ -362,7 +372,7 @@ class PruneLogic(object):
         function = functionsToUse[0]
         forbiddenVariants.append('disableFunction:' + function)
         newChain = [chain[0]]
-        for index in range(1,chainLength - 2):
+        for index in range(1, chainLength - 2):
             if not chain[index] == function:
                 newChain.append(chain[index])
             else:
@@ -555,39 +565,41 @@ class StressGenerator(Plugin):
         
         # add option for max stress test length
         parser.add_option(self.maxTestLengthOpt,
-                          dest=self.maxTestLengthOpt, metavar="test_length", 
-                          action="store", type="int", 
-                          default=env.get(self.maxTestLengthEnvOpt),
-                          help="Maximal number of meta test executions in one stress test."
-                                "%s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.maxTestLengthEnvOpt))
-                          
+            dest=self.maxTestLengthOpt, metavar="test_length", 
+            action="store", type="int", 
+            default=env.get(self.maxTestLengthEnvOpt),
+            help="Maximal number of meta test executions in one stress test."
+            "%s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__, self.maxTestLengthEnvOpt))
+            
         # add option for max stress test generated for class
         parser.add_option(self.testsByClassOpt,
-                          dest=self.testsByClassOpt, metavar="test_count", 
-                          action="store", type="int", 
-                          default=env.get(self.testsByClassEnvOpt),
-                          help="Number of stress tests generated from one class."
-                                "%s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
+            dest=self.testsByClassOpt, metavar="test_count", 
+            action="store", type="int", 
+            default=env.get(self.testsByClassEnvOpt),
+            help="Number of stress tests generated from one class."
+            "%s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
         
         # add option for max pruned reruns of failed chains
         parser.add_option(self.retriesAfterFailureOpt,
-                          dest=self.retriesAfterFailureOpt, metavar="retry_count", 
-                          action="store", type="int", 
-                          default=env.get(self.retriesAfterFailureEnvOpt),
-                          help="Number of retries after chain failure."
-                                "%s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.testsByClassEnvOpt))
+            dest=self.retriesAfterFailureOpt, metavar="retry_count", 
+            action="store", type="int", 
+            default=env.get(self.retriesAfterFailureEnvOpt),
+            help="Number of retries after chain failure."
+            "%s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__,
+            self.testsByClassEnvOpt))
                           
         # add option for commiting failed stress tests
         parser.add_option(self.commitSavedPathsOpt,
-                          dest=self.commitSavedPathsOpt, metavar="yes", 
-                          action="store_true",
-                          default=env.get(self.commitSavedPathsEnvOpt),
-                          help="If stored paths (of failed stress tests) should be commited into repo."
-                                "%s (see %s) [%s]" %
-                          (self.__class__.__name__, self.__class__.__name__, self.commitSavedPathsEnvOpt))
+            dest=self.commitSavedPathsOpt, metavar="yes", 
+            action="store_true",
+            default=env.get(self.commitSavedPathsEnvOpt),
+            help="If stored paths (of failed stress tests) " \
+            + "should be commited into repo. %s (see %s) [%s]" %
+            (self.__class__.__name__, self.__class__.__name__, 
+            self.commitSavedPathsEnvOpt))
         
     def configure(self, options, conf):
         """ Checks options for this plugin: enableOpt, maxTestLength, 
@@ -612,7 +624,8 @@ class StressGenerator(Plugin):
             
         # hack: try to find out if we should report
         if hasattr(options,  ZfsReportPlugin.enableOpt):
-            self.shouldReport = getattr(options,  ZfsReportPlugin.enableOpt,  self.shouldReport)
+            self.shouldReport = getattr(options,  ZfsReportPlugin.enableOpt,
+                self.shouldReport)
             log.debug("stress test generator will report: %s", self.shouldReport)
             
         if self.shouldReport:
@@ -620,17 +633,21 @@ class StressGenerator(Plugin):
         
         # try to get name of file containing tests config
         if hasattr(options,  self.maxTestLengthOpt):
-            self.maxTestLength = getattr(options,  self.maxTestLengthOpt,  self.maxTestLength)
+            self.maxTestLength = getattr(options,  self.maxTestLengthOpt,
+                self.maxTestLength)
             log.debug("max stress test length is set to %s", self.maxTestLength)
             
         if hasattr(options,  self.testsByClassOpt):
-            self.testsByClass = getattr(options,  self.testsByClassOpt,  self.testsByClass)
+            self.testsByClass = getattr(options,  self.testsByClassOpt, 
+                self.testsByClass)
             
         if hasattr(options,  self.retriesAfterFailureOpt):
-            self.retriesAfterFailure = getattr(options,  self.retriesAfterFailureOpt,  self.retriesAfterFailure)
+            self.retriesAfterFailure = getattr(options,  self.retriesAfterFailureOpt,
+                self.retriesAfterFailure)
             
         if hasattr(options,  self.commitSavedPathsOpt):
-            self.commitSavedPaths = getattr(options,  self.commitSavedPathsOpt,  self.commitSavedPaths)
+            self.commitSavedPaths = getattr(options,  self.commitSavedPathsOpt,
+                self.commitSavedPaths)
             
         
     
@@ -663,15 +680,15 @@ class StressGenerator(Plugin):
             return False
         return
         
-    def wantFile(self, file):
+    def wantFile(self, fileName):
         """ Tests if files are saved paths and returns true if so. 
             
             .. See: nose plugin interface
         """
-        log.debug('queried for file %s', file)
-        return self.savedPathRegex.match(file)
+        log.debug('queried for file %s', fileName)
+        return self.savedPathRegex.match(fileName)
         
-    def loadTestsFromFile(self, filename):
+    def loadTestsFromFile(self, fileName):
         """ Try to load chain from saved path file.
             Store them into queue, they should be appended at the end.
             
@@ -679,12 +696,12 @@ class StressGenerator(Plugin):
         """
         
         # ignore non saved paths
-        log.debug('queried to load tests from file %s', filename)
-        if not self.savedPathRegex.match(filename):
+        log.debug('queried to load tests from file %s', fileName)
+        if not self.savedPathRegex.match(fileName):
             return None
         
         # load saved path from file
-        (cls, methodSequence) = ChainedTestCase.getMethodSequenceFromSavedPath(filename)
+        (cls, methodSequence) = ChainedTestCase.getMethodSequenceFromSavedPath(fileName)
         if methodSequence:
             suite = self.wrapMethodSequence(cls, methodSequence,
                                 carryAttributes = {"fromSavedPath" : True})
@@ -700,7 +717,7 @@ class StressGenerator(Plugin):
         """
         log.debug("generating stress tests from class %s methods", cls)
         allowedMethods = self.metaTestCollector.getClassMethods(cls)
-        log.debug("allowedMethods %s?",allowedMethods)
+        log.debug("allowedMethods %s", allowedMethods)
         
         if allowedMethods:
             return self.generateFromClass(cls, allowedMethods)
@@ -745,10 +762,12 @@ class StressGenerator(Plugin):
                 None. Suites will be appended to self.chainQueue.
         """
         tests = []
-        for i in range(0, self.testsByClass):
+        count = self.testsByClass
+        while count:
             test = self.generateOneStress(cls, allowedMethods)
             if test:
                 tests.append(test)
+            count -= 1
         return tests
         
     def wrapMethodSequence(self, cls, methodSequence, carryAttributes = None):
@@ -756,7 +775,7 @@ class StressGenerator(Plugin):
             :Parameters:
                 cls: class for which suite (chain) should be created
                 methodSequence: ordered list of meta tests (string form) in order in which they should run in chain.
-                    If self.maxTestLength is LENGTH_INFINITE, it should be LazyTestChain instance.
+                    If self.maxTestLength is lengthInfinite, it should be LazyTestChain instance.
                 carryAttributes: map of attributeName : value. 
                     Attributes that will be set on every test case object to given value.
                     Used to carry snapshot buffers, failure buffers and so on.
@@ -814,7 +833,8 @@ class StressGenerator(Plugin):
         iteration = getattr(test, 'retryIteration', 0)
         
         # we don't want to rerun tests from savedPath - we don't have dependency graph
-        return self.retriesAfterFailure > iteration and not hasattr(test, 'fromSavedPath')
+        return self.retriesAfterFailure > iteration \
+            and not hasattr(test, 'fromSavedPath')
         
     def retry(self, test, fromFailure = True):
         """ Query test for retry.
@@ -854,13 +874,12 @@ class StressGenerator(Plugin):
             self.svnClient.add(self.savedPathDir)
         except OSError: #directory exists
             log.debug("storing path for %s failed: %s", str(test), format_exc())
-            pass
         except pysvn._pysvn_2_5.ClientError:
-            log.debug("creating stored path dir for %s failed: %s", str(test), format_exc())
-            pass # under control
-        (fd, fileName) = tempfile.mkstemp(dir = self.savedPathDir,
+            log.debug("creating stored path dir for %s failed: %s", str(test),
+                format_exc())
+        fileName = tempfile.mkstemp(dir = self.savedPathDir,
                                             prefix = test.inst.__class__.__name__,
-                                            suffix = self.savedPathSuffix)
+                                            suffix = self.savedPathSuffix)[1]
         test.generateSavedPath(fileName)
         # write a file foo.txt
         try:
@@ -920,7 +939,8 @@ class StressGenerator(Plugin):
             log.debug('set %s on %s to True', StressGenerator.stopContextAttr, test)
             setattr(test,  StressGenerator.stopContextAttr,  True)
             log.debug('set stopContextAttr on %s to True', str(id(test)))
-            log.debug("failureBuffer is %s (%d)", testInst.failureBuffer, id(testInst.failureBuffer))
+            log.debug("failureBuffer is %s (%d)", testInst.failureBuffer,
+                id(testInst.failureBuffer))
             testInst.failureBuffer.append(ZfsTestFailure(testInst, err, error))
             if self.shouldRetry(testInst):
                 self.retry(testInst)
@@ -950,11 +970,14 @@ class StressGenerator(Plugin):
         if self.isChainedTestCase(testInst):
             (testName, description) = self.generateDescription(testInst)
             if self.shouldReport:
-                log.debug("reporting %s failure from addFailure", testInst.method.__name__)
+                log.debug("reporting %s failure from addFailure",
+                    testInst.method.__name__)
                 if error:
-                    self.reportProxy.reportError(ZfsTestFailure(testInst,err, error), name = testName, description = description)
+                    self.reportProxy.reportError(ZfsTestFailure(testInst, err, error),
+                        name = testName, description = description)
                 else:
-                    self.reportProxy.reportFailure(ZfsTestFailure(testInst,err, error), name = testName, description = description)
+                    self.reportProxy.reportFailure(ZfsTestFailure(testInst, err, error),
+                        name = testName, description = description)
             if hasattr(testInst, 'failureBuffer'):
                 # delete old data
                 log.debug('cleaning failureBuffer for %s', str(testInst))
@@ -997,9 +1020,11 @@ class StressGenerator(Plugin):
                     (testName, description) = self.generateDescription(failure.test)
                     if self.shouldReport:
                         if failure.error:
-                            self.reportProxy.reportError(failure, name = testName, description = description)
+                            self.reportProxy.reportError(failure, name = testName, 
+                                description = description)
                         else:
-                            self.reportProxy.reportFailure(failure, name = testName, description = description)
+                            self.reportProxy.reportFailure(failure, name = testName, 
+                                description = description)
                     #delete old data
                     log.debug('cleaning failureBuffer for %s', str(testInst))
                     while testInst.failureBuffer:
@@ -1008,23 +1033,26 @@ class StressGenerator(Plugin):
                 log.debug("%s success from addSuccess ", str(testInst))
                 (testName, description) = self.generateDescription(testInst)
                 if self.shouldReport:
-                    self.reportProxy.reportSuccess(testInst, name = testName, description = description)
+                    self.reportProxy.reportSuccess(testInst, name = testName,
+                        description = description)
             return True
         return None
         
     @classmethod
-    def generateDescription(self, test):
+    def generateDescription(cls, test):
         """ Generate description for ChainedTestCase.
             Since chain is not described sufficiently by it's name, we should
-            generate special strings for testName and description for TestResultStorage.
+            generate special strings for testName and description for 
+            TestResultStorage.
             
             :Parameters:
                 test: ChainedTestCase instance
             
             :Return:
-                tuple (testName, description) strings. First is short test name, second longer description.
+                tuple (testName, description) strings. First is short test name, 
+                    second longer description.
         """
-        if isinstance(test,ChainedTestCase):
+        if isinstance(test, ChainedTestCase):
             return ("Chain for " + test.cls.__name__,
                 test.shortDescription())
         elif isinstance(test, InfiniteChainedTestSuite):
@@ -1041,8 +1069,11 @@ class StressGenerator(Plugin):
         log.debug("finalizing")
         if self.commitSavedPaths:
             try:
-                self.svnClient.checkin([self.savedPathDir], 'New saved paths from batch ' + os.environ['BATCHUUID'])
-            except:
+                self.svnClient.checkin([self.savedPathDir], 
+                    'New saved paths from batch ' + os.environ['BATCHUUID'])
+            except KeyboardInterrupt:
+                raise
+            except Exception:
                 log.debug("can't commit: %s", format_exc())
         if self.reportProxy:
             self.reportProxy.finalize()
@@ -1056,11 +1087,13 @@ class ChainedTestCase(MethodTestCase):
     """ TestClass instance. Holds tests state and global chain state. """
     __test__ = False
     
-    __globalAttributes = ['failureBuffer', 'snapshotBuffer', 'chain', 'cls', startTimeAttr, endTimeAttr]
+    __globalAttributes = ['failureBuffer', 'snapshotBuffer', 'chain', 'cls',
+        startTimeAttr, endTimeAttr]
     """  List of attributes which shoud not be accessed locally on TestCase.
         They are stored in self.inst instead
         :Items:
-            failureBuffer: Buffer of failures (insecticide.failure.ZfsTestFailure) from previous runs. 
+            failureBuffer: Buffer of failures (insecticide.failure.ZfsTestFailure) 
+                from previous runs. 
             snapshotBuffer: buffer of chain snapshots
             chain: ordered list of names of methods which should be called in chain
             cls: class from which chan was generated
@@ -1151,7 +1184,7 @@ class ChainedTestCase(MethodTestCase):
         file.close()
         
     @classmethod
-    def getMethodSequenceFromSavedPath(self, filename):
+    def getMethodSequenceFromSavedPath(cls, fileName):
         """ Retrieves test sequence (saved path) from file
             Assumes that file format is: pickled list, first item is meta test class object,
             following items are ordered method names.
@@ -1164,12 +1197,15 @@ class ChainedTestCase(MethodTestCase):
                     methods is sequence of method names (string form)
                 or None when nothing can be loaded
         """
-        #TODO: report error type
         try:
-            file = open(filename, 'r')
-            chain = pickle.load(file)
-            file.close()
-        except:
+            chainFile = open(fileName, 'r')
+            chain = pickle.load(chainFile)
+            chainFile.close()
+        except KeyboardInterrupt:
+            raise
+        except Exception:
+            log.debug("Can't load saved path from %s:%s",
+                file.name, str(sys.exc_info()))
             return None
             
         #we expect non empty list
@@ -1180,10 +1216,10 @@ class ChainedTestCase(MethodTestCase):
         if type(chain[0]) not in (ClassType, TypeType):
             return None
             
-        cls = chain[0]
+        testClass = chain[0]
         
         methods = chain[1:]
-        return (cls,methods)
+        return (testClass, methods)
 
         
         
@@ -1212,12 +1248,24 @@ class ChainedTestCase(MethodTestCase):
     def __init__(self, cls, method = None, test=None, arg=tuple(),
                 descriptor=None, instance = None,  chain = None,  index = 0):
         """ Initializes whole chain.
-            TODO: parameters
+            
+            :Parameters:
+                cls: class from which chain was generated
+                method: method object pointer (for backward compatibility with nose)
+                test: test executable object pointer (for backward compatibility
+                    with nose)
+                arg: arguments for test function (passed directly to nose)
+                descriptor: nose arg (for compatibility)
+                instance: class instance - context of chain
+                chain: method sequence (list of names of methods of cls)
+                index: starting (current) index in chain 
             
             ..See: nose.case.MethodTestCase.__init__
         """
-        #NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
-        #NOTE: self.inst should be set first, because some other attributes are redirected do self.inst.<attr>
+        ''' NOTE: keep this in sync with __init__ of nose.case.MethodTestCase
+            self.inst should be set first, because some other 
+            attributes are redirected do self.inst.<attr>
+        '''
         if instance is None:
             instance = cls()
         self.inst = instance
@@ -1256,7 +1304,8 @@ class ChainedTestCase(MethodTestCase):
             ..See: nose.case.MethodTestCase.shortDescription
         """
         if len(self.chain) > 10:
-            return self.method.__name__ + " at " + str(self.index) + " in chain " + str(self.chain[:5]) + \
+            return self.method.__name__ + " at " + str(self.index) + \
+                " in chain " + str(self.chain[:5]) + \
                 " .. " + str(self.chain[self.index - 2: self.index + 1])
         else:
             return self.method.__name__ + " in chain " + str(self.chain)
@@ -1274,10 +1323,10 @@ class SuiteRunner(nose.suite.ContextSuite):
     __test__ = False
     
     def __init__(self, tests):
-        self.context=None
-        self.factory=None
-        self.config=None
-        self.resultProxy=None
+        self.context = None
+        self.factory = None
+        self.config = None
+        self.resultProxy = None
         self.tests = tests
         
     def addTest(self, test):
@@ -1375,7 +1424,7 @@ class LazyTestChain(object):
             raise TypeError
             
         currentLength = len(self)
-        if self.maxLength != LENGTH_INFINITE and \
+        if self.maxLength != lengthInfinite and \
             currentLength + toGenerate >= self.maxLength:
             toGenerate = self.maxLength - currentLength
         while toGenerate > 0:
@@ -1383,7 +1432,7 @@ class LazyTestChain(object):
             if method:
                 self.array.append(method)
             else:
-                break;
+                break
             toGenerate -= 1
     
     def __iter__(self):
@@ -1426,8 +1475,8 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
     """
     __test__ = False
     
-    def __init__(self, test, context=None, factory = None,
-        config=None, resultProxy=None):
+    def __init__(self, test, context = None, factory = None,
+        config = None, resultProxy = None):
         """ Constructor override.
             
             :Parameters:
@@ -1440,16 +1489,25 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
             .. See: nose.suite.ContextSuite
         """
         
-        self.context=context
+        self.context = context
         self.factory = factory
-        self.config=config
-        self.resultProxy=resultProxy
+        self.config = config
+        self.resultProxy = resultProxy
         self.test = Test(test, config=self.config, resultProxy=self.resultProxy)
         self.snapshotedObject = test.inst
         self.has_run = False
         
         LazySuite.__init__(self, test.chain)
         
+    def shouldStopContext(self):
+        """ Test if rest of tests in context should be skipped
+            
+            :Return:
+                true if stopContextAttr is set on our test
+        """
+        if getattr(self.test, StressGenerator.stopContextAttr, None):
+            setattr(self.test, StressGenerator.stopContextAttr, None)
+            return True
     def run(self, result):
         """ Our implementation of suite run method.
             We need this to allow stop suite only after test failure
@@ -1471,31 +1529,25 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
             return
         try:
             while True:
-                from insecticide.zfsStressGenerator import StressGenerator
-                if getattr(self.test, StressGenerator.stopContextAttr, None):
-                    setattr(self.test, StressGenerator.stopContextAttr, None)
-                    log.debug('caught stopContextAttr before test %s', str(id(self.test)))
-                    break;
-                if result.shouldStop:
-                    log.debug("stopping")
+                if result.shouldStop or self.shouldStopCOntext():
                     break
                     
                 self.test(orig)
                 
-                if getattr(self.test, StressGenerator.stopContextAttr, None):
-                    setattr(self.test, StressGenerator.stopContextAttr, None)
-                    log.debug('caught stopContextAttr after test %s', str(id(self.test)))
-                    break;
+                if self.shouldStopCOntext():
+                    break
                     
                 try:
                     self.test.test.shiftToNext()
                 except IndexError:
                     log.debug('end of world reached')
-                    break;
+                    break
                 except AttributeError:
-                    log.warning('TestCase without shiftToNext passed to InfiniteTestCase')
+                    log.warning(
+                        'TestCase without shiftToNext passed to InfiniteTestCase')
         except KeyboardInterrupt:
-            # we want to report failures and errors from previous runs even upon keyboardInterrupt
+            # we want to report failures and errors from previous runs even 
+            # upon keyboardInterrupt
             reportProxy = ReportProxy()
             (testName, description) = StressGenerator.generateDescription(self.test.test)
             
@@ -1524,8 +1576,6 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
                 raise
             except:
                 result.addError(self, self.exc_info())
-        
-        pass
         
     def shortDescription(self):
         """ Return short description for this suite
@@ -1559,7 +1609,8 @@ class StressPluginReportRetryTest(unittest.TestCase):
             self.errors = []
         def reportSuccess(self, test, duration = None, name = None, description = None):
             self.successes.append(test)
-        def reportFailure(self, failure, duration = None, name = None, description = None, error = False):
+        def reportFailure(self, failure, duration = None, name = None, 
+            description = None, error = False):
             log.debug('failure reported')
             self.failures.append(failure)
         def reportError(self, failure, duration = None, name = None, description = None):
@@ -1763,7 +1814,8 @@ class TestPruner(unittest.TestCase):
         self.chain = LazyTestChain( \
             GraphBuilder.generateDependencyGraph(self.FakeTestCase),
             20)
-        self.case = ChainedTestCase(cls = self.FakeTestCase, instance = self.FakeTestCase(),
+        self.case = ChainedTestCase(cls = self.FakeTestCase, 
+            instance = self.FakeTestCase(),
             chain = self.chain,  index = 0)
         self.case.setIndexTo(19)
     def tearDown(self):
@@ -1772,9 +1824,10 @@ class TestPruner(unittest.TestCase):
         self.case = None
         
     def checkValidity(self, chain):
-        for index in range(0,len(chain) - 1):
+        for index in range(0, len(chain) - 1):
             successors = self.FakeTestCase.graph[chain[index]]
             next = chain[index+1]
+            suc = [None, 0]
             for suc in successors:
                 if suc[0] == next:
                     break
