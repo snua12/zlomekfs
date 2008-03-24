@@ -5,7 +5,9 @@ import tempfile
 import re
 import os
 import logging
+import sys
 import shutil
+import signal
 
 from subprocess import Popen, PIPE, STDOUT
 from os.path import walk
@@ -14,7 +16,8 @@ from insecticide.snapshot import SnapshotDescription
 from insecticide.timeoutPlugin import timed
 from insecticide.graph import GraphBuilder
 
-from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException, abortDeadlock
+from zfs import abortDeadlock as abortLocalDeadlock
+from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException
 from remoteZfs import RemoteControlWrapper, ReactorWrapper, RemoteException
 from testFSOp import TestFSOp
 from nose.tools import TimeExpired
@@ -26,15 +29,26 @@ local_files = ['zfs.py', 'remoteZfs.py', 'testFSOps.py, testFSOp.py', \
 
 log = logging.getLogger('nose.tests.clientServerBaseTest')
 
+def abortDeadlock():
+    abortLocalDeadlock()
+    
+    cls = TestClientServer
+    if cls.reactorWrapper:
+        cls.reactorWrapper.setTimeout(60)
+        
+        if cls.remoteZfs:
+            cls.remoteZfs.call('signalAll', signal.SIGABRT)
+            
+        cls.reactorWrapper.setTimeout(cls.defaultTimeout)
+
 class TestClientServer(ZfsStressTest, TestFSOp):
     reactorWrapper = None
     remoteControlWrapper = None 
     remoteZfs = None
-    
+    defaultTimeout = 30
     definitionType = GraphBuilder.USE_FLAT
     
     startingPoint = "testGenerateNewName"
-    
     
     @classmethod
     def uploadFiles(cls, files):
@@ -157,7 +171,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         except TimeExpired:
             pass
         finally:
-            cls.reactorWrapper.setTimeout(20)
+            cls.reactorWrapper.setTimeout(cls.defaultTimeout)
             
         cls.connect()
         
@@ -179,7 +193,6 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         cls.remoteZfs.call('stop')
         cls.remoteZfs.call('cleanup')
         
-        stop_reactor()
         cls.reactorWrapper = None
         cls.remoteControlWrapper = None
         cls.remoteZfs = None
@@ -187,12 +200,14 @@ class TestClientServer(ZfsStressTest, TestFSOp):
     def snapshot(self, snapshot):
         self.localZfs.snapshot(snapshot)
         
+        self.reactorWrapper.setTimeout(240)
         remoteFile = self.remoteZfs.getRemoteObject('snapshot')
         (handle, tempName) = tempfile.mkstemp()
         self.remoteControlWrapper.downloadFile(toFile = tempName, remoteFile = remoteFile)
+        self.reactorWrapper.setTimeout(self.defaultTimeout)
         
         snapshot.addFile('remoteZfsSnapshot', tempName, 
-            type = SnapshotDescription.TYPE_TAR_FILE)
+            entryType = SnapshotDescription.TYPE_TAR_FILE)
         
         os.unlink(tempName)
         remoteFile.call('delete')
@@ -201,7 +216,8 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         
     def teardown(self):
-        self.raiseExceptionIfDied()
+        if sys.exc_info() is (None, None, None):
+            self.raiseExceptionIfDied()
         
     def raiseExceptionIfDied(self):
         if self.localZfs.hasDied() or \
@@ -211,6 +227,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
             self.localZfs.stopZfs()
             self.remoteZfs.call('stop')
             raise ZfsRuntimeException("Zfsd died upon test execution")
+    raiseExceptionIfDied.metaTest = False
             
     @timed(10, abortDeadlock)
     def testRemoteWriteLocalRead(self):
@@ -230,6 +247,9 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         log.debug('localFile:' + self.localFileName)
         log.debug( "data is :" + str(data))
         log.debug("readData is:" + str(readData))
+        
+        self.raiseExceptionIfDied()
+        
         assert data == readData
         
     @timed(10, abortDeadlock)
@@ -248,6 +268,8 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         log.debug('localFile:' + self.localFileName)
         log.debug( "data is :" + str(data))
         log.debug("readData is:" + str(readData))
+        
+        self.raiseExceptionIfDied()
         
         assert data == readData
         

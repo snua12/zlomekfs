@@ -5,6 +5,7 @@ import pysyplog
 import tarfile
 import tempfile
 import os
+import sys
 import shutil
 import zfsd_status  
 import time
@@ -156,13 +157,16 @@ class ZfsProxy(object):
         
         if not sigNum:
             sigNum = signal.SIGKILL
-        log.debug('signalling ' + str(sigNum))
-        sig = Popen(args=('killall', '-' + str(sigNum), 'zfsd'), stdout=PIPE, 
-                                stderr=STDOUT)
-        sig.wait()
-        if sig.returncode:
-            log.debug("signalAll: %d output is %s", sig.returncode,
-                sig.stdout.readlines())
+        log.debug('signalling ' + str(sigNum))  
+        try:
+            sig = Popen(args=('killall', '-' + str(sigNum), 'zfsd'), stdout=PIPE, 
+            stderr=STDOUT)
+            sig.wait()
+            if sig.returncode:
+                log.debug("signalAll: %d output is %s", sig.returncode,
+                    sig.stdout.readlines())
+        except OSError:
+            log.debug('we have problem: ' + str(sys.exc_info()))
             
             
             
@@ -512,7 +516,8 @@ class ZfsTest(object):
     def teardown(self):
         """ Stop zfsd after test. """
         log.debug("teardown")
-        self.raiseExceptionIfDied()
+        if sys.exc_info() is (None, None, None):
+            self.raiseExceptionIfDied()
         self.zfs.stopZfs()
         self.zfs.cleanup()
         
@@ -553,6 +558,7 @@ class ZfsTest(object):
             log.debug("zfs has died")
             self.zfs.stopZfs()
             raise ZfsRuntimeException("Zfsd died upon test execution")
+    raiseExceptionIfDied.metaTest = False
         
 
 class ZfsStressTest(ZfsTest):
@@ -583,7 +589,8 @@ class ZfsStressTest(ZfsTest):
             We don't want to reset state after every test.
             Raise exception upon unexpected zfsd process termination.
         """
-        self.raiseExceptionIfDied()
+        if sys.exc_info() is (None, None, None):
+            self.raiseExceptionIfDied()
         log.debug("stress teardown")
         
     @classmethod
