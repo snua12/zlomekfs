@@ -87,7 +87,7 @@ class TestFSOps(ZfsStressTest, TestFSOp):
     self.globalState.clean()
     
       
-  @timed(10, abortDeadlock)
+  @timed(120, abortDeadlock)
   def testWriteRead(self):
     try:
         self.globalState.testFile = open(self.testFileName, 'w+')
@@ -107,7 +107,7 @@ class TestFSOps(ZfsStressTest, TestFSOp):
     
     assert self.dataVector == self.test_data
   
-  @timed(10, abortDeadlock)
+  @timed(120, abortDeadlock)
   def testWriteReadonly(self):
     fd = os.open(self.testFileName,  os.O_CREAT | os.O_RDONLY)
     self.globalState.testFile = os.fdopen(fd)

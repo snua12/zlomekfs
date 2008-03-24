@@ -16,7 +16,6 @@ from zfs import ZfsStressTest, abortDeadlock, forceDeleteFile
 from testFSOp import TestFSOp, tryRead, tryWrite, tryTouch, tryUnlink, tryRename
 from testFSOp import  trySeek, tryGetSize, tryGetPos
 
-
 from insecticide.timeoutPlugin import timed
 
 log = logging.getLogger ("nose.tests.testStressFSOp")
@@ -39,6 +38,7 @@ class TestGlobalState(object):
         if self.testFile:
             forceDeleteFile(self.testFile)
             self.testFile = None
+
 
 class TestStressFSOp(ZfsStressTest, TestFSOp):
     disabled = False
@@ -106,13 +106,13 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         
         super(TestStressFSOp, cls).cleanFiles()
         
-    @timed(2, abortDeadlock)
+    @timed(10, abortDeadlock)
     def testGenerateName(self):
         name = self.generateRandomFileName()
         self.safeFileName = os.path.join(self.safeRoot, name)
         self.testFileName = os.path.join(self.zfsRoot, self.zfsVolumeDir, name)
     
-    @timed(5, abortDeadlock)  
+    @timed(30, abortDeadlock)  
     def testTouch(self):
         
         safe = tryTouch(self.safeFileName)
@@ -120,11 +120,11 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safe == test
         
-    @timed(1, abortDeadlock)
+    @timed(5, abortDeadlock)
     def testSkip(self):
         time.sleep(0.1)
     
-    @timed(10, abortDeadlock)  
+    @timed(60, abortDeadlock)  
     def testUnlink(self):
         safe = tryUnlink(self.safeFileName) 
         test = tryUnlink(self.testFileName)
@@ -132,7 +132,7 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safe == test
     
-    @timed(10, abortDeadlock)  
+    @timed(90, abortDeadlock)  
     def testRename(self):
         safeResult = False
         testResult = False
@@ -152,7 +152,7 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safeResult == testResult
     
-    @timed(5, abortDeadlock)  
+    @timed(60, abortDeadlock)  
     def testOpen(self):
         safeResult = False
         testResult = False
@@ -179,7 +179,7 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safeResult == testResult
     
-    @timed(5, abortDeadlock)  
+    @timed(60, abortDeadlock)  
     def testClose(self):
         safeResult = False
         testResult = False
@@ -207,7 +207,7 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert testResult == safeResult
     
-    @timed(10, abortDeadlock)  
+    @timed(90, abortDeadlock)  
     def testRead(self):
         position = tryGetPos(self.globalState.safeFile)
         length = tryGetSize(self.globalState.safeFile)
@@ -218,7 +218,7 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safeResult == testResult
   
-    @timed(15, abortDeadlock)  
+    @timed(90, abortDeadlock)  
     def testWrite(self):
         data = str(self.dataVector)
         log.debug('writing %d bytes into safe', len(data))
@@ -229,14 +229,14 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safe == test
     
-    @timed(15, abortDeadlock)
+    @timed(60, abortDeadlock)
     def testGetSize(self):
         safeSize = tryGetSize(self.globalState.safeFile)
         testSize = tryGetSize(self.globalState.testFile)
         self.raiseExceptionIfDied()
         assert safeSize == testSize
         
-    @timed(10, abortDeadlock)
+    @timed(60, abortDeadlock)
     def testGetPos(self):
         safePos = tryGetPos(self.globalState.safeFile)
         testPos = tryGetPos(self.globalState.testFile)
@@ -244,7 +244,7 @@ class TestStressFSOp(ZfsStressTest, TestFSOp):
         self.raiseExceptionIfDied()
         assert safePos == testPos
   
-    @timed(10, abortDeadlock)
+    @timed(60, abortDeadlock)
     def testSeek(self):    
         # we assume right size of tested file - it is tested by testGetSize
         safeSize = tryGetSize(self.globalState.safeFile)

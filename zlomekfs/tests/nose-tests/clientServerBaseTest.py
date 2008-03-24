@@ -1,5 +1,5 @@
 # this should go first
-from nose.twistedtools import threaded_reactor, stop_reactor
+from nose.twistedtools import threaded_reactor
 
 import tempfile
 import re
@@ -34,7 +34,7 @@ def abortDeadlock():
     
     cls = TestClientServer
     if cls.reactorWrapper:
-        cls.reactorWrapper.setTimeout(60)
+        cls.reactorWrapper.setTimeout(cls.longTimeout)
         
         if cls.remoteZfs:
             cls.remoteZfs.call('signalAll', signal.SIGABRT)
@@ -45,7 +45,8 @@ class TestClientServer(ZfsStressTest, TestFSOp):
     reactorWrapper = None
     remoteControlWrapper = None 
     remoteZfs = None
-    defaultTimeout = 30
+    defaultTimeout = 60
+    longTimeout = 240
     definitionType = GraphBuilder.USE_FLAT
     
     startingPoint = "testGenerateNewName"
@@ -165,7 +166,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         
         # restart
         try:
-            cls.reactorWrapper.setTimeout(2)
+            cls.reactorWrapper.setTimeout(5)
             restart = cls.remoteControlWrapper.call('restart')
             raise RemoteException("Restart returned (not expected): " + str(restart))
         except TimeExpired:
@@ -200,7 +201,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
     def snapshot(self, snapshot):
         self.localZfs.snapshot(snapshot)
         
-        self.reactorWrapper.setTimeout(240)
+        self.reactorWrapper.setTimeout(self.longTimeout)
         remoteFile = self.remoteZfs.getRemoteObject('snapshot')
         (handle, tempName) = tempfile.mkstemp()
         self.remoteControlWrapper.downloadFile(toFile = tempName, remoteFile = remoteFile)
@@ -229,7 +230,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
             raise ZfsRuntimeException("Zfsd died upon test execution")
     raiseExceptionIfDied.metaTest = False
             
-    @timed(10, abortDeadlock)
+    @timed(120, abortDeadlock)
     def testRemoteWriteLocalRead(self):
         remoteFile = self.remoteControlWrapper.getRemoteObject(
             'open', self.remoteFileName, 'w')
@@ -252,7 +253,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         
         assert data == readData
         
-    @timed(10, abortDeadlock)
+    @timed(120, abortDeadlock)
     def tesLocalWriteRemoteRead(self):
         data = "Kdyz se dobre hospodari, tak se dobre dari."
         localFile = open(self.localFileName, 'w')
