@@ -5063,12 +5063,18 @@ Installation
 This guide is based on new Fedora 8 installation, installation to other
  systems may be different.
  In example, we have buildmaster on IP 192.168.16.253, buildslave on IP 192.168.16.252
- and development system on IP 192.168.16.128.
+ and development system on IP 192.168.16.241.
  We assume that buildslave has basic development packages (such as gcc)
  installed.
  Not that routing description is not included.
  Routing should be set if domain names are used (in build system configuration
  or remote testing).
+\end_layout
+
+\begin_layout Standard
+Development system may not be part of buildbot network, but the experience
+ is much better if it is, because then package versions on it will be the
+ same as on buildslave.
 \end_layout
 
 \begin_layout Subsection
@@ -5315,7 +5321,7 @@ GRANT all ON trs.* TO nose@192.168.16.252 IDENTIFIED BY 'secret';
 \end_layout
 
 \begin_layout Standard
-GRANT all ON trs.* TO nose@192.168.16.128 IDENTIFIED BY 'secret';
+GRANT all ON trs.* TO nose@192.168.16.241 IDENTIFIED BY 'secret';
 \end_layout
 
 \begin_layout Standard
@@ -5608,7 +5614,7 @@ WAIT_BEFORE_BUILD = 1
 \end_layout
 
 \begin_layout Standard
-c['slaves'] = [BuildSlave("bug", "secret"),
+c['slaves'] = [BuildSlave("misc", "secret"),
 \end_layout
 
 \begin_layout Standard
@@ -6005,8 +6011,8 @@ end{codeblock}
 \end_layout
 
 \begin_layout Standard
-Open ports 3306, 8010, 9989 (or other, if setting in master.cfg is different)
- on firewall.
+Open ports 3306, 8010, 8020, 9989 (or other, if setting in master.cfg is
+ different) on firewall.
  Rules below are only examples, they should be pernament (for example written
  in /etc/sysconfig/iptables).
 \end_layout
@@ -6048,7 +6054,19 @@ begin{codeblock}
 
 \begin_layout Standard
 \InsetSpace ~
--m tcp -p tcp --dport 9989 -j ACCEPT
+-m tcp -p tcp --dport 8020 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 9989 -source 192.168.16.0/24 -j ACCEPT
 \end_layout
 
 \begin_layout Standard
@@ -6133,7 +6151,7 @@ begin{codeblock}
 
 \begin_layout Standard
 \InsetSpace ~
-192.168.16.128(fsid=0,rw,root_squash,sync)
+192.168.16.241(fsid=0,rw,root_squash,sync)
 \end_layout
 
 \begin_layout Standard
@@ -6213,23 +6231,23 @@ begin{codeblock}
 \end_layout
 
 \begin_layout Standard
-portmap: 192.168.16.128 , 192.168.16.252
+portmap: 192.168.16.241 , 192.168.16.252
 \end_layout
 
 \begin_layout Standard
-lockd: 192.168.16.128 , 192.168.16.252
+lockd: 192.168.16.241 , 192.168.16.252
 \end_layout
 
 \begin_layout Standard
-rquotad: 192.168.16.128 , 192.168.16.252
+rquotad: 192.168.16.241 , 192.168.16.252
 \end_layout
 
 \begin_layout Standard
-mountd: 192.168.16.128 , 192.168.16.252
+mountd: 192.168.16.241 , 192.168.16.252
 \end_layout
 
 \begin_layout Standard
-statd: 192.168.16.128 , 192.168.16.252
+statd: 192.168.16.241, 192.168.16.252
 \end_layout
 
 \begin_layout Standard
@@ -6511,7 +6529,7 @@ name "sub:Buildslave"
 \end_layout
 
 \begin_layout Standard
-First install required packages.
+First, install required packages.
  Note that not all are available from Fedora repositories.
  For i386 and x86_64 architecture they can be found on thesis cd.
 \end_layout
@@ -6549,11 +6567,19 @@ dbus dbus-devel libtool autoconf automake gettext gettext-devel\InsetSpace ~
 
 \begin_layout Standard
 \InsetSpace ~
-python-setuptools python-nose pyflakes rpmrebuild
+python-setuptools python-nose pyflakes screen
 \end_layout
 
 \begin_layout Standard
 rpm -ivh python-django-snapshot-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+libelf0-0.8.10-*.rpm libelf0-devel-0.8.10-*.rpm\InsetSpace ~
 
 \backslash
 
@@ -6636,6 +6662,11 @@ end{codeblock}
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Note that installation of packages may require removal of previously installed
+ ones (for example fuse).
 \end_layout
 
 \begin_layout Standard
@@ -7100,7 +7131,103 @@ end{codeblock}
 \end_layout
 
 \begin_layout Standard
-Configure buildbot to start on boot and if host should do infinite testing
+Open zfsd port on firewall to allow comunication between nodes.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 12323 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+On remote zfs provider, remote listening port on firewall.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 8007 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Configure buildbot to start on boot, and if host should do infinite testing
  loop, configure start on boot too (for example via crontab 
 \begin_inset LatexCommand ref
 reference "fig:buildslave_cron"
@@ -7196,7 +7323,7 @@ buildslave.cron
 \end_layout
 
 \begin_layout Standard
-Start buildbot and infinite testing loop.
+Start buildbot and infinite testing loop on.
 \end_layout
 
 \begin_layout Standard
@@ -7241,6 +7368,90 @@ end{codeblock}
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+On Slaves acting in remote testing as slave ZlomkeFS providers, lines 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+screen -d -m ./infiniteControl.sh run
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+should be replaced with
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+screen -d -m ./remoteZfs.py
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+(we want to run control on one slave and remote zfs on others).
 \end_layout
 
 \begin_layout Subsection
