@@ -2,7 +2,7 @@
 \lyxformat 276
 \begin_document
 \begin_header
-\textclass book
+\textclass report
 \begin_preamble
 \newcommand{\textstylecode}[1]{
  \begin{quote}
@@ -20,6 +20,7 @@
 \usepackage{listings}
 \usepackage{varioref}
 \end_preamble
+\options notitlepage
 \language english
 \inputencoding latin2
 \font_roman default
@@ -33,7 +34,7 @@
 \graphics default
 \paperfontsize 12
 \spacing single
-\papersize default
+\papersize a4paper
 \use_geometry true
 \use_amsmath 1
 \use_esint 0
@@ -60,21 +61,561 @@
 
 \begin_body
 
-\begin_layout Title
-Regression Testing For zlomekFS
-\end_layout
+\begin_layout Standard
+\begin_inset ERT
+status open
 
-\begin_layout Author
-Jiří Zouhar
+\begin_layout Standard
+
+
+\backslash
+begin{titlepage}
 \end_layout
 
 \begin_layout Standard
-ZlomekFS is distributed file system aimed to transparent sharing of directory
- trees.
+
+
+\backslash
+begin{center}
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+ 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{15mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+large
+\end_layout
+
+\begin_layout Standard
+
+Univerzita Karlova v Praze
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Matematicko-fyzikální fakulta
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{5mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+{
+\backslash
+Large
+\backslash
+bf MASTER THESIS}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+includegraphics[scale=0.7]{logo.jpg} 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+{
+\backslash
+Large Jiří Zouhar}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{5mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+{
+\backslash
+title 
+\backslash
+Large
+\backslash
+bf Regression Testing For zlomekFS}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{5mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+Department of Software Engineering
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+large
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Supervisor: Doc.
+ Ing.
+ Petr Tůma, Dr.
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{1mm} 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Study Program: Computer Science
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{20mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+2008
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{center}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{titlepage}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+normalsize 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+setcounter{page}{2}
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+ 
+\backslash
+vspace{10mm} 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent    I would like to thank my supervisor, Doc.
+ Ing.
+ Petr Tůma, Dr., for his valuable advice.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{
+\backslash
+fill} 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent    I declare that I have written this master thesis on my own and
+ listed all the used sources.
+ I agree with lending of the thesis.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+bigskip
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Prague, April 18, 2008
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+tableofcontents
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+newpage 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent
+\end_layout
+
+\begin_layout Standard
+
+Název práce: Regression Testing For zlomekFS
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Autor: Jiří Zouhar
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Katedra (ústav): Katedra softwarového inženýrství
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Vedoucí bakalářské práce: Doc.
+ Ing.
+ Petr Tůma, Dr.
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+e-mail vedoucího: petr.tuma@mff.cuni.cz
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Abstrakt:  Jednou třeba přeložím, nejdřív zkrátit...
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Klíčová slova: testování software, extrémní programování, ladění
+ programů
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent
+\end_layout
+
+\begin_layout Standard
+
+Title: Regression Testing for zlomekFS
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Author: Jiří Zouhar
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Department: Department of Software Engineering
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Supervisor: Doc.
+  Ing.
+ Petr Tůma, Dr.
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Supervisor's e-mail address: petr.tuma@mff.cuni.cz
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Abstract: ZlomekFS is distributed file system aimed to transparent
+ sharing of directory trees.
  This thesis describes how regression testing for it was build.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Firstly, it summarizes actual methods used for software testing, debugging,
  and bug tracing.
  Where applicable, emphasis is put on specific application of these methods
@@ -82,43 +623,97 @@ Firstly, it summarizes actual methods used for software testing, debugging,
  On the basis of this research actual system for ZlomekFS is considered
  and build.
  System consists of six parts.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Unit testing framework for C code providing automatic test discovery with
  minimalistic interface.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Logging facility with C and python interface using message importance and
  concerns separation for filtering.
  The logger is remotely controllable.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Workload generator which can generate random test sequence.
  Rules for random workload can be defined by tests content and dependency
  graph describing order constrains.
  Failed sequences can be saved for later reproduction.
  The generator can try to find the shortest sequence to reproduce error.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Test controlling and reporting framework.
  This part controls test execution, prepares sane environment, executes
  tests, and collects data for further failure investigation.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Test result repository with user interface where test results are stored.
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
+
 Continuous integration server which triggers events and runs automatic builds.
+ 
+\backslash
+
+\backslash
+
 \end_layout
 
 \begin_layout Standard
-\begin_inset LatexCommand tableofcontents
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Keywords: software testing, extreme programming, debugging
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+newpage
+\end_layout
 
 \end_inset
 
