@@ -2,15 +2,11 @@
 from nose.twistedtools import threaded_reactor
 
 import tempfile
-import re
 import os
 import logging
 import sys
-import shutil
 import signal
 
-from subprocess import Popen, PIPE, STDOUT
-from os.path import walk
 from insecticide import zfsConfig
 from insecticide.snapshot import SnapshotDescription
 from insecticide.timeoutPlugin import timed
