@@ -350,7 +350,7 @@ normalsize
 
 
 \backslash
-setcounter{page}{2}
+setcounter{page}{3}
 \end_layout
 
 \begin_layout Standard
@@ -445,6 +445,9 @@ newpage
 
 \begin_layout Standard
 
+
+\backslash
+small
 \end_layout
 
 \begin_layout Standard
@@ -605,7 +608,7 @@ Supervisor's e-mail address: petr.tuma@mff.cuni.cz
 
 
 \backslash
-noindent Abstract: ZlomekFS is distributed file system aimed to transparent
+noindent Abstract:  ZlomekFS is distributed file system aimed to transparent
  sharing of directory trees.
  This thesis describes how regression testing for it was build.
 \backslash
@@ -706,6 +709,9 @@ noindent Keywords: software testing, extreme programming, debugging
 
 \begin_layout Standard
 
+
+\backslash
+normalsize
 \end_layout
 
 \begin_layout Standard
@@ -4585,6 +4591,22 @@ Developer documentation for C code was written in DoxyGen and there are
  packages with documentation can be build too).
  For python we use language provided __doc__ attributes with predefined
  syntax.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+appendix
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter
