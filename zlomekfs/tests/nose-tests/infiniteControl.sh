@@ -5,6 +5,8 @@ CONTROL_PIDFILE=/var/run/infiniteControl.pid
 
 LOCKDIR=/tmp/insecticide.lockdir
 
+TESTS='testStressFSOp.py testFSOps.py clientServerBaseTest.py'
+
 # interrupted nose could leak some temporary data... this function removes them
 function collectGarbage()
 {
@@ -32,6 +34,7 @@ function killWithWait()
 }
 
 trap  terminate SIGINT
+trap  terminate SIGTERM
 
 if [ "$1" == "run" ]; then
     
@@ -44,7 +47,7 @@ if [ "$1" == "run" ]; then
         
         svn up 
         killWithWait `cat ${WORKER_PIDFILE}`
-        PROFILE_NAME=profile_infinite ./test.py testStressFSOp.py &
+        PROFILE_NAME=profile_infinite ./test.py $TESTS &
         echo $! > "${WORKER_PIDFILE}"
         while [ ! -d "${LOCKDIR}" ]; do
             sleep 1
