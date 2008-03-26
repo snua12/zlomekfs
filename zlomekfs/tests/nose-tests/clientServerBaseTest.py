@@ -57,55 +57,6 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         for fileName in files:
             if os.path.isfile(fileName):
                 cls.remoteControlWrapper.uploadFile(fromFile = fileName)
-    
-    @classmethod
-    def syncRpms(cls):
-        tempDir = tempfile.mkdtemp()
-        rpms = []
-        regex = '('
-        
-        # to force existence of /dev/fuse 
-        modprobe = Popen(args = ('modprobe', 'fuse'), stdout = PIPE,
-            stderr = STDOUT)
-        modprobe.wait()
-        if modprobe.returncode != 0:
-            raise Exception('modprobe failed: %d(%s)' \
-                % (modprobe.returncode, str(modprobe.stdout.readlines())))        
-                
-        # rebuild packages
-        for rpmName in rpm_list:
-            regex += '(' + rpmName + ')|'
-            log.debug( 'build ' + rpmName + ' in ' + tempDir)
-            packager = Popen(args=('rpmrebuild', '-b', '-d', tempDir, rpmName),
-                stdout = PIPE, stderr = STDOUT)#, shell = True)
-            packager.wait()
-            if packager.returncode != 0:
-                raise Exception('packager failed: %d(%s)' \
-                    % (packager.returncode, str(packager.stdout.readlines())))
-            
-        regex = regex[:len(regex) - 1] + ').*\.rpm'
-        match = re.compile(regex)
-        
-        def reportFile(rpmsSpec, dir, files):
-            match = rpmsSpec[1]
-            rpms = rpmsSpec[0]
-            for file in files:
-                if match.match(file):
-                    rpms.append(os.path.join(dir, file))
-                    
-        walk(tempDir, reportFile, (rpms, match))
-        
-        cls.uploadFiles(rpms)
-        
-        cmd = ['rpm', '-Uvh', '--force']
-        cmd.extend(rpms)
-        
-        update = cls.remoteControlWrapper.call('system', cmdLine = cmd)
-        if update != 0:
-            raise OSError('rpm update failed: %d' % update)
-        
-        shutil.rmtree(tempDir, True)
-        # TODO: delete remote rpms too
         
     @classmethod
     def connect(cls):
@@ -154,17 +105,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         
         cls.connect()
         
-        config = getattr(cls, zfsConfig.ZfsConfig.configAttrName)
-        cls.config = config
-        remoteTar = config.get("remoteZfs", "zfsMetaTar")
-        local_files.append(remoteTar)
-        
-        cls.uploadFiles(local_files)
-        
-        # upload rpms
-        #cls.syncRpms()
-        
-        # restart
+        # restart remote zfs - there could be update available
         try:
             cls.reactorWrapper.setTimeout(5)
             restart = cls.remoteControlWrapper.call('restart')
