@@ -240,8 +240,9 @@ class PruneLogic(object):
             # first iteration, check for function level
             if 'skipPart' in forbiddenVariants:
                 return None
-            else:
+            elif chainLength > 2:
                 forbiddenVariants.append('skipPart')
+                
                 start = randint( 1, chainLength - 2)
                 end = randint( start + 1, chainLength - 1)
                 path = graph.getShortestPath(chain[start], chain[end])
