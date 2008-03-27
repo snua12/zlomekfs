@@ -23,7 +23,7 @@ from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
 from insecticide.snapshot import SnapshotDescription
 from insecticide.zfsReportPlugin import ZfsReportPlugin
 from insecticide.graph import GraphBuilder, DependencyDeffinitionError
-from insecticide.util import isPaused, signalPause, signalUnpause
+from insecticide.util import isPaused
 
 from nose.case import MethodTestCase,  TestBase, Test
 from nose.proxy import ResultProxyFactory
