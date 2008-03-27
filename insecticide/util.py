@@ -7,6 +7,8 @@ from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
 lockDir = '/tmp/insecticide.lockdir'
 
 def signalPause():
+    """
+    """
     try:
         os.mkdir(lockDir)
     except OSError:
@@ -19,7 +21,7 @@ def signalUnpause():
         pass
 
 def isPaused():
-    return os.path.isdir(lockDir)
+    os.path.isdir(lockDir)
 
 def noseWrapper(project = None, stripPath = None):
     """ Wrapper function which executes nose within TestResultStorage BatchRun.

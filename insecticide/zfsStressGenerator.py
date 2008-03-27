@@ -23,7 +23,7 @@ from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
 from insecticide.snapshot import SnapshotDescription
 from insecticide.zfsReportPlugin import ZfsReportPlugin
 from insecticide.graph import GraphBuilder, DependencyDeffinitionError
-from insecticide.util import isPaused
+from insecticide.util import isPaused, signalPause, signalUnpause
 
 from nose.case import MethodTestCase,  TestBase, Test
 from nose.proxy import ResultProxyFactory
@@ -1515,6 +1515,31 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
         if getattr(self.test, StressGenerator.stopContextAttr, None):
             setattr(self.test, StressGenerator.stopContextAttr, None)
             return True
+            
+    def reportCurrentTest(self):
+        """ Report current test. 
+            This should be called upon pause or KeyboardInterrupt.
+        """
+        reportProxy = ReportProxy()
+        (testName, description) = StressGenerator.generateDescription(self.test.test)
+        
+        if hasattr(self.test.test, 'failureBuffer') \
+            and len(self.test.test.failureBuffer) > 0:
+            
+            failure = self.test.test.failureBuffer.pop()
+            if failure.error:
+                reportProxy.reportError(failure, name = testName,
+                    description = description)
+            else:
+                reportProxy.reportFailure(failure, name = testName,
+                    description = description)
+            
+        else:
+            reportProxy.reportSuccess(self.test.test, name = testName,
+                description = description)
+            
+        reportProxy.finalize()
+        
     def run(self, result):
         """ Our implementation of suite run method.
             We need this to allow stop suite only after test failure
@@ -1536,12 +1561,16 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
             return
         try:
             while True:
-                if result.shouldStop or self.shouldStopContext() or isPaused():
+                if result.shouldStop or self.shouldStopContext():
+                    break
+                    
+                if isPaused():
+                    self.reportCurrentTest()
                     break
                     
                 self.test(orig)
                 
-                if self.shouldStopContext() or isPaused():
+                if self.shouldStopContext():
                     break
                     
                 try:
@@ -1555,25 +1584,7 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
         except KeyboardInterrupt:
             # we want to report failures and errors from previous runs even 
             # upon keyboardInterrupt
-            reportProxy = ReportProxy()
-            (testName, description) = StressGenerator.generateDescription(self.test.test)
-            
-            if hasattr(self.test.test, 'failureBuffer') \
-                and len(self.test.test.failureBuffer) > 0:
-                
-                failure = self.test.test.failureBuffer.pop()
-                if failure.error:
-                    reportProxy.reportError(failure, name = testName,
-                        description = description)
-                else:
-                    reportProxy.reportFailure(failure, name = testName,
-                        description = description)
-                
-            else:
-                reportProxy.reportSuccess(self.test.test, name = testName,
-                    description = description)
-                
-            reportProxy.finalize()
+            self.reportCurrentTest()
             raise
         finally:
             self.has_run = True
