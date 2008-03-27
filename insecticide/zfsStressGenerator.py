@@ -23,6 +23,7 @@ from insecticide.report import ReportProxy, startTimeAttr, endTimeAttr
 from insecticide.snapshot import SnapshotDescription
 from insecticide.zfsReportPlugin import ZfsReportPlugin
 from insecticide.graph import GraphBuilder, DependencyDeffinitionError
+from insecticide.util import isPaused, signalPause, signalUnpause
 
 from nose.case import MethodTestCase,  TestBase, Test
 from nose.proxy import ResultProxyFactory
@@ -1341,6 +1342,8 @@ class SuiteRunner(nose.suite.ContextSuite):
         
     def run(self, result):
         while self.tests:
+            if isPaused():
+                break
             self.tests.pop(0)(result)
     
     def shortDescription(self):
@@ -1533,12 +1536,12 @@ class InfiniteChainedTestSuite(nose.suite.ContextSuite):
             return
         try:
             while True:
-                if result.shouldStop or self.shouldStopContext():
+                if result.shouldStop or self.shouldStopContext() or isPaused():
                     break
                     
                 self.test(orig)
                 
-                if self.shouldStopContext():
+                if self.shouldStopContext() or isPaused():
                     break
                     
                 try:
