@@ -100,7 +100,7 @@ function run()
         done
         
         svn up 
-        pauseWithWait `cat ${WORKER_PIDFILE}`
+        killWithWait `cat ${WORKER_PIDFILE}`
         collectGarbage
         PROFILE_NAME=profile_infinite ./test.py $TESTS &
         echo $! > "${WORKER_PIDFILE}"
