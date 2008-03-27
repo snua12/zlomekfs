@@ -17,7 +17,7 @@ function collectGarbage()
 # return 0 if infinite loop is (should be) paused
 function isPaused()
 {
-    return python -c '
+    python -c '
 from insecticide.util import isPaused
 import sys
 
@@ -26,6 +26,7 @@ if isPaused():
 else:
     sys.exit(1)
 '
+    return $?
 }
 
 # pause infinite loop
