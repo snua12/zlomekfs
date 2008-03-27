@@ -16,7 +16,6 @@ from zfs import abortDeadlock as abortLocalDeadlock
 from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException
 from remoteZfs import RemoteControlWrapper, ReactorWrapper, RemoteException
 from testFSOp import TestFSOp
-from nose.tools import TimeExpired
 
 rpm_list = ['zlomekfs', 'syplog', 'pysyplog', 'zfsd-status', 'insecticide']
 local_files = ['zfs.py', 'remoteZfs.py', 'testFSOps.py, testFSOp.py', \
@@ -198,7 +197,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         localFile = open(self.localFileName, 'w')
         localFile.write(data)
         localFile.close()
-        import subprocess
+        
         remoteFile = self.remoteControlWrapper.getRemoteObject(
             'open', self.remoteFileName, 'r')
         readData = remoteFile.call('read')
