@@ -512,7 +512,8 @@ class ZfsTest(object):
             (Remove zfsRoot)"""
         
         log.debug("teardownClass")
-        shutil.rmtree(cls.zfsRoot)
+        if os.path.isdir(cls.zfsRoot):
+            shutil.rmtree(cls.zfsRoot)
         # self.zfs = None
     
     def setup(self):
