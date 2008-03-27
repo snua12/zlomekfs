@@ -106,7 +106,9 @@ class TestClientServer(ZfsStressTest, TestFSOp):
             cls.reactorWrapper.setTimeout(5)
             restart = cls.remoteControlWrapper.call('restart')
             raise RemoteException("Restart returned (not expected): " + str(restart))
-        except TimeExpired:
+        except KeyboardInterrupt:
+            raise
+        except Exception:
             pass
         finally:
             cls.reactorWrapper.setTimeout(cls.defaultTimeout)
@@ -196,7 +198,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         localFile = open(self.localFileName, 'w')
         localFile.write(data)
         localFile.close()
-        
+        import subprocess
         remoteFile = self.remoteControlWrapper.getRemoteObject(
             'open', self.remoteFileName, 'r')
         readData = remoteFile.call('read')

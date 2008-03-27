@@ -9,6 +9,7 @@ from twisted.internet import reactor
 from twisted.python.failure import Failure
 import sys
 import os
+import logging
 import tempfile
 from insecticide.snapshot import SnapshotDescription
 from insecticide.timeoutPlugin import TimeExpired
@@ -18,7 +19,9 @@ from zfs import ZfsProxy
 
 from nose.tools import make_decorator
 
-def wrapException():
+log = logging.getLogger('nose.tests.clientServerTest')
+
+def wrapException(func):
     """ Decorator to wrap local exception to twisted Failure object.
         
         :Return:
@@ -33,22 +36,27 @@ def wrapException():
             def test_that_fails():
                 raise Exception()
     """
-    def decorate(func):
-        def newfunc(*arg, **kwargs):
-            ret = None
-            try:
-                ret = func(*arg, **kwargs)
-            except Exception, value:
-                (type, value, tb) = sys.exc_info()
-                raise pb.Error, str(type) + ':' + value, tb
-            return ret
-        newfunc = make_decorator(func)(newfunc)
-        return newfunc
-    return decorate
+    def newfunc(*arg, **kwargs):
+        ret = None
+        try:
+            ret = func(*arg, **kwargs)
+        except Exception, value:
+            (type, value, tb) = sys.exc_info()
+            raise pb.Error(str(type) + ':' + str(value))
+        return ret
+    newfunc = make_decorator(func)(newfunc)
+    return newfunc
 
 
 class RemoteException(Exception):
     pass
+
+def raiseRemoteException(failure):
+    tb = failure.getTraceback()
+    #log.debug('tb is %s(%d) of type %s'%(str(tb),id(tb),type(tb)))
+    raise RemoteException, str(failure.type) + ':' \
+        + failure.getErrorMessage() + ' on\n' \
+        + str(failure.getTraceback()), failure.tb
 
 
 LISTEN_PORT = 8007
@@ -241,8 +249,7 @@ class ReactorWrapper(object):
         call.wait(timeout = self.timeout)
         
         if isinstance(call.returncode, Failure):
-            raise RemoteException, call.returncode.type + ':' \
-                + call.returncode.getErrorMessage, call.returncode.getTraceback()
+	    raiseRemoteException(call.returncode)
         else:
             return call.returncode
         
@@ -252,8 +259,7 @@ class ReactorWrapper(object):
         if not isinstance(ret, pb.RemoteReference):
             raise TypeError('Invalid return value of type %s', str(type(ret)))
         elif isinstance(ret, Failure):
-            raise RemoteException, ret.type + ':' \
-                + ret.getErrorMessage, ret.getTraceback()
+            raiseRemoteException(ret)
         else:
             return RemoteObjectWrapper(self, ret)
         
@@ -282,8 +288,7 @@ class RemoteControlWrapper(RemoteObjectWrapper):
         call.wait(reactorWrapper.timeout)
         
         if isinstance(call.returncode, Failure):
-            raise RemoteException, call.returncode.type + ':' \
-                + call.returncode.getErrorMessage, call.returncode.getTraceback()
+            raiseRemoteException(call.returncode)
         elif not isinstance(call.returncode, pb.RemoteReference):
             raise RemoteException("Can't get remoteControl " + str(call.returncode))
             
