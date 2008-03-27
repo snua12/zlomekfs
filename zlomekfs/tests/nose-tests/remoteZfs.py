@@ -6,6 +6,7 @@
 
 from twisted.spread import pb
 from twisted.internet import reactor
+from twisted.python.failure import Failure
 import sys
 import os
 import tempfile
@@ -15,10 +16,40 @@ from subprocess import Popen
 from threading import Condition
 from zfs import ZfsProxy
 
+from nose.tools import make_decorator
+
+def wrapException():
+    """ Decorator to wrap local exception to twisted Failure object.
+        
+        :Return:
+            function test value
+            
+        :Raise:
+            pb.Error wrapped exception (if raised from function
+        
+        :Example usage:
+            
+            @wrapException
+            def test_that_fails():
+                raise Exception()
+    """
+    def decorate(func):
+        def newfunc(*arg, **kwargs):
+            ret = None
+            try:
+                ret = func(*arg, **kwargs)
+            except Exception, value:
+                (type, value, tb) = sys.exc_info()
+                raise pb.Error, str(type) + ':' + value, tb
+            return ret
+        newfunc = make_decorator(func)(newfunc)
+        return newfunc
+    return decorate
 
 
 class RemoteException(Exception):
     pass
+
 
 LISTEN_PORT = 8007
 CHUNK_SIZE = 4096
@@ -27,15 +58,18 @@ class RemoteFile(pb.Referenceable):
     def __init__(self, fileName, mode):
         self.fh=open(fileName, mode)
         
+    @wrapException
     def remote_write(self, data):
         return self.fh.write(data)
         
+    @wrapException
     def remote_read(self, size = None):
         if size:
             return self.fh.read(size)
         else:
             return self.fh.read()
         
+    @wrapException
     def remote_getSize(self):
         pos = self.fh.tell()
         self.fh.seek(0,os.SEEK_END)
@@ -43,21 +77,27 @@ class RemoteFile(pb.Referenceable):
         self.fh.seek(pos,os.SEEK_SET)
         return size
         
+    @wrapException
     def remote_close(self):
         return self.fh.close()
         
+    @wrapException
     def remote_seek(self, offset):
         return self.fh.seek(offset, os.SEEK_SET)
         
+    @wrapException
     def remote_tell(self):
         return self.fh.tell()
         
+    @wrapException
     def remote_getName(self):
         return self.fh.name
         
+    @wrapException
     def remote_delete(self):
         os.unlink(self.fh.name)
         
+    @wrapException
     def remote_flush(self):
         self.fh.flush()
 
@@ -65,24 +105,31 @@ class RemoteZfs(pb.Referenceable):
     def __init__(self, *arg, **kwargs):
         self.zfs = ZfsProxy(*arg, **kwargs)
         
+    @wrapException
     def remote_start(self):
         return self.zfs.runZfs()
     
+    @wrapException
     def remote_stop(self):
         return self.zfs.stopZfs()
         
+    @wrapException
     def remote_cleanup(self):
         return self.zfs.cleanup()
     
+    @wrapException
     def remote_running(self):
         return self.zfs.running()
     
+    @wrapException
     def remote_hasDied(self):
         return self.zfs.hasDied()
         
+    @wrapException
     def remote_signalAll(self, signal):
         return self.zfs.signalAll(signal)
         
+    @wrapException
     def remote_snapshot(self):
         toDir = tempfile.mkdtemp(prefix="noseSnapshot")
         snapshot = SnapshotDescription(toDir)
@@ -92,34 +139,41 @@ class RemoteZfs(pb.Referenceable):
         snapshot.delete()
         return RemoteFile(fileName, 'r')
         
+    @wrapException
     def remote_getMountPoint(self):
         return self.zfs.zfsRoot
         
 
 class RemoteControl(pb.Root):
+    @wrapException
     def remote_system(self, cmdLine):
         print 'executing ' + str(cmdLine)
         proc = Popen(args = cmdLine)
         proc.wait()
         return proc.returncode
         
+    @wrapException
     def remote_open(self, fileName, mode):
         return RemoteFile(fileName, mode)
         
+    @wrapException
     def remote_makedirs(self, dirName):
         try:
             return os.makedirs(dirName)
         except OSError:
             pass
         
+    @wrapException
     def remote_delete(self, fileName):
         return os.unlink(fileName)
         
+    @wrapException
     def remote_restart(self):
         print 'executing ' + str(sys.argv)
         reactor.stop()
         os.execv(sys.argv[0],sys.argv)
         
+    @wrapException
     def remote_getZfs(self, *arg, **kwargs):
          return RemoteZfs(*arg, **kwargs)
          
@@ -186,8 +240,9 @@ class ReactorWrapper(object):
         #call = cls(*arg, **kwargs)
         call.wait(timeout = self.timeout)
         
-        if isinstance(call.returncode, pb.CopiedFailure):
-            raise RemoteException(str(call.returncode))
+        if isinstance(call.returncode, Failure):
+            raise RemoteException, call.returncode.type + ':' \
+                + call.returncode.getErrorMessage, call.returncode.getTraceback()
         else:
             return call.returncode
         
@@ -196,6 +251,9 @@ class ReactorWrapper(object):
         
         if not isinstance(ret, pb.RemoteReference):
             raise TypeError('Invalid return value of type %s', str(type(ret)))
+        elif isinstance(ret, Failure):
+            raise RemoteException, ret.type + ':' \
+                + ret.getErrorMessage, ret.getTraceback()
         else:
             return RemoteObjectWrapper(self, ret)
         
@@ -223,7 +281,10 @@ class RemoteControlWrapper(RemoteObjectWrapper):
         reactorWrapper.reactor.callFromThread(call)
         call.wait(reactorWrapper.timeout)
         
-        if not isinstance(call.returncode, pb.RemoteReference):
+        if isinstance(call.returncode, Failure):
+            raise RemoteException, call.returncode.type + ':' \
+                + call.returncode.getErrorMessage, call.returncode.getTraceback()
+        elif not isinstance(call.returncode, pb.RemoteReference):
             raise RemoteException("Can't get remoteControl " + str(call.returncode))
             
         RemoteObjectWrapper.__init__(self, reactorWrapper, call.returncode)

@@ -449,9 +449,17 @@ class ZfsProxy(object):
             self.collectZfsCoreDump(snapshot)
             
         if self.stdout:
-            snapshot.addFile("zfsStdout", self.stdout.name)
+            try:
+                snapshot.addFile("zfsStdout", self.stdout.name)
+            except IOError:
+                # no file
+                log.debug('zfs stdout file is missing')
         if self.stderr:
-            snapshot.addFile("zfsStderr", self.stderr.name)
+            try:
+                snapshot.addFile("zfsStderr", self.stderr.name)
+            except IOError:
+                # no file
+                log.debug('zfs stderr file is missing')
             
         
     def resume(self, snapshot):
