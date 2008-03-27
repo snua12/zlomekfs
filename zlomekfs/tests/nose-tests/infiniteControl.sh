@@ -64,6 +64,7 @@ if [ "$1" == "run" ]; then
         
         svn up 
         killWithWait `cat ${WORKER_PIDFILE}`
+        collectGarbage
         PROFILE_NAME=profile_infinite ./test.py $TESTS &
         echo $! > "${WORKER_PIDFILE}"
         while [ ! -d "${LOCKDIR}" ]; do
@@ -72,7 +73,6 @@ if [ "$1" == "run" ]; then
                 break
             fi
         done
-        collectGarbage
     done
     
 elif [ "$1" == "stop" ]; then
