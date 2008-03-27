@@ -300,7 +300,7 @@ class SnapshotPlugin(Plugin):
             rootLogger.removeHandler(self.noseLogHandler)
             self.noseLogHandler.close()
             self.noseLogHandler = None
-        if self.noseLogFileName:
+        if self.noseLogFileName and os.path.isfile(self.noseLogFileName):
             os.unlink(self.noseLogFileName)
             for backLogNumber in range(self.noseLogBackupCount, 
                 self.noseLogBackupCount + 1):
