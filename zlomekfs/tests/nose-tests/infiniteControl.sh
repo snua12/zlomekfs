@@ -19,6 +19,23 @@ function terminate()
     exit 0
 }
 
+function pauseWithWait()
+{
+    python -c 'from insecticide.util import signalPause
+signalPause()
+'
+
+    for i in 1 2 3 5 10 10 10 30; do
+        if ! kill -0 $1 >/dev/null 2>&1; then
+            break
+        fi
+        sleep $i
+    done
+    if kill -0 $1 >/dev/null 2>&1; then
+        kill -SIGKILL $1 >/dev/null 2>&1
+    fi
+}
+
 function killWithWait()
 {
     kill -SIGINT $1 >/dev/null 2>&1
@@ -55,15 +72,14 @@ if [ "$1" == "run" ]; then
                 break
             fi
         done
-	collectGarbage
-        #killWithWait `cat ${WORKER_PIDFILE}`
+        collectGarbage
     done
     
 elif [ "$1" == "stop" ]; then
 
     mkdir -p "${LOCKDIR}"
 
-    killWithWait `cat ${WORKER_PIDFILE}`
+    pauseWithWait `cat ${WORKER_PIDFILE}`
     killWithWait `cat ${CONTROL_PIDFILE}`
     
     rmdir "${LOCKDIR}"
@@ -71,11 +87,13 @@ elif [ "$1" == "stop" ]; then
 elif [ "$1" == "pause" ]; then
 
     mkdir -p "${LOCKDIR}"
-    killWithWait `cat ${WORKER_PIDFILE}`
+    pauseWithWait `cat ${WORKER_PIDFILE}`
 
 elif [ "$1" == "unpause" ]; then
 
-    rmdir "${LOCKDIR}" >/dev/null 2>&1
+    python -c 'from insecticide.util import signalUnpause
+signalUnpause()'
+    exit 0
     
 else
     
