@@ -19,7 +19,7 @@ def signalUnpause():
         pass
 
 def isPaused():
-    os.path.isdir(lockDir)
+    return os.path.isdir(lockDir)
 
 def noseWrapper(project = None, stripPath = None):
     """ Wrapper function which executes nose within TestResultStorage BatchRun.
