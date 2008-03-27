@@ -35,6 +35,36 @@ def abortDeadlock():
             cls.remoteZfs.call('signalAll', signal.SIGABRT)
             
         cls.reactorWrapper.setTimeout(cls.defaultTimeout)
+        
+class TestGlobalState(object):
+    """ Global state holder for TestClientServer
+        Holds file handles (to allow close from within
+        class context.
+        """
+    def __init__(self):
+        self.localFile = None
+        self.remoteFile = None
+        
+            
+    def clean(self):
+        if self.localFile:
+            forceDeleteFile(self.safeFile)
+            self.safeFile = None
+            
+        if self.remoteFile:
+            try:
+                self.remoteFile.call('close')
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                pass
+            try:
+                self.remoteFile.call('delete')
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                pass
+            self.remoteFile = None
 
 class TestClientServer(ZfsStressTest, TestFSOp):
     reactorWrapper = None
@@ -43,6 +73,7 @@ class TestClientServer(ZfsStressTest, TestFSOp):
     defaultTimeout = 60
     longTimeout = 240
     definitionType = GraphBuilder.USE_FLAT
+    globalState = None
     
     startingPoint = "testGenerateNewName"
     
@@ -122,9 +153,12 @@ class TestClientServer(ZfsStressTest, TestFSOp):
         cls.remoteZfs.call('start')
         cls.localZfs.runZfs()
         
+        cls.globalState = TestGlobalState()
+        
     @classmethod
     def teardownClass(cls):
         #shutdown remote zfs
+        cls.globalState.clean()
         
         cls.localZfs.stopZfs()
         cls.localZfs.cleanup()
@@ -170,17 +204,19 @@ class TestClientServer(ZfsStressTest, TestFSOp):
             
     @timed(120, abortDeadlock)
     def testRemoteWriteLocalRead(self):
-        remoteFile = self.remoteControlWrapper.getRemoteObject(
+        self.globalState.remoteFile = self.remoteControlWrapper.getRemoteObject(
             'open', self.remoteFileName, 'w')
             
         data = "Kdyz se dobre hospodari, tak se dobre dari."
-        remoteFile.call('write', data)
-        remoteFile.call('flush')
-        remoteFile.call('close')
+        self.globalState.remoteFile.call('write', data)
+        self.globalState.remoteFile.call('flush')
+        self.globalState.remoteFile.call('close')
+        self.globalState.remoteFile = None
         
-        localFile = open(self.localFileName, 'r')
-        readData = localFile.read()
-        localFile.close()
+        self.globalState.localFile = open(self.localFileName, 'r')
+        readData = self.globalState.localFile.read()
+        self.globalState.localFile.close()
+        self.globalState.localFile = None
         
         log.debug('remoteFile:' + self.remoteFileName)
         log.debug('localFile:' + self.localFileName)
@@ -194,14 +230,16 @@ class TestClientServer(ZfsStressTest, TestFSOp):
     @timed(120, abortDeadlock)
     def tesLocalWriteRemoteRead(self):
         data = "Kdyz se dobre hospodari, tak se dobre dari."
-        localFile = open(self.localFileName, 'w')
-        localFile.write(data)
-        localFile.close()
+        self.globalState.localFile = open(self.localFileName, 'w')
+        self.globalState.localFile.write(data)
+        self.globalState.localFile.close()
+        self.globalState.localFile = None
         
-        remoteFile = self.remoteControlWrapper.getRemoteObject(
+        self.globalState.remoteFile = self.remoteControlWrapper.getRemoteObject(
             'open', self.remoteFileName, 'r')
-        readData = remoteFile.call('read')
-        remoteFile.call('close')
+        readData = self.globalState.remoteFile.call('read')
+        self.globalState.remoteFile.call('close')
+        self.globalState.remoteFile = None
         
         log.debug('remoteFile:' + self.remoteFileName)
         log.debug('localFile:' + self.localFileName)
