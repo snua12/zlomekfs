@@ -1,9 +1,0 @@
-(lp0
-cclientServerBaseTest
-TestClientServer
-p1
-aS'testGenerateNewName'
-p2
-aS'tesLocalWriteRemoteRead'
-p3
-a.
