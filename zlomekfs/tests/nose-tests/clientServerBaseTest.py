@@ -13,7 +13,7 @@ from insecticide.timeoutPlugin import timed
 from insecticide.graph import GraphBuilder
 
 from zfs import abortDeadlock as abortLocalDeadlock
-from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException
+from zfs import ZfsStressTest, ZfsProxy, ZfsRuntimeException, forceDeleteFile
 from remoteZfs import RemoteControlWrapper, ReactorWrapper, RemoteException
 from testFSOp import TestFSOp
 
