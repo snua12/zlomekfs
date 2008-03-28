@@ -790,7 +790,7 @@ As in any software, in filesystems can be bugs too.
  But in case of filesystems, there is even bigger need for reliability.
  This is caused by low-level character of filesystems.
  Every application depends on proper work of components beneath them, where
- most of them use filesystem to store pernament data.
+ most of them use filesystem to store permanent data.
  To ensure reliability of software, tests are used.
  They should cover maximum of use-cases software could be use for.
  This is convenient for one term software development, but essential when
@@ -1063,7 +1063,7 @@ Filesystem test patterns
 \end_layout
 
 \begin_layout Standard
-In this section, main functional testing tools used in UNIX-like sysems
+In this section, main functional testing tools used in UNIX-like systems
  are listed and described.
 \end_layout
 
@@ -1947,7 +1947,7 @@ reference "tab:logging load"
  column is actual log level.
  First column of platform dependent part is how many microseconds are (in
  average) spend for printing of one character of log output.
- Aliqot part of function calls, conditions evalution and auxiliary operations
+ Aliquot part of function calls, conditions evaluation and auxiliary operations
  done by logger are included.
  Second column is percentage from running time of application, that were
  spent by logging (in average).
@@ -1973,7 +1973,7 @@ status open
 \begin_inset Caption
 
 \begin_layout Standard
-Logging load
+Mean logging load to application
 \end_layout
 
 \end_inset
@@ -2216,7 +2216,7 @@ reference "sub:Logging,-tracing"
 \end_inset
 
 : when logging doesn't slow application down and doesn't change behavior,
- the best approach is to log all, store all (or latests), and provide tool
+ the best approach is to log all, store all (or latest), and provide tool
  for filtering and searching logs.
  With this approach, no crucial information is lost by heuristic pruning.
  In special cases, like low resource platforms (without storage, extremely
@@ -2550,7 +2550,7 @@ presentation
  server to rich database backed GUI.
  Standard tools offer HTML overview and detail pages, tools bound to specific
  environment usually provide GUI for that environment.
- Very oftently, there are email or instant messaging notifiers too.
+ Very often, there are email or instant messaging notifiers too.
  If there are no other output than test count and results, it tends to be
  plain text.
 \end_layout
@@ -2783,9 +2783,9 @@ Programming language
 
 \begin_layout Standard
 Since ZlomekFS tends to be multiplatform and support more operating systems
- (currently only Linux is supported), language which runs on any platform
+ (currently only Linux is supported) language which runs on any platform
  (or at least under UNIX-like operating systems) is needed.
- For testing, the language should be flexible enough, but on other hand
+ For testing, the language should be flexible enough, but on other hand,
  since file system will be tested, speed must be considered too.
  Last but not least need is that the language should allow integration with
  existing code.
@@ -2828,7 +2828,7 @@ For very specific purpose of testing distributed file system, no suitable
  existing solution was found.
  Instead of development of new system, it was decided to tweak existing
  tool (if possible) to fit the needs.
- From general purpose testing tools written in python 
+ From general purpose testing tools written in python, 
 \series bold
 Nose
 \series default
@@ -2839,7 +2839,7 @@ key "Nose"
 \end_inset
 
  was considered as the most suitable.
- Moreover every feature needed which Nose doesn't implement can be delivered
+ Moreover, every feature needed which Nose doesn't implement can be delivered
  as plugin without modifying Nose core code.
  Nose plugin architecture was found as flexible enough for further extending
  of the test suite too.
@@ -2887,7 +2887,7 @@ hello world
 \emph default
 , buildbot code is relatively small and easy to read.
  In comparison with others, buildbot has around 500K, where build of CruiseContr
-ol can take more than 500M.
+ol can take more than 300M.
 \end_layout
 
 \begin_layout Itemize
@@ -2961,8 +2961,6 @@ Logging
 
 \begin_layout Paragraph
 We need logger with this features:
-\newline
-
 \end_layout
 
 \begin_layout Itemize
@@ -3013,13 +3011,20 @@ C based unit testing
 \end_layout
 
 \begin_layout Standard
-All existing C based unit testing tools have one of two major problems (or
- both).
+All existing C based unit testing tools have one of two 
+\series bold
+major problems
+\series default
+ (or both).
  
 \end_layout
 
 \begin_layout Itemize
-Many tools are very complicated and writing simple test for 
+Many tools are 
+\series bold
+very complicated
+\series default
+ and writing simple test for 
 \begin_inset Quotes eld
 \end_inset
 
@@ -3032,7 +3037,11 @@ a + b
 \end_layout
 
 \begin_layout Itemize
-No one of C based unit testing tools have automatic test discovery.
+C based unit testing tools 
+\series bold
+lacks automatic test discovery
+\series default
+.
  Thus tests must be listed somewhere and collected manually (even in case
  of hierarchies).
  The best is heuristic search by grep.
@@ -3040,8 +3049,11 @@ No one of C based unit testing tools have automatic test discovery.
 
 \begin_layout Standard
 Since external are non-trivial for integration to project and writing of
- simple C based unit testing is relatively easy, new C based unit testing
- library was implemented.
+ simple C based unit testing is relatively easy, 
+\series bold
+new C based unit testing library
+\series default
+ was implemented.
 \end_layout
 
 \begin_layout Subsection
@@ -3152,7 +3164,7 @@ new logger
 \emph on
 Syplog
 \emph default
-) developed specially for ZlomekFS.
+), developed specially for ZlomekFS.
  
 \end_layout
 
@@ -3197,7 +3209,7 @@ Output
 \series default
  from logger can be written to file or shared memory, api is open for extension
  such as socket write.
- Format of output files can be user readable strings or raw memory dumps.
+ Format of output files can be user readable strings, or raw memory dumps.
  For all formats and output targets, there is both writer and reader support,
  so transformation between formats is trivial.
 \end_layout
@@ -3207,7 +3219,7 @@ Output
 \series bold
 Settings
 \series default
- is read from program arguments (array of string with given array size).
+ are read from program arguments (array of string with given array size).
  Logger ignores unknown options, so direct configuration from command line
  is possible (and currently used).
 \end_layout
@@ -3238,11 +3250,11 @@ extended
  to functions with specified behavior.
  New formats and targets can be provided by implementing given function
  set and providing description structure.
- For further reference please read DoxyGen documentation of
+ For further reference, DoxyGen documentation of
 \emph on
  Syplog
 \emph default
- library.
+ library should be used.
 \end_layout
 
 \begin_layout Subsection
@@ -3252,7 +3264,7 @@ Control component
 \begin_layout Standard
 The driving component needs to know in which state ZlomekFS daemon is (starting,
  running, terminating).
- To accommodate this need 
+ To accommodate this need, 
 \series bold
 D-bus
 \series default
@@ -3282,21 +3294,23 @@ message handlers
  Set of functions describing zfsd specifics - naming and signal handlers.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Paragraph
 
 \series bold
 Integration
 \series default
- of this two components with zfsd daemon is following: On beginning, zfsd
- creates and initializes D-bus provider handler (structure).
+ of these two components with zfsd daemon is following: 
+\end_layout
+
+\begin_layout Standard
+On beginning, zfsd creates and initializes D-bus provider handler (structure).
  Then, it registers zfsd D-bus message handlers by calling 
 \emph on
 dbus_provider_add_listener
 \emph default
 .
  Currently, the syplog D-bus service is implemented in way compatible with
- zfsd D-bus provider.
- Thus another 
+ zfsd D-bus provider, thus another 
 \emph on
 dbus_provider_add_listener
 \emph default
@@ -3316,7 +3330,7 @@ is called.
 \end_layout
 
 \begin_layout Standard
-For future there are plans for
+For future, there are plans for
 \series bold
  remote zfsd control
 \series default
@@ -3342,7 +3356,7 @@ Testing environment
 \end_layout
 
 \begin_layout Standard
-To allow central result repository, all tests should be executed under 
+To allow central result repository, all tests are executed under 
 \series bold
 Nose
 \series default
@@ -3350,9 +3364,9 @@ Nose
  Settings for plugins can be given by command line options, but preferred
  way is to store them as 
 \series bold
-environment variable
+environment variables
 \series default
-s.
+.
  Environment variables are used to pass values between components too.
  This way is used to ensure all tests within one BatchRun will be reported
  properly.
@@ -3380,7 +3394,8 @@ is enabled, results are reported to Django driven
 TestResultStorage
 \series default
 .
- Settings for it is read from module which name is in environment variable
+ Settings for TestResultStorage are read from module which name is in environmen
+t variable
 \series bold
 \emph on
  
@@ -3462,10 +3477,10 @@ remote file
  objects.
  Communication is done through 
 \emph on
-twisted perspective brooker.
+twisted perspective broker.
  
 \emph default
-Twisted were used as RPC, because there is direct support for it in 
+Twisted were used as RPC because there is direct support for it in 
 \emph on
 Nose.
 \end_layout
@@ -3476,7 +3491,7 @@ Example distributed test is represented by
 TestClientServer
 \emph default
 .
- On remote system, used in test, there should be 
+ On remote system used in test there should be 
 \emph on
 remoteZfs.py 
 \emph default
@@ -3514,7 +3529,7 @@ remoteZfsMeta.tar
 .
  These options are provided to test by
 \emph on
- zfsConfig 
+ ZfsConfig 
 \emph default
 plugin.
 \end_layout
@@ -3553,11 +3568,20 @@ Nose
  will run, there should be configuration tarball for every client machine
  and configuration file for 
 \emph on
-zfsConfig 
+ZfsConfig 
 \emph default
 plugin.
  Test then connects to all machines, configures their zfsd and operates
  on local and remote files.
+\end_layout
+
+\begin_layout Standard
+Synchronization of versions of libraries and scripts must be handled externally,
+ currently 
+\emph on
+buildbot
+\emph default
+ is used.
 \end_layout
 
 \begin_layout Standard
@@ -3570,7 +3594,7 @@ When failure is detected, state of both local and remote ZlomekFS daemon
 \series bold
 Infinite
 \series default
- testing loops are handled in insecticie in the same way as other tests.
+ testing loops are handled by insecticide in the same way as other tests.
  Only difference is, that there should be special profile for infinite testing,
  since normal testing should not run for such a long time.
 \end_layout
@@ -3597,7 +3621,7 @@ snapshotPlugin
 \series default
  creates snapshot of predefined components.
  Snapshot plugin can be configured to create snapshots before tests and
- after successful tests too, but while zfsd core dump has more than 150Mb
+ after successful tests too, but while zfsd core dump has more than 150Mb,
  it takes non-trivial amount of time to create it (and thus it is disabled
  by default).
 \end_layout
@@ -3619,6 +3643,10 @@ zfsd log output
 \end_layout
 
 \begin_layout Itemize
+nose log output
+\end_layout
+
+\begin_layout Itemize
 test instance
 \end_layout
 
@@ -3628,6 +3656,10 @@ ZfsProxy instance
 
 \begin_layout Itemize
 zfsd core dump
+\end_layout
+
+\begin_layout Itemize
+zfsd stdout and stderr
 \end_layout
 
 \begin_layout Itemize
@@ -3660,8 +3692,8 @@ n has methods for appending primitive types, python objects, files and directori
 es.
  Every entry in snapshot have unique name, type and description.
  Primitive types are stored in memory, bigger data on disk.
- For purpose of reporting snapshot can be packed into single file which
- contains both data and their descriptions.
+ For purpose of reporting, snapshot can be packed into single file that
+ will contain both data and their descriptions.
  For further reference see python documentation for 
 \emph on
 insecticide/snapshot.py
@@ -3709,7 +3741,7 @@ Django stores objects as rows in
 \series bold
 tables
 \series default
-, one table for one class (plus some index and many-to-many relation tables).
+, one table per class (plus some index and many-to-many relation tables).
  We use 
 \emph on
 TestRun
@@ -3718,8 +3750,8 @@ TestRun
 \emph on
 TestRunData
 \emph default
- class to hold auxiliary information for (mostly failed) tests - backtraces,
- exceptions, file names of snapshots.
+ class to hold auxiliary information for test - backtrace, exception, file
+ name of snapshot.
  Set of TestRuns that were executed together are connected by 
 \emph on
 BatchRun
@@ -3747,8 +3779,9 @@ Nose,
 \series bold
 ReportProxy
 \series default
- class which holds BatchRun information, generates and commits TestRun objects
- into database.
+ class.
+ It holds BatchRun information, generates and commits TestRun objects into
+ database.
  Nose integration is done by 
 \series bold
 zfsReportPlugin
@@ -3880,8 +3913,8 @@ timed
 \emph default
  decorator
 \series default
-, by which timeout for test can be set and handler function to execute when
- time runs out.Current implementation of handler will send SIGABRT to zfsd
+, by which timeout for test and handler function to execute when time runs
+ out can be set.Current implementation of handler will send SIGABRT to zfsd
  causing termination with core dump generated.
 \end_layout
 
@@ -3931,8 +3964,8 @@ dependencies between tests
 \end_layout
 
 \begin_layout Standard
-Meta-test chain will be terminated, if meta-test with no successor is hit
- or there can be defined terminating probability.
+Meta-test chain will terminate, if meta-test with no successor is hit, or
+ there can be defined terminating probability.
  Hard 
 \series bold
 length
@@ -4050,8 +4083,8 @@ PASS
 \end_layout
 
 \begin_layout Standard
-Searching for tests is made using libelf, tests are looked for in dyntab
- and symtab of binary and all libraries linked to it.
+Search for tests is done using libelf, tests are looked for in dyntab and
+ symtab of binary and all libraries linked to it.
  Shared libraries can be tested by linking through 
 \emph on
 LD_PRELOAD
@@ -4069,8 +4102,8 @@ There were more options to use for test collection:
 
 \begin_layout Itemize
 To use user listed tests in some type of #ifdef declared main.
- This doesn't remove the need of listing and moreover creates some difficulties
- in main source file.
+ This doesn't remove the need of hand written list of tests, and moreover
+ creates some difficulties in main source file.
 \end_layout
 
 \begin_layout Itemize
@@ -4082,8 +4115,8 @@ To use full C grammar to search for tests in source files and to generate
 \begin_layout Itemize
 To use some C preprocessor to generate simply parseable overview (XML) and
  generate test list from them.
- This possibility was not fully explored but was considered far more complicated
- that binary format based discovery.
+ This possibility was not fully explored, but was considered far more complicate
+d that binary format based discovery.
 \end_layout
 
 \begin_layout Standard
@@ -4205,12 +4238,12 @@ DJANGO_SETTINGS_MODULE
 
 \begin_layout Standard
 For infinite testing loops it was decided to run them outside of buildbot.
- Running them inside buildbot would displace other build results outside
- view.
+ Running them inside buildbot would generate long progress bars displacing
+ other build results from view.
  Since there can be only one ZlomekFS daemon running at the time, synchronizatio
 n to avoid collision were needed.
- Thus in every ZlomekFS build, there is step signalling infinite loop controller
- to pause run (before buildbot cycle) and step signalling to unpause run
+ Thus in every ZlomekFS build, there is step signaling infinite loop controller
+ to pause run (before buildbot cycle) and step signaling to unpause run
  (after buildbot cycle).
 \end_layout
 
@@ -4272,9 +4305,9 @@ ZfsStressGenerator
 ZfsReportPlugin
 \emph default
  executed.
- ZfsConfig plugin tries to load configuration files for tests, that contains
+ ZfsConfig plugin tries to load configuration files for tests that contains
  for example paths for zfsd and zfsd configuration.
- SnapshotPlugin ensure, that required directories exists.
+ SnapshotPlugin ensure that required directories for snapshots exists.
  ZfsReportPlugin calls TestResultRepository fetching previously created
  object of BatchRun.
 \end_layout
@@ -4312,7 +4345,11 @@ Before execution of tests begins, ZfsStressGenerator will appends ContextSuite
 \series bold
 stress tests
 \series default
- into main ContextSuite of nose.
+ into 
+\emph on
+main ContextSuite
+\emph default
+ of Nose.
 \end_layout
 
 \begin_layout Standard
@@ -4336,7 +4373,7 @@ ConfigParser
 \series default
  object (representation of config files) to test.
  In case of classic (non stress) tests, initialization of zfsd is made in
- setup and teardown methods in scope of method, in case of stress tests,
+ setup and teardown methods in scope of method, in case of stress tests
  initialization of zfsd is made in setupClass and teardownClass - methods
  in scope of class fixtures.
  In setup and teardown methods of stress test, there is only check, if zfsd
@@ -4396,8 +4433,8 @@ SnapshotPlugin
 \series bold
 create snapshot
 \series default
- of failed test, where arbitrary data defined by developer are appended
- in test class 
+ of failed test where arbitrary data defined by developer are appended in
+ test class 
 \emph on
 snapshot
 \emph default
@@ -4414,7 +4451,7 @@ ZfsProxy
 \emph on
 log file
 \emph default
-, zfsd 
+, nose log file, zfsd 
 \emph on
 core dump
 \emph default
@@ -4422,7 +4459,8 @@ core dump
 \emph on
 cache directory
 \emph default
-, in case of comparing tests the directory on compare filesystem.
+, zfsd stdout and stderr, and in case of comparing tests the directory on
+ compare filesystem.
  In case of stress test, 
 \emph on
 call sequence
@@ -4528,9 +4566,11 @@ As basic regression testing framework, existing solution (Nose) was used.
 \begin_layout Standard
 Under it, prototypes of tests are created.
  First type of tests identifies problems of filesystem by performing operations
- on second, reliable, filesystem and comparing results.
+ on second, reliable, filesystem and by comparing results.
  Second test type identifies errors by checking, if behavior of filesystem
  is as expected (data read is the same as written, ...).
+ For distributed testing, basic objects are provided as wrappers for python
+ twisted perspective broker objects.
 \end_layout
 
 \begin_layout Standard
@@ -4549,17 +4589,16 @@ Snapshoting plugin offer chance to have as much state information and trace
  Current implementation provides core dump of daemon, log files, sequence
  which have caused the error, cache content, comparison file system (if
  used) snapshot, and python component state.
- Snapshot plugin can include most of possible data types that can be required
- when debugging, thus tester can easily define other data to include to
- snapshots.
+ Snapshot plugin can include most of data types that can be required when
+ debugging, thus tester can easily define other data to include to snapshots.
 \end_layout
 
 \begin_layout Standard
 Currently, change of network conditions is possible only by inserting special
  rules into iptables.
  The change of network conditions is mainly aimed to check behavior in disconnec
-ted of slowly connected state.
- For future, there is d-bus interface prepared, to allow direct change of
+ted or slowly connected state.
+ For future, there is d-bus interface prepared to allow direct change of
  ZlomekFS state without changing network conditions (which could be useful
  in real usage too).
  When there will be need to provide network protocol robustness testing,
@@ -4572,16 +4611,12 @@ It is possible to use this system for testing of any other filesystem.
  Especially in case of userspace based filesystem the modification needed
  will be only change of daemon binary and settings (which will be obviously
  different).
- If filesystem will have kernel component (especially in case of full kernel
+ If filesystem would have kernel component (especially in case of full kernel
  based filesystems) there will be need of 
 \emph on
 kdump
 \emph default
  integration for snapshoting state of filesystem in case of failure.
- According our information it is currently the only project for testing
- filesystem capable of storing step sequence for reproducing error and snapshoti
-ng state of filesystem.
- 
 \end_layout
 
 \begin_layout Standard
@@ -6307,10 +6342,6 @@ master.cfg
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Standard
 
 \end_layout
 
