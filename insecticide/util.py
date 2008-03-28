@@ -5,22 +5,31 @@ import sys
 from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
 
 lockDir = '/tmp/insecticide.lockdir'
+""" Synchronization lock directory for infinite testing.
+    If exists, infinite testing will be paused.
+    After removal, infinite testing will continue.
+"""
 
 def signalPause():
-    """
-    """
+    """ Signal pause to infinite testing loop. """
     try:
         os.mkdir(lockDir)
     except OSError:
         pass
 
 def signalUnpause():
+    """ Signal to infinite loop to continue executing. """
     try:
         os.rmdir(lockDir)
     except OSError:
         pass
 
 def isPaused():
+    """ Check if infinite loop should execute or not.
+        
+        :Return:
+            True if infinite loop should be paused
+    """
     return os.path.isdir(lockDir)
 
 def noseWrapper(project = None, stripPath = None):
