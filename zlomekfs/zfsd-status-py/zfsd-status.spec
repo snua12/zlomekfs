@@ -25,7 +25,7 @@ make all
 %install
 rm -rf %{buildroot}
 python setup.py install --single-version-externally-managed --record=INSTALLED_FILES --root=%{buildroot}
-
+#rm %{buildroot}/usr/lib/python2.5/site-packages/zfsd_status.pyo
 %clean
 rm -rf %{buildroot}
 

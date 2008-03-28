@@ -38,7 +38,7 @@ zfsd_status_wrap.c: zfsd_status.i
 	$(SWIG) -python zfsd_status.i 
 
 
-build: setup.py zfsd_status_wrap.c
+build: setup.py zfsd_status_wrap.c zfsd_status.c
 	./setup.py build
 
 test:

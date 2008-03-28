@@ -1263,6 +1263,7 @@ out:
  *
  */
 
+/*BOOKMARK*/
 int32_t
 update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
                      int what)
@@ -1281,7 +1282,7 @@ update_fh_if_needed (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
 #endif
 
   r = ZFS_OK;
-  /* no use updating files without volume master */
+  /* no use updating files within volume master */
   if ((*volp)->master != this_node)
     {
       /* determine what needs to be updated */

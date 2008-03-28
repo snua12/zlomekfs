@@ -321,6 +321,7 @@ zfs_fuse_getattr (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   fattr fa;
   int err;
 
+  TRACE ("");
   (void)fi;
   fh = inode_to_fh (ino);
   if (fh == NULL)
@@ -738,6 +739,7 @@ zfs_fuse_read (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   size_t done;
   int err;
 
+  TRACE ("");
   cap = (zfs_cap *)(intptr_t)fi->fh;
   buf = xmalloc (size);
   done = 0;
@@ -782,6 +784,7 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
   size_t done;
   int err;
 
+  TRACE ("");
   cap = (zfs_cap *)(intptr_t)fi->fh;
   done = 0;
   do
@@ -801,8 +804,13 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
       if (err != 0)
 	goto err_estale;
       done += res.written;
+      message (LOG_DEBUG, FACILITY_DATA,
+        "write o.k. - written %u\n",
+        res.written);
     }
   while (done < size);
+  message (LOG_DEBUG, FACILITY_DATA,
+    "replying size %d\n", size);
   fuse_reply_write (req, size);
   return;
 

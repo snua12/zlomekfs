@@ -2242,6 +2242,7 @@ local_write (write_res *res, internal_dentry dentry,
 	     uint64_t offset, data_buffer *data, volume vol)
 {
   int32_t r;
+  off_t writing_position = -1;
   int fd;
 
   TRACE ("");
@@ -2253,13 +2254,16 @@ local_write (write_res *res, internal_dentry dentry,
   if (r != ZFS_OK)
     RETURN_INT (r);
 
-  r = lseek (fd, offset, SEEK_SET);
-  if (r < 0)
+  writing_position = lseek (fd, offset, SEEK_SET);
+  if (writing_position == (off_t)-1)
     {
       zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
       RETURN_INT (errno);
     }
 
+  message (LOG_DEBUG, FACILITY_DATA, 
+    "writing data of size %u to %ld(wanted %llu - %ld)\n",
+    data->len, writing_position, offset, (long int) offset);
   r = write (fd, data->buf, data->len);
   if (r < 0)
     {
@@ -2267,6 +2271,9 @@ local_write (write_res *res, internal_dentry dentry,
       RETURN_INT (errno);
     }
   res->written = r;
+  message (LOG_DEBUG, FACILITY_DATA, 
+    "written %d of %u, pos is %ld\n",
+    r, data->len, lseek (fd, 0, SEEK_CUR));
 
   zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
   RETURN_INT (ZFS_OK);
@@ -2283,6 +2290,8 @@ remote_write (write_res *res, internal_cap cap, internal_dentry dentry,
   int32_t r;
   int fd;
   node nod = vol->master;
+
+  TRACE ("");
 
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
@@ -2416,6 +2425,7 @@ zfs_write (write_res *res, write_args *args)
 	{
 	  if (vol->master == this_node)
 	    {
+	      TRACE("increasing version on master");
 	      if (!inc_local_version (vol, dentry->fh))
 		MARK_VOLUME_DELETE (vol);
 	    }
