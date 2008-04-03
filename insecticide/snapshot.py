@@ -1,4 +1,9 @@
-""" Module with snapshot helper functions and classes """
+""" Module with snapshot helper functions and classes.
+
+    Main class is SnapshotDescription, it should be used
+    as abstract layer for accessing raw snapshot data.
+ """
+
 import tarfile
 import uuid
 import pickle
@@ -19,6 +24,11 @@ class SnapshotDescription(object):
     """
         Helper object holding snapshot state.
         Primitive types are stored in memory, big data (files, etc are stored on disk)
+        
+        Before release of SnapshotDescription instance,
+        delete method should be called. This is because
+        some temporary data are stored on disk and are not
+        deleted upon pack method.
     """
     
     # these MUST NOT change between versions

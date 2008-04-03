@@ -58,6 +58,10 @@ class DependencyGraph(object):
     def __init__(self,  graph = None, startNode = None):
         """ Constructor. Takes optional arguments to bootstrap state.
             
+            This is not intended to be called directly.
+            GraphBuilder class methods should be used instead
+            to generate DependencyGraph object.
+            
             :Parameters:
                 graph: graph to start with in directory format
                 startNode: method name which should go first

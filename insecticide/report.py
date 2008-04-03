@@ -1,4 +1,38 @@
-""" Module with TestResultStorage wrapper for reporting nose test results into django db """
+""" Module with TestResultStorage wrapper for reporting nose test results
+    into django db. The main class for reporting is ReportProxy. It is initialized
+    directly from profile, so there can be more instances at the same time
+    reporting under the same batch. Note should be taken that configuration
+    is stored in profile, so sharing of configuration only goes to child processes,
+    but it can't be shared from child to parent process.
+    
+    :Usage:
+        1. Create a batch by call to generateLocalBatch function. It will create new batch
+            and load profile.
+        2. Create new ReportProxy.
+        3. Report everything into ReportProxy
+        4. Close ReportProxy by finalize call
+        5. Close batch by finalizeBatch call.
+        
+    
+    :Profile loading:
+        Profile should be loaded by calling loadProfile function. It tries to load 
+        profile according to environment variables, merging profile into 
+        sys.envrion. 
+    
+    :Batch finalization:
+        If batch is created by hand (direct call to createLocalBatch)
+        it should be finished by calling finalizeBatch. Neverthless,
+        on every ReportProxy instance created should be method
+        finalize called before releasing.
+    
+    :System errors:
+        If you are operatind directly with BatchRun instance,
+        report system errors through function reportSystemError.
+        Otherwise, if you have ReportProxy instance, report through
+        it's method reportSystemError.
+        
+        ... See: TestResultStorage.resultRepository.models module
+ """
 
 import logging
 import os

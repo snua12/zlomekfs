@@ -262,6 +262,9 @@ class PruneLogic(object):
             except ValueError:
                 # could be the same as first
                 pass
+            # default values
+            start = None
+            end = None
             for function in functionsToUse:
                 if 'skipPart:' + function in forbiddenVariants:
                     #there is no pair of this function
