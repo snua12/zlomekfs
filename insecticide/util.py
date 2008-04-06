@@ -43,59 +43,73 @@ def noseWrapper(project = None, stripPath = None):
         :Return:
             exits with return code from nose
     """
-    if 'DJANGO_SETTINGS_MODULE' not in os.environ:
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
-
-    from insecticide.report import generateLocalBatch, finalizeBatch, \
-        branchEnvOpt, reportSystemError
-
-
+    
+    logFile = open('insecticide.log',  'a')
+    """ File to write non-commitable error messages to """
+    
     try:
-        import pysvn
-        entry = pysvn.Client().info('.')
-        if stripPath:
-            branch = str(entry.url)[len(entry.repos) + 1:
-                len(entry.url) - len(stripPath) - 1]
+        if 'DJANGO_SETTINGS_MODULE' not in os.environ:
+            os.environ['DJANGO_SETTINGS_MODULE'] = 'TestResultStorage.settings'
+        
+        from insecticide.report import generateLocalBatch, finalizeBatch, \
+            branchEnvOpt, reportSystemError
+        
+        
+        try:
+            import pysvn
+            entry = pysvn.Client().info('.')
+            if stripPath:
+                branch = str(entry.url)[len(entry.repos) + 1:
+                    len(entry.url) - len(stripPath) - 1]
+            else:
+                branch = str(entry.url)[len(entry.repos) + 1:]
+            os.environ[branchEnvOpt] = branch
+        except KeyboardInterrupt:
+            raise
+        except:
+            info = sys.exc_info()
+            print info
+            logFile.write(str(info))
         else:
-            branch = str(entry.url)[len(entry.repos) + 1:]
-        os.environ[branchEnvOpt] = branch
+            info = None
+        
+        # we can't do anything about batch creation exceptions. 
+        # When batch can't be created, we have no way how to report potential failure.
+        batch = generateLocalBatch(project = project)
+        
+        if batch and info:
+            reportSystemError(batch, name = info[0].__name__, 
+                description = "Pysvn error in test.py", errInfo = info)
+        
+        from nose import main
+        res = None
+        try:
+            res = main(exit=False)
+        except KeyboardInterrupt:
+            print sys.exc_info()
+        except:
+            logFile.write(str(sys.exc_info()))
+            if batch:
+                info = sys.exc_info()
+                reportSystemError(batch, name = info[0].__name__,
+                    description = "Unhandled exception in main execution loop",
+                    errInfo = info)
+        
+        if batch and batch.id:
+            finalizeBatch(batch.id)
+        
+        
+        if res:
+            sys.exit(not res.success)
+        else:
+            sys.exit(1)
+            
     except KeyboardInterrupt:
         raise
     except:
-        info = sys.exc_info()
-        print info
-    else:
-        info = None
-    
-    # we can't do anything about batch creation exceptions. 
-    # When batch can't be created, we have no way how to report potential failure.
-    batch = generateLocalBatch(project = project)
-
-    if batch and info:
-        reportSystemError(batch, name = info[0].__name__, 
-            description = "Pysvn error in test.py", errInfo = info)
-
-    from nose import main
-    res = None
-    try:
-        res = main(exit=False)
-    except KeyboardInterrupt:
-        print sys.exc_info()
-    except:
-        if batch:
-            info = sys.exc_info()
-            reportSystemError(batch, name = info[0].__name__,
-                description = "Unhandled exception in main execution loop",
-                errInfo = info)
-
-    if batch and batch.id:
-        finalizeBatch(batch.id)
-
-    if res:
-        sys.exit(not res.success)
-    else:
-        sys.exit(1)
-    
+        ''' This is the last thing we can do when no database driven logging is available '''
+        logFile.write(str(sys.exc_info()))
+        logFile.close()
 
 def getMatchedTypes(obj,  types):
     """ Returns attributes of object that are of one of defined types.
