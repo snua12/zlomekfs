@@ -108,7 +108,7 @@ def noseWrapper(project = None, stripPath = None):
         raise
     except:
         ''' This is the last thing we can do when no database driven logging is available '''
-        logFile.write(str(sys.exc_info()))
+        traceback.print_exc(file=logFile)
         logFile.close()
 
 def getMatchedTypes(obj,  types):
