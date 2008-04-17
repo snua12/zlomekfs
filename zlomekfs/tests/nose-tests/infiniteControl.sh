@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Change the directory, to script location, in case somebody ran it from outside
+cd `echo $0|sed -e 's/\/[^\/]*$/\//'`
+
 # file with pid of worker (nose) thread
 WORKER_PIDFILE=/var/run/infiniteWorker.pid
 # file with pid of run process
