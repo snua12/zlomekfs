@@ -51,7 +51,7 @@ function pauseWithWait()
 {
     pause
     
-    for i in 1 2 3 5 10 10 10 30; do
+    for i in 1 2 3 5 10 10 10 30 90 240; do
         if ! kill -0 $1 >/dev/null 2>&1; then
             break
         fi
@@ -67,7 +67,7 @@ function pauseWithWait()
 function killWithWait()
 {
     kill -SIGINT $1 >/dev/null 2>&1
-    for i in 1 2 3 5 10 10 10 30; do
+    for i in 1 2 3 5 10 10 10 30 90 240; do
         if ! kill -0 $1 >/dev/null 2>&1; then
             break
         fi
