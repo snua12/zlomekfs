@@ -528,14 +528,14 @@ tnímu sdílení adresářových stromů.
 Práce shrnuje metody používané k testování softwaru podobného ZlomekFS a
  na jejich základě vytváří samostatný systém regresního testování.
  Systém sestává z šesti částí: (1) knihovny pro unit testing kódu psaného
- v jazyce C, která poskytuje automatické vyhledávání testů a minimalistickým
+ v jazyce C, která poskytuje automatické vyhledávání testů s minimalistickým
  rozhraním, (2) logovacího frameworku s rozhraním pro jazyky C a Python,
  který podporuje filtrování a vzdálené ovládání, (3) generátoru náhodné
  zátěže pro vytváření náhodných testovacích sekvencí pomocí grafu závislosti
  s podporou reprodukování a zmenšování zátěže vedoucí k chybě, (4) systému
  pro kontrolu testování a hlášení výsledků testů, (5) repozitáře pro ukládání
- výsledků s webovým uživatelským rozraním, (6) serveru pro automatické sestavová
-ní a testování.
+ výsledků s webovým uživatelským rozhraním, (6) serveru pro automatické
+ sestavování a testování.
 \backslash
 
 \backslash
@@ -656,7 +656,7 @@ The thesis summarizes software testing methods in the context of ZlomekFS
  test discovery and a minimalistic interface, (2) a logging facility with
  C and Python interfaces, with filtering and remote control, (3) workload
  generator for random test sequences generated from an operation dependency
- graph, with support for failure reproduction and trace reduction, (4) test
+ graph with support for failure reproduction and trace reduction, (4) test
  controlling and reporting framework, (5) test result repository with web
  user interface, (6) continuous integration server for automatic builds
  and tests.
@@ -6443,7 +6443,23 @@ def initRandomStartNode(self):
 \InsetSpace ~
 \InsetSpace ~
 \InsetSpace ~
-self.restart(self.randomGenerator.choice(self.graph.keys()))
+self.restart(self.randomGenerator.choice(
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+self.graph.keys()))
 \end_layout
 
 \begin_layout Standard
@@ -6505,7 +6521,19 @@ empty):
 \InsetSpace ~
 \InsetSpace ~
 \InsetSpace ~
-assert self.buildGraphsAndCompare(reference = self.nonUniformGraph,
+assert self.buildGraphsAndCompare(
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+reference = self.nonUniformGraph,
 \end_layout
 
 \begin_layout Standard
@@ -6967,7 +6995,14 @@ begin{codeblock}
 
 \end_inset
 
-rpm -ivh python-django-snapshot-*.rpm TestResultStorage-*.rpm
+rpm -ivh python-django-snapshot-*.rpm 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+TestResultStorage-*.rpm
 \begin_inset ERT
 status open
 
@@ -8337,15 +8372,22 @@ begin{codeblock}
 \end_layout
 
 \begin_layout Standard
-yum install buildbot python-sqlite2 MySQL-python kernel-devel\InsetSpace ~
-
+yum install buildbot python-sqlite2 MySQL-python 
 \backslash
 
 \end_layout
 
 \begin_layout Standard
 \InsetSpace ~
-dbus dbus-devel libtool autoconf automake gettext gettext-devel\InsetSpace ~
+kernel-devel\InsetSpace ~
+dbus dbus-devel libtool autoconf 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+automake gettext gettext-devel\InsetSpace ~
 
 \backslash
 
