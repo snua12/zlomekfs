@@ -38,6 +38,7 @@ import logging
 import os
 import sys
 import pysvn
+import socket
 import datetime
 import traceback
 import pickle
@@ -153,7 +154,7 @@ def generateLocalBatch(project = None):
     try:
         machineName = os.environ[slavenameEnvOpt]
     except KeyError:
-        machineName = os.environ['HOSTNAME']
+        machineName = socket.gethostname()
         os.environ[slavenameEnvOpt] = machineName
         
     try:
