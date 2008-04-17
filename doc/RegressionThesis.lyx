@@ -1,4 +1,4 @@
-#LyX 1.5.3 created this file. For more info see http://www.lyx.org/
+#LyX 1.5.4 created this file. For more info see http://www.lyx.org/
 \lyxformat 276
 \begin_document
 \begin_header
@@ -116,7 +116,7 @@ large
 
 \begin_layout Standard
 
-Univerzita Karlova v Praze
+Charles University in Prague
 \backslash
 
 \backslash
@@ -125,7 +125,7 @@ Univerzita Karlova v Praze
 
 \begin_layout Standard
 
-Matematicko-fyzikální fakulta
+Faculty of Mathematics and Physics
 \backslash
 
 \backslash
@@ -3661,7 +3661,7 @@ Syplog
 \series bold
 D-bus
 \series default
- listener to notify about it's status and Fuse library to integrate with
+ listener to notify about its status and Fuse library to integrate with
  linux kernel.
  Upon start, Syplog and zfsd reads configuration from program arguments.
  While zfsd is running, D-bus listener waits for connections through D-bus.
@@ -3700,8 +3700,8 @@ TestResultStorage
 \series default
  should run on master machine, it provides web based user interface for
  result repository.
- Results are commited into repository directly (without usage of TestResultStora
-ge process).
+ Results are committed into repository directly (without usage of TestResultStor
+age process).
  Programmer documentation for TestResultStorage is again written directly
  to code, user should read it through 
 \emph on
@@ -3714,8 +3714,8 @@ When
 Nose
 \series default
  is run, it loads plugins, searches for tests and executes all tests found.
- It is used to execute tests of all types (ZlomekFS stress tests, Zen-unit
- based C tests, unittest based tests of python components).
+ It is used to execute tests of all types (ZlomekFS stress and normal tests,
+ Zen-unit based C tests, and unittest based tests of python components).
 \end_layout
 
 \begin_layout Standard
@@ -3746,13 +3746,13 @@ ZenPlugin
 SnapshotPlugin
 \series default
  creates snapshots of test state.
- Plugin only triggers events and stores generated snapshots - the snapshotting
- inteligence must be provided by the implementation of test.
+ Plugin only triggers events and stores generated snapshots - the snapshoting
+ intelligence must be provided by the implementation of test.
  When a test finishes,
 \series bold
  ZfsReportPlugin
 \series default
- collects all informations about the test run (snapshots, result, time elapsed)
+ collects all information about the test run (snapshots, result, time elapsed)
  and commits them into TestResultStorage.
 \end_layout
 
@@ -3776,12 +3776,12 @@ Buildbot
  On master machine, it waits for changes in source repository.
  When a change is detected, master sends commands to slave machines, waits
  for end of their execution and retrieves results (only return code and
- textual otputs from tests, snapshots and other status data are handled
+ textual outputs from tests, snapshots and other status data are handled
  by plugins and TestResultStorage.
  On slave machines, the Buildbot process is waiting for master commands,
  executes them and sends results back to master.
- Main commands are fetch of code, build of binaries (rpms), execution of
- Nose (tests), and cleanup.
+ Main commands are fetching of code, building of binaries (rpms), execution
+ of Nose (tests), and cleaning up.
  Simple results (return code and textual outputs) are then provided through
  web interface by Buildbot process on master machine.
  The interface shows both results of finished commands and actual status
@@ -4010,7 +4010,9 @@ dbus_provider_add_listener
 \emph default
 .
  Currently, the Syplog D-bus service is implemented in way compatible with
- zfsd D-bus provider, thus another 
+ zfsd D-bus provider, thus another
+\newline
+ 
 \emph on
 dbus_provider_add_listener
 \emph default
@@ -4097,6 +4099,8 @@ nose.plugins.0.10
 .
  They should inherit from 
 \emph on
+
+\newline
 nose.plugins.Plugin
 \emph default
  class, but it is not mandatory.
@@ -5275,9 +5279,9 @@ Change source is SVN polling, schedulers are configured to wait some time
 Test driving (Nose) was included in way, that doesn't need any external
  configuration, only Django (result repository) needs to have 
 \emph on
-DJANGO_SETTINGS_
+
 \newline
-MODULE
+DJANGO_SETTINGS_MODULE
 \emph default
  present in environment, so it is exported in start time of buildbot.
 \end_layout
