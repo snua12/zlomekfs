@@ -2,6 +2,7 @@
 
 import os
 import sys
+import traceback
 from resource import RLIMIT_CORE, RLIMIT_FSIZE, setrlimit, getrlimit
 
 lockDir = '/tmp/insecticide.lockdir'
