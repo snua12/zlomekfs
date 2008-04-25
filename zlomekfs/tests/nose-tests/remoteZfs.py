@@ -345,5 +345,10 @@ class RemoteControlWrapper(RemoteObjectWrapper):
         
 
 if __name__ == '__main__':
+    (dirPath, scriptName) = os.path.split(sys.argv[0])
+    if dirPath:
+        os.chdir(dirPath)
+        sys.argv[0] = './' + scriptName
+    
     reactor.listenTCP(LISTEN_PORT, pb.PBServerFactory(RemoteControl()))
     reactor.run()
