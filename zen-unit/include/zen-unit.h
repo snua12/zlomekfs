@@ -50,10 +50,12 @@
 
  \code
 ZEN_TEST(my_first_test) {
-  do something
+  // do something
+  // ...
+
   ZEN_ASSERT(1==2,"This test should fail until math broke");
 
-  return TRUE
+  return PASS;
 }
  \endcode
 
@@ -79,7 +81,7 @@ zen_formatter_to_name_test      PASS(0)
     \li to test shared library use following (output will be equivalent)
 
  \code
-[root@bug src]# LD_PRELOAD=libmylib.so zenunit
+[bug@bug src]# LD_PRELOAD=libmylib.so zenunit
 zen_formatter_to_name_test      PASS(0)
  \endcode
 
@@ -92,26 +94,6 @@ it would only confuse you.
 The rest of documentation describes internal function of library 
 and is intended to developers only.
 
-*/
-
-/* Copyright (C) 2007 Jiri Zouhar
-
-   This file is part of Zen Unit.
-
-   Zen-unit is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-   License for more details.
-
-   You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-#LyX 1.5.4 created this file. For more info see http://www.lyx.org/
+#LyX 1.5.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 276
 \begin_document
 \begin_header
@@ -352,7 +352,7 @@ normalsize
 
 
 \backslash
-setcounter{page}{3}
+setcounter{page}{2}
 \end_layout
 
 \begin_layout Standard
@@ -960,7 +960,7 @@ reference "sec:Continuous-integration"
 ).
  Results from these runs should be collected and presented centrally (
 \begin_inset LatexCommand prettyref
-reference "sub:Result repository"
+reference "sec:Result repository"
 
 \end_inset
 
@@ -1510,13 +1510,13 @@ This section will focus mainly to these written in C (language ZlomekFS
  is written in) or python.
  Aim on python is given by choice of language for driving component, for
  reasoning see 
-\begin_inset LatexCommand ref
+\begin_inset LatexCommand prettyref
 reference "sec:Test-format"
 
 \end_inset
 
  and 
-\begin_inset LatexCommand ref
+\begin_inset LatexCommand prettyref
 reference "sec:Programming-language"
 
 \end_inset
@@ -2585,7 +2585,7 @@ database backed GUI
 \begin_layout Section
 Result repository
 \begin_inset LatexCommand label
-name "sub:Result repository"
+name "sec:Result repository"
 
 \end_inset
 
@@ -3364,7 +3364,7 @@ Web result presentation and result repository
 \begin_layout Standard
 As noted in 
 \begin_inset LatexCommand prettyref
-reference "sub:Result repository"
+reference "sec:Result repository"
 
 \end_inset
 
@@ -3614,7 +3614,7 @@ reStructuredText Docstring Format
 \series default
  
 \begin_inset LatexCommand cite
-key "PEP258,reStructuredText"
+key "reStructuredText"
 
 \end_inset
 
@@ -4000,6 +4000,8 @@ message handlers
 Integration
 \series default
  of these two components with ZlomekFS daemon (zfsd) is following: 
+\newline
+
 \end_layout
 
 \begin_layout Standard
@@ -4546,7 +4548,7 @@ Reporting and result repository
 \begin_layout Standard
 As noted in 
 \begin_inset LatexCommand prettyref
-reference "sub:Result repository"
+reference "sec:Result repository"
 
 \end_inset
 
@@ -7171,14 +7173,7 @@ end{codeblock}
 \end_layout
 
 \begin_layout Standard
-Setup TestResultStorage to use local mysql database with right credentials
- (
-\begin_inset LatexCommand prettyref
-reference "fig:settings_py_master"
-
-\end_inset
-
-).
+Setup TestResultStorage to use local mysql database with right credentials.
 \end_layout
 
 \begin_layout Standard
@@ -7396,19 +7391,7 @@ end{codeblock}
 
 \begin_layout Standard
 Setup buildmaster to allow client connections and to start www server on
- right port (
-\begin_inset LatexCommand prettyref
-reference "fig:master_cfg"
-
-\end_inset
-
-, 
-\begin_inset LatexCommand prettyref
-reference "fig:buildbot_tac_master"
-
-\end_inset
-
-).
+ right port (next two Figures).
  Note that if svn url or branching schema changes, they should be tweaked
  too.
 \end_layout
@@ -7602,14 +7585,7 @@ buildbot.tac (master)
 \end_layout
 
 \begin_layout Standard
-Set buildbot to start on boot, for example by adding crontab entry (first
- line in 
-\begin_inset LatexCommand prettyref
-reference "fig:buildmaster_cron"
-
-\end_inset
-
-).
+Set buildbot to start on boot, for example by adding crontab entry.
 \end_layout
 
 \begin_layout Standard
@@ -7796,13 +7772,7 @@ end{codeblock}
 
 \begin_layout Standard
 Set cron to execute this script every day on 2 a.m.
- (second line in 
-\begin_inset LatexCommand prettyref
-reference "fig:buildmaster_cron"
-
-\end_inset
-
-)
+ (second line in previous Figure)
 \end_layout
 
 \begin_layout Standard
@@ -7924,13 +7894,7 @@ This is all except for file transfers.
 \end_layout
 
 \begin_layout Standard
-Set data directory to be exported (
-\begin_inset LatexCommand ref
-reference "fig:exports"
-
-\end_inset
-
-).
+Set data directory to be exported.
 \end_layout
 
 \begin_layout Standard
@@ -8019,13 +7983,7 @@ name "fig:exports"
 \end_layout
 
 \begin_layout Standard
-Tell portmap to allow connections to services (
-\begin_inset LatexCommand ref
-reference "fig:hosts_allow"
-
-\end_inset
-
-).
+Tell portmap to allow connections to services.
 \end_layout
 
 \begin_layout Standard
@@ -8111,13 +8069,7 @@ name "fig:hosts_allow"
 \end_layout
 
 \begin_layout Standard
-Set mount daemon to use specific port - needed for firewall settings (
-\begin_inset LatexCommand ref
-reference "fig:sysconfig_nfs"
-
-\end_inset
-
-).
+Set mount daemon to use specific port - needed for firewall settings.
 \end_layout
 
 \begin_layout Standard
@@ -8538,13 +8490,7 @@ end{codeblock}
 \end_layout
 
 \begin_layout Standard
-Change TestResultStorage settings to store results on buildmaster (
-\begin_inset LatexCommand ref
-reference "fig:settings_py_slave"
-
-\end_inset
-
-).
+Change TestResultStorage settings to store results on buildmaster.
 \end_layout
 
 \begin_layout Standard
@@ -8642,13 +8588,7 @@ TestResultStorage/settings.py (buildslave)
 \end_layout
 
 \begin_layout Standard
-If you use nfs for file transfers, set nfs mount (
-\begin_inset LatexCommand ref
-reference "fig:fstab"
-
-\end_inset
-
-).
+If you use nfs for file transfers, set nfs mount.
 \end_layout
 
 \begin_layout Standard
@@ -8805,14 +8745,7 @@ end{codeblock}
 \end_layout
 
 \begin_layout Standard
-Change buildbot configuration to connect to master and use actual credentials
- (
-\begin_inset LatexCommand ref
-reference "fig:buildbot_tac_slave"
-
-\end_inset
-
-).
+Change buildbot configuration to connect to master and use actual credentials.
 \end_layout
 
 \begin_layout Standard
@@ -9070,13 +9003,7 @@ end{codeblock}
 
 \begin_layout Standard
 Configure buildbot to start on boot, and if host should do infinite testing
- loop, configure start on boot too (for example via crontab 
-\begin_inset LatexCommand ref
-reference "fig:buildslave_cron"
-
-\end_inset
-
-).
+ loop, configure start on boot too (for example via crontab).
 \end_layout
 
 \begin_layout Standard

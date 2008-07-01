@@ -8,11 +8,11 @@
 
   Logger is defined by
 
-  \li writer - which define how and where to write the message
+  \li medium - which define how and where to write (from where to read) the message
                  (for example write logs <i>in user readable format</i>
                   to <i>file)</i>
-                 (part of writer is <i>formatter</i> which define the format)
-                 Writer api is defined in writer-api.h.
+                 (part of medium is <i>formatter</i> which define the format)
+                 Writer api is defined in medium-api.h.
 
   \li log level - in general verbosity of logger. See log-level.h for
                     log level enumeration and more elaborated description.
@@ -20,6 +20,9 @@
   \li facilities - rules for logging (or not logging) mesages from 
                      different parts of application.
                      For more read file facility.h.
+
+  \li control - remote control listener. Can listen on
+                     D-bus or on udp port.
 
 */
 
@@ -35,11 +38,11 @@
      \li remotely controllable
 
   \section Parts
-     \li writer - which define how and where to write the message
+  \li medium - which define how and where to write (from where to read) the message
                  (for example write logs <i>in user readable format</i>
                   to <i>file)</i>
-                 (part of writer is <i>formatter</i> which define the format)
-                 Writer api is defined in writer-api.h.
+                 (part of medium is <i>formatter</i> which define the format)
+                 Medium api is defined in medium-api.h.
 
      \li log level - in general verbosity of logger. See log-level.h for
                     log level enumeration and more elaborated description.
@@ -47,6 +50,9 @@
      \li facilities - rules for logging (or not logging) mesages from 
                      different parts of application.
                      For more read file facility.h.
+
+  \li control - remote control listener. Can listen on
+                     D-bus or on udp port.
 
 */
 

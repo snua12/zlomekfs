@@ -1,0 +1,6 @@
+* switch logging of zfs to SHM, log nose to memory  ~ concurrent writes to disk slows testing very much
+* discover why testing goes slower and slower (memory usage seems o.k., disk is o.k., tests are the same...?)
+* consider remove of setup/teardown hooks between atoms in stress testing (measure speed gain)
+* cleanup architecture of tests in zfs/tests
+* cleanup object model in stress generator plugin
+* add howto for extending - where to put code for data recycling, ...
