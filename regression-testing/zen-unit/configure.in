@@ -10,9 +10,13 @@ AC_ENABLE_SHARED
 AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
 
-AC_CHECK_HEADERS(pthread.h sys/types.h sys/stat.h fcntl.h libelf/libelf.h libelf/gelf.h regex.h)
-AC_CHECK_LIB(elf, elf_begin)
+AC_CHECK_HEADERS(pthread.h sys/types.h sys/stat.h fcntl.h regex.h)
 
+AC_CHECK_LIB(elf, elf_begin)
+AC_CHECK_HEADERS([libelf/libelf.h libelf.h], [found_libelf_header=yes; break;])
+AS_IF([test "x$found_libelf_header" != "xyes"], [AC_MSG_ERROR(libelf.h not found)])
+AC_CHECK_HEADERS([libelf/gelf.h gelf.h], [found_gelf_header=yes; break;])
+AS_IF([test "x$found_gelf_header" != "xyes"], [AC_MSG_ERROR(gelf.h not found)])
 
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(zen-unit, 0.1)

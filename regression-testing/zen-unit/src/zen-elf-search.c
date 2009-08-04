@@ -24,8 +24,21 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
+#include "config.h"
+
+#ifdef HAVE_LIBELF_LIBELF_H
 #include <libelf/libelf.h>
+#endif
+#ifdef HAVE_LIBELF_GELF_H
 #include <libelf/gelf.h>
+#endif
+#ifdef HAVE_LIBELF_H
+#include <libelf.h>
+#endif
+#ifdef HAVE_GELF_H
+#include <gelf.h>
+#endif
+
 
 #include <sys/types.h>
 #include <sys/stat.h>
