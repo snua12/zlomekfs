@@ -44,6 +44,9 @@ extern string kernel_file_name;
 /*! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
 
+/*! mlockall() zfsd  .*/
+extern bool mlock_zfsd;
+
 extern void set_default_uid_gid (void);
 extern void add_reread_config_request_dentry (internal_dentry dentry);
 extern void add_reread_config_request_local_path (volume vol, string *path);

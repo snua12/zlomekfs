@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <getopt.h>
 #include <errno.h>
 #include <sys/mman.h>
 #include <signal.h>
@@ -115,11 +114,11 @@ fatal_sigaction (int signum, siginfo_t *info, void *data)
         {
           case SIGBUS:
           case SIGSEGV:
-#if defined(__i386__)
+#if defined (__linux__) && defined(__i386__)
             internal_error ("%s at %p when accessing %p", strsignal (signum),
                             context->uc_mcontext.gregs[REG_EIP],
                             info->si_addr);
-#elif defined(__x86_64__)
+#elif defined (__linux__) && defined(__x86_64__)
             internal_error ("%s at %p when accessing %p", strsignal (signum),
                             context->uc_mcontext.gregs[REG_RIP],
                             info->si_addr);
@@ -246,23 +245,29 @@ disable_sig_handlers (void)
 void
 usage (void)
 {
-  printf ("Usage: zfsd [OPTION]...\n\n");
-  printf ("  -f, --config=FILE            "
-          "Specifies the name of the configuration file.\n");
-  printf ("  -n, --node=ID:NAME:HOSTNAME  "
-          "Fetch global configuration from specified node.\n");
-  printf ("  -v, --verbose                "
-          "Verbose; display verbose debugging messages.\n");
-  printf ("                               "
-          "Multiple -v increases verbosity.\n");
-  printf ("  -q, --quiet                  "
-          "Quiet; display less messages.\n");
-  printf ("                               "
-          "Multiple -q increases quietness.\n");
-  printf ("      --help                   "
-          "Display this help and exit.\n");
-  printf ("      --version                "
-          "Output version information and exit.\n");
+  printf ("Usage: zfsd [OPTION]...\n\n"
+	  "  -o config=FILE               "
+          "Specifies the name of the configuration file.\n"
+	  "  -o node=ID:NAME:HOSTNAME     "
+          "Fetch global configuration from specified node.\n"
+	  "  -v, --verbose                "
+          "Verbose; display verbose debugging messages.\n"
+	  "                               "
+          "Multiple -v increases verbosity.\n"
+	  "  -q, --quiet                  "
+          "Quiet; display less messages.\n"
+	  "                               "
+          "Multiple -q increases quietness.\n"
+	  "      --help                   "
+          "Display this help and exit.\n"
+	  "      --version                "
+          "Output version information and exit.\n"
+	  "\n"
+	  "FUSE options:\n"
+	  "  -d, -o debug                 "
+	  "Enable debug output (implies -f)\n"
+	  "  -f                           "
+	  "Foreground operation\n");
 }
 
 /*! Display the version, exit the program with exit code EXITCODE.  */
@@ -280,75 +285,72 @@ version (int exitcode)
 
 /*! For long options that have no equivalent short option, use a non-character
    as a pseudo short option, starting with CHAR_MAX + 1.  */
-enum long_option
+enum
 {
   OPTION_HELP = CHAR_MAX + 1,
   OPTION_VERSION
 };
 
-static struct option const long_options[] = {
-  {"config", required_argument, 0, 'f'},
-  {"node", required_argument, 0, 'n'},
-  {"verbose", no_argument, 0, 'v'},
-  {"quiet", no_argument, 0, 'q'},
-  {"help", no_argument, 0, OPTION_HELP},
-  {"version", no_argument, 0, OPTION_VERSION},
-  {NULL, 0, NULL, 0}
+static const struct fuse_opt main_options[] = {
+  FUSE_OPT_KEY ("config=", 'f'),
+  FUSE_OPT_KEY ("node=", 'n'),
+  FUSE_OPT_KEY ("-v", 'v'),
+  FUSE_OPT_KEY ("--verbose", 'v'),
+  FUSE_OPT_KEY ("-q", 'q'),
+  FUSE_OPT_KEY ("--quiet", 'q'),
+  FUSE_OPT_KEY ("--help", OPTION_HELP),
+  FUSE_OPT_KEY ("--version", OPTION_VERSION),
+  FUSE_OPT_END
 };
 
 /*! Process command line arguments.  */
+static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
+				ATTRIBUTE_UNUSED const char *arg, int key,
+				ATTRIBUTE_UNUSED struct fuse_args *outargs)
+{
+  switch (key)
+    {
+    case 'f':
+      free (config_file);
+      config_file = xstrdup (strchr (arg, '=') + 1);
+      return 0;
+
+    case 'n':
+      free (config_node);
+      config_node = xstrdup (strchr (arg, '=') + 1);
+      return 0;
+
+    case 'v':
+      verbose++;
+      return 0;
+
+    case 'q':
+      verbose--;
+      return 0;
+
+    case OPTION_HELP:
+      usage ();
+      exit (EXIT_SUCCESS);
+
+    case OPTION_VERSION:
+      version (EXIT_SUCCESS);
+      exit (EXIT_SUCCESS);
+
+    case FUSE_OPT_KEY_OPT: case FUSE_OPT_KEY_NONOPT: default:
+      return 1;
+    }
+}
 
 static void
 process_arguments (int argc, char **argv)
 {
-  int c;
-
-  while ((c = getopt_long (argc, argv, "f:n:qv", long_options, NULL)) != -1)
-    {
-      switch (c)
-        {
-          case 'f':
-            free (config_file);
-            config_file = xstrdup (optarg);
-            break;
-
-          case 'n':
-            if (config_node)
-              free (config_node);
-            config_node = xstrdup (optarg);
-            break;
-
-          case 'v':
-            verbose++;
-            break;
-
-          case 'q':
-            verbose--;
-            break;
-
-          case OPTION_HELP:
-            usage ();
-            exit (EXIT_SUCCESS);
-            break;
-
-          case OPTION_VERSION:
-            version (EXIT_SUCCESS);
-            break;
-
-          default:
-            usage ();
-            exit (EXIT_FAILURE);
-            break;
-        }
-    }
-
-  if (optind < argc)
+  main_args = (struct fuse_args) FUSE_ARGS_INIT (argc, argv);
+  if (fuse_opt_parse (&main_args, NULL, main_options, handle_one_argument) != 0)
     {
       usage ();
       exit (EXIT_FAILURE);
     }
 }
-
 /*! Make zfsd to terminate.  */
 
 void
@@ -491,7 +493,7 @@ main (int argc, char **argv)
 #endif
 
   /* Keep the pages of the daemon in memory.  */
-  if (mlockall (MCL_CURRENT | MCL_FUTURE))
+  if (mlock_zfsd && mlockall (MCL_CURRENT | MCL_FUTURE))
     {
       message (-1, stderr, "mlockall: %s\n", strerror (errno));
       die ();

@@ -23,17 +23,26 @@ PREFIX ?= /usr
 INSTALL = install
 
 CC = gcc
-CC_OPTS =
+CC_OPTS = $(FUSE_CFLAGS) -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
+	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes -Wundef
+#	-Wwrite-strings
 LD = gcc
-LD_OPTS = -lpthread
+LD_OPTS = $(FUSE_LDFLAGS) -lpthread
+
+FUSE_CFLAGS := $(shell pkg-config --cflags fuse)
+#FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I../fuse/include
+FUSE_LDFLAGS := $(shell pkg-config --libs fuse)
+#FUSE_LDFLAGS= -pthread ../fuse/lib/.libs/libfuse.a
+ifndef freebsd
+  FUSE_LDFLAGS += -lrt -ldl
+endif
 
 ifeq ($(debug), 1)
   CC_OPTS += -g -DDEBUG -O0
   LD_OPTS += -g
 else
-  CC_OPTS += -O3
+  CC_OPTS += -O2 -g
 endif
-
 
 .SUFFIXES: .c .o
 .PHONY: all install uninstall clean
@@ -67,7 +76,7 @@ OO_ZFSD = zfsd.o \
 	  zfs-prot.o
 
 zfsd: $(OO_ZFSD)
-	$(LD) $(LD_OPTS) -o $@ $^
+	$(LD) -o $@ $^ $(LD_OPTS)
 
 OO_DUMP_METADATA = dump-metadata.o \
 		   alloc-pool.o \
@@ -112,10 +121,7 @@ include $(OO_ALL:.o=.dep)
 
 # Objects
 
-%.o:            ../%.cc
-	$(CC) $(CC_OPTS) -c -o $@ $<
-
-%.o:            %.cc
+%.o: %.c
 	$(CC) $(CC_OPTS) -c -o $@ $<
 
 # Other

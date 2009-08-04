@@ -23,20 +23,23 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#define FUSE_USE_VERSION 26
+#include <fuse_lowlevel.h>
+
 #include "system.h"
 #include "pthread.h"
 #include "thread.h"
 
+/*! Arguments from main (), after parsing the zfsd-specific options */
+extern struct fuse_args main_args;
+
 /*! Pool of kernel threads (threads communicating with kernel).  */
 extern thread_pool kernel_pool;
-
-/*! File descriptor of file communicating with kernel.  */
-extern int kernel_fd;
 
 /*! Is ZFS mounted?  */
 extern bool mounted;
 
-extern void close_kernel_fd (void);
+extern void kernel_unmount (void);
 extern bool kernel_start (void);
 extern void kernel_cleanup (void);
 

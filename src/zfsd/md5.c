@@ -222,7 +222,7 @@ MD5HexFinal (unsigned char digest[MD5_SIZE * 2], MD5Context *ctx)
 
 /*! The four core functions - F1 is optimized somewhat.  */
 
-/*! #define F1(x, y, z) (x & y | ~x & z) */
+/* #define F1(x, y, z) (x & y | ~x & z) */
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
 #define F2(x, y, z) F1(z, x, y)
 #define F3(x, y, z) (x ^ y ^ z)

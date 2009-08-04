@@ -87,10 +87,9 @@ typedef struct network_thread_data_def
 /*! \brief Additional data for a kernel thread.  */
 typedef struct kernel_thread_data_def
 {
-  DC *dc;				/*!< buffer for request to this node */
-  call_args args;			/*!< union for decoded call arguments */
-  direction dir;			/*!< method of the request */
-  struct fd_data_def *fd_data;		/*!< passed from main network thread */
+  void *buf;				/*!< buffer for request to this node */
+  size_t buf_size;
+  struct fuse_chan *fuse_ch;
 } kernel_thread_data;
 
 /*! \brief Additional data for an update thread.  */

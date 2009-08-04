@@ -73,6 +73,9 @@ static string private_key;
 /*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
 
+/*! mlockall() zfsd  .*/
+bool mlock_zfsd;
+
 typedef struct reread_config_request_def *reread_config_request;
 /*! \brief Element of list of requests for config reread.  */
 struct reread_config_request_def
@@ -134,6 +137,7 @@ process_line (const char *file, const int line_num, char *line, char **key,
   if (*line == 0 || *line == '#' || *line == '\n')
     {
       *line = 0;
+      *value = NULL;
       message (0, stderr, "%s:%d: Option '%s' has no value\n",
 	       file, line_num, *key);
       return 0;
@@ -293,7 +297,7 @@ split_and_trim (char *line, int n, string *parts)
 /*! Set default node UID to UID of user NAME.  Return true on success.  */
 
 static bool
-set_default_uid (char *name)
+set_default_uid (const char *name)
 {
   struct passwd *pwd;
 
@@ -308,7 +312,7 @@ set_default_uid (char *name)
 /*! Set default node GID to GID of group NAME.  Return true on success.  */
 
 static bool
-set_default_gid (char *name)
+set_default_gid (const char *name)
 {
   struct group *grp;
 
@@ -331,10 +335,10 @@ set_default_uid_gid (void)
 }
 
 static bool
-read_private_key (string *filename)
+read_private_key (string *key_file)
 {
 
-  free (filename->str);
+  free (key_file->str);
   return true;
 }
 
@@ -677,13 +681,14 @@ out_fh:
 /*! Read file FH by lines and call function PROCESS for each line.  */
 
 static bool
-process_file_by_lines (zfs_fh *fh, char *file_name,
-		       int (*process) (char *, char *, unsigned int, void *),
+process_file_by_lines (zfs_fh *fh, const char *file_name,
+		       int (*process) (char *, const char *, unsigned int,
+				       void *),
 		       void *data)
 {
   read_res res;
   char buf[ZFS_MAXDATA];
-  unsigned int index, i, line_num;
+  unsigned int pos, i, line_num;
   uint32_t end;
   uint64_t offset;
   zfs_cap cap;
@@ -697,12 +702,12 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
     }
 
   line_num = 1;
-  index = 0;
+  pos = 0;
   offset = 0;
   for (;;)
     {
-      res.data.buf = buf + index;
-      r = zfs_read (&res, &cap, offset, ZFS_MAXDATA - index, true);
+      res.data.buf = buf + pos;
+      r = zfs_read (&res, &cap, offset, ZFS_MAXDATA - pos, true);
       if (r != ZFS_OK)
 	{
 	  message (0, stderr, "%s: read(): %s\n", file_name, zfs_strerror (r));
@@ -713,14 +718,14 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 	break;
 
       offset += res.data.len;
-      end = index + res.data.len;
-      for (index = 0, i = 0; index < end; index = i + 1)
+      end = pos + res.data.len;
+      for (pos = 0, i = 0; pos < end; pos = i + 1)
 	{
-	  for (i = index; i < end; i++)
+	  for (i = pos; i < end; i++)
 	    if (buf[i] == '\n')
 	      {
 		buf[i] = 0;
-		if ((*process) (buf + index, file_name, line_num, data) != 0)
+		if ((*process) (buf + pos, file_name, line_num, data) != 0)
 		  goto finish;
 		line_num++;
 		break;
@@ -729,20 +734,20 @@ process_file_by_lines (zfs_fh *fh, char *file_name,
 	    break;
 	}
 
-      if (index == 0 && i == ZFS_MAXDATA)
+      if (pos == 0 && i == ZFS_MAXDATA)
 	{
 	  message (0, stderr, "%s:%u: Line too long\n", file_name, line_num);
 	  goto out;
 	}
-      if (index > 0)
+      if (pos > 0)
 	{
-	  memmove (buf, buf + index, end - index);
-	  index = end - index;
+	  memmove (buf, buf + pos, end - pos);
+	  pos = end - pos;
 	}
       else
 	{
 	  /* The read block does not contain new line.  */
-	  index = end;
+	  pos = end;
 	}
     }
 
@@ -765,7 +770,7 @@ out:
    Return 0 if we should continue reading lines from file.  */
 
 static int
-process_line_node (char *line, char *file_name, unsigned int line_num,
+process_line_node (char *line, const char *file_name, unsigned int line_num,
 		   ATTRIBUTE_UNUSED void *data)
 {
   string parts[3];
@@ -841,7 +846,8 @@ typedef struct volume_hierarchy_data_def
    and update hierarchy DATA.  */
 
 static int
-process_line_volume_hierarchy (char *line, ATTRIBUTE_UNUSED char *file_name,
+process_line_volume_hierarchy (char *line,
+			       ATTRIBUTE_UNUSED const char *file_name,
 			       ATTRIBUTE_UNUSED unsigned int line_num,
 			       void *data)
 {
@@ -1084,9 +1090,9 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
   if (VARRAY_USED (data.hierarchy) > 0)
     {
       unsigned int i;
-      string str;
-      volume vol;
-      node nod;
+      string str2;
+      volume vol2;
+      node nod2;
 
       master_name = NULL;
       for (i = 0; i < VARRAY_USED (data.hierarchy); i++)
@@ -1098,32 +1104,32 @@ read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
 
       if (master_name)
 	{
-	  str.str = master_name;
-	  str.len = strlen (master_name);
-	  nod = node_lookup_name (&str);
-	  if (!nod)
+	  str2.str = master_name;
+	  str2.len = strlen (master_name);
+	  nod2 = node_lookup_name (&str2);
+	  if (!nod2)
 	    goto out;
-	  zfsd_mutex_unlock (&nod->mutex);
+	  zfsd_mutex_unlock (&nod2->mutex);
 
 	  zfsd_mutex_lock (&fh_mutex);
 	  zfsd_mutex_lock (&volume_mutex);
-	  vol = volume_lookup_nolock (vid);
-	  if (!vol)
-	    vol = volume_create (vid);
+	  vol2 = volume_lookup_nolock (vid);
+	  if (!vol2)
+	    vol2 = volume_create (vid);
 	  else
 	    {
-	      if (!vol->marked)
+	      if (!vol2->marked)
 		{
-		  zfsd_mutex_unlock (&vol->mutex);
+		  zfsd_mutex_unlock (&vol2->mutex);
 		  zfsd_mutex_unlock (&volume_mutex);
 		  zfsd_mutex_unlock (&fh_mutex);
 		  goto out;
 		}
-	      if (vol->slaves)
-		htab_empty (vol->slaves);
+	      if (vol2->slaves)
+		htab_empty (vol2->slaves);
 	    }
-	  volume_set_common_info (vol, name, mountpoint, nod);
-	  zfsd_mutex_unlock (&vol->mutex);
+	  volume_set_common_info (vol2, name, mountpoint, nod2);
+	  zfsd_mutex_unlock (&vol2->mutex);
 	  zfsd_mutex_unlock (&volume_mutex);
 	  zfsd_mutex_unlock (&fh_mutex);
 	}
@@ -1151,7 +1157,7 @@ static string saved_mountpoint;
    Return 0 if we should continue reading lines from file.  */
 
 static int
-process_line_volume (char *line, char *file_name, unsigned int line_num,
+process_line_volume (char *line, const char *file_name, unsigned int line_num,
 		     void *data)
 {
   zfs_fh *volume_hierarchy_dir = (zfs_fh *) data;
@@ -1277,7 +1283,7 @@ no_config:
    Return 0 if we should continue reading lines from file.  */
 
 static int
-process_line_user (char *line, char *file_name, unsigned int line_num,
+process_line_user (char *line, const char *file_name, unsigned int line_num,
 		   ATTRIBUTE_UNUSED void *data)
 {
   string parts[2];
@@ -1336,7 +1342,7 @@ read_user_list (zfs_fh *config_dir)
    Return 0 if we should continue reading lines from file.  */
 
 static int
-process_line_group (char *line, char *file_name, unsigned int line_num,
+process_line_group (char *line, const char *file_name, unsigned int line_num,
 		    ATTRIBUTE_UNUSED void *data)
 {
   string parts[2];
@@ -1395,8 +1401,8 @@ read_group_list (zfs_fh *config_dir)
    Return 0 if we should continue reading lines from file.  */
 
 static int
-process_line_user_mapping (char *line, char *file_name, unsigned int line_num,
-			   void *data)
+process_line_user_mapping (char *line, const char *file_name,
+			   unsigned int line_num, void *data)
 {
   uint32_t sid = *(uint32_t *) data;
   string parts[2];
@@ -1453,14 +1459,14 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
 {
   dir_op_res user_mapping_res;
   int32_t r;
-  string node_name;
+  string node_name_;
   char *file_name;
   bool ret;
 
   if (sid == 0)
     {
-      node_name.str = "default";
-      node_name.len = strlen ("default");
+      node_name_.str = "default";
+      node_name_.len = strlen ("default");
     }
   else
     {
@@ -1470,24 +1476,24 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
       if (!nod)
 	return false;
 
-      xstringdup (&node_name, &nod->name);
+      xstringdup (&node_name_, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
     }
 
-  r = zfs_extended_lookup (&user_mapping_res, user_dir, node_name.str);
+  r = zfs_extended_lookup (&user_mapping_res, user_dir, node_name_.str);
   if (r != ZFS_OK)
     {
       if (sid != 0)
-	free (node_name.str);
+	free (node_name_.str);
       return true;
     }
 
-  file_name = xstrconcat (2, "config:/user/", node_name.str);
+  file_name = xstrconcat (2, "config:/user/", node_name_.str);
   ret = process_file_by_lines (&user_mapping_res.file, file_name,
 			       process_line_user_mapping, &sid);
   free (file_name);
   if (sid != 0)
-    free (node_name.str);
+    free (node_name_.str);
   return ret;
 }
 
@@ -1495,8 +1501,8 @@ read_user_mapping (zfs_fh *user_dir, uint32_t sid)
    Return 0 if we should continue reading lines from file.  */
 
 static int
-process_line_group_mapping (char *line, char *file_name, unsigned int line_num,
-			    void *data)
+process_line_group_mapping (char *line, const char *file_name,
+			    unsigned int line_num, void *data)
 {
   uint32_t sid = *(uint32_t *) data;
   string parts[2];
@@ -1553,14 +1559,14 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
 {
   dir_op_res group_mapping_res;
   int32_t r;
-  string node_name;
+  string node_name_;
   char *file_name;
   bool ret;
 
   if (sid == 0)
     {
-      node_name.str = "default";
-      node_name.len = strlen ("default");
+      node_name_.str = "default";
+      node_name_.len = strlen ("default");
     }
   else
     {
@@ -1570,24 +1576,24 @@ read_group_mapping (zfs_fh *group_dir, uint32_t sid)
       if (!nod)
 	return false;
 
-      xstringdup (&node_name, &nod->name);
+      xstringdup (&node_name_, &nod->name);
       zfsd_mutex_unlock (&nod->mutex);
     }
 
-  r = zfs_extended_lookup (&group_mapping_res, group_dir, node_name.str);
+  r = zfs_extended_lookup (&group_mapping_res, group_dir, node_name_.str);
   if (r != ZFS_OK)
     {
       if (sid != 0)
-	free (node_name.str);
+	free (node_name_.str);
       return true;
     }
 
-  file_name = xstrconcat (2, "config:/group/", node_name.str);
+  file_name = xstrconcat (2, "config:/group/", node_name_.str);
   ret = process_file_by_lines (&group_mapping_res.file, file_name,
 			       process_line_group_mapping, &sid);
   free (file_name);
   if (sid != 0)
-    free (node_name.str);
+    free (node_name_.str);
   return ret;
 }
 
@@ -2022,22 +2028,22 @@ add_reread_config_request_local_path (volume vol, string *path)
 void
 add_reread_config_request (string *relative_path, uint32_t from_sid)
 {
-  reread_config_request node;
+  reread_config_request req;
 
   if (get_thread_state (&config_reader_data) != THREAD_IDLE)
     return;
 
   zfsd_mutex_lock (&reread_config_mutex);
-  node = (reread_config_request) pool_alloc (reread_config_pool);
-  node->next = NULL;
-  node->relative_path = *relative_path;
-  node->from_sid = from_sid;
+  req = (reread_config_request) pool_alloc (reread_config_pool);
+  req->next = NULL;
+  req->relative_path = *relative_path;
+  req->from_sid = from_sid;
 
   if (reread_config_last)
-    reread_config_last->next = node;
+    reread_config_last->next = req;
   else
-    reread_config_first = node;
-  reread_config_last = node;
+    reread_config_first = req;
+  reread_config_last = req;
 
   zfsd_mutex_unlock (&reread_config_mutex);
 
@@ -2224,13 +2230,13 @@ config_reader (void *data)
 	  VARRAY_USED (v) = 0;
 	  HTAB_FOR_EACH_SLOT (vol->slaves, slot)
 	    {
-	      node nod = (node) *slot;
+	      node nod2 = (node) *slot;
 
 	      zfsd_mutex_lock (&node_mutex);
-	      zfsd_mutex_lock (&nod->mutex);
-	      if (nod->id != from_sid)
-		VARRAY_PUSH (v, nod->id, uint32_t);
-	      zfsd_mutex_unlock (&nod->mutex);
+	      zfsd_mutex_lock (&nod2->mutex);
+	      if (nod2->id != from_sid)
+		VARRAY_PUSH (v, nod2->id, uint32_t);
+	      zfsd_mutex_unlock (&nod2->mutex);
 	      zfsd_mutex_unlock (&node_mutex);
 	    }
 	  zfsd_mutex_unlock (&vol->mutex);
@@ -2328,7 +2334,7 @@ read_cluster_config (void)
     \param name Name of the threads.  */
 
 static bool
-verify_thread_limit (thread_limit *limit, char *name)
+verify_thread_limit (thread_limit *limit, const char *name)
 {
   if (limit->min_spare > limit->max_total)
     {
@@ -2365,6 +2371,7 @@ read_config_file (const char *file)
   /* Default values.  */
   set_str (&kernel_file_name, "/dev/zfs");
   set_str (&local_config, "/etc/zfs");
+  mlock_zfsd = true;
 
   /* Read the config file.  */
   f = fopen (file, "rt");
@@ -2411,6 +2418,15 @@ read_config_file (const char *file)
 		{
 		  set_string_with_length (&kernel_file_name, value, value_len);
 		  message (1, stderr, "KernelDevice = '%s'\n", value);
+		}
+	      else if (strncasecmp (key, "mlock", 6) == 0)
+		{
+		  int i;
+
+		  if (sscanf (value, "%d", &i) != 1 || (i != 0 && i != 1))
+		    message (0, stderr, "Invalid mlock value: %s\n", value);
+		  else
+		    mlock_zfsd = i != 0;
 		}
 	      else if (strncasecmp (key, "defaultuser", 12) == 0)
 		{
@@ -2516,6 +2532,7 @@ read_config_file (const char *file)
 		  || strncasecmp (key, "localconfiguration", 19) == 0
 		  || strncasecmp (key, "kerneldevice", 13) == 0
 		  || strncasecmp (key, "kernelfile", 11) == 0
+		  || strncasecmp (key, "mlock", 6) == 0
 		  || strncasecmp (key, "defaultuser", 12) == 0
 		  || strncasecmp (key, "defaultuid", 11) == 0
 		  || strncasecmp (key, "defaultgroup", 13) == 0

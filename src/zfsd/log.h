@@ -88,10 +88,11 @@
 extern int verbose;
 
 /*! Print message to F if LEVEL > VERBOSE.  */
-extern void message (int level, FILE *f, char *format, ...) ATTRIBUTE_PRINTF_3;
+extern void message (int level, FILE *f, const char *format, ...)
+  ATTRIBUTE_PRINTF_3;
 
 /*! Report an internal error.  */
-extern void internal_error (char *format, ...) ATTRIBUTE_NORETURN;
+extern void internal_error (const char *format, ...) ATTRIBUTE_NORETURN;
 
 /*! Report an "Aborted" internal error.  */
 extern void verbose_abort (const char *file, int line) ATTRIBUTE_NORETURN;

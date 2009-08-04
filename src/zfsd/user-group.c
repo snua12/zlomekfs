@@ -67,7 +67,7 @@ uint32_t default_node_gid = (uint32_t) -1;
 static hash_t
 users_id_hash (const void *x)
 {
-  return USER_ID_HASH (((user_t) x)->id);
+  return USER_ID_HASH (((const struct user_def *) x)->id);
 }
 
 /*! Hash function for user X, computed from NAME.  */
@@ -75,7 +75,7 @@ users_id_hash (const void *x)
 static hash_t
 users_name_hash (const void *x)
 {
-  return USER_NAME_HASH (((user_t) x)->name);
+  return USER_NAME_HASH (((const struct user_def *) x)->name);
 }
 
 /*! Compare an user X with user ID Y.  */
@@ -83,7 +83,7 @@ users_name_hash (const void *x)
 static int
 users_id_eq (const void *x, const void *y)
 {
-  return ((user_t) x)->id == *(uint32_t *) y;
+  return ((const struct user_def *) x)->id == *(const uint32_t *) y;
 }
 
 /*! Compare an user X with user name Y.  */
@@ -91,8 +91,8 @@ users_id_eq (const void *x, const void *y)
 static int
 users_name_eq (const void *x, const void *y)
 {
-  user_t u = (user_t) x;
-  string *s = (string *) y;
+  const struct user_def *u = (const struct user_def *) x;
+  const string *s = (const string *) y;
 
   return (u->name.len == s->len
 	  && strcmp (u->name.str, s->str) == 0);
@@ -103,7 +103,7 @@ users_name_eq (const void *x, const void *y)
 static hash_t
 groups_id_hash (const void *x)
 {
-  return GROUP_ID_HASH (((group_t) x)->id);
+  return GROUP_ID_HASH (((const struct group_def *) x)->id);
 }
 
 /*! Hash function for group X, computed from NAME.  */
@@ -111,7 +111,7 @@ groups_id_hash (const void *x)
 static hash_t
 groups_name_hash (const void *x)
 {
-  return GROUP_NAME_HASH (((group_t) x)->name);
+  return GROUP_NAME_HASH (((const struct group_def *) x)->name);
 }
 
 /*! Compare a group X with group ID Y.  */
@@ -119,7 +119,7 @@ groups_name_hash (const void *x)
 static int
 groups_id_eq (const void *x, const void *y)
 {
-  return ((group_t) x)->id == *(uint32_t *) y;
+  return ((const struct group_def *) x)->id == *(const uint32_t *) y;
 }
 
 /*! Compare a group X with group name Y.  */
@@ -127,8 +127,8 @@ groups_id_eq (const void *x, const void *y)
 static int
 groups_name_eq (const void *x, const void *y)
 {
-  group_t g = (group_t) x;
-  string *s = (string *) y;
+  const struct group_def *g = (const struct group_def *) x;
+  const string *s = (const string *) y;
 
   return (g->name.len == s->len
 	  && strcmp (g->name.str, s->str) == 0);
@@ -337,7 +337,7 @@ group_destroy (group_t g)
 hash_t
 map_id_to_node_hash (const void *x)
 {
-  return MAP_ID_HASH (((id_mapping) x)->zfs_id);
+  return MAP_ID_HASH (((const struct id_mapping_def *) x)->zfs_id);
 }
 
 /*! Hash function for id_mapping, computed from NODE_ID.  */
@@ -345,7 +345,7 @@ map_id_to_node_hash (const void *x)
 hash_t
 map_id_to_zfs_hash (const void *x)
 {
-  return MAP_ID_HASH (((id_mapping) x)->node_id);
+  return MAP_ID_HASH (((const struct id_mapping_def *) x)->node_id);
 }
 
 /*! Compare ID mapping X with ZFS user/group ID Y.  */
@@ -353,7 +353,7 @@ map_id_to_zfs_hash (const void *x)
 int
 map_id_to_node_eq (const void *x, const void *y)
 {
-  return ((id_mapping) x)->zfs_id == *(uint32_t *) y;
+  return ((const struct id_mapping_def *) x)->zfs_id == *(const uint32_t *) y;
 }
 
 /*! Compare ID mapping X with node user/group ID Y.  */
@@ -361,7 +361,7 @@ map_id_to_node_eq (const void *x, const void *y)
 int
 map_id_to_zfs_eq (const void *x, const void *y)
 {
-  return ((id_mapping) x)->node_id == *(uint32_t *) y;
+  return ((const struct id_mapping_def *) x)->node_id == *(const uint32_t *) y;
 }
 
 /*! Add mapping between ZFS user name ZFS_USER and node user name NODE_USER

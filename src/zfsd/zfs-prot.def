@@ -33,106 +33,78 @@
 
 #if defined (ZFS_CALL_SERVER) || defined (ZFS_CALL_CLIENT)
 # ifndef __KERNEL__
-/*! Do nothing. Just test whether the requests can be sent.  */
 DEFINE_ZFS_PROC (0, NULL, null, void,
 		 AUTHENTICATION_NONE, DIR_REQUEST)
 
-/*! Ping. The receiver sends back what the sender sent.  */
 DEFINE_ZFS_PROC (1, PING, ping, data_buffer,
 		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
 
 # endif
-/*! Get file handle of root.  */
 DEFINE_ZFS_PROC (2, ROOT, root, void,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # ifndef __KERNEL__
-/*! Get file handle of volume root.  */
 DEFINE_ZFS_PROC (3, VOLUME_ROOT, volume_root, volume_root_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # endif
-/*! Get attributes of the file.  */
 DEFINE_ZFS_PROC (4, GETATTR, getattr, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Set attributes of the file.  */
 DEFINE_ZFS_PROC (5, SETATTR, setattr, setattr_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Lookup the file name.  */
 DEFINE_ZFS_PROC (6, LOOKUP, lookup, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Create the file.  */
 DEFINE_ZFS_PROC (7, CREATE, create, create_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Open the file or directory.  */
 DEFINE_ZFS_PROC (8, OPEN, open, open_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Close the file or directory.  */
 DEFINE_ZFS_PROC (9, CLOSE, close, zfs_cap,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Read the contents of the directory.  */
 DEFINE_ZFS_PROC (10, READDIR, readdir, read_dir_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Create the directory.  */
 DEFINE_ZFS_PROC (11, MKDIR, mkdir, mkdir_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Delete the directory.  */
 DEFINE_ZFS_PROC (12, RMDIR, rmdir, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Rename the file or directory.  */
 DEFINE_ZFS_PROC (13, RENAME, rename, rename_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Link the file.  */
 DEFINE_ZFS_PROC (14, LINK, link, link_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Delete the file.  */
 DEFINE_ZFS_PROC (15, UNLINK, unlink, dir_op_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Read from the file.  */
 DEFINE_ZFS_PROC (16, READ, read, read_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Write to the file.  */
 DEFINE_ZFS_PROC (17, WRITE, write, write_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Read the symlink.  */
 DEFINE_ZFS_PROC (18, READLINK, readlink, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Create the symlink.  */
 DEFINE_ZFS_PROC (19, SYMLINK, symlink, symlink_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Create the special file.  */
 DEFINE_ZFS_PROC (20, MKNOD, mknod, mknod_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # ifndef __KERNEL__
-/*! 1st stage of authentication.  */
 DEFINE_ZFS_PROC (21, AUTH_STAGE1, auth_stage1, auth_stage1_args,
 		 AUTHENTICATION_NONE, DIR_REQUEST)
-/*! 2nd stage of authentication.  */
 DEFINE_ZFS_PROC (22, AUTH_STAGE2, auth_stage2, auth_stage2_args,
 		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
-/*! Compute MD% sum of file blocks.  */
 DEFINE_ZFS_PROC (23, MD5SUM, md5sum, md5sum_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Get relative path for the file handle.  */
 DEFINE_ZFS_PROC (24, FILE_INFO, file_info, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Reread the configuration file.  */
 DEFINE_ZFS_PROC (25, REREAD_CONFIG, reread_config, reread_config_args,
 		 AUTHENTICATION_FINISHED, DIR_ONEWAY)
-/*! Start reintegration of file or setting version of directory.  */
 DEFINE_ZFS_PROC (26, REINTEGRATE, reintegrate, reintegrate_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Add the file.  */
 DEFINE_ZFS_PROC (27, REINTEGRATE_ADD, reintegrate_add, reintegrate_add_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Delete the file.  */
 DEFINE_ZFS_PROC (28, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-/*! Increase the version.  */
 DEFINE_ZFS_PROC (29, REINTEGRATE_SET, reintegrate_ver, reintegrate_ver_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 # endif
 #endif
 #if defined (ZFS_CALL_KERNEL)
-/*! Invlaidate the kernel dentry.  */
+/*! N/A zfs_proc_invalidate (zfs_fh)
+
+    Invalidate the kernel dentry.  An one-way request. */
 DEFINE_ZFS_PROC (30, INVALIDATE, invalidate, invalidate_args,
 		 AUTHENTICATION_NONE, DIR_ONEWAY)
 #endif

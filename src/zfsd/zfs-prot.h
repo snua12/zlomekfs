@@ -159,11 +159,6 @@ typedef struct fattr_def
   zfs_time ctime;
 } fattr;
 
-#define SATTR_MODE	1
-#define SATTR_CHOWN	2
-#define SATTR_SIZE	4
-#define SATTR_UTIME	8
-
 typedef struct sattr_def
 {
   uint32_t mode;
@@ -213,8 +208,7 @@ typedef struct create_args_def
 typedef struct create_res_def
 {
   zfs_cap cap;
-  zfs_fh file;
-  fattr attr;
+  dir_op_res dor;
 } create_res;
 
 typedef struct open_args_def
@@ -458,13 +452,12 @@ struct node_def;
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-#else /* __KERNEL__ */
+#else
 
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
-                                            DC *dc, void *data,		\
-                                            bool map_id);
+                                            DC *dc, void *data);
 #include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_SERVER
@@ -498,14 +491,14 @@ struct node_def;
 #undef ZFS_CALL_KERNEL
 
 /*! Call statistics.  */
-#define CALL_FROM_KERNEL	0
-#define CALL_FROM_NETWORK	1
-extern uint64_t call_statistics[2][ZFS_PROC_LAST_AND_UNUSED];
+extern uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];
 
-extern char *zfs_strerror (int32_t errnum);
+extern const char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c (void);
 extern void cleanup_zfs_prot_c (void);
 
 #endif /* !__KERNEL__ */
+
+extern int zfs_error(int error);
 
 #endif

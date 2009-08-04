@@ -42,7 +42,6 @@
 #include "kernel.h"
 #include "log.h"
 #include "util.h"
-#include "malloc.h"
 #include "thread.h"
 #include "zfs-prot.h"
 #include "node.h"
@@ -82,7 +81,7 @@ pthread_mutex_t pending_slow_reqs_mutex;
 
 /*! \brief Condition variable for #pending_slow_reqs_count
  *
- * Protected by #pendinf_slow_reqs_mutex
+ * Protected by #pending_slow_reqs_mutex
  */
 pthread_cond_t pending_slow_reqs_cond;
 
@@ -92,7 +91,7 @@ pthread_cond_t pending_slow_reqs_cond;
 hash_t
 waiting4reply_hash (const void *xx)
 {
-  const waiting4reply_data *x = (waiting4reply_data *) xx;
+  const waiting4reply_data *x = (const waiting4reply_data *) xx;
 
   return WAITING4REPLY_HASH (x->request_id);
 }
@@ -102,8 +101,8 @@ waiting4reply_hash (const void *xx)
 int
 waiting4reply_eq (const void *xx, const void *yy)
 {
-  const waiting4reply_data *x = (waiting4reply_data *) xx;
-  const unsigned int id = *(unsigned int *) yy;
+  const waiting4reply_data *x = (const waiting4reply_data *) xx;
+  const unsigned int id = *(const unsigned int *) yy;
 
   return WAITING4REPLY_HASH (x->request_id) == id;
 }
@@ -176,10 +175,10 @@ add_fd_to_active (int fd)
 }
 
 /*! Update file descriptor of node NOD to be FD with generation GENERATION.
-   ACTIVE is true when this node is creating the connection.  */
+   ACTIVE_OPEN is true when this node is creating the connection.  */
 
 void
-update_node_fd (node nod, int fd, unsigned int generation, bool active)
+update_node_fd (node nod, int fd, unsigned int generation, bool active_open)
 {
   CHECK_MUTEX_LOCKED (&nod->mutex);
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);
@@ -205,8 +204,8 @@ update_node_fd (node nod, int fd, unsigned int generation, bool active)
     }
   else
     {
-      if ((active && nod->id < this_node->id)
-          || (!active && nod->id > this_node->id))
+      if ((active_open && nod->id < this_node->id)
+          || (!active_open && nod->id > this_node->id))
         {
           /* The new connection is in allowed direction.  */
           zfsd_mutex_lock (&fd_data_a[nod->fd].mutex);
@@ -1240,10 +1239,10 @@ network_worker (void *data)
                 || !finish_decoding (t->u.network.dc))			\
               {								\
                 if (CALL_MODE == DIR_REQUEST)				\
-                  send_error_reply (t, request_id, ZFS_INVALID_REQUEST);\
+                  send_error_reply (t, request_id, ZFS_INVALID_REQUEST); \
                 goto out;						\
               }								\
-            call_statistics[CALL_FROM_NETWORK][NUMBER]++;		\
+            call_statistics[NUMBER]++;					\
             if (CALL_MODE == DIR_REQUEST)				\
               {								\
                 start_encoding (t->u.network.dc);			\
@@ -1252,7 +1251,7 @@ network_worker (void *data)
               }								\
             zfs_proc_##FUNCTION##_server (&t->u.network.args.FUNCTION,	\
                                           t->u.network.dc,		\
-                                          &t->u.network, false);	\
+                                          &t->u.network);		\
             if (CALL_MODE == DIR_REQUEST)				\
               {								\
                 finish_encoding (t->u.network.dc);			\
@@ -1306,7 +1305,7 @@ static bool
 network_dispatch (fd_data_t *fd_data)
 {
   DC *dc = fd_data->dc[0];
-  size_t index;
+  size_t idx;
   direction dir;
 
   CHECK_MUTEX_LOCKED (&fd_data->mutex);
@@ -1381,21 +1380,21 @@ network_dispatch (fd_data_t *fd_data)
           thread_pool_regulate (&network_pool);
 
         /* Select an idle thread and forward the request to it.  */
-        queue_get (&network_pool.idle, &index);
+        queue_get (&network_pool.idle, &idx);
 #ifdef ENABLE_CHECKING
-        if (get_thread_state (&network_pool.threads[index].t) == THREAD_BUSY)
+        if (get_thread_state (&network_pool.threads[idx].t) == THREAD_BUSY)
           abort ();
 #endif
-        set_thread_state (&network_pool.threads[index].t, THREAD_BUSY);
-        network_pool.threads[index].t.from_sid = fd_data->sid;
-        network_pool.threads[index].t.u.network.dc = dc;
-        network_pool.threads[index].t.u.network.dir = dir;
-        network_pool.threads[index].t.u.network.fd_data = fd_data;
-        network_pool.threads[index].t.u.network.generation
+        set_thread_state (&network_pool.threads[idx].t, THREAD_BUSY);
+        network_pool.threads[idx].t.from_sid = fd_data->sid;
+        network_pool.threads[idx].t.u.network.dc = dc;
+        network_pool.threads[idx].t.u.network.dir = dir;
+        network_pool.threads[idx].t.u.network.fd_data = fd_data;
+        network_pool.threads[idx].t.u.network.generation
           = fd_data->generation;
 
         /* Let the thread run.  */
-        semaphore_up (&network_pool.threads[index].t.sem, 1);
+        semaphore_up (&network_pool.threads[idx].t.sem, 1);
 
         zfsd_mutex_unlock (&network_pool.mutex);
         break;
@@ -1412,7 +1411,7 @@ network_dispatch (fd_data_t *fd_data)
 /*! Main function of the main (i.e. listening) network thread.  */
 
 static void *
-network_main (ATTRIBUTE_UNUSED void *data)
+network_main (ATTRIBUTE_UNUSED void *data_)
 {
   struct pollfd *pfd;
   int i, n;
@@ -1574,7 +1573,7 @@ network_main (ATTRIBUTE_UNUSED void *data)
               fd_data->last_use = now;
               if (fd_data->read < 4)
                 {
-                  ssize_t r;
+                  ssize_t r2;
 
                   zfsd_mutex_lock (&fd_data->mutex);
                   if (fd_data->ndc == 0)
@@ -1584,16 +1583,17 @@ network_main (ATTRIBUTE_UNUSED void *data)
                     }
                   zfsd_mutex_unlock (&fd_data->mutex);
 
-                  r = read (fd_data->fd, fd_data->dc[0]->buffer + fd_data->read,
-                            4 - fd_data->read);
-                  if (r <= 0)
+                  r2 = read (fd_data->fd,
+			     fd_data->dc[0]->buffer + fd_data->read,
+			     4 - fd_data->read);
+                  if (r2 <= 0)
                     {
                       zfsd_mutex_lock (&fd_data->mutex);
                       close_active_fd (i);
                       zfsd_mutex_unlock (&fd_data->mutex);
                     }
                   else
-                    fd_data->read += r;
+                    fd_data->read += r2;
 
                   if (fd_data->read == 4)
                     {
@@ -1675,19 +1675,19 @@ retry_accept:
                   || (s >= 0 && nactive >= max_network_sockets))
                 {
                   time_t oldest = 0;
-                  int index = -1;
+                  int idx = -1;
 
                   /* Find the file descriptor which was unused for the longest
                      time.  */
                   for (i = 0; i < nactive; i++)
                     if (active[i]->busy == 0
-                        && (active[i]->last_use < oldest || index < 0))
+                        && (active[i]->last_use < oldest || idx < 0))
                       {
-                        index = i;
+                        idx = i;
                         oldest = active[i]->last_use;
                       }
 
-                  if (index == -1)
+                  if (idx == -1)
                     {
                       /* All file descriptors are busy so close the new one.  */
                       message (2, stderr, "All filedescriptors are busy.\n");
@@ -1698,11 +1698,11 @@ retry_accept:
                     }
                   else
                     {
-                      fd_data_t *fd_data = active[index];
+                      fd_data_t *fd_data = active[idx];
 
                       /* Close file descriptor unused for the longest time.  */
                       zfsd_mutex_lock (&fd_data->mutex);
-                      close_active_fd (index);
+                      close_active_fd (idx);
                       zfsd_mutex_unlock (&fd_data->mutex);
                       goto retry_accept;
                     }
@@ -1784,13 +1784,6 @@ fd_data_shutdown (void)
       zfsd_mutex_unlock (&fd_data->mutex);
     }
   zfsd_mutex_unlock (&active_mutex);
-
-  if (kernel_fd >= 0)
-    {
-      zfsd_mutex_lock (&fd_data_a[kernel_fd].mutex);
-      wake_all_threads (&fd_data_a[kernel_fd], ZFS_EXITING);
-      zfsd_mutex_unlock (&fd_data_a[kernel_fd].mutex);
-    }
 }
 
 /*! \brief Destroy networking and kernel file descriptors, mutexes and cond vars.  */
@@ -1811,7 +1804,7 @@ fd_data_destroy (void)
   zfsd_mutex_unlock (&active_mutex);
   zfsd_mutex_destroy (&active_mutex);
 
-  close_kernel_fd ();
+  kernel_unmount ();
 
   for (i = 0; i < max_nfd; i++)
     {

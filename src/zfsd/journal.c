@@ -41,7 +41,7 @@ static pthread_mutex_t journal_mutex;
 static hash_t
 journal_hash (const void *x)
 {
-  return JOURNAL_HASH ((const journal_entry) x);
+  return JOURNAL_HASH ((const struct journal_entry_def *) x);
 }
 
 /*! Compare journal entries X and Y.  */
@@ -49,8 +49,8 @@ journal_hash (const void *x)
 static int
 journal_eq (const void *x, const void *y)
 {
-  const journal_entry j1 = (const journal_entry) x;
-  const journal_entry j2 = (const journal_entry) y;
+  const struct journal_entry_def *j1 = (const struct journal_entry_def *) x;
+  const struct journal_entry_def *j2 = (const struct journal_entry_def *) y;
 
   return (j1->oper == j2->oper
 	  && j1->name.len == j2->name.len

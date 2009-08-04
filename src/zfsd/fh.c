@@ -373,7 +373,7 @@ cleanup_dentry_thread_main (ATTRIBUTE_UNUSED void *data)
 static hash_t
 internal_fh_hash (const void *x)
 {
-  return INTERNAL_FH_HASH ((internal_fh) x);
+  return INTERNAL_FH_HASH ((const struct internal_fh_def *) x);
 }
 
 /*! Hash function for internal dentry X, computed from fh->local_fh.  */
@@ -381,7 +381,7 @@ internal_fh_hash (const void *x)
 static hash_t
 internal_dentry_hash (const void *x)
 {
-  return INTERNAL_DENTRY_HASH ((internal_dentry) x);
+  return INTERNAL_DENTRY_HASH ((const struct internal_dentry_def *) x);
 }
 
 /*! Hash function for internal dentry X, computed from parent->fh and name.  */
@@ -389,7 +389,7 @@ internal_dentry_hash (const void *x)
 static hash_t
 internal_dentry_hash_name (const void *x)
 {
-  return INTERNAL_DENTRY_HASH_NAME ((internal_dentry) x);
+  return INTERNAL_DENTRY_HASH_NAME ((const struct internal_dentry_def *) x);
 }
 
 /*! Compare an internal file handle XX with client's file handle YY.  */
@@ -397,8 +397,8 @@ internal_dentry_hash_name (const void *x)
 static int
 internal_fh_eq (const void *xx, const void *yy)
 {
-  zfs_fh *x = &((internal_fh) xx)->local_fh;
-  zfs_fh *y = (zfs_fh *) yy;
+  const zfs_fh *x = &((const struct internal_fh_def *) xx)->local_fh;
+  const zfs_fh *y = (const zfs_fh *) yy;
 
   return (x->ino == y->ino && x->dev == y->dev
           && x->vid == y->vid && x->sid == y->sid
@@ -559,8 +559,8 @@ get_level (internal_dentry dentry)
 static int
 internal_dentry_eq (const void *xx, const void *yy)
 {
-  zfs_fh *x = &((internal_dentry) xx)->fh->local_fh;
-  zfs_fh *y = (zfs_fh *) yy;
+  zfs_fh *x = &((const struct internal_dentry_def *) xx)->fh->local_fh;
+  const zfs_fh *y = (const zfs_fh *) yy;
 
   return (x->ino == y->ino && x->dev == y->dev
           && x->vid == y->vid && x->sid == y->sid
@@ -573,8 +573,8 @@ internal_dentry_eq (const void *xx, const void *yy)
 static int
 internal_dentry_eq_name (const void *xx, const void *yy)
 {
-  internal_dentry x = (internal_dentry) xx;
-  internal_dentry y = (internal_dentry) yy;
+  const struct internal_dentry_def *x = (const struct internal_dentry_def *)xx;
+  const struct internal_dentry_def *y = (const struct internal_dentry_def *)yy;
 
   return (x->parent == y->parent
           && x->name.len == y->name.len
@@ -2851,7 +2851,7 @@ cancel_conflict (volume vol, internal_dentry conflict)
 static hash_t
 virtual_dir_hash (const void *x)
 {
-  virtual_dir vd = (virtual_dir) x;
+  const struct virtual_dir_def *vd = (const struct virtual_dir_def *) x;
 
 #ifdef ENABLE_CHECKING
   if (!VIRTUAL_FH_P (vd->fh))
@@ -2866,7 +2866,7 @@ virtual_dir_hash (const void *x)
 static hash_t
 virtual_dir_hash_name (const void *x)
 {
-  virtual_dir vd = (virtual_dir) x;
+  const struct virtual_dir_def *vd = (const struct virtual_dir_def *) x;
 
 #ifdef ENABLE_CHECKING
   if (!vd->parent || !VIRTUAL_FH_P (vd->parent->fh))
@@ -2881,8 +2881,8 @@ virtual_dir_hash_name (const void *x)
 static int
 virtual_dir_eq (const void *xx, const void *yy)
 {
-  zfs_fh *x = &((virtual_dir) xx)->fh;
-  zfs_fh *y = (zfs_fh *) yy;
+  const zfs_fh *x = &((const struct virtual_dir_def *) xx)->fh;
+  const zfs_fh *y = (const zfs_fh *) yy;
 
 #ifdef ENABLE_CHECKING
   if (!VIRTUAL_FH_P (*x))
@@ -2901,8 +2901,8 @@ virtual_dir_eq (const void *xx, const void *yy)
 static int
 virtual_dir_eq_name (const void *xx, const void *yy)
 {
-  virtual_dir x = (virtual_dir) xx;
-  virtual_dir y = (virtual_dir) yy;
+  const struct virtual_dir_def *x = (const struct virtual_dir_def *) xx;
+  const struct virtual_dir_def *y = (const struct virtual_dir_def *) yy;
 
 #ifdef ENABLE_CHECKING
   if (!VIRTUAL_FH_P (x->fh))
@@ -3070,73 +3070,73 @@ virtual_dir_destroy (virtual_dir vd)
 virtual_dir
 virtual_root_create (void)
 {
-  virtual_dir root;
+  virtual_dir dir;
   void **slot;
 
   TRACE ("");
 
   zfsd_mutex_lock (&fh_mutex);
-  root = (virtual_dir) pool_alloc (vd_pool);
-  root->fh = root_fh;
-  root->parent = NULL;
-  xmkstring (&root->name, "");
-  varray_create (&root->subdirs, sizeof (virtual_dir), 16);
-  root->subdir_index = 0;
-  root->vol = NULL;
-  root->cap = NULL;
-  virtual_dir_set_fattr (root);
-  root->n_mountpoints = 1;
-  root->busy = false;
-  root->users = 0;
-  root->deleted = 0;
+  dir = (virtual_dir) pool_alloc (vd_pool);
+  dir->fh = root_fh;
+  dir->parent = NULL;
+  xmkstring (&dir->name, "");
+  varray_create (&dir->subdirs, sizeof (virtual_dir), 16);
+  dir->subdir_index = 0;
+  dir->vol = NULL;
+  dir->cap = NULL;
+  virtual_dir_set_fattr (dir);
+  dir->n_mountpoints = 1;
+  dir->busy = false;
+  dir->users = 0;
+  dir->deleted = 0;
 
-  zfsd_mutex_init (&root->mutex);
+  zfsd_mutex_init (&dir->mutex);
 
   /* Insert the root into hash table.  */
-  slot = htab_find_slot_with_hash (vd_htab, &root->fh,
-                                   VIRTUAL_DIR_HASH (root), INSERT);
-  *slot = root;
+  slot = htab_find_slot_with_hash (vd_htab, &dir->fh, VIRTUAL_DIR_HASH (dir),
+				   INSERT);
+  *slot = dir;
   zfsd_mutex_unlock (&fh_mutex);
 
-  RETURN_PTR (root);
+  RETURN_PTR (dir);
 }
 
 /*! Destroy virtual root directory.  */
 
 void
-virtual_root_destroy (virtual_dir root)
+virtual_root_destroy (virtual_dir dir)
 {
   void **slot;
 
   TRACE ("");
 
   zfsd_mutex_lock (&fh_mutex);
-  zfsd_mutex_lock (&root->mutex);
+  zfsd_mutex_lock (&dir->mutex);
 
   /* Destroy capability associated with virtual directroy.  */
-  if (root->cap)
+  if (dir->cap)
     {
-      root->cap->busy = 1;
-      put_capability (root->cap, NULL, root);
+      dir->cap->busy = 1;
+      put_capability (dir->cap, NULL, dir);
     }
 
 #ifdef ENABLE_CHECKING
-  if (VARRAY_USED (root->subdirs))
+  if (VARRAY_USED (dir->subdirs))
     abort ();
 #endif
-  varray_destroy (&root->subdirs);
+  varray_destroy (&dir->subdirs);
 
-  slot = htab_find_slot_with_hash (vd_htab, &root->fh,
-                                   VIRTUAL_DIR_HASH (root), NO_INSERT);
+  slot = htab_find_slot_with_hash (vd_htab, &dir->fh, VIRTUAL_DIR_HASH (dir),
+				   NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();
 #endif
   htab_clear_slot (vd_htab, slot);
-  free (root->name.str);
-  zfsd_mutex_unlock (&root->mutex);
-  zfsd_mutex_destroy (&root->mutex);
-  pool_free (vd_pool, root);
+  free (dir->name.str);
+  zfsd_mutex_unlock (&dir->mutex);
+  zfsd_mutex_destroy (&dir->mutex);
+  pool_free (vd_pool, dir);
   zfsd_mutex_unlock (&fh_mutex);
 
   RETURN_VOID;

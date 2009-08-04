@@ -294,14 +294,14 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
  * \param cap Capability of file to be updated.
  * \param blocks List of blocks to update.
  * \param args List of blocks for md5 comparing.
- * \param index Number of block to start searching from.
+ * \param idx Number of block to start searching from.
  * \param slow Determines if it should check for requests pending on slow lines and abort if there are some.
  *
  */
 
 static int32_t
 update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
-                      unsigned int *index, bool slow)
+                      unsigned int *idx, bool slow)
 {
   bool flush;
   volume vol;
@@ -432,7 +432,7 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
   zfsd_mutex_unlock (&vol->mutex);
 
   /* Process all blocks, update those with different local and remote checksums. */
-  for (i = 0, j = *index; i < remote_md5.count; i++)
+  for (i = 0, j = *idx; i < remote_md5.count; i++)
     {
       /* sanity check (could this really happen?) */
       if (remote_md5.length[i] > ZFS_MAXDATA
@@ -552,8 +552,8 @@ update_file_blocks_1 (md5sum_args *args, zfs_cap *cap, varray *blocks,
           release_dentry (dentry);
           zfsd_mutex_unlock (&vol->mutex);
         }
-    } // end for (i = 0, j = *index; i < remote_md5.count; i++)
-  *index = j;
+    } // end for (i = 0, j = *idx; i < remote_md5.count; i++)
+  *idx = j;
 
   if (flush)
     {
@@ -589,7 +589,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified, bool slow)
 {
   md5sum_args args;
   int32_t r;
-  unsigned int i, index;
+  unsigned int i, idx;
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -599,7 +599,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified, bool slow)
 
   args.count = 0;
   args.ignore_changes = modified;
-  index = 0;
+  idx = 0;
   for (i = 0; i < VARRAY_USED (*blocks); i++)
     {
       interval x;
@@ -621,7 +621,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified, bool slow)
             {
               if (args.count == ZFS_MAX_MD5_CHUNKS)
                 {
-                  r = update_file_blocks_1 (&args, cap, blocks, &index, slow);
+                  r = update_file_blocks_1 (&args, cap, blocks, &idx, slow);
                   if (r == ZFS_CHANGED)
                     RETURN_INT (ZFS_OK);
                   if (r != ZFS_OK)
@@ -640,7 +640,7 @@ update_file_blocks (zfs_cap *cap, varray *blocks, bool modified, bool slow)
 
   if (args.count > 0)
     {
-      r = update_file_blocks_1 (&args, cap, blocks, &index, slow);
+      r = update_file_blocks_1 (&args, cap, blocks, &idx, slow);
       if (r == ZFS_CHANGED)
         RETURN_INT (ZFS_OK);
       if (r != ZFS_OK)
@@ -666,7 +666,7 @@ reintegrate_file_blocks (zfs_cap *cap, bool slow)
   volume vol;
   internal_cap icap;
   internal_dentry dentry;
-  interval_tree_node node;
+  interval_tree_node tnode;
   uint64_t offset;
   uint32_t count;
   int32_t r, r2, r3;
@@ -712,14 +712,14 @@ reintegrate_file_blocks (zfs_cap *cap, bool slow)
       CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
       /* Get offset and number of bytes to reintegrate, the maximum is ZFS_MAXDATA */
-      node = interval_tree_lookup (dentry->fh->modified, offset);
-      if (!node) // nothing more to reintegrate
+      tnode = interval_tree_lookup (dentry->fh->modified, offset);
+      if (!tnode) // nothing more to reintegrate
         break;
-      if (INTERVAL_START (node) > offset) // position the offset to the reitegration interval start
-        offset = INTERVAL_START (node);
+      if (INTERVAL_START (tnode) > offset) // position the offset to the reitegration interval start
+        offset = INTERVAL_START (tnode);
 
-      count = (INTERVAL_END (node) - INTERVAL_START (node) < ZFS_MAXDATA
-               ? INTERVAL_END (node) - INTERVAL_START (node) : ZFS_MAXDATA);
+      count = (INTERVAL_END (tnode) - INTERVAL_START (tnode) < ZFS_MAXDATA
+               ? INTERVAL_END (tnode) - INTERVAL_START (tnode) : ZFS_MAXDATA);
 
       message (1, stderr, "Will reintegrate %u bytes starting at offset %u\n", (unsigned)count, (unsigned)offset);
 
@@ -1806,8 +1806,8 @@ create_local_fh (internal_dentry dir, string *name, volume vol,
         if (r == ZFS_OK)
           {
             close (fd);
-            local_fh = &cr_res.file;
-            local_attr = &cr_res.attr;
+            local_fh = &cr_res.dor.file;
+            local_attr = &cr_res.dor.attr;
           }
         break;
 
@@ -3000,7 +3000,8 @@ out:
  * Use RES for lookups.
  */
 static int32_t
-reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
+reintegrate_deleted_dir (dir_op_res *res, uint32_t vid,
+			 journal_entry deleted_dir_entry)
 {
   file_info_res info;
   zfs_fh file_fh;
@@ -3015,9 +3016,9 @@ reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
 
   TRACE ("");
 
-  fh.dev = dir_entry->dev;
-  fh.ino = dir_entry->ino;
-  fh.gen = dir_entry->gen;
+  fh.dev = deleted_dir_entry->dev;
+  fh.ino = deleted_dir_entry->ino;
+  fh.gen = deleted_dir_entry->gen;
   journal = journal_create (10, NULL);
 
   vol = volume_lookup (vid);
@@ -3034,7 +3035,7 @@ reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
     }
   zfsd_mutex_unlock (&vol->mutex);
 
-  defined_master_fh = !zfs_fh_undefined (dir_entry->master_fh);
+  defined_master_fh = !zfs_fh_undefined (deleted_dir_entry->master_fh);
   flush_journal = false;
   for (entry = journal->first; entry; entry = next)
     {
@@ -3077,7 +3078,7 @@ reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
                 if (!vol)
                   abort ();
 #endif
-                r = remote_lookup_zfs_fh (res, &dir_entry->master_fh,
+                r = remote_lookup_zfs_fh (res, &deleted_dir_entry->master_fh,
                                           &entry->name, vol);
               }
             else
@@ -3097,7 +3098,7 @@ reintegrate_deleted_dir (dir_op_res *res, uint32_t vid, journal_entry dir_entry)
                     destroy = (!local_exists
                                && entry->master_version == res->attr.version);
                     r = remote_reintegrate_del_zfs_fh (vol, &entry->master_fh,
-                                                       &dir_entry->master_fh,
+                                                       &deleted_dir_entry->master_fh,
                                                        &entry->name, destroy);
                     if (r == ZFS_OK)
                       {
@@ -3932,7 +3933,7 @@ static void *
 update_main (ATTRIBUTE_UNUSED void *data)
 {
   zfs_fh fh;
-  size_t index;
+  size_t idx;
 
   thread_disable_signals ();
   pthread_setspecific (thread_name_key, "Update main thread");
@@ -3961,18 +3962,18 @@ update_main (ATTRIBUTE_UNUSED void *data)
       if (update_pool.idle.nelem == 0)
         thread_pool_regulate (&update_pool);
 
-      queue_get (&update_pool.idle, &index);
+      queue_get (&update_pool.idle, &idx);
 #ifdef ENABLE_CHECKING
-      if (get_thread_state (&update_pool.threads[index].t) == THREAD_BUSY)
+      if (get_thread_state (&update_pool.threads[idx].t) == THREAD_BUSY)
         abort ();
 #endif
-      set_thread_state (&update_pool.threads[index].t, THREAD_BUSY);
-      update_pool.threads[index].t.u.update.fh = fh;
-      update_pool.threads[index].t.u.update.slow = false;
+      set_thread_state (&update_pool.threads[idx].t, THREAD_BUSY);
+      update_pool.threads[idx].t.u.update.fh = fh;
+      update_pool.threads[idx].t.u.update.slow = false;
 
       /* Let the thread run.  */
       message (1, stderr, "Main update thread: starting worker thread\n");
-      semaphore_up (&update_pool.threads[index].t.sem, 1);
+      semaphore_up (&update_pool.threads[idx].t.sem, 1);
 
       zfsd_mutex_unlock (&update_pool.mutex);
     }
