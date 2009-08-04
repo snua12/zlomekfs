@@ -1,1 +1,153 @@
-see INSTALL & ABOUT
+Preparing a single-node ZlomekFS configuration
+==============================================
+You can find detailed documentation of the configuration parameters in
+Josef Zlomek's thesis (doc/Zlomek-SharedFileSystem.pdf).
+
+To run ZlomekFS on a single node, you need to create the following directories:
+* a local configuration (TOP/local-config)
+* a configuration volume cache (TOP/shared-config)
+* a data volume cache (TOP/data)
+
+The configuration volume and data volume will be visible in the mounted
+ZlomekFS file system.
+
+Contents of the TOP/local-config directory:
+-------------------------------------------
+* config
+	LocalConfig TOP/local-config
+	mlock 0
+* this_node
+	1:the_only_node
+* volume_info
+	1:TOP/shared-config:0
+	2:TOP/data:0
+
+Contents of the TOP/shared-config directory:
+--------------------------------------------
+* subdirectories "group", "user", "volume"
+* node_list
+	1:the_only_node:127.0.0.1
+* volume_list
+	1:config:/config
+	2:data:/data
+* volume/config:
+	the_only_node
+* volume/data:
+	the_only_node
+* user_list:
+	4321:the_only_user
+* group_list:
+	4322:the_only_group
+* group/default:
+	the_only_group:YOUR_LOCAL_GROUP_NAME
+* user/default:
+	the_only_user:YOUR_LOCAL_USER_NAME
+
+
+Linux
+=====
+(Tested on Fedora 7, kernel 2.6.22)
+
+Compilation
+-----------
+* unpack zfs.tar.bz2 (to SRC/zfs)
+* cd SRC/zfs/fuse
+* ./configure --enable-kernel-module && make
+  If you have FUSE (and /sbin/mount.fuse in particular) installed system-wide,
+  it is not necessary to specify --prefix to ./configure nor to run
+  (make install).
+* Make sure the unprivileged user can execute "fusermount" (e.g. by adding
+  the user to the "fuse" group)
+* cd ../zfsd
+* make
+* Optionally, run (make install) to install zfsd to /usr/sbin.
+
+Running
+-------
+* as root, at least once after each boot:
+  - /sbin/rmmod fuse
+  - /sbin/insmod SRC/zfs/fuse/kernel/fuse.ko
+* as an unprivileged user:
+  - SRC/zfs/zfsd/zfsd -o config=TOP/local-config/config MOUNT_POINT
+    zfsd will stay in the foreground.  To finish and unmount the file system,
+    terminate zfsd by pressing Ctrl-C.
+
+
+FreeBSD
+=======
+(Tested on FreeBSD 6.2)
+
+Compilation
+-----------
+* unpack zfs-fuse4bsd.tar.bz2 (to SRC/fuse4bsd-hg)
+* cd SRC/fuse4bsd-hg
+* make
+* as root: make -C mount_fusefs install BINDIR=/usr/local/sbin
+  NOTE: This will override the system-wide mount_fusefs (e.g. from the
+  fusefs-kmod port).
+* unpack zfs.tar.bz2 (to SRC/zfs)
+* cd SRC/zfs/fuse
+* ./configure && make
+* cd ../zfsd
+* gmake freebsd=1
+* Optionally, run (make install) to install zfsd to /usr/sbin
+* Make sure the unprivileged user is a member of the "operator" group
+
+Running
+-------
+* as root, at least once after each boot:
+  - kldunload fuse
+  - kldload SRC/fuse4bsd-hg/fuse_module/fuse.ko
+  - sysctl vfs.usermount=1
+* as an unprivileged user:
+  - SRC/zfs/zfsd/zfsd -o config=TOP/local-config/config MOUNT_POINT
+    zfsd will stay in the foreground.  To finish and unmount the file system,
+    terminate zfsd by pressing Ctrl-C _twice_.
+
+
+Configuring ZlomekFS for multiple-node operation
+================================================
+To configure nodes A and B to support disconnected operation, start with the
+single-node configuration, and modify it as follows on node A:
+* change TOP/local-config/this_node to
+	1:node_a
+* change both TOP/shared-config/volume/config and
+  TOP/shared-config/volume/data to
+	node_a
+	 node_b
+  (note the space before node_b!)
+* change node_list to
+	1:node_a:HOST_NAME_OF_NODE_A
+	2:node_b:HOST_NAME_OF_NODE_B
+  (or use IP addresses instead of host names)
+
+On node B, create the TOP/{local-config,shared-config,data} directories, and
+set up the following contents of TOP/local-config:
+* config
+	LocalConfig TOP/local-config
+	mlock 0
+* this_node
+	2:node_b
+* volume_info
+	1:TOP/shared-config:0
+	2:TOP/data:0
+
+Make sure port 12323 is open on both nodes.
+
+On node A, run
+	SRC/zfs/zfsd/zfsd -o config=TOP/local-config/config MOUNT_POINT
+On node B, run
+	SRC/zfs/zfsd/zfsd -o \
+	  config=TOP/local-config/config,node=1:node_a:HOST_NAME_OF_NODE_A \
+	  MOUNT_POINT
+
+To allow starting node B without the node= option (and without node A available,
+	cd MOUNT_POINT/config; find; find -type f | xargs cat > /dev/null
+(This copies the shared configuration volume to the local cache.)
+
+To test conflict handling, modify FILE on node A when node B is not connected,
+and modify the same FILE on node B when node A is not connected.  Then start
+both nodes and on node B (not on the master node A - conflicts are always
+handled at the "lowest level") look at FILE - it should be a directory
+containing files "node_a" and "node_b".  Remove one of the files, and FILE will
+be replaced by the other version.

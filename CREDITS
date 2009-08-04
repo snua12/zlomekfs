@@ -7,5 +7,14 @@ Support for update and reintegration over slow
 connections has been added in 2005 by Vlastimil
 Babka as his operating systems course project.
 
+Support for running over FUSE instead of own kernel
+module has been added in 2007 by Miloslav Trmac
+as his master thesis project.
+
+The logging framework and d-bus integration has been
+added and the regression testing framework has been
+written by Jiri Zouhar in 2008 as his master thesis
+project.
+
 The project is currently maintained by Petr Tuma.
 The project home page is http://nenya.ms.mff.cuni.cz/~ceres/prj/zlomekFS.
