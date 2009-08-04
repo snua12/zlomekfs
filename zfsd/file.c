@@ -25,7 +25,7 @@
 #include <inttypes.h>
 #ifdef __linux__
 #include <linux/types.h>
-#include <linux/dirent.h>
+#include <dirent.h>
 #include <linux/unistd.h>
 #else
 #include <dirent.h>
