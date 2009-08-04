@@ -1,0 +1,30 @@
+AC_INIT(configure.in)
+
+AC_CONFIG_AUX_DIR([.])
+# Call hand's ./configure script recursively.
+AC_CONFIG_SUBDIRS([fuse])
+AC_OUTPUT
+
+
+AC_LANG_C
+AC_PROG_CC
+AC_DISABLE_SHARED
+AC_PROG_LIBTOOL
+AC PROG SED
+
+AC_CHECK_HEADERS(pthread.h)
+AC_CHECK_LIB(syplog, do_log)
+AC_CHECK_LIB(dbus, dbus_connection_read_write)
+
+
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(zlomekfs, 0.0)
+
+
+AC_OUTPUT( \
+	Makefile \
+	zfsd/Makefile \
+	tests/Makefile \
+	tests/nose-tests/Makefile \
+	)
+

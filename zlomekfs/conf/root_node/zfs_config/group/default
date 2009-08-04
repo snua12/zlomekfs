@@ -1,0 +1,5 @@
+#default mapping of filesystem groups to local groups, if no mapping is specified in group/NODE_NAME file
+# format FILESYSTEM_GROUP_NAME:LOCAL_GROUP_NAME
+#example:
+users:users
+nogroup:nogroup

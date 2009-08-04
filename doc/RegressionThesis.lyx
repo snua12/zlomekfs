@@ -1,0 +1,9304 @@
+#LyX 1.5.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 276
+\begin_document
+\begin_header
+\textclass book
+\begin_preamble
+\newcommand{\textstylecode}[1]{
+ \begin{quote}
+  \texttt{#1}
+ \end{quote}
+}
+
+\newenvironment{codeblock}{
+\begin{noindent}
+\begin{quote}
+\begin{ttfamily}}{
+\end{ttfamily}
+\end{quote}
+\end{noindent}
+}
+
+\usepackage{listings}
+\usepackage{varioref}
+\end_preamble
+\options notitlepage
+\language english
+\inputencoding latin2
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\paperfontsize 12
+\spacing single
+\papersize a4paper
+\use_geometry true
+\use_amsmath 1
+\use_esint 0
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\leftmargin 3.5cm
+\topmargin 4cm
+\rightmargin 3.5cm
+\bottommargin 4.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 2
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{titlepage}
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+begin{center}
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+ 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{15mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+large
+\end_layout
+
+\begin_layout Standard
+
+Charles University in Prague
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Faculty of Mathematics and Physics
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{5mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+{
+\backslash
+Large
+\backslash
+bf MASTER THESIS}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+includegraphics[scale=0.7]{logo.jpg} 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+{
+\backslash
+Large Jiří Zouhar}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{5mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+{
+\backslash
+title 
+\backslash
+Large
+\backslash
+bf Regression Testing For zlomekFS}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{5mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+Department of Software Engineering
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+large
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Supervisor: Doc.
+ Ing.
+ Petr Tůma, Dr.
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{1mm} 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Study Program: Computer Science
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{20mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+2008
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{center}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{titlepage}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+normalsize 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+setcounter{page}{2}
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+ 
+\backslash
+vspace{10mm} 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent    I would like to thank my supervisor, Doc.
+ Ing.
+ Petr Tůma, Dr., for his valuable advice.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{
+\backslash
+fill} 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent    I declare that I have written this master thesis on my own and
+ listed all the used sources.
+ I agree with lending of the thesis.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+bigskip
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Prague, April 18, 2008
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+tableofcontents
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+newpage 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+small
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent
+\end_layout
+
+\begin_layout Standard
+
+Název práce: Regression Testing For zlomekFS
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Autor: Jiří Zouhar
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Katedra (ústav): Katedra softwarového inženýrství
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Vedoucí diplomové práce: Doc.
+ Ing.
+ Petr Tůma, Dr.
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+e-mail vedoucího: petr.tuma@mff.cuni.cz
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Abstrakt:  ZlomekFS je distribuovaný systém souborů určený k transparen
+tnímu sdílení adresářových stromů.
+ Tato práce popisuje tvorbu systému regresního testování pro ZlomekFS.
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Práce shrnuje metody používané k testování softwaru podobného ZlomekFS a
+ na jejich základě vytváří samostatný systém regresního testování.
+ Systém sestává z šesti částí: (1) knihovny pro unit testing kódu psaného
+ v jazyce C, která poskytuje automatické vyhledávání testů s minimalistickým
+ rozhraním, (2) logovacího frameworku s rozhraním pro jazyky C a Python,
+ který podporuje filtrování a vzdálené ovládání, (3) generátoru náhodné
+ zátěže pro vytváření náhodných testovacích sekvencí pomocí grafu závislosti
+ s podporou reprodukování a zmenšování zátěže vedoucí k chybě, (4) systému
+ pro kontrolu testování a hlášení výsledků testů, (5) repozitáře pro ukládání
+ výsledků s webovým uživatelským rozhraním, (6) serveru pro automatické
+ sestavování a testování.
+\backslash
+
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Klíčová slova: testování software, extrémní programování, ladění
+ programů
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+vspace{10mm}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent
+\end_layout
+
+\begin_layout Standard
+
+Title: Regression Testing for zlomekFS
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Author: Jiří Zouhar
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Department: Department of Software Engineering
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Supervisor: Doc.
+  Ing.
+ Petr Tůma, Dr.
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+Supervisor's e-mail address: petr.tuma@mff.cuni.cz
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Abstract:  ZlomekFS is a distributed filesystem for transparent
+ sharing of directory trees.
+ This thesis describes how regression testing for ZlomekFS was built.
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+The thesis summarizes software testing methods in the context of ZlomekFS
+ and proceeds to build an actual testing system for ZlomekFS, consisting
+ of six parts: (1) a unit testing framework for C code with an automatic
+ test discovery and a minimalistic interface, (2) a logging facility with
+ C and Python interfaces, with filtering and remote control, (3) workload
+ generator for random test sequences generated from an operation dependency
+ graph with support for failure reproduction and trace reduction, (4) test
+ controlling and reporting framework, (5) test result repository with web
+ user interface, (6) continuous integration server for automatic builds
+ and tests.
+ 
+\backslash
+
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+noindent Keywords: software testing, extreme programming, debugging
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+normalsize
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+newpage
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Introduction
+\end_layout
+
+\begin_layout Standard
+ZlomekFS is a special distributed filesystem aimed at transparent sharing
+ of directory trees between any number of computers (nodes).
+\end_layout
+
+\begin_layout Standard
+A unit of sharing (a local directory) is called a volume.
+ In ZlomekFS, there are no server and client nodes, the hierarchy is a general
+ graph where every node can export volumes.
+ Despite this, resulting export hierarchy must be a tree.
+ When two nodes connect, for unique volume one of them must be a master
+ providing content and the other a client.
+ This relationship can be bidirectional (a client for one volume can be
+ the master for another).
+\end_layout
+
+\begin_layout Standard
+A node can cache content of a volume obtained from another node and provide
+ it to further nodes.
+ This caching is not required, a node can use remote volume without any
+ local cache too.
+ On one node, all volumes must be mounted in a tree with one root directory
+ (volume) and other volumes mounted under the root.
+ 
+\end_layout
+
+\begin_layout Standard
+ZlomekFS doesn't require any special layer on the disk, another (arbitrary)
+ filesystem is used for storing the cached content.
+ To reduce network bandwidth, ZlomekFS doesn't handle files as elementary
+ units, but operates on 
+\emph on
+chunks
+\emph default
+ (parts of file with predefined size).
+\end_layout
+
+\begin_layout Standard
+For mobile nodes, there are two modes of operation (besides full speed connectio
+n).
+ If there is no connection, the node operates in disconnected mode (data
+ is served from cache only).
+ Eventually, when the node connects again, data is synchronized with other
+ nodes.
+ Last mode is 
+\emph on
+slow connection
+\emph default
+ mode, when, to limit traffic, only directories and data actually read from
+ files are synchronized with the master node.
+ When changes are made to files in the disconnected mode, conflicts can
+ arise upon synchronization.
+ In ZlomekFS, a conflict is represented as set of files in a special directory.
+ 
+\end_layout
+
+\begin_layout Standard
+Filesystems, same as any other software, can contain bugs.
+ But in case of filesystems, there is a bigger-than-usual need for reliability.
+ This is due to the low-level character of filesystems: applications depend
+ on bug free work of components underneath them, and most applications use
+ filesystems to store permanent data.
+ To ensure reliability of a filesystem, exhaustive testing should be done
+ to cover as many use-cases of the software as possible.
+ This is not only convenient for one term development, but also essential
+ when further extension and development will be done.
+\end_layout
+
+\begin_layout Standard
+However, ZlomekFS lacks any tests, or testing environment.
+ As described, ZlomekFS is very complex and special filesystem, and there
+ are only few similar filesystems.
+ Because of this, there is need to develop new framework or at least special
+ tools to allow testing of its special functions.
+ The framework should be able to provide debugging and tracing information,
+ if bugs are found.
+\end_layout
+
+\begin_layout Section
+Goals
+\end_layout
+
+\begin_layout Standard
+Extend the existing ZlomekFS implementation by introducing a regression
+ testing framework.
+ The framework should be capable of submit both predefined and random workload
+ to the filesystem and, either by comparing the results with the same operations
+ performed over another filesystem, or by some other appropriate means,
+ identify filesystem errors.
+ The identification of an error should contain both a minimal sequence of
+ steps necessary to reproduce the error, and the debugging protocol excerpt
+ relevant to the error.
+ The framework should include support for generating the debugging protocol
+ and changing the network conditions.
+\end_layout
+
+\begin_layout Standard
+Make all the developer documentation an integral part of the ZlomekFS project
+ using appropriate tools such as DoxyGen.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Standard
+- proc network
+\end_layout
+
+\begin_layout Standard
+- proc random, jake operace
+\end_layout
+
+\begin_layout Standard
+- cleanup
+\end_layout
+
+\begin_layout Standard
+- ?config?
+\end_layout
+
+\begin_layout Standard
+- jak minimal sequence
+\end_layout
+
+\begin_layout Standard
+- proc porovnani
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Structure of the thesis
+\end_layout
+
+\begin_layout Standard
+Chapter 2 describes common techniques used for testing.
+ Basic test types are listed with their usage and aims.
+ Reasons are given for what tools should be used for testing, and how they
+ can help debugging.
+ 
+\end_layout
+
+\begin_layout Standard
+Chapter 3 summarizes tools used in actual regression testing system for
+ ZlomekFS, gives reasons for why they were chosen, and list their main features.
+ 
+\end_layout
+
+\begin_layout Standard
+Chapter 4 describes internals of the system: changes made in ZlomekFS are
+ outlined, then component interaction is described, and finally each component
+ function is documented.
+\end_layout
+
+\begin_layout Standard
+Chapter 5 summarizes the work done, how goals are met and what new approaches
+ are used.
+\end_layout
+
+\begin_layout Chapter
+Filesystem testing
+\begin_inset LatexCommand label
+name "cha:Filesystem-testing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In general, testing of a filesystem is very similar to testing of any other
+ software.
+ So basic requirements holds, and in addition there are some extra requirements.
+\end_layout
+
+\begin_layout Standard
+To provide best stability of software, tests should cover maximum of its
+ functionality.
+ By executing these tests, bugs can be found before they can affect real
+ usage.
+ The bigger the coverage is, the smaller is the probability that bug would
+ stay undiscovered.
+ For failed tests, testing tools should provide as much information from
+ the time of failure as possible.
+ These data can be later used to reproduce the failure or at least could
+ be useful for tracing.
+\end_layout
+
+\begin_layout Standard
+In reality, the coverage is often the biggest problem - programmers tend
+ to omit writing tests, or refuse to write them at all.
+ The cause of this is that writing tests is uninteresting extra work, sometimes
+ consisting of non-trivial steps.
+ 
+\end_layout
+
+\begin_layout Standard
+To reduce this problem, the test format (
+\begin_inset LatexCommand prettyref
+reference "sec:Test-format"
+
+\end_inset
+
+) has to be simple, readable, and user-friendly.
+ To make it even easier to write tests, there is tendency to allow small
+ unit tests as near to actual code as possible (
+\begin_inset LatexCommand prettyref
+reference "sec:Unit-based-testing"
+
+\end_inset
+
+).
+ If these tests are well written, they can serve as programmer documentation
+ too.
+\end_layout
+
+\begin_layout Standard
+The output of tests should be accompanied with some state information from
+ the time of failure.
+ This can be achieved by using some tool for creating snapshots (
+\begin_inset LatexCommand prettyref
+reference "sec:Checkpointing"
+
+\end_inset
+
+), that may or may not support resuming.
+ When automated test run fails, tester may need to run it again.
+ These reruns may use snapshots, if the method used for creating them makes
+ the resume possible.
+\end_layout
+
+\begin_layout Standard
+For tracing the code execution, there should be some tracing and logging
+ tools (
+\begin_inset LatexCommand prettyref
+reference "sec:Logging,-tracing"
+
+\end_inset
+
+).
+ They have to have minimal footprint, but collect as much information as
+ possible.
+\end_layout
+
+\begin_layout Standard
+During regression testing, tests should be executed automatically in scheduled
+ periods (
+\begin_inset LatexCommand prettyref
+reference "sec:Continuous-integration"
+
+\end_inset
+
+).
+ Results from these runs should be collected and presented centrally (
+\begin_inset LatexCommand prettyref
+reference "sec:Result repository"
+
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Standard
+When testing unsafe operation, test execution should be separated from running
+ system.
+ This approach is often called sandboxing (
+\begin_inset LatexCommand prettyref
+reference "sec:Sandboxing"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+For filesystem testing, it is hard to find good testing patterns (
+\begin_inset LatexCommand prettyref
+reference "sec:Filesystem-test-patterns"
+
+\end_inset
+
+) which will cover all cases that can occur.
+ So it is a good idea to have some random workload generator (
+\begin_inset LatexCommand prettyref
+reference "sec:Random-workload-generation"
+
+\end_inset
+
+) that would exercise the filesystem randomly.
+ 
+\end_layout
+
+\begin_layout Standard
+The problem with this approach is that outputs of such testing tends to
+ be very big, and only a small portion of them is related to the error.
+ To allow random testing and avoid this unwanted side effects, some pruning
+ algorithm has to be used (
+\begin_inset LatexCommand prettyref
+reference "sec:Pruning-output"
+
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Standard
+As the ZlomekFS is a multi-threaded, distributed filesystem, the suite should
+ have some support, or at least extensibility to allow control or simulation
+ of a distributed environment.
+\end_layout
+
+\begin_layout Section
+Test types
+\begin_inset LatexCommand label
+name "sec:Test-types"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A filesystem can be seen as many things, and thus it can be tested from
+ many points of view.
+ Brief description of general test types follow.
+ 
+\end_layout
+
+\begin_layout Subsection
+Specification testing
+\end_layout
+
+\begin_layout Standard
+We can look on a filesystem as on a specification of a way how to store
+ data and associated metadata on storage media.
+ In this case, we can ask if the structures specified are sufficient for
+ accessing stored data, if the specification covers all eventual operations
+ that should be available, and if the transitions made by operations are
+ sane and leads from a correct state to another correct state.
+ Specification testing is generally done only once at the beginning, before
+ actual implementation work is done.
+\end_layout
+
+\begin_layout Subsection
+Api conformity
+\begin_inset LatexCommand label
+name "sub:Api-conformity"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Some filesystems don't focus on the way how to store data on media but how
+ to make them accessible.
+ A well-known group of such filesystems are network filesystems.
+ They assume that some other filesystem does the storage, they specify only
+ the way how data will be accessible remotely, and put some restrictions
+ on the filesystem behavior.
+ In this case, the particular implementation is tested if it conforms to
+ the specification.
+ For example, in case of NFS there are test suites for checking interface
+ stability and protocol conformity 
+\begin_inset LatexCommand cite
+key "nfs-testing"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Functional testing
+\begin_inset LatexCommand label
+name "sub:Functional-testing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Functional testing aims to test actual code if it works as expected and
+ doesn't contain bugs.
+\end_layout
+
+\begin_layout Paragraph
+Functional tests can be divided by scope to:
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Unit tests
+\series default
+ are the smallest tests.
+ They don't test functionality of the whole application, but test functionality
+ of small pieces of code, ensuring that the code works as expected.
+ For example, when there is function for writing to file, there should be
+ a unit test that will try to write data through this function and then
+ will check if the data were written correctly.
+ Main purpose of unit tests is to prevent regressions upon code refractoring.
+ They test the internal api stability.
+ For best effect, they should cover 100% of code (all code in an application
+ should be executed upon run of all unit tests).
+ Unit testing should be white box testing - tester should know how the code
+ is working.
+ For unit testing, there is no difference between testing classic application
+ and filesystem testing.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Feature tests
+\series default
+ are used to check global functionality provided by the software to its
+ user.
+ This type of tests is very similar to api conformity testing (
+\begin_inset LatexCommand prettyref
+reference "sub:Api-conformity"
+
+\end_inset
+
+), but in general, they don't have to use user api.
+ They should cover all use-cases of the software, but not necesarily all
+ code (yet the untested code may be redundant).
+ Tests of this level should ensure that the software will work as it is
+ intended to.
+ When tests are accessing software through general user api without knowledge
+ of internals (or regardless of the knowledge), it is called black box testing.
+ For filesystems, black box testing is often used.
+ One reason for it is that since user api of all filesystems is the same
+ (at least basic part), then these tests can be used for more filesystems.
+ Second reason is, that filesystems are very complex and it is easier to
+ write tests for general problems (such as race conditions) than searching
+ for special paths in code that could fail.
+ Actually, these tests for special paths should be written post-mortem when
+ some bugs are found (to prevent them from appearing again).
+\end_layout
+
+\begin_layout Subsection
+Benchmarking
+\end_layout
+
+\begin_layout Standard
+Benchmarking gives an answer to the question 
+\begin_inset Quotes eld
+\end_inset
+
+how long it will take
+\begin_inset Quotes erd
+\end_inset
+
+ for every use-case of a filesystem.
+ Measurements are done on different filesystem implementations, or filesystems
+ with similar purpose.
+ The setup should be similar for all subjects tested.
+ Most of benchmarking tools assumes that the implementation is sane and
+ doesn't check results of operations.
+ Their goal is to compare more implementations or filesystems.
+ 
+\end_layout
+
+\begin_layout Section
+Test format
+\begin_inset LatexCommand label
+name "sec:Test-format"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When tests are expected to be 
+\series bold
+executed
+\series default
+ only 
+\series bold
+manually
+\series default
+, the format could vary and the main requirement is ease of use.
+ On the other hand, when they have to be 
+\series bold
+executed automatically
+\series default
+, then for every format there must be support in all components of the test
+ suite.
+ Because of this, there is tendency to minimize the number of formats.
+ This applies on both language of tests and interface for tests themselves.
+ 
+\end_layout
+
+\begin_layout Standard
+The basic choice is to write tests in 
+\series bold
+native language
+\series default
+ of the application.
+ Sometimes, embedding tests within application code is supported with some
+ flags saying, 
+\begin_inset Quotes eld
+\end_inset
+
+this is a test code, it should be executed when testing
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This allows having tests as close to code as possible.
+ It is ideal for short tests of functionality of small parts (functions,
+ objects, etc.).
+ 
+\end_layout
+
+\begin_layout Standard
+For automated testing, 
+\series bold
+scripting languages
+\series default
+ are often used to write either control logic, or everything including tests.
+ Scripting languages are ideal for the logic because of their flexibility.
+ The reason for writing tests in the same language as control component
+ is that it makes integration easier.
+\end_layout
+
+\begin_layout Standard
+Another possibility is to have tests in some 
+\series bold
+proprietary format
+\series default
+.
+ This offers possibility of defining a format that is very suitable for
+ the needs of particular software, but brings disadvantage of having to
+ change the format every time new requirement is found.
+ Proprietary format is also often less compatible with external tools.
+\end_layout
+
+\begin_layout Standard
+Some testing tools use configuration (tests) in 
+\series bold
+XML
+\series default
+, or XML with embedded code.
+ Main reason for XML is possibility to use external tools for editing tests,
+ or for XML-based transformations.
+ On the other hand, XML is a very unsuitable format for hand-written code
+ and the DTD of configuration is often hard to understand.
+\end_layout
+
+\begin_layout Section
+Unit based testing frameworks
+\begin_inset LatexCommand label
+name "sec:Unit-based-testing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Small tests placed near to code tested are often called unit tests.
+ They should be simple and fast.
+ Sometimes, they are used as programmer documentation too.
+ Unit testing is based on Kent Beck's testing pattern 
+\begin_inset LatexCommand cite
+key "Simple_Smalltalk_Testing"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Common principles
+\end_layout
+
+\begin_layout Standard
+Every 
+\series bold
+test case
+\series default
+ is executed separately, test cases have common interface (in object based
+ languages presented as common super class).
+ The run of single 
+\emph on
+test case
+\emph default
+ should be independent on other test cases.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Test case
+\emph default
+ may have 
+\series bold
+fixtures
+\series default
+ - methods to set up environment before test and clean it up after test.
+ These methods are very often called 
+\emph on
+setup
+\emph default
+ and 
+\emph on
+teardown
+\emph default
+.
+ Teardown method is executed regardless of result of test.
+\end_layout
+
+\begin_layout Standard
+Expected problem in test is called 
+\series bold
+failure
+\series default
+, non expected problem is called 
+\series bold
+error.
+\end_layout
+
+\begin_layout Standard
+There is 
+\series bold
+common method of testing
+\series default
+ if expectations hold.
+ In Smalltalk by using 
+\emph on
+should
+\emph default
+ and 
+\emph on
+shouldn't
+\emph default
+ blocks, in modern languages by using 
+\emph on
+asserts
+\emph default
+.
+ When assertion doesn't hold it is called failure.
+ Errors are mostly represented by exceptions.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Result
+\series default
+ of test is a 
+\emph on
+result
+\emph default
+ object.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+T
+\emph default
+est cases are aggregated to 
+\series bold
+test suites
+\series default
+ that can be aggregated too.
+ 
+\end_layout
+
+\begin_layout Standard
+All test cases
+\emph on
+ 
+\emph default
+in test suite are 
+\series bold
+run recursively
+\series default
+ by calling 
+\emph on
+run 
+\emph default
+on their root test suite.
+ Returned value is an aggregated Result object.
+\end_layout
+
+\begin_layout Standard
+Unit testing should be 
+\series bold
+automated
+\series default
+, independent on human interaction.
+\end_layout
+
+\begin_layout Subsection
+Other features
+\end_layout
+
+\begin_layout Standard
+Many unit testing frameworks offer more 
+\series bold
+elaborated tests structuring and state handling
+\series default
+ (fixtures).
+ Very often, tests can be aggregated to classes with common setup and teardown
+ methods those are run before and after every single test.
+ 
+\end_layout
+
+\begin_layout Standard
+Moreover there can be 
+\series bold
+additional
+\emph on
+ 
+\emph default
+fixture levels
+\series default
+ for other code units (depending on programming language these can be class
+ level fixtures, module level fixtures, package level fixtures, etc.).
+ 
+\emph on
+Setup_
+\emph default
+ code is run before entering particular block and 
+\emph on
+teardown_
+\emph default
+ code is run after leaving particular block of tests.
+ For example 
+\emph on
+setup_class
+\emph default
+ is run once before running all tests in the class, and teardown_class is
+ run after all tests have run.
+ Note that this can break the independency requirement.
+ If fixtures are written for more levels, they run in cascade.
+\end_layout
+
+\begin_layout Subsection
+Best practices
+\end_layout
+
+\begin_layout Standard
+Unit testing is mostly used for
+\emph on
+ 
+\series bold
+\emph default
+testing small pieces of code
+\series default
+\emph on
+ 
+\emph default
+and thus use cases are mostly very simple and executions of tests fast.
+\end_layout
+
+\begin_layout Standard
+Unit testing is very often used to watch for regressions, so all tests should
+ be 
+\series bold
+executed automatically
+\series default
+ by some tool watching for changes.
+\end_layout
+
+\begin_layout Standard
+There should be 
+\series bold
+maximum possible code coverage
+\series default
+ done by unit tests.
+ Every function (method) should have at least one test case, class should
+ have test suite as counterpart.
+ 
+\end_layout
+
+\begin_layout Subsection
+Implementations
+\end_layout
+
+\begin_layout Standard
+There is at least one unit testing framework for every programming language
+ (see 
+\begin_inset LatexCommand cite
+key "xUnit"
+
+\end_inset
+
+ for short list).
+ 
+\end_layout
+
+\begin_layout Standard
+This section will focus mainly to these written in C (language ZlomekFS
+ is written in) or python.
+ Aim on python is given by choice of language for driving component, for
+ reasoning see 
+\begin_inset LatexCommand prettyref
+reference "sec:Test-format"
+
+\end_inset
+
+ and 
+\begin_inset LatexCommand prettyref
+reference "sec:Programming-language"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Python has 
+\series bold
+Unittest 
+\begin_inset LatexCommand cite
+key "unittest"
+
+\end_inset
+
+
+\series default
+ as its standard tool (was called 
+\emph on
+PyUnit
+\emph default
+ 
+\begin_inset LatexCommand cite
+key "PyUnit"
+
+\end_inset
+
+ before integration to python standard distribution).
+ The interface is strongly object oriented, tests must inherit from TestCase
+ class and override specific methods.
+ Doesn't offer more levels of fixtures.
+ It is very pure reimplementation of Kent Beck's original Smalltalk framework.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Py.test 
+\begin_inset LatexCommand cite
+key "PyTest"
+
+\end_inset
+
+
+\series default
+ is an alternative python unit testing framework.
+ It is part of 
+\emph on
+py.lib
+\emph default
+ library 
+\begin_inset LatexCommand cite
+key "PyLib"
+
+\end_inset
+
+, there is fixture support on all levels, it doesn't need to inherit from
+ any superclass, but fixed naming convention is used instead.
+ Uses the standard python assert clause to test for failures, handle exceptions
+ as errors.
+ Moreover, py.test has automated test discovery tool for searching for tests
+ in directory trees.
+ Test classes can be marked as conditionally 
+\emph on
+disabled
+\emph default
+ depending on generic boolean expressions.
+ This library has support for generator methods which 
+\emph on
+allows to yield more
+\emph default
+ 
+\emph on
+tests
+\emph default
+ easily.
+ The py.test most interesting feature is ease of use.
+ It is possible to just write a function with 
+\emph on
+test
+\emph default
+ in its name and py.test will collect it, run, and if there is failure or
+ error, the output and backtrace will be printed in a readable format.
+ Py.test can also take big advantage from py.lib which offers distributed
+ execution through 
+\emph on
+py.execnet,
+\emph default
+ etc.
+ Whole py.lib is written to be easy to use, but in current implementation
+ with trade off configurability.
+ Note should be taken, that py.lib was developed as a grant project, and
+ after grant expiration there were little of improvement in the project.
+\end_layout
+
+\begin_layout Standard
+Another unit testing framework for python is 
+\series bold
+Nose 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+
+\series default
+.
+ Offers backward compatibility with standard 
+\emph on
+unittest
+\emph default
+ and some compatibility with 
+\emph on
+py.test
+\emph default
+ library.
+ It tries to mimic 
+\emph on
+py.test
+\emph default
+ without magic.
+ Nose provides all features of unittest, moreover it implements py.test's
+ all level fixtures, tests doesn't need to inherit from a superclass, it
+ has automated test discovery tool, and uses generators.
+ In addition, Nose is very configurable.
+ It has build in support for changing naming conventions.
+ Tests can have flags, and it is possible to define expressions which tests
+ should be run according to these flags.
+ Nose has extensible api with plugin support.
+ There are for example plugins for profiling, doctest, code coverage, etc.
+ 
+\end_layout
+
+\begin_layout Standard
+Curiosity among unit testing frameworks is 
+\series bold
+MinUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "MinUnit"
+
+\end_inset
+
+, which is C based, and consists only from three lines of code (two macros
+ and one definition).
+ It doesn't offer much, just assert - print message block.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CUnit for Dr.Ando
+\series default
+ 
+\begin_inset LatexCommand cite
+key "CUnitForAndo"
+
+\end_inset
+
+ claims to be easy to use C based unit testing framework inspired by 
+\emph on
+cppunit-x 
+\emph default
+(interesting piece of code documented in Japanese).
+ In fact, it is just another framework which lacks fixtures and offers just
+ test counting beyond 
+\emph on
+MinUnit.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Simple C++ Testing framework
+\series default
+ 
+\begin_inset LatexCommand cite
+key "simplectest"
+
+\end_inset
+
+ is written whole as macros, with somehow weird syntax.
+ It offers basic assertions and test suites.
+ There is no need to write main function listing all tests, but this is
+ achieved by wrapping all tests to macros START_TESTS and END_TESTS.
+ Because of this, tests must be written in one big chunk.
+ Again, tests files must be compiled and run by hand.
+ It runs equally in pure C and C++ environment.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CxxTest
+\series default
+ 
+\begin_inset LatexCommand cite
+key "CxxTest"
+
+\end_inset
+
+ is C++ based, all tests have to be wrapped to test suite Classes.
+ This framework has assertions, fixtures, and handle exceptions.
+ Automated collection is done by python script (simplified C++ grammar is
+ used).
+ CxxTest may have problems upon linking with pure C based code.
+ It has support for mocking global functions, but this support works on
+ base of calling functions in a separate namespace, so it is not pure mock
+ and code has to be modified to use mocked functions.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CppTest 
+\series default
+
+\begin_inset LatexCommand cite
+key "CppTest"
+
+\end_inset
+
+ is another C++ based unit test framework with basic features such as assertions
+, fixtures, and test suites.
+ Beyond this, CppTest is capable of handle and format output, it offers
+ api for writing output formatters (TextOutput, CompilerOutput, and HtmlOutput
+ formatters are implemented).
+ As for CxxTest, pure C sources must be modified (headers wrapped in extern
+ C block) to run in CppTest.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "CUnit"
+
+\end_inset
+
+ is C based (still C++ compatible), it supports assertions, suites, test
+ counting, results are stored in global registry, more user interfaces (for
+ running tests) are implemented.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+GUnit 
+\series default
+
+\begin_inset LatexCommand cite
+key "gunit"
+
+\end_inset
+
+ is another unit testing framework with assertions, suites and fixtures.
+ It uses GTK+ libraries (for almost anything).
+ It has gnome and hildon (embedded) GUI, dedicated logging facility.
+ GUnit doesn't offer discovery, however compiles suites as dynamically loadable
+ libraries.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+RCUnit
+\series default
+ 
+\begin_inset LatexCommand cite
+key "RCUNIT"
+
+\end_inset
+
+ (C based) supports assertions, suites (called modules), fixtures.
+ It has own logging facility, tests can be disabled.
+ RCUnit has documented interface for writing output handlers.
+ HTML and plain text handlers are implemented.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Cutee
+\series default
+ 
+\begin_inset LatexCommand cite
+key "cutee"
+
+\end_inset
+
+ tends to be as simple as possible.
+ Thus it supports only assertions, no fixtures or suites.
+ Tests are collected automatically, yet files with tests must be listed
+ in Makefile.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Check
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Check"
+
+\end_inset
+
+ provides assertions, suites, and simple fixtures.
+ It forks every test in separate process, can handle timeouts, output can
+ be printed in plain text or XML.
+ Has no build or collect helpers, adding test is very annoying.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+CuTest
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Cutest"
+
+\end_inset
+
+ from basic features provides assertions and suites.
+ It has scripted tool for executable generation.
+\end_layout
+
+\begin_layout Section
+Checkpointing
+\begin_inset LatexCommand label
+name "sec:Checkpointing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Some failures are hard to reproduce thus developers want as much information
+ about the faulty run as possible.
+ Then, state of the application in time of failure may be required.
+ In this case, support for creating snapshots (checkpoints) can be useful.
+\end_layout
+
+\begin_layout Standard
+Moreover, as the sequence to failure can be very long, it can be convenient
+ to repeat just last part of it, or skip some parts to find the shortest
+ run to bring about the bug.
+ For these reruns, it is best when the consequent runs have the same start
+ conditions as the first one.
+ If resuming from stored state is possible, then a snapshot should be used
+ as this common start point.
+\end_layout
+
+\begin_layout Standard
+There are many projects trying to create 
+\series bold
+full featured checkpoint / resume
+\series default
+ support for applications.
+ They can be divided in two groups: user-space only tools and kernel-based
+ tools.
+ The main problem among them is that none of them have full support for
+ every resource an application could use.
+ The most frequently missing features are suspend / resume support for:
+ networking, devices, threads, signal handlers, shared memory, shared objects.
+ Some of them (BCLR 
+\begin_inset LatexCommand cite
+key "BLCR"
+
+\end_inset
+
+, CryptoPID 
+\begin_inset LatexCommand cite
+key "cryptoPID"
+
+\end_inset
+
+, Chpox 
+\begin_inset LatexCommand cite
+key "chpox"
+
+\end_inset
+
+) seems to have everything needed, but for the price of many constraints
+ and dependencies.
+ In general, these projects are useful only in cases when the suspend /
+ resume is vital for application or system itself.
+\end_layout
+
+\begin_layout Standard
+Other possibility is to use some
+\series bold
+ virtualization
+\series default
+ tool and run application (not necessarily test suite) inside virtual machine.
+ Nowadays, there are many virtualization tools with support for snapshoting
+ (for example openVZ 
+\begin_inset LatexCommand cite
+key "openVZ"
+
+\end_inset
+
+, Vmware 
+\begin_inset LatexCommand cite
+key "Vmware"
+
+\end_inset
+
+, Xen 
+\begin_inset LatexCommand cite
+key "Xen"
+
+\end_inset
+
+, Qemu 
+\begin_inset LatexCommand cite
+key "Qemu"
+
+\end_inset
+
+).
+ However, working with virtualization is fairly complicated and we can't
+ test hardware dependent issues in virtualized environment.
+ Moreover, creating snapshots of whole system can be very resource-consuming.
+\end_layout
+
+\begin_layout Standard
+The last and easiest possibility is to use just 
+\series bold
+snapshoting without resume
+\series default
+ and save the snapshots in some easy to read format.
+ For example GDB gcore 
+\begin_inset LatexCommand cite
+key "gcore"
+
+\end_inset
+
+ command (which creates gdb core dumps) can be used to snapshot the application.
+\end_layout
+
+\begin_layout Section
+Logging, tracing
+\begin_inset LatexCommand label
+name "sec:Logging,-tracing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When an error is detected in software, developer needs to have as much informati
+on about the failure as possible.
+ What occurred is nice to know, but in most cases useless without more details
+ about circumstances.
+ Therefore, developers use logging and tracing to get some useful information
+ about the particular run.
+\end_layout
+
+\begin_layout Standard
+By tracing, we mean storing information about call sequence in the program.
+ By logging we mean saving information about data changes, or notes about
+ states of system (inserted by developers).
+ In most cases, these features can be provided by one tool.
+\end_layout
+
+\begin_layout Subsection
+Models
+\end_layout
+
+\begin_layout Standard
+The simplest logging tool used is insertion of 
+\series bold
+direct message prints
+\series default
+.
+ Messages may provide the information needed, but this approach suffers
+ by not having centralized control of what has to be printed.
+ This leads to excessive logging, in which is hard to find an useful information
+, and if we want to avoid this, it force us to change the code on many places.
+\end_layout
+
+\begin_layout Standard
+So next logical step is to send logging messages (accompanied by importance
+ level) to some 
+\series bold
+centralized facility
+\series default
+.
+ The importance level list is in most cases directly given in advance.
+ Providing this, it is possible to change the amount of output centrally
+ and even redirect messages to distinct places.
+\end_layout
+
+\begin_layout Standard
+When simple distinction by importance is not enough, more advanced logging
+ facilities come with 
+\series bold
+tagging of messages
+\series default
+.
+ Tags can be flat or of arbitrary structure.
+ This allows better filtering of messages of special types.
+ 
+\end_layout
+
+\begin_layout Standard
+Other approach to logging is to have more than one logger.
+ In this case, the tool has frequently 
+\series bold
+producer - consumer
+\series default
+ based architecture and loggers are organized to dynamically created hierarchy
+ (a tree).
+ This eases the goal of having different output locations for different
+ types of messages.
+ On the other hand, the architecture is not so easy to understand for anybody
+ who might contribute to the code.
+ Moreover, with more people participating on development, it is nearly impossibl
+e to keep the hierarchy of producers and consumers used in application sane.
+ 
+\end_layout
+
+\begin_layout Standard
+The last approach to logging and tracing is called 
+\series bold
+aspect oriented programming
+\series default
+.
+ In this case, the logging is not present in the code itself, but it is
+ separated as an independent concern to aspect - logical definition what
+ and where has to be logged.
+ 
+\end_layout
+
+\begin_layout Subsection
+Pitfalls
+\end_layout
+
+\begin_layout Standard
+Even if an adequate logging tool is used to debug the software, problems
+ can arise when the tool is used in some automated stress testing.
+ The amount of output 
+\series bold
+logs would eventually grow too big
+\series default
+ for storage capacity, or at least for the potential reader to deal with.
+ So the automation tool should be able to communicate with the logging facility
+ and dynamically change the amount of output according to actual needs.
+ This must be tuned to throw away the biggest possible portion of unrelated
+ logs, but to preserve the crucial information for debugging the failure
+ (as the failure could be hard to repeat).
+ Other possibility (commonly used) is to have a circular buffer which holds
+ only latest logs.
+\end_layout
+
+\begin_layout Standard
+There is one more reason that may be considered for muting logging output.
+ The reason is that 
+\series bold
+logging could slow the application down
+\series default
+.
+ To check how much logging slows down an ordinary application, some measurements
+ were done.
+ 
+\end_layout
+
+\begin_layout Standard
+For testing was used a real application - session server from the SUCKS
+ 
+\begin_inset LatexCommand cite
+key "SUCKS"
+
+\end_inset
+
+ project.
+ This application is threaded and accessible by network.
+ Logging facility was simple centralized logger with predefined log levels.
+ Logger was altered so it has measured time spent by logging.
+ Tests consisted of predefined workload, output was time spent by whole
+ application, time spent in logging and characters printed.
+ Test cycle was composed of one run of all tests for every log level and
+ log target.
+ After finishing, the cycle starts again.
+ This had been running for approximately thirty hours on two platforms:
+\end_layout
+
+\begin_layout Enumerate
+Intel centrino with core2duo CPU, set to static frequency of 1Ghz with 2GB
+ memory (most unused), running kernel 2.6.20.1 x86_64.
+ 
+\end_layout
+
+\begin_layout Enumerate
+Motorola ppc MPC8241 (266Mhz) with 128MB memory, running kernel 2.4.32
+\end_layout
+
+\begin_layout Standard
+Results are summarized in 
+\begin_inset LatexCommand prettyref
+reference "tab:logging load"
+
+\end_inset
+
+.
+ The first column is logging target (medium to which logs are written),
+ the second column is actual log level.
+ The first column of platform dependent part is how many microseconds are
+ (in average) spend for printing of one character of log output.
+ Aliquot part of function calls, conditions evaluation and auxiliary operations
+ done by logger are included.
+ The second column is percentage from running time of application, that
+ were spent by logging (in average).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename logSums.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Caption
+
+\begin_layout Standard
+Mean logging load to application
+\end_layout
+
+\end_inset
+
+
+\begin_inset LatexCommand label
+name "tab:logging load"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Both platforms behaved equally, the only difference was in speed (and for
+ console prints, we must consider, that Motorola was connected by network
+ and all console prints must went through ssh).
+ From results we can see that all logging targets had the same footprint
+ and the only 
+\emph on
+slow
+\emph default
+ target was console write.
+ For non-blocking targets, the slowdown was in hundredths of per cent for
+ all log levels.
+\end_layout
+
+\begin_layout Standard
+Conclusion of this (regarding to speed) is that when we don't need to read
+ the output of application online we can log everything.
+ In case of small storage capacity, circular buffer (which can be flushed
+ to file only when error occurred) could be used.
+ Requirement is that filtering must be possible (Filtering can be done afterward
+ by user).
+ Another finding is that on non-blocking media big part of logging footprint
+ is made by checks if something has to be logged or not.
+ Thus if minimum slowdown is required, logging should be entirely removed
+ from binary in compile time.
+ Problem with this is that it makes changes to binary image, and these changes
+ can lead to different behavior of erroneous code and a bug could be ireproducib
+le with different logging level.
+\end_layout
+
+\begin_layout Standard
+Other problem, which can arise with logging, is that logging can act as
+ synchronization primitive preventing some race conditions to appear.
+ Problem with synchronization can be solved by design of logging facility.
+ The logger must be designed in way that creates separated resources for
+ every concurrently running entity in advance, and then the only effect
+ done by the logger is slowdown upon creation of new 
+\emph on
+threads
+\emph default
+.
+\end_layout
+
+\begin_layout Section
+Continuous integration
+\begin_inset LatexCommand label
+name "sec:Continuous-integration"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Existence of tests is not enough to provide stable development cycle.
+ For stability of project it is vital to test it for errors (run tests)
+ as often as possible, preferably after each change (commit).
+ The approach when 
+\series bold
+changes are often merged
+\series default
+ into 
+\emph on
+mainline
+\emph default
+ is called Continuous integration (a good overview of this method is in
+ 
+\begin_inset LatexCommand cite
+key "Continuous_integration"
+
+\end_inset
+
+).
+ To achieve regular testing, it is convenient to use some tool (server)
+ to automate the process.
+ There are many proprietary solutions and even more opensource solutions.
+ It is interesting how many organizations deploy their own system (for example
+ Mozilla Foundation uses Tinderbox 
+\begin_inset LatexCommand cite
+key "Tinderbox"
+
+\end_inset
+
+, Redhat has Frysk 
+\begin_inset LatexCommand cite
+key "Frysk"
+
+\end_inset
+
+, ThoughWorks has 
+\begin_inset LatexCommand cite
+key "Cruise_Control"
+
+\end_inset
+
+.
+ Apache foundation has even two projects - Continuum 
+\begin_inset LatexCommand cite
+key "Continuum"
+
+\end_inset
+
+ and Gump 
+\begin_inset LatexCommand cite
+key "Gump"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Subsection
+Automation
+\end_layout
+
+\begin_layout Standard
+The best approach to achieve stable build and check cycle is to automate
+ it.
+ Some projects use manually driven systems, but there is hazard of human
+ failure (developer could omit tests, forgot about them or ignore them at
+ all).
+ In general, tests are run independently on human interaction.
+\end_layout
+
+\begin_layout Paragraph
+
+\series bold
+In common, there are two approaches used to achieve automated build and
+ check
+\series default
+:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+First is to use some 
+\series bold
+post
+\series default
+ 
+\series bold
+commit hooks
+\series default
+ (we assume that version control system is used) which execute tests, or
+ launch separate process to execute them on background.
+ This approach can ensure that no wrong code gets into the repository -
+ a commit that didn't pass all tests can be rejected.
+ 
+\end_layout
+
+\begin_layout Standard
+Running all tests can be relatively long lasting task and therefore environment
+ is rarely set to execute all tests before commit.
+ Commonly, commit is delayed only after passing vital tests and more in-deep
+ checking tests are executed afterward in stand-alone process.
+ Implementations using post commit hooks are often bound to one version
+ control system.
+\end_layout
+
+\begin_layout Standard
+Other option is to not check validity in commit hooks, but use a 
+\series bold
+independent service
+\series default
+ which monitors state of repository and runs tests either for every
+\series bold
+ 
+\series default
+change (commit),
+\series bold
+ 
+\series default
+or on regular basis (night builds).
+ Benefits of this approach are that it doesn't slow down commits, and tools
+ using this approach have frequently more features and better configurability.
+ These solutions are generally independent on version control system (support
+ for distinct version control systems is provided by plugins), but sometimes
+ use hooks to get alert upon change.
+\end_layout
+
+\begin_layout Paragraph
+
+\series bold
+Often this combination is used
+\series default
+:
+\newline
+
+\end_layout
+
+\begin_layout Itemize
+Pre-commit hooks are used to enforce repository rules and coding conventions
+\end_layout
+
+\begin_layout Itemize
+Separate service builds project (upon commit or nightly), and executes all
+ tests checking if changes don't break something
+\end_layout
+
+\begin_layout Subsection
+Distributed testing
+\begin_inset LatexCommand label
+name "sub:Distributed-testing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Testing doesn't need to be run on the same machine as control service.
+ When tests doesn't run on the same machine as main continuous server, we
+ call it distributed testing.
+ 
+\end_layout
+
+\begin_layout Paragraph
+There can be many reasons for distributing:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+It is crucial do distribute testing for 
+\series bold
+multiplatform applications
+\series default
+.
+ Wrong code can behave badly only on one of target platforms and therefore
+ testing on only one platform can leave errors undiscovered.
+ In this case distributed testing is the only way to cover specifics of
+ all platforms.
+ Complementary approach (run one separate machine with full build and check
+ service for every platform) is possible too, but managing such system is
+ huge overhead, and collecting results is also non trivial.
+\end_layout
+
+\begin_layout Standard
+Some tests or projects could be 
+\series bold
+dangerous
+\series default
+ to system, or the project itself could be 
+\series bold
+part of base system
+\series default
+.
+ These should run in separation of production system (to not break it),
+ in some sort of sandbox (a part of system with restricted rights).
+ One possibility is to run dangerous tests on separated physical machines.
+ But this would lead to non-trivial problems with recovery.
+ As virtualization is nowadays easy to deploy, the best way (and in case
+ of base system parts the only viable way) is to sandbox project testing
+ in a virtual machine.
+ This must be considered as distributed testing too because the communication
+ with virtual machine must be done in the same way as if the virtual machine
+ was in other network.
+ In general, there are less security barriers between the host machine and
+ the guest machine, but it doesn't affect the connection method itself.
+ For some special cases there can be one more option how to separate dangerous
+ tests without distributing: to use operating system provided tools to restring
+ their privileges and resources (for example chroot).
+\series bold
+commiter
+\end_layout
+
+\begin_layout Standard
+Another reason for running tests on other machine can be 
+\series bold
+resource consumption
+\series default
+.
+ As the control system should be visible to wide network (at least the presentat
+ion layer), it is frequently run on production server which hosts other
+ applications too.
+ In this case it is not good idea to slow down or even block whole system
+ by testing.
+ Again, tests are given to another machine to execute.
+\end_layout
+
+\begin_layout Standard
+Sometimes, tests take long 
+\series bold
+time
+\series default
+ to complete.
+ Then it is convenient to spread tests over more machines, each running
+ only part of tests.
+ By this shorter build and check cycle is achieved.
+\end_layout
+
+\begin_layout Paragraph
+Distribution can be achieved by:
+\newline
+
+\end_layout
+
+\begin_layout Standard
+Sending commands through 
+\series bold
+remote terminal
+\series default
+.
+ For example on UNIX, data could be copied to target machine by scp, tests
+ executed through ssh, and results again retrieved through scp.
+ This is the easiest way used in simple cases where no synchronization or
+ overview is needed.
+ In general, data doesn't need to be delivered through the same way as commands.
+ Clients can fetch them themselves upon test command, or there can be shared
+ network storage where control server should put data for tests.
+\end_layout
+
+\begin_layout Standard
+Most common way to connect control server with machines executing tests
+ (sometimes called slaves or bots) is to use
+\series bold
+ remote procedure call
+\series default
+.
+ As remote procedure call not only RPC is considered, but any method that
+ allows execution of code on remote system.
+ There are many remote procedure call tools such as RPC, CORBA, dcom, python
+ twisted, py.execnet, etc.
+\end_layout
+
+\begin_layout Standard
+Older systems tend to use 
+\series bold
+e-mail
+\series default
+ communication.
+ It consists of specially formatted messages sent between master and clients.
+ This approach has many drawbacks as security problems, frangibility and
+ non-deterministic behavior.
+\end_layout
+
+\begin_layout Standard
+Sometimes, 
+\series bold
+proprietary methods
+\series default
+ for communication are used.
+ In general, they mimic remote procedure call functionality by sending data
+ within special protocol.
+\end_layout
+
+\begin_layout Subsection
+Build system
+\end_layout
+
+\begin_layout Standard
+Because one of build steps can be building the source, there should be support
+ for
+\series bold
+ 
+\series default
+build system used by project.
+ Again, many tools are plugin based and have plugins for most common build
+ systems.
+ Particular set depends on aim of the tool.
+\end_layout
+
+\begin_layout Subsection
+Presentation layer
+\end_layout
+
+\begin_layout Standard
+Pure commit driven environment when commits are delayed after all tests
+ passed doesn't need presentation layer at all, there is just a 
+\series bold
+message sent to committer
+\series default
+.
+ But as this variant is rare, nearly all automation systems have presentation
+\series bold
+ 
+\series default
+layer.
+ This layer mostly serves as notifier about the server's status - it shows
+ if the server is actually running anything, and if so, what is being executed.
+ Short overview of past runs is often provided too.
+ The complexity vary from 
+\series bold
+simple text
+\series default
+ 
+\series bold
+(HTML)
+\series default
+ file statically served by web server to rich 
+\series bold
+database backed GUI
+\series default
+.
+ Standard tools offer HTML overview and detail pages, tools bound to specific
+ environment usually provide GUI for that environment.
+ Very often, there are email or instant messaging notifiers too.
+ If there are no other outputs than test count and test results, it tends
+ to be plain text.
+\end_layout
+
+\begin_layout Section
+Result repository
+\begin_inset LatexCommand label
+name "sec:Result repository"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Usual test run produces outputs of many types, beginning with standard outputs,
+ going on with operation sequence, debug logs, even including state snapshots,
+ core dumps, etc.
+ These is data of very different types.
+ Unless it is written specially to fit the particular application, the continuou
+s integration server is often incapable of storage and presentation of all
+ data from tests.
+ Some continuous integration servers don't have persistent result storage
+ at all.
+ Because of this, separate result repository is very often implemented.
+\end_layout
+
+\begin_layout Subsection
+Data storage
+\end_layout
+
+\begin_layout Standard
+When tests produce only small amount of textual data, 
+\series bold
+log
+\series default
+ 
+\series bold
+file
+\series default
+ can be used.
+ As the simplest variant, this is often part of continuous integration server.
+\end_layout
+
+\begin_layout Standard
+For complex textual data, 
+\series bold
+databases
+\series default
+ are used.
+ They provide way to store both data and relations between them together.
+ The interface of databases is versatile and easy to use, thus they can
+ be used without modifications.
+\end_layout
+
+\begin_layout Standard
+Big binary data such as snapshots are often stored outside databases.
+ Even though modern databases are capable of storage of them, there is no
+ advantage since no searching or indexing is available for arbitrary binary
+ data.
+ Because of this, special 
+\series bold
+binary data
+\series default
+ (or big data) is stored outside database 
+\series bold
+in file as it is
+\series default
+.
+ Nevertheless, properties of this data (if any) are still stored to database
+ to ease searching.
+\end_layout
+
+\begin_layout Subsection
+Presentation layer
+\end_layout
+
+\begin_layout Standard
+The easiest way to present test results is to leave them as 
+\series bold
+raw data
+\series default
+ (as they are produced by application and test suite).
+ When this approach is used, raw data is often made available for downloading
+ through simple protocol such as FTP or remote console.
+ Raw data holds always full information, doesn't suffer by any losses from
+ transformations.
+ On the other hand, raw data is often platform dependent and interpretation
+ on the system that have produced them may be required.
+ Raw data should be in standard format to allow reading with external tools.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Dynamic web pages
+\series default
+ are nowadays very used way of presentation, as they are relatively easy
+ to write.
+ Web pages have big advantage in accessibility - nearly every computer has
+ a web browser installed and people are used to get information through
+ these.
+ On the other hand, web pages can hardly display some debug outputs, such
+ as core dumps, and other binary data.
+ In this case, binary data should be downloadable for reading through external
+ tools.
+ Interaction with the web is little bit slower than with local application
+ and user comfort is worst too.
+\end_layout
+
+\begin_layout Standard
+Even raw data must be interpreted by an application to be presented in readable
+ form.
+ When there aren't appropriate general tools, they should be written as
+ a part of test suite.
+ The fact that they must be written is one big disadvantage by itself.
+ 
+\series bold
+Full featured interpreter of debug data with presentation layer
+\series default
+ may consists of the same amount of work as the test suite itself.
+ Moreover, requirements and dependencies of such application could be non-trivia
+l and platform independency is hardly to achieve with this approach.
+ The big advantage of a special application is that as written specially
+ for the suite it should fit very well the needs.
+\end_layout
+
+\begin_layout Section
+Pruning output
+\begin_inset LatexCommand label
+name "sec:Pruning-output"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When long test (or random test) fails, it could not be clear which step
+ has caused the failure.
+ So test outputs (debugging info) are needed to locate the bug.
+ On the other hand, outputs from long and random tests can be huge (and
+ most of them useless).
+ The goal of pruning output is to provide enough information to find the
+ bug, and at the same time hide useless ballast.
+\end_layout
+
+\begin_layout Standard
+Basically, outputs from testing can be divided to log messages, run backtrace,
+ and system state snapshots (memory dumps, filesystem state, etc.).
+ 
+\end_layout
+
+\begin_layout Standard
+Data automatically generated is more resources consuming, but as storage
+ capacity is cheap, we can simply leave all snapshots, or limit space used
+ by constant and delete old snapshots.
+ On the other hand, we must avoid excessive slowdown (which in case of core
+ dumps is non-trivial).
+ 
+\end_layout
+
+\begin_layout Standard
+As for logs, the problem was described in 
+\begin_inset LatexCommand prettyref
+reference "sec:Logging,-tracing"
+
+\end_inset
+
+: when logging doesn't slow the application down and doesn't change behavior,
+ the best approach is to log all, store all (or latest), and to provide
+ a tool for filtering and searching logs.
+ With this approach, no crucial information is lost by heuristic pruning.
+ In special cases, like low resource platforms (without storage, extremely
+ slow, etc.), where wasting can't be afforded, some heuristic must be used.
+ For system state this can be the state in time of the failure.
+ 
+\end_layout
+
+\begin_layout Standard
+For logs there can be more approaches which can be divided to:
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+On-time pruning
+\series default
+ - the test suite changes log level of the application according to probability
+ of failure.
+ The question is, how it should know.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Afterward
+\series default
+ - log level is constant for test run, logs are stored to a cyclic buffer.
+ When a failure occurs, the test suite will trim the buffer to store just
+ useful information.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Re-run
+\series default
+ - tests are executed with logging on minimal level.
+ When a failure occur, test suite will rerun the test with more logging
+ 
+\emph on
+around
+\emph default
+ the failure, possibly skipping some parts of the test (parts of random
+ generated workload).
+\end_layout
+
+\begin_layout Section
+Sandboxing
+\begin_inset LatexCommand label
+name "sec:Sandboxing"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When tests need more privileges over the hosting environment, or the tested
+ component itself is part of operating system, there is big probability
+ that 
+\series bold
+running tests can break something
+\series default
+.
+ In this case, tests must be executed in separation (so called sandbox).
+ It is either a part of system with restricted access to some resources,
+ or whole separate system.
+ 
+\end_layout
+
+\begin_layout Standard
+Obviously, there should be possibility to simply create a new sandbox or
+ to restore previous state of the sandbox if it was broken by a test.
+\end_layout
+
+\begin_layout Standard
+As we described in 
+\begin_inset LatexCommand prettyref
+reference "sec:Logging,-tracing"
+
+\end_inset
+
+, execution protocol (logs) is crucial to track a failure found by automated
+ testing.
+ Therefore it should be possible to get logs (and other data) from the sandbox
+ at least after the failure, but preferably to send them back to the master
+ straight upon generation.
+ This is mostly feature of the testing framework, but to use it the sandbox
+ must allow communication with outside.
+\end_layout
+
+\begin_layout Standard
+When testing is distributed (see 
+\begin_inset LatexCommand prettyref
+reference "sub:Distributed-testing"
+
+\end_inset
+
+), it should be considered to use the remote machine as the sandbox too.
+ Again, there should be method to easily restore state of the remote machine
+ when broken by a test.
+ Note that this would be problematic with real (non-virtualized) hosts.
+\end_layout
+
+\begin_layout Standard
+In 
+\begin_inset LatexCommand prettyref
+reference "sec:Checkpointing"
+
+\end_inset
+
+ the problem of providing information about test state to developer was
+ analyzed.
+ If a sandbox is represented by full operating system then checkpointing
+ of the whole sandbox would be in most cases big overhead.
+ Still it should be taken into account in some cases.
+ One case where sandbox snapshots may be convenient is when tests depend
+ heavily on system state or change system state.
+ Then without system snapshot some information to track the failure may
+ be missing.
+ Other case when full snapshots may be generated is when a test has caused
+ system failure (therefore normal snapshot can't be created).
+\end_layout
+
+\begin_layout Section
+Filesystem test patterns
+\begin_inset LatexCommand label
+name "sec:Filesystem-test-patterns"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this section, main functional filesystem testing tools used in UNIX-like
+ systems are listed and described.
+\end_layout
+
+\begin_layout Subsection
+FSX
+\begin_inset LatexCommand label
+name "sub:FSX"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Originally written by Apple Computer, Inc.
+ for MacOS and BSD-style operating systems.
+ Nowadays, there are more versions used, but the main part stays the same
+ 
+\begin_inset LatexCommand cite
+key "FSX"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The test consists of a single source file written in C, compatible with
+ most Unix-based operating systems.
+ The test operates on one file, does a loop with a random operation in every
+ cycle - one of read, write, truncate, close and open, map read and map
+ write.
+ Memory mapped operations can be disabled.
+ Checks in FSX are made by comparison of write buffer and data read, additional
+ checks of file size are made too.
+ A failure report from FSX is a dump of operation sequence and a buffer
+ dump.
+\end_layout
+
+\begin_layout Subsection
+LTP
+\end_layout
+
+\begin_layout Standard
+Linux testing project 
+\begin_inset LatexCommand cite
+key "LTP"
+
+\end_inset
+
+ is a collection of test suites for Linux operating system internals.
+ Tests are compiled programs or scripts, driving is done by control script.
+ The part dedicated to filesystems contains previously mentioned FSX (
+\begin_inset LatexCommand prettyref
+reference "sub:FSX"
+
+\end_inset
+
+) and LTP specific filesystem testing binaries.
+ Checking is mostly done by comparison between results and expected values.
+ There are both types of tests: predefined loops with random arguments (file
+ sizes, etc.) and stress tests consisting of random sequences of operations.
+ No cleanup is provided.
+ Failure log contains only arguments to last tests.
+ There is a vast amount of operations implemented.
+\end_layout
+
+\begin_layout Subsection
+OpenSolaris ZFS / NFSv4 Test Suite
+\end_layout
+
+\begin_layout Standard
+Very exhaustive test suite for filesystems on OpenSolaris 
+\begin_inset LatexCommand cite
+key "OpenSolarisZFS"
+
+\end_inset
+
+.
+ There are two sets of tests: one for NFSv4 and one for ZFS, but techniques
+ used in them are the same.
+ The only difference is that ZFS test suite has extra stress tests.
+\end_layout
+
+\begin_layout Standard
+The system is Makefile driven, tests are generally shell scripts (ksh) with
+ few support programs and tests that are compiled.
+ Testing is deterministic, cleanup is done after a set of tests (directory).
+ Errors are printed to stderr.
+ 
+\end_layout
+
+\begin_layout Standard
+What should be noted is the coverage of these tests, there are tests for
+ nearly every operation possible, even for zones, ACL, or redundancy.
+ In the ZFS part, there are simple stress tests too - predefined loops with
+ configurable length.
+\end_layout
+
+\begin_layout Subsection
+Mongo
+\end_layout
+
+\begin_layout Standard
+Mongo benchmark 
+\begin_inset LatexCommand cite
+key "Mongo"
+
+\end_inset
+
+ is a test program written in Perl, aimed at Linux filesystem performance
+ and functionality testing (developed by Hans Reiser for reiserfs).
+ It is very tightly coupled with linux standard tools and filesystem usage.
+ Does everything from mkfs, through mount to classic operations.
+ The version examined was mainly benchmarking tool, there were no checks
+ if operations are correct, just that they goes.
+\end_layout
+
+\begin_layout Section
+Random workload generation
+\begin_inset LatexCommand label
+name "sec:Random-workload-generation"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As described in 
+\begin_inset LatexCommand prettyref
+reference "sub:Functional-testing"
+
+\end_inset
+
+, for complex applications (which filesystems indeed are) there is problem
+ with defining and creating tests that would cover all use-cases and their
+ combinations.
+ One possibility how to deal with this is to generate a random workload
+ to the filesystem that will exercise all operations available in random
+ order.
+ By this (at least statically), all combinations can be tested.
+\end_layout
+
+\begin_layout Standard
+The random workload for stress testing must be 
+\series bold
+generated from small tests
+\series default
+ (operations, meta tests, atoms).
+ Depending on subject tested, atoms are either defined by tradition (for
+ filesystem that will be open, read, write, etc.), or small, well defined
+ tests.
+ It is sometimes wanted to group sequence of atoms to create new (bigger)
+ atom.
+ 
+\end_layout
+
+\begin_layout Standard
+Random workload generation has little usage on 
+\series bold
+stateless systems
+\series default
+.
+ The only thing random workload can test on a stateless system is, if it
+ is really stateless.
+ In general, all possible pairs of operations should cover stateless system
+ functionality.
+\end_layout
+
+\begin_layout Standard
+In case of 
+\series bold
+stateful systems
+\series default
+ (and meta tests), not all operations can be used in any state.
+ So there should be method how to define and check states and legal transitions.
+ Simple method to allow this is to give to tester a way to define 
+\series bold
+pre and post run hooks
+\series default
+ that can initialize state, check transition, and possibly do cleanup after
+ a test.
+ While approach with pre and post run hooks is simple yet powerful, there
+ is one issue connected to it.
+ In this system, tester trades the possibility of using stateful tests for
+ a potential waste of system resources.
+ When a test expects some state different from actual, it must either made
+ a state change (non trivial operation out of its scope) or silently pass
+ without testing and let the system run another test.
+ More sophisticated system for resolving statefulness is to give to tester
+ a tool for defining 
+\series bold
+allowed transitions between tests
+\series default
+.
+ Transitions are often given by a graph (edges can be allowed transitions
+ or tests).
+ 
+\end_layout
+
+\begin_layout Standard
+Sometimes it may be desirable to give some 
+\series bold
+preferences
+\series default
+ (what should be tested).
+ For the random workload this means either switching meta tests on and off,
+ or giving preferences to tests.
+ When statefulness is not solved or solved by pre and post hooks, percentage
+ is connected to tests.
+ When transitions are used, percentage can be either for tests (implicit
+ edges) or for transitions.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Length
+\series default
+ of random workload can be restricted by:
+\end_layout
+
+\begin_layout Itemize
+Number of meta tests (minimum, maximum, mean)
+\end_layout
+
+\begin_layout Itemize
+Time (resources) used
+\end_layout
+
+\begin_layout Itemize
+By transitions to end point
+\end_layout
+
+\begin_layout Standard
+When user preferences are given, system itself can be simple automata running
+ on stateful graph.
+\end_layout
+
+\begin_layout Chapter
+The test suite architecture
+\begin_inset LatexCommand label
+name "cha:The-test-suite"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We want to create a testing framework suitable for testing of userspace
+ filesystem (which ZlomekFS is).
+ This framework should be able to setup and control ZlomekFS so that every
+ test run could have the same conditions (or at least as similar as possible).
+ It should be able to run predefined tests and at the same time allows generatio
+n of random workload.
+ For failures, the framework should collect as much useful information as
+ possible.
+ As for any software, the architecture of the test suite should be flexible
+ enough to allow further extensions.
+\end_layout
+
+\begin_layout Section
+Programming language
+\begin_inset LatexCommand label
+name "sec:Programming-language"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Since ZlomekFS tends to be multiplatform and support more operating systems
+ (currently only Linux is supported), language which has support for as
+ many operating systems as possible is needed (or at least for UNIX-like
+ operating systems).
+ For testing, the language should be flexible enough, but on the other hand
+ since file system will be tested, speed must be considered too.
+ Last but not least need is that the language should allow integration with
+ the existing code.
+\end_layout
+
+\begin_layout Standard
+We decided to test ZlomekFS through general user api (access to filesystem)
+ rather than calling directly functions of ZlomekFS code.
+ There were two reasons for it: to allow internal refractorization of ZlomekFS
+ code without modifications of tests (refractoring could be needed to allow
+ integration with new operating system), and because of complexity of ZlomekFS
+ code (tests would have to reflect this and thus they would incline to be
+ tricky or incorrect).
+ 
+\end_layout
+
+\begin_layout Standard
+The first option is to use pure C, because ZlomekFS is written in it.
+ The main reason for C is possibility of integration.
+ This is for sure required for unit tests.
+ But for random workload generation, this requirement is rather weak.
+ As noted before, random workload will be generated through general user
+ api (filesystem access).
+ Moreover, it would be good to use some existing testing framework as base
+ solution and write just ZlomekFS testing specific functionality.
+ But we have not found any suitable framework written in C.
+\end_layout
+
+\begin_layout Standard
+On the other hand, there are several testing frameworks written in 
+\series bold
+python 
+\series default
+
+\begin_inset LatexCommand cite
+key "Python"
+
+\end_inset
+
+
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+Author of this thesis is aware of other scripting languages that could be
+ used.
+ Python was favored because of personal preferences.
+\end_layout
+
+\end_inset
+
+, that meet our needs.
+ Compared to C, python is also more flexible language.
+ Because of this, python was chosen as main programming language for driving
+ component.
+ Python can integrate with most compiled languages and thus not all components
+ must be written in python.
+ Performance critical parts and integration libraries can be still written
+ in ZlomekFS native language - 
+\series bold
+C
+\series default
+.
+\end_layout
+
+\begin_layout Section
+Used tools
+\end_layout
+
+\begin_layout Standard
+List of tools finally used in the regression testing framework follows.
+ For many parts, there is tendency to reuse existing tools.
+ But for every one, there should be considered if the work saved by the
+ use of existing tool worth problems with integration (it is unlike that
+ existing tool would fit exactly into different, non-trivial project).
+ For external tools with active comunity not only the work of writing the
+ tool would be saved, but the maintenance of it can be shared too.
+ Therefore mainly opensource projects with reliable community were considered.
+\end_layout
+
+\begin_layout Subsection
+
+\series bold
+Testing environment
+\end_layout
+
+\begin_layout Standard
+For very specific purpose of testing distributed file system, no existing
+ suitable solution was found.
+ Before writing completely new framework, existing tool capable of extension
+ was looked for.
+ From general purpose testing tools written in python, 
+\series bold
+Nose
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ was considered as the most suitable.
+ Moreover, every feature needed which Nose doesn't implement can be delivered
+ as plugin without modifying Nose core code.
+ Nose plugin architecture was found as flexible enough for further extending
+ of the test suite too.
+\end_layout
+
+\begin_layout Subsection
+Continuous integration
+\begin_inset LatexCommand label
+name "sub:Continuous-integration-2"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To provide best results, tests should be executed automatically in predefined
+ periods or for every change in code.
+ For this purpose, continuous integration servers (see 
+\begin_inset LatexCommand prettyref
+reference "sec:Continuous-integration"
+
+\end_inset
+
+) are used.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Buildbot
+\series default
+ 
+\begin_inset LatexCommand cite
+key "BuildBot"
+
+\end_inset
+
+ was chosen as continuous integration server.
+\end_layout
+
+\begin_layout Paragraph
+It was chosen for these reasons:
+\end_layout
+
+\begin_layout Itemize
+Compatibility with ZlomekFS build system.
+ Buildbot can use shell commands and python code as build steps.
+ It can do output parsing for configure, make and gcc output too.
+\end_layout
+
+\begin_layout Itemize
+It is small and easy to deploy.
+ There is no need to write big XML configuration files to run 
+\emph on
+hello world
+\emph default
+, buildbot code is relatively small and easy to read.
+ In comparison with others, buildbot has around 500K, where other tools
+ can take more than 300M.
+\end_layout
+
+\begin_layout Itemize
+Written in python.
+ Since whole Buildbot is written in python, we can easily integrate it with
+ other tools used in project (as they are written in python too).
+\end_layout
+
+\begin_layout Itemize
+Extendable architecture.
+ Buildbot parts are written as objects, so it is possible to inherit from
+ them and tweak behavior according our needs.
+\end_layout
+
+\begin_layout Itemize
+Support for distributed testing.
+ As ZlomekFS is distributed filesystem, the support for distributed testing
+ is essential.
+ Moreover, ZlomekFS is intended to run on multiple architectures (and in
+ future possibly on multiple operating systems) which requires distributed
+ testing too.
+\end_layout
+
+\begin_layout Itemize
+Active development.
+ Buildbot is often used and has active community which ensures that it will
+ be maintained in future too.
+\end_layout
+
+\begin_layout Subsection
+Web result presentation and result repository
+\end_layout
+
+\begin_layout Standard
+As noted in 
+\begin_inset LatexCommand prettyref
+reference "sec:Result repository"
+
+\end_inset
+
+, continuous integration servers in general can't store and present wide
+ spectrum of data that can be generated from testing.
+ This holds for buildbot too (test results are presented as textual output
+ from commands).
+ This is not enough for two reasons: when failure or error is found, the
+ textual output may be messy (yet useful in some cases).
+ Bigger problem is that textual output can't provide enough information
+ and binary data can't be provided in this way at all.
+\end_layout
+
+\begin_layout Standard
+So there was need for another way to represent test results.
+ Since test outputs can contain binary data (snapshots, core dumps, filesystem
+ state, etc.), the presentation layer should be able to distinguish several
+ types of data and present them according to type.
+ As data and information for test run are related to each other, database
+ driven storage was preferred.
+ 
+\end_layout
+
+\begin_layout Standard
+The solution used is 
+\series bold
+Django 
+\series default
+
+\begin_inset LatexCommand cite
+key "Django"
+
+\end_inset
+
+.
+ It is written in python, offers object oriented database abstraction layer
+ and web pages generating tools.
+ Its configuration format is pure python, so it is easy to integrate it
+ with other parts of project.
+\end_layout
+
+\begin_layout Subsection
+Logging
+\end_layout
+
+\begin_layout Standard
+Original approach used for logging in ZlomekFS was direct message prints
+ (see 
+\begin_inset LatexCommand prettyref
+reference "sec:Logging,-tracing"
+
+\end_inset
+
+).
+ This approach is inappropriate for regression testing: there is no possibility
+ of controlling the output and defining what should be logged.
+ In general, direct message prints are the worst approach too and could
+ be used only for very small projects where classic logger would be bigger
+ than the project itself.
+ This is for sure not the case of ZlomekFS, thus we need to provide new
+ logger.
+\end_layout
+
+\begin_layout Paragraph
+We need logger with these features:
+\end_layout
+
+\begin_layout Itemize
+It can be controlled externally
+\end_layout
+
+\begin_layout Itemize
+It has simple still full featured interface
+\end_layout
+
+\begin_layout Itemize
+It has to have implementation (interface) for both languages (python and
+ C)
+\end_layout
+
+\begin_layout Itemize
+The output has to be in parseable and user readable format
+\end_layout
+
+\begin_layout Standard
+This enforces us to write 
+\series bold
+new logger
+\series default
+, which will suit best the needs.
+ From models, we can't use aspect oriented logging, as there is no implementatio
+n of aspects for both languages (and moreover it will be big requirement
+ for developers to learn aspects).
+ The producer-consumer model seems to be too complicated as there will be
+ large and non-homogeneous group of developers working on ZlomekFS.
+\end_layout
+
+\begin_layout Standard
+Thus the logger will be centralized, supporting tags with fast evaluation.
+ The output will be redirectable to shared resource (shared memory, network
+ socket) which can be used and controlled by test suite.
+ The format of written log for failure may be preferably readable by some
+ GUI or web based reader such as Chainsaw 
+\begin_inset LatexCommand cite
+key "Chainsaw"
+
+\end_inset
+
+, if not possible, user readable output should be used.
+\end_layout
+
+\begin_layout Subsection
+C based unit testing
+\end_layout
+
+\begin_layout Standard
+ZlomekFS is very complex and huge project with active development.
+ Thus there is need to check internal api for stability too.
+ As described in 
+\begin_inset LatexCommand prettyref
+reference "sec:Unit-based-testing"
+
+\end_inset
+
+, unit tests can be used to check internal api stability.
+ Moreover, unit tests have better traceability of bugs than random workload
+ testing (yet they can't test complex functionality).
+ Therefore it is better to find as many bugs as possible by unit testing.
+ 
+\end_layout
+
+\begin_layout Standard
+Unit tests must be written in the language of code tested, thus C based
+ unit testing tool is needed.
+\end_layout
+
+\begin_layout Standard
+All existing C based unit testing tools found have one of two 
+\series bold
+major problems
+\series default
+ (or both).
+ 
+\end_layout
+
+\begin_layout Itemize
+Many tools are 
+\series bold
+very complicated
+\series default
+ and writing simple test for 
+\begin_inset Quotes eld
+\end_inset
+
+a + b
+\begin_inset Quotes erd
+\end_inset
+
+ could take five minutes.
+ 
+\end_layout
+
+\begin_layout Itemize
+C based unit testing tools 
+\series bold
+lack automatic test discovery
+\series default
+.
+ Thus tests must be listed somewhere and collected manually (even in case
+ of hierarchies).
+ The best solution found is heuristic search by grep.
+\end_layout
+
+\begin_layout Standard
+Since integration of external tool to project is non-trivial and writing
+ of simple C based unit testing is relatively easy, 
+\series bold
+new C based unit testing library
+\series default
+ was implemented.
+\end_layout
+
+\begin_layout Subsection
+Documentation
+\end_layout
+
+\begin_layout Standard
+For the programmer documentation, the best approach is to write it as close
+ to the documented code as possible.
+ This provides better maintainability, but with the documentation only within
+ code, there could be problem to find particular information.
+ Because of this, export to more user friendly format should be provided.
+ To allow export of the documentation to external format (that should be
+ more readable and may support searching), it must be written in a format
+ recognized by some tool.
+ Consequently, the choice of actual tool gives the format for documenting
+ the code.
+\end_layout
+
+\begin_layout Standard
+For documenting C code, 
+\series bold
+DoxyGen
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Doxygen"
+
+\end_inset
+
+ was chosen.
+ Main argument was that ZlomekFS is documented in DoxyGen.
+ Secondary, DoxyGen is nowadays nearly standard tool for documenting C code.
+\end_layout
+
+\begin_layout Standard
+For Python code, DoxyGen has some support, but the support is problematic,
+ needs usage of import filters such as Doxypy 
+\begin_inset LatexCommand cite
+key "Doxypy"
+
+\end_inset
+
+, and even then results are not ideal.
+ There is standard docstring format for python 
+\begin_inset LatexCommand cite
+key "PEP257"
+
+\end_inset
+
+, but it doesn't support more than plain-text formatting.
+ Another option is to use some non-standard documentation tools for python
+ (most of them are listed in PEP256 
+\begin_inset LatexCommand cite
+key "PEP256"
+
+\end_inset
+
+).
+ Their problems are mainly enumerated in the list.
+\end_layout
+
+\begin_layout Standard
+Finally, 
+\series bold
+reStructuredText Docstring Format
+\series default
+ 
+\begin_inset LatexCommand cite
+key "reStructuredText"
+
+\end_inset
+
+ was chosen.
+ Main reason was that Nose 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ uses this format, secondary reStructuredText is easy readable in 
+\series bold
+Pydoc 
+\begin_inset LatexCommand cite
+key "Pydoc"
+
+\end_inset
+
+
+\series default
+ output and there are HTML formatting tools too.
+\end_layout
+
+\begin_layout Section
+Architecture
+\end_layout
+
+\begin_layout Standard
+There are four applications used in testing: ZlomekFS daemon, Django (TestResult
+Storage), Nose, and Buildbot .
+ 
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+ZlomekFS
+\series default
+ daemon uses 
+\series bold
+Syplog
+\series default
+ library to log debug messages, 
+\series bold
+D-bus
+\series default
+ listener to notify about its status and Fuse library to integrate with
+ linux kernel.
+ Upon start, Syplog and zfsd reads configuration from program arguments.
+ While zfsd is running, D-bus listener waits for connections through D-bus.
+ If message or request is received, it is served either by Syplog (change
+ of logging settings) or by zfsd status notifier (returns status of daemon).
+\end_layout
+
+\begin_layout Standard
+Inside of any C code, unit tests can be written using 
+\series bold
+Zen-unit library
+\series default
+ interface.
+ When zfsd is executed with libzenunit.so library loaded (given by LD_PRELOAD),
+ all Zen-unit based tests are found and executed.
+ Results are printed to stdout, error messages to stderr.
+\end_layout
+
+\begin_layout Standard
+All C code should be documented using 
+\series bold
+Doxygen
+\series default
+.
+ Html documentation can be generated by calling 
+\emph on
+make doc
+\emph default
+ in root directory of particular project.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+TestResultStorage
+\series default
+ should run on master machine, it provides web based user interface for
+ result repository.
+ Results are committed into repository directly (without usage of TestResultStor
+age process).
+ Programmer documentation for TestResultStorage is again written directly
+ to code, user should read it through 
+\emph on
+pydoc.
+\end_layout
+
+\begin_layout Standard
+When 
+\series bold
+Nose
+\series default
+ is run, it loads plugins, searches for tests and executes all tests found.
+ It is used to execute tests of all types (ZlomekFS stress and normal tests,
+ Zen-unit based C tests, and unittest based tests of python components).
+\end_layout
+
+\begin_layout Standard
+There are five plugins used in Nose.
+ 
+\series bold
+ZfsStressGenerator
+\series default
+ plugin is used to find meta-tests and generate random workload from them.
+ This random workload is then given as test to nose to execute.
+ 
+\series bold
+ZenPlugin
+\series default
+ is used to search for Zen-unit tests.
+ It uses Zen-unit library to search for tests in all passed binaries and
+ libraries.
+ Then these tests are executed and results reported through Nose (triggers
+ ZfsReportPlugin).
+
+\series bold
+ ZfsConfig
+\series default
+ plugin is used to load user defined configuration files.
+ It loads given files into objects and passes these objects to tests.
+ In specified moments (for example upon failure) 
+\series bold
+SnapshotPlugin
+\series default
+ creates snapshots of test state.
+ Plugin only triggers events and stores generated snapshots - the snapshoting
+ intelligence must be provided by the implementation of test.
+ When a test finishes,
+\series bold
+ ZfsReportPlugin
+\series default
+ collects all information about the test run (snapshots, result, time elapsed)
+ and commits them into TestResultStorage.
+\end_layout
+
+\begin_layout Standard
+When a 
+\series bold
+test 
+\series default
+for ZlomekFS is run by Nose, it forks zfsd instance.
+ During execution, it can communicate with the daemon through D-bus retrieving
+ status of daemon or changing logging settings.
+ When test finishes, the zfsd instance is destroyed.
+\end_layout
+
+\begin_layout Standard
+On all machines involved to testing, there must be 
+\series bold
+Buildbot
+\series default
+ running.
+ On master machine, it waits for changes in source repository.
+ When a change is detected, master sends commands to slave machines, waits
+ for end of their execution and retrieves results (only return code and
+ textual outputs from tests, snapshots and other status data are handled
+ by plugins and TestResultStorage.
+ On slave machines, the Buildbot process is waiting for master commands,
+ executes them and sends results back to master.
+ Main commands are fetching of code, building of binaries (rpms), execution
+ of Nose (tests), and cleaning up.
+ Simple results (return code and textual outputs) are then provided through
+ web interface by Buildbot process on master machine.
+ The interface shows both results of finished commands and actual status
+ of all slaves.
+\end_layout
+
+\begin_layout Standard
+All python code is documented in 
+\series bold
+reStructuredText
+\series default
+ format, 
+\emph on
+pydoc
+\emph default
+ should be used to read this programmer documentation.
+\end_layout
+
+\begin_layout Chapter
+Implementation details
+\begin_inset LatexCommand label
+name "cha:Implementation-details"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This chapter describes key implementation details of the regression testing
+ suite.
+ It is not intended as programmer documentation.
+ Programmer documentation is present directly in code (with possibility
+ of export).
+ Only general features and concepts are written up here.
+\end_layout
+
+\begin_layout Section
+ZlomekFS changes
+\end_layout
+
+\begin_layout Subsection
+Logging
+\end_layout
+
+\begin_layout Standard
+Original message printing system of ZlomekFS (two verbosity levels, hardcoded)
+ was replaced with 
+\series bold
+new logger
+\series default
+ (
+\emph on
+Syplog
+\emph default
+) developed specially for ZlomekFS.
+ 
+\end_layout
+
+\begin_layout Standard
+The logger allows programmer to print formatted messages into log.
+ To distinguish severity of messages (and filter by it), Syplog (the new
+ logger) supports eleven 
+\series bold
+log levels
+\series default
+.
+ A log level is 32bit unsigned integer (typedef) which represents severity
+ of message.
+ Log levels are defined by macro constants (from LOG_EMERG to LOG_LOOPS).
+ For example, message logging data input from user should be logged on log
+ level LOG_DATA, message informing about system failure should be logged
+ on log level LOG_ERROR.
+ There is conversion function available to convert log levels to user-readable
+ strings.
+\end_layout
+
+\begin_layout Standard
+Similary to log levels, filtering by concerns can be done by 
+\series bold
+facilities
+\series default
+.
+ A facility is either a part of application (d-bus service, logger, cache)
+ or a logical domain going through all components (threading).
+ Facilities are distinct one-bit flags that can be OR-ed.
+ Log message can be labeled as belonging to any number of facilities.
+ For example message notifying about acquirement of mutex for d-bus socket
+ should be logged as belonging to facility FACILITY_THREADING and to facility
+ FACILITY_DBUS.
+ Then, this message will be logged if at least one of these facilities is
+ set as to be logged.
+ Again, there is conversion function to convert facilities to user-readable
+ strings.
+\end_layout
+
+\begin_layout Standard
+When message is send to logger, its log level and facility set are compared
+ with current settings of logger.
+ If severity of message (log level) is greater than logger's and at least
+ one facility of message is set to be logged then message is written into
+ log.
+ Otherwise it is discarded.
+ Both log level and facility set used for filtering can be altered in run-time.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Output
+\series default
+ from the logger can be written to file or shared memory and the api is
+ open for extension such as socket write.
+ Output format can be user readable strings, or raw memory dumps.
+ For all formats and output targets, there are both writer and reader support,
+ so transformations between formats are trivial.
+\end_layout
+
+\begin_layout Standard
+Initial logger 
+\series bold
+settings
+\series default
+ are read from program arguments (an array of strings with given array size).
+ The logger ignores unknown options, so direct configuration from command
+ line is possible (and currently used).
+\end_layout
+
+\begin_layout Standard
+To allow 
+\series bold
+integration
+\series default
+ with external driving component (Nose testing environment) there is 
+\series bold
+D-bus
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Dbus"
+
+\end_inset
+
+ control api implemented.
+ This allows adjustment of both log level and facility set from either control
+ component or tests.
+ For further integration with driving component, there is full-featured
+ python wrapper for Syplog generated by swig.
+\end_layout
+
+\begin_layout Standard
+Log level and facility sets can be 
+\series bold
+extended
+\series default
+ by listing constants for new log levels and facilities in header files.
+ Output formats and targets are defined by static structures holding pointers
+ to functions with specified behavior.
+ New formats and targets can be added by implementing given function set
+ and providing description structure.
+ For further reference, see DoxyGen documentation of the
+\emph on
+ Syplog
+\emph default
+ library.
+\end_layout
+
+\begin_layout Subsection
+Zfsd status notifier
+\end_layout
+
+\begin_layout Standard
+The driving component of tests needs to know in which state ZlomekFS daemon
+ is (starting, running or terminating).
+ Without this information, some heuristic assumptions may be done leading
+ to false failures or invalid reports.
+ To accommodate this need, 
+\series bold
+D-bus
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Dbus"
+
+\end_inset
+
+ listener was added to zfsd.
+\end_layout
+
+\begin_layout Paragraph
+The D-bus component of ZlomekFS consists of two parts:
+\end_layout
+
+\begin_layout Itemize
+D-bus 
+\series bold
+provider
+\series default
+ - stateful service which manages initialization of D-bus, listening loop
+ and termination of D-bus connection.
+ Doesn't serve messages.
+\end_layout
+
+\begin_layout Itemize
+D-bus 
+\series bold
+message handlers
+\series default
+.
+ Set of functions describing zfsd specifics - naming and signal handlers.
+\end_layout
+
+\begin_layout Paragraph
+
+\series bold
+Integration
+\series default
+ of these two components with ZlomekFS daemon (zfsd) is following: 
+\newline
+
+\end_layout
+
+\begin_layout Standard
+On beginning, zfsd creates and initializes D-bus provider handler (structure).
+ Then, it registers zfsd D-bus message handlers by calling 
+\emph on
+dbus_provider_add_listener
+\emph default
+.
+ Currently, the Syplog D-bus service is implemented in way compatible with
+ zfsd D-bus provider, thus another
+\newline
+ 
+\emph on
+dbus_provider_add_listener
+\emph default
+ is called for Syplog service.
+ After all needed listeners are registered, zfsd calls 
+\emph on
+dbus_provider_start
+\emph default
+.
+ This starts new thread which listens for messages and forwards them to
+ registered handlers.
+ Finally, when zfsd is terminating, 
+\emph on
+dbus_provider_end 
+\emph default
+is called.
+\end_layout
+
+\begin_layout Standard
+When ZlomekFS D-bus service is running, any other application (with adequate
+ rights) can ask for ZlomekFS daemon status.
+\end_layout
+
+\begin_layout Standard
+For future, there are plans for
+\series bold
+ remote zfsd control
+\series default
+ mechanism.
+ Main intention of it should be to allow user initiated synchronizations,
+ mode changes (slow connection, fast connection), etc.
+ These should be implemented either as another set of message handlers or
+ by extending the current zfsd message handler.
+\end_layout
+
+\begin_layout Standard
+As the test driving component is written in python, there is 
+\series bold
+python client module
+\series default
+ for this api too.
+ The client module is automatically generated by swig, so there should be
+ no problems upon extending the service.
+\end_layout
+
+\begin_layout Section
+Testing environment
+\begin_inset LatexCommand label
+name "sec:Testing-environment"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Main component driving tests and controlling ZlomekFS daemon is implemented
+ as 
+\series bold
+Nose
+\series default
+ 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ plugins.
+ Nose is a python unit testing framework, but it has very powerful plugin
+ system so that it was possible to extend it to allow testing of filesystem
+ operations, even random workload generation.
+\end_layout
+
+\begin_layout Standard
+To Nose, 
+\series bold
+plugins
+\series default
+ must be provided as python classes, listed as setuptools entry points under
+ 
+\emph on
+nose.plugins.0.10
+\emph default
+.
+ They should inherit from 
+\emph on
+
+\newline
+nose.plugins.Plugin
+\emph default
+ class, but it is not mandatory.
+ Each plugin must implement some basic methods (such as 
+\emph on
+configure
+\emph default
+, 
+\emph on
+options
+\emph default
+, 
+\emph on
+help
+\emph default
+).
+ Then a plugin can define hooks for specific conditions.
+ For ZlomekFS testing, we use mainly 
+\emph on
+want
+\emph default
+ and 
+\emph on
+loadTestsFrom
+\emph default
+ hooks
+\emph on
+ 
+\emph default
+to load tests from special sources (for example saved failure sequences),
+ 
+\emph on
+startTest, handleFailure, handleError, addFailure, addError and addSuccess
+\emph default
+ hooks to control execution of tests, and few other miscellaneous hooks
+ for minor fixtures.
+ Nose itself and its plugins read configuration from environment variables
+ and command line options.
+ Command line options have superior priority.
+ 
+\end_layout
+
+\begin_layout Standard
+Plugins mostly provide general functionality needed for testing and global
+ state handling.
+ Test specific configuration and setup must be implemented in test classes
+ (ZlomekFS state handling is provided by base test class).
+\end_layout
+
+\begin_layout Standard
+Settings for plugins can be given by command line options, but preferred
+ way is to store them as 
+\series bold
+environment variables
+\series default
+.
+ Environment variables are used to pass values between components (plugins)
+ too.
+ This way is used to ensure that all tests within one batch will be reported
+ properly.
+ To ease repeated runs with the same configuration, support for 
+\series bold
+profiles
+\series default
+ is implemented.
+ If environment variable 
+\emph on
+PROFILE_NAME
+\emph default
+ is found, system will try to load module with given name and read environment
+ variables from it.
+\end_layout
+
+\begin_layout Subsection
+ZfsTest
+\end_layout
+
+\begin_layout Standard
+Where Nose plugins provide general functionality needed for testing, there
+ control of 
+\emph on
+zfsd
+\emph default
+ (ZlomekFS userspace daemon) from python is implemented in 
+\emph on
+ZfsProxy
+\emph default
+ class (which is then used by tests to interact with the daemon).
+ This class provides methods for starting zfsd, status queries, 
+\emph on
+Syplog
+\emph default
+ control, sane zfsd terminating and locked daemon killing.
+ Tests are methods, grouped to classes with common setup and teardown methods.
+\end_layout
+
+\begin_layout Standard
+Nose provide test fixtures (see 
+\begin_inset LatexCommand prettyref
+reference "sec:Unit-based-testing"
+
+\end_inset
+
+) on all levels.
+ For ZlomekFS testing purposes, all tests are for simplicity wrapped to
+ classes.
+ Then for normal tests, the setup of ZlomekFS daemon is done in test class
+ 
+\emph on
+setup
+\emph default
+ method (run before each test) and the teardown (shutdown and cleanup) is
+ done in 
+\emph on
+teardown 
+\emph default
+method (run after each test method).
+ For stress testing, the setup is done in 
+\emph on
+setupClass
+\emph default
+ method (run once before all tests in class) and the teardown is done in
+ 
+\emph on
+teardownClass
+\emph default
+ method (run once after all tests in class).
+ How random workload is actually generated is described later in 
+\begin_inset LatexCommand prettyref
+reference "sub:Random-workload-impl"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+If a special configuration is needed by test, it should be written into
+ a file in format recognized by python ConfigParser.
+ Then, name of the file should be listed in used profile in the ZFS_CONFIG_FILE
+ environment variable.
+ The 
+\emph on
+ZfsConfig
+\emph default
+ plugin will then load all these files and pass them as object to tests.
+ By this approach, it is possible to have multiple configurations for a
+ test and specify by profile, which has to be used.
+\end_layout
+
+\begin_layout Standard
+When writing new tests, 
+\series bold
+normal 
+\series default
+ZlomekFS
+\series bold
+ tests
+\series default
+ should inherit from class 
+\emph on
+ZfsTest
+\emph default
+ (which implements basic fixtures for zfsd).
+ New filesystem daemon is started for every test.
+
+\series bold
+ Stress test
+\series default
+ classes listing meta tests should inherit from class 
+\emph on
+ZfsStressTest
+\emph default
+ (which runs all tests on single instance of zfsd).
+\end_layout
+
+\begin_layout Standard
+For 
+\series bold
+distributed testing
+\series default
+, there are wrappers for remote 
+\emph on
+ZfsProxy
+\emph default
+ and 
+\emph on
+File
+\emph default
+ objects (to ease communication with remote system and performing actions
+ on it).
+ Communication is done through 
+\emph on
+twisted perspective broker.
+ 
+\emph default
+Twisted 
+\begin_inset LatexCommand cite
+key "twisted"
+
+\end_inset
+
+ is used as RPC because there is direct support for it in 
+\emph on
+Nose.
+\end_layout
+
+\begin_layout Standard
+Example distributed test is represented by 
+\emph on
+TestClientServer
+\emph default
+.
+ On remote system used in test there should be 
+\emph on
+remoteZfs.py 
+\emph default
+script running.
+ It runs twisted reactor and listens for incoming connections.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+TestClientServer
+\emph default
+ is stress testing meta class, thus all setup is done in 
+\emph on
+setupClass 
+\emph default
+method.
+ Configuration for local and remote 
+\emph on
+ZfsProxy
+\emph default
+ is stored in file 
+\emph on
+zfs_client_server_config
+\emph default
+, configurations for ZlomekFS daemons are in files 
+\emph on
+localZfsMeta.tar
+\emph default
+ and 
+\emph on
+remoteZfsMeta.tar
+\emph default
+.
+ These options are provided to test by
+\emph on
+ ZfsConfig 
+\emph default
+plugin.
+\end_layout
+
+\begin_layout Standard
+The local 
+\emph on
+ZfsProxy
+\emph default
+ instance (local zfsd) is initialized in the same way as it would be in
+ case of non-distributed testing.
+ The remote 
+\emph on
+ZfsProxy
+\emph default
+ instance (remote zfsd) is initialized through calls performed on wrapper
+ object.
+ Tests then open local files as usual and remote files by calls to 
+\emph on
+RemoteControlWrapper
+\emph default
+ object (returning remote file instance wrapper).
+ 
+\end_layout
+
+\begin_layout Standard
+In this manner, any topology of ZlomekFS providers and clients can be made.
+ There should be 
+\emph on
+remoteZfs.py 
+\emph default
+running on every machine used in testing except master.
+ On the machine where 
+\emph on
+Nose
+\emph default
+ will run, there should be configuration file for 
+\emph on
+ZfsConfig 
+\emph default
+plugin and on every peer there should be configuration tarball.
+ Test setup then connects to all machines, configures their zfsd and following
+ testing operates on local and remote file wrappers.
+\end_layout
+
+\begin_layout Standard
+Since there are multiple machines involved in distributed testing, synchronizati
+on of versions of libraries and scripts must be handled.
+ Currently 
+\emph on
+buildbot
+\emph default
+ is used for this.
+\end_layout
+
+\begin_layout Standard
+When a failure is detected, state of both local and remote ZlomekFS daemon
+ is provided as usual by snapshot method.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Infinite
+\series default
+ testing loops are handled by insecticide in the same way as other tests.
+ The only difference is, that there should be special profile for infinite
+ testing, since normal testing should not run for such a long time.
+\end_layout
+
+\begin_layout Subsection
+Failure state data
+\begin_inset LatexCommand label
+name "sub:Failure-state-data"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In order to find and fix bug causing faulty behavior, developer need data
+ describing the failure.
+ In general, the trickier it is to cause the failure, the more data is needed.
+ In this aspect, random workload testing is one of the most problematic
+ approaches.
+ Sometimes, it is not possible to reproduce the failure.
+ So exhaustive tracing and state information for the failure is needed.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+ZfsProxy
+\emph default
+ class sets environment for zfsd to create a core dump upon crash.
+ If a crash is recognized, this core dump is collected and appended to the
+ snapshot.
+ If zfsd is running while the snapshot is created, a core dump of the running
+ process is created instead.
+\end_layout
+
+\begin_layout Standard
+When a test fails or an error is detected, 
+\series bold
+snapshotPlugin
+\series default
+ creates a snapshot of predefined components.
+ Snapshot plugin can be configured to create a snapshot before test and
+ after successful test too, but while zfsd core dump has more than 150Mb,
+ it takes non-trivial amount of time to create it (and thus it is disabled
+ by default).
+\end_layout
+
+\begin_layout Paragraph
+By default, snapshot will consist of:
+\end_layout
+
+\begin_layout Itemize
+Snapshot of ZlomekFS cache (filesystem)
+\end_layout
+
+\begin_layout Itemize
+Snapshot of filesystem to which comparisons are made
+\end_layout
+
+\begin_layout Itemize
+Zfsd log output
+\end_layout
+
+\begin_layout Itemize
+Nose log output
+\end_layout
+
+\begin_layout Itemize
+Test instance
+\end_layout
+
+\begin_layout Itemize
+ZfsProxy instance
+\end_layout
+
+\begin_layout Itemize
+Zfsd core dump
+\end_layout
+
+\begin_layout Itemize
+Zfsd stdout and stderr
+\end_layout
+
+\begin_layout Itemize
+Python exception and backtrace (if any)
+\end_layout
+
+\begin_layout Standard
+Developer can specify any 
+\series bold
+further data
+\series default
+ to include to snapshots by overriding 
+\emph on
+snapshot
+\series bold
+ 
+\series default
+\emph default
+method of a test class.
+ Method gets 
+\emph on
+SnapshotDescription
+\emph default
+ instance as argument.
+ 
+\emph on
+SnapshotDescriptio
+\emph default
+n class has methods for appending primitive types, python objects, files
+ and directories.
+ Every entry in a snapshot has unique name, type and description.
+ Primitive types are stored in memory, bigger data on disk.
+ For purpose of reporting, a snapshot can be packed into single file that
+ will contain both data and their descriptions.
+ For further reference see python documentation for 
+\emph on
+insecticide/snapshot.py.
+\end_layout
+
+\begin_layout Subsection
+Reporting and result repository
+\end_layout
+
+\begin_layout Standard
+As noted in 
+\begin_inset LatexCommand prettyref
+reference "sec:Result repository"
+
+\end_inset
+
+, results of tests (especially failed) should be accompanied by (failure)
+ state information and backtrace.
+ For these data, there is result repository implemented.
+\end_layout
+
+\begin_layout Standard
+Basic data about test result and relations are stored in 
+\series bold
+MySQL database
+\series default
+.
+ Only failure state snapshot (content is listed in 
+\begin_inset LatexCommand prettyref
+reference "sub:Failure-state-data"
+
+\end_inset
+
+) is stored as a file in separate directory.
+ For the snapshot, only its filename and relation to a test is stored to
+ the database.
+ 
+\end_layout
+
+\begin_layout Standard
+Since result repository and database are running on master, there must be
+ method how to send snapshot to master too.
+ Currently, 
+\series bold
+file transfer
+\series default
+ between slave and master must be handled externally.
+ Preferred method how to handle this is to map storage directory (for example
+ /var/lib/TestResultStorage/data) between master and slave by NFS (in case
+ of separate hosts) or by method provided by virtualization software (if
+ master and slave are virtualized on the same machine).
+\end_layout
+
+\begin_layout Standard
+Access to the database is provided through 
+\series bold
+Django
+\series default
+ api.
+ Schema of the database is given by classes (descendants django.models.Model),
+ one class represents one table.
+ Table columns are given by attributes of corresponding class, each attribute
+ defining one column.
+ Queries to database can be done by calling 
+\emph on
+filter
+\emph default
+ method of special class attribute named 
+\emph on
+objects.
+
+\emph default
+ Results are represented as (lazy) sets of objects, where for each column
+ in given table the object has corresponding attribute.
+\end_layout
+
+\begin_layout Standard
+We use 
+\emph on
+TestRun
+\emph default
+ table to store information about executions of single tests, 
+\emph on
+TestRunData
+\emph default
+ table to hold auxiliary information about tests executions - backtraces,
+ exceptions, file names of snapshots.
+ Set of TestRuns that were executed together are connected by 
+\emph on
+BatchRun
+\emph default
+.
+ BatchRun is represented as table, where one row holds common attributes
+ for one set of tests such as name of the machine that executed these tests,
+ profile name, repository branch and revision.
+ Project and profile details connected to BatchRun are represented as foreign
+ keys to tables 
+\emph on
+Project
+\emph default
+ and 
+\emph on
+ProfileInfo
+\emph default
+ (because they repeat a lot).
+\end_layout
+
+\begin_layout Standard
+Settings of result repository are stored in 
+\emph on
+TestResultStorage/settings.py
+\emph default
+.
+ On master, access should be configured to use local database.
+ On slaves, developer should alter their 
+\emph on
+TestResultStorage
+\emph default
+ settings to use master's database.
+\end_layout
+
+\begin_layout Standard
+The testing environment (
+\begin_inset LatexCommand prettyref
+reference "sec:Testing-environment"
+
+\end_inset
+
+) is driven by 
+\series bold
+Nose
+\series default
+.
+ We use its plugin interface to hook particular events during testing.
+ To report results of tests, we use 
+\emph on
+addFailure, addError 
+\emph default
+and 
+\emph on
+addSuccess 
+\emph default
+hooks.
+ Reporting to TestResultStorage is done by 
+\series bold
+zfsReportPlugin
+\emph on
+ 
+\series default
+\emph default
+which uses 
+\series bold
+ReportProxy 
+\series default
+class as wrapper around BatchRun instance.
+\end_layout
+
+\begin_layout Standard
+When there is an unhandled system error (python Exception), it is caught
+ by outer try-except block and reported to the repository too.
+\end_layout
+
+\begin_layout Standard
+The result repository has dynamic 
+\series bold
+web interface
+\series default
+ which consists of listing pages for tests and batches (with simple filtering
+ options), detail pages for test run, batch run, and project list page.
+ If a snapshot is available for the test run, it can be downloaded from
+ test run detail page.
+ Older results can be deleted from administration interface (and there is
+ script for automatic cleanup of obsolete entries provided).
+\end_layout
+
+\begin_layout Standard
+To use central result repository, all tests must be executed under Nose
+ and 
+\series bold
+zfsReportPlugin 
+\series default
+must be
+\series bold
+ 
+\series default
+enabled.
+ 
+\end_layout
+
+\begin_layout Subsection
+Options
+\end_layout
+
+\begin_layout Standard
+Test set for execution can be 
+\series bold
+filtered
+\series default
+ in three ways:
+\end_layout
+
+\begin_layout Itemize
+By passing 
+\series bold
+list of files
+\series default
+ (modules, classes, tests), that should be run (disables search)
+\end_layout
+
+\begin_layout Itemize
+By 
+\series bold
+nose.attrib
+\series default
+ plugin.
+ User can define expression that must evaluate to True for given attributes
+ of a test.
+ For example expression '
+\emph on
+not disabled
+\emph default
+' will discard tests where 
+\emph on
+test.disabled
+\emph default
+ exists and evaluates to True.
+ Tests loaded from saved path ignore this filtering.
+\end_layout
+
+\begin_layout Itemize
+By 
+\series bold
+name regular expressions
+\series default
+.
+ By default, test name must match regular expression 
+\emph on
+(?:^|[
+\backslash
+
+\backslash
+b_
+\backslash
+
+\backslash
+./-])[Tt]est)
+\emph default
+ to be executed
+\emph on
+.
+ 
+\emph default
+But this expression is configurable through 
+\emph on
+NOSE_TESTMATCH
+\emph default
+ environment variable.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+ZfsConfig 
+\series default
+plugin provides user-definable configuration files straight to tests.
+ List of configuration files (in defined format) can be passed to plugin.
+ Plugin will read them, convert to a python object, and pass this object
+ to all tests.
+\end_layout
+
+\begin_layout Standard
+To handle 
+\series bold
+deadlocks 
+\series default
+and infinite loops in both zfsd and malformed tests, there is 
+\series bold
+\emph on
+timed
+\emph default
+ decorator
+\series default
+ by which timeout for test and handler function to execute when time runs
+ out can be set.
+ Current implementation of handler will send SIGABRT to zfsd causing termination
+ with core dump generated.
+\end_layout
+
+\begin_layout Subsection
+Random workload generation
+\begin_inset LatexCommand label
+name "sub:Random-workload-impl"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For filesystem, it is very hard to define all possible use-cases that it
+ could be used in.
+ Moreover, the ZlomekFS daemon is stateful, using non-trivial caching mechanism.
+ Because of this, some failures could appear only in case of very specific
+ workload to filesystem.
+ Since it is nearly impossible to write (all) such workloads by hand, the
+ best approach how to test as many use-cases as possible is to generate
+ random workload.
+\end_layout
+
+\begin_layout Standard
+Generation of a random workload to the file system (stress testing) is done
+ by 
+\series bold
+zfsStressGenerator 
+\series default
+plugin.
+ User must define so called 
+\emph on
+meta-tests
+\emph default
+, basic operations, from which workload will consist.
+ The random workload is generated by graph walk.
+ By default, full graph with even edge scores will be used, but user can
+ define the dependency graph by himself.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Format
+\series default
+ for meta-tests is identical with normal test, meta-tests intended to be
+ used together must be listed in one test class (as python has multiple
+ inheritance allowed, this should be no problem).
+ 
+\end_layout
+
+\begin_layout Standard
+If there are 
+\series bold
+dependencies between meta tests
+\series default
+ (such as that open file test should run before read from file test), they
+ can be defined by a graph.
+ The graph format is python dictionary where key to dictionary is meta-test
+ name and value stored is list of oriented edges originating in the meta-test.
+ Edge is defined by the target meta-test name and by edge score.
+ Score is arbitrary positive number, bigger number means bigger probability
+ to use that edge.
+\end_layout
+
+\begin_layout Standard
+Meta-test chain will terminate, if meta-test with no successor is hit, or
+ there can be terminating probability defined.
+ Hard 
+\series bold
+length
+\series default
+ 
+\series bold
+limit 
+\series default
+of meta-test chain can be defined by plugin option.
+\end_layout
+
+\begin_layout Standard
+If stress test fails, the path which has caused the failure is saved into
+ file for further usage.
+ By default, 
+\series bold
+saved paths
+\series default
+ aren't committed into repository, but it can be specified to do so.
+ 
+\end_layout
+
+\begin_layout Standard
+A failed test is represented by path through the graph of allowed transitions
+ from starting operation to operation where failure has been detected.
+ In most cases, the failure was not caused by the last operation, but by
+ the previous sequence.
+ As the sequence was randomly generated, we can assume, that there are redundant
+ operations in it and only part of it is actually needed to cause the failure.
+ Thus it is logical to
+\series bold
+ strip the failed sequence
+\series default
+ to see, if a shorter test sequence would cause the failure too.
+ After a failure, zfsStressGenerator plugin try to do so either by finding
+ shortest path through the graph, or by disabling operations (meta tests),
+ or by skipping parts of failed walk.
+\end_layout
+
+\begin_layout Subsection
+Extendability
+\end_layout
+
+\begin_layout Standard
+Extending tests should be pretty straightforward.
+ As python is object oriented language, inheritance should be used.
+ 
+\end_layout
+
+\begin_layout Standard
+If new features are needed on the level of driving component (Nose), they
+ should be delivered as new plugins.
+ Plugins are nearly independent, just the ordering of their execution should
+ be preserved.
+ Execution order is given by plugin's class attribute 
+\emph on
+score
+\emph default
+ ascending.
+ See 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ for further information.
+\end_layout
+
+\begin_layout Section
+C unit test
+\end_layout
+
+\begin_layout Standard
+As described in 
+\begin_inset LatexCommand prettyref
+reference "sec:Unit-based-testing"
+
+\end_inset
+
+, unit tests are small tests written often directly to code of application
+ to test functionality of small parts.
+ They can be useful as programmer documentation too.
+\end_layout
+
+\begin_layout Standard
+Unit tests must be written in the language application is written in, so
+ Nose can't be used here.
+ We have not found satisfactory C based unit testing library, thus new unit
+ testing library (
+\series bold
+Zen-unit
+\series default
+) was developed.
+\end_layout
+
+\begin_layout Standard
+The library has very minimalistic api consisting of single file with four
+ defines:
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+ZEN_TEST
+\series default
+ macro used to declare test header
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+ZEN_ASSERT
+\series default
+ to test conditions in tests
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+PASS
+\series default
+ which is value that should be returned from passing tests.
+\end_layout
+
+\begin_layout Enumerate
+
+\series bold
+FAIL
+\series default
+ which is value that should be returned from failing tests.
+ 
+\emph on
+FAIL
+\emph default
+ is recommended return value but any test returning value different from
+ 
+\emph on
+PASS
+\emph default
+ is considered failed.
+\end_layout
+
+\begin_layout Standard
+To make the unit testing framework easier to use, we want to avoid the need
+ for manual registration or listing of individual tests.
+ The framework therefore scans all binaries for symbols exported by the
+ ZEN_TEST macro and execute associated test functions.
+ Search for tests is done using libelf, tests are looked for in dyntab and
+ symtab of binary and all libraries linked to it.
+ Shared libraries can be tested by linking through 
+\emph on
+LD_PRELOAD
+\emph default
+ to 
+\emph on
+zentest
+\emph default
+ binary.
+\end_layout
+
+\begin_layout Standard
+There were more options to use for test collection:
+\end_layout
+
+\begin_layout Itemize
+To use user listed tests in some type of #ifdef declared main.
+ This doesn't remove the need of hand written list of tests, and moreover
+ creates some difficulties in main source file.
+\end_layout
+
+\begin_layout Itemize
+To use full C grammar to search for tests in source files and to generate
+ the main file.
+ This removes the need of tests listing, but requires full C parser.
+\end_layout
+
+\begin_layout Itemize
+To use some C preprocessor to generate simply parseable overview (XML) and
+ generate test list from them.
+ This possibility was not fully explored, but was considered far more complicate
+d that binary format based discovery.
+\end_layout
+
+\begin_layout Standard
+For integration with nose, we use parsing of test output.
+ Generation of test lists or test libraries (through swig) was considered,
+ but found as redundant overhead.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Section
+Build system
+\end_layout
+
+\begin_layout Standard
+To ease the task of building code into binary format and the task of installatio
+n, nearly all projects use so called build systems.
+ Wihthout build system, programmer must write every single step to build
+ binary manually.
+ Build system is generally a tool, that automates these steps.
+ Still programmer must define dependencies and describe steps in some meta
+ language that build system understands.
+ Actual binary is then build by calling build system's binary defining which
+ step (target) should be build.
+ Where basic tools provide just possibility of defining steps and dependencies
+ there more advanced tools provide integration with actual operating system,
+ installation and packaging beyond basic functionality.
+\end_layout
+
+\begin_layout Standard
+Original build system of ZlomekFS was make.
+ For just building, it was adequate, but there were issues with supporting
+ installation on different platforms.
+ Thus it was replaced with 
+\series bold
+automake
+\series default
+ which can handle these platform dependent problems (for example difference
+ between library directory on 32bit system and 64bit system).
+ Hence for C based components 
+\series bold
+autoconf
+\series default
+, 
+\series bold
+automake
+\series default
+, and 
+\series bold
+libtool
+\series default
+ are used.
+ For python based components 
+\series bold
+setuptools
+\series default
+ are used.
+ Setuptools are extension of python's standard build system.
+ Setuptools are used mainly because of Nose, which requires usage of 
+\emph on
+entry-points
+\emph default
+ (registry-like tool of setuptools) for listing of plugins.
+ For better compatibility with other tools, setuptools were wrapped into
+ make system (actual work is done by setuptools, make only redirects calls).
+\end_layout
+
+\begin_layout Standard
+Target audience of both ZlomekFS and regression testing framework uses mainly
+ 
+\series bold
+Redhat
+\series default
+ or 
+\series bold
+Fedora
+\series default
+ based systems.
+ To ease installation and upgrades, it was decided to provide automatic
+ build targets for 
+\series bold
+RPM
+\series default
+ packages.
+ For other systems, .tar.gz source packages can be generated.
+\end_layout
+
+\begin_layout Subsection
+Standard targets
+\end_layout
+
+\begin_layout Standard
+All components understand following make targets:
+\end_layout
+
+\begin_layout Itemize
+all - build all binaries and libraries
+\end_layout
+
+\begin_layout Itemize
+doc - build documentation
+\end_layout
+
+\begin_layout Itemize
+dist - build .tar.gz source package
+\end_layout
+
+\begin_layout Itemize
+rpm - build all available rpm packages (source, doc, binary)
+\end_layout
+
+\begin_layout Itemize
+clean - remove generated data
+\end_layout
+
+\begin_layout Itemize
+test - run available tests
+\end_layout
+
+\begin_layout Section
+Buildbot configuration
+\end_layout
+
+\begin_layout Standard
+To provide stable development cycle, tests should be executed automatically,
+ on regular basis.
+ As described in 
+\begin_inset LatexCommand prettyref
+reference "sec:Continuous-integration"
+
+\end_inset
+
+, continuous integration servers are used to fulfill this requirement.
+ They either watch for changes in source code and build and test the software
+ for every change, or build and test it periodically (for example every
+ night - so called night builds).
+ We have chosen buildbot 
+\begin_inset LatexCommand cite
+key "BuildBot"
+
+\end_inset
+
+ as continuous integration server for ZlomekFS (for reasoning see 
+\begin_inset LatexCommand prettyref
+reference "sub:Continuous-integration-2"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+In buildbot, basic unit is a 
+\emph on
+build step
+\emph default
+ (typically one shell command, for example 
+\emph on
+make all
+\emph default
+).
+ Build steps are grouped to sequences.
+ A sequence is called 
+\emph on
+builder
+\emph default
+.
+ Typical builder represents sequence of building a single application, testing
+ it and cleanup for the application (for example builder for Zen-unit library
+ is following sequence of steps: checkout source, configure automake, make
+ rpm (contains make all), install rpm, run tests and upload rpm to server).
+ Watching for source code changes is done by a 
+\emph on
+change source
+\emph default
+, which in case of ZlomekFS polls its svn repository for changes every minute.
+ To define what should be done (which builders should be run) when actual
+ change in code is detected, 
+\emph on
+schedulers
+\emph default
+ are used.
+ A scheduler defines set of paths inside repository and set of builders
+ that should be run when these paths change (again, scheduler for Zen-unit
+ watches for changes in zen-unit subdirectory of actual branch and execute
+ Zen-unit's builder upon change).
+\end_layout
+
+\begin_layout Standard
+For ZlomekFS, buildbot is configured to create builder for every component
+ on every host.
+ Thank to build system unification, the build step sequence is equal for
+ all components except ZlomekFS: it goes update - build - make rpm - install
+ - test - upload.
+ For ZlomekFS, the test step is separated since it should run only on one
+ bot (others are used as peers for distributed testing).
+\end_layout
+
+\begin_layout Standard
+Change source is SVN polling, schedulers are configured to wait some time
+ after change before corresponding builder is run.
+ 
+\end_layout
+
+\begin_layout Standard
+Test driving (Nose) was included in way, that doesn't need any external
+ configuration, only Django (result repository) needs to have 
+\emph on
+
+\newline
+DJANGO_SETTINGS_MODULE
+\emph default
+ present in environment, so it is exported in start time of buildbot.
+\end_layout
+
+\begin_layout Standard
+For infinite testing loops it was decided to run them outside of buildbot.
+ Running them inside buildbot would generate long progress bars displacing
+ other build results from view.
+ Since there can be only one ZlomekFS daemon running at the time, synchronizatio
+n to avoid collision was needed.
+ Thus in every ZlomekFS build, there is a step signaling infinite loop controlle
+r to pause run (before buildbot cycle) and step signaling to unpause run
+ (after buildbot cycle).
+\end_layout
+
+\begin_layout Section
+Typical call sequence
+\end_layout
+
+\begin_layout Standard
+When testing is invoked (through buildbot or manually by 
+\emph on
+make test
+\emph default
+), the cooperation and calls between components are as follows.
+\end_layout
+
+\begin_layout Standard
+First component used is 
+\series bold
+nose wrapper
+\series default
+, which loads 
+\series bold
+profile
+\series default
+, creates 
+\series bold
+BatchRun
+\series default
+ object, and commits them to TestResultRepository.
+ Then, control is passed to Nose (environment and command line options are
+ preserved).
+ 
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Nose
+\series default
+ parses environment variables and command line options and 
+\series bold
+configures enabled plugins
+\series default
+ according to them.
+ At this time, initialization phases of 
+\emph on
+SnapshotPlugin
+\emph default
+, 
+\emph on
+ZfsConfig
+\emph default
+ plugin, 
+\emph on
+ZfsStressGenerator
+\emph default
+, 
+\emph on
+ZfsReportPlugin
+\emph default
+ are executed.
+ ZfsConfig plugin tries to load configuration files for tests (that contain
+ for example paths for zfsd and zfsd configuration).
+ SnapshotPlugin ensures that required directories for snapshots exists.
+ ZfsReportPlugin calls TestResultRepository fetching previously created
+ BatchRun.
+\end_layout
+
+\begin_layout Standard
+After initialization phase, nose will 
+\series bold
+search for tests
+\series default
+.
+ Standard tests are handled directly by nose, plugins are not involved in
+ this process.
+ When file with meta class is found (or directly passed), 
+\emph on
+ZfsStressGenerator
+\emph default
+ will load all tests from it to cache them and block their normal execution.
+ The same is done for saved path files.
+ If binary file (or library) is found, 
+\emph on
+ZenPlugin
+\emph default
+ will try to execute it as 
+\emph on
+zen test suite
+\emph default
+ - that means executing it with LD_PRELOAD of 
+\emph on
+libzenunit.so
+\emph default
+.
+ Then output is parsed and if there were test run, ZenPlugin will create
+ report for it.
+\end_layout
+
+\begin_layout Standard
+Before the execution of tests begins, ZfsStressGenerator will append ContextSuit
+e containing 
+\series bold
+stress tests
+\series default
+ into 
+\emph on
+main ContextSuite
+\emph default
+ of Nose.
+\end_layout
+
+\begin_layout Standard
+Then, execution phase is reached.
+ For every ContextSuite (TestCase) its 
+\series bold
+context
+\series default
+ 
+\series bold
+is initialized
+\series default
+.
+ In initialization, 
+\emph on
+ZfsConfig
+\emph default
+ plugin passes 
+\series bold
+ConfigParser
+\series default
+ object (representation of config files) to test.
+ In case of classic (non stress) test, initialization of zfsd is done in
+ setup and teardown methods in scope of method.
+ In case of stress test, initialization of zfsd is done in setupClass and
+ teardownClass - methods in scope of class fixtures.
+ In setup and teardown methods of stress test, there is only check, if zfsd
+ is still running and if not, exception is raised.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Initialization of zfsd
+\series default
+ is encapsulated into 
+\emph on
+ZfsProxy
+\emph default
+ object, consists of: unpacking configuration, reading configuration and
+ fork of actual zfsd (passing given parameters).
+ After fork, there is wait loop where proxy object tries to connect to zfsd
+ through d-bus and check if it has started correctly.
+ Eventually, when something goes wrong, exception is raised.
+\end_layout
+
+\begin_layout Standard
+In next phase, 
+\series bold
+tests are executed
+\series default
+.
+ Each test is considered as passing if there is no exception raised.
+ There are two types of exceptions distinguished.
+ If the exception is of type 
+\emph on
+AssertionException
+\emph default
+ (raised by assert clause), test is considered as failed.
+ 
+\emph on
+Other exceptions
+\emph default
+ are handled as not-expected, thus error is reported.
+ Tests can modify zfsd behavior by calls on 
+\emph on
+ZfsProxy
+\emph default
+ instance, for example there is possibility to change log level or facility
+ set (this can be convenient in tests of special scope - if test is aimed
+ to locking problems, it can constrain log messages those related to threading
+ only).
+\end_layout
+
+\begin_layout Standard
+If failure or error is detected, 
+\emph on
+SnapshotPlugin
+\emph default
+ will 
+\series bold
+create snapshot
+\series default
+ of failed test where arbitrary data defined by developers is appended in
+ test class instance 
+\emph on
+snapshot
+\emph default
+ method.
+ In current implementation of 
+\emph on
+ZfsTest
+\emph default
+ class it means test object, test data, 
+\emph on
+ZfsProxy
+\emph default
+ object, zfsd and nose 
+\emph on
+log file
+\emph default
+s, zfsd 
+\emph on
+core dump
+\emph default
+, ZlomekFS 
+\emph on
+cache directory
+\emph default
+, zfsd 
+\emph on
+stdout
+\emph default
+ and 
+\emph on
+stderr
+\emph default
+.
+ In case of comparing tests the 
+\emph on
+directory on compare filesystem
+\emph default
+ is appended.
+ In case of stress test, 
+\emph on
+call sequence
+\emph default
+ is stored too.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Reporting
+\series default
+ of classic test is handled by 
+\emph on
+ZfsReportPlugin
+\emph default
+ which creates 
+\emph on
+TestRun
+\emph default
+ object with appropriate parameters and commits it to 
+\emph on
+TestResultStorage
+\emph default
+.
+ If test has failed, ZfsReportPlugin will append failure data (
+\emph on
+snapshot, backtrace, exception
+\emph default
+) to 
+\emph on
+TestRunData
+\emph default
+.
+ Stress tests are handled and reported by 
+\emph on
+ZfsStressGenerator
+\emph default
+ plugin.
+ This special case is separated to prevent multiple reports of the same
+ call sequence.
+\end_layout
+
+\begin_layout Standard
+After 
+\series bold
+stress test
+\series default
+ failure, 
+\emph on
+ZfsStressGenerator
+\emph default
+ can try to 
+\series bold
+prune
+\series default
+ the call sequence and put it back to test queue.
+ This is done only given number of times, then the last failure (some pruned
+ sequences may not fail) is stored by ZfsStressGenerator to 
+\series bold
+saved path
+\series default
+ file and reported.
+\end_layout
+
+\begin_layout Standard
+When all tests have run, control is passed to 
+\series bold
+nose wrapper
+\series default
+, which 
+\series bold
+finalizes BatchRun
+\series default
+ - sets its duration and result.
+ If there is exception that is not handled in nose, it is caught by wrapper
+ and reported as system failure in current BatchRun.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Chapter
+Conclusion
+\begin_inset LatexCommand label
+name "cha:Conclusion"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Goal of this thesis was to extend existing ZlomekFS implementation by providing
+ regression testing framework which would fit its special needs.
+ After exploration of ZlomekFS, there was clear need of logging facility
+ and remote state discovery to allow reliable testing.
+ From research done on related projects, it was decided to create new logger
+ and make status information available through d-bus.
+\end_layout
+
+\begin_layout Standard
+As basic regression testing framework, existing solution (Nose) was used.
+ It was extended by plugins to support new types of tests and to provide
+ required features.
+\end_layout
+
+\begin_layout Standard
+Under it, prototypes of tests were created.
+ First type of tests identifies problems of filesystem by performing operations
+ on second, reliable, filesystem and by comparing results.
+ Second test type identifies errors by checking, if behavior of filesystem
+ is as expected (data read is the same as written, ...).
+ For distributed testing, basic remote objects were provided as wrappers
+ for python twisted perspective broker objects.
+\end_layout
+
+\begin_layout Standard
+By ZfsStressGenerator plugin, possibility to generate random workload to
+ filesystem was provided.
+ This plugin can be constrained to generate valid sequences of operations
+ only.
+ Plugin can prune sequence to find minimal sequence needed to reproduce
+ the error.
+ Failed sequences are saved for further usage.
+\end_layout
+
+\begin_layout Standard
+Snapshoting plugin offers chance to have as much state information and trace
+ protocol as possible to ease debugging of the problem which has caused
+ the failure.
+ Current implementation provides core dump of daemon, log files, sequence
+ which has caused the error, cache content, comparison file system snapshot
+ (if used), and python component state.
+ Snapshot plugin can include most data types that can be required when debugging
+, thus tester can easily define other data to include to snapshots.
+\end_layout
+
+\begin_layout Standard
+Currently, changes of network conditions are possible only by inserting
+ special rules into iptables.
+ The changes of network conditions are mainly aimed to check behavior in
+ disconnected or slowly connected state.
+ For future, there is d-bus interface prepared to allow direct changes to
+ ZlomekFS state without changing network conditions (which could be useful
+ in real usage too).
+ When there will be need to provide network protocol robustness testing,
+ it will need usage of sophisticated external tool which is beyond scope
+ of this thesis.
+\end_layout
+
+\begin_layout Standard
+It is possible to use this system for testing of any other filesystem.
+ Especially in case of a userspace based filesystems, the modification needed
+ would be only change of daemon binary and filesystem settings (which would
+ be obviously different).
+ If filesystem would have kernel component (especially in case of full kernel
+ based filesystems) 
+\emph on
+kdump
+\emph default
+ integration for snapshoting state of filesystem in case of failure will
+ be needed.
+\end_layout
+
+\begin_layout Standard
+For unit testing of small parts of code (whitebox testing), small library
+ for C was written.
+ This library, called Zen-unit, has very intuitive interface, but what is
+ special about it is that it has automatic test discovery.
+ This allows thing common in scripting languages, but rare in compiled ones:
+ to write tests anywhere in code without listing them in some central block.
+\end_layout
+
+\begin_layout Standard
+Developer documentation for C code was written in DoxyGen and there is build
+ target for generating HTML documentation available (moreover RPM packages
+ with documentation can be build too).
+ For python, language provided __doc__ attributes with predefined syntax
+ was used.
+\end_layout
+
+\begin_layout Standard
+Beyond scope of this thesis, short installation guide for ZlomekFS and example
+ configuration were made (there were need to extract these information from
+ previous thesis text and create functional configuration by experiments
+ before).
+ To ease installation and management, project was splitted to smaller parts
+ and packaging was provided.
+\end_layout
+
+\begin_layout Standard
+Upon beginning of work on this thesis, ZlomekFS was running on very problematic
+ kernel module and the basic functionality wasn't bug-free.
+ Since then, ZlomekFS was modified (as part of other thesis) to use fuse
+ based integration with linux kernel and some bugs were fixed.
+ Nowadays, the basic functionality seems to be bug-free (among other things,
+ author of this thesis has tried to run all filesystem testing tools available
+ alongside with this thesis framework simultaneously on single ZlomekFS
+ instance to bring about a failure with no success).
+ Upon testing on inserted bugs, the output of framework were as expected,
+ all bugs were found, pruning of random workload were producing very short
+ sequences preserving faulty behavior (for example on bug that has caused
+ failure upon sixth write, sequence of about hunderedth tests generated
+ originally were shortened in about twenty cycles to eight steps - generate
+ file name, open file and six writes).
+ Note should be taken that the framework is mostly responsible for support
+ facilities and random workload handling.
+ The detection of failures depends always on implementation of particular
+ test.
+ 
+\end_layout
+
+\begin_layout Section
+Further work
+\end_layout
+
+\begin_layout Standard
+ZlomekFS network communication and request handling is multi-threaded.
+ This is fine for real usage, but in case of testing it makes it hard to
+ reproduce error since the way dispatch of request is done depends on switching
+ of threads.
+ Number of threads used is now hardcoded in source code.
+ Thus, for further testing it would be better to change ZlomekFS to allow
+ configuration of the number of threads in runtime (restring it to smallest
+ number possible).
+\end_layout
+
+\begin_layout Standard
+Currently, ZlomekFS sets connection mode (full, slow connection, or disconnected
+) on startup by measuring connection speed by ping messages.
+ This is inconvenient for real usage (user can't set up mode by himself).
+ For testing, connection mode can be forced by firewall rules, but it is
+ superfluously tricky.
+ Thus external control of connection speed (for example through d-bus) should
+ be added.
+\end_layout
+
+\begin_layout Standard
+For saved paths, there is only the sequence of tests saved.
+ In most cases, this is sufficient to reproduce failure.
+ But in case of testing behavior of conflict solving, the results depends
+ on data written to actual files.
+ Thus in future there should be support for saving testing data alongside
+ with test sequences.
+ This feature must have support in suite, but main work should be done by
+ tests, because only tests themselves understands their data (and they may
+ differ a lot between tests).
+ Preferred method how to implement this is to provide another hook method
+ to store data (like snapshot method of test class) and pair function to
+ load them.
+\end_layout
+
+\begin_layout Standard
+Main goal of this thesis was to provide regression testing framework capable
+ of testing special features of ZlomekFS.
+ This goal was met and example tests were implemented too.
+ Despite this, for full coverage of ZlomekFS functionality there should
+ be more tests implemented (for example there are no tests for capabilities,
+ conflict resolution, slow connection mode, synchronization in complex hierarchi
+es, etc).
+ The framework supports testing of these features, the problem is that there
+ is no specification of how ZlomekFS should behave in complex situations.
+ Thus full analysis and specification of ZlomekFS behavior should be made
+ before testing complex use-cases of ZlomekFS.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+appendix
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Coding conventions
+\end_layout
+
+\begin_layout Section*
+C based code
+\end_layout
+
+\begin_layout Standard
+For code in C, original formatting from ZlomekFS was adopted.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Identifiers
+\series default
+ are in lower case, words separated by underscore.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+uint32_t log_level;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Defines
+\series default
+ (macros) are in upper case, words separated by underscore.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+#define MY_MACRO_CONSTANT 5
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Typedef
+\series default
+s
+\series bold
+ 
+\series default
+are in lower case with suffix 
+\emph on
+_t
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+typedef uint32_t fibheapkey_t;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Braces around code block
+\series default
+ should be on new lines, indentation level as previous code.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+syp_error set_log_level (logger target, log_level_t level) 
+\end_layout
+
+\begin_layout Standard
+{ 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+target->log_level = level;
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+return NOERR; 
+\end_layout
+
+\begin_layout Standard
+}
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Braces around function arguments
+\series default
+ should be separated from function name by one space, if argument list is
+ multiline, ending brace should be right after last argument (on same line).
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+syp_error send_uint32_by_function (uint32_t data, 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+syp_error (*function)
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+(int, uint32_t, const struct sockaddr *, socklen_t),
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+const char * ip, uint16_t port);
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+I
+\series bold
+ndentation
+\series default
+ should be two spaces per level.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+syp_error dbus_disconnect(DBusConnection ** connection) 
+\end_layout
+
+\begin_layout Standard
+{
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+if (connection == NULL)
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return ERR_BAD_PARAMS; 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+if (*connection == NULL) 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return ERR_NOT_INITIALIZED;
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+dbus_bus_release_name (*connection, 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+SYPLOG_DEFAULT_DBUS_SOURCE, NULL);
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+dbus_connection_unref(*connection);
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+*connection = NULL;
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+return NOERR; 
+\end_layout
+
+\begin_layout Standard
+}
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Operators 
+\series default
+should be separated from arguments by one space on both sides.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+file_position\InsetSpace ~
++=\InsetSpace ~
+bytes_written;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Comments 
+\series default
+have one space between comment mark and comment text.
+ They are on line before code they are describing.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+/*!\InsetSpace ~
+Structure holding logger state and configuration.\InsetSpace ~
+*/
+\end_layout
+
+\begin_layout Standard
+typedef struct logger_def 
+\end_layout
+
+\begin_layout Standard
+{ 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+///\InsetSpace ~
+input - output medium definition struct
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+struct medium_def printer;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+File names 
+\series default
+consisting from more words should have dash between words.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+control-protocol.h
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Python code
+\end_layout
+
+\begin_layout Standard
+For code in python, formatting from Nose 
+\begin_inset LatexCommand cite
+key "Nose"
+
+\end_inset
+
+ was adopted.
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Identifiers
+\series default
+ ah are in CamelCase, class names with first letter in upper case, instance
+ names with first letter in lower case.
+\end_layout
+
+\begin_layout Standard
+I
+\series bold
+ndentation
+\series default
+ should be four spaces per level.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+class DependencyGraph(object):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+graph = None 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+currentNode = None 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+randomGenerator = SystemRandom()
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+def equals(self, graph):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return self.graph == graph.graph and 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+self.currentNode == graph.currentNode 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+def initRandomStartNode(self): 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+self.restart(self.randomGenerator.choice(
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+self.graph.keys()))
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Braces around function arguments
+\series default
+ should be right after function name.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Arguments
+\series default
+ should be separated by one space.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+def testLocal(self,\InsetSpace ~
+empty):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+assert self.buildGraphsAndCompare(
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+reference = self.nonUniformGraph,
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+buildMethod = GraphBuilder.USE_LOCAL,
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+methods = self.nonUniformMethods)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Operators 
+\series default
+should be separated from arguments by one space on both sides.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+file_position\InsetSpace ~
++=\InsetSpace ~
+bytes_written;
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Documentation comments 
+\series default
+should have one space between comment mark and comment text.
+ They should be on line after element they are describing.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+def isMetaClass (self, cls):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+"""\InsetSpace ~
+Tests if class is meta class (should contain meta tests)
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+:Parameters:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+cls: class object to check
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+:Return: 
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+True if is metaclass, False otherwise
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+"""
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Code comments
+\series default
+ should have one space between comment mark and comment text.
+ They should be on line before code they are describing.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+def countNiceElements(list):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+""" Count elements which are nice :) """
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+count = 0
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+for element in list:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+if isNice(element):
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+count += 1
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+return count
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Installation
+\end_layout
+
+\begin_layout Standard
+This guide is based on clean Fedora 8 installation, installation to other
+ systems may be different.
+ In example, buildmaster has IP 192.168.16.253, buildslave has IP 192.168.16.252
+ and development system has IP 192.168.16.241.
+ We assume that buildslave has basic development packages (such as gcc)
+ installed.
+ Note that routing description is not included.
+ Routing should be set if domain names are used (in build system configuration
+ or remote testing).
+\end_layout
+
+\begin_layout Standard
+Development system may not be part of buildbot network, but the experience
+ is much better if it is because then package versions on it will be the
+ same as on buildslave.
+\end_layout
+
+\begin_layout Section*
+Buildmaster
+\end_layout
+
+\begin_layout Standard
+Create user account under which buildbot will run.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+useradd -d /home/buildmaster -s /bin/bash buildmaster
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then, install external packages and tools.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+yum install buildbot python-sqlite2 mysql-server\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+MySQL-python screen
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Install TestResultStorage.
+ Django in version version 0.97 (pre) is required.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+rpm -ivh python-django-snapshot-*.rpm 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+TestResultStorage-*.rpm
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set mysql to start on boot and start it.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/chkconfig mysqld on
+\end_layout
+
+\begin_layout Standard
+/etc/init.d/mysqld start
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Change root password for mysql.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/usr/bin/mysqladmin -u root password 'secret'
+\end_layout
+
+\begin_layout Standard
+/usr/bin/mysqladmin -u root -h 192.168.16.253 password 'secret'
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Create database for TestResultStorage.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+echo '
+\end_layout
+
+\begin_layout Standard
+CREATE DATABASE trs character set utf8;
+\end_layout
+
+\begin_layout Standard
+GRANT all ON trs.* TO nose@localhost IDENTIFIED BY 'secret';
+\end_layout
+
+\begin_layout Standard
+GRANT all ON trs.* TO nose@192.168.16.252 IDENTIFIED BY 'secret';
+\end_layout
+
+\begin_layout Standard
+GRANT all ON trs.* TO nose@192.168.16.241 IDENTIFIED BY 'secret';
+\end_layout
+
+\begin_layout Standard
+FLUSH PRIVILEGES;
+\end_layout
+
+\begin_layout Standard
+'| mysql --user=root --password=secret
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Setup TestResultStorage to use local mysql database with right credentials.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+DATABASE_ENGINE = 'mysql' 
+\end_layout
+
+\begin_layout Standard
+DATABASE_NAME = 'trs'
+\end_layout
+
+\begin_layout Standard
+DATABASE_USER = 'nose'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PASSWORD = 'secret' 
+\end_layout
+
+\begin_layout Standard
+DATABASE_HOST = 'localhost'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PORT = '' 
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:settings_py_master"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+TestResultStorage/settings.py (buildmaster)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Create TestResultStorage tables.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+cd /usr/lib/python2.5/site-packages/TestResultStorage
+\end_layout
+
+\begin_layout Standard
+python manage.py syncdb
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Checkout (export) buildmaster's configuration
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+su buildmaster
+\end_layout
+
+\begin_layout Standard
+cd /home/buildmaster
+\end_layout
+
+\begin_layout Standard
+svn export\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+branches/zouhar/buildbot/buildmaster\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zlomekfs
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Setup buildmaster to allow client connections and to start www server on
+ right port (next two Figures).
+ Note that if svn url or branching schema changes, they should be tweaked
+ too.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+WAIT_BEFORE_BUILD = 1
+\newline
+
+\end_layout
+
+\begin_layout Standard
+c['slaves'] = [BuildSlave("misc", "secret"),
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
+BuildSlave("zen", "secret")]
+\end_layout
+
+\begin_layout Standard
+c['slavePortnum'] = "tcp:9989"
+\newline
+
+\end_layout
+
+\begin_layout Standard
+c['projectName'] = 'ZlomekFS'
+\end_layout
+
+\begin_layout Standard
+c['projectURL'] = 'http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS'
+\newline
+
+\end_layout
+
+\begin_layout Standard
+c['buildbotURL'] = 'http://192.168.16.253:8010'
+\newline
+
+\end_layout
+
+\begin_layout Standard
+svnurl = 'https://shiva.ms.mff.cuni.cz/svn/zzzzzfs'
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:master_cfg"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+master.cfg
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+basedir = r'/home/buildmaster/zlomekfs'
+\end_layout
+
+\begin_layout Standard
+configfile = r'master.cfg' 
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildbot_tac_master"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+buildbot.tac (master)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set buildbot to start on boot, for example by adding crontab entry.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+@reboot make start -C /home/buildmaster/zlomekfs
+\end_layout
+
+\begin_layout Standard
+@reboot screen -d -m -S\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+TestResultStorage python\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+/usr/lib/python2.5/site-packages/TestResultStorage/manage.py\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+runserver 192.168.16.253:8020 
+\end_layout
+
+\begin_layout Standard
+0 2 * * * /home/buildmaster/cleanup.py
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildmaster_cron"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Caption
+
+\begin_layout Standard
+buildmaster.cron
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Setup automatic cleanup of old data.
+ It can be done by cleanup.sh located in 
+\emph on
+misc
+\emph default
+ directory in repository.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+svn cat\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+branches/zouhar/misc/cleanup.py\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+>\InsetSpace ~
+/home/buildmaster/cleanup.py
+\end_layout
+
+\begin_layout Standard
+chmod +x /home/buildmaster/cleanup.py
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set cron to execute this script every day on 2 a.m.
+ (second line in previous Figure)
+\end_layout
+
+\begin_layout Standard
+Start buildmaster.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+make start -C /home/buildmaster/zlomekfs 
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Open ports 3306, 8010, 8020, 9989 (or other, if setting in master.cfg is
+ different) on firewall.
+ Rules below are only examples, they should be pernament (for example written
+ in /etc/sysconfig/iptables).
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 8010 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 8020 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 9989 -source 192.168.16.0/24 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 3306 --source 192.168.16.0/24 -j ACCEPT
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This is all except for file transfers.
+ If you want to use nfs for file transfers, use nfs configuration below.
+\end_layout
+
+\begin_layout Standard
+Set data directory to be exported.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/var/lib/TestResultStorage/data 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+192.168.16.252(fsid=0,rw,root_squash,sync)\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+192.168.16.241(fsid=0,rw,root_squash,sync)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:exports"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/exports
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Tell portmap to allow connections to services.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+portmap: 192.168.16.241 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+lockd: 192.168.16.241 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+rquotad: 192.168.16.241 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+mountd: 192.168.16.241 , 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+statd: 192.168.16.241, 192.168.16.252
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:hosts_allow"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/hosts.allow
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Set mount daemon to use specific port - needed for firewall settings.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+MOUNTD_PORT=32773
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:sysconfig_nfs"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/sysconfig/nfs
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Open ports on firewall.
+ Note that you must make this rules pernament for example through 
+\emph on
+system-config-firewall
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 2049 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m udp -p udp --dport 2049 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 111 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m udp -p udp --dport 111 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m udp -p udp --dport 32773 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Run nfs and make it start upon boot.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/service nfs start
+\end_layout
+
+\begin_layout Standard
+/sbin/chkconfig nfs on
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Buildslave
+\begin_inset LatexCommand label
+name "sub:Buildslave"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+First, install required packages.
+ Note that not all are available from Fedora repositories.
+ For i386 and x86_64 architecture they can be found on thesis cd.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+yum install buildbot python-sqlite2 MySQL-python 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+kernel-devel\InsetSpace ~
+dbus dbus-devel libtool autoconf 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+automake gettext gettext-devel\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+python-setuptools python-nose pyflakes screen
+\end_layout
+
+\begin_layout Standard
+rpm -ivh python-django-snapshot-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+libelf0-0.8.10-*.rpm libelf0-devel-0.8.10-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+TestResultStorage-*.rpm py25_pysvn_svn144-*.rpm
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Install packages from all components.
+ This can be skipped, but when further builds will go in wrong order, dependency
+ problems could arrive.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+rpm -ivh zen-unit-*.rpm syplog-*.rpm pysyplog-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zlomekfs-*.rpm zfsd-status-*.rpm TestResultStorage-*.rpm\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+insecticide-*.rpm
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that installation of packages may require removal of previously installed
+ ones (for example fuse).
+\end_layout
+
+\begin_layout Standard
+Restart D-bus to use new configuration (allow syplog and zfsd communication).
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/etc/init.d/messagebus restart
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Change TestResultStorage settings to store results on buildmaster.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+DATABASE_ENGINE = 'mysql' 
+\end_layout
+
+\begin_layout Standard
+DATABASE_NAME = 'trs'
+\end_layout
+
+\begin_layout Standard
+DATABASE_USER = 'nose'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PASSWORD = 'secret' 
+\end_layout
+
+\begin_layout Standard
+DATABASE_HOST = '192.168.16.253'
+\end_layout
+
+\begin_layout Standard
+DATABASE_PORT = ''3306'
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:settings_py_slave"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+TestResultStorage/settings.py (buildslave)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If you use nfs for file transfers, set nfs mount.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+192.168.16.253:/var/lib/TestResultStorage/data\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+/var/lib/TestResultStorage/data nfs defaults 0 0 
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:fstab"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+/etc/fstab
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Create directory for builds and fetch config.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+mkdir -p /var/buildbot
+\end_layout
+
+\begin_layout Standard
+cd /var/buildbot
+\end_layout
+
+\begin_layout Standard
+svn export\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+branches/zouhar/buildbot/buildslave\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zlomekfs
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Change buildbot configuration to connect to master and use actual credentials.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+basedir = r'/var/buildbot/zlomekfs'
+\end_layout
+
+\begin_layout Standard
+buildmaster_host = '192.168.16.253'
+\end_layout
+
+\begin_layout Standard
+port = 9989
+\end_layout
+
+\begin_layout Standard
+slavename = 'zen'
+\end_layout
+
+\begin_layout Standard
+passwd = 'secret'
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildbot_tac_slave"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Standard
+buildbot.tac (slave)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If infinite testing loop should run on host, checkout its testing configuration.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+cd /var/buildbot
+\end_layout
+
+\begin_layout Standard
+svn checkout\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+https://shiva.ms.mff.cuni.cz/svn/zzzzzfs/
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+branches/zouhar/zlomekfs/tests/nose-tests\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+zfsTests
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Open zfsd port on firewall to allow comunication between nodes.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 12323 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+On remote zfs provider, open listening port on firewall.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+/sbin/iptables -A RH-Firewall-1-INPUT -m state --state NEW\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+-m tcp -p tcp --dport 8007 -j ACCEPT
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Configure buildbot to start on boot, and if host should do infinite testing
+ loop, configure start on boot too (for example via crontab).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+@reboot buildbot start /var/buildbot/zlomekfs 
+\end_layout
+
+\begin_layout Standard
+@reboot screen -d -m cd /var/buildbot/zfsTests\InsetSpace ~
+
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+&& ./infiniteControl.sh run 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand label
+name "fig:buildslave_cron"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Caption
+
+\begin_layout Standard
+buildslave.cron
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Start buildbot and infinite testing loop on.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+buildbot start /var/buildbot/zlomekfs
+\end_layout
+
+\begin_layout Standard
+cd /var/buildbot/zfsTests
+\end_layout
+
+\begin_layout Standard
+screen -d -m ./infiniteControl.sh run
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+On Slaves acting in remote testing as slave ZlomkeFS providers, lines 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+screen -d -m ./infiniteControl.sh run
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+should be replaced with
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+screen -d -m ./remoteZfs.py
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+end{codeblock}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+(we want to run control on one slave and remote zfs on others).
+\end_layout
+
+\begin_layout Section*
+Development system
+\end_layout
+
+\begin_layout Standard
+When installing on development system without need of automatic builds,
+ just install required packages and build projects in correct order.
+\end_layout
+
+\begin_layout Standard
+All components except ZlomekFS can be tested without install (make test).
+ The reason why this is not possible for ZlomekFS is need of fuse build,
+ which is integrated and needs to create device links, install kernel modules
+ etc.
+\end_layout
+
+\begin_layout Standard
+If you want environment as close to buildslave as possible, you can install
+ your system in the same way as is described in 
+\begin_inset LatexCommand prettyref
+reference "sub:Buildslave"
+
+\end_inset
+
+.
+ But even in this case development should be done without buildbot checkouts.
+ Changing buildbot checkouts could lead into conflicts in automatic builds.
+ 
+\end_layout
+
+\begin_layout Standard
+To not spoil central TestResultRepository with your builds, create your
+ own TestResultRepository on local machine (create mysql database) and report
+ into it.
+ This should be done in case of slow connection to master too.
+ Running automatic tests without ZfsReportPlugin is discouraged - there
+ would be little backtrace provided in that case.
+\end_layout
+
+\begin_layout Chapter
+Enclosed CD
+\end_layout
+
+\begin_layout Standard
+Data on enclosed CD is structured to directories as follows:
+\end_layout
+
+\begin_layout Standard
+dist - distribution packages
+\end_layout
+
+\begin_layout Standard
+doc - programmer documentation generated by doxygen
+\end_layout
+
+\begin_layout Standard
+rpms - non standard rpm packages needed to install thesis and thesis rpms
+\end_layout
+
+\begin_layout Standard
+src - sources exported from the repository
+\end_layout
+
+\begin_layout Standard
+thesis - text of this thesis
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand bibtex
+options "plain"
+bibfiles "references"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

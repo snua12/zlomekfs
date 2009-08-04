@@ -1,0 +1,5 @@
+#list of volumes in this tree
+# format VOLUME_ID:VOLUME_NAME:MOUNT_POINT
+#example:
+1:config:/config
+42:my_tree:/my_tree

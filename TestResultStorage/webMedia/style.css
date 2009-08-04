@@ -1,0 +1,26 @@
+p    {text-indent: 30px; margin: 0px 0px 0px 0px, }
+a:hover  {text-decoration: underline}
+h2     {color: blue; font-style: italic}
+h1    {color: green; text-align: center}
+
+#content {position: absolute; width: 100%; height: 100%}
+
+#centerList {position: absolute; width: 500px; top: 120px; left: 100px; margin: 5px}
+
+#header {position: absolute; height: 120px; width: 600; top: 0px; left: 0px}
+
+#leftList {position: absolute; width: 100px; top: 123px; left: 0px; margin: 5px}
+
+#rightList {position: absolute; width: 150px; top: 123px; left: 600px}
+
+#small-header{font-weight: bold; font-size: medium}
+
+#keyword {font-style: italic}
+
+#foot{position: absolute; width: 110px; top: 120px; left: 650px}
+
+#Failure{background-color: red}
+#Error{background-color: red}
+#Success{background-color: #72ff75}
+#Unknown{background-color: yellow}
+#Skipped{background-color: yellow}

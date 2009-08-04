@@ -1,14 +1,7 @@
-.PHONY: all bin doc clean
-
-all: bin doc
-
-bin:
-	@$(MAKE) -C src
-
-doc:
-	@$(MAKE) -C doc
-
 clean:
-	@$(MAKE) -C src clean
-	@$(MAKE) -C doc clean
+	@$(MAKE) -C insecticide clean
+	@$(MAKE) -C zlomekfs clean
+	@$(MAKE) -C TestResultStorage clean
+	@$(MAKE) -C zen-unit clean
+	@$(MAKE) -C syplog clean
 

@@ -1,0 +1,5 @@
+#informations about volumes provided or cached by this node, format is ID_OF_VOLUME:FULL_LOCAL_PATH:CACHE_SIZE_LIMIT 
+# each volume on separate line, NO COMMENTS ALLOWED, PLEASE DELETE THIS LINES
+#example lines:
+1:/var/zfs/zfs_config:0
+42:/var/zfs/zfs_root:0
