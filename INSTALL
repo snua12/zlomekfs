@@ -5,7 +5,7 @@ have linux system with kernel sources (or at least headers)
 * get sources from http://nenya.ms.mff.cuni.cz/~ceres/prj/zlomekFS/download/zlomekFS-SVN.tar.bz2 
   or better make export from svn (http://shiva.ms.mff.cuni.cz/svn/zzzzzfs/trunk)
 
-* install dependencies (syplog)
+* install dependencies from regression-testing (zen-unit and syplog)
 
 * configure & make & make install (make rpm)
 
