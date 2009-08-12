@@ -16,7 +16,7 @@ AC_CHECK_HEADERS(pthread.h)
 AC_CHECK_LIB(syplog, do_log)
 AC_CHECK_LIB(dbus, dbus_connection_read_write)
 
-AC_CHECK_HEADERS([linux/dentry.h])
+AC_CHECK_HEADERS([linux/dirent.h])
 
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(zlomekfs, 0.0)

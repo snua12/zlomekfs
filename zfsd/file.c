@@ -27,9 +27,9 @@
 #include "../config.h"
 #ifdef __linux__
 #include <linux/types.h>
-#ifdef HAVE_LINUX_DENTRY_H
+#ifdef HAVE_LINUX_DIRENT_H
 #include <linux/dirent.h>
-#endif /* HAVE_LINUX_DENTRY_H */
+#endif /* HAVE_LINUX_DIRENT_H */
 #include <linux/unistd.h>
 #else
 #include <dirent.h>
@@ -70,7 +70,7 @@
  * which says you have to give your fd up, which I am not sure about.
  * Also it would need to use cookie for telldir/seekdir instead of lseek.
  */
-#ifndef HAVE_LINUX_DENTRY_H
+#ifndef HAVE_LINUX_DIRENT_H
 
 struct dirent {
     long           d_ino;
@@ -79,7 +79,7 @@ struct dirent {
     char           d_name[];
 };
 
-#endif /* HAVE_LINUX_DENTRY_H */
+#endif /* HAVE_LINUX_DIRENT_H */
 
 static int
 getdents (int fd, struct dirent *dirp, unsigned count)
