@@ -23,13 +23,18 @@
 #include "system.h"
 #include <unistd.h>
 #include <inttypes.h>
+
+#include "../config.h"
 #ifdef __linux__
 #include <linux/types.h>
-#include <dirent.h>
+#ifdef HAVE_LINUX_DENTRY_H
+#include <linux/dirent.h>
+#endif /* HAVE_LINUX_DENTRY_H */
 #include <linux/unistd.h>
 #else
 #include <dirent.h>
 #endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
@@ -58,11 +63,30 @@
 
 /* FIXME: use getdents64 (), or just plain readdir ()? */
 #ifdef __linux__
+
+/* FIXME: VB: New systems don't have linux/dirent.h, man getdents says you
+ * have to define it yourself. It would be really less fragile to use
+ * readdir(3), but that would mean obtaining DIR * from fd through fdopendir()
+ * which says you have to give your fd up, which I am not sure about.
+ * Also it would need to use cookie for telldir/seekdir instead of lseek.
+ */
+#ifndef HAVE_LINUX_DENTRY_H
+
+struct dirent {
+    long           d_ino;
+    off_t          d_off;
+    unsigned short d_reclen;
+    char           d_name[];
+};
+
+#endif /* HAVE_LINUX_DENTRY_H */
+
 static int
 getdents (int fd, struct dirent *dirp, unsigned count)
 {
   return syscall (SYS_getdents, fd, dirp, count);
 }
+
 #endif /* __linux__ */
 
 /*! The array of data for each file descriptor.  */
