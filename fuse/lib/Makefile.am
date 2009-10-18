@@ -29,15 +29,16 @@ libfuse_la_SOURCES = 		\
 	fuse_opt.c		\
 	fuse_session.c		\
 	fuse_signals.c		\
+	cuse_lowlevel.c		\
 	helper.c		\
 	modules/subdir.c	\
 	$(iconv_source)		\
 	$(mount_source)
 
-libfuse_la_LDFLAGS = @libfuse_libs@ -version-number 2:7:0 \
+libfuse_la_LDFLAGS = @libfuse_libs@ -version-number 2:8:1 \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 libulockmgr_la_SOURCES = ulockmgr.c
-libulockmgr_la_LDFLAGS = -version-number 1:0:1
+libulockmgr_la_LDFLAGS = -pthread -version-number 1:0:1
 
 EXTRA_DIST = fuse_versionscript

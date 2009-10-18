@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = @subdirs@ @subdirs2@
+ACLOCAL_AMFLAGS = -I m4
+
+SUBDIRS = @subdirs2@
 
 EXTRA_DIST =			\
 	fuse.pc.in		\
@@ -8,7 +10,8 @@ EXTRA_DIST =			\
 	Filesystems		\
 	FAQ			\
 	doc/how-fuse-works	\
-	doc/kernel.txt
+	doc/kernel.txt		\
+	doc/Doxyfile
 
 pkgconfigdir = @pkgconfigdir@
 pkgconfig_DATA = fuse.pc

@@ -1,3 +1,381 @@
+2009-09-11  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.1
+
+2009-08-25  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix missing versioned symbol fuse_get_context@FUSE_2.2
+
+2009-08-18  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.0
+
+2009-08-18  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add missing fuse_session_data to versionscript
+
+	* Make sure all global symbols are prefixed with "fuse_" or "cuse_"
+
+2009-07-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Clarify how the protocol version should be negotiated between
+	kernel and userspace.  Notably libfuse didn't correctly handle the
+	case when the supported major versions didn't match
+
+	* Add missing pthread link for libulockmgr.  Patch by  Petr Salinger
+
+2009-07-02  Miklos Szeredi <miklos@szeredi.hu>
+
+	* The context is extended with a 'umask' field.  The umask is sent
+	for mknod, mkdir and create requests by linux kernel version
+	2.6.31 or later, otherwise the umask is set to zero.  Also
+	introduce a new feature flag: FUSE_CAP_DONT_MASK.  If the kernel
+	supports this feature, then this flag will be set in conn->capable
+	in the ->init() method.  If the filesystem sets this flag in in
+	conn->want, then the create modes will not be masked.
+
+	* Add low level interfaces for lookup cache and attribute
+	invalidation.  This feature is available in linux kernels 2.6.31
+	or later.  Patch by John Muir
+
+	* Kernel interface version is now 7.12
+
+	* fusermount: Do not silently ignore command line arguments.
+	Patch by Sebastian Harl
+
+2009-06-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.0-pre3
+
+2009-06-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add fuse_getgroups (high level lib) and fuse_req_getgroups (low
+	level lib) functions to query the supplementary group IDs for the
+	current request.  Currently this is implemented on Linux by
+	reading from the /proc filesystem.
+
+2009-06-18  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add "noforget" option to high level lib to prevent ESTALE errors
+	on NFS exported filesystems.  This result in paths being cached
+	forever, resulting in ever growing memory usage.  Use with care.
+
+	* Add "no_remote_lock" option to disable remote file locking even
+	if the filesystem implements it.  With this option locking
+	primitives (flock, lockf, fcntl(F_SETLK)) will still work, but
+	will ignore remotely locked files.
+
+	* CUSE patches from Tejun Heo:
+
+	* Unrestricted ioctl support left some debris.  Clean them up:
+	  o No reason to pass around pointer to flags.  Pass flags directly.
+	  o Clean up comment and prototype parameter names.
+	  o fuse_lib_ioctl() didn't reply when get_path() failed.  Fix it.
+	  o Remove unused variables {in|out}_iov from fuse_lib_ioctl().
+
+	* Add fuse_reply_ioctl_iov()
+
+	* Move fuse_session, fuse_req and fuse_ll definitions to fuse_i.h
+	and make send_reply_iov() and fuse_setup_common() global (also in
+	fuse_i.h).  These will be used by CUSE support.
+
+	* Restructure fuse_ll_process()
+
+	* Implement libfuse side of CUSE support.  CUSE uses subset of FUSE
+	operations as dir operations don't make sense for CUSE where one
+	instance implements single character device.
+
+	CUSE support comes with its own cuse_lowevel_ops and related
+	initialization and helper functions.  Except for initialization, it
+	usage is basically identical to FUSE.
+
+	This patch also adds example/cusexmp.c which can create a character
+	device with name and device number specified on command line.  The
+	created device itself is pretty boring.  It's a bit bucket supporting
+	read, write and access via ioctl.
+
+2009-06-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add missing fuse_reply_bmap to versionscript.  Debian
+	Bug#531329.  Reported by Goswin Brederlow
+
+2009-05-27  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Don't call forget_node() if the lookup was negative and write()
+	for the reply returned ENOENT.  Reported by John Haxby
+
+2009-05-25  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add FUSE_CAP_EXPORT_SUPPORT to fuse_common.h
+
+2009-05-08  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix missing newlines in some printfs
+
+	* Fix 'make install-strip'.  Reported by Dominick Layfield
+
+2009-01-05  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.0-pre2
+
+2008-12-08  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Implement poll support.  Patch by Tejun Heo
+
+	* Add missing setattr flags to <fuse_lowlevel.h>.
+
+	* Only pass valid flags to ->setattr().
+
+2008-12-05  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Implement ioctl support.  On high level interface only
+	"restricted" ioctls are supported (which are defined with the
+	_IO(), _IOR(), _IOW() or _IOWR() macros).  Unrestricted ioctls
+	will only be allwed to CUSE (Character Device in Userspace)
+	servers.  Patch by Tejun Heo
+
+2008-11-28  Miklos Szeredi <miklos@szeredi.hu>
+
+	* If open sets fi->nonseekable, libfuse will tell the kernel that
+	the file is not seekable.  Patch by Tejun Heo
+
+2008-11-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* lowlevel lib: fix deadlock if fuse_reply_* is called from the
+	interrupt handling function.  Reported by Tero Marttila
+
+2008-10-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Allow commas in options to be escaped with a backslash
+
+	* Add new function: fuse_opt_add_opt_escaped()
+
+	* Add missing fuse_reply_bmap() to the version script
+
+2008-10-14  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Pass current file flags to read and write operations
+
+2008-07-24  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Clean up debug output in highlevel lib
+
+2008-07-10  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.0-pre1
+
+2008-06-27  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix handling of (no)suid and (no)dev options if filesystem is
+	mounted from /etc/fstab or via mount(8).  Reported by Jan Ondrej.
+
+	* Skip calling mount(8) if /etc/mtab doesn't exist or if it's on a
+	read-only filesystem.  This works around issues with certain mount
+	implementations.  Reported by Szabolcs Szakacsits.
+
+2008-06-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Remove fuse kernel module sources.  Linux 2.6.27 will support
+	NFS exporting.
+
+2008-06-10  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix theoretical infinite loops in libfuse.  Reported by Szabolcs
+	Szakacsits
+
+	* Fix missing <sys/param.h> include for PATH_MAX.  Reported by
+	Szabolcs Szakacsits
+
+2008-05-23  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix mounting over symlink.  Reported by Szabolcs Szakacsits
+
+2008-05-09  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Don't allow bigger than 4kB writes by default on 2.6.26 and
+	later kernels, so that filesystems not expecting this are not
+	broken on a kernel upgrade.  Provide a 'big_writes' mount option
+	to enable this feature.  In future API revisions this may become
+	the default.
+
+2008-04-09  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Update warning message for missing newline at end of fuse.conf
+
+	* Update debug message for successful operation to not include the
+	string "error:"
+
+2008-04-08  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Update error message for missing mountpoint parameter.  Reported
+	by Allen Pulsifer
+
+2008-04-04  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Print library version information to debug output
+
+	* Highlevel lib: don't limit paths to 4095 characters
+
+2008-03-25  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix memory leaks on mount.  Patch by Szabolcs Szakacsits
+
+2008-03-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix missing pthread_mutex_destroy in error path of
+	fuse_lib_opendir().  Patch by Szabolcs Szakacsits
+
+2008-03-07  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add queuing on contention to per-node lock algorithm, to avoid
+	starvation.
+
+	* Only enable cancelation when reading a request, otherwise
+	cancellation could happen with a mutex held, which could hang the
+	process on umount
+
+2008-02-08  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Block SIGCHLD when executing mount and umount
+
+	* fusexmp_fh: avoid unnecessary seeking in readdir
+
+	* Update kernel interface to 7.9:
+
+	* Support receiving file handle from kernel in GETATTR request
+
+	* Allow operations with a NULL path argument, if the filesystem
+	supports it
+
+	* Add support atomic open(O_TRUNC)
+
+	* Support the st_blksize field in struct stat
+
+	* If the "FUSE_THREAD_STACK" environment is set, initialize the
+	stack size of threads by this value.  Patch by Florin Malita
+
+	* Add per-node locking, instead of a global tree lock to protect
+	the path from changing during operations.  Original patch by
+	Rodrigo Castro
+
+2008-02-03  Csaba Henk <csaba.henk@creo.hu>
+
+	* lib/mount_bsd.c:
+	- string formatting fixes
+	- exit if mounting has failed
+	  (in FreeBSD a mount failure is not critical per se, as the daemon
+	  still could be mounted externally, but waiting for such an event
+	  is more confusing than fruitful)
+	- ditch the kvm(8) stuff and simply use forced unmount which just
+	  won't block
+	- prettify option specifications
+	- add "-onosync_unmount" kernel option
+
+2008-01-07  Csaba Henk <csaba.henk@creo.hu>
+
+	* lib/mount_bsd.c:
+	- refine device closing in a race-free way
+	- add support for "-osubtype" on FreeBSD
+
+	* makeconf.sh: make it work under FreeBSD
+
+2008-01-03  Csaba Henk <csaba.henk@creo.hu>
+
+	* lib/mount_bsd.c: close device before unmount
+	(cf. lib/mount.c rev. 1.43) and fix some warnings 
+
+2007-12-23  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix './configure --disable-static'.  Patch from Ismail Dönmez
+
+2007-12-17  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.7.2
+
+2007-12-12  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix kernel module compile for 2.6.24
+
+	* Invalidate attributes of parent directory after create(), since
+	the modification time changes.  Invalidate attributes on rename,
+	since some filesystems may update st_ctime.  Reported by Szabolcs
+	Szakacsits
+
+	* Fix NFS exporting to handle 64bit node IDs
+
+	* Disable old symbol versions if __UCLIBC__ is defined.  If a
+	symbol in a library has multiple versions, the runtime linker in
+	uClibc seems to randomly choose between them.
+
+	* Remove erroneous 'fuse_opt_insert_arg@FUSE_2_5' from
+	fuse_version_script.  fuse_opt_free_args() was added in fuse-2.6.
+
+	* Close fuse device file descriptor before calling umount(),
+	preventing a deadlock when umount is synchronous.  Reported by
+	Szabolcs Szakacsits
+
+2007-11-12  Miklos Szeredi <miklos@szeredi.hu>
+
+	* 'fusermount -u' did not umount the filesystem if /etc/mtab was a
+	symlink.  This bug was introduced in 2.7.1 by "Don't call
+	/bin/[u]mount if /etc/mtab is a symlink".  Found by robertsong.
+
+2007-10-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.7.1
+
+2007-10-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Clarify licence version to be "LGPLv2" for the library
+
+	* kernel fixes:
+
+	* After mount set nlink attribute for the root inode to 1
+
+	* Fix wake up of task waiting for a reserved request
+
+	* Fix allowing setattr, listxattr and statfs for other users
+
+2007-09-18  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add missing context initialization in fuse_fs_chmod().  Bug
+	found by "iohead"
+
+	* Fix kernel module compilation for 2.6.23.  Based on patch by
+	Marian Marinov
+
+2007-09-04  Philippe Elie  <phil.el@wanadoo.fr>
+
+	* lib/fuse_lowlevel.c: fix a fuse_req leak in do_forget()
+
+2007-07-31  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Work around hotplug issue, that it calls filesystem with file
+	descriptors 0, 1 and 2 not open.  Tracked down by Leif Johnson
+
+2007-07-25  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Don't call /bin/[u]mount if /etc/mtab is a symlink.  Reported by
+	Tomas M
+
+	* Also don't touch /etc/mtab if it is within the mounted
+	filesystem.  Suggested by Jeffrey Law
+
+2007-07-12  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Reset args->argc in fuse_opt_free_args().  Patch by Lucas
+	C. Villa Real
+
+2007-07-02  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.7.0
+
+2007-07-02  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Accept a NULL "op" for fuse_main(), etc.  This is useful if
+	filesystem is only invoking fuse to print a help message, or
+	version.  Fixes RedHat bugzilla #217343
+
 2007-06-22  Miklos Szeredi <miklos@szeredi.hu>
 
 	* lib: fix locking when loading a filesystem module

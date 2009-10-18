@@ -1,6 +1,6 @@
 This was generated on 2006/10/17 from
 
-  http://fuse.sourceforge.net/wiki/index.php/FAQ
+  http://sourceforge.net/apps/mediawiki/fuse/index.php?title=FAQ
 
 For an up to date version please see the above page.  You can also add
 new entries there.
@@ -73,7 +73,7 @@ Under what license is FUSE released?
 
 The kernel part is released under the GNU GPL.
 
-Libfuse is released under the GNU LGPL.
+Libfuse is released under the GNU LGPLv2.
 
 All other parts (examples, fusermount, etc) are released under the GNU
 GPL.
