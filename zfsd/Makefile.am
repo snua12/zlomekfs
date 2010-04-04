@@ -21,7 +21,7 @@
 EXTRA_DIST = zfs-prot.def
 
 INCLUDES = \
-	-I${top_srcdir}/fuse/include \
+	-I/usr/include/fuse \
 	-I/usr/include/syplog \
 	-I/usr/include/dbus-1.0 \
 	-I/usr/lib/dbus-1.0/include 
@@ -30,10 +30,7 @@ AM_LDFLAGS = -lrt -ldl -lpthread -ldbus-1
 
 AM_CFLAGS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes \
-	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG 
-
-${top_builddir}/fuse/lib/.libs/libfuse.a:
-	make -C ${top_builddir}/fuse/
+	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG -DENABLE_CHECKING
 
 bin_PROGRAMS = dump-metadata dump-intervals
 sbin_PROGRAMS = zfsd
@@ -71,7 +68,7 @@ zfsd_SOURCES = zfsd.c \
 	  zfs-prot.c \
 	  dbus-zfsd-service.c \
 	  dbus-provider.c
-zfsd_LDADD =  -lsyplog ${top_builddir}/fuse/lib/.libs/libfuse.a
+zfsd_LDADD =  -lsyplog -lfuse
 
 
 dump_metadata_SOURCES = dump-metadata.c \
@@ -89,7 +86,7 @@ dump_metadata_SOURCES = dump-metadata.c \
 		   user-group.c \
 		   util.c \
 		   varray.c
-dump_metadata_LDADD = ${top_builddir}/fuse/lib/.libs/libfuse.a
+dump_metadata_LDADD = -lfuse
 
 dump_intervals_SOURCES = dump-intervals.c \
 		    alloc-pool.c \
@@ -104,7 +101,7 @@ dump_intervals_SOURCES = dump-intervals.c \
 		    splay-tree.c \
 		    util.c \
 		    varray.c
-dump_intervals_LDADD = ${top_builddir}/fuse/lib/.libs/libfuse.a
+dump_intervals_LDADD = -lfuse
 
 test: zfsd
 	./test.py ./zfsd

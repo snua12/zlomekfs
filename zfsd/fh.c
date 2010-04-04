@@ -301,7 +301,7 @@ cleanup_unused_dentries (void)
       zfsd_mutex_unlock (&cleanup_dentry_mutex);
       if (n)
         {
-          message (LOG_INFO, FACILITY_DATA, "Freeing %d nodes\n", n);
+          message (LOG_DEBUG, FACILITY_DATA, "Freeing %d nodes\n", n);
           qsort (fh, n, sizeof (zfs_fh), cleanup_unused_dentries_compare);
 
           for (i = 0; i < n; i++)
@@ -1021,7 +1021,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
         RETURN_INT (r);
     }
 
-  message (LOG_INFO, FACILITY_DATA | FACILITY_THREADING, "FH %p LOCKED %u, by %lu at %s:%d\n",
+  message (LOG_LOCK, FACILITY_DATA | FACILITY_THREADING, "FH %p LOCKED %u, by %lu at %s:%d\n",
            (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 

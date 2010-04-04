@@ -85,6 +85,42 @@ static fuse_ino_t next_ino;
 static htab_t inode_map_ino, inode_map_fh;
 static pthread_mutex_t inode_map_mutex;
 
+static void fuse_kernel_invalidate_data(struct fuse_chan *ch, fuse_ino_t ino)
+{
+    //int x;
+
+    message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_invalidate_data: ino = %d\n", ino);
+    fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
+    //message (LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
+}
+
+static void fuse_kernel_invalidate_inode(struct fuse_chan *ch, fuse_ino_t ino)
+{
+    //int x;
+
+    message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_invalidate_inode: ino = %d\n", ino);
+    fuse_lowlevel_notify_inval_inode(ch, ino, -1, 0);
+    //message (LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
+}
+
+static void fuse_kernel_invalidate_metadata(struct fuse_chan *ch, fuse_ino_t parent, const char *name)
+{
+    //int x;
+
+    message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_invalidate_metadata: ino = %d\n", parent);
+    fuse_lowlevel_notify_inval_entry(ch, parent, name, strlen(name));
+    //message(LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
+}
+
+static void fuse_kernel_sync_inode(struct fuse_chan *ch, fuse_ino_t ino)
+{
+    //int x;
+
+    message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_sync_inode: ino = %d\n", ino);
+    fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
+    //message (LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
+}
+
 static hash_t
 inode_map_ino_hash (const void *x)
 {
@@ -289,6 +325,7 @@ zfs_fuse_lookup (fuse_req_t req, fuse_ino_t parent, const char *name)
   dir_op_res res;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: lookup parent=%d, name=%s\n", parent, name);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -307,7 +344,7 @@ zfs_fuse_lookup (fuse_req_t req, fuse_ino_t parent, const char *name)
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -322,6 +359,7 @@ zfs_fuse_getattr (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   int err;
 
   TRACE ("");
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: getattr ino=%d\n", ino);
   (void)fi;
   fh = inode_to_fh (ino);
   if (fh == NULL)
@@ -351,6 +389,7 @@ zfs_fuse_setattr (fuse_req_t req, fuse_ino_t ino, struct stat *attr,
   fattr fa;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: setattr ino=%d\n", ino);
   (void)fi;
   fh = inode_to_fh (ino);
   if (fh == NULL)
@@ -394,7 +433,7 @@ zfs_fuse_setattr (fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata (fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode (fuse_ch, ino);
  err:
   fuse_reply_err (req, err);
 }
@@ -407,6 +446,7 @@ zfs_fuse_readlink (fuse_req_t req, fuse_ino_t ino)
   read_link_res res;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: readlink ino=%d\n", ino);
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
@@ -435,6 +475,7 @@ zfs_fuse_mknod (fuse_req_t req, fuse_ino_t parent, const char *name,
   dir_op_res res;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: mknod parent=%d, name=%s, mode=%o\n", parent, name, mode);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -466,7 +507,7 @@ zfs_fuse_mknod (fuse_req_t req, fuse_ino_t parent, const char *name,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -481,6 +522,7 @@ zfs_fuse_mkdir (fuse_req_t req, fuse_ino_t parent, const char *name,
   dir_op_res res;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: mkdir parent=%d, name=%s\n", parent, name);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -503,7 +545,7 @@ zfs_fuse_mkdir (fuse_req_t req, fuse_ino_t parent, const char *name,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -515,6 +557,7 @@ zfs_fuse_unlink (fuse_req_t req, fuse_ino_t parent, const char *name)
   dir_op_args args;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: unlink parent=%d\n", parent, name);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -531,7 +574,7 @@ zfs_fuse_unlink (fuse_req_t req, fuse_ino_t parent, const char *name)
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -543,6 +586,7 @@ zfs_fuse_rmdir (fuse_req_t req, fuse_ino_t parent, const char *name)
   dir_op_args args;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: rmdir parent=%d, name=%s\n", parent, name);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -559,7 +603,7 @@ zfs_fuse_rmdir (fuse_req_t req, fuse_ino_t parent, const char *name)
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -574,6 +618,7 @@ zfs_fuse_symlink (fuse_req_t req, const char *dest, fuse_ino_t parent,
   dir_op_res res;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: symlink dest=%s, parent=%d, name=%s\n", dest, parent, name);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -596,7 +641,7 @@ zfs_fuse_symlink (fuse_req_t req, const char *dest, fuse_ino_t parent,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -609,6 +654,7 @@ zfs_fuse_rename (fuse_req_t req, fuse_ino_t parent, const char *name,
   rename_args args;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: rename parent=%d, name=%s, newparent=%d, newname=%s\n", parent, name, newparent, newname);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -636,8 +682,8 @@ zfs_fuse_rename (fuse_req_t req, fuse_ino_t parent, const char *name,
  err_estale:
   if (err == ESTALE)
     {
-      (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
-      (void)fuse_kernel_invalidate_metadata(fuse_se, newparent);
+      (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
+      (void)fuse_kernel_invalidate_metadata(fuse_ch, newparent, newname);
     }
  err:
   fuse_reply_err (req, err);
@@ -653,6 +699,7 @@ zfs_fuse_link (fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
   dir_op_res res;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: link ino=%d, parent=%d, newname=%s\n", ino, newparent, newname);
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
@@ -684,10 +731,10 @@ zfs_fuse_link (fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode(fuse_ch, ino);
  err_estale_newparent:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, newparent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, newparent, newname);
  err:
   fuse_reply_err (req, err);
 }
@@ -700,6 +747,7 @@ zfs_fuse_open (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   zfs_cap res, *cap;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: open ino=%d\n", ino);
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
@@ -725,7 +773,7 @@ zfs_fuse_open (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode(fuse_ch, ino);
  err:
   fuse_reply_err (req, err);
 }
@@ -740,6 +788,7 @@ zfs_fuse_read (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   int err;
 
   TRACE ("");
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: read ino=%d, size=%d, off=%d\n", ino, size, off);
   cap = (zfs_cap *)(intptr_t)fi->fh;
   buf = xmalloc (size);
   done = 0;
@@ -771,7 +820,7 @@ zfs_fuse_read (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
  err_buf_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode(fuse_ch, ino);
   free (buf);
   fuse_reply_err (req, err);
 }
@@ -785,6 +834,7 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
   int err;
 
   TRACE ("");
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: write ino=%d, size=%d, off=%d\n", ino, size, off);
   cap = (zfs_cap *)(intptr_t)fi->fh;
   done = 0;
   do
@@ -816,7 +866,7 @@ zfs_fuse_write (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode(fuse_ch, ino);
    fuse_reply_err (req, err);
 }
 
@@ -826,13 +876,14 @@ zfs_fuse_release (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   zfs_cap *cap;
   int err;
 
-  (void)fuse_kernel_sync_inode(fuse_se, ino);
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: release ino=%d\n", ino);
+  (void)fuse_kernel_sync_inode(fuse_ch, ino);
   cap = (zfs_cap *)(intptr_t)fi->fh;
   err = -zfs_error (zfs_close (cap));
   free (cap);
   if (err != 0)
     goto err; /* ESTALE not handled specially */
-  (void)fuse_kernel_invalidate_data(fuse_se, ino);
+  (void)fuse_kernel_invalidate_data(fuse_ch, ino);
   /* Fall through */
  err:
   fuse_reply_err (req, err);
@@ -862,6 +913,7 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
   uint32_t i;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: readdir ino=%d, size=%d, off=%d, fh=%d\n", ino, size, off, fi->fh);
   cap = (zfs_cap *)(intptr_t)fi->fh;
   args.cap = *cap;
   args.cookie = off;
@@ -911,7 +963,7 @@ zfs_fuse_readdir (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
  err_list_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode(fuse_ch, ino);
   free_dir_list_array (&list);
   fuse_reply_err (req, err);
 }
@@ -948,6 +1000,7 @@ zfs_fuse_create (fuse_req_t req, fuse_ino_t parent, const char *name,
   zfs_cap *cap;
   int err;
 
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: create parent=%d, name=%s, mode=%o\n", parent, name, mode);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -980,7 +1033,7 @@ zfs_fuse_create (fuse_req_t req, fuse_ino_t parent, const char *name,
 
  err_estale:
   if (err == ESTALE)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, parent);
+    (void)fuse_kernel_invalidate_metadata(fuse_ch, parent, name);
  err:
   fuse_reply_err (req, err);
 }
@@ -1030,7 +1083,7 @@ zfs_proc_invalidate_kernel (thread *t, invalidate_args *args)
     }
   ino = fh_get_inode (&args->fh);
   if (ino != 0)
-    (void)fuse_kernel_invalidate_metadata(fuse_se, ino);
+    (void)fuse_kernel_invalidate_inode(fuse_ch, ino);
   t->retval = ZFS_OK;
   /* Fall through */
  err:
@@ -1231,6 +1284,7 @@ kernel_start (void)
 
   if (fuse_parse_cmdline (&main_args, &fuse_mountpoint, NULL, NULL) != 0)
     exit (EXIT_FAILURE);
+  message (LOG_INFO, FACILITY_ZFSD, "Mounting FUSE to %s\n", fuse_mountpoint);
 
   inode_map_init ();
 

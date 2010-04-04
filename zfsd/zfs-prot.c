@@ -665,7 +665,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
-  message (LOG_INFO, FACILITY_NET, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
+  message (LOG_INFO, FACILITY_NET, "sending request: ID=%u fn=%u (%s)\n", req_id, NUMBER, #NAME);\
   start_encoding (t->dc_call);						\
   encode_direction (t->dc_call, CALL_MODE);				\
   encode_request_id (t->dc_call, req_id);				\

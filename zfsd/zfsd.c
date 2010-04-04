@@ -446,7 +446,7 @@ daemon_mode (void)
 
 struct dbus_state_holder_def dbus_provider;
 
-void init_dbus()
+void init_dbus(void)
 {
   if (dbus_provider_init (&dbus_provider) != TRUE)
     message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,

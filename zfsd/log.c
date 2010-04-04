@@ -32,7 +32,7 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <syslog.h>
-
+#include <execinfo.h>
 
 #include "node.h"
 #include "syplog.h"
@@ -130,6 +130,18 @@ void zfs_closelog(void)
   close_log (&syplogger);
 }
 
+/*! Print stack */
+void show_stackframe(void) {
+  void *trace[16];
+  char **messages = (char **)NULL;
+  int i, trace_size = 0;
+
+  trace_size = backtrace(trace, 16);
+  messages = backtrace_symbols(trace, trace_size);
+  printf("[bt] Execution path:\n");
+  for (i=0; i<trace_size; ++i)
+    printf("[bt] %s\n", messages[i]);
+}
 
 /*! Print the internal error message and exit.  */
 void
@@ -144,13 +156,14 @@ internal_error (const char *format, ...)
   va_start (va, format);
 
 
-  message (LOG_EMERG, FACILITY_ALL, "Zfsd terminating due to internal error...");
+  message (LOG_EMERG, FACILITY_ALL, "Zfsd terminating due to internal error...\n");
 
   va_start (va, format);
   vsnprintf(msg, 1024, format, va);
   va_end (va);
   
   message (LOG_EMERG, FACILITY_ALL, msg);
+  show_stackframe();
   sleep (2);
 
 #ifdef ENABLE_CHECKING
@@ -166,6 +179,6 @@ internal_error (const char *format, ...)
 void
 verbose_abort (const char *file, int line)
 {
-  internal_error ("Aborted by %lu, at %s:%d", (unsigned long) pthread_self (),
+  internal_error ("Aborted by %lu, at %s:%d\n", (unsigned long) pthread_self (),
 		  file, line);
 }

@@ -1,8 +1,6 @@
 AC_INIT(configure.in)
 
 AC_CONFIG_AUX_DIR([.])
-# Call hand's ./configure script recursively.
-AC_CONFIG_SUBDIRS([fuse])
 AC_OUTPUT
 
 

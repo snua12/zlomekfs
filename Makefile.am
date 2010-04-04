@@ -82,7 +82,6 @@ clean-local:
 
 
 SUBDIRS = \
-	fuse \
 	zfsd \
 	tests
 

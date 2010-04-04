@@ -116,7 +116,7 @@ message_handle_state_e dbus_handle_log_message (DBusConnection * connection,
 
 #define is_logger_arg(arg)	is_syplog_arg (arg)
 
-#define message(level,facility,format...) do_log(&syplogger,level,facility, ## format)
+#define message(level,facility,format...) do_log(&syplogger,level,facility, ## format);
 
 /*! Report an internal error.  */
 extern void internal_error (const char *format, ...) ATTRIBUTE_NORETURN;
