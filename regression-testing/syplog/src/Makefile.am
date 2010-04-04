@@ -43,6 +43,7 @@ nobase_pkginclude_HEADERS = \
 	control/control-protocol.h \
 	control/listener.h \
 	media/file-medium.h \
+	media/print-medium.h \
 	media/medium-api.h \
 	media/medium.h \
 	media/shm-medium.h \
@@ -60,6 +61,7 @@ libsyplog_la_SOURCES = \
 	formatters/raw-formatter.c \
 	media/medium.c \
 	media/file-medium.c \
+	media/print-medium.c \
 	media/shm-medium.c \
 	media/medium-api.c \
 	syp-error.c \

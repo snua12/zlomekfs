@@ -21,7 +21,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 
@@ -97,7 +97,7 @@ static inline int32_t time_to_string (struct timeval * local_time, char * buffer
     return -ERR_BAD_PARAMS;
 #endif
 
-  chars_printed = snprintf (buffer, buffer_len, "%ld:%ld", local_time->tv_sec, local_time->tv_usec);
+  chars_printed = snprintf (buffer, buffer_len, "%ld:%06ld", local_time->tv_sec, local_time->tv_usec);
 
   if (chars_printed > 0)
     return chars_printed;
@@ -197,7 +197,7 @@ static inline bool_t opt_table_contains (const struct option * option_table, con
 {
   if (strlen (arg) < 2)
     return FALSE;
-  
+
   int table_index = 0;
   char * substr = NULL;
   for (table_index = 0; option_table [table_index].name != NULL; table_index ++)

@@ -1,5 +1,5 @@
 /*! \file
-    \brief File medium implementation.  
+    \brief File medium implementation.
 
   File medium takes logs from file and parses them to structures (or vice versa).
 */
@@ -21,7 +21,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 
@@ -42,22 +42,22 @@ void print_file_medium_help (int fd, int tabs)
 {
   if (fd == 0)
     fd = 1;
-  
+
   tabize_print (tabs, fd, "file medium writes logs to file (reads from).\n");
   tabize_print (tabs, fd, "file medium options:\n");
   tabs ++;
-  
+
   tabize_print (tabs, fd, "--%s=value, -%c value\tfile name\n",
     PARAM_MEDIUM_FN_LONG, PARAM_MEDIUM_FN_CHAR);
-  
+
 }
 
 // table with known param types
-static const struct option option_table[] = 
+static const struct option option_table[] =
 {
   {PARAM_MEDIUM_FN_LONG,	1, NULL,			PARAM_MEDIUM_FN_CHAR},
   {NULL, 0, NULL, 0}
-}; 
+};
 
 
 bool_t is_file_medium_arg (const char * arg)
@@ -76,7 +76,7 @@ syp_error file_medium_parse_params (int argc, const char ** argv, medium setting
 {
   int opt;
   extern int opterr, optopt;
-  
+
 #ifdef ENABLE_CHECKING
   if (argv == NULL || settings == NULL)
   {
@@ -92,7 +92,7 @@ syp_error file_medium_parse_params (int argc, const char ** argv, medium setting
     {
       case PARAM_MEDIUM_FN_CHAR: // log file name
         strncpy ( ((file_medium)(settings->type_specific))->file_name,
-                  optarg, 
+                  optarg,
                   FILE_NAME_LEN);
         break;
       case '?':
@@ -114,7 +114,7 @@ static inline syp_error shift_to_begin_if_needed(medium target)
 {
   // set cursor in file to boundaries
   long pos = 0;
-  
+
 #ifdef ENABLE_CHECKING
   if (target == NULL || target->type_specific == NULL)
     return ERR_BAD_PARAMS;
@@ -143,7 +143,7 @@ syp_error open_file_medium (medium target, int argc, const char ** argv)
     return ERR_BAD_PARAMS;
   }
 #endif
-  
+
   new_specific = malloc (sizeof (struct file_medium_def));
   if (new_specific == NULL)
   {
@@ -180,7 +180,7 @@ syp_error open_file_medium (medium target, int argc, const char ** argv)
       break;
   }
 
-  
+
   if (new_specific->handler == NULL)
   {
     ret_code = ERR_FILE_OPEN;
@@ -222,7 +222,7 @@ syp_error close_file_medium (medium target){
   fclose ( ((file_medium)(target->type_specific))->handler);
   free (target->type_specific);
   target->type_specific = NULL;
-  
+
   return NOERR;
 }
 
@@ -247,11 +247,11 @@ syp_error file_access (medium target, log_struct log){
   switch (target->kind)
   {
     case READ_LOG: // read
-      chars_accessed = target->used_formatter->file_read (log, 
+      chars_accessed = target->used_formatter->file_read (log,
         ((file_medium)target->type_specific)->handler);
       break;
     case WRITE_LOG: // write
-      chars_accessed = target->used_formatter->file_write (log, 
+      chars_accessed = target->used_formatter->file_write (log,
         ((file_medium)target->type_specific)->handler);
       break;
     case NO_OPERATION:

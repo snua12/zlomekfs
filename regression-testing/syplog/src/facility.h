@@ -2,14 +2,14 @@
 #define FACILITY_H
 
 /*! \file
-    \brief Facilities and associated helper functions.  
+    \brief Facilities and associated helper functions.
 
-  Facility is a part (or concern) of application 
+  Facility is a part (or concern) of application
   which needs to be distinguished in logging.
 
   Current model of facilities is a bitmap. When the bit for particular
   facility is set in bitmap, it means that messages from this facility
-  have to be logged. 
+  have to be logged.
 
   Message can be associated to more than one facility. Then it is logged
   if at least one of them is set to be logged.
@@ -33,7 +33,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 
@@ -53,7 +53,7 @@ typedef uint32_t		facility_t;
 #define	FACILITY_LOG_NAME		"LOG"
 /// log message apply on threading
 #define	FACILITY_THREADING      0x2
-#define	FACILITY_THREADING_NAME		"THREADING"
+#define	FACILITY_THREADING_NAME		"THREAD"
 /// log message apply on networking
 #define	FACILITY_NET            0x4
 #define	FACILITY_NET_NAME		"NET"

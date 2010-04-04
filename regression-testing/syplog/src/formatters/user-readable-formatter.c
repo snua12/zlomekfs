@@ -18,7 +18,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 
@@ -26,7 +26,7 @@
 #include "user-readable-formatter.h"
 
 /*! Definition of user readable formatter type */
-struct formatter_def user_readable_formatter = 
+struct formatter_def user_readable_formatter =
 {
   .stream_write = user_readable_stream_write,
   .mem_write = user_readable_mem_write,
@@ -60,7 +60,8 @@ int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len
   timezone_to_string (message->timezone, timezone_str, TIMEZONE_STRING_LEN);
   int32_t chars_printed = 0;
 
-  chars_printed = snprintf (buffer, buffer_len, "%s\t%s\t%lu/%s\t%s\t%s\t%s\t%s\t%s\n", 
+  // do not use trailing \n as all messages have it
+  chars_printed = snprintf (buffer, buffer_len, "%s\t%s\t%lu/%s\t%s\t%s\t%s\t%s\t%s",
            message->hostname,
            message->node_name,
            message->thread_id,
@@ -98,7 +99,7 @@ int32_t read_buffer (log_struct message, const char * buffer)
   char log_level_str[LOG_LEVEL_STRING_LEN] = "";
   int32_t chars_read = 0;
 
-  chars_read = sscanf (buffer, "%s\t%s\t%ld/%s\t%s\t%s\t%s\t%s\t%s\n", 
+  chars_read = sscanf (buffer, "%s\t%s\t%ld/%s\t%s\t%s\t%s\t%s\t%s\n",
            message->hostname,
            message->node_name,
            &message->thread_id,

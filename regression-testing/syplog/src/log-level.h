@@ -43,13 +43,13 @@ typedef uint32_t		log_level_t;
 
 /// system is unusable 
 #define LOG_EMERG       0
-#define LOG_EMERG_NAME		"EMERGENCY"
+#define LOG_EMERG_NAME		"EMERG"
 /// action must be taken immediately
 #define LOG_ALERT       1
 #define LOG_ALERT_NAME		"ALERT"
 /// critical conditions
 #define LOG_CRIT        2
-#define LOG_CRIT_NAME		"CRITICAL"
+#define LOG_CRIT_NAME		"CRIT"
 /// error conditions
 #define LOG_ERR         3
 #define LOG_ERR_NAME		"ERROR"
@@ -70,7 +70,7 @@ typedef uint32_t		log_level_t;
 #define LOG_LOCK_NAME		"LOCK"
 /// function entry and leave
 #define LOG_FUNC        9
-#define LOG_FUNC_NAME		"FUNCTION"
+#define LOG_FUNC_NAME		"FUNC"
 /// data changes
 #define LOG_DATA       10
 #define LOG_DATA_NAME		"DATA"

@@ -2,7 +2,7 @@
 #define MEDIUM_H
 
 /*! \file
-    \brief Main medium access functions definitions. 
+    \brief Main medium access functions definitions.
 
   Defines unified api for reading writing logs to distinct types of "media".
   Medium is represented as a structure (blackbox for user) which
@@ -26,7 +26,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 
@@ -46,14 +46,14 @@ typedef enum
   /// don't use any medium - mainly used as "default" and "uninitialized"
   NO_MEDIUM = 0,
   /// write logs to shared memory
-  SHM_MEDIUM = 1,
+  SHM_MEDIUM,
   /// write logs to file or read from
-  FILE_MEDIUM = 3,  /*,
-not implemented yet
+  FILE_MEDIUM,
+  /// write logs to stdout
+  PRINT_MEDIUM,
+  /* not implemented yet
   /// write logs to syslog
   SYSLOG_MEDIUM = 4,
-  /// write logs to stdout
-  PRINT_MEDIUM = 5,
   /// write logs to socket
   SOCKET_MEDIUM = 2,*/
 
