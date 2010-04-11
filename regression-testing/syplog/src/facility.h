@@ -69,13 +69,15 @@ typedef uint32_t		facility_t;
 /// log message apply on configuration
 #define	FACILITY_CONFIG         0x40
 #define	FACILITY_CONFIG_NAME		"CONFIG"
-
 /// log message apply on dbus
 #define FACILITY_DBUS           0x80
-#define FACILITY_DBUS_NAME		"DBUS"
+#define FACILITY_DBUS_NAME      "DBUS"
 /// facility for global testing
-#define FACILITY_ZFSD		0x100
-#define	FACILITY_ZFSD_NAME		"ZFSD"
+#define FACILITY_ZFSD           0x100
+#define FACILITY_ZFSD_NAME      "ZFSD"
+// log message apply on versioning
+#define FACILITY_VERSION        0x200
+#define FACILITY_VERSION_NAME   "VERSION"
 
 /// do not log messages from any facility
 #define	FACILITY_NOTHING        0x0
@@ -110,6 +112,8 @@ static inline const char * facility_to_name (facility_t facility)
     return FACILITY_DBUS_NAME;
   if ((facility & FACILITY_ZFSD) > 0)
     return FACILITY_ZFSD_NAME;
+  if ((facility & FACILITY_VERSION) > 0)
+    return FACILITY_VERSION_NAME;
 
   if (facility == FACILITY_NOTHING)
     return FACILITY_NOTHING_NAME;
@@ -144,6 +148,8 @@ static inline facility_t facility_from_string (const char * facility_name)
     return FACILITY_DBUS;
   if (strncmp (facility_name, FACILITY_ZFSD_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_ZFSD;
+  if (strncmp (facility_name, FACILITY_VERSION_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_VERSION;
 
   if (strncmp (facility_name, FACILITY_NOTHING_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_NOTHING;
