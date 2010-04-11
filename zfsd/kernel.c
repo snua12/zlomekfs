@@ -87,38 +87,26 @@ static pthread_mutex_t inode_map_mutex;
 
 static void fuse_kernel_invalidate_data(struct fuse_chan *ch, fuse_ino_t ino)
 {
-    //int x;
-
     message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_invalidate_data: ino = %d\n", ino);
     fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
-    //message (LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
 }
 
 static void fuse_kernel_invalidate_inode(struct fuse_chan *ch, fuse_ino_t ino)
 {
-    //int x;
-
     message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_invalidate_inode: ino = %d\n", ino);
     fuse_lowlevel_notify_inval_inode(ch, ino, -1, 0);
-    //message (LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
 }
 
 static void fuse_kernel_invalidate_metadata(struct fuse_chan *ch, fuse_ino_t parent, const char *name)
 {
-    //int x;
-
     message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_invalidate_metadata: ino = %d\n", parent);
     fuse_lowlevel_notify_inval_entry(ch, parent, name, strlen(name));
-    //message(LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
 }
 
 static void fuse_kernel_sync_inode(struct fuse_chan *ch, fuse_ino_t ino)
 {
-    //int x;
-
     message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_sync_inode: ino = %d\n", ino);
     fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
-    //message (LOG_FUNC, FACILITY_ZFSD, "inval returns: %d\n", x);
 }
 
 static hash_t
@@ -389,7 +377,7 @@ zfs_fuse_setattr (fuse_req_t req, fuse_ino_t ino, struct stat *attr,
   fattr fa;
   int err;
 
-  message (LOG_INFO, FACILITY_ZFSD, "FUSE: setattr ino=%d\n", ino);
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: setattr ino=%d, to_set=%x\n", ino, to_set);
   (void)fi;
   fh = inode_to_fh (ino);
   if (fh == NULL)
@@ -557,7 +545,7 @@ zfs_fuse_unlink (fuse_req_t req, fuse_ino_t parent, const char *name)
   dir_op_args args;
   int err;
 
-  message (LOG_INFO, FACILITY_ZFSD, "FUSE: unlink parent=%d\n", parent, name);
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: unlink parent=%d, name=%s\n", parent, name);
   fh = inode_to_fh (parent);
   if (fh == NULL)
     {
@@ -747,7 +735,7 @@ zfs_fuse_open (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   zfs_cap res, *cap;
   int err;
 
-  message (LOG_INFO, FACILITY_ZFSD, "FUSE: open ino=%d\n", ino);
+  message (LOG_INFO, FACILITY_ZFSD, "FUSE: open ino=%d, flags=%o\n", ino, fi->flags);
   fh = inode_to_fh (ino);
   if (fh == NULL)
     {
