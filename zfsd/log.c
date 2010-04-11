@@ -89,13 +89,13 @@ message_handle_state_e dbus_handle_log_message (DBusConnection * connection,
 
 void zfs_openlog(int  argc, const char ** argv)
 {
-  syp_error ret_code = open_log (&syplogger, "STILL UNDEFINED", argc, argv);
+  syp_error ret_code = open_log (&syplogger, "UNDEF", argc, argv);
   if (ret_code != NOERR)
   {
     printf ("Bad params for logger initialization %d: %s\n", ret_code,
             syp_error_to_string (ret_code));
 
-    ret_code = open_log (&syplogger, "STILL_UNDEFINED", 0, NULL);
+    ret_code = open_log (&syplogger, "UNDEF", 0, NULL);
   }
 
   if (ret_code != NOERR)
@@ -118,7 +118,7 @@ void update_node_name (void)
   if (node_name.str != NULL)
     ret_code = set_node_name ( &syplogger, node_name.str);
   else
-    ret_code = set_node_name (&syplogger, "STILL UNDEFINED");
+    ret_code = set_node_name (&syplogger, "UNDEF");
 
   if (ret_code != NOERR)
     message (LOG_WARNING, FACILITY_LOG, "could not set node_name %d: %s\n", ret_code,
@@ -141,6 +141,7 @@ void show_stackframe(void) {
   printf("[bt] Execution path:\n");
   for (i=0; i<trace_size; ++i)
     printf("[bt] %s\n", messages[i]);
+  free (messages);
 }
 
 /*! Print the internal error message and exit.  */
