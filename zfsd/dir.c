@@ -127,7 +127,7 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
 	{
     // version specified?
     r = version_get_filename_stamp (name->str, &stamp);
-    if (r < 0)
+    if (r != ZFS_OK)
       RETURN_INT (r);
   }
 #endif
@@ -167,7 +167,13 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
 
 #ifdef VERSIONS
   // update name if working with version file
-  if (versioning && stamp) version_find_version (dir.str, name, stamp);
+  if (versioning && stamp)
+    r = version_find_version (dir.str, name, stamp);
+  if (r != ZFS_OK)
+    {
+      free (dir.str);
+      RETURN_INT (r);
+    }
   dst->str = xstrconcat (2, dir.str, name->str);
   dst->len = strlen (dst->str);
   free (dir.str);

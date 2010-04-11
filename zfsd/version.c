@@ -492,7 +492,7 @@ version_find_version (char *dir, string *name, time_t stamp)
 
   // look for first newer
   version_browse_dir (dir, sname, &stamp, &ino, NULL);
-  message (LOG_DEBUG, FACILITY_VERSION, "Using stamp=%d, sname=%s, ino=%u\n", stamp, sname, ino);
+  message (LOG_INFO, FACILITY_VERSION, "Using stamp=%d, sname=%s, ino=%u\n", stamp, sname, ino);
 
   if (stamp > 0)
     {
@@ -509,11 +509,24 @@ version_find_version (char *dir, string *name, time_t stamp)
       if (p) *p = '\0';
       name->len = strlen (name->str);
     }
+  else
+    {
+      free (sname);
+      RETURN_INT (ENOENT);
+    }
 
   free (sname);
 
   RETURN_INT (ZFS_OK);
 }
+
+#define GET_STAMP_PART(BUF, L, PART, S, E, X) \
+  if (L > S) \
+    { \
+      if ((L > E) && (BUF[E] != '-')) RETURN_INT (ENOENT); \
+      buf[E] = '\0'; \
+      PART = atoi (BUF + S) + X; \
+    }
 
 int32_t
 version_get_filename_stamp(char *name, time_t *stamp)
@@ -524,17 +537,34 @@ version_get_filename_stamp(char *name, time_t *stamp)
   if ((x = strchr (name, VERSION_NAME_SPECIFIER_C)))
     {
       struct tm tm;
-      char *s;
+      char buf[VERSION_MAX_SPECIFIER_LENGTH];
+      unsigned int len;
 
       // extract timestamp
+      memset (&tm, 0, sizeof (tm));
+      /*
       s = strptime (x + 1, "%Y-%m-%d-%H-%M-%S", &tm);
-      if (!s || *s)
+      printf ("len = %d, year=%d, mon=%d, day=%d, hr=%d, min=%d, sec=%d, dst=%d\n", s - x - 1,
+          tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_isdst);
+      if (s && *s)
         {
           message (LOG_WARNING, FACILITY_VERSION, "Cannot convert version specifier to datetime: %s\n", x + 1);
           RETURN_INT (ENOENT);
         }
+      */
+      memset (buf, 0, sizeof (buf));
+      strncpy (buf, x + 1, sizeof (buf));
+      len = strlen (buf);
+      if (len > 19) RETURN_INT (ENOENT);
 
-      tm.tm_isdst = 1; // to handle daylight saving time
+      GET_STAMP_PART (buf, len, tm.tm_year, 0, 4, -1900);
+      GET_STAMP_PART (buf, len, tm.tm_mon, 5, 7, -1);
+      GET_STAMP_PART (buf, len, tm.tm_mday, 8, 10, 0);
+      GET_STAMP_PART (buf, len, tm.tm_hour, 11, 13, 0);
+      GET_STAMP_PART (buf, len, tm.tm_min, 14, 16, 0);
+      GET_STAMP_PART (buf, len, tm.tm_sec, 17, 19, 0);
+
+      tm.tm_isdst = -1; // to handle daylight saving time
       *stamp = mktime (&tm);
       if (*stamp < 0)
         {
