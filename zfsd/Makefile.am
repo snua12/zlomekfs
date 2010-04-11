@@ -30,7 +30,7 @@ AM_LDFLAGS = -lrt -ldl -lpthread -ldbus-1
 
 AM_CFLAGS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes \
-	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG -DENABLE_CHECKING
+	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG -DVERSIONS -DENABLE_CHECKING
 
 bin_PROGRAMS = dump-metadata dump-intervals
 sbin_PROGRAMS = zfsd
@@ -43,7 +43,7 @@ noinst_HEADERS = alloc-pool.h cap.h config.h constant.h crc32.h data-coding.h \
 	hardlink-list.h hashfile.h hashtab.h interval.h journal.h  kernel.h log.h \
 	md5.h memory.h metadata.h network.h node.h pthread-wrapper.h queue.h random.h \
 	semaphore.h splay-tree.h system.h thread.h update.h user-group.h util.h \
-	varray.h volume.h zfsd.h  zfs-prot.h
+	varray.h version.h volume.h zfsd.h zfs-prot.h
 
 
 zfsd_SOURCES = zfsd.c \
@@ -64,7 +64,7 @@ zfsd_SOURCES = zfsd.c \
 	  semaphore.c splay-tree.c \
 	  thread.c \
 	  update.c user-group.c util.c \
-	  varray.c volume.c\
+	  varray.c version.c volume.c\
 	  zfs-prot.c \
 	  dbus-zfsd-service.c \
 	  dbus-provider.c

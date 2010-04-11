@@ -60,6 +60,8 @@
 #include "network.h"
 #include "md5.h"
 #include "update.h"
+#include "config.h"
+#include "version.h"
 
 /* FIXME: use getdents64 (), or just plain readdir ()? */
 #ifdef __linux__
@@ -258,6 +260,16 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       RETURN_INT (ZFS_OK);
     }
 
+#ifdef VERSIONS
+  if (versioning && dentry->version_file && ((flags & O_ACCMODE) != O_RDONLY))
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (EACCES);
+    }
+#endif
+
   if (dentry->fh->attr.type == FT_DIR)
     flags |= O_RDONLY;
   else
@@ -265,11 +277,8 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
     flags |= O_RDWR;
 
   build_local_path (&path, vol, dentry);
-  zfsd_mutex_unlock (&vol->mutex);
-  zfsd_mutex_unlock (&fh_mutex);
   dentry->fh->fd = safe_open (path.str, flags, 0);
   err = errno;
-  free (path.str);
   if (dentry->fh->fd >= 0)
     {
       zfsd_mutex_lock (&opened_mutex);
@@ -277,9 +286,29 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       init_fh_fd_data (dentry->fh);
       zfsd_mutex_unlock (&opened_mutex);
       *fd = dentry->fh->fd;
+#ifdef VERSIONS
+      if (versioning)
+      {
+        // build intervals or mark file size
+        if (dentry->version_file)
+          {
+            if (!dentry->fh->version_path)
+              dentry->fh->version_path = xstrdup (path.str);
+            version_build_intervals (dentry, vol);
+          }
+        else
+          dentry->fh->marked_size = dentry->fh->attr.size;
+      }
+#endif
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      free (path.str);
       release_dentry (dentry);
       RETURN_INT (ZFS_OK);
     }
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+  free (path.str);
   release_dentry (dentry);
 
   if (err == ENOENT || err == ENOTDIR)
@@ -298,6 +327,9 @@ local_close (internal_fh fh)
 
   if (fh->fd >= 0)
     {
+#ifdef VERSIONS
+    if (versioning && (fh->version_fd > 0)) version_close_file(fh, true);
+#endif
       zfsd_mutex_lock (&opened_mutex);
       zfsd_mutex_lock (&internal_fd_data[fh->fd].mutex);
       if (fh->generation == internal_fd_data[fh->fd].generation)
@@ -442,10 +474,21 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
   res->dor.file.sid = dir->fh->local_fh.sid;
   res->dor.file.vid = dir->fh->local_fh.vid;
 
-  build_local_path_name (&path, vol, dir, name);
+  r = build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+  if (r < 0)
+    {
+      RETURN_INT (r);
+    }
+
+#ifdef VERSIONS
+  if (versioning && strchr (name->str, VERSION_NAME_SPECIFIER_C))
+    {
+      RETURN_INT (EACCES);
+    }
+#endif
 
   existed = (lstat (path.str, &st) == 0);
   if (exists)
@@ -676,6 +719,9 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
         {
+#ifdef VERSIONS
+        if (versioning) MARK_FILE_TRUNCATED (dentry->fh);
+#endif
           /* Remote file is not open.  */
           zfs_fh_undefine (icap->master_cap.fh);
           zfs_cap_undefine (icap->master_cap);
@@ -1195,6 +1241,10 @@ zfs_close (zfs_cap *cap)
                   && !save_interval_trees (vol, dentry->fh))
                 MARK_VOLUME_DELETE (vol);
             }
+#ifdef VERSIONS
+          if (versioning && (dentry->fh->version_fd > 0))
+            version_save_interval_trees (dentry->fh);
+#endif
           zfsd_mutex_unlock (&vol->mutex);
           r = local_close (dentry->fh);
         }
@@ -1559,6 +1609,11 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   struct dirent *de;
   int fd;
   bool local_volume_root;
+  bool is_vername = false;
+#ifdef VERSIONS
+  char *vs;
+  char *vername = NULL;
+#endif
 
   TRACE ("");
 #ifdef ENABLE_CHECKING
@@ -1647,6 +1702,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
           for (pos = 0; pos < r; pos += de->d_reclen)
             {
               de = (struct dirent *) &buf[pos];
+              is_vername = false;
 #ifdef __linux__
               cookie = de->d_off;
 #else
@@ -1658,6 +1714,34 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
               /* Hide special dirs in the root of the volume.  */
               if (local_volume_root && SPECIAL_NAME_P (de->d_name, false))
                 continue;
+#ifdef VERSIONS
+              /* Hide version files or convert their names.  */
+              if (versioning && (vs = strchr (de->d_name, VERSION_NAME_SPECIFIER_C)))
+                {
+                  if (verdisplay)
+                    {
+                      // convert stamp to string
+                      time_t stamp;
+                      struct tm tm;
+                      char ts[VERSION_MAX_SPECIFIER_LENGTH];
+                      char *q;
+
+                      // skip interval files
+                      q = strchr (vs + 1, '.');
+                      if (q) continue;
+
+                      stamp = atoi (++vs);
+                      *vs = '\0';
+                      localtime_r (&stamp, &tm);
+                      strftime (ts, sizeof (ts), "%Y-%m-%d-%H-%M-%S", &tm);
+
+                      vername = xstrconcat (2, de->d_name, ts);
+                      is_vername = true;
+                    }
+                  else
+                    continue;
+                }
+#endif
 
               if (vd)
                 {
@@ -1688,12 +1772,20 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                         }
                     }
                 }
-              if (!(*filldir) (de->d_ino, cookie, de->d_name,
-                               strlen (de->d_name), list, data))
+
+              if (!is_vername)
+                vername = de->d_name;
+
+              if (!(*filldir) (de->d_ino, cookie, vername,
+                               strlen (vername), list, data))
                 {
+                  if (is_vername)
+                    free (vername);
                   zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
                   RETURN_INT (ZFS_OK);
                 }
+              if (is_vername)
+                free (vername);
             }
         }
     }
@@ -2194,7 +2286,7 @@ zfs_read (read_res *res, zfs_cap *cap, uint64_t offset, uint32_t count,
               zfsd_mutex_unlock (&fh_mutex);
 
               message (LOG_FUNC, FACILITY_DATA, "zfs_read(): calling update_file_blocks\n");
-              
+
               /* update the file blocks needed for this read, parameter for slow = false, we don't want to get
                * interrupted here, it's not background update */
               r = update_file_blocks (&tmp_cap, &blocks, modified, false);
@@ -2254,6 +2346,14 @@ out_update:
     abort ();
 #endif
 
+#ifdef VERSIONS
+    if (versioning & (r == ZFS_OK) && (dentry->version_file) && (offset < dentry->fh->attr.size) &&
+        (dentry->fh->versioned->size > 0) && (dentry->fh->version_list_length))
+      {
+        r = version_read_old_data (dentry, offset, offset + count, res->data.buf);
+      }
+#endif
+
   internal_cap_unlock (vol, dentry, NULL);
 
   RETURN_INT (r);
@@ -2268,15 +2368,75 @@ local_write (write_res *res, internal_dentry dentry,
   int32_t r;
   off_t writing_position = -1;
   int fd;
+#ifdef VERSIONS
+  bool version_was_open = true;
+  bool version_write = false;
+  int fdv = -1;
+  varray save;
+  unsigned int i;
+  uint32_t verend;
+#endif
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
+#ifdef VERSIONS
+  if (versioning)
+  {
+    // we have to store original data prior its modification
+    if (!WAS_FILE_TRUNCATED(dentry->fh))
+      {
+        // version file open?
+        if (dentry->fh->version_fd < 0)
+          {
+            version_create_file (dentry, vol);
+            version_was_open = false;
+          }
+
+        if (offset < dentry->fh->marked_size)
+          {
+            // write before marked file size
+            version_write = true;
+            fdv = dentry->fh->version_fd;
+            verend = offset + data->len;
+            if (verend > dentry->fh->marked_size) verend = dentry->fh->marked_size;
+
+            // get intervals that should be copied
+            interval_tree_complement (dentry->fh->versioned, offset, verend, &save);
+
+            // write our new interval into tree
+            interval_tree_insert (dentry->fh->versioned, offset, verend);
+          }
+      }
+  }
+#endif
+
   r = capability_open (&fd, 0, dentry, vol);
   if (r != ZFS_OK)
-    RETURN_INT (r);
+    {
+#ifdef VERSIONS
+      // TODO: should not use fh - not locked here
+      if (versioning && (dentry->fh->version_fd > 0))
+        version_close_file (dentry->fh, false);
+#endif
+      RETURN_INT (r);
+    }
+
+#ifdef VERSIONS
+  if (versioning && version_write)
+    {
+      for (i = 0; i < VARRAY_USED (save); i++)
+        {
+          interval *x;
+
+          x = &VARRAY_ACCESS (save, i, interval);
+          version_copy_data (fd, fdv, x->start, x->end - x->start, data);
+        }
+      varray_destroy (&save);
+    }
+#endif
 
   writing_position = lseek (fd, offset, SEEK_SET);
   if (writing_position == (off_t)-1)
@@ -2288,6 +2448,7 @@ local_write (write_res *res, internal_dentry dentry,
   message (LOG_DEBUG, FACILITY_DATA, 
     "writing data of size %u to %ld(wanted %llu - %ld)\n",
     data->len, writing_position, offset, (long int) offset);
+
   r = write (fd, data->buf, data->len);
   if (r < 0)
     {

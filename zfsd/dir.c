@@ -46,6 +46,7 @@
 #include "zfs-prot.h"
 #include "user-group.h"
 #include "update.h"
+#include "version.h"
 
 //TODO: all path mangling functions have to use real filename regexps or system calls, not dumb heuristics
 //FIXME: dumb path conversion functions
@@ -97,13 +98,18 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
 
 /*! Return the local path of file NAME in directory DENTRY on volume VOL.  */
 
-void
+int32_t
 build_local_path_name (string *dst, volume vol, internal_dentry dentry,
                        string *name)
 {
   internal_dentry tmp;
   unsigned int n;
   varray v;
+  string dir;
+#ifdef VERSIONS
+  time_t stamp = 0;
+  int32_t r;
+#endif
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -114,8 +120,24 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
     abort ();
 #endif
 
+  dst->str = NULL;
+
+#ifdef VERSIONS
+	if (versioning)
+	{
+    // version specified?
+    r = version_get_filename_stamp (name->str, &stamp);
+    if (r < 0)
+      RETURN_INT (r);
+  }
+#endif
+
   /* Count the number of strings which will be concatenated.  */
+#ifdef VERSIONS
+  n = 2;
+#else
   n = 3;
+#endif
   for (tmp = dentry; tmp; tmp = tmp->parent)
     if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
       n += 2;
@@ -123,8 +145,10 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
   varray_create (&v, sizeof (string), n);
   VARRAY_USED (v) = n;
   n--;
+#ifndef VERSIONS
   VARRAY_ACCESS (v, n, string) = *name;
   n--;
+#endif
   VARRAY_ACCESS (v, n, string).str = "/";
   VARRAY_ACCESS (v, n, string).len = 1;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
@@ -138,9 +162,23 @@ build_local_path_name (string *dst, volume vol, internal_dentry dentry,
       }
   VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
-  xstringconcat_varray (dst, &v);
+  xstringconcat_varray (&dir, &v);
   varray_destroy (&v);
+
+#ifdef VERSIONS
+  // update name if working with version file
+  if (versioning && stamp) version_find_version (dir.str, name, stamp);
+  dst->str = xstrconcat (2, dir.str, name->str);
+  dst->len = strlen (dst->str);
+  free (dir.str);
+#else
+  dst->str = dir.str;
+  dst->len = dir.len;
+#endif
+
   TRACE ("%s", dst->str);
+
+  RETURN_INT (ZFS_OK);
 }
 
 /*! Return a path of file for dentry DENTRY relative to volume root.  */
@@ -1523,6 +1561,9 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
 {
   string path;
   int32_t r;
+#ifdef VERSIONS
+  bool version_was_open = true;
+#endif
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
@@ -1537,10 +1578,50 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
       RETURN_INT (ESTALE);
     }
 
+#ifdef VERSIONS
+  if (versioning && dentry->version_file)
+    {
+      release_dentry (dentry);
+      zfsd_mutex_unlock (&vol->mutex);
+      zfsd_mutex_unlock (&fh_mutex);
+      RETURN_INT (EACCES);
+    }
+#endif
+
   build_local_path (&path, vol, dentry);
+
+#ifdef VERSIONS
+	if (versioning)
+	{
+    if (sa->size == 0)
+      {
+        // truncating file
+        version_truncate_file (dentry, path.str);
+      }
+    else
+      {
+        if (!INTERNAL_FH_VERSION_OPEN(dentry->fh))
+          {
+            version_create_file(dentry, vol);
+            version_was_open = false;
+          }
+
+        if ((sa->size != (uint64_t) -1) && (sa->size < dentry->fh->attr.size))
+          {
+            // shrinking file
+            message(LOG_DEBUG, FACILITY_VERSION, "shrinking file: old=%lld, new=%lld\n", dentry->fh->attr.size, sa->size);
+            version_copy_data(dentry->fh->fd, dentry->fh->version_fd, sa->size, dentry->fh->attr.size - sa->size, NULL);
+          }
+
+        if (!version_was_open) version_close_file (dentry->fh, false);
+      }
+  }
+#endif
+
   release_dentry (dentry);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+
   r = local_setattr_path (fa, &path, sa);
   free (path.str);
 
@@ -1894,10 +1975,14 @@ local_lookup (dir_op_res *res, internal_dentry dir, string *name, volume vol,
   res->file.sid = dir->fh->local_fh.sid;
   res->file.vid = dir->fh->local_fh.vid;
 
-  build_local_path_name (&path, vol, dir, name);
+  r = build_local_path_name (&path, vol, dir, name);
   release_dentry (dir);
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
+  if (r != ZFS_OK)
+    {
+      RETURN_INT (r);
+    }
 
   r = parent_exists (&path, &parent_st);
   if (r != ZFS_OK)
@@ -4053,6 +4138,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     }
 
   build_local_path_name (&path, vol, dir, name);
+
   release_dentry (dir);
   zfsd_mutex_unlock (&fh_mutex);
 
@@ -4071,7 +4157,13 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
       free (path.str);
       RETURN_INT (errno);
     }
+
+#ifdef VERSIONS
+  if (versioning)
+    r = version_unlink_file (path.str);
+#else
   r = unlink (path.str);
+#endif
 
   if (r != 0)
     {

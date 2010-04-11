@@ -35,7 +35,7 @@
 #include "metadata.h"
 
 extern void build_local_path (string *dst, volume vol, internal_dentry dentry);
-extern void build_local_path_name (string *dst, volume vol,
+extern int32_t build_local_path_name (string *dst, volume vol,
                                    internal_dentry dentry, string *name);
 extern void build_relative_path (string *dst, internal_dentry dentry);
 extern void build_relative_path_name (string *dst, internal_dentry dentry,

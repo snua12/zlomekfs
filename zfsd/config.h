@@ -44,6 +44,14 @@ extern string kernel_file_name;
 /*! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
 
+#ifdef VERSIONS
+/* Versioning enabled.  */
+extern bool versioning;
+
+/*! Versions displayed in readdir.  */
+extern bool verdisplay;
+#endif
+
 /*! mlockall() zfsd  .*/
 extern bool mlock_zfsd;
 

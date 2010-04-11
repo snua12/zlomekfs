@@ -258,6 +258,10 @@ usage (void)
           "Fetch global configuration from specified node.\n"
 	  "  -o loglevel=DEBUG_LEVEL      "
           "Display debugging messages up to level DEBUG_LEVEL.\n"
+#ifdef VERSIONS
+    "  -o versioning                "
+       "Enable versioning.\n"
+#endif
 	  "  --help                       "
        "Display this help and exit.\n"
 	  "  --version                    "
@@ -301,6 +305,8 @@ struct zfs_opts
   char *config;
   char *node;
   int loglevel;
+  bool versioning;
+  bool verdisplay;
 };
 
 #define ZFS_OPT(t, p, v) { t, offsetof (struct zfs_opts, p), v }
@@ -309,6 +315,10 @@ static const struct fuse_opt main_options[] = {
   ZFS_OPT ("config=%s", config, 0),
   ZFS_OPT ("node=%s", node, 0),
   ZFS_OPT ("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
+#ifdef VERSIONS
+  ZFS_OPT ("versioning", versioning, true),
+  ZFS_OPT ("verdisplay", verdisplay, true),
+#endif
   FUSE_OPT_KEY ("--help", OPTION_HELP),
   FUSE_OPT_KEY ("--version", OPTION_VERSION),
   FUSE_OPT_END
@@ -359,6 +369,11 @@ process_arguments (int argc, char **argv)
     free (config_node);
     config_node = zopts.node;
   }
+
+#ifdef VERSIONS
+  versioning = zopts.versioning;
+  verdisplay = zopts.verdisplay;
+#endif
 
   set_log_level (&syplogger, zopts.loglevel);
 }

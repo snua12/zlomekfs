@@ -47,6 +47,8 @@
 #include "user-group.h"
 #include "dir.h"
 #include "update.h"
+#include "config.h"
+#include "version.h"
 
 /*! File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
@@ -1277,6 +1279,16 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->flags = 0;
   fh->reintegrating_sid = 0;
   fh->reintegrating_generation = 0;
+#ifdef VERSIONS
+  fh->version_fd = -1;
+  fh->version_path = NULL;
+  fh->versioned = NULL;
+  UNMARK_FILE_TRUNCATED(fh);
+  fh->marked_size = -1;
+  fh->version_interval_tree_users = 0;
+  fh->version_list = NULL;
+  fh->version_list_length = 0;
+#endif
 
   message (LOG_DEBUG, FACILITY_DATA, "FH %p CREATED, by %lu\n", (void *) fh,
            (unsigned long) pthread_self ());
@@ -1377,6 +1389,22 @@ internal_fh_destroy_stage1 (internal_fh fh)
       close_journal_file (fh->journal);
       journal_destroy (fh->journal);
     }
+
+#ifdef VERSIONS
+  if (fh->version_list)
+    {
+      unsigned int i;
+      for (i = 0; i < fh->version_list_length; i++)
+        CLEAR_VERSION_ITEM(fh->version_list[i]);
+      free (fh->version_list);
+    }
+
+  if (fh->version_path)
+    free (fh->version_path);
+
+  if (fh->versioned)
+    interval_tree_destroy (fh->versioned);
+#endif
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
                                    INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -1569,6 +1597,9 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->heap_node = NULL;
   dentry->users = 0;
   dentry->deleted = false;
+#ifdef VERSIONS
+  dentry->version_file = false;
+#endif
 
   /* Find the internal file handle in hash table, create it if it does not
      exist.  */
@@ -1654,6 +1685,11 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
         }
     }
   *slot = dentry;
+
+#ifdef VERSIONS
+  if (versioning && strchr (name->str, VERSION_NAME_SPECIFIER_C))
+    dentry->version_file = true;
+#endif
 
   RETURN_PTR (dentry);
 }
@@ -1906,6 +1942,9 @@ internal_dentry_link (internal_dentry orig,
   dentry->heap_node = NULL;
   dentry->users = 0;
   dentry->deleted = false;
+#ifdef VERSIONS
+  dentry->version_file = false;
+#endif
 
   dentry_update_cleanup_node (dentry);
   internal_dentry_add_to_dir (parent, dentry);

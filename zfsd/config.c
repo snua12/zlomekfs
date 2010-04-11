@@ -73,6 +73,14 @@ static string private_key;
 /*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
 
+#ifdef VERSIONS
+/*! Versioning enabled.  */
+bool versioning = false;
+
+/*! Versions displayed in readdir.  */
+bool verdisplay = false;
+#endif
+
 /*! mlockall() zfsd  .*/
 bool mlock_zfsd;
 
