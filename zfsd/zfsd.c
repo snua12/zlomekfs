@@ -256,13 +256,12 @@ usage (void)
           "Specifies the name of the configuration file.\n"
 	  "  -o node=ID:NAME:HOSTNAME     "
           "Fetch global configuration from specified node.\n"
-	  "  -o loglevel=DEBUG_LEVEL                "
+	  "  -o loglevel=DEBUG_LEVEL      "
           "Display debugging messages up to level DEBUG_LEVEL.\n"
-	  "                               "
-	  "      --help                   "
-          "Display this help and exit.\n"
-	  "      --version                "
-          "Output version information and exit.\n"
+	  "  --help                       "
+       "Display this help and exit.\n"
+	  "  --version                    "
+       "Output version information and exit.\n"
 	  "\n"
 	  "FUSE options:\n"
 	  "  -d, -o debug                 "
@@ -293,56 +292,47 @@ version (int exitcode)
    as a pseudo short option, starting with CHAR_MAX + 1.  */
 enum
 {
-  OPTION_HELP = CHAR_MAX + 1,
-  OPTION_VERSION
+  OPTION_HELP,
+  OPTION_VERSION,
 };
 
+struct zfs_opts
+{
+  char *config;
+  char *node;
+  int loglevel;
+};
+
+#define ZFS_OPT(t, p, v) { t, offsetof (struct zfs_opts, p), v }
+
 static const struct fuse_opt main_options[] = {
-  FUSE_OPT_KEY ("config=", 'c'),
-  FUSE_OPT_KEY ("node=", 'n'),
-  FUSE_OPT_KEY ("-v", 'v'),
-  FUSE_OPT_KEY ("loglevel=", 'l'),
+  ZFS_OPT ("config=%s", config, 0),
+  ZFS_OPT ("node=%s", node, 0),
+  ZFS_OPT ("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
   FUSE_OPT_KEY ("--help", OPTION_HELP),
   FUSE_OPT_KEY ("--version", OPTION_VERSION),
   FUSE_OPT_END
 };
 
 /*! Process command line arguments.  */
-static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
-				ATTRIBUTE_UNUSED const char *arg, int key,
+static int handle_one_argument (ATTRIBUTE_UNUSED void *data, const char *arg, int key,
 				ATTRIBUTE_UNUSED struct fuse_args *outargs)
 {
-
   if (is_logger_arg (arg) == TRUE)
     return 0;
 
-  log_level_t verbose = DEFAULT_LOG_LEVEL;
-
   switch (key)
     {
-    case 'c':
-      free (config_file);
-      config_file = xstrdup (strchr (arg, '=') + 1);
-      return 0;
-
-    case 'n':
-      free (config_node);
-      config_node = xstrdup (strchr (arg, '=') + 1);
-      return 0;
-
-    case 'l':
-      verbose = atoi (strchr(arg,'=')+1);
-      set_log_level (&syplogger, verbose);
-      return 0;
-
     case OPTION_HELP:
       usage ();
       exit (EXIT_SUCCESS);
+
     case OPTION_VERSION:
       version (EXIT_SUCCESS);
       exit (EXIT_SUCCESS);
 
-    case FUSE_OPT_KEY_OPT: case FUSE_OPT_KEY_NONOPT: default:
+    case FUSE_OPT_KEY_NONOPT:
+    default:
       return 1;
     }
 }
@@ -350,12 +340,27 @@ static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
 static void
 process_arguments (int argc, char **argv)
 {
+  struct zfs_opts zopts;
+
   main_args = (struct fuse_args) FUSE_ARGS_INIT (argc, argv);
-  if (fuse_opt_parse (&main_args, NULL, main_options, handle_one_argument) != 0)
+  memset (&zopts, 0, sizeof (zopts));
+  if (fuse_opt_parse (&main_args, &zopts, main_options, handle_one_argument) != 0)
     {
       usage ();
       exit (EXIT_FAILURE);
     }
+
+  if (zopts.config) {
+    free (config_file);
+    config_file = zopts.config;
+  }
+
+  if (zopts.node) {
+    free (config_node);
+    config_node = zopts.node;
+  }
+
+  set_log_level (&syplogger, zopts.loglevel);
 }
 /*! Make zfsd to terminate.  */
 
@@ -486,7 +491,9 @@ main (int argc, char **argv)
   int ret = EXIT_SUCCESS;
 
 
+  opterr = 0;
   zfs_openlog(argc, (const char **)argv);
+  opterr = 1;
   
   init_dbus();
 
