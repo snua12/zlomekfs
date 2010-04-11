@@ -1286,6 +1286,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
+  zfsd_cond_init (&fh->cond);
 
   if (level != LEVEL_UNLOCKED)
     {
