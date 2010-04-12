@@ -208,15 +208,15 @@ version_load_interval_tree (internal_fh fh)
   if (fh->version_interval_tree_users > 1)
     RETURN_BOOL (true);
 
+  fh->versioned = interval_tree_create (1, &fh->mutex);
+
   version_build_interval_path (&path, fh);
 
   fd = open (path.str, O_RDONLY);
   if (fd < 0)
     {
-      if (errno != ENOENT)
-        r = false;
-      else
-        fh->versioned = interval_tree_create (1, &fh->mutex);
+      // detect that no interval file exists and we have complete file
+      r = false;
     }
   else
     {
@@ -237,7 +237,6 @@ version_load_interval_tree (internal_fh fh)
         }
       else
         {
-          fh->versioned = interval_tree_create (1, &fh->mutex);
           if (!interval_tree_read (fh->versioned, fd, st.st_size / sizeof (interval)))
             {
               interval_tree_destroy (fh->versioned);
@@ -749,9 +748,10 @@ version_build_intervals (internal_dentry dentry, volume vol)
   unsigned int n, m;
   unsigned int i, j;
   string dpath;
+  bool r;
 
-  version_load_interval_tree (dentry->fh);
-  if (dentry->fh->versioned->size == 0)
+  r = version_load_interval_tree (dentry->fh);
+  if (!r)
     RETURN_INT (ZFS_OK);
 
   // parse version file name

@@ -1638,7 +1638,11 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
               version_copy_data(dentry->fh->fd, dentry->fh->version_fd, sa->size, dentry->fh->attr.size - sa->size, NULL);
             }
 
-          if (!version_was_open) version_close_file (dentry->fh, false);
+          if (!version_was_open)
+            {
+              version_save_interval_trees (dentry->fh);
+              version_close_file (dentry->fh, false);
+            }
         }
     }
 #endif

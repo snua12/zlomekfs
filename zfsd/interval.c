@@ -370,14 +370,14 @@ interval_tree_read (interval_tree tree, int fd, uint64_t n)
 
       r = full_read (fd, intervals, block * sizeof (interval));
       if (!r)
-	return false;
+        return false;
 
       for (i = 0; i < block; i++)
-	{
-	  intervals[i].start = le_to_u64 (intervals[i].start);
-	  intervals[i].end = le_to_u64 (intervals[i].end);
-	  interval_tree_insert (tree, intervals[i].start, intervals[i].end);
-	}
+        {
+          intervals[i].start = le_to_u64 (intervals[i].start);
+          intervals[i].end = le_to_u64 (intervals[i].end);
+          interval_tree_insert (tree, intervals[i].start, intervals[i].end);
+        }
     }
 
   return true;

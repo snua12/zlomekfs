@@ -2397,7 +2397,7 @@ out_update:
 
 #ifdef VERSIONS
     if (versioning & (r == ZFS_OK) && (dentry->version_file) && (offset < dentry->fh->attr.size) &&
-        (dentry->fh->versioned->size > 0) && (dentry->fh->version_list_length))
+        (dentry->fh->version_list_length))
       {
         r = version_read_old_data (dentry, offset, offset + count, res->data.buf);
       }
