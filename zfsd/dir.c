@@ -3266,6 +3266,11 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       RETURN_INT (errno);
     }
 
+#ifdef VERSIONS
+  if (versioning)
+    version_rename_source(from_path->str);
+#endif
+
   r = lstat (to_path->str, &st_old);
   if (r != 0)
     {
@@ -3282,6 +3287,10 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   else
     {
       /* TO_PATH exists.  */
+#ifdef VERSIONS
+    if (versioning)
+      version_unlink_file (to_path->str);
+#endif
       r = rename (from_path->str, to_path->str);
       if (r != 0)
         {

@@ -910,6 +910,44 @@ version_read_old_data (internal_dentry dentry, uint64_t start, uint64_t end, cha
   RETURN_INT (ZFS_OK);
 }
 
+int32_t
+version_rename_source(char *path)
+{
+  string verpath;
+  int fd, fdv;
+  struct stat st, stv;
+  struct utimbuf t;
+  int32_t r;
+
+  version_generate_filename (path, &verpath);
+  lstat (path, &st);
+  // is there any version we should use?
+  r = lstat (verpath.str, &stv);
+  if (r == 0)
+    {
+      // open last version
+      fdv = open (verpath.str, O_RDWR);
+    }
+  else
+    {
+      fdv = creat (verpath.str, st.st_mode);
+      lchown (verpath.str, st.st_uid, st.st_gid);
+      t.actime = st.st_atime;
+      t.modtime = st.st_mtime;
+      utime (verpath.str, &t);
+    }
+  free (verpath.str);
+
+  fd = open (path, O_RDONLY);
+
+  r = version_copy_data(fd, fdv, 0, st.st_size, NULL);
+
+  close (fd);
+  close (fdv);
+
+  RETURN_INT (r);
+}
+
 /*! \brief xxx
  *
  * xxx
