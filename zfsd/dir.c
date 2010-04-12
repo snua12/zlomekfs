@@ -1225,10 +1225,10 @@ get_volume_root_dentry (volume vol, internal_dentry *dentryp,
 
               vol = volume_lookup (vid);
               if (!vol)
-		{
-		  zfsd_mutex_unlock (&fh_mutex);
-		  RETURN_INT (ENOENT);
-		}
+                {
+                  zfsd_mutex_unlock (&fh_mutex);
+                  RETURN_INT (ENOENT);
+                }
 
               get_volume_root_remote (vol, &master_fh, &remote_attr);
             }
@@ -1458,7 +1458,7 @@ zfs_getattr (fattr *fa, zfs_fh *fh)
         }
       else
         {
-	  zfsd_mutex_unlock (&fh_mutex);
+          zfsd_mutex_unlock (&fh_mutex);
           *fa = vd->attr;
           zfsd_mutex_unlock (&vd->mutex);
           RETURN_INT (ZFS_OK);
@@ -1597,31 +1597,31 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   build_local_path (&path, vol, dentry);
 
 #ifdef VERSIONS
-	if (versioning)
-	{
-    if (sa->size == 0)
-      {
-        // truncating file
-        version_truncate_file (dentry, path.str);
-      }
-    else
-      {
-        if (!INTERNAL_FH_VERSION_OPEN(dentry->fh))
-          {
-            version_create_file(dentry, vol);
-            version_was_open = false;
-          }
+  if (versioning)
+    {
+      if (sa->size == 0)
+        {
+          // truncating file
+          version_truncate_file (dentry, path.str);
+        }
+      else
+        {
+          if (!INTERNAL_FH_VERSION_OPEN(dentry->fh))
+            {
+              version_create_file(dentry, vol);
+              version_was_open = false;
+            }
 
-        if ((sa->size != (uint64_t) -1) && (sa->size < dentry->fh->attr.size))
-          {
-            // shrinking file
-            message(LOG_DEBUG, FACILITY_VERSION, "shrinking file: old=%lld, new=%lld\n", dentry->fh->attr.size, sa->size);
-            version_copy_data(dentry->fh->fd, dentry->fh->version_fd, sa->size, dentry->fh->attr.size - sa->size, NULL);
-          }
+          if ((sa->size != (uint64_t) -1) && (sa->size < dentry->fh->attr.size))
+            {
+              // shrinking file
+              message(LOG_DEBUG, FACILITY_VERSION, "shrinking file: old=%lld, new=%lld\n", dentry->fh->attr.size, sa->size);
+              version_copy_data(dentry->fh->fd, dentry->fh->version_fd, sa->size, dentry->fh->attr.size - sa->size, NULL);
+            }
 
-        if (!version_was_open) version_close_file (dentry->fh, false);
-      }
-  }
+          if (!version_was_open) version_close_file (dentry->fh, false);
+        }
+    }
 #endif
 
   release_dentry (dentry);
@@ -1735,7 +1735,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa)
         }
       else
         {
-	  zfsd_mutex_unlock (&fh_mutex);
+          zfsd_mutex_unlock (&fh_mutex);
           zfsd_mutex_unlock (&vd->mutex);
           RETURN_INT (EROFS);
         }
@@ -2245,10 +2245,10 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
             }
         }
       else
-	{
-	  zfsd_mutex_unlock (&fh_mutex);
-	  RETURN_INT (ENOENT);
-	}
+        {
+          zfsd_mutex_unlock (&fh_mutex);
+          RETURN_INT (ENOENT);
+        }
     }
   else
     {
