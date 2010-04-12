@@ -127,6 +127,12 @@ inode_map_ino_eq (const void *x, const void *y)
   return ((const struct inode_map *)x)->ino == *(const fuse_ino_t *)y;
 }
 
+static void
+inode_map_ino_del (void *x)
+{
+  free ((struct inode_map *)x);
+}
+
 static int
 inode_map_fh_eq (const void *x, const void *y)
 {
@@ -194,11 +200,19 @@ static void
 inode_map_init (void)
 {
   zfsd_mutex_init (&inode_map_mutex);
-  inode_map_ino = htab_create (100, inode_map_ino_hash, inode_map_ino_eq, NULL,
+  inode_map_ino = htab_create (100, inode_map_ino_hash, inode_map_ino_eq, inode_map_ino_del,
 			       NULL);
   inode_map_fh = htab_create (100, inode_map_fh_hash, inode_map_fh_eq, NULL,
 			      NULL);
   next_ino = FUSE_ROOT_ID;
+}
+
+static void
+inode_map_destroy (void)
+{
+  zfsd_mutex_destroy (&inode_map_mutex);
+  htab_destroy (inode_map_fh);
+  htab_destroy (inode_map_ino);
 }
 
  /* Global connection data */
@@ -1218,7 +1232,7 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       zfsd_mutex_lock (&buffer_pool_mutex);
       if (buffer_pool_size == 0)
         {
-	  buffer_pool[0] = xmalloc (fuse_buf_size);
+          buffer_pool[0] = xmalloc (fuse_buf_size);
           buffer_pool_size++;
         }
       zfsd_mutex_unlock (&buffer_pool_mutex);
@@ -1237,15 +1251,15 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
         }
 
       if (recv_res == -EINTR || recv_res == -EAGAIN)
-	continue;
+        continue;
 
       if (recv_res <= 0)
         {
-	  if (recv_res != ENODEV)
-	    message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_DATA, "FUSE unmounted, kernel_main exiting\n");
-	  else
-	    message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING, "kernel_main exiting: %s\n",
-		     strerror (-recv_res));
+          if (recv_res != ENODEV)
+            message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_DATA, "FUSE unmounted, kernel_main exiting\n");
+          else
+            message (LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING, "kernel_main exiting: %s\n",
+              strerror (-recv_res));
           break;
         }
 
@@ -1254,7 +1268,9 @@ kernel_main (ATTRIBUTE_UNUSED void *data)
       zfsd_mutex_lock (&buffer_pool_mutex);
       buffer_pool_size--;
       if (buffer_pool_size > 0)
-	buffer_pool[0] = buffer_pool[buffer_pool_size];
+        {
+          buffer_pool[0] = buffer_pool[buffer_pool_size];
+        }
       zfsd_mutex_unlock (&buffer_pool_mutex);
     }
 
@@ -1309,4 +1325,6 @@ void
 kernel_cleanup (void)
 {
   thread_pool_destroy (&kernel_pool);
+
+  inode_map_destroy ();
 }

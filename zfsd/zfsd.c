@@ -643,6 +643,8 @@ main (int argc, char **argv)
   if (kernel_started)
     kernel_cleanup ();
 
+  fuse_opt_free_args (&main_args);
+
   fd_data_destroy ();
 
   cleanup_data_structures ();
