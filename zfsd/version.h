@@ -57,7 +57,7 @@
 
 /*! True when the NAME is a version file.  */
 #define VERSION_FILENAME_P(NAME)          \
-  (strchr ((NAME), VERSION_NAME_SPECIFIER) != NULL)
+  (strchr ((NAME), VERSION_NAME_SPECIFIER_C) != NULL)
 
 /*! Was file as truncated before opening?  */
 #define WAS_FILE_TRUNCATED(FH) ((FH)->file_truncated)

@@ -4203,11 +4203,11 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     }
 
 #ifdef VERSIONS
-  if (versioning)
+  if (versioning && !VERSION_FILENAME_P (name->str))
     r = version_unlink_file (path.str);
-#else
-  r = unlink (path.str);
+  else
 #endif
+    r = unlink (path.str);
 
   if (r != 0)
     {
