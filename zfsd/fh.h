@@ -288,6 +288,12 @@ struct internal_dentry_def
 #ifdef VERSIONS
   /*! Is dentry a version file?  */
   bool version_file;
+
+  /* Directory version timestamp.  */
+  time_t dirstamp;
+
+  /* Hash table for readdir with timestamp.  */
+  htab_t dirhtab;
 #endif
 };
 
@@ -376,6 +382,7 @@ extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 extern void delete_dentry (volume *volp, internal_dentry *dirp, string *name,
                            zfs_fh *dir_fh);
 extern virtual_dir vd_lookup (zfs_fh *fh);
+extern virtual_dir vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp);
 extern virtual_dir vd_lookup_name (virtual_dir parent, string *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);
 extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,

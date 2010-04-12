@@ -1613,6 +1613,8 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 #ifdef VERSIONS
   char *vs;
   char *vername = NULL;
+  bool store = false;
+  time_t stamp;
 #endif
 
   TRACE ("");
@@ -1650,6 +1652,28 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
   if (dentry)
     {
+#ifdef VERSIONS
+      if (versioning && dentry->dirstamp)
+        {
+          if (!cookie)
+            {
+              store = true;
+              version_create_dirhtab (dentry);
+            }
+          else
+            {
+              r = version_readdir_from_dirhtab (list, dentry, cookie, data, filldir);
+
+              release_dentry (dentry);
+              zfsd_mutex_unlock (&fh_mutex);
+              if (vol)
+                zfsd_mutex_unlock (&vol->mutex);
+
+              RETURN_INT (r);
+            }
+        }
+#endif
+
       local_volume_root = LOCAL_VOLUME_ROOT_P (dentry);
 
       r = capability_open (&fd, 0, dentry, vol);
@@ -1715,13 +1739,13 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
               if (local_volume_root && SPECIAL_NAME_P (de->d_name, false))
                 continue;
 #ifdef VERSIONS
-              /* Hide version files or convert their names.  */
+              stamp = 0;
+              /* Hide version files or convert their names or select them for storage.  */
               if (versioning && (vs = strchr (de->d_name, VERSION_NAME_SPECIFIER_C)))
                 {
-                  if (verdisplay)
+                  if (verdisplay || store)
                     {
                       // convert stamp to string
-                      time_t stamp;
                       struct tm tm;
                       char ts[VERSION_MAX_SPECIFIER_LENGTH];
                       char *q;
@@ -1730,13 +1754,23 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                       q = strchr (vs + 1, '.');
                       if (q) continue;
 
-                      stamp = atoi (++vs);
-                      *vs = '\0';
-                      localtime_r (&stamp, &tm);
-                      strftime (ts, sizeof (ts), "%Y-%m-%d-%H-%M-%S", &tm);
+                      stamp = atoi (vs + 1);
 
-                      vername = xstrconcat (2, de->d_name, ts);
-                      is_vername = true;
+                      if (store)
+                        {
+                          if (stamp < dentry->dirstamp)
+                            continue;
+                          *vs = '\0';
+                        }
+                      else if (verdisplay)
+                        {
+                          localtime_r (&stamp, &tm);
+                          strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
+
+                          *(vs + 1) = '\0';
+                          vername = xstrconcat (2, de->d_name, ts);
+                          is_vername = true;
+                        }
                     }
                   else
                     continue;
@@ -1776,6 +1810,16 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
               if (!is_vername)
                 vername = de->d_name;
 
+#ifdef VERSIONS
+              // store in a hash table, if not '.' and '..'
+              if (store &&
+                  !(de->d_name[0] == '.' &&
+                      (de->d_name[1] == 0 || (de->d_name[1] == '.' && de->d_name[2] == 0))))
+                {
+                  version_readdir_fill_dirhtab (dentry, stamp, de->d_ino, de->d_name);
+                }
+              else
+#endif
               if (!(*filldir) (de->d_ino, cookie, vername,
                                strlen (vername), list, data))
                 {
@@ -1784,6 +1828,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                   zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
                   RETURN_INT (ZFS_OK);
                 }
+
               if (is_vername)
                 free (vername);
             }

@@ -28,6 +28,7 @@
 #include "system.h"
 #include "zfs-prot.h"
 #include "fh.h"
+#include "file.h"
 
 /*! \brief Maximum block size for versioning
  *
@@ -40,6 +41,7 @@
 
 #define VERSION_NAME_SPECIFIER_C '@'
 #define VERSION_NAME_SPECIFIER_S "@"
+#define VERSION_TIMESTAMP "%Y-%m-%d-%H-%M-%S"
 
 /*! Mark file as truncated.  */
 #define MARK_FILE_TRUNCATED(FH)           \
@@ -68,6 +70,13 @@ typedef struct version_item_def
   interval_tree intervals;
 } version_item;
 
+struct dirhtab_item_def
+{
+  char *name;
+  time_t stamp;
+  long ino;
+};
+
 #define CLEAR_VERSION_ITEM(I) \
 {\
   I.stamp = 0; \
@@ -79,6 +88,10 @@ typedef struct version_item_def
   I.intervals = NULL; \
 }
 
+extern void version_create_dirhtab (internal_dentry dentry);
+extern int32_t version_readdir_from_dirhtab (dir_list *list, internal_dentry dentry, int32_t cookie,
+                                             readdir_data *data, filldir_f filldir);
+extern int32_t version_readdir_fill_dirhtab (internal_dentry dentry, time_t stamp, long ino, char *name);
 extern bool version_load_interval_tree (internal_fh fh);
 extern bool version_save_interval_trees (internal_fh fh);
 extern int32_t version_generate_filename (char *path, string *verpath);
@@ -88,7 +101,8 @@ extern int32_t version_close_file (internal_fh fh, bool tidy);
 extern int32_t version_truncate_file (internal_dentry dentry, char *path);
 extern int32_t version_unlink_file (char *path);
 extern int32_t version_find_version (char *dir, string *name, time_t stamp);
-extern int32_t version_get_filename_stamp(char *name, time_t *stamp);
+extern int32_t version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen);
+extern int32_t version_is_directory (string *dst, char *dir, string *name, time_t stamp, time_t *dirstamp, int orgnamelen);
 extern int32_t version_build_intervals (internal_dentry dentry, volume vol);
 extern int32_t version_read_old_data (internal_dentry dentry, uint64_t start, uint64_t end, char *buf);
 extern int32_t version_copy_data (int fd, int fdv, uint64_t offset, uint32_t length, data_buffer *newdata);

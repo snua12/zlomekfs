@@ -75,6 +75,115 @@ getdents (int fd, struct dirent *dirp, unsigned count)
 
 #endif /* __linux__ */
 
+#define DIRHTAB_HASH(N) (crc32_string((N)->name))
+
+hash_t dirhtab_hash (const void *x)
+{
+  return DIRHTAB_HASH((const struct dirhtab_item_def *)x);
+}
+
+int dirhtab_eq (const void *x, const void *y)
+{
+  return (!strcmp (((const struct dirhtab_item_def *)x)->name, ((const struct dirhtab_item_def *)y)->name));
+}
+
+void dirhtab_del (void *x)
+{
+  struct dirhtab_item_def *i = (struct dirhtab_item_def *)x;
+
+  if (i->name)
+    {
+      free (i->name);
+      i->name = NULL;
+    }
+}
+
+void
+version_create_dirhtab (internal_dentry dentry)
+{
+  if (dentry->dirhtab)
+    htab_destroy(dentry->dirhtab);
+
+  dentry->dirhtab = htab_create(10, dirhtab_hash, dirhtab_eq, dirhtab_del, &dentry->fh->mutex);
+}
+
+int32_t
+version_readdir_from_dirhtab (dir_list *list, internal_dentry dentry, int32_t cookie,
+    readdir_data *data, filldir_f filldir)
+{
+  unsigned int i;
+  // retrieve from hash table
+  for (i = 0; i < dentry->dirhtab->size; i++)
+    {
+      struct dirhtab_item_def *e = dentry->dirhtab->table[i];
+      char ts[VERSION_MAX_SPECIFIER_LENGTH];
+      struct tm tm;
+      char *vn = NULL;
+
+      if ((e == EMPTY_ENTRY) || (e == DELETED_ENTRY))
+        continue;
+
+      if (0 && e->stamp)
+        {
+          localtime_r (&e->stamp, &tm);
+          strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
+          vn = xstrconcat (3, e->name, VERSION_NAME_SPECIFIER_S, ts);
+        }
+
+      if (!(*filldir) (e->ino, cookie, vn ? vn : e->name, strlen (vn ? vn : e->name), list, data))
+        {
+          if (vn) free (vn);
+          break;
+        }
+      if (vn) free (vn);
+
+      htab_clear_slot(dentry->dirhtab, &dentry->dirhtab->table[i]);
+    }
+
+  RETURN_INT (ZFS_OK);
+}
+
+int32_t
+version_readdir_fill_dirhtab (internal_dentry dentry, time_t stamp, long ino, char *name)
+{
+  struct dirhtab_item_def **x;
+  struct dirhtab_item_def i;
+
+  i.ino = ino;
+  i.name = name; // only link for now, will copy it later if needed
+  i.stamp = stamp;
+
+  zfsd_mutex_lock (&dentry->fh->mutex);
+  x = (struct dirhtab_item_def **) htab_find_slot (dentry->dirhtab, &i, INSERT);
+  if (!x)
+    {
+      message (LOG_WARNING, FACILITY_VERSION,
+          "Problem finding hash slot: name=%s, stamp=%ld\n", i.name, i.stamp);
+    }
+  else if (*x)
+    {
+      // file is already there
+      if (stamp && (stamp < (*x)->stamp))
+        {
+          (*x)->ino = ino;
+          (*x)->stamp = stamp;
+        }
+    }
+  else
+    {
+      // duplicate string, it was linked temporarily
+      struct dirhtab_item_def *n;
+      n = xmalloc (sizeof (struct dirhtab_item_def));
+      n->ino = ino;
+      n->name = xstrdup (name);
+      n->stamp = stamp;
+      *x = n;
+    }
+  zfsd_mutex_unlock (&dentry->fh->mutex);
+
+  RETURN_INT (ZFS_OK);
+}
+
 static void
 version_build_interval_path (string *path, internal_fh fh)
 {
@@ -394,8 +503,6 @@ version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray
           // check if we have our file
           if (!strncmp (de->d_name, name, nl))
             {
-              //printf("found file, name=%s\n", de->d_name);
-
               // check if it is current file
               if (strlen (de->d_name) == nl)
                 {
@@ -467,13 +574,8 @@ version_find_version (char *dir, string *name, time_t stamp)
 
   sname = xstrdup (name->str);
   p = strchr (sname, VERSION_NAME_SPECIFIER_C);
-  if (!p)
-    {
-      free (sname);
-      RETURN_INT (ENOENT);
-    }
-
-  *p = '\0';
+  if (p)
+    *p = '\0';
 
   // check for exact version file
   snprintf (ver, sizeof(ver), "%ld", stamp);
@@ -492,7 +594,7 @@ version_find_version (char *dir, string *name, time_t stamp)
 
   // look for first newer
   version_browse_dir (dir, sname, &stamp, &ino, NULL);
-  message (LOG_INFO, FACILITY_VERSION, "Using stamp=%d, sname=%s, ino=%u\n", stamp, sname, ino);
+  message (LOG_DEBUG, FACILITY_VERSION, "Using stamp=%d, sname=%s, ino=%u\n", stamp, sname, ino);
 
   if (stamp > 0)
     {
@@ -529,9 +631,9 @@ version_find_version (char *dir, string *name, time_t stamp)
     }
 
 int32_t
-version_get_filename_stamp(char *name, time_t *stamp)
+version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
 {
-  char *x;
+  char *x = name;
 
   *stamp = 0;
   if ((x = strchr (name, VERSION_NAME_SPECIFIER_C)))
@@ -552,6 +654,8 @@ version_get_filename_stamp(char *name, time_t *stamp)
           RETURN_INT (ENOENT);
         }
       */
+
+      // this code conforms to VERSION_TIMESTAMP
       memset (buf, 0, sizeof (buf));
       strncpy (buf, x + 1, sizeof (buf));
       len = strlen (buf);
@@ -575,6 +679,9 @@ version_get_filename_stamp(char *name, time_t *stamp)
       message (LOG_DEBUG, FACILITY_VERSION, "Version stamp: %d\n", *stamp);
     }
 
+  if (orgnamelen && x)
+    *orgnamelen = x - name;
+
   RETURN_INT (ZFS_OK);
 }
 
@@ -593,6 +700,38 @@ version_retr_stamp(char *name, time_t *stamp)
   RETURN_INT (ZFS_OK);
 
 
+}
+
+int32_t
+version_is_directory (string *dst, char *dir, string *name, time_t stamp, time_t *dirstamp, int orgnamelen)
+{
+  char *x;
+  struct stat st;
+
+  x = xstrconcat (2, dir, name->str);
+  if (orgnamelen) x[strlen(dir) + orgnamelen] = '\0';
+
+  if (!lstat (x, &st) && S_ISDIR (st.st_mode))
+    {
+      // it is a directory
+      dst->str = x;
+      dst->len = strlen (dst->str);
+      free (dir);
+
+      if (orgnamelen)
+        {
+          if (dirstamp)
+            *dirstamp = stamp;
+          name->str[orgnamelen] = '\0';
+          name->len = orgnamelen;
+        }
+
+      RETURN_INT (ZFS_OK);
+    }
+
+  free (x);
+
+  RETURN_INT (ENOENT);
 }
 
 static int

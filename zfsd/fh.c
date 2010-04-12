@@ -770,20 +770,39 @@ vd_lookup (zfs_fh *fh)
   RETURN_PTR (vd);
 }
 
-/*! Return the virtual directory for NAME in virtual directory PARENT.  */
-
 virtual_dir
-vd_lookup_name (virtual_dir parent, string *name)
+vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp)
 {
   virtual_dir vd;
   struct virtual_dir_def tmp_vd;
+  string verdir = { 0, NULL};
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
+#ifdef VERSIONS
+  if (versioning && dirstamp)
+    {
+      int orgnamelen = 0;
+      int32_t r;
+
+      // version specified?
+      r = version_get_filename_stamp (name->str, dirstamp, &orgnamelen);
+      if (r != ZFS_OK)
+        RETURN_PTR (NULL);
+
+      if (orgnamelen)
+        {
+          verdir.str = xstrdup (name->str);
+          verdir.str[orgnamelen] = '\0';
+          verdir.len = orgnamelen;
+        }
+    }
+#endif
+
   tmp_vd.parent = parent;
-  tmp_vd.name = *name;
+  tmp_vd.name = verdir.str ? verdir : *name;
 
   vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
   if (vd)
@@ -795,7 +814,19 @@ vd_lookup_name (virtual_dir parent, string *name)
 #endif
     }
 
+#ifdef VERSIONS
+  if (verdir.str) free (verdir.str);
+#endif
+
   RETURN_PTR (vd);
+}
+
+/*! Return the virtual directory for NAME in virtual directory PARENT.  */
+
+virtual_dir
+vd_lookup_name (virtual_dir parent, string *name)
+{
+  return (vd_lookup_name_dirstamp (parent, name, NULL));
 }
 
 /*! Return the internal dentry for file handle FH.  */
@@ -1599,6 +1630,8 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->deleted = false;
 #ifdef VERSIONS
   dentry->version_file = false;
+  dentry->dirstamp = 0;
+  dentry->dirhtab = NULL;
 #endif
 
   /* Find the internal file handle in hash table, create it if it does not
@@ -2223,6 +2256,13 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
           zfsd_mutex_unlock (&vol->mutex);
         }
     }
+#ifdef VERSIONS
+  if (dentry->dirhtab)
+    {
+      htab_destroy(dentry->dirhtab);
+      dentry->dirhtab = NULL;
+    }
+#endif
 
   slot = htab_find_slot_with_hash (dentry_htab, &dentry->fh->local_fh,
                                    INTERNAL_DENTRY_HASH (dentry), NO_INSERT);
