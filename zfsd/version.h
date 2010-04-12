@@ -42,6 +42,7 @@
 #define VERSION_NAME_SPECIFIER_C '@'
 #define VERSION_NAME_SPECIFIER_S "@"
 #define VERSION_TIMESTAMP "%Y-%m-%d-%H-%M-%S"
+#define VERSION_INTERVAL_FILE_ADD ".i"
 
 /*! Mark file as truncated.  */
 #define MARK_FILE_TRUNCATED(FH)           \

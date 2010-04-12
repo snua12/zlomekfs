@@ -288,7 +288,7 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       zfsd_mutex_unlock (&opened_mutex);
       *fd = dentry->fh->fd;
 #ifdef VERSIONS
-      if (versioning)
+      if (versioning && (dentry->fh->attr.type == FT_REG))
       {
         // build intervals or mark file size
         if (dentry->version_file)
@@ -329,7 +329,7 @@ local_close (internal_fh fh)
   if (fh->fd >= 0)
     {
 #ifdef VERSIONS
-    if (versioning && (fh->version_fd > 0)) version_close_file(fh, true);
+    if (versioning && (fh->attr.type == FT_REG) && (fh->version_fd > 0)) version_close_file(fh, true);
 #endif
       zfsd_mutex_lock (&opened_mutex);
       zfsd_mutex_lock (&internal_fd_data[fh->fd].mutex);
@@ -724,7 +724,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
         if (!exists)
           dentry->new_file = true;
 
-        if (versioning) MARK_FILE_TRUNCATED (dentry->fh);
+        if (versioning && (dentry->fh->attr.type == FT_REG)) MARK_FILE_TRUNCATED (dentry->fh);
 #endif
           /* Remote file is not open.  */
           zfs_fh_undefine (icap->master_cap.fh);
@@ -1246,8 +1246,11 @@ zfs_close (zfs_cap *cap)
                 MARK_VOLUME_DELETE (vol);
             }
 #ifdef VERSIONS
-          if (versioning && (dentry->fh->version_fd > 0))
+          if (versioning && (dentry->fh->attr.type == FT_REG) && (dentry->fh->version_fd > 0))
             version_save_interval_trees (dentry->fh);
+          // we are generating new version files
+          if (versioning)
+            dentry->version_dirty = true;
 #endif
           zfsd_mutex_unlock (&vol->mutex);
           r = local_close (dentry->fh);
@@ -1687,6 +1690,14 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
       list->eof = 0;
       if (cookie < 0)
         cookie = 0;
+
+#ifdef VERSIONS
+      // if new version files were created since previous readdir, we will start again
+      if (versioning && dentry->version_dirty && cookie)
+        cookie = 0;
+
+      dentry->version_dirty = false;
+#endif
 
       r = lseek (fd, cookie, SEEK_SET);
       if (r < 0)
@@ -2396,7 +2407,7 @@ out_update:
 #endif
 
 #ifdef VERSIONS
-    if (versioning & (r == ZFS_OK) && (dentry->version_file) && (offset < dentry->fh->attr.size) &&
+    if (versioning && (dentry->fh->attr.type == FT_REG) & (r == ZFS_OK) && (dentry->version_file) && (offset < dentry->fh->attr.size) &&
         (dentry->fh->version_list_length))
       {
         r = version_read_old_data (dentry, offset, offset + count, res->data.buf);
@@ -2432,7 +2443,7 @@ local_write (write_res *res, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 #ifdef VERSIONS
-  if (versioning)
+  if (versioning && (dentry->fh->attr.type == FT_REG))
   {
     // we have to store original data prior its modification
     if (!WAS_FILE_TRUNCATED(dentry->fh))
@@ -2467,14 +2478,14 @@ local_write (write_res *res, internal_dentry dentry,
     {
 #ifdef VERSIONS
       // TODO: should not use fh - not locked here
-      if (versioning && (dentry->fh->version_fd > 0))
+      if (versioning  && (dentry->fh->attr.type == FT_REG) && (dentry->fh->version_fd > 0))
         version_close_file (dentry->fh, false);
 #endif
       RETURN_INT (r);
     }
 
 #ifdef VERSIONS
-  if (versioning && version_write)
+  if (versioning && (dentry->fh->attr.type == FT_REG) && version_write)
     {
       for (i = 0; i < VARRAY_USED (save); i++)
         {

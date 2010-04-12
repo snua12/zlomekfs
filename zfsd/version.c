@@ -189,7 +189,7 @@ version_readdir_fill_dirhtab (internal_dentry dentry, time_t stamp, long ino, ch
 static void
 version_build_interval_path (string *path, internal_fh fh)
 {
-  path->str = xstrconcat (2, fh->version_path, ".i");
+  path->str = xstrconcat (2, fh->version_path, VERSION_INTERVAL_FILE_ADD);
   path->len = strlen (path->str);
 }
 
@@ -208,7 +208,7 @@ version_load_interval_tree (internal_fh fh)
   if (fh->version_interval_tree_users > 1)
     RETURN_BOOL (true);
 
-  fh->versioned = interval_tree_create (1, &fh->mutex);
+  fh->versioned = interval_tree_create (1, NULL);
 
   version_build_interval_path (&path, fh);
 
@@ -288,6 +288,7 @@ version_save_interval_trees (internal_fh fh)
   free (path.str);
 
   interval_tree_destroy (fh->versioned);
+  fh->versioned = NULL;
 
   RETURN_BOOL (r);
 }
@@ -427,6 +428,11 @@ int32_t
 version_unlink_file (char *path)
 {
   string verpath;
+  struct stat st;
+
+  // skip directories
+  if (!lstat (path, &st) && S_ISDIR (st.st_mode))
+    RETURN_INT (ZFS_OK);
 
   version_generate_filename (path, &verpath);
   rename (path, verpath.str);
@@ -801,7 +807,7 @@ version_build_intervals (internal_dentry dentry, volume vol)
 
       if (!list[i].path) continue;
 
-      ival = xstrconcat (2, list[i].path, ".i");
+      ival = xstrconcat (2, list[i].path, VERSION_INTERVAL_FILE_ADD);
       fd = open (ival, O_RDONLY);
 
       if (fd > 0)
@@ -809,7 +815,7 @@ version_build_intervals (internal_dentry dentry, volume vol)
           // read interval file
           struct stat st;
 
-          list[i].intervals = interval_tree_create (1, &dentry->fh->mutex);
+          list[i].intervals = interval_tree_create (1, NULL);
 
           if (fstat (fd, &st) < 0)
             {
@@ -852,7 +858,7 @@ version_read_old_data (internal_dentry dentry, uint64_t start, uint64_t end, cha
   interval_tree covered;
   uint32_t rsize = 0;
 
-  covered = interval_tree_create(1, &dentry->fh->mutex);
+  covered = interval_tree_create(1, NULL);
   interval_tree_add (covered, dentry->fh->versioned);
 
   for (i = 0; i < dentry->fh->version_list_length; i++)
@@ -919,8 +925,12 @@ version_rename_source(char *path)
   struct utimbuf t;
   int32_t r;
 
-  version_generate_filename (path, &verpath);
+  // skip directories
   lstat (path, &st);
+  if (S_ISDIR (st.st_mode))
+    RETURN_INT (ZFS_OK);
+
+  version_generate_filename (path, &verpath);
   // is there any version we should use?
   r = lstat (verpath.str, &stv);
   if (r == 0)

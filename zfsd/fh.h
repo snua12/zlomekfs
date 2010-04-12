@@ -297,6 +297,9 @@ struct internal_dentry_def
 
   /* Hash table for readdir with timestamp.  */
   htab_t dirhtab;
+
+  /* New version files in this directory?  */
+  bool version_dirty;
 #endif
 };
 

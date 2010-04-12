@@ -1616,7 +1616,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   build_local_path (&path, vol, dentry);
 
 #ifdef VERSIONS
-  if (versioning && !dentry->new_file)
+  if (versioning && (dentry->fh->attr.type == FT_REG) && !dentry->new_file)
     {
       if (sa->size == 0)
         {
@@ -4216,8 +4216,24 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
     }
 
 #ifdef VERSIONS
-  if (versioning && !VERSION_FILENAME_P (name->str))
-    r = version_unlink_file (path.str);
+  if (versioning)
+    {
+      if (VERSION_FILENAME_P (name->str))
+        {
+          char *x;
+          // unlink both version file and interval file
+          x = xstrconcat (2, path.str, VERSION_INTERVAL_FILE_ADD);
+          unlink (x);
+          free (x);
+          r = unlink (path.str);
+        }
+      else
+        {
+          r = version_unlink_file (path.str);
+          // mark directory as dirty - new version file was generated
+          dir->version_dirty = true;
+        }
+    }
   else
 #endif
     r = unlink (path.str);
