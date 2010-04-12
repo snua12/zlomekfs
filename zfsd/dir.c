@@ -1616,7 +1616,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol)
   build_local_path (&path, vol, dentry);
 
 #ifdef VERSIONS
-  if (versioning)
+  if (versioning && !dentry->new_file)
     {
       if (sa->size == 0)
         {

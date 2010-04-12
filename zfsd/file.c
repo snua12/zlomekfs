@@ -268,6 +268,7 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       zfsd_mutex_unlock (&fh_mutex);
       RETURN_INT (EACCES);
     }
+  dentry->new_file = false;
 #endif
 
   if (dentry->fh->attr.type == FT_DIR)
@@ -720,6 +721,9 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
         {
 #ifdef VERSIONS
+        if (!exists)
+          dentry->new_file = true;
+
         if (versioning) MARK_FILE_TRUNCATED (dentry->fh);
 #endif
           /* Remote file is not open.  */

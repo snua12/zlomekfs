@@ -96,6 +96,8 @@ void dirhtab_del (void *x)
       free (i->name);
       i->name = NULL;
     }
+
+  free (i);
 }
 
 void
@@ -137,7 +139,7 @@ version_readdir_from_dirhtab (dir_list *list, internal_dentry dentry, int32_t co
         }
       if (vn) free (vn);
 
-      htab_clear_slot(dentry->dirhtab, &dentry->dirhtab->table[i]);
+      htab_clear_slot (dentry->dirhtab, &dentry->dirhtab->table[i]);
     }
 
   RETURN_INT (ZFS_OK);
@@ -408,6 +410,10 @@ version_truncate_file (internal_dentry dentry, char *path)
 {
   string verpath;
 
+  // skip copy if version file already in use - it has all original attributes
+  if (dentry->fh->version_fd > 0)
+    RETURN_INT (ZFS_OK);
+
   version_generate_filename (path, &verpath);
   rename (path, verpath.str);
   free (verpath.str);
@@ -644,17 +650,6 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
 
       // extract timestamp
       memset (&tm, 0, sizeof (tm));
-      /*
-      s = strptime (x + 1, "%Y-%m-%d-%H-%M-%S", &tm);
-      printf ("len = %d, year=%d, mon=%d, day=%d, hr=%d, min=%d, sec=%d, dst=%d\n", s - x - 1,
-          tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_isdst);
-      if (s && *s)
-        {
-          message (LOG_WARNING, FACILITY_VERSION, "Cannot convert version specifier to datetime: %s\n", x + 1);
-          RETURN_INT (ENOENT);
-        }
-      */
-
       // this code conforms to VERSION_TIMESTAMP
       memset (buf, 0, sizeof (buf));
       strncpy (buf, x + 1, sizeof (buf));

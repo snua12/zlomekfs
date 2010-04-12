@@ -289,6 +289,9 @@ struct internal_dentry_def
   /*! Is dentry a version file?  */
   bool version_file;
 
+  /*! Newly created file while?  */
+  bool new_file;
+
   /* Directory version timestamp.  */
   time_t dirstamp;
 

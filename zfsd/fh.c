@@ -1630,6 +1630,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->deleted = false;
 #ifdef VERSIONS
   dentry->version_file = false;
+  dentry->new_file = false;
   dentry->dirstamp = 0;
   dentry->dirhtab = NULL;
 #endif
