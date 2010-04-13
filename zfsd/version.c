@@ -653,27 +653,35 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
       char buf[VERSION_MAX_SPECIFIER_LENGTH];
       unsigned int len;
 
-      // extract timestamp
-      memset (&tm, 0, sizeof (tm));
-      // this code conforms to VERSION_TIMESTAMP
-      memset (buf, 0, sizeof (buf));
-      strncpy (buf, x + 1, sizeof (buf));
-      len = strlen (buf);
-      if (len > 19) RETURN_INT (ENOENT);
-
-      GET_STAMP_PART (buf, len, tm.tm_year, 0, 4, -1900);
-      GET_STAMP_PART (buf, len, tm.tm_mon, 5, 7, -1);
-      GET_STAMP_PART (buf, len, tm.tm_mday, 8, 10, 0);
-      GET_STAMP_PART (buf, len, tm.tm_hour, 11, 13, 0);
-      GET_STAMP_PART (buf, len, tm.tm_min, 14, 16, 0);
-      GET_STAMP_PART (buf, len, tm.tm_sec, 17, 19, 0);
-
-      tm.tm_isdst = -1; // to handle daylight saving time
-      *stamp = mktime (&tm);
-      if (*stamp < 0)
+      // check for @now timestamo
+      if (!strcmp (x + 1, "now"))
         {
-          message (LOG_WARNING, FACILITY_VERSION, "Cannot convert tm struct to time.\n");
-          RETURN_INT (ENOENT);
+          time (stamp);
+        }
+      else
+        {
+          // extract timestamp
+          memset (&tm, 0, sizeof (tm));
+          // this code conforms to VERSION_TIMESTAMP
+          memset (buf, 0, sizeof (buf));
+          strncpy (buf, x + 1, sizeof (buf));
+          len = strlen (buf);
+          if (len > 19) RETURN_INT (ENOENT);
+
+          GET_STAMP_PART (buf, len, tm.tm_year, 0, 4, -1900);
+          GET_STAMP_PART (buf, len, tm.tm_mon, 5, 7, -1);
+          GET_STAMP_PART (buf, len, tm.tm_mday, 8, 10, 0);
+          GET_STAMP_PART (buf, len, tm.tm_hour, 11, 13, 0);
+          GET_STAMP_PART (buf, len, tm.tm_min, 14, 16, 0);
+          GET_STAMP_PART (buf, len, tm.tm_sec, 17, 19, 0);
+
+          tm.tm_isdst = -1; // to handle daylight saving time
+          *stamp = mktime (&tm);
+          if (*stamp < 0)
+            {
+              message (LOG_WARNING, FACILITY_VERSION, "Cannot convert tm struct to time.\n");
+              RETURN_INT (ENOENT);
+            }
         }
 
       message (LOG_DEBUG, FACILITY_VERSION, "Version stamp: %d\n", *stamp);
