@@ -103,11 +103,14 @@ static void fuse_kernel_invalidate_metadata(struct fuse_chan *ch, fuse_ino_t par
     fuse_lowlevel_notify_inval_entry(ch, parent, name, strlen(name));
 }
 
+/*
+ * This probably not what was used in patched FUSE. But it is not needed anyway.
 static void fuse_kernel_sync_inode(struct fuse_chan *ch, fuse_ino_t ino)
 {
     message (LOG_INFO, FACILITY_ZFSD, "fuse_kernel_sync_inode: ino = %d\n", ino);
     fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
 }
+*/
 
 static hash_t
 inode_map_ino_hash (const void *x)
@@ -879,7 +882,8 @@ zfs_fuse_release (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
   int err;
 
   message (LOG_INFO, FACILITY_ZFSD, "FUSE: release ino=%d\n", ino);
-  (void)fuse_kernel_sync_inode(fuse_ch, ino);
+  /* Sync is not needed - its kernel responsibility to call write for all data
+  (void)fuse_kernel_sync_inode(fuse_ch, ino); */
   cap = (zfs_cap *)(intptr_t)fi->fh;
   err = -zfs_error (zfs_close (cap));
   free (cap);
