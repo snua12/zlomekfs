@@ -300,6 +300,12 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
         else
           dentry->fh->marked_size = dentry->fh->attr.size;
       }
+
+      if (versioning && (dentry->fh->attr.type == FT_DIR))
+        {
+          // store directory path
+          dentry->fh->version_path = xstrdup (path.str);
+        }
 #endif
       zfsd_mutex_unlock (&vol->mutex);
       zfsd_mutex_unlock (&fh_mutex);
@@ -1622,6 +1628,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   char *vername = NULL;
   bool store = false;
   time_t stamp;
+  bool local_verdisplay = verdisplay;
 #endif
 
   TRACE ("");
@@ -1697,6 +1704,20 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
         cookie = 0;
 
       dentry->version_dirty = false;
+
+      if (versioning && !verdisplay)
+        {
+          // should we display versions no matter what was specified to zfsd?
+          char *x;
+          struct stat st;
+
+          acquire_dentry (dentry);
+          x = xstrconcat (3, dentry->fh->version_path, "/", VERSION_DISPLAY_FILE);
+          release_dentry (dentry);
+          if (!lstat (x, &st))
+            local_verdisplay = true;
+          free (x);
+        }
 #endif
 
       r = lseek (fd, cookie, SEEK_SET);
@@ -1782,7 +1803,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                         continue;
                       *vs = '\0';
                     }
-                  else if (verdisplay)
+                  else if (local_verdisplay)
                     {
                       localtime_r (&stamp, &tm);
                       strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
