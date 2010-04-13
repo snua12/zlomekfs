@@ -658,6 +658,11 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
         {
           time (stamp);
         }
+      // check for @versions timestamp
+      else if (!strcmp (x + 1, "versions"))
+        {
+          *stamp = 1;
+        }
       else
         {
           // extract timestamp
