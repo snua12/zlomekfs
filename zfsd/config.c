@@ -79,6 +79,9 @@ bool versioning = false;
 
 /*! Versions displayed in readdir.  */
 bool verdisplay = false;
+
+/* Age retention interval.  */
+int retention_age = -1;
 #endif
 
 /*! mlockall() zfsd  .*/

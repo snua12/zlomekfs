@@ -50,6 +50,9 @@ extern bool versioning;
 
 /*! Versions displayed in readdir.  */
 extern bool verdisplay;
+
+/* Age retention interval.  */
+extern int retention_age;
 #endif
 
 /*! mlockall() zfsd  .*/

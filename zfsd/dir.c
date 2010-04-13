@@ -4219,14 +4219,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
   if (versioning)
     {
       if (VERSION_FILENAME_P (name->str))
-        {
-          char *x;
-          // unlink both version file and interval file
-          x = xstrconcat (2, path.str, VERSION_INTERVAL_FILE_ADD);
-          unlink (x);
-          free (x);
-          r = unlink (path.str);
-        }
+        r = version_unlink_version_file (path.str);
       else
         {
           r = version_unlink_file (path.str);

@@ -261,6 +261,10 @@ usage (void)
 #ifdef VERSIONS
     "  -o versioning                "
        "Enable versioning.\n"
+      "  -o verdisplay              "
+         "Display version files in directory listing.\n"
+      "  -o retention=seconds       "
+         "Age version retention period.\n"
 #endif
 	  "  --help                       "
        "Display this help and exit.\n"
@@ -305,8 +309,11 @@ struct zfs_opts
   char *config;
   char *node;
   int loglevel;
+#ifdef VERSIONS
   bool versioning;
   bool verdisplay;
+  int retention_age;
+#endif
 };
 
 #define ZFS_OPT(t, p, v) { t, offsetof (struct zfs_opts, p), v }
@@ -318,6 +325,7 @@ static const struct fuse_opt main_options[] = {
 #ifdef VERSIONS
   ZFS_OPT ("versioning", versioning, true),
   ZFS_OPT ("verdisplay", verdisplay, true),
+  ZFS_OPT ("retention=%d", retention_age, -1),
 #endif
   FUSE_OPT_KEY ("--help", OPTION_HELP),
   FUSE_OPT_KEY ("--version", OPTION_VERSION),
@@ -373,6 +381,7 @@ process_arguments (int argc, char **argv)
 #ifdef VERSIONS
   versioning = zopts.versioning;
   verdisplay = zopts.verdisplay;
+  retention_age = zopts.retention_age;
 #endif
 
   set_log_level (&syplogger, zopts.loglevel);

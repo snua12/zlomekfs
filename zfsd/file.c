@@ -1758,34 +1758,38 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
               /* Hide version files or convert their names or select them for storage.  */
               if (versioning && (vs = strchr (de->d_name, VERSION_NAME_SPECIFIER_C)))
                 {
-                  if (verdisplay || store)
+                  // convert stamp to string
+                  struct tm tm;
+                  char ts[VERSION_MAX_SPECIFIER_LENGTH];
+                  char *q;
+
+                  // skip interval files
+                  q = strchr (vs + 1, '.');
+                  if (q) continue;
+
+                  stamp = atoi (vs + 1);
+
+                  if (retention_age > 0)
                     {
-                      // convert stamp to string
-                      struct tm tm;
-                      char ts[VERSION_MAX_SPECIFIER_LENGTH];
-                      char *q;
+                      if ((time(NULL) - stamp) > retention_age)
+                        if (version_retent_file (dentry, vol, de->d_name))
+                          continue;
+                    }
 
-                      // skip interval files
-                      q = strchr (vs + 1, '.');
-                      if (q) continue;
+                  if (store)
+                    {
+                      if (stamp < dentry->dirstamp)
+                        continue;
+                      *vs = '\0';
+                    }
+                  else if (verdisplay)
+                    {
+                      localtime_r (&stamp, &tm);
+                      strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
 
-                      stamp = atoi (vs + 1);
-
-                      if (store)
-                        {
-                          if (stamp < dentry->dirstamp)
-                            continue;
-                          *vs = '\0';
-                        }
-                      else if (verdisplay)
-                        {
-                          localtime_r (&stamp, &tm);
-                          strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
-
-                          *(vs + 1) = '\0';
-                          vername = xstrconcat (2, de->d_name, ts);
-                          is_vername = true;
-                        }
+                      *(vs + 1) = '\0';
+                      vername = xstrconcat (2, de->d_name, ts);
+                      is_vername = true;
                     }
                   else
                     continue;

@@ -107,6 +107,8 @@ extern int32_t version_is_directory (string *dst, char *dir, string *name, time_
 extern int32_t version_build_intervals (internal_dentry dentry, volume vol);
 extern int32_t version_read_old_data (internal_dentry dentry, uint64_t start, uint64_t end, char *buf);
 extern int32_t version_rename_source(char *path);
+extern int32_t version_unlink_version_file (char *path);
+extern bool version_retent_file (internal_dentry dir, volume vol, char *name);
 extern int32_t version_copy_data (int fd, int fdv, uint64_t offset, uint32_t length, data_buffer *newdata);
 #endif /* VERSIONS */
 

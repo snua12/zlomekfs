@@ -958,6 +958,48 @@ version_rename_source(char *path)
   RETURN_INT (r);
 }
 
+int32_t
+version_unlink_version_file (char *path)
+{
+  int32_t r;
+  char *x;
+
+  // unlink both version file and interval file
+  x = xstrconcat (2, path, VERSION_INTERVAL_FILE_ADD);
+  unlink (x);
+  free (x);
+
+  r = unlink (path);
+
+  RETURN_INT (r);
+}
+
+bool
+version_retent_file (internal_dentry dir, volume vol, char *name)
+{
+  string path;
+  char *dst;
+
+  acquire_dentry (dir);
+  zfsd_mutex_lock (&vol->mutex);
+  zfsd_mutex_lock (&fh_mutex);
+
+  build_local_path (&path, vol, dir);
+
+  release_dentry (dir);
+  zfsd_mutex_unlock (&vol->mutex);
+  zfsd_mutex_unlock (&fh_mutex);
+
+  dst = xstrconcat (3, path.str, "/", name);
+
+  version_unlink_version_file (dst);
+
+  free (dst);
+
+  // file is deleted immediately
+  return true;
+}
+
 /*! \brief xxx
  *
  * xxx
