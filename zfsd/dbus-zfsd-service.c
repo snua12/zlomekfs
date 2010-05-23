@@ -1,7 +1,7 @@
 /*! \file
     \brief ZFS dbus provider.  */
 
-/* Copyright (C) 2007 Jiri Zouhar
+/* Copyright (C) 2007, 2010 Jiri Zouhar, Rastislav Wartiak
 
    This file is part of ZFS.
 
