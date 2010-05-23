@@ -9,7 +9,7 @@
   holds both state of medium and pointers to functions.
 */
 
-/* Copyright (C) 2007, 2008 Jiri Zouhar
+/* Copyright (C) 2007, 2008, 2010 Jiri Zouhar, Rastislav Wartiak
 
    This file is part of Syplog.
 

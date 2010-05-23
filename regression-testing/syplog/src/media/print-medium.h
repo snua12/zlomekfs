@@ -4,7 +4,7 @@
 /*! \file
     \brief Print medium functions definitions.  */
 
-/* Copyright (C) 2007, 2008 Jiri Zouhar
+/* Copyright (C) 2010 Rastislav Wartiak
 
    This file is part of Syplog.
 

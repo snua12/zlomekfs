@@ -4,7 +4,7 @@
   File medium takes logs from file and parses them to structures (or vice versa).
 */
 
-/* Copyright (C) 2007, 2008 Jiri Zouhar
+/* Copyright (C) 2007, 2008, 2010 Jiri Zouhar, Rastislav Wartiak
 
    This file is part of Syplog.
 
