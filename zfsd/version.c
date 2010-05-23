@@ -75,18 +75,46 @@ getdents (int fd, struct dirent *dirp, unsigned count)
 
 #endif /* __linux__ */
 
+/*! Hash function for file name.  */
 #define DIRHTAB_HASH(N) (crc32_string((N)->name))
 
+/*! \brief Generate hash for dirtab item
+ *
+ * Generate hash for dirtab item.
+ *
+ *  \param x Item to hash
+ *
+ *  \retval hashed value
+ *
+ *  \see dirtab_item_def
+*/
 hash_t dirhtab_hash (const void *x)
 {
   return DIRHTAB_HASH((const struct dirhtab_item_def *)x);
 }
 
+/*! \brief Compare two dirtab items
+ *
+ * Compare two dirtab items.
+ *
+ *  \param x First item
+ *  \param y Second item
+ *
+ *  \see dirtab_item_def
+*/
 int dirhtab_eq (const void *x, const void *y)
 {
   return (!strcmp (((const struct dirhtab_item_def *)x)->name, ((const struct dirhtab_item_def *)y)->name));
 }
 
+/*! \brief Delete item from the dirtab hash table
+ *
+ * Delete item from the hash table.
+ *
+ *  \param x Item to delete
+ *
+ *  \see dirtab_item_def
+*/
 void dirhtab_del (void *x)
 {
   struct dirhtab_item_def *i = (struct dirhtab_item_def *)x;
@@ -100,6 +128,12 @@ void dirhtab_del (void *x)
   free (i);
 }
 
+/*! \brief Prepare hash table before readdir
+ *
+ * Prepare hash table before readdir.
+ *
+ *  \param dentry Dentry of the directory
+*/
 void
 version_create_dirhtab (internal_dentry dentry)
 {
@@ -109,6 +143,20 @@ version_create_dirhtab (internal_dentry dentry)
   dentry->dirhtab = htab_create(10, dirhtab_hash, dirhtab_eq, dirhtab_del, &dentry->fh->mutex);
 }
 
+/*! \brief Return versions during readdir
+ *
+ * Return version file names for the hash table during readdir. Hash table is first filled in by
+ * version_readdir_fill_dirhtab.
+ * All parameters are taken from readdir call.
+ *
+ *  \param list
+ *  \param dentry
+ *  \param cookie
+ *  \param data
+ *  \param filldir
+ *
+ *  \see version_readdir_from_dirhtab
+*/
 int32_t
 version_readdir_from_dirhtab (dir_list *list, internal_dentry dentry, int32_t cookie,
     readdir_data *data, filldir_f filldir)
@@ -145,6 +193,16 @@ version_readdir_from_dirhtab (dir_list *list, internal_dentry dentry, int32_t co
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Store version during readdir
+ *
+ * Store version file information into a hash table associated with the dentry. It is called during
+ * readdir to find newest version for every versioned file.
+ *
+ *  \param dentry Directory dentry
+ *  \param stamp Version time stamp
+ *  \param ino Inode number of the version file
+ *  \param name File name
+*/
 int32_t
 version_readdir_fill_dirhtab (internal_dentry dentry, time_t stamp, long ino, char *name)
 {
@@ -186,6 +244,13 @@ version_readdir_fill_dirhtab (internal_dentry dentry, time_t stamp, long ino, ch
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Create interval file name
+ *
+ * Create interval file name.
+ *
+ *  \param[out] path Complete path of the interval file
+ *  \param fh Internal file handle
+*/
 static void
 version_build_interval_path (string *path, internal_fh fh)
 {
@@ -193,6 +258,12 @@ version_build_interval_path (string *path, internal_fh fh)
   path->len = strlen (path->str);
 }
 
+/*! \brief Load interval file
+ *
+ * Load interval file.
+ *
+ *  \param fh Internal file handle
+*/
 bool
 version_load_interval_tree (internal_fh fh)
 {
@@ -252,6 +323,12 @@ version_load_interval_tree (internal_fh fh)
   RETURN_BOOL (r);
 }
 
+/*! \brief Write interval file
+ *
+ * Write interval file for the version associated with the current file.
+ *
+ *  \param fh Internal file handle
+*/
 bool
 version_save_interval_trees (internal_fh fh)
 {
@@ -293,6 +370,13 @@ version_save_interval_trees (internal_fh fh)
   RETURN_BOOL (r);
 }
 
+/*! \brief Generate file version specifier
+ *
+ * Add a version suffix to the specified file path. Suffix is generated from the current time.
+ *
+ *  \param path Complete file path.
+ *  \param[out] verpath Complete file path including a version suffix.
+*/
 int32_t
 version_generate_filename (char *path, string *verpath)
 {
@@ -317,6 +401,14 @@ version_generate_filename (char *path, string *verpath)
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Create version file
+ *
+ * Create version file based on the current file attributes.
+ *
+ *  \param path Complete file path
+ *  \param dentry Dentry of the file
+ *  \param with_size Whether version file should be enlarged to the size of the current file
+*/
 int32_t
 version_create_file_with_attr (char *path, internal_dentry dentry, bool with_size)
 {
@@ -346,6 +438,14 @@ version_create_file_with_attr (char *path, internal_dentry dentry, bool with_siz
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Open version file
+ *
+ * Open version file for specified current file. If the appropriate version already exists, it is opened.
+ * New version file is created otherwise.
+ *
+ *  \param denty Dentry of the file
+ *  \param vol Volume of the file
+ */
 int32_t
 version_create_file (internal_dentry dentry, volume vol)
 {
@@ -381,6 +481,13 @@ version_create_file (internal_dentry dentry, volume vol)
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Close version file
+ *
+ * Close version file of the specified current file.
+ *
+ *  \param fh Internal file handle of the file
+ *  \param tidy Whether the function should make the version file sparse.
+*/
 int32_t
 version_close_file (internal_fh fh, bool tidy)
 {
@@ -405,6 +512,13 @@ version_close_file (internal_fh fh, bool tidy)
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Perform file truncate with versioning
+ *
+ * Perform file truncate, i.e. rename current file to the version file and create new current file.
+ *
+ *  \param dentry Dentry of the file
+ *  \param path Complete path of the file
+*/
 int32_t
 version_truncate_file (internal_dentry dentry, char *path)
 {
@@ -424,6 +538,12 @@ version_truncate_file (internal_dentry dentry, char *path)
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Perform file unlink with versioning
+ *
+ * Perform file unlink, i.e. rename current file to the version file.
+ *
+ *  \param path Complete path of the file
+*/
 int32_t
 version_unlink_file (char *path)
 {
@@ -441,6 +561,19 @@ version_unlink_file (char *path)
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Find version files for specified time stamp.
+ *
+ * Find version files that contain data for the specified time stamp, i.e. all newer version files
+ * that combined together cover the whole file.
+ *
+ *  \param path Complete path of the directory
+ *  \param name Name of the file
+ *  \param stamp Time stamp of the moment in time
+ *  \param[out] ino Inode of the first newer version file
+ *  \param[out] v varray filled with list of versions
+ *
+ *  \see version_item_def
+*/
 int32_t
 version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray *v)
 {
@@ -573,6 +706,14 @@ version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray
     }
 }
 
+/*! \brief Find first newer version
+ *
+ * Find oldest version of the file that is newer than the specified time stamp.
+ *
+ *  \param dir Complete path of the directory
+ *  \param[in,out] name File name; contains version suffix on return
+ *  \param stamp Time stamp
+*/
 int32_t
 version_find_version (char *dir, string *name, time_t stamp)
 {
@@ -633,6 +774,7 @@ version_find_version (char *dir, string *name, time_t stamp)
   RETURN_INT (ZFS_OK);
 }
 
+/*! Return part of the timestamp string.  */
 #define GET_STAMP_PART(BUF, L, PART, S, E, X) \
   if (L > S) \
     { \
@@ -641,6 +783,17 @@ version_find_version (char *dir, string *name, time_t stamp)
       PART = atoi (BUF + S) + X; \
     }
 
+/*! \brief Parse version suffix (datetime format)
+ *
+ * Parse time stamp version suffix from the file name. Function expects yyyy-mm-dd-hh-mm-ss format.
+ *
+ *  \param name File name with a version suffix
+ *  \param[out] stamp Time stamp from the suffix
+ *  \param[out] ornamelen Length of the file name without the version suffix
+ *
+ *  \retval ZFS_OK Version suffix was successfully parsed
+ *  \retval ENOENT version suffix is not correct
+*/
 int32_t
 version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
 {
@@ -698,6 +851,17 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
   RETURN_INT (ZFS_OK);
 }
 
+
+/*! \brief Return version time stamp (Unix time)
+ *
+ * Return time stamp from version file name. Function expects Unix time suffix.
+ *
+ *  \param name File name
+ *  \param[out] stamp Time stamp value
+ *
+ *  \retval ZFS_OK Valid time stamp specified
+ *  \retval ENOENT Invalid time stamp
+*/
 int32_t
 version_retr_stamp(char *name, time_t *stamp)
 {
@@ -715,6 +879,19 @@ version_retr_stamp(char *name, time_t *stamp)
 
 }
 
+/*! \brief Check if working with directory
+ *
+ * Check whether name is a directory.
+ *
+ *  \param[out] dst
+ *  \param dir Parent directory name
+ *  \param[in,out] name Child file/directory name
+ *  \param stamp Time stamp applied to the parent directory
+ *  \param ornamelen Length of the child file/directory name without the version suffix
+ *
+ *  \retval ZFS_OK Child is a directory; dst is filled in and name suffix is truncated
+ *  \retval ENOENT Child in not a directory
+*/
 int32_t
 version_is_directory (string *dst, char *dir, string *name, time_t stamp, time_t *dirstamp, int orgnamelen)
 {
@@ -747,6 +924,17 @@ version_is_directory (string *dst, char *dir, string *name, time_t stamp, time_t
   RETURN_INT (ENOENT);
 }
 
+/*! \brief Compare
+ *
+ * Compare two version items. Function is used by Q-sort in version_build_intervals.
+ *
+ *  \param i1 First item
+ *  \param i2 Second item
+ *
+ *  \retval -1 or 1 depending on which item has lower time stamp
+ *
+ *  \see version_item_def
+*/
 static int
 comp_version_items (const void *i1, const void *i2)
 {
@@ -756,6 +944,15 @@ comp_version_items (const void *i1, const void *i2)
   return x1->stamp < x2->stamp ? -1 : 1;
 }
 
+/*! \brief Create list of intervals for a file version
+ *
+ * Create list of intervals together with version files these intervals are stored in that create
+ * the whole content of a file version. List is created from interval files during file open. Result is stored in
+ * the internal file handle.
+ *
+ *  \param dentry Dentry of the file
+ *  \param vol Volume the file in on
+*/
 int32_t
 version_build_intervals (internal_dentry dentry, volume vol)
 {
@@ -862,6 +1059,18 @@ version_build_intervals (internal_dentry dentry, volume vol)
   RETURN_INT (ZFS_OK);
 }
 
+
+/*! \brief
+ *
+ * Read data from the version file. It uses intervals build during open.
+ *
+ *  \param dentry Dentry of the file
+ *  \param start Start of data interval
+ *  \param end End of data interval
+ *  \param[out] buf Buffer to store the data
+ *
+ *  \see version_build_intervals
+*/
 int32_t
 version_read_old_data (internal_dentry dentry, uint64_t start, uint64_t end, char *buf)
 {
@@ -929,6 +1138,12 @@ version_read_old_data (internal_dentry dentry, uint64_t start, uint64_t end, cha
   RETURN_INT (ZFS_OK);
 }
 
+/*! \brief Create version during rename
+ *
+ * Create version file during file rename.
+ *
+ *  \param path Complete path of the file
+*/
 int32_t
 version_rename_source(char *path)
 {
@@ -971,6 +1186,12 @@ version_rename_source(char *path)
   RETURN_INT (r);
 }
 
+/*! \brief Delete version file
+ *
+ * Delete version file and its respective interval file.
+ *
+ *  \param path Complete path of the file
+*/
 int32_t
 version_unlink_version_file (char *path)
 {
@@ -987,6 +1208,14 @@ version_unlink_version_file (char *path)
   RETURN_INT (r);
 }
 
+/*! \brief Delete version file
+ *
+ * Delete version file and its respective interval file.
+ *
+ *  \param dir Dentry of the directory the file is in
+ *  \param vol Volume the file is on
+ *  \param name Name of the file
+*/
 bool
 version_retent_file (internal_dentry dir, volume vol, char *name)
 {
@@ -1013,13 +1242,17 @@ version_retent_file (internal_dentry dir, volume vol, char *name)
   return true;
 }
 
-/*! \brief xxx
+/*! \brief Copy data into version file
  *
- * xxx
+ * Copy data from current file to version file. Copy only part of the file and only when it differs
+ * from the data to be written.
  *
- *  \param xxx xxx
- *
- */
+ *  \param fd File descriptor of current file
+ *  \param fdv File descriptor of version file
+ *  \param offset Start of data
+ *  \param length Length of data
+ *  \param newdata Buffer with data to be written (to compare it only, no write)
+*/
 int32_t
 version_copy_data (int fd, int fdv, uint64_t offset, uint32_t length, data_buffer *newdata)
 {
