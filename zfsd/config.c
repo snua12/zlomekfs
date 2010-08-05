@@ -81,7 +81,12 @@ bool versioning = false;
 bool verdisplay = false;
 
 /* Age retention interval.  */
-int retention_age = -1;
+int retention_age_min = -1;
+int retention_age_max = -1;
+
+/* Number of versions retention interval.  */
+int retention_num_min = -1;
+int retention_num_max = -1;
 #endif
 
 /*! mlockall() zfsd  .*/

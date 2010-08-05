@@ -410,6 +410,9 @@ extern void debug_fh_htab (void);
 extern void print_subdentries (FILE *f, internal_dentry dentry);
 extern void debug_subdentries (internal_dentry dentry);
 
+extern internal_dentry internal_dentry_create_ns (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
+                                               internal_dentry parent, string *name, fattr *attr,
+                                               metadata *meta, unsigned int level);
 extern internal_dentry internal_dentry_link (internal_dentry orig,
                                              internal_dentry parent,
                                              string *name);

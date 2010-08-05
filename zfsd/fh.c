@@ -789,8 +789,6 @@ vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp)
 
       // version specified?
       r = version_get_filename_stamp (name->str, dirstamp, &orgnamelen);
-      if (r != ZFS_OK)
-        RETURN_PTR (NULL);
 
       if (orgnamelen)
         {
@@ -1729,6 +1727,14 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   RETURN_PTR (dentry);
 }
 
+internal_dentry internal_dentry_create_ns (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
+                                           internal_dentry parent, string *name, fattr *attr,
+                                           metadata *meta, unsigned int level)
+{
+  return internal_dentry_create (local_fh, master_fh, vol, parent, name, attr, meta, level);
+}
+
+
 /*! Return dentry for file NAME in directory DIR on volume VOL.
    If it does not exist create it.  Update its local file handle to
    LOCAL_FH, master file handle to MASTER_FH and attributes to ATTR.  */
@@ -2458,7 +2464,7 @@ again:
   RETURN_PTR (conflict);
 }
 
-/*! If there is a dentry in place for file FH in conflict directrory CONFLICT
+/*! If there is a dentry in place for file FH in conflict directory CONFLICT
    on volume VOL delete it and return NULL.
    If FH is already there return its dentry.  */
 

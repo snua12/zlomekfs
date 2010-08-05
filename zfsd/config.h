@@ -52,7 +52,12 @@ extern bool versioning;
 extern bool verdisplay;
 
 /* Age retention interval.  */
-extern int retention_age;
+extern int retention_age_min;
+extern int retention_age_max;
+
+/* Number of versions retention interval.  */
+extern int retention_num_min;
+extern int retention_num_max;
 #endif
 
 /*! mlockall() zfsd  .*/

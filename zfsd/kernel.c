@@ -429,7 +429,7 @@ zfs_fuse_setattr (fuse_req_t req, fuse_ino_t ino, struct stat *attr,
     args.attr.mtime = attr->st_mtime; /* FIXME: round subsecond time up? */
   else
     args.attr.mtime = -1;
-  err = -zfs_error (zfs_setattr (&fa, &args.file, &args.attr));
+  err = -zfs_error (zfs_setattr (&fa, &args.file, &args.attr, true));
   if (err != 0)
     goto err_estale;
   stat_from_fattr (&st, &fa, ino);

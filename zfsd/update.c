@@ -249,7 +249,7 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
     }
 
   /* do the actual size change */
-  r = local_setattr (&fa, *dentryp, &sa, *volp);
+  r = local_setattr (&fa, *dentryp, &sa, *volp, false);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -1715,7 +1715,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
         sa.size = attr->size;
       }
 
-      r = local_setattr (&fa, *dentryp, &sa, *volp);
+      r = local_setattr (&fa, *dentryp, &sa, *volp, false);
     }
 
   if (r != ZFS_OK)
@@ -2322,7 +2322,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
       sa.atime = (zfs_time) -1;
       sa.mtime = (zfs_time) -1;
       release_dentry (remote);
-      r = local_setattr (&fa, local, &sa, vol);
+      r = local_setattr (&fa, local, &sa, vol, false);
       if (r != ZFS_OK)
         RETURN_INT (r);
 
@@ -3873,7 +3873,7 @@ update_worker (void *data)
         {
           /* this thread is slow updater */
           bool succeeded;
-          message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Worker slow update thread: check slow update queue...");
+          message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Worker slow update thread: check slow update queue...\n");
           zfsd_mutex_lock (&update_slow_queue_mutex);
           /* check if slow_queue is empty */
           if (update_slow_queue.nelem == 0)

@@ -44,6 +44,8 @@
 #define VERSION_TIMESTAMP "%Y-%m-%d-%H-%M-%S"
 #define VERSION_INTERVAL_FILE_ADD ".i"
 #define VERSION_DISPLAY_FILE ".verdisplay"
+#define VERSION_LIST_VERSIONS_SUF "versions"
+#define VERSION_LIST_VERSIONS_STAMP 1
 
 /*! Mark file as truncated.  */
 #define MARK_FILE_TRUNCATED(FH)           \
@@ -97,10 +99,10 @@ extern int32_t version_readdir_fill_dirhtab (internal_dentry dentry, time_t stam
 extern bool version_load_interval_tree (internal_fh fh);
 extern bool version_save_interval_trees (internal_fh fh);
 extern int32_t version_generate_filename (char *path, string *verpath);
-extern int32_t version_create_file_with_attr (char *path, internal_dentry dentry, bool with_size);
+extern int32_t version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, bool with_size);
 extern int32_t version_create_file (internal_dentry dentry, volume vol);
 extern int32_t version_close_file (internal_fh fh, bool tidy);
-extern int32_t version_truncate_file (internal_dentry dentry, char *path);
+extern int32_t version_truncate_file (internal_dentry dentry, volume vol, char *path);
 extern int32_t version_unlink_file (char *path);
 extern int32_t version_find_version (char *dir, string *name, time_t stamp);
 extern int32_t version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen);
@@ -111,6 +113,9 @@ extern int32_t version_rename_source(char *path);
 extern int32_t version_unlink_version_file (char *path);
 extern bool version_retent_file (internal_dentry dir, volume vol, char *name);
 extern int32_t version_copy_data (int fd, int fdv, uint64_t offset, uint32_t length, data_buffer *newdata);
+extern int32_t version_rmdir_versions (char *path);
+extern int32_t version_apply_retention (internal_dentry dentry, volume vol);
+
 #endif /* VERSIONS */
 
 #endif /* VERSION_H */

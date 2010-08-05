@@ -1615,7 +1615,7 @@ read_conflict_dir (dir_list *list, internal_dentry idir, virtual_dir vd,
 int32_t
 local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                zfs_fh *fh, int32_t cookie, readdir_data *data, volume vol,
-               filldir_f filldir)
+               filldir_f filldir, bool convert_versions)
 {
   char buf[ZFS_MAXDATA];
   int32_t r, pos;
@@ -1667,7 +1667,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   if (dentry)
     {
 #ifdef VERSIONS
-      if (versioning && dentry->dirstamp)
+      if (convert_versions && versioning && dentry->dirstamp && (dentry->dirstamp != VERSION_LIST_VERSIONS_STAMP))
         {
           if (!cookie)
             {
@@ -1700,23 +1700,28 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
 #ifdef VERSIONS
       // if new version files were created since previous readdir, we will start again
-      if (versioning && dentry->version_dirty && cookie)
+      if (convert_versions && versioning && dentry->version_dirty && cookie)
         cookie = 0;
 
       dentry->version_dirty = false;
 
-      if (versioning && !verdisplay)
+      if (convert_versions && versioning && !verdisplay)
         {
           // should we display versions no matter what was specified to zfsd?
           char *x;
           struct stat st;
 
-          acquire_dentry (dentry);
-          x = xstrconcat (3, dentry->fh->version_path, "/", VERSION_DISPLAY_FILE);
-          release_dentry (dentry);
-          if (!lstat (x, &st))
+          if (dentry->dirstamp == VERSION_LIST_VERSIONS_STAMP)
             local_verdisplay = true;
-          free (x);
+          else
+            {
+              acquire_dentry (dentry);
+              x = xstrconcat (3, dentry->fh->version_path, "/", VERSION_DISPLAY_FILE);
+              release_dentry (dentry);
+              if (!lstat (x, &st))
+                local_verdisplay = true;
+              free (x);
+            }
         }
 #endif
 
@@ -1776,43 +1781,66 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                 continue;
 #ifdef VERSIONS
               stamp = 0;
-              /* Hide version files or convert their names or select them for storage.  */
-              if (versioning && (vs = strchr (de->d_name, VERSION_NAME_SPECIFIER_C)))
+              if (convert_versions && versioning)
                 {
-                  // convert stamp to string
-                  struct tm tm;
-                  char ts[VERSION_MAX_SPECIFIER_LENGTH];
-                  char *q;
-
-                  // skip interval files
-                  q = strchr (vs + 1, '.');
-                  if (q) continue;
-
-                  stamp = atoi (vs + 1);
-
-                  if (retention_age > 0)
+                  /* Omit versions that did not exist in the specified time.  */
+                  if (store && dentry->dirstamp && (dentry->dirstamp != VERSION_LIST_VERSIONS_STAMP))
                     {
-                      if ((time(NULL) - stamp) > retention_age)
-                        if (version_retent_file (dentry, vol, de->d_name))
+                      char *f;
+                      struct stat st;
+
+                      f = xstrconcat (3, dentry->fh->version_path, "/", de->d_name);
+                      if (!lstat (f, &st) && (st.st_mtime > dentry->dirstamp))
+                        {
+                          free (f);
                           continue;
+                        }
+                      free (f);
                     }
 
-                  if (store)
+                  /* Hide version files or convert their names or select them for storage.  */
+                  if ((vs = strchr (de->d_name, VERSION_NAME_SPECIFIER_C)))
                     {
-                      if (stamp < dentry->dirstamp)
+                      // convert stamp to string
+                      struct tm tm;
+                      char ts[VERSION_MAX_SPECIFIER_LENGTH];
+                      char *q;
+
+                      // skip interval files
+                      q = strchr (vs + 1, '.');
+                      if (q) continue;
+
+                      stamp = atoi (vs + 1);
+
+                      if (retention_age_max > 0)
+                        {
+                          if ((time(NULL) - stamp) > retention_age_max)
+                            if (version_retent_file (dentry, vol, de->d_name))
+                              continue;
+                        }
+
+                      if (store)
+                        {
+                          /* Return only newer versions.  */
+                          if (stamp < dentry->dirstamp)
+                            continue;
+
+                          *vs = '\0';
+                        }
+                      else if (local_verdisplay)
+                        {
+                          localtime_r (&stamp, &tm);
+                          strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
+
+                          *(vs + 1) = '\0';
+                          vername = xstrconcat (2, de->d_name, ts);
+                          is_vername = true;
+                        }
+                      else
                         continue;
-                      *vs = '\0';
                     }
-                  else if (local_verdisplay)
-                    {
-                      localtime_r (&stamp, &tm);
-                      strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
-
-                      *(vs + 1) = '\0';
-                      vername = xstrconcat (2, de->d_name, ts);
-                      is_vername = true;
-                    }
-                  else
+                  /* Skip current versions if @versions is specified.  */
+                  else if (dentry->dirstamp == VERSION_LIST_VERSIONS_STAMP)
                     continue;
                 }
 #endif
@@ -1852,7 +1880,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
 #ifdef VERSIONS
               // store in a hash table, if not '.' and '..'
-              if (store &&
+              if (convert_versions && store &&
                   !(de->d_name[0] == '.' &&
                       (de->d_name[1] == 0 || (de->d_name[1] == '.' && de->d_name[2] == 0))))
                 {
@@ -2105,7 +2133,7 @@ zfs_readdir (dir_list *list, zfs_cap *cap, int32_t cookie, uint32_t count,
   else if (!dentry || INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
     {
       r = local_readdir (list, dentry, vd, &tmp_cap.fh, cookie, &data, vol,
-                         filldir);
+                         filldir, true);
     }
   else if (vol->master != this_node)
     {
@@ -2817,7 +2845,7 @@ full_local_readdir (zfs_fh *fh, filldir_htab_entries *entries)
       list.eof = false;
       list.buffer = entries;
       r = local_readdir (&list, dentry, NULL, fh, entries->last_cookie,
-                         NULL, vol, &filldir_htab);
+                         NULL, vol, &filldir_htab, false);
       if (r != ZFS_OK)
         {
           r2 = find_capability (&cap, &icap, &vol, &dentry, NULL, false);

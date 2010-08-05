@@ -45,6 +45,7 @@
 #include "memory.h"
 #include "metadata.h"
 #include "version.h"
+#include "update.h"
 
 #ifdef VERSIONS
 
@@ -162,30 +163,17 @@ version_readdir_from_dirhtab (dir_list *list, internal_dentry dentry, int32_t co
     readdir_data *data, filldir_f filldir)
 {
   unsigned int i;
+
   // retrieve from hash table
   for (i = 0; i < dentry->dirhtab->size; i++)
     {
       struct dirhtab_item_def *e = dentry->dirhtab->table[i];
-      char ts[VERSION_MAX_SPECIFIER_LENGTH];
-      struct tm tm;
-      char *vn = NULL;
 
       if ((e == EMPTY_ENTRY) || (e == DELETED_ENTRY))
         continue;
 
-      if (0 && e->stamp)
-        {
-          localtime_r (&e->stamp, &tm);
-          strftime (ts, sizeof (ts), VERSION_TIMESTAMP, &tm);
-          vn = xstrconcat (3, e->name, VERSION_NAME_SPECIFIER_S, ts);
-        }
-
-      if (!(*filldir) (e->ino, cookie, vn ? vn : e->name, strlen (vn ? vn : e->name), list, data))
-        {
-          if (vn) free (vn);
-          break;
-        }
-      if (vn) free (vn);
+      if (!(*filldir) (e->ino, cookie, e->name, strlen (e->name), list, data))
+        break;
 
       htab_clear_slot (dentry->dirhtab, &dentry->dirhtab->table[i]);
     }
@@ -410,12 +398,13 @@ version_generate_filename (char *path, string *verpath)
  *  \param with_size Whether version file should be enlarged to the size of the current file
 */
 int32_t
-version_create_file_with_attr (char *path, internal_dentry dentry, bool with_size)
+version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, bool with_size)
 {
   fattr *sa;
   struct utimbuf t;
 
-  message (LOG_DEBUG, FACILITY_VERSION, "version_create_file_with_attr: path=%s, with_size=%d\n", path, with_size);
+  zfs_fh fh;
+  int32_t r;
 
   sa = &dentry->fh->attr;
 
@@ -434,6 +423,68 @@ version_create_file_with_attr (char *path, internal_dentry dentry, bool with_siz
     {
       if (truncate (path, sa->size) != 0) RETURN_INT (errno);
     }
+
+
+  acquire_dentry (dentry->parent);
+
+  r = ZFS_OK;
+
+  if (r == ZFS_OK)
+    {
+      internal_dentry ndentry;
+      zfs_fh master_fh;//, tmp_fh;
+      string name;
+      metadata meta;
+      fattr attr;
+      string spath;
+      char *p;
+
+      zfs_fh_undefine (master_fh);
+
+      p = strrchr (path, '/');
+      if (p) p++; else p = path;
+      xmkstring(&name, p);
+
+      xmkstring (&spath, path);
+      r = local_getattr_path_ns (&attr, &spath);
+      free (spath.str);
+
+      fh.sid = dentry->fh->local_fh.sid;
+      fh.vid = dentry->fh->local_fh.vid;
+      fh.dev = attr.dev;
+      fh.ino = attr.ino;
+      meta.flags = METADATA_COMPLETE;
+      meta.modetype = GET_MODETYPE (attr.mode, attr.type);
+      meta.uid = attr.uid;
+      meta.gid = attr.gid;
+      lookup_metadata (vol, &fh, &meta, true);
+      set_attr_version (&attr, &meta);
+
+      ndentry = internal_dentry_create_ns (&fh, &master_fh, vol, dentry->parent, &name,
+                                           sa, &meta, LEVEL_UNLOCKED);
+
+      if (INTERNAL_FH_HAS_LOCAL_PATH (dentry->fh))
+        {
+          if (vol->master != this_node)
+            {
+              if (!add_journal_entry (vol, dentry->parent->fh->journal,
+                                      &dentry->parent->fh->local_fh,
+                                      &ndentry->fh->local_fh,
+                                      &ndentry->fh->meta.master_fh,
+                                      ndentry->fh->meta.master_version, &name,
+                                      JOURNAL_OPERATION_ADD))
+                {
+                  MARK_VOLUME_DELETE (vol);
+                }
+            }
+          if (!inc_local_version (vol, dentry->parent->fh))
+            MARK_VOLUME_DELETE (vol);
+        }
+      release_dentry (ndentry);
+      free (name.str);
+    }
+
+  release_dentry (dentry->parent);
 
   RETURN_INT (ZFS_OK);
 }
@@ -470,7 +521,8 @@ version_create_file (internal_dentry dentry, volume vol)
     }
   else
     {
-      version_create_file_with_attr (verpath.str, dentry, true);
+      version_create_file_with_attr (verpath.str, dentry, vol, true);
+      version_apply_retention (dentry, vol);
     }
 
   free (verpath.str);
@@ -520,7 +572,7 @@ version_close_file (internal_fh fh, bool tidy)
  *  \param path Complete path of the file
 */
 int32_t
-version_truncate_file (internal_dentry dentry, char *path)
+version_truncate_file (internal_dentry dentry, volume vol, char *path)
 {
   string verpath;
 
@@ -531,7 +583,7 @@ version_truncate_file (internal_dentry dentry, char *path)
   version_generate_filename (path, &verpath);
   rename (path, verpath.str);
   free (verpath.str);
-  version_create_file_with_attr (path, dentry, false);
+  version_create_file_with_attr (path, dentry, vol, false);
   MARK_FILE_TRUNCATED (dentry->fh);
   version_close_file (dentry->fh, false);
 
@@ -812,9 +864,9 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
           time (stamp);
         }
       // check for @versions timestamp
-      else if (!strcmp (x + 1, "versions"))
+      else if (!strcmp (x + 1, VERSION_LIST_VERSIONS_SUF))
         {
-          *stamp = 1;
+          *stamp = VERSION_LIST_VERSIONS_STAMP;
         }
       else
         {
@@ -824,7 +876,11 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
           memset (buf, 0, sizeof (buf));
           strncpy (buf, x + 1, sizeof (buf));
           len = strlen (buf);
-          if (len > 19) RETURN_INT (ENOENT);
+          if (len > 19)
+            {
+              message (LOG_WARNING, FACILITY_VERSION, "Invalid version specifier: %s.\n", name);
+              RETURN_INT (ENOENT);
+            }
 
           GET_STAMP_PART (buf, len, tm.tm_year, 0, 4, -1900);
           GET_STAMP_PART (buf, len, tm.tm_mon, 5, 7, -1);
@@ -835,7 +891,7 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
 
           tm.tm_isdst = -1; // to handle daylight saving time
           *stamp = mktime (&tm);
-          if (*stamp < 0)
+          if (*stamp <= 0)
             {
               message (LOG_WARNING, FACILITY_VERSION, "Cannot convert tm struct to time.\n");
               RETURN_INT (ENOENT);
@@ -1321,6 +1377,133 @@ version_copy_data (int fd, int fdv, uint64_t offset, uint32_t length, data_buffe
     {
       message (LOG_WARNING, FACILITY_VERSION, "new data write requested: %d, written only: %d\n", to_write, r);
     }
+
+  RETURN_INT (ZFS_OK);
+}
+
+/*! \brief Remove all version files from a directory
+ *
+ * Remove all version files from specified directory. This function is called from rmdir
+ * operations to make sure all files are deleted even version files are not displayed.
+ * Works correctly only if there are no other files but versions.
+ *
+ *  \param path Complete path to the directory
+*/
+int32_t
+version_rmdir_versions (char *path)
+{
+  char buf[ZFS_MAXDATA];
+  int32_t r, pos;
+  struct dirent *de;
+  int fd;
+  int working = 1;
+
+  fd = open (path, O_RDONLY, 0);
+  if (fd < 0)
+    RETURN_INT (fd);
+
+  while (working)
+    {
+      /* Always start from the beginning. We are modifying the contents of the directory.
+       * And deleting files, so we will continue until there are no (version) files.
+       */
+      r = lseek (fd, 0, SEEK_SET);
+      if (r < 0) break;
+
+      /* Comments to the work with getdents can be found in other functions.  */
+#ifdef __linux__
+      r = getdents (fd, (struct dirent *) buf, ZFS_MAXDATA);
+#else
+      r = getdirentries (fd, buf, ZFS_MAXDATA, &block_start);
+#endif
+      if (r <= 0)
+        {
+          if (r < 0 && errno == ENOENT)
+            break;
+          RETURN_INT (errno);
+        }
+
+      /* If we delete at least one file, we should start over again.  */
+      working = 0;
+      for (pos = 0; pos < r; pos += de->d_reclen)
+        {
+          de = (struct dirent *) &buf[pos];
+
+          /* Hide version files or convert their names or select them for storage.  */
+          if (strchr (de->d_name, VERSION_NAME_SPECIFIER_C))
+            {
+              char *f;
+              f = xstrconcat (3, path, "/", de->d_name);
+              unlink (f);
+              free (f);
+              working = 1;
+            }
+
+        }
+    }
+
+  close (fd);
+
+  RETURN_INT (ZFS_OK);
+}
+
+int32_t
+version_apply_retention (internal_dentry dentry, volume vol)
+{
+  string dpath;
+  char buf[ZFS_MAXDATA];
+  int32_t r, pos;
+  struct dirent *de;
+  int fd;
+
+  acquire_dentry (dentry->parent);
+  build_local_path (&dpath, vol, dentry->parent);
+  release_dentry (dentry->parent);
+
+  fd = open (dpath.str, O_RDONLY, 0);
+  if (fd < 0)
+    {
+      free (dpath.str);
+      RETURN_INT (fd);
+    }
+
+  r = lseek (fd, 0, SEEK_SET);
+
+  /* Create a list of all versions for specified file.  */
+  while (0)
+    {
+      /* Comments to the work with getdents can be found in other functions.  */
+#ifdef __linux__
+      r = getdents (fd, (struct dirent *) buf, ZFS_MAXDATA);
+#else
+      r = getdirentries (fd, buf, ZFS_MAXDATA, &block_start);
+#endif
+      if (r <= 0)
+        {
+          if (r < 0 && errno == ENOENT)
+            break;
+          RETURN_INT (errno);
+        }
+
+      for (pos = 0; pos < r; pos += de->d_reclen)
+        {
+          de = (struct dirent *) &buf[pos];
+
+        }
+    }
+
+  close (fd);
+
+  /* Sort versions.  */
+
+  /* Process from the oldest and check if it violates any maximum, while complying with minimums.
+   * Delete such versions.
+   */
+
+  //xstrconcat(3, dpath.str, "/", name);
+  //unlink()
+
+  free (dpath.str);
 
   RETURN_INT (ZFS_OK);
 }

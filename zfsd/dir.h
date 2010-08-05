@@ -59,15 +59,17 @@ extern int32_t get_volume_root_remote (volume vol, zfs_fh *remote_fh,
 extern int32_t get_volume_root_dentry (volume vol, internal_dentry *dentryp,
                                        bool unlock_fh_mutex);
 extern int32_t zfs_volume_root (dir_op_res *res, uint32_t vid);
+extern int32_t local_getattr_path_ns (fattr *attr, string *path);
+
 extern int32_t local_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t remote_getattr (fattr *attr, internal_dentry dentry, volume vol);
 extern int32_t zfs_getattr (fattr *fa, zfs_fh *fh);
 extern int32_t local_setattr_path (fattr *fa, string *path, sattr *sa);
 extern int32_t local_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
-                              volume vol);
+                              volume vol, bool should_version);
 extern int32_t remote_setattr (fattr *fa, internal_dentry dentry, sattr *sa,
                                volume vol);
-extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa);
+extern int32_t zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa, bool should_version);
 extern int32_t zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path);
 extern int32_t local_lookup (dir_op_res *res, internal_dentry dir,
                              string *name, volume vol, metadata *meta);

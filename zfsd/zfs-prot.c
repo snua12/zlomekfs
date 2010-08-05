@@ -165,7 +165,7 @@ zfs_proc_setattr_server (setattr_args *args, DC *dc,
   int32_t r;
   fattr fa;
 
-  r = zfs_setattr (&fa, &args->file, &args->attr);
+  r = zfs_setattr (&fa, &args->file, &args->attr, false);
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_fattr (dc, &fa);

@@ -263,8 +263,14 @@ usage (void)
        "Enable versioning.\n"
       "  -o verdisplay              "
          "Display version files in directory listing.\n"
-      "  -o retention=seconds       "
-         "Age version retention period.\n"
+      "  -o veragemin=seconds       "
+         "Minimum age version retention period.\n"
+      "  -o veragemax=seconds       "
+         "Maximum age version retention period.\n"
+      "  -o vernummin=number       "
+         "Minimum number of versions to keep with retention.\n"
+      "  -o vernummax=number       "
+         "Maximum number of versions to keep with retention.\n"
 #endif
 	  "  --help                       "
        "Display this help and exit.\n"
@@ -312,7 +318,10 @@ struct zfs_opts
 #ifdef VERSIONS
   bool versioning;
   bool verdisplay;
-  int retention_age;
+  int retention_age_min;
+  int retention_age_max;
+  int retention_num_min;
+  int retention_num_max;
 #endif
 };
 
@@ -325,7 +334,10 @@ static const struct fuse_opt main_options[] = {
 #ifdef VERSIONS
   ZFS_OPT ("versioning", versioning, true),
   ZFS_OPT ("verdisplay", verdisplay, true),
-  ZFS_OPT ("retention=%d", retention_age, -1),
+  ZFS_OPT ("veragemin=%d", retention_age_min, -1),
+  ZFS_OPT ("veragemax=%d", retention_age_max, -1),
+  ZFS_OPT ("vernummin=%d", retention_num_min, -1),
+  ZFS_OPT ("vernummax=%d", retention_num_max, -1),
 #endif
   FUSE_OPT_KEY ("--help", OPTION_HELP),
   FUSE_OPT_KEY ("--version", OPTION_VERSION),
@@ -381,7 +393,18 @@ process_arguments (int argc, char **argv)
 #ifdef VERSIONS
   versioning = zopts.versioning;
   verdisplay = zopts.verdisplay;
-  retention_age = zopts.retention_age;
+
+  if ((zopts.retention_age_max < zopts.retention_age_min) ||
+      (zopts.retention_num_max < zopts.retention_num_min))
+    {
+      printf ("Invalid retention interval.");
+      exit (EXIT_FAILURE);
+    }
+
+  retention_age_min = zopts.retention_age_min;
+  retention_age_max = zopts.retention_age_max;
+  retention_num_min = zopts.retention_num_min;
+  retention_num_max = zopts.retention_num_max;
 #endif
 
   set_log_level (&syplogger, zopts.loglevel);
