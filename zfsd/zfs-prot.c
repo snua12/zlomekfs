@@ -385,6 +385,7 @@ zfs_proc_write_server (write_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
   write_res res;
   int32_t r;
 
+  args->remote = true;
   r = zfs_write (&res, args);
   encode_status (dc, r);
   if (r == ZFS_OK)

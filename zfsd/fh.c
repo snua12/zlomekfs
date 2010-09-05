@@ -1632,6 +1632,8 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->dirstamp = 0;
   dentry->dirhtab = NULL;
   dentry->version_dirty = false;
+  dentry->version_dentry = NULL;
+  dentry->version_interval_dentry = NULL;
 #endif
 
   /* Find the internal file handle in hash table, create it if it does not

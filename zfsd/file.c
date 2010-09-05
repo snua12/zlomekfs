@@ -2481,7 +2481,7 @@ out_update:
 
 static int32_t
 local_write (write_res *res, internal_dentry dentry,
-             uint64_t offset, data_buffer *data, volume vol)
+             uint64_t offset, data_buffer *data, volume vol, bool remote)
 {
   int32_t r;
   off_t writing_position = -1;
@@ -2501,7 +2501,7 @@ local_write (write_res *res, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
 #ifdef VERSIONS
-  if (versioning && (dentry->fh->attr.type == FT_REG))
+  if (!remote && versioning && (dentry->fh->attr.type == FT_REG))
   {
     // we have to store original data prior its modification
     if (!WAS_FILE_TRUNCATED(dentry->fh))
@@ -2536,14 +2536,14 @@ local_write (write_res *res, internal_dentry dentry,
     {
 #ifdef VERSIONS
       // TODO: should not use fh - not locked here
-      if (versioning  && (dentry->fh->attr.type == FT_REG) && (dentry->fh->version_fd > 0))
+      if (!remote && versioning  && (dentry->fh->attr.type == FT_REG) && (dentry->fh->version_fd > 0))
         version_close_file (dentry->fh, false);
 #endif
       RETURN_INT (r);
     }
 
 #ifdef VERSIONS
-  if (versioning && (dentry->fh->attr.type == FT_REG) && version_write)
+  if (!remote && versioning && (dentry->fh->attr.type == FT_REG) && version_write)
     {
       for (i = 0; i < VARRAY_USED (save); i++)
         {
@@ -2678,13 +2678,13 @@ zfs_write (write_res *res, write_args *args)
     {
       if (zfs_fh_undefined (dentry->fh->meta.master_fh)
           || vol->master == this_node)
-        r = local_write (res, dentry, args->offset, &args->data, vol);
+        r = local_write (res, dentry, args->offset, &args->data, vol, args->remote);
       else
         {
           switch (dentry->fh->attr.type)
             {
               case FT_REG:
-                r = local_write (res, dentry, args->offset, &args->data, vol);
+                r = local_write (res, dentry, args->offset, &args->data, vol, args->remote);
                 break;
 
               case FT_BLK:
@@ -2698,7 +2698,7 @@ zfs_write (write_res *res, write_args *args)
                     remote_call = true;
                   }
                 else
-                  r = local_write (res, dentry, args->offset, &args->data, vol);
+                  r = local_write (res, dentry, args->offset, &args->data, vol, args->remote);
                 break;
 
               default:
@@ -3171,7 +3171,7 @@ full_local_write (uint32_t *rcount, void *buffer, zfs_cap *cap,
 
       data.len = count - total;
       data.buf = (char *) buffer + total;
-      r = local_write (&res, dentry, offset + total, &data, vol);
+      r = local_write (&res, dentry, offset + total, &data, vol, false);
       if (r != ZFS_OK)
         RETURN_INT (r);
 

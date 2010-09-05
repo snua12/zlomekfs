@@ -303,6 +303,12 @@ struct internal_dentry_def
 
   /* New version files in this directory?  */
   bool version_dirty;
+
+  /* Dentry of a version file.  */
+  internal_dentry version_dentry;
+
+  /* Dentry of an interval file.  */
+  internal_dentry version_interval_dentry;
 #endif
 };
 

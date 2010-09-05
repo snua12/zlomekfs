@@ -507,6 +507,9 @@ version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, s
           if (!inc_local_version (vol, dentry->parent->fh))
             MARK_VOLUME_DELETE (vol);
         }
+
+      dentry->version_dentry = ndentry;
+
       release_dentry (ndentry);
       free (name.str);
     }
@@ -844,7 +847,8 @@ version_find_version (char *dir, string *name, time_t stamp)
   if (!stat (x, &st))
     {
       free (x);
-      free (name->str);
+      // name is allocated in kernel call via FUSE
+      //free (name->str);
       name->str = xstrconcat (3, sname, VERSION_NAME_SPECIFIER_S, ver);;
       name->len = strlen (name->str);
       free (sname);
