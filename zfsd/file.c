@@ -304,7 +304,8 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       if (versioning && (dentry->fh->attr.type == FT_DIR))
         {
           // store directory path
-          dentry->fh->version_path = xstrdup (path.str);
+          if (!dentry->fh->version_path)
+            dentry->fh->version_path = xstrdup (path.str);
         }
 #endif
       zfsd_mutex_unlock (&vol->mutex);

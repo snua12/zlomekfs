@@ -1133,6 +1133,8 @@ version_build_intervals (internal_dentry dentry, volume vol)
       ival = xstrconcat (2, list[i].path, VERSION_INTERVAL_FILE_ADD);
       fd = open (ival, O_RDONLY);
 
+      free (ival);
+
       if (fd > 0)
         {
           // read interval file
@@ -1157,8 +1159,6 @@ version_build_intervals (internal_dentry dentry, volume vol)
         }
       // invalid version file
       else CLEAR_VERSION_ITEM (list[i]);
-
-      free (ival);
     }
 
   // delete all redundant intervals
