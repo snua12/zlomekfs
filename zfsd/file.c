@@ -1256,7 +1256,11 @@ zfs_close (zfs_cap *cap)
             version_save_interval_trees (dentry->fh);
           // we are generating new version files
           if (versioning)
-            dentry->version_dirty = true;
+            {
+              dentry->version_dirty = true;
+              dentry->new_file = false;
+              UNMARK_FILE_TRUNCATED(dentry->fh);
+            }
 #endif
           zfsd_mutex_unlock (&vol->mutex);
           r = local_close (dentry->fh);
@@ -2508,13 +2512,13 @@ local_write (write_res *res, internal_dentry dentry,
             version_was_open = false;
           }
 
-        if (offset < dentry->fh->marked_size)
+        if (1)
           {
             // write before marked file size
             version_write = true;
             fdv = dentry->fh->version_fd;
             verend = offset + data->len;
-            if (verend > dentry->fh->marked_size) verend = dentry->fh->marked_size;
+            //if (verend > dentry->fh->marked_size) verend = dentry->fh->marked_size;
 
             // get intervals that should be copied
             interval_tree_complement (dentry->fh->versioned, offset, verend, &save);

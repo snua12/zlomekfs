@@ -99,7 +99,7 @@ extern int32_t version_readdir_fill_dirhtab (internal_dentry dentry, time_t stam
 extern bool version_load_interval_tree (internal_fh fh);
 extern bool version_save_interval_trees (internal_fh fh);
 extern int32_t version_generate_filename (char *path, string *verpath);
-extern int32_t version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, bool with_size);
+extern int32_t version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, string *orgpath);
 extern int32_t version_create_file (internal_dentry dentry, volume vol);
 extern int32_t version_close_file (internal_fh fh, bool tidy);
 extern int32_t version_truncate_file (internal_dentry dentry, volume vol, char *path);

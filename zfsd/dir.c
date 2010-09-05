@@ -1623,6 +1623,9 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, bool sh
   build_local_path (&path, vol, dentry);
 
 #ifdef VERSIONS
+  // make sure we have correct attributes of the file
+  local_getattr_path (fa, &path);
+
   if (should_version && versioning && (dentry->fh->attr.type == FT_REG) && !dentry->new_file)
     {
       if (0)
@@ -1638,11 +1641,21 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, bool sh
               version_was_open = false;
             }
 
-          if ((sa->size != (uint64_t) -1) && (sa->size < dentry->fh->attr.size))
+          if ((sa->size != (uint64_t) -1) && (sa->size < fa->size))
             {
+              int fd;
               // shrinking file
-              message(LOG_DEBUG, FACILITY_VERSION, "shrinking file: old=%lld, new=%lld\n", dentry->fh->attr.size, sa->size);
-              version_copy_data(dentry->fh->fd, dentry->fh->version_fd, sa->size, dentry->fh->attr.size - sa->size, NULL);
+              message(LOG_DEBUG, FACILITY_VERSION, "shrinking file: old=%lld, new=%lld\n", fa->size, sa->size);
+
+              if (dentry->fh->fd >= 0) fd = dentry->fh->fd;
+              else fd = open (path.str, O_RDONLY);
+
+              version_copy_data(fd, dentry->fh->version_fd, sa->size, fa->size - sa->size, NULL);
+
+              if (dentry->fh->fd < 0) close (fd);
+
+              // add interval
+              interval_tree_insert (dentry->fh->versioned, sa->size, fa->size);
             }
 
           if (!version_was_open)

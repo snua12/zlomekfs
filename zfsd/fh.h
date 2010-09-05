@@ -218,6 +218,9 @@ struct internal_fh_def
   /*! Complete path of version file. Valid only when version file is open.  */
   char *version_path;
 
+  /*! File attributes before modification occurred.  */
+  fattr version_orig_attr;
+
   /*! File was truncated before opening.  */
   bool file_truncated;
 

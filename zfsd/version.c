@@ -265,7 +265,10 @@ version_load_interval_tree (internal_fh fh)
 
   fh->version_interval_tree_users++;
   if (fh->version_interval_tree_users > 1)
-    RETURN_BOOL (true);
+    {
+      if (fh->versioned->size > 0) RETURN_BOOL (true);
+      else RETURN_BOOL (false);
+    }
 
   fh->versioned = interval_tree_create (1, NULL);
 
@@ -389,6 +392,27 @@ version_generate_filename (char *path, string *verpath)
   RETURN_INT (ZFS_OK);
 }
 
+int32_t
+version_set_time (internal_fh fh)
+{
+  fattr *sa;
+  struct utimbuf t;
+  string ipath;
+
+  /* Set version file time attributes.  */
+  sa = &fh->version_orig_attr;
+  t.actime = sa->atime;
+  t.modtime = sa->mtime;
+  utime (fh->version_path, &t);
+
+  /* Same for interval file.  */
+  version_build_interval_path (&ipath, fh);
+  utime (ipath.str, &t);
+  free (ipath.str);
+
+  RETURN_INT (ZFS_OK);
+}
+
 /*! \brief Create version file
  *
  * Create version file based on the current file attributes.
@@ -398,15 +422,20 @@ version_generate_filename (char *path, string *verpath)
  *  \param with_size Whether version file should be enlarged to the size of the current file
 */
 int32_t
-version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, bool with_size)
+version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, string *orgpath)
 {
   fattr *sa;
-  struct utimbuf t;
 
   zfs_fh fh;
   int32_t r;
 
-  sa = &dentry->fh->attr;
+  sa = &dentry->fh->version_orig_attr;
+  // make sure we have correct attributes of the file
+  if (orgpath)
+    {
+      local_getattr_path_ns (sa, orgpath);
+    }
+  else memcpy (sa, &dentry->fh->attr, sizeof (fattr));
 
   dentry->fh->version_fd = creat (path, GET_MODE (sa->mode));
   dentry->fh->version_path = xstrdup (path);
@@ -415,11 +444,9 @@ version_create_file_with_attr (char *path, internal_dentry dentry, volume vol, b
               map_gid_zfs2node (sa->gid)) != 0)
     RETURN_INT (errno);
 
-  t.actime = sa->atime;
-  t.modtime = sa->mtime;
-  if (utime (path, &t) != 0) RETURN_INT (errno);
+  version_set_time (dentry->fh);
 
-  if (with_size)
+  if (orgpath)
     {
       if (truncate (path, sa->size) != 0) RETURN_INT (errno);
     }
@@ -521,7 +548,7 @@ version_create_file (internal_dentry dentry, volume vol)
     }
   else
     {
-      version_create_file_with_attr (verpath.str, dentry, vol, true);
+      version_create_file_with_attr (verpath.str, dentry, vol, &path);
       version_apply_retention (dentry, vol);
     }
 
@@ -549,6 +576,9 @@ version_close_file (internal_fh fh, bool tidy)
 
   close (fh->version_fd);
   fh->version_fd = -1;
+
+  version_set_time (fh);
+
   free (fh->version_path);
   fh->version_path = NULL;
 
@@ -583,7 +613,7 @@ version_truncate_file (internal_dentry dentry, volume vol, char *path)
   version_generate_filename (path, &verpath);
   rename (path, verpath.str);
   free (verpath.str);
-  version_create_file_with_attr (path, dentry, vol, false);
+  version_create_file_with_attr (path, dentry, vol, NULL);
   MARK_FILE_TRUNCATED (dentry->fh);
   version_close_file (dentry->fh, false);
 
@@ -674,7 +704,19 @@ version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray
                     *stamp = res;
                   else
                     {
-                      *ino = current_ino;
+                      // check modtime if version existed in that time
+                      struct stat st;
+                      char *x;
+                      time_t mtime = 0;
+
+                      x = xstrconcat (3, path, "/", name);
+                      if (!stat (x, &st)) mtime = st.st_mtime;
+                      free (x);
+
+                      if (mtime && (mtime <= *stamp))
+                        *ino = current_ino;
+                      else *ino = 0;
+
                       *stamp = 0;
                     }
                 }
@@ -736,10 +778,25 @@ version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray
               t = atoi (p);
 
               // compare timestamps if we are looking for a file
-              if (ino && (t >= *stamp) && (!res || (t < res))) {
-                res = t;
-                *ino = de->d_ino;
-              }
+              if (ino && (t >= *stamp) && (!res || (t < res)))
+                {
+                  // check modtime if version existed in that time
+                  // in fact, this should be valid only for one file
+
+                  struct stat st;
+                  char *x;
+                  time_t mtime = 0;
+
+                  x = xstrconcat (5, path, "/", de->d_name, VERSION_NAME_SPECIFIER_S, p);
+                  if (!stat (x, &st)) mtime = st.st_mtime;
+                  free (x);
+
+                  if (mtime && (mtime <= *stamp))
+                    {
+                      res = t;
+                      *ino = de->d_ino;
+                    }
+                }
 
               // add into varray if we want list of version files
               if (v && (t > *stamp))
@@ -1226,18 +1283,19 @@ version_rename_source(char *path)
     {
       fdv = creat (verpath.str, st.st_mode);
       lchown (verpath.str, st.st_uid, st.st_gid);
-      t.actime = st.st_atime;
-      t.modtime = st.st_mtime;
-      utime (verpath.str, &t);
     }
-  free (verpath.str);
-
   fd = open (path, O_RDONLY);
 
   r = version_copy_data(fd, fdv, 0, st.st_size, NULL);
 
   close (fd);
   close (fdv);
+
+  t.actime = st.st_atime;
+  t.modtime = st.st_mtime;
+  utime (verpath.str, &t);
+
+  free (verpath.str);
 
   RETURN_INT (r);
 }
