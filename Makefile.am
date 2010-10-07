@@ -81,8 +81,13 @@ install-html: install-doc
 clean-local:
 	rm -rf build doxy-warnings
 
+# if we don't use system syplog, we need to build it locally
+if !SYSTEM_SYPLOG
+   SYPLOG_SUBDIRS = regression-testing/syplog/
+endif
 
-SUBDIRS = \
+SUBDIRS = $(SYPLOG_SUBDIRS) \
 	zfsd \
 	tests
+
 

@@ -20,6 +20,30 @@ AC_CHECK_HEADERS([linux/dirent.h])
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(zlomekfs, 0.0)
 
+# by default, use the bundled zen-unit, but allow use system one
+# Note that in fact, only the headers are needed
+AC_ARG_WITH(system-zenunit,
+    AS_HELP_STRING([--with-system-zenunit],[Use system-installed zen-unit instead of bundled one.]))
+AM_CONDITIONAL(SYSTEM_ZENUNIT, [test "x$with_system_zenunit" = "xyes"])
+AS_IF([test "x$with_system_zenunit" != "xyes"],
+    [AC_CONFIG_SUBDIRS(regression-testing/zen-unit)],
+    [AC_CHECK_HEADER([zen-unit.h], [],
+       [AC_MSG_ERROR([zen-unit.h not found])]
+    )]
+)
+
+# similarly with syplog (here, the library is needed as well)
+AC_ARG_WITH(system-syplog,
+    AS_HELP_STRING([--with-system-syplog],[Use system-installed syplog instead of bundled one.]))
+AM_CONDITIONAL(SYSTEM_SYPLOG, [test "x$with_system_syplog" = "xyes"])
+AS_IF([test "x$with_system_syplog" != "xyes"],
+    [AC_CONFIG_SUBDIRS(regression-testing/syplog)])
+# FIXME: the syplog headers assume they are directly in include path, although they are under syplog/ subdirectory
+# the tests won't work unless the subdir is also put on path
+#    [AC_CHECK_HEADER([syplog/syplog.h], [],
+#       [AC_MSG_ERROR([syplog/syplog.h not found])]
+#    )]
+#)
 
 AC_OUTPUT( \
 	Makefile \

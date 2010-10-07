@@ -20,11 +20,27 @@
 
 EXTRA_DIST = zfs-prot.def
 
+if SYSTEM_ZENUNIT
+    ZENUNIT_INCLUDES =
+else
+    ZENUNIT_INCLUDES = -I../regression-testing/zen-unit/include
+endif
+
+if SYSTEM_SYPLOG
+    SYPLOG_INCLUDES = -I/usr/include/syplog
+    SYPLOG_LIB = -lsyplog
+else
+    SYPLOG_INCLUDES = -I../regression-testing/syplog/src
+#   FIXME: Is there a way to request single static lib from libtool without relying on the path?
+    SYPLOG_LIB = ../regression-testing/syplog/src/.libs/libsyplog.a
+endif
+
 INCLUDES = \
 	-I/usr/include/fuse \
-	-I/usr/include/syplog \
 	-I/usr/include/dbus-1.0 \
-	-I/usr/lib/dbus-1.0/include 
+	-I/usr/lib/dbus-1.0/include \
+	$(SYPLOG_INCLUDES) \
+	$(ZENUNIT_INCLUDES)
 
 AM_LDFLAGS = -lrt -ldl -lpthread -ldbus-1
 
@@ -68,7 +84,7 @@ zfsd_SOURCES = zfsd.c \
 	  zfs-prot.c \
 	  dbus-zfsd-service.c \
 	  dbus-provider.c
-zfsd_LDADD =  -lsyplog -lfuse
+zfsd_LDADD = $(SYPLOG_LIB) -lfuse
 
 
 dump_metadata_SOURCES = dump-metadata.c \
@@ -86,7 +102,7 @@ dump_metadata_SOURCES = dump-metadata.c \
 		   user-group.c \
 		   util.c \
 		   varray.c
-dump_metadata_LDADD = -lfuse
+dump_metadata_LDADD = $(SYPLOG_LIB) -lfuse
 
 dump_intervals_SOURCES = dump-intervals.c \
 		    alloc-pool.c \
@@ -101,7 +117,7 @@ dump_intervals_SOURCES = dump-intervals.c \
 		    splay-tree.c \
 		    util.c \
 		    varray.c
-dump_intervals_LDADD = -lfuse
+dump_intervals_LDADD = $(SYPLOG_LIB) -lfuse
 
 test: zfsd
 	./test.py ./zfsd
