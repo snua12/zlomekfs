@@ -1,8 +1,0 @@
-* fuse-2.7.0.patch: against fuse-2.7.0.
-* fuse-2.7.1.patch: against fuse-2.7.1.
-  - Extends the FUSE kernel protocol
-  - Implements the extensions in the user-space library and the kernel module.
-  - Modifies mount_bsd.c to discard -o subtype=, like the Linux version does.
-* fuse4bsd.patch: against http://mercurial.creo.hu/repos/fuse4bsd-hg, changeset
-  217:34d79a4a078a
-  - Implements a subset of the extensions that is necessary for ZlomekFS
