@@ -6,4 +6,6 @@ all:
 	autoheader
 	automake -a
 	autoconf
+	$(MAKE) -C regression-testing/syplog -f Makefile.cvs
+	$(MAKE) -C regression-testing/zen-unit -f Makefile.cvs
 
