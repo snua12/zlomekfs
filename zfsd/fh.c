@@ -1,7 +1,7 @@
 /*! \file
     \brief File handle functions.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -47,6 +47,8 @@
 #include "user-group.h"
 #include "dir.h"
 #include "update.h"
+#include "config.h"
+#include "version.h"
 
 /*! File handle of ZFS root.  */
 zfs_fh root_fh = {NODE_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
@@ -301,7 +303,7 @@ cleanup_unused_dentries (void)
       zfsd_mutex_unlock (&cleanup_dentry_mutex);
       if (n)
         {
-          message (LOG_INFO, FACILITY_DATA, "Freeing %d nodes\n", n);
+          message (LOG_DEBUG, FACILITY_DATA, "Freeing %d nodes\n", n);
           qsort (fh, n, sizeof (zfs_fh), cleanup_unused_dentries_compare);
 
           for (i = 0; i < n; i++)
@@ -768,20 +770,37 @@ vd_lookup (zfs_fh *fh)
   RETURN_PTR (vd);
 }
 
-/*! Return the virtual directory for NAME in virtual directory PARENT.  */
-
 virtual_dir
-vd_lookup_name (virtual_dir parent, string *name)
+vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp)
 {
   virtual_dir vd;
   struct virtual_dir_def tmp_vd;
+  string verdir = { 0, NULL};
 
   TRACE ("");
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
+#ifdef VERSIONS
+  if (versioning && dirstamp)
+    {
+      int orgnamelen = 0;
+      int32_t r;
+
+      // version specified?
+      r = version_get_filename_stamp (name->str, dirstamp, &orgnamelen);
+
+      if (orgnamelen)
+        {
+          verdir.str = xstrdup (name->str);
+          verdir.str[orgnamelen] = '\0';
+          verdir.len = orgnamelen;
+        }
+    }
+#endif
+
   tmp_vd.parent = parent;
-  tmp_vd.name = *name;
+  tmp_vd.name = verdir.str ? verdir : *name;
 
   vd = (virtual_dir) htab_find (vd_htab_name, &tmp_vd);
   if (vd)
@@ -793,7 +812,19 @@ vd_lookup_name (virtual_dir parent, string *name)
 #endif
     }
 
+#ifdef VERSIONS
+  if (verdir.str) free (verdir.str);
+#endif
+
   RETURN_PTR (vd);
+}
+
+/*! Return the virtual directory for NAME in virtual directory PARENT.  */
+
+virtual_dir
+vd_lookup_name (virtual_dir parent, string *name)
+{
+  return (vd_lookup_name_dirstamp (parent, name, NULL));
 }
 
 /*! Return the internal dentry for file handle FH.  */
@@ -1021,7 +1052,7 @@ internal_dentry_lock (unsigned int level, volume *volp,
         RETURN_INT (r);
     }
 
-  message (LOG_INFO, FACILITY_DATA | FACILITY_THREADING, "FH %p LOCKED %u, by %lu at %s:%d\n",
+  message (LOG_LOCK, FACILITY_DATA | FACILITY_THREADING, "FH %p LOCKED %u, by %lu at %s:%d\n",
            (void *) (*dentryp)->fh, level, (unsigned long) pthread_self (),
            __FILE__, __LINE__);
 
@@ -1277,6 +1308,16 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->flags = 0;
   fh->reintegrating_sid = 0;
   fh->reintegrating_generation = 0;
+#ifdef VERSIONS
+  fh->version_fd = -1;
+  fh->version_path = NULL;
+  fh->versioned = NULL;
+  UNMARK_FILE_TRUNCATED(fh);
+  fh->marked_size = -1;
+  fh->version_interval_tree_users = 0;
+  fh->version_list = NULL;
+  fh->version_list_length = 0;
+#endif
 
   message (LOG_DEBUG, FACILITY_DATA, "FH %p CREATED, by %lu\n", (void *) fh,
            (unsigned long) pthread_self ());
@@ -1286,6 +1327,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
 
   zfsd_mutex_init (&fh->mutex);
   zfsd_mutex_lock (&fh->mutex);
+  zfsd_cond_init (&fh->cond);
 
   if (level != LEVEL_UNLOCKED)
     {
@@ -1376,6 +1418,22 @@ internal_fh_destroy_stage1 (internal_fh fh)
       close_journal_file (fh->journal);
       journal_destroy (fh->journal);
     }
+
+#ifdef VERSIONS
+  if (fh->version_list)
+    {
+      unsigned int i;
+      for (i = 0; i < fh->version_list_length; i++)
+        CLEAR_VERSION_ITEM(fh->version_list[i]);
+      free (fh->version_list);
+    }
+
+  if (fh->version_path)
+    free (fh->version_path);
+
+  if (fh->versioned)
+    interval_tree_destroy (fh->versioned);
+#endif
 
   slot = htab_find_slot_with_hash (fh_htab, &fh->local_fh,
                                    INTERNAL_FH_HASH (fh), NO_INSERT);
@@ -1568,6 +1626,15 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->heap_node = NULL;
   dentry->users = 0;
   dentry->deleted = false;
+#ifdef VERSIONS
+  dentry->version_file = false;
+  dentry->new_file = false;
+  dentry->dirstamp = 0;
+  dentry->dirhtab = NULL;
+  dentry->version_dirty = false;
+  dentry->version_dentry = NULL;
+  dentry->version_interval_dentry = NULL;
+#endif
 
   /* Find the internal file handle in hash table, create it if it does not
      exist.  */
@@ -1654,8 +1721,21 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
     }
   *slot = dentry;
 
+#ifdef VERSIONS
+  if (versioning && strchr (name->str, VERSION_NAME_SPECIFIER_C))
+    dentry->version_file = true;
+#endif
+
   RETURN_PTR (dentry);
 }
+
+internal_dentry internal_dentry_create_ns (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
+                                           internal_dentry parent, string *name, fattr *attr,
+                                           metadata *meta, unsigned int level)
+{
+  return internal_dentry_create (local_fh, master_fh, vol, parent, name, attr, meta, level);
+}
+
 
 /*! Return dentry for file NAME in directory DIR on volume VOL.
    If it does not exist create it.  Update its local file handle to
@@ -1905,6 +1985,9 @@ internal_dentry_link (internal_dentry orig,
   dentry->heap_node = NULL;
   dentry->users = 0;
   dentry->deleted = false;
+#ifdef VERSIONS
+  dentry->version_file = false;
+#endif
 
   dentry_update_cleanup_node (dentry);
   internal_dentry_add_to_dir (parent, dentry);
@@ -2183,6 +2266,13 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
           zfsd_mutex_unlock (&vol->mutex);
         }
     }
+#ifdef VERSIONS
+  if (dentry->dirhtab)
+    {
+      htab_destroy(dentry->dirhtab);
+      dentry->dirhtab = NULL;
+    }
+#endif
 
   slot = htab_find_slot_with_hash (dentry_htab, &dentry->fh->local_fh,
                                    INTERNAL_DENTRY_HASH (dentry), NO_INSERT);
@@ -2376,7 +2466,7 @@ again:
   RETURN_PTR (conflict);
 }
 
-/*! If there is a dentry in place for file FH in conflict directrory CONFLICT
+/*! If there is a dentry in place for file FH in conflict directory CONFLICT
    on volume VOL delete it and return NULL.
    If FH is already there return its dentry.  */
 

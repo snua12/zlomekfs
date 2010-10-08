@@ -1,12 +1,12 @@
 /*! \file
-    \brief Main media functions.  
+    \brief Main media functions.
 
   Implementation of medium type independent functions,
   mainly used as type switches, initializers, etc.
 */
 
 
-/* Copyright (C) 2007, 2008 Jiri Zouhar
+/* Copyright (C) 2007, 2008, 2010 Jiri Zouhar, Rastislav Wartiak
 
    This file is part of Syplog.
 
@@ -23,7 +23,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 #define _GNU_SOURCE
@@ -39,6 +39,7 @@
 #include "medium-api.h"
 #include "file-medium.h"
 #include "shm-medium.h"
+#include "print-medium.h"
 #include "formatters/formatter-api.h"
 
 
@@ -46,13 +47,13 @@
 /*! Holds translations from stringified names of media operations
     to medium_operation discriminator
 */
-struct 
+struct
 {
   /// unified name of media operation
   char * name;
   /// medium operation discriminator
   medium_operation kind;
-}  medium_operation_translation_table [] = 
+}  medium_operation_translation_table [] =
 {
   {OPERATION_READ_NAME,	READ_LOG},
   {OPERATION_WRITE_NAME, WRITE_LOG},
@@ -68,7 +69,7 @@ medium_operation operation_name_to_enum(const char * operation_name)
   if (operation_name == NULL)
     return NO_OPERATION;
 #endif
-  
+
   // try to find operation name in table
   for (table_index = 0;
        medium_operation_translation_table[table_index].name != NULL;
@@ -92,13 +93,13 @@ medium_operation operation_name_to_enum(const char * operation_name)
 /*! Holds translations from stringified names of media
     to medium_type discriminator
 */
-struct 
+struct
 {
   /// unified name of reader type
   char * name;
   /// reader type discriminator
   medium_type type;
-}  medium_translation_table [] = 
+}  medium_translation_table [] =
 {
 /*
   {NO_MEDIUM_NAME,	NO_MEDIUM},
@@ -106,9 +107,9 @@ struct
 */
   {FILE_MEDIUM_NAME,	FILE_MEDIUM},
   {SHM_MEDIUM_NAME,	SHM_MEDIUM},
+  {PRINT_MEDIUM_NAME,	PRINT_MEDIUM},
 /*
   {SYSLOG_MEDIUM_NAME,	SYSLOG_MEDIUM},
-  {PRINT_MEDIUM_NAME,	PRINT_MEDIUM},
 */
   {NULL,		-1}
 };
@@ -118,7 +119,7 @@ struct
   @param medium_type_name unified type name of medium
   @return type discriminator (medium_type) or NO_MEDIUM
 */
-medium_type medium_name_to_enum (const char * medium_type_name) 
+medium_type medium_name_to_enum (const char * medium_type_name)
 {
   // index to reader_translation_table for loop
   int table_index = 0;
@@ -126,7 +127,7 @@ medium_type medium_name_to_enum (const char * medium_type_name)
   if (medium_type_name == NULL)
     return NO_MEDIUM;
 #endif
-  
+
   // try to find type name in table
   for (table_index = 0;
        medium_translation_table[table_index].name != NULL;
@@ -150,39 +151,39 @@ void print_media_help (int fd, int tabs)
 {
   if (fd == 0)
     fd = 1;
-  
+
   tabize_print (tabs, fd, "medium defines where and in what manner logs are written.\n");
   tabize_print (tabs, fd, "media options:\n");
   tabs ++;
-  
+
   tabize_print (tabs, fd, "--%s=value, -%c value\ttype of medium\n",
     PARAM_MEDIUM_TYPE_LONG,PARAM_MEDIUM_TYPE_CHAR);
-    
+
   tabize_print (tabs, fd, "--%s=value, -%c value\tdefines how to format logs\n",
     PARAM_MEDIUM_FMT_LONG, PARAM_MEDIUM_FMT_CHAR);
   print_formatters_help (fd, tabs);
-  
+
   tabize_print (tabs, fd, "--%s=value, -%c value\tdefines if read or write logs\n",
     PARAM_MEDIUM_OP_LONG, PARAM_MEDIUM_OP_CHAR);
-  
+
   tabize_print (tabs +1, fd, "values: %s - read logs, %s - write logs\n",
      OPERATION_READ_NAME, OPERATION_WRITE_NAME);
-  
+
   tabize_print (tabs, fd, "--%s=value, -%c value\tdefines size of log (approximatelly)\n",
     PARAM_MEDIUM_SIZE_LONG, PARAM_MEDIUM_SIZE_CHAR);
-  tabize_print (tabs, fd, 
+  tabize_print (tabs, fd,
     "(0 means infinite), K, M, G suffixes allowed (1, 1K, 1M, 1G, etc)\n");
 
   tabize_print (tabs, fd, "\n");
   tabize_print (tabs, fd, "medium specific options:\n");
-  
+
   print_file_medium_help (fd, tabs);
   print_shm_medium_help (fd, tabs);
-  
+
 }
 
 // table of known options
-const struct option option_table[] = 
+const struct option option_table[] =
 {
     {PARAM_MEDIUM_TYPE_LONG,	1, NULL,			PARAM_MEDIUM_TYPE_CHAR},
     {PARAM_MEDIUM_FMT_LONG,	1, NULL,			PARAM_MEDIUM_FMT_CHAR},
@@ -190,19 +191,19 @@ const struct option option_table[] =
     {PARAM_MEDIUM_SIZE_LONG,	1, NULL,			PARAM_MEDIUM_SIZE_CHAR},
 
     {NULL, 0, NULL, 0}
-}; 
+};
 
 bool_t is_medium_arg (const char * arg)
 {
   if (opt_table_contains ((struct option *)option_table, arg))
     return TRUE;
-  
+
   if (is_file_medium_arg (arg))
     return TRUE;
-    
+
   if (is_shm_medium_arg (arg))
     return TRUE;
-    
+
   return FALSE;
 }
 
@@ -234,12 +235,12 @@ int unit_multiplier (char * size_string)
     ret *= 1024;
     thousants --;
   }
-  
+
   return ret;
 }
 
 /// Parse type independent parameters of medium to structure
-/*! Parses parameters of medium and initialize settings 
+/*! Parses parameters of medium and initialize settings
   @param argc number of items in argv
   @param argv parameters in std format as in "main" (non NULL)
   @param settings pointer to struct, where to store settings given in argv
@@ -259,7 +260,7 @@ syp_error medium_parse_params(int argc, const char ** argv, medium settings)
 
   // we need to "init" structures of getopt library
   optind=0;
-	
+
   while ((opt = getopt_long(argc, (char**)argv, "", option_table, NULL)) != -1)
     switch(opt){
       case PARAM_MEDIUM_TYPE_CHAR: // medium type
@@ -295,7 +296,7 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
   if (argv == NULL || target == NULL)
     return ERR_BAD_PARAMS;
 #endif
-  
+
   memset(target,0,sizeof(struct medium_def));
   target->kind = WRITE_LOG;
   target->used_formatter = DEFAULT_FORMATTER;
@@ -305,7 +306,7 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
   {
     goto FINISHING;
   }
-  
+
   switch( target->type)
   {
     case NO_MEDIUM:
@@ -324,6 +325,13 @@ syp_error open_medium (struct medium_def * target, int argc, const char ** argv)
       break;
     case SHM_MEDIUM:
       ret_code = open_shm_medium (target, argc, argv);
+      if (ret_code != NOERR)
+      {
+        goto FINISHING;
+      }
+      break;
+    case PRINT_MEDIUM:
+      ret_code = open_print_medium (target, 0, NULL);
       if (ret_code != NOERR)
       {
         goto FINISHING;
@@ -372,5 +380,3 @@ syp_error access_medium (medium target, log_struct log)
 
   return target->access_medium (target, log);
 }
-
-

@@ -1,7 +1,7 @@
 /*! \file
     \brief Configuration.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -43,6 +43,22 @@ extern string kernel_file_name;
 
 /*! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
+
+#ifdef VERSIONS
+/* Versioning enabled.  */
+extern bool versioning;
+
+/*! Versions displayed in readdir.  */
+extern bool verdisplay;
+
+/* Age retention interval.  */
+extern int retention_age_min;
+extern int retention_age_max;
+
+/* Number of versions retention interval.  */
+extern int retention_num_min;
+extern int retention_num_max;
+#endif
 
 /*! mlockall() zfsd  .*/
 extern bool mlock_zfsd;

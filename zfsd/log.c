@@ -1,7 +1,7 @@
 /*! \file
     \brief Logging functions.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -32,7 +32,7 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <syslog.h>
-
+#include <execinfo.h>
 
 #include "node.h"
 #include "syplog.h"
@@ -89,13 +89,13 @@ message_handle_state_e dbus_handle_log_message (DBusConnection * connection,
 
 void zfs_openlog(int  argc, const char ** argv)
 {
-  syp_error ret_code = open_log (&syplogger, "STILL UNDEFINED", argc, argv);
+  syp_error ret_code = open_log (&syplogger, "UNDEF", argc, argv);
   if (ret_code != NOERR)
   {
     printf ("Bad params for logger initialization %d: %s\n", ret_code,
             syp_error_to_string (ret_code));
 
-    ret_code = open_log (&syplogger, "STILL_UNDEFINED", 0, NULL);
+    ret_code = open_log (&syplogger, "UNDEF", 0, NULL);
   }
 
   if (ret_code != NOERR)
@@ -118,7 +118,7 @@ void update_node_name (void)
   if (node_name.str != NULL)
     ret_code = set_node_name ( &syplogger, node_name.str);
   else
-    ret_code = set_node_name (&syplogger, "STILL UNDEFINED");
+    ret_code = set_node_name (&syplogger, "UNDEF");
 
   if (ret_code != NOERR)
     message (LOG_WARNING, FACILITY_LOG, "could not set node_name %d: %s\n", ret_code,
@@ -130,6 +130,19 @@ void zfs_closelog(void)
   close_log (&syplogger);
 }
 
+/*! Print stack */
+void show_stackframe(void) {
+  void *trace[16];
+  char **messages = (char **)NULL;
+  int i, trace_size = 0;
+
+  trace_size = backtrace(trace, 16);
+  messages = backtrace_symbols(trace, trace_size);
+  printf("[bt] Execution path:\n");
+  for (i=0; i<trace_size; ++i)
+    printf("[bt] %s\n", messages[i]);
+  free (messages);
+}
 
 /*! Print the internal error message and exit.  */
 void
@@ -144,13 +157,14 @@ internal_error (const char *format, ...)
   va_start (va, format);
 
 
-  message (LOG_EMERG, FACILITY_ALL, "Zfsd terminating due to internal error...");
+  message (LOG_EMERG, FACILITY_ALL, "Zfsd terminating due to internal error...\n");
 
   va_start (va, format);
   vsnprintf(msg, 1024, format, va);
   va_end (va);
   
   message (LOG_EMERG, FACILITY_ALL, msg);
+  show_stackframe();
   sleep (2);
 
 #ifdef ENABLE_CHECKING
@@ -166,6 +180,6 @@ internal_error (const char *format, ...)
 void
 verbose_abort (const char *file, int line)
 {
-  internal_error ("Aborted by %lu, at %s:%d", (unsigned long) pthread_self (),
+  internal_error ("Aborted by %lu, at %s:%d\n", (unsigned long) pthread_self (),
 		  file, line);
 }

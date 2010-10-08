@@ -1,7 +1,7 @@
 /*! \file
-    \brief Functions for updating files.  */
+    \brief Functions for updating and reintegrating files.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -46,7 +46,7 @@
 
 /*! \brief Check whether we should update a generic file.
  *
- * Update the generic file if it has not been completelly updated yet,
+ * Update the generic file if it has not been completely updated yet,
  * otherwise update a directory if the remote version has changed since
  * the last time we updated the directory
  * or update a regular file if local file was not modified and remote file was

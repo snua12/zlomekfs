@@ -1,7 +1,7 @@
 /*! \file
     \brief ZFS daemon.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -256,13 +256,26 @@ usage (void)
           "Specifies the name of the configuration file.\n"
 	  "  -o node=ID:NAME:HOSTNAME     "
           "Fetch global configuration from specified node.\n"
-	  "  -o loglevel=DEBUG_LEVEL                "
+	  "  -o loglevel=DEBUG_LEVEL      "
           "Display debugging messages up to level DEBUG_LEVEL.\n"
-	  "                               "
-	  "      --help                   "
-          "Display this help and exit.\n"
-	  "      --version                "
-          "Output version information and exit.\n"
+#ifdef VERSIONS
+    "  -o versioning                "
+       "Enable versioning.\n"
+      "  -o verdisplay              "
+         "Display version files in directory listing.\n"
+      "  -o veragemin=seconds       "
+         "Minimum age version retention period.\n"
+      "  -o veragemax=seconds       "
+         "Maximum age version retention period.\n"
+      "  -o vernummin=number       "
+         "Minimum number of versions to keep with retention.\n"
+      "  -o vernummax=number       "
+         "Maximum number of versions to keep with retention.\n"
+#endif
+	  "  --help                       "
+       "Display this help and exit.\n"
+	  "  --version                    "
+       "Output version information and exit.\n"
 	  "\n"
 	  "FUSE options:\n"
 	  "  -d, -o debug                 "
@@ -293,56 +306,63 @@ version (int exitcode)
    as a pseudo short option, starting with CHAR_MAX + 1.  */
 enum
 {
-  OPTION_HELP = CHAR_MAX + 1,
-  OPTION_VERSION
+  OPTION_HELP,
+  OPTION_VERSION,
 };
 
+struct zfs_opts
+{
+  char *config;
+  char *node;
+  int loglevel;
+#ifdef VERSIONS
+  bool versioning;
+  bool verdisplay;
+  int retention_age_min;
+  int retention_age_max;
+  int retention_num_min;
+  int retention_num_max;
+#endif
+};
+
+#define ZFS_OPT(t, p, v) { t, offsetof (struct zfs_opts, p), v }
+
 static const struct fuse_opt main_options[] = {
-  FUSE_OPT_KEY ("config=", 'c'),
-  FUSE_OPT_KEY ("node=", 'n'),
-  FUSE_OPT_KEY ("-v", 'v'),
-  FUSE_OPT_KEY ("loglevel=", 'l'),
+  ZFS_OPT ("config=%s", config, 0),
+  ZFS_OPT ("node=%s", node, 0),
+  ZFS_OPT ("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
+#ifdef VERSIONS
+  ZFS_OPT ("versioning", versioning, true),
+  ZFS_OPT ("verdisplay", verdisplay, true),
+  ZFS_OPT ("veragemin=%d", retention_age_min, -1),
+  ZFS_OPT ("veragemax=%d", retention_age_max, -1),
+  ZFS_OPT ("vernummin=%d", retention_num_min, -1),
+  ZFS_OPT ("vernummax=%d", retention_num_max, -1),
+#endif
   FUSE_OPT_KEY ("--help", OPTION_HELP),
   FUSE_OPT_KEY ("--version", OPTION_VERSION),
   FUSE_OPT_END
 };
 
 /*! Process command line arguments.  */
-static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
-				ATTRIBUTE_UNUSED const char *arg, int key,
+static int handle_one_argument (ATTRIBUTE_UNUSED void *data, const char *arg, int key,
 				ATTRIBUTE_UNUSED struct fuse_args *outargs)
 {
-
   if (is_logger_arg (arg) == TRUE)
     return 0;
 
-  log_level_t verbose = DEFAULT_LOG_LEVEL;
-
   switch (key)
     {
-    case 'c':
-      free (config_file);
-      config_file = xstrdup (strchr (arg, '=') + 1);
-      return 0;
-
-    case 'n':
-      free (config_node);
-      config_node = xstrdup (strchr (arg, '=') + 1);
-      return 0;
-
-    case 'l':
-      verbose = atoi (strchr(arg,'=')+1);
-      set_log_level (&syplogger, verbose);
-      return 0;
-
     case OPTION_HELP:
       usage ();
       exit (EXIT_SUCCESS);
+
     case OPTION_VERSION:
       version (EXIT_SUCCESS);
       exit (EXIT_SUCCESS);
 
-    case FUSE_OPT_KEY_OPT: case FUSE_OPT_KEY_NONOPT: default:
+    case FUSE_OPT_KEY_NONOPT:
+    default:
       return 1;
     }
 }
@@ -350,12 +370,44 @@ static int handle_one_argument (ATTRIBUTE_UNUSED void *data,
 static void
 process_arguments (int argc, char **argv)
 {
+  struct zfs_opts zopts;
+
   main_args = (struct fuse_args) FUSE_ARGS_INIT (argc, argv);
-  if (fuse_opt_parse (&main_args, NULL, main_options, handle_one_argument) != 0)
+  memset (&zopts, 0, sizeof (zopts));
+  if (fuse_opt_parse (&main_args, &zopts, main_options, handle_one_argument) != 0)
     {
       usage ();
       exit (EXIT_FAILURE);
     }
+
+  if (zopts.config) {
+    free (config_file);
+    config_file = zopts.config;
+  }
+
+  if (zopts.node) {
+    free (config_node);
+    config_node = zopts.node;
+  }
+
+#ifdef VERSIONS
+  versioning = zopts.versioning;
+  verdisplay = zopts.verdisplay;
+
+  if ((zopts.retention_age_max < zopts.retention_age_min) ||
+      (zopts.retention_num_max < zopts.retention_num_min))
+    {
+      printf ("Invalid retention interval.");
+      exit (EXIT_FAILURE);
+    }
+
+  retention_age_min = zopts.retention_age_min;
+  retention_age_max = zopts.retention_age_max;
+  retention_num_min = zopts.retention_num_min;
+  retention_num_max = zopts.retention_num_max;
+#endif
+
+  set_log_level (&syplogger, zopts.loglevel);
 }
 /*! Make zfsd to terminate.  */
 
@@ -446,7 +498,7 @@ daemon_mode (void)
 
 struct dbus_state_holder_def dbus_provider;
 
-void init_dbus()
+void init_dbus(void)
 {
   if (dbus_provider_init (&dbus_provider) != TRUE)
     message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
@@ -486,7 +538,9 @@ main (int argc, char **argv)
   int ret = EXIT_SUCCESS;
 
 
+  opterr = 0;
   zfs_openlog(argc, (const char **)argv);
+  opterr = 1;
   
   init_dbus();
 
@@ -620,6 +674,8 @@ main (int argc, char **argv)
     network_cleanup ();
   if (kernel_started)
     kernel_cleanup ();
+
+  fuse_opt_free_args (&main_args);
 
   fd_data_destroy ();
 

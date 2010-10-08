@@ -26,6 +26,7 @@ INCLUDES = \
 	-I/usr/include/dbus-1.0 \
 	-I/usr/lib/dbus-1.0/include
 
+INCLUDES += @SYSTEM_ZENUNIT_FALSE@ -I../../zen-unit/include
 
 AM_CFLAGS = -DENABLE_CHECKING
 
@@ -43,6 +44,7 @@ nobase_pkginclude_HEADERS = \
 	control/control-protocol.h \
 	control/listener.h \
 	media/file-medium.h \
+	media/print-medium.h \
 	media/medium-api.h \
 	media/medium.h \
 	media/shm-medium.h \
@@ -60,6 +62,7 @@ libsyplog_la_SOURCES = \
 	formatters/raw-formatter.c \
 	media/medium.c \
 	media/file-medium.c \
+	media/print-medium.c \
 	media/shm-medium.c \
 	media/medium-api.c \
 	syp-error.c \

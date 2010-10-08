@@ -1,7 +1,7 @@
 /*! \file
     \brief Dbus universal listener api.  */
 
-/* Copyright (C) 2007 Jiri Zouhar
+/* Copyright (C) 2007, 2010 Jiri Zouhar, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -20,6 +20,7 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
+#include "system.h"
 #include <unistd.h>
 #include "dbus-provider.h"
 #include "log.h"
@@ -105,6 +106,11 @@ void * dbus_provider_loop (void * data)
         break;
       }
     }
+
+    // ignore messages from org.freedesktop.DBus interface (e.g. NameAcquired signal)
+    if ((state != ZFSD_MESSAGE_HANDLED) && !strcmp(dbus_message_get_interface (msg), "org.freedesktop.DBus"))
+      state = ZFSD_MESSAGE_HANDLED;
+
     if (state !=  ZFSD_MESSAGE_HANDLED)
     {
       message (LOG_WARNING, FACILITY_DBUS, "Can't handle message (%d)\n",
@@ -254,9 +260,9 @@ FINISHING:
 
 ZEN_TEST(add_listener){
   struct dbus_state_holder_def prov;
-  void * add_name = 0x1;
-  void * rel_name = 0x2;
-  void * handle = 0x3;
+  void * add_name = (void *)0x1;
+  void * rel_name = (void *)0x2;
+  void * handle = (void *)0x3;
 
   int ret =  dbus_provider_init (&prov);
   ZEN_ASSERT(ret == TRUE, "failed to initialize provider struct");

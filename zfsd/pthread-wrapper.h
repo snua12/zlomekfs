@@ -1,7 +1,7 @@
 /*! \file
     \brief Wrappers for pthread_* functions and related data.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -69,7 +69,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 		 def_ret, strerror (def_ret));					\
 	abort ();							\
       }									\
-    message (LOG_INFO, FACILITY_THREADING, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
 	     (void *) M,						\
 	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
     0; })

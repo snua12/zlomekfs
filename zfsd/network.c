@@ -1,7 +1,7 @@
 /*! \file
     \brief Network thread functions.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -1214,12 +1214,12 @@ network_worker (void *data)
           goto out;
         }
 
-      message (LOG_INFO, FACILITY_NET, "REQUEST: ID=%u function=%u\n", request_id, fn);
       switch (fn)
         {
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
           case ZFS_PROC_##NAME:						\
+            message (LOG_INFO, FACILITY_NET, "REQUEST: ID=%u function=%u (%s)\n", request_id, fn, #NAME); \
             if (t->u.network.dir != CALL_MODE)				\
               {								\
                 if (t->u.network.dir == DIR_REQUEST)			\
@@ -1227,7 +1227,7 @@ network_worker (void *data)
                                     ZFS_INVALID_DIRECTION);		\
                 goto out;						\
               }								\
-            if (td->fd_data->auth < AUTH)				\
+            if ((td->fd_data->auth + 1) < (AUTH + 1))				\
               {								\
                 if (CALL_MODE == DIR_REQUEST)				\
                   send_error_reply (t, request_id,			\

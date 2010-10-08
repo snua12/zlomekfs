@@ -1,7 +1,7 @@
 /*! \file
     \brief Configuration.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -72,6 +72,22 @@ static string private_key;
 
 /*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
+
+#ifdef VERSIONS
+/*! Versioning enabled.  */
+bool versioning = false;
+
+/*! Versions displayed in readdir.  */
+bool verdisplay = false;
+
+/* Age retention interval.  */
+int retention_age_min = -1;
+int retention_age_max = -1;
+
+/* Number of versions retention interval.  */
+int retention_num_min = -1;
+int retention_num_max = -1;
+#endif
 
 /*! mlockall() zfsd  .*/
 bool mlock_zfsd;

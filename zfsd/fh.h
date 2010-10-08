@@ -1,7 +1,7 @@
 /*! \file
     \brief File handle functions.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -114,6 +114,12 @@ typedef struct volume_def *volume;
   ((FH)->local_fh.sid == this_node->id					\
    && (FH)->local_fh.vid != VOLUME_ID_VIRTUAL)
 
+#ifdef VERSIONS
+/*! True if file handle FH has version file open.  */
+#define INTERNAL_FH_VERSION_OPEN(FH)          \
+  ((FH)->version_fd > 0)
+#endif
+
 /*! "Lock" level of the file handle or virtual directory.  */
 #define LEVEL_UNLOCKED	0
 #define LEVEL_SHARED	1
@@ -135,6 +141,7 @@ typedef struct virtual_dir_def *virtual_dir;
 #include "volume.h"
 #include "cap.h"
 #include "metadata.h"
+#include "version.h"
 
 /*! \brief Internal information about file handle.  */
 struct internal_fh_def
@@ -203,6 +210,33 @@ struct internal_fh_def
 
   /*! Generation of socket to node which is reintegrating this file.  */
   unsigned int reintegrating_generation;
+
+#ifdef VERSIONS
+  /*! Version file description. Set to -1 if version file is not open.  */
+  int version_fd;
+
+  /*! Complete path of version file. Valid only when version file is open.  */
+  char *version_path;
+
+  /*! File attributes before modification occurred.  */
+  fattr version_orig_attr;
+
+  /*! File was truncated before opening.  */
+  bool file_truncated;
+
+  /* File size when the file was opened.  */
+  uint64_t marked_size;
+
+  /*! Version file content intervals.  */
+  interval_tree versioned;
+
+  /*! Number of users of version interval tree.  */
+  unsigned int version_interval_tree_users;
+
+  /* List of intervals for open version file.  */
+  version_item *version_list;
+  unsigned int version_list_length;
+#endif
 };
 
 /*! Internal file handle flags.  */
@@ -253,6 +287,29 @@ struct internal_dentry_def
 
   /*! Is dentry marked to be deleted?  */
   bool deleted;
+
+#ifdef VERSIONS
+  /*! Is dentry a version file?  */
+  bool version_file;
+
+  /*! Newly created file while?  */
+  bool new_file;
+
+  /* Directory version timestamp.  */
+  time_t dirstamp;
+
+  /* Hash table for readdir with timestamp.  */
+  htab_t dirhtab;
+
+  /* New version files in this directory?  */
+  bool version_dirty;
+
+  /* Dentry of a version file.  */
+  internal_dentry version_dentry;
+
+  /* Dentry of an interval file.  */
+  internal_dentry version_interval_dentry;
+#endif
 };
 
 /*! \brief Virtual directory (element of mount tree).  */
@@ -340,6 +397,7 @@ extern internal_dentry get_dentry (zfs_fh *local_fh, zfs_fh *master_fh,
 extern void delete_dentry (volume *volp, internal_dentry *dirp, string *name,
                            zfs_fh *dir_fh);
 extern virtual_dir vd_lookup (zfs_fh *fh);
+extern virtual_dir vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp);
 extern virtual_dir vd_lookup_name (virtual_dir parent, string *name);
 extern internal_dentry dentry_lookup (zfs_fh *fh);
 extern internal_dentry dentry_lookup_name (volume vol, internal_dentry parent,
@@ -361,6 +419,9 @@ extern void debug_fh_htab (void);
 extern void print_subdentries (FILE *f, internal_dentry dentry);
 extern void debug_subdentries (internal_dentry dentry);
 
+extern internal_dentry internal_dentry_create_ns (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
+                                               internal_dentry parent, string *name, fattr *attr,
+                                               metadata *meta, unsigned int level);
 extern internal_dentry internal_dentry_link (internal_dentry orig,
                                              internal_dentry parent,
                                              string *name);

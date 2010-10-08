@@ -279,6 +279,7 @@ typedef struct write_args_def
   zfs_cap cap;
   uint64_t offset;
   data_buffer data;
+  bool remote;
 } write_args;
 
 typedef struct write_res_def

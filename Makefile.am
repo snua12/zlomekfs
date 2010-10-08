@@ -18,6 +18,7 @@
 # along with zlomekFS; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
 	zlomekfs.spec \
@@ -80,9 +81,13 @@ install-html: install-doc
 clean-local:
 	rm -rf build doxy-warnings
 
+# if we don't use system syplog, we need to build it locally
+if !SYSTEM_SYPLOG
+   SYPLOG_SUBDIRS = regression-testing/syplog/
+endif
 
-SUBDIRS = \
-	fuse \
+SUBDIRS = $(SYPLOG_SUBDIRS) \
 	zfsd \
 	tests
+
 

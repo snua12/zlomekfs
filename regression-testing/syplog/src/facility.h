@@ -2,21 +2,21 @@
 #define FACILITY_H
 
 /*! \file
-    \brief Facilities and associated helper functions.  
+    \brief Facilities and associated helper functions.
 
-  Facility is a part (or concern) of application 
+  Facility is a part (or concern) of application
   which needs to be distinguished in logging.
 
   Current model of facilities is a bitmap. When the bit for particular
   facility is set in bitmap, it means that messages from this facility
-  have to be logged. 
+  have to be logged.
 
   Message can be associated to more than one facility. Then it is logged
   if at least one of them is set to be logged.
 
 */
 
-/* Copyright (C) 2007, 2008 Jiri Zouhar
+/* Copyright (C) 2007, 2008, 2010 Jiri Zouhar, Rastislav Wartiak
 
    This file is part of Syplog.
 
@@ -33,7 +33,7 @@
    You should have received a copy of the GNU General Public License along with
    Syplog; see the file COPYING.  If not, write to the Free Software Foundation,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html 
+   or download it from http://www.gnu.org/licenses/gpl.html
 */
 
 
@@ -53,7 +53,7 @@ typedef uint32_t		facility_t;
 #define	FACILITY_LOG_NAME		"LOG"
 /// log message apply on threading
 #define	FACILITY_THREADING      0x2
-#define	FACILITY_THREADING_NAME		"THREADING"
+#define	FACILITY_THREADING_NAME		"THREAD"
 /// log message apply on networking
 #define	FACILITY_NET            0x4
 #define	FACILITY_NET_NAME		"NET"
@@ -69,13 +69,15 @@ typedef uint32_t		facility_t;
 /// log message apply on configuration
 #define	FACILITY_CONFIG         0x40
 #define	FACILITY_CONFIG_NAME		"CONFIG"
-
 /// log message apply on dbus
 #define FACILITY_DBUS           0x80
-#define FACILITY_DBUS_NAME		"DBUS"
+#define FACILITY_DBUS_NAME      "DBUS"
 /// facility for global testing
-#define FACILITY_ZFSD		0x100
-#define	FACILITY_ZFSD_NAME		"ZFSD"
+#define FACILITY_ZFSD           0x100
+#define FACILITY_ZFSD_NAME      "ZFSD"
+// log message apply on versioning
+#define FACILITY_VERSION        0x200
+#define FACILITY_VERSION_NAME   "VERSION"
 
 /// do not log messages from any facility
 #define	FACILITY_NOTHING        0x0
@@ -110,6 +112,8 @@ static inline const char * facility_to_name (facility_t facility)
     return FACILITY_DBUS_NAME;
   if ((facility & FACILITY_ZFSD) > 0)
     return FACILITY_ZFSD_NAME;
+  if ((facility & FACILITY_VERSION) > 0)
+    return FACILITY_VERSION_NAME;
 
   if (facility == FACILITY_NOTHING)
     return FACILITY_NOTHING_NAME;
@@ -144,6 +148,8 @@ static inline facility_t facility_from_string (const char * facility_name)
     return FACILITY_DBUS;
   if (strncmp (facility_name, FACILITY_ZFSD_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_ZFSD;
+  if (strncmp (facility_name, FACILITY_VERSION_NAME, FACILITY_STRING_LEN) == 0)
+    return FACILITY_VERSION;
 
   if (strncmp (facility_name, FACILITY_NOTHING_NAME, FACILITY_STRING_LEN) == 0)
     return FACILITY_NOTHING;

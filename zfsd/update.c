@@ -1,7 +1,7 @@
 /*! \file
     \brief Functions for updating and reintegrating files.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -249,7 +249,7 @@ truncate_local_file (volume *volp, internal_dentry *dentryp, zfs_fh *fh,
     }
 
   /* do the actual size change */
-  r = local_setattr (&fa, *dentryp, &sa, *volp);
+  r = local_setattr (&fa, *dentryp, &sa, *volp, false);
   if (r != ZFS_OK)
     RETURN_INT (r);
 
@@ -917,7 +917,8 @@ update_p (volume *volp, internal_dentry *dentryp, zfs_fh *fh, fattr *attr,
 
   /* get remote attributes */
   r = remote_getattr (attr, *dentryp, *volp);
-  message (LOG_DEBUG, FACILITY_DATA | FACILITY_NET, "update_p() got master version %llu, local meta: %llu\n", attr->version, (*dentryp)->fh->meta.master_version);
+  message (LOG_DEBUG, FACILITY_DATA | FACILITY_NET, "update_p() got master version %llu, local meta: %llu for %s\n",
+          attr->version, (*dentryp)->fh->meta.master_version, (*dentryp)->name.str);
   if (r != ZFS_OK)
     goto out;
 
@@ -1062,7 +1063,7 @@ update_file (zfs_fh *fh, bool slowthread)
           break;
   }
 
-  /* calculate the capability rigts needed for desired action */
+  /* calculate the capability rights needed for desired action */
   switch (what & (IFH_UPDATE | IFH_REINTEGRATE))
     {
       case IFH_UPDATE:
@@ -1072,7 +1073,7 @@ update_file (zfs_fh *fh, bool slowthread)
 
       case IFH_REINTEGRATE:
         /* File may change from other node when we are reintegrating file
-           so fallthru.  */
+           so fall-thru.  */
 
       case IFH_UPDATE | IFH_REINTEGRATE:
         cap.flags = O_RDWR;
@@ -1233,17 +1234,16 @@ out:
 
   /* Reschedule if planned, according to file's volume connection speed */
   if (!zfs_fh_undefined(reschedule_fh)) {
-    message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Rescheduling file on the update_file() end...");
     if (slow == false)
       {
-        message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "to fast queue\n");
+        message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Rescheduling file on the update_file() end... to fast queue\n");
         zfsd_mutex_lock (&update_queue_mutex);
         queue_put (&update_queue, &reschedule_fh);
         zfsd_mutex_unlock (&update_queue_mutex);
       }
     else
       {
-        message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "to slow queue\n");
+        message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Rescheduling file on the update_file() end... to slow queue\n");
         zfsd_mutex_lock (&update_slow_queue_mutex);
         queue_put (&update_slow_queue, &reschedule_fh);
         zfsd_mutex_unlock (&update_slow_queue_mutex);
@@ -1666,6 +1666,9 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
     abort ();
 #endif
 
+  message (LOG_FUNC, FACILITY_DATA | FACILITY_NET, "synchronize_attributes(): name=%s, local=%u, remote=%u\n",
+          (*dentryp)->fh->meta.name, local_changed, remote_changed);
+
   if (local_changed && METADATA_ATTR_EQ_P ((*dentryp)->fh->attr, *attr))
     {
       /* local attributes were supposed to be changed but actually aren't, just update local metadata then */
@@ -1712,7 +1715,7 @@ synchronize_attributes (volume *volp, internal_dentry *dentryp,
         sa.size = attr->size;
       }
 
-      r = local_setattr (&fa, *dentryp, &sa, *volp);
+      r = local_setattr (&fa, *dentryp, &sa, *volp, false);
     }
 
   if (r != ZFS_OK)
@@ -1995,6 +1998,8 @@ schedule_update_or_reintegration (volume vol, internal_dentry dentry)
     abort ();
 #endif
 
+  message (LOG_FUNC, FACILITY_DATA | FACILITY_NET, "schedule_update_or_reintegration(): name=%s\n", dentry->name.str);
+
   connection_speed speed = volume_master_connected (vol);
 
   if (speed > CONNECTION_SPEED_NONE)
@@ -2141,6 +2146,9 @@ synchronize_file (volume vol, internal_dentry dentry, zfs_fh *fh, fattr *attr,
   if (zfs_fh_undefined (dentry->fh->meta.master_fh))
     abort ();
 #endif
+
+  message (LOG_FUNC, FACILITY_DATA | FACILITY_NET, "synchronize_file(): name=%s, what=%u, same_place=%u\n",
+          dentry->name.str, what, same_place);
 
   /* detects changes of metadata (attributes and size) */
   local_changed = METADATA_ATTR_CHANGE_P (dentry->fh->meta, dentry->fh->attr)
@@ -2314,7 +2322,7 @@ resolve_conflict_discard_local (zfs_fh *conflict_fh, internal_dentry local,
       sa.atime = (zfs_time) -1;
       sa.mtime = (zfs_time) -1;
       release_dentry (remote);
-      r = local_setattr (&fa, local, &sa, vol);
+      r = local_setattr (&fa, local, &sa, vol, false);
       if (r != ZFS_OK)
         RETURN_INT (r);
 
@@ -3865,7 +3873,7 @@ update_worker (void *data)
         {
           /* this thread is slow updater */
           bool succeeded;
-          message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Worker slow update thread: check slow update queue...");
+          message (LOG_INFO, FACILITY_DATA | FACILITY_NET, "Worker slow update thread: check slow update queue...\n");
           zfsd_mutex_lock (&update_slow_queue_mutex);
           /* check if slow_queue is empty */
           if (update_slow_queue.nelem == 0)

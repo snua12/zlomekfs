@@ -98,7 +98,7 @@ extern bool filldir_htab (uint32_t ino, int32_t cookie, const char *name,
 extern int32_t local_readdir (dir_list *list, internal_dentry dentry,
                               virtual_dir vd, zfs_fh *fh, int32_t cookie,
                               readdir_data *data, volume vol,
-                              filldir_f filldir);
+                              filldir_f filldir, bool convert_versions);
 extern int32_t remote_readdir (dir_list *list, internal_cap cap,
                                internal_dentry dentry, int32_t cookie,
                                readdir_data *data, volume vol,

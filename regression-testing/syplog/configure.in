@@ -11,11 +11,22 @@ AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
 
 AC_CHECK_HEADERS(pthread.h)
-#AC_CHECK_LIB(zenunit, get_test_functions)
 AC_CHECK_LIB(dbus, dbus_connection_read_write)
 
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(syplog, 0.3)
+
+# by default, use the bundled zen-unit, but allow use system one
+# Note that in fact, only the headers are needed
+AC_ARG_WITH(system-zenunit,
+    AS_HELP_STRING([--with-system-zenunit],[Use system-installed zen-unit instead of bundled one.]))
+AM_CONDITIONAL(SYSTEM_ZENUNIT, [test "x$with_system_zenunit" = "xyes"])
+AS_IF([test "x$with_system_zenunit" != "xyes"],
+    [AC_CONFIG_SUBDIRS(../zen-unit)],
+    [AC_CHECK_HEADER([zen-unit.h], [], 
+	[AC_MSG_ERROR([zen-unit.h not found])]
+    )]
+)
 
 
 AC_OUTPUT( \

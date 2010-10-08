@@ -1,8 +1,7 @@
 /*! \file
     \brief ZFS protocol.  */
 
-/* Copyright (C) 2003, 2004 Josef Zlomek
-   Copyright (C) 2004 Martin Zlomek
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Martin Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
@@ -166,7 +165,7 @@ zfs_proc_setattr_server (setattr_args *args, DC *dc,
   int32_t r;
   fattr fa;
 
-  r = zfs_setattr (&fa, &args->file, &args->attr);
+  r = zfs_setattr (&fa, &args->file, &args->attr, false);
   encode_status (dc, r);
   if (r == ZFS_OK)
     encode_fattr (dc, &fa);
@@ -386,6 +385,7 @@ zfs_proc_write_server (write_args *args, DC *dc, ATTRIBUTE_UNUSED void *data)
   write_res res;
   int32_t r;
 
+  args->remote = true;
   r = zfs_write (&res, args);
   encode_status (dc, r);
   if (r == ZFS_OK)
@@ -665,7 +665,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
   zfsd_mutex_lock (&request_id_mutex);					\
   req_id = request_id++;						\
   zfsd_mutex_unlock (&request_id_mutex);				\
-  message (LOG_INFO, FACILITY_NET, "sending request: ID=%u fn=%u\n", req_id, NUMBER);\
+  message (LOG_INFO, FACILITY_NET, "sending request: ID=%u fn=%u (%s)\n", req_id, NUMBER, #NAME);\
   start_encoding (t->dc_call);						\
   encode_direction (t->dc_call, CALL_MODE);				\
   encode_request_id (t->dc_call, req_id);				\
