@@ -23,14 +23,14 @@ EXTRA_DIST = zfs-prot.def
 if SYSTEM_ZENUNIT
     ZENUNIT_INCLUDES =
 else
-    ZENUNIT_INCLUDES = -I../regression-testing/zen-unit/include
+    ZENUNIT_INCLUDES = -I$(top_srcdir)/regression-testing/zen-unit/include
 endif
 
 if SYSTEM_SYPLOG
     SYPLOG_INCLUDES = -I/usr/include/syplog
     SYPLOG_LIB = -lsyplog
 else
-    SYPLOG_INCLUDES = -I../regression-testing/syplog/src
+    SYPLOG_INCLUDES = -I$(top_srcdir)/regression-testing/syplog/src
 #   FIXME: Is there a way to request single static lib from libtool without relying on the path?
     SYPLOG_LIB = ../regression-testing/syplog/src/.libs/libsyplog.a
 endif
