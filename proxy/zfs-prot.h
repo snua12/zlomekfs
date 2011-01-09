@@ -1,1 +1,0 @@
-../zfsd/zfs-prot.h
