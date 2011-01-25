@@ -433,6 +433,12 @@ node_connect (node nod)
               {
                 int flags;
 
+                if(htonl(((struct sockaddr_in*)a->ai_addr)->sin_addr.s_addr) > htonl(inet_addr("127.0.0.0")) &&
+                    htonl(((struct sockaddr_in*)a->ai_addr)->sin_addr.s_addr) < htonl(inet_addr("127.255.255.255")))
+                  {
+                    continue;
+                  }
+
                 s = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
                 if (s < 0)
                   {
@@ -480,6 +486,7 @@ node_connect (node nod)
                 && a->ai_protocol == IPPROTO_TCP)
               {
                 int flags;
+
 
                 s = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
                 if (s < 0)
