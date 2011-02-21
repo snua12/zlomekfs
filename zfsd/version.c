@@ -47,7 +47,7 @@
 #include "version.h"
 #include "update.h"
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
 
 #ifdef __linux__
 
@@ -1570,4 +1570,4 @@ version_apply_retention (internal_dentry dentry, volume vol)
   RETURN_INT (ZFS_OK);
 }
 
-#endif /* VERSIONS */
+#endif /* ENABLE_VERSIONS */

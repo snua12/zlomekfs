@@ -47,7 +47,7 @@
 #include "user-group.h"
 #include "dir.h"
 #include "update.h"
-#include "config.h"
+#include "configuration.h"
 #include "version.h"
 
 /*! File handle of ZFS root.  */
@@ -781,7 +781,7 @@ vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp)
   CHECK_MUTEX_LOCKED (&fh_mutex);
   CHECK_MUTEX_LOCKED (&parent->mutex);
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (versioning && dirstamp)
     {
       int orgnamelen = 0;
@@ -812,7 +812,7 @@ vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp)
 #endif
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (verdir.str) free (verdir.str);
 #endif
 
@@ -1308,7 +1308,7 @@ internal_fh_create (zfs_fh *local_fh, zfs_fh *master_fh, fattr *attr,
   fh->flags = 0;
   fh->reintegrating_sid = 0;
   fh->reintegrating_generation = 0;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   fh->version_fd = -1;
   fh->version_path = NULL;
   fh->versioned = NULL;
@@ -1419,7 +1419,7 @@ internal_fh_destroy_stage1 (internal_fh fh)
       journal_destroy (fh->journal);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (fh->version_list)
     {
       unsigned int i;
@@ -1626,7 +1626,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   dentry->heap_node = NULL;
   dentry->users = 0;
   dentry->deleted = false;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   dentry->version_file = false;
   dentry->new_file = false;
   dentry->dirstamp = 0;
@@ -1721,7 +1721,7 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
     }
   *slot = dentry;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (versioning && strchr (name->str, VERSION_NAME_SPECIFIER_C))
     dentry->version_file = true;
 #endif
@@ -1985,7 +1985,7 @@ internal_dentry_link (internal_dentry orig,
   dentry->heap_node = NULL;
   dentry->users = 0;
   dentry->deleted = false;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   dentry->version_file = false;
 #endif
 
@@ -2266,7 +2266,7 @@ internal_dentry_destroy (internal_dentry dentry, bool clear_volume_root,
           zfsd_mutex_unlock (&vol->mutex);
         }
     }
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (dentry->dirhtab)
     {
       htab_destroy(dentry->dirhtab);

@@ -21,7 +21,6 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "log.h"
-#include "system.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -36,13 +35,20 @@
 
 #include "node.h"
 #include "syplog.h"
+
+#ifdef ENABLE_DBUS
 #include "control/listener.h"
+#endif
+
 #include "pthread-wrapper.h"
 
 
-struct logger_def syplogger;
-struct listener_def control;
 
+struct logger_def syplogger;
+
+#ifdef ENABLE_DBUS
+
+struct listener_def control;
 
 int dbus_add_log_name (DBusConnection * connection, 
                        DBusError * err_struct)
@@ -85,6 +91,7 @@ message_handle_state_e dbus_handle_log_message (DBusConnection * connection,
   return ZFSD_HANDLE_ERROR;
 
 }
+#endif
 
 
 void zfs_openlog(int  argc, const char ** argv)

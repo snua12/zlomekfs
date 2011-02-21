@@ -38,6 +38,7 @@
 
 #include "syplog.h"
 #include "media/file-medium.h"
+#include "media/print-medium.h"
 #include "control/listener.h"
 
 void print_syplog_help (int fd, int tabs)
@@ -194,6 +195,20 @@ static char * default_options [] =
 /// default_options table row count
 static int default_option_count = 3;
 
+/// Fallback options for creating writer, Used when open_medium with default values fail.
+static char * fallback_options [] = 
+{
+"syplog",
+"--" PARAM_MEDIUM_TYPE_LONG "=" PRINT_MEDIUM_NAME,
+"--" PARAM_MEDIUM_FMT_LONG "=" USER_READABLE_FORMATTER_NAME,
+"--" PARAM_MEDIUM_OP_LONG "=" OPERATION_WRITE_NAME
+};
+
+/// fallback_options table row count
+static int fallback_option_count = 3;
+
+
+
 /// Opens log and initializes logger structure
 syp_error open_log (logger glogger,  const char * node_name, int argc, const char ** argv)
 {
@@ -257,7 +272,9 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, const cha
   
   ret_code = open_medium (&glogger->printer, argc, argv);
   if (ret_code != NOERR)
-    goto FINISHING;
+  {
+	open_medium (&glogger->printer, fallback_option_count, fallback_options);	
+  }
   
   FINISHING:
     pthread_mutex_unlock (&(glogger->mutex));

@@ -20,8 +20,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef CONFIGURATION_H
+#define CONFIGURATION_H
 
 #include "system.h"
 #include <stdio.h>
@@ -44,7 +44,7 @@ extern string kernel_file_name;
 /*! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
 /* Versioning enabled.  */
 extern bool versioning;
 

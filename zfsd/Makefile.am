@@ -20,42 +20,52 @@
 
 EXTRA_DIST = zfs-prot.def
 
-if SYSTEM_ZENUNIT
-    ZENUNIT_INCLUDES =
-else
+if ZENUNIT_INTERNAL_BUILD
     ZENUNIT_INCLUDES = -I$(top_srcdir)/regression-testing/zen-unit/include
+else
+    ZENUNIT_INCLUDES =
 endif
 
-if SYSTEM_SYPLOG
-    SYPLOG_INCLUDES = -I/usr/include/syplog
-    SYPLOG_LIB = -lsyplog
-else
+if SYPLOG_INTERNAL_BUILD
     SYPLOG_INCLUDES = -I$(top_srcdir)/regression-testing/syplog/src
 #   FIXME: Is there a way to request single static lib from libtool without relying on the path?
     SYPLOG_LIB = ../regression-testing/syplog/src/.libs/libsyplog.a
+else
+    SYPLOG_INCLUDES = 
+    SYPLOG_LIB = -lsyplog
 endif
 
-INCLUDES = \
-	-I/usr/include/fuse \
-	-I/usr/include/dbus-1.0 \
-	-I/usr/lib/dbus-1.0/include \
+if ENABLE_DBUS_BUILD
+   ENABLE_DBUS_BUILD_HEADERS_nobase = dbus-service-descriptors.h
+   ENABLE_DBUS_BUILD_HEADERS_noinst = dbus-provider.h dbus-zfsd-service.h 
+   ENABLE_DBUS_BUILD_SOURCES_zfsd = dbus-zfsd-service.c dbus-provider.c
+else
+   ENABLE_DBUS_BUILD_HEADERS_nobase =
+   ENABLE_DBUS_BUILD_HEADERS_noinst =
+   ENABLE_DBUS_BUILD_SOURCES_zfsd =
+endif
+	
+
+AM_CPPFLAGS = \
+	$(FUSE_MODULE_CFLAGS) \
+	$(DBUS_MODULE_CFLAGS) \
 	$(SYPLOG_INCLUDES) \
 	$(ZENUNIT_INCLUDES)
 
-AM_LDFLAGS = -lrt -ldl -lpthread -ldbus-1
+AM_LDFLAGS = -lrt -ldl -lpthread
 
 AM_CFLAGS = -Wall -W -Wcast-align -Wcast-qual -Wmissing-noreturn \
 	-Wnested-externs -Wpointer-arith -Wshadow -Wstrict-prototypes \
-	-Wundef -pthread -D_FILE_OFFSET_BITS=64 -pthread -DUSE_SYSLOG -DVERSIONS -DENABLE_CHECKING
+	-Wundef -pthread -D_FILE_OFFSET_BITS=64
 
 bin_PROGRAMS = dump-metadata dump-intervals
 sbin_PROGRAMS = zfsd
 
 nobase_pkginclude_HEADERS = \
-	dbus-service-descriptors.h
+	${ENABLE_DBUS_BUILD_HEADERS_nobase}
 
-noinst_HEADERS = alloc-pool.h cap.h config.h constant.h crc32.h data-coding.h \
-	dbus-provider.h dbus-zfsd-service.h dir.h fh.h fibheap.h file.h \
+noinst_HEADERS = alloc-pool.h cap.h configuration.h constant.h crc32.h data-coding.h \
+	${ENABLE_DBUS_BUILD_HEADERS_noinst} dir.h fh.h fibheap.h file.h \
 	hardlink-list.h hashfile.h hashtab.h interval.h journal.h  kernel.h log.h \
 	md5.h memory.h metadata.h network.h node.h pthread-wrapper.h queue.h random.h \
 	semaphore.h splay-tree.h system.h thread.h update.h user-group.h util.h \
@@ -64,7 +74,7 @@ noinst_HEADERS = alloc-pool.h cap.h config.h constant.h crc32.h data-coding.h \
 
 zfsd_SOURCES = zfsd.c \
 	  alloc-pool.c \
-	  cap.c config.c constant.c crc32.c \
+	  cap.c configuration.c constant.c crc32.c \
 	  data-coding.c dir.c \
 	  fh.c fibheap.c file.c \
 	  hardlink-list.c hashfile.c hashtab.c \
@@ -82,9 +92,8 @@ zfsd_SOURCES = zfsd.c \
 	  update.c user-group.c util.c \
 	  varray.c version.c volume.c\
 	  zfs-prot.c \
-	  dbus-zfsd-service.c \
-	  dbus-provider.c
-zfsd_LDADD = $(SYPLOG_LIB) -lfuse
+	  ${ENABLE_DBUS_BUILD_SOURCES_zfsd}
+zfsd_LDADD = $(SYPLOG_LIB) $(FUSE_MODULE_LIBS) $(DBUS_MODULE_LIBS)
 
 
 dump_metadata_SOURCES = dump-metadata.c \
@@ -102,7 +111,7 @@ dump_metadata_SOURCES = dump-metadata.c \
 		   user-group.c \
 		   util.c \
 		   varray.c
-dump_metadata_LDADD = $(SYPLOG_LIB) -lfuse
+dump_metadata_LDADD = $(SYPLOG_LIB) $(DBUS_MODULE_LIBS)
 
 dump_intervals_SOURCES = dump-intervals.c \
 		    alloc-pool.c \
@@ -117,7 +126,5 @@ dump_intervals_SOURCES = dump-intervals.c \
 		    splay-tree.c \
 		    util.c \
 		    varray.c
-dump_intervals_LDADD = $(SYPLOG_LIB) -lfuse
+dump_intervals_LDADD = $(SYPLOG_LIB) $(DBUS_MODULE_LIBS)
 
-test: zfsd
-	./test.py ./zfsd

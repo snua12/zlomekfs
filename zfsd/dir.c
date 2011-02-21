@@ -36,7 +36,7 @@
 #include "fh.h"
 #include "dir.h"
 #include "file.h"
-#include "config.h"
+#include "configuration.h"
 #include "thread.h"
 #include "varray.h"
 #include "data-coding.h"
@@ -104,7 +104,7 @@ build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
   unsigned int n;
   varray v;
   string dir;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   time_t stamp = 0;
   int32_t r;
   int orgnamelen = 0;
@@ -122,7 +122,7 @@ build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
   dst->str = NULL;
   dst->len = 0;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (versioning)
     {
       // directory timestamp present?
@@ -138,7 +138,7 @@ build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
 #endif
 
   /* Count the number of strings which will be concatenated.  */
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   n = 2;
 #else
   n = 3;
@@ -150,7 +150,7 @@ build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
   varray_create (&v, sizeof (string), n);
   VARRAY_USED (v) = n;
   n--;
-#ifndef VERSIONS
+#ifndef ENABLE_VERSIONS
   VARRAY_ACCESS (v, n, string) = *name;
   n--;
 #endif
@@ -170,7 +170,7 @@ build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
   xstringconcat_varray (&dir, &v);
   varray_destroy (&v);
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   // update name if working with version file
   if (versioning && stamp)
     {
@@ -1593,7 +1593,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, bool sh
 {
   string path;
   int32_t r;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   bool version_was_open = true;
 #endif
 
@@ -1610,7 +1610,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, bool sh
       RETURN_INT (ESTALE);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (should_version && versioning && dentry->version_file)
     {
       release_dentry (dentry);
@@ -1622,7 +1622,7 @@ local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, bool sh
 
   build_local_path (&path, vol, dentry);
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   // make sure we have correct attributes of the file
   local_getattr_path (fa, &path);
 
@@ -2272,7 +2272,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
               zfsd_mutex_unlock (&vd->mutex);
             }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
       idir->dirstamp = dirstamp;
 #endif
 
@@ -2415,7 +2415,7 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
 
       dentry = get_dentry (&res->file, &master_res.file, vol, idir, name,
                            &res->attr, &meta);
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
       dentry->dirstamp = dirstamp;
       if (idir->dirstamp && (res->attr.type == FT_DIR))
         {
@@ -2754,7 +2754,7 @@ local_rmdir (metadata *meta, internal_dentry dir, string *name, volume vol)
       RETURN_INT (errno);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   version_rmdir_versions (path.str);
 #endif
 
@@ -3295,7 +3295,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
       RETURN_INT (errno);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (should_version && versioning)
     version_rename_source(from_path->str);
 #endif
@@ -3316,7 +3316,7 @@ local_rename_base (metadata *meta_old, metadata *meta_new,
   else
     {
       /* TO_PATH exists.  */
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
     if (versioning)
       version_unlink_file (to_path->str);
 #endif
@@ -4240,7 +4240,7 @@ local_unlink (metadata *meta, internal_dentry dir, string *name, volume vol)
       RETURN_INT (errno);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (versioning)
     {
       if (VERSION_FILENAME_P (name->str))

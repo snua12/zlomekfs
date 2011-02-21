@@ -51,7 +51,7 @@
 #include "thread.h"
 #include "user-group.h"
 #include "zfs-prot.h"
-#include "config.h"
+#include "configuration.h"
 
 /* In seconds before a revalidation is required */
 #define CACHE_VALIDITY 5

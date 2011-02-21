@@ -53,14 +53,14 @@
 #include "fh.h"
 #include "file.h"
 #include "dir.h"
-#include "config.h"
+#include "configuration.h"
 #include "cap.h"
 #include "volume.h"
 #include "metadata.h"
 #include "network.h"
 #include "md5.h"
 #include "update.h"
-#include "config.h"
+#include "configuration.h"
 #include "version.h"
 
 /* FIXME: use getdents64 (), or just plain readdir ()? */
@@ -260,7 +260,7 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       RETURN_INT (ZFS_OK);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (versioning && dentry->version_file && ((flags & O_ACCMODE) != O_RDONLY))
     {
       release_dentry (dentry);
@@ -287,7 +287,7 @@ capability_open (int *fd, uint32_t flags, internal_dentry dentry, volume vol)
       init_fh_fd_data (dentry->fh);
       zfsd_mutex_unlock (&opened_mutex);
       *fd = dentry->fh->fd;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
       if (versioning && (dentry->fh->attr.type == FT_REG))
       {
         // build intervals or mark file size
@@ -335,7 +335,7 @@ local_close (internal_fh fh)
 
   if (fh->fd >= 0)
     {
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
     if (versioning && (fh->attr.type == FT_REG) && (fh->version_fd > 0)) version_close_file(fh, true);
 #endif
       zfsd_mutex_lock (&opened_mutex);
@@ -491,7 +491,7 @@ local_create (create_res *res, int *fdp, internal_dentry dir, string *name,
       RETURN_INT (r);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (versioning && strchr (name->str, VERSION_NAME_SPECIFIER_C))
     {
       RETURN_INT (EACCES);
@@ -727,7 +727,7 @@ zfs_create (create_res *res, zfs_fh *dir, string *name,
 
       if (INTERNAL_FH_HAS_LOCAL_PATH (idir->fh))
         {
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
         if (!exists)
           dentry->new_file = true;
 
@@ -1252,7 +1252,7 @@ zfs_close (zfs_cap *cap)
                   && !save_interval_trees (vol, dentry->fh))
                 MARK_VOLUME_DELETE (vol);
             }
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
           if (versioning && (dentry->fh->attr.type == FT_REG) && (dentry->fh->version_fd > 0))
             version_save_interval_trees (dentry->fh);
           // we are generating new version files
@@ -1628,7 +1628,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   int fd;
   bool local_volume_root;
   bool is_vername = false;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   char *vs;
   char *vername = NULL;
   bool store = false;
@@ -1671,7 +1671,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 
   if (dentry)
     {
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
       if (convert_versions && versioning && dentry->dirstamp && (dentry->dirstamp != VERSION_LIST_VERSIONS_STAMP))
         {
           if (!cookie)
@@ -1703,7 +1703,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
       if (cookie < 0)
         cookie = 0;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
       // if new version files were created since previous readdir, we will start again
       if (convert_versions && versioning && dentry->version_dirty && cookie)
         cookie = 0;
@@ -1784,7 +1784,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
               /* Hide special dirs in the root of the volume.  */
               if (local_volume_root && SPECIAL_NAME_P (de->d_name, false))
                 continue;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
               stamp = 0;
               if (convert_versions && versioning)
                 {
@@ -1883,7 +1883,7 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
               if (!is_vername)
                 vername = de->d_name;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
               // store in a hash table, if not '.' and '..'
               if (convert_versions && store &&
                   !(de->d_name[0] == '.' &&
@@ -2464,7 +2464,7 @@ out_update:
     abort ();
 #endif
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
     if (versioning && (dentry->fh->attr.type == FT_REG) & (r == ZFS_OK) && (dentry->version_file) && (offset < dentry->fh->attr.size) &&
         (dentry->fh->version_list_length))
       {
@@ -2486,7 +2486,7 @@ local_write (write_res *res, internal_dentry dentry,
   int32_t r;
   off_t writing_position = -1;
   int fd;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   bool version_was_open = true;
   bool version_write = false;
   int fdv = -1;
@@ -2500,7 +2500,7 @@ local_write (write_res *res, internal_dentry dentry,
   CHECK_MUTEX_LOCKED (&vol->mutex);
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (!remote && versioning && (dentry->fh->attr.type == FT_REG))
   {
     // we have to store original data prior its modification
@@ -2534,7 +2534,7 @@ local_write (write_res *res, internal_dentry dentry,
   r = capability_open (&fd, 0, dentry, vol);
   if (r != ZFS_OK)
     {
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
       // TODO: should not use fh - not locked here
       if (!remote && versioning  && (dentry->fh->attr.type == FT_REG) && (dentry->fh->version_fd > 0))
         version_close_file (dentry->fh, false);
@@ -2542,7 +2542,7 @@ local_write (write_res *res, internal_dentry dentry,
       RETURN_INT (r);
     }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   if (!remote && versioning && (dentry->fh->attr.type == FT_REG) && version_write)
     {
       for (i = 0; i < VARRAY_USED (save); i++)

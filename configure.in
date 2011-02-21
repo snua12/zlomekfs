@@ -1,54 +1,219 @@
-AC_INIT(configure.in)
-AC_CONFIG_MACRO_DIR([m4])
+# configure.in
+# Copyright (C) 2006 Petr Tuma
+# Copyright (C) 2008 Jiri Zouhar
+#
+# This file is part of zlomekFS.
+#
+# zlomekFS is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
+# by the Free Software Foundation; either version 2 of the License,
+# or (at your option) any later version.
+#
+# zlomekFS is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with zlomekFS; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-AC_CONFIG_AUX_DIR([.])
-AC_OUTPUT
-
-
-AC_LANG_C
+AC_INIT([zlomekFS], [0.0])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror])
+AC_CONFIG_SRCDIR([zfsd/zfsd.c])
 AC_PROG_CC
-AC_DISABLE_SHARED
-AC_PROG_LIBTOOL
-AC_PROG_SED
 
-AC_CHECK_HEADERS(pthread.h)
-AC_CHECK_LIB(syplog, do_log)
-AC_CHECK_LIB(dbus, dbus_connection_read_write)
-
+#check headers
 AC_CHECK_HEADERS([linux/dirent.h])
-
-AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(zlomekfs, 0.0)
 
 # by default, use the bundled zen-unit, but allow use system one
 # Note that in fact, only the headers are needed
-AC_ARG_WITH(system-zenunit,
-    AS_HELP_STRING([--with-system-zenunit],[Use system-installed zen-unit instead of bundled one.]))
-AM_CONDITIONAL(SYSTEM_ZENUNIT, [test "x$with_system_zenunit" = "xyes"])
-AS_IF([test "x$with_system_zenunit" != "xyes"],
-    [AC_CONFIG_SUBDIRS(regression-testing/zen-unit)],
-    [AC_CHECK_HEADER([zen-unit.h], [],
-       [AC_MSG_ERROR([zen-unit.h not found])]
-    )]
+AC_MSG_CHECKING([zenunit compatibility])
+AC_ARG_WITH(
+	[zenunit],
+	[AS_HELP_STRING([--with-zenunit=<internal|external>],[Select zenunit library: internal or external @<:@default=internal@:>@])],
+	,
+	[with_zenunit="internal"]
 )
+AC_MSG_RESULT([${with_zenunit}])
+
+if test "${with_zenunit}" = "internal"; then
+	AC_CHECK_HEADER([regression-testing/zen-unit/include/zen-unit.h])
+	AC_DEFINE([ZENUNIT_INTERNAL], [1], [Define to 1 if using internal zenunit])
+else
+	AC_CHECK_HEADER(
+		[zen-unit.h],
+		,
+		AC_MSG_ERROR([Syplog is not fuly instaled. Use --with-zenunit=internal option in configure])
+	)
+fi
+AM_CONDITIONAL([ZENUNIT_INTERNAL_BUILD], (test "${with_zenunit}" = "internal"))
 
 # similarly with syplog (here, the library is needed as well)
-AC_ARG_WITH(system-syplog,
-    AS_HELP_STRING([--with-system-syplog],[Use system-installed syplog instead of bundled one.]))
-AM_CONDITIONAL(SYSTEM_SYPLOG, [test "x$with_system_syplog" = "xyes"])
-AS_IF([test "x$with_system_syplog" != "xyes"],
-    [AC_CONFIG_SUBDIRS(regression-testing/syplog)])
-# FIXME: the syplog headers assume they are directly in include path, although they are under syplog/ subdirectory
-# the tests won't work unless the subdir is also put on path
-#    [AC_CHECK_HEADER([syplog/syplog.h], [],
-#       [AC_MSG_ERROR([syplog/syplog.h not found])]
-#    )]
-#)
+AC_MSG_CHECKING([syplog compatibility])
+AC_ARG_WITH(
+	[syplog],
+	[AS_HELP_STRING([--with-syplog=<internal|external>],[Select syplog library: internal or external @<:@default=internal@:>@])],
+	,
+	[with_syplog="internal"]
+)
+AC_MSG_RESULT([${with_syplog}])
 
-AC_OUTPUT( \
+if test "${with_syplog}" = "internal"; then
+	AC_CONFIG_SUBDIRS([regression-testing/syplog])
+	AC_CHECK_HEADER([regression-testing/syplog/src/syplog.h])
+	AC_DEFINE([SYPLOG_INTERNAL], [1], [Define to 1 if using internal syplog])
+else
+
+	AC_CHECK_HEADER(
+		[syplog.h],
+		,
+		AC_MSG_ERROR([Syplog is not fuly instaled. Use --with-syplog=internal option in configure])
+	)
+
+	AC_CHECK_LIB(
+		[syplog],
+		[do_log],
+		,
+		AC_MSG_ERROR([Syplog is not fuly instaled. Use --with-syplog=internal option in configure])
+	)
+
+fi
+
+AM_CONDITIONAL([SYPLOG_INTERNAL_BUILD], (test "${with_syplog}" = "internal"))
+
+# enable versions suport for zfs
+# similarly with syplog (here, the library is needed as well)
+AC_MSG_CHECKING([zfsd versioning support])
+AC_ARG_WITH(
+	[versioning],
+	[AS_HELP_STRING([--with-versioning=<yes|no>],[Select versioning support: yes or no @<:@default=yes@:>@])],
+	[
+		case "${withval}" in
+			yes) with_versioning="yes" ;;
+			no)  with_versioning="no" ;;
+			*) AC_MSG_ERROR(bad value ${withwal} for --with-versioning) ;;
+		esac
+	]
+	,
+	[with_versioning="yes"]
+)
+AC_MSG_RESULT([${with_versioning}])
+
+if test "${with_versioning}" = "yes"; then
+	AC_DEFINE([ENABLE_VERSIONS],[1], [Define 1 in order to enable zfsd versions support])
+fi
+
+AM_CONDITIONAL([ENABLE_VERSIONS_BUILD], (test "${with_versioning}" = "yes"))
+
+#check for installed fuse
+PKG_CHECK_MODULES(
+	[FUSE_MODULE],
+	[fuse >= 2.8.0],
+	,
+	[
+		AC_MSG_ERROR([FUSE >= 2.8.0 was not found. Either older FUSE is still present, or FUSE is not fully installed (e.g. fuse, libfuse, libfuse2, libfuse-dev, etc packages). Source code: http://fuse.sf.net])
+	]
+)
+
+#check for build with dbus support
+AC_ARG_WITH(
+	[dbus],
+	[AS_HELP_STRING([--with-dbus=<yes|no>],[Select syplog library: internal or external @<:@yes=no@:>@])],
+	[
+		case "${withval}" in
+			yes) with_dbus="yes" ;;
+			no)  with_dbus="no" ;;
+			*) AC_MSG_ERROR(bad value ${withval} for --with-dbus) ;;
+		esac
+	]
+	,
+	[with_dbus="yes"]
+)
+
+if (test "${with_dbus}" = "yes" ); then
+#check for installed dbus
+	PKG_CHECK_MODULES(
+		[DBUS_MODULE],
+		[dbus-1 >= 1.0.0],
+		,
+		[with_dbus="no"]
+	)
+
+	if (test "${with_dbus}" = "yes"); then
+		AC_DEFINE([ENABLE_DBUS], [1], [Define 1 in order to enable zfsd dbus support])
+	else
+		AC_MSG_WARN([DBUS >= 1.0.0 wad not found. Building with out it])
+	
+	fi
+
+fi
+
+AM_CONDITIONAL([ENABLE_DBUS_BUILD], test "${with_dbus}" = "yes")
+
+#check for build with debug support
+AC_ARG_ENABLE(
+	[debug],
+	[AS_HELP_STRING([--enable-debug], [enable debug code and output])],
+	[
+		case "${enableval}" in
+			yes) enable_debug="yes" ;;
+			no)  denable_debug="no" ;;
+			*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+		esac
+	]
+	,
+	[enable_debug="no"]
+)
+
+if test "${enable_debug}" = "yes"; then
+	CFLAGS="${CFLAGS} -ggdb3 -O0"
+	AC_DEFINE(
+		[DEBUG],
+		[1],
+		[Define to 1 if debug should be enabled]
+	)
+
+	AC_DEFINE(
+		[ENABLE_CHECKING],
+		[1],
+		[Define 1 if checking should be enabled]
+	)
+
+fi
+
+#check for build with tests support
+AC_ARG_ENABLE(
+	[tests],
+	[AS_HELP_STRING([--enable-tests], [enable tests code and output])],
+	[
+		case "${enableval}" in
+			yes) enable_tests="yes" ;;
+			no)  denable_tests="no" ;;
+			*) AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
+		esac
+	]
+	,
+	[enable_tests="no"]
+)
+
+if test "${enable_tests}" = "yes"; then
+	AC_DEFINE(
+		[ENABLE_TESTS],
+		[1],
+		[Define to 1 if tests should be enabled]
+	)
+fi
+
+AM_CONDITIONAL([ENABLE_TESTS_BUILD], (test "${enable_tests}" = "internal"))
+
+
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_FILES([\
 	Makefile \
 	zfsd/Makefile \
 	tests/Makefile \
 	tests/nose-tests/Makefile \
-	)
+	])
+AC_OUTPUT
 

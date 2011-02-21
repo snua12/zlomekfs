@@ -25,13 +25,9 @@
 
 #include "system.h"
 
-#ifdef __KERNEL__
-# include <linux/types.h>
-#else
 # include <stddef.h>
 # include <inttypes.h>
 # include "varray.h"
-#endif
 
 /*! \brief String type.  */
 typedef struct string_def
@@ -39,8 +35,6 @@ typedef struct string_def
   uint32_t len;		/*!< Length of the string.  */
   char *str;		/*!< The string itself.  */
 } string;
-
-#ifndef __KERNEL__
 
 extern string empty_string;
 extern string invalid_string;
@@ -63,7 +57,5 @@ extern void append_string (string *dst, string *src, const char *str,
 			   unsigned int len);
 extern void append_file_name (string *dst, string *path, const char *name,
 			      unsigned int len);
-
-#endif
 
 #endif

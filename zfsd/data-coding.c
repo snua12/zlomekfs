@@ -88,15 +88,6 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifdef __KERNEL__
-# include <linux/types.h>
-# include <linux/string.h>
-# include <linux/slab.h>
-# include <linux/vmalloc.h>
-# include <asm/semaphore.h>
-# include <asm/uaccess.h>
-# include "zfs.h"
-#else
 # include "log.h"
 # include <unistd.h>
 # include <inttypes.h>
@@ -105,13 +96,11 @@
 # include <stdlib.h>
 # include "util.h"
 # include "md5.h"
-#endif
 
 #include "data-coding.h"
 #include "memory.h"
 #include "zfs-prot.h"
 
-#ifndef __KERNEL__
 
 /*! Initialize a data coding buffer DC.  */
 
@@ -121,12 +110,6 @@ dc_init (DC *dc)
   dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
 }
 
-#endif
-
-#if defined(__KERNEL__) && defined(DEBUG)
-static int allocated;
-#endif
-
 /*! Return a new data coding buffer.  */
 
 DC *
@@ -134,16 +117,8 @@ dc_create (void)
 {
   DC *dc;
 
-#ifdef __KERNEL__
-  dc = (DC *) vmalloc (sizeof (DC));
-  if (dc) {
-    TRACE("%d DCs allocated", ++allocated);
-    dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
-  }
-#else
   dc = (DC *) xmalloc (sizeof (DC));
   dc->buffer = (char *) ALIGN_PTR_16 (dc->data);
-#endif
 
   return dc;
 }
@@ -153,76 +128,8 @@ dc_create (void)
 void
 dc_destroy (DC *dc)
 {
-#ifdef __KERNEL__
-  TRACE("%d DCs allocated", --allocated);
-  vfree (dc);
-#else
   free (dc);
-#endif
 }
-
-#ifdef __KERNEL__
-
-static DECLARE_MUTEX (dc_lock);
-static DC *dc[MAX_FREE_DCS];
-static int ndc;
-
-/*! Return a new data coding buffer;
-   use an unused one or create a new one.  */
-
-DC *
-dc_get (void)
-{
-  DC *_dc;
-
-  down (&dc_lock);
-  if (ndc)
-    {
-      _dc = dc[--ndc];
-      up (&dc_lock);
-      return _dc;
-    }
-  else
-    {
-      up (&dc_lock);
-      return dc_create();
-    }
-}
-
-/*! Put back the data coding buffer DC;
-   make it unused or free it.  */
-
-void
-dc_put (DC *_dc)
-{
-  if (_dc)
-    {
-      down (&dc_lock);
-      if (!channel.connected || (ndc == MAX_FREE_DCS))
-        {
-          up (&dc_lock);
-          dc_destroy(_dc);
-        }
-      else
-        {
-          dc[ndc++] = _dc;
-          up (&dc_lock);
-        }
-    }
-}
-
-/*! Free all unused data coding buffers. */
-
-void
-dc_destroy_all (void)
-{
-  down (&dc_lock);
-  while (ndc)
-    dc_destroy (dc[--ndc]);
-  up (&dc_lock);
-}
-
-#else
 
 /*! Print DC to file F.  
  *@see message
@@ -243,8 +150,6 @@ print_dc (int level, FILE *f ATTRIBUTE_UNUSED, DC *dc)
 
 
 #define debug_dc(d)	print_dc(LOG_DEBUG, NULL, d)
-
-#endif
 
 /*! Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
 
@@ -338,30 +243,19 @@ encode_##T (DC *dc, T val)					\
 
 DECODE_SIMPLE_TYPE (char, 1, *)
 DECODE_SIMPLE_TYPE (uchar, 1, *)
-#ifndef __KERNEL__
 DECODE_SIMPLE_TYPE (int16_t, 2, le_to_i16p)
 DECODE_SIMPLE_TYPE (uint16_t, 2, le_to_u16p)
-#endif
 DECODE_SIMPLE_TYPE (int32_t, 4, le_to_i32p)
 DECODE_SIMPLE_TYPE (uint32_t, 4, le_to_u32p)
-#ifndef __KERNEL__
 DECODE_SIMPLE_TYPE (int64_t, 8, le_to_i64p)
-#endif
 DECODE_SIMPLE_TYPE (uint64_t, 8, le_to_u64p)
-
-#ifndef __KERNEL__
 ENCODE_SIMPLE_TYPE (char, 1, )
-#endif
 ENCODE_SIMPLE_TYPE (uchar, 1, )
-#ifndef __KERNEL__
 ENCODE_SIMPLE_TYPE (int16_t, 2, i16_to_le)
 ENCODE_SIMPLE_TYPE (uint16_t, 2, u16_to_le)
-#endif
 ENCODE_SIMPLE_TYPE (int32_t, 4, i32_to_le)
 ENCODE_SIMPLE_TYPE (uint32_t, 4, u32_to_le)
-#ifndef __KERNEL__
 ENCODE_SIMPLE_TYPE (int64_t, 8, i64_to_le)
-#endif
 ENCODE_SIMPLE_TYPE (uint64_t, 8, u64_to_le)
 
 bool
@@ -377,11 +271,7 @@ decode_data_buffer (DC *dc, data_buffer *data)
   if (dc->cur_length > dc->max_length)
     return false;
 
-#ifdef __KERNEL__
-  data->buf.k_buf = dc->cur_pos;
-#else
   data->buf = dc->cur_pos;
-#endif
 
   dc->cur_pos += data->len;
 
@@ -404,19 +294,9 @@ encode_data_buffer (DC *dc, const data_buffer *data)
       return false;
     }
 
-#ifdef __KERNEL__
-  if (data->user) {
-    if (copy_from_user(dc->cur_pos, data->buf.u_rbuf, data->len)) {
-          dc->cur_pos = NULL;
-          return false;
-        }
-  } else {
-        memcpy (dc->cur_pos, data->buf.k_buf, data->len);
-  }
-#else
   if (dc->cur_pos != data->buf)
     memcpy (dc->cur_pos, data->buf, data->len);
-#endif
+
   dc->cur_pos += data->len;
 
   return true;
@@ -495,15 +375,11 @@ encode_string (DC *dc, const string *str)
   return true;
 }
 
-#ifndef __KERNEL__
-
 bool
 decode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED void *v)
 {
   return true;
 }
-
-#endif
 
 bool
 encode_void (ATTRIBUTE_UNUSED DC *dc, ATTRIBUTE_UNUSED const void *v)
@@ -559,7 +435,6 @@ encode_ftype (DC *dc, ftype type)
   return encode_uchar (dc, (uchar) type);
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_connection_speed (DC *dc, connection_speed *speed)
@@ -585,7 +460,6 @@ encode_connection_speed (DC *dc, connection_speed speed)
   return encode_uchar (dc, (uchar) speed);
 }
 
-#endif
 
 bool
 decode_zfs_fh (DC *dc, zfs_fh *fh)
@@ -643,7 +517,6 @@ decode_fattr (DC *dc, fattr *attr)
           && decode_zfs_time (dc, &attr->ctime));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_fattr (DC *dc, fattr *attr)
@@ -675,8 +548,6 @@ decode_sattr (DC *dc, sattr *attr)
           && decode_zfs_time (dc, &attr->atime)
           && decode_zfs_time (dc, &attr->mtime));
 }
-
-#endif
 
 bool
 encode_sattr (DC *dc, const sattr *attr)
@@ -713,8 +584,6 @@ encode_zfs_path (DC *dc, const string *str)
   return encode_string (dc, str);
 }
 
-#ifndef __KERNEL__
-
 bool
 decode_nodename (DC *dc, string *str)
 {
@@ -746,7 +615,6 @@ decode_setattr_args (DC *dc, setattr_args *args)
           && decode_sattr (dc, &args->attr));
 }
 
-#endif
 
 bool
 encode_setattr_args (DC *dc, const setattr_args *args)
@@ -755,7 +623,6 @@ encode_setattr_args (DC *dc, const setattr_args *args)
           && encode_sattr (dc, &args->attr));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_dir_op_args (DC *dc, dir_op_args *args)
@@ -764,7 +631,6 @@ decode_dir_op_args (DC *dc, dir_op_args *args)
           && decode_filename (dc, &args->name));
 }
 
-#endif
 
 bool
 encode_dir_op_args (DC *dc, const dir_op_args *args)
@@ -780,7 +646,6 @@ decode_dir_op_res (DC *dc, dir_op_res *res)
           && decode_fattr (dc, &res->attr));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_dir_op_res (DC *dc, dir_op_res *res)
@@ -797,7 +662,6 @@ decode_create_args (DC *dc, create_args *args)
           && decode_sattr (dc, &args->attr));
 }
 
-#endif
 
 bool
 encode_create_args (DC *dc, const create_args *args)
@@ -815,7 +679,6 @@ decode_create_res (DC *dc, create_res *res)
           && decode_fattr (dc, &res->dor.attr));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_create_res (DC *dc, create_res *res)
@@ -832,7 +695,6 @@ decode_open_args (DC *dc, open_args *args)
           && decode_uint32_t (dc, &args->flags));
 }
 
-#endif
 
 bool
 encode_open_args (DC *dc, const open_args *args)
@@ -841,7 +703,6 @@ encode_open_args (DC *dc, const open_args *args)
           && encode_uint32_t (dc, args->flags));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_read_dir_args (DC *dc, read_dir_args *args)
@@ -851,7 +712,6 @@ decode_read_dir_args (DC *dc, read_dir_args *args)
           && decode_uint32_t (dc, &args->count));
 }
 
-#endif
 
 bool
 encode_read_dir_args (DC *dc, const read_dir_args *args)
@@ -869,7 +729,6 @@ decode_dir_entry (DC *dc, dir_entry *entry)
           && decode_filename (dc, &entry->name));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_dir_entry (DC *dc, dir_entry *entry)
@@ -879,7 +738,6 @@ encode_dir_entry (DC *dc, dir_entry *entry)
           && encode_filename (dc, &entry->name));
 }
 
-#endif
 
 bool
 decode_dir_list (DC *dc, dir_list *list)
@@ -888,7 +746,6 @@ decode_dir_list (DC *dc, dir_list *list)
           && decode_char (dc, &list->eof));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_dir_list (DC *dc, dir_list *list)
@@ -904,7 +761,6 @@ decode_mkdir_args (DC *dc, mkdir_args *args)
           && decode_sattr (dc, &args->attr));
 }
 
-#endif
 
 bool
 encode_mkdir_args (DC *dc, const mkdir_args *args)
@@ -913,7 +769,6 @@ encode_mkdir_args (DC *dc, const mkdir_args *args)
           && encode_sattr (dc, &args->attr));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_rename_args (DC *dc, rename_args *args)
@@ -922,7 +777,6 @@ decode_rename_args (DC *dc, rename_args *args)
           && decode_dir_op_args (dc, &args->to));
 }
 
-#endif
 
 bool
 encode_rename_args (DC *dc, const rename_args *args)
@@ -931,7 +785,6 @@ encode_rename_args (DC *dc, const rename_args *args)
           && encode_dir_op_args (dc, &args->to));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_link_args (DC *dc, link_args *args)
@@ -940,7 +793,6 @@ decode_link_args (DC *dc, link_args *args)
           && decode_dir_op_args (dc, &args->to));
 }
 
-#endif
 
 bool
 encode_link_args (DC *dc, const link_args *args)
@@ -949,7 +801,6 @@ encode_link_args (DC *dc, const link_args *args)
           && encode_dir_op_args (dc, &args->to));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_read_args (DC *dc, read_args *args)
@@ -959,7 +810,6 @@ decode_read_args (DC *dc, read_args *args)
           && decode_uint32_t (dc, &args->count));
 }
 
-#endif
 
 bool
 encode_read_args (DC *dc, const read_args *args)
@@ -976,7 +826,6 @@ decode_read_res (DC *dc, read_res *res)
           && decode_uint64_t (dc, &res->version));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_read_res (DC *dc, read_res *res)
@@ -993,7 +842,6 @@ decode_write_args (DC *dc, write_args *args)
           && decode_data_buffer (dc, &args->data));
 }
 
-#endif
 
 bool
 encode_write_args (DC *dc, const write_args *args)
@@ -1010,7 +858,6 @@ decode_write_res (DC *dc, write_res *res)
           && decode_uint64_t (dc, &res->version));
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_write_res (DC *dc, write_res *res)
@@ -1019,7 +866,6 @@ encode_write_res (DC *dc, write_res *res)
           && encode_uint64_t (dc, res->version));
 }
 
-#endif
 
 bool
 decode_read_link_res (DC *dc, read_link_res *res)
@@ -1027,7 +873,6 @@ decode_read_link_res (DC *dc, read_link_res *res)
   return decode_zfs_path (dc, &res->path);
 }
 
-#ifndef __KERNEL__
 
 bool
 encode_read_link_res (DC *dc, read_link_res *res)
@@ -1043,7 +888,6 @@ decode_symlink_args (DC *dc, symlink_args *args)
           && decode_sattr (dc, &args->attr));
 }
 
-#endif
 
 bool
 encode_symlink_args (DC *dc, const symlink_args *args)
@@ -1053,7 +897,6 @@ encode_symlink_args (DC *dc, const symlink_args *args)
           && encode_sattr (dc, &args->attr));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_mknod_args (DC *dc, mknod_args *args)
@@ -1064,7 +907,6 @@ decode_mknod_args (DC *dc, mknod_args *args)
           && decode_uint32_t (dc, &args->rdev));
 }
 
-#endif
 
 bool
 encode_mknod_args (DC *dc, const mknod_args *args)
@@ -1075,7 +917,6 @@ encode_mknod_args (DC *dc, const mknod_args *args)
           && encode_uint32_t (dc, args->rdev));
 }
 
-#ifndef __KERNEL__
 
 bool
 decode_auth_stage1_args (DC *dc, auth_stage1_args *args)
@@ -1290,16 +1131,6 @@ encode_reintegrate_ver_args (DC *dc, const reintegrate_ver_args *args)
           && encode_uint64_t (dc, args->version_inc));
 }
 
-#endif
-
-#ifdef __KERNEL__
-bool
-decode_invalidate_args (DC *dc, invalidate_args *args)
-{
-  return decode_zfs_fh (dc, &args->fh);
-}
-#else
-
 bool
 encode_invalidate_args (DC *dc, invalidate_args *args)
 {
@@ -1317,4 +1148,4 @@ encode_reread_config_args (DC *dc, const reread_config_args *args)
 {
   return encode_zfs_path (dc, &args->path);
 }
-#endif
+

@@ -1,4 +1,4 @@
-# Makefile
+# Makefile.am
 # Copyright (C) 2006 Petr Tuma
 # Copyright (C) 2008 Jiri Zouhar
 #
@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with zlomekFS; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
+# if we don't use system syplog, we need to build it locally
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -49,7 +51,7 @@ test:
 doc: 
 	doxygen
 
-html: doc
+html-local: doc
 
 install-doc: doc
 	mkdir -p $(DESTDIR)/$(prefix)/share/doc/zlomekfs
@@ -76,18 +78,21 @@ install-exec-hook:
 	$(INSTALL) -m 444 conf/root_node/zfs_config/volume/my_tree -t $(DESTDIR)/var/zfs/zfs_config/volume
 	$(INSTALL) -m 444 conf/root_node/zfs_config/volume_list -t $(DESTDIR)/var/zfs/zfs_config
 
-install-html: install-doc
+install-html-local: install-doc
 
 clean-local:
 	rm -rf build doxy-warnings
 
-# if we don't use system syplog, we need to build it locally
-if !SYSTEM_SYPLOG
+if SYPLOG_INTERNAL_BUILD
    SYPLOG_SUBDIRS = regression-testing/syplog/
 endif
 
-SUBDIRS = $(SYPLOG_SUBDIRS) \
-	zfsd \
-	tests
+if ENABLE_TESTS_BUILD
+   ZFSD_TESTS=tests
+endif
 
+SUBDIRS = \
+	$(SYPLOG_SUBDIRS) \
+	zfsd  \
+	$(ZFSD_TESTS)
 

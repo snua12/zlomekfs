@@ -23,7 +23,11 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#ifndef __KERNEL__
+#ifdef HAVE_CONFIG_H
+/*! include autotools config.h */
+#include <config.h>
+#endif
+
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -37,8 +41,6 @@
 #define _THREAD_SAFE
 #endif
 
-#endif /* !__KERNEL__ */
-
 /*! bool type and constants.  */
 #ifndef bool
 #define bool char
@@ -49,8 +51,6 @@
 #ifndef false
 #define false 0
 #endif
-
-#ifndef __KERNEL__
 
 /*! We want print format specifiers from <inttypes.h>  */
 #ifdef __cplusplus
@@ -93,8 +93,6 @@
    type). */
 #define CAST_QUAL(TYPE, VALUE) \
   ((void)sizeof ((VALUE) - (TYPE)0), (TYPE)(intptr_t)(VALUE))
-
-#endif /* !__KERNEL__ */
 
 /*! Definitions of some GCC attributes.  */
 #ifdef __GNUC__

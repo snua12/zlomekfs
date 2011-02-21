@@ -22,5 +22,5 @@ TESTS = testFSOp.py testStressFSOp.py testFSOps.py
 
 test:
 	./test.py ${TESTS}
-clean:
+clean-local:
 	rm -rf ./*.pyc

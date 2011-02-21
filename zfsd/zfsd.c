@@ -35,7 +35,7 @@
 #include "semaphore.h"
 #include "hardlink-list.h"
 #include "journal.h"
-#include "config.h"
+#include "configuration.h"
 #include "thread.h"
 #include "kernel.h"
 #include "network.h"
@@ -51,9 +51,11 @@
 #include "user-group.h"
 #include "update.h"
 #include "log.h"
+
+#ifdef ENABLE_DBUS
 #include "dbus-provider.h"
 #include "dbus-zfsd-service.h"
-
+#endif
 
 #ifdef TEST
 #include "test.h"
@@ -258,7 +260,7 @@ usage (void)
           "Fetch global configuration from specified node.\n"
 	  "  -o loglevel=DEBUG_LEVEL      "
           "Display debugging messages up to level DEBUG_LEVEL.\n"
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
     "  -o versioning                "
        "Enable versioning.\n"
       "  -o verdisplay              "
@@ -315,7 +317,7 @@ struct zfs_opts
   char *config;
   char *node;
   int loglevel;
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   bool versioning;
   bool verdisplay;
   int retention_age_min;
@@ -331,7 +333,7 @@ static const struct fuse_opt main_options[] = {
   ZFS_OPT ("config=%s", config, 0),
   ZFS_OPT ("node=%s", node, 0),
   ZFS_OPT ("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   ZFS_OPT ("versioning", versioning, true),
   ZFS_OPT ("verdisplay", verdisplay, true),
   ZFS_OPT ("veragemin=%d", retention_age_min, -1),
@@ -390,7 +392,7 @@ process_arguments (int argc, char **argv)
     config_node = zopts.node;
   }
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   versioning = zopts.versioning;
   verdisplay = zopts.verdisplay;
 
@@ -496,6 +498,7 @@ daemon_mode (void)
 {
 }
 
+#ifdef ENABLE_DBUS
 struct dbus_state_holder_def dbus_provider;
 
 void init_dbus(void)
@@ -525,6 +528,7 @@ void init_dbus(void)
   }
 
 }
+#endif
  
 /*! Entry point of ZFS daemon.  */
 
@@ -541,8 +545,10 @@ main (int argc, char **argv)
   opterr = 0;
   zfs_openlog(argc, (const char **)argv);
   opterr = 1;
-  
+
+#ifdef ENABLE_DBUS 
   init_dbus();
+#endif
 
   init_constants ();
   init_sig_handlers ();
@@ -682,7 +688,9 @@ main (int argc, char **argv)
   cleanup_data_structures ();
   disable_sig_handlers ();
 
+#ifdef ENABLE_DBUS
   dbus_provider_end (&dbus_provider);
+#endif
 
   zfs_closelog();
 

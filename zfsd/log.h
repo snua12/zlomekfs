@@ -27,7 +27,11 @@
 #include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef ENABLE_DBUS
 #include "dbus-provider.h"
+#endif
+
 #include "pthread-wrapper.h"
 
 #include "syplog.h"
@@ -92,6 +96,8 @@ extern void zfs_openlog(int  argc, const char ** argv);
 
 extern void zfs_closelog(void);
 
+#ifdef ENABLE_DBUS
+
 /** Register log names to dbus connection
  *
  * @see dbus_name_add_t
@@ -113,6 +119,7 @@ int dbus_release_log_name (DBusConnection * connection,
 message_handle_state_e dbus_handle_log_message (DBusConnection * connection, 
                                                 DBusError * err_struct,
                                                 DBusMessage * msg);
+#endif
 
 #define is_logger_arg(arg)	is_syplog_arg (arg)
 

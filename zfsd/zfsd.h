@@ -23,7 +23,10 @@
 #ifndef ZFSD_H
 #define ZFSD_H
 
+#include <config.h>
+
 #include "dbus-service-descriptors.h"
+
 #include "pthread-wrapper.h"
 
 /*! Thread ID of the main thread.  */

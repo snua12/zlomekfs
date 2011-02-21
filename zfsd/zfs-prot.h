@@ -26,11 +26,7 @@
 
 #include "system.h"
 
-#ifdef __KERNEL__
-# include <linux/types.h>
-#else
 # include <inttypes.h>
-#endif
 
 #include "md5.h"
 #include "memory.h"
@@ -88,16 +84,7 @@ typedef enum direction_def
 typedef struct data_buffer_def
 {
   uint32_t len;
-#ifdef __KERNEL__
-  bool user;
-  union {
-    const char __user *u_rbuf;
-    char __user *u_wbuf;
-    char *k_buf;
-  } buf;
-#else
   char *buf;
-#endif
 } data_buffer;
 
 typedef enum ftype_def
@@ -444,17 +431,6 @@ struct node_def;
 
 #include "data-coding.h"
 
-#ifdef __KERNEL__
-
-#define ZFS_CALL_CLIENT
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-  extern int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args);
-#include "zfs-prot.def"
-#undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_CLIENT
-
-#else
-
 #define ZFS_CALL_SERVER
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern void zfs_proc_##FUNCTION##_server (ARGS *args,			\
@@ -497,8 +473,6 @@ extern uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];
 extern const char *zfs_strerror (int32_t errnum);
 extern void initialize_zfs_prot_c (void);
 extern void cleanup_zfs_prot_c (void);
-
-#endif /* !__KERNEL__ */
 
 extern int zfs_error(int error);
 

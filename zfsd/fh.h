@@ -114,7 +114,7 @@ typedef struct volume_def *volume;
   ((FH)->local_fh.sid == this_node->id					\
    && (FH)->local_fh.vid != VOLUME_ID_VIRTUAL)
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
 /*! True if file handle FH has version file open.  */
 #define INTERNAL_FH_VERSION_OPEN(FH)          \
   ((FH)->version_fd > 0)
@@ -211,7 +211,7 @@ struct internal_fh_def
   /*! Generation of socket to node which is reintegrating this file.  */
   unsigned int reintegrating_generation;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   /*! Version file description. Set to -1 if version file is not open.  */
   int version_fd;
 
@@ -288,7 +288,7 @@ struct internal_dentry_def
   /*! Is dentry marked to be deleted?  */
   bool deleted;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
   /*! Is dentry a version file?  */
   bool version_file;
 

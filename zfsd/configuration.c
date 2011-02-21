@@ -32,7 +32,7 @@
 #include <grp.h>
 #include <signal.h>
 #include "pthread-wrapper.h"
-#include "config.h"
+#include "configuration.h"
 #include "constant.h"
 #include "log.h"
 #include "memory.h"
@@ -73,7 +73,7 @@ static string private_key;
 /*! Node which the local node should fetch the global configuration from.  */
 char *config_node;
 
-#ifdef VERSIONS
+#ifdef ENABLE_VERSIONS
 /*! Versioning enabled.  */
 bool versioning = false;
 

@@ -20,15 +20,6 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifdef __KERNEL__
-# include <linux/errno.h>
-# include <linux/stat.h>
-# include <asm/semaphore.h>
-# include "zfs.h"
-# include "data-coding.h"
-# include "zfs-prot.h"
-# include "zfsd-call.h"
-#else
 # include "system.h"
 # include <inttypes.h>
 # include <string.h>
@@ -39,7 +30,7 @@
 # include "zfs-prot.h"
 #include "pthread-wrapper.h"
 # include "data-coding.h"
-# include "config.h"
+# include "configuration.h"
 # include "thread.h"
 # include "network.h"
 # include "kernel.h"
@@ -49,7 +40,6 @@
 # include "volume.h"
 # include "log.h"
 # include "user-group.h"
-#endif
 
 /*! Mapping file type -> file mode.  */
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
@@ -84,8 +74,6 @@ int zfs_error(int error)
                         return -ESTALE;
         }
 }
-
-#ifndef __KERNEL__
 
 /*! Request ID for next call.  */
 static volatile uint32_t request_id;
@@ -810,45 +798,3 @@ cleanup_zfs_prot_c (void)
 #endif
 }
 
-#else /* !__KERNEL__ */
-
-/*! Call ZFSd FUNCTION with ARGS using data structures in DC
-   and return its error code. */
-#define ZFS_CALL_CLIENT
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUT, CALL_MODE)	\
-int zfs_proc_##FUNCTION##_zfsd(DC **dc, ARGS *args)		\
-{								\
-        struct request req;					\
-        int error;						\
-                                                                \
-        down(&channel.request_id_lock);				\
-        req.id = channel.request_id++;				\
-        up(&channel.request_id_lock);				\
-                                                                \
-        req.dc = *dc;						\
-                                                                \
-        start_encoding(*dc);					\
-        encode_direction(*dc, DIR_REQUEST);			\
-        encode_request_id(*dc, req.id);				\
-        encode_function(*dc, NUMBER);				\
-        if (!encode_##ARGS(*dc, args))				\
-                return zfs_error(ZFS_REQUEST_TOO_LONG);		\
-        req.length = finish_encoding(*dc);			\
-                                                                \
-        error = send_request(&req);				\
-                                                                \
-        *dc = req.dc;						\
-                                                                \
-        if (error)						\
-                return error;					\
-                                                                \
-        if (!decode_status(*dc, &error))			\
-                return -EPROTO;					\
-                                                                \
-        return zfs_error(error);				\
-}
-#include "zfs-prot.def"
-#undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_CLIENT
-
-#endif /* !__KERNEL__ */

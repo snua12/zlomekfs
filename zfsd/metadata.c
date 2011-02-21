@@ -41,7 +41,7 @@
 #include "journal.h"
 #include "fh.h"
 #include "volume.h"
-#include "config.h"
+#include "configuration.h"
 #include "fibheap.h"
 #include "util.h"
 #include "data-coding.h"
