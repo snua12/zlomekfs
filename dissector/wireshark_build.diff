@@ -1,0 +1,104 @@
+Index: configure.in
+===================================================================
+--- configure.in	(revision 34982)
++++ configure.in	(working copy)
+@@ -1901,6 +1901,7 @@
+   plugins/unistim/Makefile
+   plugins/wimax/Makefile
+   plugins/wimaxasncp/Makefile
++  plugins/zfsd/Makefile
+   tools/Makefile
+   tools/idl2wrs.sh
+   tools/lemon/Makefile
+Index: Makefile.am
+===================================================================
+--- Makefile.am	(revision 34982)
++++ Makefile.am	(working copy)
+@@ -280,7 +280,8 @@
+ 	-dlopen plugins/sercosiii/sercosiii.la \
+ 	-dlopen plugins/stats_tree/stats_tree.la \
+ 	-dlopen plugins/unistim/unistim.la \
+-	-dlopen plugins/wimax/wimax.la
++	-dlopen plugins/wimax/wimax.la \
++	-dlopen plugins/zfsd/zfsd.la
+ 
+ WTAP_PLUGIN_SOURCES = \
+        epan/plugins.c \
+Index: plugins/Makefile.nmake
+===================================================================
+--- plugins/Makefile.nmake	(revision 34982)
++++ plugins/Makefile.nmake	(working copy)
+@@ -22,7 +22,8 @@
+ 	stats_tree  \
+ 	unistim     \
+ 	wimax       \
+-	wimaxasncp
++	wimaxasncp  \
++	zfsd
+ 
+ 
+ all:
+Index: plugins/Makefile.am
+===================================================================
+--- plugins/Makefile.am	(revision 34982)
++++ plugins/Makefile.am	(working copy)
+@@ -38,7 +38,8 @@
+ 	stats_tree \
+ 	unistim \
+ 	wimax \
+-	wimaxasncp
++	wimaxasncp \
++	zfsd
+ 
+ plugindir = @plugindir@
+ 
+Index: epan/Makefile.am
+===================================================================
+--- epan/Makefile.am	(revision 34982)
++++ epan/Makefile.am	(working copy)
+@@ -274,7 +274,8 @@
+         ../plugins/wimax/wimax_pdu_decoder.c \
+         ../plugins/wimax/wimax_phy_attributes_decoder.c \
+         ../plugins/wimax/wimax_tlv.c \
+-        ../plugins/wimax/wimax_utils.c
++        ../plugins/wimax/wimax_utils.c \
++        ../plugins/zfsd/packet-zfsd.c
+ 
+ 
+ else		# ENABLE_STATIC
+Index: packaging/nsis/Makefile.nmake
+===================================================================
+--- packaging/nsis/Makefile.nmake	(revision 34982)
++++ packaging/nsis/Makefile.nmake	(working copy)
+@@ -64,6 +64,7 @@
+ 	../../plugins/unistim/unistim.dll \
+ 	../../plugins/wimax/wimax.dll \
+ 	../../plugins/wimaxasncp/wimaxasncp.dll \
++	../../plugins/zfsd/zfsd.dll \
+ 	$(CUSTOM_PLUGINS)
+ 
+ NSI=wireshark.nsi \
+Index: packaging/nsis/wireshark.nsi
+===================================================================
+--- packaging/nsis/wireshark.nsi	(revision 34982)
++++ packaging/nsis/wireshark.nsi	(working copy)
+@@ -893,6 +893,7 @@
+ File "..\..\plugins\unistim\unistim.dll"
+ File "..\..\plugins\wimax\wimax.dll"
+ File "..\..\plugins\wimaxasncp\wimaxasncp.dll"
++File "..\..\plugins\zfsd\zfsd.dll"
+ !include "custom_plugins.txt"
+ SectionEnd
+ 
+Index: CMakeLists.txt
+===================================================================
+--- CMakeLists.txt	(revision 34982)
++++ CMakeLists.txt	(working copy)
+@@ -385,6 +385,7 @@
+ 		plugins/unistim
+ 		plugins/wimax
+ 		plugins/wimaxasncp
++		plugins/zfsd
+ 	)
+ # It seems this stuff doesn't build with autofoo either...
+ #	if(YAPP_FOUND)

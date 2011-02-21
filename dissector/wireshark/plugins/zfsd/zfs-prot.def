@@ -1,0 +1,110 @@
+/*! \file
+    \brief ZFS protocol - definitions of ZFS procedures.  */
+
+/* Copyright (C) 2003, 2004 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
+
+   You should have received a copy of the GNU General Public License along with
+   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
+   or download it from http://www.gnu.org/licenses/gpl.html */
+
+/*! \def DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)
+
+    \param NUMBER number of the function, sent in request
+    \param NAME name of the function, used for defining a symbolic alias
+	   for NUMBER
+    \param FUNCTION name of the function, used to declare the function
+    \param ARGS type of the argument (structure or void)
+    \param AUTH level of authentication needed to process the function
+    \param CALL_MODE either DIR_REQUEST or DIR_ONEWAY
+*/
+
+#if defined (ZFS_CALL_SERVER) || defined (ZFS_CALL_CLIENT)
+# ifndef __KERNEL__
+DEFINE_ZFS_PROC (0, NULL, null, void,
+		 AUTHENTICATION_NONE, DIR_REQUEST)
+
+DEFINE_ZFS_PROC (1, PING, ping, data_buffer,
+		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
+
+# endif
+DEFINE_ZFS_PROC (2, ROOT, root, void,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+# ifndef __KERNEL__
+DEFINE_ZFS_PROC (3, VOLUME_ROOT, volume_root, volume_root_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+# endif
+DEFINE_ZFS_PROC (4, GETATTR, getattr, zfs_fh,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (5, SETATTR, setattr, setattr_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (6, LOOKUP, lookup, dir_op_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (7, CREATE, create, create_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (8, OPEN, open, open_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (9, CLOSE, close, zfs_cap,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (10, READDIR, readdir, read_dir_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (11, MKDIR, mkdir, mkdir_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (12, RMDIR, rmdir, dir_op_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (13, RENAME, rename, rename_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (14, LINK, link, link_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (15, UNLINK, unlink, dir_op_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (16, READ, read, read_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (17, WRITE, write, write_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (18, READLINK, readlink, zfs_fh,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (19, SYMLINK, symlink, symlink_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (20, MKNOD, mknod, mknod_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+# ifndef __KERNEL__
+DEFINE_ZFS_PROC (21, AUTH_STAGE1, auth_stage1, auth_stage1_args,
+		 AUTHENTICATION_NONE, DIR_REQUEST)
+DEFINE_ZFS_PROC (22, AUTH_STAGE2, auth_stage2, auth_stage2_args,
+		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
+DEFINE_ZFS_PROC (23, MD5SUM, md5sum, md5sum_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (24, FILE_INFO, file_info, zfs_fh,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (25, REREAD_CONFIG, reread_config, reread_config_args,
+		 AUTHENTICATION_FINISHED, DIR_ONEWAY)
+DEFINE_ZFS_PROC (26, REINTEGRATE, reintegrate, reintegrate_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (27, REINTEGRATE_ADD, reintegrate_add, reintegrate_add_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (28, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+DEFINE_ZFS_PROC (29, REINTEGRATE_SET, reintegrate_ver, reintegrate_ver_args,
+		 AUTHENTICATION_FINISHED, DIR_REQUEST)
+# endif
+#endif
+#if defined (ZFS_CALL_KERNEL)
+/*! N/A zfs_proc_invalidate (zfs_fh)
+
+    Invalidate the kernel dentry.  An one-way request. */
+DEFINE_ZFS_PROC (30, INVALIDATE, invalidate, invalidate_args,
+		 AUTHENTICATION_NONE, DIR_ONEWAY)
+#endif

@@ -1,0 +1,18 @@
+This directory contains wireshark's dissector for zlomek fs network protocol.
+This dissector was tested with wireshark version r34978.
+
+To build dissector, get wireshark sources from svn:
+svn checkout -r34978 http://anonsvn.wireshark.org/wireshark/trunk wireshark
+
+Copy wireshark/plugins/zfsd to wireshark's source.
+
+Apply wireshark_build.diff for wireshark build system.
+
+./configure && Make
+export WIRESHARK_RUN_FROM_BUILD_DIRECTORY=1
+./wireshark
+
+
+
+
+

@@ -1,0 +1,49 @@
+/*! \file
+    \brief ZFS protocol - definitions of ZFS error codes.  */
+
+/* Copyright (C) 2003, 2004 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+   License for more details.
+
+   You should have received a copy of the GNU General Public License along with
+   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
+   or download it from http://www.gnu.org/licenses/gpl.html */
+
+/*! Error codes.
+   System errors have positive numbers, ZFS errors have negative numbers.  */
+DEFINE_ZFS_RET (0, ZFS_OK, "No error")
+DEFINE_ZFS_RET (-1, ZFS_REQUEST_TOO_LONG, "Request was too long.")
+DEFINE_ZFS_RET (-2, ZFS_INVALID_REQUEST, "Request was not well encoded.")
+DEFINE_ZFS_RET (-3, ZFS_UNKNOWN_FUNCTION, "Unknown function in request.")
+DEFINE_ZFS_RET (-4, ZFS_INVALID_AUTH_LEVEL, "Remote node has not authenticated enough yet.")
+DEFINE_ZFS_RET (-5, ZFS_INVALID_DIRECTION, "Different direction to direction expected by function.")
+
+DEFINE_ZFS_RET (-20, ZFS_STALE, "zfs_fh could not be found.")
+DEFINE_ZFS_RET (-21, ZFS_BUSY, "file handle is being reintegrated")
+DEFINE_ZFS_RET (-22, ZFS_CHANGED, "The file has changed while doing operation.")
+DEFINE_ZFS_RET (-23, ZFS_SLOW_BUSY, "Operation terminated because slow connection is busy")
+
+DEFINE_ZFS_RET (-50, ZFS_METADATA_ERROR, "Error when accessing file containing metadata.")
+DEFINE_ZFS_RET (-51, ZFS_UPDATE_FAILED, "Error while updating a file.")
+
+DEFINE_ZFS_RET (-99, ZFS_LAST_DECODED_ERROR, "Code of last error which is being decoded from DC")
+DEFINE_ZFS_RET (-100, ZFS_REPLY_TOO_LONG, "Reply was too long.")
+DEFINE_ZFS_RET (-101, ZFS_INVALID_REPLY, "Reply was not well encoded.")
+
+DEFINE_ZFS_RET (-150, ZFS_ERROR_HAS_DC_REPLY, "Code of last error which has a DC_REPLY.")
+DEFINE_ZFS_RET (-151, ZFS_EXITING, "zfsd is exiting")
+DEFINE_ZFS_RET (-152, ZFS_COULD_NOT_CONNECT, "Could not connect to node.")
+DEFINE_ZFS_RET (-153, ZFS_COULD_NOT_AUTH, "Could not authenticate with node.")
+DEFINE_ZFS_RET (-154, ZFS_CONNECTION_CLOSED, "Connection closed while waiting for reply.")
+DEFINE_ZFS_RET (-155, ZFS_REQUEST_TIMEOUT, "Request has timed out.")
