@@ -108,6 +108,17 @@ metadata_eq (const void *x, const void *y)
 
 #if BYTE_ORDER != LITTLE_ENDIAN
 
+void
+zfs_fh_decode(void * x)
+{
+	zfs_fh *z = (zfs_fh *) x;
+	z->sid = le_to_u32 (z->sid);
+	z->vid = le_to_u32 (z->vid);
+	z->dev = le_to_u32 (z->dev);
+	z->ino = le_to_u32 (z->ino);
+	z->gen = le_to_u32 (z->gen);
+}
+
 /*! Decode element X of the hash file.  */
 
 void
@@ -115,18 +126,17 @@ metadata_decode (void *x)
 {
   metadata *m = (metadata *) x;
 
+  m->slot_status = le_to_u32(m->slot_status);
   m->flags = le_to_u32 (m->flags);
   m->dev = le_to_u32 (m->dev);
   m->ino = le_to_u32 (m->ino);
   m->gen = le_to_u32 (m->gen);
-  m->master_fh.sid = le_to_u32 (m->master_fh.sid);
-  m->master_fh.vid = le_to_u32 (m->master_fh.vid);
-  m->master_fh.dev = le_to_u32 (m->master_fh.dev);
-  m->master_fh.ino = le_to_u32 (m->master_fh.ino);
-  m->master_fh.gen = le_to_u32 (m->master_fh.gen);
+
+  zfs_fh_decode(&m->master_fh);
+
   m->local_version = le_to_u64 (m->local_version);
   m->master_version = le_to_u64 (m->master_version);
-  m->mode = le_to_u32 (m->mode);
+  m->modetype = le_to_u32 (m->modetype);
   m->uid = le_to_u32 (m->uid);
   m->gid = le_to_u32 (m->gid);
   m->parent_dev = le_to_u32 (m->parent_dev);
@@ -151,7 +161,7 @@ metadata_encode (void *x)
   m->master_fh.gen = u32_to_le (m->master_fh.gen);
   m->local_version = u64_to_le (m->local_version);
   m->master_version = u64_to_le (m->master_version);
-  m->mode = u32_to_le (m->mode);
+  m->modetype = u32_to_le (m->modetype);
   m->uid = u32_to_le (m->uid);
   m->gid = u32_to_le (m->gid);
   m->parent_dev = u32_to_le (m->parent_dev);
