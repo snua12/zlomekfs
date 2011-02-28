@@ -150,11 +150,11 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #define CHECK_MUTEX_LOCKED(M)						\
   ({									\
   do {									\
-    if (M)								\
+    if ((M) != NULL)								\
       {									\
 									\
 	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
-		 (void *) M,						\
+		 (void *) (M),						\
 		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
 	if( pthread_mutex_lock (M)!= EDEADLK )						\
 	  abort ();							\
@@ -166,7 +166,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #define CHECK_MUTEX_UNLOCKED(M)						\
   ({									\
   do {									\
-    if (M)								\
+    if ((M) != NULL)								\
       {									\
 	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
 		 (void *) M,						\

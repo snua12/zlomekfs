@@ -28,9 +28,15 @@
 #include "system.h"
 #include <inttypes.h>
 #include <string.h>		/* for memcpy() */
+#include <sys/types.h>
 #include "md5.h"
 
-#if BYTE_ORDER == LITTLE_ENDIAN
+#ifndef BYTE_ORDER
+
+#error BYTE_ORDER is not defined
+
+#elif BYTE_ORDER == LITTLE_ENDIAN
+
 #define byteReverse(buf, len)	/* Nothing */
 #else
 static void byteReverse (unsigned char *buf, unsigned longs);
