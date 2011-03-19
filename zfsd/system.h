@@ -114,6 +114,15 @@
 #define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif /* ATTRIBUTE_UNUSED */
 
+#ifndef ATTRIBUTE_UNUSED_VERSIONS
+#ifndef ENABLE_VERSIONS
+#define ATTRIBUTE_UNUSED_VERSIONS __attribute__ ((__unused__))
+#else
+#define ATTRIBUTE_UNUSED_VERSIONS
+#endif
+#endif
+
+
 #ifndef ATTRIBUTE_NORETURN
 #define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
 #endif /* ATTRIBUTE_NORETURN */

@@ -61,9 +61,6 @@ thread config_reader_data;
 /*! Semaphore for managing the reread request queue.  */
 semaphore config_sem;
 
-/*! File used to communicate with kernel.  */
-string kernel_file_name;
-
 /*! Directory with local node configuration. */
 static string local_config;
 
@@ -2389,7 +2386,6 @@ read_config_file (const char *file)
   set_default_uid_gid ();
 
   /* Default values.  */
-  set_str (&kernel_file_name, "/dev/zfs");
   set_str (&local_config, "/etc/zfs");
   mlock_zfsd = true;
 
@@ -2432,12 +2428,6 @@ read_config_file (const char *file)
 		{
 		  set_string_with_length (&local_config, value, value_len);
 		  message (LOG_INFO, FACILITY_CONFIG, "LocalConfig = '%s'\n", value);
-		}
-	      else if (strncasecmp (key, "kerneldevice", 13) == 0
-		       || strncasecmp (key, "kernelfile", 11) == 0)
-		{
-		  set_string_with_length (&kernel_file_name, value, value_len);
-		  message (LOG_INFO, FACILITY_CONFIG, "KernelDevice = '%s'\n", value);
 		}
 	      else if (strncasecmp (key, "mlock", 6) == 0)
 		{
@@ -2631,6 +2621,5 @@ cleanup_config_c (void)
 
   if (node_name.str)
     free (node_name.str);
-  free (kernel_file_name.str);
   free (local_config.str);
 }

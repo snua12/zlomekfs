@@ -55,7 +55,7 @@ typedef struct node_def
 } *node;
 
 /*! Predefined node IDs.  */
-#define NODE_NONE 0		/* ID for non-existing node, used as SID
+#define NODE_ID_NONE 0		/* ID for non-existing node, used as SID
 				   in file handle of virtual directory.  */
 
 /*! Mutex for table of nodes.  */

@@ -1620,7 +1620,7 @@ read_conflict_dir (dir_list *list, internal_dentry idir, virtual_dir vd,
 int32_t
 local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
                zfs_fh *fh, int32_t cookie, readdir_data *data, volume vol,
-               filldir_f filldir, bool convert_versions)
+               filldir_f filldir, ATTRIBUTE_UNUSED_VERSIONS bool convert_versions)
 {
   char buf[ZFS_MAXDATA];
   int32_t r, pos;
@@ -1628,9 +1628,9 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
   int fd;
   bool local_volume_root;
   bool is_vername = false;
+  char *vername = NULL;
 #ifdef ENABLE_VERSIONS
   char *vs;
-  char *vername = NULL;
   bool store = false;
   time_t stamp;
   bool local_verdisplay = verdisplay;
@@ -2481,7 +2481,7 @@ out_update:
 
 static int32_t
 local_write (write_res *res, internal_dentry dentry,
-             uint64_t offset, data_buffer *data, volume vol, bool remote)
+             uint64_t offset, data_buffer *data, volume vol, ATTRIBUTE_UNUSED_VERSIONS bool remote)
 {
   int32_t r;
   off_t writing_position = -1;

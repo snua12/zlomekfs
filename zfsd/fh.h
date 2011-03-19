@@ -47,19 +47,19 @@ typedef struct volume_def *volume;
 
 /*! Is the FH virtual?  */
 #define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL			\
-                          && (FH).sid == NODE_NONE)
+                          && (FH).sid == NODE_ID_NONE)
 
 /*! Is FH a file handle of non-existing file represented as a symlink
    to existing file in case of exist-non_exist conflict?  */
 #define NON_EXIST_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL		\
-                            && (FH).sid != NODE_NONE)
+                            && (FH).sid != NODE_ID_NONE)
 
 /*! Is FH a conflict directroy?  */
-#define CONFLICT_DIR_P(FH) ((FH).sid == NODE_NONE			\
+#define CONFLICT_DIR_P(FH) ((FH).sid == NODE_ID_NONE			\
                             && (FH).vid != VOLUME_ID_VIRTUAL)
 
 /*! Is FH a regular file handle, i.e. not special file handle?  */
-#define REGULAR_FH_P(FH) ((FH).sid != NODE_NONE				\
+#define REGULAR_FH_P(FH) ((FH).sid != NODE_ID_NONE				\
                           && (FH).vid != VOLUME_ID_VIRTUAL)
 
 /*! Is DENTRY a local volume root?  */
@@ -368,9 +368,6 @@ extern zfs_fh undefined_fh;
 
 /*! Hash table of used dentries, searched by fh->local_fh.  */
 extern htab_t dentry_htab;
-
-/*! Hash table of virtual directories, searched by fh.  */
-extern htab_t vd_htab;
 
 /*! Mutes for file handles, dentries and virtual directories.  */
 extern pthread_mutex_t fh_mutex;

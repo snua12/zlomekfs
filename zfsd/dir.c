@@ -98,7 +98,7 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
 
 int32_t
 build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
-                       string *name, time_t *dirstamp)
+                       string *name, ATTRIBUTE_UNUSED_VERSIONS time_t *dirstamp)
 {
   internal_dentry tmp;
   unsigned int n;
@@ -1589,7 +1589,7 @@ local_setattr_path (fattr *fa, string *path, sattr *sa)
    reget attributes and store them to FA.  */
 
 int32_t
-local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, bool should_version)
+local_setattr (fattr *fa, internal_dentry dentry, sattr *sa, volume vol, ATTRIBUTE_UNUSED_VERSIONS bool should_version)
 {
   string path;
   int32_t r;
@@ -3250,7 +3250,7 @@ zfs_rmdir (zfs_fh *dir, string *name)
 
 static int32_t
 local_rename_base (metadata *meta_old, metadata *meta_new,
-                   string *from_path, string *to_path, volume vol, bool shadow, bool should_version)
+                   string *from_path, string *to_path, volume vol, bool shadow, ATTRIBUTE_UNUSED_VERSIONS bool should_version)
 {
   struct stat from_parent_st, to_parent_st;
   struct stat st_old, st_new;

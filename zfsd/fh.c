@@ -51,7 +51,7 @@
 #include "version.h"
 
 /*! File handle of ZFS root.  */
-zfs_fh root_fh = {NODE_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
+zfs_fh root_fh = {NODE_ID_NONE, VOLUME_ID_VIRTUAL, VIRTUAL_DEVICE, ROOT_INODE, 1};
 
 /*! Static undefined ZFS file handle.  */
 zfs_fh undefined_fh;
@@ -78,7 +78,7 @@ htab_t dentry_htab_name;
 static alloc_pool vd_pool;
 
 /*! Hash table of virtual directories, searched by fh.  */
-htab_t vd_htab;
+static htab_t vd_htab;
 
 /*! Hash table of virtual directories, searched by (parent->fh, name).  */
 static htab_t vd_htab_name;
@@ -771,7 +771,7 @@ vd_lookup (zfs_fh *fh)
 }
 
 virtual_dir
-vd_lookup_name_dirstamp (virtual_dir parent, string *name, time_t *dirstamp)
+vd_lookup_name_dirstamp (virtual_dir parent, string *name, ATTRIBUTE_UNUSED_VERSIONS time_t *dirstamp)
 {
   virtual_dir vd;
   struct virtual_dir_def tmp_vd;
@@ -2387,7 +2387,7 @@ again:
         internal_dentry_del_from_dir (dentry);
     }
 
-  tmp_fh.sid = NODE_NONE;
+  tmp_fh.sid = NODE_ID_NONE;
   tmp_fh.vid = vol->id;
   tmp_fh.dev = VIRTUAL_DEVICE;
   tmp_fh.ino = vol->last_conflict_ino;
@@ -3024,7 +3024,7 @@ virtual_dir_create (virtual_dir parent, const char *name)
     last_virtual_ino = ROOT_INODE + 1;
 
   vd = (virtual_dir) pool_alloc (vd_pool);
-  vd->fh.sid = NODE_NONE;
+  vd->fh.sid = NODE_ID_NONE;
   vd->fh.vid = VOLUME_ID_VIRTUAL;
   vd->fh.dev = VIRTUAL_DEVICE;
   vd->fh.ino = last_virtual_ino;

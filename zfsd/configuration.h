@@ -38,9 +38,6 @@ extern thread config_reader_data;
 /*! Semaphore for managing the reread request queue.  */
 extern semaphore config_sem;
 
-/*! File used to communicate with kernel.  */
-extern string kernel_file_name;
-
 /*! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
 
