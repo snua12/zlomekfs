@@ -1,24 +1,22 @@
-/*! \file
-    \brief Environment definitions.  */
+/* ! \file \brief Environment definitions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
-   ZFS is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-   License for more details.
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
 
-   You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html */
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
@@ -27,7 +25,7 @@
 #define _GNU_SOURCE
 #endif
 
-/*! ZFSD is multi-threaded so it needs reentrant (ie. thread safe) functions */
+/* ! ZFSD is multi-threaded so it needs reentrant (ie. thread safe) functions */
 #ifndef _REENTRANT
 #define _REENTRANT
 #endif
@@ -41,7 +39,7 @@
 #include <inttypes.h>
 
 
-/*! bool type and constants.  */
+/* ! bool type and constants.  */
 #ifndef bool
 #define bool char
 #endif
@@ -52,29 +50,29 @@
 #define false 0
 #endif
 
-/*! We want print format specifiers from <inttypes.h>  */
+/* ! We want print format specifiers from <inttypes.h> */
 #ifdef __cplusplus
 #define __STDC_FORMAT_MACROS
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #endif
 
-/*! Offset of field in structure relative to structure's beginning.  */
+/* ! Offset of field in structure relative to structure's beginning.  */
 #ifndef offsetof
 #define offsetof(TYPE, MEMBER)  ((unsigned long) &((TYPE *) 0)->MEMBER)
 #endif
 
-/*! Crash when executing this macro.  */
+/* ! Crash when executing this macro.  */
 #define CRASH (*(char *) 0 = 0)
 
-/*! Boolean value whether checking is enabled.  */
+/* ! Boolean value whether checking is enabled.  */
 #ifdef ENABLE_CHECKING
 #define ENABLE_CHECKING_VALUE true
 #else
 #define ENABLE_CHECKING_VALUE false
 #endif
 
-/*! Define valgrind macros.  */
+/* ! Define valgrind macros.  */
 #ifdef ENABLE_VALGRIND_CHECKING
 #include <valgrind/memcheck.h>
 #else
@@ -89,25 +87,24 @@
 
    The subtraction is there to ensure this type relation; it is wrapped in
    sizeof to avoid evaluating VALUE twice - or even evaluating the subtraction,
-   which has undefined value (assuming TYPE is not a variably-modified
-   type). */
+   which has undefined value (assuming TYPE is not a variably-modified type). */
 #define CAST_QUAL(TYPE, VALUE) \
   ((void)sizeof ((VALUE) - (TYPE)0), (TYPE)(intptr_t)(VALUE))
 
-/*! Definitions of some GCC attributes.  */
+/* ! Definitions of some GCC attributes.  */
 #ifdef __GNUC__
 
 #ifndef GCC_VERSION
 #define GCC_VERSION (__GNUC__ * 1000 + __GNUC_MINOR__)
 #endif /* GCC_VERSION */
 
-/*! Attribute __malloc__ on functions was valid as of gcc 2.96. */
+/* ! Attribute __malloc__ on functions was valid as of gcc 2.96. */
 #ifndef ATTRIBUTE_MALLOC
 # if (GCC_VERSION >= 2096)
 #  define ATTRIBUTE_MALLOC __attribute__ ((__malloc__))
 # else
 #  define ATTRIBUTE_MALLOC
-# endif /* GNUC >= 2.96 */
+# endif	/* GNUC >= 2.96 */
 #endif /* ATTRIBUTE_MALLOC */
 
 #ifndef ATTRIBUTE_UNUSED
@@ -161,7 +158,7 @@
 
 #endif /* __GNUC__ */
 
-/*direcotry separator*/
+/* direcotry separator */
 #define DIRECTORY_SEPARATOR "/"
 #define DIRECTORY_SEPARATOR_LEN 1
 

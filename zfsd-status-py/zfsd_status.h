@@ -4,6 +4,6 @@
 
 #include "zlomekfs/dbus-service-descriptors.h"
 
-zfsd_state_e  ping_zfsd();
+zfsd_state_e ping_zfsd();
 
-#endif		/* ZFSD_STATUS_H */
+#endif /* ZFSD_STATUS_H */

@@ -1,7 +1,6 @@
-/*! \file
-    \brief Functions for computing CRC32.  */
+/* ! \file \brief Functions for computing CRC32.  */
 
-/*
+/* 
  *  COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or
  *  code or tables extracted from it, as desired without restriction.
  *
@@ -47,7 +46,7 @@
 #include <stddef.h>
 #include "crc32.h"
 
-/*! Table used for computing 32-bit CRC.  */
+/* ! Table used for computing 32-bit CRC.  */
 static const unsigned int crc32_table[256] = {
 	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
 	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
@@ -103,52 +102,47 @@ static const unsigned int crc32_table[256] = {
 	0x2d02ef8dL
 };
 
-/*! CRC32 iterator. */
-static unsigned int
-crc32_next (unsigned int crc, const char * str)
+/* ! CRC32 iterator. */
+static unsigned int crc32_next(unsigned int crc, const char *str)
 {
-  return crc32_table[((crc) ^ *str) & 0xff] ^ ((crc) >> 8);
+	return crc32_table[((crc) ^ *str) & 0xff] ^ ((crc) >> 8);
 }
 
-/*! Update 32-bit CRC value with buffer BUF of length LEN.  */
+/* ! Update 32-bit CRC value with buffer BUF of length LEN.  */
 
-unsigned int
-crc32_update (unsigned int crc, const void *buf, size_t len)
+unsigned int crc32_update(unsigned int crc, const void *buf, size_t len)
 {
-  const char *s = (const char *) buf;
+	const char *s = (const char *)buf;
 
-  crc ^= 0xffffffff;
+	crc ^= 0xffffffff;
 
-  while (len--)
-    crc = crc32_next (crc, s++);
+	while (len--)
+		crc = crc32_next(crc, s++);
 
-  return crc ^ 0xffffffff;
+	return crc ^ 0xffffffff;
 }
 
-/*! Compute 32-bit CRC value for buffer BUF of length LEN.  */
+/* ! Compute 32-bit CRC value for buffer BUF of length LEN.  */
 
-unsigned int
-crc32_buffer (const void *buf, size_t len)
+unsigned int crc32_buffer(const void *buf, size_t len)
 {
-  const char *s = (const char *) buf;
-  unsigned int crc = 0xffffffff;
+	const char *s = (const char *)buf;
+	unsigned int crc = 0xffffffff;
 
-  while (len--)
-    crc = crc32_next (crc, s++);
+	while (len--)
+		crc = crc32_next(crc, s++);
 
-  return crc ^ 0xffffffff;
+	return crc ^ 0xffffffff;
 }
 
-/*! Compute 32-bit CRC value for string S.  */
+/* ! Compute 32-bit CRC value for string S.  */
 
-unsigned int
-crc32_string (const char *s)
+unsigned int crc32_string(const char *s)
 {
-  unsigned int crc = 0xffffffff;
+	unsigned int crc = 0xffffffff;
 
-  while (*s)
-    crc = crc32_next (crc, s++);
+	while (*s)
+		crc = crc32_next(crc, s++);
 
-  return crc ^ 0xffffffff;
+	return crc ^ 0xffffffff;
 }
-

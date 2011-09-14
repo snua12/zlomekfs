@@ -5,13 +5,11 @@
 #include "fh.h"
 
 void
-read_volume_hierarchy (zfs_fh *volume_hierarchy_dir, uint32_t vid,
-		       string *name, string *mountpoint);
+read_volume_hierarchy(zfs_fh * volume_hierarchy_dir, uint32_t vid,
+					  string * name, string * mountpoint);
 
-bool
-read_volume_list (zfs_fh *config_dir);
+bool read_volume_list(zfs_fh * config_dir);
 
 
-bool
-init_config_volume (void);
+bool init_config_volume(void);
 #endif

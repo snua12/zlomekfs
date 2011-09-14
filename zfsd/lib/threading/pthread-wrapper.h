@@ -1,24 +1,22 @@
-/*! \file
-    \brief Wrappers for pthread_* functions and related data.  */
+/* ! \file \brief Wrappers for pthread_* functions and related data.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
-   ZFS is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-   License for more details.
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
 
-   You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html */
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef PTHREAD_H
 #define PTHREAD_H
@@ -29,7 +27,7 @@
 #include <pthread.h>
 #include <string.h>
 
-/*! Static mutex initializer.  */
+/* ! Static mutex initializer.  */
 extern pthread_mutex_t zfsd_mutex_initializer;
 
 #define zfsd_mutex_init(M) ((*(M) = zfsd_mutex_initializer), 0)
@@ -39,7 +37,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #  define ENABLE_PTHREAD_CHECKING
 #endif
 
-/*! Macros for debugging synchonization primitives.  */
+/* ! Macros for debugging synchonization primitives.  */
 #ifdef ENABLE_PTHREAD_CHECKING
 
 #include <stdio.h>
@@ -152,7 +150,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
       }									\
     0; })
 
-/*! Check whether the mutex M is locked.  */
+/* ! Check whether the mutex M is locked.  */
 #define CHECK_MUTEX_LOCKED(M)						\
   ({									\
   do {									\
@@ -168,7 +166,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   } while (0);								\
   })
 
-/*! Check whether the mutex M is NOT locked by current thread.  */
+/* ! Check whether the mutex M is NOT locked by current thread.  */
 #define CHECK_MUTEX_UNLOCKED(M)						\
   ({									\
   do {									\

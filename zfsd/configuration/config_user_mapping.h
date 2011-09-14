@@ -4,7 +4,6 @@
 #include "system.h"
 #include "fh.h"
 
-bool
-read_user_mapping (zfs_fh *user_dir, uint32_t sid);
+bool read_user_mapping(zfs_fh * user_dir, uint32_t sid);
 
 #endif

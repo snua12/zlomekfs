@@ -4,9 +4,8 @@
 #include "system.h"
 #include "fh.h"
 
-/*! Read list of users from CONFIG_DIR/user_list.  */
+/* ! Read list of users from CONFIG_DIR/user_list.  */
 
-bool
-read_user_list (zfs_fh *config_dir);
+bool read_user_list(zfs_fh * config_dir);
 
 #endif

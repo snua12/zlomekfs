@@ -1,14 +1,11 @@
 
-/*! File with private key.  */
+/* ! File with private key.  */
 static string private_key;
 
 
-static bool
-read_private_key (string *key_file)
+static bool read_private_key(string * key_file)
 {
 
-  free (key_file->str);
-  return true;
+	free(key_file->str);
+	return true;
 }
-
-

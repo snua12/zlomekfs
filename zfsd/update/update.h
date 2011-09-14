@@ -1,24 +1,22 @@
-/*! \file
-    \brief Functions for updating and reintegrating files.  */
+/* ! \file \brief Functions for updating and reintegrating files.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
-   ZFS is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-   License for more details.
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
 
-   You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html */
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef UPDATE_H
 #define UPDATE_H
@@ -34,28 +32,18 @@
 #include "metadata.h"
 #include "zfs-prot.h"
 
-/*! \brief Maximum block size for updating
- *
- * \see ZFS_MAXDATA
- *
- */
+/* ! \brief Maximum block size for updating \see ZFS_MAXDATA */
 #define ZFS_UPDATED_BLOCK_SIZE ZFS_MAXDATA
 
-/*! \brief Maximum block size for reintegrating */
+/* ! \brief Maximum block size for reintegrating */
 #define ZFS_MODIFIED_BLOCK_SIZE 1024
 
-/*! \brief Check whether we should update a generic file.
- *
- * Update the generic file if it has not been completely updated yet,
- * otherwise update a directory if the remote version has changed since
- * the last time we updated the directory
- * or update a regular file if local file was not modified and remote file was
- * modified since we updated it last time.
- *
- *  \param DENTRY The dentry of the file to be checked.
- *  \param ATTR The remote attributes of the file.
- *
- */
+/* ! \brief Check whether we should update a generic file. Update the generic
+   file if it has not been completely updated yet, otherwise update a directory 
+   if the remote version has changed since the last time we updated the
+   directory or update a regular file if local file was not modified and remote 
+   file was modified since we updated it last time.  \param DENTRY The dentry
+   of the file to be checked.  \param ATTR The remote attributes of the file. */
 #define UPDATE_P(DENTRY, ATTR)						   \
   (!((DENTRY)->fh->meta.flags & METADATA_COMPLETE)			   \
    || ((DENTRY)->fh->attr.type == FT_DIR				   \
@@ -63,46 +51,43 @@
        : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version \
            && (ATTR).version > (DENTRY)->fh->meta.master_version))))
 
-/*! \brief Check whether we should reintegrate a generic file.
- *
- * Reintegrate a directory if the local version has changed since the last
- * time we reintegrated the directory or it was not completely reintegrated.
- * Reintegrate a regular file if remote file was not modified and local file
- * was modified since we reintegrated it last time or it was not completely
- * reintegrated.
- *
- *  \param DENTRY The dentry of the file to be checked.
- *  \param ATTR The remote attributes of the file.
- *
- */
+/* ! \brief Check whether we should reintegrate a generic file. Reintegrate a
+   directory if the local version has changed since the last time we
+   reintegrated the directory or it was not completely reintegrated.
+   Reintegrate a regular file if remote file was not modified and local file
+   was modified since we reintegrated it last time or it was not completely
+   reintegrated.  \param DENTRY The dentry of the file to be checked.  \param
+   ATTR The remote attributes of the file. */
 #define REINTEGRATE_P(DENTRY, ATTR)					\
   ((DENTRY)->fh->attr.type == FT_DIR					\
    ? (DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version	\
    : ((ATTR).version == (DENTRY)->fh->meta.master_version		\
       && (DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version))
 
-/*! \brief Are file sizes (for regular files) different? */
+/* ! \brief Are file sizes (for regular files) different? */
 #define METADATA_SIZE_CHANGE_P(ATTR1, ATTR2)			\
         (((ATTR1).type == FT_REG) && ((ATTR1).size != (ATTR2).size))
 
-/*! \brief Did the master version (for regular files) change? */
+/* ! \brief Did the master version (for regular files) change? */
 #define METADATA_MASTER_VERSION_CHANGE_P(DENTRY, ATTR)                        \
         (((ATTR).type == FT_REG) && ((DENTRY)->fh->meta.master_version != (ATTR).version))
 
-/*! \brief Are metadata (mode, UID and GID) different in META and ATTR? */
+/* ! \brief Are metadata (mode, UID and GID) different in META and ATTR? */
 #define METADATA_ATTR_CHANGE_P(META, ATTR)				\
   ((ATTR).mode != GET_MODETYPE_MODE ((META).modetype)			\
    || (ATTR).uid != (META).uid						\
    || (ATTR).gid != (META).gid)
 
-/*! \brief Have local or remote metadata/attributes (mode, UID and GID, size and master version) changed? */
+/* ! \brief Have local or remote metadata/attributes (mode, UID and GID, size
+   and master version) changed? */
 #define METADATA_CHANGE_P(DENTRY, ATTR)					\
   (METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, (DENTRY)->fh->attr)	\
    || METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, ATTR)			\
    || METADATA_SIZE_CHANGE_P ((DENTRY)->fh->attr, ATTR)                 \
    || METADATA_MASTER_VERSION_CHANGE_P(DENTRY, ATTR))
 
-/*! \brief Are metadata/attributes (more, uid, guid, size) in attributes ATTR1 and ATTR2 equal? */
+/* ! \brief Are metadata/attributes (more, uid, guid, size) in attributes
+   ATTR1 and ATTR2 equal? */
 #define METADATA_ATTR_EQ_P(ATTR1, ATTR2)				\
   ((ATTR1).mode == (ATTR2).mode						\
    && (ATTR1).uid == (ATTR2).uid					\
@@ -115,45 +100,46 @@ extern queue update_queue;
 /* Pool of update threads.  */
 extern thread_pool update_pool;
 
-extern void get_blocks_for_updating (internal_fh fh, uint64_t start,
-                                     uint64_t end, varray *blocks);
-extern int32_t update_file_blocks (zfs_cap *cap, varray *blocks,
-                                   bool modified, bool slow);
-extern int32_t update_fh_if_needed (volume *volp, internal_dentry *dentryp,
-                                    zfs_fh *fh, int what);
-extern int32_t update_fh_if_needed_2 (volume *volp, internal_dentry *dentryp,
-                                      internal_dentry *dentry2p, zfs_fh *fh,
-                                      zfs_fh *fh2, int what);
-extern int32_t update_cap_if_needed (internal_cap *icapp, volume *volp,
-                                     internal_dentry *dentryp,
-                                     virtual_dir *vdp, zfs_cap *cap,
-                                     bool put_cap, int what);
-extern int32_t delete_tree (internal_dentry dentry, volume vol,
-                            bool destroy_dentry, bool journal_p,
-                            bool move_to_shadow_p);
-extern int32_t delete_tree_name (internal_dentry dir, string *name, volume vol,
-                                 bool destroy_dentry, bool journal_p,
-                                 bool move_to_shadow_p);
-extern int32_t resolve_conflict_discard_local (zfs_fh *conflict_fh,
-                                               internal_dentry local,
-                                               internal_dentry remote,
-                                               volume vol);
-extern int32_t resolve_conflict_discard_remote (zfs_fh *conflict_fh,
-                                                internal_dentry local,
-                                                internal_dentry remote,
-                                                volume vol);
-extern int32_t resolve_conflict_delete_local (dir_op_res *res,
-                                              internal_dentry dir,
-                                              zfs_fh *dir_fh, string *name,
-                                              zfs_fh *local_fh,
-                                              zfs_fh *remote_fh, volume vol);
-extern int32_t resolve_conflict_delete_remote (volume vol, internal_dentry dir,
-                                               string *name, zfs_fh *remote_fh);
-extern int32_t update (volume vol, internal_dentry dentry, zfs_fh *fh,
-                       fattr *attr, int how);
+extern void get_blocks_for_updating(internal_fh fh, uint64_t start,
+									uint64_t end, varray * blocks);
+extern int32_t update_file_blocks(zfs_cap * cap, varray * blocks,
+								  bool modified, bool slow);
+extern int32_t update_fh_if_needed(volume * volp, internal_dentry * dentryp,
+								   zfs_fh * fh, int what);
+extern int32_t update_fh_if_needed_2(volume * volp, internal_dentry * dentryp,
+									 internal_dentry * dentry2p, zfs_fh * fh,
+									 zfs_fh * fh2, int what);
+extern int32_t update_cap_if_needed(internal_cap * icapp, volume * volp,
+									internal_dentry * dentryp,
+									virtual_dir * vdp, zfs_cap * cap,
+									bool put_cap, int what);
+extern int32_t delete_tree(internal_dentry dentry, volume vol,
+						   bool destroy_dentry, bool journal_p,
+						   bool move_to_shadow_p);
+extern int32_t delete_tree_name(internal_dentry dir, string * name, volume vol,
+								bool destroy_dentry, bool journal_p,
+								bool move_to_shadow_p);
+extern int32_t resolve_conflict_discard_local(zfs_fh * conflict_fh,
+											  internal_dentry local,
+											  internal_dentry remote,
+											  volume vol);
+extern int32_t resolve_conflict_discard_remote(zfs_fh * conflict_fh,
+											   internal_dentry local,
+											   internal_dentry remote,
+											   volume vol);
+extern int32_t resolve_conflict_delete_local(dir_op_res * res,
+											 internal_dentry dir,
+											 zfs_fh * dir_fh, string * name,
+											 zfs_fh * local_fh,
+											 zfs_fh * remote_fh, volume vol);
+extern int32_t resolve_conflict_delete_remote(volume vol, internal_dentry dir,
+											  string * name,
+											  zfs_fh * remote_fh);
+extern int32_t update(volume vol, internal_dentry dentry, zfs_fh * fh,
+					  fattr * attr, int how);
 
-extern bool update_start (void);
-extern void update_cleanup (void);
+extern bool update_start(void);
+extern void update_cleanup(void);
 
 #endif
 

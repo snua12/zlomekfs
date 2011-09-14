@@ -1,24 +1,22 @@
-/*! \file
-    \brief Configuration.  */
+/* ! \file \brief Configuration.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
    This file is part of ZFS.
 
-   ZFS is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-   License for more details.
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
 
-   You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html */
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
@@ -32,20 +30,20 @@
 #include "thread.h"
 #include "fh.h"
 
-/*! Data for config reader thread.  */
+/* ! Data for config reader thread.  */
 extern thread config_reader_data;
 
-/*! Semaphore for managing the reread request queue.  */
+/* ! Semaphore for managing the reread request queue.  */
 extern semaphore config_sem;
 
-/*! Node which the local node should fetch the global configuration from.  */
+/* ! Node which the local node should fetch the global configuration from.  */
 extern char *config_node;
 
 #ifdef ENABLE_VERSIONS
 /* Versioning enabled.  */
 extern bool versioning;
 
-/*! Versions displayed in readdir.  */
+/* ! Versions displayed in readdir.  */
 extern bool verdisplay;
 
 /* Age retention interval.  */
@@ -57,25 +55,25 @@ extern int retention_num_min;
 extern int retention_num_max;
 #endif
 
-/*! mlockall() zfsd  .*/
+/* ! mlockall() zfsd . */
 extern bool mlock_zfsd;
 
 
-/*! Mutex protecting the reread_config chain and alloc pool.  */
+/* ! Mutex protecting the reread_config chain and alloc pool.  */
 extern pthread_mutex_t reread_config_mutex;
 
 
-/*! Alloc pool for allocating nodes of reread config chain.  */
+/* ! Alloc pool for allocating nodes of reread config chain.  */
 extern alloc_pool reread_config_pool;
 
-extern void add_reread_config_request_dentry (internal_dentry dentry);
-extern void add_reread_config_request_local_path (volume vol, string *path);
-extern void add_reread_config_request (string *relative_path,
-				       uint32_t from_sid);
-extern bool read_cluster_config (void);
-extern bool read_config_file (const char *file);
+extern void add_reread_config_request_dentry(internal_dentry dentry);
+extern void add_reread_config_request_local_path(volume vol, string * path);
+extern void add_reread_config_request(string * relative_path,
+									  uint32_t from_sid);
+extern bool read_cluster_config(void);
+extern bool read_config_file(const char *file);
 
-extern void initialize_config_c (void);
-extern void cleanup_config_c (void);
+extern void initialize_config_c(void);
+extern void cleanup_config_c(void);
 
 #endif

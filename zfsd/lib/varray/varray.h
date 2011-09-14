@@ -1,53 +1,51 @@
-/*! \file
-    \brief Variable-sized array datatype.  */
+/* ! \file \brief Variable-sized array datatype.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
    This file is part of ZFS.
 
-   ZFS is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
 
-   ZFS is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-   License for more details.
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
 
-   You should have received a copy of the GNU General Public License along with
-   ZFS; see the file COPYING.  If not, write to the Free Software Foundation,
-   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
-   or download it from http://www.gnu.org/licenses/gpl.html */
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
 
 #ifndef VARRAY_H
 #define VARRAY_H
 
 #include "system.h"
 
-/*! \brief Variable-sized array.  */
+/* ! \brief Variable-sized array.  */
 typedef struct varray_def
 {
-  /*! Total number of elements allocated.  */
-  unsigned int nelem;
+	/* ! Total number of elements allocated.  */
+	unsigned int nelem;
 
-  /*! The number of elements used.  */
-  unsigned int nused;
+	/* ! The number of elements used.  */
+	unsigned int nused;
 
-  /*! Size of an element.  */
-  unsigned int size;
+	/* ! Size of an element.  */
+	unsigned int size;
 
-  /*! The array itself.  */
-  void *array;
+	/* ! The array itself.  */
+	void *array;
 } varray;
 
-/*! Total (allocated) size of variable-sized array VA.  */
+/* ! Total (allocated) size of variable-sized array VA.  */
 #define VARRAY_SIZE(VA) ((VA).nelem)
 
-/*! Number of used elements of variable-sized array VA.  */
+/* ! Number of used elements of variable-sized array VA.  */
 #define VARRAY_USED(VA) ((VA).nused)
 
-/*! Add an uninitialized element on top of the variable-sized array VA.  */
+/* ! Add an uninitialized element on top of the variable-sized array VA.  */
 #define VARRAY_EMPTY_PUSH(VA)				\
   do							\
     {							\
@@ -57,7 +55,7 @@ typedef struct varray_def
     }							\
   while (0)
 
-/*! Push an element X of type T into variable-sized array VA.  */
+/* ! Push an element X of type T into variable-sized array VA.  */
 #define VARRAY_PUSH(VA, X, T)				\
   do							\
     {							\
@@ -67,18 +65,18 @@ typedef struct varray_def
     }							\
   while (0)
 
-/*! Delete the last element from variable-sized array VA.  */
+/* ! Delete the last element from variable-sized array VA.  */
 #define VARRAY_POP(VA) ((VA).nused--)
 
-/*! Access the top element of variable-sized array VA.  */
+/* ! Access the top element of variable-sized array VA.  */
 #define VARRAY_TOP(VA, T) (((T *) (VA).array)[(VA).nused - 1])
 
-/*! Empty the variable-sized array VA.  */
+/* ! Empty the variable-sized array VA.  */
 #define VARRAY_CLEAR(VA) ((VA).nused = 0)
 
 #if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007)
 
-/*! Access the Nth element of type T from variable-sized array VA with bounds
+/* ! Access the Nth element of type T from variable-sized array VA with bounds
    checking.  */
 #define VARRAY_ACCESS(VA, N, T) __extension__				\
   (*({									\
@@ -89,19 +87,19 @@ typedef struct varray_def
 
 #else
 
-/*! Access the Nth element of type T from variable-sized array VA.  */
+/* ! Access the Nth element of type T from variable-sized array VA.  */
 #define VARRAY_ACCESS(VA, N, T)						\
    (((T *) (VA).array)[N])
 
 #endif
 
-extern void varray_create (varray *va, unsigned int size, unsigned int nelem);
-extern void varray_destroy (varray *va);
-extern void varray_grow (varray *va, unsigned int nelem);
+extern void varray_create(varray * va, unsigned int size, unsigned int nelem);
+extern void varray_destroy(varray * va);
+extern void varray_grow(varray * va, unsigned int nelem);
 
 #ifdef ENABLE_CHECKING
-extern void varray_check_failed (unsigned int pos, const char *file,
-				 int line) ATTRIBUTE_NORETURN;
+extern void varray_check_failed(unsigned int pos, const char *file,
+								int line) ATTRIBUTE_NORETURN;
 #endif
 
 #endif

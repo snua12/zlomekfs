@@ -4,7 +4,6 @@
 #include "system.h"
 #include "fh.h"
 
-bool
-read_group_list (zfs_fh *config_dir);
+bool read_group_list(zfs_fh * config_dir);
 
 #endif

@@ -8,15 +8,14 @@
 bool initialize_control_c(void)
 {
 #ifdef ENABLE_DBUS
-  start_dbus_control();
+	start_dbus_control();
 #endif
-  return true;
+	return true;
 }
 
 void cleanup_control_c(void)
 {
 #ifdef ENABLE_DBUS
-  stop_dbus_control();
+	stop_dbus_control();
 #endif
 }
-
