@@ -45,7 +45,7 @@ struct formatter_def raw_formatter =
 };
 
 /*! Format log to stream in raw format */
-int32_t raw_stream_write (log_struct message, int socket)
+int32_t raw_stream_write (log_struct message, int socket UNUSED)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL)
@@ -94,7 +94,7 @@ int32_t raw_file_write (log_struct message, FILE * file)
 
 
 /*! Read log from stream in raw format */
-int32_t raw_stream_read (log_struct message, int socket)
+int32_t raw_stream_read (log_struct message, int socket UNUSED)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL)

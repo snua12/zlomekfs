@@ -71,7 +71,7 @@ bool_t is_shm_medium_arg (const char * arg)
  @param settings medium structure where to apply given settings (non NULL)
  @return ERR_BAD_PARAMS on wrong argv or settings, NOERR otherwise
  */
-syp_error shm_medium_parse_params (int argc, const char ** argv, medium settings)
+static syp_error shm_medium_parse_params (int argc, const char ** argv, medium settings)
 {
   
   int opt;

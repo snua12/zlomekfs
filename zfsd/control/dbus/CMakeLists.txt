@@ -1,4 +1,4 @@
-add_library(controlDbus ${BUILDTYPE} dbus-provider.c  dbus-zfsd-service.c)
+add_library(controlDbus ${BUILDTYPE} dbus-provider.c  dbus-zfsd-service.c dbus-init.c)
 target_link_libraries(controlDbus ${DBUS_LIBRARIES} log)
 
 ### google Test

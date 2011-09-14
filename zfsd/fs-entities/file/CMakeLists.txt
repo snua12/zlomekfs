@@ -1,5 +1,5 @@
 add_library(file ${BUILDTYPE} file.c)
-target_link_libraries(file update configuration)
+target_link_libraries(file update configuration ${VERSIONS_LIBRARIES})
 
 install(
 TARGETS file

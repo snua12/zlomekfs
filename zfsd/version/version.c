@@ -47,8 +47,6 @@
 #include "version.h"
 #include "update.h"
 
-#ifdef ENABLE_VERSIONS
-
 #ifdef __linux__
 
 /* FIXME: VB: New systems don't have linux/dirent.h, man getdents says you
@@ -89,7 +87,7 @@ getdents (int fd, struct dirent *dirp, unsigned count)
  *
  *  \see dirtab_item_def
 */
-hash_t dirhtab_hash (const void *x)
+static hash_t dirhtab_hash (const void *x)
 {
   return DIRHTAB_HASH((const struct dirhtab_item_def *)x);
 }
@@ -103,7 +101,7 @@ hash_t dirhtab_hash (const void *x)
  *
  *  \see dirtab_item_def
 */
-int dirhtab_eq (const void *x, const void *y)
+static int dirhtab_eq (const void *x, const void *y)
 {
   return (!strcmp (((const struct dirhtab_item_def *)x)->name, ((const struct dirhtab_item_def *)y)->name));
 }
@@ -116,7 +114,7 @@ int dirhtab_eq (const void *x, const void *y)
  *
  *  \see dirtab_item_def
 */
-void dirhtab_del (void *x)
+static void dirhtab_del (void *x)
 {
   struct dirhtab_item_def *i = (struct dirhtab_item_def *)x;
 
@@ -392,8 +390,7 @@ version_generate_filename (char *path, string *verpath)
   RETURN_INT (ZFS_OK);
 }
 
-int32_t
-version_set_time (internal_fh fh)
+static int32_t version_set_time (internal_fh fh)
 {
   fattr *sa;
   struct utimbuf t;
@@ -659,8 +656,7 @@ version_unlink_file (char *path)
  *
  *  \see version_item_def
 */
-int32_t
-version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray *v)
+static int32_t version_browse_dir (char *path, char *name, time_t *stamp, uint32_t *ino, varray *v)
 {
   char buf[ZFS_MAXDATA];
   int32_t r, pos;
@@ -968,7 +964,8 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
   RETURN_INT (ZFS_OK);
 }
 
-
+//TODO: remove this unused function
+#if 0
 /*! \brief Return version time stamp (Unix time)
  *
  * Return time stamp from version file name. Function expects Unix time suffix.
@@ -979,8 +976,7 @@ version_get_filename_stamp(char *name, time_t *stamp, int *orgnamelen)
  *  \retval ZFS_OK Valid time stamp specified
  *  \retval ENOENT Invalid time stamp
 */
-int32_t
-version_retr_stamp(char *name, time_t *stamp)
+static int32_t version_retr_stamp(char *name, time_t *stamp)
 {
   char *x;
 
@@ -995,6 +991,7 @@ version_retr_stamp(char *name, time_t *stamp)
 
 
 }
+#endif
 
 /*! \brief Check if working with directory
  *
@@ -1286,7 +1283,9 @@ version_rename_source(char *path)
   else
     {
       fdv = creat (verpath.str, st.st_mode);
-      lchown (verpath.str, st.st_uid, st.st_gid);
+      //TODO: FIXME return value
+      int tmp = lchown (verpath.str, st.st_uid, st.st_gid);
+      tmp =0;
     }
   fd = open (path, O_RDONLY);
 
@@ -1570,4 +1569,3 @@ version_apply_retention (internal_dentry dentry, volume vol)
   RETURN_INT (ZFS_OK);
 }
 
-#endif /* ENABLE_VERSIONS */

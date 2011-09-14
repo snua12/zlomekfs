@@ -96,7 +96,7 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
   TRACE ("%s", dst->str);
 }
 
-int32_t
+static int32_t
 build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
                        string *name, ATTRIBUTE_UNUSED_VERSIONS time_t *dirstamp)
 {
@@ -1997,7 +1997,7 @@ zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
   RETURN_INT (ZFS_OK);
 }
 
-int32_t
+static int32_t
 local_lookup_dirstamp (dir_op_res *res, internal_dentry dir, string *name, volume vol,
               metadata *meta, time_t *dirstamp)
 {

@@ -21,8 +21,8 @@
    or download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
-#include <stdlib.h>
 #include "varray.h"
+#include <stdlib.h>
 #include "log.h"
 #include "memory.h"
 

@@ -36,63 +36,9 @@
 #include "node.h"
 #include "syplog.h"
 
-#ifdef ENABLE_DBUS
-#include "control/listener.h"
-#endif
-
 #include "pthread-wrapper.h"
 
-
-
 struct logger_def syplogger;
-
-#ifdef ENABLE_DBUS
-
-struct listener_def control;
-
-int dbus_add_log_name (DBusConnection * connection, 
-                       DBusError * err_struct)
-{
-  syp_error ret = dbus_add_syplog_name (connection, err_struct, &syplogger);
-  if (ret == NOERR)
-    return TRUE;
-  else
-    return FALSE;
-}
-
-
-int dbus_release_log_name (DBusConnection * connection, 
-                           DBusError * err_struct)
-{
-  syp_error ret = dbus_release_syplog_name (connection, err_struct, &syplogger);
-  if (ret == NOERR)
-    return TRUE;
-  else
-    return FALSE;
-}
-
-message_handle_state_e dbus_handle_log_message (DBusConnection * connection, 
-                                                DBusError * err_struct,
-                                                DBusMessage * msg)
-{
-  syp_error ret = dbus_handle_syplog_message (connection, err_struct, msg, &syplogger);
-  switch (ret)
-  {
-    case NOERR:
-      return ZFSD_MESSAGE_HANDLED;
-      break;
-    case ERR_BAD_MESSAGE:
-      return ZFSD_MESSAGE_UNKNOWN;
-      break;
-    default:
-      return ZFSD_HANDLE_ERROR;
-  }
-
-  return ZFSD_HANDLE_ERROR;
-
-}
-#endif
-
 
 void zfs_openlog(int  argc, const char ** argv)
 {
@@ -138,7 +84,7 @@ void zfs_closelog(void)
 }
 
 /*! Print stack */
-void show_stackframe(void) {
+static void show_stackframe(void) {
   void *trace[16];
   char **messages = (char **)NULL;
   int i, trace_size = 0;

@@ -32,8 +32,6 @@
 /*! Thread ID of the main thread.  */
 extern pthread_t main_thread;
 
-extern zfsd_state_e zfsd_state;
-
 extern void terminate (void);
 extern void usage (void);
 

@@ -26,6 +26,7 @@
 /*! Forward declaration.  */
 typedef struct volume_def *volume;
 
+#include "config.h"
 #include "system.h"
 #include <inttypes.h>
 #include <stdio.h>

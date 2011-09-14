@@ -20,8 +20,9 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#include "log.h"
 #include "system.h"
+#include "util.h"
+#include "log.h"
 #include <stdio.h>
 #include <stddef.h>
 #include <sys/types.h>

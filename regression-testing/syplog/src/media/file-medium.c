@@ -72,7 +72,7 @@ bool_t is_file_medium_arg (const char * arg)
  @param settings medium structure where to apply given settings (non NULL)
  @return ERR_BAD_PARAMS on wrong argv or settings, NOERR otherwise
  */
-syp_error file_medium_parse_params (int argc, const char ** argv, medium settings)
+static syp_error file_medium_parse_params (int argc, const char ** argv, medium settings)
 {
   int opt;
   extern int opterr, optopt;

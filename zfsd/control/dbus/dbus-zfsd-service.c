@@ -26,19 +26,21 @@
 #include "dbus-zfsd-service.h"
 #include "zfsd.h"
 #include "log.h"
+#include "zfsd_state.h"
 
 
-message_handle_state_e reply_to_ping(DBusMessage* msg, DBusConnection* conn)
+static message_handle_state_e reply_to_ping(DBusMessage* msg, DBusConnection* conn)
 {
   DBusMessage* reply;
   DBusMessageIter args;
+  zfsd_state_e state = zfsd_get_state();
 
   // create a reply from the message
   reply = dbus_message_new_method_return(msg);
 
   // add the arguments to the reply
   dbus_message_iter_init_append(reply, &args);
-  if (!dbus_message_iter_append_basic(&args, ZFSD_STATUS_INFO_DBUS_TYPE, &zfsd_state)) { 
+  if (!dbus_message_iter_append_basic(&args, ZFSD_STATUS_INFO_DBUS_TYPE, &state)) { 
     message (LOG_WARNING, FACILITY_DBUS, "Out Of Memory!\n"); 
     return ZFSD_HANDLE_ERROR;
   }

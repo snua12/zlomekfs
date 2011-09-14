@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-if(COMMAND cmake_policy)
-   cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
-SET(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS 1)
+project(zfsd)
 
 function(print_help)
 	message("")
@@ -11,25 +8,23 @@ function(print_help)
 	message("    -DCONFIGURATION=   - configuration type [Debug,Release], default: Debug")
 	message("        .. specifies default LIBS")
 	message("        .. also sets default CFLAGS")
+  massage("    -DVERSION= - enable or disable zfs version, choices [0,1], default 1")
+  message("    -DDBUS= - enable or disable dbus interface, choices [0,1], defaulr 1")
 	message("    -DLIBS=   - override libraries type [shared,static]")
 	message("    -DCFLAGS=   - specify additional CFLAGS for build")
 	message("    -DPREFIX=   - installation prefix, default: $build/installed")
-	message("    -DTESTS=   - specify list of test groups to enable [all,utils,eventer,sysconfig,email,gtest,unit], default: none")
-	message("               - tests in group "email" are not enabled even by "all", because they can cause a lot of email spam! enable at your own risk!")
+	message("    -DTESTS=   - specify list of test groups to enable [all,gtest,unit], default: none")
 	message("")
 endfunction()
 
+option (ENABLE_VERSIONS "Enable ZFS version support" ON) 
+if (ENABLE_VERSIONS)
+  set(VERSIONS_LIBRARIES version)
+endif (ENABLE_VERSIONS)
 
-if(NOT PREFIX)
-	set(ZFS_INSTALL_DIR ${CMAKE_SOURCE_DIR}/installed)
-else()
-	set(ZFS_INSTALL_DIR ${PREFIX})
-endif()
-
-set(CMAKE_INSTALL_RPATH ${ZFS_INSTALL_DIR}/lib)
-
-# make this persistent
-set(PREFIX ${PREFIX} CACHE string "Installation directory" FORCE)
+option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
+option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
+option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
 
 ##############################################################
 ############## Build configurations
@@ -39,39 +34,8 @@ set(PREFIX ${PREFIX} CACHE string "Installation directory" FORCE)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug Release" CACHE string "Configuration types" FORCE)
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${MASTER_CFLAGS} ${CFLAGS}" CACHE string "Debug cflags" FORCE)
-set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${MASTER_CFLAGS} ${PLATFORM_CFLAGS} ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
-
-# make this persistent
-set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE string "Build configuration" FORCE)
-
-#############################################################
-############## Library sharedness
-#############################################################
-
-# Input variables: BUILD
-
-if(NOT LIBS)
-elseif(LIBS STREQUAL static)
-	set(BUILDTYPE STATIC)
-elseif(LIBS STREQUAL shared)
-	set(BUILDTYPE SHARED)
-else()
-	message("Error: invalid build type!")
-	print_help()
-	message(FATAL_ERROR "Cannot proceed!")
-endif()
-
-# make this persistent
-set(LIBS ${LIBS} CACHE string "Library sharedness" FORCE)
-
-##############################################################
-############## Summary
-##############################################################
-
-message("Library type: ${BUILDTYPE}")
-message("Prefix: ${IPC_INSTALL_DIR}")
-message("Configuration: ${CMAKE_BUILD_TYPE}")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${VERSIONS_CFLAGS} ${CFLAGS}" CACHE string "Debug cflags" FORCE)
+set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${VERSIONS_CFLAGS} ${PLATFORM_CFLAGS} ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
 
 
 ##############################################################

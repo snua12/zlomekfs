@@ -25,8 +25,6 @@
 */
 
 
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/time.h>
@@ -34,12 +32,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#undef _GNU_SOURCE
-
 #include "syplog.h"
 #include "media/file-medium.h"
 #include "media/print-medium.h"
-#include "control/listener.h"
 
 void print_syplog_help (int fd, int tabs)
 {
@@ -121,7 +116,7 @@ syp_error get_facilities (logger glogger, facility_t * facilities)
 }
 
 
-syp_error set_hostname_locked (logger glogger, const char * hostname)
+static syp_error set_hostname_locked (logger glogger, const char * hostname)
 {
   strncpy (glogger->hostname, hostname, HOSTNAME_LEN);
   return NOERR;
@@ -141,14 +136,14 @@ syp_error set_hostname (logger glogger, const char * hostname)
   return NOERR;
 }
 
-syp_error set_timezone_locked (logger glogger, uint64_t timezone)
+static syp_error set_timezone_locked (logger glogger, uint64_t tz)
 {
-  glogger->timezone = timezone;
+  glogger->timezone = tz;
   return NOERR;
 }
 
 /// Set cached timezone
-syp_error set_timezone (logger glogger, uint64_t timezone)
+syp_error set_timezone (logger glogger, uint64_t tz)
 {
 #ifdef ENABLE_CHECKING
   if (glogger == NULL)
@@ -156,13 +151,13 @@ syp_error set_timezone (logger glogger, uint64_t timezone)
 #endif
 
   pthread_mutex_lock (&(glogger->mutex));
-  set_timezone_locked (glogger, timezone);
+  set_timezone_locked (glogger, tz);
   pthread_mutex_unlock (&(glogger->mutex));
   
   return NOERR;
 }
 
-syp_error set_node_name_locked (logger glogger, const char * node_name)
+static syp_error set_node_name_locked (logger glogger, const char * node_name)
 {
   strncpy (glogger->node_name, node_name, NODE_NAME_LEN);
   return NOERR;

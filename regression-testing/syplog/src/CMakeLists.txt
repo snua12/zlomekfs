@@ -2,16 +2,12 @@ add_subdirectory(formatters)
 
 SET(syplog_SRCS
   syplog.c
-	settings-loader.c
 	media/medium.c
 	media/file-medium.c
 	media/print-medium.c
 	media/shm-medium.c
 	media/medium-api.c
 	syp-error.c
-	control/control-protocol.c
-	control/listener.c
-	control/control.c
 )
 
 

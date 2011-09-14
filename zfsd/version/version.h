@@ -23,8 +23,6 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#ifdef ENABLE_VERSIONS
-
 #include "system.h"
 #include "zfs-prot.h"
 #include "fh.h"
@@ -115,7 +113,5 @@ extern bool version_retent_file (internal_dentry dir, volume vol, char *name);
 extern int32_t version_copy_data (int fd, int fdv, uint64_t offset, uint32_t length, data_buffer *newdata);
 extern int32_t version_rmdir_versions (char *path);
 extern int32_t version_apply_retention (internal_dentry dentry, volume vol);
-
-#endif /* ENABLE_VERSIONS */
 
 #endif /* VERSION_H */

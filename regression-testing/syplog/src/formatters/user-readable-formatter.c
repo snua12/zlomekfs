@@ -46,7 +46,7 @@ struct formatter_def user_readable_formatter =
   @param buffer_len maximal number of chars printed to buffer
   @return number of chars printed or -syp_error on error
 */
-int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len)
+static int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len)
 {
 
 #ifdef ENABLE_CHECKING
@@ -85,7 +85,7 @@ int32_t fill_buffer (const log_struct message, char * buffer, int32_t buffer_len
   @param buffer non NULL string buffer containing log message in format defined for user readable formatter
   @return number of chars read or -syp_error on error
 */
-int32_t read_buffer (log_struct message, const char * buffer)
+static int32_t read_buffer (log_struct message, const char * buffer)
 {
 
 #ifdef ENABLE_CHECKING
@@ -125,7 +125,7 @@ int32_t read_buffer (log_struct message, const char * buffer)
 
 
 /*! Format log to stream in user readable manner */
-int32_t user_readable_stream_write (log_struct message, int socket)
+int32_t user_readable_stream_write (log_struct message UNUSED, int socket UNUSED)
 {
   return -ERR_NOT_IMPLEMENTED;
 }
@@ -172,7 +172,7 @@ int32_t user_readable_file_write (log_struct message, FILE * file)
 
 
 /*! Read log from stream in user readable manner */
-int32_t user_readable_stream_read (log_struct message, int socket)
+int32_t user_readable_stream_read (log_struct message UNUSED, int socket UNUSED)
 {
   return -ERR_NOT_IMPLEMENTED;
 }

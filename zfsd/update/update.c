@@ -187,7 +187,7 @@ update_file_clear_updated_tree_1 (volume vol, internal_dentry dentry, uint64_t v
  *  \param fh File handle of the file.
  *  \param version New version of the file.
 */
-int32_t
+static int32_t
 update_file_clear_updated_tree (zfs_fh *fh, uint64_t version)
 {
   volume vol;

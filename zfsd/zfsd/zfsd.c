@@ -51,20 +51,12 @@
 #include "user-group.h"
 #include "update.h"
 #include "log.h"
-
-#ifdef ENABLE_DBUS
-#include "dbus-provider.h"
-#include "dbus-zfsd-service.h"
-#endif
-
-#ifdef TEST
-#include "test.h"
-#endif
+#include "control.h"
+#include "zfsd_state.h"
 
 /*! Thread ID of the main thread.  */
 pthread_t main_thread;
 
-zfsd_state_e zfsd_state = ZFSD_STATE_STARTING;
 
 /*! Name of the configuration file.  */
 static char *config_file;
@@ -111,7 +103,7 @@ exit_sighandler (ATTRIBUTE_UNUSED int signum)
 /*! Report the fatal signal.  */
 
 static void
-fatal_sigaction (int signum, siginfo_t *info, void *data)
+fatal_sigaction (int signum, siginfo_t *info, ATTRIBUTE_UNUSED void *data)
 {
   /* Process only signals which are from kernel.  */
   if (SI_FROMKERNEL (info))
@@ -440,7 +432,7 @@ die (void)
 
 /*! Initialize various data structures needed by ZFSD.  */
 
-bool
+static bool
 initialize_data_structures (void)
 {
   if (pthread_key_create (&thread_data_key, NULL))
@@ -468,7 +460,7 @@ initialize_data_structures (void)
 
 /*! Destroy data structures.  */
 
-void
+static void
 cleanup_data_structures (void)
 {
   /* Destroy data of config reader thread.  */
@@ -498,37 +490,6 @@ cleanup_data_structures (void)
   pthread_key_delete (thread_name_key);
 }
 
-#ifdef ENABLE_DBUS
-struct dbus_state_holder_def dbus_provider;
-
-void init_dbus(void)
-{
-  if (dbus_provider_init (&dbus_provider) != TRUE)
-    message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
-             "Can't initialize dbus provider\n");
-  else
-  {
-
-    if (dbus_provider_add_listener (&dbus_provider, dbus_add_zfsd_name, 
-                                dbus_release_zfsd_name, dbus_handle_zfsd_message)
-        != TRUE)
-      message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
-               "Can't add dbus zfsd state provider\n");
-
-
-    if (dbus_provider_add_listener (&dbus_provider, dbus_add_log_name, 
-                                dbus_release_log_name, dbus_handle_log_message)
-        != TRUE)
-      message (LOG_WARNING, FACILITY_DBUS | FACILITY_ZFSD,
-               "Can't add dbus log control\n");
-
-    if (dbus_provider_start (&dbus_provider, DBUS_BUS_SYSTEM) != TRUE)
-      message (LOG_ERROR, FACILITY_DBUS | FACILITY_ZFSD,
-               "Can't start dbus provider\n");
-  }
-
-}
-#endif
  
 /*! Entry point of ZFS daemon.  */
 
@@ -546,9 +507,8 @@ main (int argc, char **argv)
   zfs_openlog(argc, (const char **)argv);
   opterr = 1;
 
-#ifdef ENABLE_DBUS 
-  init_dbus();
-#endif
+  // TODO: check return value
+  initialize_config_c();
 
   init_constants ();
   init_sig_handlers ();
@@ -639,7 +599,7 @@ main (int argc, char **argv)
       kernel_started = kernel_start ();
     }
 
-  zfsd_state = ZFSD_STATE_RUNNING;
+  zfsd_set_state (ZFSD_STATE_RUNNING);
 
   /* Workaround valgrind bug (PR/77369),
      i.e. prevent from waiting for joinee threads while signal is received.  */
@@ -649,7 +609,7 @@ main (int argc, char **argv)
       sleep (1000000);
     }
 
-  zfsd_state = ZFSD_STATE_TERMINATING;
+  zfsd_set_state(ZFSD_STATE_TERMINATING);
 
   if (update_started)
     {
@@ -685,10 +645,9 @@ main (int argc, char **argv)
 
   cleanup_data_structures ();
   disable_sig_handlers ();
-
-#ifdef ENABLE_DBUS
-  dbus_provider_end (&dbus_provider);
-#endif
+  
+  // deinit dbus
+  cleanup_control_c();
 
   zfs_closelog();
 

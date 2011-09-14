@@ -58,7 +58,7 @@ struct
 };
 
 
-medium_operation operation_name_to_enum(const char * operation_name)
+static medium_operation operation_name_to_enum(const char * operation_name)
 {
   // index to reader_translation_table for loop
   int table_index = 0;
@@ -116,7 +116,7 @@ struct
   @param medium_type_name unified type name of medium
   @return type discriminator (medium_type) or NO_MEDIUM
 */
-medium_type medium_name_to_enum (const char * medium_type_name)
+static medium_type medium_name_to_enum (const char * medium_type_name)
 {
   // index to reader_translation_table for loop
   int table_index = 0;
@@ -211,7 +211,7 @@ bool_t is_medium_arg (const char * arg)
   for example 1M, 15G, 12, 10K
  * @return 1 for no multiplier, 1024 for K, ...
 */
-int unit_multiplier (char * size_string)
+static int unit_multiplier (char * size_string)
 {
   int thousants = 0;
   int ret = 1;
@@ -243,7 +243,7 @@ int unit_multiplier (char * size_string)
   @param settings pointer to struct, where to store settings given in argv
   @return ERR_BAD_PARAMS on invalid argument in argv, NOERR otherwise
 */
-syp_error medium_parse_params(int argc, const char ** argv, medium settings)
+static syp_error medium_parse_params(int argc, const char ** argv, medium settings)
 {
 
 

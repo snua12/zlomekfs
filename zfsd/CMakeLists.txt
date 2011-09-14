@@ -50,5 +50,8 @@ add_subdirectory(fs-entities)
 add_subdirectory(zfsd)
 add_subdirectory(tools)
 add_subdirectory(update)
-add_subdirectory(version)
+
+if (ENABLE_VERSIONS)
+  add_subdirectory(version)
+endif(ENABLE_VERSIONS)
 

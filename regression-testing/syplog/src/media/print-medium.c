@@ -63,7 +63,7 @@ static const struct option option_table[] =
  @param settings medium structure where to apply given settings (non NULL)
  @return ERR_BAD_PARAMS on wrong argv or settings, NOERR otherwise
  */
-syp_error print_medium_parse_params (int argc, const char ** argv, medium settings)
+static syp_error print_medium_parse_params (int argc, const char ** argv, medium settings)
 {
   int opt;
   extern int opterr, optopt;

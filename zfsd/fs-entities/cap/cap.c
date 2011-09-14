@@ -71,8 +71,8 @@ internal_cap_compute_verify (internal_cap cap)
   MD5Update (&ctx, random_bytes, sizeof (random_bytes));
   MD5Final ((unsigned char *) cap->local_cap.verify, &ctx);
 
-      message (LOG_DEBUG, FACILITY_DATA, "Created verify\n");
-      print_hex_buffer (LOG_DATA, NULL, cap->local_cap.verify, ZFS_VERIFY_LEN);
+  message (LOG_DEBUG, FACILITY_DATA, "Created verify\n");
+  print_hex_buffer (LOG_DATA, NULL, cap->local_cap.verify, ZFS_VERIFY_LEN);
 
   RETURN_BOOL (true);
 }

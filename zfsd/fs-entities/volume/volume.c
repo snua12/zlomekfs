@@ -428,17 +428,20 @@ volume_set_local_info_wrapper (volume *volp, char *local_path,
   return volume_set_local_info (volp, &local_path_str, size_limit);
 }
 
+//TODO: remve this unused function
+#if 0
 /*! Print the information about volume VOL to file F.  */
 
-void
+static void
 print_volume (FILE *f, volume vol)
 {
   fprintf (f, "%u %s %s\n", vol->id, vol->name.str, vol->mountpoint.str);
 }
 
+
 /*! Print the information about all volumes to file F.  */
 
-void
+static void
 print_volumes (FILE *f)
 {
   void **slot;
@@ -448,22 +451,7 @@ print_volumes (FILE *f)
       print_volume (f, (volume) *slot);
     }
 }
-
-/*! Print the information about volume VOL to STDERR.  */
-
-void
-debug_volume (volume vol)
-{
-  print_volume (stderr, vol);
-}
-
-/*! Print the information about all volumes to STDERR.  */
-
-void
-debug_volumes (void)
-{
-  print_volumes (stderr);
-}
+#endif
 
 /*! Mark all volumes.  */
 

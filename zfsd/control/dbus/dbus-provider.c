@@ -55,7 +55,7 @@ int dbus_provider_init (dbus_state_holder settings_struct)
  * @param data pointer to initialized dbus_state_holder
  * @return NULL
  */
-void * dbus_provider_loop (void * data)
+static void * dbus_provider_loop (void * data)
 {
   message_handle_state_e state = ZFSD_MESSAGE_HANDLED;
   dbus_state_holder settings = (dbus_state_holder) data;
@@ -86,7 +86,7 @@ void * dbus_provider_loop (void * data)
     msg = dbus_connection_pop_message (settings->connection);
 
     // loop again if we haven't got a message
-    if (NULL == msg) {  
+    if (msg == NULL) {  
       goto NEXT;
     }
 
