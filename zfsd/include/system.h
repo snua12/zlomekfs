@@ -159,4 +159,8 @@
 
 #endif /* __GNUC__ */
 
+/*direcotry separator*/
+#define DIRECTORY_SEPARATOR "/"
+#define DIRECTORY_SEPARATOR_LEN 1
+
 #endif

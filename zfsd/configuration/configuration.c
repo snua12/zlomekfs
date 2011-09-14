@@ -339,7 +339,7 @@ set_default_gid (const char *name)
 
 /*! Set default local user/group.  */
 
-void
+static void
 set_default_uid_gid (void)
 {
   set_default_uid ("nobody");

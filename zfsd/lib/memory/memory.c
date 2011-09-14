@@ -339,6 +339,7 @@ append_file_name (string *dst, string *path, const char *name, unsigned int len)
     }
 
   memcpy (dst->str, path->str, path->len);
-  dst->str[path->len] = '/';
+  //TODO: ugly conversion from "/" to '/'
+  dst->str[path->len] = DIRECTORY_SEPARATOR[0];
   memcpy (dst->str + path->len + 1, name, len + 1);
 }

@@ -86,8 +86,8 @@ build_local_path (string *dst, volume vol, internal_dentry dentry)
         n--;
         VARRAY_ACCESS (v, n, string) = tmp->name;
         n--;
-        VARRAY_ACCESS (v, n, string).str = "/";
-        VARRAY_ACCESS (v, n, string).len = 1;
+        VARRAY_ACCESS (v, n, string).str = DIRECTORY_SEPARATOR;
+        VARRAY_ACCESS (v, n, string).len = DIRECTORY_SEPARATOR_LEN;
       }
   VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
@@ -154,16 +154,16 @@ build_local_path_name_dirstamp (string *dst, volume vol, internal_dentry dentry,
   VARRAY_ACCESS (v, n, string) = *name;
   n--;
 #endif
-  VARRAY_ACCESS (v, n, string).str = "/";
-  VARRAY_ACCESS (v, n, string).len = 1;
+  VARRAY_ACCESS (v, n, string).str = DIRECTORY_SEPARATOR;
+  VARRAY_ACCESS (v, n, string).len = DIRECTORY_SEPARATOR_LEN;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
       {
         n--;
         VARRAY_ACCESS (v, n, string) = tmp->name;
         n--;
-        VARRAY_ACCESS (v, n, string).str = "/";
-        VARRAY_ACCESS (v, n, string).len = 1;
+        VARRAY_ACCESS (v, n, string).str = DIRECTORY_SEPARATOR;
+        VARRAY_ACCESS (v, n, string).len = DIRECTORY_SEPARATOR_LEN;
       }
   VARRAY_ACCESS (v, 0, string) = vol->local_path;
 
@@ -233,8 +233,9 @@ build_relative_path (string *dst, internal_dentry dentry)
         n--;
         VARRAY_ACCESS (v, n, string) = tmp->name;
         n--;
-        VARRAY_ACCESS (v, n, string).str = "/";
-        VARRAY_ACCESS (v, n, string).len = 1;
+
+        VARRAY_ACCESS (v, n, string).str = DIRECTORY_SEPARATOR;
+        VARRAY_ACCESS (v, n, string).len = DIRECTORY_SEPARATOR_LEN;
       }
 
   xstringconcat_varray (dst, &v);
@@ -270,16 +271,16 @@ build_relative_path_name (string *dst, internal_dentry dentry, string *name)
   n--;
   VARRAY_ACCESS (v, n, string) = *name;
   n--;
-  VARRAY_ACCESS (v, n, string).str = "/";
-  VARRAY_ACCESS (v, n, string).len = 1;
+  VARRAY_ACCESS (v, n, string).str = DIRECTORY_SEPARATOR;
+  VARRAY_ACCESS (v, n, string).len = DIRECTORY_SEPARATOR_LEN;
   for (tmp = dentry; tmp->parent; tmp = tmp->parent)
     if (tmp->parent && !CONFLICT_DIR_P (tmp->parent->fh->local_fh))
       {
         n--;
         VARRAY_ACCESS (v, n, string) = tmp->name;
         n--;
-        VARRAY_ACCESS (v, n, string).str = "/";
-        VARRAY_ACCESS (v, n, string).len = 1;
+        VARRAY_ACCESS (v, n, string).str = DIRECTORY_SEPARATOR;
+        VARRAY_ACCESS (v, n, string).len = DIRECTORY_SEPARATOR_LEN;
       }
 
   xstringconcat_varray (dst, &v);
@@ -356,7 +357,7 @@ parent_exists (string *path, struct stat *st)
 
   file_name_from_path (&file, path);
   file.str[-1] = 0;
-  r = lstat (path->str[0] ? path->str : "/", st);
+  r = lstat (path->str[0] ? path->str : DIRECTORY_SEPARATOR, st);
   file.str[-1] = '/';
 
   if (r != 0)
@@ -934,7 +935,7 @@ recursive_unlink (string *path, uint32_t vid, bool destroy_dentry,
 
   file_name_from_path (&file_name, path);
   file_name.str[-1] = 0;
-  if (lstat (path->str[0] ? path->str : "/", &st) != 0)
+  if (lstat (path->str[0] ? path->str : DIRECTORY_SEPARATOR, &st) != 0)
     {
       if (vol)
         zfsd_mutex_unlock (&vol->mutex);

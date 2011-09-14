@@ -708,7 +708,7 @@ static int32_t version_browse_dir (char *path, char *name, time_t *stamp, uint32
                       char *x;
                       time_t mtime = 0;
 
-                      x = xstrconcat (3, path, "/", name);
+                      x = xstrconcat (3, path, DIRECTORY_SEPARATOR, name);
                       if (!stat (x, &st)) mtime = st.st_mtime;
                       free (x);
 
@@ -786,7 +786,7 @@ static int32_t version_browse_dir (char *path, char *name, time_t *stamp, uint32
                   char *x;
                   time_t mtime = 0;
 
-                  x = xstrconcat (5, path, "/", de->d_name, VERSION_NAME_SPECIFIER_S, p);
+                  x = xstrconcat (5, path, DIRECTORY_SEPARATOR, de->d_name, VERSION_NAME_SPECIFIER_S, p);
                   if (!stat (x, &st)) mtime = st.st_mtime;
                   free (x);
 
@@ -839,7 +839,7 @@ version_find_version (char *dir, string *name, time_t stamp)
 
   // check for exact version file
   snprintf (ver, sizeof(ver), "%ld", stamp);
-  x = xstrconcat (5, dir, "/", sname, VERSION_NAME_SPECIFIER_S, ver);
+  x = xstrconcat (5, dir, DIRECTORY_SEPARATOR, sname, VERSION_NAME_SPECIFIER_S, ver);
   if (!stat (x, &st))
     {
       free (x);
@@ -1113,7 +1113,7 @@ version_build_intervals (internal_dentry dentry, volume vol)
   for (i = 0; i < n; i++)
     {
       list[i] = VARRAY_ACCESS(v, i, version_item);
-      list[i].path = xstrconcat (3, dpath.str, "/", list[i].name);
+      list[i].path = xstrconcat (3, dpath.str, DIRECTORY_SEPARATOR, list[i].name);
     }
 
   varray_destroy (&v);
@@ -1349,7 +1349,7 @@ version_retent_file (internal_dentry dir, volume vol, char *name)
   zfsd_mutex_unlock (&vol->mutex);
   zfsd_mutex_unlock (&fh_mutex);
 
-  dst = xstrconcat (3, path.str, "/", name);
+  dst = xstrconcat (3, path.str, DIRECTORY_SEPARATOR, name);
 
   version_unlink_version_file (dst);
 
@@ -1494,7 +1494,7 @@ version_rmdir_versions (char *path)
           if (strchr (de->d_name, VERSION_NAME_SPECIFIER_C))
             {
               char *f;
-              f = xstrconcat (3, path, "/", de->d_name);
+              f = xstrconcat (3, path, DIRECTORY_SEPARATOR, de->d_name);
               unlink (f);
               free (f);
               working = 1;
@@ -1561,7 +1561,7 @@ version_apply_retention (internal_dentry dentry, volume vol)
    * Delete such versions.
    */
 
-  //xstrconcat(3, dpath.str, "/", name);
+  //xstrconcat(3, dpath.str, DIRECTORY_SEPARATOR, name);
   //unlink()
 
   free (dpath.str);

@@ -34,6 +34,8 @@
 #include "zfs-prot.h"
 #include "metadata.h"
 
+
+
 extern void build_local_path (string *dst, volume vol, internal_dentry dentry);
 extern int32_t build_local_path_name (string *dst, volume vol,
                                    internal_dentry dentry, string *name);
