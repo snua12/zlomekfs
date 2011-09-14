@@ -3,61 +3,39 @@
 #include "config_parser.h"
 #include "user-group.h"
 #include "dir.h"
+#include "zfsio.h"
+#include "libconfig.h"
+#include "shared_config.h"
+#include "varray.h"
 
-/* ! Process line LINE number LINE_NUM from file FILE_NAME. Return 0 if we
-   should continue reading lines from file.  */
-
-static int
-process_line_user_mapping(char *line, const char *file_name,
-						  unsigned int line_num, void *data)
+static bool_t update_user_mappings(varray * users_mappings, uint32_t sid)
 {
-	uint32_t sid = *(uint32_t *) data;
-	string parts[2];
-	node nod;
-
-	if (split_and_trim(line, 2, parts) == 2)
+	node nod = NULL;
+	if (sid > 0)
 	{
-		if (parts[0].len == 0)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: ZFS user name must not be empty\n", file_name,
-					line_num);
-		}
-		else if (parts[1].len == 0)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: Node user name must not be empty\n", file_name,
-					line_num);
-		}
-		else
-		{
-			if (sid > 0)
-			{
-				nod = node_lookup(sid);
-#ifdef ENABLE_CHECKING
-				if (!nod)
-					abort();
-#endif
-				zfsd_mutex_lock(&users_groups_mutex);
-				user_mapping_create(&parts[0], &parts[1], nod);
-				zfsd_mutex_unlock(&users_groups_mutex);
-				zfsd_mutex_unlock(&nod->mutex);
-			}
-			else
-			{
-				zfsd_mutex_lock(&users_groups_mutex);
-				user_mapping_create(&parts[0], &parts[1], NULL);
-				zfsd_mutex_unlock(&users_groups_mutex);
-			}
-		}
-	}
-	else
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
-				file_name, line_num);
+		nod = node_lookup(sid);
+		if (nod == NULL)
+			return false;
 	}
 
-	return 0;
+	zfsd_mutex_lock(&users_groups_mutex);
+
+	unsigned int i;
+	for (i = 0; i < VARRAY_USED(*users_mappings); ++i)
+	{
+		user_mapping um = VARRAY_ACCESS(*users_mappings, i, user_mapping);
+		user_mapping_create(&(um.zfs_user), &(um.node_user), nod);
+	}
+
+	zfsd_mutex_unlock(&users_groups_mutex);
+
+	if (sid > 0)
+	{
+		zfsd_mutex_unlock(&nod->mutex);
+	}
+
+	return true;
+
 }
 
 /* ! Read list of user mapping.  If SID == 0 read the default user mapping
@@ -68,8 +46,6 @@ bool read_user_mapping(zfs_fh * user_dir, uint32_t sid)
 	dir_op_res user_mapping_res;
 	int32_t r;
 	string node_name_;
-	char *file_name;
-	bool ret;
 
 	if (sid == 0)
 	{
@@ -96,11 +72,43 @@ bool read_user_mapping(zfs_fh * user_dir, uint32_t sid)
 		return true;
 	}
 
-	file_name = xstrconcat("config:/user/", node_name_.str, NULL);
-	ret = process_file_by_lines(&user_mapping_res.file, file_name,
-								process_line_user_mapping, &sid);
-	free(file_name);
+	zfs_file * file = zfs_fopen(&user_mapping_res.file);
+	if (file == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read shared group mapping.\n");
+		return false;
+	}
+
+	config_t config;
+	config_init(&config);
+	int rv;
+	rv =  config_read(&config, zfs_fdget(file));
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to parse shared user mapping.\n");
+		zfs_fclose(file);
+		return false;
+	}
+
+	varray users_mappings;
+	varray_create(&users_mappings, sizeof(user_mapping),4);
+
+	rv = read_user_mapping_shared_config(&config, node_name_.str, &users_mappings);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to process shared user mapping.\n");
+	}
+
+	update_user_mappings(&users_mappings, sid);
+
+	varray_destroy(&users_mappings);
+
+	config_destroy(&config);
+	zfs_fclose(file);
+
 	if (sid != 0)
 		free(node_name_.str);
-	return ret;
+
+
+	return (rv == CONFIG_TRUE);
 }

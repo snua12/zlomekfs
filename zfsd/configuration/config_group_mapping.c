@@ -4,62 +4,42 @@
 #include "user-group.h"
 #include "dir.h"
 #include "config_group_mapping.h"
+#include "zfsio.h"
+#include "libconfig.h"
+#include "shared_config.h"
+#include "varray.h"
 
-/* ! Process line LINE number LINE_NUM from file FILE_NAME. Return 0 if we
-   should continue reading lines from file.  */
-
-static int
-process_line_group_mapping(char *line, const char *file_name,
-						   unsigned int line_num, void *data)
+static bool_t update_group_mappings(varray * groups_mappings, uint32_t sid)
 {
-	uint32_t sid = *(uint32_t *) data;
-	string parts[2];
-	node nod;
-
-	if (split_and_trim(line, 2, parts) == 2)
+	node nod = NULL;
+	if (sid > 0)
 	{
-		if (parts[0].len == 0)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: ZFS group name must not be empty\n", file_name,
-					line_num);
-		}
-		else if (parts[1].len == 0)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: Node group name must not be empty\n", file_name,
-					line_num);
-		}
-		else
-		{
-			if (sid > 0)
-			{
-				nod = node_lookup(sid);
-#ifdef ENABLE_CHECKING
-				if (!nod)
-					abort();
-#endif
-				zfsd_mutex_lock(&users_groups_mutex);
-				group_mapping_create(&parts[0], &parts[1], nod);
-				zfsd_mutex_unlock(&users_groups_mutex);
-				zfsd_mutex_unlock(&nod->mutex);
-			}
-			else
-			{
-				zfsd_mutex_lock(&users_groups_mutex);
-				group_mapping_create(&parts[0], &parts[1], NULL);
-				zfsd_mutex_unlock(&users_groups_mutex);
-			}
-		}
-	}
-	else
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
-				file_name, line_num);
+		nod = node_lookup(sid);
+		if (nod == NULL)
+			return false;
 	}
 
-	return 0;
+	zfsd_mutex_lock(&users_groups_mutex);
+
+	unsigned int i;
+	for (i = 0; i < VARRAY_USED(*groups_mappings); ++i)
+	{
+		group_mapping gm = VARRAY_ACCESS(*groups_mappings, i, group_mapping);
+		group_mapping_create(&(gm.zfs_group), &(gm.node_group), nod);
+	}
+
+	zfsd_mutex_unlock(&users_groups_mutex);
+
+	if (sid > 0)
+	{
+		zfsd_mutex_unlock(&nod->mutex);
+	}
+
+	return true;
+
 }
+
+
 
 /* ! Read list of group mapping.  If SID == 0 read the default group mapping
    from CONFIG_DIR/group/default else read the special mapping for node SID.  */
@@ -69,8 +49,6 @@ bool read_group_mapping(zfs_fh * group_dir, uint32_t sid)
 	dir_op_res group_mapping_res;
 	int32_t r;
 	string node_name_;
-	char *file_name;
-	bool ret;
 
 	if (sid == 0)
 	{
@@ -97,11 +75,42 @@ bool read_group_mapping(zfs_fh * group_dir, uint32_t sid)
 		return true;
 	}
 
-	file_name = xstrconcat("config:/group/", node_name_.str, NULL);
-	ret = process_file_by_lines(&group_mapping_res.file, file_name,
-								process_line_group_mapping, &sid);
-	free(file_name);
+	zfs_file * file = zfs_fopen(&group_mapping_res.file);
+	if (file == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read shared group mapping.\n");
+		return false;
+	}
+
+	config_t config;
+	config_init(&config);
+	int rv;
+	rv =  config_read(&config, zfs_fdget(file));
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to parse shared group mapping.\n");
+		zfs_fclose(file);
+		return false;
+	}
+
+	varray groups_mappings;
+	varray_create(&groups_mappings, sizeof(group_mapping), 4);
+
+	rv = read_group_mapping_shared_config(&config, node_name_.str, &groups_mappings);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to process shared group mapping.\n");
+	}
+
+	update_group_mappings(&groups_mappings, sid);
+
+	varray_destroy(&groups_mappings);
+
+	config_destroy(&config);
+	zfs_fclose(file);
+
 	if (sid != 0)
 		free(node_name_.str);
-	return ret;
+
+	return (rv == CONFIG_TRUE);
 }

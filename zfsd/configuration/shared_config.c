@@ -6,6 +6,7 @@
 #include "user-group.h"
 #include "zfs_config.h"
 
+
 /* ! \brief initializes volume entry */
 static void volume_entry_init(volume_entry * ve)
 {
@@ -22,7 +23,7 @@ static void volume_entry_destroy(ATTRIBUTE_UNUSED volume_entry *ve)
 
 static bool is_valid_volume_id(uint32_t vid)
 {
-	return (vid != 0) && (vid != (uint32_t) -1);
+	return (vid != 0) && (vid != (uint32_t) - 1);
 }
 
 static bool is_valid_volume_name(const char * name)
@@ -97,7 +98,7 @@ int read_node_list_shared_config(config_t * config)
 	return CONFIG_TRUE;
 }
 
-int read_mapping_setting(config_setting_t * setting, add_mapping add)
+int read_mapping_setting(config_setting_t * setting, add_mapping add, void * data)
 {
 	int i;
 	config_setting_t * pair;
@@ -121,17 +122,16 @@ int read_mapping_setting(config_setting_t * setting, add_mapping add)
 			return CONFIG_FALSE;
 		}
 
-		//TODO: add_user(id, name);
 		string str_name;
 		xmkstring(&str_name, name);
-		add(id, &str_name);	
+		add(data, id, &str_name);	
 	}
 
 	return CONFIG_TRUE;
 }
 
 // user_create wrapper
-static void add_user(uint32_t id, string * name)
+static void add_user(ATTRIBUTE_UNUSED void * data, uint32_t id, string * name)
 {
 	zfsd_mutex_lock(&users_groups_mutex);
 	user_create(id, name);
@@ -148,7 +148,7 @@ int read_user_list_shared_config(config_t * config)
 	}
 	
 	int rv;
-	rv = read_mapping_setting(user_list, add_user);
+	rv = read_mapping_setting(user_list, add_user, NULL);
 	if (rv != CONFIG_TRUE)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read user list form shared config.\n");
@@ -158,7 +158,7 @@ int read_user_list_shared_config(config_t * config)
 }
 
 // group_create wrapper
-static void add_group(uint32_t id, string * name)
+static void add_group(ATTRIBUTE_UNUSED void * data, uint32_t id, string * name)
 {
 	zfsd_mutex_lock(&users_groups_mutex);
 	group_create(id, name);
@@ -176,7 +176,7 @@ int read_group_list_shared_config(config_t * config)
 	}
 
 	int rv;
-	rv = read_mapping_setting(group_list, add_group);
+	rv = read_mapping_setting(group_list, add_group, NULL);
 	if (rv != CONFIG_TRUE)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read user list from shared config.\n");
@@ -185,7 +185,7 @@ int read_group_list_shared_config(config_t * config)
 	return rv;
 }
 
-static int read_pairs_setting(config_setting_t * setting)
+static int read_pairs_setting(config_setting_t * setting, add_pair_mapping add, void * data)
 {
 	int i;
 	config_setting_t * pair;
@@ -208,20 +208,21 @@ static int read_pairs_setting(config_setting_t * setting)
 			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read remote key from pairs in shared config.\n");
 			return CONFIG_FALSE;
 		}
-		//TODO: fill in local and remote add(local, remote);
+
+		add(data, local, remote);
 	}
 
 	return CONFIG_TRUE;
 }
 
-static int read_node_mapping_setting(config_setting_t * setting)
+static int read_node_mapping_setting(config_setting_t * setting, const char * node_name, add_pair_mapping add, void * data)
 {
 	int i;
+	int rv;
 	config_setting_t * map;
 
 	for (i = 0; (map = config_setting_get_elem(setting, i)) != NULL; ++i)
 	{
-		int rv;
 		const char * node_key;
 
 		rv = config_setting_lookup_string(map, "node", &node_key);
@@ -231,46 +232,66 @@ static int read_node_mapping_setting(config_setting_t * setting)
 			return CONFIG_FALSE;
 		}
 
-		config_setting_t * config_pairs = config_setting_get_member(map, "pairs");
-		if (config_pairs == NULL)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG, "User list pairs key is missing in shared config.\n");
-			return CONFIG_FALSE;
-		}
+		if(strcmp(node_key, node_name) == 0)
+			break;
 
-		rv = read_pairs_setting(config_pairs);
-		if (rv != CONFIG_TRUE)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read user list pairs config from shared config.\n");
-			return CONFIG_FALSE;
-		}
+	}
+
+	config_setting_t * config_pairs = config_setting_get_member(map, "pairs");
+	if (config_pairs == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "User list pairs key is missing in shared config.\n");
+		return CONFIG_FALSE;
+	}
+
+	rv = read_pairs_setting(config_pairs, add, data);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read user list pairs config from shared config.\n");
+		return CONFIG_FALSE;
 	}
 
 	return CONFIG_TRUE;
 }
 
-int read_user_mapping_shared_config(config_t * config)
+static void add_user_mapping(void * data, const char * local, const char * remote)
 {
-	config_setting_t * user_mapping = config_lookup(config, "user:mapping");
-	if (user_mapping == NULL)
+	user_mapping mapping;
+	xmkstring(&mapping.zfs_user, remote);
+	xmkstring(&mapping.node_user, local);
+	VARRAY_PUSH((*((varray *) data)), mapping, user_mapping);
+}
+
+int read_user_mapping_shared_config(config_t * config, const char * node_name, void * data)
+{
+	config_setting_t * config_user_mapping = config_lookup(config, "user:mapping");
+	if (config_user_mapping == NULL)
 	{
 		message(LOG_INFO, FACILITY_CONFIG, "No user:mapping section in shared config was found.\n");
 		return CONFIG_TRUE;
 	}
 
-	return read_node_mapping_setting(user_mapping);
+	return read_node_mapping_setting(config_user_mapping, node_name, add_user_mapping, data);
 }
 
-int read_group_mapping_shared_config(config_t * config)
+static void add_group_mapping(ATTRIBUTE_UNUSED void * data, ATTRIBUTE_UNUSED const char * local, ATTRIBUTE_UNUSED const char * remote)
 {
-	config_setting_t * user_mapping = config_lookup(config, "group:mapping");
-	if (user_mapping == NULL)
+	group_mapping mapping;
+	xmkstring(&mapping.zfs_group, remote);
+	xmkstring(&mapping.node_group, local);
+	VARRAY_PUSH((*((varray *) data)), mapping, group_mapping);
+}
+
+int read_group_mapping_shared_config(config_t * config, const char * node_name, void * data)
+{
+	config_setting_t * setting_group_mapping = config_lookup(config, "group:mapping");
+	if (setting_group_mapping == NULL)
 	{
 		message(LOG_INFO, FACILITY_CONFIG, "No group:mapping section in shared config was found.\n");
 		return CONFIG_TRUE;
 	}
 
-	return read_node_mapping_setting(user_mapping);
+	return read_node_mapping_setting(setting_group_mapping, node_name, add_group_mapping, data);
 }
 
 // reads volume entry from shared config
@@ -591,14 +612,14 @@ int read_shared_config(config_t * config)
 		return rv;
 	}
 
-	rv = read_user_mapping_shared_config(config);
+	rv = read_user_mapping_shared_config(config, "default", NULL);
 	if (rv != CONFIG_TRUE)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read user mapping from shared config.\n");
 		return rv;
 	}
 
-	rv = read_group_mapping_shared_config(config);
+	rv = read_group_mapping_shared_config(config, "default", NULL);
 	if (rv != CONFIG_TRUE)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read group mapping from shared config.\n");
