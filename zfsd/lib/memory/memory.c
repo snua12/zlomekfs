@@ -96,6 +96,17 @@ void xmkstring(string * dest, const char *s)
         dest->str = (char *) xmemdup(s, dest->len + 1);
 }
 
+/* ! Frees string */
+void xfreestring(string * s)
+{
+	if (s->str != NULL)
+	{
+		free(s->str);
+		s->str = NULL;
+		s->len = 0;
+	}
+}
+
 /* ! Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
    string structure.  */
 void xstringdup(string * dest, string * src)
@@ -214,3 +225,9 @@ append_file_name(string * dst, string * path, const char *name,
 	dst->str[path->len] = DIRECTORY_SEPARATOR[0];
 	memcpy(dst->str + path->len + 1, name, len + 1);
 }
+
+uint32_t stringlen(string * str)
+{
+	return str->len;
+}
+

@@ -71,5 +71,6 @@ extern void mark_all_nodes(void);
 extern void destroy_marked_nodes(void);
 extern void initialize_node_c(void);
 extern void cleanup_node_c(void);
+extern void init_this_node(void);
 
 #endif

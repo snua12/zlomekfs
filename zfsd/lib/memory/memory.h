@@ -49,6 +49,7 @@ extern "C"
 	extern void *xrealloc(void *ptr, size_t size) ATTRIBUTE_MALLOC;
 	extern char *xstrdup(const char *s) ATTRIBUTE_MALLOC;
 	extern void xmkstring(string * dest, const char *s);
+	void xfreestring(string * s);
 	extern void xstringdup(string * dest, string * src);
 	extern void *xmemdup(const void *src, size_t n) ATTRIBUTE_MALLOC;
 	extern char * xstrconcat(const char * s1, ...) ATTRIBUTE_MALLOC;
@@ -59,6 +60,8 @@ extern "C"
 							  unsigned int len);
 	extern void append_file_name(string * dst, string * path, const char *name,
 							  unsigned int len);
+
+	extern uint32_t stringlen(string * str);
 
 #ifdef __cplusplus
 }

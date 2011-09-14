@@ -3,7 +3,6 @@
 
 #include <libconfig.h>
 
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -35,9 +34,6 @@ int read_local_config(config_t * config);
 
 /// reads local config from selected file
 int read_local_config_from_file(const char * local_path);
-
-//DUMMY:
-//bool create_volume_from_local_config(uint32_t id, uint64_t cache_size, const char * local_path, bool reread);
 
 #ifdef __cplusplus
 }

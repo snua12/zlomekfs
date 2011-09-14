@@ -19,64 +19,14 @@
 // TODO: don't share everything with configuration data
 #include "configuration.h"
 
+//just for testing
+#include "shared_config.h"
+#include "zfsio.h"
+
 /* ! First and last element of the chain of requests for rereading
    configuration.  */
 static reread_config_request reread_config_first;
 static reread_config_request reread_config_last;
-
-/* ! Process line LINE number LINE_NUM from file FILE_NAME. Return 0 if we
-   should continue reading lines from file.  */
-
-static int
-process_line_node(char *line, const char *file_name, unsigned int line_num,
-				  ATTRIBUTE_UNUSED void *data)
-{
-	string parts[3];
-	uint32_t sid;
-	node nod;
-
-	if (split_and_trim(line, 3, parts) == 3)
-	{
-		if (sscanf(parts[0].str, "%" PRIu32, &sid) != 1)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: Wrong format of line\n", file_name, line_num);
-		}
-		else if (sid == 0 || sid == (uint32_t) - 1)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: Node ID must not be 0 or %" PRIu32 "\n", file_name,
-					line_num, (uint32_t) - 1);
-		}
-		else if (parts[1].len == 0)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: Node name must not be empty\n", file_name,
-					line_num);
-		}
-		else if (parts[2].len == 0)
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"%s:%u: Node host name must not be empty\n", file_name,
-					line_num);
-		}
-		else
-		{
-			nod = try_create_node(sid, &parts[1], &parts[2]);
-			if (nod)
-				zfsd_mutex_unlock(&nod->mutex);
-		}
-	}
-	else
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
-				file_name, line_num);
-	}
-
-	return 0;
-}
-
-
 
 /* ! Read list of nodes from CONFIG_DIR/node_list.  */
 
@@ -89,8 +39,35 @@ bool read_node_list(zfs_fh * config_dir)
 	if (r != ZFS_OK)
 		return false;
 
-	return process_file_by_lines(&node_list_res.file, "config:/node_list",
-								 process_line_node, NULL);
+	zfs_file * file = zfs_fopen(&node_list_res.file);
+	if (file == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read shared node list.\n");
+		return false;
+	}
+
+	config_t config;
+	config_init(&config);
+	int rv;
+	rv = config_read(&config, zfs_fdget(file));
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to parse shared node list.\n");
+		zfs_fclose(file);
+		return false;
+
+	}
+
+	rv = read_node_list_shared_config(&config);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to process shared node lis.t\n");
+	}
+
+	config_destroy(&config);
+	zfs_fclose(file);
+
+	return (rv == CONFIG_TRUE);
 }
 
 /* ! Reread list of nodes.  */
@@ -116,48 +93,6 @@ static bool reread_node_list(void)
 	destroy_marked_nodes();
 
 	return true;
-}
-
-/* ! Reread volume hierarchy for volume VOL.  */
-
-static void reread_volume_hierarchy(volume vol)
-{
-	dir_op_res config_dir_res;
-	dir_op_res volume_hierarchy_dir_res;
-	int32_t r;
-	uint32_t vid;
-	string name;
-	string mountpoint;
-
-	vid = vol->id;
-	xstringdup(&name, &vol->name);
-	xstringdup(&mountpoint, &vol->mountpoint);
-	vol->marked = true;
-	zfsd_mutex_unlock(&vol->mutex);
-
-	r = zfs_volume_root(&config_dir_res, VOLUME_ID_CONFIG);
-	if (r != ZFS_OK)
-	{
-		free(name.str);
-		free(mountpoint.str);
-		destroy_marked_volume(vid);
-		return;
-	}
-
-	r = zfs_extended_lookup(&volume_hierarchy_dir_res, &config_dir_res.file,
-							"volume");
-	if (r != ZFS_OK)
-	{
-		free(name.str);
-		free(mountpoint.str);
-		destroy_marked_volume(vid);
-		return;
-	}
-
-	read_volume_hierarchy(&volume_hierarchy_dir_res.file, vid, &name,
-						  &mountpoint);
-
-	destroy_marked_volume(vid);
 }
 
 /* ! Reread list of volumes.  */
@@ -337,7 +272,6 @@ static bool reread_group_mapping(uint32_t sid)
 
 bool reread_config_file(string * relative_path)
 {
-	string name;
 	char *str = relative_path->str;
 
 	if (*str != '/')
@@ -349,25 +283,9 @@ bool reread_config_file(string * relative_path)
 	{
 		return reread_node_list();
 	}
-	else if (strncmp(str, "volume", 6) == 0)
+	else if (strncmp(str, "volume_list", 11) == 0)
 	{
-		str += 6;
-		if (*str == '/')
-		{
-			volume vol;
-
-			str++;
-			name.str = str;
-			name.len = relative_path->len - (str - relative_path->str);
-
-			vol = volume_lookup_name(&name);
-			if (vol)
-				reread_volume_hierarchy(vol);
-		}
-		else if (strncmp(str, "_list", 6) == 0)
-		{
-			return reread_volume_list();
-		}
+		return reread_volume_list();
 	}
 	else if (strncmp(str, "user", 4) == 0)
 	{
@@ -503,3 +421,4 @@ bool get_reread_config_request(string * relative_path, uint32_t * from_sid)
 	zfsd_mutex_unlock(&reread_config_mutex);
 	return true;
 }
+

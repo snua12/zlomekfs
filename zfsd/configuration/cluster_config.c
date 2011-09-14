@@ -122,15 +122,17 @@ static void add_reread_config_request_to_slaves(string * relative_path, uint32_t
 	}
 }
 
-// reads request from config read queue
+// reads request from config queue and process them
 static void config_reader_loop(thread * t)
 {
-	varray v;
 	string relative_path;
 	uint32_t from_sid;
 
-	/* Reread parts of configuration when notified.  */
+	// array for slaves
+	varray v;
 	varray_create(&v, sizeof(uint32_t), 4);
+
+	/* Reread parts of configuration when notified.  */
 	while (1)
 	{
 		/* Wait until we are notified.  */
@@ -166,12 +168,11 @@ static void config_reader_loop(thread * t)
 				break;
 			}
 
-			free(relative_path.str);
+			xfreestring(&relative_path);
 		}
 	}
+
 	varray_destroy(&v);
-
-
 }
 
 // reads initial shared config
@@ -226,7 +227,7 @@ static bool read_shared_config()
 		if (!read_user_mapping(&user_dir_res.file, 0))
 			return false;
 
-		// read mapping fot this node
+		// read mapping for this node
 		if (!read_user_mapping(&user_dir_res.file, this_node->id))
 			return false;
 	}
@@ -305,7 +306,7 @@ static void *config_reader(void *data)
 	/* Free remaining requests.  */
 	while (get_reread_config_request(&relative_path, &from_sid))
 		if (relative_path.str != NULL)
-			free(relative_path.str);
+			xfreestring(&relative_path);
 
   dying:
 	set_thread_state(t, THREAD_DEAD);
@@ -317,17 +318,6 @@ static void *config_reader(void *data)
 	pthread_kill(main_thread, SIGUSR1);
 	set_thread_state(t, THREAD_DEAD);
 	return NULL;
-}
-
-/* ! Initialize local node so that we could read configuration.  */
-static void init_this_node(void)
-{
-	node nod;
-
-	zfsd_mutex_lock(&node_mutex);
-	nod = node_create(zfs_config.this_node.node_id, &zfs_config.this_node.node_name, &zfs_config.this_node.node_name);
-	zfsd_mutex_unlock(&nod->mutex);
-	zfsd_mutex_unlock(&node_mutex);
 }
 
 /* ! Read global configuration of the cluster from config volume.  */
@@ -364,9 +354,6 @@ static bool read_global_cluster_config(void)
 
 bool read_cluster_config(void)
 {
-	//TODO: UGLY!!! move this initialization somewhere else
-	init_this_node();
-
 	if (!init_config_volume())
 	{
 		message(LOG_CRIT, FACILITY_CONFIG, "Could not init config volume\n");

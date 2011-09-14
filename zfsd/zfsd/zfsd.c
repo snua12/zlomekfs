@@ -685,6 +685,9 @@ int main(int argc, char **argv)
 		die();
 	}
 
+	lock_info li[MAX_LOCKED_FILE_HANDLES];
+	set_lock_info(li);
+
 	int rv;
 	rv = read_local_config_from_file(get_local_config_path());
 	if (rv != CONFIG_TRUE)
@@ -693,6 +696,8 @@ int main(int argc, char **argv)
 		die();
 	}
 
+	// create local node
+	init_this_node();
 	update_node_name();
 
 #ifdef DEBUG

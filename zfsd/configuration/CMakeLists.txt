@@ -10,6 +10,8 @@ SET(configuration_SRC
   cluster_config.c
   config_volume.c
   local_config.c
+  shared_config.c
+  zfsio.c
 )
 
 add_library(zfs_config ${BUILD_TYPE} zfs_config.c)

@@ -302,6 +302,17 @@ void destroy_marked_nodes(void)
 	zfsd_mutex_unlock(&node_mutex);
 }
 
+/* ! Initialize local node so that we could read configuration.  */
+void init_this_node(void)
+{
+	node nod;
+
+	zfsd_mutex_lock(&node_mutex);
+	nod = node_create(zfs_config.this_node.node_id, &zfs_config.this_node.node_name, &zfs_config.this_node.node_name);
+	zfsd_mutex_unlock(&nod->mutex);
+	zfsd_mutex_unlock(&node_mutex);
+}
+
 /* ! Initialize data structures in NODE.C.  */
 
 void initialize_node_c(void)
