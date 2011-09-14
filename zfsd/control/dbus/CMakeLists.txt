@@ -1,5 +1,21 @@
 add_library(controlDbus ${BUILDTYPE} dbus-provider.c  dbus-zfsd-service.c)
-target_link_libraries(contolDbus)
+target_link_libraries(controlDbus ${DBUS_LIBRARIES} log)
+
+### google Test
+test_enabled(gtest result)
+if(NOT result EQUAL -1)
+
+        SET(dbus-provider_test_SRCS
+           dbus-provider_test.cpp
+        )
+    
+        #set_source_files_properties(${dbus-provider_test_SRCS} COMPILE_FLAGS)
+
+        add_executable(dbus-provider_test ${dbus-provider_test_SRCS})
+        target_link_libraries(dbus-provider_test ${ZFS_GTEST_LIBRARIES} controlDbus)
+        add_test(dbus-provider_test dbus-provider_test)
+
+endif()
 
 install(
 TARGETS controlDbus

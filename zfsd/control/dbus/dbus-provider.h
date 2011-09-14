@@ -27,6 +27,10 @@
 #include <dbus/dbus.h>
 #include <pthread.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+ 
 /// how much components should listen simultaneously
 #define MAX_DBUS_LISTENERS	2
 
@@ -159,5 +163,9 @@ int dbus_provider_start (dbus_state_holder settings_struct, DBusBusType bus_type
  * @return TRUE if terminated, FALSE otherwise
 */
 int dbus_provider_end (dbus_state_holder settings_struct);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* DBUS_PROVIDER_H */
