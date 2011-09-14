@@ -61,7 +61,7 @@ static bool zfs_read_to_local_file(zfs_fh * fh, FILE * stream)
 zfs_file * zfs_fopen(zfs_fh * fh)
 {
 	zfs_file * file = xmalloc(sizeof(zfs_file));
-	strncpy(file->tmp_file, ZFS_TMP_SHARED_CONFIG_TEMPLATE, sizeof(ZFS_TMP_SHARED_CONFIG_TEMPLATE) - 1);
+	strncpy(file->tmp_file, ZFS_TMP_SHARED_CONFIG_TEMPLATE, sizeof(ZFS_TMP_SHARED_CONFIG_TEMPLATE));
 
 	int fd = mkstemp(file->tmp_file);
 	if (fd == -1)
