@@ -38,6 +38,9 @@ extern "C"
 		char *str;				/* !< The string itself.  */
 	} string;
 
+#define STRING_EMPTY_INITIALIZER {.len = 0, .str = ""}
+#define STRING_INVALID_INITIALIZER {.len = 0, .str = NULL}
+
 	extern string empty_string;
 	extern string invalid_string;
 

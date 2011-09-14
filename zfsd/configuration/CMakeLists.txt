@@ -1,6 +1,5 @@
 SET(configuration_SRC
   configuration.c
-  read_config.c
   config_defaults.c
   config_parser.c
   reread_config.c
@@ -10,10 +9,21 @@ SET(configuration_SRC
   config_group.c
   cluster_config.c
   config_volume.c
+  local_config.c
 )
 
+add_library(zfs_config ${BUILD_TYPE} zfs_config.c)
+
 add_library(configuration ${BUILDTYPE} ${configuration_SRC})
-target_link_libraries(configuration)
+target_link_libraries(configuration zfs_config log)
+
+## google test
+test_enabled(gtest result)
+if(NOT reqult EQUAL -1)
+#	add_executable(local_config_test local_config.c local_config_test.cpp config_defaults.c zfs_config.c)
+#	target_link_libraries(local_config_test ${ZFS_GTEST_LIBRARIES} ${LCONFIG_LIBRARIES} log memory)
+#	add_test(local_cofnig_test local_config_test)
+endif()
 
 install(
 TARGETS configuration

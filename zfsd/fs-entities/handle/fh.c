@@ -93,13 +93,13 @@ static pthread_key_t lock_info_key;
 fibheap cleanup_dentry_heap;
 
 /* ! Mutex protecting CLEANUP_FH_*.  */
-pthread_mutex_t cleanup_dentry_mutex;
+pthread_mutex_t cleanup_dentry_mutex = ZFS_MUTEX_INITIALIZER;
 
 /* ! Thread ID of thread freeing file handles unused for a long time.  */
 pthread_t cleanup_dentry_thread;
 
 /* ! This mutex is locked when cleanup fh thread is in sleep.  */
-pthread_mutex_t cleanup_dentry_thread_in_syscall;
+pthread_mutex_t cleanup_dentry_thread_in_syscall = ZFS_MUTEX_INITIALIZER;
 
 /* ! Hash function for internal file handle FH.  */
 #define INTERNAL_FH_HASH(FH)						\

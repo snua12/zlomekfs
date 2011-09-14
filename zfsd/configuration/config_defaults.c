@@ -2,6 +2,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include "config_defaults.h"
+#include "configuration.h"
 #include "user-group.h"
 
 /* ! Set default node UID to UID of user NAME.  Return true on success.  */
@@ -15,7 +16,7 @@ bool set_default_uid(const char *name)
 		return false;
 
 	// TODO: ugly global variable
-	default_node_uid = pwd->pw_uid;
+	zfs_config.default_node_uid = pwd->pw_uid;
 	return true;
 }
 
@@ -29,7 +30,7 @@ bool set_default_gid(const char *name)
 	if (!grp)
 		return false;
 
-	default_node_gid = grp->gr_gid;
+	zfs_config.default_node_gid = grp->gr_gid;
 	return true;
 }
 
@@ -41,3 +42,4 @@ void set_default_uid_gid(void)
 	if (!set_default_gid("nogroup"))
 		set_default_gid("nobody");
 }
+

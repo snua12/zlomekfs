@@ -38,7 +38,7 @@ static void *thread_pool_regulator(void *data);
 volatile bool running = true;
 
 /* ! Mutex protecting RUNNING.  */
-pthread_mutex_t running_mutex;
+pthread_mutex_t running_mutex = ZFS_MUTEX_INITIALIZER;
 
 /* ! Key for thread specific data.  */
 pthread_key_t thread_data_key;
@@ -55,7 +55,6 @@ thread_limit kernel_thread_limit = { 4, 1, 2 };
 /* ! Limits for number of update threads.  */
 thread_limit update_thread_limit = { 4, 1, 2 };
 
-/* ! Get value of RUNNING flag.  */
 
 bool get_running(void)
 {
@@ -66,6 +65,13 @@ bool get_running(void)
 	zfsd_mutex_unlock(&running_mutex);
 
 	return value;
+}
+
+void set_running(bool value)
+{
+	zfsd_mutex_lock(&running_mutex);
+	running = value;
+	zfsd_mutex_unlock(&running_mutex);
 }
 
 /* ! Shall the worker threads terminate? */

@@ -32,6 +32,7 @@
 #include "memory.h"
 #include "node.h"
 #include "user-group.h"
+#include "zfs_config.h"
 
 /* ! Hash table of nodes, searched by ID.  */
 static htab_t node_htab_sid;
@@ -145,7 +146,7 @@ node node_create(uint32_t id, string * name, string * host_name)
 	nod->map_gid_to_zfs = NULL;
 
 	/* Are we creating a structure describing local node? */
-	if (strcmp(name->str, node_name.str) == 0)
+	if (strcmp(name->str, zfs_config.this_node.node_name.str) == 0)
 	{
 		this_node = nod;
 		nod->map_uid_to_node = htab_create(5, map_id_to_node_hash,

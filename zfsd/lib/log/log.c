@@ -32,6 +32,7 @@
 #include <execinfo.h>
 
 #include "node.h"
+#include "configuration.h"
 #include "syplog.h"
 
 #include "pthread-wrapper.h"
@@ -40,35 +41,32 @@ struct logger_def syplogger;
 
 void zfs_openlog(int argc, const char **argv)
 {
+	int saved_opterr = opterr;
+	opterr = 0;
+
 	syp_error ret_code = open_log(&syplogger, "UNDEF", argc, argv);
 	if (ret_code != NOERR)
 	{
 		printf("Bad params for logger initialization %d: %s\n", ret_code,
 			   syp_error_to_string(ret_code));
 
+		// fallback logger initialization
 		ret_code = open_log(&syplogger, "UNDEF", 0, NULL);
+		if (ret_code != NOERR)
+		{
+			printf("could not initialize logger %d: %s\n", ret_code,
+				   syp_error_to_string(ret_code));
+		}
 	}
 
-	if (ret_code != NOERR)
-	{
-		printf("could not initialize logger %d: %s\n", ret_code,
-			   syp_error_to_string(ret_code));
-		return;
-	}
-
-	if (ret_code != NOERR)
-	{
-		message(LOG_WARNING, FACILITY_CONFIG | FACILITY_LOG,
-				"Can't initialize listen loop %d:%s\n", ret_code,
-				syp_error_to_string(ret_code));
-	}
+	opterr = saved_opterr;
 }
 
 void update_node_name(void)
 {
 	syp_error ret_code = NOERR;
-	if (node_name.str != NULL)
-		ret_code = set_node_name(&syplogger, node_name.str);
+	if (zfs_config.this_node.node_name.str != NULL)
+		ret_code = set_node_name(&syplogger, zfs_config.this_node.node_name.str);
 	else
 		ret_code = set_node_name(&syplogger, "UNDEF");
 

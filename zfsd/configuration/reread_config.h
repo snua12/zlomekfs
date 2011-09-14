@@ -2,6 +2,7 @@
 #define REREAD_CONFIG_H
 
 #include "system.h"
+#include "fh.h"
 #include "memory.h"
 
 typedef struct reread_config_request_def *reread_config_request;
@@ -36,5 +37,7 @@ bool reread_local_volume_info(const char * path);
 
 bool get_reread_config_request(string * relative_path, uint32_t * from_sid);
 
+//TODO: this function is in wrong file
+bool read_node_list(zfs_fh * config_dir);
 
 #endif

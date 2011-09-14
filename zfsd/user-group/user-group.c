@@ -19,6 +19,7 @@
    download it from http://www.gnu.org/licenses/gpl.html */
 
 #include "system.h"
+#include "configuration.h"
 #include <string.h>
 #include <inttypes.h>
 #include <sys/types.h>
@@ -47,10 +48,6 @@ static htab_t map_gid_to_zfs;
 
 /* ! Mutex protecting hash tables users_*, groups_*, map_*.  */
 pthread_mutex_t users_groups_mutex;
-
-/* ! ID of default node user/group.  */
-uint32_t default_node_uid = (uint32_t) - 1;
-uint32_t default_node_gid = (uint32_t) - 1;
 
 /* ! Hash functions for user and group ID.  */
 #define USER_ID_HASH(ID) (ID)
@@ -731,7 +728,7 @@ uint32_t map_uid_zfs2node(uint32_t uid)
 	}
 	zfsd_mutex_unlock(&users_groups_mutex);
 
-	return default_node_uid;
+	return zfs_config.default_node_uid;
 }
 
 /* ! Map (local) node UID to ZFS user ID.  */
@@ -795,7 +792,7 @@ uint32_t map_gid_zfs2node(uint32_t gid)
 	}
 	zfsd_mutex_unlock(&users_groups_mutex);
 
-	return default_node_gid;
+	return zfs_config.default_node_gid;
 }
 
 /* ! Map (local) node GID to ZFS group ID.  */

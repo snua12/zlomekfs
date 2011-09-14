@@ -1,12 +1,13 @@
 #include "system.h"
 #include  <string.h>
+#include <libconfig.h>
 #include "memory.h"
 #include "reread_config.h"
-#include "read_config.h"
 #include "zfs-prot.h"
 #include "dir.h"
 #include "node.h"
 #include "config_volume.h"
+#include "local_config.h"
 #include "user-group.h"
 #include "config_user_mapping.h"
 #include "config_user.h"
@@ -22,6 +23,75 @@
    configuration.  */
 static reread_config_request reread_config_first;
 static reread_config_request reread_config_last;
+
+/* ! Process line LINE number LINE_NUM from file FILE_NAME. Return 0 if we
+   should continue reading lines from file.  */
+
+static int
+process_line_node(char *line, const char *file_name, unsigned int line_num,
+				  ATTRIBUTE_UNUSED void *data)
+{
+	string parts[3];
+	uint32_t sid;
+	node nod;
+
+	if (split_and_trim(line, 3, parts) == 3)
+	{
+		if (sscanf(parts[0].str, "%" PRIu32, &sid) != 1)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG,
+					"%s:%u: Wrong format of line\n", file_name, line_num);
+		}
+		else if (sid == 0 || sid == (uint32_t) - 1)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG,
+					"%s:%u: Node ID must not be 0 or %" PRIu32 "\n", file_name,
+					line_num, (uint32_t) - 1);
+		}
+		else if (parts[1].len == 0)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG,
+					"%s:%u: Node name must not be empty\n", file_name,
+					line_num);
+		}
+		else if (parts[2].len == 0)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG,
+					"%s:%u: Node host name must not be empty\n", file_name,
+					line_num);
+		}
+		else
+		{
+			nod = try_create_node(sid, &parts[1], &parts[2]);
+			if (nod)
+				zfsd_mutex_unlock(&nod->mutex);
+		}
+	}
+	else
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
+				file_name, line_num);
+	}
+
+	return 0;
+}
+
+
+
+/* ! Read list of nodes from CONFIG_DIR/node_list.  */
+
+bool read_node_list(zfs_fh * config_dir)
+{
+	dir_op_res node_list_res;
+	int32_t r;
+
+	r = zfs_extended_lookup(&node_list_res, config_dir, "node_list");
+	if (r != ZFS_OK)
+		return false;
+
+	return process_file_by_lines(&node_list_res.file, "config:/node_list",
+								 process_line_node, NULL);
+}
 
 /* ! Reread list of nodes.  */
 
@@ -271,13 +341,13 @@ bool reread_config_file(string * relative_path)
 	char *str = relative_path->str;
 
 	if (*str != '/')
-		goto out_true;
+		return true;
+
 	str++;
 
 	if (strncmp(str, "node_list", 10) == 0)
 	{
-		if (!reread_node_list())
-			goto out;
+		return reread_node_list();
 	}
 	else if (strncmp(str, "volume", 6) == 0)
 	{
@@ -296,8 +366,7 @@ bool reread_config_file(string * relative_path)
 		}
 		else if (strncmp(str, "_list", 6) == 0)
 		{
-			if (!reread_volume_list())
-				goto out;
+			return reread_volume_list();
 		}
 	}
 	else if (strncmp(str, "user", 4) == 0)
@@ -308,19 +377,16 @@ bool reread_config_file(string * relative_path)
 			str++;
 			if (strncmp(str, "default", 8) == 0)
 			{
-				if (!reread_user_mapping(0))
-					goto out;
+				return reread_user_mapping(0);
 			}
 			else if (strcmp(str, this_node->name.str) == 0)
 			{
-				if (!reread_user_mapping(this_node->id))
-					goto out;
+				return reread_user_mapping(this_node->id);
 			}
 		}
 		else if (strncmp(str, "_list", 6) == 0)
 		{
-			if (!reread_user_list())
-				goto out;
+			return reread_user_list();
 		}
 	}
 	else if (strncmp(str, "group", 5) == 0)
@@ -331,29 +397,20 @@ bool reread_config_file(string * relative_path)
 			str++;
 			if (strncmp(str, "default", 8) == 0)
 			{
-				if (!reread_group_mapping(0))
-					goto out;
+				return reread_group_mapping(0);
 			}
 			else if (strcmp(str, this_node->name.str) == 0)
 			{
-				if (!reread_group_mapping(this_node->id))
-					goto out;
+				return reread_group_mapping(this_node->id);
 			}
 		}
 		else if (strncmp(str, "_list", 6) == 0)
 		{
-			if (!reread_group_list())
-				goto out;
+			return reread_group_list();
 		}
 	}
 
-  out_true:
-	free(relative_path->str);
 	return true;
-
-  out:
-	free(relative_path->str);
-	return false;
 }
 
 /* ! Reread local info about volumes. \param path Path where local
@@ -374,7 +431,7 @@ bool reread_local_volume_info(const char * path)
 	}
 
 
-	rv =  read_local_volume_info(&config, true);
+	rv = read_volumes_local_config_from_file(path, true);
 
 	config_destroy(&config);
 
@@ -440,8 +497,9 @@ bool get_reread_config_request(string * relative_path, uint32_t * from_sid)
 	if (reread_config_first == NULL)
 		reread_config_last = NULL;
 
-	zfsd_mutex_unlock(&reread_config_mutex);
 	// free request's memory
 	pool_free(reread_config_pool, req);
+
+	zfsd_mutex_unlock(&reread_config_mutex);
 	return true;
 }

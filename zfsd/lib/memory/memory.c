@@ -28,10 +28,10 @@
 #include "varray.h"
 
 /* ! \var string empty_string Empty string.  */
-string empty_string = { 0, "" };
+string empty_string = STRING_EMPTY_INITIALIZER;
 
 /* ! \var string invalid_string Invalid string.  */
-string invalid_string = { 0, NULL };
+string invalid_string = STRING_INVALID_INITIALIZER;;
 
 /* ! Similar to CALLOC but always returns valid pointer.  */
 void *xcalloc(size_t nmemb, size_t size)
@@ -93,7 +93,7 @@ void *xmemdup(const void *src, size_t n)
 void xmkstring(string * dest, const char *s)
 {
 	dest->len = strlen(s);
-        dest->str = (char *)xmemdup(s, dest->len + 1);
+        dest->str = (char *) xmemdup(s, dest->len + 1);
 }
 
 /* ! Duplicate string SRC and store it to DEST.  SRC and DEST may be the same

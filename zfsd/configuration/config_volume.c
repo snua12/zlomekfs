@@ -51,7 +51,7 @@ bool init_config_volume(void)
 						(uint32_t) - 1);
 				goto out_usage;
 			}
-			else if (sid == this_node_id)
+			else if (sid == zfs_config.this_node.node_id)
 			{
 				message(LOG_ERROR, FACILITY_CONFIG,
 						"The ID of the config node must be "
@@ -64,8 +64,8 @@ bool init_config_volume(void)
 						"Node name must not be empty\n");
 				goto out_usage;
 			}
-			else if (parts[1].len == node_name.len
-					 && strcmp(parts[1].str, node_name.str) == 0)
+			else if (parts[1].len == zfs_config.this_node.node_name.len
+					 && strcmp(parts[1].str, zfs_config.this_node.node_name.str) == 0)
 			{
 				message(LOG_ERROR, FACILITY_CONFIG,
 						"The name of the config node must be "
@@ -196,7 +196,7 @@ static int process_line_volume_hierarchy(char *line,
 
 		/* TODO: is this correct eg spaced after node_name or
 		   node_name_with_some_suffixes */
-		if (strncmp(line + i, node_name.str, node_name.len + 1) == 0)
+		if (strncmp(line + i, zfs_config.this_node.node_name.str, zfs_config.this_node.node_name.len + 1) == 0)
 		{
 			char *master_name = NULL;
 

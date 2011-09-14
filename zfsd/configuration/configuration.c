@@ -48,25 +48,6 @@
 #include "zfsd.h"
 #include "reread_config.h"
 
-zfs_configuration zfs_config = 
-{
-	//.config_reader_data = ,
-	//.config_sem = ,
-	.config_node = NULL,
-	.mlock_zfsd = true,
-#ifdef ENABLE_VERSIONS
-	.versions = {
-		.versioning = false,
-		.verdisplay = false,
-		.retention_age_min = -1,
-		.retention_age_max = -1,
-		.retention_num_min =  -1,
-		.retention_num_max = -1
-	}
-#endif
-
-};
-
 /* ! Alloc pool for allocating nodes of reread config chain.  */
 alloc_pool reread_config_pool;
 
@@ -139,6 +120,6 @@ void cleanup_config_c(void)
 	zfsd_mutex_destroy(&reread_config_mutex);
 	semaphore_destroy(&zfs_config.config_sem);
 
-	if (node_name.str)
-		free(node_name.str);
+	if (zfs_config.this_node.node_name.str)
+		free(zfs_config.this_node.node_name.str);
 }

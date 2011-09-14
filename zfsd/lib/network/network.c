@@ -50,6 +50,7 @@
 #include "hashtab.h"
 #include "alloc-pool.h"
 #include "fh.h"
+#include "zfs_config.h"
 
 /* ! Pool of network threads.  */
 thread_pool network_pool;
@@ -723,7 +724,7 @@ static int node_authenticate(thread * t, node nod, authentication_status auth)
 
 		memset(&args1, 0, sizeof(args1));
 		/* FIXME: really do authentication */
-		args1.node = node_name;
+		args1.node = *(get_this_node_name());
 		r = zfs_proc_auth_stage1_client_1(t, &args1, fd);
 		if (r != ZFS_OK)
 			goto node_authenticate_error;

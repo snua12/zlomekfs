@@ -22,7 +22,6 @@
 #define NODE_H
 
 #include "system.h"
-#include "node_global.h"
 #include <netdb.h>
 #include "memory.h"
 #include "pthread-wrapper.h"

@@ -29,50 +29,10 @@
 #include "semaphore.h"
 #include "thread.h"
 #include "fh.h"
-
-#ifdef ENABLE_VERSIONS
-/* Versioning enabled.  */
-typedef struct zfs_config_versions_def
-{
-	bool versioning;
-
-	/* ! Versions displayed in readdir.  */
-	bool verdisplay;
-
-	/* Age retention interval.  */
-	int retention_age_min;
-	int retention_age_max;
-
-	/* Number of versions retention interval.  */
-	int retention_num_min;
-	int retention_num_max;
-} zfs_config_versions;
-#endif
-
-typedef struct zfs_configuration_def
-{
-	/* ! Data for config reader thread.  */
-	thread config_reader_data;
-
-	/* ! Semaphore for managing the reread request queue.  */
-	semaphore config_sem;
-
-	/* ! Node which the local node should fetch the global configuration from.  */
-	char *config_node;
-
-	/* ! mlockall() zfsd . */
-	bool mlock_zfsd;
-
-#ifdef ENABLE_VERSIONS
-	zfs_config_versions versions;
-#endif
-} zfs_configuration;
-
-extern zfs_configuration zfs_config;
+#include "zfs_config.h"
 
 /* ! Mutex protecting the reread_config chain and alloc pool.  */
 extern pthread_mutex_t reread_config_mutex;
-
 
 /* ! Alloc pool for allocating nodes of reread config chain.  */
 extern alloc_pool reread_config_pool;

@@ -40,6 +40,7 @@
 #include "hardlink-list.h"
 #include "journal.h"
 #include "configuration.h"
+#include "local_config.h"
 #include "thread.h"
 #include "kernel.h"
 #include "network.h"
@@ -64,11 +65,6 @@
 pthread_t main_thread;
 
 
-/* 
- * ! Name of the configuration file.  
- */
-static char *config_file;
-
 #ifndef SI_FROMKERNEL
 #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 #endif
@@ -80,9 +76,7 @@ static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 {
 	message(LOG_NOTICE, FACILITY_ZFSD, "Entering exit_sighandler\n");
 
-	zfsd_mutex_lock(&running_mutex);
-	running = false;
-	zfsd_mutex_unlock(&running_mutex);
+	set_running(false);
 
 	thread_pool_terminate(&kernel_pool);
 	thread_pool_terminate(&network_pool);
@@ -163,6 +157,7 @@ static void fatal_sigaction(int signum, siginfo_t * info,
  */
 static void hup_sighandler(ATTRIBUTE_UNUSED int signum)
 {
+	//update loval volume list see reread_local_volume_info
 	add_reread_config_request(&invalid_string, 0);
 }
 
@@ -185,12 +180,6 @@ static void init_sig_handlers(void)
 	 * Remember the thread ID of this thread.  
 	 */
 	main_thread = pthread_self();
-
-	/* 
-	 * Initialize the mutexes which are used with signal handlers.  
-	 */
-	zfsd_mutex_init(&running_mutex);
-	zfsd_mutex_init(&cleanup_dentry_thread_in_syscall);
 
 	/* 
 	 * Set the signal handler for terminating zfsd.  
@@ -267,12 +256,6 @@ static void disable_sig_handlers(void)
 	sigaction(SIGXFSZ, &sig, NULL);
 	sigaction(SIGSYS, &sig, NULL);
 	sigaction(SIGUSR1, &sig, NULL);
-
-	/* 
-	 * Destroy the mutexes which are used with signal handlers.  
-	 */
-	zfsd_mutex_destroy(&cleanup_dentry_thread_in_syscall);
-	zfsd_mutex_destroy(&running_mutex);
 }
 
 /* 
@@ -418,8 +401,7 @@ static void process_arguments(int argc, char **argv)
 
 	if (zopts.config)
 	{
-		free(config_file);
-		config_file = zopts.config;
+		set_local_config_path(zopts.config);
 	}
 
 	if (zopts.node)
@@ -478,10 +460,14 @@ static bool initialize_data_structures(void)
 		return false;
 	if (pthread_key_create(&thread_name_key, NULL))
 		return false;
+	pthread_setspecific(thread_name_key, "Main thread");
 
 	/* 
 	 * Initialize data structures in other modules.  
 	 */
+
+	initialize_control_c();
+	
 	initialize_config_c();
 	if (!initialize_random_c())
 		return false;
@@ -496,6 +482,9 @@ static bool initialize_data_structures(void)
 	initialize_volume_c();
 	initialize_zfs_prot_c();
 	initialize_user_group_c();
+
+	fd_data_init();
+
 	return true;
 }
 
@@ -504,6 +493,9 @@ static bool initialize_data_structures(void)
  */
 static void cleanup_data_structures(void)
 {
+	fd_data_destroy();
+
+
 	/* 
 	 * Destroy data of config reader thread.  
 	 */
@@ -531,66 +523,16 @@ static void cleanup_data_structures(void)
 	cleanup_random_c();
 	cleanup_config_c();
 
+	// deinit dbus
+	cleanup_control_c();
+
 	pthread_key_delete(thread_data_key);
 	pthread_key_delete(thread_name_key);
 }
 
-
-/* 
- * ! Entry point of ZFS daemon.  
- */
-int main(int argc, char **argv)
-{
-	lock_info li[MAX_LOCKED_FILE_HANDLES];	// NOTE: for what? 
-	// 
-	// macros for
-	// memory??? TODO: better name
-	bool kernel_started = false;
-	bool network_started = false;
-	bool update_started = false;
-	int ret = EXIT_SUCCESS;
-
-
-	opterr = 0;
-	zfs_openlog(argc, (const char **)argv);
-	opterr = 1;
-
-	// TODO: check return value
-	initialize_config_c();
-
-	init_constants();
-	init_sig_handlers();
-
-#ifndef TEST
-	config_file = xstrdup("/etc/zfs/config");
-#endif
-
-
-	process_arguments(argc, argv);
-
-	if (!initialize_data_structures())
-	{
-#ifndef TEST
-		free(config_file);
-#endif
-		die();
-	}
-	set_lock_info(li);
-
-#ifdef TEST
-	fake_config();
-#else
-	if (!read_config_file(config_file))
-	{
-		free(config_file);
-		die();
-	}
-	free(config_file);
-#endif
-	update_node_name();
-
-
 #ifdef DEBUG
+static void log_arch_specific(void)
+{
 	message(LOG_DATA, FACILITY_DATA, "sizeof (pthread_mutex_t) = %u\n",
 			sizeof(pthread_mutex_t));
 	message(LOG_DATA, FACILITY_DATA, "sizeof (pthread_cond_t) = %u\n",
@@ -612,9 +554,12 @@ int main(int argc, char **argv)
 			sizeof(metadata));
 	message(LOG_DATA, FACILITY_DATA, "sizeof (fh_mapping) = %u\n",
 			sizeof(fh_mapping));
+
+}
 #endif
 
-
+static void set_daemon_paging_strategy()
+{
 	/* 
 	 * Keep the pages of the daemon in memory.  
 	 */
@@ -623,96 +568,143 @@ int main(int argc, char **argv)
 		message(LOG_CRIT, FACILITY_ZFSD, "mlockall: %s\n", strerror(errno));
 		die();
 	}
+}
 
+static void wait_for_pool_to_die(thread_pool * pool)
+{
+	wait_for_thread_to_die(&pool->main_thread, NULL);
+	wait_for_thread_to_die(&pool->regulator_thread, NULL);
+}
 
-	fd_data_init();
+typedef struct zfs_started_services_def
+{
+	bool kernel_started;
+	bool network_started;
+	bool update_started;
+}
+zfs_started_services;
 
-
-	/* 
-	 * Start the threads.  
-	 */
-	update_started = update_start();	// NOTE:where checked?
-	network_started = network_start();
-	kernel_started = false;
-
-
-	if (network_started)
-	{
-#ifdef TEST
-		test_zfs();
-#else
-		if (!read_cluster_config())
-		{
-			terminate();
-			ret = EXIT_FAILURE;
-		}
-#endif
-	}
-	update_node_name();
-
-	if (!network_started)
+static int zfs_start_services(zfs_started_services * services)
+{
+	services->kernel_started = false;
+	services->network_started = update_start();
+	services->update_started = network_start ();
+	
+	if (services->network_started != true || services->update_started != true)
 	{
 		terminate();
-		ret = EXIT_FAILURE;
+		return EXIT_FAILURE;
 	}
-	else if (running)
+
+	bool rv = read_cluster_config();
+	if (rv != true)
 	{
-		kernel_started = kernel_start();
+		terminate();
+		return EXIT_FAILURE;
 	}
+
+	update_node_name();
+
+	if (!get_running())
+	{
+		terminate();
+		return EXIT_FAILURE;
+	}
+
+	services->kernel_started = kernel_start();
 
 	zfsd_set_state(ZFSD_STATE_RUNNING);
 
+	return EXIT_SUCCESS;
+}
+
+
+static void zfs_stop_services(zfs_started_services * services)
+{
+	if (services->update_started)
+		wait_for_pool_to_die(&update_pool);
+
+	if (services->network_started)
+		wait_for_pool_to_die(&network_pool);
+
+	if (services->kernel_started)
+		wait_for_pool_to_die(&kernel_pool);
+
+	fd_data_shutdown();
+
+	if (services->update_started)
+		update_cleanup();
+	if (services->network_started)
+		network_cleanup();
+	if (services->kernel_started)
+		kernel_cleanup();
+}
+
+static void zfsd_main_loop(void)
+{
 	/* 
 	 * Workaround valgrind bug (PR/77369), i.e. prevent from waiting
 	 * for joinee threads while signal is received.  
 	 */
-	while (running)
+	while (get_running())
 	{
 		/* 
 		 * Sleep gets interrupted by the signal.  
 		 */
 		sleep(1000000);
 	}
+}
 
-	zfsd_set_state(ZFSD_STATE_TERMINATING);
+static int zfsd_main(void)
+{
 
-	if (update_started)
+	set_daemon_paging_strategy();	
+
+	zfs_started_services services;
+	int rv = zfs_start_services(&services);
+	zfsd_main_loop();
+	zfs_stop_services(&services);
+
+	return rv;
+}
+
+/* 
+ * ! Entry point of ZFS daemon.  
+ */
+int main(int argc, char **argv)
+{
+	zfs_openlog(argc, (const char **)argv);
+
+	init_constants();
+	init_sig_handlers();
+
+	process_arguments(argc, argv);
+
+	if (!initialize_data_structures())
 	{
-		wait_for_thread_to_die(&update_pool.main_thread, NULL);
-		wait_for_thread_to_die(&update_pool.regulator_thread, NULL);
-	}
-	if (network_started)
-	{
-		wait_for_thread_to_die(&network_pool.main_thread, NULL);
-		wait_for_thread_to_die(&network_pool.regulator_thread, NULL);
-	}
-	if (kernel_started)
-	{
-		wait_for_thread_to_die(&kernel_pool.main_thread, NULL);
-		wait_for_thread_to_die(&kernel_pool.regulator_thread, NULL);
+		die();
 	}
 
-	fd_data_shutdown();
-#ifdef TEST
-	test_cleanup();
+	int rv;
+	rv = read_local_config_from_file(get_local_config_path());
+	if (rv != CONFIG_TRUE)
+	{
+		//TODO: failed to read local config file
+		die();
+	}
+
+	update_node_name();
+
+#ifdef DEBUG
+	log_arch_specific();
 #endif
 
-	if (update_started)
-		update_cleanup();
-	if (network_started)
-		network_cleanup();
-	if (kernel_started)
-		kernel_cleanup();
+	int ret = zfsd_main();
 
 	fuse_opt_free_args(&main_args);
 
-	fd_data_destroy();
-
 	cleanup_data_structures();
 	disable_sig_handlers();
-
-	// deinit dbus
-	cleanup_control_c();
 
 	zfs_closelog();
 

@@ -20,7 +20,6 @@
 #include "config_limits.h"
 #include "configuration.h"
 #include "config_user_mapping.h"
-#include "read_config.h"
 #include "config_defaults.h"
 #include "config_group_mapping.h"
 #include "config_parser.h"
@@ -76,44 +75,132 @@ static bool fix_config(void)
 	return true;
 }
 
-//TODO: UGLY
-extern const char * local_config_path;
-
-
-/* ! Thread for reading a configuration.  */
-static void *config_reader(void *data)
+//TODO: varray is not good argument
+static void add_reread_config_request_to_slaves(string * relative_path, uint32_t from_sid, varray v)
 {
-	thread *t = (thread *) data;
-	lock_info li[MAX_LOCKED_FILE_HANDLES];
+
+	/* First send the reread_config request to slave nodes.  */
+	volume vol = volume_lookup(VOLUME_ID_CONFIG);
+	if (!vol)
+	{
+		terminate();
+		return;
+	}
+
+#ifdef ENABLE_CHECKING
+	if (!vol->slaves)
+		abort();
+#endif
+
+	// add config volume slaves to vararray
+	void **slot;
+	node nod;
+	unsigned int i;
+	uint32_t sid;
+
+	VARRAY_USED(v) = 0;
+	HTAB_FOR_EACH_SLOT(vol->slaves, slot)
+	{
+		node nod2 = (node) * slot;
+
+		zfsd_mutex_lock(&node_mutex);
+		zfsd_mutex_lock(&nod2->mutex);
+		if (nod2->id != from_sid)
+			VARRAY_PUSH(v, nod2->id, uint32_t);
+		zfsd_mutex_unlock(&nod2->mutex);
+		zfsd_mutex_unlock(&node_mutex);
+	}
+	zfsd_mutex_unlock(&vol->mutex);
+
+	// sends reread config request to slaves
+	for (i = 0; i < VARRAY_USED(v); i++)
+	{
+		sid = VARRAY_ACCESS(v, i, uint32_t);
+		nod = node_lookup(sid);
+		if (nod)
+			remote_reread_config(relative_path, nod);
+	}
+}
+
+// reads request from config read queue
+static void config_reader_loop(thread * t)
+{
+	varray v;
+	string relative_path;
+	uint32_t from_sid;
+
+	/* Reread parts of configuration when notified.  */
+	varray_create(&v, sizeof(uint32_t), 4);
+	while (1)
+	{
+		/* Wait until we are notified.  */
+		semaphore_down(&zfs_config.config_sem, 1);
+
+#ifdef ENABLE_CHECKING
+		if (get_thread_state(t) == THREAD_DEAD)
+			abort();
+#endif
+		if (get_thread_state(t) == THREAD_DYING)
+			break;
+
+		while (get_reread_config_request(&relative_path, &from_sid))
+		{
+			if (relative_path.str == NULL)
+			{
+				/* The daemon received SIGHUP, reread the local volume info.  */
+				if (!reread_local_volume_info(get_local_config_path()))
+				{
+					terminate();
+					break;
+				}
+				continue;
+			}
+
+			/* notify slaves by reread_config_request */
+			add_reread_config_request_to_slaves(&relative_path, from_sid, v);
+
+			/* Then reread the configuration.  */
+			if (!reread_config_file(&relative_path))
+			{
+				terminate();
+				break;
+			}
+
+			free(relative_path.str);
+		}
+	}
+	varray_destroy(&v);
+
+
+}
+
+// reads initial shared config
+static bool read_shared_config()
+{
+	volume vol;
 	dir_op_res config_dir_res;
 	dir_op_res user_dir_res;
 	dir_op_res group_dir_res;
-	string relative_path;
-	uint32_t from_sid;
-	int32_t r;
-	volume vol;
-	varray v;
-
-	thread_disable_signals();
-	pthread_setspecific(thread_data_key, data);
-	pthread_setspecific(thread_name_key, "Config reader");
-	set_lock_info(li);
 
 	invalidate_config();
 
+	uint32_t r;
 	r = zfs_volume_root(&config_dir_res, VOLUME_ID_CONFIG);
 	if (r != ZFS_OK)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "volume_root(): %s\n",
 				zfs_strerror(r));
-		goto out;
+		return false;
 	}
 
-	if (!read_node_list(&config_dir_res.file))
-		goto out;
+	bool rv;
+	rv = read_node_list(&config_dir_res.file);
+	if (rv != true)
+		return rv;
 
-	if (!read_volume_list(&config_dir_res.file))
-		goto out;
+	rv = read_volume_list(&config_dir_res.file);
+	if (rv != true)
+		return rv;
 
 	/* Config directory may have changed so lookup it again.  */
 	r = zfs_volume_root(&config_dir_res, VOLUME_ID_CONFIG);
@@ -121,55 +208,81 @@ static void *config_reader(void *data)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "volume_root(): %s\n",
 				zfs_strerror(r));
-		goto out;
+		return false;
 	}
 
-	if (!read_user_list(&config_dir_res.file))
-		goto out;
+	rv = read_user_list(&config_dir_res.file);
+	if (rv != true)
+		return rv;
 
-	if (!read_group_list(&config_dir_res.file))
-		goto out;
+	rv = read_group_list(&config_dir_res.file);
+	if (rv != true)
+		return rv;
 
 	r = zfs_extended_lookup(&user_dir_res, &config_dir_res.file, "user");
 	if (r == ZFS_OK)
 	{
 		// read default user mapping
 		if (!read_user_mapping(&user_dir_res.file, 0))
-			goto out;
+			return false;
+
 		// read mapping fot this node
 		if (!read_user_mapping(&user_dir_res.file, this_node->id))
-			goto out;
+			return false;
 	}
 
 	r = zfs_extended_lookup(&group_dir_res, &config_dir_res.file, "group");
 	if (r == ZFS_OK)
 	{
 		if (!read_group_mapping(&group_dir_res.file, 0))
-			goto out;
+			return false;
+
 		if (!read_group_mapping(&group_dir_res.file, this_node->id))
-			goto out;
+			return false;
 	}
 
 	/* Reread the updated configuration about nodes and volumes.  */
 	vol = volume_lookup(VOLUME_ID_CONFIG);
 	if (!vol)
-		goto out;
+		return false;
 
 	if (vol->master != this_node)
 	{
 		zfsd_mutex_unlock(&vol->mutex);
 
 		if (!read_node_list(&config_dir_res.file))
-			goto out;
+			return false;
 
 		if (!read_volume_list(&config_dir_res.file))
-			goto out;
+			return false;
 	}
 	else
 		zfsd_mutex_unlock(&vol->mutex);
 
 	if (!fix_config())
+		return false;
+	
+	return true;
+}
+
+/* ! Thread for reading a configuration.  */
+static void *config_reader(void *data)
+{
+	thread *t = (thread *) data;
+	lock_info li[MAX_LOCKED_FILE_HANDLES];
+	string relative_path;
+	uint32_t from_sid;
+
+	thread_disable_signals();
+	pthread_setspecific(thread_data_key, data);
+	pthread_setspecific(thread_name_key, "Config reader");
+	set_lock_info(li);
+
+	bool rv = read_shared_config();
+	if (rv != true)
+	{
 		goto out;
+	}
 
 	/* Let the main thread run.  */
 	t->retval = ZFS_OK;
@@ -186,82 +299,8 @@ static void *config_reader(void *data)
 	t->state = THREAD_IDLE;
 	zfsd_mutex_unlock(&t->mutex);
 
-	/* Reread parts of configuration when notified.  */
-	varray_create(&v, sizeof(uint32_t), 4);
-	while (1)
-	{
-		uint32_t sid;
-		unsigned int i;
-		node nod;
-		void **slot;
-
-		/* Wait until we are notified.  */
-		semaphore_down(&zfs_config.config_sem, 1);
-
-#ifdef ENABLE_CHECKING
-		if (get_thread_state(t) == THREAD_DEAD)
-			abort();
-#endif
-		if (get_thread_state(t) == THREAD_DYING)
-			break;
-
-		while (get_reread_config_request(&relative_path, &from_sid))
-		{
-			if (relative_path.str == NULL)
-			{
-				/* The daemon received SIGHUP, reread the local volume info.  */
-				if (!reread_local_volume_info(local_config_path))
-				{
-					terminate();
-					break;
-				}
-				continue;
-			}
-
-			/* First send the reread_config request to slave nodes.  */
-			vol = volume_lookup(VOLUME_ID_CONFIG);
-			if (!vol)
-			{
-				free(relative_path.str);
-				terminate();
-				break;
-			}
-#ifdef ENABLE_CHECKING
-			if (!vol->slaves)
-				abort();
-#endif
-
-			VARRAY_USED(v) = 0;
-			HTAB_FOR_EACH_SLOT(vol->slaves, slot)
-			{
-				node nod2 = (node) * slot;
-
-				zfsd_mutex_lock(&node_mutex);
-				zfsd_mutex_lock(&nod2->mutex);
-				if (nod2->id != from_sid)
-					VARRAY_PUSH(v, nod2->id, uint32_t);
-				zfsd_mutex_unlock(&nod2->mutex);
-				zfsd_mutex_unlock(&node_mutex);
-			}
-			zfsd_mutex_unlock(&vol->mutex);
-
-			for (i = 0; i < VARRAY_USED(v); i++)
-			{
-				sid = VARRAY_ACCESS(v, i, uint32_t);
-				nod = node_lookup(sid);
-				if (nod)
-					remote_reread_config(&relative_path, nod);
-			}
-
-			/* Then reread the configuration.  */
-			if (!reread_config_file(&relative_path))
-			{
-				terminate();
-				break;
-			}
-		}
-	}
-	varray_destroy(&v);
+	/* process config reread requests */
+	config_reader_loop(t);
 
 	/* Free remaining requests.  */
 	while (get_reread_config_request(&relative_path, &from_sid))
@@ -286,72 +325,9 @@ static void init_this_node(void)
 	node nod;
 
 	zfsd_mutex_lock(&node_mutex);
-	nod = node_create(this_node_id, &node_name, &node_name);
+	nod = node_create(zfs_config.this_node.node_id, &zfs_config.this_node.node_name, &zfs_config.this_node.node_name);
 	zfsd_mutex_unlock(&nod->mutex);
 	zfsd_mutex_unlock(&node_mutex);
-}
-
-/* ! Read ID and name of from this_node file */
-static int read_this_node_config(config_t * config)
-{
-	const char * local_node_name;
-	int rv;
-
-	rv = config_lookup_int(config, "local_node.id", (long int *) &this_node_id);
-	if (rv != CONFIG_TRUE)
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "Could not read node ID\n");
-		return rv;
-	}
-
-	rv = config_lookup_string(config, "local_node.name", &local_node_name);
-	if (rv != CONFIG_TRUE)
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "Node name must not be empty\n");
-		return rv;
-	}
-
-	xmkstring(&node_name, local_node_name);
-
-	return rv;
-}
-
-
-
-
-/* ! Read ID and name of local node and local paths of volumes.  */
-static bool read_local_cluster_config(const char * file)
-{
-	message(LOG_NOTICE, FACILITY_CONFIG,
-			"Reading configuration of local node\n");
-
-	config_t config;
-	config_init(&config);
-
-	int rv = config_read_file(&config, file);
-	if (rv != CONFIG_TRUE)
-	{
-		config_destroy(&config);
-		return false;
-	}
-
-
-	/* Read ID of local node.  */
-	rv = read_this_node_config(&config);
-	if (rv != CONFIG_TRUE)
-	{
-		config_destroy(&config);
-		return false;
-	}
-
-	// TODO: init_this_node(node_id, node_name);
-	init_this_node();
-
-	rv =  read_local_volume_info(&config, false);
-	
-	config_destroy(&config);
-
-	return (rv == CONFIG_TRUE);
 }
 
 /* ! Read global configuration of the cluster from config volume.  */
@@ -388,12 +364,8 @@ static bool read_global_cluster_config(void)
 
 bool read_cluster_config(void)
 {
-	if (!read_local_cluster_config(local_config_path))
-	{
-		message(LOG_CRIT, FACILITY_CONFIG,
-				"Could not read local cluster configuration\n");
-		return false;
-	}
+	//TODO: UGLY!!! move this initialization somewhere else
+	init_this_node();
 
 	if (!init_config_volume())
 	{

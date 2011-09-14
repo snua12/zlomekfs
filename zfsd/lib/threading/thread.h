@@ -38,10 +38,10 @@ extern pthread_key_t thread_data_key;
 extern pthread_key_t thread_name_key;
 
 /* ! Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-extern volatile bool running;
+//extern volatile bool running;
 
 /* ! Mutex protecting RUNNING flag.  */
-extern pthread_mutex_t running_mutex;
+//extern pthread_mutex_t running_mutex;
 
 /* ! Limits for number of threads.  */
 typedef struct thread_limit_def
@@ -181,7 +181,13 @@ typedef struct waiting4reply_data_def
 	fibnode node;
 } waiting4reply_data;
 
+/* ! Get value of RUNNING flag.  */
 extern bool get_running(void);
+
+
+/* ! set value of RUNNING flag.  */
+extern void set_running(bool value);
+
 extern bool thread_pool_terminate_p(thread_pool * pool);
 extern void thread_terminate_blocking_syscall(volatile pthread_t * thid,
 											  pthread_mutex_t * mutex);

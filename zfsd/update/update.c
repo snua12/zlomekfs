@@ -2014,15 +2014,15 @@ schedule_update_or_reintegration(volume vol, internal_dentry dentry)
 	{
 		/* Schedule update or reintegration of regular file.  */
 
-		zfsd_mutex_lock(&running_mutex);
+		zfsd_mutex_lock(&update_pool.mutex);
 		if (update_pool.main_thread == 0)
 		{
 			/* Update threads are not running.  */
-			zfsd_mutex_unlock(&running_mutex);
+			zfsd_mutex_unlock(&update_pool.mutex);
 		}
 		else
 		{
-			zfsd_mutex_unlock(&running_mutex);
+			zfsd_mutex_unlock(&update_pool.mutex);
 
 			/* File must not be in any queue yet */
 			if (!(dentry->fh->flags & IFH_ENQUEUED))

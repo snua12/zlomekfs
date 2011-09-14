@@ -1,5 +1,5 @@
 add_library(log ${BUILDTYPE} log.c)
-target_link_libraries(log syplog node_global)
+target_link_libraries(log syplog zfs_config)
 
 ### google Test
 #test_enabled(gtest result)
