@@ -18,4 +18,4 @@ add_subdirectory(semaphore)
 add_subdirectory(splay-tree)
 add_subdirectory(threading)
 add_subdirectory(util)
-
+add_subdirectory(zfsio)

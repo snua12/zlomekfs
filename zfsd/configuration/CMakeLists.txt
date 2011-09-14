@@ -11,13 +11,12 @@ SET(configuration_SRC
   config_volume.c
   local_config.c
   shared_config.c
-  zfsio.c
 )
 
 add_library(zfs_config ${BUILD_TYPE} zfs_config.c)
 
 add_library(configuration ${BUILDTYPE} ${configuration_SRC})
-target_link_libraries(configuration zfs_config log)
+target_link_libraries(configuration zfs_config log zfsio)
 
 ## google test
 test_enabled(gtest result)

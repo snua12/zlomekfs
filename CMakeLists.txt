@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 project(zfsd)
 
+#add our modules dir
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
+
 function(print_help)
 	message("")
 	message("Usage: cmake <path_to_source> <options>")
@@ -140,6 +143,10 @@ include(FindOpenSSL)
 if(NOT OPENSSL_FOUND)
 	message(FATAL_ERROR "Openssl not found")
 endif()
+
+#Protobuf
+include(${CMAKE_SOURCE_DIR}/cmake/modules/FindProtobuf-c.cmake)
+find_package(Protobuf-c REQUIRED)
 
 # google test -- our pthread-patched version
 test_enabled(gtest result)

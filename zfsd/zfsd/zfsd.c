@@ -587,8 +587,8 @@ zfs_started_services;
 static int zfs_start_services(zfs_started_services * services)
 {
 	services->kernel_started = false;
-	services->network_started = update_start();
-	services->update_started = network_start ();
+	services->update_started = update_start();
+	services->network_started = network_start ();
 	
 	if (services->network_started != true || services->update_started != true)
 	{

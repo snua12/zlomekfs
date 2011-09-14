@@ -1,4 +1,6 @@
 add_library(protocol ${BUILDTYPE} data-coding.c  zfs-prot.c)
+add_subdirectory(protobuf)
+
 target_link_libraries(protocol dir)
 
 install(

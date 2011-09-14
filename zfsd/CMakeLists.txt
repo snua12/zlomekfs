@@ -39,6 +39,7 @@ ${ZFSD_SOURCE_DIR}/lib/splay-tree
 ${ZFSD_SOURCE_DIR}/lib/random
 ${ZFSD_SOURCE_DIR}/lib/md5
 ${ZFSD_SOURCE_DIR}/lib/fibheap
+${ZFSD_SOURCE_DIR}/lib/zfsio
 ${ZFSD_SOURCE_DIR}/version
 )
 
