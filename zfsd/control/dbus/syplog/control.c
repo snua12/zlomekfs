@@ -23,10 +23,8 @@
    or download it from http://www.gnu.org/licenses/gpl.html 
 */
 
-#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
-#undef _GNU_SOURCE
 
 #include "control.h"
 #include "errno.h"
@@ -36,7 +34,7 @@
  * @param target valid pointer to struct in_addr where to store resolved address
  * @return ERR_BAD_PARAMS, NOERR
 */
-syp_error resolve_host (const char * addr, struct in_addr * target)
+static syp_error resolve_host (const char * addr, struct in_addr * target)
 {
  /* TODO: use
   int getaddrinfo(const char *node, const char *service,
@@ -103,7 +101,7 @@ syp_error reset_facility_udp (facility_t facility, const char * addr, uint16_t p
   return send_uint32_by_function (facility, reset_facility_sendto, addr, port);
 }
 
-syp_error dbus_connect (DBusConnection ** connection)
+static syp_error dbus_connect (DBusConnection ** connection)
 {
   DBusError err;
   int ret = 0;
@@ -152,7 +150,7 @@ FINISHING:
   return ret_code;
 }
 
-syp_error dbus_disconnect(DBusConnection ** connection)
+static syp_error dbus_disconnect(DBusConnection ** connection)
 {
 
 #ifdef ENABLE_CHECKING
@@ -175,7 +173,7 @@ syp_error dbus_disconnect(DBusConnection ** connection)
  * Connect to the DBUS bus and send a broadcast signal
  * TODO: non broadcasting signals
  */
-syp_error dbus_sendsignal (const char * target UNUSED,
+static syp_error dbus_sendsignal (const char * target UNUSED,
                           char * signal_name, int value_type, void * signal_value)
 {
   DBusMessage* msg = NULL;
@@ -225,7 +223,7 @@ FINISHING:
 /**
  * Call a method on a remote object
  */
-const void * dbus_query(DBusConnection * conn, const char * target_name, char * method_name, int arg_type, void * method_arg ) 
+static const void * dbus_query(DBusConnection * conn, const char * target_name, char * method_name, int arg_type, void * method_arg ) 
 {
   DBusMessage* msg;
   DBusMessageIter args;

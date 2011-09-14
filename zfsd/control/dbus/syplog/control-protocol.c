@@ -33,7 +33,7 @@
 #include "control-protocol.h"
 
 /** send raw message to net socket
- * @param socket socket file descriptor. Socket must be initialized.
+ * @param msg_socket socket file descriptor. Socket must be initialized.
  * @param message pointer to raw message data in network byte order.
  * @param message_len message length in bytes
  * @param to in case of statefull protocols (tcp) NULL, 
@@ -41,7 +41,7 @@
  * @param tolen length of to (sizeof in bytes)
  * @return ERR_BAD_PARAMS, ERR_TRUNCATED, system related errors
 */
-syp_error send_message_to (int socket, const void * message, size_t message_len, 
+static syp_error send_message_to (int msg_socket, const void * message, size_t message_len, 
   const struct sockaddr * to, socklen_t tolen)
 {
   ssize_t bytes_send = 0;
@@ -50,19 +50,19 @@ syp_error send_message_to (int socket, const void * message, size_t message_len,
     return ERR_BAD_PARAMS;
 #endif
     
-  bytes_send = sendto (socket, message, message_len, 0, to, tolen);
+  bytes_send = sendto (msg_socket, message, message_len, 0, to, tolen);
   if (bytes_send == -1)
   {
     return sys_to_syp_error (errno);
   }
-  if (bytes_send < message_len)
+  if ((size_t) bytes_send < message_len)
     return ERR_TRUNCATED;
     
    return NOERR;
 }
 
 /** receive raw message from net socket (blocking call)
- * @param socket socket file descriptor. Socket must be initialized.
+ * @param msg_socket socket file descriptor. Socket must be initialized.
  * @param message pointer to buffer, where to store received data.
     Data will be stored in network byte order.
  * @param message_len message buffer length in bytes (maximum bytes to receive).
@@ -73,7 +73,7 @@ syp_error send_message_to (int socket, const void * message, size_t message_len,
     Must be NULL if from is NULL and vice versa.
  * @return ERR_BAD_PARAMS, ERR_TRUNCATED, system related errors
 */
-syp_error receive_message_from (int socket, void * message, ssize_t * message_len,
+static syp_error receive_message_from (int msg_socket, void * message, ssize_t * message_len,
   struct sockaddr *from, socklen_t *fromlen)
 {
   ssize_t bytes_received = 0;
@@ -82,7 +82,7 @@ syp_error receive_message_from (int socket, void * message, ssize_t * message_le
     return ERR_BAD_PARAMS;
 #endif
     
-  bytes_received = recvfrom (socket, message, *message_len, 0, from, fromlen);
+  bytes_received = recvfrom (msg_socket, message, *message_len, 0, from, fromlen);
   if (bytes_received == -1)
   {
     return sys_to_syp_error (errno);
@@ -94,7 +94,7 @@ syp_error receive_message_from (int socket, void * message, ssize_t * message_le
 }
 
 /** Format message and send it.
- * Params socket, to, tolen have the same meaning as in function send_message_to
+ * Params msg_socket, to, tolen have the same meaning as in function send_message_to
  * @see send_message_to
  * @param type command enum (what to do). In local byte order.
  * @see message_type
@@ -102,7 +102,7 @@ syp_error receive_message_from (int socket, void * message, ssize_t * message_le
     facilities for set_facilities, etc. In local byte order.
  * @return the same errors as send_message_to
 */
-syp_error send_uint32_action_to (int socket, message_type type, uint32_t data,
+static syp_error send_uint32_action_to (int msg_socket, message_type type, uint32_t data,
   const struct sockaddr * to, socklen_t tolen)
 {
   uint32_t message[2]; // assume message_type + uint32_t
@@ -110,12 +110,12 @@ syp_error send_uint32_action_to (int socket, message_type type, uint32_t data,
   message[0] = htonl(type);
   message[1] = htonl(data);
   
-  return send_message_to (socket, (void*)message, sizeof (uint32_t) * 2,
+  return send_message_to (msg_socket, (void*)message, sizeof (uint32_t) * 2,
     to, tolen);
 }
 
 /** Receive message from socket and parse it.
- * Params socket, from and fromlen have the same meaning as in function receive_message_from
+ * Params msg_socket, from and fromlen have the same meaning as in function receive_message_from
  * @see receive_message_from
  * @param type Valid pointer, command enum (what to do) in local byte order will be set.
  * @see message_type
@@ -124,14 +124,14 @@ syp_error send_uint32_action_to (int socket, message_type type, uint32_t data,
  * @return the same errors as send_message_to 
     + ERR_TRUNCATED in case of short message
 */
-syp_error receive_uint32_action_from (int socket, message_type * type, 
+static syp_error receive_uint32_action_from (int msg_socket, message_type * type, 
   uint32_t * data, struct sockaddr *from, socklen_t *fromlen)
 {
   uint32_t message[2]; // assume message_type + uint32_t
   ssize_t chars_read = sizeof (uint32_t) * 2;
   syp_error ret_code = NOERR;
   
-  ret_code =  receive_message_from (socket, (void*)message, &chars_read, from, fromlen);
+  ret_code =  receive_message_from (msg_socket, (void*)message, &chars_read, from, fromlen);
   if (ret_code != NOERR)
     return ret_code;
     
@@ -146,20 +146,20 @@ syp_error receive_uint32_action_from (int socket, message_type * type,
 }
 
 /** Receive first message from socket (discards) and checks if type is correct.
- * params socket, data, from and fromlen have the same meaning as receive_uint32_action_from
+ * params msg_socket, data, from and fromlen have the same meaning as receive_uint32_action_from
  * @see receive_uint32_action_from
  * @param type required type to receive. If the received message doesn't have this type,
     ERR_BAD_MESSAGE will be returned.
  * @return the same errors as receive_uint32_action_from 
     + ERR_BAD_MESSAGE in case of type mismatch
  */
-syp_error receive_typed_uint32_action_from (int socket, message_type type,
+static syp_error receive_typed_uint32_action_from (int msg_socket, message_type type,
   uint32_t * data, struct sockaddr *from, socklen_t *fromlen)
 {
   syp_error ret_code = NOERR;
   message_type received_type = MESSAGE_PING;
   
-  ret_code = receive_uint32_action_from (socket,&received_type, data, from, fromlen);
+  ret_code = receive_uint32_action_from (msg_socket,&received_type, data, from, fromlen);
   if (ret_code != NOERR)
     return ret_code;
   
@@ -169,41 +169,41 @@ syp_error receive_typed_uint32_action_from (int socket, message_type type,
   return NOERR;
 }
 
-syp_error set_level_sendto (int socket, log_level_t level, 
+syp_error set_level_sendto (int msg_socket, log_level_t level, 
   const struct sockaddr * to, socklen_t tolen)
 {
-  return send_uint32_action_to (socket, MESSAGE_SET_LEVEL, level, to, tolen);
+  return send_uint32_action_to (msg_socket, MESSAGE_SET_LEVEL, level, to, tolen);
 }
 
-syp_error set_level_receive_from (int socket, log_level_t * level,
+syp_error set_level_receive_from (int msg_socket, log_level_t * level,
   struct sockaddr *from, socklen_t *fromlen)
 {
-  return receive_typed_uint32_action_from (socket, MESSAGE_SET_LEVEL, level,
+  return receive_typed_uint32_action_from (msg_socket, MESSAGE_SET_LEVEL, level,
     from, fromlen);
 }
 
-syp_error set_facility_sendto (int socket, facility_t facility, 
+syp_error set_facility_sendto (int msg_socket, facility_t facility, 
   const struct sockaddr * to, socklen_t tolen)
 {
-  return send_uint32_action_to (socket, MESSAGE_SET_FACILITY, facility, to, tolen);
+  return send_uint32_action_to (msg_socket, MESSAGE_SET_FACILITY, facility, to, tolen);
 }
 
-syp_error set_facility_receive_from (int socket, facility_t * facility,
+syp_error set_facility_receive_from (int msg_socket, facility_t * facility,
   struct sockaddr * from, socklen_t * fromlen)
 {
-  return receive_typed_uint32_action_from (socket, MESSAGE_SET_FACILITY, facility,
+  return receive_typed_uint32_action_from (msg_socket, MESSAGE_SET_FACILITY, facility,
     from, fromlen);
 }
 
-syp_error reset_facility_sendto (int socket, facility_t facility, 
+syp_error reset_facility_sendto (int msg_socket, facility_t facility, 
   const struct sockaddr * to, socklen_t tolen)
 {
-  return send_uint32_action_to (socket, MESSAGE_RESET_FACILITY, facility, to, tolen);
+  return send_uint32_action_to (msg_socket, MESSAGE_RESET_FACILITY, facility, to, tolen);
 }
 
-syp_error reset_facility_receive_from (int socket, facility_t * facility,
+syp_error reset_facility_receive_from (int msg_socket, facility_t * facility,
   struct sockaddr * from, socklen_t * fromlen)
 {
-  return receive_typed_uint32_action_from (socket, MESSAGE_RESET_FACILITY,
+  return receive_typed_uint32_action_from (msg_socket, MESSAGE_RESET_FACILITY,
     facility, from, fromlen);
 }

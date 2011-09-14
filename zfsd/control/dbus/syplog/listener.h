@@ -33,7 +33,7 @@
 */
 
 
-#include "dbus/dbus.h"
+#include <dbus/dbus.h>
 
 #include "syp-error.h"
 #include "syplog.h"

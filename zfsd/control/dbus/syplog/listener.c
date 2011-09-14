@@ -41,7 +41,7 @@
  * @param controller initialized listener with ping message on top of net stack.
  * @return NOERR;
  */
-syp_error handle_socket_ping (listener controller)
+static syp_error handle_socket_ping (listener controller)
 {
   struct sockaddr from;
   socklen_t fromlen = 0;
@@ -63,7 +63,7 @@ syp_error handle_socket_ping (listener controller)
  * @see set_log_level
  * @return the same as set_level_receive and set_log_level
  */
-syp_error handle_socket_set_level (listener controller)
+static syp_error handle_socket_set_level (listener controller)
 {
   log_level_t new_level = LOG_ALL;
   syp_error ret_code = NOERR;
@@ -80,7 +80,7 @@ syp_error handle_socket_set_level (listener controller)
  * @see set_facility
  * @return the same as set_facility_receive and set_facility
  */
-syp_error handle_socket_set_facility (listener controller)
+static syp_error handle_socket_set_facility (listener controller)
 {
   facility_t new_facility = FACILITY_ALL;
   syp_error ret_code = NOERR;
@@ -97,7 +97,7 @@ syp_error handle_socket_set_facility (listener controller)
  * @see reset_facility
  * @return the same as reset_facility_receive and reset_facility
  */
-syp_error handle_socket_reset_facility (listener controller)
+static syp_error handle_socket_reset_facility (listener controller)
 {
   facility_t new_facility = FACILITY_ALL;
   syp_error ret_code = NOERR;
@@ -112,7 +112,7 @@ syp_error handle_socket_reset_facility (listener controller)
  * @param controller initialized listener unempty net stack
  * @return NOERR
  */
-syp_error handle_socket_invalid_message (listener controller)
+static syp_error handle_socket_invalid_message (listener controller)
 {  
   ssize_t bytes_read = 0;
   char wrong_message_buffer[1024] = "";
@@ -133,7 +133,7 @@ syp_error handle_socket_invalid_message (listener controller)
  * @param data pointer to initialized listener
  * @return NULL
  */
-void * socket_listen_loop (void * data)
+static void * socket_listen_loop (void * data)
 {
   syp_error status = NOERR;
   listener controller = (listener) data;
@@ -261,7 +261,7 @@ FINISHING:
  * @param conn connection to which send the reply
  * @return std errors
  */
-syp_error dbus_reply_to_ping( logger target, DBusMessage* msg, DBusConnection* conn)
+static syp_error dbus_reply_to_ping( logger target, DBusMessage* msg, DBusConnection* conn)
 {
   DBusMessage * reply = NULL;
   DBusMessageIter args;
@@ -329,7 +329,7 @@ FINISHING:
  * @param msg received message of type SYPLOG_SIGNAL_RESET_FACILITY_NAME
  * @return std errors
  */
-syp_error handle_dbus_reset_facility (logger target, DBusMessage* msg) {
+static syp_error handle_dbus_reset_facility (logger target, DBusMessage* msg) {
   DBusMessageIter args;
   facility_t facility = FACILITY_NOTHING;
   syp_error ret_code = NOERR;
@@ -364,7 +364,7 @@ syp_error handle_dbus_reset_facility (logger target, DBusMessage* msg) {
  * @param msg received message of type SYPLOG_SIGNAL_SET_FACILITY_NAME
  * @return std errors
  */
-syp_error handle_dbus_set_facility (logger target, DBusMessage* msg) {
+static syp_error handle_dbus_set_facility (logger target, DBusMessage* msg) {
   DBusMessageIter args;
   facility_t facility = FACILITY_NOTHING;
   syp_error ret_code = NOERR;
@@ -399,7 +399,7 @@ syp_error handle_dbus_set_facility (logger target, DBusMessage* msg) {
  * @param msg received message of type SYPLOG_SIGNAL_SET_LOG_LEVEL_NAME
  * @return std errors
  */
-syp_error handle_dbus_set_log_level (logger target, DBusMessage* msg) {
+static syp_error handle_dbus_set_log_level (logger target, DBusMessage* msg) {
   DBusMessageIter args;
   log_level_t level = LOG_NONE;
   syp_error ret_code = NOERR;
@@ -536,7 +536,7 @@ syp_error dbus_handle_syplog_message (DBusConnection * conn,
           initialized for usage with dbus (opened connection with names registered)
  * @return NULL
 */
-void * dbus_listen_loop (void * data)
+static void * dbus_listen_loop (void * data)
 {
   syp_error status = NOERR;
   listener controller = (listener) data;
@@ -661,7 +661,7 @@ FINISHING:
  * @param controller initialized listener listening on udp socket
  * @return NOERR
 */
-syp_error stop_listen_udp(listener controller)
+static syp_error stop_listen_udp(listener controller)
 {
   close (controller->socket);
   controller->socket = -1;
@@ -674,7 +674,7 @@ syp_error stop_listen_udp(listener controller)
  * @param controller initialized listener listening on dbus
  * @return NOERR
 */
-syp_error stop_listen_dbus(listener controller)
+static syp_error stop_listen_dbus(listener controller)
 {
   dbus_release_syplog_name (controller->dbus_conn, &(controller->dbus_err), 
                             controller->target);
