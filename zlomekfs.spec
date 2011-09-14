@@ -1,18 +1,18 @@
-Summary: Distributed file system
 Name: zlomekfs
 Version: %{VERSION}
 Release: %{REVISION}.%{RELEASE}
+Summary: Distributed file system
+Group: System Environment/Daemons
 License : GPL
 URL: http://dsrg.mff.cuni.cz/~ceres/prj/zlomekFS
-Group: System Environment/Daemons
 Source: zlomekfs-%{version}.tar.gz
 ExclusiveOS: linux
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 Exclusiveos: linux
 #TODO: switch kernel-source and kernel-devel according distro
-BuildRequires: dbus-devel syplog kernel-devel libtool autoconf automake gettext-devel
-Requires: dbus libpthread.so.0 syplog gettext
+BuildRequires: dbus-devel kernel-devel libtool cmake gettext-devel libconfig-dev
+Requires: dbus libpthread.so.0 gettext
 # we don't want to install all fuse files
 %define _unpackaged_files_terminate_build 0 
 %description
@@ -22,15 +22,16 @@ Distributed file system
 %setup -q
 
 %build
-./configure --prefix=%{prefix} --libdir=%{_libdir}
-make all
+cmake  -DCMAKE_SKIP_RPATH=ON \
+	-DCMAKE_INSTALL_PREFIX=%{_prefix}
+
+%{__make} %{?jobs:-j%jobs}
 
 %install
-rm -rf %{buildroot}
-DESTDIR=%{buildroot} make install
+%{__make} DESTDIR=%{buildroot} install
 
 %clean
-rm -rf %{buildroot}
+%{__rm} -rf '%{buildroot}'
 
 %files
 /dev/fuse

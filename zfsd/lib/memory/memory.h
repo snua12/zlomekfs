@@ -55,6 +55,7 @@ extern "C"
 	extern void append_string(string * dst, string * src, const char *str,
 							  unsigned int len);
 	extern void append_file_name(string * dst, string * path, const char *name,
+							  unsigned int len);
 
 #ifdef __cplusplus
 }

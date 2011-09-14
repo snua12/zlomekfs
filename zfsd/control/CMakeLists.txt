@@ -1,4 +1,12 @@
+
+
 if (ENABLE_DBUS)
+# dbus
+PKG_CHECK_MODULES(DBUS dbus-1>=1.0)
+  if (NOT FUSE_FOUND EQUAL 1)
+    message(FATAL_ERROR "dbus not found")
+  endif()
+
   add_subdirectory(dbus)
   set(CONTROL_DBUS_LIBS controlDbus)
 endif (ENABLE_DBUS)

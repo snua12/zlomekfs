@@ -37,6 +37,28 @@ set(CMAKE_CONFIGURATION_TYPES "Debug Release" CACHE string "Configuration types"
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${VERSIONS_CFLAGS} ${CFLAGS}" CACHE string "Debug cflags" FORCE)
 set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${VERSIONS_CFLAGS} ${PLATFORM_CFLAGS} ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
 
+if(NOT CONFIGURATION)
+        if(NOT CMAKE_BUILD_TYPE)
+                set(CMAKE_BUILD_TYPE Debug)
+                set(BUILDTYPE STATIC)
+        endif()     
+elseif(CONFIGURATION STREQUAL Debug)
+        set(CMAKE_BUILD_TYPE ${CONFIGURATION})
+        set(BUILDTYPE STATIC)
+elseif(CONFIGURATION STREQUAL Release)
+        set(CMAKE_BUILD_TYPE ${CONFIGURATION})
+        set(BUILDTYPE SHARED)
+endif()  
+
+# make this persistent
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE string "Build configuration" FORCE)
+
+##############################################################
+############## Summary
+##############################################################
+message("Library type: ${BUILDTYPE}")
+message("Configuration: ${CMAKE_BUILD_TYPE}")
+
 
 ##############################################################
 ############## Test part
@@ -103,12 +125,15 @@ INCLUDE(${CMAKE_ROOT}/Modules/FindPkgConfig.cmake)
 
 # libfuse
 PKG_CHECK_MODULES(FUSE fuse>=2.6)
-
-# dbus
-PKG_CHECK_MODULES(DBUS dbus-1>=1.0)
+if (NOT FUSE_FOUND EQUAL 1)
+	message(FATAL_ERROR "fuse not found")
+endif()
 
 #libconfig
 PKG_CHECK_MODULES(LCONFIG libconfig>=1.3)
+if (NOT FUSE_FOUND EQUAL 1)
+	message(FATAL_ERROR "libconfig not found")
+endif()
 
 # openssl
 include(FindOpenSSL)
@@ -125,8 +150,6 @@ if(NOT result EQUAL -1)
 	endif()
 	SET(ZFS_GTEST_LIBRARIES ${GTEST_BOTH_LIBRARIES} pthread)
 endif()
-
-
 
 # configure headers
 configure_file(config.h.cmake ${CMAKE_BINARY_DIR}/include/config.h)
