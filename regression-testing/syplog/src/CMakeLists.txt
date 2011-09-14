@@ -1,9 +1,8 @@
+add_subdirectory(formatters)
+
 SET(syplog_SRCS
   syplog.c
-	formatters/formatter.c
 	settings-loader.c
-	formatters/user-readable-formatter.c
-	formatters/raw-formatter.c
 	media/medium.c
 	media/file-medium.c
 	media/print-medium.c
@@ -17,7 +16,7 @@ SET(syplog_SRCS
 
 
 add_library(syplog ${BUILDTYPE} ${syplog_SRCS})
-target_link_libraries(syplog varray log)
+target_link_libraries(syplog formatters)
 
 ### google Test
 #test_enabled(gtest result)
