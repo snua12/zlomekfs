@@ -25,20 +25,21 @@
 */
 
 
-#define	_GNU_SOURCE
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <linux/types.h>
 #include <stdarg.h>
 #include <time.h>
-#undef _GNU_SOURCE
 
 #include "syp-error.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+   
 #define UNUSED	__attribute__ ((__unused__))
 
 /// maximal length of log message (user given string)
@@ -199,7 +200,7 @@ static inline bool_t opt_table_contains (const struct option * option_table, con
     return FALSE;
 
   int table_index = 0;
-  char * substr = NULL;
+  const char * substr = NULL;
   for (table_index = 0; option_table [table_index].name != NULL; table_index ++)
   {
     substr = strstr (arg, option_table [table_index].name);
@@ -210,5 +211,9 @@ static inline bool_t opt_table_contains (const struct option * option_table, con
 
   return FALSE;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*LOG_CONSTANTS_H*/

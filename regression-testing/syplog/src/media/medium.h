@@ -34,6 +34,10 @@
 #include "log-constants.h"
 #include "log-struct.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum medium_operation_def{
   NO_OPERATION = 0,
   READ_LOG,
@@ -86,5 +90,8 @@ typedef struct medium_def
   medium_operation kind;
 } * medium;
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*MEDIUM_H*/

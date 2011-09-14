@@ -18,6 +18,18 @@
 # along with zlomekfs; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+SUBDIRS = \
+        configuration \
+        control \
+        fs-entities \
+        include \
+        lib \
+        tools \
+        update \
+        user-group \
+        version \
+        zfsd
+
 EXTRA_DIST = zfs-prot.def
 
 if ZENUNIT_INTERNAL_BUILD

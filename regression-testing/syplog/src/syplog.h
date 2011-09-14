@@ -85,6 +85,10 @@
 #include "facility.h"
 #include "media/medium-api.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! Structure holding logger state and configuration. */
 typedef struct logger_def {
   /// writer
@@ -229,5 +233,8 @@ syp_error set_node_name (logger glogger, const char * node_name);
 */
 void print_syplog_help (int fd, int tabs);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif		/*SYPLOG_H*/

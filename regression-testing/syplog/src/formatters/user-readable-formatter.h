@@ -27,6 +27,10 @@
 
 #include "log-struct.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// user readable name of user readable formatter (used also as parameter when creating new formatter)
 #define	USER_READABLE_FORMATTER_NAME	"user"
 
@@ -74,5 +78,9 @@ int32_t user_readable_file_read (log_struct message, FILE * file);
 */
 int32_t user_readable_max_print_size (void);
 extern struct formatter_def user_readable_formatter;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*USER_READABLE_FORMATTER_H*/

@@ -28,6 +28,10 @@
 
 #include "log-struct.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// user readable name of raw formatter (used also as parameter when creating new formatter)
 #define	RAW_FORMATTER_NAME	"raw"
 
@@ -76,5 +80,9 @@ int32_t raw_file_read (log_struct message, FILE * file);
 int32_t raw_max_print_size (void);
 
 extern struct formatter_def raw_formatter;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*RAW_FORMATTER_H*/

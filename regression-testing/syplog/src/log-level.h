@@ -35,6 +35,10 @@
 
 #include "log-constants.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+   
 /// typedef for log level
 typedef uint32_t		log_level_t;
 
@@ -160,6 +164,10 @@ static inline log_level_t log_level_from_string (const char * level_name)
   #ifndef DEFAULT_LOG_LEVEL
     #define DEFAULT_LOG_LEVEL           3
   #endif
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /*LOG_LEVEL_H*/

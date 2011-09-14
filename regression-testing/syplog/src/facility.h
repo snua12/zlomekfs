@@ -39,6 +39,10 @@
 
 #include "log-constants.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// typedef for facility
 typedef uint32_t		facility_t;
 
@@ -194,5 +198,9 @@ static inline bool_t facility_get_state (facility_t bitmap, facility_t facility)
   else
     return FALSE;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*FACILITY_H*/

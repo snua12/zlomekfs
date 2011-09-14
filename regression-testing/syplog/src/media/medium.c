@@ -26,14 +26,11 @@
    or download it from http://www.gnu.org/licenses/gpl.html
 */
 
-#define _GNU_SOURCE
 
 #include <stdlib.h>
 #include <getopt.h>
 #include <errno.h>
 #include <unistd.h>
-
-#undef _GNU_SOURCE
 
 #include "medium.h"
 #include "medium-api.h"

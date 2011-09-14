@@ -196,7 +196,7 @@ static char * default_options [] =
 static int default_option_count = 3;
 
 /// Fallback options for creating writer, Used when open_medium with default values fail.
-static char * fallback_options [] = 
+static const char * fallback_options [] = 
 {
 "syplog",
 "--" PARAM_MEDIUM_TYPE_LONG "=" PRINT_MEDIUM_NAME,
@@ -273,7 +273,7 @@ syp_error open_log (logger glogger,  const char * node_name, int argc, const cha
   ret_code = open_medium (&glogger->printer, argc, argv);
   if (ret_code != NOERR)
   {
-	open_medium (&glogger->printer, fallback_option_count, fallback_options);	
+    open_medium (&glogger->printer, fallback_option_count, fallback_options);	
   }
   
   FINISHING:

@@ -272,9 +272,14 @@ syp_error file_access (medium target, log_struct log){
     // if we have written zero bytes, there should be feof and no space
       if (fseek (((file_medium)target->type_specific)
         ->handler, 0, SEEK_SET) == SYS_NOERR)
+      {
         target->pos = 0;
+        return NOERR;
+      }
     }
   }
   else
     return -chars_accessed;
+
+ return ERR_SYSTEM;
 }

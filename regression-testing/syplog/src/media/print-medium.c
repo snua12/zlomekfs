@@ -205,4 +205,6 @@ syp_error print_access (medium target, log_struct log){
   }
   else if (chars_accessed <= 0)
     return -chars_accessed;
+
+  return ERR_SYSTEM;
 }

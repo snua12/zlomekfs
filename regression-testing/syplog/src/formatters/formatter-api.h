@@ -34,14 +34,17 @@
 */
 
 
-#define _GNU_SOURCE
 #include <stdio.h>
-#undef _GNU_SOURCE
 
 #include "log-struct.h"
 #include "log-constants.h"
 #include "user-readable-formatter.h"
 #include "raw-formatter.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define DEFAULT_FORMATTER	&user_readable_formatter
 
@@ -121,8 +124,8 @@ formatter formatter_for_name (const char * name);
 */
 void print_formatters_help (int fd, int tabs);
 
-
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*FORMATTER_API_H*/

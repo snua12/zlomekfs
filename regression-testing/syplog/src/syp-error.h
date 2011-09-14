@@ -32,6 +32,10 @@
 */
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	SYS_NOERR	0
 
 /*! Enumeration of errors which could arise in logger 
@@ -75,5 +79,8 @@ char * syp_error_to_string (syp_error error);
 */
 syp_error sys_to_syp_error (int sys_error);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*SYP_ERROR_H*/

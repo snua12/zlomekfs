@@ -34,6 +34,10 @@
 #include "facility.h"
 #include "log-level.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // FIXME -use std constant
 
 /// max length of intiger printed to string
@@ -89,8 +93,8 @@ typedef struct log_struct_def {
 					}
 
 
-
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*LOG_STRUCT_H*/

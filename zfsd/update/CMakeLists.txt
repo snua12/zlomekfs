@@ -1,0 +1,9 @@
+add_library(update ${BUILDTYPE} update.c)
+target_link_libraries(update)
+
+install(
+TARGETS update
+DESTINATION ${ZFS_INSTALL_DIR}/lib
+PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
