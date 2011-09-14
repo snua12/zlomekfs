@@ -32,6 +32,7 @@
 
 #include "listener.h"
 #include "control-protocol.h"
+#include "syplog_wrapper.h"
 
 
 
@@ -69,7 +70,7 @@ static syp_error handle_socket_set_level (listener controller)
   syp_error ret_code = NOERR;
   ret_code = set_level_receive (controller->socket, &new_level);
   if (ret_code == NOERR)
-    ret_code = set_log_level (controller->target, new_level);
+    ret_code = control_wrap_set_log_level (controller->target, new_level);
   
   return ret_code;
 }
@@ -86,7 +87,7 @@ static syp_error handle_socket_set_facility (listener controller)
   syp_error ret_code = NOERR;
   ret_code = set_facility_receive (controller->socket, &new_facility);
   if (ret_code == NOERR)
-    ret_code = set_facility (controller->target, new_facility);
+    ret_code = control_wrap_set_facility (controller->target, new_facility);
   
   return ret_code;
 }
@@ -103,7 +104,7 @@ static syp_error handle_socket_reset_facility (listener controller)
   syp_error ret_code = NOERR;
   ret_code = reset_facility_receive (controller->socket, &new_facility);
   if (ret_code == NOERR)
-    ret_code = reset_facility (controller->target, new_facility);
+    ret_code = control_wrap_reset_facility (controller->target, new_facility);
   
   return ret_code;
 }
