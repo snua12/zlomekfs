@@ -1,5 +1,6 @@
 if (ENABLE_DBUS)
   add_subdirectory(dbus)
+  set(CONTROL_DBUS_LIBS controlDbus)
 endif (ENABLE_DBUS)
 
 add_library(control ${BUILDTYPE} control.c)

@@ -462,7 +462,7 @@ WARN_LOGFILE           = doxy-warnings
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = zfsd
+INPUT = @CMAKE_CURRENT_SOURCE_DIR@/zfsd/
 
 # This tag can be used to specify the character encoding of the source files that 
 # doxygen parses. Internally doxygen uses the UTF-8 encoding, which is also the default 

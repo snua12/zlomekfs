@@ -98,10 +98,10 @@ typedef struct varray_def
 extern void varray_create (varray *va, unsigned int size, unsigned int nelem);
 extern void varray_destroy (varray *va);
 extern void varray_grow (varray *va, unsigned int nelem);
-//TODO: fix comment below this line
-//#ifdef ENABLE_CHECKING
+
+#ifdef ENABLE_CHECKING
 extern void varray_check_failed (unsigned int pos, const char *file,
 				 int line) ATTRIBUTE_NORETURN;
-//#endif
+#endif
 
 #endif

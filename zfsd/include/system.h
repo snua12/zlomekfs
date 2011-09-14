@@ -23,10 +23,7 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#ifdef HAVE_CONFIG_H
-/*! include autotools config.h */
-#include <config.h>
-#endif
+#include "config.h"
 
 # include <inttypes.h>
 
