@@ -1722,8 +1722,8 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 			else
 			{
 				acquire_dentry(dentry);
-				x = xstrconcat(3, dentry->fh->version_path,
-							   DIRECTORY_SEPARATOR, VERSION_DISPLAY_FILE);
+				x = xstrconcat(dentry->fh->version_path,
+							   DIRECTORY_SEPARATOR, VERSION_DISPLAY_FILE, NULL);
 				release_dentry(dentry);
 				if (!lstat(x, &st))
 					local_verdisplay = true;
@@ -1797,8 +1797,8 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 						char *f;
 						struct stat st;
 
-						f = xstrconcat(3, dentry->fh->version_path,
-									   DIRECTORY_SEPARATOR, de->d_name);
+						f = xstrconcat(dentry->fh->version_path,
+									   DIRECTORY_SEPARATOR, de->d_name, NULL);
 						if (!lstat(f, &st) && (st.st_mtime > dentry->dirstamp))
 						{
 							free(f);
@@ -1845,7 +1845,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 							strftime(ts, sizeof(ts), VERSION_TIMESTAMP, &tm);
 
 							*(vs + 1) = '\0';
-							vername = xstrconcat(2, de->d_name, ts);
+							vername = xstrconcat(de->d_name, ts, NULL);
 							is_vername = true;
 						}
 						else

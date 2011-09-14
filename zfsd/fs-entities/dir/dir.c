@@ -185,7 +185,7 @@ build_local_path_name_dirstamp(string * dst, volume vol,
 			RETURN_INT(r);
 		}
 	}
-	dst->str = xstrconcat(2, dir.str, name->str);
+	dst->str = xstrconcat(dir.str, name->str, NULL);
 	dst->len = strlen(dst->str);
 	free(dir.str);
 #else

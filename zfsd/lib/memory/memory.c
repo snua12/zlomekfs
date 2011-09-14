@@ -81,137 +81,57 @@ char *xstrdup(const char *s)
 	return r;
 }
 
-/* ! Similar to STRNDUP but always returns valid pointer.  */
-char *xstrndup(const char *s, size_t n)
+/* ! Return a copy of memory SRC of size N.  */
+void *xmemdup(const void *src, size_t n)
 {
-	size_t len;
-	char *r;
-
-	len = strlen(s);
-	if (len > n)
-		len = n;
-
-	r = (char *)malloc(len + 1);
-	if (!r)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-	memcpy(r, s, len);
-	r[len] = 0;
-	return r;
+        void *r = xmalloc(n);
+        memcpy(r, src, n);
+        return r;
 }
 
 /* ! Create string DEST from S.  */
 void xmkstring(string * dest, const char *s)
 {
 	dest->len = strlen(s);
-	dest->str = (char *)malloc(dest->len + 1);
-	if (!dest->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-	memcpy(dest->str, s, dest->len + 1);
+        dest->str = (char *)xmemdup(s, dest->len + 1);
 }
 
 /* ! Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
    string structure.  */
 void xstringdup(string * dest, string * src)
 {
-	char *old_str;
-
-	old_str = src->str;
-	dest->len = src->len;
-	dest->str = (char *)malloc(dest->len + 1);
-	if (!dest->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-	memcpy(dest->str, old_str, dest->len + 1);
-}
-
-/* ! Return a copy of memory SRC of size N.  */
-void *xmemdup(const void *src, size_t n)
-{
-	void *r = malloc(n);
-	if (!r)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-	memcpy(r, src, n);
-	return r;
-}
+        dest->len = src->len;
+        dest->str = (char *) xmemdup(src->str, src->len + 1);
+ }
 
 /* ! Return a concatenation of N strings.  */
-char *xstrconcat(unsigned int n, ...)
+char * xstrconcat(const char * s1, ...)
 {
-	va_list va;
-	unsigned int i;
-	char *r, *s;
-	varray v;
+    char * r, *d;
+    const char * s;
+    size_t len;
+    va_list va;
+    va_start(va,s1);
+    for (len = 0, s = s1; s != NULL; s = va_arg(va, const char *))
+    {
+        len += strlen(s);
+    }
+    va_end(va);
 
-	/* Store the arguments to varray V.  */
-	varray_create(&v, sizeof(char *), n);
-	va_start(va, n);
-	for (i = 0; i < n; i++)
-	{
-		s = va_arg(va, char *);
-		VARRAY_PUSH(v, s, char *);
-	}
-	va_end(va);
-	r = xstrconcat_varray(&v);
-	varray_destroy(&v);
+    r = xmalloc(len + 1);
+    d = r;
 
-	return r;
-}
+    va_start(va, s1);
+    for (s = s1; s != NULL; s = va_arg(va, const char *))
+    {
+        len = strlen(s);
+        memcpy(d, s, len);
+        d += len;
+    }
+    va_end(va);
+    d[0] = 0;
 
-/* ! Return a concatenation of strings stored in varray.  */
-char *xstrconcat_varray(varray * va)
-{
-	varray v;
-	unsigned int i, n;
-	size_t l, len;
-	char *r, *s, *d;
-
-	n = VARRAY_USED(*va);
-
-	/* Compute the final length and lengths of all input strings.  */
-	len = 0;
-	varray_create(&v, sizeof(size_t), n);
-	for (i = 0; i < n; i++)
-	{
-#ifdef ENABLE_CHECKING
-		if (VARRAY_ACCESS(*va, i, char *) == NULL)
-			abort();
-#endif
-		l = strlen(VARRAY_ACCESS(*va, i, char *));
-		VARRAY_PUSH(v, l, size_t);
-		len += l;
-	}
-
-	r = (char *)malloc(len + 1);
-	if (!r)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-
-	/* Concatenate the strings.  */
-	d = r;
-	for (i = 0; i < n; i++)
-	{
-		s = VARRAY_ACCESS(*va, i, char *);
-		l = VARRAY_ACCESS(v, i, size_t);
-		memcpy(d, s, l);
-		d += l;
-	}
-	*d = 0;
-	varray_destroy(&v);
-
-	return r;
+    return r;
 }
 
 /* ! Return a concatenation of strings stored in varray.  */
@@ -229,12 +149,7 @@ void xstringconcat_varray(string * dst, varray * va)
 		len += VARRAY_ACCESS(*va, i, string).len;
 
 	dst->len = len;
-	dst->str = (char *)malloc(len + 1);
-	if (!dst->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
+        dst->str = (char *)xmalloc(len + 1);
 
 	/* Concatenate the strings.  */
 	d = dst->str;
@@ -249,6 +164,17 @@ void xstringconcat_varray(string * dst, varray * va)
 	*d = 0;
 }
 
+/* ! Set a copy of SRC of length LEN to DST.  */
+
+static void set_string_with_length(string * dst, const char *src, int len)
+{
+	if (dst->str)
+		free(dst->str);
+
+        dst->len = len;
+        dst->str= (char *)xmemdup(src, dst->len + 1);
+}
+
 /* ! Set a copy of SRC to DST.  */
 
 void set_str(string * dst, const char *src)
@@ -256,58 +182,19 @@ void set_str(string * dst, const char *src)
 	set_string_with_length(dst, src, strlen(src));
 }
 
-const char * get_str(string * str)
-{
-	str->str[str->len] = 0;
-	return str->str;
-}
-
 /* ! Set a copy of SRC to DST.  */
 
 void set_string(string * dst, string * src)
 {
-	if (dst->str)
-		free(dst->str);
-
-	dst->len = src->len;
-	dst->str = (char *)malloc(dst->len + 1);
-	if (!dst->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-	memcpy(dst->str, src->str, dst->len + 1);
-}
-
-/* ! Set a copy of SRC of length LEN to DST.  */
-
-void set_string_with_length(string * dst, const char *src, int len)
-{
-	if (dst->str)
-		free(dst->str);
-
-	dst->len = len;
-	dst->str = (char *)malloc(dst->len + 1);
-	if (!dst->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
-	memcpy(dst->str, src, dst->len + 1);
+    set_string_with_length(dst, src->str, src->len);
 }
 
 /* ! Append STR of length LEN to SRC and store it to DST.  */
 
-void
-append_string(string * dst, string * src, const char *str, unsigned int len)
+void append_string(string * dst, string * src, const char *str, unsigned int len)
 {
 	dst->len = src->len + len;
-	dst->str = (char *)malloc(dst->len + 1);
-	if (!dst->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
+        dst->str = (char *)xmalloc(dst->len + 1);
 
 	memcpy(dst->str, src->str, src->len);
 	memcpy(dst->str + src->len, str, len + 1);
@@ -320,12 +207,7 @@ append_file_name(string * dst, string * path, const char *name,
 				 unsigned int len)
 {
 	dst->len = path->len + 1 + len;
-	dst->str = (char *)malloc(dst->len + 1);
-	if (!dst->str)
-	{
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
-	}
+        dst->str = (char *)xmalloc(dst->len + 1);
 
 	memcpy(dst->str, path->str, path->len);
 	// TODO: ugly conversion from "/" to '/'

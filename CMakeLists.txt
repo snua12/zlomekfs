@@ -156,11 +156,3 @@ set(ZFSD_SOURCE_DIR ${CMAKE_SOURCE_DIR}/zfsd)
 add_subdirectory(zfsd)
 add_subdirectory(regression-testing/syplog/src)
 
-#### Install
-
-install(
-FILES ${CMAKE_BINARY_DIR}/info
-DESTINATION ${IPC_INSTALL_DIR}/
-PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-)
-

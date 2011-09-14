@@ -381,7 +381,7 @@ read_volume_hierarchy(zfs_fh * volume_hierarchy_dir, uint32_t vid,
 	data.name = name;
 	data.mountpoint = mountpoint;
 
-	file_name = xstrconcat(2, "config:/volume/", name->str);
+	file_name = xstrconcat("config:/volume/", name->str, NULL);
 	process_file_by_lines(&file_res.file, file_name,
 						  process_line_volume_hierarchy, &data);
 	free(file_name);

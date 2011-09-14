@@ -97,7 +97,7 @@ bool read_group_mapping(zfs_fh * group_dir, uint32_t sid)
 		return true;
 	}
 
-	file_name = xstrconcat(2, "config:/group/", node_name_.str);
+	file_name = xstrconcat("config:/group/", node_name_.str, NULL);
 	ret = process_file_by_lines(&group_mapping_res.file, file_name,
 								process_line_group_mapping, &sid);
 	free(file_name);

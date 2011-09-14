@@ -231,7 +231,7 @@ static bool hfile_expand(hfile_t hfile)
 		chunk_size = old_size * hfile->element_size;
 	}
 
-	new_path = xstrconcat(2, hfile->file_name, ".new");
+	new_path = xstrconcat(hfile->file_name, ".new", NULL);
 	hfile->fd = open(new_path, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (hfile->fd < 0)
 		goto hfile_expand_error;

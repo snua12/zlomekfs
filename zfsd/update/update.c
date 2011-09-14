@@ -77,8 +77,7 @@ static thread *slow_update_worker;
 /* ! \brief Determine, which blocks in specified part of the file need to be
    updated. Get blocks of file FH from interval [START, END) which need to be
    updated and store them to BLOCKS. */
-void
-get_blocks_for_updating(internal_fh fh, uint64_t start, uint64_t end,
+void get_blocks_for_updating(internal_fh fh, uint64_t start, uint64_t end,
 						varray * blocks)
 {
 	varray tmp;
@@ -107,9 +106,7 @@ get_blocks_for_updating(internal_fh fh, uint64_t start, uint64_t end,
    Changes file's local and master version in metadata and updated tree.
    \param version New version to set as local for the file and master_version
    in metadata. */
-static
-	int32_t
-update_file_clear_updated_tree_1(volume vol, internal_dentry dentry,
+static int32_t update_file_clear_updated_tree_1(volume vol, internal_dentry dentry,
 								 uint64_t version)
 {
 	TRACE("");
@@ -182,6 +179,8 @@ static int32_t update_file_clear_updated_tree(zfs_fh * fh, uint64_t version)
 	if (r != ZFS_OK)
 		abort();
 #endif
+        if (r != ZFS_OK)
+                RETURN_INT(r);
 
 	r = update_file_clear_updated_tree_1(vol, dentry, version);
 
@@ -195,8 +194,7 @@ static int32_t update_file_clear_updated_tree(zfs_fh * fh, uint64_t version)
    get rid of local modifications of the file.  \param volp Volume which the
    file is on.  \param dentryp Dentry of the file.  \param fh File handle of
    the file.  \param size Remote size of the file. */
-static int32_t
-truncate_local_file(volume * volp, internal_dentry * dentryp, zfs_fh * fh,
+static int32_t truncate_local_file(volume * volp, internal_dentry * dentryp, zfs_fh * fh,
 					uint64_t size)
 {
 	interval_tree_node n;
@@ -1283,10 +1281,7 @@ static int32_t update_file(zfs_fh * fh, bool slowthread)
    #IFH_UPDATE for file/dir contents update, #IFH_REINTEGRATE for
    reintegration and #IFH_METADATA for metadata (mode, uid, gid), including
    file size and master version for regular files. */
-
- /*BOOKMARK*/
-	int32_t
-update_fh_if_needed(volume * volp, internal_dentry * dentryp, zfs_fh * fh,
+int32_t update_fh_if_needed(volume * volp, internal_dentry * dentryp, zfs_fh * fh,
 					int what)
 {
 	int32_t r, r2;
@@ -3854,7 +3849,7 @@ static void *update_worker(void *data)
 		message(LOG_LOOPS, FACILITY_NET | FACILITY_THREADING,
 				"Entering busy check\n");
 		/* Sleep if slow line was busy */
-		if (t->u.update.slow && (r == ZFS_SLOW_BUSY))
+                if ((t->u.update.slow == true) && (r == ZFS_SLOW_BUSY))
 		{
 			message(LOG_INFO,
 					FACILITY_DATA | FACILITY_NET | FACILITY_THREADING,

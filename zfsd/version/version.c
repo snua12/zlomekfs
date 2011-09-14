@@ -201,7 +201,7 @@ version_readdir_fill_dirhtab(internal_dentry dentry, time_t stamp, long ino,
    path Complete path of the interval file \param fh Internal file handle */
 static void version_build_interval_path(string * path, internal_fh fh)
 {
-	path->str = xstrconcat(2, fh->version_path, VERSION_INTERVAL_FILE_ADD);
+	path->str = xstrconcat(fh->version_path, VERSION_INTERVAL_FILE_ADD, NULL);
 	path->len = strlen(path->str);
 }
 
@@ -338,7 +338,7 @@ int32_t version_generate_filename(char *path, string * verpath)
 	// convert to string
 	sprintf(stamp, "%ld", t);
 
-	verpath->str = xstrconcat(3, path, VERSION_NAME_SPECIFIER_S, stamp);
+	verpath->str = xstrconcat(path, VERSION_NAME_SPECIFIER_S, stamp, NULL);
 	verpath->len = strlen(verpath->str);
 
 	message(LOG_DEBUG, FACILITY_VERSION,
@@ -646,7 +646,7 @@ static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 						char *x;
 						time_t mtime = 0;
 
-						x = xstrconcat(3, path, DIRECTORY_SEPARATOR, name);
+						x = xstrconcat(path, DIRECTORY_SEPARATOR, name, NULL);
 						if (!stat(x, &st))
 							mtime = st.st_mtime;
 						free(x);
@@ -728,8 +728,8 @@ static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 					char *x;
 					time_t mtime = 0;
 
-					x = xstrconcat(5, path, DIRECTORY_SEPARATOR, de->d_name,
-								   VERSION_NAME_SPECIFIER_S, p);
+					x = xstrconcat(path, DIRECTORY_SEPARATOR, de->d_name,
+								   VERSION_NAME_SPECIFIER_S, p, NULL);
 					if (!stat(x, &st))
 						mtime = st.st_mtime;
 					free(x);
@@ -778,14 +778,14 @@ int32_t version_find_version(char *dir, string * name, time_t stamp)
 
 	// check for exact version file
 	snprintf(ver, sizeof(ver), "%ld", stamp);
-	x = xstrconcat(5, dir, DIRECTORY_SEPARATOR, sname,
-				   VERSION_NAME_SPECIFIER_S, ver);
+	x = xstrconcat(dir, DIRECTORY_SEPARATOR, sname,
+				   VERSION_NAME_SPECIFIER_S, ver, NULL);
 	if (!stat(x, &st))
 	{
 		free(x);
 		// name is allocated in kernel call via FUSE
 		// free (name->str);
-		name->str = xstrconcat(3, sname, VERSION_NAME_SPECIFIER_S, ver);;
+		name->str = xstrconcat(sname, VERSION_NAME_SPECIFIER_S, ver, NULL);;
 		name->len = strlen(name->str);
 		free(sname);
 
@@ -803,7 +803,7 @@ int32_t version_find_version(char *dir, string * name, time_t stamp)
 		// found version file
 		free(name->str);
 		snprintf(ver, sizeof(ver), "%ld", stamp);
-		name->str = xstrconcat(3, sname, VERSION_NAME_SPECIFIER_S, ver);
+		name->str = xstrconcat(sname, VERSION_NAME_SPECIFIER_S, ver, NULL);
 		name->len = strlen(name->str);
 	}
 	else if (ino > 0)
@@ -938,7 +938,7 @@ version_is_directory(string * dst, char *dir, string * name, time_t stamp,
 	char *x;
 	struct stat st;
 
-	x = xstrconcat(2, dir, name->str);
+	x = xstrconcat(dir, name->str, NULL);
 	if (orgnamelen)
 		x[strlen(dir) + orgnamelen] = '\0';
 
@@ -1028,7 +1028,7 @@ int32_t version_build_intervals(internal_dentry dentry, volume vol)
 	{
 		list[i] = VARRAY_ACCESS(v, i, version_item);
 		list[i].path =
-			xstrconcat(3, dpath.str, DIRECTORY_SEPARATOR, list[i].name);
+			xstrconcat(dpath.str, DIRECTORY_SEPARATOR, list[i].name, NULL);
 	}
 
 	varray_destroy(&v);
@@ -1047,7 +1047,7 @@ int32_t version_build_intervals(internal_dentry dentry, volume vol)
 		if (!list[i].path)
 			continue;
 
-		ival = xstrconcat(2, list[i].path, VERSION_INTERVAL_FILE_ADD);
+		ival = xstrconcat(list[i].path, VERSION_INTERVAL_FILE_ADD, NULL);
 		fd = open(ival, O_RDONLY);
 
 		free(ival);
@@ -1221,7 +1221,7 @@ int32_t version_unlink_version_file(char *path)
 	char *x;
 
 	// unlink both version file and interval file
-	x = xstrconcat(2, path, VERSION_INTERVAL_FILE_ADD);
+	x = xstrconcat(path, VERSION_INTERVAL_FILE_ADD, NULL);
 	unlink(x);
 	free(x);
 
@@ -1248,7 +1248,7 @@ bool version_retent_file(internal_dentry dir, volume vol, char *name)
 	zfsd_mutex_unlock(&vol->mutex);
 	zfsd_mutex_unlock(&fh_mutex);
 
-	dst = xstrconcat(3, path.str, DIRECTORY_SEPARATOR, name);
+	dst = xstrconcat(path.str, DIRECTORY_SEPARATOR, name, NULL);
 
 	version_unlink_version_file(dst);
 
@@ -1400,7 +1400,7 @@ int32_t version_rmdir_versions(char *path)
 			if (strchr(de->d_name, VERSION_NAME_SPECIFIER_C))
 			{
 				char *f;
-				f = xstrconcat(3, path, DIRECTORY_SEPARATOR, de->d_name);
+				f = xstrconcat(path, DIRECTORY_SEPARATOR, de->d_name, NULL);
 				unlink(f);
 				free(f);
 				working = 1;
@@ -1466,7 +1466,7 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 	/* Process from the oldest and check if it violates any maximum, while
 	   complying with minimums. Delete such versions. */
 
-	// xstrconcat(3, dpath.str, DIRECTORY_SEPARATOR, name);
+	// xstrconcat(dpath.str, DIRECTORY_SEPARATOR, name, NULL);
 	// unlink()
 
 	free(dpath.str);

@@ -96,7 +96,7 @@ bool read_user_mapping(zfs_fh * user_dir, uint32_t sid)
 		return true;
 	}
 
-	file_name = xstrconcat(2, "config:/user/", node_name_.str);
+	file_name = xstrconcat("config:/user/", node_name_.str, NULL);
 	ret = process_file_by_lines(&user_mapping_res.file, file_name,
 								process_line_user_mapping, &sid);
 	free(file_name);

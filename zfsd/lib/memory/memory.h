@@ -45,21 +45,16 @@ extern "C"
 	extern void *xmalloc(size_t size) ATTRIBUTE_MALLOC;
 	extern void *xrealloc(void *ptr, size_t size) ATTRIBUTE_MALLOC;
 	extern char *xstrdup(const char *s) ATTRIBUTE_MALLOC;
-	extern char *xstrndup(const char *s, size_t n) ATTRIBUTE_MALLOC;
 	extern void xmkstring(string * dest, const char *s);
 	extern void xstringdup(string * dest, string * src);
 	extern void *xmemdup(const void *src, size_t n) ATTRIBUTE_MALLOC;
-	extern char *xstrconcat(unsigned int n, ...) ATTRIBUTE_MALLOC;
-	extern char *xstrconcat_varray(varray * va) ATTRIBUTE_MALLOC;
+	extern char * xstrconcat(const char * s1, ...) ATTRIBUTE_MALLOC;
 	extern void xstringconcat_varray(string * dst, varray * va);
 	extern void set_str(string * dst, const char *src);
-	extern const char * get_str(string * str);
 	extern void set_string(string * dst, string * src);
-	extern void set_string_with_length(string * dst, const char *src, int len);
 	extern void append_string(string * dst, string * src, const char *str,
 							  unsigned int len);
 	extern void append_file_name(string * dst, string * path, const char *name,
-								 unsigned int len);
 
 #ifdef __cplusplus
 }
