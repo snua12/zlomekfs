@@ -1,20 +1,10 @@
-add_subdirectory(config_reader)
-add_subdirectory(zfs_config)
-
-SET(configuration_SRC
-  configuration.c
-  reread_config.c
-  config_user_mapping.c
-  config_group_mapping.c
-  config_user.c
-  config_group.c
-  cluster_config.c
-  config_volume.c
-  config_parser.c
+SET(config_reader_SRC
+	local_config.c
+	shared_config.c
 )
 
-add_library(configuration ${BUILDTYPE} ${configuration_SRC})
-target_link_libraries(configuration zfs_config log zfsio config_reader)
+add_library(config_reader ${BUILD_TYPE} ${config_reader_SRC})
+target_link_libraries(config_reader zfs_config log zfsio)
 
 ## google test
 test_enabled(gtest result)
@@ -25,7 +15,7 @@ if(NOT reqult EQUAL -1)
 endif()
 
 install(
-TARGETS configuration
+TARGETS config_reader
 DESTINATION ${ZFS_INSTALL_DIR}/lib
 PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
