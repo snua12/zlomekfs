@@ -60,6 +60,14 @@ extern int retention_num_max;
 /*! mlockall() zfsd  .*/
 extern bool mlock_zfsd;
 
+
+/*! Mutex protecting the reread_config chain and alloc pool.  */
+extern pthread_mutex_t reread_config_mutex;
+
+
+/*! Alloc pool for allocating nodes of reread config chain.  */
+extern alloc_pool reread_config_pool;
+
 extern void add_reread_config_request_dentry (internal_dentry dentry);
 extern void add_reread_config_request_local_path (volume vol, string *path);
 extern void add_reread_config_request (string *relative_path,
