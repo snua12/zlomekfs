@@ -42,6 +42,12 @@ extern "C" {
    
 #define UNUSED	__attribute__ ((__unused__))
 
+#ifndef ENABLE_CHECKING
+#define CHECKING_UNUSED UNUSED
+#else
+#define CHECKING_UNUSED
+#endif
+
 /// maximal length of log message (user given string)
 #define	LOG_MESSAGE_LEN	1024
 

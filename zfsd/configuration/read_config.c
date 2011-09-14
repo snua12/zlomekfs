@@ -270,7 +270,7 @@ read_config_file (const char *file)
 /*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */
 
-int
+static int
 process_line_node (char *line, const char *file_name, unsigned int line_num,
 		   ATTRIBUTE_UNUSED void *data)
 {
@@ -279,39 +279,39 @@ process_line_node (char *line, const char *file_name, unsigned int line_num,
   node nod;
 
   if (split_and_trim (line, 3, parts) == 3)
-    {
-      if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
-		   file_name, line_num);
-	}
-      else if (sid == 0 || sid == (uint32_t) -1)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Node ID must not be 0 or %" PRIu32 "\n",
-		   file_name, line_num, (uint32_t) -1);
-	}
-      else if (parts[1].len == 0)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Node name must not be empty\n",
-		   file_name, line_num);
-	}
-      else if (parts[2].len == 0)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Node host name must not be empty\n",
-		   file_name, line_num);
-	}
-      else
-	{
-	  nod = try_create_node (sid, &parts[1], &parts[2]);
-	  if (nod)
-	    zfsd_mutex_unlock (&nod->mutex);
-	}
-    }
-  else
+  {
+    if (sscanf (parts[0].str, "%" PRIu32, &sid) != 1)
     {
       message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
-	       file_name, line_num);
+         file_name, line_num);
     }
+    else if (sid == 0 || sid == (uint32_t) -1)
+    {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Node ID must not be 0 or %" PRIu32 "\n",
+         file_name, line_num, (uint32_t) -1);
+    }
+    else if (parts[1].len == 0)
+    {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Node name must not be empty\n",
+         file_name, line_num);
+    }
+    else if (parts[2].len == 0)
+    {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Node host name must not be empty\n",
+         file_name, line_num);
+    }
+    else
+    {
+      nod = try_create_node (sid, &parts[1], &parts[2]);
+      if (nod)
+        zfsd_mutex_unlock (&nod->mutex);
+    }
+  }
+  else
+  {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:%u: Wrong format of line\n",
+	       file_name, line_num);
+  }
 
   return 0;
 }
@@ -350,87 +350,90 @@ read_local_volume_info (string *path, bool reread)
   file = xstrconcat (3, path->str, DIRECTORY_SEPARATOR ,"volume_info");
   f = fopen (file, "rt");
   if (!f)
-    {
-      message (LOG_ERROR, FACILITY_CONFIG, "%s: %s\n", file, strerror (errno));
-      free (file);
-      return false;
-    }
+  {
+    message (LOG_ERROR, FACILITY_CONFIG, "%s: %s\n", file, strerror (errno));
+    free (file);
+    return false;
+  }
 
   line_num = 0;
   while (!feof (f))
+  {
+    if (!fgets (line, sizeof (line), f))
+      break;
+
+    line_num++;
+    if (split_and_trim (line, 3, parts) != 3)
     {
-      if (!fgets (line, sizeof (line), f))
-	break;
-
-      line_num++;
-      if (split_and_trim (line, 3, parts) == 3)
-	{
-	  volume vol;
-	  uint32_t id;
-	  uint64_t size_limit;
-
-	  /* 0 ... ID
-	     1 ... local path
-	     2 ... size limit */
-	  if (sscanf (parts[0].str, "%" PRIu32, &id) != 1
-	      || sscanf (parts[2].str, "%" PRIu64, &size_limit) != 1)
-	    {
-	      message (LOG_ERROR, FACILITY_CONFIG, "%s:%d: Wrong format of line\n", file,
-		       line_num);
-	    }
-	  else if (id == 0 || id == (uint32_t) -1)
-	    {
-	      message (LOG_ERROR, FACILITY_CONFIG,
-		       "%s:%d: Volume ID must not be 0 or %" PRIu32 "\n",
-		       file, line_num, (uint32_t) -1);
-	    }
-#ifndef	ENABLE_LOCAL_PATH
-	  else if (parts[1].str[0] != '/')
-	    {
-	      message (LOG_ERROR, FACILITY_CONFIG,
-		       "%s:%d: Local path must be an absolute path\n",
-		       file, line_num);
-	    }
-#endif
-	  else
-	    {
-	      zfsd_mutex_lock (&fh_mutex);
-	      zfsd_mutex_lock (&volume_mutex);
-	      if (reread)
-		{
-		  vol = volume_lookup_nolock (id);
-		  if (!vol)
-		    {
-		      zfsd_mutex_unlock (&volume_mutex);
-		      zfsd_mutex_unlock (&fh_mutex);
-		      continue;
-		    }
-		  vol->marked = false;
-		}
-	      else
-		vol = volume_create (id);
-	      zfsd_mutex_unlock (&volume_mutex);
-
-	      if (volume_set_local_info (&vol, &parts[1], size_limit))
-		{
-		  if (vol)
-		    zfsd_mutex_unlock (&vol->mutex);
-		}
-	      else
-		{
-		  message (LOG_ERROR, FACILITY_CONFIG, "Could not set local information"
-			   " about volume with ID = %" PRIu32 "\n", id);
-		  volume_delete (vol);
-		}
-	      zfsd_mutex_unlock (&fh_mutex);
-	    }
-	}
-      else
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s:%d: Wrong format of line\n", file,
-		   line_num);
-	}
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:%d: Wrong format of line\n", file,
+      line_num);
     }
+
+    volume vol;
+    uint32_t id;
+    uint64_t size_limit;
+
+    /* 0 ... ID
+    1 ... local path
+    2 ... size limit */
+    if (sscanf (parts[0].str, "%" PRIu32, &id) != 1
+      || sscanf (parts[2].str, "%" PRIu64, &size_limit) != 1)
+    {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:%d: Wrong format of line\n", file,
+      line_num);
+    }
+    //TODO: write volume id validator
+    else if (id == 0 || id == (uint32_t) -1)
+    {
+      message (LOG_ERROR, FACILITY_CONFIG,
+      "%s:%d: Volume ID must not be 0 or %" PRIu32 "\n",
+      file, line_num, (uint32_t) -1);
+    }
+    //TODO: WTF?
+#ifndef	ENABLE_LOCAL_PATH
+    //TODO: fix directory separator for windows
+    else if (parts[1].str[0] != '/')
+    {
+      message (LOG_ERROR, FACILITY_CONFIG,
+      "%s:%d: Local path must be an absolute path\n",
+      file, line_num);
+    }
+#endif
+    else
+    {
+      zfsd_mutex_lock (&fh_mutex);
+      zfsd_mutex_lock (&volume_mutex);
+      if (reread)
+      {
+        vol = volume_lookup_nolock (id);
+        if (vol == NULL)
+        {
+          zfsd_mutex_unlock (&volume_mutex);
+          zfsd_mutex_unlock (&fh_mutex);
+          continue;
+        }
+        vol->marked = false;
+      }
+      else
+        vol = volume_create (id);
+
+      zfsd_mutex_unlock (&volume_mutex);
+
+      //TODO: what if vol == NULL?
+      if (volume_set_local_info (&vol, &parts[1], size_limit))
+      {
+        if (vol)
+          zfsd_mutex_unlock (&vol->mutex);
+      }
+      else
+      {
+        message (LOG_ERROR, FACILITY_CONFIG, "Could not set local information"
+        " about volume with ID = %" PRIu32 "\n", id);
+        volume_delete (vol);
+      }
+      zfsd_mutex_unlock (&fh_mutex);
+    }
+  }
 
   free (file);
   fclose (f);

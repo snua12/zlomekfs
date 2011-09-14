@@ -3,6 +3,7 @@
 #include "config_parser.h"
 #include "user-group.h"
 #include "dir.h"
+#include "config_group_mapping.h"
 
 /*! Process line LINE number LINE_NUM from file FILE_NAME.
    Return 0 if we should continue reading lines from file.  */

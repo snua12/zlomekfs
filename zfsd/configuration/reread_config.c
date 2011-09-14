@@ -380,6 +380,10 @@ reread_local_volume_info (string *path)
   return true;
 }
 
+
+/*! Add a request to reread config into queue
+*/
+
 void
 add_reread_config_request (string *relative_path, uint32_t from_sid)
 {
@@ -394,6 +398,7 @@ add_reread_config_request (string *relative_path, uint32_t from_sid)
   req->relative_path = *relative_path;
   req->from_sid = from_sid;
 
+//append to queue
   if (reread_config_last)
     reread_config_last->next = req;
   else
@@ -404,11 +409,6 @@ add_reread_config_request (string *relative_path, uint32_t from_sid)
 
   semaphore_up (&config_sem, 1);
 }
-
-
-
-
-
 
 /*! Get a request to reread config from queue and store the relative path of
    the file to be reread to RELATIVE_PATH and the node ID which the request came
@@ -427,8 +427,9 @@ get_reread_config_request (string *relative_path, uint32_t *from_sid)
   *relative_path = reread_config_first->relative_path;
   *from_sid = reread_config_first->from_sid;
 
+//FIXME: probably memory leak
   reread_config_first = reread_config_first->next;
-  if (!reread_config_first)
+  if (reread_config_first == NULL)
     reread_config_last = NULL;
 
   zfsd_mutex_unlock (&reread_config_mutex);

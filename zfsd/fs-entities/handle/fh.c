@@ -1614,7 +1614,9 @@ internal_dentry_create (zfs_fh *local_fh, zfs_fh *master_fh, volume vol,
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (parent)
+  {
     CHECK_MUTEX_LOCKED (&parent->fh->mutex);
+  }
 #endif
 
   dentry = (internal_dentry) pool_alloc (dentry_pool);
@@ -2351,7 +2353,9 @@ again:
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (dir)
+  {
     CHECK_MUTEX_LOCKED (&dir->fh->mutex);
+  }
 #endif
 
   dentry = dentry_lookup_name (vol, dir, name);
@@ -3414,6 +3418,7 @@ initialize_fh_c (void)
   /* Data structures for cleanup of file handles.  */
   zfsd_mutex_init (&cleanup_dentry_mutex);
   cleanup_dentry_heap = fibheap_new (1020, &cleanup_dentry_mutex);
+  //TODO: return value handling and extend function initialize_fh_c for return value
   if (pthread_create (&cleanup_dentry_thread, NULL, cleanup_dentry_thread_main,
                       NULL))
     {

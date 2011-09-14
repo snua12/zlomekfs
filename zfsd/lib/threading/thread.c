@@ -20,9 +20,8 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
-#define _USE_GNU
-#include <pthread.h>
 #include "system.h"
+#include <pthread.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <errno.h>
@@ -300,11 +299,9 @@ thread_pool_destroy (thread_pool *pool)
 {
   size_t i;
 
-//TODO: fixme pthread_yield
-#ifdef HAVE_PTHREAD_YIELD
-#ifdef _USE_GNU
+//TODO: fixme pthread_yield, it is GNU extension
+#ifdef _GNU_SOURCE
   pthread_yield ();
-#endif
 #endif
 
   wait_for_thread_to_die (&pool->main_thread, NULL);

@@ -23,10 +23,6 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include "config.h"
-
-# include <inttypes.h>
-
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -35,9 +31,15 @@
 #ifndef _REENTRANT
 #define _REENTRANT
 #endif
+
 #ifndef _THREAD_SAFE
 #define _THREAD_SAFE
 #endif
+
+
+#include "config.h"
+#include <inttypes.h>
+
 
 /*! bool type and constants.  */
 #ifndef bool

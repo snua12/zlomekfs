@@ -20,10 +20,12 @@
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA;
    or download it from http://www.gnu.org/licenses/gpl.html */
 
+
 #include "system.h"
+#include <pthread.h>
 #include "pthread-wrapper.h"
 
-#ifdef ENABLE_CHECKING
+#ifdef ENABLE_PTHREAD_CHECKING
 
 /*! Static mutex initializer.  */
 pthread_mutex_t zfsd_mutex_initializer

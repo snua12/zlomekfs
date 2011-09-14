@@ -1640,11 +1640,17 @@ local_readdir (dir_list *list, internal_dentry dentry, virtual_dir vd,
 #ifdef ENABLE_CHECKING
   CHECK_MUTEX_LOCKED (&fh_mutex);
   if (vol)
+  {
     CHECK_MUTEX_LOCKED (&vol->mutex);
+  }
   if (dentry)
+  {
     CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
+  }
   if (vd)
+  {
     CHECK_MUTEX_LOCKED (&vd->mutex);
+  }
 #endif
 
   if (vd)

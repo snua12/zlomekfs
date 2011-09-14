@@ -1,5 +1,6 @@
 #include "system.h"
 #include <signal.h>
+#include <errno.h>
 #include "log.h"
 #include "node.h"
 #include "volume.h"
@@ -26,14 +27,8 @@
 #include "config_volume.h"
 #include "reread_config.h"
 
-/*! Add request to reread config file RELATIVE_PATH to queue.
-   The request came from node FROM_SID.  */
-
-
 /*! Has the config reader already terminated?  */
 static volatile bool reading_cluster_config;
-
-
 
 /*! Invalidate configuration.  */
 
@@ -54,9 +49,6 @@ invalidate_config (void)
       zfsd_mutex_unlock (&this_node->mutex);
     }
 }
-
-
-
 
 
 /*! Verify configuration, fix what can be fixed. Return false if there remains
@@ -86,9 +78,7 @@ fix_config (void)
 }
 
 
-
 /*! Thread for reading a configuration.  */
-
 static void *
 config_reader (void *data)
 {
@@ -286,7 +276,6 @@ out:
 }
 
 /*! Initialize local node so that we could read configuration.  */
-
 static void
 init_this_node (void)
 {
@@ -298,84 +287,85 @@ init_this_node (void)
   zfsd_mutex_unlock (&node_mutex);
 }
 
+/*! Read ID and name of from this_node file*/
+static bool
+read_this_node_config(const char * file)
+{
+  string parts[3];
+  char line[LINE_SIZE + 1];
 
+  FILE * f = fopen (file, "rt");
+  if (f == NULL)
+  {
+      message (LOG_CRIT, FACILITY_CONFIG, "%s: %s\n", file, strerror (errno));
+      return false;
+  }
+  
+  const char * rv = fgets (line, sizeof (line), f);
+
+  fclose(f);
+
+  if (rv == NULL)
+  {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s: Could not read a line\n", file);
+      return false;
+  }
+
+  if (split_and_trim (line, 2, parts) != 2)
+  {
+      message (LOG_ERROR, FACILITY_CONFIG, "%s:1: Wrong format of line\n", file);
+      return false;
+  }
+
+  if (sscanf (parts[0].str, "%" PRIu32, &this_node_id) != 1)
+  {
+    message (LOG_ERROR, FACILITY_CONFIG, "%s: Could not read node ID\n", file);
+    return false;
+  }
+  if (this_node_id == 0 || this_node_id == (uint32_t) -1)
+  {
+    message (LOG_ERROR, FACILITY_CONFIG, "%s: Node ID must not be 0 or %" PRIu32 "\n",
+       file, (uint32_t) -1);
+    return false;
+  }
+  if (parts[1].len == 0)
+  {
+    message (LOG_ERROR, FACILITY_CONFIG, "%s: Node name must not be empty\n", file);
+    return false;
+  }
+  xstringdup (&node_name, &parts[1]);
+
+  return true;
+}
 
 /*! Read ID and name of local node and local paths of volumes.  */
 static bool
 read_local_cluster_config (string *path)
 {
   char *file;
-  FILE *f;
-  string parts[3];
-  char line[LINE_SIZE + 1];
 
   if (path->str == 0)
-    {
-      message (LOG_CRIT, FACILITY_CONFIG,
-	       "The directory with configuration of local node is not specified"
-	       "in configuration file.\n");
-      return false;
-    }
+  {
+    message (LOG_CRIT, FACILITY_CONFIG,
+       "The directory with configuration of local node is not specified"
+       "in configuration file.\n");
+    return false;
+  }
+
   message (LOG_NOTICE, FACILITY_CONFIG, "Reading configuration of local node\n");
 
   /* Read ID of local node.  */
-  file = xstrconcat (2, path->str, "/this_node");
-  f = fopen (file, "rt");
-  if (!f)
-    {
-      message (LOG_CRIT, FACILITY_CONFIG, "%s: %s\n", file, strerror (errno));
-      free (file);
-      return false;
-    }
-  if (!fgets (line, sizeof (line), f))
-    {
-      message (LOG_ERROR, FACILITY_CONFIG, "%s: Could not read a line\n", file);
-      free (file);
-      fclose (f);
-      return false;
-    }
-  if (split_and_trim (line, 2, parts) == 2)
-    {
-      if (sscanf (parts[0].str, "%" PRIu32, &this_node_id) != 1)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s: Could not read node ID\n", file);
-	  free (file);
-	  fclose (f);
-	  return false;
-	}
-      if (this_node_id == 0 || this_node_id == (uint32_t) -1)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s: Node ID must not be 0 or %" PRIu32 "\n",
-		   file, (uint32_t) -1);
-	  free (file);
-	  fclose (f);
-	  return false;
-	}
-      if (parts[1].len == 0)
-	{
-	  message (LOG_ERROR, FACILITY_CONFIG, "%s: Node name must not be empty\n", file);
-	  free (file);
-	  fclose (f);
-	  return false;
-	}
-      xstringdup (&node_name, &parts[1]);
-    }
-  else
-    {
-      message (LOG_ERROR, FACILITY_CONFIG, "%s:1: Wrong format of line\n", file);
-      free (file);
-      fclose (f);
-      return false;
-    }
-  free (file);
-  fclose (f);
+  file = xstrconcat (3, path->str, DIRECTORY_SEPARATOR, "/this_node");
+  bool rv = read_this_node_config(file);
+
+  free(file);
+
+  if (rv == false)
+    return false;
 
   init_this_node ();
 
-  if (!read_local_volume_info (path, false))
-    return false;
-
-  return true;
+  return read_local_volume_info(path, false);
 }
 
 /*! Read global configuration of the cluster from config volume.  */

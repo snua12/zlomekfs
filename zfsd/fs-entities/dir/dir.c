@@ -474,9 +474,14 @@ recursive_unlink_itself (metadata *meta, string *path, string *name,
   TRACE ("%s", path->str);
 #ifdef ENABLE_CHECKING
   if (vol)
+  {
     CHECK_MUTEX_LOCKED (&vol->mutex);
+  }
+
   if (journal)
+  {
     CHECK_MUTEX_LOCKED (journal->mutex);
+  }
 #endif
 
   if (lstat (path->str, &st) != 0)
@@ -988,7 +993,9 @@ validate_operation_on_virtual_directory (virtual_dir pvd, string *name,
   CHECK_MUTEX_LOCKED (&pvd->mutex);
 #ifdef ENABLE_CHECKING
   if (pvd->vol)
+  {
     CHECK_MUTEX_LOCKED (&pvd->vol->mutex);
+  }
 #endif
 
   vd = vd_lookup_name (pvd, name);
@@ -1965,6 +1972,7 @@ zfs_setattr (fattr *fa, zfs_fh *fh, sattr *sa, bool should_version)
 int32_t
 zfs_extended_lookup (dir_op_res *res, zfs_fh *dir, char *path)
 {
+//TODO: what about dir separator \\ or \/?
   string str;
   int32_t r;
 
@@ -2204,7 +2212,9 @@ zfs_lookup (dir_op_res *res, zfs_fh *dir, string *name)
       CHECK_MUTEX_LOCKED (&pvd->mutex);
 #ifdef ENABLE_CHECKING
       if (vol)
+      {
         CHECK_MUTEX_LOCKED (&vol->mutex);
+      }
 #endif
 
       if (strcmp (name->str, ".") == 0)
@@ -3477,9 +3487,13 @@ zfs_rename_journal (internal_dentry from_dir, string *from_name,
   CHECK_MUTEX_LOCKED (&vol->mutex);
 #ifdef ENABLE_CHECKING
   if (from_dir)
+  {
     CHECK_MUTEX_LOCKED (&from_dir->fh->mutex);
+  }
   if (to_dir)
+  {
     CHECK_MUTEX_LOCKED (&to_dir->fh->mutex);
+  }
 #endif
 
   if (from_dir && INTERNAL_FH_HAS_LOCAL_PATH (from_dir->fh)

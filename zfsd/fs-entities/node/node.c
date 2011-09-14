@@ -36,7 +36,7 @@
 #include "user-group.h"
 
 /*! Hash table of nodes, searched by ID.  */
-static htab_t node_htab;
+static htab_t node_htab_sid;
 
 /*! Hash table of nodes, searched by NAME.  */
 static htab_t node_htab_name;
@@ -52,6 +52,12 @@ node this_node;
 
 /*! Hash function for node NODE, computed from ID.  */
 #define NODE_HASH(NODE) ((NODE)->id)
+
+/*! Hash function for node name.  */
+#define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
+
+/*! Hash function for node NODE, computed from its name.  */
+#define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
 
 /*! Hash function for node X, computed from ID.  */
 
@@ -100,7 +106,7 @@ node_lookup (uint32_t id)
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
-  nod = (node) htab_find_with_hash (node_htab, &id, HASH_NODE_ID (id));
+  nod = (node) htab_find_with_hash (node_htab_sid, &id, HASH_NODE_ID (id));
   if (nod)
     zfsd_mutex_lock (&nod->mutex);
   zfsd_mutex_unlock (&node_mutex);
@@ -169,7 +175,7 @@ node_create (uint32_t id, string *name, string *host_name)
   zfsd_mutex_init (&nod->mutex);
   zfsd_mutex_lock (&nod->mutex);
 
-  slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
+  slot = htab_find_slot_with_hash (node_htab_sid, &nod->id, NODE_HASH (nod),
 				   INSERT);
 #ifdef ENABLE_CHECKING
   if (*slot)
@@ -188,26 +194,6 @@ node_create (uint32_t id, string *name, string *host_name)
   return nod;
 }
 
-/*! Wrapper for node_create.  */
-
-node
-node_create_wrapper (uint32_t id, char *name, char *host_name)
-{
-  string name_str;
-  string host_name_str;
-  node nod;
-
-  name_str.str = name;
-  name_str.len = strlen (name);
-  host_name_str.str = host_name;
-  host_name_str.len = strlen (host_name);
-  nod = node_create (id, &name_str, &host_name_str);
-
-  return nod;
-}
-
-/*! Create node NAME with ID if ID and NAME does not exist.  */
-
 node
 try_create_node (uint32_t id, string *name, string *host_name)
 {
@@ -215,7 +201,7 @@ try_create_node (uint32_t id, string *name, string *host_name)
   node nod;
 
   zfsd_mutex_lock (&node_mutex);
-  slot = htab_find_slot_with_hash (node_htab, &id, HASH_NODE_ID (id),
+  slot = htab_find_slot_with_hash (node_htab_sid, &id, HASH_NODE_ID (id),
 				   NO_INSERT);
   slot2 = htab_find_slot_with_hash (node_htab_name, name,
 				    HASH_NODE_NAME (*name), NO_INSERT);
@@ -247,7 +233,7 @@ try_create_node (uint32_t id, string *name, string *host_name)
 /*! Destroy node NOD and free memory associated with it.
    This function expects node_mutex to be locked.  */
 
-void
+static void
 node_destroy (node nod)
 {
   void **slot;
@@ -255,13 +241,13 @@ node_destroy (node nod)
   CHECK_MUTEX_LOCKED (&node_mutex);
   CHECK_MUTEX_LOCKED (&nod->mutex);
 
-  slot = htab_find_slot_with_hash (node_htab, &nod->id, NODE_HASH (nod),
+  slot = htab_find_slot_with_hash (node_htab_sid, &nod->id, NODE_HASH (nod),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
   if (!slot)
     abort ();
 #endif
-  htab_clear_slot (node_htab, slot);
+  htab_clear_slot (node_htab_sid, slot);
 
   slot = htab_find_slot_with_hash (node_htab_name, &nod->name,
 				   NODE_HASH_NAME (nod), NO_INSERT);
@@ -297,7 +283,7 @@ mark_all_nodes (void)
   void **slot;
 
   zfsd_mutex_lock (&node_mutex);
-  HTAB_FOR_EACH_SLOT (node_htab, slot)
+  HTAB_FOR_EACH_SLOT (node_htab_sid, slot)
     {
       node nod = (node) *slot;
 
@@ -316,16 +302,16 @@ destroy_marked_nodes (void)
   void **slot;
 
   zfsd_mutex_lock (&node_mutex);
-  HTAB_FOR_EACH_SLOT (node_htab, slot)
-    {
-      node nod = (node) *slot;
+  HTAB_FOR_EACH_SLOT (node_htab_sid, slot)
+  {
+    node nod = (node) *slot;
 
-      zfsd_mutex_lock (&nod->mutex);
-      if (nod->marked)
-	node_destroy (nod);
-      else
-	zfsd_mutex_unlock (&nod->mutex);
-    }
+    zfsd_mutex_lock (&nod->mutex);
+    if (nod->marked)
+      node_destroy (nod);
+    else
+      zfsd_mutex_unlock (&nod->mutex);
+  }
   zfsd_mutex_unlock (&node_mutex);
 }
 
@@ -335,7 +321,7 @@ void
 initialize_node_c (void)
 {
   zfsd_mutex_init (&node_mutex);
-  node_htab = htab_create (50, node_hash, node_eq, NULL, &node_mutex);
+  node_htab_sid = htab_create (50, node_hash, node_eq, NULL, &node_mutex);
   node_htab_name = htab_create (50, node_hash_name, node_eq_name, NULL,
 				&node_mutex);
 }
@@ -348,14 +334,14 @@ cleanup_node_c (void)
   void **slot;
 
   zfsd_mutex_lock (&node_mutex);
-  HTAB_FOR_EACH_SLOT (node_htab, slot)
-    {
-      node nod = (node) *slot;
+  HTAB_FOR_EACH_SLOT (node_htab_sid, slot)
+  {
+    node nod = (node) *slot;
 
-      zfsd_mutex_lock (&nod->mutex);
-      node_destroy (nod);
-    }
-  htab_destroy (node_htab);
+    zfsd_mutex_lock (&nod->mutex);
+    node_destroy (nod);
+  }
+  htab_destroy (node_htab_sid);
   htab_destroy (node_htab_name);
   zfsd_mutex_unlock (&node_mutex);
   zfsd_mutex_destroy (&node_mutex);

@@ -26,11 +26,6 @@
 #include "system.h"
 #include "log.h"
 
-// workarounf pthread_yield function
-#ifndef __USE_GNU
-#define __USE_GNU
-#endif
-
 #include <pthread.h>
 #include <string.h>
 
@@ -40,11 +35,16 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #define zfsd_mutex_init(M) ((*(M) = zfsd_mutex_initializer), 0)
 #define zfsd_cond_init(C) pthread_cond_init (C, NULL)
 
+#if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007) && defined(PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP)
+#  define ENABLE_PTHREAD_CHECKING
+#endif
+
 /*! Macros for debugging synchonization primitives.  */
-#if defined(ENABLE_CHECKING) && (GCC_VERSION > 2007)
+#ifdef ENABLE_PTHREAD_CHECKING
 
 #include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "log.h"
 
 #define zfsd_mutex_destroy(M) __extension__				\

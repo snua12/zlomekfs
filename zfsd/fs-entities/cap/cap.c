@@ -115,7 +115,9 @@ internal_cap_lock (unsigned int level, internal_cap *icapp, volume *volp,
   if (dentryp == NULL)
     abort ();
   if (vdp && *vdp)
+  {
     CHECK_MUTEX_LOCKED (&(*vdp)->mutex);
+  }
   CHECK_MUTEX_LOCKED (&(*volp)->mutex);
   CHECK_MUTEX_LOCKED (&(*dentryp)->fh->mutex);
   if (level > LEVEL_EXCLUSIVE)
@@ -193,7 +195,9 @@ internal_cap_unlock (volume vol, internal_dentry dentry, virtual_dir vd)
   CHECK_MUTEX_LOCKED (&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
   if (vd)
+  {
     CHECK_MUTEX_LOCKED (&vd->mutex);
+  }
 #endif
 
   if (vd)
@@ -247,6 +251,7 @@ internal_cap_create_fh (internal_fh fh, uint32_t flags)
   cap->busy = 1;
   cap->master_busy = 0;
   cap->master_close_p = false;
+  //TODO: write internal_cap_prepend function
   cap->next = fh->cap;
   fh->cap = cap;
 
@@ -287,6 +292,8 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
   cap->master_busy = 0;
   cap->master_close_p = false;
   cap->next = NULL;
+  //TODO: isn't this possible memory leak
+  //mozna ze lze virtalni adresar otevrit pouze ro a tedy jedinym zpusobem
   vd->cap = cap;
 
   RETURN_PTR (cap);
@@ -294,7 +301,7 @@ internal_cap_create_vd (virtual_dir vd, uint32_t flags)
 
 /*! Destroy capability CAP associated with internal file handle FH or
    virtual directory VD.  */
-
+//TODO: rozdeleni teto funkce na dve by asi tez neuskodilo
 static void
 internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
 {
@@ -320,6 +327,7 @@ internal_cap_destroy (internal_cap cap, internal_fh fh, virtual_dir vd)
         abort ();
 #endif
 
+//TODO: co treba remove cap from linked list
       if (cap == fh->cap)
         {
           icap = cap;
@@ -621,9 +629,13 @@ put_capability (internal_cap cap, internal_fh fh, virtual_dir vd)
   TRACE ("");
 #ifdef ENABLE_CHECKING
   if (fh)
+  {
     CHECK_MUTEX_LOCKED (&fh->mutex);
+  }
   if (vd)
+  {
     CHECK_MUTEX_LOCKED (&vd->mutex);
+  }
 #endif
 
   cap->busy--;

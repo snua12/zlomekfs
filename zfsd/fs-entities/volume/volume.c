@@ -181,7 +181,7 @@ volume_create (uint32_t id)
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   INSERT);
 #ifdef ENABLE_CHECKING
-  if (*slot)
+  if (slot == EMPTY_ENTRY || *slot)
     abort ();
 #endif
   *slot = vol;
@@ -236,7 +236,7 @@ volume_destroy (volume vol)
   slot = htab_find_slot_with_hash (volume_htab, &vol->id, VOLUME_HASH (vol),
 				   NO_INSERT);
 #ifdef ENABLE_CHECKING
-  if (!slot)
+  if (slot == EMPTY_ENTRY)
     abort ();
 #endif
   htab_clear_slot (volume_htab, slot);

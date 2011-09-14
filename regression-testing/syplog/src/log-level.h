@@ -156,7 +156,7 @@ static inline log_level_t log_level_from_string (const char * level_name)
 
 
 #ifdef DEBUG
-  #define ENABLE_CHECKING               1
+//  #define ENABLE_CHECKING               1
   #ifndef DEFAULT_LOG_LEVEL
     #define DEFAULT_LOG_LEVEL           7
   #endif

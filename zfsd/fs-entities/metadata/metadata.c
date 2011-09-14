@@ -421,7 +421,9 @@ create_path_for_file (string *file, unsigned int mode, volume vol)
   if (file->len == 0)
     abort ();
   if (vol)
+  {
     CHECK_MUTEX_LOCKED (&vol->mutex);
+  }
 #endif
 
   for (last = file->str + file->len - 1; last != file->str && *last != '/';

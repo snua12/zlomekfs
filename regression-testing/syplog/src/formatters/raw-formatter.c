@@ -44,8 +44,14 @@ struct formatter_def raw_formatter =
   .get_max_print_size = raw_max_print_size
 };
 
+#ifndef ENABLE_CHECKING
+#define CHECKING_UNUSED UNUSED
+#else
+#define CHECKING_UNUSED
+#endif
+
 /*! Format log to stream in raw format */
-int32_t raw_stream_write (log_struct message, int socket UNUSED)
+int32_t raw_stream_write (log_struct message CHECKING_UNUSED, int socket UNUSED)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL)
@@ -94,7 +100,7 @@ int32_t raw_file_write (log_struct message, FILE * file)
 
 
 /*! Read log from stream in raw format */
-int32_t raw_stream_read (log_struct message, int socket UNUSED)
+int32_t raw_stream_read (log_struct message CHECKING_UNUSED, int socket UNUSED)
 {
 #ifdef	ENABLE_CHECKING
   if (message == NULL)

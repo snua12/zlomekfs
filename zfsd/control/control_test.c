@@ -5,18 +5,19 @@
 #include "control.h"
 #include "zfsd_state.h"
 #include "syplog.h"
+#include "syplog_wrapper.h"
 
-syp_error control_wrap_set_log_level (logger glogger, log_level_t level)
+syp_error control_wrap_set_log_level (ATTRIBUTE_UNUSED logger glogger, ATTRIBUTE_UNUSED log_level_t level)
 {
   return 0;
 }
 
-syp_error control_wrap_set_facility (logger glogger, facility_t facility)
+syp_error control_wrap_set_facility (ATTRIBUTE_UNUSED logger glogger, ATTRIBUTE_UNUSED facility_t facility)
 {
   return 0;
 }
 
-syp_error control_wrap_reset_facility (logger glogger, facility_t facility)
+syp_error control_wrap_reset_facility (ATTRIBUTE_UNUSED logger glogger, ATTRIBUTE_UNUSED facility_t facility)
 {
   return 0;
 }
@@ -27,7 +28,7 @@ zfsd_state_e zfsd_get_state(void)
   return ZFSD_STATE_STARTING;
 }
 
-volatile static bool run = true;
+static bool run = true;
 
 static void
 sighandler(ATTRIBUTE_UNUSED int signum)
@@ -35,7 +36,7 @@ sighandler(ATTRIBUTE_UNUSED int signum)
   run = false;
 }
 
-void
+static void
 init_sighandler(void)
 {
   struct sigaction sig;
