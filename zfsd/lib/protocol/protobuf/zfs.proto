@@ -1,0 +1,495 @@
+package zfs;
+/*
+{1,  dissect_zfsd_message_arg_data_bufer, dissect_zfsd_message_arg_data_bufer}, /PING/
+{2,  dissect_zfsd_message_arg_void, dissect_zfsd_message_arg_zfs_fh}, /ROOT/
+{3,  dissect_zfsd_message_arg_volume_root_args, dissect_zfsd_message_arg_dir_op_res}, /VOLUME_ROOT/
+{4,  dissect_zfsd_message_arg_zfs_fh, dissect_zfsd_message_type_fattr}, /GETATTR/
+{5,  dissect_zfsd_message_arg_setattr_args, dissect_zfsd_message_type_fattr}, /SETATTR/ 
+{6,  dissect_zfsd_message_arg_dir_op_args, dissect_zfsd_message_arg_dir_op_res}, /LOOKUP/
+{7,  dissect_zfsd_message_arg_create_args, dissect_zfsd_message_arg_void}, /CREATE/
+{8,  dissect_zfsd_message_arg_open_args, dissect_zfsd_message_arg_zfs_cap}, /OPEN/
+{9,  dissect_zfsd_message_arg_zfs_cap, dissect_zfsd_message_arg_void}, /CLOSE/
+{10, dissect_zfsd_message_arg_read_dir_args, dissect_zfsd_message_arg_dir_list}, /READDIR/
+{11, dissect_zfsd_message_arg_mkdir_args, dissect_zfsd_message_arg_dir_op_res}, /MKDIR/
+{12, dissect_zfsd_message_arg_dir_op_args, dissect_zfsd_message_arg_void}, /RMDIR/
+{13, dissect_zfsd_message_arg_rename_args, dissect_zfsd_message_arg_void}, /RENAME/
+{14, dissect_zfsd_message_arg_link_args, dissect_zfsd_message_arg_void}, /LINK/
+{15, dissect_zfsd_message_arg_dir_op_args, dissect_zfsd_message_arg_void}, /UNLINK/
+{16, dissect_zfsd_message_arg_read_args, dissect_zfsd_message_arg_read_res}, /READ/ 
+{17, dissect_zfsd_message_arg_write_args, dissect_zfsd_message_arg_write_res}, /WRITE/
+{18, dissect_zfsd_message_arg_zfs_fh, dissect_zfsd_message_arg_read_link_res}, /READLINK/
+{19, dissect_zfsd_message_arg_symlink_args, dissect_zfsd_message_arg_dir_op_res}, /SYMLINK/
+{20, dissect_zfsd_message_arg_mknod_args, dissect_zfsd_message_arg_dir_op_res}, /MKNOD/
+{21, dissect_zfsd_message_arg_stage1_args, dissect_zfsd_message_arg_stage1_args_res}, /AUTH_STAGE1/
+{22, dissect_zfsd_message_arg_stage2_args, dissect_zfsd_message_arg_void}, /AUTH_STAGE2/
+{23, dissect_zfsd_message_arg_md5sum_args, dissect_zfsd_message_arg_md5sum_res}, /MD5SUM/
+{24, dissect_zfsd_message_arg_zfs_fh, dissect_zfsd_message_arg_zfs_path}, /FILE_INFO/
+{25, dissect_zfsd_message_arg_reread_config_args, NULL}, /REREAD_CONFIG, DIR_ONEWAY/
+{26, dissect_zfsd_message_arg_reintegrate_args, dissect_zfsd_message_arg_void}, /REINTEGRATE/
+{27, dissect_zfsd_message_arg_reintegrate_add_args, dissect_zfsd_message_arg_void}, /REINTEGRATE_ADD/
+{28, dissect_zfsd_message_arg_reintegrate_del_args, dissect_zfsd_message_arg_void}, /REINTEGRATE_DEL/
+{29, dissect_zfsd_message_arg_reintegrate_ver_args, dissect_zfsd_message_arg_void}, /REINTEGRATE_SET/
+{30, dissect_zfsd_message_arg_invalidate_args, dissect_zfsd_message_arg_void} /INVALIDATE/
+*/
+
+//const DATA_BUFFER_MAX_LEN = 255;
+
+//typedef char data_buffer<DATA_BUFFER_MAX_LEN>;
+
+enum ftype
+{
+	FT_BAD = 0;
+	FT_REG = 1;
+	FT_DIR = 2;
+	FT_LNK = 3;
+	FT_BLK = 4;
+	FT_CHR = 5;
+	FT_SOCK = 6;
+	FT_FIFO = 7;
+	FT_LAST_AND_UNUSED = 8;
+}
+
+enum connection_speed
+{
+	CONNECTION_SPEED_NONE = 0;
+	CONNECTION_SPEED_SLOW = 1;
+	CONNECTION_SPEED_FAST = 2;
+	CONNECTION_SPEED_LAST_AND_UNUSED = 3;
+}
+
+
+message zfs_time
+{
+	required uint32 time = 1;
+}
+
+message data_buffer
+{
+	required uint32 len = 1;
+	required bytes buf = 2;
+}
+
+message zfs_string
+{
+	required uint32 len = 1;
+	required bytes str = 2;
+}
+
+message zfs_path
+{
+	required zfs_string path = 1;
+}
+
+message zfs_filename
+{
+	required zfs_string name = 1;
+}
+
+message zfs_nodename
+{
+	required zfs_string name = 1;
+}
+
+message zfs_fh
+{
+	required uint32 sid = 1;
+	required uint32 vid = 2;
+	required uint32 dev = 3;
+	required uint32 ino = 4;
+	required uint32 gen = 5;
+}
+
+message zfs_fattr
+{
+	required uint32 dev = 1;
+	required uint32 ino = 2;
+	required uint64 version = 3;
+	required ftype type = 4;
+	required uint32 mode = 5;
+	required uint32 nlink = 6;
+	required uint32 uid = 7;
+	required uint32 gid = 8;
+	required uint32 rdev = 9;
+	required uint64 size = 10;
+	required uint64 blocks = 11;
+	required uint32 blksize = 12;
+	required zfs_time atime = 13;
+	required zfs_time mtime = 14;
+	required zfs_time ctime = 15;
+}
+
+message zfs_sattr
+{
+	required uint32 mode = 1;
+	required uint32 uid = 2;
+	required uint32 gid = 3;
+	required uint64 size = 4;
+	required zfs_time atime = 5;
+	required zfs_time mtime = 6;
+}
+
+message zfs_void
+{
+}
+
+message volume_root_args
+{
+	required uint32 vid = 1;
+}
+
+message dir_op_res
+{
+	required zfs_fh file = 1;
+	required zfs_fattr attr = 2;
+}
+
+message setattr_args
+{
+	required zfs_fh file = 1;
+	required zfs_sattr attr = 2;
+}
+
+message dirop_args
+{
+	required zfs_fh dir = 1;
+	required zfs_filename name = 2;
+}
+
+message dirop_res
+{
+	required zfs_fh file = 1;
+	required zfs_fattr attr = 2;
+}
+
+message create_args
+{
+	required dir_op_args where = 1;
+	required uint32 flags = 2;
+	required zfs_sattr attr = 3;
+}
+
+
+message open_args
+{
+	required zfs_fh file = 1;
+	required uint32 flags = 2;
+}
+
+message zfs_cap
+{
+	required zfs_fh fh = 1;
+	required uint32 flags = 2;
+	required bytes verify = 3;
+}
+
+message read_dir_args
+{
+	required zfs_cap cap = 1;
+	required int32 cookie = 2;
+	required uint32 count = 3;
+}
+
+message dir_list
+{
+	required uint32 n = 1;
+	required bool eof = 2;
+	required bytes buffer = 3;
+}
+
+message mkdir_args
+{
+	required dir_op_args where = 1;
+	required zfs_sattr attr = 2;
+}
+
+message dir_op_args
+{
+	required zfs_fh dir = 1;
+	required zfs_filename name = 2;
+}
+
+message rename_args
+{
+	required dir_op_args from = 1;
+	required dir_op_args to = 2;
+}
+
+message link_args
+{
+	required zfs_fh from = 1;
+	required dir_op_args to = 2;
+}
+
+message read_args
+{
+	required zfs_cap cap = 1;
+	required uint64 offset = 2;
+	required uint32 count = 3;
+}
+
+
+message read_res
+{
+	required data_buffer data = 1;
+	required uint64 version = 2;
+}
+
+message write_args
+{
+	required zfs_cap cap = 1;
+	required uint64 offset = 2;
+	required data_buffer data = 3;
+	required bool remote = 4;
+}
+
+message write_res
+{
+	required uint32 written = 1;
+	required uint64 version = 2;
+}
+
+
+message read_link_res
+{
+	required zfs_path path = 1;
+}
+
+message symlink_args
+{
+	required dir_op_args from = 1;
+	required zfs_path to = 2;
+	required zfs_sattr attr = 3;
+}
+
+message mknod_args
+{
+	required dir_op_args from = 1;
+	required zfs_path to = 2;
+	required zfs_sattr attr = 3;
+}
+
+message auth_stage1_args
+{
+	required zfs_nodename node = 1;
+}
+
+message auth_stage1_res
+{
+	required zfs_nodename node = 1;
+}
+
+message auth_stage2_args
+{
+	required connection_speed speed = 1;
+}
+
+message md5sum_args
+{
+	required zfs_cap cap = 1;
+	required uint32 count = 2;
+	required bool ignore_changes = 3;
+	required uint64 offset  = 4; // [ZFS_MAX_MD5_CHUNKS]
+	required uint32 length = 5; // [ZFS_MAX_MD5_CHUNKS]
+}
+
+message md5sum_res
+{
+	required uint32 count = 1;
+	required uint32 padding0 = 2;
+	required uint64 size = 3;
+	required uint64 version = 4;
+	required uint64 offset = 5;
+	required uint32 length = 6;
+	required bytes md5sum = 7; //[ZFS_MAX_MD5_CHUNKS][MD5_SIZE]
+}
+
+message reread_config_args
+{
+	required zfs_path path = 1;
+}
+
+message reintegrate_args
+{
+	required zfs_fh fh = 1;
+	required bool status = 2;
+}
+
+message reintegrate_add_args
+{
+	required zfs_fh fh = 1;
+	required zfs_fh dir = 2;
+	required zfs_filename name = 3;
+}
+
+message reintegrate_del_args
+{
+	required zfs_fh fh =  1;
+	required zfs_fh dir = 2;
+	required zfs_filename name = 3;
+	required bool destroy_p = 4;
+}
+
+message reintegrate_ver_args
+{
+	required zfs_fh fh = 1;
+	required uint64 version_inc = 2;
+}
+
+message invalidate_args
+{
+	required zfs_fh fh = 1;
+}
+
+// services definition
+
+service zfs_ping
+{
+	rpc ping(data_buffer) returns(data_buffer);
+}
+
+service zfs_root
+{
+	rpc root(zfs_void) returns(zfs_fh);
+}
+
+service zfs_volume_root
+{
+	rpc volume_root(volume_root_args) returns(dir_op_res);
+}
+
+service zfs_getattr
+{
+	rpc getattr(zfs_fh) returns(zfs_fattr);
+}
+
+service zfs_setattr
+{         
+	rpc setattr(setattr_args) returns(zfs_fattr);
+}
+
+service zfs_lookup
+{
+	rpc lookup(dir_op_args) returns(dir_op_res);
+}
+
+service zfs_create
+{
+	rpc create(create_args) returns(zfs_void);
+}
+
+service zfs_open
+{
+	rpc open(open_args) returns(zfs_cap);
+}
+
+service zfs_close
+{
+	rpc close(zfs_cap) returns(zfs_void);
+}
+
+service zfs_readdir
+{
+	rpc readdir(read_dir_args) returns(dir_list);
+}
+
+service zfs_mkdir
+{
+	rpc mkdir(mkdir_args) returns(dir_op_res);
+}
+
+service zfs_rmdir
+{
+	rpc rmdir(dir_op_args) returns(zfs_void);
+}
+
+service zfs_rename
+{
+	rpc rename(rename_args) returns(zfs_void);
+}
+
+service zfs_link
+{
+	rpc link(link_args) returns(zfs_void);
+}
+
+service zfs_unlink
+{
+	rpc unlink(dir_op_args) returns(zfs_void);
+}
+
+service zfs_read
+{
+	rpc read(read_args) returns(read_res);
+}
+
+service zfs_write
+{
+	rpc write(write_args) returns(write_res);
+}
+
+service zfs_readlink
+{
+	rpc readlinkn(zfs_fh) returns(read_link_res);
+}
+
+service zfs_symlink
+{
+	rpc symlink(symlink_args) returns(dir_op_res);
+}
+
+service zfs_mknod
+{
+	rpc mknod(mknod_args) returns(dir_op_res);
+}
+
+service zfs_auth_stage1
+{
+	rpc auth_stage1(auth_stage1_args) returns(auth_stage1_res);
+}
+
+service zfs_auth_stage2
+{
+	rpc auth_stage2(auth_stage2_args) returns(zfs_void);
+}
+
+service zfs_md5sum
+{
+	rpc md5sum(md5sum_args) returns(md5sum_res);
+}
+
+service zfs_file_info
+{
+	rpc file_info(zfs_fh) returns(zfs_path);
+}
+
+// one way request ...
+service zfs_reread_config
+{
+	rpc reread_config(reread_config_args) returns(zfs_void);
+}
+
+service zfs_reintegrate
+{
+	rpc reintegrate(reintegrate_args) returns(zfs_void);
+}
+
+service zfs_reintegrate_add
+{
+	rpc reintegrate_add(reintegrate_add_args) returns(zfs_void);
+}
+
+service zfs_reintegrate_del
+{
+	rpc reintegrate_del(reintegrate_del_args) returns(zfs_void);
+}
+
+service zfs_reintegrate_ver
+{
+	rpc reintegrate_ver(reintegrate_ver_args) returns(zfs_void);
+}
+
+service zfs_invalidate
+{
+	rpc invalidate(invalidate_args) returns(zfs_void);
+}
+
