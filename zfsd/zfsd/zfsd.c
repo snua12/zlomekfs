@@ -32,6 +32,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 #include <ucontext.h>
+#include <libconfig.h>
 #include "pthread-wrapper.h"
 #include "zfsd.h"
 #include "memory.h"
@@ -95,10 +96,10 @@ static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 	thread_terminate_blocking_syscall(&cleanup_dentry_thread,
 									  &cleanup_dentry_thread_in_syscall);
 
-	if (config_reader_data.thread_id)
+	if (zfs_config.config_reader_data.thread_id)
 	{
-		set_thread_state(&config_reader_data, THREAD_DYING);
-		semaphore_up(&config_sem, 1);
+		set_thread_state(&zfs_config.config_reader_data, THREAD_DYING);
+		semaphore_up(&zfs_config.config_sem, 1);
 	}
 
 	/* 
@@ -423,12 +424,12 @@ static void process_arguments(int argc, char **argv)
 
 	if (zopts.node)
 	{
-		free(config_node);
-		config_node = zopts.node;
+		//TODO xstrdup
+		zfs_config.config_node = xstrdup(zopts.node);
 	}
 #ifdef ENABLE_VERSIONS
-	versioning = zopts.versioning;
-	verdisplay = zopts.verdisplay;
+	zfs_config.versions.versioning = zopts.versioning;
+	zfs_config.versions.verdisplay = zopts.verdisplay;
 
 	if ((zopts.retention_age_max < zopts.retention_age_min) ||
 		(zopts.retention_num_max < zopts.retention_num_min))
@@ -437,10 +438,10 @@ static void process_arguments(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	retention_age_min = zopts.retention_age_min;
-	retention_age_max = zopts.retention_age_max;
-	retention_num_min = zopts.retention_num_min;
-	retention_num_max = zopts.retention_num_max;
+	zfs_config.versions.retention_age_min = zopts.retention_age_min;
+	zfs_config.versions.retention_age_max = zopts.retention_age_max;
+	zfs_config.versions.retention_num_min = zopts.retention_num_min;
+	zfs_config.versions.retention_num_max = zopts.retention_num_max;
 #endif
 
 	set_log_level(&syplogger, zopts.loglevel);
@@ -506,12 +507,12 @@ static void cleanup_data_structures(void)
 	/* 
 	 * Destroy data of config reader thread.  
 	 */
-	if (config_reader_data.thread_id)
+	if (zfs_config.config_reader_data.thread_id)
 	{
-		pthread_join(config_reader_data.thread_id, NULL);
-		config_reader_data.thread_id = 0;
-		network_worker_cleanup(&config_reader_data);
-		semaphore_destroy(&config_reader_data.sem);
+		pthread_join(zfs_config.config_reader_data.thread_id, NULL);
+		zfs_config.config_reader_data.thread_id = 0;
+		network_worker_cleanup(&zfs_config.config_reader_data);
+		semaphore_destroy(&zfs_config.config_reader_data.sem);
 	}
 
 	/* 
@@ -617,7 +618,7 @@ int main(int argc, char **argv)
 	/* 
 	 * Keep the pages of the daemon in memory.  
 	 */
-	if (mlock_zfsd && mlockall(MCL_CURRENT | MCL_FUTURE))
+	if (zfs_config.mlock_zfsd && mlockall(MCL_CURRENT | MCL_FUTURE))
 	{
 		message(LOG_CRIT, FACILITY_ZFSD, "mlockall: %s\n", strerror(errno));
 		die();

@@ -4,7 +4,7 @@ SET(zfsd_SRCS
 )
 
 add_executable(zfsd ${zfsd_SRCS})
-target_link_libraries(zfsd ${FUSE_LIBRARIES} log memory fuse_iface control)
+target_link_libraries(zfsd ${FUSE_LIBRARIES} ${LCONFIG_LIBRARIES} log memory fuse_iface control)
 
 # dumb cmake 2.6 needs this hint (some code is in C++)
 set_target_properties(zfsd PROPERTIES LINKER_LANGUAGE CXX)

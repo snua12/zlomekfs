@@ -30,34 +30,45 @@
 #include "thread.h"
 #include "fh.h"
 
-/* ! Data for config reader thread.  */
-extern thread config_reader_data;
-
-/* ! Semaphore for managing the reread request queue.  */
-extern semaphore config_sem;
-
-/* ! Node which the local node should fetch the global configuration from.  */
-extern char *config_node;
-
 #ifdef ENABLE_VERSIONS
 /* Versioning enabled.  */
-extern bool versioning;
+typedef struct zfs_config_versions_def
+{
+	bool versioning;
 
-/* ! Versions displayed in readdir.  */
-extern bool verdisplay;
+	/* ! Versions displayed in readdir.  */
+	bool verdisplay;
 
-/* Age retention interval.  */
-extern int retention_age_min;
-extern int retention_age_max;
+	/* Age retention interval.  */
+	int retention_age_min;
+	int retention_age_max;
 
-/* Number of versions retention interval.  */
-extern int retention_num_min;
-extern int retention_num_max;
+	/* Number of versions retention interval.  */
+	int retention_num_min;
+	int retention_num_max;
+} zfs_config_versions;
 #endif
 
-/* ! mlockall() zfsd . */
-extern bool mlock_zfsd;
+typedef struct zfs_configuration_def
+{
+	/* ! Data for config reader thread.  */
+	thread config_reader_data;
 
+	/* ! Semaphore for managing the reread request queue.  */
+	semaphore config_sem;
+
+	/* ! Node which the local node should fetch the global configuration from.  */
+	char *config_node;
+
+	/* ! mlockall() zfsd . */
+	bool mlock_zfsd;
+
+#ifdef ENABLE_VERSIONS
+	zfs_config_versions versions;
+#endif
+} zfs_configuration;
+
+extern zfs_configuration zfs_config;
 
 /* ! Mutex protecting the reread_config chain and alloc pool.  */
 extern pthread_mutex_t reread_config_mutex;

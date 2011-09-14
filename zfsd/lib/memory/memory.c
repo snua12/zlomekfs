@@ -256,6 +256,12 @@ void set_str(string * dst, const char *src)
 	set_string_with_length(dst, src, strlen(src));
 }
 
+const char * get_str(string * str)
+{
+	str->str[str->len] = 0;
+	return str->str;
+}
+
 /* ! Set a copy of SRC to DST.  */
 
 void set_string(string * dst, string * src)

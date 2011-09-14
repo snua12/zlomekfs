@@ -28,7 +28,7 @@ bool reread_config_file(string * relative_path);
 /* ! Reread local info about volumes. \param path Path where local
    configuration is stored.  */
 
-bool reread_local_volume_info(string * path);
+bool reread_local_volume_info(const char * path);
 
 /* ! Get a request to reread config from queue and store the relative path of
    the file to be reread to RELATIVE_PATH and the node ID which the request

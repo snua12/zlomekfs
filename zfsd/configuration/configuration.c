@@ -48,40 +48,24 @@
 #include "zfsd.h"
 #include "reread_config.h"
 
-/* ! Data for config reader thread.  */
-thread config_reader_data;
-
-/* ! Semaphore for managing the reread request queue.  */
-semaphore config_sem;
-
-/* ! Directory with local node configuration. */
-
-/* ! Node which the local node should fetch the global configuration from.  */
-char *config_node;
-
-// TODO: ugly
-extern string local_config;
-
+zfs_configuration zfs_config = 
+{
+	//.config_reader_data = ,
+	//.config_sem = ,
+	.config_node = NULL,
+	.mlock_zfsd = true,
 #ifdef ENABLE_VERSIONS
-/* ! Versioning enabled.  */
-bool versioning = false;
-
-/* ! Versions displayed in readdir.  */
-bool verdisplay = false;
-
-/* Age retention interval.  */
-int retention_age_min = -1;
-int retention_age_max = -1;
-
-/* Number of versions retention interval.  */
-int retention_num_min = -1;
-int retention_num_max = -1;
+	.versions = {
+		.versioning = false,
+		.verdisplay = false,
+		.retention_age_min = -1,
+		.retention_age_max = -1,
+		.retention_num_min =  -1,
+		.retention_num_max = -1
+	}
 #endif
 
-/* ! mlockall() zfsd . */
-bool mlock_zfsd;
-
-
+};
 
 /* ! Alloc pool for allocating nodes of reread config chain.  */
 alloc_pool reread_config_pool;
@@ -89,11 +73,7 @@ alloc_pool reread_config_pool;
 /* ! Mutex protecting the reread_config chain and alloc pool.  */
 pthread_mutex_t reread_config_mutex;
 
-
-
-
 /* ! Add request to reread config file DENTRY to queue.  */
-
 void add_reread_config_request_dentry(internal_dentry dentry)
 {
 	string relative_path;
@@ -134,7 +114,7 @@ void add_reread_config_request_local_path(volume vol, string * path)
 void initialize_config_c(void)
 {
 	zfsd_mutex_init(&reread_config_mutex);
-	semaphore_init(&config_sem, 0);
+	semaphore_init(&zfs_config.config_sem, 0);
 
 	reread_config_pool
 		= create_alloc_pool("reread_config_pool",
@@ -157,9 +137,8 @@ void cleanup_config_c(void)
 	free_alloc_pool(reread_config_pool);
 	zfsd_mutex_unlock(&reread_config_mutex);
 	zfsd_mutex_destroy(&reread_config_mutex);
-	semaphore_destroy(&config_sem);
+	semaphore_destroy(&zfs_config.config_sem);
 
 	if (node_name.str)
 		free(node_name.str);
-	free(local_config.str);
 }

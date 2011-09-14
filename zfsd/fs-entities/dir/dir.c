@@ -122,7 +122,7 @@ build_local_path_name_dirstamp(string * dst, volume vol,
 	dst->len = 0;
 
 #ifdef ENABLE_VERSIONS
-	if (versioning)
+	if (zfs_config.versions.versioning)
 	{
 		// directory timestamp present?
 		if (dentry->dirstamp)
@@ -171,7 +171,7 @@ build_local_path_name_dirstamp(string * dst, volume vol,
 
 #ifdef ENABLE_VERSIONS
 	// update name if working with version file
-	if (versioning && stamp)
+	if (zfs_config.versions.versioning && stamp)
 	{
 		r = version_is_directory(dst, dir.str, name, stamp, dirstamp,
 								 orgnamelen);
@@ -1598,7 +1598,7 @@ local_setattr(fattr * fa, internal_dentry dentry, sattr * sa, volume vol,
 	}
 
 #ifdef ENABLE_VERSIONS
-	if (should_version && versioning && dentry->version_file)
+	if (should_version && zfs_config.versions.versioning && dentry->version_file)
 	{
 		release_dentry(dentry);
 		zfsd_mutex_unlock(&vol->mutex);
@@ -1613,7 +1613,7 @@ local_setattr(fattr * fa, internal_dentry dentry, sattr * sa, volume vol,
 	// make sure we have correct attributes of the file
 	local_getattr_path(fa, &path);
 
-	if (should_version && versioning && (dentry->fh->attr.type == FT_REG)
+	if (should_version && zfs_config.versions.versioning && (dentry->fh->attr.type == FT_REG)
 		&& !dentry->new_file)
 	{
 		if (0)
@@ -3291,7 +3291,7 @@ local_rename_base(metadata * meta_old, metadata * meta_new,
 	}
 
 #ifdef ENABLE_VERSIONS
-	if (should_version && versioning)
+	if (should_version && zfs_config.versions.versioning)
 		version_rename_source(from_path->str);
 #endif
 
@@ -3312,7 +3312,7 @@ local_rename_base(metadata * meta_old, metadata * meta_new,
 	{
 		/* TO_PATH exists.  */
 #ifdef ENABLE_VERSIONS
-		if (versioning)
+		if (zfs_config.versions.versioning)
 			version_unlink_file(to_path->str);
 #endif
 		r = rename(from_path->str, to_path->str);
@@ -4237,7 +4237,7 @@ local_unlink(metadata * meta, internal_dentry dir, string * name, volume vol)
 	}
 
 #ifdef ENABLE_VERSIONS
-	if (versioning)
+	if (zfs_config.versions.versioning)
 	{
 		if (VERSION_FILENAME_P(name->str))
 			r = version_unlink_version_file(path.str);

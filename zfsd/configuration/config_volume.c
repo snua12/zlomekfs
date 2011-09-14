@@ -27,14 +27,16 @@ bool init_config_volume(void)
 		goto out;
 	}
 
-	if (config_node)
+	// config node was set by command line option node=1:node_a:HOST_NAME_OF_NODE_A
+	// zfs_config.config_node = xstrdup(zopts.node);
+	if (zfs_config.config_node)
 	{
 		string parts[3];
 		uint32_t sid;
 		node nod;
 		string path;
 
-		if (split_and_trim(config_node, 3, parts) == 3)
+		if (split_and_trim(zfs_config.config_node, 3, parts) == 3)
 		{
 			if (sscanf(parts[0].str, "%" PRIu32, &sid) != 1)
 			{
@@ -113,8 +115,8 @@ bool init_config_volume(void)
 				}
 				zfsd_mutex_unlock(&fh_mutex);
 
-				free(config_node);
-				config_node = NULL;
+				free(zfs_config.config_node);
+				zfs_config.config_node = NULL;
 			}
 		}
 		else
@@ -162,8 +164,7 @@ typedef struct volume_hierarchy_data_def
 /* ! Process line LINE number LINE_NUM of volume hierarchy file FILE_NAME and
    update hierarchy DATA.  */
 
-static int
-process_line_volume_hierarchy(char *line,
+static int process_line_volume_hierarchy(char *line,
 							  ATTRIBUTE_UNUSED const char *file_name,
 							  ATTRIBUTE_UNUSED unsigned int line_num,
 							  void *data)
@@ -476,6 +477,27 @@ read_volume_hierarchy(zfs_fh * volume_hierarchy_dir, uint32_t vid,
 	varray_destroy(&data.hierarchy);
 }
 
+static bool is_valid_volume_id(uint32_t vid)
+{
+	return (vid != 0) && (vid != (uint32_t) -1);
+}
+
+static bool is_valid_volume_name(string * name)
+{
+	return (name->len > 0);
+}
+
+static bool is_valid_local_path(string * path)
+{
+#ifndef	ENABLE_LOCAL_PATH
+	return (path->str[0] == '/') && (path->len > 0);
+#else
+	return (path->len > 0);
+#endif
+
+}
+
+
 /* ! Process line LINE number LINE_NUM from file FILE_NAME. Return 0 if we
    should continue reading lines from file.  */
 
@@ -494,26 +516,25 @@ process_line_volume(char *line, const char *file_name, unsigned int line_num,
 			message(LOG_ERROR, FACILITY_CONFIG,
 					"%s:%u: Wrong format of line\n", file_name, line_num);
 		}
-		else if (vid == 0 || vid == (uint32_t) - 1)
+		else if (!is_valid_volume_id(vid))
 		{
 			message(LOG_ERROR, FACILITY_CONFIG,
 					"%s:%u: Volume ID must not be 0 or %" PRIu32 "\n",
 					file_name, line_num, (uint32_t) - 1);
 		}
-		else if (parts[1].len == 0)
+		else if (!is_valid_volume_name(parts + 1))
 		{
 			message(LOG_ERROR, FACILITY_CONFIG,
 					"%s:%u: Volume name must not be empty\n", file_name,
 					line_num);
 		}
-#ifndef	ENABLE_LOCAL_PATH
-		else if (parts[2].str[0] != '/')
+		else if (!is_valid_local_path(parts + 2))
 		{
 			message(LOG_ERROR, FACILITY_CONFIG,
 					"%s:%d: Volume mountpoint must be an absolute path\n",
 					file_name, line_num);
 		}
-#endif
+		// volume id is readed by first time
 		else if (vid == VOLUME_ID_CONFIG && saved_vid == 0)
 		{
 			volume vol;

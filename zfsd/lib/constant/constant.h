@@ -44,6 +44,9 @@
 /* ! Maximal value for MetadataTreeDepth.  */
 #define MAX_METADATA_TREE_DEPTH 6
 
+/* ! Minimal value for MetadataTreeDepth.  */
+#define MIN_METADATA_TREE_DEPTH 1
+
 /* ! The event groups for poll().  */
 #define CAN_READ (POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND)
 #define CAN_WRITE (POLLOUT | POLLWRNORM | POLLWRBAND)

@@ -107,6 +107,9 @@ PKG_CHECK_MODULES(FUSE fuse>=2.6)
 # dbus
 PKG_CHECK_MODULES(DBUS dbus-1>=1.0)
 
+#libconfig
+PKG_CHECK_MODULES(LCONFIG libconfig>=1.3)
+
 # openssl
 include(FindOpenSSL)
 if(NOT OPENSSL_FOUND)

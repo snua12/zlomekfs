@@ -359,12 +359,30 @@ bool reread_config_file(string * relative_path)
 /* ! Reread local info about volumes. \param path Path where local
    configuration is stored.  */
 
-bool reread_local_volume_info(string * path)
+bool reread_local_volume_info(const char * path)
 {
 	mark_all_volumes();
 
-	if (!read_local_volume_info(path, true))
+	config_t config;
+	config_init(&config);
+
+	int rv = config_read_file(&config, path);
+	if (rv != CONFIG_TRUE)
+	{
+		config_destroy(&config);
 		return false;
+	}
+
+
+	rv =  read_local_volume_info(&config, true);
+
+	config_destroy(&config);
+
+	if (rv != CONFIG_TRUE)
+	{
+		return false;
+	}
+
 
 	delete_dentries_of_marked_volumes();
 
@@ -378,7 +396,7 @@ void add_reread_config_request(string * relative_path, uint32_t from_sid)
 {
 	reread_config_request req;
 
-	if (get_thread_state(&config_reader_data) != THREAD_IDLE)
+	if (get_thread_state(&zfs_config.config_reader_data) != THREAD_IDLE)
 		return;
 
 	zfsd_mutex_lock(&reread_config_mutex);
@@ -396,7 +414,7 @@ void add_reread_config_request(string * relative_path, uint32_t from_sid)
 
 	zfsd_mutex_unlock(&reread_config_mutex);
 
-	semaphore_up(&config_sem, 1);
+	semaphore_up(&zfs_config.config_sem, 1);
 }
 
 /* ! Get a request to reread config from queue and store the relative path of
@@ -405,6 +423,8 @@ void add_reread_config_request(string * relative_path, uint32_t from_sid)
 
 bool get_reread_config_request(string * relative_path, uint32_t * from_sid)
 {
+	reread_config_request req;
+
 	zfsd_mutex_lock(&reread_config_mutex);
 	if (reread_config_first == NULL)
 	{
@@ -415,11 +435,13 @@ bool get_reread_config_request(string * relative_path, uint32_t * from_sid)
 	*relative_path = reread_config_first->relative_path;
 	*from_sid = reread_config_first->from_sid;
 
-	// FIXME: probably memory leak
+	req = reread_config_first;
 	reread_config_first = reread_config_first->next;
 	if (reread_config_first == NULL)
 		reread_config_last = NULL;
 
 	zfsd_mutex_unlock(&reread_config_mutex);
+	// free request's memory
+	pool_free(reread_config_pool, req);
 	return true;
 }

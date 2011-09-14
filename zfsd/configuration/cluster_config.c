@@ -1,6 +1,7 @@
 #include "system.h"
 #include <signal.h>
 #include <errno.h>
+#include <libconfig.h>
 #include "log.h"
 #include "node.h"
 #include "volume.h"
@@ -75,6 +76,9 @@ static bool fix_config(void)
 	return true;
 }
 
+//TODO: UGLY
+extern const char * local_config_path;
+
 
 /* ! Thread for reading a configuration.  */
 static void *config_reader(void *data)
@@ -129,8 +133,10 @@ static void *config_reader(void *data)
 	r = zfs_extended_lookup(&user_dir_res, &config_dir_res.file, "user");
 	if (r == ZFS_OK)
 	{
+		// read default user mapping
 		if (!read_user_mapping(&user_dir_res.file, 0))
 			goto out;
+		// read mapping fot this node
 		if (!read_user_mapping(&user_dir_res.file, this_node->id))
 			goto out;
 	}
@@ -190,7 +196,7 @@ static void *config_reader(void *data)
 		void **slot;
 
 		/* Wait until we are notified.  */
-		semaphore_down(&config_sem, 1);
+		semaphore_down(&zfs_config.config_sem, 1);
 
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(t) == THREAD_DEAD)
@@ -204,7 +210,7 @@ static void *config_reader(void *data)
 			if (relative_path.str == NULL)
 			{
 				/* The daemon received SIGHUP, reread the local volume info.  */
-				if (!reread_local_volume_info(&local_config))
+				if (!reread_local_volume_info(local_config_path))
 				{
 					terminate();
 					break;
@@ -286,109 +292,87 @@ static void init_this_node(void)
 }
 
 /* ! Read ID and name of from this_node file */
-static bool read_this_node_config(const char *file)
+static int read_this_node_config(config_t * config)
 {
-	string parts[3];
-	char line[LINE_SIZE + 1];
+	const char * local_node_name;
+	int rv;
 
-	FILE *f = fopen(file, "rt");
-	if (f == NULL)
+	rv = config_lookup_int(config, "local_node.id", (long int *) &this_node_id);
+	if (rv != CONFIG_TRUE)
 	{
-		message(LOG_CRIT, FACILITY_CONFIG, "%s: %s\n", file, strerror(errno));
-		return false;
+		message(LOG_ERROR, FACILITY_CONFIG, "Could not read node ID\n");
+		return rv;
 	}
 
-	const char *rv = fgets(line, sizeof(line), f);
-
-	fclose(f);
-
-	if (rv == NULL)
+	rv = config_lookup_string(config, "local_node.name", &local_node_name);
+	if (rv != CONFIG_TRUE)
 	{
-		message(LOG_ERROR, FACILITY_CONFIG, "%s: Could not read a line\n",
-				file);
-		return false;
+		message(LOG_ERROR, FACILITY_CONFIG, "Node name must not be empty\n");
+		return rv;
 	}
 
-	if (split_and_trim(line, 2, parts) != 2)
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "%s:1: Wrong format of line\n",
-				file);
-		return false;
-	}
+	xmkstring(&node_name, local_node_name);
 
-	if (sscanf(parts[0].str, "%" PRIu32, &this_node_id) != 1)
-	{
-		message(LOG_ERROR, FACILITY_CONFIG, "%s: Could not read node ID\n",
-				file);
-		return false;
-	}
-	if (this_node_id == 0 || this_node_id == (uint32_t) - 1)
-	{
-		message(LOG_ERROR, FACILITY_CONFIG,
-				"%s: Node ID must not be 0 or %" PRIu32 "\n", file,
-				(uint32_t) - 1);
-		return false;
-	}
-	if (parts[1].len == 0)
-	{
-		message(LOG_ERROR, FACILITY_CONFIG,
-				"%s: Node name must not be empty\n", file);
-		return false;
-	}
-	xstringdup(&node_name, &parts[1]);
-
-	return true;
+	return rv;
 }
 
+
+
+
 /* ! Read ID and name of local node and local paths of volumes.  */
-static bool read_local_cluster_config(string * path)
+static bool read_local_cluster_config(const char * file)
 {
-	char *file;
-
-	if (path->str == 0)
-	{
-		message(LOG_CRIT, FACILITY_CONFIG,
-				"The directory with configuration of local node is not specified"
-				"in configuration file.\n");
-		return false;
-	}
-
 	message(LOG_NOTICE, FACILITY_CONFIG,
 			"Reading configuration of local node\n");
 
-	/* Read ID of local node.  */
-	file = xstrconcat(3, path->str, DIRECTORY_SEPARATOR, "/this_node");
-	bool rv = read_this_node_config(file);
+	config_t config;
+	config_init(&config);
 
-	free(file);
-
-	if (rv == false)
+	int rv = config_read_file(&config, file);
+	if (rv != CONFIG_TRUE)
+	{
+		config_destroy(&config);
 		return false;
+	}
 
+
+	/* Read ID of local node.  */
+	rv = read_this_node_config(&config);
+	if (rv != CONFIG_TRUE)
+	{
+		config_destroy(&config);
+		return false;
+	}
+
+	// TODO: init_this_node(node_id, node_name);
 	init_this_node();
 
-	return read_local_volume_info(path, false);
+	rv =  read_local_volume_info(&config, false);
+	
+	config_destroy(&config);
+
+	return (rv == CONFIG_TRUE);
 }
 
 /* ! Read global configuration of the cluster from config volume.  */
 /* ! Read configuration of the cluster - nodes, volumes, ... */
 static bool read_global_cluster_config(void)
 {
-	semaphore_init(&config_reader_data.sem, 0);
-	network_worker_init(&config_reader_data);
-	config_reader_data.from_sid = 0;
-	config_reader_data.state = THREAD_BUSY;
+	semaphore_init(&zfs_config.config_reader_data.sem, 0);
+	network_worker_init(&zfs_config.config_reader_data);
+	zfs_config.config_reader_data.from_sid = 0;
+	zfs_config.config_reader_data.state = THREAD_BUSY;
 
 	reading_cluster_config = true;
-	if (pthread_create(&config_reader_data.thread_id, NULL, config_reader,
-					   &config_reader_data))
+	if (pthread_create(&zfs_config.config_reader_data.thread_id, NULL, config_reader,
+					   &zfs_config.config_reader_data))
 	{
 		message(LOG_CRIT, FACILITY_CONFIG, "pthread_create() failed\n");
-		config_reader_data.state = THREAD_DEAD;
-		config_reader_data.thread_id = 0;
+		zfs_config.config_reader_data.state = THREAD_DEAD;
+		zfs_config.config_reader_data.thread_id = 0;
 		reading_cluster_config = false;
-		network_worker_cleanup(&config_reader_data);
-		semaphore_destroy(&config_reader_data.sem);
+		network_worker_cleanup(&zfs_config.config_reader_data);
+		semaphore_destroy(&zfs_config.config_reader_data.sem);
 		return false;
 	}
 
@@ -399,12 +383,12 @@ static bool read_global_cluster_config(void)
 		sleep(1000000);
 	}
 
-	return config_reader_data.retval == ZFS_OK;
+	return zfs_config.config_reader_data.retval == ZFS_OK;
 }
 
 bool read_cluster_config(void)
 {
-	if (!read_local_cluster_config(&local_config))
+	if (!read_local_cluster_config(local_config_path))
 	{
 		message(LOG_CRIT, FACILITY_CONFIG,
 				"Could not read local cluster configuration\n");

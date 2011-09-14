@@ -759,7 +759,7 @@ vd_lookup_name_dirstamp(virtual_dir parent, string * name,
 	CHECK_MUTEX_LOCKED(&parent->mutex);
 
 #ifdef ENABLE_VERSIONS
-	if (versioning && dirstamp)
+	if (zfs_config.versions.versioning && dirstamp)
 	{
 		int orgnamelen = 0;
 		int32_t r;
@@ -1688,7 +1688,7 @@ internal_dentry_create(zfs_fh * local_fh, zfs_fh * master_fh, volume vol,
 	*slot = dentry;
 
 #ifdef ENABLE_VERSIONS
-	if (versioning && strchr(name->str, VERSION_NAME_SPECIFIER_C))
+	if (zfs_config.versions.versioning && strchr(name->str, VERSION_NAME_SPECIFIER_C))
 		dentry->version_file = true;
 #endif
 
