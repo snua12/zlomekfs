@@ -37,10 +37,6 @@ extern pthread_mutex_t reread_config_mutex;
 /* ! Alloc pool for allocating nodes of reread config chain.  */
 extern alloc_pool reread_config_pool;
 
-extern void add_reread_config_request_dentry(internal_dentry dentry);
-extern void add_reread_config_request_local_path(volume vol, string * path);
-extern void add_reread_config_request(string * relative_path,
-									  uint32_t from_sid);
 extern bool read_cluster_config(void);
 extern bool read_config_file(const char *file);
 

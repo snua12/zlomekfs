@@ -127,6 +127,14 @@ const char * get_local_config_path(void);
 
 string * get_this_node_name(void);
 
+void set_default_uid_gid(void);
+
+bool set_default_uid(const char *name);
+
+bool set_default_gid(const char *name);
+
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -39,6 +39,8 @@
 #include "semaphore.h"
 #include "hardlink-list.h"
 #include "journal.h"
+#include "reread_config.h"
+#include "zfs_config.h"
 #include "configuration.h"
 #include "local_config.h"
 #include "thread.h"

@@ -29,7 +29,7 @@
 # include "zfs-prot.h"
 #include "pthread-wrapper.h"
 # include "data-coding.h"
-# include "configuration.h"
+# include "reread_config.h"
 # include "thread.h"
 # include "network.h"
 # include "kernel.h"

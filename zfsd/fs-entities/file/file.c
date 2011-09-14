@@ -58,7 +58,7 @@
 #include "network.h"
 #include "md5.h"
 #include "update.h"
-#include "configuration.h"
+#include "reread_config.h"
 #include "version.h"
 
 /* FIXME: use getdents64 (), or just plain readdir ()? */

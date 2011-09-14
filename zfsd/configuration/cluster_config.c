@@ -20,7 +20,6 @@
 #include "config_limits.h"
 #include "configuration.h"
 #include "config_user_mapping.h"
-#include "config_defaults.h"
 #include "config_group_mapping.h"
 #include "config_parser.h"
 #include "config_user.h"

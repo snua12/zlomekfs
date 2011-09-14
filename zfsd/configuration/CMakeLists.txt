@@ -1,6 +1,8 @@
+add_subdirectory(config_reader)
+add_subdirectory(zfs_config)
+
 SET(configuration_SRC
   configuration.c
-  config_defaults.c
   config_parser.c
   reread_config.c
   config_user_mapping.c
@@ -9,14 +11,10 @@ SET(configuration_SRC
   config_group.c
   cluster_config.c
   config_volume.c
-  local_config.c
-  shared_config.c
 )
 
-add_library(zfs_config ${BUILD_TYPE} zfs_config.c)
-
 add_library(configuration ${BUILDTYPE} ${configuration_SRC})
-target_link_libraries(configuration zfs_config log zfsio)
+target_link_libraries(configuration zfs_config log zfsio config_reader)
 
 ## google test
 test_enabled(gtest result)

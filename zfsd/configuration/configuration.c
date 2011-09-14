@@ -54,42 +54,6 @@ alloc_pool reread_config_pool;
 /* ! Mutex protecting the reread_config chain and alloc pool.  */
 pthread_mutex_t reread_config_mutex;
 
-/* ! Add request to reread config file DENTRY to queue.  */
-void add_reread_config_request_dentry(internal_dentry dentry)
-{
-	string relative_path;
-	thread *t;
-
-	build_relative_path(&relative_path, dentry);
-
-	t = (thread *) pthread_getspecific(thread_data_key);
-#ifdef ENABLE_CHECKING
-	if (t == NULL)
-		abort();
-#endif
-
-	add_reread_config_request(&relative_path, t->from_sid);
-}
-
-/* ! Add request to reread config file PATH on volume VOL to queue.  */
-
-void add_reread_config_request_local_path(volume vol, string * path)
-{
-	string relative_path;
-	thread *t;
-
-	local_path_to_relative_path(&relative_path, vol, path);
-
-	t = (thread *) pthread_getspecific(thread_data_key);
-#ifdef ENABLE_CHECKING
-	if (t == NULL)
-		abort();
-#endif
-
-	add_reread_config_request(&relative_path, t->from_sid);
-}
-
-
 /* ! Initialize data structures in CONFIG.C.  */
 
 void initialize_config_c(void)

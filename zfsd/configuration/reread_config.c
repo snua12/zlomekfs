@@ -364,6 +364,23 @@ bool reread_local_volume_info(const char * path)
 	return true;
 }
 
+/* ! Add request to reread config file DENTRY to queue.  */
+void add_reread_config_request_dentry(internal_dentry dentry)
+{
+	string relative_path;
+	thread *t;
+
+	build_relative_path(&relative_path, dentry);
+
+	t = (thread *) pthread_getspecific(thread_data_key);
+#ifdef ENABLE_CHECKING
+	if (t == NULL)
+		abort();
+#endif
+
+	add_reread_config_request(&relative_path, t->from_sid);
+}
+
 
 /* ! Add a request to reread config into queue */
 
@@ -390,6 +407,24 @@ void add_reread_config_request(string * relative_path, uint32_t from_sid)
 	zfsd_mutex_unlock(&reread_config_mutex);
 
 	semaphore_up(&zfs_config.config_sem, 1);
+}
+
+/* ! Add request to reread config file PATH on volume VOL to queue.  */
+
+void add_reread_config_request_local_path(volume vol, string * path)
+{
+	string relative_path;
+	thread *t;
+
+	local_path_to_relative_path(&relative_path, vol, path);
+
+	t = (thread *) pthread_getspecific(thread_data_key);
+#ifdef ENABLE_CHECKING
+	if (t == NULL)
+		abort();
+#endif
+
+	add_reread_config_request(&relative_path, t->from_sid);
 }
 
 /* ! Get a request to reread config from queue and store the relative path of

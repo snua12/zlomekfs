@@ -1,7 +1,6 @@
 #include "system.h"
 #include "local_config.h"
 #include "configuration.h"
-#include "config_defaults.h"
 #include <libconfig.h>
 #include "log.h"
 #include "constant.h"

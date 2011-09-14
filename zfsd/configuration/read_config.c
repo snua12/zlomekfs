@@ -28,7 +28,6 @@
 #include "network.h"
 #include "zfsd.h"
 #include "config_parser.h"
-#include "config_defaults.h"
 #include "config_limits.h"
 
 /* ! Verify whether the thread limits are valid. \param limit Thread limits.
