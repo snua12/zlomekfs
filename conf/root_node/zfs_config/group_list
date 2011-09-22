@@ -1,6 +1,0 @@
-#list of filesystem groups, these will be mapped to local groups on every node as specified in group/NODE_NAME file
-# format is GID:GROUP_NAME
-#example:
-0:root
-100:users
-65534:nogroup

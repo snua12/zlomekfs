@@ -1,0 +1,16 @@
+node:
+{
+	list=
+	(
+	{
+		id=1;
+		name="the_only_node";
+		address="127.0.0.1";
+	},
+	{
+		id=2;
+		name="that_node";
+		address="192.168.33.202";
+	}	
+	);
+};

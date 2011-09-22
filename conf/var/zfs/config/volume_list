@@ -1,0 +1,52 @@
+volume:
+{
+	list =
+	(
+		{
+			id = 1;
+			name = "config";
+			mountpoint="/config";
+		},
+		{
+			id = 2;
+			name = "data";
+			mountpoint="/data";
+		}
+	);
+	layout =
+	(
+		{
+			volume = "config";
+			tree =
+			{
+				node="this_node";
+				# list of subtrees
+				children = (
+				{
+					node="the_only_node";
+					children = (
+						{
+						node="node1";
+						children = ();
+						}
+					);
+				},
+				{
+					node="that_node2";
+					children = ();
+				}
+				);
+			};
+		},
+		{
+			volume = "data";
+			tree =
+			{
+				node="the_only_node";
+				# list of subtrees
+				children = ();
+			};
+		}
+	);
+
+};

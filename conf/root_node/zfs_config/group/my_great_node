@@ -1,4 +1,0 @@
-#my_great_node specific mapping of groups
-# format is the same as in group/default file
-#example:
-zfs_read_group:users

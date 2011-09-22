@@ -1,3 +1,0 @@
-#list of nodes using / providing this zfs tree in format NODE_ID:NODE_NAME:HOSTNAME
-#example:
-42:my_great_node:localhost

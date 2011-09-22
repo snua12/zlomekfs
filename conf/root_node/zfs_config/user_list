@@ -1,5 +1,0 @@
-#list of filesystem users, these will be translated to local users on nodes as specified in user/NODE_NAME
-# format UID:USER_NAME
-#example:
-0:root
-65534:nobody

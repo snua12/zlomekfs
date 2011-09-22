@@ -1,0 +1,13 @@
+group:
+{
+	# group id and group name list
+	list = 
+	(
+		{
+			# group id
+			id = 65534;
+			# group name
+			name = "nogroup";
+		}
+	);
+};

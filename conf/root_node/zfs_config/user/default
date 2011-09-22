@@ -1,5 +1,0 @@
-#filesystem users to local users mapping definitions, if no local mapping is defined in user/NODE_NAME
-# format FILESYSTEM_USER_NAME:LOCAL_USER_NAME
-#example:
-root:root
-nobody:nobody

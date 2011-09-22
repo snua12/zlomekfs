@@ -1,0 +1,26 @@
+user:
+{
+	mapping = 
+	(
+		{
+			node = "default";
+			pairs =
+			(
+				{
+					local = "nobody";
+					remote = "nobody";
+				}
+			);
+		},
+		{
+			node="the_only_node";
+			pairs=
+			(
+				{
+					local = "nobody";
+					remote = "nobody";
+				}
+			);
+		}
+	);
+};

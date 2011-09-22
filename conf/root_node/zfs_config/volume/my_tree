@@ -1,5 +1,0 @@
-#volume hierarchy file. here is described the hierarchy of nodes providing/caching this volume,
-#on single line is name of node providing/caching this volume, hierarchy is given by indentation
-# every next level is indented by whitespace
-my_great_node
- my_great_node
