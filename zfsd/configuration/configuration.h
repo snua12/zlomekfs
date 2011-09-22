@@ -30,15 +30,13 @@
 #include "thread.h"
 #include "fh.h"
 #include "zfs_config.h"
+#include "cluster_config.h"
 
 /* ! Mutex protecting the reread_config chain and alloc pool.  */
 extern pthread_mutex_t reread_config_mutex;
 
 /* ! Alloc pool for allocating nodes of reread config chain.  */
 extern alloc_pool reread_config_pool;
-
-extern bool read_cluster_config(void);
-extern bool read_config_file(const char *file);
 
 extern void initialize_config_c(void);
 extern void cleanup_config_c(void);

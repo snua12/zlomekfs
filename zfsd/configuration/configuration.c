@@ -52,14 +52,13 @@
 alloc_pool reread_config_pool;
 
 /* ! Mutex protecting the reread_config chain and alloc pool.  */
-pthread_mutex_t reread_config_mutex;
+pthread_mutex_t reread_config_mutex = ZFS_MUTEX_INITIALIZER;
 
 /* ! Initialize data structures in CONFIG.C.  */
 
 void initialize_config_c(void)
 {
-	zfsd_mutex_init(&reread_config_mutex);
-	semaphore_init(&zfs_config.config_sem, 0);
+//	semaphore_init(&zfs_config.config_sem, 0);
 
 	reread_config_pool
 		= create_alloc_pool("reread_config_pool",
@@ -81,8 +80,7 @@ void cleanup_config_c(void)
 #endif
 	free_alloc_pool(reread_config_pool);
 	zfsd_mutex_unlock(&reread_config_mutex);
-	zfsd_mutex_destroy(&reread_config_mutex);
-	semaphore_destroy(&zfs_config.config_sem);
+	//semaphore_destroy(&zfs_config.config_sem);
 
 	if (zfs_config.this_node.node_name.str)
 		free(zfs_config.this_node.node_name.str);

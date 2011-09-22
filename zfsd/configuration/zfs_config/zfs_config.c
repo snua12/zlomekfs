@@ -23,12 +23,13 @@
 #include <pwd.h>
 #include <grp.h>
 #include "user-group.h"
+#include "semaphore.h"
 
 
 zfs_configuration zfs_config = 
 {
 	//.config_reader_data = ,
-	//.config_sem = ,
+	.config_sem = ZFS_SEMAPHORE_INITIALIZER(0),
 	.config_node = NULL,
 	.mlock_zfsd = true,
 	.local_config_path = "/etc/zfs/zfs.conf",

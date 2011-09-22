@@ -34,6 +34,11 @@ typedef struct semaphore_def
 	unsigned int value;
 } semaphore;
 
+#define ZFS_SEMAPHORE_INITIALIZER(num) \
+	{.mutex = ZFS_MUTEX_INITIALIZER, .cond = PTHREAD_COND_INITIALIZER, .value = (num)}
+
+
+
 extern int semaphore_init(semaphore * sem, unsigned int n);
 extern int semaphore_destroy(semaphore * sem);
 extern int semaphore_up(semaphore * sem, unsigned int n);

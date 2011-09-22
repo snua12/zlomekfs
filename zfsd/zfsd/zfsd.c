@@ -89,8 +89,7 @@ static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 		thread_pool_terminate(&update_pool);
 	}
 
-	thread_terminate_blocking_syscall(&cleanup_dentry_thread,
-									  &cleanup_dentry_thread_in_syscall);
+	thread_terminate_blocking_syscall(&cleanup_dentry_thread, &cleanup_dentry_thread_in_syscall);
 
 	if (zfs_config.config_reader_data.thread_id)
 	{
