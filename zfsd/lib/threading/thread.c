@@ -189,6 +189,28 @@ void set_thread_state(thread * t, thread_state state)
 	zfsd_mutex_unlock(&t->mutex);
 }
 
+/* ! Set thread T return value. */
+
+void set_thread_retval(thread * t, int32_t retval)
+{
+	zfsd_mutex_lock(&t->mutex);
+	t->retval = retval;
+	zfsd_mutex_unlock(&t->mutex);
+}
+
+/* ! Get thread t return value. */
+
+int32_t get_thread_retval(thread * t)
+{
+	int32_t res;
+
+	zfsd_mutex_lock(&t->mutex);
+	res = t->retval;
+	zfsd_mutex_unlock(&t->mutex);
+
+	return res;
+}
+
 /* ! Initialize the thread pool. \param pool The thread pool to initialize.
    \param limit Limits for number of threads. \param main_start Start routine
    of the main thread of the pool. \param worker_start Start routine of the

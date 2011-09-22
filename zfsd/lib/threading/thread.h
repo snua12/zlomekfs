@@ -37,12 +37,6 @@ extern pthread_key_t thread_data_key;
 /* ! Key for thread name.  */
 extern pthread_key_t thread_name_key;
 
-/* ! Flag that zfsd is running. It is set to 0 when zfsd is shutting down.  */
-//extern volatile bool running;
-
-/* ! Mutex protecting RUNNING flag.  */
-//extern pthread_mutex_t running_mutex;
-
 /* ! Limits for number of threads.  */
 typedef struct thread_limit_def
 {
@@ -194,6 +188,10 @@ extern void thread_terminate_blocking_syscall(volatile pthread_t * thid,
 extern int wait_for_thread_to_die(volatile pthread_t * thid, void **ret);
 extern thread_state get_thread_state(thread * t);
 extern void set_thread_state(thread * t, thread_state state);
+
+void set_thread_retval(thread * t, int32_t retval);
+int32_t get_thread_retval(thread * t);
+
 extern bool thread_pool_create(thread_pool * pool, thread_limit * limit,
 							   thread_start main_start,
 							   thread_start worker_start,
