@@ -347,13 +347,13 @@ int create_idle_thread(thread_pool * pool)
 	r = semaphore_init(&t->sem, 0);
 	if (r != 0)
 	{
-		t->state = THREAD_DEAD;
+		set_thread_state(t, THREAD_DEAD);
 		queue_put(&pool->empty, &idx);
 		message(LOG_ERROR, FACILITY_THREADING, "semaphore_init() failed\n");
 		return r;
 	}
 
-	t->state = THREAD_IDLE;
+	set_thread_state(t, THREAD_IDLE);
 	r = pthread_create(&t->thread_id, NULL, pool->worker_start, t);
 	if (r == 0)
 	{
@@ -366,7 +366,7 @@ int create_idle_thread(thread_pool * pool)
 	else
 	{
 		semaphore_destroy(&t->sem);
-		t->state = THREAD_DEAD;
+		set_thread_state(t, THREAD_DEAD);
 		queue_put(&pool->empty, &idx);
 		message(LOG_ERROR, FACILITY_THREADING, "pthread_create() failed\n");
 	}

@@ -26,8 +26,16 @@
 #include "config_volume.h"
 #include "reread_config.h"
 
+#if 0
 /* ! Has the config reader already terminated? */
 static volatile bool reading_cluster_config;
+#endif
+
+//TODO: rewrite me with con and mutex with ZFS wraper
+static pthread_barrier_t reading_cluster_config_barier;
+/*static pthread_cond_t  reading_cluster_config_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t reading_cluster_config_mutex = PTHREAD_MUTEX_INITIALIZER;
+*/
 
 /* ! Invalidate configuration.  */
 
@@ -52,7 +60,7 @@ static void invalidate_config(void)
 /* ! Verify configuration, fix what can be fixed. Return false if there
    remains something which can't be fixed.  */
 
-static bool fix_config(void)
+static bool verify_config(void)
 {
 	if (this_node == NULL || this_node->marked)
 		return false;
@@ -174,6 +182,16 @@ static void config_reader_loop(thread * t)
 	varray_destroy(&v);
 }
 
+static void cleanup_reread_config_queue(void)
+{
+	string relative_path;
+	uint32_t from_sid;
+
+	while (get_reread_config_request(&relative_path, &from_sid))
+		if (relative_path.str != NULL)
+			xfreestring(&relative_path);
+}
+
 // reads initial shared config
 static bool read_shared_config()
 {
@@ -259,7 +277,7 @@ static bool read_shared_config()
 	else
 		zfsd_mutex_unlock(&vol->mutex);
 
-	if (!fix_config())
+	if (!verify_config())
 		return false;
 	
 	return true;
@@ -270,8 +288,6 @@ static void *config_reader(void *data)
 {
 	thread *t = (thread *) data;
 	lock_info li[MAX_LOCKED_FILE_HANDLES];
-	string relative_path;
-	uint32_t from_sid;
 
 	thread_disable_signals();
 	pthread_setspecific(thread_data_key, data);
@@ -286,35 +302,42 @@ static void *config_reader(void *data)
 
 	/* Let the main thread run.  */
 	t->retval = ZFS_OK;
+	pthread_barrier_wait(&reading_cluster_config_barier);
+#if 0
+	pthread_cond_signal(&reading_cluster_config_cond);
 	reading_cluster_config = false;
 	pthread_kill(main_thread, SIGUSR1);
+#endif
 
 	/* Change state to IDLE.  */
 	zfsd_mutex_lock(&t->mutex);
-	if (t->state == THREAD_DYING)
+	if (get_thread_state(t) == THREAD_DYING)
 	{
 		zfsd_mutex_unlock(&t->mutex);
 		goto dying;
 	}
-	t->state = THREAD_IDLE;
+	set_thread_state(t, THREAD_IDLE);
 	zfsd_mutex_unlock(&t->mutex);
 
 	/* process config reread requests */
 	config_reader_loop(t);
 
 	/* Free remaining requests.  */
-	while (get_reread_config_request(&relative_path, &from_sid))
-		if (relative_path.str != NULL)
-			xfreestring(&relative_path);
+	cleanup_reread_config_queue();
 
-  dying:
+dying:
 	set_thread_state(t, THREAD_DEAD);
 	return NULL;
 
   out:
 	t->retval = ZFS_OK + 1;
+	pthread_barrier_wait(&reading_cluster_config_barier);
+#if 0
+	pthread_cond_signal(&reading_cluster_config_cond);
 	reading_cluster_config = false;
 	pthread_kill(main_thread, SIGUSR1);
+#endif
+
 	set_thread_state(t, THREAD_DEAD);
 	return NULL;
 }
@@ -326,27 +349,40 @@ static bool read_global_cluster_config(void)
 	semaphore_init(&zfs_config.config_reader_data.sem, 0);
 	network_worker_init(&zfs_config.config_reader_data);
 	zfs_config.config_reader_data.from_sid = 0;
-	zfs_config.config_reader_data.state = THREAD_BUSY;
+	set_thread_state(&zfs_config.config_reader_data, THREAD_BUSY);
 
+	pthread_barrier_init(&reading_cluster_config_barier, NULL, 2);
+
+#if 0
 	reading_cluster_config = true;
+#endif
+
 	if (pthread_create(&zfs_config.config_reader_data.thread_id, NULL, config_reader,
 					   &zfs_config.config_reader_data))
 	{
 		message(LOG_CRIT, FACILITY_CONFIG, "pthread_create() failed\n");
-		zfs_config.config_reader_data.state = THREAD_DEAD;
+		set_thread_state(&zfs_config.config_reader_data, THREAD_DEAD);
 		zfs_config.config_reader_data.thread_id = 0;
+#if 0
 		reading_cluster_config = false;
+#endif
 		network_worker_cleanup(&zfs_config.config_reader_data);
 		semaphore_destroy(&zfs_config.config_reader_data.sem);
 		return false;
 	}
 
+	pthread_barrier_wait(&reading_cluster_config_barier);
+	pthread_barrier_destroy(&reading_cluster_config_barier);
+#if 0
+	pthread_cond_wait(&reading_cluster_config_cond, &reading_cluster_config_mutex);
+	pthread_mutex_unlock(&reading_cluster_config_mutex);
 	/* Workaround valgrind bug (PR/77369), */
 	while (reading_cluster_config)
 	{
 		/* Sleep gets interrupted by the signal.  */
 		sleep(1000000);
 	}
+#endif
 
 	return zfs_config.config_reader_data.retval == ZFS_OK;
 }
