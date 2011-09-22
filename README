@@ -13,67 +13,224 @@ ZlomekFS file system.
 
 Contents of the TOP/local-config directory:
 -------------------------------------------
-* config
-	LocalConfig TOP/local-config
-	mlock 0
-* this_node
-	1:the_only_node
-* volume_info
-	1:TOP/shared-config:0
-	2:TOP/data:0
+* zfsd.conf
+	# Example ZlomekFS configuration file
+	# configuration version
+	version = "1.0";
+
+	# configuration of local node
+	local_node:
+	{
+		name = "the_only_node";
+		id = 1;
+	};
+
+	# volume list
+	volumes:
+	(
+	{ 
+	#	name = "shared-config";
+		id = 1;
+		cache_size = 0;
+		local_path = "/var/zfs/config";
+	},
+	{
+	#	name = "data";
+		id = 2;
+		local_path = "/var/zfs/data";
+		cache_size = 0;
+	}
+	);
+
+	# system specific configuratiom
+	system:
+	{
+		mlock = false;
+		metadata_tree_depth = 1;
+		local_config = "/var/zfs/config";
+	# /*! File with private key.  */, unused??	
+	##PrivateKey 
+	};
+
+	threads:
+	{
+	#max_total = 10;
+	#min_spare = 10;
+	#max_spare = 10;
+	};
+
+	users:
+	{
+		default_user = "nobody";
+	#	default_uid = 65534;
+	};
+
+
+	groups:
+	{
+		default_group = "nogroup";
+	#	default_gid = 65534;
+	};
 
 Contents of the TOP/shared-config directory:
 --------------------------------------------
 * subdirectories "group", "user", "volume"
 * node_list
-	1:the_only_node:127.0.0.1
+	node:
+	{
+		list=
+		(
+		{
+			id=1;
+			name="the_only_node";
+			address="127.0.0.1";
+		},
+		{
+			id=2;
+			name="that_node";
+			address="192.168.33.202";
+		}	
+		);
+	};
 * volume_list
-	1:config:/config
-	2:data:/data
-* volume/config:
-	the_only_node
-* volume/data:
-	the_only_node
+	volume:
+	{
+		list =
+		(
+			{
+				id = 1;
+				name = "config";
+				mountpoint="/config";
+			},
+			{
+				id = 2;
+				name = "data";
+				mountpoint="/data";
+			}
+		);
+		layout =
+		(
+			{
+				volume = "config";
+				tree =
+				{
+					node="this_node";
+					# list of subtrees
+					children = (
+					{
+						node="the_only_node";
+						children = (
+							{
+							node="node1";
+							children = ();
+							}
+						);
+					},
+					{
+						node="that_node2";
+						children = ();
+					}
+					);
+				};
+			},
+			{
+				volume = "data";
+				tree =
+				{
+					node="the_only_node";
+					# list of subtrees
+					children = ();
+				};
+			}
+		);
+
+	};
 * user_list:
-	4321:the_only_user
+	user:
+	{
+		list = 
+		(
+			{
+				id = 65534;
+				name = "nobody";
+			}
+		);
+	};
 * group_list:
-	4322:the_only_group
+	group:
+	{
+		# group id and group name list
+		list = 
+		(
+			{
+				# group id
+				id = 65534;
+				# group name
+				name = "nogroup";
+			}
+		);
+	};
 * group/default:
-	the_only_group:YOUR_LOCAL_GROUP_NAME
+	# group configuration
+	group:
+	{
+		# mapping between local and remote node
+		mapping = 
+		(
+			{
+				# default is reserved name for default configuration, don't use default for node name
+				node="default";
+				pairs=
+				(
+					{
+						local="nogroup";
+						remote="nogroup";
+					}
+				);
+			}
+		);
+	};
 * user/default:
-	the_only_user:YOUR_LOCAL_USER_NAME
+	user:
+	{
+		mapping = 
+		(
+			{
+				node = "default";
+				pairs =
+				(
+					{
+						local = "nobody";
+						remote = "nobody";
+					}
+				);
+			}
+		);
+	};
 
 
 Linux
 =====
 (Tested on Fedora 7, kernel 2.6.22)
+(Tested on Ubuntu 10.10 kernel 2.6.35)
 
 Compilation
 -----------
 * unpack zfs.tar.bz2 (to SRC/zfs)
-* cd SRC/zfs/fuse
-* ./configure --enable-kernel-module && make
-  If you have FUSE (and /sbin/mount.fuse in particular) installed system-wide,
-  it is not necessary to specify --prefix to ./configure nor to run
-  (make install).
-* Make sure the unprivileged user can execute "fusermount" (e.g. by adding
-  the user to the "fuse" group)
 * cd ../zfsd
+* cmake .. -DTESTS=all -DCONFIGURATION=Debug
 * make
 * Optionally, run (make install) to install zfsd to /usr/sbin.
 
 Running
 -------
-* as root, at least once after each boot:
-  - /sbin/rmmod fuse
-  - /sbin/insmod SRC/zfs/fuse/kernel/fuse.ko
 * as an unprivileged user:
   - SRC/zfs/zfsd/zfsd -o config=TOP/local-config/config MOUNT_POINT
     zfsd will stay in the foreground.  To finish and unmount the file system,
     terminate zfsd by pressing Ctrl-C.
 
 
-FreeBSD
+TBD: FreeBSD
 =======
 (Tested on FreeBSD 6.2)
 
