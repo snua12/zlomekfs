@@ -102,6 +102,10 @@ extern void delete_dentries_of_marked_volumes(void);
 extern void destroy_marked_volume(uint32_t vid);
 extern void destroy_marked_volumes(void);
 extern void destroy_all_volumes(void);
+
+/* ! Initialize config volume so that we could read configuration.  */
+extern bool init_config_volume(void);
+
 extern void initialize_volume_c(void);
 extern void cleanup_volume_c(void);
 
