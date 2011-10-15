@@ -51,7 +51,7 @@ typedef struct zfs_config_versions_def
 } zfs_config_versions;
 #endif
 
-typedef struct zfs_config_this_node_def
+typedef struct zfs_config_node_def
 {
 	/* ! ID of this node.  */
 	uint32_t node_id;
@@ -61,7 +61,7 @@ typedef struct zfs_config_this_node_def
 
 	/* ! The host name of local node.  */
 	string host_name;
-} zfs_config_this_node;
+} zfs_config_node;
 
 typedef struct zfs_config_metadata_def
 {
@@ -89,9 +89,6 @@ typedef struct zfs_configuration_def
 	/* ! Semaphore for managing the reread request queue.  */
 	semaphore config_sem;
 
-	/* ! Node which the local node should fetch the global configuration from.  */
-	char *config_node;
-
 	/* ! mlockall() zfsd . */
 	bool mlock_zfsd;
 
@@ -105,7 +102,10 @@ typedef struct zfs_configuration_def
 	uint32_t default_node_gid;
 
 	/* ! local node configuration */
-	zfs_config_this_node this_node;
+	zfs_config_node this_node;
+
+	/* ! config node configuration */
+	zfs_config_node config_node;
 
 	/* ! metadata config */
 	zfs_config_metadata metadata;

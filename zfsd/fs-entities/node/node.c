@@ -46,6 +46,21 @@ pthread_mutex_t node_mutex;
 /* ! Description of local node.  */
 node this_node;
 
+bool is_valid_node_id(uint32_t id)
+{
+	return (id != 0) && (id != ((uint32_t) - 1));
+}
+
+bool is_valid_node_name(const char * name)
+{
+	return (name != NULL) && (name[0] != 0);
+}
+
+bool is_valid_host_name(const char * name)
+{
+	return (name != NULL) && (name[0] != 0);
+}
+
 /* ! Hash function for node ID.  */
 #define HASH_NODE_ID(ID) (ID)
 

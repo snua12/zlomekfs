@@ -1,6 +1,5 @@
 #include "config_volume.h"
 #include "configuration.h"
-#include "config_parser.h"
 #include "config_iface.h"
 #include "dir.h"
 #include "zfsd.h"
@@ -25,117 +24,55 @@ bool init_config_volume(void)
 		goto out;
 	}
 
-	// config node was set by command line option node=1:node_a:HOST_NAME_OF_NODE_A
-	// zfs_config.config_node = xstrdup(zopts.node);
-	if (zfs_config.config_node)
-	{
-		string parts[3];
-		uint32_t sid;
-		node nod;
-		string path;
-
-		if (split_and_trim(zfs_config.config_node, 3, parts) == 3)
-		{
-			if (sscanf(parts[0].str, "%" PRIu32, &sid) != 1)
-			{
-				message(LOG_ERROR, FACILITY_CONFIG,
-						"Wrong format of node option\n");
-				goto out_usage;
-			}
-			else if (sid == 0 || sid == (uint32_t) - 1)
-			{
-				message(LOG_ERROR, FACILITY_CONFIG,
-						"Node ID must not be 0 or %" PRIu32 "\n",
-						(uint32_t) - 1);
-				goto out_usage;
-			}
-			else if (sid == zfs_config.this_node.node_id)
-			{
-				message(LOG_ERROR, FACILITY_CONFIG,
-						"The ID of the config node must be "
-						"different from the ID of the local node\n");
-				goto out_usage;
-			}
-			else if (parts[1].len == 0)
-			{
-				message(LOG_ERROR, FACILITY_CONFIG,
-						"Node name must not be empty\n");
-				goto out_usage;
-			}
-			else if (parts[1].len == zfs_config.this_node.node_name.len
-					 && strcmp(parts[1].str, zfs_config.this_node.node_name.str) == 0)
-			{
-				message(LOG_ERROR, FACILITY_CONFIG,
-						"The name of the config node must be "
-						"different from the name of the local node\n");
-				goto out_usage;
-			}
-			else if (parts[2].len == 0)
-			{
-				message(LOG_ERROR, FACILITY_CONFIG,
-						"Node host name must not be empty\n");
-				goto out_usage;
-			}
-			else
-			{
-				/* Create the node and set it as master of config volume.  */
-				zfsd_mutex_lock(&node_mutex);
-				nod = node_create(sid, &parts[1], &parts[2]);
-				zfsd_mutex_unlock(&nod->mutex);
-				zfsd_mutex_unlock(&node_mutex);
-
-				volume_set_common_info_wrapper(vol, "config", "/config", nod);
-				xstringdup(&path, &vol->local_path);
-				zfsd_mutex_unlock(&vol->mutex);
-				zfsd_mutex_unlock(&volume_mutex);
-				zfsd_mutex_unlock(&fh_mutex);
-
-				/* Recreate the directory where config volume is cached.  */
-				recursive_unlink(&path, VOLUME_ID_VIRTUAL, false, false,
-								 false);
-				zfsd_mutex_lock(&fh_mutex);
-				vol = volume_lookup(VOLUME_ID_CONFIG);
-#ifdef ENABLE_CHECKING
-				if (!vol)
-					abort();
-#endif
-				if (volume_set_local_info(&vol, &path, vol->size_limit))
-				{
-					if (vol)
-						zfsd_mutex_unlock(&vol->mutex);
-				}
-				else
-				{
-					zfsd_mutex_unlock(&vol->mutex);
-					message(LOG_CRIT, FACILITY_CONFIG,
-							"Could not initialize config volume.\n");
-					goto out_fh;
-				}
-				zfsd_mutex_unlock(&fh_mutex);
-
-				free(zfs_config.config_node);
-				zfs_config.config_node = NULL;
-			}
-		}
-		else
-		{
-			message(LOG_ERROR, FACILITY_CONFIG,
-					"Wrong format of node option\n");
-			goto out_usage;
-		}
-	}
-	else
+	bool rv = stringeq(&zfs_config.config_node.node_name, &zfs_config.this_node.node_name);
+	if (rv == true)
 	{
 		volume_set_common_info_wrapper(vol, "config", "/config", this_node);
 		zfsd_mutex_unlock(&vol->mutex);
 		zfsd_mutex_unlock(&volume_mutex);
 		zfsd_mutex_unlock(&fh_mutex);
 	}
-	return true;
+	else
+	{
+		zfsd_mutex_lock(&node_mutex);
+		node nod = node_create(zfs_config.config_node.node_id, &zfs_config.config_node.node_name, &zfs_config.config_node.host_name);
+		zfsd_mutex_unlock(&nod->mutex);
+		zfsd_mutex_unlock(&node_mutex);
 
-  out_usage:
-	zfsd_mutex_unlock(&vol->mutex);
-	usage();
+		volume_set_common_info_wrapper(vol, "config", "/config", nod);
+		string path;
+		xstringdup(&path, &vol->local_path);
+		zfsd_mutex_unlock(&vol->mutex);
+		zfsd_mutex_unlock(&volume_mutex);
+		zfsd_mutex_unlock(&fh_mutex);
+
+		/* Recreate the directory where config volume is cached.  */
+		recursive_unlink(&path, VOLUME_ID_VIRTUAL, false, false,
+						 false);
+		zfsd_mutex_lock(&fh_mutex);
+		vol = volume_lookup(VOLUME_ID_CONFIG);
+#ifdef ENABLE_CHECKING
+		if (!vol)
+			abort();
+#endif
+		if (volume_set_local_info(&vol, &path, vol->size_limit))
+		{
+			if (vol)
+				zfsd_mutex_unlock(&vol->mutex);
+		}
+		else
+		{
+			zfsd_mutex_unlock(&vol->mutex);
+			message(LOG_CRIT, FACILITY_CONFIG,
+					"Could not initialize config volume.\n");
+			goto out_fh;
+		}
+		zfsd_mutex_unlock(&fh_mutex);
+
+	}
+
+
+	return true;
 
   out:
 	zfsd_mutex_unlock(&volume_mutex);

@@ -231,3 +231,67 @@ uint32_t stringlen(string * str)
 	return str->len;
 }
 
+bool stringeq(string * str1, string * str2)
+{
+	if (stringlen(str1) != stringlen(str2))
+		return false;
+
+	return (strcmp(str1->str, str2->str) == 0);
+}
+
+uint32_t split_and_trim(char *line, int n, string * parts)
+{
+	int i;
+	char *start, *colon;
+
+	i = 0;
+	while (1)
+	{
+		/* Skip white spaces.  */
+		while (*line == ' ' || *line == '\t')
+			line++;
+
+		/* Remember the beginning of a part. */
+		start = line;
+		if (i < n)
+			parts[i].str = start;
+
+		/* Find the end of a part.  */
+		while (*line != 0 && *line != '\n' && *line != ':')
+			line++;
+		colon = line;
+
+		if (i < n)
+		{
+			if (line > start)
+			{
+				/* Delete white spaces at the end of a part.  */
+				line--;
+				while (line >= start && (*line == ' ' || *line == '\t'))
+				{
+					*line = 0;
+					line--;
+				}
+				line++;
+			}
+			parts[i].len = line - start;
+		}
+
+		i++;
+
+		if (*colon == ':')
+		{
+			*colon = 0;
+			line = colon + 1;
+		}
+		else
+		{
+			/* We are at the end of line.  */
+			*colon = 0;
+			break;
+		}
+	}
+
+	return i;
+}
+

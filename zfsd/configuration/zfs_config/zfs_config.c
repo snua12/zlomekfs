@@ -30,7 +30,6 @@ zfs_configuration zfs_config =
 {
 	//.config_reader_data = ,
 	.config_sem = ZFS_SEMAPHORE_INITIALIZER(0),
-	.config_node = NULL,
 	.mlock_zfsd = true,
 	.local_config_path = "/etc/zfs/zfs.conf",
 	.default_node_uid = (uint32_t) - 1,
@@ -38,6 +37,11 @@ zfs_configuration zfs_config =
 	.this_node = {
 		.node_id = (uint32_t) - 1,
 		.node_name = STRING_INVALID_INITIALIZER,
+	},
+	.config_node = {
+		.node_id = (uint32_t) -1,
+		.node_name = STRING_INVALID_INITIALIZER,
+		.host_name = STRING_INVALID_INITIALIZER,
 	},
 	.metadata = {
 		.metadata_tree_depth = 1,

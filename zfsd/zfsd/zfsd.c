@@ -269,8 +269,6 @@ void usage(void)
 	dprintf(1, "Usage: zfsd [OPTION]...\n\n"
 			"  -o config=FILE               "
 			"Specifies the name of the configuration file.\n"
-			"  -o node=ID:NAME:HOSTNAME     "
-			"Fetch global configuration from specified node.\n"
 			"  -o loglevel=DEBUG_LEVEL      "
 			"Display debugging messages up to level DEBUG_LEVEL.\n"
 #ifdef ENABLE_VERSIONS
@@ -330,7 +328,6 @@ enum
 struct zfs_opts
 {
 	char *config;
-	char *node;
 	int loglevel;
 #ifdef ENABLE_VERSIONS
 	bool versioning;
@@ -346,7 +343,6 @@ struct zfs_opts
 
 static const struct fuse_opt main_options[] = {
 	ZFS_OPT("config=%s", config, 0),
-	ZFS_OPT("node=%s", node, 0),
 	ZFS_OPT("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
 #ifdef ENABLE_VERSIONS
 	ZFS_OPT("versioning", versioning, true),
@@ -405,11 +401,6 @@ static void process_arguments(int argc, char **argv)
 		set_local_config_path(zopts.config);
 	}
 
-	if (zopts.node)
-	{
-		//TODO xstrdup
-		zfs_config.config_node = xstrdup(zopts.node);
-	}
 #ifdef ENABLE_VERSIONS
 	zfs_config.versions.versioning = zopts.versioning;
 	zfs_config.versions.verdisplay = zopts.verdisplay;

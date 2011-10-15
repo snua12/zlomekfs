@@ -10,7 +10,6 @@
 #include "local_config.h"
 #include "user-group.h"
 #include "config_user_group.h"
-#include "config_limits.h"
 #include "thread.h"
 // TODO: don't share everything with configuration data
 #include "configuration.h"

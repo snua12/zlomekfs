@@ -175,6 +175,11 @@ typedef struct waiting4reply_data_def
 	fibnode node;
 } waiting4reply_data;
 
+
+/* ! Verify whether the thread limits are valid. \param limit Thread limits.
+   \param name Name of the threads.  */
+extern bool is_valid_thread_limit(thread_limit * limit, const char *name);
+
 /* ! Get value of RUNNING flag.  */
 extern bool get_running(void);
 

@@ -29,6 +29,11 @@
 #include "fh.h"
 #include "node.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /* ! Mark the volume to delete it.  */
 #define MARK_VOLUME_DELETE(VOL) (VOL)->delete_p = true
 
@@ -75,6 +80,9 @@ struct volume_def
 /* ! Mutex for table of volumes.  */
 extern pthread_mutex_t volume_mutex;
 
+extern bool is_valid_volume_id(uint32_t vid);
+extern bool is_valid_volume_name(const char * name);
+
 /* ! Function prototypes.  */
 extern volume volume_lookup(uint32_t id);
 extern volume volume_lookup_nolock(uint32_t id);
@@ -96,5 +104,9 @@ extern void destroy_marked_volumes(void);
 extern void destroy_all_volumes(void);
 extern void initialize_volume_c(void);
 extern void cleanup_volume_c(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

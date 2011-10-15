@@ -86,6 +86,11 @@ static void delete_hardlinks_file(volume vol, zfs_fh * fh);
 static bool write_hardlinks(volume vol, zfs_fh * fh, metadata * meta,
 							hardlink_list hl);
 
+bool is_valid_metadata_tree_depth(int depth)
+{
+	return (depth >= MIN_METADATA_TREE_DEPTH && depth <= MAX_METADATA_TREE_DEPTH); 
+}
+
 /* ! Hash function for metadata X.  */
 
 hashval_t metadata_hash(const void *x)

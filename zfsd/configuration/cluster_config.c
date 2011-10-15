@@ -10,13 +10,11 @@
 #include "dir.h"
 #include "node.h"
 #include "volume.h"
-#include "config_limits.h"
 #include "cluster_config.h"
 #include "zfsd.h"
 #include "network.h"
 
 #include "config_user_group.h"
-#include "config_limits.h"
 #include "configuration.h"
 #include "config_volume.h"
 #include "reread_config.h"

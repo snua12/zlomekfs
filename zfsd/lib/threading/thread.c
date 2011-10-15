@@ -55,6 +55,26 @@ thread_limit kernel_thread_limit = { 4, 1, 2 };
 /* ! Limits for number of update threads.  */
 thread_limit update_thread_limit = { 4, 1, 2 };
 
+bool is_valid_thread_limit(thread_limit * limit, const char *name)
+{
+	if (limit->min_spare > limit->max_total)
+	{
+		message(LOG_WARNING, FACILITY_CONFIG,
+				"MinSpareThreads.%s must be lower or equal to MaxThreads.%s\n",
+				name, name);
+		return false;
+	}
+	if (limit->min_spare > limit->max_spare)
+	{
+		message(LOG_WARNING, FACILITY_CONFIG,
+				"MinSpareThreads.%s must be lower or equal to MaxSpareThreads.%s\n",
+				name, name);
+		return false;
+	}
+
+	return true;
+}
+
 
 bool get_running(void)
 {

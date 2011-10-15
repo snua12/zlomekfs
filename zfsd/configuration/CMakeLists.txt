@@ -7,7 +7,6 @@ SET(configuration_SRC
   config_user_group.c
   cluster_config.c
   config_volume.c
-  config_parser.c
 )
 
 add_library(configuration ${BUILDTYPE} ${configuration_SRC})

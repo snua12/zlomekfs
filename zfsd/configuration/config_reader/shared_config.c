@@ -3,6 +3,7 @@
 #include "log.h"
 #include "node.h"
 #include "volume.h"
+#include "dir.h"
 #include "user-group.h"
 #include "zfs_config.h"
 #include "config_iface.h"
@@ -20,28 +21,6 @@ static void volume_entry_init(volume_entry * ve)
 
 static void volume_entry_destroy(ATTRIBUTE_UNUSED volume_entry *ve)
 {
-}
-
-static bool is_valid_volume_id(uint32_t vid)
-{
-	return (vid != 0) && (vid != (uint32_t) - 1);
-}
-
-static bool is_valid_volume_name(const char * name)
-{
-	// strlen(name) > 0
-	return (name != NULL && name[0] != 0);
-}
-
-static bool is_valid_local_path(const char * path)
-{
-#ifndef	ENABLE_LOCAL_PATH
-	return (path != NULL && path[0] == '/');
-#else
-	// strlen(path >  0)
-	return (path != NULL && path[0]);
-#endif
-
 }
 
 int read_node_list_shared_config(config_t * config)

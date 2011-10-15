@@ -120,6 +120,8 @@ typedef struct fh_mapping_def
 #include "volume.h"
 #include "fh.h"
 
+extern bool is_valid_metadata_tree_depth(int depth);
+
 extern hashval_t metadata_hash(const void *x);
 extern int metadata_eq(const void *x, const void *y);
 

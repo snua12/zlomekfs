@@ -33,7 +33,7 @@
 #include "metadata.h"
 
 
-
+extern bool is_valid_local_path(const char * path);
 extern void build_local_path(string * dst, volume vol, internal_dentry dentry);
 extern int32_t build_local_path_name(string * dst, volume vol,
 									 internal_dentry dentry, string * name);

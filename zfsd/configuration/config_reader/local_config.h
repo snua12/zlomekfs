@@ -23,6 +23,9 @@ int read_groups_local_config(config_t * config);
 /// reads information about this node from local config
 int read_this_node_local_config(config_t * config);
 
+/// reads information about config node from local config
+int read_config_node_local_config(config_t * config);
+
 /// reads system specific config from local config
 int read_system_specific_config(config_t * config);
 

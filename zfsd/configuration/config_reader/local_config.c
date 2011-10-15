@@ -62,40 +62,6 @@ static bool create_volume_from_local_config(uint32_t id, uint64_t cache_size, co
 	return true;
 }
 
-
-
-static bool is_valid_volume_id(uint32_t id)
-{
-	return (id != 0) && (id != (uint32_t) -1);
-}
-
-/* ! Verify whether the thread limits are valid. \param limit Thread limits.
-   \param name Name of the threads.  */
-static bool is_valid_thread_limit(thread_limit * limit, const char *name)
-{
-	if (limit->min_spare > limit->max_total)
-	{
-		message(LOG_WARNING, FACILITY_CONFIG,
-				"MinSpareThreads.%s must be lower or equal to MaxThreads.%s\n",
-				name, name);
-		return false;
-	}
-	if (limit->min_spare > limit->max_spare)
-	{
-		message(LOG_WARNING, FACILITY_CONFIG,
-				"MinSpareThreads.%s must be lower or equal to MaxSpareThreads.%s\n",
-				name, name);
-		return false;
-	}
-
-	return true;
-}
-
-static bool is_valid_metadata_tree_depth(int depth)
-{
-	return (depth >= MIN_METADATA_TREE_DEPTH && depth <= MAX_METADATA_TREE_DEPTH); 
-}
-
 int read_volumes_local_config(config_t * config, bool reread)
 {
 	config_setting_t * settings = config_lookup(config, "volumes");
@@ -311,6 +277,88 @@ int read_this_node_local_config(config_t * config)
 	return CONFIG_TRUE;
 }
 
+int read_config_node_local_config(config_t * config)
+{
+	config_setting_t * config_node_setting = config_lookup(config, "config_node");
+	if (config_node_setting == NULL)
+	{
+		message(LOG_WARNING, FACILITY_CONFIG, "Config node section is missing, using and config node this node");
+
+		zfs_config.config_node.node_id = zfs_config.this_node.node_id;
+		xstringdup(&zfs_config.config_node.node_name, &zfs_config.this_node.node_name);
+
+		return CONFIG_TRUE;
+	}
+
+	config_setting_t * setting_node_id = config_setting_get_member(config_node_setting, "id");
+	config_setting_t * setting_node_name = config_setting_get_member(config_node_setting, "name");
+	config_setting_t * setting_node_host = config_setting_get_member(config_node_setting, "host");
+
+	if (setting_node_id == NULL || setting_node_name == NULL || setting_node_host == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "In local config node section name, node id or host name is missing, please add them to local config.\n");
+		return CONFIG_FALSE;
+	}
+
+	if (config_setting_type(setting_node_id) != CONFIG_TYPE_INT)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "In local node section key id has wrong type, it should be int.\n");
+		return CONFIG_FALSE;
+	}
+
+	if (config_setting_type(setting_node_name) != CONFIG_TYPE_STRING)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "In local node section key name has wrong type, it should be string.\n");
+		return CONFIG_FALSE;
+	}
+
+	if (config_setting_type(setting_node_host) != CONFIG_TYPE_STRING)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "In local node section key name has wrong type, it should be string.\n");
+		return CONFIG_FALSE;
+	}
+
+	zfs_config.config_node.node_id = config_setting_get_int(setting_node_id);
+	if (!is_valid_node_id(zfs_config.config_node.node_id))
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Node in config node id is invalid, please fix is.\n");
+		return CONFIG_FALSE;
+	}
+
+	if (zfs_config.this_node.node_id == zfs_config.config_node.node_id)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Node in config node id is same as this node id.\n");
+		return CONFIG_FALSE;
+	}
+
+	const char * local_node_name = config_setting_get_string(setting_node_name);
+	if (!is_valid_node_name(local_node_name))
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Node name in config node is invalid.\n");
+		return CONFIG_FALSE;
+	}
+
+	xmkstring(&zfs_config.config_node.node_name, local_node_name);
+	if (stringeq(&zfs_config.config_node.node_name, &zfs_config.this_node.node_name))
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Node name in config node is same as this node name.\n");
+		return CONFIG_FALSE;
+	}
+
+
+	const char * local_node_host = config_setting_get_string(setting_node_host);
+	if (!is_valid_host_name(local_node_host))
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Host name in config node is invalid.\n");
+		return CONFIG_FALSE;
+	}
+
+	xmkstring(&(zfs_config.config_node.host_name), local_node_host);
+
+
+	return CONFIG_TRUE;
+}
+
 int read_system_specific_config(config_t * config)
 {
 	config_setting_t * system_settings = config_lookup(config, "system");
@@ -456,6 +504,13 @@ int read_local_config(config_t * config)
 	if (rv != CONFIG_TRUE)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read this node config from local config.\n");
+		return rv;
+	}
+
+	rv = read_config_node_local_config(config);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read config node config from local config.\n");
 		return rv;
 	}
 

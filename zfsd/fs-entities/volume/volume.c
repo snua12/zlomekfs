@@ -39,6 +39,17 @@ static htab_t volume_htab_name;
 /* ! Mutex for table of volumes.  */
 pthread_mutex_t volume_mutex;
 
+bool is_valid_volume_id(uint32_t vid)
+{
+	return (vid != 0) && (vid != (uint32_t) - 1);
+}
+
+bool is_valid_volume_name(const char * name)
+{
+	// strlen(name) > 0
+	return (name != NULL && name[0] != 0);
+}
+
 /* ! Hash function for volume ID ID.  */
 #define HASH_VOLUME_ID(ID) (ID)
 

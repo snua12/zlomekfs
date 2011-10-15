@@ -62,6 +62,11 @@ extern "C"
 							  unsigned int len);
 
 	extern uint32_t stringlen(string * str);
+	extern bool stringeq(string * str1, string * str2);
+
+	/* ! Split the line by ':', trim the resulting parts, fill up to N parts to
+	   PARTS and return the total number of parts.  */
+	extern uint32_t split_and_trim(char *line, int n, string * parts);
 
 #ifdef __cplusplus
 }

@@ -54,6 +54,16 @@
 static bool move_to_shadow_base(volume vol, zfs_fh * fh, string * path,
 								string * name, zfs_fh * dir_fh, bool journal);
 
+bool is_valid_local_path(const char * path)
+{
+#ifndef	ENABLE_LOCAL_PATH
+	return (path != NULL && path[0] == '/');
+#else
+	// strlen(path >  0)
+	return (path != NULL && path[0]);
+#endif
+}
+
 /* ! Return the local path of file for dentry DENTRY on volume VOL.  */
 
 void build_local_path(string * dst, volume vol, internal_dentry dentry)
@@ -319,8 +329,10 @@ void local_path_to_relative_path(string * dst, volume vol, string * path)
 void file_name_from_path(string * dst, string * path)
 {
 	TRACE("");
+
 #ifdef ENABLE_CHECKING
-	if (path->str[0] != '/')
+	bool rv = is_valid_local_path(path->str);
+	if (rv != true)
 	{
 #ifndef ENABLE_LOCAL_PATH
 		message(LOG_ERROR, FACILITY_DATA | FACILITY_CONFIG | FACILITY_ZFSD,
@@ -331,6 +343,7 @@ void file_name_from_path(string * dst, string * path)
 				"local path %s\n", path->str);
 
 #endif /* ENABLE_LOCAL_PATH */
+
 	}
 #endif /* ENABLE_CHECKING */
 

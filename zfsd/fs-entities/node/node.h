@@ -60,6 +60,11 @@ extern pthread_mutex_t node_mutex;
 
 /* ! Description of local node.  */
 extern node this_node;
+
+extern bool is_valid_node_id(uint32_t id);
+extern bool is_valid_node_name(const char * name);
+extern bool is_valid_host_name(const char * name);
+
 /* ! Function prototypes.  */
 extern hash_t node_hash_name(const void *x);
 extern int node_eq_name(const void *x, const void *y);
