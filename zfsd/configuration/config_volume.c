@@ -1,6 +1,7 @@
 #include "config_volume.h"
 #include "configuration.h"
 #include "config_parser.h"
+#include "config_iface.h"
 #include "dir.h"
 #include "zfsd.h"
 #include "zfsio.h"

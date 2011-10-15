@@ -3,6 +3,7 @@ include_directories(
 ${ZFSD_SOURCE_DIR}/configuration
 ${ZFSD_SOURCE_DIR}/configuration/config_reader
 ${ZFSD_SOURCE_DIR}/configuration/zfs_config
+${ZFSD_SOURCE_DIR}/configuration/iface
 ${ZFSD_SOURCE_DIR}/control
 ${ZFSD_SOURCE_DIR}/control/dbus
 ${ZFSD_SOURCE_DIR}/include

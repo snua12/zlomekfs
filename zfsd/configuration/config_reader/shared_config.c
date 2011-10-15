@@ -5,6 +5,7 @@
 #include "volume.h"
 #include "user-group.h"
 #include "zfs_config.h"
+#include "config_iface.h"
 
 
 /* ! \brief initializes volume entry */
@@ -133,9 +134,7 @@ int read_mapping_setting(config_setting_t * setting, add_mapping add, void * dat
 // user_create wrapper
 static void add_user(ATTRIBUTE_UNUSED void * data, uint32_t id, string * name)
 {
-	zfsd_mutex_lock(&users_groups_mutex);
 	user_create(id, name);
-	zfsd_mutex_unlock(&users_groups_mutex);
 }
 
 int read_user_list_shared_config(config_t * config)
@@ -160,9 +159,7 @@ int read_user_list_shared_config(config_t * config)
 // group_create wrapper
 static void add_group(ATTRIBUTE_UNUSED void * data, uint32_t id, string * name)
 {
-	zfsd_mutex_lock(&users_groups_mutex);
 	group_create(id, name);
-	zfsd_mutex_unlock(&users_groups_mutex);
 }
 
 //TODO; write this function based on read_user_list_shared_config

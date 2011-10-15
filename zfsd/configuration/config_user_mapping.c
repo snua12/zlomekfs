@@ -7,36 +7,7 @@
 #include "libconfig.h"
 #include "shared_config.h"
 #include "varray.h"
-
-static bool_t update_user_mappings(varray * users_mappings, uint32_t sid)
-{
-	node nod = NULL;
-	if (sid > 0)
-	{
-		nod = node_lookup(sid);
-		if (nod == NULL)
-			return false;
-	}
-
-	zfsd_mutex_lock(&users_groups_mutex);
-
-	unsigned int i;
-	for (i = 0; i < VARRAY_USED(*users_mappings); ++i)
-	{
-		user_mapping um = VARRAY_ACCESS(*users_mappings, i, user_mapping);
-		user_mapping_create(&(um.zfs_user), &(um.node_user), nod);
-	}
-
-	zfsd_mutex_unlock(&users_groups_mutex);
-
-	if (sid > 0)
-	{
-		zfsd_mutex_unlock(&nod->mutex);
-	}
-
-	return true;
-
-}
+#include "config_iface.h"
 
 /* ! Read list of user mapping.  If SID == 0 read the default user mapping
    from CONFIG_DIR/user/default else read the special mapping for node SID.  */

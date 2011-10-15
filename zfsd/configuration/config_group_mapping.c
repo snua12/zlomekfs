@@ -8,38 +8,7 @@
 #include "libconfig.h"
 #include "shared_config.h"
 #include "varray.h"
-
-static bool_t update_group_mappings(varray * groups_mappings, uint32_t sid)
-{
-	node nod = NULL;
-	if (sid > 0)
-	{
-		nod = node_lookup(sid);
-		if (nod == NULL)
-			return false;
-	}
-
-	zfsd_mutex_lock(&users_groups_mutex);
-
-	unsigned int i;
-	for (i = 0; i < VARRAY_USED(*groups_mappings); ++i)
-	{
-		group_mapping gm = VARRAY_ACCESS(*groups_mappings, i, group_mapping);
-		group_mapping_create(&(gm.zfs_group), &(gm.node_group), nod);
-	}
-
-	zfsd_mutex_unlock(&users_groups_mutex);
-
-	if (sid > 0)
-	{
-		zfsd_mutex_unlock(&nod->mutex);
-	}
-
-	return true;
-
-}
-
-
+#include "config_iface.h"
 
 /* ! Read list of group mapping.  If SID == 0 read the default group mapping
    from CONFIG_DIR/group/default else read the special mapping for node SID.  */
