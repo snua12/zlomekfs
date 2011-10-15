@@ -135,26 +135,12 @@ static bool reread_user_mapping(uint32_t sid)
 	else
 		return true;
 
-	if (nod)
-	{
-		zfsd_mutex_lock(&nod->mutex);
-		mark_user_mapping(nod);
-		zfsd_mutex_unlock(&nod->mutex);
-	}
-	else
-		mark_user_mapping(nod);
+	mark_user_mapping(nod);
 
 	if (!read_user_mapping(&user_dir_res.file, sid))
 		return false;
 
-	if (nod)
-	{
-		zfsd_mutex_lock(&nod->mutex);
-		destroy_marked_user_mapping(nod);
-		zfsd_mutex_unlock(&nod->mutex);
-	}
-	else
-		destroy_marked_user_mapping(nod);
+	destroy_marked_user_mapping(nod);
 
 	return true;
 }
@@ -175,13 +161,8 @@ static bool reread_user_list(void)
 	if (!read_user_list(&config_dir_res.file))
 		return false;
 
-	if (this_node)
-	{
-		zfsd_mutex_lock(&this_node->mutex);
-		destroy_marked_user_mapping(this_node);
-		zfsd_mutex_unlock(&this_node->mutex);
-	}
-	destroy_marked_user_mapping(NULL);
+	destroy_marked_user_mapping(this_node);
+
 	destroy_marked_users();
 
 	return true;
@@ -203,13 +184,7 @@ static bool reread_group_list(void)
 	if (!read_group_list(&config_dir_res.file))
 		return false;
 
-	if (this_node)
-	{
-		zfsd_mutex_lock(&this_node->mutex);
-		destroy_marked_group_mapping(this_node);
-		zfsd_mutex_unlock(&this_node->mutex);
-	}
-	destroy_marked_group_mapping(NULL);
+	destroy_marked_group_mapping(this_node);
 	destroy_marked_groups();
 
 	return true;
@@ -251,14 +226,7 @@ static bool reread_group_mapping(uint32_t sid)
 	if (!read_group_mapping(&group_dir_res.file, sid))
 		return false;
 
-	if (nod)
-	{
-		zfsd_mutex_lock(&nod->mutex);
-		destroy_marked_group_mapping(nod);
-		zfsd_mutex_unlock(&nod->mutex);
-	}
-	else
-		destroy_marked_group_mapping(nod);
+	destroy_marked_group_mapping(nod);
 
 	return true;
 }

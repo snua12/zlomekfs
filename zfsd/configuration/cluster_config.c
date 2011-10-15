@@ -34,10 +34,8 @@ static void invalidate_config(void)
 	mark_group_mapping(NULL);
 	if (this_node)
 	{
-		zfsd_mutex_lock(&this_node->mutex);
 		mark_user_mapping(this_node);
 		mark_group_mapping(this_node);
-		zfsd_mutex_unlock(&this_node->mutex);
 	}
 }
 
@@ -56,10 +54,8 @@ static bool verify_config(void)
 	destroy_marked_user_mapping(NULL);
 	destroy_marked_group_mapping(NULL);
 
-	zfsd_mutex_lock(&this_node->mutex);
 	destroy_marked_user_mapping(this_node);
 	destroy_marked_group_mapping(this_node);
-	zfsd_mutex_unlock(&this_node->mutex);
 
 	destroy_marked_users();
 	destroy_marked_groups();
