@@ -21,7 +21,8 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
-
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -69,14 +70,6 @@ extern "C"
 	typedef unsigned int uint32_t;
 	// / typedef for signed 32 bit number
 	typedef int int32_t;
-
-	/* defined in linux/types.h /// typedef for signed 64 bit number typedef
-	   long long int64_t;
-
-	   /// typedef for unsigned 64 bit number typedef unsigned long long
-	   uint64_t;
-
-	 */
 
 	// / boolean type
 	typedef int bool_t;
@@ -146,7 +139,7 @@ extern "C"
 		if (buffer == NULL || buffer_len == 0)
 			return -ERR_BAD_PARAMS;
 #endif
-		chars_printed = snprintf(buffer, buffer_len, "%llu", local_timezone);
+		chars_printed = snprintf(buffer, buffer_len, "%" PRIu64, local_timezone);
 
 		if (chars_printed > 0)
 			return chars_printed;
@@ -166,7 +159,7 @@ extern "C"
 		if (buffer == NULL || local_timezone == NULL)
 			return -ERR_BAD_PARAMS;
 #endif
-		chars_read = sscanf(buffer, "%llu", local_timezone);
+		chars_read = sscanf(buffer, "%" PRIu64, local_timezone);
 
 		if (chars_read > 0)
 			return chars_read;

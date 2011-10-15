@@ -34,6 +34,9 @@
 #define _THREAD_SAFE
 #endif
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
 
 #include "config.h"
 #include <inttypes.h>
