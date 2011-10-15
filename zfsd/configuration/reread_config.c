@@ -9,11 +9,7 @@
 #include "config_volume.h"
 #include "local_config.h"
 #include "user-group.h"
-#include "config_user_mapping.h"
-#include "config_user.h"
-#include "config_group.h"
-#include "config_group_mapping.h"
-#include "config_parser.h"
+#include "config_user_group.h"
 #include "config_limits.h"
 #include "thread.h"
 // TODO: don't share everything with configuration data

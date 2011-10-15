@@ -4,10 +4,7 @@ add_subdirectory(zfs_config)
 SET(configuration_SRC
   configuration.c
   reread_config.c
-  config_user_mapping.c
-  config_group_mapping.c
-  config_user.c
-  config_group.c
+  config_user_group.c
   cluster_config.c
   config_volume.c
   config_parser.c
