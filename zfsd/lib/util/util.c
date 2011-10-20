@@ -61,9 +61,15 @@ bool full_read(int fd, void *buf, size_t len)
 
 	for (total_read = 0; total_read < len; total_read += r)
 	{
+again:
 		r = read(fd, (char *)buf + total_read, len - total_read);
 		if (r <= 0)
 		{
+			if (errno == EINTR)
+			{
+				goto again;
+			}
+
 			message(LOG_WARNING, FACILITY_DATA,
 					"reading data FAILED: %d (%s)\n", errno, strerror(errno));
 			return false;
@@ -90,9 +96,15 @@ bool full_write(int fd, void *buf, size_t len)
 
 	for (total_written = 0; total_written < len; total_written += w)
 	{
+again:
 		w = write(fd, (char *)buf + total_written, len - total_written);
 		if (w <= 0)
 		{
+			if (errno == EINTR)
+			{
+				goto again;
+			}
+
 			message(LOG_NOTICE, FACILITY_DATA,
 					"writing data FAILED: %d (%s)\n", errno, strerror(errno));
 			return false;

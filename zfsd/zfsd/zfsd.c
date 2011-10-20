@@ -266,7 +266,7 @@ static void disable_sig_handlers(void)
 // places
 void usage(void)
 {
-	dprintf(1, "Usage: zfsd [OPTION]...\n\n"
+	fprintf(stdout, "Usage: zfsd [OPTION]...\n\n"
 			"  -o config=FILE               "
 			"Specifies the name of the configuration file.\n"
 			"  -o loglevel=DEBUG_LEVEL      "
@@ -295,9 +295,9 @@ void usage(void)
 			"Enable debug output (implies -f)\n"
 			"  -f                           " "Foreground operation\n");
 
-	sync();
+	fflush(stdout);
 
-	dprintf(1, "LOGGING OPTIONS:\n");
+	fprintf(stdout, "LOGGING OPTIONS:\n");
 	print_syplog_help(1, 1);
 }
 
@@ -597,7 +597,7 @@ static int zfs_start_services(zfs_started_services * services)
 
 	update_node_name();
 
-	if (!get_running())
+	if (!keep_running())
 	{
 		terminate();
 		return EXIT_FAILURE;
@@ -638,7 +638,7 @@ static void zfsd_main_loop(void)
 	 * Workaround valgrind bug (PR/77369), i.e. prevent from waiting
 	 * for joinee threads while signal is received.  
 	 */
-	while (get_running())
+	while (keep_running())
 	{
 		/* 
 		 * Sleep gets interrupted by the signal.  

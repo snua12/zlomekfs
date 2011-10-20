@@ -181,7 +181,7 @@ typedef struct waiting4reply_data_def
 extern bool is_valid_thread_limit(thread_limit * limit, const char *name);
 
 /* ! Get value of RUNNING flag.  */
-extern bool get_running(void);
+extern bool keep_running(void);
 
 
 /* ! set value of RUNNING flag.  */

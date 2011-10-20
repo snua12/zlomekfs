@@ -76,7 +76,7 @@ bool is_valid_thread_limit(thread_limit * limit, const char *name)
 }
 
 
-bool get_running(void)
+bool keep_running(void)
 {
 	bool value;
 
@@ -252,7 +252,7 @@ thread_pool_create(thread_pool * pool, thread_limit * limit,
 		abort();
 #endif
 
-	pool->terminate = !get_running();
+	pool->terminate = !keep_running();
 	if (pool->terminate)
 		return false;
 

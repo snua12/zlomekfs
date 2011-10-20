@@ -348,13 +348,13 @@ static void *cleanup_dentry_thread_main(ATTRIBUTE_UNUSED void *data)
 	thread_disable_signals();
 	pthread_setspecific(thread_name_key, "IFH cleanup thread");
 
-	while (get_running())
+	while (keep_running())
 	{
 		zfsd_mutex_lock(&cleanup_dentry_thread_in_syscall);
-		if (get_running())
+		if (keep_running())
 			sleep(1);
 		zfsd_mutex_unlock(&cleanup_dentry_thread_in_syscall);
-		if (!get_running())
+		if (!keep_running())
 			break;
 
 		cleanup_unused_dentries();
