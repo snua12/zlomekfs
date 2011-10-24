@@ -214,9 +214,9 @@ static void inode_map_destroy(void)
 
  /* Global connection data */
 
-static pthread_mutex_t buffer_pool_mutex;
+static pthread_mutex_t buffer_pool_mutex = ZFS_MUTEX_INITIALIZER;
 static void *buffer_pool[MAX_FREE_DCS];
-static size_t buffer_pool_size;	/* = 0; */
+static size_t buffer_pool_size = 0;	/* = 0; */
 
 /* ! Unmount the FUSE mountpoint and destroy data structures used by it.  */
 
@@ -228,6 +228,9 @@ void kernel_unmount(void)
 	fuse_session_remove_chan(fuse_ch);
 	fuse_session_destroy(fuse_se);
 	fuse_unmount(fuse_mountpoint, fuse_ch);
+	if (fuse_mountpoint != NULL)
+		free(fuse_mountpoint);
+
 	mounted = false;
 }
 
@@ -1226,7 +1229,7 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 
 	fuse_buf_size = fuse_chan_bufsize(fuse_ch);
 
-	while (!thread_pool_terminate_p(&kernel_pool))
+	while (!thread_pool_terminate_p(&kernel_pool) && !fuse_session_exited(fuse_se))
 	{
 		struct fuse_chan *ch_copy;
 		int recv_res;
@@ -1259,12 +1262,21 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 
 		if (recv_res <= 0)
 		{
-			if (recv_res != ENODEV)
-				message(LOG_NOTICE, FACILITY_ZFSD | FACILITY_DATA,
+			/* log error */
+			switch (recv_res)
+			{
+				/* filesystem was unmounted */
+				case -ENODEV:
+					message(LOG_NOTICE, FACILITY_ZFSD | FACILITY_DATA,
 						"FUSE unmounted, kernel_main exiting\n");
-			else
-				message(LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING,
+					break;
+				default:
+					message(LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING,
 						"kernel_main exiting: %s\n", strerror(-recv_res));
+					break;
+			}
+
+			/* exit while cyklus */
 			break;
 		}
 
@@ -1279,6 +1291,16 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 		zfsd_mutex_unlock(&buffer_pool_mutex);
 	}
 
+	kernel_unmount();
+
+	if (!thread_pool_terminate_p(&kernel_pool))
+	{
+		/* notify zfsd daemon about network thread termination */
+		//TODO: this part of code can be considered as hotfix
+		pid_t pid = getpid();
+		kill(pid, SIGTERM);
+	}
+
 	message(LOG_NOTICE, FACILITY_ZFSD | FACILITY_THREADING,
 			"Kernel thread return...\n");
 	return NULL;
@@ -1289,10 +1311,15 @@ bool kernel_start(void)
 {
 	fuse_ino_t root_ino;
 
-	zfsd_mutex_init(&buffer_pool_mutex);
+	int foreground;
 
-	if (fuse_parse_cmdline(&main_args, &fuse_mountpoint, NULL, NULL) != 0)
-		exit(EXIT_FAILURE);
+	//TODO: foreground version of zfsd
+	if (fuse_parse_cmdline(&main_args, &fuse_mountpoint, NULL, &foreground) != 0)
+	{
+		message(LOG_INFO, FACILITY_ZFSD, "Failed to parse fuse cmdline options.\n");
+		return false;
+	}
+
 	message(LOG_INFO, FACILITY_ZFSD, "Mounting FUSE to %s\n", fuse_mountpoint);
 
 	inode_map_init();
@@ -1303,11 +1330,12 @@ bool kernel_start(void)
 	fuse_ch = fuse_mount(fuse_mountpoint, &main_args);
 	if (fuse_ch == NULL)
 		goto err;
-	fuse_se =
-		fuse_lowlevel_new(&main_args, &zfs_fuse_ops, sizeof(zfs_fuse_ops),
-						  NULL);
+
+	fuse_se = fuse_lowlevel_new(&main_args, &zfs_fuse_ops,
+			sizeof(zfs_fuse_ops), NULL);
 	if (fuse_se == NULL)
 		goto err_ch;
+
 	fuse_session_add_chan(fuse_se, fuse_ch);
 
 	if (!thread_pool_create(&kernel_pool, &kernel_thread_limit, kernel_main,
