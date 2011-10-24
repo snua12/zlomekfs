@@ -96,8 +96,7 @@ static void fuse_kernel_invalidate_inode(struct fuse_chan *ch, fuse_ino_t ino)
 }
 
 static void fuse_kernel_invalidate_metadata(struct fuse_chan *ch,
-											fuse_ino_t parent,
-											const char *name)
+			fuse_ino_t parent, const char *name)
 {
 	message(LOG_INFO, FACILITY_ZFSD,
 			"fuse_kernel_invalidate_metadata: ino = %d\n", parent);
@@ -209,12 +208,10 @@ static void inode_map_destroy(void)
 	htab_destroy(inode_map_fh);
 	htab_destroy(inode_map_ino);
 }
-
- /* Global connection data */
 
-static pthread_mutex_t buffer_pool_mutex = ZFS_MUTEX_INITIALIZER;
-static void *buffer_pool[MAX_FREE_DCS];
-static size_t buffer_pool_size = 0;	/* = 0; */
+ /* Alloc pool for fuse requests buffers */
+static alloc_pool fuse_req_buf_pool;
+static pthread_mutex_t fuse_req_buf_pool_mutex = ZFS_MUTEX_INITIALIZER;
 
 /* ! Unmount the FUSE mountpoint and destroy data structures used by it.  */
 
@@ -280,9 +277,7 @@ static void sattr_from_req(sattr * attr, fuse_req_t req)
 	attr->mtime = -1;
 }
 
- /*BOOKMARK*/
-	static void
-stat_from_fattr(struct stat *st, const fattr * fa, fuse_ino_t ino)
+static void stat_from_fattr(struct stat *st, const fattr * fa, fuse_ino_t ino)
 {
 	memset(st, 0, sizeof(*st));
 	st->st_ino = ino;
@@ -299,8 +294,7 @@ stat_from_fattr(struct stat *st, const fattr * fa, fuse_ino_t ino)
 	st->st_ctime = fa->ctime;
 }
 
-static void
-entry_from_dir_op_res(struct fuse_entry_param *e, const dir_op_res * res)
+static void entry_from_dir_op_res(struct fuse_entry_param *e, const dir_op_res * res)
 {
 	e->ino = fh_to_inode(&res->file);
 	e->generation = res->file.gen;
@@ -308,11 +302,9 @@ entry_from_dir_op_res(struct fuse_entry_param *e, const dir_op_res * res)
 	e->attr_timeout = CACHE_VALIDITY;
 	e->entry_timeout = CACHE_VALIDITY;
 }
-
- /* Request translation */
 
-static void
-zfs_fuse_lookup(fuse_req_t req, fuse_ino_t parent, const char *name)
+ /* Request translation */
+static void zfs_fuse_lookup(fuse_req_t req, fuse_ino_t parent, const char *name)
 {
 	struct fuse_entry_param e;
 	const zfs_fh *fh;
@@ -345,8 +337,7 @@ zfs_fuse_lookup(fuse_req_t req, fuse_ino_t parent, const char *name)
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+static void zfs_fuse_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 {
 	struct stat st;
 	const zfs_fh *fh;
@@ -375,8 +366,7 @@ zfs_fuse_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
+static void zfs_fuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 				 int to_set, struct fuse_file_info *fi)
 {
 	struct stat st;
@@ -463,8 +453,7 @@ static void zfs_fuse_readlink(fuse_req_t req, fuse_ino_t ino)
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
+static void zfs_fuse_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
 			   mode_t mode, dev_t rdev)
 {
 	struct fuse_entry_param e;
@@ -511,8 +500,7 @@ zfs_fuse_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
+static void zfs_fuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
 			   mode_t mode)
 {
 	struct fuse_entry_param e;
@@ -550,8 +538,7 @@ zfs_fuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_unlink(fuse_req_t req, fuse_ino_t parent, const char *name)
+static void zfs_fuse_unlink(fuse_req_t req, fuse_ino_t parent, const char *name)
 {
 	const zfs_fh *fh;
 	dir_op_args args;
@@ -609,8 +596,7 @@ static void zfs_fuse_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name)
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_symlink(fuse_req_t req, const char *dest, fuse_ino_t parent,
+static void zfs_fuse_symlink(fuse_req_t req, const char *dest, fuse_ino_t parent,
 				 const char *name)
 {
 	struct fuse_entry_param e;
@@ -648,8 +634,7 @@ zfs_fuse_symlink(fuse_req_t req, const char *dest, fuse_ino_t parent,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
+static void zfs_fuse_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
 				fuse_ino_t newparent, const char *newname)
 {
 	const zfs_fh *fh;
@@ -693,8 +678,7 @@ zfs_fuse_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
+static void zfs_fuse_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
 			  const char *newname)
 {
 	struct fuse_entry_param e;
@@ -745,8 +729,7 @@ zfs_fuse_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+static void zfs_fuse_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 {
 	const zfs_fh *fh;
 	open_args args;
@@ -785,8 +768,7 @@ zfs_fuse_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+static void zfs_fuse_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 			  struct fuse_file_info *fi)
 {
 	zfs_cap *cap;
@@ -833,8 +815,7 @@ zfs_fuse_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_write(fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
+static void zfs_fuse_write(fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
 			   off_t off, struct fuse_file_info *fi)
 {
 	zfs_cap *cap;
@@ -878,8 +859,7 @@ zfs_fuse_write(fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size,
 	fuse_reply_err(req, err);
 }
 
-static void
-zfs_fuse_release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+static void zfs_fuse_release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 {
 	zfs_cap *cap;
 	int err;
@@ -908,8 +888,7 @@ static void free_dir_list_array(dir_list * list)
 		free(entries[i].name.str);
 }
 
-static void
-zfs_fuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+static void zfs_fuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 				 struct fuse_file_info *fi)
 {
 	read_dir_args args;
@@ -998,8 +977,7 @@ static void zfs_fuse_statfs(fuse_req_t req, fuse_ino_t ino)
 	fuse_reply_statfs(req, &sfs);
 }
 
-static void
-zfs_fuse_create(fuse_req_t req, fuse_ino_t parent, const char *name,
+static void zfs_fuse_create(fuse_req_t req, fuse_ino_t parent, const char *name,
 				mode_t mode, struct fuse_file_info *fi)
 {
 	struct fuse_entry_param e;
@@ -1097,7 +1075,7 @@ int32_t zfs_proc_invalidate_kernel(thread * t, invalidate_args * args)
   err:
 	return t->retval;
 }
-
+
  /* Thread glue */
 
 /* ! Initialize kernel thread T.  */
@@ -1150,15 +1128,10 @@ static void *kernel_worker(void *data)
 		fuse_session_process(fuse_se, t->u.kernel.buf, t->u.kernel.buf_size,
 							 t->u.kernel.fuse_ch);
 
-		zfsd_mutex_lock(&buffer_pool_mutex);
-		if (buffer_pool_size < MAX_FREE_DCS)
-		{
-			buffer_pool[buffer_pool_size] = t->u.kernel.buf;
-			buffer_pool_size++;
-		}
-		else
-			free(t->u.kernel.buf);
-		zfsd_mutex_unlock(&buffer_pool_mutex);
+
+		zfsd_mutex_lock(&fuse_req_buf_pool_mutex);
+		pool_free(fuse_req_buf_pool, t->u.kernel.buf);
+		zfsd_mutex_unlock(&fuse_req_buf_pool_mutex);
 
 		/* Put self to the idle queue if not requested to die meanwhile.  */
 		zfsd_mutex_lock(&kernel_pool.mutex);
@@ -1218,31 +1191,23 @@ static void kernel_dispatch(struct fuse_chan *ch, void *buf, size_t buf_size)
 
 static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 {
-	size_t fuse_buf_size;
+	size_t fuse_buf_size = fuse_chan_bufsize(fuse_ch);
 
 	thread_disable_signals();
 	pthread_setspecific(thread_name_key, "Kernel main thread");
-
-	fuse_buf_size = fuse_chan_bufsize(fuse_ch);
 
 	while (!thread_pool_terminate_p(&kernel_pool) && !fuse_session_exited(fuse_se))
 	{
 		struct fuse_chan *ch_copy;
 		int recv_res;
 
-		zfsd_mutex_lock(&buffer_pool_mutex);
-		if (buffer_pool_size == 0)
-		{
-			buffer_pool[0] = xmalloc(fuse_buf_size);
-			buffer_pool_size++;
-		}
-		zfsd_mutex_unlock(&buffer_pool_mutex);
-		/* buffer_pool[0] is now available, and no other thread will remove
-		   it, so it is safe to unlock the mutex. */
+		zfsd_mutex_lock(&fuse_req_buf_pool_mutex);
+		char * fuse_req_buf = pool_alloc(fuse_req_buf_pool);
+		zfsd_mutex_unlock(&fuse_req_buf_pool_mutex);
 
 		ch_copy = fuse_ch;
 		zfsd_mutex_lock(&kernel_pool.main_in_syscall);
-		recv_res = fuse_chan_recv(&ch_copy, buffer_pool[0], fuse_buf_size);
+		recv_res = fuse_chan_recv(&ch_copy, fuse_req_buf, fuse_buf_size);
 		zfsd_mutex_unlock(&kernel_pool.main_in_syscall);
 
 		if (thread_pool_terminate_p(&kernel_pool))
@@ -1277,14 +1242,7 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 		}
 
 		/* Dispatch the packet.  */
-		kernel_dispatch(ch_copy, buffer_pool[0], recv_res);
-		zfsd_mutex_lock(&buffer_pool_mutex);
-		buffer_pool_size--;
-		if (buffer_pool_size > 0)
-		{
-			buffer_pool[0] = buffer_pool[buffer_pool_size];
-		}
-		zfsd_mutex_unlock(&buffer_pool_mutex);
+		kernel_dispatch(ch_copy, fuse_req_buf, recv_res);
 	}
 
 	kernel_unmount();
@@ -1323,6 +1281,18 @@ bool kernel_start(void)
 
 	fuse_session_add_chan(fuse_se, fuse_ch);
 
+	size_t fuse_buf_size = fuse_chan_bufsize(fuse_ch);
+
+	// initialize alloc pool for fuse requests buffers
+	zfsd_mutex_lock(&fuse_req_buf_pool_mutex);
+	fuse_req_buf_pool = create_alloc_pool("fuse requests buffers", fuse_buf_size, MAX_FREE_DCS, &fuse_req_buf_pool_mutex);
+	zfsd_mutex_unlock(&fuse_req_buf_pool_mutex);
+	if (fuse_req_buf_pool == NULL)
+	{
+		message(LOG_ERROR, FACILITY_ZFSD, "Failed to create fuse request buffer alloc pool.\n");
+		goto err_ch;
+	}
+
 	if (!thread_pool_create(&kernel_pool, &kernel_thread_limit, kernel_main,
 							kernel_worker, kernel_worker_init))
 	{
@@ -1343,6 +1313,11 @@ bool kernel_start(void)
 void kernel_cleanup(void)
 {
 	thread_pool_destroy(&kernel_pool);
+
+	// destroy alloc pool for fuse requests buffers
+	zfsd_mutex_lock(&fuse_req_buf_pool_mutex);
+	free_alloc_pool(fuse_req_buf_pool);
+	zfsd_mutex_unlock(&fuse_req_buf_pool_mutex);
 
 	inode_map_destroy();
 }
