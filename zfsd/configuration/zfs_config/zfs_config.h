@@ -94,6 +94,9 @@ typedef struct zfs_configuration_def
 
 	/* ! local path to local config */
 	const char * local_config_path;
+
+	/* ! mount point of zfsd */
+	char * mountpoint;
 	
 	/* ! default node uid */
 	uint32_t default_node_uid;

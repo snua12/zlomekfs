@@ -32,6 +32,7 @@ zfs_configuration zfs_config =
 	.config_sem = ZFS_SEMAPHORE_INITIALIZER(0),
 	.mlock_zfsd = true,
 	.local_config_path = "/etc/zfs/zfs.conf",
+	.mountpoint = NULL,
 	.default_node_uid = (uint32_t) - 1,
 	.default_node_gid = (uint32_t) - 1,
 	.this_node = {

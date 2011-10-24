@@ -67,10 +67,8 @@ bool mounted = false;
 static struct fuse_chan *fuse_ch;
 /* ! FUSE mount session */
 static struct fuse_session *fuse_se;
-/* ! The mount point */
-static char *fuse_mountpoint;
-
- /* Inode <-> file handle mapping */
+
+/* Inode <-> file handle mapping */
 
 struct inode_map
 {
@@ -227,9 +225,7 @@ void kernel_unmount(void)
 
 	fuse_session_remove_chan(fuse_ch);
 	fuse_session_destroy(fuse_se);
-	fuse_unmount(fuse_mountpoint, fuse_ch);
-	if (fuse_mountpoint != NULL)
-		free(fuse_mountpoint);
+	fuse_unmount(zfs_config.mountpoint, fuse_ch);
 
 	mounted = false;
 }
@@ -1311,23 +1307,12 @@ bool kernel_start(void)
 {
 	fuse_ino_t root_ino;
 
-	int foreground;
-
-	//TODO: foreground version of zfsd
-	if (fuse_parse_cmdline(&main_args, &fuse_mountpoint, NULL, &foreground) != 0)
-	{
-		message(LOG_INFO, FACILITY_ZFSD, "Failed to parse fuse cmdline options.\n");
-		return false;
-	}
-
-	message(LOG_INFO, FACILITY_ZFSD, "Mounting FUSE to %s\n", fuse_mountpoint);
-
 	inode_map_init();
 
 	root_ino = fh_to_inode(&root_fh);
 	assert(root_ino == FUSE_ROOT_ID);
 
-	fuse_ch = fuse_mount(fuse_mountpoint, &main_args);
+	fuse_ch = fuse_mount(zfs_config.mountpoint, &main_args);
 	if (fuse_ch == NULL)
 		goto err;
 
@@ -1348,7 +1333,7 @@ bool kernel_start(void)
 	return true;
 
   err_ch:
-	fuse_unmount(fuse_mountpoint, fuse_ch);
+	fuse_unmount(zfs_config.mountpoint, fuse_ch);
   err:
 	return false;
 }

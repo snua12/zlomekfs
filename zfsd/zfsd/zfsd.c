@@ -374,6 +374,25 @@ static void process_arguments(int argc, char **argv)
 	}
 
 	set_log_level(&syplogger, zopts.loglevel);
+
+
+	// start zfsd on background or foreground
+	int foreground;
+	int rv;
+	rv = fuse_parse_cmdline(&main_args, &zfs_config.mountpoint, NULL, &foreground);
+	if (rv == -1)
+	{
+		message(LOG_INFO, FACILITY_ZFSD, "Failed to parse fuse cmdline options.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	rv = fuse_daemonize(foreground);
+	if (rv == -1)
+	{
+		message(LOG_INFO, FACILITY_ZFSD, "Failed to daemonize zfsd.\n");
+		exit(EXIT_FAILURE);
+	}
+
 }
 
 /* 
@@ -652,6 +671,11 @@ int main(int argc, char **argv)
 #endif
 
 	int ret = zfsd_main();
+
+	if (zfs_config.mountpoint != NULL)
+	{
+		free(zfs_config.mountpoint);
+	}
 
 	fuse_opt_free_args(&main_args);
 
