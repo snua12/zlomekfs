@@ -480,8 +480,102 @@ int read_threads_config(config_t * config)
 	return CONFIG_TRUE;
 }
 
-//TODO:
-//int read_versioning_config(config_t * config)
+#ifdef ENABLE_VERSIONS
+static int read_interval_setting(config_setting_t * setting_interval, int32_t * out_min, int32_t * out_max)
+{
+	config_setting_t * setting_min = config_setting_get_member(setting_interval, "min");
+	config_setting_t * setting_max = config_setting_get_member(setting_interval, "max");
+
+	if (setting_min == NULL || setting_max == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "In interval is missing one of theses keys: min or max\n");
+		return CONFIG_FALSE;
+	}
+
+	if ((config_setting_type(setting_min) != CONFIG_TYPE_INT)
+	 || (config_setting_type(setting_max) != CONFIG_TYPE_INT))
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "In interval has one of these keys: min or max wrong type, is should be int.\n");
+		return CONFIG_FALSE;
+	}
+
+	*out_min = config_setting_get_int(setting_min);
+	*out_max = config_setting_get_int(setting_max);
+
+	if (*out_min > *out_max)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Limits of interval are invalid. (max=%d min=%d)\n", *out_min, *out_max);
+		return CONFIG_FALSE;
+	}
+
+	return CONFIG_TRUE;
+}
+
+int read_versioning_config(config_t * config)
+{
+	config_setting_t * setting_versioning = config_lookup(config, "versioning");
+	if (setting_versioning == NULL)
+	{
+		message(LOG_INFO, FACILITY_CONFIG, "No versioning section was found in local config.\n");
+		return CONFIG_TRUE;
+	}
+
+	config_setting_t * member;
+
+	/* versioning::enable */
+	member = config_setting_get_member(setting_versioning, "enable");
+	if (member != NULL)
+	{
+		if (config_setting_type(member) != CONFIG_TYPE_BOOL)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versoning::enable, enable has wrong type,\n");
+			return CONFIG_FALSE;
+		}
+		zfs_config.versions.versioning = config_setting_get_bool(member);
+	}
+
+	/* versioning::display */
+	member = config_setting_get_member(setting_versioning, "display");
+	if (member != NULL)
+	{
+		if (config_setting_type(member) != CONFIG_TYPE_BOOL)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versoning::display, enable has wrong type,\n");
+			return CONFIG_FALSE;
+		}
+		zfs_config.versions.verdisplay = config_setting_get_bool(member);
+	}
+
+	/* versioning::retention_age */
+	config_setting_t * setting_age = config_setting_get_member(setting_versioning, "retention_age");
+	if (setting_age != NULL)
+	{
+		int rv = read_interval_setting(setting_age, &(zfs_config.versions.retention_age_min),
+				&(zfs_config.versions.retention_age_max));
+		if (rv != CONFIG_TRUE)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versioning::retention age.\n");
+			return CONFIG_FALSE;
+		}
+	}
+
+	/* versioning::retention_num */
+	config_setting_t * setting_num = config_setting_get_member(setting_versioning, "retention_num");
+	if (setting_num != NULL)
+	{
+
+		int rv = read_interval_setting(setting_num, &(zfs_config.versions.retention_num_min),
+				&(zfs_config.versions.retention_num_max));
+		if (rv != CONFIG_TRUE)
+		{
+			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versioning::retention num.\n");
+			return CONFIG_FALSE;
+		}
+	}
+
+	return CONFIG_TRUE;
+}
+#endif
 
 int read_local_config(config_t * config)
 {
@@ -534,6 +628,15 @@ int read_local_config(config_t * config)
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read local volumes config from local config.\n");
 		return rv;
 	}
+
+#ifdef ENABLE_VERSIONS
+	rv = read_versioning_config(config);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versioninf config from local config.\n");
+		return rv;
+	}
+#endif
 
 	return rv;
 }

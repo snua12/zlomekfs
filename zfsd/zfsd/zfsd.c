@@ -271,20 +271,6 @@ void usage(void)
 			"Specifies the name of the configuration file.\n"
 			"  -o loglevel=DEBUG_LEVEL      "
 			"Display debugging messages up to level DEBUG_LEVEL.\n"
-#ifdef ENABLE_VERSIONS
-			"  -o versioning                "
-			"Enable versioning.\n"
-			"  -o verdisplay              "
-			"Display version files in directory listing.\n"
-			"  -o veragemin=seconds       "
-			"Minimum age version retention period.\n"
-			"  -o veragemax=seconds       "
-			"Maximum age version retention period.\n"
-			"  -o vernummin=number       "
-			"Minimum number of versions to keep with retention.\n"
-			"  -o vernummax=number       "
-			"Maximum number of versions to keep with retention.\n"
-#endif
 			"  --help                       "
 			"Display this help and exit.\n"
 			"  --version                    "
@@ -293,7 +279,8 @@ void usage(void)
 			"FUSE options:\n"
 			"  -d, -o debug                 "
 			"Enable debug output (implies -f)\n"
-			"  -f                           " "Foreground operation\n");
+			"  -f                           "
+			"Foreground operation\n");
 
 	fflush(stdout);
 
@@ -329,14 +316,6 @@ struct zfs_opts
 {
 	char *config;
 	int loglevel;
-#ifdef ENABLE_VERSIONS
-	bool versioning;
-	bool verdisplay;
-	int retention_age_min;
-	int retention_age_max;
-	int retention_num_min;
-	int retention_num_max;
-#endif
 };
 
 #define ZFS_OPT(t, p, v) { t, offsetof (struct zfs_opts, p), v }
@@ -344,14 +323,6 @@ struct zfs_opts
 static const struct fuse_opt main_options[] = {
 	ZFS_OPT("config=%s", config, 0),
 	ZFS_OPT("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
-#ifdef ENABLE_VERSIONS
-	ZFS_OPT("versioning", versioning, true),
-	ZFS_OPT("verdisplay", verdisplay, true),
-	ZFS_OPT("veragemin=%d", retention_age_min, -1),
-	ZFS_OPT("veragemax=%d", retention_age_max, -1),
-	ZFS_OPT("vernummin=%d", retention_num_min, -1),
-	ZFS_OPT("vernummax=%d", retention_num_max, -1),
-#endif
 	FUSE_OPT_KEY("--help", OPTION_HELP),
 	FUSE_OPT_KEY("--version", OPTION_VERSION),
 	FUSE_OPT_END
@@ -400,23 +371,6 @@ static void process_arguments(int argc, char **argv)
 	{
 		set_local_config_path(zopts.config);
 	}
-
-#ifdef ENABLE_VERSIONS
-	zfs_config.versions.versioning = zopts.versioning;
-	zfs_config.versions.verdisplay = zopts.verdisplay;
-
-	if ((zopts.retention_age_max < zopts.retention_age_min) ||
-		(zopts.retention_num_max < zopts.retention_num_min))
-	{
-		printf("Invalid retention interval.");
-		exit(EXIT_FAILURE);
-	}
-
-	zfs_config.versions.retention_age_min = zopts.retention_age_min;
-	zfs_config.versions.retention_age_max = zopts.retention_age_max;
-	zfs_config.versions.retention_num_min = zopts.retention_num_min;
-	zfs_config.versions.retention_num_max = zopts.retention_num_max;
-#endif
 
 	set_log_level(&syplogger, zopts.loglevel);
 }

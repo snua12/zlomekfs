@@ -32,6 +32,11 @@ int read_system_specific_config(config_t * config);
 /// reads thread limits from local config
 int read_threads_config(config_t * config);
 
+#ifdef ENABLE_VERSIONS
+/// reads versioning config
+int read_versioning_config(config_t * config);
+#endif
+
 /// reads local configuration
 int read_local_config(config_t * config);
 
