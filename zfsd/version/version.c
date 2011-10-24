@@ -1147,7 +1147,11 @@ version_read_old_data(internal_dentry dentry, uint64_t start, uint64_t end,
 			ival = VARRAY_ACCESS(rv, j, interval);
 
 			lseek(fd, ival.start, SEEK_SET);
+read_again:
 			rd = read(fd, buf + ival.start - start, ival.end - ival.start);
+			if (rd < 0 && errno == EINTR)
+				goto read_again;
+
 			if (rd > 0)
 			{
 				rsize += rd;
@@ -1299,9 +1303,13 @@ version_copy_data(int fd, int fdv, uint64_t offset, uint32_t length,
 	if (to_read >= sizeof(olddata))
 		to_read = sizeof(olddata) - 1;
 
+read_again:
 	r = read(fd, olddata, to_read);
 	if (r < 0)
 	{
+		if (errno == EINTR)
+			goto read_again;
+
 		message(LOG_WARNING, FACILITY_VERSION, "old data read error: %d\n",
 				errno);
 		RETURN_INT(errno);
@@ -1331,9 +1339,13 @@ version_copy_data(int fd, int fdv, uint64_t offset, uint32_t length,
 	}
 
 	to_write = r;
+write_again:
 	r = write(fdv, olddata, to_write);
 	if (r < 0)
 	{
+		if (errno == EINTR)
+			goto write_again;
+
 		message(LOG_WARNING, FACILITY_VERSION, "new data write error: %d\n",
 				errno);
 		RETURN_INT(errno);
