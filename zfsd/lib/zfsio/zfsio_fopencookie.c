@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include "fh.h"
-#include "zfsiomagic.h"
+#include "zfsio.h"
 
 typedef struct zfs_cookie_def
 {
@@ -59,7 +59,7 @@ cookie_io_functions_t  zfs_io_funcs = {
 	.close = zfsfile_close
 }; 
 
-FILE * fopenzfs(zfs_fh * fh, const char * mode)
+static FILE * fopenzfs(zfs_fh * fh, const char * mode)
 {
 	zfs_cookie zcookie = xmalloc(sizeof(struct zfs_cookie_def));
 	int32_t r = zfs_open(&zcookie->cap, fh, O_RDONLY);
@@ -81,4 +81,21 @@ FILE * fopenzfs(zfs_fh * fh, const char * mode)
 	}
 	
 	return f;
+}
+
+zfs_file * zfs_fopen(zfs_fh * fh)
+{
+	FILE * f = fopenzfs(fh, "rb");
+	return (zfs_file *) f;
+
+}
+
+int zfs_fclose(zfs_file * file)
+{
+	return fclose((FILE *) file);
+}
+
+FILE * zfs_fdget(zfs_file * file)
+{
+	return (FILE *) file;
 }

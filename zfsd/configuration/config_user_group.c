@@ -10,8 +10,6 @@
 
 #include "config_user_group.h"
 
-#include "zfsiomagic.h"
-
 /* ! Read list of users from CONFIG_DIR/user_list.  */
 
 bool read_user_list(zfs_fh * config_dir)
@@ -23,7 +21,7 @@ bool read_user_list(zfs_fh * config_dir)
 	if (r != ZFS_OK)
 		return false;
 
-	FILE * file= fopenzfs(&user_list_res.file, "r");
+	zfs_file * file = zfs_fopen(&user_list_res.file);
 	if (file == NULL)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read shared user list.\n");
@@ -33,11 +31,11 @@ bool read_user_list(zfs_fh * config_dir)
 	config_t config;
 	config_init(&config);
 	int rv;
-	rv =  config_read(&config, file);
+	rv =  config_read(&config, zfs_fdget(file));
 	if (rv != CONFIG_TRUE)
 	{
 		message(LOG_ERROR, FACILITY_CONFIG, "Failed to parse shared user list.\n");
-		fclose(file);
+		zfs_fclose(file);
 		return false;
 	}
 
@@ -48,7 +46,7 @@ bool read_user_list(zfs_fh * config_dir)
 	}
 
 	config_destroy(&config);
-	fclose(file);
+	zfs_fclose(file);
 
 	return (rv == CONFIG_TRUE);
 }

@@ -1,4 +1,14 @@
-add_library(zfsio ${BUILDTYPE} zfsio.c zfsiomagic.c)
+if(HAVE_FOPENCOOKIE)
+	SET(zfsio_SRC
+	   zfsio_fopencookie.c
+	)
+else()
+	SET(zfsio_SRC
+	   zfsio_mkstemp.c
+	)
+endif()
+
+add_library(zfsio ${BUILDTYPE} ${zfsio_SRC})
 target_link_libraries(zfsio)
 
 install(

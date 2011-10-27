@@ -158,6 +158,20 @@ if(NOT result EQUAL -1)
 	SET(ZFS_GTEST_LIBRARIES ${GTEST_BOTH_LIBRARIES} pthread)
 endif()
 
+#check headers
+#INCLUDE (CheckIncludeFiles)
+## usage: CHECK_INCLUDE_FILES (<header> <RESULT_VARIABLE> )
+#
+#CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
+#CHECK_INCLUDE_FILES ("sys/param.h;sys/mount.h" HAVE_SYS_MOUNT_H)
+#CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+
+
+#check functions
+include(CheckFunctionExists)
+check_function_exists(fopencookie HAVE_FOPENCOOKIE)
+check_function_exists(mkstemp HAVE_MKSTEMP)
+
 # configure headers
 configure_file(config.h.cmake ${CMAKE_BINARY_DIR}/include/config.h)
 #configure_file(confdefs.h.cmake ${CMAKE_BINARY_DIR}/include/confdefs.h)
