@@ -7,7 +7,6 @@
 #include "thread.h"
 #include "metadata.h"
 
-//TODO: code duplicity
 static void config_log_error(const config_t * config)
 {
 	message(LOG_EMERG, FACILITY_CONFIG,
@@ -16,7 +15,6 @@ static void config_log_error(const config_t * config)
 			config_error_text(config));
 }
 
-//TODO: code duplicity
 static bool create_volume_from_local_config(uint32_t id, uint64_t cache_size, const char * local_path, bool reread)
 {
 	volume vol = NULL;

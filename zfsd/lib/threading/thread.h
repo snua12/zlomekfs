@@ -31,6 +31,11 @@
 #include "data-coding.h"
 #include "zfs-prot.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /* ! Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
 
@@ -207,5 +212,9 @@ extern int create_idle_thread(thread_pool * pool);
 extern int destroy_idle_thread(thread_pool * pool);
 extern void thread_disable_signals(void);
 extern void thread_pool_regulate(thread_pool * pool);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

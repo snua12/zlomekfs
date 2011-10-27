@@ -1,4 +1,4 @@
-add_library(zfsio ${BUILDTYPE} zfsio.c)
+add_library(zfsio ${BUILDTYPE} zfsio.c zfsiomagic.c)
 target_link_libraries(zfsio)
 
 install(
