@@ -617,7 +617,7 @@ static void zfsd_main_loop(void)
 		/* 
 		 * Sleep gets interrupted by the signal.  
 		 */
-		sleep(1000000);
+		pause();
 	}
 }
 
