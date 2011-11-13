@@ -47,6 +47,7 @@
 #include "network.h"
 #include "journal.h"
 #include "metadata.h"
+#include "zfs_config.h"
 
 /* ! \brief Queue of file handles for updating or reintegrating. Protected by
    #update_queue_mutex. File handles are processed by threads in #update_pool */
@@ -4038,7 +4039,7 @@ bool update_start(void)
 	queue_create(&update_slow_queue, sizeof(zfs_fh), 250,
 				 &update_slow_queue_mutex);
 
-	if (!thread_pool_create(&update_pool, &update_thread_limit,
+	if (!thread_pool_create(&update_pool, &zfs_config.threads.update_thread_limit,
 							update_main, update_worker, update_worker_init))
 	{
 		zfsd_mutex_lock(&update_queue_mutex);

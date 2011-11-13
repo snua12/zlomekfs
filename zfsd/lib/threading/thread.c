@@ -46,15 +46,6 @@ pthread_key_t thread_data_key;
 /* ! Key for thread name.  */
 pthread_key_t thread_name_key;
 
-/* ! Limits for number of network threads.  */
-thread_limit network_thread_limit = { 8, 2, 4 };
-
-/* ! Limits for number of kernel threads.  */
-thread_limit kernel_thread_limit = { 4, 1, 2 };
-
-/* ! Limits for number of update threads.  */
-thread_limit update_thread_limit = { 4, 1, 2 };
-
 bool is_valid_thread_limit(thread_limit * limit, const char *name)
 {
 	if (limit->min_spare > limit->max_total)

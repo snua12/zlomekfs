@@ -8,7 +8,7 @@ target_link_libraries(config_reader zfs_config log zfsio ${LCONFIG_LIBRARIES})
 
 ## google test
 test_enabled(gtest result)
-if(NOT reqult EQUAL -1)
+if(NOT result EQUAL -1)
 
 	SET(config_reader_test_SRC config_reader_test.cpp)
 

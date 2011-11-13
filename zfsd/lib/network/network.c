@@ -363,14 +363,15 @@ connection_speed volume_master_connected(volume vol)
 		return CONNECTION_SPEED_NONE;
 	}
 
-	if (fd_data_a[vol->master->fd].auth != AUTHENTICATION_FINISHED)
+	if (fd_data_a[vol->master->fd].auth == AUTHENTICATION_FINISHED)
 	{
-		zfsd_mutex_unlock(&fd_data_a[vol->master->fd].mutex);
-		zfsd_mutex_unlock(&vol->master->mutex);
-		return CONNECTION_SPEED_NONE;
+		speed = CONNECTION_SPEED_NONE;
+	}
+	else
+	{
+		speed = fd_data_a[vol->master->fd].speed;
 	}
 
-	speed = fd_data_a[vol->master->fd].speed;
 	zfsd_mutex_unlock(&fd_data_a[vol->master->fd].mutex);
 	zfsd_mutex_unlock(&vol->master->mutex);
 
@@ -645,7 +646,7 @@ node_measure_connection_speed(thread * t, int fd, uint32_t sid, int32_t * r)
 }
 
 /* ! Authenticate connection with node NOD using data of thread T. On success
-   leave NETWORK_FD_DATA[NOD->FD].MUTEX lcoked.  */
+   leave NETWORK_FD_DATA[NOD->FD].MUTEX locked.  */
 
 static int node_authenticate(thread * t, node nod, authentication_status auth)
 {
@@ -1818,51 +1819,75 @@ void fd_data_destroy(void)
 	zfsd_cond_destroy(&pending_slow_reqs_cond);
 }
 
+/* ! \brief Create listening socket. */
+static int create_tcp_server(int address, int port, int backlog)
+{
+    int tcp_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (tcp_socket == -1)
+    {
+        message(LOG_WARNING, FACILITY_NET, "socket(): %s\n", strerror(errno));
+        return -1;
+    }
+
+    /* Reuse the port.  */
+
+    int rv = 0;
+    socklen_t socket_options = 1;
+    rv = setsockopt(tcp_socket, SOL_SOCKET, SO_REUSEADDR, &socket_options,
+                        sizeof(socket_options));
+    if (rv == -1)
+    {
+        message(LOG_WARNING, FACILITY_NET, "setsockopt(): %s\n",
+                   strerror(errno));
+    }
+
+    if  (rv == 0)
+    {
+        /* Bind the socket to ZFS_PORT. */
+        struct sockaddr_in sa;
+        sa.sin_family = AF_INET;
+        sa.sin_addr.s_addr = htonl(address);
+        sa.sin_port = htons(port);
+        rv = bind(main_socket, (struct sockaddr *)&sa, sizeof(sa));
+        if (rv == -1)
+        {
+                message(LOG_WARNING, FACILITY_NET, "bind(): %s\n", strerror(errno));
+        }
+    }
+
+    if (rv == 0)
+    {
+        /* Set the queue for incoming connections. */
+        rv = listen(main_socket, backlog);
+        if (rv == -1)
+        {
+                message(LOG_WARNING, FACILITY_NET, "listen(): %s\n", strerror(errno));
+        }
+    }
+
+    if (rv == -1)
+    {
+            close(tcp_socket);
+            return -1;
+    }
+
+    return tcp_socket;
+}
+
 /* ! \brief Create a listening socket and start the main network thread.  */
 bool network_start(void)
 {
-	socklen_t socket_options;
-	struct sockaddr_in sa;
 
-	/* Create a listening socket.  */
-	main_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (main_socket < 0)
+
+        /* Create a tcp server socket.  */
+        main_socket = create_tcp_server(INADDR_ANY, ZFS_PORT, SOMAXCONN);
+        if (main_socket == -1)
 	{
-		message(LOG_WARNING, FACILITY_NET, "socket(): %s\n", strerror(errno));
-		return false;
+            message(LOG_ERROR, FACILITY_NET, "create_tcp_server(): has failed\n");
+            return false;
 	}
 
-	/* Reuse the port.  */
-	socket_options = 1;
-	if (setsockopt(main_socket, SOL_SOCKET, SO_REUSEADDR, &socket_options,
-				   sizeof(socket_options)) != 0)
-	{
-		message(LOG_WARNING, FACILITY_NET, "setsockopt(): %s\n",
-				strerror(errno));
-		close(main_socket);
-		return false;
-	}
-
-	/* Bind the socket to ZFS_PORT.  */
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons(ZFS_PORT);
-	sa.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(main_socket, (struct sockaddr *)&sa, sizeof(sa)))
-	{
-		message(LOG_WARNING, FACILITY_NET, "bind(): %s\n", strerror(errno));
-		close(main_socket);
-		return false;
-	}
-
-	/* Set the queue for incoming connections.  */
-	if (listen(main_socket, SOMAXCONN) != 0)
-	{
-		message(LOG_WARNING, FACILITY_NET, "listen(): %s\n", strerror(errno));
-		close(main_socket);
-		return false;
-	}
-
-	if (!thread_pool_create(&network_pool, &network_thread_limit, network_main,
+	if (!thread_pool_create(&network_pool, &zfs_config.threads.network_thread_limit, network_main,
 							network_worker, network_worker_init))
 	{
 		close(main_socket);

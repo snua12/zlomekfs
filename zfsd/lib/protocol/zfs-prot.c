@@ -75,20 +75,29 @@ int zfs_error(int error)
 	}
 }
 
-/* ! Request ID for next call.  */
-static volatile uint32_t request_id;
-
-/* ! Mutex for accessing request_id.  */
-static pthread_mutex_t request_id_mutex;
-
-/* ! void zfs_proc_null (void)
-
-   Do nothing. Just test whether the requests can be sent.  */
-void
-zfs_proc_null_server(ATTRIBUTE_UNUSED void *args, DC * dc,
-					 ATTRIBUTE_UNUSED void *data)
+/* ! returns id for request */
+static uint32_t zfs_get_next_request_id(void)
 {
-	encode_status(dc, ZFS_OK);
+	static pthread_mutex_t reqiest_id_mutex = ZFS_MUTEX_INITIALIZER;
+	/* ! Request ID for next call.  */
+	static volatile uint32_t request_id = 0;
+
+	zfsd_mutex_lock(&reqiest_id_mutex);
+	uint32_t rv = request_id;
+	request_id ++;
+	zfsd_mutex_unlock(&reqiest_id_mutex);
+
+	return rv;
+}
+
+/*! void zfs_proc_null (void)
+
+Do nothing. Just test whether the requests can be sent.  */
+void
+zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
+		  ATTRIBUTE_UNUSED void *data)
+{
+      encode_status (dc, ZFS_OK);
 }
 
 /* ! data_buffer zfs_proc_ping (data_buffer);
@@ -651,9 +660,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
                                                                         \
   CHECK_MUTEX_LOCKED (&fd_data_a[fd].mutex);				\
                                                                         \
-  zfsd_mutex_lock (&request_id_mutex);					\
-  req_id = request_id++;						\
-  zfsd_mutex_unlock (&request_id_mutex);				\
+  req_id = zfs_get_next_request_id();					\
   message (LOG_INFO, FACILITY_NET, "sending request: ID=%u fn=%u (%s)\n", req_id, NUMBER, #NAME);\
   start_encoding (t->dc_call);						\
   encode_direction (t->dc_call, CALL_MODE);				\
@@ -767,8 +774,6 @@ void initialize_zfs_prot_c(void)
 {
 	int i;
 
-	zfsd_mutex_init(&request_id_mutex);
-
 	for (i = 0; i < ZFS_PROC_LAST_AND_UNUSED; i++)
 		call_statistics[i] = 0;
 }
@@ -777,7 +782,6 @@ void initialize_zfs_prot_c(void)
 
 void cleanup_zfs_prot_c(void)
 {
-	zfsd_mutex_destroy(&request_id_mutex);
 
 #ifdef ENABLE_STATISTICS
 	message(LOG_DEBUG, FACILITY_NET, "Call statistics:\n"

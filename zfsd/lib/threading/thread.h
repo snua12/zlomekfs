@@ -50,15 +50,6 @@ typedef struct thread_limit_def
 	size_t max_spare;			/* !< maximal number of spare threads */
 } thread_limit;
 
-/* ! Limits for number of network threads.  */
-extern thread_limit network_thread_limit;
-
-/* ! Limits for number of kernel threads.  */
-extern thread_limit kernel_thread_limit;
-
-/* ! Limits for number of update threads.  */
-extern thread_limit update_thread_limit;
-
 /* ! State of the thread.  */
 typedef enum thread_state_def
 {

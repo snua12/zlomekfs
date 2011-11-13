@@ -1293,7 +1293,7 @@ bool kernel_start(void)
 		goto err_ch;
 	}
 
-	if (!thread_pool_create(&kernel_pool, &kernel_thread_limit, kernel_main,
+	if (!thread_pool_create(&kernel_pool, &zfs_config.threads.kernel_thread_limit, kernel_main,
 							kernel_worker, kernel_worker_init))
 	{
 		kernel_unmount();
