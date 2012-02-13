@@ -4,3 +4,10 @@
 #cmakedefine ENABLE_DBUS
 #cmakedefine HAVE_FOPENCOOKIE
 #cmakedefine HAVE_MKSTEMP
+#cmakedefine HAVE_EXEC_H
+#cmakedefine HAVE_PTHREAD_BARRIER_WAIT
+#cmakedefine HAVE_FUSE
+#cmakedefine HAVE_DOKAN
+#cmakedefine HAVE_MLOCKALL
+#cmakedefine HAVE_UCONTEXT_H
+#cmakedefine ENABLE_USERSPACE_FS

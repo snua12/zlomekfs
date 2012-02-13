@@ -35,6 +35,14 @@ struct formatter_def user_readable_formatter = {
 	.get_max_print_size = user_readable_max_print_size
 };
 
+#ifdef __CYGWIN__
+#define PTRid "p"
+#define PTRid_conversion (void *)
+#else
+#define PTRid PRIu64
+#define PTRid_conversion (uint64_t)
+#endif
+
 // / Print message to string buffer
 /* ! Print message to string buffer in format defined for user readable
    formatter @param message non NULL pointer to log struct @param buffer non
@@ -58,8 +66,8 @@ static int32_t fill_buffer(const log_struct message, char *buffer,
 
 	// do not use trailing \n as all messages have it
 	chars_printed =
-		snprintf(buffer, buffer_len, "%s\t%s\t%lu/%s\t%s\t%s\t%s\t%s\t%s",
-				 message->hostname, message->node_name, message->thread_id,
+		snprintf(buffer, buffer_len, "%s\t%s\t%"PTRid"/%s\t%s\t%s\t%s\t%s\t%s",
+				 message->hostname, message->node_name, PTRid_conversion message->thread_id,
 				 message->thread_name, facility_to_name(message->facility),
 				 log_level_to_name(message->level), time_str, timezone_str,
 				 message->message);
@@ -89,10 +97,10 @@ static int32_t read_buffer(log_struct message, const char *buffer)
 	char log_level_str[LOG_LEVEL_STRING_LEN] = "";
 	int32_t chars_read = 0;
 
-	chars_read = sscanf(buffer, "%s\t%s\t%ld/%s\t%s\t%s\t%s\t%s\t%s\n",
+	chars_read = sscanf(buffer, "%s\t%s\t%p/%s\t%s\t%s\t%s\t%s\t%s\n",
 						message->hostname,
 						message->node_name,
-						&message->thread_id,
+						(void **) &message->thread_id,
 						message->thread_name,
 						facility_str,
 						log_level_str,

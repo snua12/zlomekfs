@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "syp-error.h"
 
@@ -83,8 +84,8 @@ extern "C"
 	   buffer string buffer to which time should be printed (non NULL) @param
 	   buffer_len length of buffer (maximum chars to print to it) @return
 	   number of chars printed or -syp_error */
-	static inline int32_t time_to_string(struct timeval *local_time,
-										 char *buffer, uint32_t buffer_len)
+	static inline int32_t time_to_string(struct timeval *local_time, 
+	char *buffer, uint32_t buffer_len)
 	{
 		int32_t chars_printed = 0;
 

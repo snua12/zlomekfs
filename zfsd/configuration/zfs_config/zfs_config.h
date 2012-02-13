@@ -61,6 +61,9 @@ typedef struct zfs_config_node_def
 
 	/* ! The host name of local node.  */
 	string host_name;
+
+	/* ! The port of the local service */
+	uint16_t host_port;
 } zfs_config_node;
 
 typedef struct zfs_config_metadata_def

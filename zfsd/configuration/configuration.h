@@ -24,6 +24,7 @@
 #include "system.h"
 #include <stdio.h>
 #include <inttypes.h>
+#include <libconfig.h>
 #include "pthread-wrapper.h"
 #include "memory.h"
 #include "semaphore.h"
@@ -40,5 +41,12 @@ extern alloc_pool reread_config_pool;
 
 extern void initialize_config_c(void);
 extern void cleanup_config_c(void);
+
+// workaroung libconfig API change
+#if LIBCONFIG_VER_MAJOR >= 1 && LIBCONFIG_VER_MINOR >=4
+#define LIBCONFIG_INT_TYPECAST int
+#else
+#define LIBCONFIG_INT_TYPECAST long
+#endif
 
 #endif

@@ -73,7 +73,7 @@ static uint64_t hfile_find_empty_slot(hfile_t hfile, hashval_t hash)
 
 #ifdef ENABLE_CHECKING
 	if (hfile->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	size = hfile->size;
@@ -88,9 +88,9 @@ static uint64_t hfile_find_empty_slot(hfile_t hfile, hashval_t hash)
 		return offset;
 #ifdef ENABLE_CHECKING
 	if (status == DELETED_SLOT)
-		abort();
+		zfsd_abort();
 	if (status != VALID_SLOT)
-		abort();
+		zfsd_abort();
 #endif
 
 	for (;;)
@@ -107,9 +107,9 @@ static uint64_t hfile_find_empty_slot(hfile_t hfile, hashval_t hash)
 			return offset;
 #ifdef ENABLE_CHECKING
 		if (status == DELETED_SLOT)
-			abort();
+			zfsd_abort();
 		if (status != VALID_SLOT)
-			abort();
+			zfsd_abort();
 #endif
 	}
 }
@@ -128,7 +128,7 @@ hfile_find_slot(hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 
 #ifdef ENABLE_CHECKING
 	if (hfile->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	size = hfile->size;
@@ -147,7 +147,7 @@ hfile_find_slot(hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 	{
 #ifdef ENABLE_CHECKING
 		if (status != VALID_SLOT)
-			abort();
+			zfsd_abort();
 #endif
 		if ((*hfile->eq_f) (hfile->element, elem))
 			return offset;
@@ -174,7 +174,7 @@ hfile_find_slot(hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 		{
 #ifdef ENABLE_CHECKING
 			if (status != VALID_SLOT)
-				abort();
+				zfsd_abort();
 #endif
 			if ((*hfile->eq_f) (hfile->element, elem))
 				return offset;
@@ -234,20 +234,32 @@ static bool hfile_expand(hfile_t hfile)
 	new_path = xstrconcat(hfile->file_name, ".new", NULL);
 	hfile->fd = open(new_path, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (hfile->fd < 0)
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_expand_error;
+	}
 
 	if (ftruncate(hfile->fd, ((uint64_t) hfile->size * hfile->element_size
 							  + hfile->element_size)) < 0)
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_expand_error_with_fd;
+	}
 
 	header.n_elements = u32_to_le(hfile->n_elements - hfile->n_deleted);
 	header.n_deleted = 0;
 	if (!full_write(hfile->fd, &header, sizeof(header)))
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_expand_error_with_fd;
+	}
 
 	if ((uint64_t) lseek(old_fd, hfile->element_size, SEEK_SET)
 		!= hfile->element_size)
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_expand_error_with_fd;
+	}
 
 	/* Copy elements.  */
 	for (pos = 0; pos < old_size; pos += n_elements)
@@ -256,7 +268,10 @@ static bool hfile_expand(hfile_t hfile)
 		unsigned int i;
 
 		if (!full_read(old_fd, buffer, chunk_size))
+		{
+			message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 			goto hfile_expand_error_with_fd;
+		}
 
 		for (i = 0, element = buffer; i < n_elements;
 			 i++, element += hfile->element_size)
@@ -270,29 +285,43 @@ static bool hfile_expand(hfile_t hfile)
 				offset = hfile_find_empty_slot(hfile,
 											   (*hfile->hash_f) (element));
 				if (offset == 0)
+				{
+					message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 					goto hfile_expand_error_with_fd;
+				}
 
 				if ((uint64_t) lseek(hfile->fd, offset, SEEK_SET) != offset)
+				{
+					message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 					goto hfile_expand_error_with_fd;
+				}
 
 				if (!full_write(hfile->fd, element, hfile->element_size))
+				{
+					message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 					goto hfile_expand_error_with_fd;
+				}
 			}
 		}
 	}
 
-	if (rename(new_path, hfile->file_name) < 0)
-		goto hfile_expand_error_with_fd;
-
 	/* We have to preserve the file descriptor originally used.  */
 #ifdef ENABLE_CHECKING
 	if (dup2(hfile->fd, old_fd) < 0)
-		abort();
+		zfsd_abort();
 #else
 	dup2(hfile->fd, old_fd);
 #endif
+
 	close(hfile->fd);
 	hfile->fd = old_fd;
+
+	// on CYGWIN we can rewrite file only if is closed
+	if (rename(new_path, hfile->file_name) < 0)
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
+		goto hfile_expand_error_with_fd;
+	}
 
 	hfile->n_elements -= hfile->n_deleted;
 	hfile->n_deleted = 0;
@@ -328,15 +357,15 @@ hfile_create(unsigned int element_size, unsigned int base_size,
 
 #ifdef ENABLE_CHECKING
 	if (element_size < sizeof(hashfile_header))
-		abort();
+		zfsd_abort();
 	if (element_size > HFILE_BUFFER_SIZE)
-		abort();
+		zfsd_abort();
 	if (base_size > element_size)
-		abort();
+		zfsd_abort();
 	if (!hash_f)
-		abort();
+		zfsd_abort();
 	if (!eq_f)
-		abort();
+		zfsd_abort();
 #endif
 
 	hfile = (hfile_t) xmalloc(sizeof(struct hfile_def));
@@ -366,7 +395,7 @@ bool hfile_init(hfile_t hfile, struct stat * st)
 
 #ifdef ENABLE_CHECKING
 	if (hfile->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (fstat(hfile->fd, st) < 0)
@@ -397,7 +426,7 @@ void hfile_destroy(hfile_t hfile)
 
 #ifdef ENABLE_CHECKING
 	if (hfile->fd >= 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	free(hfile->file_name);
@@ -446,7 +475,10 @@ bool hfile_insert(hfile_t hfile, void *x, bool base_only)
 	hashfile_header header;
 
 	if (!hfile_expand(hfile))
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s: hfile_expand has failed\n", __func__);
 		return false;
+	}
 
 	if (hfile->encode_f)
 		(*hfile->encode_f) (x);
@@ -456,6 +488,7 @@ bool hfile_insert(hfile_t hfile, void *x, bool base_only)
 	{
 		if (hfile->decode_f)
 			(*hfile->decode_f) (x);
+		message(LOG_ALERT, FACILITY_ZFSD, "%s: hfile_find_slot has failed\n", __func__);
 		return false;
 	}
 
@@ -463,19 +496,30 @@ bool hfile_insert(hfile_t hfile, void *x, bool base_only)
 	*(uint32_t *) x = u32_to_le(VALID_SLOT);
 
 	if ((uint64_t) lseek(hfile->fd, offset, SEEK_SET) != offset)
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_insert_error;
+	}
 
-	if (!full_write(hfile->fd, x, (base_only
-								   ? hfile->base_size : hfile->element_size)))
+	if (!full_write(hfile->fd, x, (base_only ? hfile->base_size : hfile->element_size)))
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_insert_error;
+	}
 
 	if ((uint64_t) lseek(hfile->fd, 0, SEEK_SET) != 0)
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_insert_error;
+	}
 
 	header.n_elements = u32_to_le(hfile->n_elements);
 	header.n_deleted = u32_to_le(hfile->n_deleted);
 	if (!full_write(hfile->fd, &header, sizeof(header)))
+	{
+		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d\n", __func__, __LINE__);
 		goto hfile_insert_error;
+	}
 
 	if (hfile->decode_f)
 		(*hfile->decode_f) (x);

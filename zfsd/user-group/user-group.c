@@ -184,13 +184,13 @@ static user_t user_create_nolock(uint32_t id, string * name)
 	slot1 = htab_find_slot_with_hash(config_users_groups.users_id, &id, USER_ID_HASH(id), INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot1)
-		abort();
+		zfsd_abort();
 #endif
 	slot2 = htab_find_slot_with_hash(config_users_groups.users_name, name, USER_NAME_HASH(*name),
 									 INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot2)
-		abort();
+		zfsd_abort();
 #endif
 
 	u = (user_t) xmalloc(sizeof(*u));
@@ -231,7 +231,7 @@ static void user_destroy_nolock(user_t u)
 									NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(config_users_groups.users_id, slot);
 
@@ -239,7 +239,7 @@ static void user_destroy_nolock(user_t u)
 									USER_NAME_HASH(u->name), NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(config_users_groups.users_name, slot);
 
@@ -293,13 +293,13 @@ static group_t group_create_nolock(uint32_t id, string * name)
 		htab_find_slot_with_hash(config_users_groups.groups_id, &id, GROUP_ID_HASH(id), INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot1)
-		abort();
+		zfsd_abort();
 #endif
 	slot2 = htab_find_slot_with_hash(config_users_groups.groups_name, name, GROUP_NAME_HASH(*name),
 									 INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot2)
-		abort();
+		zfsd_abort();
 #endif
 
 	g = (group_t) xmalloc(sizeof(*g));
@@ -340,7 +340,7 @@ static void group_destroy_nolock(group_t g)
 									NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(config_users_groups.groups_id, slot);
 
@@ -348,7 +348,7 @@ static void group_destroy_nolock(group_t g)
 									GROUP_NAME_HASH(g->name), NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(config_users_groups.groups_name, slot);
 
@@ -423,7 +423,7 @@ static id_mapping user_mapping_create_nolock(string * zfs_user, string * node_us
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_uid_to_node || !nod->map_uid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_uid_to_node;
@@ -441,7 +441,7 @@ static id_mapping user_mapping_create_nolock(string * zfs_user, string * node_us
 									 USER_ID_HASH(pwd->pw_uid), INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot1 || !slot2)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* If both UIDs are in the tables we have nothing to do.  */
@@ -475,7 +475,7 @@ static void user_mapping_destroy_nolock(id_mapping map, node nod)
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_uid_to_node || !nod->map_uid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_uid_to_node;
@@ -532,7 +532,7 @@ void user_mapping_destroy_all(node nod)
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_uid_to_node || !nod->map_uid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_uid_to_node;
@@ -599,7 +599,7 @@ static id_mapping group_mapping_create_nolock(string * zfs_group, string * node_
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_gid_to_node;
@@ -617,7 +617,7 @@ static id_mapping group_mapping_create_nolock(string * zfs_group, string * node_
 									 GROUP_ID_HASH(grp->gr_gid), INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot1 || !slot2)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* If both GIDs are in the tables we have nothing to do.  */
@@ -681,7 +681,7 @@ static void group_mapping_destroy(id_mapping map, node nod)
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_gid_to_node;
@@ -722,7 +722,7 @@ void group_mapping_destroy_all(node nod)
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_gid_to_node;
@@ -1047,7 +1047,7 @@ static void destroy_marked_user_mapping_nolock(node nod)
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_uid_to_node || !nod->map_uid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_uid_to_node;
@@ -1117,7 +1117,7 @@ static void destroy_marked_group_mapping_nolock(node nod)
 		CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 		if (!nod->map_gid_to_node || !nod->map_gid_to_zfs)
-			abort();
+			zfsd_abort();
 #endif
 
 		map_to_node = nod->map_gid_to_node;

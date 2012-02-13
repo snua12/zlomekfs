@@ -119,7 +119,7 @@ fibheap fibheap_union(fibheap heapa, fibheap heapb)
 
 #ifdef ENABLE_CHECKING
 	if (heapa->mutex != heapb->mutex)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(heapa->mutex);
 

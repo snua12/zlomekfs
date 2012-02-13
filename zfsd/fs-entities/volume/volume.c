@@ -184,7 +184,7 @@ volume volume_create(uint32_t id)
 									INSERT);
 #ifdef ENABLE_CHECKING
 	if (slot == EMPTY_ENTRY || *slot)
-		abort();
+		zfsd_abort();
 #endif
 	*slot = vol;
 
@@ -204,7 +204,7 @@ static void volume_destroy(volume vol)
 
 #ifdef ENABLE_CHECKING
 	if (vol->n_locked_fhs > 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->slaves)
@@ -238,7 +238,7 @@ static void volume_destroy(volume vol)
 									NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (slot == EMPTY_ENTRY)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(volume_htab, slot);
 	zfsd_mutex_unlock(&vol->mutex);
@@ -266,7 +266,7 @@ void volume_delete(volume vol)
 
 #ifdef ENABLE_CHECKING
 	if (vol->n_locked_fhs > 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Destroy dentries on volume.  */
@@ -314,7 +314,7 @@ volume_set_common_info(volume vol, string * name, string * mountpoint,
 											NO_INSERT);
 #ifdef ENABLE_CHECKING
 			if (!slot)
-				abort();
+				zfsd_abort();
 #endif
 			htab_clear_slot(volume_htab_name, slot);
 
@@ -637,6 +637,7 @@ bool init_config_volume(void)
 	}
 
 	bool rv = stringeq(&zfs_config.config_node.node_name, &zfs_config.this_node.node_name);
+	rv &= zfs_config.config_node.host_port == zfs_config.this_node.host_port;
 	if (rv == true)
 	{
 		volume_set_common_info_wrapper(vol, "config", "/config", this_node);
@@ -647,7 +648,10 @@ bool init_config_volume(void)
 	else
 	{
 		zfsd_mutex_lock(&node_mutex);
-		node nod = node_create(zfs_config.config_node.node_id, &zfs_config.config_node.node_name, &zfs_config.config_node.host_name);
+		node nod = node_create(zfs_config.config_node.node_id,
+				&zfs_config.config_node.node_name,
+				&zfs_config.config_node.host_name,
+				zfs_config.config_node.host_port);
 		zfsd_mutex_unlock(&nod->mutex);
 		zfsd_mutex_unlock(&node_mutex);
 
@@ -665,7 +669,7 @@ bool init_config_volume(void)
 		vol = volume_lookup(VOLUME_ID_CONFIG);
 #ifdef ENABLE_CHECKING
 		if (!vol)
-			abort();
+			zfsd_abort();
 #endif
 		if (volume_set_local_info(&vol, &path, vol->size_limit))
 		{

@@ -106,9 +106,9 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (volp == NULL)
-		abort();
+		zfsd_abort();
 	if (dentryp == NULL)
-		abort();
+		zfsd_abort();
 	if (vdp && *vdp)
 	{
 		CHECK_MUTEX_LOCKED(&(*vdp)->mutex);
@@ -116,12 +116,12 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 	CHECK_MUTEX_LOCKED(&(*volp)->mutex);
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 	if (level > LEVEL_EXCLUSIVE)
-		abort();
+		zfsd_abort();
 #endif
 
 	message(LOG_LOCK, FACILITY_DATA | FACILITY_THREADING,
-			"FH %p LOCK %u, by %lu at %s:%d\n", (void *)(*dentryp)->fh, level,
-			(unsigned long)pthread_self(), __FILE__, __LINE__);
+			"FH %p LOCK %u, by %"PTRid" at %s:%d\n", (void *)(*dentryp)->fh, level,
+			PTRid_conversion (pthread_self()), __FILE__, __LINE__);
 
 	*tmp_cap = (*icapp)->local_cap;
 	id = (*dentryp)->fh->id2assign++;
@@ -144,8 +144,8 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 	}
 
 	message(LOG_LOCK, FACILITY_DATA | FACILITY_THREADING,
-			"FH %p LOCKED %u, by %lu at %s:%d\n", (void *)(*dentryp)->fh,
-			level, (unsigned long)pthread_self(), __FILE__, __LINE__);
+			"FH %p LOCKED %u, by %"PTRid" at %s:%d\n", (void *)(*dentryp)->fh,
+			level, PTRid_conversion pthread_self(), __FILE__, __LINE__);
 
 	(*dentryp)->fh->level = level;
 	(*dentryp)->fh->users++;
@@ -172,7 +172,7 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 		r = find_capability_nolock(tmp_cap, icapp, volp, dentryp, vdp, false);
 #ifdef ENABLE_CHECKING
 		if (r != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 	}
 
@@ -223,7 +223,7 @@ static internal_cap internal_cap_create_fh(internal_fh fh, uint32_t flags)
 #ifdef ENABLE_CHECKING
 	/* This should be handled in get_capability().  */
 	if (fh->attr.type == FT_DIR && flags != O_RDONLY)
-		abort();
+		zfsd_abort();
 #endif
 
 	zfsd_mutex_lock(&cap_mutex);
@@ -262,7 +262,7 @@ static internal_cap internal_cap_create_vd(virtual_dir vd, uint32_t flags)
 #ifdef ENABLE_CHECKING
 	/* This should be handled in get_capability().  */
 	if (flags != O_RDONLY)
-		abort();
+		zfsd_abort();
 #endif
 
 	zfsd_mutex_lock(&cap_mutex);
@@ -304,7 +304,7 @@ internal_cap_destroy(internal_cap cap, internal_fh fh, virtual_dir vd)
 		CHECK_MUTEX_LOCKED(&vd->mutex);
 #ifdef ENABLE_CHECKING
 		if (vd->cap != cap)
-			abort();
+			zfsd_abort();
 #endif
 
 		vd->cap = NULL;
@@ -316,7 +316,7 @@ internal_cap_destroy(internal_cap cap, internal_fh fh, virtual_dir vd)
 		CHECK_MUTEX_LOCKED(&fh->mutex);
 #ifdef ENABLE_CHECKING
 		if (fh->cap == NULL)
-			abort();
+			zfsd_abort();
 #endif
 
 		// TODO: co treba remove cap from linked list
@@ -340,7 +340,7 @@ internal_cap_destroy(internal_cap cap, internal_fh fh, virtual_dir vd)
 
 #ifdef ENABLE_CHECKING
 		if (icap == NULL)
-			abort();
+			zfsd_abort();
 #endif
 
 	}
@@ -399,7 +399,7 @@ get_capability(zfs_cap * cap, internal_cap * icapp, volume * vol,
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (cap->flags & ~O_ACCMODE)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (NON_EXIST_FH_P(cap->fh))
@@ -414,7 +414,7 @@ get_capability(zfs_cap * cap, internal_cap * icapp, volume * vol,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(cap->fh))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(&cap->fh);
 		if (r != ZFS_OK)
@@ -551,7 +551,7 @@ find_capability_nolock(zfs_cap * cap, internal_cap * icapp,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(cap->fh))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(&cap->fh);
 		if (r != ZFS_OK)

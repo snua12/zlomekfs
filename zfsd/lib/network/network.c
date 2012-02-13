@@ -40,7 +40,9 @@
 #include "semaphore.h"
 #include "data-coding.h"
 #include "network.h"
+#ifdef HAVE_FUSE
 #include "kernel.h"
+#endif
 #include "log.h"
 #include "util.h"
 #include "thread.h"
@@ -108,7 +110,7 @@ static void init_fd_data(int fd)
 {
 #ifdef ENABLE_CHECKING
 	if (fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(&active_mutex);
 	CHECK_MUTEX_LOCKED(&fd_data_a[fd].mutex);
@@ -116,15 +118,15 @@ static void init_fd_data(int fd)
 #ifdef ENABLE_CHECKING
 	if (fd_data_a[fd].conn != CONNECTION_NONE
 		&& fd_data_a[fd].conn != CONNECTION_CONNECTING)
-		abort();
+		zfsd_abort();
 	if (fd_data_a[fd].speed != CONNECTION_SPEED_NONE)
-		abort();
+		zfsd_abort();
 	if (fd_data_a[fd].conn == CONNECTION_NONE && fd_data_a[fd].sid != 0)
-		abort();
+		zfsd_abort();
 	if (fd_data_a[fd].conn == CONNECTION_CONNECTING && fd_data_a[fd].sid == 0)
-		abort();
+		zfsd_abort();
 	if (fd_data_a[fd].auth != AUTHENTICATION_NONE)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Set the network file descriptor's data.  */
@@ -174,7 +176,7 @@ update_node_fd(node nod, int fd, unsigned int generation, bool active_open)
 	CHECK_MUTEX_LOCKED(&fd_data_a[fd].mutex);
 #ifdef ENABLE_CHECKING
 	if (fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (nod->fd >= 0 && nod->fd != fd)
@@ -242,7 +244,7 @@ void close_network_fd(int fd)
 {
 #ifdef ENABLE_CHECKING
 	if (fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(&fd_data_a[fd].mutex);
 
@@ -263,7 +265,7 @@ static void close_active_fd(int i)
 
 #ifdef ENABLE_CHECKING
 	if (active[i]->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(&active_mutex);
 	CHECK_MUTEX_LOCKED(&fd_data_a[fd].mutex);
@@ -313,7 +315,7 @@ bool node_has_valid_fd(node nod)
 
 #ifdef ENABLE_CHECKING
 	if (fd_data_a[nod->fd].sid != nod->id)
-		abort();
+		zfsd_abort();
 #endif
 
 	return true;
@@ -378,6 +380,23 @@ connection_speed volume_master_connected(volume vol)
 	return speed;
 }
 
+/* ! Checks is address in loopback range. */
+
+static bool is_local_address(struct sockaddr_in *ai_addr)
+{
+	static in_addr_t lo_min = 0x7F000000; //127.0.0.0  //ntohl(inet_addr("127.0.0.0"));
+	static in_addr_t lo_max = 0x7FFFFFFF; //127.0.0.255  //ntohl(inet_addr("127.255.255.255"));
+	in_addr_t addr = ntohl(ai_addr->sin_addr.s_addr); // convert address to host endianity
+
+	if (addr < lo_min)
+		return false;
+
+	if (addr > lo_max)
+		return false;
+
+	return true;
+}
+
 /* ! Connect to node NOD, return open file descriptor.  */
 
 static int node_connect(node nod)
@@ -391,7 +410,7 @@ static int node_connect(node nod)
 	CHECK_MUTEX_LOCKED(&nod->mutex);
 #ifdef ENABLE_CHECKING
 	if (nod == this_node)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Lookup the IP address.  */
@@ -400,7 +419,7 @@ static int node_connect(node nod)
 	{
 #ifdef ENABLE_CHECKING
 		if (addr)
-			abort();
+			zfsd_abort();
 #endif
 		message(LOG_WARNING, FACILITY_NET, "getaddrinfo(%s): %s\n",
 				nod->host_name.str, gai_strerror(err));
@@ -412,15 +431,18 @@ static int node_connect(node nod)
 		switch (a->ai_family)
 		{
 		case AF_INET:
+#ifdef __CYGWIN__
+			// Cygwin always returns a->ai_protocol == 0 and a->ai_socktype == 0.
+			if (a->ai_protocol == IPPROTO_IP)
+#else
 			if (a->ai_socktype == SOCK_STREAM && a->ai_protocol == IPPROTO_TCP)
+#endif
 			{
 				int flags;
 
-				if (htonl(((struct sockaddr_in *)a->ai_addr)->sin_addr.s_addr)
-					> htonl(inet_addr("127.0.0.0"))
-					&& htonl(((struct sockaddr_in *)a->ai_addr)->
-							 sin_addr.s_addr) <
-					htonl(inet_addr("127.255.255.255")))
+				// skip local address when node has port same as local node
+				if (nod->port == zfs_config.this_node.host_port
+					&& is_local_address((struct sockaddr_in *)a->ai_addr) == true)
 				{
 					continue;
 				}
@@ -450,7 +472,7 @@ static int node_connect(node nod)
 				}
 
 				/* Connect the network socket to ZFS_PORT.  */
-				((struct sockaddr_in *)a->ai_addr)->sin_port = htons(ZFS_PORT);
+				((struct sockaddr_in *)a->ai_addr)->sin_port = htons(nod->port);
 				if (connect(s, a->ai_addr, a->ai_addrlen) < 0
 					&& errno != EINPROGRESS)
 				{
@@ -504,7 +526,7 @@ static int node_connect(node nod)
 
 				/* Connect the network socket to ZFS_PORT.  */
 				((struct sockaddr_in6 *)a->ai_addr)->sin6_port
-					= htons(ZFS_PORT);
+					= htons(nod->port);
 				if (connect(s, a->ai_addr, a->ai_addrlen) < 0
 					&& errno != EINPROGRESS)
 				{
@@ -662,7 +684,7 @@ static int node_authenticate(thread * t, node nod, authentication_status auth)
 	CHECK_MUTEX_LOCKED(&fd_data_a[nod->fd].mutex);
 #ifdef ENABLE_CHECKING
 	if (fd_data_a[nod->fd].conn == CONNECTION_NONE)
-		abort();
+		zfsd_abort();
 #endif
 
 	sid = nod->id;
@@ -691,7 +713,7 @@ static int node_authenticate(thread * t, node nod, authentication_status auth)
 	switch (fd_data_a[fd].conn)
 	{
 	case CONNECTION_NONE:
-		abort();
+		zfsd_abort();
 
 	case CONNECTION_CONNECTING:
 		while (fd_data_a[fd].conn == CONNECTION_CONNECTING)
@@ -929,7 +951,7 @@ bool request_from_this_node(void)
 	t = (thread *) pthread_getspecific(thread_data_key);
 #ifdef ENABLE_CHECKING
 	if (t == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	return t->from_sid == this_node->id;
@@ -942,7 +964,7 @@ void recycle_dc_to_fd_data(DC * dc, fd_data_t * fd_data)
 	CHECK_MUTEX_LOCKED(&fd_data->mutex);
 #ifdef ENABLE_CHECKING
 	if (dc == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (fd_data->fd >= 0 && fd_data->ndc < MAX_FREE_DCS)
@@ -964,7 +986,7 @@ void recycle_dc_to_fd(DC * dc, int fd)
 {
 #ifdef ENABLE_CHECKING
 	if (dc == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (fd < 0)
@@ -999,7 +1021,9 @@ void send_oneway_request(thread * t, int fd)
 	if (!full_write(fd, t->dc_call->buffer, t->dc_call->cur_length))
 	{
 		t->retval = ZFS_CONNECTION_CLOSED;
+#ifdef HAVE_FUSE
 		mounted = false;
+#endif
 	}
 	else
 		t->retval = ZFS_OK;
@@ -1050,7 +1074,7 @@ void send_request(thread * t, uint32_t request_id, int fd)
 									WAITING4REPLY_HASH(request_id), INSERT);
 #ifdef ENABLE_CHECKING
 	if (*slot)
-		abort();
+		zfsd_abort();
 #endif
 	*slot = wd;
 	wd->node = fibheap_insert(fd_data_a[fd].waiting4reply_heap,
@@ -1096,7 +1120,7 @@ void send_request(thread * t, uint32_t request_id, int fd)
 	/* If there was no error with connection, decode return value.  */
 	if (t->retval == ZFS_OK)
 	{
-		if (t->dc_reply->max_length > DC_SIZE)
+		if (t->dc_reply->max_length > ZFS_DC_SIZE)
 			t->retval = ZFS_REPLY_TOO_LONG;
 		else if (!decode_status(t->dc_reply, &t->retval))
 			t->retval = ZFS_INVALID_REPLY;
@@ -1177,7 +1201,7 @@ static void *network_worker(void *data)
 
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(t) == THREAD_DEAD)
-			abort();
+			zfsd_abort();
 #endif
 
 		/* We were requested to die.  */
@@ -1191,7 +1215,7 @@ static void *network_worker(void *data)
 			goto out;
 		}
 
-		if (t->u.network.dc->max_length > DC_SIZE)
+		if (t->u.network.dc->max_length > ZFS_DC_SIZE)
 		{
 			message(LOG_WARNING, FACILITY_NET, "Packet too long: %u\n",
 					t->u.network.dc->max_length);
@@ -1278,7 +1302,7 @@ static void *network_worker(void *data)
 		{
 #ifdef ENABLE_CHECKING
 			if (get_thread_state(t) != THREAD_DYING)
-				abort();
+				zfsd_abort();
 #endif
 			zfsd_mutex_unlock(&network_pool.mutex);
 			break;
@@ -1306,7 +1330,7 @@ static bool network_dispatch(fd_data_t * fd_data)
 
 #ifdef ENABLE_CHECKING
 	if (dc->cur_length != sizeof(uint32_t))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (!decode_direction(dc, &dir))
@@ -1375,7 +1399,7 @@ static bool network_dispatch(fd_data_t * fd_data)
 		queue_get(&network_pool.idle, &idx);
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(&network_pool.threads[idx].t) == THREAD_BUSY)
-			abort();
+			zfsd_abort();
 #endif
 		set_thread_state(&network_pool.threads[idx].t, THREAD_BUSY);
 		network_pool.threads[idx].t.from_sid = fd_data->sid;
@@ -1393,7 +1417,7 @@ static bool network_dispatch(fd_data_t * fd_data)
 	default:
 		/* This case never happens, it is caught in the beginning of this
 		   function. It is here to make compiler happy.  */
-		abort();
+		zfsd_abort();
 	}
 
 	return true;
@@ -1444,7 +1468,7 @@ static void *network_main(ATTRIBUTE_UNUSED void *data_)
 												(data->request_id), NO_INSERT);
 #ifdef ENABLE_CHECKING
 				if (!slot || !*slot)
-					abort();
+					zfsd_abort();
 #endif
 				message(LOG_WARNING, FACILITY_NET,
 						"TIMEOUTING NETWORK REQUEST ID=%u\n",
@@ -1457,7 +1481,7 @@ static void *network_main(ATTRIBUTE_UNUSED void *data_)
 
 #ifdef ENABLE_CHECKING
 			if (active[i]->conn == CONNECTION_NONE)
-				abort();
+				zfsd_abort();
 #endif
 			pfd[i].fd = active[i]->fd;
 			pfd[i].events = (active[i]->conn == CONNECTION_CONNECTING
@@ -1507,7 +1531,7 @@ static void *network_main(ATTRIBUTE_UNUSED void *data_)
 
 #ifdef ENABLE_CHECKING
 			if (pfd[i].fd < 0)
-				abort();
+				zfsd_abort();
 #endif
 
 			message(LOG_DEBUG, FACILITY_NET, "FD %d revents %d\n", pfd[i].fd,
@@ -1539,7 +1563,7 @@ static void *network_main(ATTRIBUTE_UNUSED void *data_)
 					}
 #ifdef ENABLE_CHECKING
 					else if (l != sizeof(e))
-						abort();
+						zfsd_abort();
 #endif
 					else if (e != 0)
 					{
@@ -1601,7 +1625,7 @@ static void *network_main(ATTRIBUTE_UNUSED void *data_)
 				}
 				else
 				{
-					if (fd_data->dc[0]->max_length <= DC_SIZE)
+					if (fd_data->dc[0]->max_length <= ZFS_DC_SIZE)
 					{
 						r = read(fd_data->fd,
 								 fd_data->dc[0]->buffer + fd_data->read,
@@ -1804,7 +1828,9 @@ void fd_data_destroy(void)
 	zfsd_mutex_unlock(&active_mutex);
 	zfsd_mutex_destroy(&active_mutex);
 
+#ifdef HAVE_FUSE
 	kernel_unmount();
+#endif
 
 	for (i = 0; i < max_nfd; i++)
 	{
@@ -1820,12 +1846,13 @@ void fd_data_destroy(void)
 }
 
 /* ! \brief Create listening socket. */
-static int create_tcp_server(int address, int port, int backlog)
+static int create_tcp_server(int address, uint16_t port, int backlog)
 {
     int tcp_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (tcp_socket == -1)
     {
-        message(LOG_WARNING, FACILITY_NET, "socket(): %s\n", strerror(errno));
+        message(LOG_WARNING, FACILITY_NET, "%s:socket(): %s\n",
+		__func__, strerror(errno));
         return -1;
     }
 
@@ -1837,8 +1864,8 @@ static int create_tcp_server(int address, int port, int backlog)
                         sizeof(socket_options));
     if (rv == -1)
     {
-        message(LOG_WARNING, FACILITY_NET, "setsockopt(): %s\n",
-                   strerror(errno));
+        message(LOG_WARNING, FACILITY_NET, "%s:setsockopt(): %s\n",
+                   __func__, strerror(errno));
     }
 
     if  (rv == 0)
@@ -1848,20 +1875,22 @@ static int create_tcp_server(int address, int port, int backlog)
         sa.sin_family = AF_INET;
         sa.sin_addr.s_addr = htonl(address);
         sa.sin_port = htons(port);
-        rv = bind(main_socket, (struct sockaddr *)&sa, sizeof(sa));
+        rv = bind(tcp_socket, (struct sockaddr *)&sa, sizeof(sa));
         if (rv == -1)
         {
-                message(LOG_WARNING, FACILITY_NET, "bind(): %s\n", strerror(errno));
+                message(LOG_WARNING, FACILITY_NET, "bind(): %s\n",
+			__func__, strerror(errno));
         }
     }
 
     if (rv == 0)
     {
         /* Set the queue for incoming connections. */
-        rv = listen(main_socket, backlog);
+        rv = listen(tcp_socket, backlog);
         if (rv == -1)
         {
-                message(LOG_WARNING, FACILITY_NET, "listen(): %s\n", strerror(errno));
+                message(LOG_WARNING, FACILITY_NET, "listen(): %s\n",
+			__func__, strerror(errno));
         }
     }
 
@@ -1875,15 +1904,16 @@ static int create_tcp_server(int address, int port, int backlog)
 }
 
 /* ! \brief Create a listening socket and start the main network thread.  */
-bool network_start(void)
+bool network_start(uint16_t port)
 {
 
 
         /* Create a tcp server socket.  */
-        main_socket = create_tcp_server(INADDR_ANY, ZFS_PORT, SOMAXCONN);
+        main_socket = create_tcp_server(INADDR_ANY, port, SOMAXCONN);
         if (main_socket == -1)
 	{
-            message(LOG_ERROR, FACILITY_NET, "create_tcp_server(): has failed\n");
+            message(LOG_ERROR, FACILITY_NET, "%s:create_tcp_server(): has failed, cannot start network thread.\n",
+	    	__func__);
             return false;
 	}
 

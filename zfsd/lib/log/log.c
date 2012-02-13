@@ -29,7 +29,9 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <syslog.h>
+#ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
+#endif
 
 #include "node.h"
 #include "configuration.h"
@@ -80,6 +82,8 @@ void zfs_closelog(void)
 	close_log(&syplogger);
 }
 
+#ifdef HAVE_EXECINFO_H
+#define HAVE_SHOW_STACKFRAME 1
 /* ! Print stack */
 static void show_stackframe(void)
 {
@@ -89,11 +93,12 @@ static void show_stackframe(void)
 
 	trace_size = backtrace(trace, 16);
 	messages = backtrace_symbols(trace, trace_size);
-	printf("[bt] Execution path:\n");
+	message(LOG_EMERG, FACILITY_ALL, "[bt] Execution path:\n");
 	for (i = 0; i < trace_size; ++i)
-		printf("[bt] %s\n", messages[i]);
+		message(LOG_EMERG, FACILITY_ALL, "[bt] %s\n", messages[i]);
 	free(messages);
 }
+#endif
 
 /* ! Print the internal error message and exit.  */
 void internal_error(const char *format, ...)
@@ -115,7 +120,9 @@ void internal_error(const char *format, ...)
 	va_end(va);
 
 	message(LOG_EMERG, FACILITY_ALL, msg);
+#ifdef HAVE_SHOW_STACKFRAME
 	show_stackframe();
+#endif
 	sleep(2);
 
 #ifdef ENABLE_CHECKING
@@ -130,6 +137,6 @@ void internal_error(const char *format, ...)
 /* ! Report an "Aborted" internal error.  */
 void verbose_abort(const char *file, int line)
 {
-	internal_error("Aborted by %lu, at %s:%d\n", (unsigned long)pthread_self(),
+	internal_error("Aborted by %p, at %s:%d\n", pthread_self(),
 				   file, line);
 }

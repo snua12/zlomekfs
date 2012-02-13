@@ -40,7 +40,7 @@ void *xcalloc(size_t nmemb, size_t size)
 	if (!r)
 	{
 		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
+		zfsd_abort();
 	}
 	return r;
 }
@@ -52,7 +52,7 @@ void *xmalloc(size_t size)
 	if (!r)
 	{
 		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
+		zfsd_abort();
 	}
 	return r;
 }
@@ -64,7 +64,7 @@ void *xrealloc(void *ptr, size_t size)
 	if (!r)
 	{
 		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
+		zfsd_abort();
 	}
 	return r;
 }
@@ -76,7 +76,7 @@ char *xstrdup(const char *s)
 	if (!r)
 	{
 		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		abort();
+		zfsd_abort();
 	}
 	return r;
 }

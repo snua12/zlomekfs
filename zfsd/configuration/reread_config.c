@@ -338,7 +338,7 @@ void add_reread_config_request_dentry(internal_dentry dentry)
 	t = (thread *) pthread_getspecific(thread_data_key);
 #ifdef ENABLE_CHECKING
 	if (t == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	add_reread_config_request(&relative_path, t->from_sid);
@@ -384,7 +384,7 @@ void add_reread_config_request_local_path(volume vol, string * path)
 	t = (thread *) pthread_getspecific(thread_data_key);
 #ifdef ENABLE_CHECKING
 	if (t == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	add_reread_config_request(&relative_path, t->from_sid);

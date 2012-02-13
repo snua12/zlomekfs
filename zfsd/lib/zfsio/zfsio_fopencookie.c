@@ -35,7 +35,7 @@ static ssize_t zfsfile_write(ATTRIBUTE_UNUSED void *c, ATTRIBUTE_UNUSED const ch
 	return -1;
 }
 
-static int zfsfile_seek(ATTRIBUTE_UNUSED void *c, ATTRIBUTE_UNUSED off64_t *offset, ATTRIBUTE_UNUSED int whence)
+static int zfsfile_seek(ATTRIBUTE_UNUSED void *c, ATTRIBUTE_UNUSED long *offset, ATTRIBUTE_UNUSED int whence)
 {
 	return -1;
 }
@@ -55,7 +55,7 @@ static int zfsfile_close(void *c)
 cookie_io_functions_t  zfs_io_funcs = { 
 	.read  = zfsfile_read,
 	.write = zfsfile_write,
-	.seek  = zfsfile_seek,
+	.seek  = (cookie_seek_function_t *) zfsfile_seek, // hackish typecast
 	.close = zfsfile_close
 }; 
 

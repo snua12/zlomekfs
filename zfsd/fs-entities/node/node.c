@@ -140,7 +140,7 @@ node node_lookup_name(string * name)
 
 /* ! Create new node with ID and NAME and insert it to hash table.  */
 
-node node_create(uint32_t id, string * name, string * host_name)
+node node_create(uint32_t id, string * name, string * host_name, uint16_t tcp_port)
 {
 	node nod;
 	void **slot;
@@ -151,6 +151,7 @@ node node_create(uint32_t id, string * name, string * host_name)
 	nod->id = id;
 	xstringdup(&nod->name, name);
 	xstringdup(&nod->host_name, host_name);
+	nod->port = tcp_port;
 	nod->last_connect = 0;
 	nod->fd = -1;
 	nod->generation = 0;
@@ -183,7 +184,7 @@ node node_create(uint32_t id, string * name, string * host_name)
 									INSERT);
 #ifdef ENABLE_CHECKING
 	if (*slot)
-		abort();
+		zfsd_abort();
 #endif
 	*slot = nod;
 
@@ -191,14 +192,14 @@ node node_create(uint32_t id, string * name, string * host_name)
 									NODE_HASH_NAME(nod), INSERT);
 #ifdef ENABLE_CHECKING
 	if (*slot)
-		abort();
+		zfsd_abort();
 #endif
 	*slot = nod;
 
 	return nod;
 }
 
-node try_create_node(uint32_t id, string * name, string * host_name)
+node try_create_node(uint32_t id, string * name, string * host_name, uint16_t tcp_port)
 {
 	void **slot, **slot2;
 	node nod;
@@ -230,7 +231,7 @@ node try_create_node(uint32_t id, string * name, string * host_name)
 		return NULL;
 	}
 
-	nod = node_create(id, name, host_name);
+	nod = node_create(id, name, host_name, tcp_port);
 	zfsd_mutex_unlock(&node_mutex);
 	return nod;
 }
@@ -249,7 +250,7 @@ static void node_destroy(node nod)
 									NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(node_htab_sid, slot);
 
@@ -257,7 +258,7 @@ static void node_destroy(node nod)
 									NODE_HASH_NAME(nod), NO_INSERT);
 #ifdef ENABLE_CHECKING
 	if (!slot)
-		abort();
+		zfsd_abort();
 #endif
 	htab_clear_slot(node_htab_name, slot);
 
@@ -323,7 +324,11 @@ void init_this_node(void)
 	node nod;
 
 	zfsd_mutex_lock(&node_mutex);
-	nod = node_create(zfs_config.this_node.node_id, &zfs_config.this_node.node_name, &zfs_config.this_node.node_name);
+	nod = node_create(zfs_config.this_node.node_id,
+			&zfs_config.this_node.node_name,
+			&zfs_config.this_node.node_name, //TODO: use host_name instead of node_name
+			zfs_config.this_node.host_port);
+
 	zfsd_mutex_unlock(&nod->mutex);
 	zfsd_mutex_unlock(&node_mutex);
 }

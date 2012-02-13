@@ -60,7 +60,6 @@ static syp_error print_medium_parse_params(int argc, const char **argv,
 										   medium settings CHECKING_UNUSED)
 {
 	int opt;
-	extern int opterr, optopt;
 
 #ifdef ENABLE_CHECKING
 	if (argv == NULL || settings == NULL)
@@ -70,7 +69,7 @@ static syp_error print_medium_parse_params(int argc, const char **argv,
 #endif
 
 	// initialize getopt index to params
-	optind = 0;
+	optind = 1;
 
 	while ((opt =
 			getopt_long(argc, (char **)argv, "", option_table, NULL)) != -1)
@@ -81,6 +80,8 @@ static syp_error print_medium_parse_params(int argc, const char **argv,
 			// skip unknown options
 			break;
 		}
+
+	optind = 1;
 	return NOERR;
 }
 

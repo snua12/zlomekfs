@@ -27,15 +27,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <libgen.h>
-#include <syscall.h>
-#ifdef __linux__
-#ifdef HAVE_LINUX_DIRENT_H
-#include <linux/dirent.h>
-#endif /* HAVE_LINUX_DIRENT_H */
-#include <linux/unistd.h>
-#else
 #include <dirent.h>
-#endif
+#include <dirent.h>
 #include "fh.h"
 #include "log.h"
 #include "utime.h"
@@ -45,32 +38,6 @@
 #include "metadata.h"
 #include "version.h"
 #include "update.h"
-
-#ifdef __linux__
-
-/* FIXME: VB: New systems don't have linux/dirent.h, man getdents says you
-   have to define it yourself. It would be really less fragile to use
-   readdir(3), but that would mean obtaining DIR * from fd through fdopendir()
-   which says you have to give your fd up, which I am not sure about. Also it
-   would need to use cookie for telldir/seekdir instead of lseek. */
-#ifndef HAVE_LINUX_DIRENT_H
-
-struct dirent
-{
-	long d_ino;
-	__off_t d_off;
-	unsigned short d_reclen;
-	char d_name[];
-};
-
-#endif /* HAVE_LINUX_DIRENT_H */
-
-static int getdents(int fd, struct dirent *dirp, unsigned count)
-{
-	return syscall(SYS_getdents, fd, dirp, count);
-}
-
-#endif /* __linux__ */
 
 /* ! Hash function for file name.  */
 #define DIRHTAB_HASH(N) (crc32_string((N)->name))
@@ -287,7 +254,7 @@ bool version_save_interval_trees(internal_fh fh)
 
 #ifdef ENABLE_CHECKING
 	if (fh->version_interval_tree_users == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	fh->version_interval_tree_users--;
@@ -296,7 +263,7 @@ bool version_save_interval_trees(internal_fh fh)
 
 #ifdef ENABLE_CHECKING
 	if (!fh->versioned)
-		abort();
+		zfsd_abort();
 #endif
 
 	version_build_interval_path(&path, fh);
@@ -596,163 +563,131 @@ int32_t version_unlink_file(char *path)
 static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 								  uint32_t * ino, varray * v)
 {
-	char buf[ZFS_MAXDATA];
-	int32_t r, pos;
-	struct dirent *de;
-	int fd;
-	int32_t cookie = 0;
+	int32_t r;
 	unsigned int nl;
 	time_t res = 0;
 	long current_ino = 0;
 
 	nl = strlen(name);
 
-	fd = open(path, O_RDONLY, 0);
-	if (fd < 0)
-		RETURN_INT(fd);
-
-	r = lseek(fd, cookie, SEEK_SET);
-	if (r < 0)
-	{
+	DIR * dirp = opendir(path);
+	if (dirp == NULL)
 		RETURN_INT(errno);
-	}
 
 	while (1)
 	{
-#ifdef __linux__
-		r = getdents(fd, (struct dirent *)buf, ZFS_MAXDATA);
-#else
-		/* FIXME: make sure the buffer is => st_bufsiz */
-		r = getdirentries(fd, buf, ZFS_MAXDATA, &block_start);
-#endif
-		if (r <= 0)
+
+		struct dirent entry, *de; 
+		r = readdir_r(dirp, &entry, &de);
+		if (r > 0) // readdir_r has failed
 		{
-			/* Comment from glibc: On some systems getdents fails with ENOENT
-			   when open directory has been rmdir'd already.  POSIX.1 requires 
-			   that we treat this condition like normal EOF.  */
-			if (r < 0 && errno == ENOENT)
-				r = 0;
-
-			if (r == 0)
-			{
-				if (ino)
-				{
-					if (res)
-						*stamp = res;
-					else
-					{
-						// check modtime if version existed in that time
-						struct stat st;
-						char *x;
-						time_t mtime = 0;
-
-						x = xstrconcat(path, DIRECTORY_SEPARATOR, name, NULL);
-						if (!stat(x, &st))
-							mtime = st.st_mtime;
-						free(x);
-
-						if (mtime && (mtime <= *stamp))
-							*ino = current_ino;
-						else
-							*ino = 0;
-
-						*stamp = 0;
-					}
-				}
-				RETURN_INT(ZFS_OK);
-			}
-
-			/* EINVAL means that buffer was too small.  */
-			RETURN_INT(errno);
+			closedir(dirp);
+			RETURN_INT(r);
 		}
-
-		for (pos = 0; pos < r; pos += de->d_reclen)
+		else if (r == 0 && de == NULL) // end of list
 		{
-			de = (struct dirent *)&buf[pos];
-#ifdef __linux__
-			cookie = de->d_off;
-#else
-			/* Too bad FreeBSD doesn't provide that information, let's hope
-			   the kernel can handle slightly incorrect data. */
-			cookie = block_start + pos + de->d_reclen;
-#endif
-
-			// check if we have our file
-			if (!strncmp(de->d_name, name, nl))
+			if (ino)
 			{
-				// check if it is current file
-				if (strlen(de->d_name) == nl)
-				{
-					current_ino = de->d_ino;
-					if (v)
-					{
-						version_item item;
-						item.stamp = INT32_MAX;
-						item.name = xstrdup(de->d_name);
-						item.intervals = NULL;
-						item.path = NULL;
-						VARRAY_PUSH(*v, item, version_item);
-					}
-					continue;
-				}
-
-				// get name stamp
-				char *p, *q;
-				time_t t;
-
-				p = strchr(de->d_name, VERSION_NAME_SPECIFIER_C);
-				if (!p)
-					continue;
-				*p = '\0';
-				p++;
-
-				q = strchr(p, '.');
-				if (q)
-				{
-					*q = '\0';
-					q++;
-					// skip interval files
-					if (*q == 'i')
-						continue;
-				}
-				// get version file stamp
-				t = atoi(p);
-
-				// compare timestamps if we are looking for a file
-				if (ino && (t >= *stamp) && (!res || (t < res)))
+				if (res)
+					*stamp = res;
+				else
 				{
 					// check modtime if version existed in that time
-					// in fact, this should be valid only for one file
-
 					struct stat st;
 					char *x;
 					time_t mtime = 0;
 
-					x = xstrconcat(path, DIRECTORY_SEPARATOR, de->d_name,
-								   VERSION_NAME_SPECIFIER_S, p, NULL);
+					x = xstrconcat(path, DIRECTORY_SEPARATOR, name, NULL);
 					if (!stat(x, &st))
 						mtime = st.st_mtime;
 					free(x);
 
 					if (mtime && (mtime <= *stamp))
-					{
-						res = t;
-						*ino = de->d_ino;
-					}
-				}
+						*ino = current_ino;
+					else
+						*ino = 0;
 
-				// add into varray if we want list of version files
-				if (v && (t > *stamp))
+					*stamp = 0;
+				}
+			}
+			closedir(dirp);
+			RETURN_INT(ZFS_OK);
+		}
+
+		// check if we have our file
+		if (!strncmp(de->d_name, name, nl))
+		{
+			// check if it is current file
+			if (strlen(de->d_name) == nl)
+			{
+				current_ino = de->d_ino;
+				if (v)
 				{
 					version_item item;
-					*(--p) = VERSION_NAME_SPECIFIER_C;
-					item.stamp = t;
+					item.stamp = INT32_MAX;
 					item.name = xstrdup(de->d_name);
 					item.intervals = NULL;
 					item.path = NULL;
 					VARRAY_PUSH(*v, item, version_item);
 				}
+				continue;
+			}
 
+			// get name stamp
+			char *p, *q;
+			time_t t;
+
+			p = strchr(de->d_name, VERSION_NAME_SPECIFIER_C);
+			if (!p)
+				continue;
+			*p = '\0';
+			p++;
+
+			q = strchr(p, '.');
+			if (q)
+			{
+				*q = '\0';
+				q++;
+				// skip interval files
+				if (*q == 'i')
+					continue;
+			}
+			// get version file stamp
+			t = atoi(p);
+
+			// compare timestamps if we are looking for a file
+			if (ino && (t >= *stamp) && (!res || (t < res)))
+			{
+				// check modtime if version existed in that time
+				// in fact, this should be valid only for one file
+
+				struct stat st;
+				char *x;
+				time_t mtime = 0;
+
+				x = xstrconcat(path, DIRECTORY_SEPARATOR, de->d_name,
+							   VERSION_NAME_SPECIFIER_S, p, NULL);
+				if (!stat(x, &st))
+					mtime = st.st_mtime;
+				free(x);
+
+				if (mtime && (mtime <= *stamp))
+				{
+					res = t;
+					*ino = de->d_ino;
+				}
+			}
+
+			// add into varray if we want list of version files
+			if (v && (t > *stamp))
+			{
+				version_item item;
+				*(--p) = VERSION_NAME_SPECIFIER_C;
+				item.stamp = t;
+				item.name = xstrdup(de->d_name);
+				item.intervals = NULL;
+				item.path = NULL;
+				VARRAY_PUSH(*v, item, version_item);
 			}
 		}
 	}
@@ -1368,110 +1303,94 @@ write_again:
    Complete path to the directory */
 int32_t version_rmdir_versions(char *path)
 {
-	char buf[ZFS_MAXDATA];
-	int32_t r, pos;
-	struct dirent *de;
-	int fd;
+	int32_t r;
 	int working = 1;
 
-	fd = open(path, O_RDONLY, 0);
-	if (fd < 0)
-		RETURN_INT(fd);
+	DIR * dirp = opendir(path);
+	if (dirp == NULL)
+		RETURN_INT(errno);
+	
+	long dir_start_pos = telldir(dirp);
 
 	while (working)
 	{
+
 		/* Always start from the beginning. We are modifying the contents of
 		   the directory. And deleting files, so we will continue until there
 		   are no (version) files. */
-		r = lseek(fd, 0, SEEK_SET);
-		if (r < 0)
-			break;
+		seekdir(dirp, dir_start_pos);
 
 		/* Comments to the work with getdents can be found in other functions. 
 		 */
-#ifdef __linux__
-		r = getdents(fd, (struct dirent *)buf, ZFS_MAXDATA);
-#else
-		r = getdirentries(fd, buf, ZFS_MAXDATA, &block_start);
-#endif
-		if (r <= 0)
+
+		struct dirent entry, *de; 
+		r = readdir_r(dirp, &entry, &de);
+		if (r > 0)
 		{
-			if (r < 0 && errno == ENOENT)
-				break;
-			RETURN_INT(errno);
+			closedir(dirp);
+			RETURN_INT(r);
+		}
+		else if (r == 0 && de == NULL) // end of list
+		{
+			break;
 		}
 
 		/* If we delete at least one file, we should start over again.  */
 		working = 0;
-		for (pos = 0; pos < r; pos += de->d_reclen)
+
+		/* Hide version files or convert their names or select them for
+		   storage.  */
+		if (strchr(de->d_name, VERSION_NAME_SPECIFIER_C))
 		{
-			de = (struct dirent *)&buf[pos];
-
-			/* Hide version files or convert their names or select them for
-			   storage.  */
-			if (strchr(de->d_name, VERSION_NAME_SPECIFIER_C))
-			{
-				char *f;
-				f = xstrconcat(path, DIRECTORY_SEPARATOR, de->d_name, NULL);
-				unlink(f);
-				free(f);
-				working = 1;
-			}
-
+			char *f;
+			f = xstrconcat(path, DIRECTORY_SEPARATOR, de->d_name, NULL);
+			unlink(f);
+			free(f);
+			working = 1;
 		}
+
 	}
 
-	close(fd);
+	closedir(dirp);
 
 	RETURN_INT(ZFS_OK);
 }
 
+// this function only read dir, is compleet?
 int32_t version_apply_retention(internal_dentry dentry, volume vol)
 {
 	string dpath;
-	char buf[ZFS_MAXDATA];
-	int32_t r, pos;
-	struct dirent *de;
-	int fd;
+	int32_t r;
 
 	acquire_dentry(dentry->parent);
 	build_local_path(&dpath, vol, dentry->parent);
 	release_dentry(dentry->parent);
 
-	fd = open(dpath.str, O_RDONLY, 0);
-	if (fd < 0)
+	DIR * dirp = opendir(dpath.str);
+	free(dpath.str);
+	if (dirp == NULL)
 	{
-		free(dpath.str);
-		RETURN_INT(fd);
+		RETURN_INT(errno);
 	}
-
-	r = lseek(fd, 0, SEEK_SET);
 
 	/* Create a list of all versions for specified file.  */
 	while (0)
 	{
-		/* Comments to the work with getdents can be found in other functions. 
-		 */
-#ifdef __linux__
-		r = getdents(fd, (struct dirent *)buf, ZFS_MAXDATA);
-#else
-		r = getdirentries(fd, buf, ZFS_MAXDATA, &block_start);
-#endif
-		if (r <= 0)
+		struct dirent entry, *de; 
+		r = readdir_r(dirp, &entry, &de);
+		if (r > 0) // readdir_r has failed
 		{
-			if (r < 0 && errno == ENOENT)
-				break;
-			RETURN_INT(errno);
+			closedir(dirp);
+			RETURN_INT(r);
 		}
-
-		for (pos = 0; pos < r; pos += de->d_reclen)
+		else if (r == 0 && de == NULL) // end of list
 		{
-			de = (struct dirent *)&buf[pos];
-
+			break;
 		}
+		//DO NOTTING HILL PLEASE
 	}
 
-	close(fd);
+	closedir(dirp);
 
 	/* Sort versions.  */
 
@@ -1481,7 +1400,6 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 	// xstrconcat(dpath.str, DIRECTORY_SEPARATOR, name, NULL);
 	// unlink()
 
-	free(dpath.str);
 
 	RETURN_INT(ZFS_OK);
 }

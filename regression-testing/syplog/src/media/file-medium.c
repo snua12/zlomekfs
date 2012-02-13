@@ -70,7 +70,7 @@ static syp_error file_medium_parse_params(int argc, const char **argv,
 										  medium settings)
 {
 	int opt;
-	extern int opterr, optopt;
+//	extern int opterr, optopt; //removed for windows build
 
 #ifdef ENABLE_CHECKING
 	if (argv == NULL || settings == NULL)
@@ -80,7 +80,7 @@ static syp_error file_medium_parse_params(int argc, const char **argv,
 #endif
 
 	// initialize getopt index to params
-	optind = 0;
+	optind = 1;
 
 	while ((opt =
 			getopt_long(argc, (char **)argv, "", option_table, NULL)) != -1)
@@ -95,6 +95,8 @@ static syp_error file_medium_parse_params(int argc, const char **argv,
 			// skip unknown options
 			break;
 		}
+
+	optind = 1;
 	return NOERR;
 }
 
@@ -248,17 +250,17 @@ syp_error file_access(medium target, log_struct log)
 	{
 	case READ_LOG:				// read
 		chars_accessed = target->used_formatter->file_read(log,
-														   ((file_medium)
-															target->
-															type_specific)->
-														   handler);
+							   ((file_medium)
+								target->
+								type_specific)->
+							   handler);
 		break;
 	case WRITE_LOG:			// write
 		chars_accessed = target->used_formatter->file_write(log,
-															((file_medium)
-															 target->
-															 type_specific)->
-															handler);
+							((file_medium)
+							 target->
+							 type_specific)->
+							handler);
 		break;
 	case NO_OPERATION:
 	default:

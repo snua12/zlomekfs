@@ -41,7 +41,9 @@
 #include "data-coding.h"
 #include "volume.h"
 #include "network.h"
+#ifdef HAVE_FUSE
 #include "kernel.h"
+#endif
 #include "zfs-prot.h"
 #include "user-group.h"
 #include "update.h"
@@ -78,7 +80,7 @@ void build_local_path(string * dst, volume vol, internal_dentry dentry)
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Count the number of strings which will be concatenated.  */
@@ -126,7 +128,7 @@ build_local_path_name_dirstamp(string * dst, volume vol,
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	dst->str = NULL;
@@ -267,7 +269,7 @@ build_relative_path_name(string * dst, internal_dentry dentry, string * name)
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Count the number of strings which will be concatenated.  */
@@ -314,9 +316,9 @@ void local_path_to_relative_path(string * dst, volume vol, string * path)
 
 #ifdef ENABLE_CHECKING
 	if (path->len < vol->local_path.len)
-		abort();
+		zfsd_abort();
 	if (memcmp(path->str, vol->local_path.str, vol->local_path.len) != 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	dst->len = path->len - vol->local_path.len;
@@ -337,7 +339,7 @@ void file_name_from_path(string * dst, string * path)
 #ifndef ENABLE_LOCAL_PATH
 		message(LOG_ERROR, FACILITY_DATA | FACILITY_CONFIG | FACILITY_ZFSD,
 				"invalid path %s\n", path->str);
-		abort();
+		zfsd_abort();
 #else /* ENABLE_LOCAL_PATH */
 		message(LOG_INFO, FACILITY_DATA | FACILITY_CONFIG | FACILITY_ZFSD,
 				"local path %s\n", path->str);
@@ -936,7 +938,7 @@ recursive_unlink(string * path, uint32_t vid, bool destroy_dentry,
 	TRACE("%s", path->str);
 #ifdef ENABLE_CHECKING
 	if (path->str[0] != '/')
-		abort();
+		zfsd_abort();
 #endif
 
 	vol = volume_lookup(vid);
@@ -1080,14 +1082,14 @@ validate_operation_on_volume_root(internal_dentry dentry,
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (NON_EXIST_FH_P(dentry->fh->local_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (CONFLICT_DIR_P(dentry->fh->local_fh))
 	{
 #ifdef ENABLE_CHECKING
 		if (!request_from_this_node())
-			abort();
+			zfsd_abort();
 #endif
 		RETURN_INT(conflict_error);
 	}
@@ -1292,7 +1294,7 @@ get_volume_root_dentry(volume vol, internal_dentry * dentryp,
 	{
 #ifdef ENABLE_CHECKING
 		if (dentry->parent != vol->root_dentry)
-			abort();
+			zfsd_abort();
 #endif
 		if (request_from_this_node())
 		{
@@ -1408,7 +1410,7 @@ int32_t remote_getattr(fattr * attr, internal_dentry dentry, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args = dentry->fh->meta.master_fh;
@@ -1524,12 +1526,12 @@ int32_t zfs_getattr(fattr * fa, zfs_fh * fh)
 		r = remote_getattr(fa, dentry, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -1706,7 +1708,7 @@ remote_setattr(fattr * fa, internal_dentry dentry, sattr * sa, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.file = dentry->fh->meta.master_fh;
@@ -1823,12 +1825,12 @@ int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
 		r = remote_setattr(fa, dentry, sa, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -1892,7 +1894,7 @@ int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
 					other = conflict_other_dentry(conflict, dentry);
 #ifdef ENABLE_CHECKING
 					if (!other)
-						abort();
+						zfsd_abort();
 #endif
 
 					if (METADATA_ATTR_CHANGE_P(dentry->fh->meta,
@@ -1918,7 +1920,7 @@ int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
 													  NULL, false);
 #ifdef ENABLE_CHECKING
 							if (r2 != ZFS_OK)
-								abort();
+								zfsd_abort();
 #endif
 						}
 						else
@@ -1954,7 +1956,7 @@ int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -2087,7 +2089,7 @@ remote_lookup(dir_op_res * res, internal_dentry dir, string * name, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.dir = dir->fh->meta.master_fh;
@@ -2135,7 +2137,7 @@ remote_lookup_zfs_fh(dir_op_res * res, zfs_fh * dir, string * name, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(*dir))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.dir = *dir;
@@ -2192,7 +2194,7 @@ int32_t zfs_lookup(dir_op_res * res, zfs_fh * dir, string * name)
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -2296,7 +2298,7 @@ int32_t zfs_lookup(dir_op_res * res, zfs_fh * dir, string * name)
 				RETURN_INT(r);
 #ifdef ENABLE_CHECKING
 			if (idir->fh->attr.type != FT_DIR)
-				abort();
+				zfsd_abort();
 #endif
 
 			r = validate_operation_on_volume_root(idir, ZFS_OK);
@@ -2410,12 +2412,12 @@ int32_t zfs_lookup(dir_op_res * res, zfs_fh * dir, string * name)
 			master_res.file = res->file;
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -2506,7 +2508,7 @@ local_mkdir(dir_op_res * res, internal_dentry dir, string * name, sattr * attr,
 	vol = volume_lookup(res->file.vid);
 #ifdef ENABLE_CHECKING
 	if (!vol)
-		abort();
+		zfsd_abort();
 #endif
 
 	meta->flags = METADATA_COMPLETE;
@@ -2541,7 +2543,7 @@ remote_mkdir(dir_op_res * res, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.where.dir = dir->fh->meta.master_fh;
@@ -2599,7 +2601,7 @@ int32_t zfs_mkdir(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr)
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -2666,12 +2668,12 @@ int32_t zfs_mkdir(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr)
 			master_res.file = res->file;
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -2705,7 +2707,7 @@ int32_t zfs_mkdir(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr)
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -2812,7 +2814,7 @@ static int32_t remote_rmdir(internal_dentry dir, string * name, volume vol)
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.dir = dir->fh->meta.master_fh;
@@ -2871,7 +2873,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -2951,7 +2953,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 			other = conflict_other_dentry(idir, dentry);
 #ifdef ENABLE_CHECKING
 			if (!other)
-				abort();
+				zfsd_abort();
 #endif
 
 			if (dentry->fh->local_fh.sid == this_node->id)
@@ -3056,14 +3058,14 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 		r = remote_rmdir(idir, name, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	if (locked2)
 	{
 		r2 = zfs_fh_lookup_nolock(&tmp_parent, &vol, &parent, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		idir = dentry_lookup(&tmp_fh);
@@ -3073,7 +3075,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 		r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (CONFLICT_DIR_P(idir->fh->local_fh))
@@ -3119,7 +3121,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 											  false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 				}
 			}
@@ -3167,7 +3169,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 			other = conflict_other_dentry(idir, dentry);
 #ifdef ENABLE_CHECKING
 			if (!dentry)
-				abort();
+				zfsd_abort();
 #endif
 
 			set_attr_version(&fa, &dentry->fh->meta);
@@ -3198,7 +3200,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 			dentry = dentry_lookup_name(NULL, idir, name);
 #ifdef ENABLE_CHECKING
 			if (!dentry)
-				abort();
+				zfsd_abort();
 #endif
 			dentry->fh->attr = fa;
 			release_dentry(dentry);
@@ -3232,7 +3234,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 			r2 = zfs_fh_lookup_nolock(&tmp_parent, &vol, &parent, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 			internal_dentry_unlock(vol, parent);
 		}
@@ -3437,9 +3439,9 @@ remote_rename(internal_dentry from_dir, string * from_name,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(from_dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(to_dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.from.dir = from_dir->fh->meta.master_fh;
@@ -3563,7 +3565,7 @@ zfs_rename(zfs_fh * from_dir, string * from_name,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*to_dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(to_dir);
 		if (r != ZFS_OK)
@@ -3615,7 +3617,7 @@ zfs_rename(zfs_fh * from_dir, string * from_name,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*from_dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(from_dir);
 		if (r != ZFS_OK)
@@ -3733,12 +3735,12 @@ zfs_rename(zfs_fh * from_dir, string * from_name,
 		r = remote_rename(from_dentry, from_name, to_dentry, to_name, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_to, &vol, &to_dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -3750,7 +3752,7 @@ zfs_rename(zfs_fh * from_dir, string * from_name,
 			from_dentry = dentry_lookup(&tmp_from);
 #ifdef ENABLE_CHECKING
 			if (!from_dentry)
-				abort();
+				zfsd_abort();
 #endif
 		}
 		else
@@ -3777,7 +3779,7 @@ zfs_rename(zfs_fh * from_dir, string * from_name,
 										  false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 			else
@@ -3922,9 +3924,9 @@ remote_link(internal_dentry from, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(from->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.from = from->fh->meta.master_fh;
@@ -4042,7 +4044,7 @@ int32_t zfs_link(zfs_fh * from, zfs_fh * dir, string * name)
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -4140,12 +4142,12 @@ int32_t zfs_link(zfs_fh * from, zfs_fh * dir, string * name)
 		r = remote_link(from_dentry, dir_dentry, name, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_dir, &vol, &dir_dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -4157,7 +4159,7 @@ int32_t zfs_link(zfs_fh * from, zfs_fh * dir, string * name)
 			from_dentry = dentry_lookup(&tmp_from);
 #ifdef ENABLE_CHECKING
 			if (!from_dentry)
-				abort();
+				zfsd_abort();
 #endif
 		}
 		else
@@ -4176,7 +4178,7 @@ int32_t zfs_link(zfs_fh * from, zfs_fh * dir, string * name)
 										  false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 			else
@@ -4313,7 +4315,7 @@ static int32_t remote_unlink(internal_dentry dir, string * name, volume vol)
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.dir = dir->fh->meta.master_fh;
@@ -4372,7 +4374,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -4452,7 +4454,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 			other = conflict_other_dentry(idir, dentry);
 #ifdef ENABLE_CHECKING
 			if (!other)
-				abort();
+				zfsd_abort();
 #endif
 
 			if (dentry->fh->local_fh.sid == this_node->id)
@@ -4657,14 +4659,14 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 		r = remote_unlink(idir, name, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	if (locked2)
 	{
 		r2 = zfs_fh_lookup_nolock(&tmp_parent, &vol, &parent, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		idir = dentry_lookup(&tmp_fh);
@@ -4674,7 +4676,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 		r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (CONFLICT_DIR_P(idir->fh->local_fh))
@@ -4720,7 +4722,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 											  false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 				}
 			}
@@ -4770,7 +4772,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 			other = conflict_other_dentry(idir, dentry);
 #ifdef ENABLE_CHECKING
 			if (!dentry)
-				abort();
+				zfsd_abort();
 #endif
 
 			set_attr_version(&fa, &dentry->fh->meta);
@@ -4801,7 +4803,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 			dentry = dentry_lookup_name(NULL, idir, name);
 #ifdef ENABLE_CHECKING
 			if (!dentry)
-				abort();
+				zfsd_abort();
 #endif
 			dentry->fh->attr = fa;
 			release_dentry(dentry);
@@ -4856,7 +4858,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 			r2 = zfs_fh_lookup_nolock(&tmp_parent, &vol, &parent, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 			internal_dentry_unlock(vol, parent);
 		}
@@ -4975,7 +4977,7 @@ int32_t remote_readlink(read_link_res * res, internal_dentry file, volume vol)
 	CHECK_MUTEX_LOCKED(&file->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(file->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args = file->fh->meta.master_fh;
@@ -5099,12 +5101,12 @@ int32_t zfs_readlink(read_link_res * res, zfs_fh * fh)
 		r = remote_readlink(res, dentry, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	internal_dentry_unlock(vol, dentry);
@@ -5173,7 +5175,7 @@ local_symlink(dir_op_res * res, internal_dentry dir, string * name,
 	vol = volume_lookup(res->file.vid);
 #ifdef ENABLE_CHECKING
 	if (!vol)
-		abort();
+		zfsd_abort();
 #endif
 
 	meta->flags = METADATA_COMPLETE;
@@ -5208,7 +5210,7 @@ remote_symlink(dir_op_res * res, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.from.dir = dir->fh->meta.master_fh;
@@ -5269,7 +5271,7 @@ zfs_symlink(dir_op_res * res, zfs_fh * dir, string * name, string * to,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -5336,12 +5338,12 @@ zfs_symlink(dir_op_res * res, zfs_fh * dir, string * name, string * to,
 			master_res.file = res->file;
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -5375,7 +5377,7 @@ zfs_symlink(dir_op_res * res, zfs_fh * dir, string * name, string * to,
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -5443,7 +5445,7 @@ local_mknod(dir_op_res * res, internal_dentry dir, string * name, sattr * attr,
 	vol = volume_lookup(res->file.vid);
 #ifdef ENABLE_CHECKING
 	if (!vol)
-		abort();
+		zfsd_abort();
 #endif
 
 	meta->flags = METADATA_COMPLETE;
@@ -5479,7 +5481,7 @@ remote_mknod(dir_op_res * res, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.where.dir = dir->fh->meta.master_fh;
@@ -5542,7 +5544,7 @@ zfs_mknod(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -5609,12 +5611,12 @@ zfs_mknod(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr,
 			master_res.file = res->file;
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -5648,7 +5650,7 @@ zfs_mknod(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr,
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -5669,7 +5671,7 @@ int32_t local_file_info(file_info_res * res, zfs_fh * fh, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!vol->local_path.str)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -5701,7 +5703,7 @@ int32_t remote_file_info(file_info_res * res, zfs_fh * fh, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(*fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	zfsd_mutex_lock(&node_mutex);
@@ -5767,7 +5769,7 @@ int32_t zfs_file_info(file_info_res * res, zfs_fh * fh)
 		r = remote_file_info(res, &tmp_fh, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	RETURN_INT(r);
 }
@@ -5791,7 +5793,7 @@ move_from_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (dir->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -5843,7 +5845,7 @@ move_from_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
 	r = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	delete_dentry(&vol, &dir, name, dir_fh);
@@ -5854,7 +5856,7 @@ move_from_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
 	{
 #ifdef ENABLE_CHECKING
 		if (!dentry->parent)
-			abort();
+			zfsd_abort();
 #endif
 
 		parent = dentry->parent;
@@ -5975,7 +5977,7 @@ move_to_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (dir->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -6027,7 +6029,7 @@ static int32_t local_reintegrate(internal_dentry dentry, char status)
 		t = (thread *) pthread_getspecific(thread_data_key);
 #ifdef ENABLE_CHECKING
 		if (t == NULL)
-			abort();
+			zfsd_abort();
 #endif
 
 		dentry->fh->reintegrating_sid = t->from_sid;
@@ -6038,7 +6040,7 @@ static int32_t local_reintegrate(internal_dentry dentry, char status)
 		t = (thread *) pthread_getspecific(thread_data_key);
 #ifdef ENABLE_CHECKING
 		if (t == NULL)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (dentry->fh->reintegrating_sid != t->from_sid)
@@ -6125,7 +6127,7 @@ int32_t zfs_reintegrate(zfs_fh * fh, char status)
 	else if (vol->master != this_node)
 		r = remote_reintegrate(dentry, status, vol);
 	else
-		abort();
+		zfsd_abort();
 
 	RETURN_INT(r);
 }
@@ -6148,7 +6150,7 @@ local_reintegrate_add(volume vol, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (dir->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -6234,7 +6236,7 @@ local_reintegrate_add(volume vol, internal_dentry dir, string * name,
 			r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			delete_dentry(&vol, &dir, name, dir_fh);
@@ -6276,7 +6278,7 @@ local_reintegrate_add(volume vol, internal_dentry dir, string * name,
 			r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			delete_dentry(&vol, &dir, name, dir_fh);
@@ -6321,7 +6323,7 @@ remote_reintegrate_add(volume vol, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.fh = *fh;
@@ -6350,7 +6352,7 @@ remote_reintegrate_add(volume vol, internal_dentry dir, string * name,
 	r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	delete_dentry(&vol, &dir, name, dir_fh);
@@ -6417,12 +6419,12 @@ int32_t zfs_reintegrate_add(zfs_fh * fh, zfs_fh * dir, string * name)
 		r = remote_reintegrate_add(vol, idir, name, fh, &tmp_fh);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -6435,7 +6437,7 @@ int32_t zfs_reintegrate_add(zfs_fh * fh, zfs_fh * dir, string * name)
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -6519,7 +6521,7 @@ local_reintegrate_del_base(zfs_fh * fh, string * name, bool destroy_p,
 	r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -6547,7 +6549,7 @@ local_reintegrate_del_base(zfs_fh * fh, string * name, bool destroy_p,
 			r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 			if (r == ZFS_OK)
 			{
@@ -6599,7 +6601,7 @@ local_reintegrate_del(volume vol, zfs_fh * fh, internal_dentry dir,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (dir->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -6697,7 +6699,7 @@ remote_reintegrate_del(volume vol, zfs_fh * fh, internal_dentry dir,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.fh = *fh;
@@ -6727,7 +6729,7 @@ remote_reintegrate_del(volume vol, zfs_fh * fh, internal_dentry dir,
 	r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	delete_dentry(&vol, &dir, name, dir_fh);
@@ -6755,7 +6757,7 @@ remote_reintegrate_del_zfs_fh(volume vol, zfs_fh * fh, zfs_fh * dir,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(*dir))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.fh = *fh;
@@ -6850,12 +6852,12 @@ zfs_reintegrate_del(zfs_fh * fh, zfs_fh * dir, string * name, bool destroy_p)
 		r = remote_reintegrate_del(vol, fh, idir, name, destroy_p, &tmp_fh);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(dir, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -6870,7 +6872,7 @@ zfs_reintegrate_del(zfs_fh * fh, zfs_fh * dir, string * name, bool destroy_p)
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -6936,7 +6938,7 @@ remote_reintegrate_ver(internal_dentry dentry, uint64_t version_inc,
 	{
 		CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 		if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-			abort();
+			zfsd_abort();
 	}
 #endif
 
@@ -7007,13 +7009,19 @@ int32_t zfs_reintegrate_ver(zfs_fh * fh, uint64_t version_inc)
 	else if (vol->master != this_node)
 		r = remote_reintegrate_ver(dentry, version_inc, NULL, vol);
 	else
-		abort();
+		zfsd_abort();
 
 	RETURN_INT(r);
 }
 
 /* ! Invalidate file handle DENTRY in kernel dentry cache.  */
 
+#ifndef HAVE_FUSE
+int32_t local_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
+{
+	RETURN_INT(ZFS_COULD_NOT_CONNECT);
+}
+#else
 int32_t local_invalidate_fh(zfs_fh * fh)
 {
 	invalidate_args args;
@@ -7035,9 +7043,17 @@ int32_t local_invalidate_fh(zfs_fh * fh)
 
 	RETURN_INT(r);
 }
+#endif
 
 /* ! Invalidate dentry DENTRY in kernel dentry cache.  */
 
+#ifndef HAVE_FUSE
+int32_t local_invalidate(internal_dentry dentry, ATTRIBUTE_UNUSED bool volume_root_p)
+{
+	release_dentry(dentry);
+	RETURN_INT(ZFS_COULD_NOT_CONNECT);
+}
+#else
 int32_t local_invalidate(internal_dentry dentry, bool volume_root_p)
 {
 	invalidate_args args;
@@ -7080,6 +7096,7 @@ int32_t local_invalidate(internal_dentry dentry, bool volume_root_p)
 
 	RETURN_INT(r);
 }
+#endif
 
 /* ! Refresh file handle FH.  */
 

@@ -23,19 +23,10 @@
 #include <inttypes.h>
 
 #include "config.h"
-#ifdef __linux__
-#include <linux/types.h>
-#ifdef HAVE_LINUX_DIRENT_H
-#include <linux/dirent.h>
-#endif /* HAVE_LINUX_DIRENT_H */
-#include <linux/unistd.h>
-#else
 #include <dirent.h>
-#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/syscall.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -61,33 +52,6 @@
 #include "reread_config.h"
 #include "version.h"
 
-/* FIXME: use getdents64 (), or just plain readdir ()? */
-#ifdef __linux__
-
-/* FIXME: VB: New systems don't have linux/dirent.h, man getdents says you
-   have to define it yourself. It would be really less fragile to use
-   readdir(3), but that would mean obtaining DIR * from fd through fdopendir()
-   which says you have to give your fd up, which I am not sure about. Also it
-   would need to use cookie for telldir/seekdir instead of lseek. */
-#ifndef HAVE_LINUX_DIRENT_H
-
-struct dirent
-{
-	long d_ino;
-	__off_t d_off;
-	unsigned short d_reclen;
-	char d_name[];
-};
-
-#endif /* HAVE_LINUX_DIRENT_H */
-
-static int getdents(int fd, struct dirent *dirp, unsigned count)
-{
-	return syscall(SYS_getdents, fd, dirp, count);
-}
-
-#endif /* __linux__ */
-
 /* ! The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
 
@@ -110,7 +74,7 @@ static void init_fh_fd_data(internal_fh fh)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (fh->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(&opened_mutex);
 	CHECK_MUTEX_LOCKED(&internal_fd_data[fh->fd].mutex);
@@ -130,14 +94,14 @@ static void close_local_fd(int fd)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(&opened_mutex);
 	CHECK_MUTEX_LOCKED(&internal_fd_data[fd].mutex);
 
 #ifdef ENABLE_CHECKING
 	if (internal_fd_data[fd].fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	internal_fd_data[fd].fd = -1;
 	internal_fd_data[fd].generation++;
@@ -170,7 +134,7 @@ static int safe_open(const char *pathname, uint32_t flags, uint32_t mode)
 		fd_data = (internal_fd_data_t *) fibheap_extract_min(opened);
 #ifdef ENABLE_CHECKING
 		if (!fd_data && fibheap_size(opened) > 0)
-			abort();
+			zfsd_abort();
 #endif
 		if (fd_data)
 		{
@@ -229,7 +193,7 @@ capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (flags & O_CREAT)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (vol->local_path.str == NULL)
@@ -361,9 +325,9 @@ remote_close(internal_cap cap, internal_dentry dentry, volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_cap_undefined(cap->master_cap))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(cap->master_cap.fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args = cap->master_cap;
@@ -403,14 +367,14 @@ cond_remote_close(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (icap->master_busy == 0)
-		abort();
+		zfsd_abort();
 	if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined((*dentryp)->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(icap->master_cap.fh)
 		|| zfs_cap_undefined(icap->master_cap))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (icap->master_busy == 1)
@@ -421,7 +385,7 @@ cond_remote_close(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 		r2 = find_capability_nolock(cap, &icap, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (r != ZFS_OK)
@@ -437,7 +401,7 @@ cond_remote_close(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 	{
 		if (zfs_fh_undefined(icap->master_cap.fh)
 			|| zfs_cap_undefined(icap->master_cap))
-			abort();
+			zfsd_abort();
 	}
 #endif
 
@@ -524,7 +488,7 @@ local_create(create_res * res, int *fdp, internal_dentry dir, string * name,
 	vol = volume_lookup(res->dor.file.vid);
 #ifdef ENABLE_CHECKING
 	if (!vol)
-		abort();
+		zfsd_abort();
 #endif
 
 	meta->flags = METADATA_COMPLETE;
@@ -562,7 +526,7 @@ remote_create(create_res * res, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.where.dir = dir->fh->meta.master_fh;
@@ -633,7 +597,7 @@ zfs_create(create_res * res, zfs_fh * dir, string * name,
 	{
 #ifdef ENABLE_CHECKING
 		if (VIRTUAL_FH_P(*dir))
-			abort();
+			zfsd_abort();
 #endif
 		r = refresh_fh(dir);
 		if (r != ZFS_OK)
@@ -702,12 +666,12 @@ zfs_create(create_res * res, zfs_fh * dir, string * name,
 			master_res.dor.file = res->dor.file;
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -802,7 +766,7 @@ zfs_create(create_res * res, zfs_fh * dir, string * name,
 				r2 = zfs_fh_lookup_nolock(&tmp_fh, &vol, &idir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 			}
 		}
@@ -850,7 +814,7 @@ remote_open(zfs_cap * cap, internal_cap icap, uint32_t flags,
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Initialize capability.  */
@@ -904,9 +868,9 @@ cond_remote_open(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined((*dentryp)->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (icap->master_busy == 0)
@@ -919,7 +883,7 @@ cond_remote_open(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 		r2 = find_capability_nolock(cap, &icap, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		icap->master_cap = master_cap;
@@ -929,7 +893,7 @@ cond_remote_open(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 	{
 		if (zfs_fh_undefined(icap->master_cap.fh)
 			|| zfs_cap_undefined(icap->master_cap))
-			abort();
+			zfsd_abort();
 	}
 #endif
 
@@ -1079,7 +1043,7 @@ int32_t zfs_open(zfs_cap * cap, zfs_fh * fh, uint32_t flags)
 				break;
 
 			default:
-				abort();
+				zfsd_abort();
 			}
 		}
 		else
@@ -1095,12 +1059,12 @@ int32_t zfs_open(zfs_cap * cap, zfs_fh * fh, uint32_t flags)
 	}
 	else
 		/* file not cached locally but we are master volume? can't happen! */
-		abort();
+		zfsd_abort();
 
 	r2 = find_capability_nolock(&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -1224,7 +1188,7 @@ int32_t zfs_close(zfs_cap * cap)
 			r2 = find_capability(&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 		}
 		else if (icap->master_close_p)
@@ -1275,12 +1239,12 @@ int32_t zfs_close(zfs_cap * cap)
 		r = remote_close(icap, dentry, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = find_capability_nolock(&tmp_cap, &icap, &vol, &dentry, &vd, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Reread config file.  */
@@ -1321,7 +1285,7 @@ filldir_encode(uint32_t ino, int32_t cookie, const char *name,
 
 #ifdef ENABLE_CHECKING
 	if (name[0] == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	entry.ino = ino;
@@ -1613,9 +1577,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 			  filldir_f filldir,
 			  ATTRIBUTE_UNUSED_VERSIONS bool convert_versions)
 {
-	char buf[ZFS_MAXDATA];
-	int32_t r, pos;
-	struct dirent *de;
+	int32_t r = ZFS_OK;
 	int fd;
 	bool local_volume_root;
 	bool is_vername = false;
@@ -1732,191 +1694,175 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 		}
 #endif
 
-		r = lseek(fd, cookie, SEEK_SET);
-		if (r < 0)
+		int dup_fd = dup(fd);
+		if (dup_fd == -1)
 		{
-			zfsd_mutex_unlock(&internal_fd_data[fd].mutex);
-			RETURN_INT(errno);
-		}
+			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+			RETURN_INT (errno);
+		}	
+
+		DIR * dirp = fdopendir(dup_fd);
+		if (dirp == NULL)
+		{    
+			closedir(dirp);
+			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+			RETURN_INT (errno);
+		}    
+
+		seekdir(dirp, cookie);
 
 		while (1)
 		{
+			struct dirent entry, *de; 
+			r = readdir_r(dirp, &entry, &de);
+			if (r > 0) // readdir_r has failed
+			{
+				break;
+			}
+			else if (r == 0 && de == NULL) // end of list
+			{
+				list->eof = 1;
+				break;
+			}
+
+			cookie = telldir(dirp);
+
 			/* not used long block_start; */
 
-#ifdef __linux__
-			r = getdents(fd, (struct dirent *)buf, ZFS_MAXDATA);
-#else
-			/* FIXME: make sure the buffer is => st_bufsiz */
-			r = getdirentries(fd, buf, ZFS_MAXDATA, &block_start);
-#endif
-			if (r <= 0)
+			/* Hide special dirs in the root of the volume.  */
+			if (local_volume_root && SPECIAL_NAME_P(de->d_name, false))
+				continue;
+#ifdef ENABLE_VERSIONS
+			stamp = 0;
+			if (convert_versions && zfs_config.versions.versioning)
 			{
-				zfsd_mutex_unlock(&internal_fd_data[fd].mutex);
-
-				/* Comment from glibc: On some systems getdents fails with
-				   ENOENT when open directory has been rmdir'd already.
-				   POSIX.1 requires that we treat this condition like normal
-				   EOF.  */
-				if (r < 0 && errno == ENOENT)
-					r = 0;
-
-				if (r == 0)
+				/* Omit versions that did not exist in the specified time. 
+				 */
+				if (store && dentry->dirstamp
+					&& (dentry->dirstamp != VERSION_LIST_VERSIONS_STAMP))
 				{
-					list->eof = 1;
-					RETURN_INT(ZFS_OK);
+					char *f;
+					struct stat st;
+
+					f = xstrconcat(dentry->fh->version_path,
+								   DIRECTORY_SEPARATOR, de->d_name, NULL);
+					if (!lstat(f, &st) && (st.st_mtime > dentry->dirstamp))
+					{
+						free(f);
+						continue;
+					}
+					free(f);
 				}
 
-				/* EINVAL means that buffer was too small.  */
-				RETURN_INT((errno == EINVAL && list->n > 0) ? ZFS_OK : errno);
+				/* Hide version files or convert their names or select
+				   them for storage.  */
+				if ((vs = strchr(de->d_name, VERSION_NAME_SPECIFIER_C)))
+				{
+					// convert stamp to string
+					struct tm tm;
+					char ts[VERSION_MAX_SPECIFIER_LENGTH];
+					char *q;
+
+					// skip interval files
+					q = strchr(vs + 1, '.');
+					if (q)
+						continue;
+
+					stamp = atoi(vs + 1);
+
+					if (zfs_config.versions.retention_age_max > 0)
+					{
+						if ((time(NULL) - stamp) > zfs_config.versions.retention_age_max)
+							if (version_retent_file
+								(dentry, vol, de->d_name))
+								continue;
+					}
+
+					if (store)
+					{
+						/* Return only newer versions.  */
+						if (stamp < dentry->dirstamp)
+							continue;
+
+						*vs = '\0';
+					}
+					else if (local_verdisplay)
+					{
+						localtime_r(&stamp, &tm);
+						strftime(ts, sizeof(ts), VERSION_TIMESTAMP, &tm);
+
+						*(vs + 1) = '\0';
+						vername = xstrconcat(de->d_name, ts, NULL);
+						is_vername = true;
+					}
+					else
+						continue;
+				}
+				/* Skip current versions if @versions is specified.  */
+				else if (dentry->dirstamp == VERSION_LIST_VERSIONS_STAMP)
+					continue;
+			}
+#endif
+
+			if (vd)
+			{
+				virtual_dir svd;
+				string name;
+
+				/* Hide "." and "..".  */
+				if (de->d_name[0] == '.'
+					&& (de->d_name[1] == 0
+						|| (de->d_name[1] == '.' && de->d_name[2] == 0)))
+					continue;
+
+				if (zfs_fh_lookup_nolock(fh, NULL, NULL, &vd, false)
+					== ZFS_OK)
+				{
+					/* Hide files which have the same name like some
+					   virtual directory.  */
+					name.str = de->d_name;
+					name.len = strlen(de->d_name);
+					svd = vd_lookup_name(vd, &name);
+					zfsd_mutex_unlock(&vd->mutex);
+					zfsd_mutex_unlock(&fh_mutex);
+					if (svd)
+					{
+						zfsd_mutex_unlock(&svd->mutex);
+						continue;
+					}
+				}
 			}
 
-			for (pos = 0; pos < r; pos += de->d_reclen)
+			if (!is_vername)
+				vername = de->d_name;
+
+#ifdef ENABLE_VERSIONS
+			// store in a hash table, if not '.' and '..'
+			if (convert_versions && store &&
+				!(de->d_name[0] == '.' &&
+				  (de->d_name[1] == 0
+				   || (de->d_name[1] == '.' && de->d_name[2] == 0))))
 			{
-				de = (struct dirent *)&buf[pos];
-				is_vername = false;
-#ifdef __linux__
-				cookie = de->d_off;
-#else
-				/* Too bad FreeBSD doesn't provide that information, let's
-				   hope the kernel can handle slightly incorrect data. */
-				cookie = block_start + pos + de->d_reclen;
+				version_readdir_fill_dirhtab(dentry, stamp, de->d_ino, de->d_name);
+			}
+			else
 #endif
-
-				/* Hide special dirs in the root of the volume.  */
-				if (local_volume_root && SPECIAL_NAME_P(de->d_name, false))
-					continue;
-#ifdef ENABLE_VERSIONS
-				stamp = 0;
-				if (convert_versions && zfs_config.versions.versioning)
-				{
-					/* Omit versions that did not exist in the specified time. 
-					 */
-					if (store && dentry->dirstamp
-						&& (dentry->dirstamp != VERSION_LIST_VERSIONS_STAMP))
-					{
-						char *f;
-						struct stat st;
-
-						f = xstrconcat(dentry->fh->version_path,
-									   DIRECTORY_SEPARATOR, de->d_name, NULL);
-						if (!lstat(f, &st) && (st.st_mtime > dentry->dirstamp))
-						{
-							free(f);
-							continue;
-						}
-						free(f);
-					}
-
-					/* Hide version files or convert their names or select
-					   them for storage.  */
-					if ((vs = strchr(de->d_name, VERSION_NAME_SPECIFIER_C)))
-					{
-						// convert stamp to string
-						struct tm tm;
-						char ts[VERSION_MAX_SPECIFIER_LENGTH];
-						char *q;
-
-						// skip interval files
-						q = strchr(vs + 1, '.');
-						if (q)
-							continue;
-
-						stamp = atoi(vs + 1);
-
-						if (zfs_config.versions.retention_age_max > 0)
-						{
-							if ((time(NULL) - stamp) > zfs_config.versions.retention_age_max)
-								if (version_retent_file
-									(dentry, vol, de->d_name))
-									continue;
-						}
-
-						if (store)
-						{
-							/* Return only newer versions.  */
-							if (stamp < dentry->dirstamp)
-								continue;
-
-							*vs = '\0';
-						}
-						else if (local_verdisplay)
-						{
-							localtime_r(&stamp, &tm);
-							strftime(ts, sizeof(ts), VERSION_TIMESTAMP, &tm);
-
-							*(vs + 1) = '\0';
-							vername = xstrconcat(de->d_name, ts, NULL);
-							is_vername = true;
-						}
-						else
-							continue;
-					}
-					/* Skip current versions if @versions is specified.  */
-					else if (dentry->dirstamp == VERSION_LIST_VERSIONS_STAMP)
-						continue;
-				}
-#endif
-
-				if (vd)
-				{
-					virtual_dir svd;
-					string name;
-
-					/* Hide "." and "..".  */
-					if (de->d_name[0] == '.'
-						&& (de->d_name[1] == 0
-							|| (de->d_name[1] == '.' && de->d_name[2] == 0)))
-						continue;
-
-					if (zfs_fh_lookup_nolock(fh, NULL, NULL, &vd, false)
-						== ZFS_OK)
-					{
-						/* Hide files which have the same name like some
-						   virtual directory.  */
-						name.str = de->d_name;
-						name.len = strlen(de->d_name);
-						svd = vd_lookup_name(vd, &name);
-						zfsd_mutex_unlock(&vd->mutex);
-						zfsd_mutex_unlock(&fh_mutex);
-						if (svd)
-						{
-							zfsd_mutex_unlock(&svd->mutex);
-							continue;
-						}
-					}
-				}
-
-				if (!is_vername)
-					vername = de->d_name;
-
-#ifdef ENABLE_VERSIONS
-				// store in a hash table, if not '.' and '..'
-				if (convert_versions && store &&
-					!(de->d_name[0] == '.' &&
-					  (de->d_name[1] == 0
-					   || (de->d_name[1] == '.' && de->d_name[2] == 0))))
-				{
-					version_readdir_fill_dirhtab(dentry, stamp, de->d_ino,
-												 de->d_name);
-				}
-				else
-#endif
-				if (!(*filldir) (de->d_ino, cookie, vername,
-									 strlen(vername), list, data))
-				{
-					if (is_vername)
-						free(vername);
-					zfsd_mutex_unlock(&internal_fd_data[fd].mutex);
-					RETURN_INT(ZFS_OK);
-				}
-
+			if (!(*filldir) (de->d_ino, cookie, vername, strlen(vername), list, data))
+			{
 				if (is_vername)
 					free(vername);
+				break;
 			}
+
+			if (is_vername)
+				free(vername);
 		}
+
+		closedir(dirp);
+		zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 	}
 
-	RETURN_INT(ZFS_OK);
+	RETURN_INT(r);
 }
 
 /* ! Read COUNT bytes from remote directory CAP of dentry DENTRY on volume VOL
@@ -1938,9 +1884,9 @@ remote_readdir(dir_list * list, internal_cap cap, internal_dentry dentry,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_cap_undefined(cap->master_cap))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(cap->master_cap.fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.cap = cap->master_cap;
@@ -2066,7 +2012,7 @@ remote_readdir(dir_list * list, internal_cap cap, internal_dentry dentry,
 			}
 		}
 		else
-			abort();
+			zfsd_abort();
 	}
 	else if (r >= ZFS_LAST_DECODED_ERROR)
 	{
@@ -2097,7 +2043,7 @@ zfs_readdir(dir_list * list, zfs_cap * cap, int32_t cookie, uint32_t count,
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (list->n != 0 || list->eof != 0 || list->buffer == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (cap->flags != O_RDONLY)
@@ -2157,7 +2103,7 @@ zfs_readdir(dir_list * list, zfs_cap * cap, int32_t cookie, uint32_t count,
 		r = remote_readdir(list, icap, dentry, cookie, &data, vol, filldir);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	/* Cleanup decoded directory entries on error.  */
 	if (r != ZFS_OK && list->n > 0)
@@ -2185,7 +2131,7 @@ zfs_readdir(dir_list * list, zfs_cap * cap, int32_t cookie, uint32_t count,
 									false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		internal_cap_unlock(vol, dentry, vd);
@@ -2256,9 +2202,9 @@ remote_read(read_res * res, internal_cap cap, internal_dentry dentry,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_cap_undefined(cap->master_cap))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(cap->master_cap.fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args.cap = cap->master_cap;
@@ -2431,7 +2377,7 @@ zfs_read(read_res * res, zfs_cap * cap, uint64_t offset, uint32_t count,
 												NULL, false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 
 					r = local_read(res, dentry, offset, count, vol);
@@ -2462,7 +2408,7 @@ zfs_read(read_res * res, zfs_cap * cap, uint64_t offset, uint32_t count,
 				break;
 
 			default:
-				abort();
+				zfsd_abort();
 			}
 		}
 	}
@@ -2472,12 +2418,12 @@ zfs_read(read_res * res, zfs_cap * cap, uint64_t offset, uint32_t count,
 		r = remote_read(res, icap, dentry, offset, count, vol);
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = find_capability_nolock(&tmp_cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 #ifdef ENABLE_VERSIONS
@@ -2621,9 +2567,9 @@ remote_write(write_res * res, internal_cap cap, internal_dentry dentry,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_cap_undefined(cap->master_cap))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(cap->master_cap.fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args->cap = cap->master_cap;
@@ -2688,7 +2634,7 @@ int32_t zfs_write(write_res * res, write_args * args)
 	/* We did not allow directory to be opened for writing so there should be
 	   no capability for writing to directory.  */
 	if (dentry->fh->attr.type == FT_DIR)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = internal_cap_lock(LEVEL_SHARED, &icap, &vol, &dentry, NULL, &tmp_cap);
@@ -2726,7 +2672,7 @@ int32_t zfs_write(write_res * res, write_args * args)
 				break;
 
 			default:
-				abort();
+				zfsd_abort();
 			}
 		}
 	}
@@ -2737,12 +2683,12 @@ int32_t zfs_write(write_res * res, write_args * args)
 		remote_call = true;
 	}
 	else
-		abort();
+		zfsd_abort();
 
 	r2 = find_capability_nolock(&tmp_cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r == ZFS_OK)
@@ -2832,7 +2778,7 @@ int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (!REGULAR_FH_P(*fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	cap.fh = *fh;
@@ -2842,7 +2788,7 @@ int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	r2 = get_capability(&cap, &icap, &vol, &dentry, NULL, false, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = local_open(0, dentry, vol);
@@ -2850,7 +2796,7 @@ int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	r2 = find_capability_nolock(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r != ZFS_OK)
@@ -2879,7 +2825,7 @@ int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 			r2 = find_capability(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 			local_close(dentry->fh);
 			put_capability(icap, dentry->fh, NULL);
@@ -2891,7 +2837,7 @@ int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 		r2 = find_capability_nolock(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 	}
 	while (list.eof == 0);
@@ -2921,7 +2867,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (!REGULAR_FH_P(*fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	cap.fh = *fh;
@@ -2931,7 +2877,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	r2 = get_capability(&cap, &icap, &vol, &dentry, NULL, true, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = remote_open(&remote_cap, icap, 0, dentry, vol);
@@ -2939,7 +2885,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	r2 = find_capability(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r != ZFS_OK)
@@ -2969,7 +2915,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 		r2 = find_capability(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (r != ZFS_OK)
@@ -2979,7 +2925,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 			r2 = find_capability(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			put_capability(icap, dentry->fh, NULL);
@@ -2996,7 +2942,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	r2 = find_capability(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	put_capability(icap, dentry->fh, NULL);
@@ -3027,13 +2973,13 @@ full_local_read(uint32_t * rcount, void *buffer, zfs_cap * cap,
 		r = find_capability_nolock(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 #ifdef ENABLE_CHECKING
 		if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh)
 			  && vol->master != this_node))
-			abort();
+			zfsd_abort();
 #endif
 
 		if (version && *version != dentry->fh->attr.version)
@@ -3085,10 +3031,10 @@ full_local_read_dentry(uint32_t * rcount, void *buffer, zfs_cap * cap,
 		r2 = find_capability_nolock(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 		if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh)
 			  && vol->master != this_node))
-			abort();
+			zfsd_abort();
 #endif
 
 		if (r != ZFS_OK)
@@ -3124,13 +3070,13 @@ full_remote_read(uint32_t * rcount, void *buffer, zfs_cap * cap,
 		r = find_capability(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 #ifdef ENABLE_CHECKING
 		if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh)
 			  && vol->master != this_node))
-			abort();
+			zfsd_abort();
 #endif
 
 		res.data.buf = (char *)buffer + total;
@@ -3174,13 +3120,13 @@ full_local_write(uint32_t * rcount, void *buffer, zfs_cap * cap,
 		r = find_capability_nolock(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 #ifdef ENABLE_CHECKING
 		if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh)
 			  && vol->master != this_node))
-			abort();
+			zfsd_abort();
 #endif
 
 		if (version && *version != dentry->fh->attr.version)
@@ -3237,10 +3183,10 @@ full_remote_write_dentry(uint32_t * rcount, void *buffer, zfs_cap * cap,
 		r2 = find_capability_nolock(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 		if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh)
 			  && vol->master != this_node))
-			abort();
+			zfsd_abort();
 #endif
 
 		if (r != ZFS_OK)
@@ -3333,14 +3279,14 @@ int32_t remote_md5sum(md5sum_res * res, md5sum_args * args)
 	r = find_capability(&args->cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 #ifdef ENABLE_CHECKING
 	if (zfs_cap_undefined(icap->master_cap))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(icap->master_cap.fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (dentry->fh->attr.type != FT_REG)
@@ -3435,7 +3381,7 @@ void cleanup_file_c(void)
 		fd_data = (internal_fd_data_t *) fibheap_extract_min(opened);
 #ifdef ENABLE_CHECKING
 		if (!fd_data && fibheap_size(opened) > 0)
-			abort();
+			zfsd_abort();
 #endif
 		if (fd_data)
 		{

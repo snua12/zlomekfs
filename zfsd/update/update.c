@@ -87,9 +87,9 @@ void get_blocks_for_updating(internal_fh fh, uint64_t start, uint64_t end,
 	CHECK_MUTEX_LOCKED(&fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!fh->updated)
-		abort();
+		zfsd_abort();
 	if (!fh->modified)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* create tmp varray within interval without the already updated ones */
@@ -178,7 +178,7 @@ static int32_t update_file_clear_updated_tree(zfs_fh * fh, uint64_t version)
 	r = zfs_fh_lookup(fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
         if (r != ZFS_OK)
                 RETURN_INT(r);
@@ -233,7 +233,7 @@ static int32_t truncate_local_file(volume * volp, internal_dentry * dentryp, zfs
 	r = zfs_fh_lookup(fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Flush the interval tree if the file was complete but now is larger to
@@ -289,7 +289,7 @@ update_file_blocks_1(md5sum_args * args, zfs_cap * cap, varray * blocks,
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (!REGULAR_FH_P(cap->fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	args->cap = *cap;
@@ -331,12 +331,12 @@ update_file_blocks_1(md5sum_args * args, zfs_cap * cap, varray * blocks,
 	r = zfs_fh_lookup_nolock(&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 #ifdef ENABLE_CHECKING
 	if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh) && vol->master != this_node))
-		abort();
+		zfsd_abort();
 #endif
 
 	message(LOG_DATA, FACILITY_DATA | FACILITY_NET,
@@ -364,7 +364,7 @@ update_file_blocks_1(md5sum_args * args, zfs_cap * cap, varray * blocks,
 		r = zfs_fh_lookup_nolock(&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 	}
 
@@ -541,7 +541,7 @@ update_file_blocks_1(md5sum_args * args, zfs_cap * cap, varray * blocks,
 			r = zfs_fh_lookup(&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			if (!append_interval(vol, dentry->fh, METADATA_TYPE_UPDATED,
@@ -562,7 +562,7 @@ update_file_blocks_1(md5sum_args * args, zfs_cap * cap, varray * blocks,
 		r = zfs_fh_lookup(&cap->fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (!flush_interval_tree(vol, dentry->fh, METADATA_TYPE_MODIFIED))
@@ -590,7 +590,7 @@ update_file_blocks(zfs_cap * cap, varray * blocks, bool modified, bool slow)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (VARRAY_USED(*blocks) == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	args.count = 0;
@@ -672,9 +672,9 @@ static int32_t reintegrate_file_blocks(zfs_cap * cap, bool slow)
 	r2 = find_capability(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Get reintegration privilege from volume master */
@@ -687,7 +687,7 @@ static int32_t reintegrate_file_blocks(zfs_cap * cap, bool slow)
 	r2 = find_capability_nolock(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* mark the file as reintegrating */
@@ -782,7 +782,7 @@ static int32_t reintegrate_file_blocks(zfs_cap * cap, bool slow)
 	r2 = find_capability(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (r3 == ZFS_OK)
@@ -805,7 +805,7 @@ static int32_t reintegrate_file_blocks(zfs_cap * cap, bool slow)
 			r2 = find_capability(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 		}
 	}
@@ -832,7 +832,7 @@ static int32_t reintegrate_file_blocks(zfs_cap * cap, bool slow)
 	r2 = find_capability(cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	meta = &dentry->fh->meta;
@@ -901,7 +901,7 @@ update_p(volume * volp, internal_dentry * dentryp, zfs_fh * fh, fattr * attr,
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!((*volp)->local_path.str && (*volp)->master != this_node))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (zfs_fh_undefined((*dentryp)->fh->meta.master_fh))
@@ -925,7 +925,7 @@ update_p(volume * volp, internal_dentry * dentryp, zfs_fh * fh, fattr * attr,
 		r2 = zfs_fh_lookup(fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if ((*dentryp)->fh->attr.type != attr->type)
@@ -943,7 +943,7 @@ update_p(volume * volp, internal_dentry * dentryp, zfs_fh * fh, fattr * attr,
 		r2 = zfs_fh_lookup(fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	RETURN_INT(0);
@@ -1148,7 +1148,7 @@ static int32_t update_file(zfs_fh * fh, bool slowthread)
 		r2 = zfs_fh_lookup_nolock(fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		/* check if there's still anything to do */
@@ -1191,7 +1191,7 @@ static int32_t update_file(zfs_fh * fh, bool slowthread)
 		r2 = zfs_fh_lookup_nolock(fh, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		/* was everything updated? */
@@ -1231,7 +1231,7 @@ static int32_t update_file(zfs_fh * fh, bool slowthread)
 	r2 = find_capability_nolock(&cap, &icap, &vol, &dentry, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
   out:
@@ -1295,7 +1295,7 @@ int32_t update_fh_if_needed(volume * volp, internal_dentry * dentryp, zfs_fh * f
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = ZFS_OK;
@@ -1347,9 +1347,9 @@ update_fh_if_needed_2(volume * volp, internal_dentry * dentryp,
 	CHECK_MUTEX_LOCKED(&(*dentry2p)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 	if ((*dentry2p)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = ZFS_OK;
@@ -1357,7 +1357,7 @@ update_fh_if_needed_2(volume * volp, internal_dentry * dentryp,
 	{
 #ifdef ENABLE_CHECKING
 		if (fh->sid != fh2->sid || fh->vid != fh2->vid || fh->dev != fh2->dev)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (fh2->ino != fh->ino)
@@ -1414,7 +1414,7 @@ update_fh_if_needed_2(volume * volp, internal_dentry * dentryp,
 			r2 = zfs_fh_lookup_nolock(fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			if (fh2->ino != fh->ino)
@@ -1422,7 +1422,7 @@ update_fh_if_needed_2(volume * volp, internal_dentry * dentryp,
 				*dentry2p = dentry_lookup(fh2);
 #ifdef ENABLE_CHECKING
 				if (!*dentry2p)
-					abort();
+					zfsd_abort();
 #endif
 			}
 			else
@@ -1451,7 +1451,7 @@ update_cap_if_needed(internal_cap * icapp, volume * volp,
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = ZFS_OK;
@@ -1482,7 +1482,7 @@ update_cap_if_needed(internal_cap * icapp, volume * volp,
 				zfsd_mutex_unlock(&(*vdp)->mutex);
 #ifdef ENABLE_CHECKING
 			if (!*vdp && VIRTUAL_FH_P(cap->fh))
-				abort();
+				zfsd_abort();
 #endif
 		}
 	}
@@ -1574,7 +1574,7 @@ files_are_the_same(zfs_fh * dir_fh, string * name, fattr * local_attr,
 	switch (local_attr->type)
 	{
 	default:
-		abort();
+		zfsd_abort();
 
 	case FT_REG:
 	case FT_DIR:
@@ -1587,7 +1587,7 @@ files_are_the_same(zfs_fh * dir_fh, string * name, fattr * local_attr,
 		r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		r = local_readlink_name(&local_link, dir, name, vol);
@@ -1597,7 +1597,7 @@ files_are_the_same(zfs_fh * dir_fh, string * name, fattr * local_attr,
 		vol = volume_lookup(dir_fh->vid);
 #ifdef ENABLE_CHECKING
 		if (!vol)
-			abort();
+			zfsd_abort();
 #endif
 
 		r = remote_readlink_zfs_fh(&remote_link, remote_fh, vol);
@@ -1664,7 +1664,7 @@ synchronize_attributes(volume * volp, internal_dentry * dentryp,
 
 #ifdef ENABLE_CHECKING
 	if (!(local_changed ^ remote_changed))
-		abort();
+		zfsd_abort();
 #endif
 
 	message(LOG_FUNC, FACILITY_DATA | FACILITY_NET,
@@ -1752,7 +1752,7 @@ synchronize_attributes(volume * volp, internal_dentry * dentryp,
 #ifdef ENABLE_CHECKING
 		/* Dentry or its parent is locked.  */
 		if (!*volp)
-			abort();
+			zfsd_abort();
 #endif
 
 		meta.flags = METADATA_COMPLETE;
@@ -1812,7 +1812,7 @@ create_local_fh(internal_dentry dir, string * name, volume vol,
 	switch (remote_attr->type)
 	{
 	default:
-		abort();
+		zfsd_abort();
 
 	case FT_BAD:
 		release_dentry(dir);
@@ -1847,7 +1847,7 @@ create_local_fh(internal_dentry dir, string * name, volume vol,
 		r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		sa.mode = (uint32_t) - 1;
@@ -1874,7 +1874,7 @@ create_local_fh(internal_dentry dir, string * name, volume vol,
 		r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		dentry = get_dentry(local_fh, remote_fh, vol, dir, name,
@@ -1951,7 +1951,7 @@ create_remote_fh(dir_op_res * res, internal_dentry dir, string * name,
 	switch (attr->type)
 	{
 	default:
-		abort();
+		zfsd_abort();
 
 	case FT_DIR:
 		zfsd_mutex_unlock(&fh_mutex);
@@ -1966,7 +1966,7 @@ create_remote_fh(dir_op_res * res, internal_dentry dir, string * name,
 		r2 = zfs_fh_lookup(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		sa.mode = (uint32_t) - 1;
@@ -2003,7 +2003,7 @@ schedule_update_or_reintegration(volume vol, internal_dentry dentry)
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (dentry->fh->attr.type != FT_REG)
-		abort();
+		zfsd_abort();
 #endif
 
 	message(LOG_FUNC, FACILITY_DATA | FACILITY_NET,
@@ -2074,7 +2074,7 @@ lookup_remote_dentry_in_the_same_place(dir_op_res * res, zfs_fh * fh,
 	CHECK_MUTEX_LOCKED(&(*dentryp)->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if ((*dentryp)->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (LOCAL_VOLUME_ROOT_P(*dentryp))
@@ -2110,7 +2110,7 @@ lookup_remote_dentry_in_the_same_place(dir_op_res * res, zfs_fh * fh,
 		r2 = zfs_fh_lookup_nolock(fh, volp, dentryp, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 	}
 
@@ -2146,9 +2146,9 @@ synchronize_file(volume vol, internal_dentry dentry, zfs_fh * fh, fattr * attr,
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh) && vol->master != this_node))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	message(LOG_FUNC, FACILITY_DATA | FACILITY_NET,
@@ -2179,7 +2179,7 @@ synchronize_file(volume vol, internal_dentry dentry, zfs_fh * fh, fattr * attr,
 	{
 #ifdef ENABLE_CHECKING
 		if (dentry->fh->level == LEVEL_UNLOCKED)
-			abort();
+			zfsd_abort();
 #endif
 		/* handle the case when remote attributes are not for file in the same 
 		   place */
@@ -2344,16 +2344,16 @@ resolve_conflict_discard_local(zfs_fh * conflict_fh, internal_dentry local,
 		r2 = zfs_fh_lookup_nolock(conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 		local = conflict_local_dentry(conflict);
 		remote = conflict_other_dentry(conflict, local);
 		release_dentry(conflict);
 #ifdef ENABLE_CHECKING
 		if (!local)
-			abort();
+			zfsd_abort();
 		if (!remote)
-			abort();
+			zfsd_abort();
 #endif
 
 		set_attr_version(&fa, &local->fh->meta);
@@ -2403,7 +2403,7 @@ resolve_conflict_discard_local(zfs_fh * conflict_fh, internal_dentry local,
 	r2 = zfs_fh_lookup_nolock(conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 	remote = conflict_remote_dentry(conflict);
 	release_dentry(conflict);
@@ -2416,7 +2416,7 @@ resolve_conflict_discard_local(zfs_fh * conflict_fh, internal_dentry local,
 	r2 = zfs_fh_lookup_nolock(conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 	local = conflict_local_dentry(conflict);
 	release_dentry(conflict);
@@ -2478,16 +2478,16 @@ resolve_conflict_discard_remote(zfs_fh * conflict_fh, internal_dentry local,
 		r2 = zfs_fh_lookup_nolock(conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 		local = conflict_local_dentry(conflict);
 		remote = conflict_other_dentry(conflict, local);
 		release_dentry(conflict);
 #ifdef ENABLE_CHECKING
 		if (!local)
-			abort();
+			zfsd_abort();
 		if (!remote)
-			abort();
+			zfsd_abort();
 #endif
 
 		remote->fh->attr = fa;
@@ -2536,7 +2536,7 @@ resolve_conflict_discard_remote(zfs_fh * conflict_fh, internal_dentry local,
 	r2 = zfs_fh_lookup_nolock(conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 	remote = conflict_remote_dentry(conflict);
 	release_dentry(conflict);
@@ -2549,7 +2549,7 @@ resolve_conflict_discard_remote(zfs_fh * conflict_fh, internal_dentry local,
 	r2 = zfs_fh_lookup_nolock(conflict_fh, &vol, &conflict, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 	local = conflict_local_dentry(conflict);
 	release_dentry(conflict);
@@ -2601,7 +2601,7 @@ resolve_conflict_delete_local(dir_op_res * res, internal_dentry dir,
 		vol = volume_lookup(remote_fh->vid);
 #ifdef ENABLE_CHECKING
 		if (!vol)
-			abort();
+			zfsd_abort();
 #endif
 		r = remote_file_info(&info, remote_fh, vol);
 		if (r == ZFS_OK)
@@ -2624,7 +2624,7 @@ resolve_conflict_delete_local(dir_op_res * res, internal_dentry dir,
 		r2 = zfs_fh_lookup_nolock(dir_fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (delete_tree_name(dir, name, vol, false, true, true) != ZFS_OK)
@@ -2654,7 +2654,7 @@ resolve_conflict_delete_remote(volume vol, internal_dentry dir, string * name,
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (zfs_fh_undefined(*remote_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	if (!get_fh_mapping_for_master_fh(vol, remote_fh, &map))
@@ -2693,13 +2693,13 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!(INTERNAL_FH_HAS_LOCAL_PATH(dir->fh) && vol->master != this_node))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 	if (dir->fh->attr.type != FT_DIR)
-		abort();
+		zfsd_abort();
 	if (dir->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (dir->fh->meta.master_version == attr->version
@@ -2743,7 +2743,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		r = local_lookup(&local_res, dir, &entry->name, vol, &meta);
@@ -2763,7 +2763,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			r2 = zfs_fh_lookup(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			r = remote_lookup(&remote_res, dir, &entry->name, vol);
@@ -2790,7 +2790,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 
 					r = delete_tree_name(dir, &entry->name, vol, true, false,
@@ -2805,7 +2805,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 				r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 				dentry = get_dentry(&local_res.file, &remote_res.file, vol,
 									dir, &entry->name, &local_res.attr, &meta);
@@ -2828,7 +2828,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 
 					r = delete_tree_name(dir, &entry->name, vol, true, false,
@@ -2844,7 +2844,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 
 					/* Create a modify-create conflict.  */
@@ -2876,7 +2876,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 				vol = volume_lookup(fh->vid);
 #ifdef ENABLE_CHECKING
 				if (!vol)
-					abort();
+					zfsd_abort();
 #endif
 
 				r = remote_file_info(&info, &meta.master_fh, vol);
@@ -2886,7 +2886,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 				r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 
 				r = local_reintegrate_del(vol, &local_res.file, dir,
@@ -2898,7 +2898,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 				r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 				if (r2 != ZFS_OK)
-					abort();
+					zfsd_abort();
 #endif
 
 				/* Create a modify-delete conflict.  */
@@ -2923,7 +2923,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			r = delete_tree_name(dir, &entry->name, vol, true, false, true);
@@ -2941,7 +2941,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		r2 = zfs_fh_lookup(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (journal_member(dir->fh->journal, JOURNAL_OPERATION_DEL,
@@ -2966,7 +2966,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		vol = volume_lookup(fh->vid);
 #ifdef ENABLE_CHECKING
 		if (!vol)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (!get_fh_mapping_for_master_fh(vol, &remote_res.file, &map))
@@ -2981,7 +2981,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (map.slot_status == VALID_SLOT)
@@ -3007,7 +3007,7 @@ update_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 	r2 = zfs_fh_lookup(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 	if (r2 != ZFS_OK)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (!dir->fh->journal->first && !have_conflicts)
@@ -3051,7 +3051,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 	vol = volume_lookup(vid);
 #ifdef ENABLE_CHECKING
 	if (!vol)
-		abort();
+		zfsd_abort();
 #endif
 	if (!read_journal(vol, &fh, journal))
 	{
@@ -3072,7 +3072,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 		{
 		case JOURNAL_OPERATION_ADD:
 			if (!journal_delete_entry(journal, entry))
-				abort();
+				zfsd_abort();
 			flush_journal = true;
 			break;
 
@@ -3081,7 +3081,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 			vol = volume_lookup(vid);
 #ifdef ENABLE_CHECKING
 			if (!vol)
-				abort();
+				zfsd_abort();
 #endif
 			file_fh.dev = entry->dev;
 			file_fh.ino = entry->ino;
@@ -3103,7 +3103,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 				vol = volume_lookup(vid);
 #ifdef ENABLE_CHECKING
 				if (!vol)
-					abort();
+					zfsd_abort();
 #endif
 				r = remote_lookup_zfs_fh(res, &deleted_dir_entry->master_fh,
 										 &entry->name, vol);
@@ -3120,7 +3120,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 					vol = volume_lookup(vid);
 #ifdef ENABLE_CHECKING
 					if (!vol)
-						abort();
+						zfsd_abort();
 #endif
 					destroy = (!local_exists
 							   && entry->master_version == res->attr.version);
@@ -3130,7 +3130,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 					if (r == ZFS_OK)
 					{
 						if (!journal_delete_entry(journal, entry))
-							abort();
+							zfsd_abort();
 						flush_journal = true;
 					}
 					else if (r != ENOENT && r != ESTALE)
@@ -3141,7 +3141,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 					/* There is another file with NAME so the original file
 					   must have been already deleted.  */
 					if (!journal_delete_entry(journal, entry))
-						abort();
+						zfsd_abort();
 					flush_journal = true;
 				}
 			}
@@ -3150,7 +3150,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 				/* Nothing to do.  */
 
 				if (!journal_delete_entry(journal, entry))
-					abort();
+					zfsd_abort();
 				flush_journal = true;
 			}
 			else
@@ -3163,7 +3163,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 			break;
 
 		default:
-			abort();
+			zfsd_abort();
 		}
 	}
 	r = ZFS_OK;
@@ -3174,7 +3174,7 @@ reintegrate_deleted_dir(dir_op_res * res, uint32_t vid,
 		vol = volume_lookup(vid);
 #ifdef ENABLE_CHECKING
 		if (!vol)
-			abort();
+			zfsd_abort();
 #endif
 		if (!write_journal(vol, &fh, journal))
 			MARK_VOLUME_DELETE(vol);
@@ -3210,13 +3210,13 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 	CHECK_MUTEX_LOCKED(&dir->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!(INTERNAL_FH_HAS_LOCAL_PATH(dir->fh) && vol->master != this_node))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(dir->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 	if (dir->fh->attr.type != FT_DIR)
-		abort();
+		zfsd_abort();
 	if (dir->fh->level == LEVEL_UNLOCKED)
-		abort();
+		zfsd_abort();
 #endif
 
 	local_volume_root = LOCAL_VOLUME_ROOT_P(dir);
@@ -3233,7 +3233,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		if (local_volume_root && SPECIAL_NAME_P(entry->name.str, true))
 		{
 			if (!journal_delete_entry(dir->fh->journal, entry))
-				abort();
+				zfsd_abort();
 			flush_journal = true;
 			continue;
 		}
@@ -3246,12 +3246,12 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 			if (r != ZFS_OK)
 			{
 				if (!journal_delete_entry(dir->fh->journal, entry))
-					abort();
+					zfsd_abort();
 				flush_journal = true;
 				continue;
 			}
@@ -3261,7 +3261,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			cancel = false;
@@ -3298,7 +3298,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 						r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 						if (r2 != ZFS_OK)
-							abort();
+							zfsd_abort();
 #endif
 					}
 					else
@@ -3326,7 +3326,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 				else
 				{
 					if (!journal_delete_entry(dir->fh->journal, entry))
-						abort();
+						zfsd_abort();
 					flush_journal = true;
 				}
 			}
@@ -3342,7 +3342,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 					if (r != ZFS_OK)
 						continue;
@@ -3387,7 +3387,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					}
 
 					if (!journal_delete_entry(dir->fh->journal, entry))
-						abort();
+						zfsd_abort();
 					flush_journal = true;
 				}
 				else
@@ -3401,7 +3401,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 					if (r2 != ZFS_OK)
-						abort();
+						zfsd_abort();
 #endif
 
 					if (r == ZFS_OK)
@@ -3413,13 +3413,13 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 						r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 						if (r2 != ZFS_OK)
-							abort();
+							zfsd_abort();
 #endif
 						if (r == ZFS_OK)
 						{
 							version_increase++;
 							if (!journal_delete_entry(dir->fh->journal, entry))
-								abort();
+								zfsd_abort();
 							flush_journal = true;
 						}
 					}
@@ -3434,13 +3434,13 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 						r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 						if (r2 != ZFS_OK)
-							abort();
+							zfsd_abort();
 #endif
 						if (r != ZFS_OK)
 							goto out;
 
 						if (!journal_delete_entry(dir->fh->journal, entry))
-							abort();
+							zfsd_abort();
 						flush_journal = true;
 					}
 					else
@@ -3482,7 +3482,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 
 			cancel = false;
@@ -3507,7 +3507,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 						r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 						if (r2 != ZFS_OK)
-							abort();
+							zfsd_abort();
 #endif
 					}
 					else
@@ -3550,13 +3550,13 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 						r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 						if (r2 != ZFS_OK)
-							abort();
+							zfsd_abort();
 #endif
 						if (r == ZFS_OK)
 						{
 							version_increase++;
 							if (!journal_delete_entry(dir->fh->journal, entry))
-								abort();
+								zfsd_abort();
 							flush_journal = true;
 						}
 					}
@@ -3566,7 +3566,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 					/* There is another file with NAME so the original file
 					   must have been already deleted.  */
 					if (!journal_delete_entry(dir->fh->journal, entry))
-						abort();
+						zfsd_abort();
 					flush_journal = true;
 				}
 			}
@@ -3575,7 +3575,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 				/* Nothing to do.  */
 
 				if (!journal_delete_entry(dir->fh->journal, entry))
-					abort();
+					zfsd_abort();
 				flush_journal = true;
 			}
 			else
@@ -3587,7 +3587,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			break;
 
 		default:
-			abort();
+			zfsd_abort();
 		}
 	}
 
@@ -3614,7 +3614,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			r2 = zfs_fh_lookup(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 			if (r2 != ZFS_OK)
-				abort();
+				zfsd_abort();
 #endif
 		}
 		while (r == ZFS_BUSY);
@@ -3625,7 +3625,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		r2 = zfs_fh_lookup(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 		if (r != ZFS_OK)
 		{
@@ -3690,7 +3690,7 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 		r2 = zfs_fh_lookup_nolock(fh, &vol, &dir, NULL, false);
 #ifdef ENABLE_CHECKING
 		if (r2 != ZFS_OK)
-			abort();
+			zfsd_abort();
 #endif
 	}
   out:
@@ -3725,15 +3725,15 @@ update(volume vol, internal_dentry dentry, zfs_fh * fh, fattr * attr, int how)
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 #ifdef ENABLE_CHECKING
 	if (!(INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh) && vol->master != this_node))
-		abort();
+		zfsd_abort();
 	if (zfs_fh_undefined(dentry->fh->meta.master_fh))
-		abort();
+		zfsd_abort();
 #endif
 
 	switch (dentry->fh->attr.type)
 	{
 	default:
-		abort();
+		zfsd_abort();
 
 	case FT_REG:
 		r = synchronize_file(vol, dentry, fh, attr, how, false);
@@ -3834,7 +3834,7 @@ static void *update_worker(void *data)
 
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(t) == THREAD_DEAD)
-			abort();
+			zfsd_abort();
 #endif
 
 		/* We were requested to die.  */
@@ -3947,7 +3947,7 @@ static void *update_worker(void *data)
 		{
 #ifdef ENABLE_CHECKING
 			if (get_thread_state(t) != THREAD_DYING)
-				abort();
+				zfsd_abort();
 #endif
 			/* thread is supposed to die */
 			message(LOG_INFO, FACILITY_NET | FACILITY_THREADING,
@@ -4009,7 +4009,7 @@ static void *update_main(ATTRIBUTE_UNUSED void *data)
 		queue_get(&update_pool.idle, &idx);
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(&update_pool.threads[idx].t) == THREAD_BUSY)
-			abort();
+			zfsd_abort();
 #endif
 		set_thread_state(&update_pool.threads[idx].t, THREAD_BUSY);
 		update_pool.threads[idx].t.u.update.fh = fh;

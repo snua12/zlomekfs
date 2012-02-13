@@ -258,7 +258,7 @@ static syp_error medium_parse_params(int argc, const char **argv,
 #endif
 
 	// we need to "init" structures of getopt library
-	optind = 0;
+	optind = 1;
 
 	while ((opt =
 			getopt_long(argc, (char **)argv, "", option_table, NULL)) != -1)
@@ -284,6 +284,8 @@ static syp_error medium_parse_params(int argc, const char **argv,
 		default:
 			break;
 		}
+
+	optind = 1;
 
 	return NOERR;
 }

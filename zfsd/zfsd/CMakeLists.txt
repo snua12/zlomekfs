@@ -1,10 +1,32 @@
 SET(zfsd_SRCS
    zfsd.c
    zfsd_state.c
+   zfsd_args_shared.c
 )
 
+SET(zfsd_LIBS
+    ${LCONFIG_LIBRARIES}
+    pthread
+    threading
+    protocol
+    log
+    memory
+    control
+)
+
+
+if (HAVE_FUSE)
+	SET(zfsd_SRCS ${zfsd_SRCS} zfsd_args_fuse.c)
+	SET(zfsd_LIBS ${zfsd_LIBS} fuse_iface)
+elseif(HAVE_DOKAN)
+	SET(zfsd_SRCS ${zfsd_SRCS} zfsd_args_nofuse.c)
+	SET(zfsd_LIBS ${zfsd_LIBS} dokan_iface)
+else()
+	SET(zfsd_SRCS ${zfsd_SRCS} zfsd_args_nofuse.c)
+endif()
+
 add_executable(zfsd ${zfsd_SRCS})
-target_link_libraries(zfsd ${FUSE_LIBRARIES} ${LCONFIG_LIBRARIES} log memory fuse_iface control)
+target_link_libraries(zfsd  ${zfsd_LIBS})
 
 # dumb cmake 2.6 needs this hint (some code is in C++)
 set_target_properties(zfsd PROPERTIES LINKER_LANGUAGE CXX)

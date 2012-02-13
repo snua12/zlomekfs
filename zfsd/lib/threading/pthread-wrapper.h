@@ -67,14 +67,14 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p DESTROY, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p DESTROY, by %"PTRid" at %s:%d\n",		\
 	     (void *) M,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_destroy (M)) != 0)				\
       {									\
 	message (LOG_WARNING, FACILITY_THREADING, "pthread_mutex_destroy: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
     0; })
 
@@ -82,32 +82,32 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p LOCK, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p LOCK, by %"PTRid" at %s:%d\n",		\
 	     (void *) M,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_lock (M)) != 0)				\
       {									\
 	message (LOG_ERROR, FACILITY_THREADING, "pthread_mutex_lock: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
-    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p LOCKED, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p LOCKED, by %"PTRid" at %s:%d\n",		\
 	     (void *) M,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     0; })
 
 #define zfsd_mutex_unlock(M) __extension__				\
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p UNLOCK, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p UNLOCK, by %"PTRid" at %s:%d\n",		\
 	     (void *) M,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_mutex_unlock (M)) != 0)				\
       {									\
 	message (LOG_ERROR, FACILITY_THREADING, "pthread_mutex_unlock: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
     0; })
 
@@ -119,7 +119,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
       {									\
 	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_destroy: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
     0; })
 
@@ -127,14 +127,14 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, FACILITY_THREADING, "COND %p WAIT with MUTEX %p, by %lu at %s:%d\n",\
+    message (LOG_LOCK, FACILITY_THREADING, "COND %p WAIT with MUTEX %p, by %"PTRid" at %s:%d\n",\
 	     (void *) C, (void *) M,					\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_cond_wait (C, M)) != 0)				\
       {									\
 	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_wait: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
     0; })
 
@@ -142,14 +142,14 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, FACILITY_THREADING, "COND %p SIGNAL, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "COND %p SIGNAL, by %"PTRid" at %s:%d\n",		\
 	     (void *) C,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_cond_signal (C)) != 0)				\
       {									\
 	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_signal: %d = %s\n",		\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
     0; })
 
@@ -157,14 +157,14 @@ extern pthread_mutex_t zfsd_mutex_initializer;
   ({									\
     int def_ret;								\
 									\
-    message (LOG_LOCK, FACILITY_THREADING, "COND %p BROADCAST, by %lu at %s:%d\n",		\
+    message (LOG_LOCK, FACILITY_THREADING, "COND %p BROADCAST, by %"PTRid" at %s:%d\n",		\
 	     (void *) C,						\
-	     (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+	     PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
     if ((def_ret = pthread_cond_broadcast (C)) != 0)				\
       {									\
 	message (LOG_ERROR, FACILITY_THREADING, "pthread_cond_broadcast: %d = %s\n",	\
 		 def_ret, strerror (def_ret));					\
-	abort ();							\
+	zfsd_abort ();							\
       }									\
     0; })
 
@@ -175,11 +175,11 @@ extern pthread_mutex_t zfsd_mutex_initializer;
     if ((M) != NULL)								\
       {									\
 									\
-	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
+	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %"PTRid" at %s:%d\n",	\
 		 (void *) (M),						\
-		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+		 PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
 	if( pthread_mutex_lock (M)!= EDEADLK )						\
-	  abort ();							\
+	  zfsd_abort ();							\
       }									\
   } while (0);								\
   })
@@ -191,12 +191,12 @@ extern pthread_mutex_t zfsd_mutex_initializer;
     int _mutex_lock_r = 0;						\
     if ((M) != NULL)								\
       {									\
-	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %lu at %s:%d\n",	\
+	message (LOG_LOCK, FACILITY_THREADING, "MUTEX %p CHECK, by %"PTRid" at %s:%d\n",	\
 		 (void *) M,						\
-		 (unsigned long) pthread_self (), __FILE__, __LINE__);	\
+		 PTRid_conversion pthread_self (), __FILE__, __LINE__);	\
 	_mutex_lock_r = pthread_mutex_lock (M);				\
 	if (_mutex_lock_r == EDEADLK)					\
-	  abort ();							\
+	  zfsd_abort ();							\
 	if (_mutex_lock_r == 0)						\
 	  pthread_mutex_unlock (M);					\
       }									\
@@ -216,5 +216,28 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #define CHECK_MUTEX_UNLOCKED(M)
 
 #endif
+
+#ifdef __CYGWIN__
+#define PTRid "p"
+#define PTRid_conversion (void *)
+#else
+#define PTRid PRIu64
+#define PTRid_conversion (uint64_t)
+#endif
+
+#ifndef HAVE_PTHREAD_BARRIER_WAIT
+
+#include "barrier.h"
+#define pthread_barrier_t barrier_t
+#define pthread_barrier_attr_t barrier_attr_t
+#define pthread_barrier_init(b,a,n) barrier_init(b,n)
+#define pthread_barrier_destroy(b) barrier_destroy(b)
+#define pthread_barrier_wait(b) barrier_wait(b)
+
+#endif
+
+
+
+
 
 #endif

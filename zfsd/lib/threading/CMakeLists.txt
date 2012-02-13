@@ -1,4 +1,10 @@
-add_library(threading ${BUILDTYPE} pthread-wrapper.c  thread.c)
+if(HAVE_PTHREAD_BARRIER_WAIT)
+	SET (threading_SRCS pthread-wrapper.c thread.c)
+else()
+	SET (threading_SRCS pthread-wrapper.c thread.c barrier.c)
+endif()
+
+add_library(threading ${BUILDTYPE} ${threading_SRCS})
 target_link_libraries(threading semaphore queue)
 
 install(

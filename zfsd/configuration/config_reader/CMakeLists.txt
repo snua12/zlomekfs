@@ -1,6 +1,7 @@
 SET(config_reader_SRC
 	local_config.c
 	shared_config.c
+	config_common.c
 )
 
 add_library(config_reader ${BUILD_TYPE} ${config_reader_SRC})

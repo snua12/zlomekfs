@@ -1,5 +1,5 @@
 add_library(volume ${BUILDTYPE} volume.c)
-target_link_libraries(volume metadata)
+target_link_libraries(volume metadata fh dir)
 
 install(
 TARGETS volume

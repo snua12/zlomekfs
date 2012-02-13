@@ -1,5 +1,5 @@
 add_library(fuse_iface ${BUILDTYPE} kernel.c)
-target_link_libraries(fuse_iface threading protocol)
+target_link_libraries(fuse_iface threading protocol ${FUSE_LIBRARIES})
 
 install(
 TARGETS fuse_iface

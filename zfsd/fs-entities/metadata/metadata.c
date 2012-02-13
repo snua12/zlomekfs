@@ -237,7 +237,7 @@ static void build_metadata_path(string * path, volume vol, metadata_type type)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (vol->local_path.str == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	switch (type)
@@ -251,7 +251,7 @@ static void build_metadata_path(string * path, volume vol, metadata_type type)
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 }
 
@@ -271,9 +271,9 @@ build_fh_metadata_path(string * path, volume vol, zfs_fh * fh,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (vol->local_path.str == NULL)
-		abort();
+		zfsd_abort();
 	if (tree_depth > MAX_METADATA_TREE_DEPTH)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (type == METADATA_TYPE_JOURNAL)
@@ -281,7 +281,7 @@ build_fh_metadata_path(string * path, volume vol, zfs_fh * fh,
 		sprintf(name, "%08X%08X%08X", fh->dev, fh->ino, fh->gen);
 #ifdef ENABLE_CHECKING
 		if (name[3 * 8] != 0)
-			abort();
+			zfsd_abort();
 #endif
 	}
 	else
@@ -289,7 +289,7 @@ build_fh_metadata_path(string * path, volume vol, zfs_fh * fh,
 		sprintf(name, "%08X%08X", fh->dev, fh->ino);
 #ifdef ENABLE_CHECKING
 		if (name[2 * 8] != 0)
-			abort();
+			zfsd_abort();
 #endif
 	}
 
@@ -333,7 +333,7 @@ build_fh_metadata_path(string * path, volume vol, zfs_fh * fh,
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	xstringconcat_varray(path, &v);
@@ -361,7 +361,7 @@ build_shadow_metadata_path(string * path, volume vol, zfs_fh * fh,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (vol->local_path.str == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	len = (file_name->len <= METADATA_NAME_SIZE - (2 * 8 + 2)
@@ -373,7 +373,7 @@ build_shadow_metadata_path(string * path, volume vol, zfs_fh * fh,
 	len += 16;
 #ifdef ENABLE_CHECKING
 	if (name[len] != 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	for (i = 0; i < metadata_tree_depth; i++)
@@ -411,7 +411,7 @@ static bool create_path_for_file(string * file, unsigned int mode, volume vol)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (file->len == 0)
-		abort();
+		zfsd_abort();
 	if (vol)
 	{
 		CHECK_MUTEX_LOCKED(&vol->mutex);
@@ -622,7 +622,7 @@ static void init_hashfile_fd(hfile_t hfile)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (hfile->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(hfile->mutex);
 	CHECK_MUTEX_LOCKED(&metadata_mutex);
@@ -643,7 +643,7 @@ static void init_interval_fd(interval_tree tree)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (tree->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(tree->mutex);
 	CHECK_MUTEX_LOCKED(&metadata_mutex);
@@ -664,7 +664,7 @@ static void init_journal_fd(journal_t journal)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (journal->fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(journal->mutex);
 	CHECK_MUTEX_LOCKED(&metadata_mutex);
@@ -685,14 +685,14 @@ static void close_metadata_fd(int fd)
 	TRACE("");
 #ifdef ENABLE_CHECKING
 	if (fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(&metadata_mutex);
 	CHECK_MUTEX_LOCKED(&metadata_fd_data[fd].mutex);
 
 #ifdef ENABLE_CHECKING
 	if (metadata_fd_data[fd].fd < 0)
-		abort();
+		zfsd_abort();
 #endif
 	metadata_fd_data[fd].fd = -1;
 	metadata_fd_data[fd].generation++;
@@ -725,7 +725,7 @@ static int open_metadata(const char *pathname, int flags, mode_t mode)
 		fd_data = (metadata_fd_data_t *) fibheap_extract_min(metadata_heap);
 #ifdef ENABLE_CHECKING
 		if (!fd_data && fibheap_size(metadata_heap) > 0)
-			abort();
+			zfsd_abort();
 #endif
 		if (fd_data)
 		{
@@ -849,7 +849,7 @@ static int open_hash_file(volume vol, metadata_type type)
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	fd = open_metadata(hfile->file_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -905,7 +905,7 @@ static int open_interval_file(volume vol, internal_fh fh, metadata_type type)
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	CHECK_MUTEX_LOCKED(tree->mutex);
@@ -1011,7 +1011,7 @@ delete_useless_interval_file(volume vol, internal_fh fh, metadata_type type,
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	RETURN_BOOL(false);
@@ -1043,7 +1043,7 @@ flush_interval_tree_1(volume vol, internal_fh fh, metadata_type type,
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	CHECK_MUTEX_LOCKED(tree->mutex);
@@ -1082,7 +1082,7 @@ flush_interval_tree_1(volume vol, internal_fh fh, metadata_type type,
 
 #ifdef ENABLE_CHECKING
 	if (tree->fd >= 0)
-		abort();
+		zfsd_abort();
 #endif
 	tree->fd = fd;
 	zfsd_mutex_lock(&metadata_mutex);
@@ -1144,7 +1144,7 @@ bool init_volume_metadata(volume vol)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (vol->local_path.str == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	build_metadata_path(&path, vol, METADATA_TYPE_METADATA);
@@ -1414,7 +1414,7 @@ static bool init_interval_tree(volume vol, internal_fh fh, metadata_type type)
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	build_fh_metadata_path(&path, vol, &fh->local_fh, type,
@@ -1480,7 +1480,7 @@ static bool init_interval_tree(volume vol, internal_fh fh, metadata_type type)
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	RETURN_BOOL(flush_interval_tree_1(vol, fh, type, &path));
@@ -1527,7 +1527,7 @@ static bool free_interval_tree(volume vol, internal_fh fh, metadata_type type)
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	CHECK_MUTEX_LOCKED(tree->mutex);
@@ -1571,7 +1571,7 @@ append_interval(volume vol, internal_fh fh, metadata_type type,
 		break;
 
 	default:
-		abort();
+		zfsd_abort();
 	}
 
 	CHECK_MUTEX_LOCKED(tree->mutex);
@@ -1694,9 +1694,9 @@ bool lookup_metadata(volume vol, zfs_fh * fh, metadata * meta, bool insert)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!vol->metadata)
-		abort();
+		zfsd_abort();
 	if (!vol->local_path.str)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (!hashfile_opened_p(vol->metadata))
@@ -1786,7 +1786,7 @@ bool get_metadata(volume vol, zfs_fh * fh, metadata * meta)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!meta)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (!lookup_metadata(vol, fh, meta, true))
@@ -2320,7 +2320,7 @@ bool save_interval_trees(volume vol, internal_fh fh)
 
 #ifdef ENABLE_CHECKING
 	if (fh->interval_tree_users == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	fh->interval_tree_users--;
@@ -2329,9 +2329,9 @@ bool save_interval_trees(volume vol, internal_fh fh)
 
 #ifdef ENABLE_CHECKING
 	if (!fh->updated)
-		abort();
+		zfsd_abort();
 	if (!fh->modified)
-		abort();
+		zfsd_abort();
 #endif
 
 	r = free_interval_tree(vol, fh, METADATA_TYPE_UPDATED);
@@ -2373,7 +2373,7 @@ static void read_hardlinks_file(hardlink_list hl, int fd)
 	f = fdopen(fd, "rb");
 #ifdef ENABLE_CHECKING
 	if (!f)
-		abort();
+		zfsd_abort();
 #endif
 
 	for (;;)
@@ -2432,7 +2432,7 @@ static bool write_hardlinks_file(volume vol, zfs_fh * fh, hardlink_list hl)
 	f = fdopen(fd, "wb");
 #ifdef ENABLE_CHECKING
 	if (!f)
-		abort();
+		zfsd_abort();
 #endif
 
 	for (entry = hl->first; entry; entry = entry->next)
@@ -2489,7 +2489,7 @@ bool read_hardlinks(volume vol, zfs_fh * fh, metadata * meta, hardlink_list hl)
 #ifdef ENABLE_CHECKING
 		if (meta->parent_dev == (uint32_t) - 1
 			&& meta->parent_ino == (uint32_t) - 1)
-			abort();
+			zfsd_abort();
 #endif
 
 		name.str = meta->name;
@@ -2505,7 +2505,7 @@ bool read_hardlinks(volume vol, zfs_fh * fh, metadata * meta, hardlink_list hl)
 #ifdef ENABLE_CHECKING
 		if (meta->parent_dev != (uint32_t) - 1
 			|| meta->parent_ino != (uint32_t) - 1)
-			abort();
+			zfsd_abort();
 #endif
 
 		build_fh_metadata_path(&path, vol, fh, METADATA_TYPE_HARDLINKS,
@@ -2576,7 +2576,7 @@ write_hardlinks(volume vol, zfs_fh * fh, metadata * meta, hardlink_list hl)
 #ifdef ENABLE_CHECKING
 			if (meta->parent_dev != (uint32_t) - 1
 				|| meta->parent_ino != (uint32_t) - 1)
-				abort();
+				zfsd_abort();
 #endif
 			zfsd_mutex_unlock(&metadata_fd_data[vol->metadata->fd].mutex);
 			RETURN_BOOL(true);
@@ -2585,7 +2585,7 @@ write_hardlinks(volume vol, zfs_fh * fh, metadata * meta, hardlink_list hl)
 #ifdef ENABLE_CHECKING
 		if (meta->parent_dev == (uint32_t) - 1
 			&& meta->parent_ino == (uint32_t) - 1)
-			abort();
+			zfsd_abort();
 #endif
 
 		meta->parent_dev = (uint32_t) - 1;
@@ -2805,7 +2805,7 @@ void get_local_path_from_metadata(string * path, volume vol, zfs_fh * fh)
 	{
 #ifdef ENABLE_CHECKING
 		if ((meta.flags & METADATA_SHADOW) != 0)
-			abort();
+			zfsd_abort();
 #endif
 		hardlink_list_destroy(hl);
 		xstringdup(path, &vol->local_path);
@@ -2852,7 +2852,7 @@ void get_local_path_from_metadata(string * path, volume vol, zfs_fh * fh)
 	{
 #ifdef ENABLE_CHECKING
 		if (path->str)
-			abort();
+			zfsd_abort();
 #endif
 
 		if (!delete_metadata(vol, &meta, fh->dev, fh->ino, 0, 0, NULL))
@@ -2894,7 +2894,7 @@ flush_journal(volume vol, zfs_fh * fh, journal_t journal, string * path)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!journal)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(journal->mutex);
 
@@ -2923,7 +2923,7 @@ flush_journal(volume vol, zfs_fh * fh, journal_t journal, string * path)
 	f = fdopen(fd, "wb");
 #ifdef ENABLE_CHECKING
 	if (!f)
-		abort();
+		zfsd_abort();
 #endif
 
 	for (entry = journal->first; entry; entry = entry->next)
@@ -2987,7 +2987,7 @@ bool read_journal(volume vol, zfs_fh * fh, journal_t journal)
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!journal)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(journal->mutex);
 
@@ -3006,7 +3006,7 @@ bool read_journal(volume vol, zfs_fh * fh, journal_t journal)
 	f = fdopen(fd, "rb");
 #ifdef ENABLE_CHECKING
 	if (!f)
-		abort();
+		zfsd_abort();
 #endif
 
 	for (;;)
@@ -3087,7 +3087,7 @@ add_journal_entry(volume vol, journal_t journal, zfs_fh * fh,
 				  uint64_t master_version, string * name,
 				  journal_operation_t oper)
 {
-	char buffer[DC_SIZE];
+	char buffer[ZFS_DC_SIZE];
 	char *end;
 	uint32_t tmp32;
 	uint64_t tmp64;
@@ -3098,9 +3098,9 @@ add_journal_entry(volume vol, journal_t journal, zfs_fh * fh,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!journal)
-		abort();
+		zfsd_abort();
 	if (!vol->local_path.str || !vol->is_copy)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(journal->mutex);
 
@@ -3120,8 +3120,8 @@ add_journal_entry(volume vol, journal_t journal, zfs_fh * fh,
 	}
 
 #ifdef ENABLE_CHECKING
-	if (name->len + 1 + 5 * sizeof(uint32_t) + sizeof(master_fh) > DC_SIZE)
-		abort();
+	if (name->len + 1 + 5 * sizeof(uint32_t) + sizeof(master_fh) > ZFS_DC_SIZE)
+		zfsd_abort();
 #endif
 
 	end = buffer;
@@ -3187,9 +3187,9 @@ add_journal_entry_meta(volume vol, journal_t journal, zfs_fh * fh,
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 #ifdef ENABLE_CHECKING
 	if (!vol->local_path.str || !vol->is_copy)
-		abort();
+		zfsd_abort();
 	if (meta->slot_status != VALID_SLOT)
-		abort();
+		zfsd_abort();
 #endif
 
 	local_fh.dev = meta->dev;
@@ -3252,7 +3252,7 @@ void cleanup_metadata_c(void)
 		fd_data = (metadata_fd_data_t *) fibheap_extract_min(metadata_heap);
 #ifdef ENABLE_CHECKING
 		if (!fd_data && fibheap_size(metadata_heap) > 0)
-			abort();
+			zfsd_abort();
 #endif
 		if (fd_data)
 		{

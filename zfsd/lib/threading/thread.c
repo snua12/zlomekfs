@@ -238,9 +238,9 @@ thread_pool_create(thread_pool * pool, thread_limit * limit,
 
 #ifdef ENABLE_CHECKING
 	if (pool->main_thread != 0)
-		abort();
+		zfsd_abort();
 	if (pool->regulator_thread != 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	pool->terminate = !keep_running();

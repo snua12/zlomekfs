@@ -38,8 +38,8 @@ extern struct logger_def syplogger;
 
 void update_node_name(void);
 
-/* ! Redefine abort to be the verbose abort.  */
-#define abort() verbose_abort(__FILE__, __LINE__)
+/* ! Redefine zfsd_abort to be the verbose zfsd_abort.  */
+#define zfsd_abort() verbose_abort(__FILE__, __LINE__)
 
 #ifdef ENABLE_TRACE
 
@@ -102,6 +102,6 @@ extern void zfs_closelog(void);
 extern void internal_error(const char *format, ...) ATTRIBUTE_NORETURN;
 
 /* ! Report an "Aborted" internal error.  */
-	 extern void verbose_abort(const char *file, int line) ATTRIBUTE_NORETURN;
+ extern void verbose_abort(const char *file, int line) ATTRIBUTE_NORETURN;
 
 #endif

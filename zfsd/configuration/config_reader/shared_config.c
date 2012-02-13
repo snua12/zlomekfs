@@ -1,5 +1,7 @@
 #include <libconfig.h>
+#include "configuration.h"
 #include "shared_config.h"
+#include "config_common.h"
 #include "log.h"
 #include "node.h"
 #include "volume.h"
@@ -38,12 +40,12 @@ int read_node_list_shared_config(config_t * config)
 	for (i = 0; (node_entry = config_setting_get_elem(node_list, i)) != NULL; ++i)
 	{
 		
-		uint32_t id;
+		uint64_t id;
 		const char * name;
 		const char * address;
 		int rv;
 
-		rv = config_setting_lookup_int(node_entry, "id", (long int *) &id);
+		rv = config_setting_lookup_int(node_entry, "id", (LIBCONFIG_INT_TYPECAST *) &id);
 		if (rv != CONFIG_TRUE)
 		{
 			message(LOG_ERROR, FACILITY_CONFIG, "Id config key is wrong type or is missing in shared config.\n");
@@ -70,7 +72,7 @@ int read_node_list_shared_config(config_t * config)
 		xmkstring(&str_name, name);
 		xmkstring(&str_address, address);
 
-		node nod = try_create_node(id, &str_name, &str_name);
+		node nod = try_create_node(id, &str_name, &str_name, read_tcp_port_setting(node_entry));
 		if (nod)
 			zfsd_mutex_unlock(&nod->mutex);
 	}
@@ -85,9 +87,9 @@ int read_mapping_setting(config_setting_t * setting, add_mapping add, void * dat
 	for (i = 0; (pair = config_setting_get_elem(setting, i)) != NULL; ++i)
 	{
 		int rv;
-		uint32_t id;
+		uint64_t id;
 
-		rv = config_setting_lookup_int(pair, "id", (long int *) &id);
+		rv = config_setting_lookup_int(pair, "id", (LIBCONFIG_INT_TYPECAST *) &id);
 		if (rv != CONFIG_TRUE)
 		{
 			message(LOG_ERROR, FACILITY_CONFIG, "Id config key is wrong type or is missing in shared config.\n");
@@ -204,13 +206,19 @@ static int read_node_mapping_setting(config_setting_t * setting, const char * no
 		rv = config_setting_lookup_string(map, "node", &node_key);
 		if (rv != CONFIG_TRUE)
 		{
-			message(LOG_ERROR, FACILITY_CONFIG, "User list node key is missing in shared configr.\n");
+			message(LOG_ERROR, FACILITY_CONFIG, "User list node key is missing in shared config.\n");
 			return CONFIG_FALSE;
 		}
 
 		if(strcmp(node_key, node_name) == 0)
 			break;
 
+	}
+
+	if (map == NULL)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "User list node key is missing in shared config.\n");
+		return CONFIG_FALSE;
 	}
 
 	config_setting_t * config_pairs = config_setting_get_member(map, "pairs");
@@ -275,8 +283,8 @@ static int volume_entry_read(config_setting_t * volume_setting, volume_entry * v
 {
 	int rv;
 
-	uint32_t id;
-	rv = config_setting_lookup_int(volume_setting, "id", (long int *) &id);
+	uint64_t id;
+	rv = config_setting_lookup_int(volume_setting, "id", (LIBCONFIG_INT_TYPECAST *) &id);
 	if (rv != CONFIG_TRUE)
 	{
 		message (LOG_ERROR, FACILITY_CONFIG, "Id confg key is missing or is wrong type in volume list.\n");
@@ -366,7 +374,7 @@ static int config_setting_get_slaves(config_setting_t * layout_tree, volume_entr
 	return CONFIG_TRUE;
 }
 
-static int config_setting_process_tree(config_setting_t * layout_tree, volume_entry * ve,const char * parent_node, const char * node_name)
+static int config_setting_process_tree(config_setting_t * layout_tree, volume_entry * ve, const char * parent_node, const char * node_name)
 {
 	const char * config_node_name;
 	int rv = config_setting_lookup_string(layout_tree, "node", &config_node_name);
@@ -378,7 +386,7 @@ static int config_setting_process_tree(config_setting_t * layout_tree, volume_en
 
 	config_setting_t * subtree = config_setting_get_member(layout_tree, "children");
 
-	// finds our node in tree, parent is master node anc children are slaves
+	// finds our node in tree, parent is master node and children are slaves
 	if (strcmp(node_name, config_node_name) == 0)
 	{
 		rv = CONFIG_TRUE;
@@ -424,10 +432,8 @@ static int config_setting_read_vol_layout(config_setting_t * vol_layout, volume_
 	return config_setting_process_tree(layout_tree, ve, NULL, node_name);
 }
 
-//zfs_config.this_node.node_name.str
-int read_volume_layout(config_t * config, volume_entry * ve, const char * node_name);
 /// reads node hierarchy from @param config to @param ve for node @param node_name
-int read_volume_layout(config_t * config, volume_entry * ve, const char * node_name)
+static int read_volume_layout(config_t * config, volume_entry * ve, const char * node_name)
 {
 	config_setting_t * vol_layouts = config_lookup(config, "volume:layout");
 	if (vol_layouts == NULL)
@@ -477,11 +483,12 @@ int read_volume_list_shared_config(config_t *config, varray * volumes)
 
 	}
 
+	// read volumes layout
 	for (i = 0; i < VARRAY_USED(*volumes); ++i)
 	{
-		//FIXME: copy of structure volume_entry_ve
-		volume_entry ve = VARRAY_ACCESS(*volumes, i, volume_entry);
-		rv = read_volume_layout(config, &ve, zfs_config.this_node.node_name.str);
+		rv = read_volume_layout(config,
+			&VARRAY_ACCESS(*volumes, i, volume_entry),
+			zfs_config.this_node.node_name.str);
 		if (rv != CONFIG_TRUE)
 		{
 			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read volume hyerarchy from config.\n");

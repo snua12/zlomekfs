@@ -84,7 +84,7 @@ typedef struct volume_def *volume;
 /* ! Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
                              ? memset (&(FH), -1, sizeof (zfs_fh))	\
-                             : (abort (), (void *) 0))
+                             : (zfsd_abort (), (void *) 0))
 
 /* ! Return true if the ZFS file handle FH is undefined.  */
 #define zfs_fh_undefined(FH) (bytecmp (&(FH), -1, sizeof (zfs_fh)))

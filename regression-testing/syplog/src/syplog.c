@@ -215,7 +215,6 @@ syp_error open_log(logger glogger, const char *node_name, int argc,
 	// from time.h, must be refreshed by calling tzset () before use
 	extern int daylight;
 	extern long timezone;
-	extern char *tzname[2];
 
 	// we don't need exhaustive checks here, the default values should be
 	// correct

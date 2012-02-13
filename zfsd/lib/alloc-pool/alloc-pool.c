@@ -85,9 +85,9 @@ create_alloc_pool(const char *name, size_t size, size_t num,
 
 #ifdef ENABLE_CHECKING
 	if (!name)
-		abort();
+		zfsd_abort();
 	if (num == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	/* Make size large enough to store the list header.  */
@@ -134,7 +134,7 @@ void free_alloc_pool(alloc_pool pool)
 
 #ifdef ENABLE_CHECKING
 	if (!pool)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(pool->mutex);
 
@@ -157,7 +157,7 @@ void *pool_alloc(alloc_pool pool)
 
 #ifdef ENABLE_CHECKING
 	if (!pool)
-		abort();
+		zfsd_abort();
 #endif
 	CHECK_MUTEX_LOCKED(pool->mutex);
 
@@ -225,7 +225,7 @@ void pool_free(alloc_pool pool, void *ptr)
 
 #ifdef ENABLE_CHECKING
 	if (!pool)
-		abort();
+		zfsd_abort();
 #endif
 
 	message(LOG_DEBUG, FACILITY_DATA, "POOL FREE %s %p %p\n", pool->name,
@@ -233,7 +233,7 @@ void pool_free(alloc_pool pool, void *ptr)
 
 #ifdef ENABLE_CHECKING
 	if (!ptr)
-		abort();
+		zfsd_abort();
 
 	CHECK_MUTEX_LOCKED(pool->mutex);
 
@@ -241,7 +241,7 @@ void pool_free(alloc_pool pool, void *ptr)
 	VALGRIND_DISCARD(VALGRIND_MAKE_READABLE(ALLOCATION_OBJECT_PTR_FROM_USER_PTR
 											(ptr), sizeof(pool->id)));
 	if (pool->id != ALLOCATION_OBJECT_PTR_FROM_USER_PTR(ptr)->id)
-		abort();
+		zfsd_abort();
 	VALGRIND_DISCARD(VALGRIND_MAKE_NOACCESS(ALLOCATION_OBJECT_PTR_FROM_USER_PTR
 											(ptr), sizeof(pool->id)));
 

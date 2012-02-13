@@ -119,7 +119,7 @@ extern void send_request(struct thread_def *t, uint32_t request_id, int fd);
 extern void fd_data_init(void);
 extern void fd_data_shutdown(void);
 extern void fd_data_destroy(void);
-extern bool network_start(void);
+extern bool network_start(uint16_t port);
 extern void network_cleanup(void);
 
 #endif

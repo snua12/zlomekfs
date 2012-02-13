@@ -47,7 +47,7 @@ void varray_grow(varray * va, unsigned int nelem)
 {
 #ifdef ENABLE_CHECKING
 	if (va->size == 0 || va->array == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	va->array = xrealloc(va->array, va->size * nelem);

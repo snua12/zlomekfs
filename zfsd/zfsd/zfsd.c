@@ -31,7 +31,11 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <signal.h>
+
+#ifdef HAVE_UCONTEXT_H
 #include <ucontext.h>
+#endif
+
 #include <libconfig.h>
 #include "pthread-wrapper.h"
 #include "zfsd.h"
@@ -44,7 +48,16 @@
 #include "configuration.h"
 #include "local_config.h"
 #include "thread.h"
+
+#ifdef ENABLE_USERSPACE_FS
+#ifdef HAVE_FUSE
 #include "kernel.h"
+#endif
+#ifdef HAVE_DOKAN
+#include "dokan_iface.h"
+#endif
+#endif
+
 #include "network.h"
 #include "random.h"
 #include "queue.h"
@@ -60,6 +73,7 @@
 #include "log.h"
 #include "control.h"
 #include "zfsd_state.h"
+#include "zfsd_args.h"
 
 /* 
  * ! Thread ID of the main thread.  
@@ -80,7 +94,11 @@ static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 
 	set_running(false);
 
+#ifdef HAVE_FUSE
 	thread_pool_terminate(&kernel_pool);
+#endif
+	//TODO DOKAN
+
 	thread_pool_terminate(&network_pool);
 
 	if (update_pool.regulator_thread)
@@ -121,19 +139,20 @@ static void fatal_sigaction(int signum, siginfo_t * info,
 		case SIGBUS:
 		case SIGSEGV:
 			{
+#ifdef HAVE_UCONTEXT_H
+#ifdef __i386__
 				ucontext_t *context = (ucontext_t *) data;
 
-#if defined (__linux__) && defined(__i386__)
 				internal_error("%s at %p when accessing %p",
 							   strsignal(signum),
 							   context->uc_mcontext.gregs[REG_EIP],
 							   info->si_addr);
-#elif defined (__linux__) && defined(__x86_64__)
+#elif defined __x86_64__
 				internal_error("%s at %p when accessing %p",
 							   strsignal(signum),
 							   context->uc_mcontext.gregs[REG_RIP],
 							   info->si_addr);
-#else
+#endif
 #endif
 				internal_error("%s when accessing %p", strsignal(signum),
 							   info->si_addr);
@@ -257,142 +276,6 @@ static void disable_sig_handlers(void)
 	sigaction(SIGXFSZ, &sig, NULL);
 	sigaction(SIGSYS, &sig, NULL);
 	sigaction(SIGUSR1, &sig, NULL);
-}
-
-/* 
- * ! Display the usage and arguments.  
- */
-// TODO: replace chars and options with DEFINES (use them on all
-// places
-void usage(void)
-{
-	fprintf(stdout, "Usage: zfsd [OPTION]...\n\n"
-			"  -o config=FILE               "
-			"Specifies the name of the configuration file.\n"
-			"  -o loglevel=DEBUG_LEVEL      "
-			"Display debugging messages up to level DEBUG_LEVEL.\n"
-			"  --help                       "
-			"Display this help and exit.\n"
-			"  --version                    "
-			"Output version information and exit.\n"
-			"\n"
-			"FUSE options:\n"
-			"  -d, -o debug                 "
-			"Enable debug output (implies -f)\n"
-			"  -f                           "
-			"Foreground operation\n");
-
-	fflush(stdout);
-
-	fprintf(stdout, "LOGGING OPTIONS:\n");
-	print_syplog_help(1, 1);
-}
-
-/* 
- * ! Display the version, exit the program with exit code EXITCODE.  
- */
-static void ATTRIBUTE_NORETURN version(int exitcode)
-{
-	fprintf(stdout, "zfsd 0.1.0\n");
-	fprintf(stdout, "Copyright (C) 2003, 2004 Josef Zlomek\n");
-	fprintf
-		(stdout, "This is free software; see the source for copying conditions.  There is NO\n");
-	fprintf
-		(stdout, "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
-	fflush(stdout);
-	exit(exitcode);
-}
-
-/* 
- * ! For long options that have no equivalent short option, use a
- * non-character as a pseudo short option, starting with CHAR_MAX + 1. 
- */
-enum
-{
-	OPTION_HELP,
-	OPTION_VERSION,
-};
-
-struct zfs_opts
-{
-	char *config;
-	int loglevel;
-};
-
-#define ZFS_OPT(t, p, v) { t, offsetof (struct zfs_opts, p), v }
-
-static const struct fuse_opt main_options[] = {
-	ZFS_OPT("config=%s", config, 0),
-	ZFS_OPT("loglevel=%u", loglevel, DEFAULT_LOG_LEVEL),
-	FUSE_OPT_KEY("--help", OPTION_HELP),
-	FUSE_OPT_KEY("--version", OPTION_VERSION),
-	FUSE_OPT_END
-};
-
-/* 
- * ! Process command line arguments.  
- */
-static int handle_one_argument(ATTRIBUTE_UNUSED void *data, const char *arg,
-							   int key,
-							   ATTRIBUTE_UNUSED struct fuse_args *outargs)
-{
-	if (is_logger_arg(arg) == TRUE)
-		return 0;
-
-	switch (key)
-	{
-	case OPTION_HELP:
-		usage();
-		exit(EXIT_SUCCESS);
-
-	case OPTION_VERSION:
-		version(EXIT_SUCCESS);
-		exit(EXIT_SUCCESS);
-
-	case FUSE_OPT_KEY_NONOPT:
-	default:
-		return 1;
-	}
-}
-
-static void process_arguments(int argc, char **argv)
-{
-	struct zfs_opts zopts;
-
-	main_args = (struct fuse_args)FUSE_ARGS_INIT(argc, argv);
-	memset(&zopts, 0, sizeof(zopts));
-	if (fuse_opt_parse
-		(&main_args, &zopts, main_options, handle_one_argument) != 0)
-	{
-		usage();
-		exit(EXIT_FAILURE);
-	}
-
-	if (zopts.config)
-	{
-		set_local_config_path(zopts.config);
-	}
-
-	set_log_level(&syplogger, zopts.loglevel);
-
-
-	// start zfsd on background or foreground
-	int foreground;
-	int rv;
-	rv = fuse_parse_cmdline(&main_args, &zfs_config.mountpoint, NULL, &foreground);
-	if (rv == -1)
-	{
-		message(LOG_INFO, FACILITY_ZFSD, "Failed to parse fuse cmdline options.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	rv = fuse_daemonize(foreground);
-	if (rv == -1)
-	{
-		message(LOG_INFO, FACILITY_ZFSD, "Failed to daemonize zfsd.\n");
-		exit(EXIT_FAILURE);
-	}
-
 }
 
 /* 
@@ -526,6 +409,7 @@ static void log_arch_specific(void)
 
 static void set_daemon_paging_strategy()
 {
+#ifdef HAVE_MLOCKALL
 	/* 
 	 * Keep the pages of the daemon in memory.  
 	 */
@@ -534,6 +418,7 @@ static void set_daemon_paging_strategy()
 		message(LOG_CRIT, FACILITY_ZFSD, "mlockall: %s\n", strerror(errno));
 		die();
 	}
+#endif
 }
 
 static void wait_for_pool_to_die(thread_pool * pool)
@@ -554,7 +439,7 @@ static int zfs_start_services(zfs_started_services * services)
 {
 	services->kernel_started = false;
 	services->update_started = update_start();
-	services->network_started = network_start ();
+	services->network_started = network_start (zfs_config.this_node.host_port);
 	
 	if (services->network_started != true || services->update_started != true)
 	{
@@ -577,7 +462,9 @@ static int zfs_start_services(zfs_started_services * services)
 		return EXIT_FAILURE;
 	}
 
+#ifdef ENABLE_USERSPACE_FS
 	services->kernel_started = kernel_start();
+#endif
 
 	zfsd_set_state(ZFSD_STATE_RUNNING);
 
@@ -593,17 +480,31 @@ static void zfs_stop_services(zfs_started_services * services)
 	if (services->network_started)
 		wait_for_pool_to_die(&network_pool);
 
+#ifdef ENABLE_USERSPACE_FS
+
 	if (services->kernel_started)
+	{
+#ifdef HAVE_FUSE
 		wait_for_pool_to_die(&kernel_pool);
+#endif
+		//TODO DOKAN support
+
+	}
+
+#endif
 
 	fd_data_shutdown();
 
 	if (services->update_started)
 		update_cleanup();
+
 	if (services->network_started)
 		network_cleanup();
+
+#ifdef ENABLE_USERSPACE_FS
 	if (services->kernel_started)
 		kernel_cleanup();
+#endif
 }
 
 static void zfsd_main_loop(void)
@@ -677,7 +578,7 @@ int main(int argc, char **argv)
 		free(zfs_config.mountpoint);
 	}
 
-	fuse_opt_free_args(&main_args);
+	free_arguments();
 
 	cleanup_data_structures();
 	disable_sig_handlers();

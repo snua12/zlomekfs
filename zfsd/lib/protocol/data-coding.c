@@ -31,7 +31,7 @@
    Each "packet" starts with the following header:
 
    - <tt>uint32_t length</tt>: the total packet length, including the header.
-   The maximum allowed packet length is #DC_SIZE. - <tt>uint8_t direction</tt>: 
+   The maximum allowed packet length is #ZFS_DC_SIZE. - <tt>uint8_t direction</tt>: 
    #direction_def - <tt>uint32_t request_id</tt>: ID of this request, or of the 
    request this is a reply to if \p direction is #DIR_REPLY
 
@@ -110,7 +110,7 @@ void print_dc(int level, FILE * f ATTRIBUTE_UNUSED, DC * dc)
 	message(level, FACILITY_DATA, "Max.length = %d\n", dc->max_length);
 	message(level, FACILITY_DATA, "Data:\n");
 	print_hex_buffer(level, f, dc->buffer,
-					 (dc->max_length == DC_SIZE
+					 (dc->max_length == ZFS_DC_SIZE
 					  ? dc->cur_length : dc->max_length));
 }
 
@@ -119,7 +119,7 @@ void start_encoding(DC * dc)
 {
 	dc->cur_pos = dc->buffer;
 	dc->cur_length = 0;
-	dc->max_length = DC_SIZE;
+	dc->max_length = ZFS_DC_SIZE;
 	encode_uint32_t(dc, 0);
 }
 
@@ -137,7 +137,7 @@ bool start_decoding(DC * dc)
 	dc->max_length = 4;
 	dc->cur_length = 0;
 	decode_uint32_t(dc, (uint32_t *) & dc->max_length);
-	return dc->max_length <= DC_SIZE;
+	return dc->max_length <= ZFS_DC_SIZE;
 }
 
 /* ! Return true if all data has been read from encoded buffer.  */
@@ -822,7 +822,7 @@ bool encode_md5sum_args(DC * dc, const md5sum_args * args)
 
 #ifdef ENABLE_CHECKING
 	if (args->count > ZFS_MAX_MD5_CHUNKS)
-		abort();
+		zfsd_abort();
 #endif
 
 	encode_zfs_cap(dc, &args->cap);
@@ -873,7 +873,7 @@ bool encode_md5sum_res(DC * dc, md5sum_res * res)
 
 #ifdef ENABLE_CHECKING
 	if (res->count > ZFS_MAX_MD5_CHUNKS)
-		abort();
+		zfsd_abort();
 #endif
 
 	encode_uint32_t(dc, res->count);

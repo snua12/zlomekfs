@@ -77,7 +77,7 @@ static void send_reread_config_request_to_slaves(string * relative_path, uint32_
 
 #ifdef ENABLE_CHECKING
 	if (!vol->slaves)
-		abort();
+		zfsd_abort();
 #endif
 
 	// add config volume slaves to vararray
@@ -128,7 +128,7 @@ static void config_reader_loop(thread * t)
 
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(t) == THREAD_DEAD)
-			abort();
+			zfsd_abort();
 #endif
 		if (get_thread_state(t) == THREAD_DYING)
 			break;

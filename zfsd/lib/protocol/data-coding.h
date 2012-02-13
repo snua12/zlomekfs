@@ -31,7 +31,7 @@
 #include <stdio.h>
 
 /* ! Maximal length of request / reply.  */
-#define DC_SIZE 8888
+#define ZFS_DC_SIZE 8888
 
 /* ! Maximal number of DC structures for a file decriptor.  */
 #define MAX_FREE_DCS 8
@@ -44,7 +44,7 @@ typedef struct data_coding_def
 								   encoding/decoding */
 	unsigned int max_length;	/* !< maximal valid index to buffer */
 	unsigned int cur_length;	/* !< current index to buffer */
-	char data[DC_SIZE + 15];
+	char data[ZFS_DC_SIZE + 15];
 } DC;
 
 /* ! Align a number to be a multiple of 2, 4, 8, 16, 256.  */

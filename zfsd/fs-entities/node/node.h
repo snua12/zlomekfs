@@ -39,6 +39,7 @@ typedef struct node_def
 	uint32_t id;				/* !< ID of the node */
 	string name;				/* !< name of the node */
 	string host_name;			/* !< DNS name or IP address of the node */
+	uint16_t port;				/* !< node TCP port */
 	time_t last_connect;		/* !< last attemp to connect to node */
 	int fd;						/* !< file descriptor */
 	unsigned int generation;	/* !< generation of open file descriptor */
@@ -70,8 +71,8 @@ extern hash_t node_hash_name(const void *x);
 extern int node_eq_name(const void *x, const void *y);
 extern node node_lookup(uint32_t id);
 extern node node_lookup_name(string * name);
-extern node node_create(uint32_t id, string * name, string * host_name);
-extern node try_create_node(uint32_t id, string * name, string * host_name);
+extern node node_create(uint32_t id, string * name, string * host_name, uint16_t tcp_port);
+extern node try_create_node(uint32_t id, string * name, string * host_name, uint16_t tcp_port);
 extern void mark_all_nodes(void);
 extern void destroy_marked_nodes(void);
 extern void initialize_node_c(void);

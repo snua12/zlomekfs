@@ -119,7 +119,7 @@ extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
 	{							\
 	  if ((HTAB)->table[index_] == EMPTY_ENTRY		\
 	      || (HTAB)->table[index_] == *(SLOT))		\
-	    abort ();						\
+	    zfsd_abort ();						\
 								\
 	  index_ += step_;					\
 	  if (index_ >= size_)					\

@@ -1,6 +1,7 @@
 #include "system.h"
 #include "local_config.h"
 #include "configuration.h"
+#include "config_common.h"
 #include <libconfig.h>
 #include "log.h"
 #include "constant.h"
@@ -75,12 +76,12 @@ int read_volumes_local_config(config_t * config, bool reread)
 	// for each volume element
 	for (i = 0; (volume_setting = config_setting_get_elem(settings, i)) != NULL; ++i)
 	{
-		uint32_t id;
+		uint64_t id = 0;
 		uint64_t cache_size;
 		const char * local_path;
 		int rv;
 
-		rv = config_setting_lookup_int(volume_setting, "id", (long int *) &id);
+		rv = config_setting_lookup_int(volume_setting, "id", (LIBCONFIG_INT_TYPECAST *) &id);
 		if (rv != CONFIG_TRUE || !is_valid_volume_id(id))
 		{
 			// failed to read volume_setting id from zfsd.config
@@ -272,6 +273,9 @@ int read_this_node_local_config(config_t * config)
 
 	xmkstring(&(zfs_config.this_node.node_name), local_node_name);
 
+	/*read port configuration*/
+	zfs_config.this_node.host_port = read_tcp_port_setting(local_node_setting);
+
 	return CONFIG_TRUE;
 }
 
@@ -283,6 +287,7 @@ int read_config_node_local_config(config_t * config)
 		message(LOG_WARNING, FACILITY_CONFIG, "Config node section is missing, using and config node this node");
 
 		zfs_config.config_node.node_id = zfs_config.this_node.node_id;
+		zfs_config.config_node.host_port = zfs_config.this_node.host_port;
 		xstringdup(&zfs_config.config_node.node_name, &zfs_config.this_node.node_name);
 
 		return CONFIG_TRUE;
@@ -352,6 +357,9 @@ int read_config_node_local_config(config_t * config)
 	}
 
 	xmkstring(&(zfs_config.config_node.host_name), local_node_host);
+
+	/*read port configuration*/
+	zfs_config.config_node.host_port = read_tcp_port_setting(config_node_setting);
 
 
 	return CONFIG_TRUE;

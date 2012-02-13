@@ -79,7 +79,7 @@ static unsigned int get_higher_prime(unsigned int n)
 		message(LOG_CRIT, FACILITY_DATA,
 				"%d is greater than maximum predefined prime number (%d).\n",
 				n, MAX_PRIME);
-		abort();
+		zfsd_abort();
 	}
 
 	while (low != high)
@@ -110,7 +110,7 @@ static void **htab_find_empty_slot(htab_t htab, hash_t hash)
 		return slot;
 #ifdef ENABLE_CHECKING
 	if (*slot == DELETED_ENTRY)
-		abort();
+		zfsd_abort();
 #endif
 
 	step = 1 + hash % (size - 2);
@@ -125,7 +125,7 @@ static void **htab_find_empty_slot(htab_t htab, hash_t hash)
 			return slot;
 #ifdef ENABLE_CHECKING
 		if (*slot == DELETED_ENTRY)
-			abort();
+			zfsd_abort();
 #endif
 	}
 }
@@ -173,9 +173,9 @@ htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f,
 
 #ifdef ENABLE_CHECKING
 	if (!hash_f)
-		abort();
+		zfsd_abort();
 	if (!eq_f)
-		abort();
+		zfsd_abort();
 #endif
 
 	htab = (htab_t) xmalloc(sizeof(struct htab_def));
@@ -239,7 +239,7 @@ void htab_clear_slot(htab_t htab, void **slot)
 #ifdef ENABLE_CHECKING
 	if (slot < htab->table || slot >= htab->table + htab->size
 		|| *slot == EMPTY_ENTRY || *slot == DELETED_ENTRY)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (htab->del_f)

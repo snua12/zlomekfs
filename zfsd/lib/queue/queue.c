@@ -32,9 +32,9 @@ void queue_create(queue * q, size_t size, size_t num, pthread_mutex_t * mutex)
 {
 #ifdef ENABLE_CHECKING
 	if (size == 0)
-		abort();
+		zfsd_abort();
 	if (mutex == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	zfsd_cond_init(&q->non_empty);
@@ -55,7 +55,7 @@ void queue_destroy(queue * q)
 	CHECK_MUTEX_LOCKED(q->mutex);
 #ifdef ENABLE_CHECKING
 	if (q->size == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	q->size = 0;
@@ -72,7 +72,7 @@ void queue_put(queue * q, void *elem)
 	CHECK_MUTEX_LOCKED(q->mutex);
 #ifdef ENABLE_CHECKING
 	if (q->size == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	node = (queue_node) pool_alloc(q->pool);
@@ -103,7 +103,7 @@ bool queue_get(queue * q, void *elem)
 	CHECK_MUTEX_LOCKED(q->mutex);
 #ifdef ENABLE_CHECKING
 	if (q->size == 0)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (q->nelem == 0)
@@ -118,7 +118,7 @@ bool queue_get(queue * q, void *elem)
 	node = q->first;
 #ifdef ENABLE_CHECKING
 	if (!node)
-		abort();
+		zfsd_abort();
 #endif
 
 	if (q->first == q->last)

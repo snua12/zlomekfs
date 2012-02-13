@@ -24,11 +24,12 @@
 #include <grp.h>
 #include "user-group.h"
 #include "semaphore.h"
+#include "zfs-prot.h"
 
 
 zfs_configuration zfs_config = 
 {
-	//.config_reader_data = ,
+	.config_reader_data = {.mutex = ZFS_MUTEX_INITIALIZER},
 	.config_sem = ZFS_SEMAPHORE_INITIALIZER(0),
 	.mlock_zfsd = true,
 	.local_config_path = "/etc/zfs/zfs.conf",
@@ -38,11 +39,13 @@ zfs_configuration zfs_config =
 	.this_node = {
 		.node_id = (uint32_t) - 1,
 		.node_name = STRING_INVALID_INITIALIZER,
+		.host_port = ZFS_PORT,
 	},
 	.config_node = {
-		.node_id = (uint32_t) -1,
+		.node_id = (uint32_t) - 1,
 		.node_name = STRING_INVALID_INITIALIZER,
 		.host_name = STRING_INVALID_INITIALIZER,
+		.host_port = ZFS_PORT,
 	},
 	.metadata = {
 		.metadata_tree_depth = 1,

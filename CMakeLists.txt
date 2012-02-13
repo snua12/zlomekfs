@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
-project(zfsd)
+project(ZlomekFS)
+if (CYGWIN)
+	set(CMAKE_LEGACY_CYGWIN_WIN32 1)
+endif()
 
 #add our modules dir
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
@@ -126,15 +129,30 @@ endif(DOXYGEN_FOUND)
 # enable pkg config support
 INCLUDE(${CMAKE_ROOT}/Modules/FindPkgConfig.cmake)
 
-# libfuse
+#libfuse
 PKG_CHECK_MODULES(FUSE fuse>=2.6)
-if (NOT FUSE_FOUND EQUAL 1)
-	message(FATAL_ERROR "fuse not found")
+if (FUSE_FOUND EQUAL 1)
+	set(HAVE_FUSE 1)
+ 	message(STATUS "fuse found")
+	set(ENABLE_USERSPACE_FS 1)
+else()
+ 	message(STATUS "fuse not found")
 endif()
+
+#libfuse
+PKG_CHECK_MODULES(DOKAN dokan>=0.6)
+if (DOKAN_FOUND EQUAL 1)
+	set(HAVE_DOKAN 1)
+ 	message(STATUS "dokan found")
+	set(ENABLE_USERSPACE_FS 1)
+else()
+ 	message(STATUS "dokan not found")
+endif()
+
 
 #libconfig
 PKG_CHECK_MODULES(LCONFIG libconfig>=1.3)
-if (NOT FUSE_FOUND EQUAL 1)
+if (NOT LCONFIG_FOUND EQUAL 1)
 	message(FATAL_ERROR "libconfig not found")
 endif()
 
@@ -159,8 +177,10 @@ if(NOT result EQUAL -1)
 endif()
 
 #check headers
-#INCLUDE (CheckIncludeFiles)
+include(CheckIncludeFiles)
 ## usage: CHECK_INCLUDE_FILES (<header> <RESULT_VARIABLE> )
+check_include_files ("execinfo.h" HAVE_EXEC_H)
+check_include_files ("ucontext.h" HAVE_UCONTEXT_H)
 #
 #CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 #CHECK_INCLUDE_FILES ("sys/param.h;sys/mount.h" HAVE_SYS_MOUNT_H)
@@ -171,6 +191,9 @@ endif()
 include(CheckFunctionExists)
 check_function_exists(fopencookie HAVE_FOPENCOOKIE)
 check_function_exists(mkstemp HAVE_MKSTEMP)
+set(CMAKE_REQUIRED_LIBRARIES "pthread")
+check_function_exists(pthread_barrier_wait HAVE_PTHREAD_BARRIER_WAIT)
+check_function_exists(mlockall HAVE_MLOCKALL)
 
 # configure headers
 configure_file(config.h.cmake ${CMAKE_BINARY_DIR}/include/config.h)

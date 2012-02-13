@@ -1115,7 +1115,7 @@ static void *kernel_worker(void *data)
 
 #ifdef ENABLE_CHECKING
 		if (get_thread_state(t) == THREAD_DEAD)
-			abort();
+			zfsd_abort();
 #endif
 
 		/* We were requested to die.  */
@@ -1144,7 +1144,7 @@ static void *kernel_worker(void *data)
 		{
 #ifdef ENABLE_CHECKING
 			if (get_thread_state(t) != THREAD_DYING)
-				abort();
+				zfsd_abort();
 #endif
 			zfsd_mutex_unlock(&kernel_pool.mutex);
 			break;
@@ -1173,7 +1173,7 @@ static void kernel_dispatch(struct fuse_chan *ch, void *buf, size_t buf_size)
 	queue_get(&kernel_pool.idle, &idx);
 #ifdef ENABLE_CHECKING
 	if (get_thread_state(&kernel_pool.threads[idx].t) == THREAD_BUSY)
-		abort();
+		zfsd_abort();
 #endif
 	set_thread_state(&kernel_pool.threads[idx].t, THREAD_BUSY);
 	kernel_pool.threads[idx].t.from_sid = this_node->id;

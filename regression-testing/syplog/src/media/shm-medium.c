@@ -71,7 +71,7 @@ static syp_error shm_medium_parse_params(int argc, const char **argv,
 {
 
 	int opt;
-	extern int opterr, optopt;
+	//extern int opterr, optopt; removed for windows build
 
 #ifdef ENABLE_CHECKING
 	if (argv == NULL || settings == NULL)
@@ -81,7 +81,7 @@ static syp_error shm_medium_parse_params(int argc, const char **argv,
 #endif
 
 	// initialize getopt index to params
-	optind = 0;
+	optind = 1;
 
 	while ((opt =
 			getopt_long(argc, (char **)argv, "", option_table, NULL)) != -1)
@@ -96,6 +96,8 @@ static syp_error shm_medium_parse_params(int argc, const char **argv,
 			// skip unknown options
 			break;
 		}
+
+	optind = 1;
 	return NOERR;
 }
 

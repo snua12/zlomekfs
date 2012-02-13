@@ -10,7 +10,8 @@ SET(configuration_SRC
 )
 
 add_library(configuration ${BUILDTYPE} ${configuration_SRC})
-target_link_libraries(configuration zfs_config log zfsio config_reader)
+target_link_libraries(configuration zfs_config log zfsio config_reader threading)
+# threading needs to be included when pthread_barrier_wait is missing
 
 ## google test
 test_enabled(gtest result)

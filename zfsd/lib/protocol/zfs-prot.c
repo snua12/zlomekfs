@@ -32,7 +32,6 @@
 # include "reread_config.h"
 # include "thread.h"
 # include "network.h"
-# include "kernel.h"
 # include "node.h"
 # include "dir.h"
 # include "file.h"
@@ -579,7 +578,7 @@ zfs_proc_reread_config_server(reread_config_args * args,
 	t = (thread *) pthread_getspecific(thread_data_key);
 #ifdef ENABLE_CHECKING
 	if (t == NULL)
-		abort();
+		zfsd_abort();
 #endif
 
 	xstringdup(&relative_path, &args->path);
