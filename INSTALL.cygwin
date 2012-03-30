@@ -1,0 +1,70 @@
+Download Cygwin installer from http://cygwin.com/setup.exe (Tested with version 1.7.11-1)
+Launch installer and install standard packages and extra from this list:
+make 3.82.90-1
+cmake 2.8.7-1
+gcc 4.3.4-4
+g++ 4.5.3-3
+python 2.6.7-1
+openssl-devel 1.0.1-1
+pkg-config 0.23b-10
+unzip 6.0-10
+subversion 1.7.4-1
+
+After installation lauch cygwin console,
+download libconfig and install it
+
+wget http://www.hyperrealm.com/libconfig/libconfig-1.4.8.tar.gz
+tar xzf libconfig-1.4.8.tar.gz
+cd libconfig-1.4.8
+./configure
+make
+make install
+echo 'export LIBRARY_PATH=/usr/local/lib:${LIBRARY_PATH}' >> "${HOME}"/.bashrc
+echo 'export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:${PKG_CONFIG_PATH}' >> "${HOME}"/.bashrc
+. "${HOME}"/.bashrc
+
+
+Install google test
+wget http://googletest.googlecode.com/files/gtest-1.6.0.zip
+unzip gtest-1.6.0.zip
+cd gtest-1.6.0
+./configure
+make & make install
+# manual installation
+cp *.a /usr/local/lib/
+cp -a include/gtest /usr/local/include/
+
+Install dokan
+download it from there http://dokan-dev.net/wp-content/uploads/DokanInstall_0.6.0.exe
+in cygwin console:
+cp /cygdrive/c/Program\ Files/Dokan/DokanLibrary/dokan.lib /usr/local/lib/
+cp /cygdrive/c/Program\ Files/Dokan/DokanLibrary/dokan.h /usr/local/include/
+cat > /usr/local/lib/pkgconfig/dokan.pc <<TEXT
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: Dokan
+Description: Library for Windows User Space FS
+Version: 0.6.0
+Libs: -L${libdir} -ldokan
+Cflags: -I${includedir}
+TEXT
+#checkout sources from svn
+svn checkout http://dokan.googlecode.com/svn/trunk/ dokan-read-only
+cp dokan-read-only/dokan/fileinfo.h /usr/local/include/
+
+Build ZlomekFS
+svn checkout https://shiva.ms.mff.cuni.cz/svn/zlomekfs/branches/snuparek zlomekfs
+cd zlomekfs
+#build
+./makeall.sh
+#prepare configuration
+cp -a conf/etc/zfsd /etc/
+cp -a conf/var/zfs /var/
+mkdir -p /var/zfs/data
+
+#launch
+./build/zfsd/zfsd/zfsd.exe config=/etc/zfsd/zfsd.conf z
+ 

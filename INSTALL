@@ -1,5 +1,7 @@
 To get zlomekFS running, you must:
 
+For Cygwin see INSTALL.cygwin
+
 have linux system with kernel sources (or at least headers)
 
 * get sources from http://nenya.ms.mff.cuni.cz/~ceres/prj/zlomekFS/download/zlomekFS-SVN.tar.bz2 
@@ -17,3 +19,4 @@ have linux system with kernel sources (or at least headers)
 * run zfsd
 
 * pray to gods and keep smiling
+
