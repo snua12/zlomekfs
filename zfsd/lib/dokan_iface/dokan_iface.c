@@ -1,3 +1,24 @@
+/* ! \file \brief Functions for threads communicating with Dokan library  */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
+
 #include <windows.h>
 #include <winbase.h>
 #include <stdio.h>
@@ -1112,20 +1133,10 @@ static int DOKAN_CALLBACK zfs_dokan_get_volume_information (
 	return rv;
 }
 
-
-static int DOKAN_CALLBACK inner_dokan_unmount (
+static int DOKAN_CALLBACK zfs_dokan_unmount (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 	return -ERROR_SUCCESS;
-}
-
-static int DOKAN_CALLBACK zfs_dokan_unmount (
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_unmount(info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
 }
 
 // Suported since 0.6.0. You must specify the version at DOKAN_OPTIONS.Version.
@@ -1286,7 +1297,10 @@ bool kernel_start(void)
 
 void kernel_unmount(void)
 {
-	DokanUnmount(zfs_dokan_options.MountPoint[0]);
+	if (mounted)
+	{
+		DokanUnmount(zfs_dokan_options.MountPoint[0]);
+	}
 }
 
 void kernel_cleanup(void)
