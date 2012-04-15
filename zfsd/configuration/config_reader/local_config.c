@@ -583,6 +583,38 @@ int read_versioning_config(config_t * config)
 }
 #endif
 
+#ifdef HAVE_DOKAN
+static int read_dokan_config(config_t * config)
+{
+	config_setting_t * dokan_setting = config_lookup(config, "dokan");
+	if (dokan_setting == NULL)
+	{
+		message(LOG_INFO, FACILITY_CONFIG, "No dokan section was found in local config.\n");
+		return CONFIG_TRUE;
+	}
+
+	int rv;
+	const char * volume_name;
+	/* dokan::volume_name */
+	rv = config_setting_lookup_string(dokan_setting, "volume_name", &volume_name);
+	if (rv == CONFIG_TRUE)
+	{
+		xmkstring(&(zfs_config.dokan.volume_name), volume_name);
+	}
+
+	const char * file_system_name;
+	/* dokan::filesystem_name */
+	rv = config_setting_lookup_string(dokan_setting, "file_system_name", &file_system_name);
+	if (rv == CONFIG_TRUE)
+	{
+		xmkstring(&(zfs_config.dokan.file_system_name), file_system_name);
+	}
+
+	return CONFIG_TRUE;
+}
+
+#endif
+
 int read_local_config(config_t * config)
 {
 	int rv;
@@ -639,7 +671,16 @@ int read_local_config(config_t * config)
 	rv = read_versioning_config(config);
 	if (rv != CONFIG_TRUE)
 	{
-		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versioninf config from local config.\n");
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read versioning config from local config.\n");
+		return rv;
+	}
+#endif
+
+#ifdef HAVE_DOKAN
+	rv = read_dokan_config(config);
+	if (rv != CONFIG_TRUE)
+	{
+		message(LOG_ERROR, FACILITY_CONFIG, "Failed to read dokan config from local config.\n");
 		return rv;
 	}
 #endif

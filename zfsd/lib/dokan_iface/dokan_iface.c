@@ -1059,7 +1059,15 @@ static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 
-	wcsncpy(volume_name_buffer, L"ZlomekFS", volume_name_size / sizeof(WCHAR));
+	if (zfs_config.dokan.volume_name.str == NULL)
+	{
+		wcsncpy(volume_name_buffer, L"ZlomekFS", volume_name_size / sizeof(WCHAR));
+	}
+	else
+	{
+		mbstowcs(volume_name_buffer, zfs_config.dokan.volume_name.str, volume_name_size / sizeof(WCHAR));
+	}
+
 	if (volume_serial_number != NULL)
 	{
 		*volume_serial_number = ZFS_VOLUME_SERIAL_NUMBER;
@@ -1068,7 +1076,14 @@ static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	*maximum_component_length = ZFS_MAXNAMELEN;
 	*file_system_flags = FILE_CASE_PRESERVED_NAMES | FILE_CASE_SENSITIVE_SEARCH; //FILE_SUPPORTS_HARD_LINKS
 
-	wcsncpy(file_system_name_buffer, L"ZlomekFS", file_system_name_size / sizeof(WCHAR));
+	if (zfs_config.dokan.file_system_name.str == NULL)
+	{
+		wcsncpy(file_system_name_buffer, L"ZlomekFS", file_system_name_size / sizeof(WCHAR));
+	}
+	else
+	{
+		mbstowcs(file_system_name_buffer, zfs_config.dokan.file_system_name.str, file_system_name_size / sizeof(WCHAR));
+	}
 
 	return -ERROR_SUCCESS;
 }
