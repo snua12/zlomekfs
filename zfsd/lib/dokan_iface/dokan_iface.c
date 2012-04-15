@@ -16,6 +16,7 @@
 #include "thread.h"
 #include "dokan_tools.h"
 #include "zfs_config.h"
+#include "zfs-prot.h"
 #include "dokan_iface.h"
 
 bool mounted = false;
@@ -1058,16 +1059,16 @@ static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 
-	wcsncpy(volume_name_buffer, L"ZLOFS", volume_name_size / sizeof(WCHAR));
+	wcsncpy(volume_name_buffer, L"ZlomekFS", volume_name_size / sizeof(WCHAR));
 	if (volume_serial_number != NULL)
 	{
 		*volume_serial_number = ZFS_VOLUME_SERIAL_NUMBER;
 	}
 
-	*maximum_component_length = 256; //TODO: ZFS_MAXNAMELEN
-	*file_system_flags = FILE_CASE_PRESERVED_NAMES | FILE_CASE_SENSITIVE_SEARCH ; //FILE_SUPPORTS_HARD_LINKS
+	*maximum_component_length = ZFS_MAXNAMELEN;
+	*file_system_flags = FILE_CASE_PRESERVED_NAMES | FILE_CASE_SENSITIVE_SEARCH; //FILE_SUPPORTS_HARD_LINKS
 
-	wcsncpy(file_system_name_buffer, L"ZloFS", file_system_name_size / sizeof(WCHAR));
+	wcsncpy(file_system_name_buffer, L"ZlomekFS", file_system_name_size / sizeof(WCHAR));
 
 	return -ERROR_SUCCESS;
 }
