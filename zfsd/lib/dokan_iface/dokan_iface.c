@@ -48,7 +48,7 @@ DOKAN_OPTIONS zfs_dokan_options =
 {
 	.Version = DOKAN_VERSION,
 	.ThreadCount = 0, // use default 0
-	.Options = DOKAN_OPTION_REMOVABLE | DOKAN_OPTION_KEEP_ALIVE, 
+	.Options = DOKAN_OPTION_KEEP_ALIVE, 
 	.MountPoint = L"z:"
 };
 
