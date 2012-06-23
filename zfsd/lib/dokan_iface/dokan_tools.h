@@ -61,6 +61,8 @@ void fattr_to_find_dataw(PWIN32_FIND_DATAW data, fattr * fa);
 
 void filetime_to_zfstime(zfs_time * ztime, CONST FILETIME* ftime);
 
+void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filename, int windows_filename_len);
+
 #ifdef __cplusplus
 }
 #endif 

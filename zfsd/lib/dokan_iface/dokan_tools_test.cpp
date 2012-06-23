@@ -24,6 +24,9 @@
 #include <wchar.h>
 #include "dokan_tools.h"
 
+#include <windows.h>
+#include <winbase.h>
+
 TEST(dokan_tools_test, file_path_to_dir_and_file)
 {
 	char dir_path[MAX_PATH];
@@ -46,6 +49,13 @@ TEST(dokan_tools_test, file_path_to_dir_and_file)
 
 	file_path_to_dir_and_file(L"\\\\", dir_path, NULL);
 	ASSERT_STREQ("/", dir_path);
+
+	// test UTF16 to UTF8 conversion and back
+	WCHAR test_dir_path[] = L"řčžžýáíéřžýáížřýýžýážáýýáííáýáíýˇQˇWĚŘŤŽˇUˇIˇOˇPˇAŠĎˇFˇGˇHˇJˇKĽˇYˇXČˇVˇBŇˇMˇ´Q´wéŕ´tźúíó´poáś´d´f´g´h´jkĺý´xć´v´b´bn´m´*-+_";
+	file_path_to_dir_and_file(test_dir_path, dir_path, file_name);
+	WCHAR win_dir_path[MAX_PATH];
+	unix_to_windows_filename(file_name, win_dir_path, MAX_PATH);
+	ASSERT_STREQ(win_dir_path, test_dir_path);
 }
 
 int main(int argc, char **argv) 

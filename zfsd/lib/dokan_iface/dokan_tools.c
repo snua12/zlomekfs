@@ -31,6 +31,7 @@
 #include "dokan_tools.h"
 #include "log.h"
 
+
 static const wchar_t windows_dir_delimiter[] = L"\\";
 static const char unix_dir_delimiter[] = "/";
 
@@ -63,8 +64,18 @@ void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_n
 			dir_path_ptr++;
 			*dir_path_ptr = '\0';
 
+			int tok_len = wcslen(tok);
 			// append dir_path
-			size_t rv = wcstombs(dir_path_ptr, tok, MAX_PATH - (dir_path_ptr - dir_path));
+			int rv = WideCharToMultiByte(
+					CP_UTF8,
+					0,
+					tok,
+					tok_len,
+					dir_path_ptr,
+					MAX_PATH - (dir_path_ptr - dir_path),	
+					NULL,
+					NULL);
+
 			if (rv > 0)
 			{
 				dir_path_ptr += rv;
@@ -345,3 +356,22 @@ void fattr_to_find_dataw(PWIN32_FIND_DATAW data, fattr * fa)
 #endif
 
 }
+
+void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filename, int windows_filename_len)
+{
+	int rv = MultiByteToWideChar(
+		CP_UTF8,
+		0,
+		unix_filename,
+		strlen(unix_filename),
+		windows_filename,
+		windows_filename_len
+	);
+	if (rv == 0)
+	{
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:failed to conver unix_filename to windows_filename\n", __func__);
+		wcsncpy(windows_filename, L"", windows_filename_len);
+	}
+
+}
+

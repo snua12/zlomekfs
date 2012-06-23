@@ -680,10 +680,10 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 
 			 WIN32_FIND_DATAW find_data;
 			 fattr_to_find_dataw(&find_data, &lookup_res.attr);
-			 mbstowcs(find_data.cFileName, entry->name.str, MAX_PATH);
+			 unix_to_windows_filename(entry->name.str, find_data.cFileName, MAX_PATH);
 			 if (strlen(entry->name.str) < 14)
 			 {
-				 mbstowcs(find_data.cAlternateFileName, entry->name.str, 13);
+				 unix_to_windows_filename(entry->name.str, find_data.cAlternateFileName, 13);
 			 }
 			 else
 			 {
