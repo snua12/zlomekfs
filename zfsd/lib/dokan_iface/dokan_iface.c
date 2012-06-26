@@ -902,7 +902,7 @@ static int DOKAN_CALLBACK inner_dokan_move_file (
 	{
 		if (zfs_file_exists(new_file_name))
 		{
-			return  -ERROR_FILE_EXISTS;
+			return -ERROR_ALREADY_EXISTS;
 		}
 	}
 
