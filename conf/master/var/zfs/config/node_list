@@ -1,0 +1,18 @@
+node:
+{
+	list=
+	(
+	{
+		id=1;
+		name="node_a";
+		address="127.0.0.1";
+		port=12325;
+	},
+	{
+		id=2;
+		name="node_b";
+		address="127.0.0.1";
+		port=12326;
+	}	
+	);
+};
