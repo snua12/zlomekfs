@@ -20,9 +20,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <string.h>
+#include <errno.h>
 #include "file_tests.h"
 #include "filename_generator.h"
+#include "syscall_collector.h"
+#ifdef __CYGWIN__
+#include <Windows.h>
+#include <sys/cygwin.h>
+#endif
 
 
 #include "dir_tests.h"
@@ -30,57 +40,10 @@
 #define TEST_FILE_1 "a.txt"
 #define TEST_FILE_2 "b.txt"
 
-void test_move_file(const char * path)
-{
-	char path1[MAX_PATH];
-	char path2[MAX_PATH];
-
-	sprintf(path1, "%s\\%s", path, TEST_FILE_1); 
-	sprintf(path2, "%s\\%s", path, TEST_FILE_2); 
-
-	create_test_file(path1);
-	create_test_file(path2);
-
-	BOOL status = MoveFileEx(path1, path2, MOVEFILE_REPLACE_EXISTING);
-	if (status == FALSE)
-	{
-		printf("%s:%d \"%s\" last error is %lu %lx\n", __func__, __LINE__,
-			path2, GetLastError(), GetLastError());
-	}
-
-	create_test_file(path1);
-	status = MoveFile(path1, path2);
-	if (status == FALSE && GetLastError() == ERROR_ALREADY_EXISTS)
-	{
-	}
-	else
-	{
-		printf("%s:%d \"%s\" last error is %lu %lx\n", __func__, __LINE__,
-			path2, GetLastError(), GetLastError());
-	}
-
-}
-
-void cleanup_move_file(const char * path)
-{
-	return ;
-
-	char path1[MAX_PATH];
-	char path2[MAX_PATH];
-
-	sprintf(path1, "%s\\%s", path, TEST_FILE_1); 
-	sprintf(path2, "%s\\%s", path, TEST_FILE_2); 
-
-	DeleteFile(path1);
-	DeleteFile(path2);
-
-
-}
-
 void generate_directory_content(char * path, int count, int deep)
 {
-	char local_path[MAX_PATH + 1];
-	strncpy(local_path, path, MAX_PATH - 1);
+	char local_path[PATH_MAX + 1];
+	strncpy(local_path, path, PATH_MAX - 1);
 	int local_path_len = strlen(local_path);
 
 	int i;
@@ -88,11 +51,13 @@ void generate_directory_content(char * path, int count, int deep)
 	{
 		//CreateDirectory
 		get_filename(local_path + local_path_len);
-		BOOL rv = CreateDirectory(local_path, NULL);
-		if (rv)
+		collect(SYSCALL_OP_MKDIR, SYSCALL_STATE_BEGIN);
+		int rv = mkdir(local_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		collect(SYSCALL_OP_MKDIR, SYSCALL_STATE_END);
+		if (rv == 0)
 		{
 			int l = strlen(local_path);
-			local_path[l] = '\\';
+			local_path[l] = '/';
 			local_path[l+1] = 0;
 
 			if (deep > 0)
@@ -107,8 +72,8 @@ void generate_directory_content(char * path, int count, int deep)
 		else
 		{
 
-			printf("%s:%d \"%s\" last error is %lu %lx\n", __func__, __LINE__,
-				local_path, GetLastError(), GetLastError());
+			printf("%s:%d \"%s\" last error is %u %x\n", __func__, __LINE__,
+				local_path, errno, errno);
 		}
 	}
 }
@@ -116,8 +81,8 @@ void generate_directory_content(char * path, int count, int deep)
 void cleanup_directory_content(char * path, int count, int deep)
 {
 
-	char local_path[MAX_PATH + 1];
-	strncpy(local_path, path, MAX_PATH - 1);
+	char local_path[PATH_MAX + 1];
+	strncpy(local_path, path, PATH_MAX - 1);
 	int local_path_len = strlen(local_path);
 
 	int i;
@@ -140,12 +105,31 @@ void cleanup_directory_content(char * path, int count, int deep)
 
 		local_path[l] = 0;
 
-		BOOL rv = RemoveDirectory(local_path);
+#ifdef __CYGWIN__
+		/*this is Dokan workaround delete directory, when is called unlink_nt with some params,
+		 delete file is called instead of delete directory.*/
+		char windows_path[MAX_PATH + 1]; 
+		cygwin_conv_path (CCP_POSIX_TO_WIN_A, local_path, windows_path, MAX_PATH);
+
+		collect(SYSCALL_OP_RMDIR, SYSCALL_STATE_BEGIN);
+		BOOL rv = RemoveDirectory(windows_path);
+		collect(SYSCALL_OP_RMDIR, SYSCALL_STATE_END);
 		if (rv == 0)
 		{
 			printf("%s:%d \"%s\" last error is %lu %lx\n", __func__, __LINE__,
 				local_path, GetLastError(), GetLastError());
 		}
+#else
+
+		collect(SYSCALL_OP_RMDIR, SYSCALL_STATE_BEGIN);
+		int rv = rmdir(local_path);
+		collect(SYSCALL_OP_RMDIR, SYSCALL_STATE_END);
+		if (rv == -1)
+		{
+			printf("%s:%d \"%s\" last error is %u %x\n", __func__, __LINE__,
+				local_path, errno, errno);
+		}
+#endif
 	}
 }
 

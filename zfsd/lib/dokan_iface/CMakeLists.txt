@@ -1,4 +1,4 @@
-add_subdirectory(win32api_test)
+add_subdirectory(tests)
 
 add_library(dokan_tools ${BUILDTYPE} dokan_tools.c) 
 target_link_libraries(dokan_tools log)

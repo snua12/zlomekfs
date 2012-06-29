@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "filename_generator.h"
 
 void init_filename_generator(void)
 {

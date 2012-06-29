@@ -23,6 +23,7 @@
 #include <Windows.h>
 #include "file_tests.h"
 #include "filename_generator.h"
+#include "syscall_collector.h"
 
 #define TEST_PATTERN "TEST STRING 123456789\n"
 
@@ -31,7 +32,9 @@ static void write_test_pattern(HANDLE h)
 
 	DWORD bytes_written;
 	char text[] = TEST_PATTERN;
+	collect(SYSCALL_OP_WRITE, SYSCALL_STATE_BEGIN);
 	WriteFile(h, text, sizeof(text) - 1, &bytes_written, NULL);
+	collect(SYSCALL_OP_WRITE, SYSCALL_STATE_END);
 	if (bytes_written != (sizeof(text) - 1))
 
 	{
@@ -165,12 +168,14 @@ void cleanup_file_op(char * path)
 
 void create_test_file(char * path)
 {
+	collect(SYSCALL_OP_OPEN, SYSCALL_STATE_BEGIN);
 	HANDLE h = CreateFile(path,
 			GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL,
 			OPEN_ALWAYS,
 			FILE_ATTRIBUTE_NORMAL,
 			NULL);
+	collect(SYSCALL_OP_OPEN, SYSCALL_STATE_END);
 
 	if (h == INVALID_HANDLE_VALUE)
 	{
@@ -178,8 +183,10 @@ void create_test_file(char * path)
 	}
 
 	write_test_pattern(h);
-	CloseHandle(h);
 
+	collect(SYSCALL_OP_CLOSE, SYSCALL_STATE_BEGIN);
+	CloseHandle(h);
+	collect(SYSCALL_OP_CLOSE, SYSCALL_STATE_END);
 }
 
 
@@ -208,7 +215,9 @@ void cleanup_file_content(char * path, int count)
 	for (i = 0; i < count; ++i)
 	{
 		get_filename(local_path + local_path_len);
+		collect(SYSCALL_OP_UNLINK, SYSCALL_STATE_BEGIN);
 		BOOL rv = DeleteFile(local_path);
+		collect(SYSCALL_OP_UNLINK, SYSCALL_STATE_END);
 		if (rv == 0)
 		{
 			printf("%s:%d \"%s\" last error is %lu %lx\n", __func__, __LINE__,

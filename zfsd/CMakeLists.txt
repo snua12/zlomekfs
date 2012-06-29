@@ -30,6 +30,7 @@ ${ZFSD_SOURCE_DIR}/lib/queue
 ${ZFSD_SOURCE_DIR}/lib/threading
 ${ZFSD_SOURCE_DIR}/lib/fuse_iface
 ${ZFSD_SOURCE_DIR}/lib/dokan_iface
+${ZFSD_SOURCE_DIR}/lib/dokan_iface/tests/syscall_collector
 ${ZFSD_SOURCE_DIR}/lib/constant
 ${ZFSD_SOURCE_DIR}/lib/memory
 ${ZFSD_SOURCE_DIR}/lib/varray
