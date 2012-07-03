@@ -148,6 +148,8 @@ static void fatal_sigaction(int signum, siginfo_t * info,
 							   context->uc_mcontext.gregs[REG_EIP],
 							   info->si_addr);
 #elif defined __x86_64__
+				ucontext_t *context = (ucontext_t *) data;
+
 				internal_error("%s at %p when accessing %p",
 							   strsignal(signum),
 							   context->uc_mcontext.gregs[REG_RIP],

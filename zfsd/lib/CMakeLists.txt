@@ -9,6 +9,7 @@ add_subdirectory(fibheap)
 
 if (HAVE_FUSE)
 	add_subdirectory(fuse_iface)
+	add_subdirectory(dokan_iface/tests)
 elseif (HAVE_DOKAN)
 	add_subdirectory(dokan_iface)
 endif()

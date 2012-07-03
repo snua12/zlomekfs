@@ -97,8 +97,8 @@ void cleanup_file_content(char * path, int count)
 		collect(SYSCALL_OP_UNLINK, SYSCALL_STATE_END);
 		if (rv == -1)
 		{
-			printf("%s:%d \"%s\" last error is %u %x\n", __func__, __LINE__,
-				local_path, errno, errno);
+			printf("%s:%d \"%s\" last error is %u %x %s\n", __func__, __LINE__,
+				local_path, errno, errno, strerror(errno));
 		}
 	}
 }

@@ -72,8 +72,8 @@ void generate_directory_content(char * path, int count, int deep)
 		else
 		{
 
-			printf("%s:%d \"%s\" last error is %u %x\n", __func__, __LINE__,
-				local_path, errno, errno);
+			printf("%s:%d \"%s\" last error is %u %x %s\n", __func__, __LINE__,
+				local_path, errno, errno, strerror(errno));
 		}
 	}
 }
@@ -90,7 +90,7 @@ void cleanup_directory_content(char * path, int count, int deep)
 	{
 		get_filename(local_path + local_path_len);
 		int l = strlen(local_path);
-		local_path[l] = '\\';
+		local_path[l] = '/';
 		local_path[l+1] = 0;
 
 		if (deep > 0)
@@ -126,8 +126,8 @@ void cleanup_directory_content(char * path, int count, int deep)
 		collect(SYSCALL_OP_RMDIR, SYSCALL_STATE_END);
 		if (rv == -1)
 		{
-			printf("%s:%d \"%s\" last error is %u %x\n", __func__, __LINE__,
-				local_path, errno, errno);
+			printf("%s:%d \"%s\" last error is %u %x %s\n", __func__, __LINE__,
+				local_path, errno, errno, strerror(errno));
 		}
 #endif
 	}
