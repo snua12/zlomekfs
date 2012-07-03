@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for threads communicating with Dokan library  */
+/* ! \file \brief Directory tests*/
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -18,16 +18,24 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
+#ifndef DIR_TESTS_H
+#define DIR_TESTS_H
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#ifndef DOKAN_IFACE_H
-#define DOKAN_IFACE_H
+void test_move_file(const char * path);
 
-/* ! Is ZFS mounted? */
-extern bool mounted;
+void cleanup_move_file(const char * path);
 
-extern void kernel_unmount(void);
-extern bool kernel_start(void);
-extern void kernel_cleanup(void);
+void generate_directory_content(char * path, int count, int deep);
 
+void cleanup_directory_content(char * path, int count, int deep);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
+

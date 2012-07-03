@@ -82,6 +82,10 @@ void cleanup_config_c(void)
 	zfsd_mutex_unlock(&reread_config_mutex);
 	//semaphore_destroy(&zfs_config.config_sem);
 
-	if (zfs_config.this_node.node_name.str)
-		free(zfs_config.this_node.node_name.str);
+	xfreestring(&zfs_config.this_node.node_name);
+
+#ifdef HAVE_DOKAN
+	xfreestring(&zfs_config.dokan.volume_name);
+	xfreestring(&zfs_config.dokan.file_system_name);
+#endif
 }

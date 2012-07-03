@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for threads communicating with Dokan library  */
+/* ! \file \brief File tests*/
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -18,16 +18,26 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
+#ifndef FILE_TESTS_H
+#define FILE_TESTS_H
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#ifndef DOKAN_IFACE_H
-#define DOKAN_IFACE_H
+void test_file_op(char * path);
 
-/* ! Is ZFS mounted? */
-extern bool mounted;
+void cleanup_file_op(char * path);
 
-extern void kernel_unmount(void);
-extern bool kernel_start(void);
-extern void kernel_cleanup(void);
+void create_test_file(char * path);
 
+void generate_file_content(char * path, int count);
+
+void cleanup_file_content(char * path, int count);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
+

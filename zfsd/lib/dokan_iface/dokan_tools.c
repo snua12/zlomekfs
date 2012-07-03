@@ -1,3 +1,24 @@
+/* ! \file \brief Dokan interface support functions */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
+
 #include <windows.h>
 #include <winbase.h>
 #include <errno.h>
@@ -9,6 +30,7 @@
 #include <fcntl.h>
 #include "dokan_tools.h"
 #include "log.h"
+
 
 static const wchar_t windows_dir_delimiter[] = L"\\";
 static const char unix_dir_delimiter[] = "/";
@@ -42,8 +64,18 @@ void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_n
 			dir_path_ptr++;
 			*dir_path_ptr = '\0';
 
+			int tok_len = wcslen(tok);
 			// append dir_path
-			size_t rv = wcstombs(dir_path_ptr, tok, MAX_PATH - (dir_path_ptr - dir_path));
+			int rv = WideCharToMultiByte(
+					CP_UTF8,
+					0,
+					tok,
+					tok_len,
+					dir_path_ptr,
+					MAX_PATH - (dir_path_ptr - dir_path),	
+					NULL,
+					NULL);
+
 			if (rv > 0)
 			{
 				dir_path_ptr += rv;
@@ -324,3 +356,22 @@ void fattr_to_find_dataw(PWIN32_FIND_DATAW data, fattr * fa)
 #endif
 
 }
+
+void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filename, int windows_filename_len)
+{
+	int rv = MultiByteToWideChar(
+		CP_UTF8,
+		0,
+		unix_filename,
+		strlen(unix_filename),
+		windows_filename,
+		windows_filename_len
+	);
+	if (rv == 0)
+	{
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:failed to conver unix_filename to windows_filename\n", __func__);
+		wcsncpy(windows_filename, L"", windows_filename_len);
+	}
+
+}
+

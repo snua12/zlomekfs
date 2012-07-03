@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for threads communicating with Dokan library  */
+/* ! \file \brief Random filename generator */
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -19,15 +19,21 @@
    download it from http://www.gnu.org/licenses/gpl.html */
 
 
-#ifndef DOKAN_IFACE_H
-#define DOKAN_IFACE_H
+#ifndef FILENAME_GENERATOR_H
+#define FILENAME_GENERATOR_H
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	/// initialize generator
+	void init_filename_generator(void);
 
-/* ! Is ZFS mounted? */
-extern bool mounted;
+	/// get filename from fixed sequence
+	void get_filename(char name[]);
 
-extern void kernel_unmount(void);
-extern bool kernel_start(void);
-extern void kernel_cleanup(void);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif
+

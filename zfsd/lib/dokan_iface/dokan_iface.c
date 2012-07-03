@@ -1,3 +1,24 @@
+/* ! \file \brief Functions for threads communicating with Dokan library  */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
+
 #include <windows.h>
 #include <winbase.h>
 #include <stdio.h>
@@ -16,6 +37,7 @@
 #include "thread.h"
 #include "dokan_tools.h"
 #include "zfs_config.h"
+#include "zfs-prot.h"
 #include "dokan_iface.h"
 
 bool mounted = false;
@@ -26,7 +48,7 @@ DOKAN_OPTIONS zfs_dokan_options =
 {
 	.Version = DOKAN_VERSION,
 	.ThreadCount = 0, // use default 0
-	.Options = DOKAN_OPTION_REMOVABLE | DOKAN_OPTION_KEEP_ALIVE, //DOKAN_OPTION_NETWORK
+	.Options = DOKAN_OPTION_KEEP_ALIVE, 
 	.MountPoint = L"z:"
 };
 
@@ -105,6 +127,8 @@ static int zfs_truncate_file(zfs_fh * fh)
 	return zfs_set_end_of_file(fh, 0);
 }
 
+// for debugging purpose
+#if 0
 static const char * creation_disposition_to_str(DWORD creation_disposition)
 {
 	if (creation_disposition == CREATE_NEW)
@@ -123,6 +147,7 @@ static const char * creation_disposition_to_str(DWORD creation_disposition)
 
 	return "";
 }
+#endif
 
 // CreateFile
 //   If file is a directory, CreateFile (not OpenDirectory) may be called.
@@ -172,8 +197,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	rv = dokan_zfs_extended_lookup(&lres, path_copy);
 	if (rv != ZFS_OK)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d dokan_zfs_extended_lookup(\"%s\") has failed rv=%d.\n",
-				__func__, __LINE__, path, rv);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -192,19 +215,12 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 		rv = zfs_open(&local_cap, &lres.file, flags); 
 		if (rv != ZFS_OK)
 		{
-			message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_open(\"%s\", %s) has failed rv=%d.\n",
-					__func__, __LINE__, path,
-					creation_disposition_to_str(creation_disposition), rv);
 			return -ERROR_FILE_NOT_FOUND;
 		}
 
 		// allocate memory for new capability
 		zfs_cap *cap = xmemdup(&local_cap, sizeof(*cap));
 		cap_to_dokan_file_info(info, cap);
-
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_open(\"%s\", %s) cap=%p.\n",
-				__func__, __LINE__, path,
-				creation_disposition_to_str(creation_disposition), cap);
 
 		if (creation_disposition == OPEN_ALWAYS)
 		{
@@ -235,9 +251,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	xfreestring(&args.where.name);
 	if (rv != ZFS_OK)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_open(\"%s\", %s) has failed rv=%d.\n",
-				__func__, __LINE__, path,
-				creation_disposition_to_str(creation_disposition), rv);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -246,11 +259,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	// allocate memory for new capability
 	zfs_cap *cap = xmemdup(&cres.cap, sizeof(*cap));
 	cap_to_dokan_file_info(info, cap);
-
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_open(\"%s\", %s) cap=%p.\n",
-		__func__, __LINE__, path,
-		creation_disposition_to_str(creation_disposition), cap);
 
 	return -ERROR_SUCCESS;
 }
@@ -288,8 +296,6 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 	rv = dokan_zfs_extended_lookup(&lres, path);
 	if (rv != ZFS_OK)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d dokan_zfs_extended_lookup(\"%s\") has failed rv=%d.\n",
-				__func__, __LINE__, path, rv);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -297,8 +303,6 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 	rv = zfs_open(&local_cap, &lres.file, O_RDONLY); 
 	if (rv != ZFS_OK)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_open(\"%s\") has failed rv=%d.\n",
-				__func__, __LINE__, path, rv);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -308,8 +312,6 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 	zfs_cap *cap = xmemdup(&local_cap, sizeof(*cap));
 	cap_to_dokan_file_info(info, cap);
 
-	message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_open(\"%s\") cap=%p.\n",
-			__func__, __LINE__, path, cap);
 	return -ERROR_SUCCESS;
 }
 
@@ -340,8 +342,6 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 	rv = dokan_zfs_extended_lookup(&lres, path);
 	if (rv != ZFS_OK)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d dokan_zfs_extended_lookup(\"%s\") has failed rv=%d.\n",
-				__func__, __LINE__, path, rv);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -356,13 +356,9 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 	xfreestring(&args.where.name);
 	if (rv != ZFS_OK)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_mkdir(\"%s/%s\") has failed rv=%d.\n",
-				__func__, __LINE__, path, name, rv);
 		return zfs_err_to_dokan_err(rv);
 	}
 
-	message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_mkdir(\"%s/%s\") success.\n",
-			__func__, __LINE__, path, name);
 	return -ERROR_SUCCESS;
 }
 
@@ -385,8 +381,6 @@ static int DOKAN_CALLBACK inner_dokan_cleanup (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 	TRACE("");
-
-//	message(LOG_ALERT, FACILITY_ZFSD, "%s:(%p)\n", __func__, dokan_file_info_to_cap(info));
 
 	return -ERROR_SUCCESS;
 }
@@ -414,8 +408,6 @@ static int DOKAN_CALLBACK inner_dokan_close_file (
 	zfs_cap * cap = dokan_file_info_to_cap(info);
 	if (cap == NULL)
 	{
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d  dokan_file_info_to_cap() returned NULL.\n",
-				__func__, __LINE__, path);
 		return -ERROR_SUCCESS;
 	}
 
@@ -423,8 +415,6 @@ static int DOKAN_CALLBACK inner_dokan_close_file (
 	free(cap);
 	cap_to_dokan_file_info(info, NULL);
 
-	message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_close(\"%s\") cap=%p rv=%d.\n",
-			__func__, __LINE__, path, cap, rv);
 	return zfs_err_to_dokan_err(rv);
 }
 
@@ -475,9 +465,6 @@ static int DOKAN_CALLBACK inner_dokan_read_file (
 
 		char path[MAX_PATH];
 		file_path_to_dir_and_file(file_name, path, NULL);
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_read(filename=\"%s\", offset=%lld, to_read=%u read=%d) cap=%p rv=%d.\n",
-				__func__, __LINE__, path, offset, to_read, res.data.len,
-				dokan_file_info_to_cap(info), rv);
 
 		if (rv != ZFS_OK)
 		{
@@ -542,13 +529,6 @@ static int DOKAN_CALLBACK inner_dokan_write_file (
 
 		write_res res;
 		int rv = zfs_write(&res, &args);
-
-		char path[MAX_PATH];
-		file_path_to_dir_and_file(file_name, path, NULL);
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_write(filename=\"%s\", buffer=%p, to_write=%d, written=%d, offset=%lld) cap=%p rv=%d.\n",
-				__func__, __LINE__, path, buffer, number_of_bytes_to_write, res.written, offset,
-				dokan_file_info_to_cap(info), rv);
-
 		if (rv != ZFS_OK)
 		{
 			return zfs_err_to_dokan_err(rv);
@@ -585,9 +565,6 @@ static int DOKAN_CALLBACK inner_dokan_flush_file_buffers (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
-
 	return -ERROR_SUCCESS;
 }
 
@@ -612,7 +589,6 @@ static int DOKAN_CALLBACK inner_dokan_get_file_information (
 
 	char path[MAX_PATH];
 	file_path_to_dir_and_file(file_name, path, NULL);
-	message(LOG_ALERT, FACILITY_ZFSD, "%s(\"%s\")\n", __func__, path);
 
 	dir_op_res lres;
 	int32_t rv = dokan_zfs_extended_lookup(&lres, path);
@@ -659,7 +635,6 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 {
 	TRACE("");
 
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 	char path[MAX_PATH];
 	file_path_to_dir_and_file(path_name, path, NULL);
 
@@ -670,7 +645,6 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 	dir_entry entries[ZFS_MAX_DIR_ENTRIES];
 	dir_list list;
 	int32_t last_cookie = 0;
-	int count = 0;
 	do
 	{
 		list.n = 0;
@@ -682,10 +656,6 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 		{
 			RETURN_INT(zfs_err_to_dokan_err(rv));
 		}
-
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:(%p) %s count of found directories: %d\n", __func__, cap, path, list.n);
-		message(LOG_ALERT, FACILITY_ZFSD, "%s: zfs_fh sid:%u vid:%u dev:%u ino:%u gen: %u\n", __func__,
-				cap->fh.sid, cap->fh.vid, cap->fh.dev, cap->fh.ino, cap->fh.gen);
 
 		uint32_t i;
 		for (i = 0; i < list.n; ++i)
@@ -701,22 +671,19 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 			if (strcmp(entry->name.str, "..") == 0)
 				continue;
 
-			message(LOG_ALERT, FACILITY_ZFSD, "%d:%s:(%p) %s//%s\n", count ++ , __func__, cap, path, entry->name.str);
-
 			dir_op_res lookup_res;
 			rv = zfs_extended_lookup(&lookup_res, &cap->fh, entry->name.str);
 			if (rv != ZFS_OK)
 			{
-				message(LOG_ERROR, FACILITY_ZFSD, "%s: zfs_extended_lookup has for entry %s failed\n", __func__, entry->name.str);
 				continue;
 			}
 
 			 WIN32_FIND_DATAW find_data;
 			 fattr_to_find_dataw(&find_data, &lookup_res.attr);
-			 mbstowcs(find_data.cFileName, entry->name.str, MAX_PATH);
+			 unix_to_windows_filename(entry->name.str, find_data.cFileName, MAX_PATH);
 			 if (strlen(entry->name.str) < 14)
 			 {
-				 mbstowcs(find_data.cAlternateFileName, entry->name.str, 13);
+				 unix_to_windows_filename(entry->name.str, find_data.cAlternateFileName, 13);
 			 }
 			 else
 			 {
@@ -757,7 +724,6 @@ static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
 	//TODO: store attributes to zfs metadata
 	//FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 	//FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM, FILE_ATTRIBUTE_SYSTEM
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 
 	return -ERROR_SUCCESS;
 }
@@ -783,8 +749,6 @@ static int DOKAN_CALLBACK inner_dokan_set_file_time (
         CONST FILETIME* last_write_time, // LastWriteTime
         ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 
 	fattr fa;
 	setattr_args args;
@@ -900,8 +864,8 @@ static int DOKAN_CALLBACK inner_dokan_delete_directory (
 }
 
 static int DOKAN_CALLBACK zfs_dokan_delete_directory ( 
-	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
+	LPCWSTR file_name, // FileName
+	PDOKAN_FILE_INFO info)
 {
 	DOKAN_SET_THREAD_SPECIFIC
 	int rv = inner_dokan_delete_directory(
@@ -933,21 +897,14 @@ static int DOKAN_CALLBACK inner_dokan_move_file (
 	char new_name[MAX_PATH] = "";
 
 	file_path_to_dir_and_file(new_file_name, new_path, new_name);
-	message(LOG_ALERT, FACILITY_ZFSD, "%s:%d zfs_dokan_move_file(\"%s/%s\", \"%s/%s\", %d)\n",
-			__func__, __LINE__, existing_path, existing_name,
-			new_path, new_name, replace_existing);
 
 	if (replace_existing == FALSE)
 	{
 		if (zfs_file_exists(new_file_name))
 		{
-			message(LOG_ALERT, FACILITY_ZFSD, "%s:%d.\n", __func__, __LINE__);
-
-			return  -ERROR_FILE_EXISTS;
+			return -ERROR_ALREADY_EXISTS;
 		}
-		message(LOG_ALERT, FACILITY_ZFSD, "%s:%d.\n", __func__, __LINE__);
 	}
-
 
 	file_path_to_dir_and_file(new_file_name, new_path, new_name);
 
@@ -967,8 +924,6 @@ static int DOKAN_CALLBACK inner_dokan_move_file (
 
 	xfreestring(&s_existing_name);
 	xfreestring(&s_new_name);
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 
 	return zfs_err_to_dokan_err(rv);
 }
@@ -994,9 +949,6 @@ static int DOKAN_CALLBACK inner_dokan_set_end_of_file (
 	ATTRIBUTE_UNUSED LONGLONG length, // Length
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
-
 	zfs_cap * cap = dokan_file_info_to_cap(info);
 	if (cap == NULL)
 	{
@@ -1027,8 +979,6 @@ static int DOKAN_CALLBACK inner_dokan_set_allocation_size (
 	LONGLONG length, // Length
 	PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 
 	zfs_cap * cap = dokan_file_info_to_cap(info);
 	if (cap == NULL)
@@ -1073,9 +1023,6 @@ static int DOKAN_CALLBACK inner_dokan_lock_file(
 	ATTRIBUTE_UNUSED LONGLONG length, // Length
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
-
 	return -ERROR_INVALID_FUNCTION;
 }
 
@@ -1101,8 +1048,6 @@ static int DOKAN_CALLBACK inner_dokan_unlock_file(
 	ATTRIBUTE_UNUSED LONGLONG length,// Length
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 
 	return -ERROR_INVALID_FUNCTION;
 }
@@ -1135,16 +1080,31 @@ static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 
-	wcsncpy(volume_name_buffer, L"ZLOFS", volume_name_size / sizeof(WCHAR));
+	if (zfs_config.dokan.volume_name.str == NULL)
+	{
+		wcsncpy(volume_name_buffer, L"ZlomekFS", volume_name_size / sizeof(WCHAR));
+	}
+	else
+	{
+		mbstowcs(volume_name_buffer, zfs_config.dokan.volume_name.str, volume_name_size / sizeof(WCHAR));
+	}
+
 	if (volume_serial_number != NULL)
 	{
 		*volume_serial_number = ZFS_VOLUME_SERIAL_NUMBER;
 	}
 
-	*maximum_component_length = 256; //TODO: ZFS_MAXNAMELEN
-	*file_system_flags = FILE_CASE_PRESERVED_NAMES | FILE_CASE_SENSITIVE_SEARCH ; //FILE_SUPPORTS_HARD_LINKS
+	*maximum_component_length = ZFS_MAXNAMELEN;
+	*file_system_flags = FILE_CASE_PRESERVED_NAMES | FILE_CASE_SENSITIVE_SEARCH; //FILE_SUPPORTS_HARD_LINKS
 
-	wcsncpy(file_system_name_buffer, L"ZloFS", file_system_name_size / sizeof(WCHAR));
+	if (zfs_config.dokan.file_system_name.str == NULL)
+	{
+		wcsncpy(file_system_name_buffer, L"ZlomekFS", file_system_name_size / sizeof(WCHAR));
+	}
+	else
+	{
+		mbstowcs(file_system_name_buffer, zfs_config.dokan.file_system_name.str, file_system_name_size / sizeof(WCHAR));
+	}
 
 	return -ERROR_SUCCESS;
 }
@@ -1157,7 +1117,7 @@ static int DOKAN_CALLBACK zfs_dokan_get_volume_information (
 	LPDWORD file_system_flags,// FileSystemFlags
 	LPWSTR file_system_name_buffer,	// FileSystemNameBuffer
 	DWORD file_system_name_size,	// FileSystemNameSize in num of chars
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
+	PDOKAN_FILE_INFO info)
 {
 	DOKAN_SET_THREAD_SPECIFIC
 	int rv = inner_dokan_get_volume_information(
@@ -1173,22 +1133,10 @@ static int DOKAN_CALLBACK zfs_dokan_get_volume_information (
 	return rv;
 }
 
-
-static int DOKAN_CALLBACK inner_dokan_unmount (
+static int DOKAN_CALLBACK zfs_dokan_unmount (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	//TODO: implement unmount ...
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 	return -ERROR_SUCCESS;
-}
-
-static int DOKAN_CALLBACK zfs_dokan_unmount (
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_unmount(info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
 }
 
 // Suported since 0.6.0. You must specify the version at DOKAN_OPTIONS.Version.
@@ -1200,8 +1148,6 @@ static int DOKAN_CALLBACK inner_dokan_get_file_security (
 	ATTRIBUTE_UNUSED PULONG length_needed, // LengthNeeded
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 
 	return -ERROR_INVALID_FUNCTION;
 }
@@ -1234,7 +1180,6 @@ static int DOKAN_CALLBACK inner_dokan_set_file_security (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 
-	message(LOG_ALERT, FACILITY_ZFSD, "%s\n", __func__);
 	return -ERROR_INVALID_FUNCTION;
 }
 
@@ -1256,6 +1201,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_security (
 	return rv;
 }
 
+/* dokan filesystem interface */
 DOKAN_OPERATIONS zfs_dokan_operations =
 {
 	.CreateFile = zfs_dokan_create_file,
@@ -1292,7 +1238,7 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 	lock_info li[MAX_LOCKED_FILE_HANDLES];
 	set_lock_info(li);
 
-	// pass option to DOKAN OPTIONS
+	// pass zlomek options to DOKAN OPTIONS
 	wchar_t wMountPoint[MAX_PATH + 1];
 	mbstowcs(wMountPoint, zfs_config.mountpoint, MAX_PATH);
 	zfs_dokan_options.MountPoint = wMountPoint;
@@ -1309,35 +1255,34 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 	int status = DokanMain(&zfs_dokan_options, &zfs_dokan_operations);
         switch (status) {
         case DOKAN_SUCCESS:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Success\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Success\n", __func__);
                 break;
         case DOKAN_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Error\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Error\n", __func__);
                 break;
         case DOKAN_DRIVE_LETTER_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Bad Drive letter\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Bad Drive letter\n", __func__);
                 break;
         case DOKAN_DRIVER_INSTALL_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Can't install driver\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Can't install driver\n", __func__);
                 break;
         case DOKAN_START_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Driver something wrong\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Driver something wrong\n", __func__);
                 break;
         case DOKAN_MOUNT_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Can't assign a drive letter\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Can't assign a drive letter\n", __func__);
                 break;
         case DOKAN_MOUNT_POINT_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Mount point error\n");
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Mount point error\n", __func__);
                 break;
         default:
-                message(LOG_NOTICE, FACILITY_ZFSD, "Unknown error: %d\n", status);
+                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Unknown error: %d\n", __func__, status);
                 break;
         }
 
 	mounted = false;
 
-	/* notify zfsd daemon about network thread termination */
-	//TODO: this part of code can be considered as hotfix
+	/* notify zfsd daemon about fuse thread termination */
 	pid_t pid = getpid();
 	kill(pid, SIGTERM);
 
@@ -1352,12 +1297,14 @@ bool kernel_start(void)
 
 void kernel_unmount(void)
 {
-	//TODO: implemantation
-	DokanUnmount(zfs_dokan_options.MountPoint[0]);
+	if (mounted)
+	{
+		DokanUnmount(zfs_dokan_options.MountPoint[0]);
+	}
 }
 
 void kernel_cleanup(void)
 {
-	//TODO: implementation
+	// nothing to do there
 }
 

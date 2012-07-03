@@ -75,9 +75,14 @@ zfs_configuration zfs_config =
 		.retention_age_max = -1,
 		.retention_num_min =  -1,
 		.retention_num_max = -1
-	}
+	},
 #endif
-
+#ifdef HAVE_DOKAN
+	.dokan = {
+		.volume_name = STRING_INVALID_INITIALIZER,
+		.file_system_name = STRING_INVALID_INITIALIZER
+	},
+#endif
 };
 
 void set_local_config_path(const char * path)

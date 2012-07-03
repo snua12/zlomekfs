@@ -1,0 +1,29 @@
+# group configuration
+group:
+{
+	# mapping between local and remote node
+	mapping = 
+	(
+		{
+			# default is reserved name for default configuration, don't use default for node name
+			node="default";
+			pairs=
+			(
+				{
+					local="nogroup";
+					remote="nogroup";
+				}
+			);
+		},
+		{
+			node="the_only_node";
+			pairs=
+			(
+				{
+					local="nogroup";
+					remote="nogroup";
+				}
+			);
+		}
+	);
+};

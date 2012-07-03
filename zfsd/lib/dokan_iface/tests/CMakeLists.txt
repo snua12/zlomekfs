@@ -1,0 +1,4 @@
+add_subdirectory(win32api_test)
+add_subdirectory(POSIXapi_test)
+add_subdirectory(syscall_collector)
+

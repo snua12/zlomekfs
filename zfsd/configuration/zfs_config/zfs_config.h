@@ -51,6 +51,15 @@ typedef struct zfs_config_versions_def
 } zfs_config_versions;
 #endif
 
+#ifdef HAVE_DOKAN
+/* Dokan specific configuration */
+typedef struct zfs_config_dokan_def
+{
+	string volume_name;
+	string file_system_name;
+} zfs_config_dokan;
+#endif
+
 typedef struct zfs_config_node_def
 {
 	/* ! ID of this node.  */
@@ -122,6 +131,10 @@ typedef struct zfs_configuration_def
 #ifdef ENABLE_VERSIONS
 	/* ! versioning config */
 	zfs_config_versions versions;
+#endif
+
+#ifdef HAVE_DOKAN
+	zfs_config_dokan dokan;
 #endif
 } zfs_configuration;
 

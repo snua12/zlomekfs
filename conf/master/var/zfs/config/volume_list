@@ -19,20 +19,11 @@ volume:
 			volume = "config";
 			tree =
 			{
-				node="this_node";
+				node="node_a";
 				# list of subtrees
 				children = (
 				{
-					node="the_only_node";
-					children = (
-						{
-						node="node1";
-						children = ();
-						}
-					);
-				},
-				{
-					node="that_node2";
+					node="node_b";
 					children = ();
 				}
 				);
@@ -42,9 +33,14 @@ volume:
 			volume = "data";
 			tree =
 			{
-				node="the_only_node";
+				node="node_a";
 				# list of subtrees
-				children = ();
+				children = (
+				{
+					node="node_b";
+					children = ();
+				}
+				);
 			};
 		}
 	);

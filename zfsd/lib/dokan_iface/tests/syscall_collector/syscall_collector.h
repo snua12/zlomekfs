@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for threads communicating with Dokan library  */
+/* ! \file \brief Directory tests*/
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -18,16 +18,38 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
+#ifndef SYSCALL_COLLECTOR_H
+#define SYSCALL_COLLECTOR_H
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#ifndef DOKAN_IFACE_H
-#define DOKAN_IFACE_H
+typedef enum syscall_state_def
+{
+	SYSCALL_STATE_BEGIN,
+	SYSCALL_STATE_END
+} syscall_state;
 
-/* ! Is ZFS mounted? */
-extern bool mounted;
+typedef enum syscall_op_def
+{
+	SYSCALL_OP_OPEN = 0,
+	SYSCALL_OP_CLOSE,
+	SYSCALL_OP_WRITE,
+	SYSCALL_OP_MKDIR,
+	SYSCALL_OP_RMDIR,
+	SYSCALL_OP_UNLINK,
+	SYSCALL_OP_MAX	
+} syscall_op;
 
-extern void kernel_unmount(void);
-extern bool kernel_start(void);
-extern void kernel_cleanup(void);
+void collector_init();
+void collector_print();
+void collect(syscall_op op, syscall_state state);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
+

@@ -1,0 +1,10 @@
+user:
+{
+	list = 
+	(
+		{
+			id = 65534;
+			name = "nobody";
+		}
+	);
+};

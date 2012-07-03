@@ -19,6 +19,9 @@ project.
 Versioning support has been added by Rastislav Wartiak
 as his master thesis project.
 
+Support for running over Dokan under cygwin has has been added in
+2012 by Ales Snuparek as part of his master thesis project.
+
 The project is currently maintained by Petr Tuma and
 Vlastimil Babka.
 The project home page is http://nenya.ms.mff.cuni.cz/~ceres/prj/zlomekFS.
