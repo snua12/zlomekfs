@@ -614,6 +614,10 @@ int read_local_config(config_t * config)
 		return rv;
 	}
 
+	// create local node
+	init_this_node();
+	update_node_name();
+
 	rv = read_users_local_config(config);
 	if (rv != CONFIG_TRUE)
 	{

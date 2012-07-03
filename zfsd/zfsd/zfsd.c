@@ -563,10 +563,6 @@ int main(int argc, char **argv)
 		die();
 	}
 
-	// create local node
-	init_this_node();
-	update_node_name();
-
 #ifdef DEBUG
 	log_arch_specific();
 #endif
