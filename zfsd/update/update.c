@@ -2010,45 +2010,44 @@ schedule_update_or_reintegration(volume vol, internal_dentry dentry)
 			"schedule_update_or_reintegration(): name=%s\n", dentry->name.str);
 
 	connection_speed speed = volume_master_connected(vol);
+	if (speed == CONNECTION_SPEED_NONE)
+		RETURN_VOID;
 
-	if (speed > CONNECTION_SPEED_NONE)
+	/* Schedule update or reintegration of regular file.  */
+
+	zfsd_mutex_lock(&update_pool.mutex);
+	if (update_pool.main_thread == 0)
 	{
-		/* Schedule update or reintegration of regular file.  */
+		/* Update threads are not running.  */
+		zfsd_mutex_unlock(&update_pool.mutex);
+	}
+	else
+	{
+		zfsd_mutex_unlock(&update_pool.mutex);
 
-		zfsd_mutex_lock(&update_pool.mutex);
-		if (update_pool.main_thread == 0)
+		/* File must not be in any queue yet */
+		if (!(dentry->fh->flags & IFH_ENQUEUED))
 		{
-			/* Update threads are not running.  */
-			zfsd_mutex_unlock(&update_pool.mutex);
-		}
-		else
-		{
-			zfsd_mutex_unlock(&update_pool.mutex);
+			dentry->fh->flags |= IFH_ENQUEUED;
 
-			/* File must not be in any queue yet */
-			if (!(dentry->fh->flags & IFH_ENQUEUED))
+			if (speed == CONNECTION_SPEED_SLOW)
 			{
-				dentry->fh->flags |= IFH_ENQUEUED;
-
-				if (speed == CONNECTION_SPEED_SLOW)
+				/* put into slow queue if there is slow updater running */
+				zfsd_mutex_lock(&update_slow_queue_mutex);
+				if (slow_update_worker != NULL)
 				{
-					/* put into slow queue if there is slow updater running */
-					zfsd_mutex_lock(&update_slow_queue_mutex);
-					if (slow_update_worker != NULL)
-					{
-						queue_put(&update_slow_queue, &dentry->fh->local_fh);
-						zfsd_mutex_unlock(&update_slow_queue_mutex);
-						RETURN_VOID;
-					}
+					queue_put(&update_slow_queue, &dentry->fh->local_fh);
 					zfsd_mutex_unlock(&update_slow_queue_mutex);
-					/* now there could be some slow updater created but it
-					   doesn't matter, fast updater will pass the handle */
+					RETURN_VOID;
 				}
-
-				zfsd_mutex_lock(&update_queue_mutex);
-				queue_put(&update_queue, &dentry->fh->local_fh);
-				zfsd_mutex_unlock(&update_queue_mutex);
+				zfsd_mutex_unlock(&update_slow_queue_mutex);
+				/* now there could be some slow updater created but it
+				   doesn't matter, fast updater will pass the handle */
 			}
+
+			zfsd_mutex_lock(&update_queue_mutex);
+			queue_put(&update_queue, &dentry->fh->local_fh);
+			zfsd_mutex_unlock(&update_queue_mutex);
 		}
 	}
 

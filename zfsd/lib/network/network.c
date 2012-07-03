@@ -351,7 +351,7 @@ bool node_connected(uint32_t sid, unsigned int *generation)
 
 connection_speed volume_master_connected(volume vol)
 {
-	connection_speed speed;
+	connection_speed speed = CONNECTION_SPEED_NONE;
 
 	CHECK_MUTEX_LOCKED(&vol->mutex);
 
@@ -366,10 +366,6 @@ connection_speed volume_master_connected(volume vol)
 	}
 
 	if (fd_data_a[vol->master->fd].auth == AUTHENTICATION_FINISHED)
-	{
-		speed = CONNECTION_SPEED_NONE;
-	}
-	else
 	{
 		speed = fd_data_a[vol->master->fd].speed;
 	}
