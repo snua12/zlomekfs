@@ -837,29 +837,6 @@ int32_t version_get_filename_stamp(char *name, time_t * stamp, int *orgnamelen)
 	RETURN_INT(ZFS_OK);
 }
 
-// TODO: remove this unused function
-#if 0
-/* ! \brief Return version time stamp (Unix time) Return time stamp from
-   version file name. Function expects Unix time suffix.  \param name File
-   name \param[out] stamp Time stamp value \retval ZFS_OK Valid time stamp
-   specified \retval ENOENT Invalid time stamp */
-static int32_t version_retr_stamp(char *name, time_t * stamp)
-{
-	char *x;
-
-	*stamp = 0;
-
-	if (!(x = strchr(name, VERSION_NAME_SPECIFIER_C)))
-		RETURN_INT(ENOENT);
-
-	*stamp = atoi(x + 1);
-
-	RETURN_INT(ZFS_OK);
-
-
-}
-#endif
-
 /* ! \brief Check if working with directory Check whether name is a directory. 
    \param[out] dst \param dir Parent directory name \param[in,out] name Child
    file/directory name \param stamp Time stamp applied to the parent directory 
@@ -1132,10 +1109,16 @@ int32_t version_rename_source(char *path)
 	else
 	{
 		fdv = creat(verpath.str, st.st_mode);
-		// TODO: FIXME return value
 		int tmp = lchown(verpath.str, st.st_uid, st.st_gid);
-		tmp = 0;
+		if (tmp == -1)
+		{
+			message(LOG_ERROR, FACILITY_VERSION,
+					"lchown(\"%s\", %d, %d) has failed errno=%d (%s)\n",
+					verpath.str, st.st_uid, st.st_gid,
+					errno, strerror(errno));
+		}
 	}
+
 	fd = open(path, O_RDONLY);
 
 	r = version_copy_data(fd, fdv, 0, st.st_size, NULL);

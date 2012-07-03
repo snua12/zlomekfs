@@ -336,7 +336,6 @@ void thread_pool_destroy(thread_pool * pool)
 {
 	size_t i;
 
-	// TODO: fixme pthread_yield, it is GNU extension
 #ifdef _GNU_SOURCE
 	pthread_yield();
 #endif
