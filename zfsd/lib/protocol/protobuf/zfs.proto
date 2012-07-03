@@ -21,6 +21,11 @@ enum connection_speed
 	CONNECTION_SPEED_LAST_AND_UNUSED = 3;
 }
 
+message message_len
+{
+	required uint32 len = 1;
+}
+
 
 message zfs_time
 {
@@ -501,7 +506,7 @@ message invalidate_res
 }
 
 // zlomekfs service definition
-service zlomekfs
+service zfsd
 {
 	rpc ping(ping_args) returns(ping_res);
 	rpc root(root_args) returns(root_res);

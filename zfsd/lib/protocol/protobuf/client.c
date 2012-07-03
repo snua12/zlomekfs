@@ -2,6 +2,8 @@
 #include <google/protobuf-c/protobuf-c-rpc.h>
 #include "zfs.pb-c.h"
 
+//zfs_proc_ping
+
 static void handle_query_response(const Zlomekfs__PingRes * result,
 								  void *closure_data)
 {
@@ -26,7 +28,7 @@ int main()
 
 	service =
 		protobuf_c_rpc_client_new(address_type, port,
-								  &zlomekfs__zlomekfs__descriptor, NULL);
+								  &zlomekfs__zfsd__descriptor, NULL);
 	if (service == NULL)
 	{
 		return 1;
@@ -41,13 +43,13 @@ int main()
 
 	Zlomekfs__PingArgs query = ZLOMEKFS__PING_ARGS__INIT;
 	static Zlomekfs__DataBuffer data_buffer = ZLOMEKFS__DATA_BUFFER__INIT;
-	static ProtobufCBinaryData bd_hello = { 5, (uint8_t *) "hello" };
+	static ProtobufCBinaryData bd_hello = { 5, (uint8_t *) "hAllo" };
 	data_buffer.len = 6;
 	data_buffer.buf = bd_hello;
 	query.buffer = &data_buffer;
 
 	protobuf_c_boolean is_done = 0;
-	zlomekfs__zlomekfs__ping(service, &query, handle_query_response, &is_done);
+	zlomekfs__zfsd__ping(service, &query, handle_query_response, &is_done);
 	while (!is_done)
 		protobuf_c_dispatch_run(protobuf_c_dispatch_default());
 
