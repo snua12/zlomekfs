@@ -41,4 +41,6 @@ extern void kernel_unmount(void);
 extern bool kernel_start(void);
 extern void kernel_cleanup(void);
 
+extern int32_t zfs_proc_invalidate_kernel(thread * t, invalidate_args * args);
+
 #endif

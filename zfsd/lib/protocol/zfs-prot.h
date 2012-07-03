@@ -413,14 +413,12 @@ enum function_number_def
 {
 #define ZFS_CALL_CLIENT
 #define ZFS_CALL_SERVER
-#define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   ZFS_PROC_##NAME = NUMBER,
 #include "zfs-prot.def"
 	ZFS_PROC_LAST_AND_UNUSED
 };
 #undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_SERVER
 #undef ZFS_CALL_CLIENT
 
@@ -448,22 +446,12 @@ struct node_def;
 #undef ZFS_CALL_CLIENT
 
 #define ZFS_CALL_CLIENT
-#define ZFS_CALL_KERNEL
 #define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
   extern int32_t zfs_proc_##FUNCTION##_client_1 (struct thread_def *t,	\
                                                  ARGS *args, int fd);
 #include "zfs-prot.def"
 #undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_CLIENT
-
-#define ZFS_CALL_KERNEL
-#define DEFINE_ZFS_PROC(NUMBER, NAME, FUNCTION, ARGS, AUTH, CALL_MODE)	\
-  extern int32_t zfs_proc_##FUNCTION##_kernel (struct thread_def *t,	\
-                                               ARGS *args);
-#include "zfs-prot.def"
-#undef DEFINE_ZFS_PROC
-#undef ZFS_CALL_KERNEL
 
 /* ! Call statistics.  */
 extern uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];

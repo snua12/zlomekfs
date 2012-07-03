@@ -32,20 +32,15 @@
 */
 
 #if defined (ZFS_CALL_SERVER) || defined (ZFS_CALL_CLIENT)
-# ifndef __KERNEL__
+
 DEFINE_ZFS_PROC (0, NULL, null, void,
 		 AUTHENTICATION_NONE, DIR_REQUEST)
-
 DEFINE_ZFS_PROC (1, PING, ping, data_buffer,
 		 AUTHENTICATION_STAGE_1, DIR_REQUEST)
-
-# endif
 DEFINE_ZFS_PROC (2, ROOT, root, void,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-# ifndef __KERNEL__
 DEFINE_ZFS_PROC (3, VOLUME_ROOT, volume_root, volume_root_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-# endif
 DEFINE_ZFS_PROC (4, GETATTR, getattr, zfs_fh,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 DEFINE_ZFS_PROC (5, SETATTR, setattr, setattr_args,
@@ -80,7 +75,6 @@ DEFINE_ZFS_PROC (19, SYMLINK, symlink, symlink_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 DEFINE_ZFS_PROC (20, MKNOD, mknod, mknod_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-# ifndef __KERNEL__
 DEFINE_ZFS_PROC (21, AUTH_STAGE1, auth_stage1, auth_stage1_args,
 		 AUTHENTICATION_NONE, DIR_REQUEST)
 DEFINE_ZFS_PROC (22, AUTH_STAGE2, auth_stage2, auth_stage2_args,
@@ -99,12 +93,5 @@ DEFINE_ZFS_PROC (28, REINTEGRATE_DEL, reintegrate_del, reintegrate_del_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
 DEFINE_ZFS_PROC (29, REINTEGRATE_SET, reintegrate_ver, reintegrate_ver_args,
 		 AUTHENTICATION_FINISHED, DIR_REQUEST)
-# endif
 #endif
-#if defined (ZFS_CALL_KERNEL)
-/*! N/A zfs_proc_invalidate (zfs_fh)
 
-    Invalidate the kernel dentry.  An one-way request. */
-DEFINE_ZFS_PROC (30, INVALIDATE, invalidate, invalidate_args,
-		 AUTHENTICATION_NONE, DIR_ONEWAY)
-#endif
