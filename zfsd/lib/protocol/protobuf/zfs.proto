@@ -1,4 +1,4 @@
-package zfs;
+package zlomekfs;
 /*
 {1,  dissect_zfsd_message_arg_data_bufer, dissect_zfsd_message_arg_data_bufer}, /PING/
 {2,  dissect_zfsd_message_arg_void, dissect_zfsd_message_arg_zfs_fh}, /ROOT/
@@ -340,156 +340,39 @@ message invalidate_args
 	required zfs_fh fh = 1;
 }
 
-// services definition
+// zlomekfs service definition
 
-service zfs_ping
+service zlomekfs
 {
 	rpc ping(data_buffer) returns(data_buffer);
-}
-
-service zfs_root
-{
-	rpc root(zfs_void) returns(zfs_fh);
-}
-
-service zfs_volume_root
-{
+	/*rpc root(zfs_void) returns(zfs_fh);
 	rpc volume_root(volume_root_args) returns(dir_op_res);
-}
-
-service zfs_getattr
-{
 	rpc getattr(zfs_fh) returns(zfs_fattr);
-}
-
-service zfs_setattr
-{         
 	rpc setattr(setattr_args) returns(zfs_fattr);
-}
-
-service zfs_lookup
-{
 	rpc lookup(dir_op_args) returns(dir_op_res);
-}
-
-service zfs_create
-{
 	rpc create(create_args) returns(zfs_void);
-}
-
-service zfs_open
-{
 	rpc open(open_args) returns(zfs_cap);
-}
-
-service zfs_close
-{
 	rpc close(zfs_cap) returns(zfs_void);
-}
-
-service zfs_readdir
-{
 	rpc readdir(read_dir_args) returns(dir_list);
-}
-
-service zfs_mkdir
-{
 	rpc mkdir(mkdir_args) returns(dir_op_res);
-}
-
-service zfs_rmdir
-{
 	rpc rmdir(dir_op_args) returns(zfs_void);
-}
-
-service zfs_rename
-{
 	rpc rename(rename_args) returns(zfs_void);
-}
-
-service zfs_link
-{
 	rpc link(link_args) returns(zfs_void);
-}
-
-service zfs_unlink
-{
 	rpc unlink(dir_op_args) returns(zfs_void);
-}
-
-service zfs_read
-{
 	rpc read(read_args) returns(read_res);
-}
-
-service zfs_write
-{
 	rpc write(write_args) returns(write_res);
-}
-
-service zfs_readlink
-{
 	rpc readlinkn(zfs_fh) returns(read_link_res);
-}
-
-service zfs_symlink
-{
 	rpc symlink(symlink_args) returns(dir_op_res);
-}
-
-service zfs_mknod
-{
 	rpc mknod(mknod_args) returns(dir_op_res);
-}
-
-service zfs_auth_stage1
-{
 	rpc auth_stage1(auth_stage1_args) returns(auth_stage1_res);
-}
-
-service zfs_auth_stage2
-{
 	rpc auth_stage2(auth_stage2_args) returns(zfs_void);
-}
-
-service zfs_md5sum
-{
 	rpc md5sum(md5sum_args) returns(md5sum_res);
-}
-
-service zfs_file_info
-{
 	rpc file_info(zfs_fh) returns(zfs_path);
-}
-
-// one way request ...
-service zfs_reread_config
-{
 	rpc reread_config(reread_config_args) returns(zfs_void);
-}
-
-service zfs_reintegrate
-{
 	rpc reintegrate(reintegrate_args) returns(zfs_void);
-}
-
-service zfs_reintegrate_add
-{
 	rpc reintegrate_add(reintegrate_add_args) returns(zfs_void);
-}
-
-service zfs_reintegrate_del
-{
 	rpc reintegrate_del(reintegrate_del_args) returns(zfs_void);
-}
-
-service zfs_reintegrate_ver
-{
 	rpc reintegrate_ver(reintegrate_ver_args) returns(zfs_void);
-}
-
-service zfs_invalidate
-{
-	rpc invalidate(invalidate_args) returns(zfs_void);
+	rpc invalidate(invalidate_args) returns(zfs_void);*/
 }
 
