@@ -221,8 +221,13 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #define PTRid "p"
 #define PTRid_conversion (void *)
 #else
+#if  defined(__APPLE__) && defined(__MACH__)
+#define PTRid "p"
+#define PTRid_conversion (void *)
+#else
 #define PTRid PRIu64
 #define PTRid_conversion (uint64_t)
+#endif
 #endif
 
 #ifndef HAVE_PTHREAD_BARRIER_WAIT
@@ -237,7 +242,7 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 #endif
 
 
-
+int zfs_pthread_yield(void);
 
 
 #endif

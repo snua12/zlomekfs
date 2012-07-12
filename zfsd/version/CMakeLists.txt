@@ -1,5 +1,5 @@
 add_library(version ${BUILDTYPE} version.c)
-target_link_libraries(version)
+target_link_libraries(version zfs_dirent)
 
 install(
 TARGETS version

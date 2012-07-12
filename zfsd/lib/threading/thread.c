@@ -336,9 +336,7 @@ void thread_pool_destroy(thread_pool * pool)
 {
 	size_t i;
 
-#ifdef _GNU_SOURCE
-	pthread_yield();
-#endif
+	zfs_pthread_yield();
 
 	wait_for_thread_to_die(&pool->main_thread, NULL);
 	wait_for_thread_to_die(&pool->regulator_thread, NULL);

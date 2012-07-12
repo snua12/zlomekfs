@@ -128,10 +128,7 @@ static void *dbus_provider_loop(void *data)
 
 	  NEXT:
 		pthread_mutex_unlock(&(settings->mutex));
-		// TODO: fixme pthread_yield, it is GNU extension
-#ifdef _GNU_SOURCE
-		pthread_yield();
-#endif
+		zfs_pthread_yield();
 	}
 
 	return NULL;
@@ -221,11 +218,7 @@ int dbus_provider_end(dbus_state_holder settings_struct)
 	dbus_error_free(&(settings_struct->error));
 
 	pthread_mutex_unlock(&(settings_struct->mutex));
-
-	// TODO: fixme pthread_yield, it is GNU extension
-#ifdef _GNU_SOURCE
-	pthread_yield();
-#endif
+	zfs_pthread_yield();
 	sleep(DBUS_CONNECTION_TIMEOUT / 300);
 
 	pthread_mutex_lock(&(settings_struct->mutex));

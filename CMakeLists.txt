@@ -16,7 +16,6 @@ function(print_help)
 	message("        .. also sets default CFLAGS")
   message("    -DVERSION= - enable or disable zfs version, choices [0,1], default 1")
   message("    -DDBUS= - enable or disable dbus interface, choices [0,1], defaulr 1")
-	message("    -DLIBS=   - override libraries type [shared,static]")
 	message("    -DCFLAGS=   - specify additional CFLAGS for build")
 	message("    -DPREFIX=   - installation prefix, default: $build/installed")
 	message("    -DTESTS=   - specify list of test groups to enable [all,gtest,unit], default: none")
@@ -135,6 +134,9 @@ if (FUSE_FOUND EQUAL 1)
 	set(HAVE_FUSE 1)
  	message(STATUS "fuse found")
 	set(ENABLE_USERSPACE_FS 1)
+	# Mac OS X build fix, convert list to string
+	string(REPLACE ";" " " FUSE_CFLAGS_OTHER_STR "${FUSE_CFLAGS_OTHER}")
+	set(CMAKE_C_FLAGS "${FUSE_CFLAGS_OTHER_STR} ${CMAKE_C_FLAGS}")
 else()
  	message(STATUS "fuse not found")
 endif()
@@ -231,7 +233,9 @@ check_function_exists(fopencookie HAVE_FOPENCOOKIE)
 check_function_exists(mkstemp HAVE_MKSTEMP)
 set(CMAKE_REQUIRED_LIBRARIES "pthread")
 check_function_exists(pthread_barrier_wait HAVE_PTHREAD_BARRIER_WAIT)
+check_function_exists(pthread_yield HAVE_PTHREAD_yield)
 check_function_exists(mlockall HAVE_MLOCKALL)
+check_function_exists(fdopendir HAVE_FDOPENDIR)
 
 # configure headers
 configure_file(config.h.cmake ${CMAKE_BINARY_DIR}/include/config.h)
@@ -253,11 +257,13 @@ ${OPENSSL_INCLUDE_DIR}
 ${CMAKE_SOURCE_DIR}/regression-testing/syplog/src/
 )
 
-SET(CMAKE_C_FLAGS "-s ${FUSE_CFLAGS_OTHER} ${FUSE_CFLAGS_OTHER}")
-
+link_directories(
+${FUSE_LIBRARY_DIRS}
+${DBUS_LIBRARY_DIRS}
+${OPENSSL_LIBRARY_DIR}
+)
 
 set(ZFSD_SOURCE_DIR ${CMAKE_SOURCE_DIR}/zfsd)
-
 add_subdirectory(zfsd)
 add_subdirectory(regression-testing/syplog/src)
 

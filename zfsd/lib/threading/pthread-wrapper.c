@@ -23,4 +23,22 @@
 #include <pthread.h>
 #include "pthread-wrapper.h"
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <sched.h>
+#endif
+
 pthread_mutex_t zfsd_mutex_initializer = ZFS_MUTEX_INITIALIZER;
+
+int zfs_pthread_yield(void)
+{
+#if defined(__APPLE__) && defined(__MACH__)
+	return sched_yield();
+#else 
+#ifdef HAVE_PTHREAD_YIELD
+	return pthread_yield();
+#else
+	return 0;
+#endif
+#endif
+}
+

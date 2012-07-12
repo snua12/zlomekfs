@@ -2835,7 +2835,7 @@ void get_local_path_from_metadata(string * path, volume vol, zfs_fh * fh)
 			free(parent_path.str);
 
 			if (lstat(path->str, &st) != 0
-				|| st.st_dev != fh->dev || st.st_ino != fh->ino)
+				|| (uint32_t)st.st_dev !=  fh->dev || st.st_ino != fh->ino)
 			{
 				flush |= hardlink_list_delete_entry(hl, entry);
 

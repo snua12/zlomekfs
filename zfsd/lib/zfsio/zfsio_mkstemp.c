@@ -3,12 +3,11 @@
 
 #define ZFS_TMP_SHARED_CONFIG_TEMPLATE "/tmp/.zfs_shared_configXXXXXXX"
 
-typedef struct zfs_file_def
+struct zfs_file_def
 {
 	FILE * stream;
 	char tmp_file[sizeof(ZFS_TMP_SHARED_CONFIG_TEMPLATE)];
-}
-zfs_file;
+};
 
 static bool zfs_read_to_local_file(zfs_fh * fh, FILE * stream)
 {

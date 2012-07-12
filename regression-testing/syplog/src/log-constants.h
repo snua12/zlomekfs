@@ -21,7 +21,18 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
+#ifndef  __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+	#define PRtvSEC "ld"
+	#define PRtvUSEC PRIi32
+#else
+	#define PRtvSEC "ld"
+	#define PRtvUSEC "ld"
+#endif
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,7 +106,7 @@ extern "C"
 #endif
 
 		  chars_printed =
-			snprintf(buffer, buffer_len, "%ld:%06ld", local_time->tv_sec,
+			snprintf(buffer, buffer_len, "%"PRtvSEC":%06"PRtvUSEC, local_time->tv_sec,
 					 local_time->tv_usec);
 
 		if (chars_printed > 0)
@@ -118,7 +129,7 @@ extern "C"
 #endif
 
 		chars_read =
-			sscanf(buffer, "%ld:%ld", &(local_time->tv_sec),
+			sscanf(buffer, "%"PRtvSEC":%"PRtvUSEC, &(local_time->tv_sec),
 				   &(local_time->tv_usec));
 
 		if (chars_read > 0)

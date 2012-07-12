@@ -38,6 +38,7 @@
 #include "metadata.h"
 #include "version.h"
 #include "update.h"
+#include "zfs_dirent.h"
 
 /* ! Hash function for file name.  */
 #define DIRHTAB_HASH(N) (crc32_string((N)->name))
@@ -570,7 +571,7 @@ static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 
 	nl = strlen(name);
 
-	DIR * dirp = opendir(path);
+	DIR * dirp = zfs_opendir(path);
 	if (dirp == NULL)
 		RETURN_INT(errno);
 
@@ -578,10 +579,10 @@ static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 	{
 
 		struct dirent entry, *de; 
-		r = readdir_r(dirp, &entry, &de);
-		if (r > 0) // readdir_r has failed
+		r = zfs_readdir_r(dirp, &entry, &de);
+		if (r > 0) // zfs_readdir_r has failed
 		{
-			closedir(dirp);
+			zfs_closedir(dirp);
 			RETURN_INT(r);
 		}
 		else if (r == 0 && de == NULL) // end of list
@@ -610,7 +611,7 @@ static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 					*stamp = 0;
 				}
 			}
-			closedir(dirp);
+			zfs_closedir(dirp);
 			RETURN_INT(ZFS_OK);
 		}
 
@@ -1289,11 +1290,11 @@ int32_t version_rmdir_versions(char *path)
 	int32_t r;
 	int working = 1;
 
-	DIR * dirp = opendir(path);
+	DIR * dirp = zfs_opendir(path);
 	if (dirp == NULL)
 		RETURN_INT(errno);
 	
-	long dir_start_pos = telldir(dirp);
+	long dir_start_pos = zfs_telldir(dirp);
 
 	while (working)
 	{
@@ -1301,16 +1302,16 @@ int32_t version_rmdir_versions(char *path)
 		/* Always start from the beginning. We are modifying the contents of
 		   the directory. And deleting files, so we will continue until there
 		   are no (version) files. */
-		seekdir(dirp, dir_start_pos);
+		zfs_seekdir(dirp, dir_start_pos);
 
 		/* Comments to the work with getdents can be found in other functions. 
 		 */
 
 		struct dirent entry, *de; 
-		r = readdir_r(dirp, &entry, &de);
+		r = zfs_readdir_r(dirp, &entry, &de);
 		if (r > 0)
 		{
-			closedir(dirp);
+			zfs_closedir(dirp);
 			RETURN_INT(r);
 		}
 		else if (r == 0 && de == NULL) // end of list
@@ -1334,7 +1335,7 @@ int32_t version_rmdir_versions(char *path)
 
 	}
 
-	closedir(dirp);
+	zfs_closedir(dirp);
 
 	RETURN_INT(ZFS_OK);
 }
@@ -1349,7 +1350,7 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 	build_local_path(&dpath, vol, dentry->parent);
 	release_dentry(dentry->parent);
 
-	DIR * dirp = opendir(dpath.str);
+	DIR * dirp = zfs_opendir(dpath.str);
 	free(dpath.str);
 	if (dirp == NULL)
 	{
@@ -1360,10 +1361,10 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 	while (0)
 	{
 		struct dirent entry, *de; 
-		r = readdir_r(dirp, &entry, &de);
-		if (r > 0) // readdir_r has failed
+		r = zfs_readdir_r(dirp, &entry, &de);
+		if (r > 0) // zfs_readdir_r has failed
 		{
-			closedir(dirp);
+			zfs_closedir(dirp);
 			RETURN_INT(r);
 		}
 		else if (r == 0 && de == NULL) // end of list
@@ -1373,7 +1374,7 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 		//DO NOTTING HILL PLEASE
 	}
 
-	closedir(dirp);
+	zfs_closedir(dirp);
 
 	/* Sort versions.  */
 

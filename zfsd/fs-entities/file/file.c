@@ -51,6 +51,7 @@
 #include "update.h"
 #include "reread_config.h"
 #include "version.h"
+#include "zfs_dirent.h"
 
 /* ! The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
@@ -1701,20 +1702,20 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 			RETURN_INT (errno);
 		}	
 
-		DIR * dirp = fdopendir(dup_fd);
+		DIR * dirp = zfs_fdopendir(dup_fd);
 		if (dirp == NULL)
 		{    
-			closedir(dirp);
+			zfs_closedir(dirp);
 			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 			RETURN_INT (errno);
 		}    
 
-		seekdir(dirp, cookie);
+		zfs_seekdir(dirp, cookie);
 
 		while (1)
 		{
 			struct dirent entry, *de; 
-			r = readdir_r(dirp, &entry, &de);
+			r = zfs_readdir_r(dirp, &entry, &de);
 			if (r > 0) // readdir_r has failed
 			{
 				break;
@@ -1725,7 +1726,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 				break;
 			}
 
-			cookie = telldir(dirp);
+			cookie = zfs_telldir(dirp);
 
 			/* not used long block_start; */
 
@@ -1858,7 +1859,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 				free(vername);
 		}
 
-		closedir(dirp);
+		zfs_closedir(dirp);
 		zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 	}
 

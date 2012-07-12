@@ -6,7 +6,6 @@ SET(syplog_SRCS
 	media/file-medium.c
 	media/print-medium.c
 	media/shm-medium.c
-	media/medium-api.c
 	syp-error.c
 )
 
