@@ -57,6 +57,8 @@ typedef struct zfs_config_dokan_def
 {
 	string volume_name;
 	string file_system_name;
+	uint32_t file_mode;
+	uint32_t directory_mode;
 } zfs_config_dokan;
 #endif
 
@@ -108,7 +110,7 @@ typedef struct zfs_configuration_def
 	const char * local_config_path;
 
 	/* ! mount point of zfsd */
-	char * mountpoint;
+	char mountpoint[ZFS_MAXPATHLEN];
 	
 	/* ! default node uid */
 	uint32_t default_node_uid;
@@ -144,6 +146,10 @@ extern zfs_configuration zfs_config;
 void set_local_config_path(const char * path);
 const char * get_local_config_path(void);
 
+void set_mountpoint(const char * path);
+const char * get_mountpoint(void);
+
+
 string * get_this_node_name(void);
 
 void set_default_uid_gid(void);
@@ -152,7 +158,15 @@ bool set_default_uid(const char *name);
 
 bool set_default_gid(const char *name);
 
+uint32_t get_default_node_uid(void);
 
+uint32_t get_default_node_gid(void);
+
+#ifdef HAVE_DOKAN
+uint32_t get_default_file_mode(void);
+
+uint32_t get_default_directory_mode(void);
+#endif
 
 #ifdef __cplusplus
 }

@@ -68,7 +68,7 @@ DOKAN_OPTIONS zfs_dokan_options =
 
 static int32_t dokan_zfs_extended_lookup(dir_op_res * res, char *path)
 {
-	// hack for root directory
+	// shortcut for root directory
 	if (strcmp(path, "/") == 0)
 	{
 		res->file = root_fh;
@@ -239,12 +239,9 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	create_args_fill_dokan_flags_and_attributes(&args, flags_and_attributes);
 	create_args_fill_dokan_creation_disposition(&args, creation_disposition);
 
-	//TODO: fix user attributes
-	args.attr.uid = (uint32_t) - 1;
-	args.attr.gid = (uint32_t) - 1;
- 
- 	//TODO: fix create mode
-	args.attr.mode = (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO);
+	args.attr.uid = get_default_node_uid();
+	args.attr.gid = get_default_node_gid();
+	args.attr.mode = get_default_file_mode();
 
 	create_res cres;
 	rv = zfs_create(&cres, &args.where.dir, &args.where.name, args.flags, &args.attr); 
@@ -347,10 +344,12 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 
 	mkdir_args args;
 	xmkstring(&args.where.name, name);
+
 	args.where.dir = lres.file;
-	args.attr.mode = S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO;
-	args.attr.uid = (uint32_t) - 1;
-	args.attr.gid = (uint32_t) - 1;
+	args.attr.mode = get_default_directory_mode();
+	args.attr.uid = get_default_node_uid();
+	args.attr.gid = get_default_node_gid();
+
 	dir_op_res res;
 	rv = zfs_mkdir(&res, &args.where.dir, &args.where.name, &args.attr);
 	xfreestring(&args.where.name);

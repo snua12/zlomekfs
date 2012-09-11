@@ -59,7 +59,6 @@ static int handle_one_argument(ATTRIBUTE_UNUSED void *data, const char *arg,
 }
 
 
-
 void process_arguments(int argc, char **argv)
 {
 	struct zfs_opts zopts;
@@ -84,12 +83,16 @@ void process_arguments(int argc, char **argv)
 	// start zfsd on background or foreground
 	int foreground;
 	int rv;
-	rv = fuse_parse_cmdline(&main_args, &zfs_config.mountpoint, NULL, &foreground);
+	char * mountpoint;
+	rv = fuse_parse_cmdline(&main_args, &mountpoint, NULL, &foreground);
 	if (rv == -1)
 	{
 		message(LOG_INFO, FACILITY_ZFSD, "Failed to parse fuse cmdline options.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	set_mountpoint(mountpoint);
+	free(mountpoint);
 
 	rv = fuse_daemonize(foreground);
 	if (rv == -1)

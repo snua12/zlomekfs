@@ -33,7 +33,7 @@ zfs_configuration zfs_config =
 	.config_sem = ZFS_SEMAPHORE_INITIALIZER(0),
 	.mlock_zfsd = true,
 	.local_config_path = "/etc/zfsd/zfsd.conf",
-	.mountpoint = NULL,
+	.mountpoint = "",
 	.default_node_uid = (uint32_t) - 1,
 	.default_node_gid = (uint32_t) - 1,
 	.this_node = {
@@ -80,7 +80,9 @@ zfs_configuration zfs_config =
 #ifdef HAVE_DOKAN
 	.dokan = {
 		.volume_name = STRING_INVALID_INITIALIZER,
-		.file_system_name = STRING_INVALID_INITIALIZER
+		.file_system_name = STRING_INVALID_INITIALIZER,
+		.file_mode = 0644, //rw-r--r--
+		.directory_mode = 0755 //rwxr-x-r-x
 	},
 #endif
 };
@@ -93,6 +95,16 @@ void set_local_config_path(const char * path)
 const char * get_local_config_path(void)
 {
 	return zfs_config.local_config_path;
+}
+
+void set_mountpoint(const char * path)
+{
+	snprintf(zfs_config.mountpoint, sizeof(zfs_config.mountpoint) - 1, "%s", path);
+}
+
+const char * get_mountpoint(void)
+{
+	return zfs_config.mountpoint;
 }
 
 string * get_this_node_name(void)
@@ -137,4 +149,26 @@ void set_default_uid_gid(void)
 	if (!set_default_gid("nogroup"))
 		set_default_gid("nobody");
 }
+
+uint32_t get_default_node_uid(void)
+{
+	return zfs_config.default_node_uid;
+}
+
+uint32_t get_default_node_gid(void)
+{
+	return zfs_config.default_node_gid;
+}
+
+#ifdef HAVE_DOKAN
+uint32_t get_default_file_mode(void)
+{
+	return zfs_config.dokan.file_mode;
+}
+
+uint32_t get_default_directory_mode(void)
+{
+	return zfs_config.dokan.directory_mode;
+}
+#endif
 

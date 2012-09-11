@@ -27,6 +27,7 @@ if (ENABLE_VERSIONS)
   set(VERSIONS_LIBRARIES version)
 endif (ENABLE_VERSIONS)
 
+option(ENABLE_FS_INTERFACE "Enable fs interface (like fuse or dokan)" ON)
 option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
 option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
@@ -66,7 +67,6 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE string "Build configuration" FORC
 ##############################################################
 ############## Summary
 ##############################################################
-message("Library type: ${BUILDTYPE}")
 message("Configuration: ${CMAKE_BUILD_TYPE}")
 
 
@@ -133,27 +133,32 @@ endif(DOXYGEN_FOUND)
 # enable pkg config support
 INCLUDE(${CMAKE_ROOT}/Modules/FindPkgConfig.cmake)
 
+if (ENABLE_FS_INTERFACE)
 #libfuse
-PKG_CHECK_MODULES(FUSE fuse>=2.6)
-if (FUSE_FOUND EQUAL 1)
-	set(HAVE_FUSE 1)
- 	message(STATUS "fuse found")
-	set(ENABLE_USERSPACE_FS 1)
-	# Mac OS X build fix, convert list to string
-	string(REPLACE ";" " " FUSE_CFLAGS_OTHER_STR "${FUSE_CFLAGS_OTHER}")
-	set(CMAKE_C_FLAGS "${FUSE_CFLAGS_OTHER_STR} ${CMAKE_C_FLAGS}")
+	PKG_CHECK_MODULES(FUSE fuse>=2.6)
+	if (FUSE_FOUND EQUAL 1)
+		set(HAVE_FUSE 1)
+		message(STATUS "fuse found")
+		set(ENABLE_FS_INTERFACE 1)
+		# Mac OS X build fix, convert list to string
+		string(REPLACE ";" " " FUSE_CFLAGS_OTHER_STR "${FUSE_CFLAGS_OTHER}")
+		set(CMAKE_C_FLAGS "${FUSE_CFLAGS_OTHER_STR} ${CMAKE_C_FLAGS}")
+	else()
+		message(STATUS "fuse not found")
+#dokan
+		PKG_CHECK_MODULES(DOKAN dokan>=0.6)
+		if (DOKAN_FOUND EQUAL 1)
+			set(HAVE_DOKAN 1)
+			message(STATUS "dokan found")
+			set(ENABLE_FS_INTERFACE 1)
+		else()
+			message(STATUS "dokan not found")
+			message(FATAL_ERROR "no fuse interface was found, install fuse or dokan")
+		endif()
+	endif()
 else()
- 	message(STATUS "fuse not found")
-endif()
-
-#libfuse
-PKG_CHECK_MODULES(DOKAN dokan>=0.6)
-if (DOKAN_FOUND EQUAL 1)
-	set(HAVE_DOKAN 1)
- 	message(STATUS "dokan found")
-	set(ENABLE_USERSPACE_FS 1)
-else()
- 	message(STATUS "dokan not found")
+	set(HAVE_FUSE 0)
+	set(HAVE_DOKAN 0)
 endif()
 
 

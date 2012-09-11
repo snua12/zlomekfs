@@ -20,7 +20,10 @@ static struct option long_options[] =
 static void process_o_args(char * o_args)
 {
 	char * arg;
-	for (arg = strtok(o_args, ","); arg != NULL; arg = strtok(NULL, ","))
+	char o_args_copy[8191];
+	strncpy(o_args_copy, o_args, sizeof(o_args_copy) - 1);
+
+	for (arg = strtok(o_args_copy, ","); arg != NULL; arg = strtok(NULL, ","))
 	{
 		if (strncmp(arg, "config=", 7) == 0)
 		{
@@ -49,7 +52,10 @@ void process_arguments(int argc, char **argv)
 		switch (c)
 		{
 			case -1:
-				zfs_config.mountpoint = xstrdup(argv[optind]);
+				if (argv != NULL)
+				{
+					set_mountpoint(argv[optind]);
+				}
 				optind = 1;
 				return;
 			case 'o':
@@ -72,7 +78,6 @@ void process_arguments(int argc, char **argv)
 				usage();
 				exit(EXIT_FAILURE);
 		}
-
 	};
 }
 

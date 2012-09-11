@@ -49,7 +49,7 @@
 #include "local_config.h"
 #include "thread.h"
 
-#ifdef ENABLE_USERSPACE_FS
+#ifdef ENABLE_FS_INTERFACE
 #ifdef HAVE_FUSE
 #include "kernel.h"
 #endif
@@ -464,7 +464,7 @@ static int zfs_start_services(zfs_started_services * services)
 		return EXIT_FAILURE;
 	}
 
-#ifdef ENABLE_USERSPACE_FS
+#ifdef ENABLE_FS_INTERFACE
 	services->kernel_started = kernel_start();
 #endif
 
@@ -482,7 +482,7 @@ static void zfs_stop_services(zfs_started_services * services)
 	if (services->network_started)
 		wait_for_pool_to_die(&network_pool);
 
-#ifdef ENABLE_USERSPACE_FS
+#ifdef ENABLE_FS_INTERFACE
 
 	if (services->kernel_started)
 	{
@@ -503,7 +503,7 @@ static void zfs_stop_services(zfs_started_services * services)
 	if (services->network_started)
 		network_cleanup();
 
-#ifdef ENABLE_USERSPACE_FS
+#ifdef ENABLE_FS_INTERFACE
 	if (services->kernel_started)
 		kernel_cleanup();
 #endif
@@ -570,11 +570,6 @@ int main(int argc, char **argv)
 #endif
 
 	int ret = zfsd_main();
-
-	if (zfs_config.mountpoint != NULL)
-	{
-		free(zfs_config.mountpoint);
-	}
 
 	free_arguments();
 
