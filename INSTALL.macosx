@@ -1,0 +1,30 @@
+You must have installed Xcode.
+Install macports http://www.macports.org/
+ZlomekFS was build and tested under Mac OS X 10.7.
+Install packages:
+cmake
+openssl
+pkg-config
+unzip
+subversion
+libconfig
+fuse
+google test
+
+For build use ./makeall.sh script
+
+#prepare configuration
+cp -a conf/etc/zfsd /etc/
+cp -a conf/var/zfs /var/
+mkdir -p /var/zfs/data
+
+#launch
+./build/zfsd/zfsd/zfsd z
+
+These is issue with fuse arguments, you must have zlomek fs local config file on /etv/zfsd/zfsd.conf.
+
+ 
+
+
+
+
