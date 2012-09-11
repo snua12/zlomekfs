@@ -1561,12 +1561,14 @@ int32_t local_setattr_path(fattr * fa, string * path, sattr * sa)
 			RETURN_INT(errno);
 	}
 
+#ifndef __CYGWIN__
 	if (sa->uid != (uint32_t) - 1 || sa->gid != (uint32_t) - 1)
 	{
 		if (lchown(path->str, map_uid_zfs2node(sa->uid),
 				   map_gid_zfs2node(sa->gid)) != 0)
 			RETURN_INT(errno);
 	}
+#endif
 
 	if (sa->atime != (zfs_time) - 1 || sa->mtime != (zfs_time) - 1)
 	{
