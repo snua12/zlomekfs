@@ -1,6 +1,6 @@
 /* ! \file \brief Random filename generator */
 
-/* Copyright (C) 2003, 2004, 2012 Josef Zlomek
+/* Copyright (C) 2008, 2012 Ales Snuparek
 
    This file is part of ZFS.
 

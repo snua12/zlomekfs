@@ -1,6 +1,6 @@
 /* ! \file \brief Functions for threads communicating with Dokan library  */
 
-/* Copyright (C) 2003, 2004, 2012 Josef Zlomek
+/* Copyright (C) 2008, 2012 Ales Snuparek
 
    This file is part of ZFS.
 
