@@ -257,8 +257,9 @@ void create_args_fill_dokan_flags_and_attributes(ATTRIBUTE_UNUSED create_args * 
 
 }
 
-static void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
+void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
 {
+	if (ftime == NULL || ztime == ((zfs_time) - 1)) return;
 	// based on microsoft kb 167296
 	LONGLONG ll;
 	ll = Int32x32To64(ztime, 10000000) + 116444736000000000;
@@ -269,6 +270,9 @@ static void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
 
 void filetime_to_zfstime(zfs_time * ztime, CONST FILETIME* ftime)
 {
+	if (ftime == NULL || ztime == NULL) return;
+	if (ftime->dwHighDateTime == 0 && ftime->dwLowDateTime == 0) return;
+
 	LONGLONG ll = ftime->dwHighDateTime;
 	ll = (ll << 32) + ftime->dwLowDateTime;
 	*ztime = (zfs_time)((ll - 116444736000000000) / 10000000);
@@ -307,7 +311,8 @@ void fattr_to_file_information(LPBY_HANDLE_FILE_INFORMATION buffer, fattr * fa)
 		buffer->dwFileAttributes |= FILE_ATTRIBUTE_READONLY;
 	}
 
-	zfstime_to_filetime(&buffer->ftCreationTime, fa->ctime);
+	//zfstime_to_filetime(&buffer->ftCreationTime, fa->ctime);
+	zfstime_to_filetime(&buffer->ftCreationTime, fa->mtime);
 	zfstime_to_filetime(&buffer->ftLastAccessTime, fa->atime);
 	zfstime_to_filetime(&buffer->ftLastWriteTime, fa->mtime);
 

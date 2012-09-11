@@ -744,7 +744,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_attributes (
 
 static int DOKAN_CALLBACK inner_dokan_set_file_time (
         LPCWSTR file_name,                // FileName
-        ATTRIBUTE_UNUSED CONST FILETIME* creation_time, // CreationTime
+        CONST FILETIME* creation_time, // CreationTime
         CONST FILETIME* last_access_time, // LastAccessTime
         CONST FILETIME* last_write_time, // LastWriteTime
         ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -756,9 +756,14 @@ static int DOKAN_CALLBACK inner_dokan_set_file_time (
 	args.attr.mode = -1;
 	args.attr.uid = -1;
 	args.attr.gid = -1;
+	args.attr.atime = (zfs_time) - 1;
+	args.attr.mtime = (zfs_time) - 1;
+
 	filetime_to_zfstime(&args.attr.atime, last_access_time);
 	filetime_to_zfstime(&args.attr.mtime, last_write_time);
+
 	//FIXME: ctime cannot be set by zfs_setattr
+	filetime_to_zfstime(&args.attr.mtime, creation_time);
 
 	char path[MAX_PATH] = "";
 	file_path_to_dir_and_file(file_name, path, NULL);
@@ -767,6 +772,17 @@ static int DOKAN_CALLBACK inner_dokan_set_file_time (
 	if (rv != ZFS_OK)
 	{
 		return zfs_err_to_dokan_err(rv);
+	}
+
+	// workaround utime command
+	if (args.attr.mtime == (zfs_time) - 1 && args.attr.atime != (zfs_time) - 1)
+	{
+		args.attr.mtime = lres.attr.mtime;
+	}
+
+	if (args.attr.atime == (zfs_time) - 1 && args.attr.mtime != (zfs_time) -1)
+	{
+		args.attr.atime = lres.attr.atime;
 	}
 
 	rv = zfs_setattr(&fa, &lres.file, &args.attr, true);

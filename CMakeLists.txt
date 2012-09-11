@@ -30,6 +30,11 @@ endif (ENABLE_VERSIONS)
 option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
 option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
+option (ENABLE_PROFILE "Enable The GNU Profiler" OFF)
+if (ENABLE_PROFILE)
+	add_definitions(-pg)
+	set(CMAKE_EXE_LINKER_FLAGS "-pg ${CMAKE_EXE_LINKER_FLAGS}")
+endif(ENABLE_PROFILE)
 
 ##############################################################
 ############## Build configurations
@@ -39,8 +44,8 @@ option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug Release" CACHE string "Configuration types" FORCE)
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${VERSIONS_CFLAGS} ${CFLAGS}" CACHE string "Debug cflags" FORCE)
-set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${VERSIONS_CFLAGS} ${PLATFORM_CFLAGS} ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${CFLAGS}" CACHE string "Debug cflags" FORCE)
+set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
 
 if(NOT CONFIGURATION)
         if(NOT CMAKE_BUILD_TYPE)
@@ -52,7 +57,7 @@ elseif(CONFIGURATION STREQUAL Debug)
         set(BUILDTYPE STATIC)
 elseif(CONFIGURATION STREQUAL Release)
         set(CMAKE_BUILD_TYPE ${CONFIGURATION})
-        set(BUILDTYPE SHARED)
+        set(BUILDTYPE STATIC)
 endif()  
 
 # make this persistent
