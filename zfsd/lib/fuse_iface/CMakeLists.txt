@@ -1,4 +1,7 @@
-add_library(fuse_iface ${BUILDTYPE} kernel.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 target_link_libraries(fuse_iface threading protocol ${FUSE_LIBRARIES})
 
 install(

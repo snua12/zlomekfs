@@ -1,4 +1,7 @@
-if(HAVE_FOPENCOOKIE)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 	SET(zfsio_SRC
 	   zfsio_fopencookie.c
 	)

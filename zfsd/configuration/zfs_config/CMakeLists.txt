@@ -1,4 +1,7 @@
-add_library(zfs_config ${BUILD_TYPE} zfs_config.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 
 test_enabled(gtest result)
 if(NOT reqult EQUAL -1)

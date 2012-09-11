@@ -1,4 +1,7 @@
-if(HAVE_PTHREAD_BARRIER_WAIT)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 	SET (threading_SRCS pthread-wrapper.c thread.c)
 else()
 	SET (threading_SRCS pthread-wrapper.c thread.c barrier.c)

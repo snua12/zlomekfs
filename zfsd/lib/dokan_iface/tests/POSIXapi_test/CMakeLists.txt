@@ -1,3 +1,6 @@
-add_executable(POSIXapi_test POSIXapi_test.c file_tests.c filename_generator.c dir_tests.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 target_link_libraries(POSIXapi_test syscall_collector)
 

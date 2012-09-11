@@ -1,4 +1,7 @@
-### google Test
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 #test_enabled(gtest result)
 #if(NOT result EQUAL -1)
 

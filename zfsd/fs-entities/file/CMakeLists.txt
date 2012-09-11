@@ -1,4 +1,7 @@
-add_library(file ${BUILDTYPE} file.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 target_link_libraries(file update configuration ${VERSIONS_LIBRARIES} zfs_dirent dir)
 
 install(

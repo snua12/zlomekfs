@@ -1,3 +1,6 @@
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
 
 add_executable(dump-intervals dump-intervals.c)
 target_link_libraries(dump-intervals ${FUSE_LIBRARIES} interval-tree)

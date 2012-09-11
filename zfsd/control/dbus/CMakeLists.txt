@@ -1,4 +1,7 @@
-add_library(controlDbus ${BUILDTYPE} dbus-provider.c  dbus-zfsd-service.c dbus-init.c syplog/control.c  syplog/control-protocol.c  syplog/listener.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 target_link_libraries(controlDbus ${DBUS_LIBRARIES} log)
 
 ### google Test

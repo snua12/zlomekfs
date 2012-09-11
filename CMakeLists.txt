@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 2.6)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 project(ZlomekFS)
 if (CYGWIN)
 	set(CMAKE_LEGACY_CYGWIN_WIN32 1)

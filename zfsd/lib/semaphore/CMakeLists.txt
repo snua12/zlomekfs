@@ -1,4 +1,7 @@
-add_library(semaphore ${BUILDTYPE} semaphore.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 target_link_libraries(semaphore)
 
 install(

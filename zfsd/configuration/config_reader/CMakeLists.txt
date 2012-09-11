@@ -1,4 +1,7 @@
-SET(config_reader_SRC
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 	local_config.c
 	shared_config.c
 	config_common.c

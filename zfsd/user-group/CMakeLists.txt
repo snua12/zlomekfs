@@ -1,4 +1,7 @@
-add_library(user-group ${BUILDTYPE} user-group.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 #TODO node is to big, needs thisnode variable
 target_link_libraries(user-group node)
 

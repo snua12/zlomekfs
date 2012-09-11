@@ -1,4 +1,7 @@
-SET(zfsd_SRCS
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
    zfsd.c
    zfsd_state.c
    zfsd_args_shared.c

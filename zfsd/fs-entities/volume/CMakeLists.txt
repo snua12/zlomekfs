@@ -1,4 +1,7 @@
-add_library(volume ${BUILDTYPE} volume.c)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 target_link_libraries(volume metadata fh dir)
 
 install(

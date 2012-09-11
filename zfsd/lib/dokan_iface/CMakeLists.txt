@@ -1,4 +1,7 @@
-add_subdirectory(tests)
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 
 add_library(dokan_tools ${BUILDTYPE} dokan_tools.c) 
 target_link_libraries(dokan_tools log)
