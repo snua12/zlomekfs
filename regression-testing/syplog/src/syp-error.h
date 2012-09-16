@@ -38,27 +38,27 @@ extern "C"
 	/* ! Enumeration of errors which could arise in logger */
 	typedef enum
 	{
-		// / no error at all
+		/// no error at all
 		NOERR = 0,
-		// / bad params given to function
+		/// bad params given to function
 		ERR_BAD_PARAMS = 10001,
-		// / file can't be opened
+		/// file can't be opened
 		ERR_FILE_OPEN = 10002,
-		// / end of file reached
+		/// end of file reached
 		ERR_END_OF_LOG = 10003,
-		// / functionality not implemented
+		/// functionality not implemented
 		ERR_NOT_IMPLEMENTED = 10004,
-		// / unspecified error from operating system
+		/// unspecified error from operating system
 		ERR_SYSTEM = 10005,
-		// / try to do operation on uninitialized component
+		/// try to do operation on uninitialized component
 		ERR_NOT_INITIALIZED = 10006,
-		// / data truncated in operation
+		/// data truncated in operation
 		ERR_TRUNCATED = 10007,
-		// / bad message type received
+		/// bad message type received
 		ERR_BAD_MESSAGE = 10008,
-		// / dbus communication error
+		/// dbus communication error
 		ERR_DBUS = 10009,
-		// / out of memory
+		/// out of memory
 		ERR_NO_MEMORY = 10010,
 
 	} syp_error;

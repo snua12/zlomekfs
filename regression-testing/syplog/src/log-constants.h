@@ -58,36 +58,36 @@ extern "C"
 #define CHECKING_UNUSED
 #endif
 
-	// / maximal length of log message (user given string)
+	/// maximal length of log message (user given string)
 #define	LOG_MESSAGE_LEN	1024
 
-	// / maximal length of thread name
+	/// maximal length of thread name
 #define	THREAD_NAME_LEN	32
-	// / maximal length of node name FIXME: use std define from zfs
+	/// maximal length of node name FIXME: use std define from zfs
 
 #define	NODE_NAME_LEN	64
-	// / maximal length of hostname
+	/// maximal length of hostname
 #define	HOSTNAME_LEN	255
 
-	// / maximal length of user medium name
+	/// maximal length of user medium name
 #define MEDIUM_NAME_LEN 32
-	// / maximal length of formatter name
+	/// maximal length of formatter name
 #define FORMATTER_NAME_LEN 32
 
-	// / maximal length of filename (absolute or relative path)
+	/// maximal length of filename (absolute or relative path)
 #define	FILE_NAME_LEN		128
 
-	// / typedef for unsigned 32 bit number
+	/// typedef for unsigned 32 bit number
 	typedef unsigned int uint32_t;
-	// / typedef for signed 32 bit number
+	/// typedef for signed 32 bit number
 	typedef int int32_t;
 
-	// / boolean type
+	/// boolean type
 	typedef int bool_t;
 
-	// / true ;)
+	/// true ;)
 #define	TRUE	1
-	// / false ;)
+	/// false ;)
 #define	FALSE	0
 
 	/* ! Translate time stored in struct timeval to user readable string (unix 

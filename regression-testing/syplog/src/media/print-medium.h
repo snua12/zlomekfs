@@ -29,13 +29,13 @@
 #include "log-constants.h"
 #include "medium-api.h"
 
-// / name of medium for translation from options (--medium=print)
+/// name of medium for translation from options (--medium=print)
 #define	PRINT_MEDIUM_NAME	"print"
 
 /* ! Structure that holds internal state info specific for print medium. */
 typedef struct print_medium_def
 {
-	// / handler of stdin or stdout
+	/// handler of stdin or stdout
 	FILE *handler;
 } *print_medium;
 

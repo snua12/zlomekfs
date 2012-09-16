@@ -42,39 +42,39 @@
 #include "log-level.h"
 #include "facility.h"
 
-// / default port to listen on when using udp
+/// default port to listen on when using udp
 #define DEFAULT_COMMUNICATION_PORT	12345
 
-// / default ip address on which to listen when using udp control
+/// default ip address on which to listen when using udp control
 #define DEFAULT_COMMUNICATION_ADDRESS	"127.0.0.1"
 
 #include <dbus/dbus.h>
 
 
-// / timeout for receiving message in miliseconds
+/// timeout for receiving message in miliseconds
 #define	DBUS_WAIT_TIMEOUT			1000
-// / default source name
+/// default source name
 #define	SYPLOG_DEFAULT_DBUS_SOURCE		"syplog.default.source"
-// / default target name
+/// default target name
 #define SYPLOG_DEFAULT_DBUS_TARGET		"syplog.default.target"
-// / default object to call on
+/// default object to call on
 #define	SYPLOG_DEFAULT_DBUS_OBJECT		"/syplog/default/control"
-// / interface name for control syplog
+/// interface name for control syplog
 #define	SYPLOG_DBUS_INTERFACE			"syplog.signal.control"
-// / name of the signal for setting facility
+/// name of the signal for setting facility
 #define	SYPLOG_SIGNAL_SET_FACILITY_NAME		"set_facility"
-// / name of the signal for reseting facility
+/// name of the signal for reseting facility
 #define	SYPLOG_SIGNAL_RESET_FACILITY_NAME	"reset_facility"
-// / name of the signal for setting log leve
+/// name of the signal for setting log leve
 #define	SYPLOG_SIGNAL_SET_LOG_LEVEL_NAME	"set_log_level"
-// / name of the ping message
+/// name of the ping message
 #define SYPLOG_MESSAGE_PING_NAME		"ping"
 
-// / type of payload data for log level
+/// type of payload data for log level
 #define SYPLOG_LOG_LEVEL_DBUS_TYPE		DBUS_TYPE_UINT32
-// / type of payload data for facility
+/// type of payload data for facility
 #define SYPLOG_FACILITY_DBUS_TYPE		DBUS_TYPE_UINT32
-// / type of payload data for ping
+/// type of payload data for ping
 #define SYPLOG_PING_DBUS_TYPE			DBUS_TYPE_STRING
 
 
@@ -85,11 +85,11 @@
  */
 typedef enum communication_type_def
 {
-	// / uninitialized listener
+	/// uninitialized listener
 	COMM_NONE = 0,
-	// / listener listens on udp
+	/// listener listens on udp
 	COMM_UDP = 1,
-	// / listener listens on dbus
+	/// listener listens on dbus
 	COMM_DBUS = 2
 } communication_type;
 
@@ -100,7 +100,7 @@ typedef enum communication_type_def
  */
 typedef enum message_type_def
 {
-	// / ping the logger (check listening)
+	/// ping the logger (check listening)
 	MESSAGE_PING = 0,
   /** set log level of the logger
    * @see set_log_level

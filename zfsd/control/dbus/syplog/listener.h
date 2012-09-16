@@ -34,24 +34,24 @@
 #include "syplog.h"
 #include "control-protocol.h"
 
-// / structure with configuration and state of listener
+/// structure with configuration and state of listener
 typedef struct listener_def
 {
-	// / logger which should receive configuration changes
+	/// logger which should receive configuration changes
 	logger target;
-	// / type of communication (udp, unix socket, etc)
+	/// type of communication (udp, unix socket, etc)
 	communication_type type;
-	// / port on which to listen in upd mode
+	/// port on which to listen in upd mode
 	uint16_t port;
-	// / dbus connection handler
+	/// dbus connection handler
 	DBusConnection *dbus_conn;
-	// / dbus error buffer
+	/// dbus error buffer
 	DBusError dbus_err;
-	// / socket file descriptor 
+	/// socket file descriptor 
 	int socket;
-	// / thread id which performs listening loops
+	/// thread id which performs listening loops
 	pthread_t thread_id;
-	// / mutex for this structure
+	/// mutex for this structure
 	pthread_mutex_t mutex;
 } *listener;
 

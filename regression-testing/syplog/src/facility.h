@@ -41,50 +41,50 @@ extern "C"
 {
 #endif
 
-	// / typedef for facility
+	/// typedef for facility
 	typedef uint32_t facility_t;
 
-	// / maximum length of stringified facility representation
+	/// maximum length of stringified facility representation
 #define FACILITY_STRING_LEN	32
 
-	// / fallback facility (default)
+	/// fallback facility (default)
 #define	FACILITY_UNKNOWN        0x0
 #define	FACILITY_UNKNOWN_NAME		"UNKNOWN/NONTRIVIAL"
-	// / log message apply on logging facility
+	/// log message apply on logging facility
 #define	FACILITY_LOG            0x1
 #define	FACILITY_LOG_NAME		"LOG"
-	// / log message apply on threading
+	/// log message apply on threading
 #define	FACILITY_THREADING      0x2
 #define	FACILITY_THREADING_NAME		"THREAD"
-	// / log message apply on networking
+	/// log message apply on networking
 #define	FACILITY_NET            0x4
 #define	FACILITY_NET_NAME		"NET"
-	// / log message apply on caching
+	/// log message apply on caching
 #define	FACILITY_CACHE          0x8
 #define	FACILITY_CACHE_NAME		"CACHE"
-	// / log message apply on data handling
+	/// log message apply on data handling
 #define	FACILITY_DATA           0x10
 #define	FACILITY_DATA_NAME		"DATA"
-	// / log message apply on memory
+	/// log message apply on memory
 #define	FACILITY_MEMORY         0x20
 #define	FACILITY_MEMORY_NAME		"MEMORY"
-	// / log message apply on configuration
+	/// log message apply on configuration
 #define	FACILITY_CONFIG         0x40
 #define	FACILITY_CONFIG_NAME		"CONFIG"
-	// / log message apply on dbus
+	/// log message apply on dbus
 #define FACILITY_DBUS           0x80
 #define FACILITY_DBUS_NAME      "DBUS"
-	// / facility for global testing
+	/// facility for global testing
 #define FACILITY_ZFSD           0x100
 #define FACILITY_ZFSD_NAME      "ZFSD"
 	// log message apply on versioning
 #define FACILITY_VERSION        0x200
 #define FACILITY_VERSION_NAME   "VERSION"
 
-	// / do not log messages from any facility
+	/// do not log messages from any facility
 #define	FACILITY_NOTHING        0x0
 #define	FACILITY_NOTHING_NAME		"NOTHING"
-	// / log messages from all facilities
+	/// log messages from all facilities
 #define	FACILITY_ALL            (uint32_t)-1
 #define	FACILITY_ALL_NAME		"ALL"
 
@@ -172,7 +172,7 @@ extern "C"
 		return FACILITY_UNKNOWN;
 	}
 
-	// / Turn facility on.
+	/// Turn facility on.
 	/* ! Add (turn on) facility to bitmap @param bitmap initial bitmap @param
 	   facility one or more facilities to add to bitmap @return new bitmap
 	   with added facility (facilities) */
@@ -182,7 +182,7 @@ extern "C"
 		return bitmap | facility;
 	}
 
-	// / Turn facility off.
+	/// Turn facility off.
 	/* ! Delete (turn off) facility from bitmap @param bitmap initial bitmap
 	   @param facility one or more facilities to delete from bitmap @return
 	   new bitmap with deleted facilities (facilities) */
@@ -192,7 +192,7 @@ extern "C"
 		return bitmap & ~facility;
 	}
 
-	// / Gets state of facility.
+	/// Gets state of facility.
 	/* ! Gets state of facility in bitmap (if has to be logged or not) @param
 	   bitmap bitmap @param facility one or more facilities to test if set in
 	   bitmap @return TRUE if one or more of facilities matches, FALSE if none */

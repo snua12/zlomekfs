@@ -78,26 +78,26 @@ extern "C"
 	/* ! Structure holding logger state and configuration. */
 	typedef struct logger_def
 	{
-		// / writer
+		/// writer
 		struct medium_def printer;
 		/* ! Bitmap of facilities to log. 1 bit means to log facility, 0 bit
 		   means not to log messages from facility. */
 		uint64_t facilities;
-		// / Verbosity of logger - only logs with log_level lower than this
+		/// Verbosity of logger - only logs with log_level lower than this
 		// will be logged.
 		uint32_t log_level;
-		// / cached hostname - set on opening to avoid getting on every
+		/// cached hostname - set on opening to avoid getting on every
 		// message
 		char hostname[HOSTNAME_LEN];
-		// / cached name of zfs node - sets on opening to avoid getting on
+		/// cached name of zfs node - sets on opening to avoid getting on
 		// every message
 		char node_name[NODE_NAME_LEN];
-		// / cached timezone - set on opening to avoid getting on every
+		/// cached timezone - set on opening to avoid getting on every
 		// message
 		uint64_t timezone;
 
-		// / mutex to lock logger structure in non-atomic operations
-		// / NOTE: this mutex doesn't lock medium (printer) - medium atomicity 
+		/// mutex to lock logger structure in non-atomic operations
+		/// NOTE: this mutex doesn't lock medium (printer) - medium atomicity 
 		// should enforce medium itself
 		pthread_mutex_t mutex;
 	} *logger;

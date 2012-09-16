@@ -25,7 +25,7 @@
 #include "dbus-provider.h"
 #include "system.h"
 
-// / timeout for receiving message in miliseconds
+/// timeout for receiving message in miliseconds
 #define DBUS_CONNECTION_TIMEOUT		1000
 
 #define	ZFSD_DBUS_SIGNAL_MATCH_RULE	"type='signal',interface='" ZFSD_DBUS_INTERFACE "'"

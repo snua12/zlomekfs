@@ -38,16 +38,16 @@ extern "C"
 
 	// FIXME -use std constant
 
-	// / max length of intiger printed to string
+	/// max length of intiger printed to string
 #define	INT_STRING_SIZE	15
-	// / max length of long long intiger printed to string
+	/// max length of long long intiger printed to string
 #define LONG_LONG_STRING_SIZE	30
-	// / max length of time printed to string
+	/// max length of time printed to string
 #define	TIME_STRING_LEN	20
-	// / max length of timezone printed to string
+	/// max length of timezone printed to string
 #define	TIMEZONE_STRING_LEN	10
 
-	// / max length of log printed to string
+	/// max length of log printed to string
 #define MAX_LOG_STRING_SIZE	INT_STRING_SIZE + LONG_LONG_STRING_SIZE + HOSTNAME_LEN \
                         + NODE_NAME_LEN + THREAD_NAME_LEN + LOG_MESSAGE_LEN \
                         + TIME_STRING_LEN + TIMEZONE_STRING_LEN + FACILITY_STRING_LEN \
@@ -56,30 +56,30 @@ extern "C"
 	/* ! Structure holding all informations about logging event */
 	typedef struct log_struct_def
 	{
-		// / severity of event
+		/// severity of event
 		log_level_t level;
-		// / which part of application apply message to
+		/// which part of application apply message to
 		facility_t facility;
-		// / user given info about event
+		/// user given info about event
 		char message[LOG_MESSAGE_LEN];
-		// / id of thread which has generated this event
+		/// id of thread which has generated this event
 		pthread_t thread_id;
-		// / thread name (if applicable)
+		/// thread name (if applicable)
 		char thread_name[THREAD_NAME_LEN];
-		// / time when event occured
+		/// time when event occured
 		struct timeval time;
 
 		/* unused */
-		// / name of zfs node
+		/// name of zfs node
 		char node_name[NODE_NAME_LEN];
-		// / hostname of machine logging
+		/// hostname of machine logging
 		char hostname[HOSTNAME_LEN];
-		// / timezone ;)
+		/// timezone ;)
 		uint64_t timezone;
 		/* /unused */
 	} *log_struct;
 
-	// / static initializer of log struct - initialize all fields to defaults
+	/// static initializer of log struct - initialize all fields to defaults
 #define	LOG_STRUCT_STATIC_INITIALIZER	{ 	\
 	.level = LOG_LOOPS,			\
 	.facility = FACILITY_NOTHING,		\

@@ -29,24 +29,24 @@
 #include "log-constants.h"
 #include "medium-api.h"
 
-// / default file to read logs from or write to. used when no file given
+/// default file to read logs from or write to. used when no file given
 #define DEFAULT_FILE	"/var/log/zfsd.log"
 
-// / name of medium for translation from options (--medium=file)
+/// name of medium for translation from options (--medium=file)
 #define	FILE_MEDIUM_NAME	"file"
 
-// / parameter name of input / output file name
+/// parameter name of input / output file name
 #define PARAM_MEDIUM_FN_LONG	"log-file"
-// / short parameter name for PARAM_READER_FN_LONG - can be used only inside
+/// short parameter name for PARAM_READER_FN_LONG - can be used only inside
 // code for now
 #define PARAM_MEDIUM_FN_CHAR	't'
 
 /* ! Structure that holds internal state info specific for file medium. */
 typedef struct file_medium_def
 {
-	// / handler of opened file
+	/// handler of opened file
 	FILE *handler;
-	// / name of file to write logs to (absolute or relative path)
+	/// name of file to write logs to (absolute or relative path)
 	char file_name[FILE_NAME_LEN];
 } *file_medium;
 

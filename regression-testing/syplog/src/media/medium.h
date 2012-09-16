@@ -45,14 +45,14 @@ extern "C"
 	/* ! Enum of known media */
 	typedef enum
 	{
-		// / don't use any medium - mainly used as "default" and
+		/// don't use any medium - mainly used as "default" and
 		// "uninitialized"
 		NO_MEDIUM = 0,
-		// / write logs to shared memory
+		/// write logs to shared memory
 		SHM_MEDIUM,
-		// / write logs to file or read from
+		/// write logs to file or read from
 		FILE_MEDIUM,
-		// / write logs to stdout
+		/// write logs to stdout
 		PRINT_MEDIUM,
 		/* not implemented yet /// write logs to syslog SYSLOG_MEDIUM = 4, /// 
 		   write logs to socket SOCKET_MEDIUM = 2, */

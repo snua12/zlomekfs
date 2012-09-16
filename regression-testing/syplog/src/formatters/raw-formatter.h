@@ -30,7 +30,7 @@ extern "C"
 {
 #endif
 
-	// / user readable name of raw formatter (used also as parameter when
+	/// user readable name of raw formatter (used also as parameter when
 	// creating new formatter)
 #define	RAW_FORMATTER_NAME	"raw"
 

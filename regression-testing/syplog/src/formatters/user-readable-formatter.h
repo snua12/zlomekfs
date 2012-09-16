@@ -29,7 +29,7 @@ extern "C"
 {
 #endif
 
-	// / user readable name of user readable formatter (used also as parameter 
+	/// user readable name of user readable formatter (used also as parameter 
 	// when creating new formatter)
 #define	USER_READABLE_FORMATTER_NAME	"user"
 

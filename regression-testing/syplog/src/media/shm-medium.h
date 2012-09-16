@@ -38,32 +38,32 @@
 #define	SHMMAX 0x2000000
 #endif
 
-// / invalid shared memory segment id (according to man 2 shmget)
+/// invalid shared memory segment id (according to man 2 shmget)
 #define	INVALID_SHM_ID	-1
 
-// / default size of shared memory segment (log size)
+/// default size of shared memory segment (log size)
 #define DEFAULT_SHM_SIZE	4096
 
-// / default key to shm segment. used when no key given
+/// default key to shm segment. used when no key given
 #define DEFAULT_SHM_KEY	4224
 
-// / name of reader for translation from options (--type=file)
+/// name of reader for translation from options (--type=file)
 #define	SHM_MEDIUM_NAME	"shm"
 
-// / parameter name of shm segment key
+/// parameter name of shm segment key
 #define PARAM_SHM_KEY_LONG	"shm-key"
-// / short parameter name for PARAM_SHM_KEY_LONG - can be used only inside
+/// short parameter name for PARAM_SHM_KEY_LONG - can be used only inside
 // code now
 #define PARAM_SHM_KEY_CHAR	'k'
 
 /* ! Structure that holds internal state info specific for shm medium. */
 typedef struct shm_medium_def
 {
-	// / shared memory segment start
+	/// shared memory segment start
 	void *shm_start;
-	// / segment identifier
+	/// segment identifier
 	int shmid;
-	// / key to shared memory segment
+	/// key to shared memory segment
 	key_t segment_key;
 
 } *shm_medium;

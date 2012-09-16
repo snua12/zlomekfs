@@ -35,50 +35,50 @@ extern "C"
 {
 #endif
 
-	// / typedef for log level
+	/// typedef for log level
 	typedef uint32_t log_level_t;
 
-	// / maximum length of stringified representation of log level
+	/// maximum length of stringified representation of log level
 #define LOG_LEVEL_STRING_LEN	16
 
-	// / system is unusable 
+	/// system is unusable 
 #define LOG_EMERG       0
 #define LOG_EMERG_NAME		"EMERG"
-	// / action must be taken immediately
+	/// action must be taken immediately
 #define LOG_ALERT       1
 #define LOG_ALERT_NAME		"ALERT"
-	// / critical conditions
+	/// critical conditions
 #define LOG_CRIT        2
 #define LOG_CRIT_NAME		"CRIT"
-	// / error conditions
+	/// error conditions
 #define LOG_ERR         3
 #define LOG_ERR_NAME		"ERROR"
-	// / warning conditions
+	/// warning conditions
 #define LOG_WARNING     4
 #define LOG_WARNING_NAME	"WARNING"
-	// / normal but significant condition
+	/// normal but significant condition
 #define LOG_NOTICE      5
 #define LOG_NOTICE_NAME		"NOTICE"
-	// / informational
+	/// informational
 #define LOG_INFO        6
 #define LOG_INFO_NAME		"INFO"
-	// / debug-level messages
+	/// debug-level messages
 #define LOG_DEBUG       7
 #define LOG_DEBUG_NAME		"DEBUG"
-	// / locking info
+	/// locking info
 #define LOG_LOCK        8
 #define LOG_LOCK_NAME		"LOCK"
-	// / function entry and leave
+	/// function entry and leave
 #define LOG_FUNC        9
 #define LOG_FUNC_NAME		"FUNC"
-	// / data changes
+	/// data changes
 #define LOG_DATA       10
 #define LOG_DATA_NAME		"DATA"
-	// / loops
+	/// loops
 #define LOG_LOOPS      11
 #define LOG_LOOPS_NAME		"LOOPS"
 
-	// / unknown log level
+	/// unknown log level
 #define LOG_UNKNOWN    12
 #define LOG_UNKNOWN_NAME	"UNKONWN"
 
@@ -90,7 +90,7 @@ extern "C"
 #define LOG_ERROR      LOG_ERR
 #define LOG_TRACE      LOG_FUNC
 
-	// / Translates log_level_t to string.
+	/// Translates log_level_t to string.
 	/* ! Translates log_level_t to user readable string @param level log level 
 	   to translate @return constant string representing given log level or
 	   NULL */
@@ -115,7 +115,7 @@ extern "C"
 		}
 	}
 
-	// / Reads log_level_t from string.
+	/// Reads log_level_t from string.
 	/* ! Read log_level_t from user readable string @param level_name log
 	   level name @return log level (or LOG_UNKNOWN) */
 	static inline log_level_t log_level_from_string(const char *level_name)

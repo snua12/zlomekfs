@@ -30,19 +30,19 @@ extern "C"
 {
 #endif
 
-	// / how much components should listen simultaneously
+	/// how much components should listen simultaneously
 #define MAX_DBUS_LISTENERS	2
 
-	// / Enum of message handling result
+	/// Enum of message handling result
 	typedef enum
 	{
-		// / message was successfully handled
+		/// message was successfully handled
 		ZFSD_MESSAGE_HANDLED = 0,
-		// / message type is not known
+		/// message type is not known
 		ZFSD_MESSAGE_UNKNOWN = 1,
-		// / no message provided
+		/// no message provided
 		ZFSD_NO_MESSAGE = 2,
-		// / error occured during handling
+		/// error occured during handling
 		ZFSD_HANDLE_ERROR = 3
 	} message_handle_state_e;
 
@@ -86,7 +86,7 @@ extern "C"
 	typedef int (*dbus_name_add_t) (DBusConnection * connection,
 									DBusError * err_struct);
 
-	// / structure holding info about listening component
+	/// structure holding info about listening component
 	typedef struct dbus_listener_def
 	{
   /** function called to register dbus names of component
@@ -105,25 +105,25 @@ extern "C"
 		dbus_message_handler_t handle_message;
 	} *dbus_listener;
 
-	// / structure holding dbus_provider state (loop and components info)
+	/// structure holding dbus_provider state (loop and components info)
 	typedef struct dbus_state_holder_def
 	{
   /** Connection for receiving and senging messages.
       If NULL, the listening loop will terminate
   */
 		DBusConnection *connection;
-		// / dbus error srtucture
+		/// dbus error srtucture
 		DBusError error;
 
-		// / count of registered listeners (and valid entries in listeners
+		/// count of registered listeners (and valid entries in listeners
 		// struct too)
 		int listener_count;
-		// / specification of registered listener components
+		/// specification of registered listener components
 		struct dbus_listener_def listeners[MAX_DBUS_LISTENERS];
 
-		// / thread id of provider listening loop
+		/// thread id of provider listening loop
 		pthread_t loop_thread;
-		// / mutex to lock this structure
+		/// mutex to lock this structure
 		pthread_mutex_t mutex;
 	} *dbus_state_holder;
 
