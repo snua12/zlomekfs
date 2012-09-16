@@ -1311,7 +1311,7 @@ bool fs_start(void)
 	return (rv != -1);
 }
 
-void fd_unmount(void)
+void fs_unmount(void)
 {
 	if (mounted)
 	{
