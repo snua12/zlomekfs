@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_subdirectory(crc32)
 add_subdirectory(md5)
 add_subdirectory(alloc-pool)
 add_subdirectory(memory)

@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_subdirectory(node)
 add_subdirectory(cap)
 add_subdirectory(dir)
 add_subdirectory(file)

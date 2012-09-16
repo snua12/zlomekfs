@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(dir ${BUILDTYPE} dir.c)
+
 target_link_libraries(dir journal fh)
 
 install(

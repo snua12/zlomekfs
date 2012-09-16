@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(random ${BUILDTYPE} random.c)
+
 target_link_libraries(random)
 
 install(

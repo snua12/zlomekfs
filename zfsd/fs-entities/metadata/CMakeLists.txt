@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(metadata ${BUILDTYPE} metadata.c)
+
 target_link_libraries(metadata hashfile hardlink user-group fibheap interval-tree constant volume)
 
 install(

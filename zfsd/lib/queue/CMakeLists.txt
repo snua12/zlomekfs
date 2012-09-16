@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_library(queue ${BUILDTYPE} queue.c)
 target_link_libraries(queue alloc-pool)
 
 install(

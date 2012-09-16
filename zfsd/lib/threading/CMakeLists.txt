@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+if(HAVE_PTHREAD_BARRIER_WAIT)
 	SET (threading_SRCS pthread-wrapper.c thread.c)
 else()
 	SET (threading_SRCS pthread-wrapper.c thread.c barrier.c)

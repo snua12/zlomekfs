@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(protocol ${BUILDTYPE} data-coding.c  zfs-prot.c)
+
 #removed
 #add_subdirectory(protobuf)
 

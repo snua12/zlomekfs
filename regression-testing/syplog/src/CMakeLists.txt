@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_subdirectory(formatters)
 
 SET(syplog_SRCS
   syplog.c

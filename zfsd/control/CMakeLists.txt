@@ -2,7 +2,6 @@
 #
 # This file is part of ZFS build system.
 
-
 if (ENABLE_DBUS)
 # dbus
 PKG_CHECK_MODULES(DBUS dbus-1>=1.0)

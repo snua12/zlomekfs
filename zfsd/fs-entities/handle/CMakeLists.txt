@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_library(fh ${BUILDTYPE} fh.c)
 target_link_libraries(fh volume network cap)
 
 install(

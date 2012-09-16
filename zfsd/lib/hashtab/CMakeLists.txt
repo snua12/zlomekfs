@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(hashtab ${BUILDTYPE} hashtab.c)
+
 target_link_libraries(hashtab)
 
 install(

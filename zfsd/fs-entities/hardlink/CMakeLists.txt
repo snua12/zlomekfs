@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(hardlink ${BUILDTYPE} hardlink-list.c)
+
 target_link_libraries(hardlink threading)
 
 install(

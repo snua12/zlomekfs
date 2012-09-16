@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(md5 ${BUILDTYPE} md5.c)
+
 target_link_libraries(md5)
 
 ### google Test

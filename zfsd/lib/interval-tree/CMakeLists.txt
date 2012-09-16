@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(interval-tree ${BUILDTYPE} interval.c)
+
 target_link_libraries(interval-tree splay-tree)
 
 install(

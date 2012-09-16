@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_library(crc32 ${BUILDTYPE} crc32.c)
 target_link_libraries(crc32)
 
 ### google Test

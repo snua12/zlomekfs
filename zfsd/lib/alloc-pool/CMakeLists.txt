@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(alloc-pool ${BUILDTYPE} alloc-pool.c)
+
 target_link_libraries(alloc-pool memory)
 
 ### google Test

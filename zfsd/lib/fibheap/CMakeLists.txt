@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(fibheap ${BUILDTYPE} fibheap.c)
+
 target_link_libraries(fibheap varray log)
 
 install(

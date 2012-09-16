@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+SET(zfsd_SRCS
    zfsd.c
    zfsd_state.c
    zfsd_args_shared.c

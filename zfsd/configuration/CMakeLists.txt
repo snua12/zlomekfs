@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_subdirectory(config_reader)
 add_subdirectory(zfs_config)
 
 SET(configuration_SRC

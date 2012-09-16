@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(constant ${BUILDTYPE} constant.c)
+
 target_link_libraries(constant)
 
 install(

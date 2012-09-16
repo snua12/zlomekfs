@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+### google Test
 #test_enabled(gtest result)
 #if(NOT result EQUAL -1)
 

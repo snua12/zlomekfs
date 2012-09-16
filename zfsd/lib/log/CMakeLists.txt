@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_library(log ${BUILDTYPE} log.c)
 target_link_libraries(log syplog zfs_config)
 
 ### google Test

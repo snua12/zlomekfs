@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+if (HAVE_DOKAN)
 add_subdirectory(win32api_test)
 endif()
 add_subdirectory(POSIXapi_test)

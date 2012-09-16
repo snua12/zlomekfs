@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(varray ${BUILDTYPE} varray.c)
+
 target_link_libraries(varray)
 
 ### google Test

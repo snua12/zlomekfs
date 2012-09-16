@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+if(HAVE_FOPENCOOKIE)
 	SET(zfsio_SRC
 	   zfsio_fopencookie.c
 	)

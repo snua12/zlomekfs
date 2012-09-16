@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+include_directories(
 .
 ${ZFSD_SOURCE_DIR}/configuration
 ${ZFSD_SOURCE_DIR}/configuration/config_reader

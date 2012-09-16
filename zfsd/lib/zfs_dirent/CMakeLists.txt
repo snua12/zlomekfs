@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(zfs_dirent ${BUILDTYPE} zfs_dirent.c)
+
 target_link_libraries(zfs_dirent)
 
 install(

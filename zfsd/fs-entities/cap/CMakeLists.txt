@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(cap ${BUILDTYPE} cap.c)
+
 target_link_libraries(cap md5 random file)
 
 install(

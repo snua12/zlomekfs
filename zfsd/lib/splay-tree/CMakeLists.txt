@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(splay-tree ${BUILDTYPE} splay-tree.c)
+
 target_link_libraries(splay-tree varray util memory alloc-pool)
 
 install(

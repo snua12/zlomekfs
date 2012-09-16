@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(network ${BUILDTYPE} network.c)
+
 target_link_libraries(network protocol)
 
 install(

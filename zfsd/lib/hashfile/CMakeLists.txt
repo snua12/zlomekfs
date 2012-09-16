@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(hashfile ${BUILDTYPE} hashfile.c)
+
 target_link_libraries(hashfile util)
 
 install(

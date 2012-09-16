@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_library(semaphore ${BUILDTYPE} semaphore.c)
 target_link_libraries(semaphore)
 
 install(

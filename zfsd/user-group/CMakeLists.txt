@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+add_library(user-group ${BUILDTYPE} user-group.c)
 #TODO node is to big, needs thisnode variable
 target_link_libraries(user-group node)
 

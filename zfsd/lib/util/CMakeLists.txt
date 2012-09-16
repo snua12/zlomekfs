@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(util ${BUILDTYPE} util.c)
+
 target_link_libraries(util log)
 
 install(

@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+cmake_minimum_required(VERSION 2.8)
+
 project(ZlomekFS)
 if (CYGWIN)
 	set(CMAKE_LEGACY_CYGWIN_WIN32 1)

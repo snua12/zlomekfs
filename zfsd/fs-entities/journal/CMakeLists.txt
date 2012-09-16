@@ -2,6 +2,8 @@
 #
 # This file is part of ZFS build system.
 
+add_library(journal ${BUILDTYPE} journal.c)
+
 target_link_libraries(journal hashtab crc32)
 
 install(

@@ -10,4 +10,4 @@
 #cmakedefine HAVE_DOKAN
 #cmakedefine HAVE_MLOCKALL
 #cmakedefine HAVE_UCONTEXT_H
-#cmakedefine ENABLE_USERSPACE_FS
+#cmakedefine ENABLE_FS_INTERFACE

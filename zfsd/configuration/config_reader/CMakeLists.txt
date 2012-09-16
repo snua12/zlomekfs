@@ -2,6 +2,7 @@
 #
 # This file is part of ZFS build system.
 
+SET(config_reader_SRC
 	local_config.c
 	shared_config.c
 	config_common.c
