@@ -269,7 +269,7 @@ ${DBUS_INCLUDE_DIRS}
 # openssl header
 ${OPENSSL_INCLUDE_DIR}
 #syplog header
-${CMAKE_SOURCE_DIR}/regression-testing/syplog/src/
+${CMAKE_SOURCE_DIR}/syplog/src/
 )
 
 link_directories(
@@ -280,5 +280,5 @@ ${OPENSSL_LIBRARY_DIR}
 
 set(ZFSD_SOURCE_DIR ${CMAKE_SOURCE_DIR}/zfsd)
 add_subdirectory(zfsd)
-add_subdirectory(regression-testing/syplog/src)
+add_subdirectory(syplog/src)
 
