@@ -49,10 +49,13 @@
 #include "dokan_iface.h"
 #include "fs-iface.h"
 
+/*! \brief if filesystem exported to OS? */
 bool mounted = false;
 
+/*! \brief thread id of Dokan interface thread */
 static pthread_t dokan_thread;
 
+/*! \brief dokan option structure with zlomekFS default setting */
 DOKAN_OPTIONS zfs_dokan_options =
 {
 	.Version = DOKAN_VERSION,
@@ -65,6 +68,8 @@ DOKAN_OPTIONS zfs_dokan_options =
  * 
  *  ZlomekFS code requires some TLS variables (thread ctx and lock_info). 
  *  This macro initialize them. 
+ *  Every inner_dokan_* function in this file is encapsulated
+ *  by \ref DOKAN_SET_THREAD_SPECIFIC and \ref DOKAN_CLEAN_THREAD_SPECIFIC macro.
  */
 #define DOKAN_SET_THREAD_SPECIFIC \
 	thread ctx = {.mutex=ZFS_MUTEX_INITIALIZER, .sem = ZFS_SEMAPHORE_INITIALIZER(0)}; \
@@ -83,6 +88,12 @@ DOKAN_OPTIONS zfs_dokan_options =
 #define DOKAN_CLEAN_THREAD_SPECIFIC \
 	dc_destroy(ctx.dc_call);
 
+/*! \brief find for given \p path filehandle
+ *
+ *  \param res is a dir_op_res
+ *  \param path is a string
+ *  \return ZFS_* 
+ */
 static int32_t dokan_zfs_extended_lookup(dir_op_res * res, char *path)
 {
 	// shortcut for root directory
@@ -99,6 +110,12 @@ static int32_t dokan_zfs_extended_lookup(dir_op_res * res, char *path)
 	return zfs_extended_lookup(res, &root_fh, path_copy);
 }
 
+/*! \brief check if given \p file_name exists on zlomekFS volume
+ *
+ *  \param file_name is a LPCWSTR
+ *  \return true file exitst
+ *  \return false file does not exist
+ */
 static bool_t zfs_file_exists(LPCWSTR file_name)
 {
 
@@ -109,6 +126,12 @@ static bool_t zfs_file_exists(LPCWSTR file_name)
 	return (rv == ZFS_OK);
 }
 
+/*! \brief get the file size
+ *
+ *  \param fh handle to the file
+ *  \param size pointer to uint64_t where the file's size is stored
+ *  \return ZFS_OK
+ */
 static int zfs_get_end_of_file(zfs_fh * fh, uint64_t * size)
 {
 	fattr fa;
@@ -123,6 +146,12 @@ static int zfs_get_end_of_file(zfs_fh * fh, uint64_t * size)
 	return ZFS_OK;
 }
 
+/*! \brief set the file size
+ *
+ *  \param fh handle to file
+ *  \param size is the new size of the file
+ *  \return ZFS_*
+ */
 static int zfs_set_end_of_file(zfs_fh * fh, uint64_t size)
 {
 	fattr fa;
@@ -138,18 +167,18 @@ static int zfs_set_end_of_file(zfs_fh * fh, uint64_t size)
 	return zfs_setattr(&fa, fh, &args.attr, true);
 }
 
+/*! \brief set the file size to 0
+ *
+ *  \param fh handle to file
+ *  \return ZFS_*
+ */
 static int zfs_truncate_file(zfs_fh * fh)
 {
 	// truncate file
 	return zfs_set_end_of_file(fh, 0);
 }
 
-// CreateFile
-//   If file is a directory, CreateFile (not OpenDirectory) may be called.
-//   In this case, CreateFile should return 0 when that directory can be opened.
-//   You should set TRUE on DokanFileInfo->IsDirectory when file is a directory.
-//   When CreationDisposition is CREATE_ALWAYS or OPEN_ALWAYS and a file already exists,
-//   you should return ERROR_ALREADY_EXISTS(183) (not negative value)
+/*! \brief inner implementation of \ref zfs_dokan_create_file */
 static int  DOKAN_CALLBACK inner_dokan_create_file (
 	LPCWSTR file_name,      	// FileName
 	DWORD desired_access,        	// DesiredAccess
@@ -255,6 +284,23 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function CreateFile from win32api
+ *
+ *  \param file_name
+ *  \param desired_access
+ *  \param shared_mode
+ *  \param creation_disposition
+ *  \param flags_and_attributes
+ *  \param info dokan's file handle
+ *  \return -ERROR_
+ *
+ *  CreateFile (notes form win32api reference)
+ *  If file is a directory, CreateFile (not OpenDirectory) may be called.
+ *  In this case, CreateFile should return 0 when that directory can be opened.
+ *  You should set TRUE on DokanFileInfo->IsDirectory when file is a directory.
+ *  When CreationDisposition is CREATE_ALWAYS or OPEN_ALWAYS and a file already exists,
+ *  you should return ERROR_ALREADY_EXISTS(183) (not negative value)
+ */
 static int  DOKAN_CALLBACK zfs_dokan_create_file (
 	LPCWSTR file_name,      	// FileName
 	DWORD desired_access,        	// DesiredAccess
@@ -275,6 +321,7 @@ static int  DOKAN_CALLBACK zfs_dokan_create_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_open_directory */
 static int DOKAN_CALLBACK inner_dokan_open_directory (
 	LPCWSTR dir_name,			// FileName
 	PDOKAN_FILE_INFO info)
@@ -307,7 +354,7 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 	return -ERROR_SUCCESS;
 }
 
-
+/*! \brief implements function OpenDirectory from win32api */
 static int DOKAN_CALLBACK zfs_dokan_open_directory (
 	LPCWSTR dir_name,			// FileName
 	PDOKAN_FILE_INFO info)
@@ -320,6 +367,7 @@ static int DOKAN_CALLBACK zfs_dokan_open_directory (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_create_directory */
 static int DOKAN_CALLBACK inner_dokan_create_directory (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,			// FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -357,6 +405,7 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 }
 
 
+/*! \brief implements function CreateDirectory from win32api */
 static int DOKAN_CALLBACK zfs_dokan_create_directory (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,			// FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -369,7 +418,7 @@ static int DOKAN_CALLBACK zfs_dokan_create_directory (
 	return rv;
 }
 
-// When FileInfo->DeleteOnClose is true, you must delete the file in Cleanup.
+/*! \brief inner implementation of \ref zfs_dokan_cleanup */
 static int DOKAN_CALLBACK inner_dokan_cleanup (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,      // FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -379,6 +428,10 @@ static int DOKAN_CALLBACK inner_dokan_cleanup (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements Cleanup from dokan interface 
+ *
+ * When FileInfo->DeleteOnClose is true, you must delete the file in Cleanup.
+*/
 static int DOKAN_CALLBACK zfs_dokan_cleanup (
 	LPCWSTR file_name,      // FileName
 	PDOKAN_FILE_INFO info)
@@ -391,7 +444,7 @@ static int DOKAN_CALLBACK zfs_dokan_cleanup (
 	return rv;
 }
 
-
+/*! \brief inner implementation of \ref zfs_dokan_close_file */
 static int DOKAN_CALLBACK inner_dokan_close_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,      // FileName
 	PDOKAN_FILE_INFO info)
@@ -412,6 +465,7 @@ static int DOKAN_CALLBACK inner_dokan_close_file (
 	return zfs_err_to_dokan_err(rv);
 }
 
+/*! \brief implements function CloseFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_close_file (
 	LPCWSTR file_name,      // FileName
 	PDOKAN_FILE_INFO info)
@@ -424,6 +478,7 @@ static int DOKAN_CALLBACK zfs_dokan_close_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_read_file */
 static int DOKAN_CALLBACK inner_dokan_read_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	LPVOID buffer,   // Buffer
@@ -478,6 +533,7 @@ static int DOKAN_CALLBACK inner_dokan_read_file (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function ReadFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_read_file (
 	LPCWSTR file_name,  // FileName
 	LPVOID buffer,   // Buffer
@@ -498,6 +554,7 @@ static int DOKAN_CALLBACK zfs_dokan_read_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_write_file */
 static int DOKAN_CALLBACK inner_dokan_write_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	LPCVOID buffer,  // Buffer
@@ -535,6 +592,7 @@ static int DOKAN_CALLBACK inner_dokan_write_file (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function WriteFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_write_file (
 	LPCWSTR file_name,  // FileName
 	LPCVOID buffer,  // Buffer
@@ -555,6 +613,7 @@ static int DOKAN_CALLBACK zfs_dokan_write_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_flush_file_buffers */
 static int DOKAN_CALLBACK inner_dokan_flush_file_buffers (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -562,6 +621,7 @@ static int DOKAN_CALLBACK inner_dokan_flush_file_buffers (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function FlushFileBuffers from win32api */
 static int DOKAN_CALLBACK zfs_dokan_flush_file_buffers (
 	LPCWSTR file_name, // FileName
 	PDOKAN_FILE_INFO info)
@@ -574,6 +634,7 @@ static int DOKAN_CALLBACK zfs_dokan_flush_file_buffers (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_get_file_information */
 static int DOKAN_CALLBACK inner_dokan_get_file_information (
 	LPCWSTR file_name,          // FileName
 	LPBY_HANDLE_FILE_INFORMATION buffer, // Buffer
@@ -607,6 +668,7 @@ static int DOKAN_CALLBACK inner_dokan_get_file_information (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function GetFileInformation from win32api */
 static int DOKAN_CALLBACK zfs_dokan_get_file_information (
 	LPCWSTR file_name,          // FileName
 	LPBY_HANDLE_FILE_INFORMATION buffer, // Buffer
@@ -622,6 +684,7 @@ static int DOKAN_CALLBACK zfs_dokan_get_file_information (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_find_files */
 static int DOKAN_CALLBACK inner_dokan_find_files (
 	LPCWSTR path_name,			// PathName
 	PFillFindData fill_data,		// call this function with PWIN32_FIND_DATAW
@@ -688,6 +751,7 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 	RETURN_INT(-ERROR_SUCCESS);
 }
 
+/*! \brief implements function FindFiles from Dokan interface */
 static int DOKAN_CALLBACK zfs_dokan_find_files (
 	LPCWSTR path_name,			// PathName
 	PFillFindData fill_data,		// call this function with PWIN32_FIND_DATAW
@@ -702,6 +766,7 @@ static int DOKAN_CALLBACK zfs_dokan_find_files (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_set_file_attributes */
 static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED DWORD file_attributes,   // FileAttributes
@@ -710,6 +775,7 @@ static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function SetFileAttributes from win32api */
 static int DOKAN_CALLBACK zfs_dokan_set_file_attributes (
 	LPCWSTR file_name, // FileName
 	DWORD file_attributes,   // FileAttributes
@@ -724,6 +790,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_attributes (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_set_file_time */
 static int DOKAN_CALLBACK inner_dokan_set_file_time (
         LPCWSTR file_name,                // FileName
         CONST FILETIME* creation_time, // CreationTime
@@ -772,6 +839,7 @@ static int DOKAN_CALLBACK inner_dokan_set_file_time (
 	return zfs_err_to_dokan_err(rv);
 }
 
+/*! \brief implements function SetFileTime from win32api */
 static int DOKAN_CALLBACK zfs_dokan_set_file_time (
         LPCWSTR file_name,                // FileName
         CONST FILETIME* creation_time, // CreationTime
@@ -790,14 +858,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_time (
 	return rv;
 }
 
-// You should not delete file on DeleteFile or DeleteDirectory.
-// When DeleteFile or DeleteDirectory, you must check whether
-// you can delete the file or not, and return 0 (when you can delete it)
-// or appropriate error codes such as -ERROR_DIR_NOT_EMPTY,
-// -ERROR_SHARING_VIOLATION.
-// When you return 0 (ERROR_SUCCESS), you get Cleanup with
-// FileInfo->DeleteOnClose set TRUE and you have to delete the
-// file in Close.
+/*! \brief inner implementation of \ref zfs_dokan_delete_file */
 static int DOKAN_CALLBACK inner_dokan_delete_file (
 	LPCWSTR file_name,
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -824,6 +885,18 @@ static int DOKAN_CALLBACK inner_dokan_delete_file (
 	return zfs_err_to_dokan_err(rv);
 }
 
+/*! \brief implements function DeleteFile from win32api 
+ *
+ * notes form win32api reference:
+ * You should not delete file on DeleteFile or DeleteDirectory.
+ * When DeleteFile or DeleteDirectory, you must check whether
+ * you can delete the file or not, and return 0 (when you can delete it)
+ * or appropriate error codes such as -ERROR_DIR_NOT_EMPTY,
+ * -ERROR_SHARING_VIOLATION.
+ * When you return 0 (ERROR_SUCCESS), you get Cleanup with
+ * FileInfo->DeleteOnClose set TRUE and you have to delete the
+ * file in Close.
+ */
 static int DOKAN_CALLBACK zfs_dokan_delete_file (
 	LPCWSTR file_name,
 	PDOKAN_FILE_INFO info)
@@ -836,6 +909,7 @@ static int DOKAN_CALLBACK zfs_dokan_delete_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_delete_directory */
 static int DOKAN_CALLBACK inner_dokan_delete_directory ( 
 	ATTRIBUTE_UNUSED LPCWSTR file_name,
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -861,6 +935,7 @@ static int DOKAN_CALLBACK inner_dokan_delete_directory (
 	return zfs_err_to_dokan_err(rv);
 }
 
+/*! \brief implements function DeleteDirectory from win32api */
 static int DOKAN_CALLBACK zfs_dokan_delete_directory ( 
 	LPCWSTR file_name, // FileName
 	PDOKAN_FILE_INFO info)
@@ -873,6 +948,7 @@ static int DOKAN_CALLBACK zfs_dokan_delete_directory (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_move_file */
 static int DOKAN_CALLBACK inner_dokan_move_file (
 	LPCWSTR existing_file_name, // ExistingFileName
 	LPCWSTR new_file_name, // NewFileName
@@ -926,6 +1002,7 @@ static int DOKAN_CALLBACK inner_dokan_move_file (
 	return zfs_err_to_dokan_err(rv);
 }
 
+/*! \brief implements function MoveFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_move_file (
 	LPCWSTR existing_file_name, // ExistingFileName
 	LPCWSTR new_file_name, // NewFileName
@@ -942,6 +1019,7 @@ static int DOKAN_CALLBACK zfs_dokan_move_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_set_end_of_file */
 static int DOKAN_CALLBACK inner_dokan_set_end_of_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	ATTRIBUTE_UNUSED LONGLONG length, // Length
@@ -958,6 +1036,7 @@ static int DOKAN_CALLBACK inner_dokan_set_end_of_file (
 	return zfs_err_to_dokan_err(rv);
 }
 
+/*! \brief implements function SetEndOfFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_set_end_of_file (
 	LPCWSTR file_name,  // FileName
 	LONGLONG length, // Length
@@ -972,6 +1051,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_end_of_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_set_allocation_size */
 static int DOKAN_CALLBACK inner_dokan_set_allocation_size (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	LONGLONG length, // Length
@@ -1001,6 +1081,7 @@ static int DOKAN_CALLBACK inner_dokan_set_allocation_size (
 }
 
 
+/*! \brief implements function SetAllocationSize from Dokan interface */
 static int DOKAN_CALLBACK zfs_dokan_set_allocation_size (
 	LPCWSTR file_name,  // FileName
 	LONGLONG length, // Length
@@ -1015,6 +1096,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_allocation_size (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_lock_file */
 static int DOKAN_CALLBACK inner_dokan_lock_file(
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED LONGLONG byte_offset, // ByteOffset
@@ -1024,6 +1106,7 @@ static int DOKAN_CALLBACK inner_dokan_lock_file(
 	return -ERROR_INVALID_FUNCTION;
 }
 
+/*! \brief implements function LockFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_lock_file (
 	LPCWSTR file_name, // FileName
 	LONGLONG byte_offset, // ByteOffset
@@ -1040,6 +1123,7 @@ static int DOKAN_CALLBACK zfs_dokan_lock_file (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_unlock_file */
 static int DOKAN_CALLBACK inner_dokan_unlock_file(
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED LONGLONG byte_offset,// ByteOffset
@@ -1050,6 +1134,7 @@ static int DOKAN_CALLBACK inner_dokan_unlock_file(
 	return -ERROR_INVALID_FUNCTION;
 }
 
+/*! \brief implements function DokanUnlockFile from win32api */
 static int DOKAN_CALLBACK zfs_dokan_unlock_file(
 	LPCWSTR file_name, // FileName
 	LONGLONG byte_offset,// ByteOffset
@@ -1066,7 +1151,7 @@ static int DOKAN_CALLBACK zfs_dokan_unlock_file(
 	return rv;
 }
 
-// see Win32 API GetVolumeInformation
+/*! \brief inner implementation of \ref zfs_dokan_get_volume_information */
 static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	LPWSTR volume_name_buffer, // VolumeNameBuffer
 	DWORD volume_name_size,	// VolumeNameSize in num of chars
@@ -1107,6 +1192,7 @@ static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	return -ERROR_SUCCESS;
 }
 
+/*! \brief implements function GetVolumeInformation from win32api */
 static int DOKAN_CALLBACK zfs_dokan_get_volume_information (
 	LPWSTR volume_name_buffer, // VolumeNameBuffer
 	DWORD volume_name_size,	// VolumeNameSize in num of chars
@@ -1131,13 +1217,14 @@ static int DOKAN_CALLBACK zfs_dokan_get_volume_information (
 	return rv;
 }
 
+/*! \brief implements function Unmount from Dokan interface */
 static int DOKAN_CALLBACK zfs_dokan_unmount (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 	return -ERROR_SUCCESS;
 }
 
-// Suported since 0.6.0. You must specify the version at DOKAN_OPTIONS.Version.
+/*! \brief inner implementation of \ref zfs_dokan_get_file_security */
 static int DOKAN_CALLBACK inner_dokan_get_file_security (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED PSECURITY_INFORMATION security_information, // A pointer to SECURITY_INFORMATION value being requested
@@ -1150,6 +1237,7 @@ static int DOKAN_CALLBACK inner_dokan_get_file_security (
 	return -ERROR_INVALID_FUNCTION;
 }
 
+// Suported since 0.6.0. You must specify the version at DOKAN_OPTIONS.Version.
 static int DOKAN_CALLBACK zfs_dokan_get_file_security (
 	LPCWSTR file_name, // FileName
 	PSECURITY_INFORMATION security_information, // A pointer to SECURITY_INFORMATION value being requested
@@ -1170,6 +1258,7 @@ static int DOKAN_CALLBACK zfs_dokan_get_file_security (
 	return rv;
 }
 
+/*! \brief inner implementation of \ref zfs_dokan_set_file_security */
 static int DOKAN_CALLBACK inner_dokan_set_file_security (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED PSECURITY_INFORMATION secrity_information,
@@ -1181,6 +1270,7 @@ static int DOKAN_CALLBACK inner_dokan_set_file_security (
 	return -ERROR_INVALID_FUNCTION;
 }
 
+/*! \brief implements function SetFileSecurity from win32api */
 static int DOKAN_CALLBACK zfs_dokan_set_file_security (
 	LPCWSTR file_name, // FileName
 	PSECURITY_INFORMATION security_information,
@@ -1199,7 +1289,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_security (
 	return rv;
 }
 
-/*! dokan filesystem interface */
+/*! \brief dokan operations structure with zlomekFS implementation */
 DOKAN_OPERATIONS zfs_dokan_operations =
 {
 	.CreateFile = zfs_dokan_create_file,
@@ -1296,8 +1386,8 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 /*! \brief export filesystem to OS
  *
  *  Part of fs-iface implementation, export filesystem to OS.
- *  \return 1 on success
- *  \return 0 in case of error
+ *  \return true on success
+ *  \return false in case of error
  */
 bool fs_start(void)
 {

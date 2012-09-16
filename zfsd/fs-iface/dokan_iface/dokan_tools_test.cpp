@@ -1,4 +1,6 @@
-/* ! \file \brief Tests for Dokan interface support functions */
+/* ! \file dokan_tools_test.cpp
+ *   \brief Tests for Dokan interface support functions
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -27,6 +29,7 @@
 #include <windows.h>
 #include <winbase.h>
 
+/*! \brief test for \ref file_path_to_dir_and_file */
 TEST(dokan_tools_test, file_path_to_dir_and_file)
 {
 	char dir_path[MAX_PATH];
@@ -58,6 +61,7 @@ TEST(dokan_tools_test, file_path_to_dir_and_file)
 	ASSERT_STREQ(win_dir_path, test_dir_path);
 }
 
+/*! \brief test for \ref unix_to_alternative_filename */
 TEST(dokan_tool_test, unix_to_alternative_filename)
 {
 	WCHAR win_name[MAX_PATH];

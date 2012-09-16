@@ -1,4 +1,6 @@
-/*! \file \brief Dokan interface support functions */
+/*! \file dokan_tools.c
+ *  \brief Dokan interface helper functions
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -32,9 +34,21 @@
 #include "log.h"
 
 
+/*! \brief constant for windows directory delimiter */
 static const wchar_t windows_dir_delimiter[] = L"\\";
+
+/*! \brief constant for unix directory delimiter */
 static const char unix_dir_delimiter[] = "/";
 
+
+/*!
+ *  \brief Splits \p file_path to \p directory_path and \p file_name. Converts windows dir separator to unix dir separator.
+ *
+ *  \p dir_path and \p file_name must be at least MAX_PATH long 
+ *  \param file_path is LPCWSTR
+ *  \param dir_path is char *
+ *  \param file_name is char *
+ */
 void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_name)
 {
 	// make local copy of file_path
@@ -106,6 +120,11 @@ void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_n
 	}
 }
 
+/*! \brief converts errors from zlomekFS to win32api errors 
+ *
+ *  \param err zlomekFS error
+ *  \return -1 * ERROR_* (win32api)
+*/
 int zfs_err_to_dokan_err(int32_t err)
 {
 	switch (err)
@@ -122,18 +141,33 @@ int zfs_err_to_dokan_err(int32_t err)
 	}
 }
 
+/*! \brief converts PDOKAN_FILE_INFO to zfs_cap
+ *
+ *  \param info is PDOKAN_FILE_INFO dokan info
+ *  \return zfs_cap (zlomekFS file handle)
+ */
 zfs_cap * dokan_file_info_to_cap(PDOKAN_FILE_INFO info)
 {
 	intptr_t context = info->Context;
 	return (zfs_cap *) context;
 }
 
+/*! \brief converts zfs_cap to PDOKAN_FILE_INFO
+ *
+ *  \param info PDOKAN_FILE_INFO dokan info
+ *  \param cap zfs_cap
+ */
 void cap_to_dokan_file_info(PDOKAN_FILE_INFO info, zfs_cap * cap)
 {
 	intptr_t context = (intptr_t) cap;
 	info->Context = context;
 }
 
+/*! \brief converts win32api access flags to unix access rights
+ *
+ *  \param flags output unix flags
+ *  \param desired_access win32api access flags
+ */
 void convert_dokan_access_to_flags(uint32_t * flags,  DWORD desired_access)
 {
 	if ((desired_access & GENERIC_READ || desired_access & FILE_READ_DATA)
@@ -162,38 +196,32 @@ void convert_dokan_access_to_flags(uint32_t * flags,  DWORD desired_access)
 	}
 }
 
+/*! \brief fill create_args with win32api access rights
+ *
+ *  \param args pointer to create_args (place where are access rights filled)
+ *  \param desired_access win32api access rights
+ */
 void create_args_fill_dokan_access(create_args * args, DWORD desired_access)
 {
 
-#if 0
-	ctx = fuse_req_ctx(req);
-	attr->mode = -1;
-	attr->uid = map_uid_node2zfs(ctx->uid);
-	attr->gid = map_gid_node2zfs(ctx->gid);
-	attr->size = -1;
-	attr->atime = -1;
-	attr->mtime = -1;
-#endif
-	/*
-	GENERIC_ALL, GENERIC_EXECUTE, GENERIC_READ, GENERIC_WRITE
-	*/
-
 	convert_dokan_access_to_flags(&args->flags, desired_access);
-
 }
 
-
+/*! \brief fill create_args with win32api shared mode
+ *
+ *  this function has empty implementation
+ *  \param args pointer to create_args
+ *  \param shared_mode win32api shared mode
+ */
 void create_args_fill_dokan_shared_mode( ATTRIBUTE_UNUSED create_args * args, ATTRIBUTE_UNUSED DWORD shared_mode)
 {
-	/*
-	0 Prevents other processes from opening a file or device if they request delete, read, or write access.
-	FILE_SHARE_DELETE Delete access allows both delete and rename operations.
-	FILE_SHARE_READ
-	FILE_SHARE_WRITE
-	*/
 }
 
-
+/*! \brief fill create_args with win32api access rights
+ *
+ *  \param args pointer to create_args
+ *  \param creation_disposition win32api creation disposition
+ */
 void create_args_fill_dokan_creation_disposition(create_args * args, DWORD creation_disposition)
 {
 	if (creation_disposition == CREATE_ALWAYS)
@@ -223,40 +251,22 @@ void create_args_fill_dokan_creation_disposition(create_args * args, DWORD creat
 	}
 }
 
-
+/*! \brief fill create_args with win32api flags and attributes
+ *
+ *  this function has empty implementation
+ *  \param args pointer to create_args
+ *  \param flags_and_attributes win32api flags and attributes
+ */
 void create_args_fill_dokan_flags_and_attributes(ATTRIBUTE_UNUSED create_args * args, ATTRIBUTE_UNUSED DWORD flags_and_attributes)
 {
-	/*
-	FILE_ATTRIBUTE_ARCHIVE
-	FILE_ATTRIBUTE_ENCRYPTED
-	FILE_ATTRIBUTE_HIDDEN
-	FILE_ATTRIBUTE_NORMAL
-	FILE_ATTRIBUTE_OFFLINE
-	FILE_ATTRIBUTE_READONLY
-	FILE_ATTRIBUTE_SYSTEM
-	FILE_ATTRIBUTE_TEMPORARY
-
-	FILE_FLAG_BACKUP_SEMANTICS
-	FILE_FLAG_DELETE_ON_CLOSE
-	FILE_FLAG_NO_BUFFERING
-	FILE_FLAG_OPEN_NO_RECALL
-	FILE_FLAG_OPEN_REPARSE_POINT
-	FILE_FLAG_OVERLAPPED
-	FILE_FLAG_POSIX_SEMANTICS
-	FILE_FLAG_RANDOM_ACCESS
-	FILE_FLAG_SEQUENTIAL_SCAN
-	FILE_FLAG_WRITE_THROUGH
-
-	SECURITY_ANONYMOUS
-	SECURITY_CONTEXT_TRACKING
-	SECURITY_DELEGATION
-	SECURITY_EFFECTIVE_ONLY
-	SECURITY_IDENTIFICATION
-	SECURITY_IMPERSONATION
-	*/
-
 }
 
+/*! \brief converts unix time to windows time
+ *
+ *  based on microsoft kb 167296
+ * \param ftime pointer to place where is windows time stored
+ * \param ztime unix time representation
+ */
 static void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
 {
 	if (ftime == NULL || ztime == ((zfs_time) - 1)) return;
@@ -268,6 +278,12 @@ static void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
 	ftime->dwHighDateTime = ll >> 32;
 }
 
+/*! \brief converts windows time to unix time
+ *
+ *  based on microsoft kb 167296
+ *  \param ztime pointer to place where is unix time stored
+ *  \param ftime pointer to windows time representation
+ */
 void filetime_to_zfstime(zfs_time * ztime, CONST FILETIME* ftime)
 {
 	if (ftime == NULL || ztime == NULL) return;
@@ -279,6 +295,11 @@ void filetime_to_zfstime(zfs_time * ztime, CONST FILETIME* ftime)
 
 }
 
+/*! \brief converts unix file type to win32api atributes
+ *
+ *  \param type unix file type
+ *  \return win32api attributes
+ */
 static DWORD ftype_to_file_attrs(ftype type)
 {
 	switch (type)
@@ -298,6 +319,11 @@ static DWORD ftype_to_file_attrs(ftype type)
 	}
 }
 
+/*! \brief converts zlomekFS fattr to win32api FILE INFORMATION
+ *
+ *  \param buffer pointer to place where is file information stored
+ *  \param fa zlomekFS fattr
+ */
 void fattr_to_file_information(LPBY_HANDLE_FILE_INFORMATION buffer, fattr * fa)
 {
 	memset(buffer, 0, sizeof(*buffer));
@@ -311,21 +337,20 @@ void fattr_to_file_information(LPBY_HANDLE_FILE_INFORMATION buffer, fattr * fa)
 		buffer->dwFileAttributes |= FILE_ATTRIBUTE_READONLY;
 	}
 
-	//zfstime_to_filetime(&buffer->ftCreationTime, fa->ctime);
+	// use mtime instead of ctime (ctime cannot be altered by POSIX API)
 	zfstime_to_filetime(&buffer->ftCreationTime, fa->mtime);
 	zfstime_to_filetime(&buffer->ftLastAccessTime, fa->atime);
 	zfstime_to_filetime(&buffer->ftLastWriteTime, fa->mtime);
 
 	buffer->dwVolumeSerialNumber = ZFS_VOLUME_SERIAL_NUMBER;
 	buffer->nNumberOfLinks = fa->nlink;
-#if 0
-	buffer->nFileIndexHigh;
-	buffer->nFileIndexLow;
-
-#endif
-
 }
 
+/*! \brief converts zlomekFS fattr to win32api PWIN32_FIND_DATAW
+ *
+ *  \param data pointer to place where is PWIN32_FIND_DATAW
+ *  \param fa zlomekFS fattr
+ */
 void fattr_to_find_dataw(PWIN32_FIND_DATAW data, fattr * fa)
 {
 	memset(data, 0, sizeof(*data));
@@ -347,21 +372,14 @@ void fattr_to_find_dataw(PWIN32_FIND_DATAW data, fattr * fa)
 	zfstime_to_filetime(&data->ftCreationTime, fa->ctime);
 	zfstime_to_filetime(&data->ftLastAccessTime, fa->atime);
 	zfstime_to_filetime(&data->ftLastWriteTime, fa->mtime);
-
-#if 0
-	DWORD dwReserved0;
-	DWORD dwReserved1;
-	WCHAR  cFileName[ MAX_PATH ];
-	WCHAR  cAlternateFileName[ 14 ]
-#ifdef _MAC
-	DWORD dwFileType;
-	DWORD dwCreatorType;
-	WORD  wFinderFlags;
-#endif
-#endif
-
 }
 
+/*! \brief converts UTF-8 encoded filename to UTF-16 encoded filename
+ *
+ *  \param unix_filename UTF-8 filename
+ *  \param windows_filename UTF-16 filename representation
+ *  \param windows_filename_len length of windows_filename
+ */
 void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filename, int windows_filename_len)
 {
 	int rv = MultiByteToWideChar(
@@ -387,6 +405,13 @@ void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filenam
 
 }
 
+/*! \brief converts UTF-8 encoded filename to UTF-16 encoded  8.3 filename
+ *
+ *  converts long file name to short filename. This is done unique filename is made from:
+ *  filename_prefix~hex_encoded_inode_id.shorted_file_extension
+ *  \param dir_entry directory entry
+ *  \param windows_filename UTF-16 filename representation (must be at least 13 character long)
+ */
 void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 {
 	size_t name_len = strlen(entry->name.str);
@@ -432,8 +457,13 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	unix_to_windows_filename(file_name_final, windows_filename, 13);
 }
 
-// for debugging purpose
 #if 0
+// for debugging purpose
+/*! \brief converts create disposition constant to string representation
+ *
+ *  \param creation_disposition win32api create disposition
+ *  \return string representation of win32api create disposition
+ */
 static const char * creation_disposition_to_str(DWORD creation_disposition)
 {
 	if (creation_disposition == CREATE_NEW)
@@ -453,5 +483,4 @@ static const char * creation_disposition_to_str(DWORD creation_disposition)
 	return "";
 }
 #endif
-
 

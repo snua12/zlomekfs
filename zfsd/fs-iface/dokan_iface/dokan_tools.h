@@ -1,4 +1,6 @@
-/*! \file \brief Dokan interface support functions */
+/*! \file dokan_tools.h
+ *  \brief Dokan interface helper functions
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -33,10 +35,9 @@
 extern "C" {
 #endif 
 
+/*! \brief serial number of exported volume */
 #define ZFS_VOLUME_SERIAL_NUMBER 0xdeadbeef
 
-/// splits file_path to directory path and file name. Converts windows dir separator to unix dir separator
-/// dir_path and file_name must be at least MAX_PATH long 
 void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_name);
 
 int zfs_err_to_dokan_err(int32_t err);
