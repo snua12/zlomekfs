@@ -22,9 +22,6 @@
 #ifndef DOKAN_IFACE_H
 #define DOKAN_IFACE_H
 
-extern void kernel_unmount(void);
-extern bool kernel_start(void);
-extern void kernel_cleanup(void);
-
+// nothing there
 
 #endif

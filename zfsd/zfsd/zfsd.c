@@ -460,7 +460,7 @@ static int zfs_start_services(zfs_started_services * services)
 	}
 
 #ifdef ENABLE_FS_INTERFACE
-	services->kernel_started = kernel_start();
+	services->kernel_started = fs_start();
 #endif
 
 	zfsd_set_state(ZFSD_STATE_RUNNING);
@@ -496,7 +496,7 @@ static void zfs_stop_services(zfs_started_services * services)
 
 #ifdef ENABLE_FS_INTERFACE
 	if (services->kernel_started)
-		kernel_cleanup();
+		fs_cleanup();
 #endif
 }
 

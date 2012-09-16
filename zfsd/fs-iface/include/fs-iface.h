@@ -36,14 +36,19 @@
 #endif
 #endif
 
-extern bool fs_mount(void);
-extern void fs_umount(void);
+/*! Export filesystem to OS */
+extern bool fs_start(void);
+
+/*! Disconnect filesystem from OS */
+extern void fs_unmount(void);
+
+/*! Cleanup filesystem interface internal structures */
 extern void fs_cleanup(void);
 
-/* ! Invalidate dentry DENTRY in kernel dentry cache.  */
+/*! Invalidate file handle DENTRY in kernel dentry cache.  */
 extern int32_t fs_invalidate_fh(zfs_fh * fh);
 
-/* ! Invalidate file handle DENTRY in kernel dentry cache.  */
+/*! Invalidate dentry DENTRY in kernel dentry cache.  */
 extern int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p);
 
 

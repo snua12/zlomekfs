@@ -1305,13 +1305,13 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 	return NULL;
 }
 
-bool kernel_start(void)
+bool fs_start(void)
 {
 	int rv = pthread_create(&dokan_thread, NULL, dokan_main, NULL);
 	return (rv != -1);
 }
 
-void kernel_unmount(void)
+void fd_unmount(void)
 {
 	if (mounted)
 	{
@@ -1319,7 +1319,7 @@ void kernel_unmount(void)
 	}
 }
 
-void kernel_cleanup(void)
+void fs_cleanup(void)
 {
 	// nothing to do there
 }

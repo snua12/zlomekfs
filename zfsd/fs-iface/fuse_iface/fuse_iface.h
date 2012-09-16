@@ -34,8 +34,4 @@ extern struct fuse_args main_args;
 /* ! Pool of kernel threads (threads communicating with kernel).  */
 extern thread_pool kernel_pool;
 
-extern void kernel_unmount(void);
-extern bool kernel_start(void);
-extern void kernel_cleanup(void);
-
 #endif

@@ -1821,7 +1821,7 @@ void fd_data_destroy(void)
 	zfsd_mutex_unlock(&active_mutex);
 	zfsd_mutex_destroy(&active_mutex);
 
-	kernel_unmount();
+	fs_unmount();
 
 	for (i = 0; i < max_nfd; i++)
 	{

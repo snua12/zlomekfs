@@ -216,7 +216,7 @@ static pthread_mutex_t fuse_req_buf_pool_mutex = ZFS_MUTEX_INITIALIZER;
 
 /* ! Unmount the FUSE mountpoint and destroy data structures used by it.  */
 
-void kernel_unmount(void)
+void fs_unmount(void)
 {
 	if (!mounted)
 		return;
@@ -1272,7 +1272,7 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 		kernel_dispatch(ch_copy, fuse_req_buf, recv_res);
 	}
 
-	kernel_unmount();
+	fs_unmount();
 
 	if (!thread_pool_terminate_p(&kernel_pool))
 	{
@@ -1288,7 +1288,7 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 }
 
 /* ! Open the FUSE mount and start the main kernel thread.  */
-bool kernel_start(void)
+bool fs_start(void)
 {
 	fuse_ino_t root_ino;
 
@@ -1323,7 +1323,7 @@ bool kernel_start(void)
 	if (!thread_pool_create(&kernel_pool, &zfs_config.threads.kernel_thread_limit, kernel_main,
 							kernel_worker, kernel_worker_init))
 	{
-		kernel_unmount();
+		fs_unmount();
 		return false;
 	}
 
@@ -1337,7 +1337,7 @@ bool kernel_start(void)
 
 /* ! Terminate kernel threads and destroy data structures.  */
 
-void kernel_cleanup(void)
+void fs_cleanup(void)
 {
 	thread_pool_destroy(&kernel_pool);
 
