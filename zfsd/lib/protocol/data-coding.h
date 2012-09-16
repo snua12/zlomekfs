@@ -30,24 +30,24 @@
 #include <netinet/in.h>
 #include <stdio.h>
 
-/* ! Maximal length of request / reply.  */
+/*! Maximal length of request / reply.  */
 #define ZFS_DC_SIZE 8888
 
-/* ! Maximal number of DC structures for a file decriptor.  */
+/*! Maximal number of DC structures for a file decriptor.  */
 #define MAX_FREE_DCS 8
 
-/* ! \brief Data coding buffer.  */
+/*! \brief Data coding buffer.  */
 typedef struct data_coding_def
 {
-	char *buffer;				/* !< data aligned to 16 */
-	char *cur_pos;				/* !< current position to buffer while
+	char *buffer;				/*!< data aligned to 16 */
+	char *cur_pos;				/*!< current position to buffer while
 								   encoding/decoding */
-	unsigned int max_length;	/* !< maximal valid index to buffer */
-	unsigned int cur_length;	/* !< current index to buffer */
+	unsigned int max_length;	/*!< maximal valid index to buffer */
+	unsigned int cur_length;	/*!< current index to buffer */
 	char data[ZFS_DC_SIZE + 15];
 } DC;
 
-/* ! Align a number to be a multiple of 2, 4, 8, 16, 256.  */
+/*! Align a number to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_1(N) (N)
 #define ALIGN_2(N) (((N) + 1) & ~1)
 #define ALIGN_4(N) (((N) + 3) & ~3)
@@ -55,7 +55,7 @@ typedef struct data_coding_def
 #define ALIGN_16(N) (((N) + 15) & ~15)
 #define ALIGN_256(N) (((N) + 255) & ~255)
 
-/* ! Align a pointer to be a multiple of 2, 4, 8, 16, 256.  */
+/*! Align a pointer to be a multiple of 2, 4, 8, 16, 256.  */
 #define ALIGN_PTR_1(P) ((void *) ALIGN_1 ((uintptr_t) (P)))
 #define ALIGN_PTR_2(P) ((void *) ALIGN_2 ((uintptr_t) (P)))
 #define ALIGN_PTR_4(P) ((void *) ALIGN_4 ((uintptr_t) (P)))
@@ -63,7 +63,7 @@ typedef struct data_coding_def
 #define ALIGN_PTR_16(P) ((void *) ALIGN_16 ((uintptr_t) (P)))
 #define ALIGN_PTR_256(P) ((void *) ALIGN_256 ((uintptr_t) (P)))
 
-/* ! Extract the I-th byte of the number.  */
+/*! Extract the I-th byte of the number.  */
 #define byte0(X) ((unsigned char) (X))
 #define byte1(X) ((unsigned char) ((X) >> 8))
 #define byte2(X) ((unsigned char) ((X) >> 16))
@@ -73,7 +73,7 @@ typedef struct data_coding_def
 #define byte6(X) ((unsigned char) ((X) >> 48))
 #define byte7(X) ((unsigned char) ((X) >> 56))
 
-/* ! Define the byte order conversion macros.  */
+/*! Define the byte order conversion macros.  */
 #ifndef BYTE_ORDER
 
 #error BYTE_ORDER is not defined

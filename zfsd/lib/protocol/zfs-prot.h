@@ -1,4 +1,4 @@
-/* ! \file \brief ZFS protocol.  */
+/*! \file \brief ZFS protocol.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek Copyright (C) 2004 Martin Zlomek
 
@@ -37,45 +37,45 @@
 #define ZFS_MAX_MD5_CHUNKS (ZFS_MAXDATA / (MD5_SIZE + 2 * sizeof (uint64_t)))
 #define ZFS_MAX_DIR_ENTRIES (ZFS_MAXDATA / (4 * sizeof (uint32_t)))
 
-/* ! Error codes. System errors have positive numbers, ZFS errors have
+/*! Error codes. System errors have positive numbers, ZFS errors have
    negative numbers.  */
 #define ZFS_OK			0
-#define ZFS_REQUEST_TOO_LONG	-1	/* !< Request was too long.  */
-#define ZFS_INVALID_REQUEST	-2	/* !< Request was not well encoded. */
-#define ZFS_UNKNOWN_FUNCTION	-3	/* !< Unknown function in request.  */
-#define ZFS_INVALID_AUTH_LEVEL	-4	/* !< Remote node has not authenticated
+#define ZFS_REQUEST_TOO_LONG	-1	/*!< Request was too long.  */
+#define ZFS_INVALID_REQUEST	-2	/*!< Request was not well encoded. */
+#define ZFS_UNKNOWN_FUNCTION	-3	/*!< Unknown function in request.  */
+#define ZFS_INVALID_AUTH_LEVEL	-4	/*!< Remote node has not authenticated
 									   enough yet.  */
-#define ZFS_INVALID_DIRECTION	-5	/* !< Different direction to direction
+#define ZFS_INVALID_DIRECTION	-5	/*!< Different direction to direction
 									   expected by function.  */
-#define ZFS_STALE		-20		/* !< zfs_fh could not be found.  */
-#define ZFS_BUSY		-21		/* !< file handle is being reintegrated */
-#define ZFS_CHANGED		-22		/* !< The file has changed while doing
+#define ZFS_STALE		-20		/*!< zfs_fh could not be found.  */
+#define ZFS_BUSY		-21		/*!< file handle is being reintegrated */
+#define ZFS_CHANGED		-22		/*!< The file has changed while doing
 								   operation.  */
-#define ZFS_SLOW_BUSY	-23		/* !< Operation terminated because slow
+#define ZFS_SLOW_BUSY	-23		/*!< Operation terminated because slow
 								   connection is busy */
-#define ZFS_METADATA_ERROR	-50	/* !< Error when accessing file containing
+#define ZFS_METADATA_ERROR	-50	/*!< Error when accessing file containing
 								   metadata.  */
-#define ZFS_UPDATE_FAILED	-51	/* !< Error while updating a file.  */
-#define ZFS_LAST_DECODED_ERROR	-99	/* !< Code of last error which is being
+#define ZFS_UPDATE_FAILED	-51	/*!< Error while updating a file.  */
+#define ZFS_LAST_DECODED_ERROR	-99	/*!< Code of last error which is being
 									   decoded from DC */
 
-#define ZFS_REPLY_TOO_LONG	-100	/* !< Reply was too long.  */
-#define ZFS_INVALID_REPLY	-101	/* !< Reply was not well encoded. */
-#define ZFS_ERROR_HAS_DC_REPLY	-150	/* !< Code of last error which has a
+#define ZFS_REPLY_TOO_LONG	-100	/*!< Reply was too long.  */
+#define ZFS_INVALID_REPLY	-101	/*!< Reply was not well encoded. */
+#define ZFS_ERROR_HAS_DC_REPLY	-150	/*!< Code of last error which has a
 										   DC_REPLY.  */
 
-#define ZFS_EXITING		-151	/* !< zfsd is exiting */
-#define ZFS_COULD_NOT_CONNECT	-152	/* !< Could not connect to node.  */
-#define ZFS_COULD_NOT_AUTH	-153	/* !< Could not authenticate with node.  */
-#define ZFS_CONNECTION_CLOSED	-154	/* !< Connection closed while waiting
+#define ZFS_EXITING		-151	/*!< zfsd is exiting */
+#define ZFS_COULD_NOT_CONNECT	-152	/*!< Could not connect to node.  */
+#define ZFS_COULD_NOT_AUTH	-153	/*!< Could not authenticate with node.  */
+#define ZFS_CONNECTION_CLOSED	-154	/*!< Connection closed while waiting
 										   for reply.  */
-#define ZFS_REQUEST_TIMEOUT	-155	/* !< Request has timed out.  */
+#define ZFS_REQUEST_TIMEOUT	-155	/*!< Request has timed out.  */
 
 typedef enum direction_def
 {
-	DIR_REQUEST,				/* !< Request which wants a reply.  */
-	DIR_REPLY,					/* !< Reply to request.  */
-	DIR_ONEWAY,					/* !< Request which does not want a reply.  */
+	DIR_REQUEST,				/*!< Request which wants a reply.  */
+	DIR_REPLY,					/*!< Reply to request.  */
+	DIR_ONEWAY,					/*!< Request which does not want a reply.  */
 	DIR_LAST_AND_UNUSED
 } direction;
 
@@ -98,7 +98,7 @@ typedef enum ftype_def
 	FT_LAST_AND_UNUSED
 } ftype;
 
-/* ! Connection speed. */
+/*! Connection speed. */
 typedef enum connection_speed_def
 {
 	CONNECTION_SPEED_NONE = 0,
@@ -109,11 +109,11 @@ typedef enum connection_speed_def
 
 typedef struct zfs_fh_def
 {
-	uint32_t sid;				/* !< Server ID.  */
-	uint32_t vid;				/* !< Volume ID.  */
-	uint32_t dev;				/* !< Device number of the file. */
-	uint32_t ino;				/* !< Inode number of the file.  */
-	uint32_t gen;				/* !< Generation of the file.  */
+	uint32_t sid;				/*!< Server ID.  */
+	uint32_t vid;				/*!< Volume ID.  */
+	uint32_t dev;				/*!< Device number of the file. */
+	uint32_t ino;				/*!< Inode number of the file.  */
+	uint32_t gen;				/*!< Generation of the file.  */
 } zfs_fh;
 
 typedef struct zfs_cap_def
@@ -220,7 +220,7 @@ typedef struct dir_list_def
 {
 	uint32_t n;
 	char eof;
-	void *buffer;				/* !< For internal use in zfsd.  */
+	void *buffer;				/*!< For internal use in zfsd.  */
 } dir_list;
 
 typedef struct read_dir_res_def
@@ -320,7 +320,7 @@ typedef struct md5sum_args_def
 typedef struct md5sum_res_def
 {
 	uint32_t count;
-	uint32_t padding0;			/* !< workaround GDB bug */
+	uint32_t padding0;			/*!< workaround GDB bug */
 	uint64_t size;
 	uint64_t version;
 	uint64_t offset[ZFS_MAX_MD5_CHUNKS];
@@ -405,10 +405,10 @@ typedef union call_args_def
 	reintegrate_args reintegrate;
 } call_args;
 
-/* ! Mapping file type -> file mode.  */
+/*! Mapping file type -> file mode.  */
 extern unsigned int ftype2mode[FT_LAST_AND_UNUSED];
 
-/* ! Function numbers.  */
+/*! Function numbers.  */
 enum function_number_def
 {
 #define ZFS_CALL_CLIENT
@@ -453,7 +453,7 @@ struct node_def;
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-/* ! Call statistics.  */
+/*! Call statistics.  */
 extern uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];
 
 extern const char *zfs_strerror(int32_t errnum);

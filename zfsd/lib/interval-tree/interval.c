@@ -1,4 +1,4 @@
-/* ! \file \brief Disjoint interval tree datatype.  */
+/*! \file \brief Disjoint interval tree datatype.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -18,7 +18,7 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
-/* ! This file contains the datastructure which remembers disjoint intervals.
+/*! This file contains the datastructure which remembers disjoint intervals.
    When inserting an interval which overlaps with some interval which is
    already in the tree the intervals are merged into one interval.  */
 
@@ -38,18 +38,18 @@
 #include "data-coding.h"
 #include "varray.h"
 
-/* ! Number of intervals being read/written using 1 syscall.  */
+/*! Number of intervals being read/written using 1 syscall.  */
 #define INTERVAL_COUNT 1024
 
-/* ! Return the maximum of X and Y.  */
+/*! Return the maximum of X and Y.  */
 #undef MAX
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-/* ! Return the minimum of X and Y.  */
+/*! Return the minimum of X and Y.  */
 #undef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
-/* ! Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
+/*! Create the interval tree, allocate nodes in blocks of PREFERRED_SIZE.  */
 
 interval_tree
 interval_tree_create(unsigned int preferred_size, pthread_mutex_t * mutex)
@@ -67,7 +67,7 @@ interval_tree_create(unsigned int preferred_size, pthread_mutex_t * mutex)
 	return t;
 }
 
-/* ! Destroy the interval tree TREE.  */
+/*! Destroy the interval tree TREE.  */
 
 void interval_tree_destroy(interval_tree tree)
 {
@@ -77,7 +77,7 @@ void interval_tree_destroy(interval_tree tree)
 	free(tree);
 }
 
-/* ! Empty the interval tree TREE.  */
+/*! Empty the interval tree TREE.  */
 
 void interval_tree_empty(interval_tree tree)
 {
@@ -89,7 +89,7 @@ void interval_tree_empty(interval_tree tree)
 	splay_tree_empty(tree->splay);
 }
 
-/* ! Insert the interval [START, END) into TREE.  */
+/*! Insert the interval [START, END) into TREE.  */
 
 interval_tree_node
 interval_tree_insert(interval_tree tree, uint64_t start, uint64_t end)
@@ -158,7 +158,7 @@ interval_tree_insert(interval_tree tree, uint64_t start, uint64_t end)
 	return node;
 }
 
-/* ! Return interval containing VALUE or first next interval after VALUE.  */
+/*! Return interval containing VALUE or first next interval after VALUE.  */
 
 interval_tree_node interval_tree_lookup(interval_tree tree, uint64_t value)
 {
@@ -180,7 +180,7 @@ interval_tree_node interval_tree_lookup(interval_tree tree, uint64_t value)
 	return splay_tree_successor(tree->splay, value);
 }
 
-/* ! Delete the interval [START, END) from TREE.  */
+/*! Delete the interval [START, END) from TREE.  */
 
 void interval_tree_delete(interval_tree tree, uint64_t start, uint64_t end)
 {
@@ -247,7 +247,7 @@ void interval_tree_delete(interval_tree tree, uint64_t start, uint64_t end)
 	}
 }
 
-/* ! Insert interval represented by node NODE to tree DATA.  */
+/*! Insert interval represented by node NODE to tree DATA.  */
 
 static int interval_tree_add_1(splay_tree_node node, void *data)
 {
@@ -257,14 +257,14 @@ static int interval_tree_add_1(splay_tree_node node, void *data)
 	return 0;
 }
 
-/* ! Add the intervals in TREE2 to TREE1.  */
+/*! Add the intervals in TREE2 to TREE1.  */
 
 void interval_tree_add(interval_tree tree1, interval_tree tree2)
 {
 	splay_tree_foreach(tree2->splay, interval_tree_add_1, tree1);
 }
 
-/* ! Delete interval represented by node NODE from tree DATA.  */
+/*! Delete interval represented by node NODE from tree DATA.  */
 
 static int interval_tree_sub_1(splay_tree_node node, void *data)
 {
@@ -277,14 +277,14 @@ static int interval_tree_sub_1(splay_tree_node node, void *data)
 	return tree->splay->root == NULL;
 }
 
-/* ! Delete the intervals in TREE2 from TREE1.  */
+/*! Delete the intervals in TREE2 from TREE1.  */
 
 void interval_tree_sub(interval_tree tree1, interval_tree tree2)
 {
 	splay_tree_foreach(tree2->splay, interval_tree_sub_1, tree1);
 }
 
-/* ! Return the first interval from tree TREE.  */
+/*! Return the first interval from tree TREE.  */
 
 interval_tree_node interval_tree_min(interval_tree tree)
 {
@@ -293,7 +293,7 @@ interval_tree_node interval_tree_min(interval_tree tree)
 	return splay_tree_min(tree->splay);
 }
 
-/* ! Return the last interval from tree TREE.  */
+/*! Return the last interval from tree TREE.  */
 
 interval_tree_node interval_tree_max(interval_tree tree)
 {
@@ -302,7 +302,7 @@ interval_tree_node interval_tree_max(interval_tree tree)
 	return splay_tree_max(tree->splay);
 }
 
-/* ! Return the interval whose start is lower than KEY.  */
+/*! Return the interval whose start is lower than KEY.  */
 
 interval_tree_node interval_tree_predecessor(interval_tree tree, uint64_t key)
 {
@@ -311,7 +311,7 @@ interval_tree_node interval_tree_predecessor(interval_tree tree, uint64_t key)
 	return splay_tree_predecessor(tree->splay, key);
 }
 
-/* ! Return the interval whose start is greater than KEY.  */
+/*! Return the interval whose start is greater than KEY.  */
 
 interval_tree_node interval_tree_successor(interval_tree tree, uint64_t key)
 {
@@ -320,7 +320,7 @@ interval_tree_node interval_tree_successor(interval_tree tree, uint64_t key)
 	return splay_tree_successor(tree->splay, key);
 }
 
-/* ! Return true if interval [START, END) is covered by the tree TREE.  */
+/*! Return true if interval [START, END) is covered by the tree TREE.  */
 
 bool interval_tree_covered(interval_tree tree, uint64_t start, uint64_t end)
 {
@@ -337,7 +337,7 @@ bool interval_tree_covered(interval_tree tree, uint64_t start, uint64_t end)
 	return (end <= INTERVAL_END(node));
 }
 
-/* ! Read N intervals of interval tree TREE from file descriptor FD. Position
+/*! Read N intervals of interval tree TREE from file descriptor FD. Position
    in FD should be at the beginning.  */
 
 bool interval_tree_read(interval_tree tree, int fd, uint64_t n)
@@ -367,17 +367,17 @@ bool interval_tree_read(interval_tree tree, int fd, uint64_t n)
 	return true;
 }
 
-/* ! \brief Data used by interval_tree_write_*.  */
+/*! \brief Data used by interval_tree_write_*.  */
 typedef struct interval_tree_write_data_def
 {
-	/* ! Number of intervals.  */
+	/*! Number of intervals.  */
 	int n;
 
-	/* ! Intervals.  */
+	/*! Intervals.  */
 	interval intervals[INTERVAL_COUNT];
 } interval_tree_write_data;
 
-/* ! Add interval contained in NODE to buffer DATA and if the buffer is full
+/*! Add interval contained in NODE to buffer DATA and if the buffer is full
    write if to file descriptor FD.  */
 
 static bool
@@ -417,7 +417,7 @@ interval_tree_write_1(interval_tree_node node, int fd,
 	return true;
 }
 
-/* ! Write the contents of interval tree TREE to file descriptor FD. Position
+/*! Write the contents of interval tree TREE to file descriptor FD. Position
    in FD should be at the beginning and FD should be truncated.  */
 
 bool interval_tree_write(interval_tree tree, int fd)
@@ -446,7 +446,7 @@ bool interval_tree_write(interval_tree tree, int fd)
 	return r;
 }
 
-/* ! Add the intersections of interval [START, END) with interval tree TREE to 
+/*! Add the intersections of interval [START, END) with interval tree TREE to 
    varray DEST.  */
 
 static void
@@ -477,7 +477,7 @@ interval_tree_intersection_1(interval_tree tree, uint64_t start, uint64_t end,
 	}
 }
 
-/* ! Store the intersection of interval [START, END) with interval tree TREE
+/*! Store the intersection of interval [START, END) with interval tree TREE
    to varray DEST.  */
 
 void
@@ -490,7 +490,7 @@ interval_tree_intersection(interval_tree tree, uint64_t start, uint64_t end,
 	interval_tree_intersection_1(tree, start, end, dest);
 }
 
-/* ! Store the intersection of intervals in varray SRC with interval tree TREE
+/*! Store the intersection of intervals in varray SRC with interval tree TREE
    to varray DEST.  */
 
 void
@@ -511,7 +511,7 @@ interval_tree_intersection_varray(interval_tree tree, varray * src,
 	}
 }
 
-/* ! Add the parts of interval [START, END) which are not in TREE to varray
+/*! Add the parts of interval [START, END) which are not in TREE to varray
    DEST.  */
 
 static void
@@ -558,7 +558,7 @@ interval_tree_complement_1(interval_tree tree, uint64_t start, uint64_t end,
 	}
 }
 
-/* ! Store the parts of interval [START, END) which are not in TREE to varray
+/*! Store the parts of interval [START, END) which are not in TREE to varray
    DEST.  */
 
 void
@@ -571,7 +571,7 @@ interval_tree_complement(interval_tree tree, uint64_t start, uint64_t end,
 	interval_tree_complement_1(tree, start, end, dest);
 }
 
-/* ! Store the intersection of intervals in varray SRC with interval tree TREE
+/*! Store the intersection of intervals in varray SRC with interval tree TREE
    to varray DEST.  */
 
 void
@@ -592,7 +592,7 @@ interval_tree_complement_varray(interval_tree tree, varray * src,
 	}
 }
 
-/* ! Print the interval in NODE to file DATA.  */
+/*! Print the interval in NODE to file DATA.  */
 static int print_interval_tree_node(splay_tree_node node, void *data)
 {
 	FILE *f = (FILE *) data;
@@ -605,14 +605,14 @@ static int print_interval_tree_node(splay_tree_node node, void *data)
 	return 0;
 }
 
-/* ! Print the contents of interval tree TREE to file F.  */
+/*! Print the contents of interval tree TREE to file F.  */
 
 void print_interval_tree(FILE * f, interval_tree tree)
 {
 	splay_tree_foreach(tree->splay, print_interval_tree_node, f);
 }
 
-/* ! Print the contents of interval tree TREE to STDERR.  */
+/*! Print the contents of interval tree TREE to STDERR.  */
 
 void debug_interval_tree(interval_tree tree)
 {

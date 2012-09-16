@@ -19,10 +19,10 @@
 #include "config_volume.h"
 #include "reread_config.h"
 
-/* ! Has the config reader already terminated? */
+/*! Has the config reader already terminated? */
 static pthread_barrier_t reading_cluster_config_barier;
 
-/* ! Invalidate configuration.  */
+/*! Invalidate configuration.  */
 
 static void invalidate_config(void)
 {
@@ -40,7 +40,7 @@ static void invalidate_config(void)
 }
 
 
-/* ! Verify configuration, fix what can be fixed. Return false if there
+/*! Verify configuration, fix what can be fixed. Return false if there
    remains something which can't be fixed.  */
 
 static bool verify_config(void)
@@ -264,7 +264,7 @@ static bool read_shared_config()
 	return true;
 }
 
-/* ! Thread for reading a configuration.  */
+/*! Thread for reading a configuration.  */
 static void *config_reader(void *data)
 {
 	thread *t = (thread *) data;
@@ -307,8 +307,8 @@ static void *config_reader(void *data)
 	return NULL;
 }
 
-/* ! Read global configuration of the cluster from config volume.  */
-/* ! Read configuration of the cluster - nodes, volumes, ... */
+/*! Read global configuration of the cluster from config volume.  */
+/*! Read configuration of the cluster - nodes, volumes, ... */
 static bool read_global_cluster_config(void)
 {
 	semaphore_init(&zfs_config.config_reader_data.sem, 0);

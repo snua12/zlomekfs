@@ -1,7 +1,7 @@
 #ifndef DBUS_PROVIDER_H
 #define DBUS_PROVIDER_H
 
-/* ! \file \brief Dbus universal listener api.  */
+/*! \file \brief Dbus universal listener api.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 

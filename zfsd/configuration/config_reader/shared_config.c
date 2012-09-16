@@ -11,7 +11,7 @@
 #include "config_iface.h"
 
 
-/* ! \brief initializes volume entry */
+/*! \brief initializes volume entry */
 static void volume_entry_init(volume_entry * ve)
 {
 	ve->id = VOLUME_ID_VIRTUAL;

@@ -1,4 +1,4 @@
-/* ! \file \brief Configuration.  */
+/*! \file \brief Configuration.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -48,13 +48,13 @@
 #include "zfsd.h"
 #include "reread_config.h"
 
-/* ! Alloc pool for allocating nodes of reread config chain.  */
+/*! Alloc pool for allocating nodes of reread config chain.  */
 alloc_pool reread_config_pool;
 
-/* ! Mutex protecting the reread_config chain and alloc pool.  */
+/*! Mutex protecting the reread_config chain and alloc pool.  */
 pthread_mutex_t reread_config_mutex = ZFS_MUTEX_INITIALIZER;
 
-/* ! Initialize data structures in CONFIG.C.  */
+/*! Initialize data structures in CONFIG.C.  */
 
 void initialize_config_c(void)
 {
@@ -66,7 +66,7 @@ void initialize_config_c(void)
 							&reread_config_mutex);
 }
 
-/* ! Destroy data structures in CONFIG.C.  */
+/*! Destroy data structures in CONFIG.C.  */
 
 void cleanup_config_c(void)
 {

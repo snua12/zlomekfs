@@ -1,4 +1,4 @@
-/* ! \file \brief Directory tests*/
+/*! \file \brief Directory tests*/
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 

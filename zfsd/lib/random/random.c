@@ -1,4 +1,4 @@
-/* ! \file \brief Random bytes.  */
+/*! \file \brief Random bytes.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -27,13 +27,13 @@
 #include <stdlib.h>
 #include "random.h"
 
-/* ! File descriptor for /dev/random.  */
+/*! File descriptor for /dev/random.  */
 int fd_random = -1;
 
-/* ! File descriptor for /dev/urandom.  */
+/*! File descriptor for /dev/urandom.  */
 int fd_urandom = -1;
 
-/* ! Initialize random bytes.  */
+/*! Initialize random bytes.  */
 
 bool initialize_random_c(void)
 {
@@ -54,7 +54,7 @@ bool initialize_random_c(void)
 	return true;
 }
 
-/* ! Close files opened in init_random_c.  */
+/*! Close files opened in init_random_c.  */
 
 void cleanup_random_c(void)
 {

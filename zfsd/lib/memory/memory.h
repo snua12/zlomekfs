@@ -1,4 +1,4 @@
-/* ! \file \brief Memory management functions.  */
+/*! \file \brief Memory management functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -31,11 +31,11 @@ extern "C"
 {
 #endif
 
-	/* ! \brief String type.  */
+	/*! \brief String type.  */
 	typedef struct string_def
 	{
-		uint32_t len;			/* !< Length of the string.  */
-		char *str;				/* !< The string itself.  */
+		uint32_t len;			/*!< Length of the string.  */
+		char *str;				/*!< The string itself.  */
 	} string;
 
 #define STRING_EMPTY_INITIALIZER {.len = 0, .str = ""}
@@ -64,7 +64,7 @@ extern "C"
 	extern uint32_t stringlen(string * str);
 	extern bool stringeq(string * str1, string * str2);
 
-	/* ! Split the line by ':', trim the resulting parts, fill up to N parts to
+	/*! Split the line by ':', trim the resulting parts, fill up to N parts to
 	   PARTS and return the total number of parts.  */
 	extern uint32_t split_and_trim(char *line, int n, string * parts);
 

@@ -1,4 +1,4 @@
-/* ! \file \brief Volume functions.  */
+/*! \file \brief Volume functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -34,10 +34,10 @@ extern "C"
 {
 #endif
 
-/* ! Mark the volume to delete it.  */
+/*! Mark the volume to delete it.  */
 #define MARK_VOLUME_DELETE(VOL) (VOL)->delete_p = true
 
-/* ! \brief Volume description.  */
+/*! \brief Volume description.  */
 struct volume_def
 {
 #ifdef ENABLE_CHECKING
@@ -46,44 +46,44 @@ struct volume_def
 #endif
 
 	pthread_mutex_t mutex;
-	uint32_t id;				/* !< ID of the volume */
-	node master;				/* !< master node of the volume */
-	htab_t slaves;				/* !< nodes whose master is this node */
-	string name;				/* !< name of the volume */
-	string mountpoint;			/* !< "mountpoint" of the volume on cluster fs 
+	uint32_t id;				/*!< ID of the volume */
+	node master;				/*!< master node of the volume */
+	htab_t slaves;				/*!< nodes whose master is this node */
+	string name;				/*!< name of the volume */
+	string mountpoint;			/*!< "mountpoint" of the volume on cluster fs 
 								 */
 
-	bool delete_p;				/* !< Shall the volume be deleted? */
-	bool marked;				/* !< Is the volume marked? */
-	bool is_copy;				/* !< Is the volume a copy of remote volume? */
-	unsigned int n_locked_fhs;	/* !< number of locked file handles */
+	bool delete_p;				/*!< Shall the volume be deleted? */
+	bool marked;				/*!< Is the volume marked? */
+	bool is_copy;				/*!< Is the volume a copy of remote volume? */
+	unsigned int n_locked_fhs;	/*!< number of locked file handles */
 
-	string local_path;			/* !< directory with local copy of volume */
-	uint64_t size_limit;		/* !< size limit of a copy of the volume */
+	string local_path;			/*!< directory with local copy of volume */
+	uint64_t size_limit;		/*!< size limit of a copy of the volume */
 
-	uint32_t last_conflict_ino;	/* !< the inode number of conflict dir
+	uint32_t last_conflict_ino;	/*!< the inode number of conflict dir
 								   assigned for the last time */
-	internal_dentry root_dentry;	/* !< dentry of root on underlying FS.  */
-	virtual_dir root_vd;		/* !< virtual directory for the mountpoint */
-	hfile_t metadata;			/* !< hash file with metadata */
-	hfile_t fh_mapping;			/* !< hash file with master_fh -> local_fh
+	internal_dentry root_dentry;	/*!< dentry of root on underlying FS.  */
+	virtual_dir root_vd;		/*!< virtual directory for the mountpoint */
+	hfile_t metadata;			/*!< hash file with metadata */
+	hfile_t fh_mapping;			/*!< hash file with master_fh -> local_fh
 								   mapping */
 };
 
-/* ! Predefined volume IDs.  */
-#define VOLUME_ID_VIRTUAL 0		/* !< ID of the non-existing 'root' volume */
-#define VOLUME_ID_CONFIG  1		/* !< ID of 'config' volume */
+/*! Predefined volume IDs.  */
+#define VOLUME_ID_VIRTUAL 0		/*!< ID of the non-existing 'root' volume */
+#define VOLUME_ID_CONFIG  1		/*!< ID of 'config' volume */
 
-/* ! Value of size limit indicating that the volume is not limited.  */
+/*! Value of size limit indicating that the volume is not limited.  */
 #define VOLUME_NO_LIMIT 0
 
-/* ! Mutex for table of volumes.  */
+/*! Mutex for table of volumes.  */
 extern pthread_mutex_t volume_mutex;
 
 extern bool is_valid_volume_id(uint32_t vid);
 extern bool is_valid_volume_name(const char * name);
 
-/* ! Function prototypes.  */
+/*! Function prototypes.  */
 extern volume volume_lookup(uint32_t id);
 extern volume volume_lookup_nolock(uint32_t id);
 extern volume volume_lookup_name(string * name);
@@ -103,7 +103,7 @@ extern void destroy_marked_volume(uint32_t vid);
 extern void destroy_marked_volumes(void);
 extern void destroy_all_volumes(void);
 
-/* ! Initialize config volume so that we could read configuration.  */
+/*! Initialize config volume so that we could read configuration.  */
 extern bool init_config_volume(void);
 
 extern void initialize_volume_c(void);

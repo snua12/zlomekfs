@@ -1,4 +1,4 @@
-/* ! \file \brief Helper functions.  */
+/*! \file \brief Helper functions.  */
 
 /* Copyright (C) 2003 Josef Zlomek
 

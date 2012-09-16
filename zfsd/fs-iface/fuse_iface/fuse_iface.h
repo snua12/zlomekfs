@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for threads communicating with kernel.  */
+/*! \file \brief Functions for threads communicating with kernel.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -28,10 +28,10 @@
 #include "pthread-wrapper.h"
 #include "thread.h"
 
-/* ! Arguments from main (), after parsing the zfsd-specific options */
+/*! Arguments from main (), after parsing the zfsd-specific options */
 extern struct fuse_args main_args;
 
-/* ! Pool of kernel threads (threads communicating with kernel).  */
+/*! Pool of kernel threads (threads communicating with kernel).  */
 extern thread_pool kernel_pool;
 
 #endif

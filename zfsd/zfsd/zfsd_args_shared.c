@@ -30,7 +30,7 @@ void usage(void)
 }
 
 /* 
- * ! Display the version, exit the program with exit code EXITCODE.  
+ *! Display the version, exit the program with exit code EXITCODE.  
  */
 void ATTRIBUTE_NORETURN version(int exitcode)
 {

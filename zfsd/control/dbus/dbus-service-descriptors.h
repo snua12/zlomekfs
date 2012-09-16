@@ -1,7 +1,7 @@
 #ifndef DBUS_SERVICE_DESCRIPTORS_H
 #define DBUS_SERVICE_DESCRIPTORS_H
 
-/* ! \file \brief ZFS dbus descriptors.  */
+/*! \file \brief ZFS dbus descriptors.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 

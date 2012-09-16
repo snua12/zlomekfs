@@ -1,4 +1,4 @@
-/* ! \file \brief Directory operations.  */
+/*! \file \brief Directory operations.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 

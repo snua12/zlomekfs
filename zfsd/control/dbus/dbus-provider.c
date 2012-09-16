@@ -1,4 +1,4 @@
-/* ! \file \brief Dbus universal listener api.  */
+/*! \file \brief Dbus universal listener api.  */
 
 /* Copyright (C) 2007, 2010 Jiri Zouhar, Rastislav Wartiak
 

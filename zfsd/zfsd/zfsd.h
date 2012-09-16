@@ -1,4 +1,4 @@
-/* ! \file \brief ZFS daemon.  */
+/*! \file \brief ZFS daemon.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -27,7 +27,7 @@
 
 #include "pthread-wrapper.h"
 
-/* ! Thread ID of the main thread.  */
+/*! Thread ID of the main thread.  */
 extern pthread_t main_thread;
 
 extern void terminate(void);

@@ -1,4 +1,4 @@
-/* ! \file \brief MD5 algorithm implementation.  */
+/*! \file \brief MD5 algorithm implementation.  */
 
 /* This code implements the MD5 message-digest algorithm. The algorithm is due 
    to Ron Rivest.  This code was written by Colin Plumb in 1993, no copyright
@@ -35,10 +35,10 @@ extern "C"
 
 	// TODO: use openssl md5 instead of this one
 
-	/* ! Size of MD5 hash.  */
+	/*! Size of MD5 hash.  */
 #define MD5_SIZE 16
 
-	/* ! \brief MD5 context used while computing MD5 sum. */
+	/*! \brief MD5 context used while computing MD5 sum. */
 	typedef struct MD5Context_def
 	{
 		uint32_t buf[4];
@@ -57,4 +57,4 @@ extern "C"
 }
 #endif
 
-#endif							/* !MD5_H */
+#endif							/*!MD5_H */

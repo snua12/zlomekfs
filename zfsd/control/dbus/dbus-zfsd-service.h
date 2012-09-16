@@ -1,7 +1,7 @@
 #ifndef DBUS_ZFSD_SERVICE_H
 #define DBUS_ZFSD_SERVICE_H
 
-/* ! \file \brief ZFS dbus provider.  */
+/*! \file \brief ZFS dbus provider.  */
 
 /* Copyright (C) 2007 Jiri Zouhar
 

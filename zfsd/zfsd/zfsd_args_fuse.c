@@ -1,5 +1,5 @@
 /*
- * ! \file \brief daemon option parser
+ *! \file \brief daemon option parser
  */
 
 #include "fs-iface.h"
@@ -7,7 +7,7 @@
 #include "zfsd_args.h"
 
 /* 
- * ! For long options that have no equivalent short option, use a
+ *! For long options that have no equivalent short option, use a
  * non-character as a pseudo short option, starting with CHAR_MAX + 1. 
  */
 enum
@@ -33,7 +33,7 @@ static const struct fuse_opt main_options[] = {
 };
 
 /* 
- * ! Process command line arguments.  
+ *! Process command line arguments.  
  */
 static int handle_one_argument(ATTRIBUTE_UNUSED void *data, const char *arg,
 							   int key,

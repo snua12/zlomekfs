@@ -1,4 +1,4 @@
-/* ! \file \brief Capability functions.  */
+/*! \file \brief Capability functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -27,36 +27,36 @@
 #include "pthread-wrapper.h"
 #include "zfs-prot.h"
 
-/* ! Number of random bytes used to compute VERIFY.  */
+/*! Number of random bytes used to compute VERIFY.  */
 #define CAP_RANDOM_LEN 16
 
-/* ! Mark the ZFS capability CAP to be undefined.  */
+/*! Mark the ZFS capability CAP to be undefined.  */
 #define zfs_cap_undefine(CAP) ((CAP).flags = UINT32_MAX)
 
-/* ! Return true if the ZFS capability CAP is undefined.  */
+/*! Return true if the ZFS capability CAP is undefined.  */
 #define zfs_cap_undefined(CAP) ((CAP).flags == UINT32_MAX)
 
 typedef struct internal_cap_def *internal_cap;
 
-/* ! \brief In-memory capability structure.  */
+/*! \brief In-memory capability structure.  */
 struct internal_cap_def
 {
-	/* ! Capability for client.  */
+	/*! Capability for client.  */
 	zfs_cap local_cap;
 
-	/* ! Capability for server.  */
+	/*! Capability for server.  */
 	zfs_cap master_cap;
 
-	/* ! Next capability for the ZFS file handle in the chain.  */
+	/*! Next capability for the ZFS file handle in the chain.  */
 	internal_cap next;
 
-	/* ! Number of clients using this capability.  */
+	/*! Number of clients using this capability.  */
 	unsigned int busy;
 
-	/* ! Number of clients using the remote capability.  */
+	/*! Number of clients using the remote capability.  */
 	unsigned int master_busy;
 
-	/* ! Close master capability in zfs_close.  */
+	/*! Close master capability in zfs_close.  */
 	bool master_close_p;
 };
 

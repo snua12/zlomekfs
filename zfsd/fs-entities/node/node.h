@@ -1,4 +1,4 @@
-/* ! \file \brief Node functions.  */
+/*! \file \brief Node functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -27,7 +27,7 @@
 #include "pthread-wrapper.h"
 #include "hashtab.h"
 
-/* ! \brief Node description.  */
+/*! \brief Node description.  */
 typedef struct node_def
 {
 #ifdef ENABLE_CHECKING
@@ -36,14 +36,14 @@ typedef struct node_def
 #endif
 
 	pthread_mutex_t mutex;
-	uint32_t id;				/* !< ID of the node */
-	string name;				/* !< name of the node */
-	string host_name;			/* !< DNS name or IP address of the node */
-	uint16_t port;				/* !< node TCP port */
-	time_t last_connect;		/* !< last attemp to connect to node */
-	int fd;						/* !< file descriptor */
-	unsigned int generation;	/* !< generation of open file descriptor */
-	bool marked;				/* !< Is the node marked? */
+	uint32_t id;				/*!< ID of the node */
+	string name;				/*!< name of the node */
+	string host_name;			/*!< DNS name or IP address of the node */
+	uint16_t port;				/*!< node TCP port */
+	time_t last_connect;		/*!< last attemp to connect to node */
+	int fd;						/*!< file descriptor */
+	unsigned int generation;	/*!< generation of open file descriptor */
+	bool marked;				/*!< Is the node marked? */
 
 	/* Tables for mapping between ZFS IDs and node IDs.  */
 	htab_t map_uid_to_node;
@@ -52,21 +52,21 @@ typedef struct node_def
 	htab_t map_gid_to_zfs;
 } *node;
 
-/* ! Predefined node IDs.  */
+/*! Predefined node IDs.  */
 #define NODE_ID_NONE 0			/* ID for non-existing node, used as SID in
 								   file handle of virtual directory.  */
 
-/* ! Mutex for table of nodes.  */
+/*! Mutex for table of nodes.  */
 extern pthread_mutex_t node_mutex;
 
-/* ! Description of local node.  */
+/*! Description of local node.  */
 extern node this_node;
 
 extern bool is_valid_node_id(uint32_t id);
 extern bool is_valid_node_name(const char * name);
 extern bool is_valid_host_name(const char * name);
 
-/* ! Function prototypes.  */
+/*! Function prototypes.  */
 extern hash_t node_hash_name(const void *x);
 extern int node_eq_name(const void *x, const void *y);
 extern node node_lookup(uint32_t id);

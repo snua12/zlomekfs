@@ -1,4 +1,4 @@
-/* ! \file \brief A Fibonacci heap datatype.  */
+/*! \file \brief A Fibonacci heap datatype.  */
 
 /* Copyright 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
    Contributed by Daniel Berlin (dan@cgsoftware.com).
@@ -45,7 +45,7 @@ static int fibheap_foreach_helper(fibnode node, fibheap_foreach_fn fn,
 								  void *data);
 
 
-/* ! Create a new fibonacci heap.  */
+/*! Create a new fibonacci heap.  */
 fibheap fibheap_new(unsigned int block_size, pthread_mutex_t * mutex)
 {
 	fibheap heap;
@@ -57,7 +57,7 @@ fibheap fibheap_new(unsigned int block_size, pthread_mutex_t * mutex)
 	return heap;
 }
 
-/* ! Insert DATA, with priority KEY, into HEAP.  */
+/*! Insert DATA, with priority KEY, into HEAP.  */
 fibnode fibheap_insert(fibheap heap, fibheapkey_t key, void *data)
 {
 	fibnode node;
@@ -90,7 +90,7 @@ fibnode fibheap_insert(fibheap heap, fibheapkey_t key, void *data)
 	return node;
 }
 
-/* ! Return the data of the minimum node (if we know it).  */
+/*! Return the data of the minimum node (if we know it).  */
 void *fibheap_min(fibheap heap)
 {
 	CHECK_MUTEX_LOCKED(heap->mutex);
@@ -101,7 +101,7 @@ void *fibheap_min(fibheap heap)
 	return heap->min->data;
 }
 
-/* ! Return the key of the minimum node (if we know it).  */
+/*! Return the key of the minimum node (if we know it).  */
 fibheapkey_t fibheap_min_key(fibheap heap)
 {
 	CHECK_MUTEX_LOCKED(heap->mutex);
@@ -112,7 +112,7 @@ fibheapkey_t fibheap_min_key(fibheap heap)
 	return heap->min->key;
 }
 
-/* ! Union HEAPA and HEAPB into a new heap.  */
+/*! Union HEAPA and HEAPB into a new heap.  */
 fibheap fibheap_union(fibheap heapa, fibheap heapb)
 {
 	fibnode a_root, b_root, temp;
@@ -151,7 +151,7 @@ fibheap fibheap_union(fibheap heapa, fibheap heapb)
 	return heapa;
 }
 
-/* ! Extract the data of the minimum node from HEAP.  */
+/*! Extract the data of the minimum node from HEAP.  */
 void *fibheap_extract_min(fibheap heap)
 {
 	fibnode z;
@@ -172,7 +172,7 @@ void *fibheap_extract_min(fibheap heap)
 	return ret;
 }
 
-/* ! Replace the KEY associated with NODE.  */
+/*! Replace the KEY associated with NODE.  */
 fibnode fibheap_replace_key(fibheap heap, fibnode node, fibheapkey_t key)
 {
 	fibnode y;
@@ -204,7 +204,7 @@ fibnode fibheap_replace_key(fibheap heap, fibnode node, fibheapkey_t key)
 	return node;
 }
 
-/* ! Delete NODE from HEAP.  */
+/*! Delete NODE from HEAP.  */
 void *fibheap_delete_node(fibheap heap, fibnode node)
 {
 	void *ret = node->data;
@@ -218,7 +218,7 @@ void *fibheap_delete_node(fibheap heap, fibnode node)
 	return ret;
 }
 
-/* ! Delete HEAP.  */
+/*! Delete HEAP.  */
 void fibheap_delete(fibheap heap)
 {
 	while (heap->min != NULL)
@@ -228,7 +228,7 @@ void fibheap_delete(fibheap heap)
 	free(heap);
 }
 
-/* ! Return size of the heap HEAP.  */
+/*! Return size of the heap HEAP.  */
 unsigned int fibheap_size(fibheap heap)
 {
 	unsigned int n;
@@ -244,7 +244,7 @@ unsigned int fibheap_size(fibheap heap)
 	return n;
 }
 
-/* ! Extract the minimum node of the heap.  */
+/*! Extract the minimum node of the heap.  */
 static fibnode fibheap_extr_min_node(fibheap heap)
 {
 	fibnode ret = heap->min;
@@ -279,7 +279,7 @@ static fibnode fibheap_extr_min_node(fibheap heap)
 	return ret;
 }
 
-/* ! Insert NODE into the root list of HEAP.  */
+/*! Insert NODE into the root list of HEAP.  */
 static void fibheap_ins_root(fibheap heap, fibnode node)
 {
 	/* If the heap is currently empty, the new node becomes the singleton
@@ -297,7 +297,7 @@ static void fibheap_ins_root(fibheap heap, fibnode node)
 	fibnode_insert_after(heap->root, node);
 }
 
-/* ! Remove NODE from the rootlist of HEAP.  */
+/*! Remove NODE from the rootlist of HEAP.  */
 static void fibheap_rem_root(fibheap heap, fibnode node)
 {
 	if (node->left == node)
@@ -306,7 +306,7 @@ static void fibheap_rem_root(fibheap heap, fibnode node)
 		heap->root = fibnode_remove(node);
 }
 
-/* ! Consolidate the heap.  */
+/*! Consolidate the heap.  */
 static void fibheap_consolidate(fibheap heap)
 {
 #define D ((int) (1 + 8 * sizeof (long)))
@@ -351,7 +351,7 @@ static void fibheap_consolidate(fibheap heap)
 #undef D
 }
 
-/* ! Make NODE a child of PARENT.  */
+/*! Make NODE a child of PARENT.  */
 static void
 fibheap_link(ATTRIBUTE_UNUSED fibheap heap, fibnode node, fibnode parent)
 {
@@ -364,7 +364,7 @@ fibheap_link(ATTRIBUTE_UNUSED fibheap heap, fibnode node, fibnode parent)
 	node->mark = 0;
 }
 
-/* ! Remove NODE from PARENT's child list.  */
+/*! Remove NODE from PARENT's child list.  */
 static void fibheap_cut(fibheap heap, fibnode node, fibnode parent)
 {
 	fibnode_remove(node);

@@ -1,4 +1,4 @@
-/* ! \file \brief Dump metadata for local files.  */
+/*! \file \brief Dump metadata for local files.  */
 
 /* Copyright (C) 2004 Josef Zlomek
 

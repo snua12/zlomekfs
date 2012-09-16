@@ -1,4 +1,4 @@
-/* ! \file \brief filesystem interface.  */
+/*! \file \brief filesystem interface.  */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

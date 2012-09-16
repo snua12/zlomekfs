@@ -1,4 +1,4 @@
-/* ! \file \brief Node functions.  */
+/*! \file \brief Node functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -34,16 +34,16 @@
 #include "user-group.h"
 #include "zfs_config.h"
 
-/* ! Hash table of nodes, searched by ID.  */
+/*! Hash table of nodes, searched by ID.  */
 static htab_t node_htab_sid;
 
-/* ! Hash table of nodes, searched by NAME.  */
+/*! Hash table of nodes, searched by NAME.  */
 static htab_t node_htab_name;
 
-/* ! Mutex for table of nodes.  */
+/*! Mutex for table of nodes.  */
 pthread_mutex_t node_mutex;
 
-/* ! Description of local node.  */
+/*! Description of local node.  */
 node this_node;
 
 bool is_valid_node_id(uint32_t id)
@@ -61,33 +61,33 @@ bool is_valid_host_name(const char * name)
 	return (name != NULL) && (name[0] != 0);
 }
 
-/* ! Hash function for node ID.  */
+/*! Hash function for node ID.  */
 #define HASH_NODE_ID(ID) (ID)
 
-/* ! Hash function for node NODE, computed from ID.  */
+/*! Hash function for node NODE, computed from ID.  */
 #define NODE_HASH(NODE) ((NODE)->id)
 
-/* ! Hash function for node name.  */
+/*! Hash function for node name.  */
 #define HASH_NODE_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
 
-/* ! Hash function for node NODE, computed from its name.  */
+/*! Hash function for node NODE, computed from its name.  */
 #define NODE_HASH_NAME(NODE) HASH_NODE_NAME ((NODE)->name)
 
-/* ! Hash function for node X, computed from ID.  */
+/*! Hash function for node X, computed from ID.  */
 
 static hash_t node_hash(const void *x)
 {
 	return NODE_HASH((const struct node_def *)x);
 }
 
-/* ! Hash function for node X, computed from node name.  */
+/*! Hash function for node X, computed from node name.  */
 
 hash_t node_hash_name(const void *x)
 {
 	return NODE_HASH_NAME((const struct node_def *)x);
 }
 
-/* ! Compare a node X with ID *Y.  */
+/*! Compare a node X with ID *Y.  */
 
 static int node_eq(const void *x, const void *y)
 {
@@ -97,7 +97,7 @@ static int node_eq(const void *x, const void *y)
 	return nod->id == id;
 }
 
-/* ! Compare a name of node X with string Y.  */
+/*! Compare a name of node X with string Y.  */
 
 int node_eq_name(const void *x, const void *y)
 {
@@ -107,7 +107,7 @@ int node_eq_name(const void *x, const void *y)
 	return (nod->name.len == s->len && strcmp(nod->name.str, s->str) == 0);
 }
 
-/* ! Return the node with id ID.  */
+/*! Return the node with id ID.  */
 
 node node_lookup(uint32_t id)
 {
@@ -122,7 +122,7 @@ node node_lookup(uint32_t id)
 	return nod;
 }
 
-/* ! Return the node whose name is NAME.  */
+/*! Return the node whose name is NAME.  */
 
 node node_lookup_name(string * name)
 {
@@ -138,7 +138,7 @@ node node_lookup_name(string * name)
 	return nod;
 }
 
-/* ! Create new node with ID and NAME and insert it to hash table.  */
+/*! Create new node with ID and NAME and insert it to hash table.  */
 
 node node_create(uint32_t id, string * name, string * host_name, uint16_t tcp_port)
 {
@@ -236,7 +236,7 @@ node try_create_node(uint32_t id, string * name, string * host_name, uint16_t tc
 	return nod;
 }
 
-/* ! Destroy node NOD and free memory associated with it. This function
+/*! Destroy node NOD and free memory associated with it. This function
    expects node_mutex to be locked.  */
 
 static void node_destroy(node nod)
@@ -280,7 +280,7 @@ static void node_destroy(node nod)
 	free(nod);
 }
 
-/* ! Mark all nodes.  */
+/*! Mark all nodes.  */
 
 void mark_all_nodes(void)
 {
@@ -298,7 +298,7 @@ void mark_all_nodes(void)
 	zfsd_mutex_unlock(&node_mutex);
 }
 
-/* ! Destroy marked nodes.  */
+/*! Destroy marked nodes.  */
 
 void destroy_marked_nodes(void)
 {
@@ -318,7 +318,7 @@ void destroy_marked_nodes(void)
 	zfsd_mutex_unlock(&node_mutex);
 }
 
-/* ! Initialize local node so that we could read configuration.  */
+/*! Initialize local node so that we could read configuration.  */
 void init_this_node(void)
 {
 	node nod;
@@ -333,7 +333,7 @@ void init_this_node(void)
 	zfsd_mutex_unlock(&node_mutex);
 }
 
-/* ! Initialize data structures in NODE.C.  */
+/*! Initialize data structures in NODE.C.  */
 
 void initialize_node_c(void)
 {
@@ -343,7 +343,7 @@ void initialize_node_c(void)
 								 &node_mutex);
 }
 
-/* ! Destroy data structures in NODE.C.  */
+/*! Destroy data structures in NODE.C.  */
 
 void cleanup_node_c(void)
 {

@@ -1,4 +1,4 @@
-/* ! \file \brief Dokan interface support functions */
+/*! \file \brief Dokan interface support functions */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

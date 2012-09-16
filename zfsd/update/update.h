@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for updating and reintegrating files.  */
+/*! \file \brief Functions for updating and reintegrating files.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -32,13 +32,13 @@
 #include "metadata.h"
 #include "zfs-prot.h"
 
-/* ! \brief Maximum block size for updating \see ZFS_MAXDATA */
+/*! \brief Maximum block size for updating \see ZFS_MAXDATA */
 #define ZFS_UPDATED_BLOCK_SIZE ZFS_MAXDATA
 
-/* ! \brief Maximum block size for reintegrating */
+/*! \brief Maximum block size for reintegrating */
 #define ZFS_MODIFIED_BLOCK_SIZE 1024
 
-/* ! \brief Check whether we should update a generic file. Update the generic
+/*! \brief Check whether we should update a generic file. Update the generic
    file if it has not been completely updated yet, otherwise update a directory 
    if the remote version has changed since the last time we updated the
    directory or update a regular file if local file was not modified and remote 
@@ -51,7 +51,7 @@
        : (((DENTRY)->fh->attr.version == (DENTRY)->fh->meta.master_version \
            && (ATTR).version > (DENTRY)->fh->meta.master_version))))
 
-/* ! \brief Check whether we should reintegrate a generic file. Reintegrate a
+/*! \brief Check whether we should reintegrate a generic file. Reintegrate a
    directory if the local version has changed since the last time we
    reintegrated the directory or it was not completely reintegrated.
    Reintegrate a regular file if remote file was not modified and local file
@@ -64,21 +64,21 @@
    : ((ATTR).version == (DENTRY)->fh->meta.master_version		\
       && (DENTRY)->fh->attr.version > (DENTRY)->fh->meta.master_version))
 
-/* ! \brief Are file sizes (for regular files) different? */
+/*! \brief Are file sizes (for regular files) different? */
 #define METADATA_SIZE_CHANGE_P(ATTR1, ATTR2)			\
         (((ATTR1).type == FT_REG) && ((ATTR1).size != (ATTR2).size))
 
-/* ! \brief Did the master version (for regular files) change? */
+/*! \brief Did the master version (for regular files) change? */
 #define METADATA_MASTER_VERSION_CHANGE_P(DENTRY, ATTR)                        \
         (((ATTR).type == FT_REG) && ((DENTRY)->fh->meta.master_version != (ATTR).version))
 
-/* ! \brief Are metadata (mode, UID and GID) different in META and ATTR? */
+/*! \brief Are metadata (mode, UID and GID) different in META and ATTR? */
 #define METADATA_ATTR_CHANGE_P(META, ATTR)				\
   ((ATTR).mode != GET_MODETYPE_MODE ((META).modetype)			\
    || (ATTR).uid != (META).uid						\
    || (ATTR).gid != (META).gid)
 
-/* ! \brief Have local or remote metadata/attributes (mode, UID and GID, size
+/*! \brief Have local or remote metadata/attributes (mode, UID and GID, size
    and master version) changed? */
 #define METADATA_CHANGE_P(DENTRY, ATTR)					\
   (METADATA_ATTR_CHANGE_P ((DENTRY)->fh->meta, (DENTRY)->fh->attr)	\
@@ -86,7 +86,7 @@
    || METADATA_SIZE_CHANGE_P ((DENTRY)->fh->attr, ATTR)                 \
    || METADATA_MASTER_VERSION_CHANGE_P(DENTRY, ATTR))
 
-/* ! \brief Are metadata/attributes (more, uid, guid, size) in attributes
+/*! \brief Are metadata/attributes (more, uid, guid, size) in attributes
    ATTR1 and ATTR2 equal? */
 #define METADATA_ATTR_EQ_P(ATTR1, ATTR2)				\
   ((ATTR1).mode == (ATTR2).mode						\

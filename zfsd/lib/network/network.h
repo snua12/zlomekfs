@@ -1,4 +1,4 @@
-/* ! \file \brief Network thread functions.  */
+/*! \file \brief Network thread functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -34,7 +34,7 @@
 #include "node.h"
 #include "volume.h"
 
-/* ! Connection status.  */
+/*! Connection status.  */
 typedef enum connection_status_def
 {
 	CONNECTION_NONE = 0,
@@ -44,7 +44,7 @@ typedef enum connection_status_def
 	CONNECTION_ESTABLISHED
 } connection_status;
 
-/* ! Status of authentication.  */
+/*! Status of authentication.  */
 typedef enum authentication_status_def
 {
 	AUTHENTICATION_NONE = 0,
@@ -54,41 +54,41 @@ typedef enum authentication_status_def
 	AUTHENTICATION_FINISHED
 } authentication_status;
 
-/* ! \brief Data for a file descriptor used to communicate with other nodes or 
+/*! \brief Data for a file descriptor used to communicate with other nodes or 
    kernel.  */
 typedef struct fd_data_def
 {
 	pthread_mutex_t mutex;
 	pthread_cond_t cond;
 
-	htab_t waiting4reply;		/* !< table of waiting4reply_data */
-	alloc_pool waiting4reply_pool;	/* !< pool of waiting4reply_data */
-	fibheap waiting4reply_heap;	/* !< heap for waiting4reply_data */
-	int fd;						/* !< file descriptor of the socket */
-	unsigned int read;			/* !< number of bytes already read */
+	htab_t waiting4reply;		/*!< table of waiting4reply_data */
+	alloc_pool waiting4reply_pool;	/*!< pool of waiting4reply_data */
+	fibheap waiting4reply_heap;	/*!< heap for waiting4reply_data */
+	int fd;						/*!< file descriptor of the socket */
+	unsigned int read;			/*!< number of bytes already read */
 
 	/* Unused data coding buffers for the file descriptor.  */
 	DC *dc[MAX_FREE_DCS];
 	int ndc;
 
-	time_t last_use;			/* !< time of last use of the socket */
-	unsigned int generation;	/* !< generation of open file descriptor */
-	connection_status conn;		/* !< status of connection with remote node */
-	connection_speed speed;		/* !< speed of connection with remote node */
-	authentication_status auth;	/* !< status of authentication with remote
+	time_t last_use;			/*!< time of last use of the socket */
+	unsigned int generation;	/*!< generation of open file descriptor */
+	connection_status conn;		/*!< status of connection with remote node */
+	connection_speed speed;		/*!< speed of connection with remote node */
+	authentication_status auth;	/*!< status of authentication with remote
 								   node */
-	unsigned int sid;			/* !< ID of node which wants to connect */
-	unsigned int busy;			/* !< number of threads using file descriptor */
-	bool close;					/* !< close the fd when possile */
+	unsigned int sid;			/*!< ID of node which wants to connect */
+	unsigned int busy;			/*!< number of threads using file descriptor */
+	bool close;					/*!< close the fd when possile */
 } fd_data_t;
 
-/* ! Pool of network threads.  */
+/*! Pool of network threads.  */
 extern thread_pool network_pool;
 
-/* ! The array of data for each file descriptor.  */
+/*! The array of data for each file descriptor.  */
 extern fd_data_t *fd_data_a;
 
-/* ! Hash function for request ID.  */
+/*! Hash function for request ID.  */
 #define WAITING4REPLY_HASH(REQUEST_ID) (REQUEST_ID)
 
 extern unsigned int pending_slow_reqs_count;

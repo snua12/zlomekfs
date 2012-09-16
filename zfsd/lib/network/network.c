@@ -1,4 +1,4 @@
-/* ! \file \brief Network thread functions.  */
+/*! \file \brief Network thread functions.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -52,38 +52,38 @@
 #include "fh.h"
 #include "zfs_config.h"
 
-/* ! Pool of network threads.  */
+/*! Pool of network threads.  */
 thread_pool network_pool;
 
-/* ! File descriptor of the main (i.e. listening) socket.  */
+/*! File descriptor of the main (i.e. listening) socket.  */
 static int main_socket;
 
-/* ! The array of data for each file descriptor.  */
+/*! The array of data for each file descriptor.  */
 fd_data_t *fd_data_a;
 
-/* ! Array of pointers to data of active file descriptors.  */
+/*! Array of pointers to data of active file descriptors.  */
 static fd_data_t **active;
 
-/* ! Number of active file descriptors.  */
+/*! Number of active file descriptors.  */
 static int nactive;
 
-/* ! Mutex protecting access to ACTIVE and NACTIVE.  */
+/*! Mutex protecting access to ACTIVE and NACTIVE.  */
 static pthread_mutex_t active_mutex;
 
-/* ! \brief Number of pending slow requests Total number of RPC requests sent
+/*! \brief Number of pending slow requests Total number of RPC requests sent
    and yet not received from slowly connected nodes. \see
    pending_slow_reqs_cond */
 unsigned int pending_slow_reqs_count;
 
-/* ! \brief Mutex for #pending_slow_reqs_cond */
+/*! \brief Mutex for #pending_slow_reqs_cond */
 pthread_mutex_t pending_slow_reqs_mutex;
 
-/* ! \brief Condition variable for #pending_slow_reqs_count Protected by
+/*! \brief Condition variable for #pending_slow_reqs_count Protected by
    #pending_slow_reqs_mutex */
 pthread_cond_t pending_slow_reqs_cond;
 
 
-/* ! Hash function for waiting4reply_data.  */
+/*! Hash function for waiting4reply_data.  */
 
 hash_t waiting4reply_hash(const void *xx)
 {
@@ -92,7 +92,7 @@ hash_t waiting4reply_hash(const void *xx)
 	return WAITING4REPLY_HASH(x->request_id);
 }
 
-/* ! Return true when waiting4reply_data XX is data for request ID *YY.  */
+/*! Return true when waiting4reply_data XX is data for request ID *YY.  */
 
 int waiting4reply_eq(const void *xx, const void *yy)
 {
@@ -102,7 +102,7 @@ int waiting4reply_eq(const void *xx, const void *yy)
 	return WAITING4REPLY_HASH(x->request_id) == id;
 }
 
-/* ! Initialize data for file descriptor FD and add it to ACTIVE.  */
+/*! Initialize data for file descriptor FD and add it to ACTIVE.  */
 
 static void init_fd_data(int fd)
 {
@@ -152,7 +152,7 @@ static void init_fd_data(int fd)
 					  NULL, &fd_data_a[fd].mutex);
 }
 
-/* ! Add file descriptor FD to the set of active file descriptors.  */
+/*! Add file descriptor FD to the set of active file descriptors.  */
 
 void add_fd_to_active(int fd)
 {
@@ -164,7 +164,7 @@ void add_fd_to_active(int fd)
 	zfsd_mutex_unlock(&active_mutex);
 }
 
-/* ! Update file descriptor of node NOD to be FD with generation GENERATION.
+/*! Update file descriptor of node NOD to be FD with generation GENERATION.
    ACTIVE_OPEN is true when this node is creating the connection.  */
 
 void
@@ -214,7 +214,7 @@ update_node_fd(node nod, int fd, unsigned int generation, bool active_open)
 	}
 }
 
-/* ! Wake all threads waiting for reply on file descriptor with fd_data
+/*! Wake all threads waiting for reply on file descriptor with fd_data
    FD_DATA and set return value to RETVAL.  */
 
 void wake_all_threads(fd_data_t * fd_data, int32_t retval)
@@ -236,7 +236,7 @@ void wake_all_threads(fd_data_t * fd_data, int32_t retval)
 	}
 }
 
-/* ! Close file descriptor FD and update its fd_data.  */
+/*! Close file descriptor FD and update its fd_data.  */
 
 void close_network_fd(int fd)
 {
@@ -254,7 +254,7 @@ void close_network_fd(int fd)
 									  &network_pool.main_in_syscall);
 }
 
-/* ! Close an active file descriptor on index I in ACTIVE.  */
+/*! Close an active file descriptor on index I in ACTIVE.  */
 
 static void close_active_fd(int i)
 {
@@ -291,7 +291,7 @@ static void close_active_fd(int i)
 	zfsd_cond_broadcast(&fd_data_a[fd].cond);
 }
 
-/* ! Return true if there is a valid file descriptor attached to node NOD and
+/*! Return true if there is a valid file descriptor attached to node NOD and
    lock NETWORK_FD_DATA[NOD->FD].MUTEX. This function expects NOD->MUTEX to be 
    locked.  */
 
@@ -319,7 +319,7 @@ bool node_has_valid_fd(node nod)
 	return true;
 }
 
-/* ! If node SID is connected return true and store generation of file
+/*! If node SID is connected return true and store generation of file
    descriptor to GENERATION.  Otherwise return false.  */
 
 bool node_connected(uint32_t sid, unsigned int *generation)
@@ -344,7 +344,7 @@ bool node_connected(uint32_t sid, unsigned int *generation)
 	return true;
 }
 
-/* ! Return the speed of connection between current node and master of volume
+/*! Return the speed of connection between current node and master of volume
    VOL.  */
 
 connection_speed volume_master_connected(volume vol)
@@ -374,7 +374,7 @@ connection_speed volume_master_connected(volume vol)
 	return speed;
 }
 
-/* ! Checks is address in loopback range. */
+/*! Checks is address in loopback range. */
 
 static bool is_local_address(struct sockaddr_in *ai_addr)
 {
@@ -391,7 +391,7 @@ static bool is_local_address(struct sockaddr_in *ai_addr)
 	return true;
 }
 
-/* ! Connect to node NOD, return open file descriptor.  */
+/*! Connect to node NOD, return open file descriptor.  */
 
 static int node_connect(node nod)
 {
@@ -562,7 +562,7 @@ static int node_connect(node nod)
 	return s;
 }
 
-/* ! Measure connection speed of node with ID SID connected through file
+/*! Measure connection speed of node with ID SID connected through file
    descriptor FD.  */
 
 static bool
@@ -661,7 +661,7 @@ node_measure_connection_speed(thread * t, int fd, uint32_t sid, int32_t * r)
 	return false;
 }
 
-/* ! Authenticate connection with node NOD using data of thread T. On success
+/*! Authenticate connection with node NOD using data of thread T. On success
    leave NETWORK_FD_DATA[NOD->FD].MUTEX locked.  */
 
 static int node_authenticate(thread * t, node nod, authentication_status auth)
@@ -891,7 +891,7 @@ static int node_authenticate(thread * t, node nod, authentication_status auth)
 	return -1;
 }
 
-/* ! Check whether node NOD is connected and authenticated. If not do so.
+/*! Check whether node NOD is connected and authenticated. If not do so.
    Return open file descriptor and leave its NETWORK_FD_DATA locked.  */
 
 int
@@ -936,7 +936,7 @@ node_connect_and_authenticate(thread * t, node nod, authentication_status auth)
 	return fd;
 }
 
-/* ! Return true if current request came from this node.  */
+/*! Return true if current request came from this node.  */
 
 bool request_from_this_node(void)
 {
@@ -951,7 +951,7 @@ bool request_from_this_node(void)
 	return t->from_sid == this_node->id;
 }
 
-/* ! Put DC back to file descriptor data FD_DATA.  */
+/*! Put DC back to file descriptor data FD_DATA.  */
 
 void recycle_dc_to_fd_data(DC * dc, fd_data_t * fd_data)
 {
@@ -974,7 +974,7 @@ void recycle_dc_to_fd_data(DC * dc, fd_data_t * fd_data)
 	}
 }
 
-/* ! Put DC back to data for socket connected to master of volume VOL.  */
+/*! Put DC back to data for socket connected to master of volume VOL.  */
 
 void recycle_dc_to_fd(DC * dc, int fd)
 {
@@ -993,7 +993,7 @@ void recycle_dc_to_fd(DC * dc, int fd)
 	}
 }
 
-/* ! Send one-way request with request id REQUEST_ID using data in thread T to 
+/*! Send one-way request with request id REQUEST_ID using data in thread T to 
    connected socket FD.  */
 
 void send_oneway_request(thread * t, int fd)
@@ -1024,7 +1024,7 @@ void send_oneway_request(thread * t, int fd)
 	zfsd_mutex_unlock(&fd_data_a[fd].mutex);
 }
 
-/* ! \brief Helper function for sending request. Send request with request id
+/*! \brief Helper function for sending request. Send request with request id
    REQUEST_ID using data in thread T to connected socket FD and wait for reply. 
    It expects fd_data_a[fd].mutex to be locked. Tracks number of slow requests
    in #pending_slow_reqs_count for slowly connected volumes. */
@@ -1120,7 +1120,7 @@ void send_request(thread * t, uint32_t request_id, int fd)
 	}
 }
 
-/* ! Send a reply.  */
+/*! Send a reply.  */
 
 static void send_reply(thread * t)
 {
@@ -1142,7 +1142,7 @@ static void send_reply(thread * t)
 	zfsd_mutex_unlock(&td->fd_data->mutex);
 }
 
-/* ! Send error reply with error status STATUS.  */
+/*! Send error reply with error status STATUS.  */
 
 static void send_error_reply(thread * t, uint32_t request_id, int32_t status)
 {
@@ -1154,14 +1154,14 @@ static void send_error_reply(thread * t, uint32_t request_id, int32_t status)
 	send_reply(t);
 }
 
-/* ! Initialize network thread T.  */
+/*! Initialize network thread T.  */
 
 void network_worker_init(thread * t)
 {
 	t->dc_call = dc_create();
 }
 
-/* ! Cleanup network thread DATA.  */
+/*! Cleanup network thread DATA.  */
 
 void network_worker_cleanup(void *data)
 {
@@ -1170,7 +1170,7 @@ void network_worker_cleanup(void *data)
 	dc_destroy(t->dc_call);
 }
 
-/* ! The main function of the network thread.  */
+/*! The main function of the network thread.  */
 
 static void *network_worker(void *data)
 {
@@ -1308,7 +1308,7 @@ static void *network_worker(void *data)
 	return NULL;
 }
 
-/* ! Function which gets a request and passes it to some network thread. It
+/*! Function which gets a request and passes it to some network thread. It
    also regulates the number of network threads.  */
 
 static bool network_dispatch(fd_data_t * fd_data)
@@ -1416,7 +1416,7 @@ static bool network_dispatch(fd_data_t * fd_data)
 	return true;
 }
 
-/* ! Main function of the main (i.e. listening) network thread.  */
+/*! Main function of the main (i.e. listening) network thread.  */
 
 static void *network_main(ATTRIBUTE_UNUSED void *data_)
 {
@@ -1759,7 +1759,7 @@ static void *network_main(ATTRIBUTE_UNUSED void *data_)
 	return NULL;
 }
 
-/* ! \brief Initialize information about networking file descriptors, mutexes
+/*! \brief Initialize information about networking file descriptors, mutexes
    and cond vars */
 void fd_data_init(void)
 {
@@ -1782,7 +1782,7 @@ void fd_data_init(void)
 	pending_slow_reqs_count = 0;
 }
 
-/* ! \brief Start networking shutdown Wake threads waiting for reply on file
+/*! \brief Start networking shutdown Wake threads waiting for reply on file
    descriptors. */
 void fd_data_shutdown(void)
 {
@@ -1803,7 +1803,7 @@ void fd_data_shutdown(void)
 	zfsd_mutex_unlock(&active_mutex);
 }
 
-/* ! \brief Destroy networking and kernel file descriptors, mutexes and cond
+/*! \brief Destroy networking and kernel file descriptors, mutexes and cond
    vars.  */
 void fd_data_destroy(void)
 {
@@ -1836,7 +1836,7 @@ void fd_data_destroy(void)
 	zfsd_cond_destroy(&pending_slow_reqs_cond);
 }
 
-/* ! \brief Create listening socket. */
+/*! \brief Create listening socket. */
 static int create_tcp_server(int address, uint16_t port, int backlog)
 {
     int tcp_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -1894,7 +1894,7 @@ static int create_tcp_server(int address, uint16_t port, int backlog)
     return tcp_socket;
 }
 
-/* ! \brief Create a listening socket and start the main network thread.  */
+/*! \brief Create a listening socket and start the main network thread.  */
 bool network_start(uint16_t port)
 {
 
@@ -1919,7 +1919,7 @@ bool network_start(uint16_t port)
 	return true;
 }
 
-/* ! \brief Terminate network threads and destroy data structures.  */
+/*! \brief Terminate network threads and destroy data structures.  */
 void network_cleanup(void)
 {
 	thread_pool_destroy(&network_pool);

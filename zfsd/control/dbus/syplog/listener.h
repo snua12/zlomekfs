@@ -1,6 +1,6 @@
 #ifndef	LISTENER_H
 #define	LISTENER_H
-/* ! \file \brief Logger remote control listening interface.
+/*! \file \brief Logger remote control listening interface.
 
    When logger needs to be remotely controlled, it is needed to start listener 
    on it. Listener then receives messages and change log level and facilities.

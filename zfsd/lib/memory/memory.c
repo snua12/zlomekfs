@@ -1,4 +1,4 @@
-/* ! \file \brief Memory management functions.  */
+/*! \file \brief Memory management functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -27,13 +27,13 @@
 #include "memory.h"
 #include "varray.h"
 
-/* ! \var string empty_string Empty string.  */
+/*! \var string empty_string Empty string.  */
 string empty_string = STRING_EMPTY_INITIALIZER;
 
-/* ! \var string invalid_string Invalid string.  */
+/*! \var string invalid_string Invalid string.  */
 string invalid_string = STRING_INVALID_INITIALIZER;;
 
-/* ! Similar to CALLOC but always returns valid pointer.  */
+/*! Similar to CALLOC but always returns valid pointer.  */
 void *xcalloc(size_t nmemb, size_t size)
 {
 	void *r = calloc(nmemb, size);
@@ -45,7 +45,7 @@ void *xcalloc(size_t nmemb, size_t size)
 	return r;
 }
 
-/* ! Similar to MALLOC but always returns valid pointer.  */
+/*! Similar to MALLOC but always returns valid pointer.  */
 void *xmalloc(size_t size)
 {
 	void *r = malloc(size);
@@ -57,7 +57,7 @@ void *xmalloc(size_t size)
 	return r;
 }
 
-/* ! Similar to REALLOC but always returns valid pointer.  */
+/*! Similar to REALLOC but always returns valid pointer.  */
 void *xrealloc(void *ptr, size_t size)
 {
 	void *r = realloc(ptr, size);
@@ -69,7 +69,7 @@ void *xrealloc(void *ptr, size_t size)
 	return r;
 }
 
-/* ! Similar to STRDUP but always returns valid pointer.  */
+/*! Similar to STRDUP but always returns valid pointer.  */
 char *xstrdup(const char *s)
 {
 	char *r = strdup(s);
@@ -81,7 +81,7 @@ char *xstrdup(const char *s)
 	return r;
 }
 
-/* ! Return a copy of memory SRC of size N.  */
+/*! Return a copy of memory SRC of size N.  */
 void *xmemdup(const void *src, size_t n)
 {
         void *r = xmalloc(n);
@@ -89,14 +89,14 @@ void *xmemdup(const void *src, size_t n)
         return r;
 }
 
-/* ! Create string DEST from S.  */
+/*! Create string DEST from S.  */
 void xmkstring(string * dest, const char *s)
 {
 	dest->len = strlen(s);
         dest->str = (char *) xmemdup(s, dest->len + 1);
 }
 
-/* ! Frees string */
+/*! Frees string */
 void xfreestring(string * s)
 {
 	if (s->str != NULL)
@@ -107,7 +107,7 @@ void xfreestring(string * s)
 	}
 }
 
-/* ! Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
+/*! Duplicate string SRC and store it to DEST.  SRC and DEST may be the same
    string structure.  */
 void xstringdup(string * dest, string * src)
 {
@@ -115,7 +115,7 @@ void xstringdup(string * dest, string * src)
         dest->str = (char *) xmemdup(src->str, src->len + 1);
  }
 
-/* ! Return a concatenation of N strings.  */
+/*! Return a concatenation of N strings.  */
 char * xstrconcat(const char * s1, ...)
 {
     char * r, *d;
@@ -145,7 +145,7 @@ char * xstrconcat(const char * s1, ...)
     return r;
 }
 
-/* ! Return a concatenation of strings stored in varray.  */
+/*! Return a concatenation of strings stored in varray.  */
 void xstringconcat_varray(string * dst, varray * va)
 {
 	unsigned int i, n;
@@ -175,7 +175,7 @@ void xstringconcat_varray(string * dst, varray * va)
 	*d = 0;
 }
 
-/* ! Set a copy of SRC of length LEN to DST.  */
+/*! Set a copy of SRC of length LEN to DST.  */
 
 static void set_string_with_length(string * dst, const char *src, int len)
 {
@@ -186,21 +186,21 @@ static void set_string_with_length(string * dst, const char *src, int len)
         dst->str= (char *)xmemdup(src, dst->len + 1);
 }
 
-/* ! Set a copy of SRC to DST.  */
+/*! Set a copy of SRC to DST.  */
 
 void set_str(string * dst, const char *src)
 {
 	set_string_with_length(dst, src, strlen(src));
 }
 
-/* ! Set a copy of SRC to DST.  */
+/*! Set a copy of SRC to DST.  */
 
 void set_string(string * dst, string * src)
 {
     set_string_with_length(dst, src->str, src->len);
 }
 
-/* ! Append STR of length LEN to SRC and store it to DST.  */
+/*! Append STR of length LEN to SRC and store it to DST.  */
 
 void append_string(string * dst, string * src, const char *str, unsigned int len)
 {
@@ -211,7 +211,7 @@ void append_string(string * dst, string * src, const char *str, unsigned int len
 	memcpy(dst->str + src->len, str, len + 1);
 }
 
-/* ! Append "/" and NAME of length LEN to PATH and store it to DST.  */
+/*! Append "/" and NAME of length LEN to PATH and store it to DST.  */
 
 void
 append_file_name(string * dst, string * path, const char *name,

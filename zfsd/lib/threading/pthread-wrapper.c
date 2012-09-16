@@ -1,4 +1,4 @@
-/* ! \file \brief Wrappers for pthread_* functions and related data.  */
+/*! \file \brief Wrappers for pthread_* functions and related data.  */
 
 /* Copyright (C) 2004 Josef Zlomek
 

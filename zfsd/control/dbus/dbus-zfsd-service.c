@@ -1,4 +1,4 @@
-/* ! \file \brief ZFS dbus provider.  */
+/*! \file \brief ZFS dbus provider.  */
 
 /* Copyright (C) 2007, 2010 Jiri Zouhar, Rastislav Wartiak
 

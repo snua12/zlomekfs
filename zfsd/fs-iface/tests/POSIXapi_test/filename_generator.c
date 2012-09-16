@@ -1,4 +1,4 @@
-/* ! \file \brief Random walk generator*/
+/*! \file \brief Random walk generator*/
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

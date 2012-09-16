@@ -1,4 +1,4 @@
-/* ! \file \brief File tests for POSIX API*/
+/*! \file \brief File tests for POSIX API*/
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

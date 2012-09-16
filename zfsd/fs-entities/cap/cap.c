@@ -1,4 +1,4 @@
-/* ! \file \brief Capability functions.  */
+/*! \file \brief Capability functions.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -41,13 +41,13 @@
 #include "util.h"
 #include "zfs-prot.h"
 
-/* ! Allocation pool for capabilities.  */
+/*! Allocation pool for capabilities.  */
 static alloc_pool cap_pool;
 
-/* ! Mutex for cap_pool.  */
+/*! Mutex for cap_pool.  */
 static pthread_mutex_t cap_mutex;
 
-/* ! Compute the verification for the capability and return true on success.
+/*! Compute the verification for the capability and return true on success.
    \param cap Capability which the verification should be computed for.  */
 
 static bool internal_cap_compute_verify(internal_cap cap)
@@ -74,7 +74,7 @@ static bool internal_cap_compute_verify(internal_cap cap)
 	RETURN_BOOL(true);
 }
 
-/* ! Verify capability CAP by comparing with ICAP.  */
+/*! Verify capability CAP by comparing with ICAP.  */
 
 static int32_t verify_capability(zfs_cap * cap, internal_cap icap)
 {
@@ -91,7 +91,7 @@ static int32_t verify_capability(zfs_cap * cap, internal_cap icap)
 	RETURN_INT(EBADF);
 }
 
-/* ! Lock dentry *DENTRYP on volume *VOLP with capability *ICAPP and virtual
+/*! Lock dentry *DENTRYP on volume *VOLP with capability *ICAPP and virtual
    directory *VDP to level LEVEL. Store the local ZFS file handle to TMP_FH.  */
 
 int32_t
@@ -179,7 +179,7 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Unlock dentry DENTRY and virtual directory VD.  */
+/*! Unlock dentry DENTRY and virtual directory VD.  */
 
 void internal_cap_unlock(volume vol, internal_dentry dentry, virtual_dir vd)
 {
@@ -212,7 +212,7 @@ void internal_cap_unlock(volume vol, internal_dentry dentry, virtual_dir vd)
 	internal_dentry_unlock(vol, dentry);
 }
 
-/* ! Create a new capability for file handle fh with open flags FLAGS.  */
+/*! Create a new capability for file handle fh with open flags FLAGS.  */
 
 static internal_cap internal_cap_create_fh(internal_fh fh, uint32_t flags)
 {
@@ -251,7 +251,7 @@ static internal_cap internal_cap_create_fh(internal_fh fh, uint32_t flags)
 	RETURN_PTR(cap);
 }
 
-/* ! Create a new capability for virtual directory VD with open flags FLAGS.  */
+/*! Create a new capability for virtual directory VD with open flags FLAGS.  */
 
 static internal_cap internal_cap_create_vd(virtual_dir vd, uint32_t flags)
 {
@@ -291,7 +291,7 @@ static internal_cap internal_cap_create_vd(virtual_dir vd, uint32_t flags)
 	RETURN_PTR(cap);
 }
 
-/* ! Destroy capability CAP associated with internal file handle FH or virtual 
+/*! Destroy capability CAP associated with internal file handle FH or virtual 
    directory VD.  */
 // TODO: rozdeleni teto funkce na dve by asi tez neuskodilo
 static void
@@ -353,7 +353,7 @@ internal_cap_destroy(internal_cap cap, internal_fh fh, virtual_dir vd)
 	zfsd_mutex_unlock(&cap_mutex);
 }
 
-/* ! Destroy all unused capabilities associated with file handle FH.  */
+/*! Destroy all unused capabilities associated with file handle FH.  */
 
 void destroy_unused_capabilities(internal_fh fh)
 {
@@ -384,7 +384,7 @@ void destroy_unused_capabilities(internal_fh fh)
 		local_close(fh);
 }
 
-/* ! Get an internal capability CAP and store it to ICAPP. Store capability's
+/*! Get an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal file handle IFH and virtual directory to VD. Create 
    a new internal capability if it does not exist.  */
 
@@ -481,7 +481,7 @@ get_capability(zfs_cap * cap, internal_cap * icapp, volume * vol,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Return an internal capability for ZFS capability CAP and internal dentry
+/*! Return an internal capability for ZFS capability CAP and internal dentry
    DENTRY.  */
 
 internal_cap
@@ -508,7 +508,7 @@ get_capability_no_zfs_fh_lookup(zfs_cap * cap, internal_dentry dentry,
 	RETURN_PTR(icap);
 }
 
-/* ! Find an internal capability CAP and store it to ICAPP. Store capability's
+/*! Find an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal dentry DENTRY and virtual directory to VD. If
    DELETE_VOLUME_P is true and the volume should be deleted do not lookup the
    file handle and delete the volume if there are no file handles locked on it. 
@@ -530,7 +530,7 @@ find_capability(zfs_cap * cap, internal_cap * icapp, volume * vol,
 	RETURN_INT(r);
 }
 
-/* ! Find an internal capability CAP and store it to ICAPP. Store capability's
+/*! Find an internal capability CAP and store it to ICAPP. Store capability's
    volume to VOL, internal dentry DENTRY and virtual directory to VD. If
    DELETE_VOLUME_P is true and the volume should be deleted do not lookup the
    file handle and delete the volume if there are no file handles locked on it.
@@ -612,7 +612,7 @@ find_capability_nolock(zfs_cap * cap, internal_cap * icapp,
 	RETURN_INT(r);
 }
 
-/* ! Decrease the number of users of capability CAP associated with file
+/*! Decrease the number of users of capability CAP associated with file
    handle FH or virtual directory VD and destroy the capability when the
    number of users becomes 0.  */
 
@@ -640,7 +640,7 @@ int32_t put_capability(internal_cap cap, internal_fh fh, virtual_dir vd)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Initialize data structures in CAP.C.  */
+/*! Initialize data structures in CAP.C.  */
 
 void initialize_cap_c(void)
 {
@@ -649,7 +649,7 @@ void initialize_cap_c(void)
 								 250, &cap_mutex);
 }
 
-/* ! Destroy data structures in CAP.C.  */
+/*! Destroy data structures in CAP.C.  */
 
 void cleanup_cap_c(void)
 {

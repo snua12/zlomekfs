@@ -1,4 +1,4 @@
-/* ! \file \brief Random filename generator */
+/*! \file \brief Random filename generator */
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 

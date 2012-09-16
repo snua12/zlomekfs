@@ -1,4 +1,4 @@
-/* ! \file \brief Implementation of control client functions (high level
+/*! \file \brief Implementation of control client functions (high level
    logger-control interface) \see control.h */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar

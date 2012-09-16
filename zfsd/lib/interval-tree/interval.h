@@ -1,4 +1,4 @@
-/* ! \file \brief Disjoint interval tree datatype.  */
+/*! \file \brief Disjoint interval tree datatype.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -28,50 +28,50 @@
 #include "splay-tree.h"
 #include "varray.h"
 
-/* ! \brief The interval tree.  */
+/*! \brief The interval tree.  */
 typedef struct interval_tree_def
 {
-	/* ! Mutex for this interval tree.  */
+	/*! Mutex for this interval tree.  */
 	pthread_mutex_t *mutex;
 
-	/* ! The underlying splay tree.  */
+	/*! The underlying splay tree.  */
 	splay_tree splay;
 
-	/* ! Preferred size of block for alloc pool.  */
+	/*! Preferred size of block for alloc pool.  */
 	unsigned int preferred_size;
 
-	/* ! Number of intervals in tree.  */
+	/*! Number of intervals in tree.  */
 	unsigned int size;			// NOTE: size?
 
-	/* ! File descriptor associated with the tree.  */
+	/*! File descriptor associated with the tree.  */
 	int fd;
 
-	/* ! Generation of opened file descriptor.  */
+	/*! Generation of opened file descriptor.  */
 	unsigned int generation;
 
-	/* ! Was some interval deleted from the tree? Used to decide whether to
+	/*! Was some interval deleted from the tree? Used to decide whether to
 	   flush the tree or not.  */
 	bool deleted;
 } *interval_tree;
 
-/* ! \brief Interval structure used by interval_tree_read/interval_tree_write. 
+/*! \brief Interval structure used by interval_tree_read/interval_tree_write. 
  */
 typedef struct interval_def
 {
-	/* ! Start of interval.  */
+	/*! Start of interval.  */
 	uint64_t start;
 
-	/* ! End of interval.  */
+	/*! End of interval.  */
 	uint64_t end;
 } interval;
 
-/* ! Splay tree node.  */
+/*! Splay tree node.  */
 typedef splay_tree_node interval_tree_node;
 
-/* ! Start of the interval. \param NODE Node holding the interval.  */
+/*! Start of the interval. \param NODE Node holding the interval.  */
 #define INTERVAL_START(NODE) ((NODE)->key)
 
-/* ! End of the interval. \param NODE Node holding the interval.  */
+/*! End of the interval. \param NODE Node holding the interval.  */
 #define INTERVAL_END(NODE) ((NODE)->value)
 
 extern interval_tree interval_tree_create(unsigned int preferred_size,

@@ -1,4 +1,4 @@
-/* ! \file \brief User and group functions.  */
+/*! \file \brief User and group functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -26,38 +26,38 @@
 #include "hashtab.h"
 #include "node.h"
 
-/* ! \brief Description of ZFS user.  */
+/*! \brief Description of ZFS user.  */
 typedef struct user_def
 {
-	uint32_t id;				/* !< user ID */
-	string name;				/* !< name of the user */
-	bool marked;				/* !< Is the user marked? */
+	uint32_t id;				/*!< user ID */
+	string name;				/*!< name of the user */
+	bool marked;				/*!< Is the user marked? */
 } *user_t;
 
-/* ! \brief Description of ZFS group.  */
+/*! \brief Description of ZFS group.  */
 typedef struct group_def
 {
-	uint32_t id;				/* !< group ID */
-	string name;				/* !< name of the group */
-	bool marked;				/* !< Is the group marked? */
+	uint32_t id;				/*!< group ID */
+	string name;				/*!< name of the group */
+	bool marked;				/*!< Is the group marked? */
 } *group_t;
 
-/* ! \brief Mapping between ZFS user/group ID and node user/group ID.  */
+/*! \brief Mapping between ZFS user/group ID and node user/group ID.  */
 typedef struct id_mapping_def
 {
-	uint32_t zfs_id;			/* !< ID of ZFS user/group */
-	uint32_t node_id;			/* !< ID of node user/group */
-	bool marked;				/* !< Is the id mapping marked? */
+	uint32_t zfs_id;			/*!< ID of ZFS user/group */
+	uint32_t node_id;			/*!< ID of node user/group */
+	bool marked;				/*!< Is the id mapping marked? */
 } *id_mapping;
 
-/* ! ID of default ZFS user/group.  */
+/*! ID of default ZFS user/group.  */
 #define DEFAULT_ZFS_UID ((uint32_t) -2)
 #define DEFAULT_ZFS_GID ((uint32_t) -2)
 
-/* ! Mutex protecting hash tables users_*, groups_*, map_*.  */
+/*! Mutex protecting hash tables users_*, groups_*, map_*.  */
 extern pthread_mutex_t users_groups_mutex;
 
-/* ! Hash functions for user/group ID mapping.  */
+/*! Hash functions for user/group ID mapping.  */
 #define MAP_ID_HASH(UID) (UID)
 
 extern user_t user_create(uint32_t id, string * name);
@@ -68,7 +68,7 @@ extern hash_t map_id_to_zfs_hash(const void *x);
 extern int map_id_to_node_eq(const void *x, const void *y);
 extern int map_id_to_zfs_eq(const void *x, const void *y);
 
-/* ! Updates user mapping for node with sid. 
+/*! Updates user mapping for node with sid. 
  *   If sid is 0, then global mapping is updated.
  *   Returns true on succes, false otherwise.
  */
@@ -77,7 +77,7 @@ extern bool_t update_user_mappings(varray * users_mappings, uint32_t sid);
 extern void set_default_user_mapping(void);
 extern void user_mapping_destroy_all(node nod);
 
-/* ! Updates group mapping for node with sid. 
+/*! Updates group mapping for node with sid. 
  *   If sid is 0, then global mapping is updated.
  *   Returns true on succes, false otherwise.
  */

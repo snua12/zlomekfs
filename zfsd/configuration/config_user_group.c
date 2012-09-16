@@ -10,7 +10,7 @@
 
 #include "config_user_group.h"
 
-/* ! Read list of users from CONFIG_DIR/user_list.  */
+/*! Read list of users from CONFIG_DIR/user_list.  */
 
 bool read_user_list(zfs_fh * config_dir)
 {
@@ -51,7 +51,7 @@ bool read_user_list(zfs_fh * config_dir)
 	return (rv == CONFIG_TRUE);
 }
 
-/* ! Read list of groups from CONFIG_DIR/group_list.  */
+/*! Read list of groups from CONFIG_DIR/group_list.  */
 
 bool read_group_list(zfs_fh * config_dir)
 {
@@ -92,7 +92,7 @@ bool read_group_list(zfs_fh * config_dir)
 	return (rv == CONFIG_TRUE);
 }
 
-/* ! Read list of user mapping.  If SID == 0 read the default user mapping
+/*! Read list of user mapping.  If SID == 0 read the default user mapping
    from CONFIG_DIR/user/default else read the special mapping for node SID.  */
 
 bool read_user_mapping(zfs_fh * user_dir, uint32_t sid)
@@ -167,7 +167,7 @@ bool read_user_mapping(zfs_fh * user_dir, uint32_t sid)
 	return (rv == CONFIG_TRUE);
 }
 
-/* ! Read list of group mapping.  If SID == 0 read the default group mapping
+/*! Read list of group mapping.  If SID == 0 read the default group mapping
    from CONFIG_DIR/group/default else read the special mapping for node SID.  */
 bool read_group_mapping(zfs_fh * group_dir, uint32_t sid)
 {

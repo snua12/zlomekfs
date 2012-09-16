@@ -1,4 +1,4 @@
-/* ! \file \brief Functions to support a pool of allocatable objects.  */
+/*! \file \brief Functions to support a pool of allocatable objects.  */
 
 /* Copyright (C) 1997, 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@cgsoftware.com>
@@ -36,32 +36,32 @@ extern "C"
 #endif
 
 #ifdef ENABLE_CHECKING
-	/* ! Type of ID of the alloc pool.  */
+	/*! Type of ID of the alloc pool.  */
 	typedef uint32_t alloc_pool_id_t;
 #endif
 
-	/* ! \brief Structure chaining free elements.  */
+	/*! \brief Structure chaining free elements.  */
 	typedef struct alloc_pool_list_def
 	{
-		struct alloc_pool_list_def *next;	/* !< Pointer to next element. */
+		struct alloc_pool_list_def *next;	/*!< Pointer to next element. */
 	} *alloc_pool_list;
 
-	/* ! \brief Definition of alloc pool.  */
+	/*! \brief Definition of alloc pool.  */
 	typedef struct alloc_pool_def
 	{
-		char *name;				/* !< Name of the pool. */
-		pthread_mutex_t *mutex;	/* !< Mutex. */
+		char *name;				/*!< Name of the pool. */
+		pthread_mutex_t *mutex;	/*!< Mutex. */
 #ifdef ENABLE_CHECKING
-		alloc_pool_id_t id;		/* !< ID. */
+		alloc_pool_id_t id;		/*!< ID. */
 #endif
-		size_t elts_per_block;	/* !< Elements per block. */
-		alloc_pool_list free_list;	/* !< List of free elements. */
-		size_t elts_allocated;	/* !< Number of allocated elements. */
-		size_t elts_free;		/* !< Number of free elements. */
-		size_t blocks_allocated;	/* !< Number of allocated blocks. */
-		alloc_pool_list block_list;	/* !< List of blocks. */
-		size_t block_size;		/* !< Size of block. */
-		size_t elt_size;		/* !< Size of element. */
+		size_t elts_per_block;	/*!< Elements per block. */
+		alloc_pool_list free_list;	/*!< List of free elements. */
+		size_t elts_allocated;	/*!< Number of allocated elements. */
+		size_t elts_free;		/*!< Number of free elements. */
+		size_t blocks_allocated;	/*!< Number of allocated blocks. */
+		alloc_pool_list block_list;	/*!< List of blocks. */
+		size_t block_size;		/*!< Size of block. */
+		size_t elt_size;		/*!< Size of element. */
 	} *alloc_pool;
 
 	extern alloc_pool create_alloc_pool(const char *name, size_t size,

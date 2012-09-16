@@ -1,4 +1,4 @@
-/* ! \file \brief Definitions for 32-bit CRC.  */
+/*! \file \brief Definitions for 32-bit CRC.  */
 
 /* Copyright (C) 2003 Josef Zlomek
 

@@ -1,4 +1,4 @@
-/* ! \file \brief Helper functions.  */
+/*! \file \brief Helper functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -30,7 +30,7 @@
 #include <errno.h>
 #include "pthread-wrapper.h"
 
-/* ! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers. !see
+/*! Print LEN bytes of buffer BUF to file F in hexadecimal ciphers. !see
    message */
 void
 print_hex_buffer(int level, ATTRIBUTE_UNUSED FILE * f, char *buf,
@@ -52,7 +52,7 @@ print_hex_buffer(int level, ATTRIBUTE_UNUSED FILE * f, char *buf,
 	message(level, FACILITY_DATA, "\n");
 }
 
-/* ! Read LEN bytes from file descriptor FD to buffer BUF.  */
+/*! Read LEN bytes from file descriptor FD to buffer BUF.  */
 
 bool full_read(int fd, void *buf, size_t len)
 {
@@ -83,7 +83,7 @@ again:
 	return true;
 }
 
-/* ! Write LEN bytes from buffer BUF to file descriptor FD.  */
+/*! Write LEN bytes from buffer BUF to file descriptor FD.  */
 
 bool full_write(int fd, void *buf, size_t len)
 {
@@ -114,7 +114,7 @@ again:
 	return true;
 }
 
-/* ! Create a full path PATH with access rights MODE (similarly as "mkdir -p
+/*! Create a full path PATH with access rights MODE (similarly as "mkdir -p
    path" does).  Return true if PATH exists at the end of this function.  */
 
 bool full_mkdir(char *path, unsigned int mode)
@@ -174,7 +174,7 @@ bool full_mkdir(char *path, unsigned int mode)
 	return false;
 }
 
-/* ! Return true if all LEN bytes of buffer P are equal to BYTE.  */
+/*! Return true if all LEN bytes of buffer P are equal to BYTE.  */
 
 bool bytecmp(const void *p, int byte, size_t len)
 {

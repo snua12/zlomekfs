@@ -8,7 +8,7 @@
 #include "shared_config.h"
 #include "pthread-wrapper.h"
 
-/* ! \brief Data for process_line_volume_hierarchy.  */
+/*! \brief Data for process_line_volume_hierarchy.  */
 typedef struct volume_hierarchy_data_def
 {
 	varray hierarchy;
@@ -101,7 +101,7 @@ static bool_t update_volumes(varray * volumes)
 
 }
 
-/* ! Read list of volumes from CONFIG_DIR/volume_list.  */
+/*! Read list of volumes from CONFIG_DIR/volume_list.  */
 
 bool read_volume_list(zfs_fh * config_dir)
 {

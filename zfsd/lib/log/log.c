@@ -1,4 +1,4 @@
-/* ! \file \brief Logging functions.  */
+/*! \file \brief Logging functions.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -84,7 +84,7 @@ void zfs_closelog(void)
 
 #ifdef HAVE_EXECINFO_H
 #define HAVE_SHOW_STACKFRAME 1
-/* ! Print stack */
+/*! Print stack */
 static void show_stackframe(void)
 {
 	void *trace[16];
@@ -100,7 +100,7 @@ static void show_stackframe(void)
 }
 #endif
 
-/* ! Print the internal error message and exit.  */
+/*! Print the internal error message and exit.  */
 void internal_error(const char *format, ...)
 {
 	va_list va;
@@ -134,7 +134,7 @@ void internal_error(const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
-/* ! Report an "Aborted" internal error.  */
+/*! Report an "Aborted" internal error.  */
 void verbose_abort(const char *file, int line)
 {
 	internal_error("Aborted by %p, at %s:%d\n", pthread_self(),

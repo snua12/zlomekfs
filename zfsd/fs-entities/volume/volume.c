@@ -1,4 +1,4 @@
-/* ! \file \brief Volume functions.  */
+/*! \file \brief Volume functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -32,13 +32,13 @@
 #include "zfs_config.h"
 #include "dir.h"
 
-/* ! Hash table of volumes, searched by ID.  */
+/*! Hash table of volumes, searched by ID.  */
 static htab_t volume_htab;
 
-/* ! Hash table of volumes, searched by NAME.  */
+/*! Hash table of volumes, searched by NAME.  */
 static htab_t volume_htab_name;
 
-/* ! Mutex for table of volumes.  */
+/*! Mutex for table of volumes.  */
 pthread_mutex_t volume_mutex;
 
 bool is_valid_volume_id(uint32_t vid)
@@ -52,33 +52,33 @@ bool is_valid_volume_name(const char * name)
 	return (name != NULL && name[0] != 0);
 }
 
-/* ! Hash function for volume ID ID.  */
+/*! Hash function for volume ID ID.  */
 #define HASH_VOLUME_ID(ID) (ID)
 
-/* ! Hash function for volume N.  */
+/*! Hash function for volume N.  */
 #define VOLUME_HASH(V) ((V)->id)
 
-/* ! Hash function for volume name NAME.  */
+/*! Hash function for volume name NAME.  */
 #define HASH_VOLUME_NAME(NAME) crc32_buffer ((NAME).str, (NAME).len)
 
-/* ! Hash function for volume V.  */
+/*! Hash function for volume V.  */
 #define VOLUME_HASH_NAME(V) HASH_VOLUME_NAME ((V)->name)
 
-/* ! Hash function for volume X, conputed from ID.  */
+/*! Hash function for volume X, conputed from ID.  */
 
 static hash_t volume_hash(const void *x)
 {
 	return VOLUME_HASH((const struct volume_def *)x);
 }
 
-/* ! Hash function for volume X, conputed from volume name.  */
+/*! Hash function for volume X, conputed from volume name.  */
 
 static hash_t volume_hash_name(const void *x)
 {
 	return VOLUME_HASH_NAME((const struct volume_def *)x);
 }
 
-/* ! Compare a volume X with ID *Y.  */
+/*! Compare a volume X with ID *Y.  */
 
 static int volume_eq(const void *x, const void *y)
 {
@@ -88,7 +88,7 @@ static int volume_eq(const void *x, const void *y)
 	return vol->id == id;
 }
 
-/* ! Compare a volume X with string Y.  */
+/*! Compare a volume X with string Y.  */
 
 static int volume_eq_name(const void *x, const void *y)
 {
@@ -98,7 +98,7 @@ static int volume_eq_name(const void *x, const void *y)
 	return (vol->name.len == s->len && strcmp(vol->name.str, s->str) == 0);
 }
 
-/* ! Return the volume with volume ID == ID.  */
+/*! Return the volume with volume ID == ID.  */
 
 volume volume_lookup(uint32_t id)
 {
@@ -113,7 +113,7 @@ volume volume_lookup(uint32_t id)
 	return vol;
 }
 
-/* ! Return the volume with volume ID == ID.  */
+/*! Return the volume with volume ID == ID.  */
 
 volume volume_lookup_nolock(uint32_t id)
 {
@@ -128,7 +128,7 @@ volume volume_lookup_nolock(uint32_t id)
 	return vol;
 }
 
-/* ! Return the volume with name == NAME.  */
+/*! Return the volume with name == NAME.  */
 
 volume volume_lookup_name(string * name)
 {
@@ -144,7 +144,7 @@ volume volume_lookup_name(string * name)
 	return vol;
 }
 
-/* ! Create volume structure and fill it with information.  */
+/*! Create volume structure and fill it with information.  */
 
 volume volume_create(uint32_t id)
 {
@@ -191,7 +191,7 @@ volume volume_create(uint32_t id)
 	return vol;
 }
 
-/* ! Destroy volume VOL and free memory associated with it. This function
+/*! Destroy volume VOL and free memory associated with it. This function
    expects volume_mutex to be locked.  */
 
 static void volume_destroy(volume vol)
@@ -253,7 +253,7 @@ static void volume_destroy(volume vol)
 	free(vol);
 }
 
-/* ! Destroy volume VOL and free memory associated with it. Destroy dentries
+/*! Destroy volume VOL and free memory associated with it. Destroy dentries
    while volume_mutex is unlocked. This function expects fh_mutex to be
    locked.  */
 
@@ -292,7 +292,7 @@ void volume_delete(volume vol)
 	zfsd_mutex_unlock(&volume_mutex);
 }
 
-/* ! Set the information common for all volume types.  */
+/*! Set the information common for all volume types.  */
 
 void
 volume_set_common_info(volume vol, string * name, string * mountpoint,
@@ -349,7 +349,7 @@ volume_set_common_info(volume vol, string * name, string * mountpoint,
 	}
 }
 
-/* ! Wrapper for volume_set_common_info.  */
+/*! Wrapper for volume_set_common_info.  */
 
 void
 volume_set_common_info_wrapper(volume vol, char *name, char *mountpoint,
@@ -365,7 +365,7 @@ volume_set_common_info_wrapper(volume vol, char *name, char *mountpoint,
 	volume_set_common_info(vol, &name_str, &mountpoint_str, master);
 }
 
-/* ! Set the information for a volume with local copy. \param volp Volume.
+/*! Set the information for a volume with local copy. \param volp Volume.
    \param local_path Local path to the volume. \param size_limit Size limit
    for the volume.  */
 
@@ -410,7 +410,7 @@ volume_set_local_info(volume * volp, string * local_path, uint64_t size_limit)
 	return init_volume_metadata(vol);
 }
 
-/* ! Set the information for a volume with local copy. \param volp Volume.
+/*! Set the information for a volume with local copy. \param volp Volume.
    \param local_path Local path to the volume. \param size_limit Size limit
    for the volume.  */
 
@@ -427,7 +427,7 @@ volume_set_local_info_wrapper(volume * volp, char *local_path,
 
 // TODO: remve this unused function
 #if 0
-/* ! Print the information about volume VOL to file F.  */
+/*! Print the information about volume VOL to file F.  */
 
 static void print_volume(FILE * f, volume vol)
 {
@@ -435,7 +435,7 @@ static void print_volume(FILE * f, volume vol)
 }
 
 
-/* ! Print the information about all volumes to file F.  */
+/*! Print the information about all volumes to file F.  */
 
 static void print_volumes(FILE * f)
 {
@@ -448,7 +448,7 @@ static void print_volumes(FILE * f)
 }
 #endif
 
-/* ! Mark all volumes.  */
+/*! Mark all volumes.  */
 
 void mark_all_volumes(void)
 {
@@ -466,7 +466,7 @@ void mark_all_volumes(void)
 	zfsd_mutex_unlock(&volume_mutex);
 }
 
-/* ! Delete all dentries of marked volume and clear local path. \param vol
+/*! Delete all dentries of marked volume and clear local path. \param vol
    Volume on which the dentries will be deleted.  */
 
 static void delete_dentries_of_marked_volume(volume vol)
@@ -503,7 +503,7 @@ static void delete_dentries_of_marked_volume(volume vol)
 	zfsd_mutex_unlock(&vol->mutex);
 }
 
-/* ! Delete all dentries of marked volume.  */
+/*! Delete all dentries of marked volume.  */
 
 void delete_dentries_of_marked_volumes(void)
 {
@@ -524,7 +524,7 @@ void delete_dentries_of_marked_volumes(void)
 	zfsd_mutex_unlock(&fh_mutex);
 }
 
-/* ! Destroy volume VOL if it is marked.  */
+/*! Destroy volume VOL if it is marked.  */
 
 static void destroy_marked_volume_1(volume vol)
 {
@@ -568,7 +568,7 @@ static void destroy_marked_volume_1(volume vol)
 	}
 }
 
-/* ! Destroy volume VID if it is marked.  */
+/*! Destroy volume VID if it is marked.  */
 
 void destroy_marked_volume(uint32_t vid)
 {
@@ -583,7 +583,7 @@ void destroy_marked_volume(uint32_t vid)
 	zfsd_mutex_unlock(&fh_mutex);
 }
 
-/* ! Delete marked volumes.  */
+/*! Delete marked volumes.  */
 
 void destroy_marked_volumes(void)
 {
@@ -602,7 +602,7 @@ void destroy_marked_volumes(void)
 	zfsd_mutex_unlock(&fh_mutex);
 }
 
-/* ! Delete all volumes.  */
+/*! Delete all volumes.  */
 
 void destroy_all_volumes(void)
 {
@@ -699,7 +699,7 @@ bool init_config_volume(void)
 	return false;
 }
 
-/* ! Initialize data structures in VOLUME.C.  */
+/*! Initialize data structures in VOLUME.C.  */
 
 void initialize_volume_c(void)
 {
@@ -711,7 +711,7 @@ void initialize_volume_c(void)
 					&volume_mutex);
 }
 
-/* ! Destroy data structures in VOLUME.C.  */
+/*! Destroy data structures in VOLUME.C.  */
 
 void cleanup_volume_c(void)
 {

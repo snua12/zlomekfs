@@ -1,4 +1,4 @@
-/* ! \file \brief An expandable hash table in a file.  */
+/*! \file \brief An expandable hash table in a file.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek Based on hashfile.c
 
@@ -32,10 +32,10 @@
 #include "util.h"
 #include "data-coding.h"
 
-/* ! Size of buffer used in hfile_expand.  */
+/*! Size of buffer used in hfile_expand.  */
 #define HFILE_BUFFER_SIZE 0x4000
 
-/* ! Read and return status of slot from HFILE on offset OFFSET.  */
+/*! Read and return status of slot from HFILE on offset OFFSET.  */
 
 static uint32_t hfile_read_slot_status(hfile_t hfile, uint64_t offset)
 {
@@ -48,7 +48,7 @@ static uint32_t hfile_read_slot_status(hfile_t hfile, uint64_t offset)
 	return le_to_u32(*(uint32_t *) hfile->element);
 }
 
-/* ! Read an element and return status of slot from HFILE on offset OFFSET.  */
+/*! Read an element and return status of slot from HFILE on offset OFFSET.  */
 
 static uint32_t hfile_read_element(hfile_t hfile, uint64_t offset)
 {
@@ -61,7 +61,7 @@ static uint32_t hfile_read_element(hfile_t hfile, uint64_t offset)
 	return le_to_u32(*(uint32_t *) hfile->element);
 }
 
-/* ! Find an empty slot for hfile_expand. HASH is the hash value for the
+/*! Find an empty slot for hfile_expand. HASH is the hash value for the
    element to be inserted. Expects no deleted slots in the table.  */
 
 static uint64_t hfile_find_empty_slot(hfile_t hfile, hashval_t hash)
@@ -114,7 +114,7 @@ static uint64_t hfile_find_empty_slot(hfile_t hfile, hashval_t hash)
 	}
 }
 
-/* ! Find a slot for ELEM. HASH is the hash value for the element to be
+/*! Find a slot for ELEM. HASH is the hash value for the element to be
    inserted. Expects no deleted slots in the table.  */
 
 static uint64_t
@@ -195,7 +195,7 @@ hfile_find_slot(hfile_t hfile, const void *elem, hashval_t hash, bool insert)
 	return offset;
 }
 
-/* ! Expand or shrink hash file HFILE when necessary. Return true on success. */
+/*! Expand or shrink hash file HFILE when necessary. Return true on success. */
 
 static bool hfile_expand(hfile_t hfile)
 {
@@ -341,7 +341,7 @@ static bool hfile_expand(hfile_t hfile)
 	return false;
 }
 
-/* ! Create the hash table data structure with SIZE elements, hash function
+/*! Create the hash table data structure with SIZE elements, hash function
    HASH_F, compare function EQ_F, decode function DECODE_F, encode function
    ENCODE_F and file FILE_NAME.  The size of the whole element is
    ELEMENT_SIZE, te size of base of element is BASE_SIZE */
@@ -387,7 +387,7 @@ hfile_create(unsigned int element_size, unsigned int base_size,
 	return hfile;
 }
 
-/* ! Initialize hash file HFILE.  */
+/*! Initialize hash file HFILE.  */
 
 bool hfile_init(hfile_t hfile, struct stat * st)
 {
@@ -418,7 +418,7 @@ bool hfile_init(hfile_t hfile, struct stat * st)
 	return true;
 }
 
-/* ! Destroy the hash table HTAB.  */
+/*! Destroy the hash table HTAB.  */
 
 void hfile_destroy(hfile_t hfile)
 {
@@ -434,7 +434,7 @@ void hfile_destroy(hfile_t hfile)
 	free(hfile);
 }
 
-/* ! Lookup element X from hash file HFILE.  Return false on file failure.  */
+/*! Lookup element X from hash file HFILE.  Return false on file failure.  */
 
 bool hfile_lookup(hfile_t hfile, void *x)
 {
@@ -465,7 +465,7 @@ bool hfile_lookup(hfile_t hfile, void *x)
 	return true;
 }
 
-/* ! Insert element X into hash file HFILE.  If BASE_ONLY is true insert only
+/*! Insert element X into hash file HFILE.  If BASE_ONLY is true insert only
    the base of the element.  Return false on file failure.  */
 
 bool hfile_insert(hfile_t hfile, void *x, bool base_only)
@@ -538,7 +538,7 @@ bool hfile_insert(hfile_t hfile, void *x, bool base_only)
 	return false;
 }
 
-/* ! Delete element X from hash file HFILE.  Return false on file failure.  */
+/*! Delete element X from hash file HFILE.  Return false on file failure.  */
 
 bool hfile_delete(hfile_t hfile, void *x)
 {

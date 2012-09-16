@@ -1,4 +1,4 @@
-/* ! \file \brief User and group functions.  */
+/*! \file \brief User and group functions.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -37,19 +37,19 @@
 
 typedef struct zfs_config_users_groups_def
 {
-	/* ! Tables of users and groups, searched by ID and by NAME.  */
+	/*! Tables of users and groups, searched by ID and by NAME.  */
 	htab_t users_id;
 	htab_t users_name;
 	htab_t groups_id;
 	htab_t groups_name;
 
-	/* ! Tables for mapping between ZFS IDs and node IDs.  */
+	/*! Tables for mapping between ZFS IDs and node IDs.  */
 	htab_t map_uid_to_node;
 	htab_t map_uid_to_zfs;
 	htab_t map_gid_to_node;
 	htab_t map_gid_to_zfs;
 
-	/* ! Mutex protecting hash tables users_*, groups_*, map_*.  */
+	/*! Mutex protecting hash tables users_*, groups_*, map_*.  */
 	pthread_mutex_t mutex;
 } zfs_config_users_groups;
 
@@ -68,36 +68,36 @@ static void config_users_groups_unlock()
 	zfsd_mutex_unlock(&config_users_groups.mutex);
 }
 
-/* ! Hash functions for user and group ID.  */
+/*! Hash functions for user and group ID.  */
 #define USER_ID_HASH(ID) (ID)
 #define GROUP_ID_HASH(ID) (ID)
 
-/* ! Hash functions for user and group NAME.  */
+/*! Hash functions for user and group NAME.  */
 #define USER_NAME_HASH(NAME) (crc32_buffer ((NAME).str, (NAME).len))
 #define GROUP_NAME_HASH(NAME) (crc32_buffer ((NAME).str, (NAME).len))
 
-/* ! Hash function for user X, computed from ID.  */
+/*! Hash function for user X, computed from ID.  */
 
 static hash_t users_id_hash(const void *x)
 {
 	return USER_ID_HASH(((const struct user_def *)x)->id);
 }
 
-/* ! Hash function for user X, computed from NAME.  */
+/*! Hash function for user X, computed from NAME.  */
 
 static hash_t users_name_hash(const void *x)
 {
 	return USER_NAME_HASH(((const struct user_def *)x)->name);
 }
 
-/* ! Compare an user X with user ID Y.  */
+/*! Compare an user X with user ID Y.  */
 
 static int users_id_eq(const void *x, const void *y)
 {
 	return ((const struct user_def *)x)->id == *(const uint32_t *)y;
 }
 
-/* ! Compare an user X with user name Y.  */
+/*! Compare an user X with user name Y.  */
 
 static int users_name_eq(const void *x, const void *y)
 {
@@ -107,28 +107,28 @@ static int users_name_eq(const void *x, const void *y)
 	return (u->name.len == s->len && strcmp(u->name.str, s->str) == 0);
 }
 
-/* ! Hash function for group X, computed from ID.  */
+/*! Hash function for group X, computed from ID.  */
 
 static hash_t groups_id_hash(const void *x)
 {
 	return GROUP_ID_HASH(((const struct group_def *)x)->id);
 }
 
-/* ! Hash function for group X, computed from NAME.  */
+/*! Hash function for group X, computed from NAME.  */
 
 static hash_t groups_name_hash(const void *x)
 {
 	return GROUP_NAME_HASH(((const struct group_def *)x)->name);
 }
 
-/* ! Compare a group X with group ID Y.  */
+/*! Compare a group X with group ID Y.  */
 
 static int groups_id_eq(const void *x, const void *y)
 {
 	return ((const struct group_def *)x)->id == *(const uint32_t *)y;
 }
 
-/* ! Compare a group X with group name Y.  */
+/*! Compare a group X with group name Y.  */
 
 static int groups_name_eq(const void *x, const void *y)
 {
@@ -138,7 +138,7 @@ static int groups_name_eq(const void *x, const void *y)
 	return (g->name.len == s->len && strcmp(g->name.str, s->str) == 0);
 }
 
-/* ! Create an user with ID and NAME.  */
+/*! Create an user with ID and NAME.  */
 
 static user_t user_create_nolock(uint32_t id, string * name)
 {
@@ -212,14 +212,14 @@ user_t user_create(uint32_t id, string * name)
 	return ret;
 }
 
-/* ! Lookup user by ID.  */
+/*! Lookup user by ID.  */
 
 static user_t user_lookup(uint32_t id)
 {
 	return (user_t) htab_find_with_hash(config_users_groups.users_id, &id, USER_ID_HASH(id));
 }
 
-/* ! Destroy user U.  */
+/*! Destroy user U.  */
 
 static void user_destroy_nolock(user_t u)
 {
@@ -247,7 +247,7 @@ static void user_destroy_nolock(user_t u)
 	free(u);
 }
 
-/* ! Create a group with ID and NAME, its list of users is USER_LIST.  */
+/*! Create a group with ID and NAME, its list of users is USER_LIST.  */
 
 static group_t group_create_nolock(uint32_t id, string * name)
 {
@@ -321,14 +321,14 @@ group_t group_create(uint32_t id, string * name)
 	return ret;
 }
 
-/* ! Lookup group by ID.  */
+/*! Lookup group by ID.  */
 
 static group_t group_lookup(uint32_t id)
 {
 	return (group_t) htab_find_with_hash(config_users_groups.groups_id, &id, GROUP_ID_HASH(id));
 }
 
-/* ! Destroy group G.  */
+/*! Destroy group G.  */
 
 static void group_destroy_nolock(group_t g)
 {
@@ -356,35 +356,35 @@ static void group_destroy_nolock(group_t g)
 	free(g);
 }
 
-/* ! Hash function for id_mapping, computed from ZFS_ID.  */
+/*! Hash function for id_mapping, computed from ZFS_ID.  */
 
 hash_t map_id_to_node_hash(const void *x)
 {
 	return MAP_ID_HASH(((const struct id_mapping_def *)x)->zfs_id);
 }
 
-/* ! Hash function for id_mapping, computed from NODE_ID.  */
+/*! Hash function for id_mapping, computed from NODE_ID.  */
 
 hash_t map_id_to_zfs_hash(const void *x)
 {
 	return MAP_ID_HASH(((const struct id_mapping_def *)x)->node_id);
 }
 
-/* ! Compare ID mapping X with ZFS user/group ID Y.  */
+/*! Compare ID mapping X with ZFS user/group ID Y.  */
 
 int map_id_to_node_eq(const void *x, const void *y)
 {
 	return ((const struct id_mapping_def *)x)->zfs_id == *(const uint32_t *)y;
 }
 
-/* ! Compare ID mapping X with node user/group ID Y.  */
+/*! Compare ID mapping X with node user/group ID Y.  */
 
 int map_id_to_zfs_eq(const void *x, const void *y)
 {
 	return ((const struct id_mapping_def *)x)->node_id == *(const uint32_t *)y;
 }
 
-/* ! Add mapping between ZFS user name ZFS_USER and node user name NODE_USER
+/*! Add mapping between ZFS user name ZFS_USER and node user name NODE_USER
    for node NOD. If NOD is NULL add it to default mapping.  */
 
 static id_mapping user_mapping_create_nolock(string * zfs_user, string * node_user, node nod)
@@ -461,7 +461,7 @@ static id_mapping user_mapping_create_nolock(string * zfs_user, string * node_us
 	return map;
 }
 
-/* ! Destroy ID mapping MAP for node NOD.  If NOD is NULL delete it from
+/*! Destroy ID mapping MAP for node NOD.  If NOD is NULL delete it from
    default mapping.  */
 
 static void user_mapping_destroy_nolock(id_mapping map, node nod)
@@ -502,7 +502,7 @@ static void user_mapping_destroy_nolock(id_mapping map, node nod)
 	free(map);
 }
 
-/* ! For each ZFS user try to create mapping "user" <-> "user".  */
+/*! For each ZFS user try to create mapping "user" <-> "user".  */
 
 void set_default_user_mapping(void)
 {
@@ -518,7 +518,7 @@ void set_default_user_mapping(void)
 	}
 }
 
-/* ! Destroy all user mappings between ZFS and node NOD. If NOD is NULL
+/*! Destroy all user mappings between ZFS and node NOD. If NOD is NULL
    destroy default mapping.  */
 
 void user_mapping_destroy_all(node nod)
@@ -560,7 +560,7 @@ void user_mapping_destroy_all(node nod)
 	}
 }
 
-/* ! Add mapping between ZFS group name ZFS_GROUP and node group name
+/*! Add mapping between ZFS group name ZFS_GROUP and node group name
    NODE_GROUP for node NOD. If NOD is NULL add it to default mapping.  */
 
 static id_mapping group_mapping_create_nolock(string * zfs_group, string * node_group, node nod)
@@ -667,7 +667,7 @@ bool_t update_group_mappings(varray * groups_mappings, uint32_t sid)
 
 }
 
-/* ! Destroy ID mapping MAP for node NOD.  If NOD is NULL delete it from
+/*! Destroy ID mapping MAP for node NOD.  If NOD is NULL delete it from
    default mapping.  */
 
 static void group_mapping_destroy(id_mapping map, node nod)
@@ -708,7 +708,7 @@ static void group_mapping_destroy(id_mapping map, node nod)
 	free(map);
 }
 
-/* ! Destroy all group mappings between ZFS and node NOD. If NOD is NULL
+/*! Destroy all group mappings between ZFS and node NOD. If NOD is NULL
    destroy default mapping.  */
 
 void group_mapping_destroy_all(node nod)
@@ -750,7 +750,7 @@ void group_mapping_destroy_all(node nod)
 	}
 }
 
-/* ! Map ZFS user UID to (local) node user ID.  */
+/*! Map ZFS user UID to (local) node user ID.  */
 
 uint32_t map_uid_zfs2node(uint32_t uid)
 {
@@ -782,7 +782,7 @@ uint32_t map_uid_zfs2node(uint32_t uid)
 	return zfs_config.default_node_uid;
 }
 
-/* ! Map (local) node UID to ZFS user ID.  */
+/*! Map (local) node UID to ZFS user ID.  */
 
 uint32_t map_uid_node2zfs(uint32_t uid)
 {
@@ -814,7 +814,7 @@ uint32_t map_uid_node2zfs(uint32_t uid)
 	return DEFAULT_ZFS_UID;
 }
 
-/* ! Map ZFS group GID to (local) node group ID.  */
+/*! Map ZFS group GID to (local) node group ID.  */
 
 uint32_t map_gid_zfs2node(uint32_t gid)
 {
@@ -846,7 +846,7 @@ uint32_t map_gid_zfs2node(uint32_t gid)
 	return zfs_config.default_node_gid;
 }
 
-/* ! Map (local) node GID to ZFS group ID.  */
+/*! Map (local) node GID to ZFS group ID.  */
 
 uint32_t map_gid_node2zfs(uint32_t gid)
 {
@@ -878,7 +878,7 @@ uint32_t map_gid_node2zfs(uint32_t gid)
 	return DEFAULT_ZFS_GID;
 }
 
-/* ! Mark all users.  */
+/*! Mark all users.  */
 
 void mark_all_users(void)
 {
@@ -894,7 +894,7 @@ void mark_all_users(void)
 	config_users_groups_unlock();
 }
 
-/* ! Mark all groups.  */
+/*! Mark all groups.  */
 
 void mark_all_groups(void)
 {
@@ -910,7 +910,7 @@ void mark_all_groups(void)
 	config_users_groups_unlock();
 }
 
-/* ! Mark all id mappings in table HTAB.  */
+/*! Mark all id mappings in table HTAB.  */
 
 static void mark_id_mapping(htab_t htab)
 {
@@ -940,7 +940,7 @@ static void mark_user_mapping_nolock(node nod)
 	}
 }
 
-/* ! Mark user mapping.  If NOD is defined mark user mapping for node NOD
+/*! Mark user mapping.  If NOD is defined mark user mapping for node NOD
    otherwise mark the global user mapping.  */
 
 void mark_user_mapping(node nod)
@@ -978,7 +978,7 @@ static void mark_group_mapping_nolock(node nod)
 
 }
 
-/* ! Mark group mapping.  If NOD is defined mark group mapping for node NOD
+/*! Mark group mapping.  If NOD is defined mark group mapping for node NOD
    otherwise mark the global group mapping.  */
 
 void mark_group_mapping(node nod)
@@ -997,7 +997,7 @@ void mark_group_mapping(node nod)
 	config_users_groups_unlock();
 }
 
-/* ! Destroy marked users.  */
+/*! Destroy marked users.  */
 
 void destroy_marked_users(void)
 {
@@ -1014,7 +1014,7 @@ void destroy_marked_users(void)
 	config_users_groups_unlock();
 }
 
-/* ! Destroy marked groups.  */
+/*! Destroy marked groups.  */
 
 void destroy_marked_groups(void)
 {
@@ -1031,7 +1031,7 @@ void destroy_marked_groups(void)
 	config_users_groups_unlock();
 }
 
-/* ! Destroy marked user mapping.  */
+/*! Destroy marked user mapping.  */
 
 static void destroy_marked_user_mapping_nolock(node nod)
 {
@@ -1103,7 +1103,7 @@ void destroy_marked_user_mapping(node nod)
 	config_users_groups_unlock();
 }
 
-/* ! Destroy marked group mapping.  */
+/*! Destroy marked group mapping.  */
 
 static void destroy_marked_group_mapping_nolock(node nod)
 {
@@ -1205,7 +1205,7 @@ bool_t update_user_mappings(varray * users_mappings, uint32_t sid)
 }
 
 
-/* ! Initialize data structures in USER-GROUP.C.  */
+/*! Initialize data structures in USER-GROUP.C.  */
 
 void initialize_user_group_c(void)
 {
@@ -1230,7 +1230,7 @@ void initialize_user_group_c(void)
 								 NULL, &config_users_groups.mutex);
 }
 
-/* ! Destroy data structures in USER-GROUP.C.  */
+/*! Destroy data structures in USER-GROUP.C.  */
 
 void cleanup_user_group_c(void)
 {

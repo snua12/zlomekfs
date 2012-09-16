@@ -1,4 +1,4 @@
-/* ! \file \brief Logger remote control listening implementation. \see
+/*! \file \brief Logger remote control listening implementation. \see
    listener.h */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar

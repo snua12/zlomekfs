@@ -7,14 +7,14 @@ extern "C"
 #endif
 
 /* 
- * ! Display the usage and arguments.  
+ *! Display the usage and arguments.  
  */
 
 void usage(void);
 
 
 /* 
- * ! Display the version, exit the program with exit code EXITCODE.  
+ *! Display the version, exit the program with exit code EXITCODE.  
  */
 
 void version(int exitcode);

@@ -1,4 +1,4 @@
-/* ! \file \brief Random bytes.  */
+/*! \file \brief Random bytes.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -21,13 +21,13 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
-/* ! Return a pseudo-random number from range 0..NUM-1 */
+/*! Return a pseudo-random number from range 0..NUM-1 */
 #define RANDOM(NUM) (random () % NUM)
 
-/* ! File descriptor for /dev/random.  */
+/*! File descriptor for /dev/random.  */
 extern int fd_random;
 
-/* ! File descriptor for /dev/urandom.  */
+/*! File descriptor for /dev/urandom.  */
 extern int fd_urandom;
 
 extern bool initialize_random_c(void);

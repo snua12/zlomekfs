@@ -1,4 +1,4 @@
-/* ! \file \brief Interface to send commands to logger (client side). \see
+/*! \file \brief Interface to send commands to logger (client side). \see
    control-protocol.h
 
    Use set_level_udp, set_facility_upd or reset_facility_udp to control

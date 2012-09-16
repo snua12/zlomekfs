@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for file versioning.  */
+/*! \file \brief Functions for file versioning.  */
 
 /* Copyright (C) 2010 Rastislav Wartiak
 
@@ -27,7 +27,7 @@
 #include "fh.h"
 #include "file.h"
 
-/* ! \brief Maximum block size for versioning \see ZFS_MAXDATA */
+/*! \brief Maximum block size for versioning \see ZFS_MAXDATA */
 #define ZFS_VERSION_BLOCK_SIZE ZFS_MAXDATA
 
 #define VERSION_MAX_SPECIFIER_LENGTH 21
@@ -40,23 +40,23 @@
 #define VERSION_LIST_VERSIONS_SUF "versions"
 #define VERSION_LIST_VERSIONS_STAMP 1
 
-/* ! Mark file as truncated.  */
+/*! Mark file as truncated.  */
 #define MARK_FILE_TRUNCATED(FH)           \
   ({ \
     (FH)->file_truncated = true; \
   })
 
-/* ! Unmark file as truncated.  */
+/*! Unmark file as truncated.  */
 #define UNMARK_FILE_TRUNCATED(FH)           \
   ({ \
     (FH)->file_truncated = false; \
   })
 
-/* ! True when the NAME is a version file.  */
+/*! True when the NAME is a version file.  */
 #define VERSION_FILENAME_P(NAME)          \
   (strchr ((NAME), VERSION_NAME_SPECIFIER_C) != NULL)
 
-/* ! Was file as truncated before opening? */
+/*! Was file as truncated before opening? */
 #define WAS_FILE_TRUNCATED(FH) ((FH)->file_truncated)
 
 typedef struct version_item_def

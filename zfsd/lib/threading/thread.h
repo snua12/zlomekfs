@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for managing thread pools.  */
+/*! \file \brief Functions for managing thread pools.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 
@@ -36,83 +36,83 @@ extern "C"
 {
 #endif
 
-/* ! Key for thread specific data.  */
+/*! Key for thread specific data.  */
 extern pthread_key_t thread_data_key;
 
-/* ! Key for thread name.  */
+/*! Key for thread name.  */
 extern pthread_key_t thread_name_key;
 
-/* ! Limits for number of threads.  */
+/*! Limits for number of threads.  */
 typedef struct thread_limit_def
 {
-	size_t max_total;			/* !< maximal number of total threads */
-	size_t min_spare;			/* !< minimal number of spare threads */
-	size_t max_spare;			/* !< maximal number of spare threads */
+	size_t max_total;			/*!< maximal number of total threads */
+	size_t min_spare;			/*!< minimal number of spare threads */
+	size_t max_spare;			/*!< maximal number of spare threads */
 } thread_limit;
 
-/* ! State of the thread.  */
+/*! State of the thread.  */
 typedef enum thread_state_def
 {
-	THREAD_DEAD,				/* !< thread is not created */
-	THREAD_DYING,				/* !< thread is dying */
-	THREAD_IDLE,				/* !< thread is idle */
-	THREAD_BUSY					/* !< thread is working */
+	THREAD_DEAD,				/*!< thread is not created */
+	THREAD_DYING,				/*!< thread is dying */
+	THREAD_IDLE,				/*!< thread is idle */
+	THREAD_BUSY					/*!< thread is working */
 } thread_state;
 
 struct fd_data_def;
 
-/* ! \brief Additional data for a network thread.  */
+/*! \brief Additional data for a network thread.  */
 typedef struct network_thread_data_def
 {
-	DC *dc;						/* !< buffer for request to this node */
-	call_args args;				/* !< union for decoded call arguments */
-	direction dir;				/* !< method of the request */
-	struct fd_data_def *fd_data;	/* !< passed from main network thread */
-	unsigned int generation;	/* !< generation of file descriptor */
-	unsigned int index;			/* !< index of FD in array "active" */
+	DC *dc;						/*!< buffer for request to this node */
+	call_args args;				/*!< union for decoded call arguments */
+	direction dir;				/*!< method of the request */
+	struct fd_data_def *fd_data;	/*!< passed from main network thread */
+	unsigned int generation;	/*!< generation of file descriptor */
+	unsigned int index;			/*!< index of FD in array "active" */
 } network_thread_data;
 
-/* ! \brief Additional data for a kernel thread.  */
+/*! \brief Additional data for a kernel thread.  */
 typedef struct kernel_thread_data_def
 {
-	void *buf;					/* !< buffer for request to this node */
+	void *buf;					/*!< buffer for request to this node */
 	size_t buf_size;
 	struct fuse_chan *fuse_ch;
 } kernel_thread_data;
 
-/* ! \brief Additional data for an update thread.  */
+/*! \brief Additional data for an update thread.  */
 typedef struct update_thread_data_def
 {
-	/* ! File handle to update.  */
+	/*! File handle to update.  */
 	zfs_fh fh;
-	/* ! Thread is a slow updater. */
+	/*! Thread is a slow updater. */
 	bool slow;
 } update_thread_data;
 
-/* ! \brief Definition of thread's variables.  */
+/*! \brief Definition of thread's variables.  */
 typedef struct thread_def
 {
-	/* ! Mutex protecting the state of thread.  */
+	/*! Mutex protecting the state of thread.  */
 	pthread_mutex_t mutex;
 
-	/* ! State of the thread.  */
+	/*! State of the thread.  */
 	thread_state state;
 
-	/* ! The sequential number of the thread.  */
+	/*! The sequential number of the thread.  */
 	size_t index;
 
-	/* ! The ID of the thread which is set by pthread_create.  */
+	/*! The ID of the thread which is set by pthread_create.  */
 	pthread_t thread_id;
 
-	/* ! Semaphore used to stop an idle thread.  */
+	/*! Semaphore used to stop an idle thread.  */
 	semaphore sem;
 
-	DC *dc_call;				/* !< buffer for request for remote node */
-	DC *dc_reply;				/* !< buffer for reply from remote node */
-	int32_t retval;				/* !< return value for request.  */
-	uint32_t from_sid;			/* !< request came from node SID */
+	DC *dc_call;				/*!< buffer for request for remote node */
+	DC *dc_reply;				/*!< buffer for reply from remote node */
+	int32_t retval;				/*!< return value for request.  */
+	uint32_t from_sid;			/*!< request came from node SID */
 
-	/* ! Additional data for each subtype.  */
+	/*! Additional data for each subtype.  */
 	union
 	{
 		network_thread_data network;
@@ -121,7 +121,7 @@ typedef struct thread_def
 	} u;						// FIXME: none or meaningfull name
 } thread;
 
-/* ! \brief Thread datatype padded to 256 bytes to avoid cache ping pong.  */
+/*! \brief Thread datatype padded to 256 bytes to avoid cache ping pong.  */
 typedef union padded_thread_def
 {
 	thread t;
@@ -129,41 +129,41 @@ typedef union padded_thread_def
 }
 padded_thread;
 
-/* ! Type of a routine started in a new thread.  */
+/*! Type of a routine started in a new thread.  */
 typedef void *(*thread_start) (void *);
 
-/* ! Type of thread initializer.  */
+/*! Type of thread initializer.  */
 typedef void (*thread_init) (thread *);
 
-/* ! \brief Thread pool.  */
+/*! \brief Thread pool.  */
 typedef struct thread_pool_def
 {
-	volatile bool terminate;	/* !< shall threads in this pool terminate? */
+	volatile bool terminate;	/*!< shall threads in this pool terminate? */
 
-	size_t min_spare_threads;	/* !< minimal number of spare threads */
-	size_t max_spare_threads;	/* !< maximal number of spare threads */
-	size_t size;				/* !< total number of slots for threads */
-	void *unaligned_array;		/* !< pointer returned by xmalloc */
-	padded_thread *threads;		/* !< thread slots, previous pointer aligned */
-	pthread_mutex_t mutex;		/* !< mutex for queues */
-	queue idle;					/* !< queue of idle threads */
-	queue empty;				/* !< queue of empty thread slots */
-	thread_start worker_start;	/* !< start routine of the worker thread */
-	thread_init worker_init;	/* !< initialization routine for worker thread 
+	size_t min_spare_threads;	/*!< minimal number of spare threads */
+	size_t max_spare_threads;	/*!< maximal number of spare threads */
+	size_t size;				/*!< total number of slots for threads */
+	void *unaligned_array;		/*!< pointer returned by xmalloc */
+	padded_thread *threads;		/*!< thread slots, previous pointer aligned */
+	pthread_mutex_t mutex;		/*!< mutex for queues */
+	queue idle;					/*!< queue of idle threads */
+	queue empty;				/*!< queue of empty thread slots */
+	thread_start worker_start;	/*!< start routine of the worker thread */
+	thread_init worker_init;	/*!< initialization routine for worker thread 
 								 */
 
 	/* Data for main thread.  */
-	volatile pthread_t main_thread;	/* !< thread ID of the main thread */
-	pthread_mutex_t main_in_syscall;	/* !< main thread is in blocking
+	volatile pthread_t main_thread;	/*!< thread ID of the main thread */
+	pthread_mutex_t main_in_syscall;	/*!< main thread is in blocking
 										   syscall */
 
 	/* Data for thread pool regulator.  */
-	volatile pthread_t regulator_thread;	/* !< thread ID of the regulator */
-	pthread_mutex_t regulator_in_syscall;	/* !< regulator is in blocking
+	volatile pthread_t regulator_thread;	/*!< thread ID of the regulator */
+	pthread_mutex_t regulator_in_syscall;	/*!< regulator is in blocking
 											   syscall */
 } thread_pool;
 
-/* ! \brief Description of thread waiting for reply.  */
+/*! \brief Description of thread waiting for reply.  */
 typedef struct waiting4reply_data_def
 {
 	uint32_t request_id;
@@ -172,15 +172,15 @@ typedef struct waiting4reply_data_def
 } waiting4reply_data;
 
 
-/* ! Verify whether the thread limits are valid. \param limit Thread limits.
+/*! Verify whether the thread limits are valid. \param limit Thread limits.
    \param name Name of the threads.  */
 extern bool is_valid_thread_limit(thread_limit * limit, const char *name);
 
-/* ! Get value of RUNNING flag.  */
+/*! Get value of RUNNING flag.  */
 extern bool keep_running(void);
 
 
-/* ! set value of RUNNING flag.  */
+/*! set value of RUNNING flag.  */
 extern void set_running(bool value);
 
 extern bool thread_pool_terminate_p(thread_pool * pool);

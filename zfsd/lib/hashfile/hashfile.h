@@ -1,4 +1,4 @@
-/* ! \file \brief An expandable hash table in a file.  */
+/*! \file \brief An expandable hash table in a file.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek Based on hashtab.h
 
@@ -29,75 +29,75 @@
 #include "pthread-wrapper.h"
 #include "memory.h"
 
-/* ! Type of hash value.  */
+/*! Type of hash value.  */
 typedef unsigned int hashval_t;
 
-/* ! Compute hash of an encoded element.  */
+/*! Compute hash of an encoded element.  */
 typedef hashval_t(*hfile_hash) (const void *x);
 
-/* ! Compare the encoded hash file element with possible element.  */
+/*! Compare the encoded hash file element with possible element.  */
 typedef int (*hfile_eq) (const void *x, const void *y);
 
-/* ! Decode element of the hash file.  */
+/*! Decode element of the hash file.  */
 typedef void (*hfile_decode) (void *x);
 
-/* ! Encode element of the hash file.  */
+/*! Encode element of the hash file.  */
 typedef void (*hfile_encode) (void *x);
 
-/* ! \brief Hash file datatype.  */
+/*! \brief Hash file datatype.  */
 typedef struct hfile_def
 {
-	/* ! Mutex which must be locked when accessing the table.  */
+	/*! Mutex which must be locked when accessing the table.  */
 	pthread_mutex_t *mutex;
 
-	/* ! Temporary buffer for one element.  */
+	/*! Temporary buffer for one element.  */
 	char *element;
 
-	/* ! Size of the whole element.  */
+	/*! Size of the whole element.  */
 	unsigned int element_size;
 
-	/* ! Size if the base of the element.  */
+	/*! Size if the base of the element.  */
 	unsigned int base_size;
 
-	/* ! Size of the table (number of the entries).  */
+	/*! Size of the table (number of the entries).  */
 	unsigned int size;
 
-	/* ! Current number of elements including deleted elements.  */
+	/*! Current number of elements including deleted elements.  */
 	unsigned int n_elements;
 
-	/* ! Current number of deleted elements.  */
+	/*! Current number of deleted elements.  */
 	unsigned int n_deleted;
 
-	/* ! Hash function.  */
+	/*! Hash function.  */
 	hfile_hash hash_f;
 
-	/* ! Compare function.  */
+	/*! Compare function.  */
 	hfile_eq eq_f;
 
-	/* ! Decode function.  */
+	/*! Decode function.  */
 	hfile_decode decode_f;
 
-	/* ! Encode function.  */
+	/*! Encode function.  */
 	hfile_encode encode_f;
 
-	/* ! File name of the hash file.  */
+	/*! File name of the hash file.  */
 	char *file_name;
 
-	/* ! File descriptor for the hash file.  */
+	/*! File descriptor for the hash file.  */
 	int fd;
 
-	/* ! Generation of file descriptor.  */
+	/*! Generation of file descriptor.  */
 	unsigned int generation;
 } *hfile_t;
 
-/* ! \brief Header of the hash file.  */
+/*! \brief Header of the hash file.  */
 typedef struct hashfile_header_def
 {
 	uint32_t n_elements;
 	uint32_t n_deleted;
 } hashfile_header;
 
-/* ! Status of the slot.  */
+/*! Status of the slot.  */
 #define EMPTY_SLOT	0
 #define DELETED_SLOT	1
 #define VALID_SLOT	2

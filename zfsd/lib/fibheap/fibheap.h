@@ -1,4 +1,4 @@
-/* ! \file \brief A Fibonacci heap datatype.  */
+/*! \file \brief A Fibonacci heap datatype.  */
 
 /* Copyright 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
    Contributed by Daniel Berlin (dan@cgsoftware.com).
@@ -47,12 +47,12 @@
 #include "pthread-wrapper.h"
 #include "alloc-pool.h"
 
-/* ! Type of Fibonacci heap key.  */
+/*! Type of Fibonacci heap key.  */
 typedef uint32_t fibheapkey_t;
 #define FIBHEAPKEY_MIN 0
 #define FIBHEAPKEY_MAX ((fibheapkey_t) -1)
 
-/* ! \brief Node of Fibonacci heap.  */
+/*! \brief Node of Fibonacci heap.  */
 typedef struct fibnode_def
 {
 	struct fibnode_def *parent;
@@ -65,7 +65,7 @@ typedef struct fibnode_def
 	unsigned int mark:1;
 } *fibnode;
 
-/* ! \brief Fibonacci heap.  */
+/*! \brief Fibonacci heap.  */
 typedef struct fibheap_def
 {
 	unsigned int nodes;
@@ -75,7 +75,7 @@ typedef struct fibheap_def
 	alloc_pool pool;
 } *fibheap;
 
-/* ! The type of a function used to iterate over the tree. Returns non-zero
+/*! The type of a function used to iterate over the tree. Returns non-zero
    value to stop traversing.  */
 typedef int (*fibheap_foreach_fn) (void *node_data, void *data);
 

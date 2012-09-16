@@ -1,4 +1,4 @@
-/* ! \file \brief Directory operations.  */
+/*! \file \brief Directory operations.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -64,7 +64,7 @@ bool is_valid_local_path(const char * path)
 #endif
 }
 
-/* ! Return the local path of file for dentry DENTRY on volume VOL.  */
+/*! Return the local path of file for dentry DENTRY on volume VOL.  */
 
 void build_local_path(string * dst, volume vol, internal_dentry dentry)
 {
@@ -209,7 +209,7 @@ build_local_path_name_dirstamp(string * dst, volume vol,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Return the local path of file NAME in directory DENTRY on volume VOL.  */
+/*! Return the local path of file NAME in directory DENTRY on volume VOL.  */
 int32_t
 build_local_path_name(string * dst, volume vol, internal_dentry dentry,
 					  string * name)
@@ -217,7 +217,7 @@ build_local_path_name(string * dst, volume vol, internal_dentry dentry,
 	return (build_local_path_name_dirstamp(dst, vol, dentry, name, NULL));
 }
 
-/* ! Return a path of file for dentry DENTRY relative to volume root.  */
+/*! Return a path of file for dentry DENTRY relative to volume root.  */
 
 void build_relative_path(string * dst, internal_dentry dentry)
 {
@@ -253,7 +253,7 @@ void build_relative_path(string * dst, internal_dentry dentry)
 	TRACE("%s", dst->str);
 }
 
-/* ! Return a path of file NAME in directory DENTRY relative to volume root.  */
+/*! Return a path of file NAME in directory DENTRY relative to volume root.  */
 
 void
 build_relative_path_name(string * dst, internal_dentry dentry, string * name)
@@ -298,7 +298,7 @@ build_relative_path_name(string * dst, internal_dentry dentry, string * name)
 	TRACE("%s", dst->str);
 }
 
-/* ! Return a pointer into PATH where path relative to volume root starts.  */
+/*! Return a pointer into PATH where path relative to volume root starts.  */
 
 void local_path_to_relative_path(string * dst, volume vol, string * path)
 {
@@ -324,7 +324,7 @@ void local_path_to_relative_path(string * dst, volume vol, string * path)
 	RETURN_VOID;
 }
 
-/* ! Return short file name from the path PATH.  */
+/*! Return short file name from the path PATH.  */
 
 void file_name_from_path(string * dst, string * path)
 {
@@ -355,7 +355,7 @@ void file_name_from_path(string * dst, string * path)
 	RETURN_VOID;
 }
 
-/* ! Check whether parent of file PATH exists and return ESTALE if it does not
+/*! Check whether parent of file PATH exists and return ESTALE if it does not
    exist.  */
 
 static int32_t parent_exists(string * path, struct stat *st)
@@ -380,7 +380,7 @@ static int32_t parent_exists(string * path, struct stat *st)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Increase the local version of a file handle. \param fh ZFS file handle
+/*! Increase the local version of a file handle. \param fh ZFS file handle
    whose version will be increased.  */
 
 static bool inc_local_version_fh(zfs_fh * fh)
@@ -459,7 +459,7 @@ static bool inc_local_version_fh(zfs_fh * fh)
 	RETURN_BOOL(true);
 }
 
-/* ! Delete a generic file. \param meta Buffer for metadata. \param path Path
+/*! Delete a generic file. \param meta Buffer for metadata. \param path Path
    to the file. \param name Name of the file. \param vol Volume that the file
    is on, if any. \param parent_fh File handle of parent directory. \param
    journal Journal to which a del entry should be added. \param destroy_dentry 
@@ -615,7 +615,7 @@ recursive_unlink_itself(metadata * meta, string * path, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Delete the contents of directory PATH with file handle FH and parent
+/*! Delete the contents of directory PATH with file handle FH and parent
    PARENT_FH.  Use META for reading and deleting metadata. If JOURNAL_P, add a 
    journal entry to journal for the directory. Destroy the dentries of the
    deleted files if DESTROY_DENTRY.  */
@@ -804,7 +804,7 @@ recursive_unlink_contents(metadata * meta, string * path, zfs_fh * parent_fh,
 	RETURN_INT(r);
 }
 
-/* ! Recursively delete generic file NAME with path PATH in directory
+/*! Recursively delete generic file NAME with path PATH in directory
    PARENT_FH on volume VOL.  Use META for reading and deleting metadata. If
    JOURNAL_P add a journal entry to journal for the directory PARENT_FH.
    Destroy the dentries of the deleted files if DESTROY_DENTRY.  */
@@ -918,7 +918,7 @@ recursive_unlink_start(metadata * meta, string * path, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Recursivelly unlink the file PATH on volume with ID == VID. If JOURNAL_P
+/*! Recursivelly unlink the file PATH on volume with ID == VID. If JOURNAL_P
    add a journal entries to appropriate journals. Destroy the dentries of the
    deleted files if DESTROY_DENTRY.  */
 
@@ -977,7 +977,7 @@ recursive_unlink(string * path, uint32_t vid, bool destroy_dentry,
 									  move_to_shadow_p));
 }
 
-/* ! Check whether we can perform file system change operation on NAME in
+/*! Check whether we can perform file system change operation on NAME in
    virtual directory PVD.  Resolve whether the is a volume mapped on PVD whose 
    mounpoint name is not NAME and if so return ZFS_OK and store the internal
    dentry of the root of volume to DIR. If there is a volume mapped on PVD and 
@@ -1040,7 +1040,7 @@ validate_operation_on_virtual_directory(virtual_dir pvd, string * name,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Check whether we can perform operation on ZFS file handle FH. If request
+/*! Check whether we can perform operation on ZFS file handle FH. If request
    came from network return EINVAL for special file handles. Otherwise return
    CONFLICT_ERROR for conflict directory and NON_EXIST_ERROR for non-existing
    file.  */
@@ -1069,7 +1069,7 @@ validate_operation_on_zfs_fh(zfs_fh * fh, uint32_t conflict_error,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Check whether we can perform operation on volume root DENTRY. If DENTRY
+/*! Check whether we can perform operation on volume root DENTRY. If DENTRY
    is a conflict directory return EINVAL if request came from network and
    CONFLICT_ERROR if request came from kernel.  */
 
@@ -1095,7 +1095,7 @@ validate_operation_on_volume_root(internal_dentry dentry,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
+/*! Convert attributes from STRUCT STAT ST to FATTR ATTR.  */
 
 static void fattr_from_struct_stat(fattr * attr, struct stat *st)
 {
@@ -1118,7 +1118,7 @@ static void fattr_from_struct_stat(fattr * attr, struct stat *st)
 	attr->type = zfs_mode_to_ftype(st->st_mode);
 }
 
-/* ! Store the local file handle of root of volume VOL to LOCAL_FH and its
+/*! Store the local file handle of root of volume VOL to LOCAL_FH and its
    attributes to ATTR.  */
 
 static int32_t
@@ -1165,7 +1165,7 @@ get_volume_root_local(volume vol, zfs_fh * local_fh, fattr * attr,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Store the remote file handle of root of volume VOL to REMOTE_FH and its
+/*! Store the remote file handle of root of volume VOL to REMOTE_FH and its
    attributes to ATTR.  */
 
 int32_t get_volume_root_remote(volume vol, zfs_fh * remote_fh, fattr * attr)
@@ -1210,7 +1210,7 @@ int32_t get_volume_root_remote(volume vol, zfs_fh * remote_fh, fattr * attr)
 	RETURN_INT(r);
 }
 
-/* ! Update root of volume VOL, create an internal file handle for it and
+/*! Update root of volume VOL, create an internal file handle for it and
    store it to IFH.  On return, fh_mutex is unlocked on failure or if
    (unlock_fh_mutex). */
 
@@ -1306,7 +1306,7 @@ get_volume_root_dentry(volume vol, internal_dentry * dentryp,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Return file handle and attributes of root of volume VID.  */
+/*! Return file handle and attributes of root of volume VID.  */
 
 int32_t zfs_volume_root(dir_op_res * res, uint32_t vid)
 {
@@ -1336,7 +1336,7 @@ int32_t zfs_volume_root(dir_op_res * res, uint32_t vid)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Get attributes of local file PATH and store them to ATTR.  */
+/*! Get attributes of local file PATH and store them to ATTR.  */
  /*BOOKMARK*/ static int32_t local_getattr_path(fattr * attr, string * path)
 {
 	struct stat st;
@@ -1358,7 +1358,7 @@ int32_t local_getattr_path_ns(fattr * attr, string * path)
 }
 
 
-/* ! Get attributes of local file DENTRY on volume VOL and store them to ATTR. 
+/*! Get attributes of local file DENTRY on volume VOL and store them to ATTR. 
  */
 
 int32_t local_getattr(fattr * attr, internal_dentry dentry, volume vol)
@@ -1392,7 +1392,7 @@ int32_t local_getattr(fattr * attr, internal_dentry dentry, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Get attributes of remote file DENTRY on volume VOL and store them to
+/*! Get attributes of remote file DENTRY on volume VOL and store them to
    ATTR.  */
 
 int32_t remote_getattr(fattr * attr, internal_dentry dentry, volume vol)
@@ -1438,7 +1438,7 @@ int32_t remote_getattr(fattr * attr, internal_dentry dentry, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Get attributes for file with handle FH and store them to FA.  */
+/*! Get attributes for file with handle FH and store them to FA.  */
 
 int32_t zfs_getattr(fattr * fa, zfs_fh * fh)
 {
@@ -1545,7 +1545,7 @@ int32_t zfs_getattr(fattr * fa, zfs_fh * fh)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Set attributes of local file PATH according to SA, reget attributes and
+/*! Set attributes of local file PATH according to SA, reget attributes and
    store them to FA.  */
 
 int32_t local_setattr_path(fattr * fa, string * path, sattr * sa)
@@ -1587,7 +1587,7 @@ int32_t local_setattr_path(fattr * fa, string * path, sattr * sa)
 	RETURN_INT(local_getattr_path(fa, path));
 }
 
-/* ! Set attributes of local file DENTRY on volume VOL according to SA, reget
+/*! Set attributes of local file DENTRY on volume VOL according to SA, reget
    attributes and store them to FA.  */
 
 int32_t
@@ -1691,7 +1691,7 @@ local_setattr(fattr * fa, internal_dentry dentry, sattr * sa, volume vol,
 	RETURN_INT(r);
 }
 
-/* ! Set attributes of remote file DENTRY on volume VOL according to SA, reget 
+/*! Set attributes of remote file DENTRY on volume VOL according to SA, reget 
    attributes and store them to FA.  */
 
 int32_t
@@ -1739,7 +1739,7 @@ remote_setattr(fattr * fa, internal_dentry dentry, sattr * sa, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Set attributes of file with handle FH according to SA, reget attributes
+/*! Set attributes of file with handle FH according to SA, reget attributes
    and store them to FA.  */
 
 int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
@@ -1967,7 +1967,7 @@ int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
 	RETURN_INT(r);
 }
 
-/* ! Lookup path PATH from directory DIR and store the dir_op_res of the last
+/*! Lookup path PATH from directory DIR and store the dir_op_res of the last
    component to RES.  Skip conflict directories.  */
 
 int32_t zfs_extended_lookup(dir_op_res * res, zfs_fh * dir, char *path)
@@ -2063,7 +2063,7 @@ local_lookup_dirstamp(dir_op_res * res, internal_dentry dir, string * name,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Lookup local file NAME in directory DIR on volume VOL and store its file
+/*! Lookup local file NAME in directory DIR on volume VOL and store its file
    handle and attributes to RES.  */
 int32_t
 local_lookup(dir_op_res * res, internal_dentry dir, string * name, volume vol,
@@ -2072,7 +2072,7 @@ local_lookup(dir_op_res * res, internal_dentry dir, string * name, volume vol,
 	return (local_lookup_dirstamp(res, dir, name, vol, meta, NULL));
 }
 
-/* ! Lookup remote file NAME in directory DIR on volume VOL and store its file 
+/*! Lookup remote file NAME in directory DIR on volume VOL and store its file 
    handle and attributes to RES.  */
 
 int32_t
@@ -2121,7 +2121,7 @@ remote_lookup(dir_op_res * res, internal_dentry dir, string * name, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Lookup remote file NAME in directory DIR on volume VOL and store its file 
+/*! Lookup remote file NAME in directory DIR on volume VOL and store its file 
    handle and attributes to RES.  */
 
 int32_t
@@ -2168,7 +2168,7 @@ remote_lookup_zfs_fh(dir_op_res * res, zfs_fh * dir, string * name, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Lookup file NAME in directory DIR and store its file handle and
+/*! Lookup file NAME in directory DIR and store its file handle and
    attributes to RES.  */
 
 int32_t zfs_lookup(dir_op_res * res, zfs_fh * dir, string * name)
@@ -2289,7 +2289,7 @@ int32_t zfs_lookup(dir_op_res * res, zfs_fh * dir, string * name)
 			RETURN_INT(ZFS_OK);
 		}
 
-		/* !vd */
+		/*!vd */
 		zfsd_mutex_unlock(&pvd->mutex);
 		if (vol)
 		{
@@ -2452,7 +2452,7 @@ int32_t zfs_lookup(dir_op_res * res, zfs_fh * dir, string * name)
 	RETURN_INT(r);
 }
 
-/* ! Create directory NAME in local directory DIR on volume VOL, set owner,
+/*! Create directory NAME in local directory DIR on volume VOL, set owner,
    group and permitions according to ATTR.  */
 
 int32_t
@@ -2525,7 +2525,7 @@ local_mkdir(dir_op_res * res, internal_dentry dir, string * name, sattr * attr,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Create directory NAME in remote directory DIR on volume VOL, set owner,
+/*! Create directory NAME in remote directory DIR on volume VOL, set owner,
    group and permitions according to ATTR.  */
 
 int32_t
@@ -2576,7 +2576,7 @@ remote_mkdir(dir_op_res * res, internal_dentry dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Create directory NAME in directory DIR, set owner, group and permitions
+/*! Create directory NAME in directory DIR, set owner, group and permitions
    according to ATTR.  */
 
 int32_t zfs_mkdir(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr)
@@ -2718,7 +2718,7 @@ int32_t zfs_mkdir(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr)
 	RETURN_INT(r);
 }
 
-/* ! Remove local directory NAME from directory DIR on volume VOL, store the
+/*! Remove local directory NAME from directory DIR on volume VOL, store the
    metadata of the directory to META.  */
 
 static int32_t
@@ -2799,7 +2799,7 @@ local_rmdir(metadata * meta, internal_dentry dir, string * name, volume vol)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Remove remote directory NAME from directory DIR on volume VOL.  */
+/*! Remove remote directory NAME from directory DIR on volume VOL.  */
 
 static int32_t remote_rmdir(internal_dentry dir, string * name, volume vol)
 {
@@ -2840,7 +2840,7 @@ static int32_t remote_rmdir(internal_dentry dir, string * name, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Remove directory NAME from directory DIR.  */
+/*! Remove directory NAME from directory DIR.  */
 
 int32_t zfs_rmdir(zfs_fh * dir, string * name)
 {
@@ -3254,7 +3254,7 @@ int32_t zfs_rmdir(zfs_fh * dir, string * name)
 	RETURN_INT(r);
 }
 
-/* ! Rename local file FROM_PATH to TO_PATH on volume VOL. Store the metadata
+/*! Rename local file FROM_PATH to TO_PATH on volume VOL. Store the metadata
    of original file TO_PATH to META_OLD and the metadata of the new file
    TO_PATH to META_NEW. If SHADOW is true the file will be in shadow.  */
 
@@ -3375,7 +3375,7 @@ local_rename_base(metadata * meta_old, metadata * meta_new,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME in
+/*! Rename local file FROM_NAME in directory FROM_DIR to file TO_NAME in
    directory TO_DIR on volume VOL. Store the metadata of original file TO_NAME 
    to META_OLD and the metadata of the new file TO_NAME to META_NEW.  */
 
@@ -3420,7 +3420,7 @@ local_rename(metadata * meta_old, metadata * meta_new,
 	RETURN_INT(r);
 }
 
-/* ! Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME in
+/*! Rename remote file FROM_NAME in directory FROM_DIR to file TO_NAME in
    directory TO_DIR on volume VOL.  */
 
 static int32_t
@@ -3471,7 +3471,7 @@ remote_rename(internal_dentry from_dir, string * from_name,
 	RETURN_INT(r);
 }
 
-/* ! Add the journal dentries for the move of file FROM_NAME in FROM_DIR to
+/*! Add the journal dentries for the move of file FROM_NAME in FROM_DIR to
    TO_NAME in TO_DIR and increase versions of dirs. META_OLD is the metadata
    of overwritten file, METADATA_NEW is the metadata of the moved file.  */
 
@@ -3535,7 +3535,7 @@ zfs_rename_journal(internal_dentry from_dir, string * from_name,
 	RETURN_VOID;
 }
 
-/* ! Rename file FROM_NAME in directory FROM_DIR to file TO_NAME in directory
+/*! Rename file FROM_NAME in directory FROM_DIR to file TO_NAME in directory
    TO_DIR.  */
 
 int32_t
@@ -3806,7 +3806,7 @@ zfs_rename(zfs_fh * from_dir, string * from_name,
 	RETURN_INT(r);
 }
 
-/* ! Link local file FROM_PATH with file handle FH to TO_PATH. Use the
+/*! Link local file FROM_PATH with file handle FH to TO_PATH. Use the
    metadata META for adding a metadata hardlink.  */
 
 static int32_t
@@ -3848,7 +3848,7 @@ local_link_base(metadata * meta, string * from_path, string * to_path,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Link local file FROM with file handle FH to be a file with NAME in
+/*! Link local file FROM with file handle FH to be a file with NAME in
    directory DIR on volume VOL.  Store the metadata to META.  */
 
 static int32_t
@@ -3905,7 +3905,7 @@ local_link(metadata * meta, internal_dentry from, internal_dentry dir,
 	RETURN_INT(r);
 }
 
-/* ! Link remote file FROM to be a file with NAME in directory DIR on volume
+/*! Link remote file FROM to be a file with NAME in directory DIR on volume
    VOL.  */
 
 static int32_t
@@ -3955,7 +3955,7 @@ remote_link(internal_dentry from, internal_dentry dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Add a journal entry for a new dentry NAME in DIR on volume VOL accoring
+/*! Add a journal entry for a new dentry NAME in DIR on volume VOL accoring
    to metadata META and increase version of DIR.  */
 
 static void
@@ -3983,7 +3983,7 @@ zfs_link_journal(internal_dentry dir, string * name, volume vol,
 	}
 }
 
-/* ! Link file FROM to be a file with NAME in directory DIR.  */
+/*! Link file FROM to be a file with NAME in directory DIR.  */
 
 int32_t zfs_link(zfs_fh * from, zfs_fh * dir, string * name)
 {
@@ -4205,7 +4205,7 @@ int32_t zfs_link(zfs_fh * from, zfs_fh * dir, string * name)
 	RETURN_INT(r);
 }
 
-/* ! Delete local file NAME from directory DIR on volume VOL. Store the
+/*! Delete local file NAME from directory DIR on volume VOL. Store the
    metadata of the file to META.  */
 
 static int32_t
@@ -4300,7 +4300,7 @@ local_unlink(metadata * meta, internal_dentry dir, string * name, volume vol)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Delete remote file NAME from directory DIR on volume VOL.  */
+/*! Delete remote file NAME from directory DIR on volume VOL.  */
 
 static int32_t remote_unlink(internal_dentry dir, string * name, volume vol)
 {
@@ -4341,7 +4341,7 @@ static int32_t remote_unlink(internal_dentry dir, string * name, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Remove directory NAME from directory DIR.  */
+/*! Remove directory NAME from directory DIR.  */
 
 int32_t zfs_unlink(zfs_fh * dir, string * name)
 {
@@ -4878,7 +4878,7 @@ int32_t zfs_unlink(zfs_fh * dir, string * name)
 	RETURN_INT(r);
 }
 
-/* ! Read local symlink FILE on volume VOL.  */
+/*! Read local symlink FILE on volume VOL.  */
 
 int32_t local_readlink(read_link_res * res, internal_dentry file, volume vol)
 {
@@ -4919,7 +4919,7 @@ int32_t local_readlink(read_link_res * res, internal_dentry file, volume vol)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Read local symlink NAME in directroy DIR on volume VOL.  */
+/*! Read local symlink NAME in directroy DIR on volume VOL.  */
 
 int32_t
 local_readlink_name(read_link_res * res, internal_dentry dir, string * name,
@@ -4962,7 +4962,7 @@ local_readlink_name(read_link_res * res, internal_dentry dir, string * name,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Read remote symlink FILE on volume VOL.  */
+/*! Read remote symlink FILE on volume VOL.  */
 
 int32_t remote_readlink(read_link_res * res, internal_dentry file, volume vol)
 {
@@ -5010,7 +5010,7 @@ int32_t remote_readlink(read_link_res * res, internal_dentry file, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Read remote symlink FH on volume VOL.  */
+/*! Read remote symlink FH on volume VOL.  */
 
 int32_t remote_readlink_zfs_fh(read_link_res * res, zfs_fh * fh, volume vol)
 {
@@ -5049,7 +5049,7 @@ int32_t remote_readlink_zfs_fh(read_link_res * res, zfs_fh * fh, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Read symlink FH.  */
+/*! Read symlink FH.  */
 
 int32_t zfs_readlink(read_link_res * res, zfs_fh * fh)
 {
@@ -5114,7 +5114,7 @@ int32_t zfs_readlink(read_link_res * res, zfs_fh * fh)
 	RETURN_INT(r);
 }
 
-/* ! Create local symlink NAME in directory DIR on volume VOL pointing to TO,
+/*! Create local symlink NAME in directory DIR on volume VOL pointing to TO,
    set its attributes according to ATTR.  */
 
 int32_t
@@ -5192,7 +5192,7 @@ local_symlink(dir_op_res * res, internal_dentry dir, string * name,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Create remote symlink NAME in directory DIR on volume VOL pointing to TO,
+/*! Create remote symlink NAME in directory DIR on volume VOL pointing to TO,
    set its attributes according to ATTR.  */
 
 int32_t
@@ -5244,7 +5244,7 @@ remote_symlink(dir_op_res * res, internal_dentry dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Create symlink NAME in directory DIR pointing to TO, set its attributes
+/*! Create symlink NAME in directory DIR pointing to TO, set its attributes
    according to ATTR.  */
 
 int32_t
@@ -5388,7 +5388,7 @@ zfs_symlink(dir_op_res * res, zfs_fh * dir, string * name, string * to,
 	RETURN_INT(r);
 }
 
-/* ! Create local special file NAME of type TYPE in directory DIR, set the
+/*! Create local special file NAME of type TYPE in directory DIR, set the
    attributes according to ATTR. If device is being created RDEV is its
    number.  */
 
@@ -5462,7 +5462,7 @@ local_mknod(dir_op_res * res, internal_dentry dir, string * name, sattr * attr,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Create remote special file NAME of type TYPE in directory DIR, set the
+/*! Create remote special file NAME of type TYPE in directory DIR, set the
    attributes according to ATTR. If device is being created RDEV is its
    number.  */
 
@@ -5516,7 +5516,7 @@ remote_mknod(dir_op_res * res, internal_dentry dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Create special file NAME of type TYPE in directory DIR, set the
+/*! Create special file NAME of type TYPE in directory DIR, set the
    attributes according to ATTR. If device is being created RDEV is its
    number.  */
 
@@ -5661,7 +5661,7 @@ zfs_mknod(dir_op_res * res, zfs_fh * dir, string * name, sattr * attr,
 	RETURN_INT(r);
 }
 
-/* ! Check whether local file FH on volume VOL exists.  */
+/*! Check whether local file FH on volume VOL exists.  */
 
 int32_t local_file_info(file_info_res * res, zfs_fh * fh, volume vol)
 {
@@ -5690,7 +5690,7 @@ int32_t local_file_info(file_info_res * res, zfs_fh * fh, volume vol)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Check whether remote file for FH on volume VOL exists.  */
+/*! Check whether remote file for FH on volume VOL exists.  */
 
 int32_t remote_file_info(file_info_res * res, zfs_fh * fh, volume vol)
 {
@@ -5733,7 +5733,7 @@ int32_t remote_file_info(file_info_res * res, zfs_fh * fh, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Check whether local file FH exists.  */
+/*! Check whether local file FH exists.  */
 
 int32_t zfs_file_info(file_info_res * res, zfs_fh * fh)
 {
@@ -5774,7 +5774,7 @@ int32_t zfs_file_info(file_info_res * res, zfs_fh * fh)
 	RETURN_INT(r);
 }
 
-/* ! Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
+/*! Move file FH from shadow on volume VOL to file NAME in directory DIR.  */
 
 static bool
 move_from_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
@@ -5888,7 +5888,7 @@ move_from_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
 	RETURN_BOOL(true);
 }
 
-/* ! Move file NAME with file handle FH and path PATH from directory DIR_FH on 
+/*! Move file NAME with file handle FH and path PATH from directory DIR_FH on 
    volume VOL to shadow.  Add journal entries if JOURNAL.  */
 
 static bool
@@ -5962,7 +5962,7 @@ move_to_shadow_base(volume vol, zfs_fh * fh, string * path, string * name,
 	RETURN_BOOL(true);
 }
 
-/* ! Move file NAME with file handle FH in directory DIR on volume VOL to
+/*! Move file NAME with file handle FH in directory DIR on volume VOL to
    shadow.  Add journal entries if JOURNAL.  */
 
 static bool
@@ -6002,7 +6002,7 @@ move_to_shadow(volume vol, zfs_fh * fh, internal_dentry dir, string * name,
 	RETURN_BOOL(true);
 }
 
-/* ! Acquire (STATUS != 0) or release (STATUS == 0) the privilege to
+/*! Acquire (STATUS != 0) or release (STATUS == 0) the privilege to
    reintegrate local file DENTRY.  */
 
 static int32_t local_reintegrate(internal_dentry dentry, char status)
@@ -6056,7 +6056,7 @@ static int32_t local_reintegrate(internal_dentry dentry, char status)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Acquire (STATUS != 0) or release (STATUS == 0) the privilege to
+/*! Acquire (STATUS != 0) or release (STATUS == 0) the privilege to
    reintegrate remote file DENTRY on volume VOL.  */
 
 int32_t remote_reintegrate(internal_dentry dentry, char status, volume vol)
@@ -6094,7 +6094,7 @@ int32_t remote_reintegrate(internal_dentry dentry, char status, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Acquire (STATUS != 0) or release (STATUS == 0) the privilege to
+/*! Acquire (STATUS != 0) or release (STATUS == 0) the privilege to
    reintegrate file FH.  */
 
 int32_t zfs_reintegrate(zfs_fh * fh, char status)
@@ -6132,7 +6132,7 @@ int32_t zfs_reintegrate(zfs_fh * fh, char status)
 	RETURN_INT(r);
 }
 
-/* ! Name the local file handle FH as NAME in directory DIR with file handle
+/*! Name the local file handle FH as NAME in directory DIR with file handle
    DIR_FH on volume VOL by moving the file or linking it.  */
 
 int32_t
@@ -6305,7 +6305,7 @@ local_reintegrate_add(volume vol, internal_dentry dir, string * name,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Name the remote file handle FH as NAME in directory DIR on volume VOL by
+/*! Name the remote file handle FH as NAME in directory DIR on volume VOL by
    moving the file or linking it.  */
 
 int32_t
@@ -6363,7 +6363,7 @@ remote_reintegrate_add(volume vol, internal_dentry dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Name the file handle FH as NAME in directory DIR by moving the file or
+/*! Name the file handle FH as NAME in directory DIR by moving the file or
    linking it.  */
 
 int32_t zfs_reintegrate_add(zfs_fh * fh, zfs_fh * dir, string * name)
@@ -6448,7 +6448,7 @@ int32_t zfs_reintegrate_add(zfs_fh * fh, zfs_fh * dir, string * name)
 	RETURN_INT(r);
 }
 
-/* ! Delete local file FH from shadow.  */
+/*! Delete local file FH from shadow.  */
 
 static int32_t local_reintegrate_del_fh(zfs_fh * fh)
 {
@@ -6503,7 +6503,7 @@ static int32_t local_reintegrate_del_fh(zfs_fh * fh)
 	RETURN_INT(r);
 }
 
-/* ! If DESTROY_P delete local file NAME with file handle FH and its subtree
+/*! If DESTROY_P delete local file NAME with file handle FH and its subtree
    from directory DIR_FH, otherwise move it to shadow. Add a record to journal 
    if JOURNAL.  */
 
@@ -6582,7 +6582,7 @@ local_reintegrate_del_base(zfs_fh * fh, string * name, bool destroy_p,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! If DESTROY_P delete local file NAME and its subtree from directory DIR
+/*! If DESTROY_P delete local file NAME and its subtree from directory DIR
    with file handle DIR_FH on volume VOL, otherwise move it to shadow. Add a
    record to journal if JOURNAL.  */
 
@@ -6629,7 +6629,7 @@ local_reintegrate_del(volume vol, zfs_fh * fh, internal_dentry dir,
 										  journal));
 }
 
-/* ! Delete remote file FH from shadow.  */
+/*! Delete remote file FH from shadow.  */
 
 static int32_t remote_reintegrate_del_fh(zfs_fh * fh)
 {
@@ -6681,7 +6681,7 @@ static int32_t remote_reintegrate_del_fh(zfs_fh * fh)
 	RETURN_INT(r);
 }
 
-/* ! If DESTROY_P delete remote file NAME and its subtree from directory DIR
+/*! If DESTROY_P delete remote file NAME and its subtree from directory DIR
    with file handle DIR_FH, otherwise move it to shadow.  */
 
 int32_t
@@ -6740,7 +6740,7 @@ remote_reintegrate_del(volume vol, zfs_fh * fh, internal_dentry dir,
 	RETURN_INT(r);
 }
 
-/* ! If DESTROY_P delete remote file NAME and its subtree from directory DIR,
+/*! If DESTROY_P delete remote file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
 int32_t
@@ -6784,7 +6784,7 @@ remote_reintegrate_del_zfs_fh(volume vol, zfs_fh * fh, zfs_fh * dir,
 	RETURN_INT(r);
 }
 
-/* ! If DESTROY_P delete file NAME and its subtree from directory DIR,
+/*! If DESTROY_P delete file NAME and its subtree from directory DIR,
    otherwise move it to shadow.  */
 
 int32_t
@@ -6883,7 +6883,7 @@ zfs_reintegrate_del(zfs_fh * fh, zfs_fh * dir, string * name, bool destroy_p)
 	RETURN_INT(r);
 }
 
-/* ! Increase version of local file DENTRY on volume VOL by VERSION_INC.  */
+/*! Increase version of local file DENTRY on volume VOL by VERSION_INC.  */
 
 int32_t
 local_reintegrate_ver(internal_dentry dentry, uint64_t version_inc, volume vol)
@@ -6918,7 +6918,7 @@ local_reintegrate_ver(internal_dentry dentry, uint64_t version_inc, volume vol)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Increase version of remote file handle FH with dentry DENTRY on volume
+/*! Increase version of remote file handle FH with dentry DENTRY on volume
    VOL by VERSION_INC.  */
 
 int32_t
@@ -6971,7 +6971,7 @@ remote_reintegrate_ver(internal_dentry dentry, uint64_t version_inc,
 	RETURN_INT(r);
 }
 
-/* ! Increase version of file handle FH by VERSION_INC.  */
+/*! Increase version of file handle FH by VERSION_INC.  */
 
 int32_t zfs_reintegrate_ver(zfs_fh * fh, uint64_t version_inc)
 {
@@ -7014,7 +7014,7 @@ int32_t zfs_reintegrate_ver(zfs_fh * fh, uint64_t version_inc)
 	RETURN_INT(r);
 }
 
-/* ! Refresh file handle FH.  */
+/*! Refresh file handle FH.  */
 
 int32_t refresh_fh(zfs_fh * fh)
 {

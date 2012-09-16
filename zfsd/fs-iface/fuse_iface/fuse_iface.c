@@ -1,4 +1,4 @@
-/* ! \file \brief Functions for threads communicating with kernel.  */
+/*! \file \brief Functions for threads communicating with kernel.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -55,18 +55,18 @@
 /* In seconds before a revalidation is required */
 #define CACHE_VALIDITY 5
 
-/* ! Arguments from main (), after parsing the zfsd-specific options */
+/*! Arguments from main (), after parsing the zfsd-specific options */
 struct fuse_args main_args;
 
-/* ! Pool of kernel threads (threads communicating with kernel).  */
+/*! Pool of kernel threads (threads communicating with kernel).  */
 thread_pool kernel_pool;
 
-/* ! Is ZFS mounted? */
+/*! Is ZFS mounted? */
 bool mounted = false;
 
-/* ! FUSE kernel communication channel */
+/*! FUSE kernel communication channel */
 static struct fuse_chan *fuse_ch;
-/* ! FUSE mount session */
+/*! FUSE mount session */
 static struct fuse_session *fuse_se;
 
 /* Inode <-> file handle mapping */
@@ -214,7 +214,7 @@ static void inode_map_destroy(void)
 static alloc_pool fuse_req_buf_pool;
 static pthread_mutex_t fuse_req_buf_pool_mutex = ZFS_MUTEX_INITIALIZER;
 
-/* ! Unmount the FUSE mountpoint and destroy data structures used by it.  */
+/*! Unmount the FUSE mountpoint and destroy data structures used by it.  */
 
 void fs_unmount(void)
 {
@@ -230,7 +230,7 @@ void fs_unmount(void)
 
  /* Data translation */
 
-/* ! Mapping file type -> d_type value.  */
+/*! Mapping file type -> d_type value.  */
 static const unsigned char ftype2dtype[FT_LAST_AND_UNUSED]
 	= { DT_UNKNOWN, DT_REG, DT_DIR, DT_LNK, DT_BLK, DT_CHR, DT_SOCK, DT_FIFO };
 
@@ -1105,14 +1105,14 @@ int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p)
 
  /* Thread glue */
 
-/* ! Initialize kernel thread T.  */
+/*! Initialize kernel thread T.  */
 
 static void kernel_worker_init(thread * t)
 {
 	t->dc_call = dc_create();
 }
 
-/* ! Cleanup kernel thread DATA.  */
+/*! Cleanup kernel thread DATA.  */
 
 static void kernel_worker_cleanup(void *data)
 {
@@ -1121,7 +1121,7 @@ static void kernel_worker_cleanup(void *data)
 	dc_destroy(t->dc_call);
 }
 
-/* ! The main function of the kernel thread.  */
+/*! The main function of the kernel thread.  */
 
 static void *kernel_worker(void *data)
 {
@@ -1184,7 +1184,7 @@ static void *kernel_worker(void *data)
 	return NULL;
 }
 
-/* ! Function which gets a request and passes it to some kernel thread. It
+/*! Function which gets a request and passes it to some kernel thread. It
    also regulates the number of kernel threads.  */
 static void kernel_dispatch(struct fuse_chan *ch, void *buf, size_t buf_size)
 {
@@ -1214,7 +1214,7 @@ static void kernel_dispatch(struct fuse_chan *ch, void *buf, size_t buf_size)
 	zfsd_mutex_unlock(&kernel_pool.mutex);
 }
 
-/* ! Main function of the main (i.e. listening) kernel thread.  */
+/*! Main function of the main (i.e. listening) kernel thread.  */
 
 static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 {
@@ -1287,7 +1287,7 @@ static void *kernel_main(ATTRIBUTE_UNUSED void *data)
 	return NULL;
 }
 
-/* ! Open the FUSE mount and start the main kernel thread.  */
+/*! Open the FUSE mount and start the main kernel thread.  */
 bool fs_start(void)
 {
 	fuse_ino_t root_ino;
@@ -1335,7 +1335,7 @@ bool fs_start(void)
 	return false;
 }
 
-/* ! Terminate kernel threads and destroy data structures.  */
+/*! Terminate kernel threads and destroy data structures.  */
 
 void fs_cleanup(void)
 {

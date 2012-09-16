@@ -1,4 +1,4 @@
-/* ! \file \brief File operations.  */
+/*! \file \brief File operations.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -53,22 +53,22 @@
 #include "version.h"
 #include "zfs_dirent.h"
 
-/* ! The array of data for each file descriptor.  */
+/*! The array of data for each file descriptor.  */
 internal_fd_data_t *internal_fd_data;
 
-/* ! Heap of opened file descriptors.  */
+/*! Heap of opened file descriptors.  */
 static fibheap opened;
 
-/* ! Mutex protecting access to OPENED.  */
+/*! Mutex protecting access to OPENED.  */
 static pthread_mutex_t opened_mutex;
 
-/* ! Alloc pool for directory entries.  */
+/*! Alloc pool for directory entries.  */
 static alloc_pool dir_entry_pool;
 
-/* ! Mutex protecting DIR_ENTRY_POOL.  */
+/*! Mutex protecting DIR_ENTRY_POOL.  */
 static pthread_mutex_t dir_entry_mutex;
 
-/* ! Initialize data for file descriptor of file handle FH.  */
+/*! Initialize data for file descriptor of file handle FH.  */
 
 static void init_fh_fd_data(internal_fh fh)
 {
@@ -88,7 +88,7 @@ static void init_fh_fd_data(internal_fh fh)
 						 &internal_fd_data[fh->fd]);
 }
 
-/* ! Close file descriptor FD of local file.  */
+/*! Close file descriptor FD of local file.  */
 
 static void close_local_fd(int fd)
 {
@@ -115,7 +115,7 @@ static void close_local_fd(int fd)
 	zfsd_mutex_unlock(&internal_fd_data[fd].mutex);
 }
 
-/* ! Wrapper for open. If open fails because of too many open file descriptors
+/*! Wrapper for open. If open fails because of too many open file descriptors
    it closes a file descriptor unused for longest time.  */
 
 static int safe_open(const char *pathname, uint32_t flags, uint32_t mode)
@@ -154,7 +154,7 @@ static int safe_open(const char *pathname, uint32_t flags, uint32_t mode)
 	RETURN_INT(fd);
 }
 
-/* ! If local file for file handle FH is opened return true and lock
+/*! If local file for file handle FH is opened return true and lock
    INTERNAL_FD_DATA[FH->FD].MUTEX.  */
 
 static bool capability_opened_p(internal_fh fh)
@@ -180,7 +180,7 @@ static bool capability_opened_p(internal_fh fh)
 	RETURN_BOOL(true);
 }
 
-/* ! Open local file for dentry DENTRY with additional FLAGS on volume VOL.  */
+/*! Open local file for dentry DENTRY with additional FLAGS on volume VOL.  */
 
 static int32_t
 capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
@@ -284,7 +284,7 @@ capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 	RETURN_INT(err);
 }
 
-/* ! Close local file for internal file handle FH.  */
+/*! Close local file for internal file handle FH.  */
 
 int32_t local_close(internal_fh fh)
 {
@@ -310,7 +310,7 @@ int32_t local_close(internal_fh fh)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Close remote file for internal capability CAP for dentry DENTRY on volume 
+/*! Close remote file for internal capability CAP for dentry DENTRY on volume 
    VOL.  */
 
 static int32_t
@@ -353,7 +353,7 @@ remote_close(internal_cap cap, internal_dentry dentry, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Close remote file for capability CAP and ICAP of dentry DENTRY on volume
+/*! Close remote file for capability CAP and ICAP of dentry DENTRY on volume
    VOL if we are the last user of it.  */
 
 int32_t
@@ -410,7 +410,7 @@ cond_remote_close(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Create local file NAME in directory DIR on volume VOL with open flags
+/*! Create local file NAME in directory DIR on volume VOL with open flags
    FLAGS, set file attributes according to ATTR.  Store the newly opened file
    descriptor to FDP, create results to RES and metadata to META. If file
    already exists set EXISTS.  */
@@ -509,7 +509,7 @@ local_create(create_res * res, int *fdp, internal_dentry dir, string * name,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Create remote file NAME in directory DIR with open flags FLAGS, set file
+/*! Create remote file NAME in directory DIR with open flags FLAGS, set file
    attributes according to ATTR.  */
 
 int32_t
@@ -561,7 +561,7 @@ remote_create(create_res * res, internal_dentry dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Create file NAME in directory DIR with open flags FLAGS, set file
+/*! Create file NAME in directory DIR with open flags FLAGS, set file
    attributes according to ATTR.  */
 
 int32_t
@@ -778,7 +778,7 @@ zfs_create(create_res * res, zfs_fh * dir, string * name,
 	RETURN_INT(r);
 }
 
-/* ! Open local file for dentry with open flags FLAGS on volume VOL.  */
+/*! Open local file for dentry with open flags FLAGS on volume VOL.  */
 
 static int32_t local_open(uint32_t flags, internal_dentry dentry, volume vol)
 {
@@ -797,7 +797,7 @@ static int32_t local_open(uint32_t flags, internal_dentry dentry, volume vol)
 	RETURN_INT(r);
 }
 
-/* ! Open remote file for capability ICAP (whose internal dentry is DENTRY)
+/*! Open remote file for capability ICAP (whose internal dentry is DENTRY)
    with open flags FLAGS on volume VOL.  Store ZFS capability to CAP.  */
 
 static int32_t
@@ -853,7 +853,7 @@ remote_open(zfs_cap * cap, internal_cap icap, uint32_t flags,
 	RETURN_INT(r);
 }
 
-/* ! Open remote file for capability CAP if it is not opened yet. Store its
+/*! Open remote file for capability CAP if it is not opened yet. Store its
    dentry to DENTRYP and volume to VOLP.  */
 
 int32_t
@@ -902,7 +902,7 @@ cond_remote_open(zfs_cap * cap, internal_cap icap, internal_dentry * dentryp,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! \brief Open file handle FH with open flags FLAGS and return capability in 
+/*! \brief Open file handle FH with open flags FLAGS and return capability in 
    CAP. */
 int32_t zfs_open(zfs_cap * cap, zfs_fh * fh, uint32_t flags)
 {
@@ -1126,7 +1126,7 @@ int32_t zfs_open(zfs_cap * cap, zfs_fh * fh, uint32_t flags)
 	RETURN_INT(r);
 }
 
-/* ! Close capability CAP.  */
+/*! Close capability CAP.  */
 
 int32_t zfs_close(zfs_cap * cap)
 {
@@ -1272,7 +1272,7 @@ int32_t zfs_close(zfs_cap * cap)
 	RETURN_INT(r);
 }
 
-/* ! Encode one directory entry (INO, COOKIE, NAME[NAME_LEN]) to DC
+/*! Encode one directory entry (INO, COOKIE, NAME[NAME_LEN]) to DC
    LIST->BUFFER. Additional data is passed in DATA.  */
 
 bool
@@ -1313,7 +1313,7 @@ filldir_encode(uint32_t ino, int32_t cookie, const char *name,
 	return true;
 }
 
-/* ! Store one directory entry (INO, COOKIE, NAME[NAME_LEN]) to array
+/*! Store one directory entry (INO, COOKIE, NAME[NAME_LEN]) to array
    LIST->BUFFER.  */
 
 bool
@@ -1334,18 +1334,18 @@ filldir_array(uint32_t ino, int32_t cookie, const char *name,
 	return true;
 }
 
-/* ! Hash function for directory entry ENTRY.  */
+/*! Hash function for directory entry ENTRY.  */
 #define FILLDIR_HTAB_HASH(ENTRY)                                        \
   crc32_buffer ((ENTRY)->name.str, (ENTRY)->name.len)
 
-/* ! Hash function for directory entry X being inserted for filldir htab.  */
+/*! Hash function for directory entry X being inserted for filldir htab.  */
 
 hash_t filldir_htab_hash(const void *x)
 {
 	return FILLDIR_HTAB_HASH((const dir_entry *)x);
 }
 
-/* ! Compare directory entries XX and YY.  */
+/*! Compare directory entries XX and YY.  */
 
 int filldir_htab_eq(const void *xx, const void *yy)
 {
@@ -1356,7 +1356,7 @@ int filldir_htab_eq(const void *xx, const void *yy)
 			&& memcmp(x->name.str, y->name.str, x->name.len) == 0);
 }
 
-/* ! Free directory entry XX.  */
+/*! Free directory entry XX.  */
 
 void filldir_htab_del(void *xx)
 {
@@ -1368,7 +1368,7 @@ void filldir_htab_del(void *xx)
 	zfsd_mutex_unlock(&dir_entry_mutex);
 }
 
-/* ! Store one directory entry (INO, COOKIE, NAME[NAME_LEN]) to hash table
+/*! Store one directory entry (INO, COOKIE, NAME[NAME_LEN]) to hash table
    LIST->BUFFER.  */
 
 bool
@@ -1408,7 +1408,7 @@ filldir_htab(uint32_t ino, int32_t cookie, const char *name,
 	return true;
 }
 
-/* ! Read DATA->COUNT bytes from virtual directory VD starting at position
+/*! Read DATA->COUNT bytes from virtual directory VD starting at position
    COOKIE.  Store directory entries to LIST using function FILLDIR.  */
 
 static bool
@@ -1472,7 +1472,7 @@ read_virtual_dir(dir_list * list, virtual_dir vd, int32_t cookie,
 	RETURN_BOOL(true);
 }
 
-/* ! Read DATA->COUNT bytes from conflict directory IDIR on volume VOL
+/*! Read DATA->COUNT bytes from conflict directory IDIR on volume VOL
    starting at position COOKIE.  Store directory entries to LIST using
    function FILLDIR.  */
 
@@ -1568,7 +1568,7 @@ read_conflict_dir(dir_list * list, internal_dentry idir, virtual_dir vd,
 	RETURN_BOOL(true);
 }
 
-/* ! Read COUNT bytes from local directory with DENTRY and virtual directory
+/*! Read COUNT bytes from local directory with DENTRY and virtual directory
    VD on volume VOL starting at position COOKIE. Store directory entries to
    LIST using function FILLDIR.  */
 
@@ -1866,7 +1866,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 	RETURN_INT(r);
 }
 
-/* ! Read COUNT bytes from remote directory CAP of dentry DENTRY on volume VOL
+/*! Read COUNT bytes from remote directory CAP of dentry DENTRY on volume VOL
    starting at position COOKIE. Store directory entries to LIST using function
    FILLDIR.  */
 
@@ -2026,7 +2026,7 @@ remote_readdir(dir_list * list, internal_cap cap, internal_dentry dentry,
 	RETURN_INT(r);
 }
 
-/* ! Read COUNT bytes from directory CAP starting at position COOKIE. Store
+/*! Read COUNT bytes from directory CAP starting at position COOKIE. Store
    directory entries to LIST using function FILLDIR.  */
 
 int32_t
@@ -2141,7 +2141,7 @@ zfs_readdir(dir_list * list, zfs_cap * cap, int32_t cookie, uint32_t count,
 	RETURN_INT(r);
 }
 
-/* ! Read COUNT bytes from offset OFFSET of local file DENTRY on volume VOL.
+/*! Read COUNT bytes from offset OFFSET of local file DENTRY on volume VOL.
    Store data to BUFFER and count to RCOUNT.  */
 
 static int32_t
@@ -2186,7 +2186,7 @@ local_read(read_res * res, internal_dentry dentry, uint64_t offset,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Read COUNT bytes from offset OFFSET of remote file with capability CAP of 
+/*! Read COUNT bytes from offset OFFSET of remote file with capability CAP of 
    dentry DENTRY on volume VOL.  */
 
 static int32_t
@@ -2245,7 +2245,7 @@ remote_read(read_res * res, internal_cap cap, internal_dentry dentry,
 	RETURN_INT(r);
 }
 
-/* ! Read COUNT bytes from file CAP at offset OFFSET, store the results to
+/*! Read COUNT bytes from file CAP at offset OFFSET, store the results to
    RES. If UPDATE_LOCAL is true update the local file on copied volume.  */
 
 int32_t
@@ -2442,7 +2442,7 @@ zfs_read(read_res * res, zfs_cap * cap, uint64_t offset, uint32_t count,
 	RETURN_INT(r);
 }
 
-/* ! Write DATA to offset OFFSET of local file DENTRY on volume VOL.  */
+/*! Write DATA to offset OFFSET of local file DENTRY on volume VOL.  */
 
 static int32_t
 local_write(write_res * res, internal_dentry dentry,
@@ -2552,7 +2552,7 @@ local_write(write_res * res, internal_dentry dentry,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Write to remote file with capability CAP of dentry DENTRY on volume VOL. */
+/*! Write to remote file with capability CAP of dentry DENTRY on volume VOL. */
 
 static int32_t
 remote_write(write_res * res, internal_cap cap, internal_dentry dentry,
@@ -2601,7 +2601,7 @@ remote_write(write_res * res, internal_cap cap, internal_dentry dentry,
 	RETURN_INT(r);
 }
 
-/* ! Write to file.  */
+/*! Write to file.  */
 
 int32_t zfs_write(write_res * res, write_args * args)
 {
@@ -2765,7 +2765,7 @@ int32_t zfs_write(write_res * res, write_args * args)
 	RETURN_INT(r);
 }
 
-/* ! Read complete contents of local directory FH and store it to ENTRIES.  */
+/*! Read complete contents of local directory FH and store it to ENTRIES.  */
 
 int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 {
@@ -2852,7 +2852,7 @@ int32_t full_local_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	RETURN_INT(r);
 }
 
-/* ! Read complete contents of remote directory FH and store it to ENTRIES.  */
+/*! Read complete contents of remote directory FH and store it to ENTRIES.  */
 
 int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 {
@@ -2952,7 +2952,7 @@ int32_t full_remote_readdir(zfs_fh * fh, filldir_htab_entries * entries)
 	RETURN_INT(r);
 }
 
-/* ! Read as many bytes as possible of block of local file CAP starting at
+/*! Read as many bytes as possible of block of local file CAP starting at
    OFFSET which is COUNT bytes long, store the data to BUFFER and the number
    of bytes read to RCOUNT.  */
 
@@ -3005,7 +3005,7 @@ full_local_read(uint32_t * rcount, void *buffer, zfs_cap * cap,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Read as many bytes as possible of block of local file DENTRY with
+/*! Read as many bytes as possible of block of local file DENTRY with
    capability CAP on volume VOL starting at OFFSET which is COUNT bytes long,
    store the data to BUFFER and the number of bytes read to RCOUNT.  */
 
@@ -3049,7 +3049,7 @@ full_local_read_dentry(uint32_t * rcount, void *buffer, zfs_cap * cap,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Read as many bytes as possible of block of remote file CAP starting at
+/*! Read as many bytes as possible of block of remote file CAP starting at
    OFFSET which is COUNT bytes long, store the data to BUFFER and the number
    of bytes read to RCOUNT.  */
 
@@ -3099,7 +3099,7 @@ full_remote_read(uint32_t * rcount, void *buffer, zfs_cap * cap,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Write as many bytes as possible from BUFFER of length COUNT to local file
+/*! Write as many bytes as possible from BUFFER of length COUNT to local file
    CAP starting at OFFSET.  Store the number of bytes read to RCOUNT.  */
 
 int32_t
@@ -3153,7 +3153,7 @@ full_local_write(uint32_t * rcount, void *buffer, zfs_cap * cap,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Write as many bytes as possible from BUFFER of length COUNT to remote
+/*! Write as many bytes as possible from BUFFER of length COUNT to remote
    file DENTRY with capability CAP and ICAP on volume VOL starting at OFFSET.
    Store the number of bytes read to RCOUNT.  */
 
@@ -3203,7 +3203,7 @@ full_remote_write_dentry(uint32_t * rcount, void *buffer, zfs_cap * cap,
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
+/*! Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
    length ARGS->LENGTH[i] of local file ARGS->CAP and store them (together
    with the information about ranges) to RES.  */
 
@@ -3261,7 +3261,7 @@ int32_t local_md5sum(md5sum_res * res, md5sum_args * args)
 	RETURN_INT(ZFS_OK);
 }
 
-/* ! Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
+/*! Compute MD5 sum for ARGS->COUNT ranges starting at ARGS->OFFSET[i] with
    length ARGS->LENGTH[i] of remote file ARGS->CAP and store them (together
    with the information about ranges) to RES.  */
 
@@ -3327,7 +3327,7 @@ int32_t remote_md5sum(md5sum_res * res, md5sum_args * args)
 	RETURN_INT(r);
 }
 
-/* ! Reread remote config file PATH (relative path WRT volume root).  */
+/*! Reread remote config file PATH (relative path WRT volume root).  */
 
 void remote_reread_config(string * path, node nod)
 {
@@ -3347,7 +3347,7 @@ void remote_reread_config(string * path, node nod)
 	RETURN_VOID;
 }
 
-/* ! Initialize data structures in FILE.C.  */
+/*! Initialize data structures in FILE.C.  */
 
 void initialize_file_c(void)
 {
@@ -3370,7 +3370,7 @@ void initialize_file_c(void)
 	}
 }
 
-/* ! Destroy data structures in CAP.C.  */
+/*! Destroy data structures in CAP.C.  */
 
 void cleanup_file_c(void)
 {

@@ -1,4 +1,4 @@
-/* ! \file \brief Datatype for list of hardlinks.  */
+/*! \file \brief Datatype for list of hardlinks.  */
 
 /* Copyright (C) 2004 Josef Zlomek
 
@@ -29,7 +29,7 @@
 #include "hashtab.h"
 #include "crc32.h"
 
-/* ! Hash function for hardlink list entry H.  */
+/*! Hash function for hardlink list entry H.  */
 #define HARDLINK_LIST_HASH(H)						    \
   (crc32_update (crc32_update (crc32_buffer ((H)->name.str, (H)->name.len), \
 		 &(H)->parent_dev, sizeof (uint32_t)),			    \
@@ -37,33 +37,33 @@
 
 typedef struct hardlink_list_entry_def *hardlink_list_entry;
 
-/* ! \brief Entry of a hardlink list.  */
+/*! \brief Entry of a hardlink list.  */
 struct hardlink_list_entry_def
 {
-	/* ! Next and previous entry in the doubly linked chain.  */
+	/*! Next and previous entry in the doubly linked chain.  */
 	hardlink_list_entry next;
 	hardlink_list_entry prev;
 
-	/* ! Device of parent directory.  */
+	/*! Device of parent directory.  */
 	uint32_t parent_dev;
 
-	/* ! Inode of parent directory.  */
+	/*! Inode of parent directory.  */
 	uint32_t parent_ino;
 
-	/* ! File name.  */
+	/*! File name.  */
 	string name;
 };
 
-/* ! \brief A hashed variable-sized array.  */
+/*! \brief A hashed variable-sized array.  */
 typedef struct hardlink_list_def
 {
-	/* ! Hash table.  */
+	/*! Hash table.  */
 	htab_t htab;
 
-	/* ! Mutex which must be locked when accessing the hardlink list.  */
+	/*! Mutex which must be locked when accessing the hardlink list.  */
 	pthread_mutex_t *mutex;
 
-	/* ! First and last node of the doubly-linked chain.  */
+	/*! First and last node of the doubly-linked chain.  */
 	hardlink_list_entry first;
 	hardlink_list_entry last;
 } *hardlink_list;

@@ -1,4 +1,4 @@
-/* ! \file \brief Journal datatype.  */
+/*! \file \brief Journal datatype.  */
 
 /* Copyright (C) 2004 Josef Zlomek
 
@@ -30,54 +30,54 @@
 #include "crc32.h"
 #include "zfs-prot.h"
 
-/* ! Hash function for journal entry J.  */
+/*! Hash function for journal entry J.  */
 #define JOURNAL_HASH(J)							\
   (crc32_update (crc32_buffer ((J)->name.str, (J)->name.len),		\
                  &(J)->oper, sizeof ((J)->oper)))
 
-/* ! Operation stored to journal.  */
+/*! Operation stored to journal.  */
 typedef enum journal_operation_def
 {
-	JOURNAL_OPERATION_ADD,		/* !< add directory entry */
-	JOURNAL_OPERATION_DEL,		/* !< delete directory entry */
+	JOURNAL_OPERATION_ADD,		/*!< add directory entry */
+	JOURNAL_OPERATION_DEL,		/*!< delete directory entry */
 	JOURNAL_OPERATION_LAST_AND_UNUSED
 } journal_operation_t;
 
 typedef struct journal_entry_def *journal_entry;
 
-/* ! \brief Journal entry.  */
+/*! \brief Journal entry.  */
 struct journal_entry_def
 {
-	journal_entry next;			/* !< next entry in the doubly linked chain */
-	journal_entry prev;			/* !< previous entry in the doubly linked
+	journal_entry next;			/*!< next entry in the doubly linked chain */
+	journal_entry prev;			/*!< previous entry in the doubly linked
 								   chain */
 
-	uint32_t dev;				/* !< device of the local file handle */
-	uint32_t ino;				/* !< inode of the local file handle */
-	uint32_t gen;				/* !< generation of the local file handle */
-	journal_operation_t oper;	/* !< journaled operation */
-	string name;				/* !< name of local file */
-	zfs_fh master_fh;			/* !< master file handle */
-	uint64_t master_version;	/* !< master version of the file */
+	uint32_t dev;				/*!< device of the local file handle */
+	uint32_t ino;				/*!< inode of the local file handle */
+	uint32_t gen;				/*!< generation of the local file handle */
+	journal_operation_t oper;	/*!< journaled operation */
+	string name;				/*!< name of local file */
+	zfs_fh master_fh;			/*!< master file handle */
+	uint64_t master_version;	/*!< master version of the file */
 };
 
-/* ! \brief Journal datatype.  */
+/*! \brief Journal datatype.  */
 typedef struct journal_def
 {
-	/* ! Hash table.  */
+	/*! Hash table.  */
 	htab_t htab;
 
-	/* ! Mutex which must be locked when accessing the journal.  */
+	/*! Mutex which must be locked when accessing the journal.  */
 	pthread_mutex_t *mutex;
 
-	/* ! First and last node of the doubly-linked chain.  */
+	/*! First and last node of the doubly-linked chain.  */
 	journal_entry first;
 	journal_entry last;
 
-	/* ! File descriptor associated with the journal.  */
+	/*! File descriptor associated with the journal.  */
 	int fd;
 
-	/* ! Generation of opened file descriptor.  */
+	/*! Generation of opened file descriptor.  */
 	unsigned int generation;
 } *journal_t;
 

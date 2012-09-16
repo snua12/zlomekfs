@@ -1,4 +1,4 @@
-/* ! \file \brief Configuration.  */
+/*! \file \brief Configuration.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -38,7 +38,7 @@ typedef struct zfs_config_versions_def
 {
 	bool versioning;
 
-	/* ! Versions displayed in readdir.  */
+	/*! Versions displayed in readdir.  */
 	bool verdisplay;
 
 	/* Age retention interval.  */
@@ -64,74 +64,74 @@ typedef struct zfs_config_dokan_def
 
 typedef struct zfs_config_node_def
 {
-	/* ! ID of this node.  */
+	/*! ID of this node.  */
 	uint32_t node_id;
 
-	/* ! The name of local node.  */
+	/*! The name of local node.  */
 	string node_name;
 
-	/* ! The host name of local node.  */
+	/*! The host name of local node.  */
 	string host_name;
 
-	/* ! The port of the local service */
+	/*! The port of the local service */
 	uint16_t host_port;
 } zfs_config_node;
 
 typedef struct zfs_config_metadata_def
 {
-	/* ! Depth of directory tree for saving metadata about files.  */
+	/*! Depth of directory tree for saving metadata about files.  */
 	unsigned int metadata_tree_depth;
 } zfs_config_metadata;
 
 typedef struct zfs_config_threads_def
 {
-	/* ! Limits for number of network threads.  */
+	/*! Limits for number of network threads.  */
 	thread_limit network_thread_limit;
 
-	/* ! Limits for number of kernel threads.  */
+	/*! Limits for number of kernel threads.  */
 	thread_limit kernel_thread_limit;
 
-	/* ! Limits for number of update threads.  */
+	/*! Limits for number of update threads.  */
 	thread_limit update_thread_limit;
 } zfs_config_threads;
 
 typedef struct zfs_configuration_def
 {
-	/* ! Data for config reader thread.  */
+	/*! Data for config reader thread.  */
 	thread config_reader_data;
 
-	/* ! Semaphore for managing the reread request queue.  */
+	/*! Semaphore for managing the reread request queue.  */
 	semaphore config_sem;
 
-	/* ! mlockall() zfsd . */
+	/*! mlockall() zfsd . */
 	bool mlock_zfsd;
 
-	/* ! local path to local config */
+	/*! local path to local config */
 	const char * local_config_path;
 
-	/* ! mount point of zfsd */
+	/*! mount point of zfsd */
 	char mountpoint[ZFS_MAXPATHLEN];
 	
-	/* ! default node uid */
+	/*! default node uid */
 	uint32_t default_node_uid;
 
-	/* ! default node gid */
+	/*! default node gid */
 	uint32_t default_node_gid;
 
-	/* ! local node configuration */
+	/*! local node configuration */
 	zfs_config_node this_node;
 
-	/* ! config node configuration */
+	/*! config node configuration */
 	zfs_config_node config_node;
 
-	/* ! metadata config */
+	/*! metadata config */
 	zfs_config_metadata metadata;
 
-	/* ! threads config */
+	/*! threads config */
 	zfs_config_threads threads;
 
 #ifdef ENABLE_VERSIONS
-	/* ! versioning config */
+	/*! versioning config */
 	zfs_config_versions versions;
 #endif
 

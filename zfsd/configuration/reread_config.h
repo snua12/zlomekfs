@@ -6,16 +6,16 @@
 #include "memory.h"
 
 typedef struct reread_config_request_def *reread_config_request;
-/* ! \brief Element of list of requests for config reread.  */
+/*! \brief Element of list of requests for config reread.  */
 struct reread_config_request_def
 {
-	/* ! Next element in the chain.  */
+	/*! Next element in the chain.  */
 	reread_config_request next;
 
-	/* ! Path relative to root of config volume.  */
+	/*! Path relative to root of config volume.  */
 	string relative_path;
 
-	/* ! Node which the request came from.  */
+	/*! Node which the request came from.  */
 	uint32_t from_sid;
 };
 
@@ -23,17 +23,17 @@ extern void add_reread_config_request_local_path(volume vol, string * path);
 extern void add_reread_config_request_dentry(internal_dentry dentry);
 void add_reread_config_request(string * relative_path, uint32_t from_sid);
 
-/* ! Reread configuration file RELATIVE_PATH.  */
+/*! Reread configuration file RELATIVE_PATH.  */
 
 bool reread_config_file(string * relative_path);
 
 
-/* ! Reread local info about volumes. \param path Path where local
+/*! Reread local info about volumes. \param path Path where local
    configuration is stored.  */
 
 bool reread_local_volume_info(const char * path);
 
-/* ! Get a request to reread config from queue and store the relative path of
+/*! Get a request to reread config from queue and store the relative path of
    the file to be reread to RELATIVE_PATH and the node ID which the request
    came from to FROM_SID.  */
 

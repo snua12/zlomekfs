@@ -1,4 +1,4 @@
-/* ! \file \brief Directory tests*/
+/*! \file \brief Directory tests*/
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

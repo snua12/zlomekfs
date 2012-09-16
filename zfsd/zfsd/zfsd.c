@@ -1,5 +1,5 @@
 /* 
- * ! \file \brief ZFS daemon.  
+ *! \file \brief ZFS daemon.  
  */
 
 /* 
@@ -71,7 +71,7 @@
 #include "zfsd_args.h"
 
 /* 
- * ! Thread ID of the main thread.  
+ *! Thread ID of the main thread.  
  */
 pthread_t main_thread;
 
@@ -81,7 +81,7 @@ pthread_t main_thread;
 #endif
 
 /* 
- * ! Signal handler for terminating zfsd.  
+ *! Signal handler for terminating zfsd.  
  */
 static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 {
@@ -119,7 +119,7 @@ static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 }
 
 /* 
- * ! Report the fatal signal.  
+ *! Report the fatal signal.  
  */
 static void fatal_sigaction(int signum, siginfo_t * info,
 							ATTRIBUTE_UNUSED void *data)
@@ -169,7 +169,7 @@ static void fatal_sigaction(int signum, siginfo_t * info,
 }
 
 /* 
- * ! Signal handler for SIGHUP. \param signum Number of the received
+ *! Signal handler for SIGHUP. \param signum Number of the received
  * signal.  
  */
 static void hup_sighandler(ATTRIBUTE_UNUSED int signum)
@@ -179,7 +179,7 @@ static void hup_sighandler(ATTRIBUTE_UNUSED int signum)
 }
 
 /* 
- * ! Empty signal handler, used to break poll and other syscalls.  
+ *! Empty signal handler, used to break poll and other syscalls.  
  */
 static void dummy_sighandler(ATTRIBUTE_UNUSED int signum)
 {
@@ -187,7 +187,7 @@ static void dummy_sighandler(ATTRIBUTE_UNUSED int signum)
 }
 
 /* 
- * ! Initialize signal handlers.  
+ *! Initialize signal handlers.  
  */
 static void init_sig_handlers(void)
 {
@@ -249,7 +249,7 @@ static void init_sig_handlers(void)
 }
 
 /* 
- * ! Set default sighandlers.  
+ *! Set default sighandlers.  
  */
 static void disable_sig_handlers(void)
 {
@@ -276,7 +276,7 @@ static void disable_sig_handlers(void)
 }
 
 /* 
- * ! Make zfsd to terminate.  
+ *! Make zfsd to terminate.  
  */
 void terminate(void)
 {
@@ -289,7 +289,7 @@ void terminate(void)
 }
 
 /* 
- * ! Write a message and exit.  
+ *! Write a message and exit.  
  */
 static void ATTRIBUTE_NORETURN die(void)
 {
@@ -298,7 +298,7 @@ static void ATTRIBUTE_NORETURN die(void)
 }
 
 /* 
- * ! Initialize various data structures needed by ZFSD.  
+ *! Initialize various data structures needed by ZFSD.  
  */
 static bool initialize_data_structures(void)
 {
@@ -335,7 +335,7 @@ static bool initialize_data_structures(void)
 }
 
 /* 
- * ! Destroy data structures.  
+ *! Destroy data structures.  
  */
 static void cleanup_data_structures(void)
 {
@@ -529,7 +529,7 @@ static int zfsd_main(void)
 }
 
 /* 
- * ! Entry point of ZFS daemon.  
+ *! Entry point of ZFS daemon.  
  */
 int main(int argc, char **argv)
 {

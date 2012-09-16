@@ -1,4 +1,4 @@
-/* ! \file \brief Dump intervals in the interval files.  */
+/*! \file \brief Dump intervals in the interval files.  */
 
 /* Copyright (C) 2004 Josef Zlomek
 

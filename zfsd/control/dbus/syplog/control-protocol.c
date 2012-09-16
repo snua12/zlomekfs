@@ -1,4 +1,4 @@
-/* ! \file \brief Network protocol for controlling logger remotely.
+/*! \file \brief Network protocol for controlling logger remotely.
    (implementation) \see control-protocol.h */
 
 /* Copyright (C) 2007, 2008 Jiri Zouhar

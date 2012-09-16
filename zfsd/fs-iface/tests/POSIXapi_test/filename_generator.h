@@ -1,4 +1,4 @@
-/* ! \file \brief Random filename generator */
+/*! \file \brief Random filename generator */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

@@ -1,4 +1,4 @@
-/* ! \file \brief Semaphore functions.  */
+/*! \file \brief Semaphore functions.  */
 
 /* Copyright (C) 2003 Josef Zlomek
 
@@ -26,7 +26,7 @@
 
 // NOTE: why do not use posix semaphores?
 
-/* ! \brief Semaphore. */
+/*! \brief Semaphore. */
 typedef struct semaphore_def
 {
 	pthread_mutex_t mutex;

@@ -1,4 +1,4 @@
-/* ! \file \brief File handle functions.  */
+/*! \file \brief File handle functions.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -21,7 +21,7 @@
 #ifndef FH_H
 #define FH_H
 
-/* ! Forward declaration.  */
+/*! Forward declaration.  */
 typedef struct volume_def *volume;
 
 #include "config.h"
@@ -41,33 +41,33 @@ typedef struct volume_def *volume;
 								   directories */
 #define ROOT_INODE 1			/* Inode number of the root dir of ZFS */
 
-/* ! Maximal number of file handles locked by one thread.  */
+/*! Maximal number of file handles locked by one thread.  */
 #define MAX_LOCKED_FILE_HANDLES 2
 
-/* ! Is the FH virtual? */
+/*! Is the FH virtual? */
 #define VIRTUAL_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL			\
                           && (FH).sid == NODE_ID_NONE)
 
-/* ! Is FH a file handle of non-existing file represented as a symlink to
+/*! Is FH a file handle of non-existing file represented as a symlink to
    existing file in case of exist-non_exist conflict? */
 #define NON_EXIST_FH_P(FH) ((FH).vid == VOLUME_ID_VIRTUAL		\
                             && (FH).sid != NODE_ID_NONE)
 
-/* ! Is FH a conflict directroy? */
+/*! Is FH a conflict directroy? */
 #define CONFLICT_DIR_P(FH) ((FH).sid == NODE_ID_NONE			\
                             && (FH).vid != VOLUME_ID_VIRTUAL)
 
-/* ! Is FH a regular file handle, i.e. not special file handle? */
+/*! Is FH a regular file handle, i.e. not special file handle? */
 #define REGULAR_FH_P(FH) ((FH).sid != NODE_ID_NONE				\
                           && (FH).vid != VOLUME_ID_VIRTUAL)
 
-/* ! Is DENTRY a local volume root? */
+/*! Is DENTRY a local volume root? */
 #define LOCAL_VOLUME_ROOT_P(DENTRY)					\
   ((DENTRY)->parent == NULL						\
    || ((DENTRY)->parent->parent == NULL					\
        && CONFLICT_DIR_P ((DENTRY)->parent->fh->local_fh)))
 
-/* ! True when the NAME would be a special dir if the NAME was in local volume 
+/*! True when the NAME would be a special dir if the NAME was in local volume 
    root.  If ALWAYS is true return true even if request came from local node,
    otherwise return true only if request came from remote node.  */
 #define SPECIAL_NAME_P(NAME, ALWAYS)					\
@@ -75,61 +75,61 @@ typedef struct volume_def *volume;
    || (strcmp ((NAME), ".shadow") == 0					\
        && ((ALWAYS) || !request_from_this_node ())))
 
-/* ! Is file NAME in directory DIR a special dir? If ALWAYS is true return
+/*! Is file NAME in directory DIR a special dir? If ALWAYS is true return
    true even if request came from local node, otherwise return true only if
    request came from remote node.  */
 #define SPECIAL_DIR_P(DIR, NAME, ALWAYS)				\
   (LOCAL_VOLUME_ROOT_P (DIR) && SPECIAL_NAME_P ((NAME), (ALWAYS)))
 
-/* ! Mark the ZFS file handle FH to be undefined.  */
+/*! Mark the ZFS file handle FH to be undefined.  */
 #define zfs_fh_undefine(FH) (sizeof (FH) == sizeof (zfs_fh)		\
                              ? memset (&(FH), -1, sizeof (zfs_fh))	\
                              : (zfsd_abort (), (void *) 0))
 
-/* ! Return true if the ZFS file handle FH is undefined.  */
+/*! Return true if the ZFS file handle FH is undefined.  */
 #define zfs_fh_undefined(FH) (bytecmp (&(FH), -1, sizeof (zfs_fh)))
 
-/* ! Hash function for zfs_fh FH.  */
+/*! Hash function for zfs_fh FH.  */
 #define ZFS_FH_HASH(FH) (crc32_buffer ((FH), sizeof (zfs_fh)))
 
-/* ! Return true if FH1 and FH2 are the same.  */
+/*! Return true if FH1 and FH2 are the same.  */
 #define ZFS_FH_EQ(FH1, FH2) ((FH1).ino == (FH2).ino			\
                              && (FH1).dev == (FH2).dev			\
                              && (FH1).vid == (FH2).vid			\
                              && (FH1).sid == (FH2).sid			\
                              && (FH1).gen == (FH2).gen)
 
-/* ! Hash function for internal dentry D, computed from fh->local_fh.  */
+/*! Hash function for internal dentry D, computed from fh->local_fh.  */
 #define INTERNAL_DENTRY_HASH(D)						\
   (ZFS_FH_HASH (&(D)->fh->local_fh))
 
-/* ! Hash function for internal dentry D, computed from parent->fh and name.  */
+/*! Hash function for internal dentry D, computed from parent->fh and name.  */
 #define INTERNAL_DENTRY_HASH_NAME(D)					\
   (crc32_update (crc32_buffer ((D)->name.str, (D)->name.len),		\
                  &(D)->parent->fh->local_fh, sizeof (zfs_fh)))
 
-/* ! True if file handle FH has a local path.  */
+/*! True if file handle FH has a local path.  */
 #define INTERNAL_FH_HAS_LOCAL_PATH(FH)					\
   ((FH)->local_fh.sid == this_node->id					\
    && (FH)->local_fh.vid != VOLUME_ID_VIRTUAL)
 
 #ifdef ENABLE_VERSIONS
-/* ! True if file handle FH has version file open.  */
+/*! True if file handle FH has version file open.  */
 #define INTERNAL_FH_VERSION_OPEN(FH)          \
   ((FH)->version_fd > 0)
 #endif
 
-/* ! "Lock" level of the file handle or virtual directory.  */
+/*! "Lock" level of the file handle or virtual directory.  */
 #define LEVEL_UNLOCKED	0
 #define LEVEL_SHARED	1
 #define LEVEL_EXCLUSIVE	2
 
-/* ! Flags for internal_dentry_create_conflict.  */
+/*! Flags for internal_dentry_create_conflict.  */
 #define CONFLICT_LOCAL_EXISTS	1
 #define CONFLICT_REMOTE_EXISTS	2
 #define CONFLICT_BOTH_EXIST	(CONFLICT_LOCAL_EXISTS | CONFLICT_REMOTE_EXISTS)
 
-/* ! Forward definitions.  */
+/*! Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
@@ -142,7 +142,7 @@ typedef struct virtual_dir_def *virtual_dir;
 #include "metadata.h"
 #include "version.h"
 
-/* ! \brief Internal information about file handle.  */
+/*! \brief Internal information about file handle.  */
 struct internal_fh_def
 {
 #ifdef ENABLE_CHECKING
@@ -153,84 +153,84 @@ struct internal_fh_def
 	pthread_mutex_t mutex;
 	pthread_cond_t cond;
 
-	/* ! File handle for client, key for hash table.  */
+	/*! File handle for client, key for hash table.  */
 	zfs_fh local_fh;
 
-	/* ! Number of directory entries associated with this file handle.  */
+	/*! Number of directory entries associated with this file handle.  */
 	unsigned int ndentries;
 
-	/* ! File attributes.  */
+	/*! File attributes.  */
 	fattr attr;
 
-	/* ! Metadata.  */
+	/*! Metadata.  */
 	metadata meta;
 
-	/* ! Contained directory entries (of type 'struct internal_dentry_def *'). 
+	/*! Contained directory entries (of type 'struct internal_dentry_def *'). 
 	 */
 	varray subdentries;
 
-	/* ! Chain of capabilities associated with this file handle.  */
+	/*! Chain of capabilities associated with this file handle.  */
 	internal_cap cap;
 
-	/* ! Updated intervals.  */
+	/*! Updated intervals.  */
 	interval_tree updated;
 
-	/* ! Modified intervals.  */
+	/*! Modified intervals.  */
 	interval_tree modified;
 
-	/* ! Journal for a directory.  */
+	/*! Journal for a directory.  */
 	journal_t journal;
 
-	/* ! Number of users of interval trees.  */
+	/*! Number of users of interval trees.  */
 	unsigned int interval_tree_users;
 
-	/* ! "Lock" level of the file handle.  */
+	/*! "Lock" level of the file handle.  */
 	unsigned int level;
 
-	/* ! Number of current users of the file handle.  */
+	/*! Number of current users of the file handle.  */
 	unsigned int users;
 
-	/* ! Lock ID which will be assigned next.  */
+	/*! Lock ID which will be assigned next.  */
 	unsigned int id2assign;
 
-	/* ! Lock ID which will run next.  */
+	/*! Lock ID which will run next.  */
 	unsigned int id2run;
 
-	/* ! Open file descriptor.  */
+	/*! Open file descriptor.  */
 	int fd;
 
-	/* ! Generation of open file descriptor.  */
+	/*! Generation of open file descriptor.  */
 	unsigned int generation;
 
-	/* ! Flags, see IFH_* below.  */
+	/*! Flags, see IFH_* below.  */
 	unsigned int flags;
 
-	/* ! Node which is reintegrating this file.  */
+	/*! Node which is reintegrating this file.  */
 	uint32_t reintegrating_sid;
 
-	/* ! Generation of socket to node which is reintegrating this file.  */
+	/*! Generation of socket to node which is reintegrating this file.  */
 	unsigned int reintegrating_generation;
 
 #ifdef ENABLE_VERSIONS
-	/* ! Version file description. Set to -1 if version file is not open.  */
+	/*! Version file description. Set to -1 if version file is not open.  */
 	int version_fd;
 
-	/* ! Complete path of version file. Valid only when version file is open. */
+	/*! Complete path of version file. Valid only when version file is open. */
 	char *version_path;
 
-	/* ! File attributes before modification occurred.  */
+	/*! File attributes before modification occurred.  */
 	fattr version_orig_attr;
 
-	/* ! File was truncated before opening.  */
+	/*! File was truncated before opening.  */
 	bool file_truncated;
 
 	/* File size when the file was opened.  */
 	uint64_t marked_size;
 
-	/* ! Version file content intervals.  */
+	/*! Version file content intervals.  */
 	interval_tree versioned;
 
-	/* ! Number of users of version interval tree.  */
+	/*! Number of users of version interval tree.  */
 	unsigned int version_interval_tree_users;
 
 	/* List of intervals for open version file.  */
@@ -239,7 +239,7 @@ struct internal_fh_def
 #endif
 };
 
-/* ! Internal file handle flags.  */
+/*! Internal file handle flags.  */
 #define IFH_UPDATE	1
 #define IFH_REINTEGRATE	2
 #define IFH_METADATA	4
@@ -247,52 +247,52 @@ struct internal_fh_def
 #define IFH_ENQUEUED	8
 #define IFH_REINTEGRATING 16
 
-/* ! \brief Information about locked dentries by current thread.  */
+/*! \brief Information about locked dentries by current thread.  */
 typedef struct lock_info_def
 {
-	internal_dentry dentry;		/* !< Locked dentry */
-	unsigned int level;			/* !< Lock level */
+	internal_dentry dentry;		/*!< Locked dentry */
+	unsigned int level;			/*!< Lock level */
 } lock_info;
 
-/* ! \brief Internal directory entry.  */
+/*! \brief Internal directory entry.  */
 struct internal_dentry_def
 {
 	/* Mutex is not needed here because we can use FH->MUTEX because FH is
 	   constant for each internal dentry.  */
 
-	/* ! Internal file handle associated with this dentry.  */
+	/*! Internal file handle associated with this dentry.  */
 	internal_fh fh;
 
-	/* ! Pointer to internal dentry of the parent directory.  */
+	/*! Pointer to internal dentry of the parent directory.  */
 	internal_dentry parent;
 
-	/* ! File name.  */
+	/*! File name.  */
 	string name;
 
-	/* ! Pointers to next and previous dentry with the same file handle,
+	/*! Pointers to next and previous dentry with the same file handle,
 	   making a cyclic double linked chain.  */
 	internal_dentry next, prev;
 
-	/* ! Index of this dentry in parent's list of directory entries.  */
+	/*! Index of this dentry in parent's list of directory entries.  */
 	unsigned int dentry_index;
 
-	/* ! Last use of this dentry.  */
+	/*! Last use of this dentry.  */
 	time_t last_use;
 
-	/* ! Heap node whose data is this dentry.  */
+	/*! Heap node whose data is this dentry.  */
 	fibnode heap_node;
 
-	/* ! Number of current users of the file handle.  */
+	/*! Number of current users of the file handle.  */
 	unsigned int users;
 
-	/* ! Is dentry marked to be deleted? */
+	/*! Is dentry marked to be deleted? */
 	bool deleted;
 
 #ifdef ENABLE_VERSIONS
-	/* ! Is dentry a version file? */
+	/*! Is dentry a version file? */
 	bool version_file;
 
-	/* ! Newly created file while? */
+	/*! Newly created file while? */
 	bool new_file;
 
 	/* Directory version timestamp.  */
@@ -312,7 +312,7 @@ struct internal_dentry_def
 #endif
 };
 
-/* ! \brief Virtual directory (element of mount tree).  */
+/*! \brief Virtual directory (element of mount tree).  */
 struct virtual_dir_def
 {
 #ifdef ENABLE_CHECKING
@@ -320,62 +320,62 @@ struct virtual_dir_def
 	long unused1;
 #endif
 
-	/* ! fh_mutex must be held before locking this mutex. */
+	/*! fh_mutex must be held before locking this mutex. */
 	pthread_mutex_t mutex;
 
-	/* ! Handle of this node.  */
+	/*! Handle of this node.  */
 	zfs_fh fh;
 
-	/* ! Pointer to parent virtual directory.  */
+	/*! Pointer to parent virtual directory.  */
 	virtual_dir parent;
 
-	/* ! Directory name.  */
+	/*! Directory name.  */
 	string name;
 
-	/* ! Volume which is mounted here.  */
+	/*! Volume which is mounted here.  */
 	volume vol;
 
-	/* ! Capability associated with this virtual directory.  */
+	/*! Capability associated with this virtual directory.  */
 	internal_cap cap;
 
-	/* ! Directory attributes.  */
+	/*! Directory attributes.  */
 	fattr attr;
 
-	/* ! Virtual subdirectories (of type 'struct virtual_dir_def *').  */
+	/*! Virtual subdirectories (of type 'struct virtual_dir_def *').  */
 	varray subdirs;
 
-	/* ! Index in parent's list of subdirectories.  */
+	/*! Index in parent's list of subdirectories.  */
 	unsigned int subdir_index;
 
-	/* ! Total number of mountpoints in subtree (including current node).  */
+	/*! Total number of mountpoints in subtree (including current node).  */
 	unsigned int n_mountpoints;
 
-	/* ! Is the virtual directory busy? If it is it can't be deleted.  */
+	/*! Is the virtual directory busy? If it is it can't be deleted.  */
 	bool busy;
 
-	/* ! Number of current users of the virtual directory.  */
+	/*! Number of current users of the virtual directory.  */
 	unsigned int users;
 
-	/* ! Number of mountpoints to be deleted.  */
+	/*! Number of mountpoints to be deleted.  */
 	unsigned int deleted;
 };
 
-/* ! File handle of ZFS root.  */
+/*! File handle of ZFS root.  */
 extern zfs_fh root_fh;
 
-/* ! Static undefined ZFS file handle.  */
+/*! Static undefined ZFS file handle.  */
 extern zfs_fh undefined_fh;
 
-/* ! Hash table of used dentries, searched by fh->local_fh.  */
+/*! Hash table of used dentries, searched by fh->local_fh.  */
 extern htab_t dentry_htab;
 
-/* ! Mutes for file handles, dentries and virtual directories.  */
+/*! Mutes for file handles, dentries and virtual directories.  */
 extern pthread_mutex_t fh_mutex;
 
-/* ! Thread ID of thread freeing dentries unused for a long time.  */
+/*! Thread ID of thread freeing dentries unused for a long time.  */
 extern pthread_t cleanup_dentry_thread;
 
-/* ! This mutex is locked when cleanup dentry thread is in sleep.  */
+/*! This mutex is locked when cleanup dentry thread is in sleep.  */
 extern pthread_mutex_t cleanup_dentry_thread_in_syscall;
 
 extern void set_lock_info(lock_info * li);

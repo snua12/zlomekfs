@@ -1,4 +1,4 @@
-/* ! \file \brief Logging functions.  */
+/*! \file \brief Logging functions.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -38,18 +38,18 @@ extern struct logger_def syplogger;
 
 void update_node_name(void);
 
-/* ! Redefine zfsd_abort to be the verbose zfsd_abort.  */
+/*! Redefine zfsd_abort to be the verbose zfsd_abort.  */
 #define zfsd_abort() verbose_abort(__FILE__, __LINE__)
 
 #ifdef ENABLE_TRACE
 
-	/* ! Print which function we are in with additional information.  */
+	/*! Print which function we are in with additional information.  */
 #define TRACE(format, ...) message (LOG_FUNC, FACILITY_ZFSD,	       \
 				    "TRACE %s() by %lu at %s:%d: " format "\n",\
 				    __func__, (unsigned long) pthread_self (), \
 				    __FILE__, __LINE__, ## __VA_ARGS__)
 
-	/* ! Print the function name and return integer value.  */
+	/*! Print the function name and return integer value.  */
 #define RETURN_INT(RETVAL)						\
 	  do {									\
 	    int32_t _r = (int32_t) (RETVAL);					\
@@ -57,14 +57,14 @@ void update_node_name(void);
 	    return _r;								\
 	  } while (0)
 
-	/* ! Print the function name and return pointervalue.  */
+	/*! Print the function name and return pointervalue.  */
 #define RETURN_PTR(RETVAL)						\
 	  do {									\
 	    TRACE ("return %p", (void *) (RETVAL));				\
 	    return (RETVAL);							\
 	  } while (0)
 
-	/* ! Print the function name and return bool value.  */
+	/*! Print the function name and return bool value.  */
 #define RETURN_BOOL(RETVAL)						\
 	  do {									\
 	    bool _r = (RETVAL);							\
@@ -72,7 +72,7 @@ void update_node_name(void);
 	    return _r;								\
 	  } while (0)
 
-	/* ! Print the function name.  */
+	/*! Print the function name.  */
 #define RETURN_VOID							\
 	  do {									\
 	    TRACE ("return");							\
@@ -98,10 +98,10 @@ extern void zfs_closelog(void);
 
 #define message(level,facility,format...) do_log(&syplogger,level,facility, ## format)
 
-/* ! Report an internal error.  */
+/*! Report an internal error.  */
 extern void internal_error(const char *format, ...) ATTRIBUTE_NORETURN;
 
-/* ! Report an "Aborted" internal error.  */
+/*! Report an "Aborted" internal error.  */
  extern void verbose_abort(const char *file, int line) ATTRIBUTE_NORETURN;
 
 #endif

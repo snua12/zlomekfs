@@ -1,6 +1,6 @@
 #ifndef		CONTROL_PROTOCOL_H
 #define		CONTROL_PROTOCOL_H
-/* ! \file \brief Network protocol for controlling logger remotely.
+/*! \file \brief Network protocol for controlling logger remotely.
    (deffinitions)
 
    Defines wrapper functions for sending and receiving messages, defines

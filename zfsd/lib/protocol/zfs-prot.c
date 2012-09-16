@@ -1,4 +1,4 @@
-/* ! \file \brief ZFS protocol.  */
+/*! \file \brief ZFS protocol.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Martin Zlomek, Rastislav
    Wartiak
@@ -39,11 +39,11 @@
 # include "log.h"
 # include "user-group.h"
 
-/* ! Mapping file type -> file mode.  */
+/*! Mapping file type -> file mode.  */
 unsigned int ftype2mode[FT_LAST_AND_UNUSED]
 	= { 0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO };
 
-/* ! Convert ZFS error to system error */
+/*! Convert ZFS error to system error */
 int zfs_error(int error)
 {
 	if (error > 0)
@@ -74,11 +74,11 @@ int zfs_error(int error)
 	}
 }
 
-/* ! returns id for request */
+/*! returns id for request */
 static uint32_t zfs_get_next_request_id(void)
 {
 	static pthread_mutex_t reqiest_id_mutex = ZFS_MUTEX_INITIALIZER;
-	/* ! Request ID for next call.  */
+	/*! Request ID for next call.  */
 	static volatile uint32_t request_id = 0;
 
 	zfsd_mutex_lock(&reqiest_id_mutex);
@@ -99,7 +99,7 @@ zfs_proc_null_server (ATTRIBUTE_UNUSED void *args, DC *dc,
       encode_status (dc, ZFS_OK);
 }
 
-/* ! data_buffer zfs_proc_ping (data_buffer);
+/*! data_buffer zfs_proc_ping (data_buffer);
 
    Ping. The receiver sends back what the sender sent.  */
 void
@@ -109,7 +109,7 @@ zfs_proc_ping_server(data_buffer * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 	encode_data_buffer(dc, args);
 }
 
-/* ! zfs_fh zfs_proc_root (void);
+/*! zfs_fh zfs_proc_root (void);
 
    Get file handle of root.  */
 void
@@ -120,7 +120,7 @@ zfs_proc_root_server(ATTRIBUTE_UNUSED void *args, DC * dc,
 	encode_zfs_fh(dc, &root_fh);
 }
 
-/* ! zfs_fh, fattr zfs_proc_volume_root (uint32_t vid);
+/*! zfs_fh, fattr zfs_proc_volume_root (uint32_t vid);
 
    Get the file handle and attributes of the volume root.  */
 void
@@ -136,7 +136,7 @@ zfs_proc_volume_root_server(volume_root_args * args, DC * dc,
 		encode_dir_op_res(dc, &res);
 }
 
-/* ! fattr zfs_proc_getattr (zfs_fh);
+/*! fattr zfs_proc_getattr (zfs_fh);
 
    Get attributes of the file.  */
 void
@@ -151,7 +151,7 @@ zfs_proc_getattr_server(zfs_fh * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 		encode_fattr(dc, &fa);
 }
 
-/* ! fattr zfs_proc_setattr (zfs_fh file, sattr attr);
+/*! fattr zfs_proc_setattr (zfs_fh file, sattr attr);
 
    Set attributes of the file.  */
 void
@@ -167,7 +167,7 @@ zfs_proc_setattr_server(setattr_args * args, DC * dc,
 		encode_fattr(dc, &fa);
 }
 
-/* ! zfs_fh, fattr zfs_proc_lookup (zfs_fh dir, string filename);
+/*! zfs_fh, fattr zfs_proc_lookup (zfs_fh dir, string filename);
 
    Lookup the file name.  */
 void
@@ -183,7 +183,7 @@ zfs_proc_lookup_server(dir_op_args * args, DC * dc,
 		encode_dir_op_res(dc, &res);
 }
 
-/* ! zfs_cap, zfs_fh, fattr zfs_proc_create (zfs_fh dir, string filename,
+/*! zfs_cap, zfs_fh, fattr zfs_proc_create (zfs_fh dir, string filename,
    uint32_t flags, sattr attr);
 
    Create the file.  \p flags are O_*, as defined in <fcntl.h>.  */
@@ -201,7 +201,7 @@ zfs_proc_create_server(create_args * args, DC * dc,
 		encode_create_res(dc, &res);
 }
 
-/* ! zfs_cap zfs_proc_open (zfs_fh file, uint32_t flags);
+/*! zfs_cap zfs_proc_open (zfs_fh file, uint32_t flags);
 
    Open the file or directory.  \p flags are O_*, as defined in <fcntl.h>. */
 void
@@ -216,7 +216,7 @@ zfs_proc_open_server(open_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 		encode_zfs_cap(dc, &res);
 }
 
-/* ! void zfs_proc_close (zfs_cap);
+/*! void zfs_proc_close (zfs_cap);
 
    Close the file or directory.  */
 void
@@ -228,7 +228,7 @@ zfs_proc_close_server(zfs_cap * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 	encode_status(dc, r);
 }
 
-/* ! uint32_t count, int8_t eof, dir_entry... zfs_proc_readdir (zfs_cap cap,
+/*! uint32_t count, int8_t eof, dir_entry... zfs_proc_readdir (zfs_cap cap,
    int32_t cookie, uint32_t size);
 
    Read the contents of the directory, returning at most \p size bytes of
@@ -278,7 +278,7 @@ zfs_proc_readdir_server(read_dir_args * args, DC * dc,
 	}
 }
 
-/* ! zfs_fh, fattr zfs_proc_mkdir (zfs_fh dir, string filename, sattr attr);
+/*! zfs_fh, fattr zfs_proc_mkdir (zfs_fh dir, string filename, sattr attr);
 
    Create the directory.  */
 void
@@ -293,7 +293,7 @@ zfs_proc_mkdir_server(mkdir_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 		encode_dir_op_res(dc, &res);
 }
 
-/* ! void zfs_proc_rmdir (zfs_fh dir, string filename);
+/*! void zfs_proc_rmdir (zfs_fh dir, string filename);
 
    Delete the directory.  */
 void
@@ -305,7 +305,7 @@ zfs_proc_rmdir_server(dir_op_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 	encode_status(dc, r);
 }
 
-/* ! void zfs_proc_rename (zfs_fh from_dir, string from_filename, zfs_fh
+/*! void zfs_proc_rename (zfs_fh from_dir, string from_filename, zfs_fh
    to_dir, string to_filename);
 
    Rename the file or directory.  */
@@ -320,7 +320,7 @@ zfs_proc_rename_server(rename_args * args, DC * dc,
 	encode_status(dc, r);
 }
 
-/* ! void zfs_proc_link (zfs_fh from, zfs_fh to_dir, string to_filename);
+/*! void zfs_proc_link (zfs_fh from, zfs_fh to_dir, string to_filename);
 
    Link the file.  */
 void
@@ -332,7 +332,7 @@ zfs_proc_link_server(link_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 	encode_status(dc, r);
 }
 
-/* ! void zfs_proc_unlink (zfs_fh dir, string filename);
+/*! void zfs_proc_unlink (zfs_fh dir, string filename);
 
    Delete the file.  */
 void
@@ -345,7 +345,7 @@ zfs_proc_unlink_server(dir_op_args * args, DC * dc,
 	encode_status(dc, r);
 }
 
-/* ! data_buffer, uint64_t version zfs_proc_read (zfs_cap cap, uint64_t
+/*! data_buffer, uint64_t version zfs_proc_read (zfs_cap cap, uint64_t
    offset, uint32_t count);
 
    Read from the file.  Returned \p version is the file version from which the
@@ -372,7 +372,7 @@ zfs_proc_read_server(read_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 		encode_read_res(dc, &res);
 }
 
-/* ! uint32_t written, uint64_t version zfs_proc_write (zfs_cap cap, uint64_t
+/*! uint32_t written, uint64_t version zfs_proc_write (zfs_cap cap, uint64_t
    offset, data_buffer data);
 
    Write to the file.  Returned \p version is the file version after writing
@@ -390,7 +390,7 @@ zfs_proc_write_server(write_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 		encode_write_res(dc, &res);
 }
 
-/* ! string zfs_proc_readlink (zfs_fh);
+/*! string zfs_proc_readlink (zfs_fh);
 
    Read the symlink.  */
 void
@@ -408,7 +408,7 @@ zfs_proc_readlink_server(zfs_fh * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 	}
 }
 
-/* ! zfs_fh, fattr zfs_proc_symlink (zfs_fh from_dir, string from_filename,
+/*! zfs_fh, fattr zfs_proc_symlink (zfs_fh from_dir, string from_filename,
    string to, sattr attr);
 
    Create the symlink.  */
@@ -426,7 +426,7 @@ zfs_proc_symlink_server(symlink_args * args, DC * dc,
 		encode_dir_op_res(dc, &res);
 }
 
-/* ! zfs_fh, fattr zfs_proc_mknod (zfs_fh dir, string filename, sattr attr,
+/*! zfs_fh, fattr zfs_proc_mknod (zfs_fh dir, string filename, sattr attr,
    ftype type, uint32_t rdev);
 
    Create the special file.  */
@@ -443,7 +443,7 @@ zfs_proc_mknod_server(mknod_args * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 		encode_dir_op_res(dc, &res);
 }
 
-/* ! string nodename zfs_proc_auth_stage1 (string nodename);
+/*! string nodename zfs_proc_auth_stage1 (string nodename);
 
    1st stage of authentication.  */
 void zfs_proc_auth_stage1_server(auth_stage1_args * args, DC * dc, void *data)
@@ -485,7 +485,7 @@ void zfs_proc_auth_stage1_server(auth_stage1_args * args, DC * dc, void *data)
 	zfsd_mutex_unlock(&fd_data->mutex);
 }
 
-/* ! void zfs_proc_auth_stage2 (uint8_t connection_speed);
+/*! void zfs_proc_auth_stage2 (uint8_t connection_speed);
 
    2nd stage of authentication.  */
 void zfs_proc_auth_stage2_server(auth_stage2_args * args, DC * dc, void *data)
@@ -524,7 +524,7 @@ void zfs_proc_auth_stage2_server(auth_stage2_args * args, DC * dc, void *data)
 	zfsd_mutex_unlock(&fd_data->mutex);
 }
 
-/* ! uint32_t count, uint32_t __unused, uint64_t size, uint64_t version,
+/*! uint32_t count, uint32_t __unused, uint64_t size, uint64_t version,
    uint64_t offset[count], uint32_t length[count], uint8_t
    md5sum[count][#MD5_SIZE] zfs_proc_md5sum (zfs_cap cap, uint32_t count,
    int8_t ignore_changes, uint64_t offset[count], uint32_t length[count]);
@@ -545,7 +545,7 @@ zfs_proc_md5sum_server(md5sum_args * args, DC * dc,
 		encode_md5sum_res(dc, &md5);
 }
 
-/* ! string zfs_proc_file_info (zfs_fh);
+/*! string zfs_proc_file_info (zfs_fh);
 
    Get relative path for the file handle.  */
 void
@@ -563,7 +563,7 @@ zfs_proc_file_info_server(zfs_fh * args, DC * dc, ATTRIBUTE_UNUSED void *data)
 	}
 }
 
-/* ! N/A zfs_proc_reread_config (string path);
+/*! N/A zfs_proc_reread_config (string path);
 
    Reread the configuration file specified by relative \p path within the
    configuration volume.  An one-way request.  */
@@ -585,7 +585,7 @@ zfs_proc_reread_config_server(reread_config_args * args,
 	add_reread_config_request(&relative_path, t->from_sid);
 }
 
-/* ! void reintegrate (zfs_fh fh, int8_t status);
+/*! void reintegrate (zfs_fh fh, int8_t status);
 
    If \p status != 0, lock \p fh for reintegration (exclude other
    reintegration attempts); if \p status == 0, release the reintegration lock
@@ -602,7 +602,7 @@ zfs_proc_reintegrate_server(reintegrate_args * args, DC * dc,
 	encode_status(dc, r);
 }
 
-/* ! void reintegrate_add (zfs_fh fh, zfs_fh dir, string filename);
+/*! void reintegrate_add (zfs_fh fh, zfs_fh dir, string filename);
 
    Add the file \p fh as \p filename in \p dir.  If \p fh is a directory, it
    is moved there, otherwise a link is added without removing the original
@@ -617,7 +617,7 @@ zfs_proc_reintegrate_add_server(reintegrate_add_args * args, DC * dc,
 	encode_status(dc, r);
 }
 
-/* ! void reintegrate_del (zfs_fh fh, zfs_fh dir, string filename, int8_t
+/*! void reintegrate_del (zfs_fh fh, zfs_fh dir, string filename, int8_t
    destroy);
 
    Delete \p filename in \p dir, which is \p fh.  If \p destroy is non-zero,
@@ -633,7 +633,7 @@ zfs_proc_reintegrate_del_server(reintegrate_del_args * args, DC * dc,
 	encode_status(dc, r);
 }
 
-/* ! void reintegrate_ver (zfs_fh fh, uint64_t version_inc);
+/*! void reintegrate_ver (zfs_fh fh, uint64_t version_inc);
 
    Increase the version of \p fh by \p version_inc and release the
    reintegration lock on \p fh. */
@@ -647,7 +647,7 @@ zfs_proc_reintegrate_ver_server(reintegrate_ver_args * args, DC * dc,
 	encode_status(dc, r);
 }
 
-/* ! Call remote FUNCTION with ARGS using data structures in thread T and
+/*! Call remote FUNCTION with ARGS using data structures in thread T and
    return its error code.  Use FD for communication with remote node.  */
 #define ZFS_CALL_CLIENT
 #define ZFS_CALL_KERNEL
@@ -684,7 +684,7 @@ zfs_proc_##FUNCTION##_client_1 (thread *t, ARGS *args, int fd)		\
 #undef ZFS_CALL_KERNEL
 #undef ZFS_CALL_CLIENT
 
-/* ! Call remote FUNCTION with ARGS on node NOD using data structures in
+/*! Call remote FUNCTION with ARGS on node NOD using data structures in
    thread T and return its error code, store file descriptor connected to NOD
    to FD.  */
 #define ZFS_CALL_CLIENT
@@ -708,7 +708,7 @@ zfs_proc_##FUNCTION##_client (thread *t, ARGS *args, node nod, int *fd)	\
 #undef DEFINE_ZFS_PROC
 #undef ZFS_CALL_CLIENT
 
-/* ! Return string describing error code.  */
+/*! Return string describing error code.  */
 
 const char *zfs_strerror(int32_t errnum)
 {
@@ -764,10 +764,10 @@ const char *zfs_strerror(int32_t errnum)
 	return "UNKNOWN error code";
 }
 
-/* ! Call statistics.  */
+/*! Call statistics.  */
 uint64_t call_statistics[ZFS_PROC_LAST_AND_UNUSED];
 
-/* ! Initialize data structures needed by this module.  */
+/*! Initialize data structures needed by this module.  */
 
 void initialize_zfs_prot_c(void)
 {
@@ -777,7 +777,7 @@ void initialize_zfs_prot_c(void)
 		call_statistics[i] = 0;
 }
 
-/* ! Cleanup data structures needed by this module.  */
+/*! Cleanup data structures needed by this module.  */
 
 void cleanup_zfs_prot_c(void)
 {

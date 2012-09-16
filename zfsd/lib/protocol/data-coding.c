@@ -1,4 +1,4 @@
-/* ! \file \brief Data coding functions (encoding and decoding requests and
+/*! \file \brief Data coding functions (encoding and decoding requests and
    replies).
 
    Each request or reply is represented as "packet", a sequence of primitive
@@ -81,13 +81,13 @@
 #include "zfs-prot.h"
 
 
-/* ! Initialize a data coding buffer DC.  */
+/*! Initialize a data coding buffer DC.  */
 static void dc_init(DC * dc)
 {
 	dc->buffer = (char *)ALIGN_PTR_16(dc->data);
 }
 
-/* ! Return a new data coding buffer.  */
+/*! Return a new data coding buffer.  */
 DC *dc_create(void)
 {
 	DC *dc = (DC *) xmalloc(sizeof(DC));
@@ -95,13 +95,13 @@ DC *dc_create(void)
 	return dc;
 }
 
-/* ! Free the data coding buffer DC.  */
+/*! Free the data coding buffer DC.  */
 void dc_destroy(DC * dc)
 {
 	free(dc);
 }
 
-/* ! Print DC to file F. @see message */
+/*! Print DC to file F. @see message */
 void print_dc(int level, FILE * f ATTRIBUTE_UNUSED, DC * dc)
 {
 	message(level, FACILITY_DATA, "Cur.pos    = %d\n",
@@ -114,7 +114,7 @@ void print_dc(int level, FILE * f ATTRIBUTE_UNUSED, DC * dc)
 					  ? dc->cur_length : dc->max_length));
 }
 
-/* ! Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
+/*! Initialize DC to start encoding to PTR with maximal length MAX_LENGTH.  */
 void start_encoding(DC * dc)
 {
 	dc->cur_pos = dc->buffer;
@@ -123,14 +123,14 @@ void start_encoding(DC * dc)
 	encode_uint32_t(dc, 0);
 }
 
-/* ! Update the size of block in DC.  Return the length of encoded buffer.  */
+/*! Update the size of block in DC.  Return the length of encoded buffer.  */
 unsigned int finish_encoding(DC * dc)
 {
 	*(uint32_t *) dc->buffer = u32_to_le((uint32_t) dc->cur_length);
 	return dc->cur_length;
 }
 
-/* ! Initialize DC to start decoding of PTR.  Return true on success.  */
+/*! Initialize DC to start decoding of PTR.  Return true on success.  */
 bool start_decoding(DC * dc)
 {
 	dc->cur_pos = dc->buffer;
@@ -140,13 +140,13 @@ bool start_decoding(DC * dc)
 	return dc->max_length <= ZFS_DC_SIZE;
 }
 
-/* ! Return true if all data has been read from encoded buffer.  */
+/*! Return true if all data has been read from encoded buffer.  */
 bool finish_decoding(DC * dc)
 {
 	return dc->cur_length == dc->max_length;
 }
 
-/* ! Decode a value of type T and size S from DC and store it to *RET. Call F
+/*! Decode a value of type T and size S from DC and store it to *RET. Call F
    to transform little endian to cpu endian. Return true on success.  */
 #define DECODE_SIMPLE_TYPE(T, S, F)				\
 bool decode_##T (DC *dc, T *ret)				\
@@ -163,7 +163,7 @@ bool decode_##T (DC *dc, T *ret)				\
   return true;							\
 }
 
-/* ! Encode a value VAL of type T and size S to DC. Call F to transform cpu
+/*! Encode a value VAL of type T and size S to DC. Call F to transform cpu
    endian to little endian. Return true on success.  */
 #define ENCODE_SIMPLE_TYPE(T, S, F)				\
 bool encode_##T (DC *dc, T val)					\

@@ -1,4 +1,4 @@
-/* ! \file \brief An expandable hash tables datatype.  */
+/*! \file \brief An expandable hash tables datatype.  */
 
 /* Copyright (C) 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
    Contributed by Vladimir Makarov (vmakarov@cygnus.com).
@@ -28,50 +28,50 @@
 #include "system.h"
 #include "pthread-wrapper.h"
 
-/* ! Insert operation.  */
+/*! Insert operation.  */
 enum insert
 {
 	NO_INSERT = 0,
 	INSERT
 };
 
-/* ! Type of hash value.  */
+/*! Type of hash value.  */
 typedef unsigned int hash_t;
 
-/* ! Compute hash of a table entry.  */
+/*! Compute hash of a table entry.  */
 typedef hash_t(*htab_hash) (const void *x);
 
-/* ! Compare the hash table entry with possible entry.  */
+/*! Compare the hash table entry with possible entry.  */
 typedef int (*htab_eq) (const void *x, const void *y);
 
-/* ! Cleanup function called when element is deleted from hash table.  */
+/*! Cleanup function called when element is deleted from hash table.  */
 typedef void (*htab_del) (void *x);
 
-/* ! \brief Hash table datatype.  */
+/*! \brief Hash table datatype.  */
 typedef struct htab_def
 {
-	/* ! Table itself.  */
+	/*! Table itself.  */
 	void **table;
 
-	/* ! Size of the table (number of the entries).  */
+	/*! Size of the table (number of the entries).  */
 	unsigned int size;
 
-	/* ! Current number of elements including deleted elements.  */
+	/*! Current number of elements including deleted elements.  */
 	unsigned int n_elements;
 
-	/* ! Current number of deleted elements.  */
+	/*! Current number of deleted elements.  */
 	unsigned int n_deleted;
 
-	/* ! Hash function.  */
+	/*! Hash function.  */
 	htab_hash hash_f;
 
-	/* ! Compare function.  */
+	/*! Compare function.  */
 	htab_eq eq_f;
 
-	/* ! Cleanup function.  */
+	/*! Cleanup function.  */
 	htab_del del_f;
 
-	/* ! Mutex which must be locked when accessing the table.  */
+	/*! Mutex which must be locked when accessing the table.  */
 	pthread_mutex_t *mutex;
 } *htab_t;
 
@@ -88,13 +88,13 @@ extern void **htab_find_slot(htab_t htab, const void *elem,
 extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
 									   hash_t hash, enum insert insert);
 
-/* ! Value for empty hash table entry.  */
+/*! Value for empty hash table entry.  */
 #define EMPTY_ENTRY ((void *) 0)
 
-/* ! Value for deleted hash table entry.  */
+/*! Value for deleted hash table entry.  */
 #define DELETED_ENTRY ((void *) 1)
 
-/* ! Loop through all valid SLOTs of hash table HTAB.  */
+/*! Loop through all valid SLOTs of hash table HTAB.  */
 #define HTAB_FOR_EACH_SLOT(HTAB, SLOT)					\
   CHECK_MUTEX_LOCKED ((HTAB)->mutex);					\
   if (((HTAB)->n_elements - (HTAB)->n_deleted) * 8 < (HTAB)->size)	\
@@ -106,7 +106,7 @@ extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
 
 #ifdef ENABLE_CHECKING
 
-/* ! Check the contents of SLOT is on correct position in HTAB.  */
+/*! Check the contents of SLOT is on correct position in HTAB.  */
 #define HTAB_CHECK_SLOT(HTAB, SLOT)				\
   if (1)							\
     {								\
@@ -127,7 +127,7 @@ extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
 	}							\
     }
 
-/* ! Check the table HTAB.  */
+/*! Check the table HTAB.  */
 #define HTAB_CHECK(HTAB)					\
   if (1)							\
     {								\
@@ -141,10 +141,10 @@ extern void **htab_find_slot_with_hash(htab_t htab, const void *elem,
 
 #else
 
-/* ! Check the contents of SLOT is on correct position in HTAB.  */
+/*! Check the contents of SLOT is on correct position in HTAB.  */
 #define HTAB_CHECK_SLOT(HTAB, SLOT)
 
-/* ! Check the table HTAB.  */
+/*! Check the table HTAB.  */
 #define HTAB_CHECK(HTAB)
 
 #endif

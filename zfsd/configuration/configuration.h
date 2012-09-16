@@ -1,4 +1,4 @@
-/* ! \file \brief Configuration.  */
+/*! \file \brief Configuration.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -33,10 +33,10 @@
 #include "zfs_config.h"
 #include "cluster_config.h"
 
-/* ! Mutex protecting the reread_config chain and alloc pool.  */
+/*! Mutex protecting the reread_config chain and alloc pool.  */
 extern pthread_mutex_t reread_config_mutex;
 
-/* ! Alloc pool for allocating nodes of reread config chain.  */
+/*! Alloc pool for allocating nodes of reread config chain.  */
 extern alloc_pool reread_config_pool;
 
 extern void initialize_config_c(void);

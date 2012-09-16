@@ -18,12 +18,12 @@
 #include "shared_config.h"
 #include "zfsio.h"
 
-/* ! First and last element of the chain of requests for rereading
+/*! First and last element of the chain of requests for rereading
    configuration.  */
 static reread_config_request reread_config_first;
 static reread_config_request reread_config_last;
 
-/* ! Read list of nodes from CONFIG_DIR/node_list.  */
+/*! Read list of nodes from CONFIG_DIR/node_list.  */
 
 bool read_node_list(zfs_fh * config_dir)
 {
@@ -65,7 +65,7 @@ bool read_node_list(zfs_fh * config_dir)
 	return (rv == CONFIG_TRUE);
 }
 
-/* ! Reread list of nodes.  */
+/*! Reread list of nodes.  */
 
 static bool reread_node_list(void)
 {
@@ -90,7 +90,7 @@ static bool reread_node_list(void)
 	return true;
 }
 
-/* ! Reread list of volumes.  */
+/*! Reread list of volumes.  */
 
 static bool reread_volume_list(void)
 {
@@ -111,7 +111,7 @@ static bool reread_volume_list(void)
 	return true;
 }
 
-/* ! Reread user mapping for node SID.  */
+/*! Reread user mapping for node SID.  */
 
 static bool reread_user_mapping(uint32_t sid)
 {
@@ -145,7 +145,7 @@ static bool reread_user_mapping(uint32_t sid)
 	return true;
 }
 
-/* ! Reread list of users.  */
+/*! Reread list of users.  */
 
 static bool reread_user_list(void)
 {
@@ -168,7 +168,7 @@ static bool reread_user_list(void)
 	return true;
 }
 
-/* ! Reread list of groups.  */
+/*! Reread list of groups.  */
 
 static bool reread_group_list(void)
 {
@@ -190,7 +190,7 @@ static bool reread_group_list(void)
 	return true;
 }
 
-/* ! Reread group mapping for node SID.  */
+/*! Reread group mapping for node SID.  */
 
 static bool reread_group_mapping(uint32_t sid)
 {
@@ -231,7 +231,7 @@ static bool reread_group_mapping(uint32_t sid)
 	return true;
 }
 
-/* ! Reread configuration file RELATIVE_PATH.  */
+/*! Reread configuration file RELATIVE_PATH.  */
 
 bool reread_config_file(string * relative_path)
 {
@@ -294,7 +294,7 @@ bool reread_config_file(string * relative_path)
 	return true;
 }
 
-/* ! Reread local info about volumes. \param path Path where local
+/*! Reread local info about volumes. \param path Path where local
    configuration is stored.  */
 
 bool reread_local_volume_info(const char * path)
@@ -327,7 +327,7 @@ bool reread_local_volume_info(const char * path)
 	return true;
 }
 
-/* ! Add request to reread config file DENTRY to queue.  */
+/*! Add request to reread config file DENTRY to queue.  */
 void add_reread_config_request_dentry(internal_dentry dentry)
 {
 	string relative_path;
@@ -345,7 +345,7 @@ void add_reread_config_request_dentry(internal_dentry dentry)
 }
 
 
-/* ! Add a request to reread config into queue */
+/*! Add a request to reread config into queue */
 
 void add_reread_config_request(string * relative_path, uint32_t from_sid)
 {
@@ -372,7 +372,7 @@ void add_reread_config_request(string * relative_path, uint32_t from_sid)
 	semaphore_up(&zfs_config.config_sem, 1);
 }
 
-/* ! Add request to reread config file PATH on volume VOL to queue.  */
+/*! Add request to reread config file PATH on volume VOL to queue.  */
 
 void add_reread_config_request_local_path(volume vol, string * path)
 {
@@ -390,7 +390,7 @@ void add_reread_config_request_local_path(volume vol, string * path)
 	add_reread_config_request(&relative_path, t->from_sid);
 }
 
-/* ! Get a request to reread config from queue and store the relative path of
+/*! Get a request to reread config from queue and store the relative path of
    the file to be reread to RELATIVE_PATH and the node ID which the request
    came from to FROM_SID.  */
 

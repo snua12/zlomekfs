@@ -1,4 +1,4 @@
-/* ! \file \brief Configuration.  */
+/*! \file \brief Configuration.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
 
@@ -112,7 +112,7 @@ string * get_this_node_name(void)
 	return &zfs_config.this_node.node_name;
 }
 
-/* ! Set default node UID to UID of user NAME.  Return true on success.  */
+/*! Set default node UID to UID of user NAME.  Return true on success.  */
 
 bool set_default_uid(const char *name)
 {
@@ -127,7 +127,7 @@ bool set_default_uid(const char *name)
 	return true;
 }
 
-/* ! Set default node GID to GID of group NAME.  Return true on success.  */
+/*! Set default node GID to GID of group NAME.  Return true on success.  */
 
 bool set_default_gid(const char *name)
 {
@@ -141,7 +141,7 @@ bool set_default_gid(const char *name)
 	return true;
 }
 
-/* ! Set default local user/group.  */
+/*! Set default local user/group.  */
 
 void set_default_uid_gid(void)
 {

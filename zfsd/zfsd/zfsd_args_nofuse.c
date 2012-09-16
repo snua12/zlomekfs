@@ -1,5 +1,5 @@
 /*
- * ! \file \brief daemon fuselike option parser
+ *! \file \brief daemon fuselike option parser
  */
 
 #include <getopt.h>

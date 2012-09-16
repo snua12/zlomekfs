@@ -1,4 +1,4 @@
-/* ! \file \brief An expandable hash tables datatype.  */
+/*! \file \brief An expandable hash tables datatype.  */
 
 /* Copyright (C) 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
    Contributed by Vladimir Makarov (vmakarov@cygnus.com).
@@ -30,7 +30,7 @@
 #include "log.h"
 #include "memory.h"
 
-/* ! These are primes that are the highest primes lower than some power of 2. */
+/*! These are primes that are the highest primes lower than some power of 2. */
 static const unsigned int primes[] = {
 	7,
 	13,
@@ -66,7 +66,7 @@ static const unsigned int primes[] = {
 #define N_PRIMES (sizeof(primes) / sizeof(primes[0]))
 #define MAX_PRIME (primes[N_PRIMES - 1])
 
-/* ! Return a prime number from the predecessing table which is greater or
+/*! Return a prime number from the predecessing table which is greater or
    equal to N. */
 
 static unsigned int get_higher_prime(unsigned int n)
@@ -93,7 +93,7 @@ static unsigned int get_higher_prime(unsigned int n)
 	return primes[low];
 }
 
-/* ! Find an empty slot for htab_expand. HASH is the hash value for the
+/*! Find an empty slot for htab_expand. HASH is the hash value for the
    element to be inserted. Expects no deleted slots in the table.  */
 
 static void **htab_find_empty_slot(htab_t htab, hash_t hash)
@@ -130,7 +130,7 @@ static void **htab_find_empty_slot(htab_t htab, hash_t hash)
 	}
 }
 
-/* ! Expand the hash table HTAB.  */
+/*! Expand the hash table HTAB.  */
 
 void htab_expand(htab_t htab)
 {
@@ -162,7 +162,7 @@ void htab_expand(htab_t htab)
 	free(old_table);
 }
 
-/* ! Create the hash table data structure with SIZE elements, hash function
+/*! Create the hash table data structure with SIZE elements, hash function
    HASH_F, compare function EQ_F and element cleanup function DEL_F.  */
 
 htab_t
@@ -191,7 +191,7 @@ htab_create(unsigned int size, htab_hash hash_f, htab_eq eq_f, htab_del del_f,
 	return htab;
 }
 
-/* ! Destroy the hash table HTAB.  If the cleanup function is defined it is
+/*! Destroy the hash table HTAB.  If the cleanup function is defined it is
    called for each present element.  */
 
 void htab_destroy(htab_t htab)
@@ -211,7 +211,7 @@ void htab_destroy(htab_t htab)
 	free(htab);
 }
 
-/* ! Clear all elements of hash table HTAB.  */
+/*! Clear all elements of hash table HTAB.  */
 
 void htab_empty(htab_t htab)
 {
@@ -230,7 +230,7 @@ void htab_empty(htab_t htab)
 	memset(htab->table, 0, htab->size * sizeof(void *));
 }
 
-/* ! Clear the slot SLOT of the hash table HTAB.  If the cleanup function is
+/*! Clear the slot SLOT of the hash table HTAB.  If the cleanup function is
    defined it is called for the element in slot.  */
 
 void htab_clear_slot(htab_t htab, void **slot)
@@ -249,13 +249,13 @@ void htab_clear_slot(htab_t htab, void **slot)
 	htab->n_deleted++;
 }
 
-/* ! Similar to HTAB_FIND_WITH_HASH but it computes the hash key first.  */
+/*! Similar to HTAB_FIND_WITH_HASH but it computes the hash key first.  */
 void *htab_find(htab_t htab, const void *elem)
 {
 	return htab_find_with_hash(htab, elem, (*htab->hash_f) (elem));
 }
 
-/* ! Find the element ELEM whose hash key is HASH in hash table HTAB. This
+/*! Find the element ELEM whose hash key is HASH in hash table HTAB. This
    function cannot be used to insert or delete an element, use
    htab_find_slot_with_hash and htab_clear_slot for that purpose.  */
 
@@ -290,7 +290,7 @@ void *htab_find_with_hash(htab_t htab, const void *elem, hash_t hash)
 	}
 }
 
-/* ! Similar to HTAB_FIND_SLOT_WITH_HASH but it computes the hash key first.  */
+/*! Similar to HTAB_FIND_SLOT_WITH_HASH but it computes the hash key first.  */
 
 void **htab_find_slot(htab_t htab, const void *elem, enum insert insert)
 {
@@ -298,7 +298,7 @@ void **htab_find_slot(htab_t htab, const void *elem, enum insert insert)
 									insert);
 }
 
-/* ! Find the slot of hash table HTAB which contains element ELEM with hash
+/*! Find the slot of hash table HTAB which contains element ELEM with hash
    key HASH.  The compare function is called for comparion the elements.  If
    INSERT is true and element is not present in the hash table it is inserted. 
  */
