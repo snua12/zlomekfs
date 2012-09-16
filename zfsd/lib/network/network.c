@@ -1822,9 +1822,7 @@ void fd_data_destroy(void)
 	zfsd_mutex_unlock(&active_mutex);
 	zfsd_mutex_destroy(&active_mutex);
 
-#ifdef HAVE_FUSE
 	kernel_unmount();
-#endif
 
 	for (i = 0; i < max_nfd; i++)
 	{

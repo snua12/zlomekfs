@@ -478,16 +478,12 @@ static void zfs_stop_services(zfs_started_services * services)
 		wait_for_pool_to_die(&network_pool);
 
 #ifdef ENABLE_FS_INTERFACE
-
+#ifdef HAVE_FUSE
 	if (services->kernel_started)
 	{
-#ifdef HAVE_FUSE
 		wait_for_pool_to_die(&kernel_pool);
-#endif
-		//TODO DOKAN support
-
 	}
-
+#endif
 #endif
 
 	fd_data_shutdown();
