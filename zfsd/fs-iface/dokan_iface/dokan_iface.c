@@ -1332,10 +1332,14 @@ int32_t fs_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
 	RETURN_INT(ZFS_OK);
 }
 
-int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p)
+int32_t fs_invalidate_dentry(ATTRIBUTE_UNUSED internal_dentry dentry, ATTRIBUTE_UNUSED bool volume_root_p)
 {
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
 	release_dentry(dentry);
-	RETURN_INT(fs_invalidate_fh(&fh));
+
+	if (!mounted)
+		RETURN_INT(ZFS_COULD_NOT_CONNECT);
+
+	RETURN_INT(ZFS_OK);
 }
 
