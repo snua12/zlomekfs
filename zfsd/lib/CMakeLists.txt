@@ -11,12 +11,6 @@ add_subdirectory(log)
 add_subdirectory(constant)
 add_subdirectory(fibheap)
 
-if (HAVE_FUSE)
-	add_subdirectory(fuse_iface)
-	add_subdirectory(dokan_iface/tests)
-elseif (HAVE_DOKAN)
-	add_subdirectory(dokan_iface)
-endif()
 
 add_subdirectory(hashfile)
 add_subdirectory(hashtab)

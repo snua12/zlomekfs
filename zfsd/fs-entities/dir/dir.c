@@ -41,9 +41,7 @@
 #include "data-coding.h"
 #include "volume.h"
 #include "network.h"
-#ifdef HAVE_FUSE
-#include "kernel.h"
-#endif
+#include "fs-iface.h"
 #include "zfs-prot.h"
 #include "user-group.h"
 #include "update.h"

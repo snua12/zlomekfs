@@ -40,9 +40,7 @@
 #include "semaphore.h"
 #include "data-coding.h"
 #include "network.h"
-#ifdef HAVE_FUSE
-#include "kernel.h"
-#endif
+#include "fs-iface.h"
 #include "log.h"
 #include "util.h"
 #include "thread.h"

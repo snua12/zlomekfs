@@ -32,9 +32,6 @@ ${ZFSD_SOURCE_DIR}/lib/util
 ${ZFSD_SOURCE_DIR}/lib/semaphore
 ${ZFSD_SOURCE_DIR}/lib/queue
 ${ZFSD_SOURCE_DIR}/lib/threading
-${ZFSD_SOURCE_DIR}/lib/fuse_iface
-${ZFSD_SOURCE_DIR}/lib/dokan_iface
-${ZFSD_SOURCE_DIR}/lib/dokan_iface/tests/syscall_collector
 ${ZFSD_SOURCE_DIR}/lib/constant
 ${ZFSD_SOURCE_DIR}/lib/memory
 ${ZFSD_SOURCE_DIR}/lib/varray
@@ -51,6 +48,7 @@ ${ZFSD_SOURCE_DIR}/lib/fibheap
 ${ZFSD_SOURCE_DIR}/lib/zfsio
 ${ZFSD_SOURCE_DIR}/lib/zfs_dirent
 ${ZFSD_SOURCE_DIR}/version
+${ZFSD_SOURCE_DIR}/fs-iface/include
 )
 
 add_subdirectory(configuration)
@@ -65,4 +63,8 @@ add_subdirectory(update)
 if (ENABLE_VERSIONS)
   add_subdirectory(version)
 endif(ENABLE_VERSIONS)
+
+if (ENABLE_FS_INTERFACE)
+  add_subdirectory(fs-iface)
+endif()
 

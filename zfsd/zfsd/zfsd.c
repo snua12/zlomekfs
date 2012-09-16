@@ -50,12 +50,7 @@
 #include "thread.h"
 
 #ifdef ENABLE_FS_INTERFACE
-#ifdef HAVE_FUSE
-#include "kernel.h"
-#endif
-#ifdef HAVE_DOKAN
-#include "dokan_iface.h"
-#endif
+#include "fs-iface.h"
 #endif
 
 #include "network.h"

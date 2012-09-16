@@ -2,7 +2,7 @@
  * ! \file \brief daemon option parser
  */
 
-#include "kernel.h"
+#include "fs-iface.h"
 #include "configuration.h"
 #include "zfsd_args.h"
 
