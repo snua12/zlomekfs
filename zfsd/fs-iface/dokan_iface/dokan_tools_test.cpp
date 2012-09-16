@@ -58,6 +58,37 @@ TEST(dokan_tools_test, file_path_to_dir_and_file)
 	ASSERT_STREQ(win_dir_path, test_dir_path);
 }
 
+TEST(dokan_tool_test, unix_to_alternative_filename)
+{
+	WCHAR win_name[MAX_PATH];
+	dir_entry de;
+	de.ino = 0xff;
+	xmkstring (&de.name, "123456789.ext");
+	unix_to_alternative_filename(&de, win_name);
+	ASSERT_STREQ(win_name, L"12345~FF.ext");
+	xfreestring(&de.name);
+
+	xmkstring (&de.name, "123456789.loog");
+	unix_to_alternative_filename(&de, win_name);
+	ASSERT_STREQ(win_name, L"12345~FF.loo");
+	xfreestring(&de.name);
+
+	xmkstring (&de.name, "12345678.ext");
+	unix_to_alternative_filename(&de, win_name);
+	ASSERT_STREQ(win_name, L"12345678.ext");
+	xfreestring(&de.name);
+
+	de.ino = 0xdeadbeef;
+	xmkstring (&de.name, "123456789.ext");
+	unix_to_alternative_filename(&de, win_name);
+	ASSERT_STREQ(win_name, L"DEADBEEF.ext");
+	xfreestring(&de.name);
+
+
+	char file_name[MAX_PATH];
+	file_path_to_dir_and_file(win_name, file_name, NULL);
+}
+
 int main(int argc, char **argv) 
 {
   ::testing::InitGoogleTest(&argc, argv);

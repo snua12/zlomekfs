@@ -19,7 +19,7 @@ if(NOT result EQUAL -1)
         #set_source_files_properties(${dokan_tools_test_SRCS} COMPILE_FLAGS)
 
         add_executable(dokan_tools_test ${dokan_tools_test_SRCS})
-        target_link_libraries(dokan_tools_test ${ZFS_GTEST_LIBRARIES} dokan_tools)
+        target_link_libraries(dokan_tools_test ${ZFS_GTEST_LIBRARIES} dokan_tools memory)
         add_test(dokan_tools_test dokan_tools_test)
 
 endif()

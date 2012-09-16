@@ -675,7 +675,7 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 			 WIN32_FIND_DATAW find_data;
 			 fattr_to_find_dataw(&find_data, &lookup_res.attr);
 			 unix_to_windows_filename(entry->name.str, find_data.cFileName, MAX_PATH);
-			 unix_to_alternative_filename(dir_entry, find_data.cFileName);
+			 unix_to_alternative_filename(entry, find_data.cFileName);
 
 			 int is_full = fill_data(&find_data, info);
 			 if (is_full == 1)

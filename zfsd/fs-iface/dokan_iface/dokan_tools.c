@@ -257,7 +257,7 @@ void create_args_fill_dokan_flags_and_attributes(ATTRIBUTE_UNUSED create_args * 
 
 }
 
-void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
+static void zfstime_to_filetime(PFILETIME ftime, zfs_time ztime)
 {
 	if (ftime == NULL || ztime == ((zfs_time) - 1)) return;
 	// based on microsoft kb 167296
@@ -372,6 +372,13 @@ void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filenam
 		windows_filename,
 		windows_filename_len
 	);
+
+	// add terminating 0
+	if (rv > 0 && rv < windows_filename_len)
+	{
+		windows_filename[rv] = 0;
+	}
+
 	if (rv == 0)
 	{
                 message(LOG_ERROR, FACILITY_ZFSD, "%s:failed to conver unix_filename to windows_filename\n", __func__);
@@ -380,15 +387,49 @@ void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filenam
 
 }
 
-void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename);
+void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 {
-	if (strlen(unix_filename) < 14)
+	size_t name_len = strlen(entry->name.str);
+	if (name_len < 13)
 	{
 		unix_to_windows_filename(entry->name.str, windows_filename, 13);
 		return;
 	}
 
-	//TODO: cAlternateFileName for longer filenames
+	// converts inode to hexadecimal string strlen(ino_str) < 9
+	char ino_str[9];
+	snprintf(ino_str, sizeof(ino_str), "%X", entry->ino);
+	size_t ino_str_len = strlen(ino_str);
+
+	// get tile extension if there is any
+	char file_ext[ZFS_MAXNAMELEN] = "";
+	char * file_ext_p = strchr(entry->name.str, '.');
+	if  (file_ext_p != NULL)
+	{
+		snprintf(file_ext, sizeof(file_ext), "%s",
+			file_ext_p);
+	}
+	// limit file extension to 4 characters
+	file_ext[4] = 0;
+	size_t file_ext_len = strlen(file_ext);
+
+	// get filename
+	char file_name[ZFS_MAXNAMELEN] = "";
+	size_t file_name_len = file_ext_len + ino_str_len;
+	if (file_name_len < 12)
+	{
+		snprintf(file_name, 13 - file_name_len,"%s",
+			entry->name.str);
+		file_name[12 - file_name_len - 1] = '~';	
+	}
+
+	// merge together (file_name hex_inode file_extension)
+	char file_name_final[ZFS_MAXNAMELEN] = "";
+	snprintf(file_name_final, sizeof(file_name_final), "%s%s%s",
+		file_name, ino_str, file_ext);
+
+	// converts to windows encoding
+	unix_to_windows_filename(file_name_final, windows_filename, 13);
 }
 
 // for debugging purpose
