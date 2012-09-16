@@ -47,6 +47,7 @@
 #include "update.h"
 #include "configuration.h"
 #include "version.h"
+#include "fs-iface.h"
 
 /* ! File handle of ZFS root.  */
 zfs_fh root_fh =
@@ -2052,7 +2053,7 @@ internal_dentry_move(internal_dentry * from_dirp, string * from_name,
 		else
 			*from_dirp = *to_dirp;
 
-		local_invalidate_fh(&tmp_fh);
+		fs_invalidate_fh(&tmp_fh);
 	}
 	else
 	{
@@ -2060,7 +2061,7 @@ internal_dentry_move(internal_dentry * from_dirp, string * from_name,
 		free(dentry->name.str);
 		xstringdup(&dentry->name, to_name);
 		internal_dentry_add_to_dir(*to_dirp, dentry);
-		local_invalidate(dentry, dentry->parent == NULL);
+		fs_invalidate_dentry(dentry, dentry->parent == NULL);
 	}
 	RETURN_VOID;
 }
@@ -2277,7 +2278,7 @@ internal_dentry_destroy(internal_dentry dentry, bool clear_volume_root,
 	if (invalidate)
 	{
 		zfsd_mutex_unlock(&fh_mutex);
-		local_invalidate(dentry, volume_root_p);
+		fs_invalidate_dentry(dentry, volume_root_p);
 	}
 	else
 	{
@@ -2421,7 +2422,7 @@ create_conflict(volume vol, internal_dentry dir, string * name,
 		release_dentry(conflict);
 		zfsd_mutex_unlock(&vol->mutex);
 		zfsd_mutex_unlock(&fh_mutex);
-		local_invalidate(dentry, dir == NULL);
+		fs_invalidate_dentry(dentry, dir == NULL);
 
 		if (dir)
 		{
@@ -3026,7 +3027,7 @@ virtual_dir virtual_dir_create(virtual_dir parent, const char *name)
 #endif
 	*slot = vd;
 
-	local_invalidate_fh(&parent->fh);
+	fs_invalidate_fh(&parent->fh);
 	RETURN_PTR(vd);
 }
 
@@ -3104,7 +3105,7 @@ void virtual_dir_destroy(virtual_dir vd)
 #endif
 			htab_clear_slot(vd_htab, slot);
 
-			local_invalidate_fh(&vd->fh);
+			fs_invalidate_fh(&vd->fh);
 			free(vd->name.str);
 			zfsd_mutex_unlock(&vd->mutex);
 			zfsd_mutex_destroy(&vd->mutex);

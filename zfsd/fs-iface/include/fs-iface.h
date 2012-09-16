@@ -22,6 +22,7 @@
 #define FS_IFACE_H
 
 #include <config.h>
+#include <fh.h>
 
 #ifdef ENABLE_FS_INTERFACE
 #ifdef HAVE_FUSE
@@ -30,9 +31,20 @@
 #ifdef HAVE_DOKAN
 #include "../dokan_iface/dokan_iface.h"
 #else
-#error "no kernel interface was selected"
+#error "no filesystem interface was selected"
 #endif
 #endif
 #endif
+
+extern bool fs_mount(void);
+extern void fs_umount(void);
+extern void fs_cleanup(void);
+
+/* ! Invalidate dentry DENTRY in kernel dentry cache.  */
+extern int32_t fs_invalidate_fh(zfs_fh * fh);
+
+/* ! Invalidate file handle DENTRY in kernel dentry cache.  */
+extern int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p);
+
 
 #endif

@@ -40,6 +40,7 @@
 #include "data-coding.h"
 #include "dir.h"
 #include "file.h"
+#include "fs-iface.h"
 #include "fuse_iface.h"
 #include "network.h"
 #include "log.h"
@@ -1058,22 +1059,48 @@ static const struct fuse_lowlevel_ops zfs_fuse_ops = {
 	/* .bmap not applicable */
 };
 
-int32_t zfs_proc_invalidate_kernel(thread * t, invalidate_args * args)
+int32_t fs_invalidate_fh(zfs_fh * fh)
 {
-	fuse_ino_t ino;
+	if (!mounted)
+		RETURN_INT(ZFS_COULD_NOT_CONNECT);
+
+	fuse_ino_t ino = fh_get_inode(fh);
+	if (ino != 0)
+	{
+		(void)fuse_kernel_invalidate_inode(fuse_ch, ino);
+	}
+
+	RETURN_INT(ZFS_OK);
+}
+
+int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p)
+{
+	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
+	zfs_fh fh = dentry->fh->local_fh;
+	release_dentry(dentry);
 
 	if (!mounted)
 	{
-		t->retval = ZFS_COULD_NOT_CONNECT;
-		goto err;
+		RETURN_INT(ZFS_COULD_NOT_CONNECT);
 	}
-	ino = fh_get_inode(&args->fh);
-	if (ino != 0)
-		(void)fuse_kernel_invalidate_inode(fuse_ch, ino);
-	t->retval = ZFS_OK;
-	/* Fall through */
-  err:
-	return t->retval;
+
+        if (volume_root_p)
+        {    
+                volume vol; 
+
+                zfsd_mutex_lock(&fh_mutex);
+                vol = volume_lookup(fh.vid);
+                if (vol)
+                {    
+                        zfsd_mutex_lock(&vol->root_vd->mutex);
+                        fh = vol->root_vd->fh;
+                        zfsd_mutex_unlock(&vol->root_vd->mutex);
+                        zfsd_mutex_unlock(&vol->mutex);
+                }    
+                zfsd_mutex_unlock(&fh_mutex);
+        } 
+
+	RETURN_INT(fs_invalidate_fh(&fh));
 }
 
  /* Thread glue */

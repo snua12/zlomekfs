@@ -39,6 +39,7 @@
 #include "zfs_config.h"
 #include "zfs-prot.h"
 #include "dokan_iface.h"
+#include "fs-iface.h"
 
 bool mounted = false;
 
@@ -1321,5 +1322,20 @@ void kernel_unmount(void)
 void kernel_cleanup(void)
 {
 	// nothing to do there
+}
+
+int32_t fs_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
+{
+	if (!mounted)
+		RETURN_INT(ZFS_COULD_NOT_CONNECT);
+
+	RETURN_INT(ZFS_OK);
+}
+
+int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p)
+{
+	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
+	release_dentry(dentry);
+	RETURN_INT(fs_invalidate_fh(&fh));
 }
 

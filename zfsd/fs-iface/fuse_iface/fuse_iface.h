@@ -34,13 +34,8 @@ extern struct fuse_args main_args;
 /* ! Pool of kernel threads (threads communicating with kernel).  */
 extern thread_pool kernel_pool;
 
-/* ! Is ZFS mounted? */
-extern bool mounted;
-
 extern void kernel_unmount(void);
 extern bool kernel_start(void);
 extern void kernel_cleanup(void);
-
-extern int32_t zfs_proc_invalidate_kernel(thread * t, invalidate_args * args);
 
 #endif

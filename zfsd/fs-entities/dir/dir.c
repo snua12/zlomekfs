@@ -608,7 +608,7 @@ recursive_unlink_itself(metadata * meta, string * path, string * name,
 										dentry->parent == NULL);
 			zfsd_mutex_unlock(&fh_mutex);
 			if (!dentry)
-				local_invalidate_fh(&fh);
+				fs_invalidate_fh(&fh);
 		}
 	}
 
@@ -1946,7 +1946,7 @@ int32_t zfs_setattr(fattr * fa, zfs_fh * fh, sattr * sa, bool should_version)
 		}
 
 		if (!request_from_this_node())
-			local_invalidate_fh(fh);
+			fs_invalidate_fh(fh);
 
 		if (INTERNAL_FH_HAS_LOCAL_PATH(dentry->fh))
 		{
@@ -7013,90 +7013,6 @@ int32_t zfs_reintegrate_ver(zfs_fh * fh, uint64_t version_inc)
 
 	RETURN_INT(r);
 }
-
-/* ! Invalidate file handle DENTRY in kernel dentry cache.  */
-
-#ifndef HAVE_FUSE
-int32_t local_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
-{
-	RETURN_INT(ZFS_COULD_NOT_CONNECT);
-}
-#else
-int32_t local_invalidate_fh(zfs_fh * fh)
-{
-	invalidate_args args;
-	thread *t;
-	int32_t r;
-
-	TRACE("");
-
-	if (!mounted)
-		RETURN_INT(ZFS_COULD_NOT_CONNECT);
-
-	args.fh = *fh;
-
-	t = (thread *) pthread_getspecific(thread_data_key);
-	if (t == NULL)
-		RETURN_INT(ESRCH);
-
-	r = zfs_proc_invalidate_kernel(t, &args);
-
-	RETURN_INT(r);
-}
-#endif
-
-/* ! Invalidate dentry DENTRY in kernel dentry cache.  */
-
-#ifndef HAVE_FUSE
-int32_t local_invalidate(internal_dentry dentry, ATTRIBUTE_UNUSED bool volume_root_p)
-{
-	release_dentry(dentry);
-	RETURN_INT(ZFS_COULD_NOT_CONNECT);
-}
-#else
-int32_t local_invalidate(internal_dentry dentry, bool volume_root_p)
-{
-	invalidate_args args;
-	thread *t;
-	int32_t r;
-
-	TRACE("");
-	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
-
-	if (!mounted)
-	{
-		release_dentry(dentry);
-		RETURN_INT(ZFS_COULD_NOT_CONNECT);
-	}
-
-	args.fh = dentry->fh->local_fh;
-	release_dentry(dentry);
-
-	if (volume_root_p)
-	{
-		volume vol;
-
-		zfsd_mutex_lock(&fh_mutex);
-		vol = volume_lookup(args.fh.vid);
-		if (vol)
-		{
-			zfsd_mutex_lock(&vol->root_vd->mutex);
-			args.fh = vol->root_vd->fh;
-			zfsd_mutex_unlock(&vol->root_vd->mutex);
-			zfsd_mutex_unlock(&vol->mutex);
-		}
-		zfsd_mutex_unlock(&fh_mutex);
-	}
-
-	t = (thread *) pthread_getspecific(thread_data_key);
-	if (t == NULL)
-		RETURN_INT(ESRCH);
-
-	r = zfs_proc_invalidate_kernel(t, &args);
-
-	RETURN_INT(r);
-}
-#endif
 
 /* ! Refresh file handle FH.  */
 
