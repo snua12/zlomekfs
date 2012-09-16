@@ -1,4 +1,11 @@
-/*! \file \brief filesystem interface.  */
+/*! 
+ *  \file fs-iface.h
+ *  \brief Interface between filesystem and OS.
+ *  \author Ales Snuparek
+ *
+ *  Filesystem interface for zlomekFS must implements theese functions:
+ *  fs_start(), fs_unmount(), fs_cleanup(), fs_invalidate_fh() and fs_invalidate_dentry().
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

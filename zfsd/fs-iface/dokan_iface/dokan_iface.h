@@ -1,4 +1,12 @@
-/*! \file \brief Functions for threads communicating with Dokan library  */
+/*!
+ *  \file dokan_iface.h 
+ *  \brief Interface between zloemkFS and Dokan library
+ *  \author Ales Snuparek
+ *
+ *  This library implements interface between zlomekFS and Dokan library.
+ *  Dokan library interface is based on win32api. ZlomekFS file api is
+ *  based on POSIX.
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

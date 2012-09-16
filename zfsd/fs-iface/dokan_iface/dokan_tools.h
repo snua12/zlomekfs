@@ -63,6 +63,8 @@ void filetime_to_zfstime(zfs_time * ztime, CONST FILETIME* ftime);
 
 void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filename, int windows_filename_len);
 
+void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename);
+
 #ifdef __cplusplus
 }
 #endif 

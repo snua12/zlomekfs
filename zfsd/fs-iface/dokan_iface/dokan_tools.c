@@ -380,3 +380,37 @@ void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filenam
 
 }
 
+void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename);
+{
+	if (strlen(unix_filename) < 14)
+	{
+		unix_to_windows_filename(entry->name.str, windows_filename, 13);
+		return;
+	}
+
+	//TODO: cAlternateFileName for longer filenames
+}
+
+// for debugging purpose
+#if 0
+static const char * creation_disposition_to_str(DWORD creation_disposition)
+{
+	if (creation_disposition == CREATE_NEW)
+		return "CREATE_NEW";
+	if (creation_disposition == OPEN_ALWAYS)
+		return "OPEN_ALWAYS";
+
+	if (creation_disposition == CREATE_ALWAYS)
+		return "CREATE_ALWAYS";
+
+	if (creation_disposition == OPEN_EXISTING)
+		return "OPEN_EXISTING";
+
+	if (creation_disposition == TRUNCATE_EXISTING)
+		return "TRUNCATE_EXISTING";
+
+	return "";
+}
+#endif
+
+

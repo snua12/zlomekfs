@@ -1,8 +1,9 @@
 /** @file mainpage.h
-* @brief Description of zlomekFS
+* @brief Description of zlomekFS project
 *
 */ 
-/** @mainpage ZlomekFS
+/** 
+*  @mainpage ZlomekFS
 *
 * @authors Josef Zlomek
 *

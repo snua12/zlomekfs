@@ -1,4 +1,12 @@
-/*! \file \brief Functions for threads communicating with Dokan library  */
+/*!
+ *  \file dokan_iface.c 
+ *  \brief Interface implementation between zloemkFS and Dokan library
+ *  \author Ales Snuparek
+ *
+ *  This library implements interface between zlomekFS and Dokan library.
+ *  Dokan library interface is based on win32api. ZlomekFS file api is
+ *  based on POSIX.
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -53,7 +61,11 @@ DOKAN_OPTIONS zfs_dokan_options =
 	.MountPoint = L"z:"
 };
 
-/*zlomek fs functions needs this thread specific things */
+/*! \brief sets thread specific values required by other parts of zlomekFS code
+ * 
+ *  ZlomekFS code requires some TLS variables (thread ctx and lock_info). 
+ *  This macro initialize them. 
+ */
 #define DOKAN_SET_THREAD_SPECIFIC \
 	thread ctx = {.mutex=ZFS_MUTEX_INITIALIZER, .sem = ZFS_SEMAPHORE_INITIALIZER(0)}; \
 	ctx.from_sid = this_node->id; \
@@ -64,6 +76,10 @@ DOKAN_OPTIONS zfs_dokan_options =
 	lock_info li[MAX_LOCKED_FILE_HANDLES]; \
 	set_lock_info(li);
 
+/*! \brief cleanup thread specific values required by other parts of zlomekFS code
+ *
+ * This macro cleanup TLS variables (thread ctx nad lock_info).
+ */
 #define DOKAN_CLEAN_THREAD_SPECIFIC \
 	dc_destroy(ctx.dc_call);
 
@@ -127,28 +143,6 @@ static int zfs_truncate_file(zfs_fh * fh)
 	// truncate file
 	return zfs_set_end_of_file(fh, 0);
 }
-
-// for debugging purpose
-#if 0
-static const char * creation_disposition_to_str(DWORD creation_disposition)
-{
-	if (creation_disposition == CREATE_NEW)
-		return "CREATE_NEW";
-	if (creation_disposition == OPEN_ALWAYS)
-		return "OPEN_ALWAYS";
-
-	if (creation_disposition == CREATE_ALWAYS)
-		return "CREATE_ALWAYS";
-
-	if (creation_disposition == OPEN_EXISTING)
-		return "OPEN_EXISTING";
-
-	if (creation_disposition == TRUNCATE_EXISTING)
-		return "TRUNCATE_EXISTING";
-
-	return "";
-}
-#endif
 
 // CreateFile
 //   If file is a directory, CreateFile (not OpenDirectory) may be called.
@@ -681,14 +675,7 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 			 WIN32_FIND_DATAW find_data;
 			 fattr_to_find_dataw(&find_data, &lookup_res.attr);
 			 unix_to_windows_filename(entry->name.str, find_data.cFileName, MAX_PATH);
-			 if (strlen(entry->name.str) < 14)
-			 {
-				 unix_to_windows_filename(entry->name.str, find_data.cAlternateFileName, 13);
-			 }
-			 else
-			 {
-				 //TODO: cAlternateFileName
-			 }
+			 unix_to_alternative_filename(dir_entry, find_data.cFileName);
 
 			 int is_full = fill_data(&find_data, info);
 			 if (is_full == 1)
@@ -720,11 +707,6 @@ static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
 	ATTRIBUTE_UNUSED DWORD file_attributes,   // FileAttributes
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-
-	//TODO: store attributes to zfs metadata
-	//FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
-	//FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM, FILE_ATTRIBUTE_SYSTEM
-
 	return -ERROR_SUCCESS;
 }
 
@@ -1217,7 +1199,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_security (
 	return rv;
 }
 
-/* dokan filesystem interface */
+/*! dokan filesystem interface */
 DOKAN_OPERATIONS zfs_dokan_operations =
 {
 	.CreateFile = zfs_dokan_create_file,
@@ -1247,6 +1229,12 @@ DOKAN_OPERATIONS zfs_dokan_operations =
 	.Unmount = zfs_dokan_unmount
 };
 
+/*! \brief dokan-iface main thread implementation
+ *
+ *  Setup thread enviroment, launch DokanMain form Dokan library,
+ *  log return value and exit.
+ *  \returns NULL
+ */
 static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 {
 	thread_disable_signals();
@@ -1274,25 +1262,25 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
                 message(LOG_NOTICE, FACILITY_ZFSD, "%s:Success\n", __func__);
                 break;
         case DOKAN_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Error\n", __func__);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Error\n", __func__);
                 break;
         case DOKAN_DRIVE_LETTER_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Bad Drive letter\n", __func__);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Bad Drive letter\n", __func__);
                 break;
         case DOKAN_DRIVER_INSTALL_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Can't install driver\n", __func__);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Can't install driver\n", __func__);
                 break;
         case DOKAN_START_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Driver something wrong\n", __func__);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Driver something wrong\n", __func__);
                 break;
         case DOKAN_MOUNT_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Can't assign a drive letter\n", __func__);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Can't assign a drive letter\n", __func__);
                 break;
         case DOKAN_MOUNT_POINT_ERROR:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Mount point error\n", __func__);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Mount point error\n", __func__);
                 break;
         default:
-                message(LOG_NOTICE, FACILITY_ZFSD, "%s:Unknown error: %d\n", __func__, status);
+                message(LOG_ERROR, FACILITY_ZFSD, "%s:Unknown error: %d\n", __func__, status);
                 break;
         }
 
@@ -1305,12 +1293,22 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 	return NULL;
 }
 
+/*! \brief export filesystem to OS
+ *
+ *  Part of fs-iface implementation, export filesystem to OS.
+ *  \return 1 on success
+ *  \return 0 in case of error
+ */
 bool fs_start(void)
 {
 	int rv = pthread_create(&dokan_thread, NULL, dokan_main, NULL);
 	return (rv != -1);
 }
 
+/*! \brief disconnect filesystem from exported volumes
+ *
+ *  Part of fs-iface implementation, disconnect filesystem from exported volumes.
+ */
 void fs_unmount(void)
 {
 	if (mounted)
@@ -1319,11 +1317,19 @@ void fs_unmount(void)
 	}
 }
 
+/*! \brief cleanup dokan-iface internal structures
+ *
+ *  Part of fs-iface implementation, cleanup internal data structures in dokan-iface.
+ */
 void fs_cleanup(void)
 {
 	// nothing to do there
 }
 
+/*! \brief remove fh from kernel dentry cache
+ *
+ *  Part of fs-iface implementation, invalidate fh in kernel dentry cache, in case of dokan-iface do nothing.
+ */
 int32_t fs_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
 {
 	if (!mounted)
@@ -1332,6 +1338,10 @@ int32_t fs_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
 	RETURN_INT(ZFS_OK);
 }
 
+/*! \brief invalidate kernel dentry cache 
+ *
+ *  Part of fs-iface implementation, invalidate kernel dentry cache, in case of dokan-iface do nothing. 
+ */
 int32_t fs_invalidate_dentry(ATTRIBUTE_UNUSED internal_dentry dentry, ATTRIBUTE_UNUSED bool volume_root_p)
 {
 	CHECK_MUTEX_LOCKED(&dentry->fh->mutex);
