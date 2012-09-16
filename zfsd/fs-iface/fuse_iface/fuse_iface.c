@@ -40,7 +40,7 @@
 #include "data-coding.h"
 #include "dir.h"
 #include "file.h"
-#include "kernel.h"
+#include "fuse_iface.h"
 #include "network.h"
 #include "log.h"
 #include "node.h"

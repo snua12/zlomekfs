@@ -2,7 +2,7 @@
 #
 # This file is part of ZFS build system.
 
-add_library(fuse_iface ${BUILDTYPE} kernel.c)
+add_library(fuse_iface ${BUILDTYPE} fuse_iface.c)
 
 target_link_libraries(fuse_iface threading protocol ${FUSE_LIBRARIES})
 

@@ -25,7 +25,7 @@
 
 #ifdef ENABLE_FS_INTERFACE
 #ifdef HAVE_FUSE
-#include "../fuse_iface/kernel.h"
+#include "../fuse_iface/fuse_iface.h"
 #else
 #ifdef HAVE_DOKAN
 #include "../dokan_iface/dokan_iface.h"
