@@ -1,4 +1,7 @@
-/*! \file \brief File tests*/
+/*! \file win32api_test/file_tests.c
+ *  \brief File tests
+ *  \author Ales Snuparek
+ */
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -25,8 +28,12 @@
 #include "filename_generator.h"
 #include "syscall_collector.h"
 
+/*! \brief test patter which is written to test file */
 #define TEST_PATTERN "TEST STRING 123456789\n"
 
+/*! \brief writes pattern to file
+ *  \param h opened file descriptor
+ */
 static void write_test_pattern(HANDLE h)
 {
 
@@ -42,6 +49,9 @@ static void write_test_pattern(HANDLE h)
 	}
 }
 
+/*! \brief tests some win32 api operations in selected directory
+ *  \param path directory where is test performed
+ */
 void test_file_op(char * path)
 {
 	char local_path[MAX_PATH + 1];
@@ -151,6 +161,9 @@ void test_file_op(char * path)
 	CloseHandle(h);
 }
 
+/*! \brief cleanup after file_op test
+ *  \param path directory where is test performed
+ */
 void cleanup_file_op(char * path)
 {
 	char local_path[MAX_PATH + 1];
@@ -166,6 +179,9 @@ void cleanup_file_op(char * path)
 	}
 }
 
+/*! \brief creates the test file
+ *  \param path name of the test file
+ */
 void create_test_file(char * path)
 {
 	collect(SYSCALL_OP_OPEN, SYSCALL_STATE_BEGIN);
@@ -189,7 +205,10 @@ void create_test_file(char * path)
 	collect(SYSCALL_OP_CLOSE, SYSCALL_STATE_END);
 }
 
-
+/*! \brief creates count of test files in a directory
+ *  \param path direcotry where are test files created
+ *  \param count how much of test files is created
+ */
 void generate_file_content(char * path, int count)
 {
 	char local_path[MAX_PATH + 1];
@@ -204,7 +223,10 @@ void generate_file_content(char * path, int count)
 	}
 }
 
-
+/*! \brief remove count of test files from a directory
+ *  \param path direcotry where are test files created
+ *  \param count how much of test files is created
+ */
 void cleanup_file_content(char * path, int count)
 {
 	char local_path[MAX_PATH + 1];
@@ -225,3 +247,4 @@ void cleanup_file_content(char * path, int count)
 		}
 	}
 }
+

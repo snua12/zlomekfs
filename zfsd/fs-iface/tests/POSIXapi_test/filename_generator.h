@@ -1,4 +1,7 @@
-/*! \file \brief Random filename generator */
+/*! \file POSIXapi_test/filename_generator.h
+ *  \brief Random filename generator
+ *  \author Ales Snuparek
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 

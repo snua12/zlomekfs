@@ -1,4 +1,14 @@
-/*! \file \brief File tests for POSIX API*/
+/*! \file POSIXapi_test/POSIXapi_test.c
+ *  \brief File tests for POSIX API
+ *  \author Ales Snuparek
+ *
+ *
+ * This test creates a "searching in depth" tree of directories that on
+ * the leaf level include files. Then remove asresarovou structure.
+ * For the following operations: open, read, write, close mkdir and
+ * rmdir is measured by the mean duration of these operations.
+ * This test uses posix API.
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -28,18 +38,27 @@
 #include "dir_tests.h"
 #include "syscall_collector.h"
 
-
+/*! \brief Deep of tree */
 #define DIR_COUNT 5
+/*! \brief Number of directories in each directory. */
 #define DIR_DEEP 3
 
+
+/**
+ * \brief       main entry
+ * \param       command line argument
+ * \return      error code
+ */
 int main(int argc, char * argv[])
 {
 	if (argc == 1)
 	{
 		printf("Usage: %s [test_dir] ... [test_dir]\n", argv[0]);
+		return EXIT_FAILURE;
 	}
 
 	int i;
+	// for every directory
 	for (i = 1; i < argc; ++i)
 	{
 		char test_path[PATH_MAX];
@@ -53,11 +72,17 @@ int main(int argc, char * argv[])
 
 		printf("test_path is \"%s\"\n", test_path);
 		
+		// init performance collector
 		collector_init();
+		// init filename generator
 		init_filename_generator();
+		// generate directory tree
 		generate_directory_content(test_path, DIR_COUNT, DIR_DEEP);
+		// init filename generator
 		init_filename_generator();
+		// destroy directory tree
 		cleanup_directory_content(test_path, DIR_COUNT, DIR_DEEP);
+		// print performance
 		collector_print();
 	}
 

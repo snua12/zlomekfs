@@ -1,4 +1,7 @@
-/*! \file \brief Directory tests*/
+/*! \file win32api_test/dir_tests.c  
+ *  \brief Directory tests
+ *  \author Ales Snuparek
+ */
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -28,9 +31,14 @@
 
 #include "dir_tests.h"
 
+//! name of test test file
 #define TEST_FILE_1 "a.txt"
+//! name of test test file
 #define TEST_FILE_2 "b.txt"
 
+/*! \brief test file move in selected directory
+ *  \param path directory where is test performed
+ */
 void test_move_file(const char * path)
 {
 	char path1[MAX_PATH];
@@ -62,6 +70,9 @@ void test_move_file(const char * path)
 
 }
 
+/*! \brief cleanup after move_file test
+ *  \param path directory where is test performed
+ */
 void cleanup_move_file(const char * path)
 {
 	return ;
@@ -78,6 +89,11 @@ void cleanup_move_file(const char * path)
 
 }
 
+/*! \brief create tree with directories
+ *  \param path directory where is test performed
+ *  \param count number of directories
+ *  \deep tree deep
+ */
 void generate_directory_content(char * path, int count, int deep)
 {
 	char local_path[MAX_PATH + 1];
@@ -116,6 +132,11 @@ void generate_directory_content(char * path, int count, int deep)
 	}
 }
 
+/*! \brief cleanup after directory tree test
+ *  \param path directory where is test performed
+ *  \param count number of directories
+ *  \deep tree deep
+ */
 void cleanup_directory_content(char * path, int count, int deep)
 {
 

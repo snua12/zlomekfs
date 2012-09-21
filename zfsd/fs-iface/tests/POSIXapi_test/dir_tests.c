@@ -1,4 +1,7 @@
-/*! \file \brief Directory tests*/
+/*! \file POSIXapi_test/dir_tests.c
+ *  \brief Directory tests
+ *  \author Ales Snuparek
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -34,12 +37,13 @@
 #include <sys/cygwin.h>
 #endif
 
-
 #include "dir_tests.h"
 
-#define TEST_FILE_1 "a.txt"
-#define TEST_FILE_2 "b.txt"
-
+/*! \brief create tree with directories
+ *  \param path directory where is test performed
+ *  \param count number of directories
+ *  \deep tree deep
+ */
 void generate_directory_content(char * path, int count, int deep)
 {
 	char local_path[PATH_MAX + 1];
@@ -78,6 +82,11 @@ void generate_directory_content(char * path, int count, int deep)
 	}
 }
 
+/*! \brief cleanup after directory tree test
+ *  \param path directory where is test performed
+ *  \param count number of directories
+ *  \deep tree deep
+ */
 void cleanup_directory_content(char * path, int count, int deep)
 {
 

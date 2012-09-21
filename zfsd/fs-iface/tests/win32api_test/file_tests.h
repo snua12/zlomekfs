@@ -1,4 +1,8 @@
-/*! \file \brief File tests*/
+/*! \file win32api_test/file_tests.h
+ *  \brief File tests
+ *  \author Ales Snuparek
+ */
+
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -25,14 +29,31 @@ extern "C"
 {
 #endif
 
+/*! \brief tests some win32 api operations in selected directory
+ *  \param path directory where is test performed
+ */
 void test_file_op(char * path);
 
+/*! \brief cleanup after file_op test
+ *  \param path directory where is test performed
+ */
 void cleanup_file_op(char * path);
 
+/*! \brief creates the test file
+ *  \param path name of the test file
+ */
 void create_test_file(char * path);
 
+/*! \brief creates count of test files in a directory
+ *  \param path direcotry where are test files created
+ *  \param count how much of test files is created
+ */
 void generate_file_content(char * path, int count);
 
+/*! \brief remove count of test files from a directory
+ *  \param path direcotry where are test files created
+ *  \param count how much of test files is created
+ */
 void cleanup_file_content(char * path, int count);
 
 #ifdef __cplusplus

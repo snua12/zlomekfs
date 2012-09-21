@@ -1,4 +1,9 @@
-/*! \file \brief Directory tests*/
+/*! \file POSIXapi_test/dir_tests.h
+ *  \brief Directory tests
+ *  \author Ales Snuparek
+ *
+ * This file contains some directory tests
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -25,12 +30,10 @@ extern "C"
 {
 #endif
 
-void test_move_file(const char * path);
-
-void cleanup_move_file(const char * path);
-
+/*! \brief create tree with directories */
 void generate_directory_content(char * path, int count, int deep);
 
+/*! \brief cleanup after directory tree test */
 void cleanup_directory_content(char * path, int count, int deep);
 
 #ifdef __cplusplus

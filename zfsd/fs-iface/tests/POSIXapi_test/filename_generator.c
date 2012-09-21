@@ -1,4 +1,7 @@
-/*! \file \brief Random walk generator*/
+/*! \file POSIXapi_test/filename_generator.c
+ *  \brief Random walk generator for directory test
+ *  \author Ales Snuparek
+ */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
 
@@ -22,12 +25,16 @@
 #include <stdlib.h>
 #include "filename_generator.h"
 
+/*! \brief initializes random generator */
 void init_filename_generator(void)
 {
 	// initialize random generator to fixed seed
 	srandom(1);
 }
 
+/*! \brief get next filename
+ *  \param name buffer where is random name placed, bust be at least 5 bytes long
+ */
 void get_filename(char name[])
 {
 	int i;
@@ -44,5 +51,4 @@ void get_filename(char name[])
 
 	name[4] = 0;
 }
-
 

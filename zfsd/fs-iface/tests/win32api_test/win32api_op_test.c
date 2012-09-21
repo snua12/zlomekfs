@@ -1,5 +1,5 @@
-/*! \file syscall_collector/syscall_collector.h
- *  \brief Collect statistic for some file syscalls
+/*! \file win32api_test/win32api_op_test.c
+ *  \brief File tests for win32api (test some filesystem operations)
  *  \author Ales Snuparek
  *
  *
@@ -7,7 +7,7 @@
  * the leaf level include files. Then remove asresarovou structure.
  * For the following operations: open, read, write, close mkdir and
  * rmdir is measured by the mean duration of these operations.
- * This test uses posix API.
+ * This test uses win32api.
  */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
@@ -28,45 +28,48 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef SYSCALL_COLLECTOR_H
-#define SYSCALL_COLLECTOR_H
-#ifdef __cplusplus
-extern "C"
+#include <stdio.h>
+#include <stdlib.h>
+#include <Windows.h>
+#include "file_tests.h"
+#include "filename_generator.h"
+#include "dir_tests.h"
+
+/**
+ * \brief       main entry
+ * \param       command line argument
+ * \return      error code
+ */
+int main(int argc, char * argv[])
 {
-#endif
+	if (argc == 1)
+	{
+		printf("Usage: %s [test_dir] ... [test_dir]\n", argv[0]);
+	}
 
-/*! \brief specifies if syscall is start or syscall is terminated */
-typedef enum syscall_state_def
-{
-	SYSCALL_STATE_BEGIN,
-	SYSCALL_STATE_END
-} syscall_state;
+	int i;
+	// for every directory
+	for (i = 1; i < argc; ++i)
+	{
+		char test_path[MAX_PATH];
+		strncpy(test_path, argv[i], MAX_PATH);
+		size_t test_path_len = strlen(test_path);
+		if (test_path[test_path_len - 1] != '\\')
+		{
+			test_path[test_path_len + 1] = 0;
+			test_path[test_path_len] = '\\';
+		}
 
-/*! \brief represents each syscall */
-typedef enum syscall_op_def
-{
-	SYSCALL_OP_OPEN = 0,
-	SYSCALL_OP_CLOSE,
-	SYSCALL_OP_WRITE,
-	SYSCALL_OP_MKDIR,
-	SYSCALL_OP_RMDIR,
-	SYSCALL_OP_UNLINK,
-	SYSCALL_OP_MAX	
-} syscall_op;
+		printf("test_path is \"%s\"\n", test_path);
+		
+		test_move_file(test_path);
+		cleanup_move_file(test_path);
 
-/*! \brief initializes syscall collector internal structures */
-void collector_init();
+		init_filename_generator();
+		test_file_op(test_path);
+		init_filename_generator();
+		cleanup_file_op(test_path);
+	}
 
-/*! \brief print syscall collector results */
-void collector_print();
-
-/*! \brief call before and after syscall inorder to collect syscall time consumption */
-void collect(syscall_op op, syscall_state state);
-
-
-#ifdef __cplusplus
+	return EXIT_SUCCESS;
 }
-#endif
-
-#endif
-

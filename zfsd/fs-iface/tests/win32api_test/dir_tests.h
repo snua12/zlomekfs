@@ -1,4 +1,9 @@
-/*! \file \brief Directory tests*/
+/*! \file win32api_test/dir_tests.h
+ *  \brief Directory tests
+ *  \author Ales Snuparek
+ *
+ * This file contains some directory tests
+ */
 
 /* Copyright (C) 2003, 2004, 2012 Josef Zlomek
 
@@ -25,12 +30,16 @@ extern "C"
 {
 #endif
 
+/*! \brief test  file move */
 void test_move_file(const char * path);
 
+/*! \brief cleanup after move_file */
 void cleanup_move_file(const char * path);
 
+/*! \brief create tree with directories */
 void generate_directory_content(char * path, int count, int deep);
 
+/*! \brief cleanup after directory tree test */
 void cleanup_directory_content(char * path, int count, int deep);
 
 #ifdef __cplusplus
