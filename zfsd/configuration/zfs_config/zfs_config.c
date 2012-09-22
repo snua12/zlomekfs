@@ -122,7 +122,6 @@ bool set_default_uid(const char *name)
 	if (!pwd)
 		return false;
 
-	// TODO: ugly global variable
 	zfs_config.default_node_uid = pwd->pw_uid;
 	return true;
 }

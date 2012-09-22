@@ -58,8 +58,6 @@ pthread_mutex_t reread_config_mutex = ZFS_MUTEX_INITIALIZER;
 
 void initialize_config_c(void)
 {
-//	semaphore_init(&zfs_config.config_sem, 0);
-
 	reread_config_pool
 		= create_alloc_pool("reread_config_pool",
 							sizeof(struct reread_config_request_def), 1022,
@@ -80,7 +78,6 @@ void cleanup_config_c(void)
 #endif
 	free_alloc_pool(reread_config_pool);
 	zfsd_mutex_unlock(&reread_config_mutex);
-	//semaphore_destroy(&zfs_config.config_sem);
 
 	xfreestring(&zfs_config.this_node.node_name);
 
