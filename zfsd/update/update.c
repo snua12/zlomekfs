@@ -3268,18 +3268,12 @@ reintegrate_dir(volume vol, internal_dentry dir, zfs_fh * fh, fattr * attr)
 			{
 				if (ZFS_FH_EQ(meta.master_fh, res.file)	/*! c-c */
 					/*! a-a */
-					&& (!METADATA_ATTR_CHANGE_P(meta, local_res.attr) || !METADATA_ATTR_CHANGE_P(meta, res.attr)) && (local_res.attr.type != FT_REG	/*! 
-																																					   m-m 
-																																					 */
-																													  ||
-																													  local_res.attr.version
-																													  ==
-																													  meta.master_version
-																													  ||
-																													  res.attr.version
-																													  ==
-																													  meta.master_version))
+					&& (!METADATA_ATTR_CHANGE_P(meta, local_res.attr)
+					|| !METADATA_ATTR_CHANGE_P(meta, res.attr)) && (local_res.attr.type != FT_REG	/*! m-m */
+					|| local_res.attr.version == meta.master_version || res.attr.version == meta.master_version))
+				{
 					cancel = true;
+				}
 			}
 			else
 				cancel = true;

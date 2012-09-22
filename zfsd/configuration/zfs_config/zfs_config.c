@@ -1,6 +1,11 @@
-/*! \file \brief Configuration.  */
+/**
+ *  \file zfs_config.c
+ * 
+ *  \brief This file contains structure which keep zlomekFS configuration
+ *  \author Ales Snuparek 
+ */
 
-/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
 
    This file is part of ZFS.
 
@@ -27,6 +32,7 @@
 #include "zfs-prot.h"
 
 
+/*! \brief structure with global zlomekFS configuration */
 zfs_configuration zfs_config = 
 {
 	.config_reader_data = {.mutex = ZFS_MUTEX_INITIALIZER},
@@ -113,7 +119,6 @@ string * get_this_node_name(void)
 }
 
 /*! Set default node UID to UID of user NAME.  Return true on success.  */
-
 bool set_default_uid(const char *name)
 {
 	struct passwd *pwd;
@@ -125,8 +130,6 @@ bool set_default_uid(const char *name)
 	zfs_config.default_node_uid = pwd->pw_uid;
 	return true;
 }
-
-/*! Set default node GID to GID of group NAME.  Return true on success.  */
 
 bool set_default_gid(const char *name)
 {
@@ -140,8 +143,6 @@ bool set_default_gid(const char *name)
 	return true;
 }
 
-/*! Set default local user/group.  */
-
 void set_default_uid_gid(void)
 {
 	set_default_uid("nobody");
@@ -154,17 +155,20 @@ uint32_t get_default_node_uid(void)
 	return zfs_config.default_node_uid;
 }
 
+/*! \brief returns default guid for local node */
 uint32_t get_default_node_gid(void)
 {
 	return zfs_config.default_node_gid;
 }
 
 #ifdef HAVE_DOKAN
+/*! \brief return default file mode */
 uint32_t get_default_file_mode(void)
 {
 	return zfs_config.dokan.file_mode;
 }
 
+/*! \brief return default directory mode */
 uint32_t get_default_directory_mode(void)
 {
 	return zfs_config.dokan.directory_mode;

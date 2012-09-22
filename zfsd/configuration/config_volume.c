@@ -1,3 +1,30 @@
+/**
+ *  \file config_volume.c
+ * 
+ *  \brief Implements fuction for reading volume config
+ *  \author Ales Snuparek (refactoring and partial rewrite and libconfig integration)
+ *  \author Josef Zlomek (initial experimental implementation)
+ *
+ */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
 #include "config_volume.h"
 #include "configuration.h"
 #include "config_iface.h"
@@ -8,18 +35,9 @@
 #include "shared_config.h"
 #include "pthread-wrapper.h"
 
-/*! \brief Data for process_line_volume_hierarchy.  */
-typedef struct volume_hierarchy_data_def
-{
-	varray hierarchy;
-	uint32_t vid;
-	uint32_t depth;
-	string *name;
-	string *mountpoint;
-	char *master_name;
-} volume_hierarchy_data;
-
-/// add slaves nodes to volume
+/*! \brief add slaves nodes to volume
+ *  \return true on success
+ *  \return false on fail*/
 static bool_t volume_set_slave_info(volume vol, varray * slave_names)
 {
 	unsigned int i;
@@ -49,7 +67,9 @@ static bool_t volume_set_slave_info(volume vol, varray * slave_names)
 	return true;
 }
 
-/// updates volume by array of volume_entry
+/*! \brief updates volume by array of volume_entry
+ *  \return true on success
+ *  \return false on fail*/
 static bool_t update_volumes(varray * volumes)
 {
 	zfsd_mutex_lock(&fh_mutex);
@@ -101,8 +121,9 @@ static bool_t update_volumes(varray * volumes)
 
 }
 
-/*! Read list of volumes from CONFIG_DIR/volume_list.  */
-
+/*! \brief Read list of volumes from CONFIG_DIR/volume_list.
+ *  \return true on success
+ *  \return false on fail*/
 bool read_volume_list(zfs_fh * config_dir)
 {
 	dir_op_res volume_list_res;

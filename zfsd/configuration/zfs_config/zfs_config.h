@@ -1,6 +1,11 @@
-/*! \file \brief Configuration.  */
+/**
+ *  \file zfs_config.h
+ * 
+ *  \brief This file contains structure which keep zlomekFS configuration
+ *  \author Ales Snuparek 
+ */
 
-/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
 
    This file is part of ZFS.
 
@@ -140,31 +145,44 @@ typedef struct zfs_configuration_def
 #endif
 } zfs_configuration;
 
+/*! \brief reference to global configuration structure */
 extern zfs_configuration zfs_config;
 
-
+/*! \brief set path to file with local configuration */
 void set_local_config_path(const char * path);
+
+/*! \brief returns path to file with local configuration */
 const char * get_local_config_path(void);
 
+/*! \brief sets zlomekFS mountpoint */
 void set_mountpoint(const char * path);
+
+/*! \brief returns zlomekFS mountpoint */
 const char * get_mountpoint(void);
 
-
+/*! \brief returns local node name */
 string * get_this_node_name(void);
 
+/*! \brief sets default uid and gid for local node */
 void set_default_uid_gid(void);
 
+/*! \brief sets default uid for local node */
 bool set_default_uid(const char *name);
 
+/*! \brief sets default guid for local node */
 bool set_default_gid(const char *name);
 
+/*! \brief returns default uid for local node */
 uint32_t get_default_node_uid(void);
 
+/*! \brief returns default guid for local node */
 uint32_t get_default_node_gid(void);
 
 #ifdef HAVE_DOKAN
+/*! \brief return default file mode */
 uint32_t get_default_file_mode(void);
 
+/*! \brief return default directory mode */
 uint32_t get_default_directory_mode(void);
 #endif
 

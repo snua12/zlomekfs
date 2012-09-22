@@ -1,3 +1,30 @@
+/**
+ *  \file cluster_config.c
+ * 
+ *  \brief Implements fuction for reading cluster config
+ *  \author Ales Snuparek (refactoring and partial rewrite)
+ *  \author Josef Zlomek (initial experimental implementation)
+ *
+ */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
 #include "system.h"
 #include <signal.h>
 #include <errno.h>
@@ -19,11 +46,10 @@
 #include "config_volume.h"
 #include "reread_config.h"
 
-/*! Has the config reader already terminated? */
+/*! \brief Has the config reader already terminated? */
 static pthread_barrier_t reading_cluster_config_barier;
 
-/*! Invalidate configuration.  */
-
+/*! \brief Invalidate configuration.  */
 static void invalidate_config(void)
 {
 	mark_all_nodes();
@@ -40,9 +66,9 @@ static void invalidate_config(void)
 }
 
 
-/*! Verify configuration, fix what can be fixed. Return false if there
-   remains something which can't be fixed.  */
-
+/*! \brief Verify configuration, fix what can be fixed.
+ *  \return false if there remains something which can't be fixed.
+ *  \return true if configuration is ok */
 static bool verify_config(void)
 {
 	if (this_node == NULL || this_node->marked)
@@ -63,7 +89,10 @@ static bool verify_config(void)
 	return true;
 }
 
-//TODO: varray is not good argument
+/*! \brief sends reread config request to child nodes
+ *  \param relative_path path to modified configuration path
+ *  \param from_sid from wich node 
+ *  \param v arrary of nodes which schould be notified*/
 static void send_reread_config_request_to_slaves(string * relative_path, uint32_t from_sid, varray v)
 {
 
@@ -110,7 +139,7 @@ static void send_reread_config_request_to_slaves(string * relative_path, uint32_
 	}
 }
 
-// reads request from config queue and process them
+/*! \brief reads request from config queue and process them */
 static void config_reader_loop(thread * t)
 {
 	string relative_path;
@@ -163,6 +192,7 @@ static void config_reader_loop(thread * t)
 	varray_destroy(&v);
 }
 
+/*! \brief cleanups reread config queue */
 static void cleanup_reread_config_queue(void)
 {
 	string relative_path;
@@ -173,8 +203,8 @@ static void cleanup_reread_config_queue(void)
 			xfreestring(&relative_path);
 }
 
-// reads initial shared config
-static bool read_shared_config()
+/*! \brief reads shared config for the first time */
+static bool read_shared_config(void)
 {
 	volume vol;
 	dir_op_res config_dir_res;
@@ -264,7 +294,7 @@ static bool read_shared_config()
 	return true;
 }
 
-/*! Thread for reading a configuration.  */
+/*! \brief config reader thread main. */
 static void *config_reader(void *data)
 {
 	thread *t = (thread *) data;
@@ -307,8 +337,10 @@ static void *config_reader(void *data)
 	return NULL;
 }
 
-/*! Read global configuration of the cluster from config volume.  */
-/*! Read configuration of the cluster - nodes, volumes, ... */
+/*! \brief Create thread for reading cluster config and wait until
+ *  thread will read shared cofnig for the first time
+ *  \return true on success
+ *  \return false on the fail*/
 static bool read_global_cluster_config(void)
 {
 	semaphore_init(&zfs_config.config_reader_data.sem, 0);
@@ -336,6 +368,9 @@ static bool read_global_cluster_config(void)
 	return get_thread_retval(&zfs_config.config_reader_data) == ZFS_OK;
 }
 
+/*! \brief initialize config_voulume connection and start cluster config readr thread
+ *  \return true on success
+ *  \return false on fail*/
 bool read_cluster_config(void)
 {
 	if (!init_config_volume())
@@ -353,3 +388,4 @@ bool read_cluster_config(void)
 
 	return true;
 }
+

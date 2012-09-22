@@ -1,3 +1,28 @@
+/**
+ *  \file local_config.c
+ * 
+ *  \brief Implements local config readers
+ *  \author Ales Snuparek 
+ */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
 #include "system.h"
 #include "local_config.h"
 #include "configuration.h"
@@ -8,6 +33,7 @@
 #include "thread.h"
 #include "metadata.h"
 
+/*! \brief log error from config reader */
 static void config_log_error(const config_t * config)
 {
 	message(LOG_EMERG, FACILITY_CONFIG,
@@ -16,6 +42,7 @@ static void config_log_error(const config_t * config)
 			config_error_text(config));
 }
 
+/*! brief read volume settings from local config */
 static bool create_volume_from_local_config(uint32_t id, uint64_t cache_size, const char * local_path, bool reread)
 {
 	volume vol = NULL;
@@ -411,6 +438,7 @@ int read_system_specific_config(config_t * config)
 	return CONFIG_TRUE;
 }
 
+/*! \brief read thread seetting from local config */
 static int read_thread_setting(config_setting_t * setting, thread_limit * limit)
 {
 	config_setting_t * config_max_total = config_setting_get_member(setting, "max_total");
@@ -487,6 +515,7 @@ int read_threads_config(config_t * config)
 }
 
 #ifdef ENABLE_VERSIONS
+/*! \brief read interval setting from local config */
 static int read_interval_setting(config_setting_t * setting_interval, int32_t * out_min, int32_t * out_max)
 {
 	config_setting_t * setting_min = config_setting_get_member(setting_interval, "min");
@@ -584,6 +613,7 @@ int read_versioning_config(config_t * config)
 #endif
 
 #ifdef HAVE_DOKAN
+/*! \brief read dokan config from local config */
 static int read_dokan_config(config_t * config)
 {
 	config_setting_t * dokan_setting = config_lookup(config, "dokan");

@@ -1,3 +1,30 @@
+/**
+ *  \file reread_config.c 
+ * 
+ *  \brief Implements fuction for reread cluster config.
+ *  \author Ales Snuparek (refactoring and partial rewrite and libconfig integration)
+ *  \author Josef Zlomek (initial experimental implementation)
+ *
+ */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
 #include "system.h"
 #include  <string.h>
 #include <libconfig.h>
@@ -11,20 +38,19 @@
 #include "user-group.h"
 #include "config_user_group.h"
 #include "thread.h"
-// TODO: don't share everything with configuration data
 #include "configuration.h"
-
-//just for testing
 #include "shared_config.h"
 #include "zfsio.h"
 
-/*! First and last element of the chain of requests for rereading
-   configuration.  */
+/*! \brief First of the chain of requests for rereading configuration. */
 static reread_config_request reread_config_first;
+
+/*! \brief Last of the chain of requests for rereading configuration. */
 static reread_config_request reread_config_last;
 
-/*! Read list of nodes from CONFIG_DIR/node_list.  */
-
+/*! \brief Read list of nodes from CONFIG_DIR/node_list.
+ *  \return true on success
+ *  \return false on fail*/
 bool read_node_list(zfs_fh * config_dir)
 {
 	dir_op_res node_list_res;
@@ -65,8 +91,9 @@ bool read_node_list(zfs_fh * config_dir)
 	return (rv == CONFIG_TRUE);
 }
 
-/*! Reread list of nodes.  */
-
+/*! \brief Reread list of nodes.
+ *  \return true on success
+ *  \return false on fail*/
 static bool reread_node_list(void)
 {
 	dir_op_res config_dir_res;
@@ -90,8 +117,9 @@ static bool reread_node_list(void)
 	return true;
 }
 
-/*! Reread list of volumes.  */
-
+/*! \brief Reread list of volumes.
+ *  \return true on success
+ *  \return false on fail*/
 static bool reread_volume_list(void)
 {
 	dir_op_res config_dir_res;
@@ -111,8 +139,9 @@ static bool reread_volume_list(void)
 	return true;
 }
 
-/*! Reread user mapping for node SID.  */
-
+/*! \brief Reread user mapping for node SID.
+ *  \return true on success
+ *  \return false on fail*/
 static bool reread_user_mapping(uint32_t sid)
 {
 	dir_op_res config_dir_res;
@@ -145,8 +174,9 @@ static bool reread_user_mapping(uint32_t sid)
 	return true;
 }
 
-/*! Reread list of users.  */
-
+/*! \brief Reread list of users.
+ *  \return true on success
+ *  \return false on fail*/
 static bool reread_user_list(void)
 {
 	dir_op_res config_dir_res;
@@ -168,8 +198,9 @@ static bool reread_user_list(void)
 	return true;
 }
 
-/*! Reread list of groups.  */
-
+/*! \brief Reread list of groups.
+ *  \return true on success
+ *  \return false on fail*/
 static bool reread_group_list(void)
 {
 	dir_op_res config_dir_res;
@@ -190,8 +221,9 @@ static bool reread_group_list(void)
 	return true;
 }
 
-/*! Reread group mapping for node SID.  */
-
+/*! \brief Reread group mapping for node SID.
+ *  \return true on success
+ *  \return false on fail*/
 static bool reread_group_mapping(uint32_t sid)
 {
 	dir_op_res config_dir_res;
@@ -231,8 +263,9 @@ static bool reread_group_mapping(uint32_t sid)
 	return true;
 }
 
-/*! Reread configuration file RELATIVE_PATH.  */
-
+/*! \brief Reread configuration file RELATIVE_PATH.
+ *  \return true on success
+ *  \return false on fail*/
 bool reread_config_file(string * relative_path)
 {
 	char *str = relative_path->str;
@@ -294,9 +327,10 @@ bool reread_config_file(string * relative_path)
 	return true;
 }
 
-/*! Reread local info about volumes. \param path Path where local
-   configuration is stored.  */
-
+/*! \brief Reread local info about volumes.
+ *  \param path Path where local configuration is stored.
+ *  \return true on success
+ *  \return false on fail*/
 bool reread_local_volume_info(const char * path)
 {
 	mark_all_volumes();
@@ -327,7 +361,9 @@ bool reread_local_volume_info(const char * path)
 	return true;
 }
 
-/*! Add request to reread config file DENTRY to queue.  */
+/*! \brief Add request to reread config file DENTRY to queue.
+ *  \return true on success
+ *  \return false on fail*/
 void add_reread_config_request_dentry(internal_dentry dentry)
 {
 	string relative_path;
@@ -345,8 +381,9 @@ void add_reread_config_request_dentry(internal_dentry dentry)
 }
 
 
-/*! Add a request to reread config into queue */
-
+/*! \brief Add a request to reread config into queue
+ *  \return true on success
+ *  \return false on fail*/
 void add_reread_config_request(string * relative_path, uint32_t from_sid)
 {
 	reread_config_request req;
@@ -372,8 +409,9 @@ void add_reread_config_request(string * relative_path, uint32_t from_sid)
 	semaphore_up(&zfs_config.config_sem, 1);
 }
 
-/*! Add request to reread config file PATH on volume VOL to queue.  */
-
+/*! \brief Add request to reread config file PATH on volume VOL to queue.
+ *  \return true on success
+ *  \return false on fail*/
 void add_reread_config_request_local_path(volume vol, string * path)
 {
 	string relative_path;
@@ -390,10 +428,12 @@ void add_reread_config_request_local_path(volume vol, string * path)
 	add_reread_config_request(&relative_path, t->from_sid);
 }
 
-/*! Get a request to reread config from queue and store the relative path of
-   the file to be reread to RELATIVE_PATH and the node ID which the request
-   came from to FROM_SID.  */
-
+/*! \brief Get a request to reread config from queue
+ *   and store the relative path of
+ *   the file to be reread to RELATIVE_PATH and the node ID which the request
+ *   came from to FROM_SID.
+ *  \return true on success
+ *  \return false on fail*/
 bool get_reread_config_request(string * relative_path, uint32_t * from_sid)
 {
 	reread_config_request req;

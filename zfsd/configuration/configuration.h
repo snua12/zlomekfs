@@ -1,6 +1,14 @@
-/*! \file \brief Configuration.  */
+/**
+ *  \file configuration.h
+ * 
+ *  \brief Implements function for intializing configuratin module
+ *  \author Ales Snuparek (refactoring and partial rewrite and libconfig integration)
+ *  \author Josef Zlomek (initial experimental implementation)
+ *
+ */
 
-/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+/* Copyright (C) 2003, 2004, 2010, 2012 Josef Zlomek, Rastislav Wartiak,
+   Ales Snuparek
 
    This file is part of ZFS.
 
@@ -33,10 +41,10 @@
 #include "zfs_config.h"
 #include "cluster_config.h"
 
-/*! Mutex protecting the reread_config chain and alloc pool.  */
+/*! \brief Mutex protecting the reread_config chain and alloc pool.  */
 extern pthread_mutex_t reread_config_mutex;
 
-/*! Alloc pool for allocating nodes of reread config chain.  */
+/*! \brief Alloc pool for allocating nodes of reread config chain.  */
 extern alloc_pool reread_config_pool;
 
 extern void initialize_config_c(void);
@@ -50,3 +58,31 @@ extern void cleanup_config_c(void);
 #endif
 
 #endif
+
+/*! \page zfs-configuration ZlomekFS configuration
+ * Filesystem zlomekFS has local and cluster (shared) configuration.
+ * Big part of zlomekFS configuration is during runtime keep in
+ * global structure.
+ * \section local_config Local configuration
+ * Local configuration is saved to the local file system.
+ * In this configuration are stored: node name, location of volume caches,
+ * default user, default group, versioning configuration, threading configuration,
+ * system specific configuration.
+ * This configuration is stored in single text file.
+ * This file is read during zlomekFS startup by libconfig.
+ * \see read_local_config_from_file
+ * 
+ * \section cluster_config Cluster configuration
+ * Cluster Configurations are saved on the partition zlomekFS.
+ * It is stored in multiple files.
+ * In this configuration are stored: volume list, node list, node hierarchy,
+ * user and group mappings.
+ * Cluster configuration is read during startup and every time, when one of
+ * configuration file is modified.
+ * Update of this configuration is realized by special thread and file is readed
+ * by libconfig.
+ * \see  read_cluster_config
+ * \section zfs_config Structure with global configuration
+ * All parts of zlomekFS local configuration are keep in global structure. 
+ * \see zfs_config
+ */

@@ -1,3 +1,28 @@
+/**
+ *  \file shared_config.c
+ * 
+ *  \brief Implements cluster config readers
+ *  \author Ales Snuparek 
+ */
+
+/* Copyright (C) 2003, 2004, 2012 Josef Zlomek, Ales Snuparek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
 #include <libconfig.h>
 #include "configuration.h"
 #include "shared_config.h"
@@ -21,6 +46,7 @@ static void volume_entry_init(volume_entry * ve)
 	varray_create(&ve->slave_names, sizeof(char *), 4);
 }
 
+/*! \brief destroy volume entry */
 static void volume_entry_destroy(ATTRIBUTE_UNUSED volume_entry *ve)
 {
 }
@@ -112,7 +138,7 @@ int read_mapping_setting(config_setting_t * setting, add_mapping add, void * dat
 	return CONFIG_TRUE;
 }
 
-// user_create wrapper
+/*! \brief user_create wrapper */
 static void add_user(ATTRIBUTE_UNUSED void * data, uint32_t id, string * name)
 {
 	user_create(id, name);
@@ -137,13 +163,12 @@ int read_user_list_shared_config(config_t * config)
 	return rv;
 }
 
-// group_create wrapper
+/*! \brief group_create wrapper */
 static void add_group(ATTRIBUTE_UNUSED void * data, uint32_t id, string * name)
 {
 	group_create(id, name);
 }
 
-//TODO; write this function based on read_user_list_shared_config
 int read_group_list_shared_config(config_t * config)
 {
 	config_setting_t * group_list = config_lookup(config, "group:list");
@@ -163,6 +188,7 @@ int read_group_list_shared_config(config_t * config)
 	return rv;
 }
 
+/*! \brief read pair setting */
 static int read_pairs_setting(config_setting_t * setting, add_pair_mapping add, void * data)
 {
 	int i;
@@ -193,6 +219,7 @@ static int read_pairs_setting(config_setting_t * setting, add_pair_mapping add, 
 	return CONFIG_TRUE;
 }
 
+/*! \brief read node mapping setting */
 static int read_node_mapping_setting(config_setting_t * setting, const char * node_name, add_pair_mapping add, void * data)
 {
 	int i;
@@ -238,6 +265,7 @@ static int read_node_mapping_setting(config_setting_t * setting, const char * no
 	return CONFIG_TRUE;
 }
 
+/*! \brief add user mapping */
 static void add_user_mapping(void * data, const char * local, const char * remote)
 {
 	user_mapping mapping;
@@ -258,6 +286,7 @@ int read_user_mapping_shared_config(config_t * config, const char * node_name, v
 	return read_node_mapping_setting(config_user_mapping, node_name, add_user_mapping, data);
 }
 
+/*! \brief add group mapping */
 static void add_group_mapping(ATTRIBUTE_UNUSED void * data, ATTRIBUTE_UNUSED const char * local, ATTRIBUTE_UNUSED const char * remote)
 {
 	group_mapping mapping;
@@ -278,7 +307,7 @@ int read_group_mapping_shared_config(config_t * config, const char * node_name, 
 	return read_node_mapping_setting(setting_group_mapping, node_name, add_group_mapping, data);
 }
 
-// reads volume entry from shared config
+/*! \brief reads volume entry from shared config */
 static int volume_entry_read(config_setting_t * volume_setting, volume_entry * ve)
 {
 	int rv;
@@ -333,6 +362,7 @@ static int volume_entry_read(config_setting_t * volume_setting, volume_entry * v
 	return CONFIG_TRUE;
 }
 
+/*! \brief read vlumes layout */
 static config_setting_t * config_setting_get_vol_layout(config_setting_t * vol_layouts, const char * vol_name)
 {
 	int i;
@@ -355,6 +385,7 @@ static config_setting_t * config_setting_get_vol_layout(config_setting_t * vol_l
 	return NULL;
 }
 
+/*! \brief get volume slaves */
 static int config_setting_get_slaves(config_setting_t * layout_tree, volume_entry * ve)
 {
 	int i;
@@ -374,6 +405,7 @@ static int config_setting_get_slaves(config_setting_t * layout_tree, volume_entr
 	return CONFIG_TRUE;
 }
 
+/*! \brief read volume tree node */
 static int config_setting_process_tree(config_setting_t * layout_tree, volume_entry * ve, const char * parent_node, const char * node_name)
 {
 	const char * config_node_name;
@@ -420,6 +452,7 @@ static int config_setting_process_tree(config_setting_t * layout_tree, volume_en
 	return CONFIG_TRUE;
 }
 
+/*! \brief read volume tree layout */
 static int config_setting_read_vol_layout(config_setting_t * vol_layout, volume_entry * ve, const char * node_name)
 {
 	config_setting_t * layout_tree = config_setting_get_member(vol_layout, "tree");
@@ -432,7 +465,7 @@ static int config_setting_read_vol_layout(config_setting_t * vol_layout, volume_
 	return config_setting_process_tree(layout_tree, ve, NULL, node_name);
 }
 
-/// reads node hierarchy from @param config to @param ve for node @param node_name
+/*! \brief reads node hierarchy from \p config to \p ve for node \p node_name */
 static int read_volume_layout(config_t * config, volume_entry * ve, const char * node_name)
 {
 	config_setting_t * vol_layouts = config_lookup(config, "volume:layout");
@@ -499,6 +532,7 @@ int read_volume_list_shared_config(config_t *config, varray * volumes)
 	return CONFIG_TRUE;
 }
 
+/*! \brief read volume tree node settings */
 static int read_volume_tree_node_setting(config_setting_t * node_setting)
 {
 	int rv;
@@ -568,10 +602,6 @@ int read_volumes_layout_shared_config(config_t * config)
 			message(LOG_ERROR, FACILITY_CONFIG, "Failed to read node hirerarchy from shared config.\n");
 			return rv;
 		}
-		//TODO: insert slaves to selected volume
-		 /* Insert slave node into slave hash table.
-			 slot = htab_find_slot_with_hash(vol->slaves, nod, node_hash_name(nod), INSERT);
-		*/
 	}
 
 	return CONFIG_TRUE;

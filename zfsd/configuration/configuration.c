@@ -1,6 +1,14 @@
-/*! \file \brief Configuration.  */
+/**
+ *  \file configuration.c
+ * 
+ *  \brief Implements function for intializing configuratin module
+ *  \author Ales Snuparek (refactoring and partial rewrite and libconfig integration)
+ *  \author Josef Zlomek (initial experimental implementation)
+ *
+ */
 
-/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+/* Copyright (C) 2003, 2004, 2010, 2012 Josef Zlomek, Rastislav Wartiak,
+   Ales Snuparek
 
    This file is part of ZFS.
 
@@ -48,14 +56,13 @@
 #include "zfsd.h"
 #include "reread_config.h"
 
-/*! Alloc pool for allocating nodes of reread config chain.  */
+/*! \brief Alloc pool for allocating nodes of reread config chain.  */
 alloc_pool reread_config_pool;
 
-/*! Mutex protecting the reread_config chain and alloc pool.  */
+/*! \brief Mutex protecting the reread_config chain and alloc pool.  */
 pthread_mutex_t reread_config_mutex = ZFS_MUTEX_INITIALIZER;
 
-/*! Initialize data structures in CONFIG.C.  */
-
+/*! \brief Initialize data structures in CONFIG.C.  */
 void initialize_config_c(void)
 {
 	reread_config_pool
@@ -64,8 +71,7 @@ void initialize_config_c(void)
 							&reread_config_mutex);
 }
 
-/*! Destroy data structures in CONFIG.C.  */
-
+/*! \brief Destroy data structures in CONFIG.C.  */
 void cleanup_config_c(void)
 {
 	zfsd_mutex_lock(&reread_config_mutex);
@@ -86,3 +92,4 @@ void cleanup_config_c(void)
 	xfreestring(&zfs_config.dokan.file_system_name);
 #endif
 }
+
