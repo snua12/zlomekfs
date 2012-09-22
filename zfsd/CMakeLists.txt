@@ -23,8 +23,10 @@ ${ZFSD_SOURCE_DIR}/fs-entities/metadata
 ${ZFSD_SOURCE_DIR}/fs-entities/dir
 ${ZFSD_SOURCE_DIR}/fs-entities/cap
 ${ZFSD_SOURCE_DIR}/fs-entities/volume
+${ZFSD_SOURCE_DIR}/zfs-protocol
 ${ZFSD_SOURCE_DIR}/tools
 ${ZFSD_SOURCE_DIR}/update
+${ZFSD_SOURCE_DIR}/network
 ${ZFSD_SOURCE_DIR}/lib
 ${ZFSD_SOURCE_DIR}/lib/log
 ${ZFSD_SOURCE_DIR}/lib/hashtab
@@ -39,8 +41,6 @@ ${ZFSD_SOURCE_DIR}/lib/interval-tree
 ${ZFSD_SOURCE_DIR}/lib/crc32
 ${ZFSD_SOURCE_DIR}/lib/hashfile
 ${ZFSD_SOURCE_DIR}/lib/alloc-pool
-${ZFSD_SOURCE_DIR}/lib/network
-${ZFSD_SOURCE_DIR}/lib/protocol
 ${ZFSD_SOURCE_DIR}/lib/splay-tree
 ${ZFSD_SOURCE_DIR}/lib/random
 ${ZFSD_SOURCE_DIR}/lib/md5
@@ -58,7 +58,9 @@ add_subdirectory(lib)
 add_subdirectory(fs-entities)
 add_subdirectory(zfsd)
 add_subdirectory(tools)
+add_subdirectory(zfs-protocol)
 add_subdirectory(update)
+add_subdirectory(network)
 
 if (ENABLE_VERSIONS)
   add_subdirectory(version)
