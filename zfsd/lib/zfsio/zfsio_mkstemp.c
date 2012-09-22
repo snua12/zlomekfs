@@ -1,14 +1,50 @@
+/*! 
+ *  \file zfsio_mkstemp.c
+ *  \brief Emulates stdio file api on zlomekFS file api.
+ *  \author Ales Snuparek
+ *
+ *  Implements readonly support for stdio file api, which use FILE * on
+ *  zlomekfs api which use zfs_fh * as file destciptor.
+ *  This wrapper is implemented by copying file from zlomekFS volume
+ *  to temporary directory on local volume. After close, temporary file
+ *  removed
+ */
+
+/* Copyright (C) 2008, 2012 Ales Snuparek
+
+   This file is part of ZFS.
+
+   ZFS is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 2, or (at your option) any later version.
+
+   ZFS is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+   details.
+
+   You should have received a copy of the GNU General Public License along
+   with ZFS; see the file COPYING.  If not, write to the Free Software
+   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
+   download it from http://www.gnu.org/licenses/gpl.html */
+
+
 #include "zfsio.h"
 #include "log.h"
 
+/*! \brief where is temporary file placed */
 #define ZFS_TMP_SHARED_CONFIG_TEMPLATE "/tmp/.zfs_shared_configXXXXXXX"
 
+/*! \brief structure for keeping informations about temporary file */
 struct zfs_file_def
 {
 	FILE * stream;
 	char tmp_file[sizeof(ZFS_TMP_SHARED_CONFIG_TEMPLATE)];
 };
 
+/*! \brief copy file from fh to stream
+ *  \return true on success
+    \return false on error*/
 static bool zfs_read_to_local_file(zfs_fh * fh, FILE * stream)
 {
 	zfs_cap cap;
@@ -65,6 +101,7 @@ static bool zfs_read_to_local_file(zfs_fh * fh, FILE * stream)
 	return true;
 }
 
+/*! \brief fopen wrapper */
 zfs_file * zfs_fopen(zfs_fh * fh)
 {
 	zfs_file * file = xmalloc(sizeof(zfs_file));
@@ -112,6 +149,7 @@ zfs_file * zfs_fopen(zfs_fh * fh)
 	return file;
 }
 
+/*! \brief fclose wrapper */
 int zfs_fclose(zfs_file * file)
 {
 	int rv = fclose(file->stream);
@@ -120,6 +158,7 @@ int zfs_fclose(zfs_file * file)
 	return rv;
 }
 
+/*! \brief converts zfs_file * to FILE */
 FILE * zfs_fdget(zfs_file * file)
 {
 	return file->stream;
