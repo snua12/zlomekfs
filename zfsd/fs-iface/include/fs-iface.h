@@ -58,5 +58,7 @@ extern int32_t fs_invalidate_fh(zfs_fh * fh);
 /*! Invalidate dentry DENTRY in kernel dentry cache.  */
 extern int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p);
 
-
 #endif
+
+/*! \page fs-iface ZlomekFS filesystem interface
+ */
