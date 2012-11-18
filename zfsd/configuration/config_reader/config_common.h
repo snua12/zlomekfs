@@ -36,6 +36,10 @@ extern "C"
 /*! \brief reads port setting, if port setting is missing, or is invalid, then is returned ZFS_PORT */
 uint16_t read_tcp_port_setting(config_setting_t * setting);
 
+
+/*! \brief reads uint64 see config_Setting_lookup_uint64_t */
+int config_setting_lookup_uint64_t(const config_setting_t *setting,
+	const char *name, uint64_t *value);
 #ifdef __cplusplus
 }
 #endif

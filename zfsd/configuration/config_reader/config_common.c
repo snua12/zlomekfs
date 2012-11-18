@@ -55,3 +55,20 @@ uint16_t read_tcp_port_setting(config_setting_t * setting)
 
 	return (uint16_t) tcp_port & 0xffff;
 }
+
+int config_setting_lookup_uint64_t(const config_setting_t *setting,
+	const char *name, uint64_t *value)
+{
+
+	long long_value;
+	int rv = config_setting_lookup_int(setting, name, &long_value);
+	if (rv != CONFIG_TRUE)
+	{
+		return rv;
+	}
+
+	*value = long_value;
+
+	return CONFIG_TRUE;
+}
+

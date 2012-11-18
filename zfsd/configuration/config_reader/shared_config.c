@@ -71,7 +71,7 @@ int read_node_list_shared_config(config_t * config)
 		const char * address;
 		int rv;
 
-		rv = config_setting_lookup_int(node_entry, "id", (LIBCONFIG_INT_TYPECAST *) &id);
+		rv = config_setting_lookup_uint64_t(node_entry, "id", &id);
 		if (rv != CONFIG_TRUE)
 		{
 			message(LOG_ERROR, FACILITY_CONFIG, "Id config key is wrong type or is missing in shared config.\n");
@@ -115,7 +115,7 @@ int read_mapping_setting(config_setting_t * setting, add_mapping add, void * dat
 		int rv;
 		uint64_t id;
 
-		rv = config_setting_lookup_int(pair, "id", (LIBCONFIG_INT_TYPECAST *) &id);
+		rv = config_setting_lookup_uint64_t(pair, "id", &id);
 		if (rv != CONFIG_TRUE)
 		{
 			message(LOG_ERROR, FACILITY_CONFIG, "Id config key is wrong type or is missing in shared config.\n");
@@ -313,7 +313,7 @@ static int volume_entry_read(config_setting_t * volume_setting, volume_entry * v
 	int rv;
 
 	uint64_t id;
-	rv = config_setting_lookup_int(volume_setting, "id", (LIBCONFIG_INT_TYPECAST *) &id);
+	rv = config_setting_lookup_uint64_t(volume_setting, "id", &id);
 	if (rv != CONFIG_TRUE)
 	{
 		message (LOG_ERROR, FACILITY_CONFIG, "Id confg key is missing or is wrong type in volume list.\n");

@@ -108,7 +108,7 @@ int read_volumes_local_config(config_t * config, bool reread)
 		const char * local_path;
 		int rv;
 
-		rv = config_setting_lookup_int(volume_setting, "id", (LIBCONFIG_INT_TYPECAST *) &id);
+		rv = config_setting_lookup_uint64_t(volume_setting, "id", &id);
 		if (rv != CONFIG_TRUE || !is_valid_volume_id(id))
 		{
 			// failed to read volume_setting id from zfsd.config
@@ -116,7 +116,7 @@ int read_volumes_local_config(config_t * config, bool reread)
 			return CONFIG_FALSE;
 		}
 
-		rv = config_setting_lookup_int64(volume_setting, "cache_size", (long long int *) &cache_size);
+		rv = config_setting_lookup_uint64_t(volume_setting, "cache_size", &cache_size);
 		if (rv != CONFIG_TRUE)
 		{
 			// failed to read volume_setting cache limit, assume 0 will be fine
