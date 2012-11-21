@@ -1,6 +1,7 @@
-/*! \file \brief Data coding functions (encoding and decoding requests and
+/*! \file data-coding.c \brief Data coding functions (encoding and decoding requests and
    replies).
 
+   \page zfs-protocol ZlomekFS protocol
    Each request or reply is represented as "packet", a sequence of primitive
    values.
 

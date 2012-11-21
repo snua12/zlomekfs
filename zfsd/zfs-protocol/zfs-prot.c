@@ -1,4 +1,4 @@
-/*! \file \brief ZFS protocol.  */
+/*! \file zfs-prot.c \brief ZFS protocol.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Martin Zlomek, Rastislav
    Wartiak
