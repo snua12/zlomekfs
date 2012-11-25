@@ -721,12 +721,15 @@ static int DOKAN_CALLBACK inner_dokan_find_files (
 
 			last_cookie = entry->cookie;
 
-			// don't return . or .. windows don't need them
-			if (strcmp(entry->name.str, ".") == 0)
-				continue;
+			// don't return . or .. for root direcotry 
+			if (ZFS_FH_EQ(cap->fh, root_fh))
+			{
+				if (strcmp(entry->name.str, ".") == 0)
+					continue;
 
-			if (strcmp(entry->name.str, "..") == 0)
-				continue;
+				if (strcmp(entry->name.str, "..") == 0)
+					continue;
+			}
 
 			dir_op_res lookup_res;
 			rv = zfs_extended_lookup(&lookup_res, &cap->fh, entry->name.str);
