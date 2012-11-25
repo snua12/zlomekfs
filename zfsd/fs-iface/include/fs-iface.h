@@ -61,4 +61,7 @@ extern int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p);
 #endif
 
 /*! \page fs-iface ZlomekFS filesystem interface
+ *
+ * In order to implement new zlomekFS filesystem interface, you should write these functions:
+ * \see fs_start, fs_unmount, fs_cleanup,  fs_invalidate_fh,  fs_invalidate_dentry.
  */

@@ -38,9 +38,12 @@ option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
 option (ENABLE_PROFILE "Enable The GNU Profiler" OFF)
 if (ENABLE_PROFILE)
-	add_definitions(-pg)
-	set(CMAKE_EXE_LINKER_FLAGS "-pg ${CMAKE_EXE_LINKER_FLAGS}")
-endif(ENABLE_PROFILE)
+message (STATUS "Enabling profiling with gprof")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+set(CMAKE_SHAREDBoost_USE_MULTITHREADED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
+if (ENABLE_PROFILE)
 
 ##############################################################
 ############## Build configurations
