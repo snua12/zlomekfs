@@ -33,6 +33,7 @@ if (ENABLE_VERSIONS)
 endif (ENABLE_VERSIONS)
 
 option(ENABLE_FS_INTERFACE "Enable fs interface (like fuse or dokan)" ON)
+option(ENABLE_HTTP_INTERFACE "Enable http fs interface (like GoFlex Satellite)" OFF)
 option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
 option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
@@ -43,7 +44,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
 set(CMAKE_SHAREDBoost_USE_MULTITHREADED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
-if (ENABLE_PROFILE)
+endif (ENABLE_PROFILE)
 
 ##############################################################
 ############## Build configurations
@@ -167,6 +168,15 @@ if (ENABLE_FS_INTERFACE)
 else()
 	set(HAVE_FUSE 0)
 	set(HAVE_DOKAN 0)
+endif()
+
+if (ENABLE_HTTP_INTERFACE)
+	PKG_CHECK_MODULES(MHD libmicrohttpd>=0.4.6)
+	if (MHD_FOUND EQUAL 1)
+		message(STATUS "libmicrohttpd found")
+	else()
+		message(FATAL_ERROR "libmicrohttpd not found")
+	endif()
 endif()
 
 

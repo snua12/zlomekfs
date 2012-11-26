@@ -1,10 +1,8 @@
 /*! 
  *  \file fs-iface.h
- *  \brief Interface between filesystem and OS.
+ *  \brief Dummy interface between filesystem and OS.
  *  \author Ales Snuparek
  *
- *  Filesystem interface for zlomekFS must implements theese functions:
- *  fs_start(), fs_unmount(), fs_cleanup(), fs_invalidate_fh() and fs_invalidate_dentry().
  */
 
 /* Copyright (C) 2008, 2012 Ales Snuparek
@@ -25,42 +23,39 @@
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA; or
    download it from http://www.gnu.org/licenses/gpl.html */
 
-#ifndef FS_IFACE_H
-#define FS_IFACE_H
+#ifndef DUMMY_IFACE_H
+#define DUMMY_IFACE_H
 
 #include <config.h>
 #include <fh.h>
 
-#ifdef ENABLE_FS_INTERFACE
-#if defined  HAVE_FUSE
- #include "../fuse_iface/fuse_iface.h"
-#elif defined HAVE_DOKAN
- #include "../dokan_iface/dokan_iface.h"
-#else
- #error "no filesystem interface was selected"
-#endif
-#else
-  #include "../dummy_iface/dummy_iface.h"
-#endif
-
-#ifdef ENABLE_HTTP_INTERFACE
-  #include "../http_iface/http_iface.h"
-#endif
-
 /*! Export filesystem to OS */
-extern bool fs_start(void);
+static inline bool fs_start(void)
+{
+	return true;
+}
 
 /*! Disconnect filesystem from OS */
-extern void fs_unmount(void);
+static inline void fs_unmount(void)
+{
+}
 
 /*! Cleanup filesystem interface internal structures */
-extern void fs_cleanup(void);
+static inline void fs_cleanup(void)
+{
+}
 
 /*! Invalidate file handle DENTRY in kernel dentry cache.  */
-extern int32_t fs_invalidate_fh(zfs_fh * fh);
+static inline int32_t fs_invalidate_fh(ATTRIBUTE_UNUSED zfs_fh * fh)
+{
+	return ZFS_COULD_NOT_CONNECT;
+}
 
 /*! Invalidate dentry DENTRY in kernel dentry cache.  */
-extern int32_t fs_invalidate_dentry(internal_dentry dentry, bool volume_root_p);
+static inline int32_t fs_invalidate_dentry(ATTRIBUTE_UNUSED internal_dentry dentry, ATTRIBUTE_UNUSED bool volume_root_p)
+{
+	return ZFS_COULD_NOT_CONNECT;
+}
 
 #endif
 

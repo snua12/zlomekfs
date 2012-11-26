@@ -61,12 +61,10 @@ add_subdirectory(tools)
 add_subdirectory(zfs-protocol)
 add_subdirectory(update)
 add_subdirectory(network)
+add_subdirectory(fs-iface)
 
 if (ENABLE_VERSIONS)
   add_subdirectory(version)
 endif(ENABLE_VERSIONS)
 
-if (ENABLE_FS_INTERFACE)
-  add_subdirectory(fs-iface)
-endif()
 

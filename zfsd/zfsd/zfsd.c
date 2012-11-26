@@ -49,7 +49,7 @@
 #include "local_config.h"
 #include "thread.h"
 
-#ifdef ENABLE_FS_INTERFACE
+#if defined ENABLE_FS_INTERFACE || defined ENABLE_HTTP_INTERFACE
 #include "fs-iface.h"
 #endif
 
@@ -89,10 +89,12 @@ static void exit_sighandler(ATTRIBUTE_UNUSED int signum)
 
 	set_running(false);
 
-#ifdef HAVE_FUSE
+#ifdef ENABLE_FS_INTERFACE 
+#if defined HAVE_FUSE
 	thread_pool_terminate(&kernel_pool);
+#elif defined HAVE_DOKAN
 #endif
-	//TODO DOKAN
+#endif
 
 	thread_pool_terminate(&network_pool);
 
@@ -429,6 +431,9 @@ typedef struct zfs_started_services_def
 	bool kernel_started;
 	bool network_started;
 	bool update_started;
+#if defined ENABLE_HTTP_INTERFACE
+	bool http_started;
+#endif
 }
 zfs_started_services;
 
@@ -443,6 +448,16 @@ static int zfs_start_services(zfs_started_services * services)
 		terminate();
 		return EXIT_FAILURE;
 	}
+
+#if defined ENABLE_HTTP_INTERFACE
+	services->http_started = http_fs_start();
+	if (services->http_started != true)
+	{
+		message(LOG_ERROR, FACILITY_ZFSD, "Failed to start http server\n");
+		terminate();
+		return EXIT_FAILURE;
+	}
+#endif
 
 	bool rv = read_cluster_config();
 	if (rv != true)
@@ -478,11 +493,12 @@ static void zfs_stop_services(zfs_started_services * services)
 		wait_for_pool_to_die(&network_pool);
 
 #ifdef ENABLE_FS_INTERFACE
-#ifdef HAVE_FUSE
+#if defined HAVE_FUSE
 	if (services->kernel_started)
 	{
 		wait_for_pool_to_die(&kernel_pool);
 	}
+#elif defined HAVE_DOKAN
 #endif
 #endif
 
@@ -497,6 +513,11 @@ static void zfs_stop_services(zfs_started_services * services)
 #ifdef ENABLE_FS_INTERFACE
 	if (services->kernel_started)
 		fs_cleanup();
+#endif
+
+#if defined ENABLE_HTTP_INTERFACE
+	if (services->http_started)
+		http_fs_cleanup();
 #endif
 }
 

@@ -18,7 +18,6 @@ SET(zfsd_LIBS
     control
 )
 
-
 if (HAVE_FUSE)
 	SET(zfsd_SRCS ${zfsd_SRCS} zfsd_args_fuse.c)
 	SET(zfsd_LIBS ${zfsd_LIBS} fuse_iface)
@@ -27,6 +26,10 @@ elseif(HAVE_DOKAN)
 	SET(zfsd_LIBS ${zfsd_LIBS} dokan_iface)
 else()
 	SET(zfsd_SRCS ${zfsd_SRCS} zfsd_args_nofuse.c)
+endif()
+
+if (ENABLE_HTTP_INTERFACE)
+	SET(zfsd_LIBS ${zfsd_LIBS} http_iface microhttpd)
 endif()
 
 add_executable(zfsd ${zfsd_SRCS})

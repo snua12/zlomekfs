@@ -11,3 +11,4 @@
 #cmakedefine HAVE_MLOCKALL
 #cmakedefine HAVE_UCONTEXT_H
 #cmakedefine ENABLE_FS_INTERFACE
+#cmakedefine ENABLE_HTTP_INTERFACE

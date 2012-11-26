@@ -69,6 +69,11 @@ void *xrealloc(void *ptr, size_t size)
 	return r;
 }
 
+void xfree(void * ptr)
+{
+	free(ptr);
+}
+
 /*! Similar to STRDUP but always returns valid pointer.  */
 char *xstrdup(const char *s)
 {

@@ -47,6 +47,7 @@ extern "C"
 	extern void *xcalloc(size_t nmemb, size_t size) ATTRIBUTE_MALLOC;
 	extern void *xmalloc(size_t size) ATTRIBUTE_MALLOC;
 	extern void *xrealloc(void *ptr, size_t size) ATTRIBUTE_MALLOC;
+	extern void xfree(void * ptr);
 	extern char *xstrdup(const char *s) ATTRIBUTE_MALLOC;
 	extern void xmkstring(string * dest, const char *s);
 	void xfreestring(string * s);
