@@ -93,6 +93,11 @@ static void show_stackframe(void)
 
 	trace_size = backtrace(trace, 16);
 	messages = backtrace_symbols(trace, trace_size);
+	if (messages == NULL)
+	{
+		return;
+	}
+
 	message(LOG_EMERG, FACILITY_ALL, "[bt] Execution path:\n");
 	for (i = 0; i < trace_size; ++i)
 		message(LOG_EMERG, FACILITY_ALL, "[bt] %s\n", messages[i]);
