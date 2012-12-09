@@ -38,8 +38,6 @@ extern "C" {
 /*! \brief serial number of exported volume */
 #define ZFS_VOLUME_SERIAL_NUMBER 0xdeadbeef
 
-void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_name);
-
 int zfs_err_to_dokan_err(int32_t err);
 
 zfs_cap * dokan_file_info_to_cap(PDOKAN_FILE_INFO info);
@@ -65,6 +63,8 @@ void filetime_to_zfstime(zfs_time * ztime, CONST FILETIME* ftime);
 void unix_to_windows_filename(const char * unix_filename, LPWSTR windows_filename, int windows_filename_len);
 
 void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename);
+
+int windows_to_unix_path(LPCWSTR win_path, char * unix_path, size_t unix_path_len);
 
 #ifdef __cplusplus
 }

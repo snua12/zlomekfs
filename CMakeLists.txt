@@ -46,6 +46,8 @@ set(CMAKE_SHAREDBoost_USE_MULTITHREADED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAG
 set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
 endif (ENABLE_PROFILE)
 
+option(ENABLE_UNIT_TESTS "Enable unit tests build")
+
 ##############################################################
 ############## Build configurations
 ##############################################################
@@ -104,8 +106,13 @@ string(REPLACE "," ";" TESTS "${TESTS}") #convert to semicolon delimiting
 # list of enabled tests
 set(TESTS_ENABLED "")
 
+if (ENABLE_UNIT_TESTS)
+	enable_test(gtest)
+endif(ENABLE_UNIT_TESTS)
+
 # first check for "all" keyword
 list(FIND TESTS all ALLTESTS)
+
 if(NOT ALLTESTS EQUAL -1)
 	enable_test(unit)
 	enable_test(gtest)

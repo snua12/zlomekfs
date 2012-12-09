@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 #include "dokan_tools.h"
 #include "log.h"
 
@@ -39,85 +40,100 @@ static const wchar_t windows_dir_delimiter[] = L"\\";
 
 /*! \brief constant for unix directory delimiter */
 static const char unix_dir_delimiter[] = "/";
+static const size_t unix_dir_delimiter_len = (sizeof(unix_dir_delimiter) / sizeof(unix_dir_delimiter[0])) - 1;
 
-
-/*!
- *  \brief Splits \p file_path to \p directory_path and \p file_name. Converts windows dir separator to unix dir separator.
- *
- *  \p dir_path and \p file_name must be at least MAX_PATH long 
- *  \param file_path is LPCWSTR
- *  \param dir_path is char *
- *  \param file_name is char *
- */
-void file_path_to_dir_and_file(LPCWSTR file_path, char * dir_path, char * file_name)
+/*! Similar to wcsdup but always returns valid pointer.  */
+static wchar_t *xwcsdup(const wchar_t *s) 
 {
-	// make local copy of file_path
-	wchar_t file_path_dup[MAX_PATH + 1];
-	wcsncpy(file_path_dup, file_path, MAX_PATH);
-	file_path_dup[MAX_PATH] = 0;
+	wchar_t *r = wcsdup(s);
+	if (!r)
+	{   
+		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
+		zfsd_abort();
+	}   
+	return r;
+}
 
-	char * dir_path_ptr = dir_path;
+static int windows_to_unix_path_no_const(LPWSTR win_path, char * unix_path, size_t unix_path_len)
+{
+	if (unix_path_len <= 1)
+	{
+		return ENAMETOOLONG;
+	}
+	
+	// space for terminating \0
+	unix_path_len -= 1;
+
+	char * unix_path_ptr = unix_path;
+	*unix_path_ptr = 0;
+	(void) strcat(unix_path_ptr, unix_dir_delimiter);
 
 	wchar_t * ctx;
 	wchar_t * tok;
-	char * last_tok = NULL; // points to last part of the path 
 
-	dir_path_ptr[0] = *unix_dir_delimiter;
-	dir_path_ptr[1] = 0;
-
-	for ( tok = wcstok(file_path_dup, windows_dir_delimiter, &ctx);
+	for (tok = wcstok(win_path, windows_dir_delimiter, &ctx);
 		tok != NULL;
 		tok = wcstok(NULL, windows_dir_delimiter, &ctx))
 	{
-		size_t len = wcslen(tok);
-		if (len > 0)
+		size_t tok_len = wcslen(tok);
+		if (tok_len == 0)
 		{
-			// add unix directory delimiter
-			*dir_path_ptr = *unix_dir_delimiter;
-			last_tok = dir_path_ptr;
-			dir_path_ptr++;
-			*dir_path_ptr = '\0';
-
-			int tok_len = wcslen(tok);
-			// append dir_path
-			int rv = WideCharToMultiByte(
-					CP_UTF8,
-					0,
-					tok,
-					tok_len,
-					dir_path_ptr,
-					MAX_PATH - (dir_path_ptr - dir_path),	
-					NULL,
-					NULL);
-
-			if (rv > 0)
-			{
-				dir_path_ptr += rv;
-			}
-
-			*dir_path_ptr = '\0';
+			continue;
 		}
-	}
-	
-	if (file_name == NULL)
-		return;
 
-	// move last part of the path to file_name
-	*file_name = 0;
-	if (last_tok != NULL)
+		// how many char will be used in output unix_path string
+		size_t unix_path_used = ((size_t) (unix_path_ptr - unix_path)) + tok_len + unix_dir_delimiter_len;
+
+		if ((unix_path_len) < unix_path_used)
+		{
+			return ENAMETOOLONG;
+		}
+		
+		// add unix directory delimiter
+		(void) strcat(unix_path_ptr, unix_dir_delimiter);
+		unix_path_ptr += unix_dir_delimiter_len;	
+
+		int rv = WideCharToMultiByte(
+				CP_UTF8,
+				0,
+				tok,
+				tok_len,
+				unix_path_ptr,
+				(unix_path_len) - (unix_path_ptr - unix_path),	// free char in output unix_path_string
+				NULL,
+				NULL);
+
+		// something goes wrong during conversion from UNICODE to UTF8
+		if (rv == 0)
+		{
+			*unix_path_ptr = 0;
+			return ENAMETOOLONG;
+		}
+
+		unix_path_ptr += rv;
+		*unix_path_ptr = '\0';
+	}
+
+	return ZFS_OK;
+}
+
+/*! \brief converts windows path to unix path
+ *
+ */
+int windows_to_unix_path(LPCWSTR win_path, char * unix_path, size_t unix_path_len)
+{
+	#if 0
+	size_t win_path_len = wcslen(win_path);
+	if (win_path_len >= unix_path_len)
 	{
-		strncpy(file_name, last_tok + 1, MAX_PATH);
-		// remove the last path of the file from dir_path
-		// keep / when dir_path is root
-		if (last_tok == dir_path)
-		{
-			last_tok[1] = '\0';
-		}
-		else
-		{
-			last_tok[0] = '\0';
-		}
+		return ENAMETOOLONG;
 	}
+#endif
+
+	LPWSTR win_path_dup = xwcsdup(win_path);
+	int rv = windows_to_unix_path_no_const(win_path_dup, unix_path, unix_path_len);
+	xfree(win_path_dup);
+	return rv;
 }
 
 /*! \brief converts errors from zlomekFS to win32api errors 
