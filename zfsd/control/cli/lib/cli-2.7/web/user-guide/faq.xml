@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+
+<section id="faq"><title id="faq.title">Frequently Asked Questions</title>
+
+    <section id="faq.Q100"><title>Why ain't there a possibility to set a context reference with <classname>Cli</classname> objects?</title>
+
+        <para>
+        If I had provided a general member for a context reference in <classname>Cli</classname> objects,
+        it would have been an opaque pointer of type <type>void*</type>, which I definitely dislike.
+        I prefer when objects are accessed through full type accessors, such as singletons, or register databases.
+        Or even better, you could make use of member code generation as described in the <link linkend="xmlres.native" endterm="xmlres.native.title"/> section
+        in order to declare your own context reference, with getters and setters.
+        </para>
+
+    </section>
+
+    <section id="faq.Q200"><title>I can't compile for a 64 bit architecture!</title>
+
+        <para>
+        I must admit that I have not had the opportunity to test CLI compilation under 64 bit architectures.
+        All I can answer for the moment is what Pete Geremia emailed to me after trying it out (thank you Pete):
+            <blockquote>I basically added -m32 to c++ compile lines.
+                        There is also a requirement to point JAVA_HOME to a 32bit version of Java that is installed on a 64bit box.  (in file cli/java/build/make/_vars.mak)<sbr/>
+                        I also fixed some bugs where “jar” was called w/o $JAVA_HOME/bin/ in front of it.
+                        This actually caused me a problem because OpenJDK was installed on the box and jar was being used from that distribution.</blockquote>
+        </para>
+
+        <para>
+        Now, if you, guys, have some more info, please let me know.
+        </para>
+
+    </section>
+
+    <section id="faq.Q300"><title>I can't compile due to the <varname>DELETE</varname> symbol with VC++!</title>
+
+        <para>
+        Has far as CLI symbols are all scoped in a <package>cli</package> namespace, I have not specified them with redundant prefixes.
+        To my point of view, this is a smart way of organizing C++ code.
+        Therefore, the <varname>DELETE</varname> symbol is defined as an enum value in the scope of the <package>cli</package> namespace.
+        </para>
+
+        <para>
+        The compilation error with Visual C++ comes with an abusive VC++ <varname>DELETE</varname> define directive in Windows headers.
+        This define is useless in CLI sources, therefore I advise to use a <filename>cli/pch.h</filename> file
+        as described in the <link linkend="adv.pch" endterm="adv.pch.title"/> section,
+        and undefine the <varname>DELETE</varname> symbol in it, after Windows inclusions:
+            <programlisting>#undef DELETE</programlisting>
+        </para>
+
+    </section>
+
+    <section id="faq.Q400"><title>CLI auto-generated source files cause thousands of compilation warnings!</title>
+
+        <para>
+        Indeed, C++ CLI auto-generated source files contain lots of labels and gotos.
+        Not all of the labels defined are used with goto statements, which causes all those warnings with most of compilers.
+        </para>
+
+        <para>
+        You may have noticed the use of the <command>g++</command> <option>-Wno-unused-label</option> option in the makefiles provided with the library.
+        This option can be set specifically for the compilation of CLI generated source file, in order to avoid all those warnings.
+        </para>
+
+        <para>
+        With VC++, you shall use the following pragma instruction:
+            <programlisting>#pragma warning(disable:4786)</programlisting>
+        either by putting it in a <filename>cli/pch.h</filename> as described in the <link linkend="adv.pch" endterm="adv.pch.title"/> section,
+        or by using generated code sections as described in the <link linkend="xmlres.native" endterm="xmlres.native.title"/> section.
+        </para>
+
+    </section>
+
+    <section id="faq.Q500"><title>Why ain't there regular VC++ memory leak macros in CLI source files?</title>
+
+        <para>
+        The CLI library does not intend to be VC++ specific code, nor Eclipse specific, nor CodeWarrior...
+        I do not intend neither to "pollute" the CLI sources with various compiler specific macros.
+        That's the reason why regular VC++ memory leak macros are not set in the CLI sources, even guarded by pre-compilation switches.
+        </para>
+
+        <para>
+        Nevertheless, I've tried to deal with memory leaks so far.
+        A special thank to Oleg Smolsky's contribution at this point, for another one detected and fixed.
+        Now if you figure out that leaks still remain, up to you to set your macros in the CLI sources for investigations,
+        depending on the tool you use: VC++, valgrind...
+        I'll be glad to integrate your fixes if you have any.
+        </para>
+
+    </section>
+
+    <section id="faq.Q600"><title>I am coming across problems while trying to print onto the CLI console: unwanted indenting, interleaved text...</title>
+
+        <para>
+        The problem must be because you are using standard outputs (<function>printf</function>, <varname>std::cout</varname>...),
+        while the cli is ran with a <classname>cli::Console</classname> device which relies on the ncurses library on Linux platforms.
+        Mixing standard and ncurses outputs does not behave correctly.
+        </para>
+
+        <para>
+        Indeed, you should always use the output and error devices used by your <classname>Cli</classname> (and <classname>Shell</classname>),
+        even in your user code.
+        Here is a way of doing it:
+<programlisting>
+&lt;keyword string="bye"&gt;&lt;help lang="en"&gt;Say goodbye.&lt;/help&gt;
+ &lt;endl&gt;&lt;cpp&gt;sayBye(&lt;out/&gt;);&lt;/cpp&gt;&lt;/endl&gt;
+&lt;/keyword&gt;
+</programlisting>
+        Notice the use of <sgmltag class="element">out</sgmltag> that references the cli/shell output device.
+        Could also be <sgmltag class="element">err</sgmltag> for the error device.
+        See <link linkend="eg.output" endterm="eg.output.title"/> example.
+
+        Then:
+<programlisting>
+void sayBye(const cli::OutputDevice&amp; CLI_Out)
+{
+    CLI_Out &lt;&lt; "Bye" &lt;&lt; cli::endl;
+    CLI_Out &lt;&lt; "Bye Again" &lt;&lt; cli::endl;
+}
+</programlisting>
+        Notice the use of <varname>CLI_Out</varname> instead of <varname>std::cout</varname>, and the use of <varname>cli::endl</varname> instead of <varname>std::endl</varname>.
+        </para>
+
+        <para>
+        By the way, if you ever wish to change that device later on (for telnet input/output for instance, or a serial port...),
+        you would just have to change the kind of device given to the <classname>Shell</classname> instance for running.
+        Here is a sample with file devices:
+<programlisting>
+void runShellWithFiles()
+{
+    MyCli cli_MyCli;
+    cli::Shell cli_Shell(cli_MyCli);
+    cli::OutputFileDevice cli_OutFile("output.log", false);
+    cli::InputFileDevice cli_InFile("input.cli", cli_OutFile, false);
+    cli_Shell.Run(cli_InFile);
+}
+</programlisting>
+        </para>
+
+    </section>
+
+    <section id="faq.Q700"><title>My Console device does not behave nicely!</title>
+
+        <para>
+        I had once noticed strange behaviours with my WinConsole device, through Java execution under cygwin:
+        <itemizedlist>
+        <listitem>could not ensure the visibility of the cursor when moving it left or right,</listitem>
+        <listitem>could not get the Windows optimized clean screen feature running, but had many blank lines printed out instead,</listitem>
+        <listitem>...</listitem>
+        </itemizedlist>
+        I then figured out that it was because I was executing the CLI within the context of a Makefile, launched through <command>colormake</command>,
+        which uses output redirection.
+        When using <command>make</command> directly, no problem anymore.
+        </para>
+
+        <para>
+        As a matter of fact, if you face non optimal behaviours with <classname>Console</classname> devices, please make sure no output redirection is used,
+        otherwise console primitives will operate on the pipe and not the console anymore.
+        </para>
+
+    </section>
+
+</section>

@@ -1,0 +1,138 @@
+-------------------------------------------------------------------------------
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-------------------------------------------------------------------------------
+
+KNOWN ISSUES
+    * Bug(major)! " in characters <help/> contents causes compilation errors
+    * Bug(major)! cli2help: 'No help available' lines generated in options because of tag[@hollow=yes]/tag[@ref=backward] structures.
+    * Bug(minor)! cli2help: wrong number of options generated for (a|b)+ patterns while (a|b)* works fine.
+    * Bug(minor)! C++: Build info when building in debug under Cygwin
+            Info: resolving _ESCDELAY by linking to __imp__ESCDELAY (auto-import)
+            Info: resolving _stdscr by linking to __imp__stdscr (auto-import)
+            Info: resolving _LINES by linking to __imp__LINES (auto-import)
+            Info: resolving _COLS by linking to __imp__COLS (auto-import)
+    * Bug(minor)! C++: Incomplete ncurses implementation of cli::Console. Missing:
+            CTRL+INSER, SHIFT+SUPPR, SHIFT+INSER,
+            CONTROL+arrows, 
+            '€' (input and output), '©'
+    * Bug(minor)! C++: Incomplete Windows implementation of cli::Console. Missing:
+            ALT+C/X/V/Z/Y,
+            SHIFT+INS, SHIFT+SUPPR,
+            'á', 'í', 'ì', 'ó', 'ò', 'ú', '€', '©'
+    * Bug(minor)! C++: Incomplete Telnet implementation. Missing:
+            CTRL+arrows,
+            ALT+C/X/V/Z/Y
+            CTRL+INS, SHIFT+INS, SHIFT+SUPPR
+            bad output for '€'
+            input -93 conflicts between '£' and 'ú' (when 'ú' is copied from the output itself)
+    * Bug(minor)! XSL: xsltproc infinite loop with interleaved tags.
+            <tag id="tag1">...<tag ref="tag2"/>...</tag>
+            <tag id="tag2">...<tag ref="tag1"/>...</tag>
+            Seems non-sens however.
+    * Bug(minor)! doxygen error/warnings:
+            - wrong error detections for non commented argumented errors on Outputdevice::WouldOutput() / IODevice::WouldInput() non-commented derivations.
+            - wrong short description for cli::tk::Map::IsSet()
+    * Bug(minor)! User-guide: Level 1 sub-menu hides the top menu when scrolling
+
+
+FIXED in 2.7
+(Dec, 9th 2011)
+    * Bug(major)! <tag @ref/> preceding <tag @id/> in sub-nodes causes crashes (correction checked with samples/test/fwd-tag.xml sample)
+    * Bug(major)! XSL: '"select" attribute is not allowed on the xsl:call-template element!' XSL transformation error with Saxon (checked also with Xalan) (yuhuawen's contribution integration)
+    * Bug(major)! cli2help.xsl fails with Saxon: various XSL syntax errors fixed
+    * Bug(major)! <string.h> header missing with g++ version 4.4.4 (ubuntu 10.10): NativeObject.cpp, io_mux.cpp, ncurses_console.cpp, tk.cpp
+    * Bug(minor)! Java(Linux): warning: unmappable character for encoding UTF8 ... "Traces d'ex?cution du CLI"
+    * Bug(major)! Misuse of OutputDevice::FreeInstance() return code in Shell::CloseDevices() (major because of possible crashes, never seen however)
+    * Bug(minor)! XSL: return cli::... statements do not compile with Visual Studio 6.0
+
+FIXED in 2.6
+(Dec, 15th 2010)
+    * Bug(major)! Do not print intermediate character for errors with no location.
+    * Bug(major)! Bad XSL generation (C++ and Java) with nested tags (dummy tags among others).
+    * Bug(major)! No character output with telnet connections.
+    * Bug(minor)! Extra /* > */ comments for user code lines.
+
+FIXED in 2.5
+(Sep, 30th 2010)
+    * Bug(major)! C++: auto \r on \n missing for telnet connections
+    * Bug(minor)! C++: io_device.cpp cast correction for pointer display
+    * Bug(minor)! Fatal error when building deps of java/build/make/native.mak under cygwin from make (but direct commands from the shell)
+            Dependency addition between native.mak and libclijava.mak/jni.mak for deps rule
+    * Bug(minor)! Do not directly use STL in 'file_device.h'
+    * Bug(minor)! XSL: Enable resource names with space characters (menus...)
+
+FIXED in 2.4
+(Oct, 1st 2009)
+    * Bug(major)! DELETE key management missing in cli::Shell class.
+
+FIXED in 2.3
+(May, 18th 2009)
+    * Bug(major)! cppclic.xsl correction for SAXON compatibility
+    * Bug(minor)! Errors due to oversized words in CommandLine are not notified to the user.
+    * Bug(minor)! xsltproc crash when the tag[@ref] is directly located in the tag[@id]
+
+FIXED in 2.2
+(Sep, 21st 2008)
+    * major! IOMux device closure error.
+    * major! cli::tk::Queue::Iterator [tk_stl.h] definition revision. Incompatible with some compilers.
+    * major! Java object consistency problems.
+    * major! XSL generation errors for menus directly generated for an endl node.
+    * major! Bad cppclic.xsl generation for 2 level menu structures.
+    * major! Memory leak in Queue::~Queue() [tk_inner.h] -> m_arptQueue was not destroyed.
+    * major! Consistency errors because of static constant objects in C++ files when compiled with Visual .NET. Singleton used instead.
+    * major! Bad javaclic.xsl generation for 2 level menu structures. Test addition.
+    * major! History cannot store more than 100 command lines
+    * minor! InputFileDevice::GetKey(): unknown characters do not end the file anymore.
+    * minor! Spelling error: "Uncomplete" changed to "Incomplete" in CommandLine::Parse().
+    * minor! System includes (#include <>) changed into project includes (#include "").
+    * minor! When an input file does not exist (cli::InputFileDevice), no error message is printed out. => Addition of a m_cliLastError member in cli::OutputDevice, that can be set by all subclasses.
+    * minor! TAB when the line is empty does nothing.
+
+FIXED in 2.1
+(Oct, 31st 2007)
+    <none>
+
+FIXED in 2.0
+(Sept, 27th 2007)
+    <none>
+
+FIXED in 1.0
+(Apr, 30th 2007)
+    *  No help display on completion so far.
+    * Bad management of '%' and '|' characters.
+    * Incorrect behavior on a string parameters filled with "" (completion and execution, as if not set).
+    * Not possible to have two tags on the same syntax node.
+    * Crash on CcliOutputDevice::operator<<(const char* const) with NULL for parameter.
+    * Prompt stream disabled, Echo enabled, TAB -> help display => current line not printed again.
+
+FIXED in 1.0.beta1
+(Sept, 27th 2006)
+    *  A new line is not printed anymore on unsuccessful tab request.
+    * The line is not printed anymore when a syntax error occurred.
+    * User-defined includes generated in the very first place (useful for pre-compiled headers).
+    * Xml-namespace fixed.
+    * Elements sorted for help display.
+    * "Syntax error next to..." not correctly displayed on completion.
+    * Double definition of CcliElement::FindElements() fixed.
+    * '?' / TAB, help / completion behaviors improvement.
+

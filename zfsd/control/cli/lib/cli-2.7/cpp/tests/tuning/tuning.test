@@ -1,0 +1,42 @@
+prompt en "Please enter a command line: " fr "Veuillez saisir une ligne de commande : "
+
+lang en
+welcome en "You are very welcome!" fr "Soyez le bienvenu !"
+welcome
+lang fr
+welcome en "You are very welcome!" fr "Soyez le bienvenu !"
+welcome
+
+lang en
+bye en "See you soon!" fr "A bientôt !"
+bye
+lang fr
+bye en "See you soon!" fr "A bientôt !"
+bye
+
+lang en
+beep on
+beep off
+
+lang en
+help
+cli-config
+ help
+ exit
+cli-config on
+help
+cli-config
+ help
+ exit
+cli-config off
+help
+cli-config
+cli-config on
+restore-cli-config
+help
+cli-config
+ help
+ exit
+
+exit
+

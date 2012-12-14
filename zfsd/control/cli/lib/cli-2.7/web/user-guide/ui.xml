@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+
+<section id="ui"><title id="ui.title">UI package</title>
+
+    <para>
+    The CLI library also provides a set of classes that helps displaying long texts or making the user enter additional data.
+    These classes are scoped in a <package>ui</package> namespace.
+    </para>
+
+    <section id="ui.line"><title id="ui.line.title"><classname>Line</classname></title>
+
+        <para>
+        Make the user enter a single text line on request,
+        with regular text edition facilities:
+            <itemizedlist>
+            <listitem>left and right arrows,</listitem>
+            <listitem>HOME and END keys,</listitem>
+            <listitem>backward and forward deletion,</listitem>
+            <listitem>insert and replace modes,</listitem>
+            </itemizedlist>
+        plus other features:
+            <itemizedlist>
+            <listitem>default answer,</listitem>
+            <listitem>min / max string length constraints...</listitem>
+            </itemizedlist>
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classLine.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/Line.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        </para>
+
+        <example id="eg.ui.line"><title id="eg.ui.line.title">UI package - <classname>ui.Line</classname></title>
+                &sample-ui-line;
+            The code above produces the following output:
+<programlisting>
+UI>enter line
+Hello world
+User entered 'Hello world'
+UI>
+</programlisting>
+        </example>
+
+    </section>
+
+    <section id="ui.password"><title id="ui.password.title"><classname>Password</classname></title>
+
+        <para>
+        Same as above, but without displaying the text. Either nothing is displayed or only stars.
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classPassword.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/Password.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        </para>
+
+        <example id="eg.ui.password"><title id="eg.ui.password.title">UI package - <classname>ui.Password</classname></title>
+                &sample-ui-password;
+            The code above produces the following output:
+<programlisting>
+UI>enter password
+Enter password: *****
+User entered 'hello'
+UI>
+</programlisting>
+        </example>
+
+    </section>
+
+    <section id="ui.int"><title id="ui.int.title"><classname>Int</classname></title>
+
+        <para>
+        Let the user enter an integer number.
+        The <classname>Int</classname> class provides default value, plus min and max checkers.
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classInt.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/Int.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        </para>
+
+        <example id="eg.ui.int"><title id="eg.ui.int.title">UI package - <classname>ui.Int</classname></title>
+                &sample-ui-int;
+            The code above produces the following output:
+<programlisting>
+UI>enter int
+Enter integer number: 107
+User entered 107
+UI>
+</programlisting>
+        </example>
+
+    </section>
+
+    <section id="ui.float"><title id="ui.float.title"><classname>Float</classname></title>
+
+        <para>
+        Let the user enter a floating point number.
+        The <classname>Float</classname> class provides default value, plus min and max checkers.
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classFloat.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/Float.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        </para>
+
+        <example id="eg.ui.float"><title id="eg.ui.float.title">UI package - <classname>ui.Float</classname></title>
+                &sample-ui-float;
+            The code above produces the following output:
+<programlisting>
+UI>enter float
+Enter floating point number: -3.14
+User entered -3.14
+UI>
+</programlisting>
+        </example>
+
+    </section>
+
+    <section id="ui.yesno"><title id="ui.yesno.title"><classname>YesNo</classname></title>
+
+        <para>
+        Let the user answer "yes/no" questions.
+        "Yes/no" questions are nothing but multiple choice questions with "yes" or "no" for choices.
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classYesNo.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/YesNo.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        </para>
+
+        <example id="eg.ui.yesno"><title id="eg.ui.yesno.title">UI package - <classname>ui.YesNo</classname></title>
+                &sample-ui-yesno;
+            The code above produces the following output:
+<programlisting>
+UI>enter yesno
+Please select [YES/no]: No
+User entered false/'No'
+UI>
+</programlisting>
+        </example>
+
+    </section>
+
+    <section id="ui.choice"><title id="ui.choice.title"><classname>Choice</classname></title>
+
+        <para>
+        Let the user answer multiple choice questions.
+        Either the user types directly the choice himself/herself (auto-completion is provided),
+        or he/she can use UP and DOWN keys to move from one choice to the other.
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classChoice.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/Choice.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        </para>
+
+        <example id="eg.ui.choice"><title id="eg.ui.choice.title">UI package - <classname>ui.Choice</classname></title>
+                &sample-ui-choice;
+            The code above produces the following output:
+<programlisting>
+UI>enter choice 10
+Select choice: Choice#6
+User entered 5/'Choice#6'
+UI>
+</programlisting>
+        </example>
+
+    </section>
+
+    <section id="ui.more"><title id="ui.more.title"><classname>More</classname></title>
+
+        <para>
+        Display long text, page by page, as a regular "more" display:
+        <itemizedlist>
+        <listitem>the display stops when the text is more than one page long,</listitem>
+        <listitem>pressing ENTER moves the display one line forward,</listitem>
+        <listitem>pressing the SPACE bar moves the display one page forward,</listitem>
+        <listitem>pressing the 'q' key makes the display stop and get back to the regular CLI.</listitem>
+        </itemizedlist>
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classMore.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/More.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        Basically, the text is prepared in the <classname>OutputDevice</classname> text member,
+        then the <classname>More</classname> execution is invoked for text display.
+        </para>
+
+        <example id="eg.ui.more"><title id="eg.ui.more.title">UI package - <classname>ui.More</classname></title>
+            C++ code:
+                <programlisting>&sample-ui-text-cpp;</programlisting>
+            Java code:
+                <programlisting>&sample-ui-text-java;</programlisting>
+            CLI XML resource file:
+                &sample-ui-more;
+            The code above produces the following output:
+<programlisting>
+UI>more 100
+1: *
+2: **
+3: ***
+4: ****
+5: *****
+6: ******
+7: *******
+8: ********
+9: *********
+10: **********
+11: ***********
+12: ************
+13: *************
+14: **************
+15: ***************
+16: ****************
+17: *****************
+18: ******************
+19: *******************
+--- More ---
+</programlisting>
+            Pressing ENTER discards the wait message,
+            displays one more line,
+            and eventually prints out the wait message again:
+<programlisting>
+20: ********************
+--- More ---
+</programlisting>
+            Pressing the SPACE bar discards the wait message,
+            displays one more page,
+            and eventually prints out the wait message again:
+<programlisting>
+21: *********************
+22: **********************
+23: ***********************
+24: ************************
+25: *************************
+26: **************************
+27: ***************************
+28: ****************************
+29: *****************************
+30: ******************************
+31: *******************************
+32: ********************************
+33: *********************************
+34: **********************************
+35: ***********************************
+36: ************************************
+37: *************************************
+38: **************************************
+39: ***************************************
+--- More ---
+</programlisting>
+            Pressing the 'q' key discards the wait message and gets the user back to the regular CLI execution:
+<programlisting>
+UI>
+</programlisting>
+        </example>
+
+        <note>
+        The size of the page is determined from screen characteristics.
+        Please refer to the apropriate <link linkend="adv.iodevices">section</link> if you implement your own input/output device.
+        </note>
+
+    </section>
+
+    <section id="ui.less"><title id="ui.less.title"><classname>Less</classname></title>
+
+        <para>
+        Display long text, page by page, as a regular "less" display:
+        <itemizedlist>
+        <listitem>the display stops when the text is more than one page long,</listitem>
+        <listitem>pressing the PAGE UP key moves the display one page backward,</listitem>
+        <listitem>pressing the UP key moves the display one line backward,</listitem>
+        <listitem>pressing ENTER or the DOWN key moves the display one line forward,</listitem>
+        <listitem>pressing the SPACE bar or the PAGE DOWN key moves the display one page forward,</listitem>
+        <listitem>pressing the 'q' key makes the display stop and get back to the regular CLI.</listitem>
+        </itemizedlist>
+        </para>
+
+        <para>
+        Check <ulink url="../doxygen/html/classLess.html"><classname>C++ doxygen</classname></ulink>
+        or <ulink url="../javadoc/html/cli/ui/Less.html"><classname>javadoc</classname></ulink> documentations
+        for details on programming interfaces.
+        A <classname>Less</classname> object is prepared the same as a <classname>More</classname> object (see <link linkend="ui.more">previous section</link>).
+        </para>
+
+        <example id="eg.ui.less"><title id="eg.ui.less.title">UI package - <classname>ui.Less</classname></title>
+            CLI XML resource file:
+                &sample-ui-less;
+            The code above produces the following output:
+<programlisting>
+UI>less 100
+1: *
+2: **
+3: ***
+4: ****
+5: *****
+6: ******
+7: *******
+8: ********
+9: *********
+10: **********
+11: ***********
+12: ************
+13: *************
+14: **************
+15: ***************
+16: ****************
+17: *****************
+18: ******************
+19: *******************
+:
+</programlisting>
+            Pressing ENTER cleans the screen and prints it again, one line forward:
+<programlisting>
+2: **
+3: ***
+4: ****
+5: *****
+6: ******
+7: *******
+8: ********
+9: *********
+10: **********
+11: ***********
+12: ************
+13: *************
+14: **************
+15: ***************
+16: ****************
+17: *****************
+18: ******************
+19: *******************
+20: ********************
+:
+</programlisting>
+            Pressing the 'q' key discards the wait message and gets the user back to the regular CLI execution:
+<programlisting>
+UI>
+</programlisting>
+        </example>
+
+        <note>
+        As for a "more" display, the size of the page is determined from screen characteristics.
+        </note>
+
+        <note>
+        Please note that <classname>Less</classname> display also depends on the implementation of the "clean screen" feature.
+        If cleaning the screen is nothing but the default implementation (a couple of blank lines printed out),
+        a simple <classname>More</classname> display may be preferrable then.
+        Therefore, it might be a good idea to check the "has true cls" screen characteristic
+        (see <ulink url="../doxygen/html/classOutputDevice_1_1ScreenInfo.html#85446e0c4d94e4d8aeb75722d0c2b26d">doxygen</ulink>
+         or <ulink url="../javadoc/html/cli/OutputDevice.ScreenInfo.html#hasTrueCls()">javadoc</ulink>)
+        before using a <classname>Less</classname> object.
+        If the current output device does not implement an efficient "clean screen" feature, then you shall use a <classname>More</classname> object instead.
+        </note>
+
+    </section>
+
+    <blockquote>
+    Yup!
+    I think I'll manage with it now.
+    </blockquote>
+
+    <para>
+    So good luck.
+    Wish you lots of fun.
+    </para>
+
+</section>

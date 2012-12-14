@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+
+<!DOCTYPE article [
+    <!ENTITY intro      SYSTEM "intro.xml">
+    <!ENTITY install    SYSTEM "install.xml">
+    <!ENTITY quickuse   SYSTEM "quickuse.xml">
+    <!ENTITY xmlres     SYSTEM "xmlres.xml">
+    <!ENTITY ui         SYSTEM "ui.xml">
+    <!ENTITY advanced   SYSTEM "advanced.xml">
+    <!ENTITY faq        SYSTEM "faq.xml">
+    <!ENTITY conclusion SYSTEM "conclusion.xml">
+
+    <!ENTITY sample-empty               SYSTEM "samples/empty.db">
+    <!ENTITY sample-empty-cpp           SYSTEM "samples/empty-cpp.db">
+    <!ENTITY sample-hello               SYSTEM "samples/hello.db">
+    <!ENTITY sample-hello-shout         SYSTEM "samples/hello-shout.db">
+    <!ENTITY sample-hello-bye-shout     SYSTEM "samples/hello-bye-shout.db">
+    <!ENTITY sample-help                SYSTEM "samples/help.db">
+    <!ENTITY sample-cpp                 SYSTEM "samples/cpp.db">
+    <!ENTITY sample-cpp-full            SYSTEM "samples/cpp-full.db">
+    <!ENTITY sample-output              SYSTEM "samples/output.db">
+    <!ENTITY sample-param               SYSTEM "samples/param.db">
+    <!ENTITY sample-tag-a-star          SYSTEM "samples/tag-a-star.db">
+    <!ENTITY sample-tag-a-plus          SYSTEM "samples/tag-a-plus.db">
+    <!ENTITY sample-tag-ab-star         SYSTEM "samples/tag-ab-star.db">
+    <!ENTITY sample-tag-ab-plus         SYSTEM "samples/tag-ab-plus.db">
+    <!ENTITY sample-tag-a-b-star        SYSTEM "samples/tag-a-b-star.db">
+    <!ENTITY sample-tag-a-b-plus        SYSTEM "samples/tag-a-b-plus.db">
+    <!ENTITY sample-tag-a-b1-b2-c       SYSTEM "samples/tag-a-b1-b2-c.db">
+    <!ENTITY sample-tag-a-b1-b2-nil-c   SYSTEM "samples/tag-a-b1-b2-nil-c.db">
+    <!ENTITY sample-circle-cpp          SYSTEM "samples/circle-cpp.db">
+    <!ENTITY sample-circle-java         SYSTEM "samples/circle-java.db">
+    <!ENTITY sample-circle-pos-cli      SYSTEM "samples/circle-pos.db">
+    <!ENTITY sample-circle-color-cli    SYSTEM "samples/circle-color.db">
+    <!ENTITY sample-menu-config         SYSTEM "samples/menu-config.db">
+    <!ENTITY sample-menu-handler        SYSTEM "samples/menu-handler.db">
+    <!ENTITY sample-menu-cpp            SYSTEM "samples/menu-cpp.db">
+    <!ENTITY sample-ui-line             SYSTEM "samples/ui-line.db">
+    <!ENTITY sample-ui-password         SYSTEM "samples/ui-password.db">
+    <!ENTITY sample-ui-int              SYSTEM "samples/ui-int.db">
+    <!ENTITY sample-ui-float            SYSTEM "samples/ui-float.db">
+    <!ENTITY sample-ui-yesno            SYSTEM "samples/ui-yesno.db">
+    <!ENTITY sample-ui-choice           SYSTEM "samples/ui-choice.db">
+    <!ENTITY sample-ui-text-cpp         SYSTEM "samples/ui-text-cpp.db">
+    <!ENTITY sample-ui-text-java        SYSTEM "samples/ui-text-java.db">
+    <!ENTITY sample-ui-more             SYSTEM "samples/ui-more.db">
+    <!ENTITY sample-ui-less             SYSTEM "samples/ui-less.db">
+]>
+
+<article xmlns="http://docbook.org/docbook-ng">
+<title>CLI toolkit user guide</title>
+
+<artheader>
+    <author><firstname>Royer</firstname><surname>Alexis</surname></author>
+    <issuenum>2.7</issuenum>
+    <pubdate>Dec, 7th 2011</pubdate>
+    <title>CLI library user guide</title>
+    <!--<titleabbrev></titleabbrev>-->
+    <revhistory>
+        <revision>  <revnumber>2.7</revnumber><date>Dec, 7th 2011</date>
+                    <revremark><variablelist>
+                                <varlistentry><term>New sections:</term>
+                                    <listitem>  "UI package",
+                                                "Telnet",
+                                                "Mono-thread execution" renamed into "Non blocking execution",
+                                                "Define your own input/output device" split in two sub-sections,
+                                                "Pre-compiled headers",
+                                                "Frequently Asked Questions".</listitem></varlistentry>
+                                <varlistentry><term>New examples:</term>
+                                    <listitem>  "Non blocking execution",
+                                                "UI Package" section examples.</listitem></varlistentry>
+                                <varlistentry><term>New tables:</term>
+                                    <listitem>  "Output device handlers",
+                                                "Input device handlers",
+                                                "Non blocking device handlers".</listitem></varlistentry>
+                                <varlistentry><term>Other additions:</term>
+                                    <listitem>  <function>Shell::CleanScreen</function>.</listitem></varlistentry>
+                                <varlistentry><term>Improvements:</term>
+                                    <listitem>  Dynamic menus implementation (including table of content, example list, figure list, table list, change list),
+                                                dynamic notes and tips,
+                                                example titles improvement,
+                                                numbers and named anchor for all titles and examples.</listitem></varlistentry>
+                                <varlistentry><term>Deprecations:</term>
+                                    <listitem>  "C++ integration - static instantiation + @cpp attribute" example.</listitem></varlistentry>
+                    </variablelist></revremark></revision>
+        <revision>  <revnumber>2.6</revnumber><date>Dec, 15th 2010</date>
+                    <revremark><variablelist>
+                                <varlistentry><term>Deprecations:</term>
+                                    <listitem>  <function>Shell::SetErrorFormatting</function>
+                                                / <function>Shell.setErrorFormatting</function>.</listitem></varlistentry>
+                                <varlistentry><term>Additions:</term>
+                                    <listitem>  <function>Shell::GetCurrentMenu</function>
+                                                / <function>Shell.getCurrentMenu</function>.</listitem></varlistentry>
+                    </variablelist></revremark></revision>
+        <revision>  <revnumber>2.5</revnumber><date>Sep, 8th 2010</date>
+                    <revremark><variablelist>
+                                <varlistentry><term>New features:</term>
+                                    <listitem>  schemas,
+                                                "member" and "constructor" sections,
+                                                "prompt" handler
+                                                and automatic help document generation.</listitem></varlistentry>
+                                <varlistentry><term>New sections:</term>
+                                    <listitem>  "Advanced menu management"
+                                                and "Shell advanced features".</listitem></varlistentry>
+                                <varlistentry><term>Improvements:</term>
+                                    <listitem>  (a|b)+, (a|b)* samples.</listitem></varlistentry>
+                    </variablelist></revremark></revision>
+        <revision>  <revnumber>2.4</revnumber><date>Oct, 1st 2009</date>
+                    <revremark>Minor corrections according to miscellaneous changes.</revremark></revision>
+        <revision>  <revnumber>2.3</revnumber><date>May, 14th 2009</date>
+                    <revremark><variablelist>
+                                <varlistentry><term>New features:</term>
+                                    <listitem>  "Thread-safe termination"
+                                                and "Mono-Thread execution".</listitem></varlistentry>
+                                <varlistentry><term>New sections:</term>
+                                    <listitem>  "Embedded integration and memory"
+                                                and "Making compilers".</listitem></varlistentry>
+                                <varlistentry><term>Improvements:</term>
+                                    <listitem>  "Define your own input/output device",
+                                                and XSL generation note addition.</listitem></varlistentry>
+                    </variablelist></revremark></revision>
+        <revision>  <revnumber>2.2</revnumber><date>Sep, 21st 2008</date>
+                    <revremark>Minor corrections according bug fixes and miscellaneous changes.</revremark></revision>
+        <revision>  <revnumber>2.1</revnumber><date>Oct, 31st 2007</date>
+                    <revremark><variablelist>
+                                <varlistentry><term>New features:</term>
+                                    <listitem>  Java addition,
+                                                French language support.</listitem></varlistentry>
+                                <varlistentry><term>Improvements:</term>
+                                    <listitem>  Minor corrections.</listitem></varlistentry>
+                    </variablelist></revremark></revision>
+        <revision>  <revnumber>2.0</revnumber><date>Sept, 27th 2007</date>
+                    <revremark>License modification: minor changes.</revremark></revision>
+        <revision>  <revnumber>1.0</revnumber><date>June, 1st 2006</date>
+                    <revremark>First release of the user guide.</revremark></revision>
+    </revhistory>
+</artheader>
+
+    &intro;
+    &install;
+    &quickuse;
+    &xmlres;
+    &ui;
+    &advanced;
+    &faq;
+    &conclusion;
+
+</article>

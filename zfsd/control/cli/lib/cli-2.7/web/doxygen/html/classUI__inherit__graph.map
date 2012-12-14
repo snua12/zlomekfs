@@ -1,0 +1,11 @@
+base referer
+rect $classLess.html 24,232 74,258
+rect $classLine.html 98,232 144,258
+rect $classMore.html 168,232 218,258
+rect $classPassword.html 242,232 322,258
+rect $classNonBlockingKeyReceiver.html 72,82 242,109
+rect $classObject.html 126,8 188,34
+rect $classChoice.html 8,306 72,333
+rect $classFloat.html 96,306 146,333
+rect $classInt.html 170,306 208,333
+rect $classYesNo.html 8,381 72,408

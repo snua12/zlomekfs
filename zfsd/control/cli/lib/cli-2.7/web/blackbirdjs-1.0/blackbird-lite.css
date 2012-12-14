@@ -1,0 +1,58 @@
+
+#blackbird {
+	/* _position: absolute is a fix for IE6 position: fixed */
+	position: fixed; _position: absolute; bottom: 0; right: 0;
+	width: 800; height: 500;
+	font: 11px/1.3 Consolas, 'Lucida Console', Monaco, monospace;
+	color: #AAAAAA; background-color: #000000;
+	/*opacity: 0.5; filter: alpha(opacity='50'); */
+	display: none;
+}
+
+#blackbird .header { height: 25; }
+	/* Set header icons. */
+	#blackbird .header span {
+		background-image: url(blackbird_icons.png); background-repeat: no-repeat;
+		width: 16px; height: 16px; margin: 0 4px; float: left;
+	}
+	/* Adjust header icons. */
+	#blackbird .header span.error             { background-position: 0px 0px; }
+	#blackbird .header span.errorDisabled      { background-position: -16px 0px; }
+	#blackbird .header span.warn              { background-position: 0px -16px; }
+	#blackbird .header span.warnDisabled       { background-position: -16px -16px; }
+	#blackbird .header span.info              { background-position: 0px -32px; }
+	#blackbird .header span.infoDisabled       { background-position: -16px -32px; }
+	#blackbird .header span.debug             { background-position: 0px -48px; }
+	#blackbird .header span.debugDisabled      { background-position: -16px -48px; }
+	#blackbird .header span.profile           { background-position: 0px -64px; }
+	#blackbird .header span.profileDisabled    { background-position: -16px -64px; }
+	#blackbird .header span.close             { background-position: 0px -80px; }
+	#blackbird .header span.clear             { background-position: -16px -80px; }
+	#blackbird .header span.small             { background-position: 0px -96px; }
+	#blackbird .header span.large             { background-position: -16px -96px; }
+
+#blackbird .main { clear: left; height: 450; overflow: scroll; } /* clear: left makes DIV elements being displayed vertically. */
+	/* Log list positionning. */
+	#blackbird .main .mainBody ol {
+		/* _margin-left: 57 is a fix for IE6 margin-left: -11;. */
+		margin: 0; margin-left: -11; _margin-left: 57;
+		/* list-style-type: none gets rid of item numbers */
+		list-style-type: none;
+	}
+	/* Attach icons to each log item. */
+	#blackbird .main .mainBody ol li span {
+		background:url(blackbird_icons.png) no-repeat 0 0;
+		width: 16px; height: 16px; float: left;
+		/* Following margin property keeps elements alignment. */
+		margin: -2px 0 1px -25px;
+	}
+	/* Adjust icon depending on the log item class. */
+	#blackbird .main .mainBody ol li.error span   { background-position: 0 0; }
+	#blackbird .main .mainBody ol li.warn span    { background-position: 0 -16px; }
+	#blackbird .main .mainBody ol li.info span    { background-position: 0 -32px; }
+	#blackbird .main .mainBody ol li.debug span   { background-position: 0 -48px; }
+	#blackbird .main .mainBody ol li.profile span { background-position: 0 -64px; }
+	#blackbird .main .mainBody ol li.profile      { color:#D0D0D0; font-style:italic; }
+
+#blackbird .footer div { clear: left; height: 25; }
+#blackbird .footer div * { float: left; }

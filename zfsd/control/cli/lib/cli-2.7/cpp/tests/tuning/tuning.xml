@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<cli xmlns="http://alexis.royer.free.fr/CLI" name="tuning">
+    <cpp option="include">#include "gotuning.h"</cpp>
+
+    <keyword string="welcome">                              <help lang="en">Welcome message modification</help>
+                                                            <help lang="fr">Modification du message de bienvenue</help>
+        <cpp>cli::ResourceString cli_Welcome;</cpp>
+        <cpp>cli::ResourceString::LANG e_Lang = cli::ResourceString::LANG_EN;</cpp>
+
+        <tag id="welcome-loop">
+            <keyword string="en">                           <help lang="en">Welcome message modification in English</help>
+                                                            <help lang="fr">Modification du message de bienvenue en Anglais</help>
+                <cpp>e_Lang = cli::ResourceString::LANG_EN;</cpp>   <tag ref="welcome-string"/>
+            </keyword>
+            <keyword string="fr">                           <help lang="en">Welcome message modification in French</help>
+                                                            <help lang="fr">Modification du message de bienvenue en Français</help>
+                <cpp>e_Lang = cli::ResourceString::LANG_FR;</cpp>   <tag ref="welcome-string"/>
+            </keyword>
+            <tag id="welcome-string" hollow="yes">
+                <param id="welcome-string" type="string">   <help lang="en">Welcome message</help>
+                                                            <help lang="fr">Message de bienvenue</help>
+                    <cpp>cli_Welcome.SetString(e_Lang, <value-of param="welcome-string"/>);</cpp>
+                    <tag ref="welcome-loop"/>
+                </param>
+            </tag>
+            <endl>                                          <help lang="en">Welcome message modification</help>
+                                                            <help lang="fr">Modification du message de bienvenue</help>
+                <cpp>TuneWelcomeMessage(cli_Welcome);</cpp>
+            </endl>
+        </tag>
+    </keyword>
+
+    <keyword string="bye">                                  <help lang="en">Bye message modification</help>
+                                                            <help lang="fr">Modification du message de fin</help>
+        <cpp>cli::ResourceString cli_Bye;</cpp>
+        <cpp>cli::ResourceString::LANG e_Lang = cli::ResourceString::LANG_EN;</cpp>
+
+        <tag id="bye-loop">
+            <keyword string="en">                           <help lang="en">Bye message modification in English</help>
+                                                            <help lang="fr">Modification du message de fin en Anglais</help>
+                <cpp>e_Lang = cli::ResourceString::LANG_EN;</cpp>   <tag ref="bye-string"/>
+            </keyword>
+            <keyword string="fr">                           <help lang="en">Bye message modification in French</help>
+                                                            <help lang="fr">Modification du message de fin en Français</help>
+                <cpp>e_Lang = cli::ResourceString::LANG_FR;</cpp>   <tag ref="bye-string"/>
+            </keyword>
+            <tag id="bye-string" hollow="yes">
+                <param id="bye-string" type="string">       <help lang="en">Bye message</help>
+                                                            <help lang="fr">Message de fin</help>
+                    <cpp>cli_Bye.SetString(e_Lang, <value-of param="bye-string"/>);</cpp>
+                    <tag ref="bye-loop"/>
+                </param>
+            </tag>
+            <endl>                                          <help lang="en">Bye message modification</help>
+                                                            <help lang="fr">Modification du message de fin</help>
+                <cpp>TuneByeMessage(cli_Bye);</cpp>
+            </endl>
+        </tag>
+    </keyword>
+
+    <keyword string="prompt">                               <help lang="en">Prompt modification</help>
+                                                            <help lang="fr">Modification de l'invite de commande</help>
+        <cpp>cli::ResourceString cli_Prompt;</cpp>
+        <cpp>cli::ResourceString::LANG e_Lang = cli::ResourceString::LANG_EN;</cpp>
+
+        <tag id="prompt-loop">
+            <keyword string="en">                           <help lang="en">Prompt modification in English</help>
+                                                            <help lang="fr">Modification de l'invite de commande en Anglais</help>
+                <cpp>e_Lang = cli::ResourceString::LANG_EN;</cpp>   <tag ref="prompt-string"/>
+            </keyword>
+            <keyword string="fr">                           <help lang="en">Prompt modification in French</help>
+                                                            <help lang="fr">Modification de l'invite de commande en Français</help>
+                <cpp>e_Lang = cli::ResourceString::LANG_FR;</cpp>   <tag ref="prompt-string"/>
+            </keyword>
+            <tag id="prompt-string" hollow="yes">
+                <param id="prompt-string" type="string">    <help lang="en">Prompt</help>
+                                                            <help lang="fr">Invite de commande</help>
+                    <cpp>cli_Prompt.SetString(e_Lang, <value-of param="prompt-string"/>);</cpp>
+                    <tag ref="prompt-loop"/>
+                </param>
+            </tag>
+            <endl>                                          <help lang="en">Prompt modification</help>
+                                                            <help lang="fr">Modification de l'invite de commande</help>
+                <cpp>TunePrompt(cli_Prompt);</cpp>
+            </endl>
+        </tag>
+    </keyword>
+
+    <keyword string="language">                             <help lang="en">Select language</help>
+                                                            <help lang="fr">Sélection de la langue</help>
+        <keyword string="english">                          <help lang="en">Select English language</help>
+                                                            <help lang="fr">Sélection de la langue Anglaise</help>
+            <endl>                                          <help lang="en">Select English language</help>
+                                                            <help lang="fr">Sélection de la langue Anglaise</help>
+                <cpp>TuneLang(cli::ResourceString::LANG_EN);</cpp>
+            </endl>
+        </keyword>
+        <keyword string="french">                           <help lang="en">Select French language</help>
+                                                            <help lang="fr">Sélection de la langue Française</help>
+            <endl>                                          <help lang="en">Select French language</help>
+                                                            <help lang="fr">Sélection de la langue Française</help>
+                <cpp>TuneLang(cli::ResourceString::LANG_FR);</cpp>
+            </endl>
+        </keyword>
+    </keyword>
+
+    <keyword string="beep">                                 <help lang="en">Beep enabling</help>
+                                                            <help lang="fr">Activation du bip</help>
+        <keyword string="on">                               <help lang="en">Beep enabling</help>
+                                                            <help lang="fr">Activation du bip</help>
+            <endl>                                          <help lang="en">Beep enabling</help>
+                                                            <help lang="fr">Activation du bip</help>
+                <cpp>TuneBeep(true);</cpp>
+            </endl>
+        </keyword>
+        <keyword string="off">                              <help lang="en">Beep disabling</help>
+                                                            <help lang="fr">Désactivation du bip</help>
+            <endl>                                          <help lang="en">Beep disabling</help>
+                                                            <help lang="fr">Désactivation du bip</help>
+                <cpp>TuneBeep(false);</cpp>
+            </endl>
+        </keyword>
+    </keyword>
+
+    <keyword string="cli-config">                           <help lang="en">Configuration menu enabling</help>
+                                                            <help lang="fr">Activation du menu de configuration</help>
+        <keyword string="on">                               <help lang="en">Configuration menu enabling</help>
+                                                            <help lang="fr">Activation du menu de configuration</help>
+            <endl>                                          <help lang="en">Configuration menu enabling</help>
+                                                            <help lang="fr">Activation du menu de configuration</help>
+                <cpp>TuneConfigMenu(true);</cpp>
+            </endl>
+        </keyword>
+        <keyword string="off">                              <help lang="en">Configuration menu disabling</help>
+                                                            <help lang="fr">Désactivation du menu de configuration</help>
+            <endl>                                          <help lang="en">Configuration menu disabling</help>
+                                                            <help lang="fr">Désactivation du menu de configuration</help>
+                <cpp>TuneConfigMenu(false);</cpp>
+            </endl>
+        </keyword>
+    </keyword>
+    <keyword string="restore-cli-config">                   <help lang="en">Configuration menu restoration</help>
+                                                            <help lang="fr">Restauration du menu de configuration</help>
+        <endl>                                              <help lang="en">Configuration menu restoration</help>
+                                                            <help lang="fr">Restauration du menu de configuration</help>
+            <cpp>TuneConfigMenu(true);</cpp>
+        </endl>
+    </keyword>
+
+</cli>

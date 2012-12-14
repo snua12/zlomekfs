@@ -1,0 +1,5 @@
+base referer
+rect $classLine.html 70,231 116,258
+rect $classUI.html 74,157 112,183
+rect $classNonBlockingKeyReceiver.html 8,82 178,109
+rect $classObject.html 62,7 124,34

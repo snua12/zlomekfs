@@ -1,0 +1,23 @@
+sample-cli>print author
+Alexis Royer
+sample-cli>print float 3.14
+3.14
+sample-cli>print int 123
+123
+sample-cli>print word Hello
+Hello
+sample-cli>print words What *!\?
+  <string>(*!?)   
+sample-cli>print words What *!\? "  " I couldn\'t hear you.
+What *!?    I couldn't hear you.
+sample-cli>enter sample-menu
+Entering sample-menu
+sample-menu> hel
+  hello           'Hello world' command
+  help            Get help
+sample-menu> hello 
+Hello world
+sample-menu> exit
+sample-cli>enter sample-menu
+Entering sample-menu
+sample-menu> quit

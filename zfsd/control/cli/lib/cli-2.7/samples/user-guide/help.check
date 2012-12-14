@@ -1,0 +1,39 @@
+Hello>
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'Hello'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+  say             Say something.
+Hello>say 
+  bye             Say goodbye.
+  hello           Say hello.
+Hello>say bye 
+  <cr>            
+Hello>say bye 
+Hello>say hello 
+  <cr>            
+Hello>say hello 
+Hello>cli-config
+cli-config>lang fr
+Langue française
+cli-config>exit
+Hello>
+  cli-config      Menu de configuration du CLI
+  cls             Nettoyage de l'écran
+  exit            Sortir du menu 'Hello'
+  help            Obtenir de l'aide
+  pwm             Affichage du menu courant
+  quit            Quitter
+  say             Dire quelque chose.
+Hello>say 
+  bye             Dire au revoir.
+  hello           Dire bonjour.
+Hello>say bye 
+  <cr>            
+Hello>say bye 
+Hello>say hello 
+  <cr>            
+Hello>say hello 
+Hello>exit

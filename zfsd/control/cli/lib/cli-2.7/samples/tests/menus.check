@@ -1,0 +1,63 @@
+menus>pwm
+  /menus
+menus>menu "menu0"
+No such menu 'menu0'
+menus>pwm
+  /menus
+menus>menu "menu0 (stand-alone)"
+menu0 (stand-alone)>pwm
+  /menus/menu0 (stand-alone)
+menu0 (stand-alone)>exit
+menus>pwm
+  /menus
+menus>menu1
+menu1>pwm
+  /menus/menu1
+menu1>menu1
+menu1>pwm
+  /menus/menu1/menu1
+menu1>menu1.1
+menu1.1>pwm
+  /menus/menu1/menu1/menu1.1
+menu1.1>pwm-ext
+0: menus
+1: menu1
+2: menu1
+3: menu1.1
+menu1.1>menu1.1
+menu1.1>pwm
+  /menus/menu1/menu1/menu1.1/menu1.1
+menu1.1>pwm-ext
+0: menus
+1: menu1
+2: menu1
+3: menu1.1
+4: menu1.1
+menu1.1>menu1
+menu1>pwm
+  /menus/menu1/menu1/menu1.1/menu1.1/menu1
+menu1>exit
+menu1.1>pwm
+  /menus/menu1/menu1/menu1.1/menu1.1
+menu1.1>exit
+menu1.1>pwm
+  /menus/menu1/menu1/menu1.1
+menu1.1>exit
+menu1>pwm
+  /menus/menu1/menu1
+menu1>exit
+menu1>pwm
+  /menus/menu1
+menu1>exit
+menus>pwm
+  /menus
+menus>menu1.1
+menu1.1>pwm
+  /menus/menu1.1
+menu1.1>pwm-ext
+0: menus
+1: menu1.1
+menu1.1>menu1
+menu1>pwm
+  /menus/menu1.1/menu1
+menu1>quit

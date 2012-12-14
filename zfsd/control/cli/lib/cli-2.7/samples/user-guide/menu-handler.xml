@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+
+<cli xmlns="http://alexis.royer.free.fr/CLI" name="menu-handler">
+    <cpp option="include">#include "cli/string_device.h"</cpp>
+
+    <cpp option="head">static int MenuId = 0;</cpp>
+    <java option="import">class Global { public static int menuId = 0; }</java>
+
+    <keyword string="menu">
+        <param id="menu-id" type="int">
+            <endl>
+                <cpp>MenuId = <value-of param="menu-id"/>;</cpp>
+                <java>Global.menuId = <value-of param="menu-id"/>;</java>
+                <menu name="menu#">
+                    <handler name="exit">
+                        <cpp><out/> &lt;&lt; "Leaving 'menu#" &lt;&lt; MenuId &lt;&lt; "' menu" &lt;&lt; cli::endl;</cpp>
+                        <cpp>MenuId = 0;</cpp>
+                        <java><out/>.put("Leaving 'menu#" + Global.menuId + "' menu").endl();</java>
+                        <java>Global.menuId = 0;</java>
+                    </handler>
+                    <handler name="prompt">
+                        <cpp>cli::StringDevice s(20, false);</cpp>
+                        <cpp>s &lt;&lt; "menu#" &lt;&lt; MenuId;</cpp>
+                        <cpp>return s.GetString();</cpp>
+                        <java>return ("menu#" + Global.menuId);</java>
+                    </handler>
+                </menu>
+            </endl>
+        </param>
+    </keyword>
+
+    <handler name="error">
+        <cpp><out/> &lt;&lt; "Error detected: ";</cpp>
+        <cpp><out/> &lt;&lt; "location = " &lt;&lt; location.GetString(GetShell().GetLang()) &lt;&lt; ", ";</cpp>
+        <cpp><out/> &lt;&lt; "message = " &lt;&lt; message.GetString(GetShell().GetLang()) &lt;&lt; cli::endl;</cpp>
+        <cpp>return (MenuId == 0);</cpp>
+        <java><out/>.put("Error detected: ");</java>
+        <java><out/>.put("location = " + location.getString(getShell().getLang()) + ", ");</java>
+        <java><out/>.put("message = " + message.getString(getShell().getLang())).endl();</java>
+        <java>return (Global.menuId == 0);</java>
+    </handler>
+    <handler name="exit">
+        <cpp><out/> &lt;&lt; "Leaving 'menu-handler' menu" &lt;&lt; cli::endl;</cpp>
+        <java><out/>.put("Leaving 'menu-handler' menu").endl();</java>
+    </handler>
+    <handler name="prompt">
+        <cpp>return cli::tk::String(0);</cpp>
+        <java>return "";</java>
+    </handler>
+</cli>

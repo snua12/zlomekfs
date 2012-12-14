@@ -1,0 +1,144 @@
+/*
+	Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+		* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+		* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+		* Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+	"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+	LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+	A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+	CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+	EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+	PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+	PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+	LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+	NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/* General styles. */
+	body {
+		font-family: arial;             /* Arial font. */
+		font-size: normal;              /* Regular size. */
+		margin-left: 50px;              /* Leave blank space from the left border. */
+		margin-right: 50px;             /* Same from the right border. */
+		text-align: justify;            /* Justify text. */
+	}
+
+	/* Style H1 titles. */
+	h1 {
+		text-align: center;             /* Center main title. */
+	}
+
+	/* Style H2 titles and content. */
+	div.section > * {
+		margin-left: 100px;             /* Use 100px more offset from the left. */
+	}
+	h2 {
+		margin-left: 0px;                 /* But not H2 elements. */
+	}
+
+	/* Style H3 titles. */
+	h3 {
+		font-size: medium;              /* Regular size. */
+		font-weight: normal;            /* Avoid bold. */
+		text-decoration: underline;     /* Underline. */
+	}
+
+	/* Tables. */
+	table td {
+		vertical-align: top;            /* Vertical align all cells to top. */
+	}
+	td.date {                           /* Date cells. */
+		font-style: italic;             /* Italic. */
+		text-align: right;              /* Right align. */
+	}
+
+	/* Keywords. */
+	.keyword {
+		font-weight: bold;              /* Bold. */
+		/*color: #000066;                 /* Blue. */
+	}
+	/* Small text. */
+	.note {
+		font-size: x-small;             /* Reduced text size. */
+	}
+
+	/* Download buttons. */
+	p.download {
+		width: 13em;                    /* Width of button. */
+		text-align: center;             /* Text alignment. */
+	}
+
+/* Specific styles. */
+	/* Last update. */
+	#last-update {
+		float: right;                   /* Align last update on the right of the page. */
+	}
+
+	/* News table. */
+	#news table {
+		margin-left: 100px;             /* Use 100px more offset from the left. */
+		border-collapse: collapse;      /* Avoid spacing between cells. */
+	}
+	#news td {
+		padding-top: 10px;              /* Leave space from the top. */
+		padding-bottom: 10px;           /* Leave space from the bottom. */
+	}
+	#news tr + tr td {                 /* For each cell of the 2+ line... */
+		border-top: 1px solid black;    /* Display a line on top of cell. */
+	}
+	#news tr td + td {                 /* For each cell of the 2+ column... */
+		padding-left: 50px;             /* Leave space from the left. */
+	}
+	#news .note {
+		margin-left: 100px;             /* Use 100px more offset from the left. */
+	}
+
+	/* Short example. */
+	#example {
+		margin-left: 150px;             /* Use 100px more offset from the left, same as #news. */
+	}
+	#example p {
+		width: 648px;                   /* Same width as the image below. */
+		margin-bottom: 0px;
+	}
+	#example pre {
+		margin-top: 0px;                /* Avoid spacing before the code area. */
+		width: 648px;                   /* Same width as the image below. */
+		background: #fcfcfc;            /* Code background color. */
+		border: 1px solid #eeeeee;      /* Border. */
+	}
+	#example img {
+		border: 1px solid #eeeeee;      /* Border. */
+	}
+
+	/* History. */
+	#version-list {
+		font-size: 62.5%;               /* Same as jquery-ui/smoothness sample for accordions and tabs display. */
+	}
+	#version-list table tr td {
+		font-size: 62.5%;               /* Ensure font size. */
+	}
+	#version-list table tr td.keyword {
+		text-align: right;              /* Align keywords on the right. */
+	}
+	#version-list table tr td + td {  /* For each cell of the 2+ column... */
+		padding-left: 10px;             /* Leave space from the left. */
+	}
+	#version-list table {
+		margin-bottom: 20px;            /* Ensure space below each version summary. */
+	}
+	#history img {                     /* Number of code lines chart. */
+		margin-left: 100px;             /* Use 100px more offset from the left, same as #news. */
+	}
+
+	#download .download {               /* Main download button. */
+		margin-left: 100px;             /* Use 100ps more offset from the left, same as #news. */
+	}

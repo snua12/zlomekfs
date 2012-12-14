@@ -1,0 +1,4 @@
+base referer
+rect $classIODevice.html 21,157 98,184
+rect $classOutputDevice.html 8,82 112,109
+rect $classObject.html 29,8 90,34

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<!-- Define the root element. Obviously, it is named 'cli'. -->
+<!-- Give it a name through the '@name' attribute. -->
+<cli name="sample-cli" xmlns="http://alexis.royer.free.fr/CLI"><help lang="en">Sample CLI</help>
+
+    <!--
+    Native child elements of the CLI can receive specific options to generate code in special sections.
+    Put stuff here to have your native code along this file compile or run correctly.
+    -->
+    <!-- 'cpp' elements with the 'include' option generate code in 'include' section. -->
+    <cpp option="include">#include &lt;string&gt;</cpp>
+    <cpp option="include">#include &lt;vector&gt;</cpp>
+    <!-- 'java' elements with the 'import' option generate code in 'import' section. -->
+    <java option="import">import java.util.Vector;</java>
+
+
+    <!--
+    A CLI is composed of menus.
+    Each menu defines a set of command lines.
+    Command lines are sequences of keywords and parameters terminated by a return carriage.
+    The syntax is defined through a tree of words and parameters.
+    -->
+
+    <!-- 'keyword' elements define keywords. -->
+    <keyword string="print">
+        <!-- For each element, you can give help as done below. -->
+        <help lang="en">Print stuff</help>
+        <help lang="fr">Affichages divers</help>
+
+        <!-- Keywords can be followed by other keywords. -->
+        <keyword string="author">   <help lang="en">Print out the name of the author of this sample CLI.</help>
+                                    <help lang="fr">Affichage du nom de l'auteur de ce CLI d'exemple.</help>
+            <!-- At the end of each branch there should normally be an 'endl' (end of line) element. -->
+            <endl>
+                <!-- 'endl' elements basically own native code elements... -->
+                <!-- 'cpp' elements generate native C++ code. -->
+                <cpp><out/> &lt;&lt; "Alexis Royer" &lt;&lt; cli::endl;</cpp>
+                <!-- 'java' elements generate native Java code. -->
+                <java><out/>.put("Alexis Royer").endl();</java>
+                <!-- 'out' element references the output stream. -->
+            </endl>
+        </keyword>
+        <keyword string="word"> <help lang="en">Print out a single word</help>
+                                <help lang="fr">Affichage d'un mot simple</help>
+            <!-- Parameters can also be defined. Parameters are typed through the '@type' attribute. Give it an ID through the '@id' attribute. -->
+            <param id="word-value" type="string">
+                <!-- 'value-of' elements can then be used to reference the parameters. Only ancestor parameters can be referenced. -->
+                <endl>
+                    <cpp><out/> &lt;&lt; <value-of param="word-value"/> &lt;&lt; cli::endl;</cpp>
+                    <java><out/>.put(<value-of param="word-value"/>).endl();</java>
+                </endl>
+            </param>
+        </keyword>
+        <keyword string="int">  <help lang="en">Print out an int</help>
+                                <help lang="fr">Affichage d'un nombre entier</help>
+            <!-- Here is an integer parameter. -->
+            <param id="int-value" type="int">
+                <endl>
+                    <cpp><out/> &lt;&lt; <value-of param="int-value"/> &lt;&lt; cli::endl;</cpp>
+                    <java><out/>.put(<value-of param="int-value"/>).endl();</java>
+                </endl>
+            </param>
+        </keyword>
+        <keyword string="float"><help lang="en">Print out a float</help>
+                                <help lang="fr">Affichage d'un nombre décimal</help>
+            <!-- Here is a float parameter. -->
+            <param id="float-value" type="float">
+                <endl>
+                    <cpp><out/> &lt;&lt; <value-of param="float-value"/> &lt;&lt; cli::endl;</cpp>
+                    <java><out/>.put(<value-of param="float-value"/>).endl();</java>
+                </endl>
+            </param>
+        </keyword>
+        <keyword string="words">    <help lang="en">Print out several words</help>
+                                    <help lang="fr">Affichage d'une série de mots</help>
+            <!-- Sometimes, you might need to break out the tree structure. You can use 'tag' elements and references to them. Tags and tag references can be compared to labels and gotos in C. -->
+            <cpp>std::vector&lt;std::string&gt; vstr_Words;</cpp>
+            <java>Vector&lt;String&gt; j_Words = new Vector&lt;String&gt;();</java>
+            <tag id="words">
+                <!-- Notice that tags sub-elements are directly accessible by the parent nodes. On the other hand, when the execution comes back to this point, only the tag sub-elements are accessible, not the parent node ones. -->
+                <param id="a-word" type="string">
+                    <cpp>vstr_Words.push_back(std::string(<value-of param="a-word"/>));</cpp>
+                    <java>j_Words.add(<value-of param="a-word"/>);</java>
+                    <tag ref="words" max="unbounded"/>
+                </param>
+                <endl>
+                    <cpp>for (unsigned int i=0; i&lt;vstr_Words.size(); i++) {</cpp>
+                    <cpp>    if (i&gt;0) <out/> &lt;&lt; " ";</cpp>
+                    <cpp>    <out/> &lt;&lt; vstr_Words[i].c_str();</cpp>
+                    <cpp>}</cpp>
+                    <cpp><out/> &lt;&lt; cli::endl;</cpp>
+
+                    <java>for (int i=0; i&lt;j_Words.size(); i++) {</java>
+                    <java>    if (i&gt;0) <out/>.put(" ");</java>
+                    <java>    <out/>.put(j_Words.elementAt(i));</java>
+                    <java>}</java>
+                    <java><out/>.endl();</java>
+                </endl>
+            </tag>
+        </keyword>
+    </keyword>
+
+    <!-- Now we deal about menus --> 
+    <keyword string="enter"><help lang="en">Enter a menu</help>
+                            <help lang="fr">Entrée dans un menu</help>
+        <keyword string="sample-menu">  <help lang="en">Enter sample-menu</help>
+                                        <help lang="fr">Entrée dans le menu sample-menu</help>
+            <endl>
+                <cpp><out/> &lt;&lt; "Entering sample-menu" &lt;&lt; cli::endl;</cpp>
+                <java><out/>.put("Entering sample-menu").endl();</java>
+                <!-- Menu references can be found in 'endl' elements. -->
+                <menu ref="sample-menu"/>
+            </endl>
+        </keyword>
+    </keyword>
+    <!-- Here is the menu definition. The menu should be named through the '@name' attribute. -->
+    <menu name="sample-menu">   <help lang="en">Sample menu</help>
+                                <help lang="fr">Menu d'exemple</help>
+        <!-- The menu defines its own syntax tree. -->
+        <keyword string="hello"><help lang="en">'Hello world' command</help>
+                                <help lang="fr">Commande 'Hello world'</help>
+            <endl>
+                <cpp><out/> &lt;&lt; "Hello world" &lt;&lt; cli::endl;</cpp>
+                <java><out/>.put("Hello world").endl();</java>
+            </endl>
+        </keyword>
+    </menu>
+
+</cli>
+

@@ -1,0 +1,12 @@
+base referer
+rect $classShell.html 64,157 114,184
+rect $classUI.html 138,157 176,184
+rect $classObject.html 92,8 153,34
+rect $classLess.html 24,232 74,258
+rect $classLine.html 98,232 144,258
+rect $classMore.html 168,232 218,258
+rect $classPassword.html 242,232 322,258
+rect $classChoice.html 8,306 72,333
+rect $classFloat.html 96,306 146,333
+rect $classInt.html 170,306 208,333
+rect $classYesNo.html 8,381 72,408

@@ -1,0 +1,49 @@
+a(b1|b2)c>
+  a               
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'a(b1|b2)c'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+a(b1|b2)c>a 
+  b1              
+  b2              
+a(b1|b2)c>a b1 
+  c               
+a(b1|b2)c>a b1 c 
+  <cr>            
+a(b1|b2)c>a b1 c 
+a(b1|b2)c>
+  a               
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'a(b1|b2)c'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+a(b1|b2)c>a 
+  b1              
+  b2              
+a(b1|b2)c>a b2 
+  c               
+a(b1|b2)c>a b2 c 
+  <cr>            
+a(b1|b2)c>a b2 c 
+a(b1|b2)c>
+  a               
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'a(b1|b2)c'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+a(b1|b2)c>a 
+  b1              
+  b2              
+a(b1|b2)c>a c
+a(b1|b2)c>a c 
+../../../samples/user-guide/tag-a-b1-b2-c.test:3: Syntax error next to 'c'
+a(b1|b2)c>a c 
+../../../samples/user-guide/tag-a-b1-b2-c.test:3: Syntax error next to 'c'
+a(b1|b2)c>exit

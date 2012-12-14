@@ -1,0 +1,30 @@
+Circle>
+  add             
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'Circle'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+Circle>add 
+  circle          
+Circle>add circle 
+  <cr>            
+  black           
+  blue            
+  green           
+  red             
+Circle>add circle 
+Circle>add circle black 
+  <cr>            
+Circle>add circle black 
+Circle>add circle blue 
+  <cr>            
+Circle>add circle blue 
+Circle>add circle green 
+  <cr>            
+Circle>add circle green 
+Circle>add circle red 
+  <cr>            
+Circle>add circle red 
+Circle>exit

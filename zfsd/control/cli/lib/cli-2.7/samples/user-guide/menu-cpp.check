@@ -1,0 +1,13 @@
+menu-cpp>menu 0
+sub-menu>pwm
+  /menu-cpp/sub-menu
+sub-menu>exit
+menu-cpp>menu 1
+sub-menu>pwm
+  /menu-cpp/sub-menu
+sub-menu>exit
+menu-cpp>menu -1
+Invalid menu identifier -1
+menu-cpp>pwm
+  /menu-cpp
+menu-cpp>quit

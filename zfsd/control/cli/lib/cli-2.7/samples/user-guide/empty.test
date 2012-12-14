@@ -1,0 +1,27 @@
+?	help
+h?	
+pwm
+p?	
+cli-config
+pwm
+help
+show version
+show author
+show license
+echo ?o?n
+abcde
+echo off
+abcde
+echo on
+beep ?on
+beep off
+beep on
+lang ?f	
+help
+exit
+help
+cli-config
+lang ?e	
+help
+quit
+

@@ -1,0 +1,20 @@
+a*>
+  <cr>            
+  a               
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'a*'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+a*>a 
+  <cr>            
+  a               
+a*>a a 
+  <cr>            
+  a               
+a*>a a a 
+  <cr>            
+  a               
+a*>a a a a
+a*>exit

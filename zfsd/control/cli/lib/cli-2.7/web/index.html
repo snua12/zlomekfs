@@ -1,0 +1,697 @@
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<html>
+<head>
+    <title>CLI toolkit - How to quickly implement a command line interface</title>
+    <script type="text/javascript" src="jquery-1.6.4.js"></script>
+    <link type="text/css" rel="stylesheet" href="jquery-ui-1.8.16.custom/css/smoothness/jquery-ui-1.8.16.custom.css">
+    <script type="text/javascript" src="jquery-ui-1.8.16.custom/js/jquery-ui-1.8.16.custom.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="blackbirdjs-1.0/blackbird-lite.css">
+    <script type="text/javascript" src="blackbirdjs-1.0/blackbird.js"></script>
+    <script type="text/javascript" src="xml-node.js"></script>
+    <script type="text/javascript" src="dynamic-menu.js"></script>
+    <link type="text/css" rel="stylesheet" href="cli-toolkit.css">
+    <script type="text/javascript" src="cli-toolkit.js"></script>
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-20981143-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+</head>
+<body onload="onLoad();">
+<div id="last-update"><p class="note">Last updated on Dec, 12th 2011</p></div>
+
+    <h1>CLI toolkit</h1>
+
+<div id="news" class="section"><a name="news"/>
+    <h2>Latest news</h2>
+    <table class="news">
+    <tr><td class="date">Dec, 9th 2011</td>     <td>Version 2.7:
+                                                    You guys start contributing and that's GREAT !<br/><br/>
+                                                    Bug detection and fixes, feature proposal, question &amp; answers...
+                                                    all that good job makes it a major version.<br/>
+                                                    Text edition facilities, and many other improvements (non blocking execution, telnet...)<br/>
+                                                    &gt;&gt;&gt;
+                                                    <a href="#history">[changes]</a>
+                                                    <a href="#download">[download]</a>
+                                                    &lt;&lt;&lt;</td></tr>
+    <tr><td class="date">Dec, 15th 2010</td>    <td>Version 2.6 release (patch for version 2.5).</td></tr>
+    <tr><td class="date">Sep, 30th 2010</td>    <td>Version 2.5 release.</td></tr>
+    <tr><td class="date">Oct, 1st 2009</td>     <td>Sourceforge registration
+                                                    &gt;&gt;&gt; <a href="https://sourceforge.net/projects/aroyer-cli/" target="_blank">[aroyer-cli]</a> &lt;&lt;&lt;<br/>
+                                                    (The main location of the project remains this page).</td></tr>
+    <tr><td class="date">...</td>               <td></td></tr>
+    <!--<tr><td class="date">Oct, 1st 2009</td>     <td>New version 2.4 release<br/>
+                                                    &gt;&gt;&gt;
+                                                    <a href="#history">[changes]</a>
+                                                    <a href="#download">[download]</a>
+                                                    &lt;&lt;&lt;</td></tr>-->
+    <!--<tr><td class="date">May, 18th 2009</td>    <td>Version 2.3 release</td></tr>
+    <tr><td class="date">Sep, 21st 2008</td>    <td>Version 2.2 release</td></tr>
+    <tr><td class="date">Oct, 31st 2007</td>    <td>The CLI library is now available for C++ and Java</td></tr>
+    <tr><td class="date">Sept, 27th 2007</td>   <td>License modification</td></tr>
+    <tr><td class="date">Apr, 30th 2007</td>    <td>1.0 First official release. Lots of C++ improvements</td></tr>
+    <tr><td class="date">Sept, 27th 2006</td>   <td>Linux and Windows support</td></tr>-->
+    <tr><td class="date">May, 17th 2006</td>    <td>Very first beta release.</td></tr>
+    </table>
+    <p class="note">Refer to the <a href="#history">history section</a> for all changes.</p>
+</div>
+
+<div id="overview" class="section"><a name="overview"/>
+    <h2>CLI toolkit overview</h2>
+
+    <p>
+    CLI is a toolkit that allows you to easily implement C++ and Java <i>Command Line Interfaces</i> as below:
+    <div id="example">
+        <div id="example-script">
+            <p class="ui-state-default ui-corner-top">
+                <span class="ui-icon ui-icon-document" style="float: left;"></span>
+                XML resource file
+            </p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;cli name="<b>Hello</b>" xmlns="http://alexis.royer.free.fr/CLI"&gt;
+ &lt;cpp option="include"&gt;<b>#include "hello.h"</b>&lt;/cpp&gt;
+
+ &lt;keyword string="<b>say</b>"&gt;&lt;help lang="en"&gt;<b>Tell Something.</b>&lt;/help&gt;
+  &lt;keyword string="<b>hello</b>"&gt;&lt;help lang="en"&gt;<b>Just say hello.</b>&lt;/help&gt;
+   &lt;endl&gt;&lt;cpp&gt;<b>sayHello();</b>&lt;/cpp&gt;&lt;/endl&gt;
+  &lt;/keyword&gt;
+  &lt;keyword string="<b>bye</b>"&gt;&lt;help lang="en"&gt;<b>Say goodbye.</b>&lt;/help&gt;
+   &lt;endl&gt;&lt;cpp&gt;<b>sayBye();</b>&lt;/cpp&gt;&lt;/endl&gt;
+  &lt;/keyword&gt;
+ &lt;/keyword&gt;
+&lt;/cli&gt;
+</pre>
+        </div>
+        <div id="example-execution">
+            <p class="ui-state-default ui-corner-top">
+                <span class="ui-icon ui-icon-play" style="float: left;"></span>
+                CLI execution
+            </p>
+            <img src="hello.png"/>
+        </div>
+    </div>
+    </p>
+
+    <p>
+    This 'Hello world' example shows the direct relationship
+    between the XML resource file and the CLI execution of the user-defined function <i>'sayHello()'</i> for instance.
+    </p>
+
+    <p>
+    Here is list of the main features of the CLI toolkit:
+    <ol>
+        <li><span class="keyword">Edition facilities:</span>
+            The user can use left and right arrows, begin and end, delete and backspace keys for command line edition.
+        </li>
+        <li><span class="keyword">History:</span>
+            The user can use up and down arrows to navigate through the command line history.
+        </li>
+        <li><span class="keyword">Completion and help:</span>
+            The user has facilities to get into the set of commands.
+            The CLI toolkit automatically manages completion,
+            and help can be set for every keyword and parameter.
+        </li>
+        <li><span class="keyword">Menus:</span>
+            User-defined commands can give access to user-defined menus,
+            which may contain other sets of user-defined commands,
+            and so on...
+        </li>
+        <li><span class="keyword">XML resource file:</span>
+            All the command lines syntax can be described in an XML resource file, natively managing keywords, parameters, tags...
+            This XML resource file provides the ability to directly insert the final native calls attached to each command,
+            making the link with a global application.
+        </li>
+        <li><span class="keyword">Automatic documentation generation:</span>
+            Based on the XML resource file, the CLI toolkit provides a stylesheet automatically generating CLI documentations.
+        </li>
+        <li><span class="keyword">Generic input/output:</span>
+            Input/output can be easily redirected.
+            The CLI toolkit currently gives support for the following regular input/output devices:
+            console, telnet connections, files and strings.
+            But you may implement your own intput/output device for your special needs.
+        </li>
+        <li><span class="keyword">Traces:</span>
+            An inner traces management system is available with the toolkit.
+        </li>
+    </ol>
+    </p>
+</div>
+
+<div id="howto" class="section"><a name="howto"/>
+    <h3>How does it work?</h3>
+
+    <p>
+    Considering you already have the user code to execute at end,
+    all you have to do is the following:
+    <ol>
+        <li>Edit an <span class="keyword">XML resource file</span>;</li>
+        <li><span class="keyword">Transform</span> the XML resource file into target language code;</li>
+        <li><span class="keyword">Integrate</span> the result of the transformation.</li>
+    </ol>
+    </p>
+
+    <p>
+    For instance, in C++, the result of the transformation is a C++ source file.
+    You should therefore compile it
+    and link it with the CLI library and your user-defined program.
+    You should also make a call somewhere in your program
+    to launch the execution of your CLI.
+    In most cases, it should not be too difficult to have it work quickly.
+    </p>
+
+    <p>
+    In Java, compile the Java source file resulting of the transformation.
+    Then use the CLI object defined in it and the CLI library to launch it.
+    Just ensure you have the native CLI library available from your system paths.
+    That's it.
+    </p>
+
+    <p>
+    The transformation step is just an XSLT transformation
+    using an XSL stylesheet provided with the toolkit.
+    Therefore, the most difficult (and it aims to be easy) is the XML resource file edition.
+    Have a look at the <a href="user-guide/cli-user-guide.html">CLI user guide</a> for more information.
+    </p>
+</div>
+
+
+<div id="use" class="section"><a name="use"/>
+    <h3>Main interests</h3>
+
+    <p>
+    Here is a list of possible interests you could have in this projects:
+    <ul>
+        <li><span class="keyword">Text-based user interface:</span>
+            The CLI toolkit basically aims to implement text-based user interfaces.
+            Graphical user interfaces are generally more attractive,
+            however text-based interfaces also have their advantages:
+                few means prerequesits,
+                fast execution,
+                integration facilities (see automation below),
+                analysis facilities...</li>
+        <li><span class="keyword">Monitoring and debug:</span>
+            It is sometimes useful to have a secondary user interface,
+            to monitor and debug an application.</li>
+        <li><span class="keyword">Configuration files:</span>
+            You can easily define a specific configuration file syntax with the CLI toolkit.
+            Therefore, you could use it instead of .ini or XML files.</li>
+        <li><span class="keyword">Automation:</span>
+            Since CLI is text-based, it is compatible with automation.
+            Automated test tools generally need to interact with tested equipments or softwares.
+            The CLI toolkit is an easy way to implement an entry point on target equipments for unit tests.</li>
+        <li><span class="keyword">Simple compilers:</span>
+            The CLI toolkit can be used for its command line parsing ability,
+            making by that way compilers of simple syntaxes.</li>
+    </ul>
+    </p>
+
+    <!--<p>
+    If you find any other interest in this project,
+    please <script type="text/javascript">
+        mailTo("let me know");
+    </script><noscript>
+        <a href="http://w2.syronex.com/jmr/safemailto/#noscript" target="_blank">let me know</a>
+        <span class="note">(guarded by anti-spam solution)</span>
+    </noscript>.
+    </p>-->
+</div>
+
+
+<div id="license" class="section"><a name="license"/>
+    <h2>License</h2>
+
+    <p>
+    This software, written by Alexis Royer,
+    has moved to a <a href="LICENSE.txt" target="_blank">BSD-like license</a> since version 2.0.
+    </p>
+
+    <p>
+    This kind of license is compatible with commercial use, modification and redistribution,
+    under the terms of the license.
+    </p>
+</div>
+
+
+<div id="changes" class="section"><a name="changes"/>
+    <h2>Changes</h2>
+
+    <div id="history"><a name="history"/>
+        <h3>History</h3>
+
+        <div id="version-list">
+            <!--<h4><a href="#"></a></h4>
+            <div>
+                <ul><li><span class="keyword">Description:</span>   </li>
+                    <li><span class="keyword">Date:</span>          </li>
+                    <li><span class="keyword">Download:</span>      </li></ul>
+                <div class="version-details">
+                    <h5><a href="#"></a></h5>
+                    <div>   <ul><li></li>
+                                <li></li>
+                                <li></li></ul></div>
+                </div>
+            </div>-->
+            <h4><a href="#">cli 2.7</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Contributions, text edition facilities and many other improvements.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Dec, 9th 2011</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.7.tgz" target="_blank">Download cli 2.7</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>Contributions:
+                                    <ul><li>Oleg Smolsky: memory leaks + compilation warnings</li>
+                                        <li>Lakshman Naganoor and Venkatrangan G.: ui::More and ui::Less addition</li>
+                                        <li>Peter Geremia: 64 bit architecture port</li>
+                                        <li>Wilson Yu: Xalan and Saxon stylesheet transformation bug</li>
+                                        <li>Anoop R.: Output interleavings (see <a href="user-guide/cli-user-guide.html#faq.Q600">FAQ</a>)</li></ul></li>
+                                <li>Text edition facilities:
+                                    <ul><li>Passwords</li>
+                                        <li>Text fields</li>
+                                        <li>Integer fields</li>
+                                        <li>Yes/no questions</li>
+                                        <li>Choice questions</li></ul></li>
+                                <li>'mono-thread' feature renamed into 'non-blocking'</li>
+                                <li>Telnet improvements:
+                                    <ul><li>Use of select() in TelnetServer + TelnetConnection derived from NonBlockingIODevice</li>
+                                        <li>Full multi-client management</li>
+                                        <li>StopServer() addition</li></ul></li>
+                                <li>Java Input/output devices refactoring:
+                                        both Java and native devices implementations,
+                                        outputDevice constants addition (NULL_KEY, ...),
+                                        safeness checkings</li>
+                                <li>IOMux changed into a sequence of devices (multiple outputs removal)</li>
+                                <li>'cls' command addition</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>Input/output devices infinite loops protection improvements
+                                        with deprecation of GetActualDevice()
+                                        and addition of WouldOutput()/WouldInput() methods.</li>
+                                <li>Traces device management consistency improvements</li>
+                                <li>Java implementation completion: StringDevice, TelnetServer and TelnetConnection implementation</li>
+                                <li>Shell API modifications (advanced user, see user-guide), fixes for NonBlockingIODevice input devices</li>
+                                <li>WinConsole improvements: clean screen and cursor visibility</li>
+                                <li>tk::String::ToUpper(), ToLower() methods addition</li>
+                                <li>OutputDevice::operator&lt;&lt;(double) smart display</li>
+                                <li>Java native sources improvements:
+                                    <ul><li>NativeExec addition for better thread-safe behaviours</li>
+                                        <li>NativeObject::GetJavaClassName() completion</li>
+                                        <li>better ports on 64 bit architectures (to be tested)</li></ul></li>
+                                <li>XSL: Version of CLI library addition in XSL outputs</li>
+                                <li>Web page / User guide improvements: FAQ addition, title numbers, dynamic menus, dynamic dialogs</li></ul></div>
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! &lt;tag @ref/&gt; preceding &lt;tag @id/&gt; in sub-nodes causes crashes (correction checked with samples/test/fwd-tag.xml sample)</li>
+                                <li>Bug(major)! XSL: '"select" attribute is not allowed on the xsl:call-template element!' XSL transformation error with Saxon (checked also with Xalan) (yuhuawen's contribution integration)</li>
+                                <li>Bug(major)! cli2help.xsl fails with Saxon: various XSL syntax errors fixed</li>
+                                <li>Bug(major)! &lt;string.h&gt; header missing with g++ version 4.4.4 (ubuntu 10.10): NativeObject.cpp, io_mux.cpp, ncurses_console.cpp, tk.cpp</li>
+                                <li>Bug(major)! Misuse of OutputDevice::FreeInstance() return code in Shell::CloseDevices() (major because of possible crashes, never seen however)</li>
+                                <li>Bug(minor)! XSL: return cli::... statements do not compile with Visual Studio 6.0</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.6</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Patch for CLI 2.5 bugs.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Dec, 15th 2010</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.6.tgz" target="_blank">Download cli 2.6</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! Do not print intermediate character for errors with no location</li>
+                                <li>Bug(major)! Bad XSL generation (C++ and Java) with nested tags (dummy tags among others)</li>
+                                <li>Bug(major)! No character output with telnet connections</li>
+                                <li>Bug(minor)! Extra /* > */ comments for user code lines</li></ul></div>
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>Deprecation of SetErrorFormatting(). Use of error handlers instead</li>
+                                <li>C++/Java: Shell::GetCurrentMenu(index) method addition</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>CPP_DIR, JAVA_DIR, SAMPLES_DIR and WEB_DIR makefile variables removal</li>
+                                <li>Documentation makefiles moved in web/build/make</li>
+                                <li>Full telnet test implementation</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.5</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Schema, automatic documentation, 'members' and 'constructor' sections and 'prompt' handler additions.
+                                                                        Plus other stuff.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Sep, 30th 2010</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.5.tgz" target="_blank">Download cli 2.5</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>Schema addition: XSD and RelaxNG</li>
+                                <li>Automatic documentation of a user CLI</li>
+                                <li>'members' and 'constructor' sections addition</li>
+                                <li>'prompt' handler addition</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>Java: _build.mak makefile addition</li>
+                                <li>Java: implementation completion (native cli.OutputDevice and cli.IODevice)</li>
+                                <li>User-code menu management: Cli::GetMenu() addition and Shell::EnterMenu() declared as public</li>
+                                <li>'error' handler improvement (return value controlling the regular error display)</li>
+                                <li>str_LocationSuffix configuration parameter addition</li></ul></div>
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! C++: auto \r on \n missing for telnet connections</li>
+                                <li>Bug(minor)! C++: io_device.cpp cast correction for pointer display</li>
+                                <li>Bug(minor)! Fatal error when building deps of java/build/make/native.mak under cygwin from make (but direct commands from the shell)</li>
+                                <li>Bug(minor)! Do not directly use STL in 'file_device.h'</li>
+                                <li>Bug(minor)! XSL: Enable resource names with space characters (menus...)</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.4</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Bug corrections  &amp; improvements.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Oct, 1st 2009</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.4.tgz" target="_blank">Download cli 2.4</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>Licensing: URL link addition in the license.</li>
+                                <li>Makefile improvements: .DEFAULT_GOAL improvement, include Makefiles prefixed by '_', help and vars dependencies revision</li>
+                                <li>C++/Java: 'show version', 'show author' and 'show license' commands addition in the 'cli-config' menu.</li>
+                                <li>C++/Java: ALL_STREAMS management in Shell and IOMux.</li>
+                                <li>C++/Java: OnError() handler addition.</li>
+                                <li>C++: various improvements.</li>
+                                <li>C++: stdout and stderr flushing addition for a better rendering.</li>
+                                <li>Java: implementation completion (ResourceString and Help revision, IODevice.getLocation(), Shell...)</li>
+                                <li>Java: OutputDevice.printStackStrace() method addition for a better output management</li>
+                                <li>Java: finalization &amp; native creation improvements</li>
+                                <li>Java: cli.jar archive improvement</li>
+                                <li>Java: XSL minor comment improvements</li>
+                                <li>XSL improvements for other XSLT processor out of xsltproc</li></ul></div>
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! DELETE key management missing in cli::Shell class</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.3</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Left and right arrows management.
+                                                                        Clean screen management.
+                                                                        Plus other stuff.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>May, 18th 2009</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.3.tgz" target="_blank">Download cli 2.3</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>Left and right arrows management</li>
+                                <li>Clean screen function (CTRL+L)</li>
+                                <li>Integration improvements: thread safe termination management, mono-thread execution</li>
+                                <li>XSL generation improved for a better readability of the code generated: user-code highlighted, and comments addition indicating the current chain of keywords in analysis</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>Command line history object addition</li>
+                                <li>Input/output character management improvements, "endl" support modification for Input/Output devices. '\n' are automatically interpreted by devices now</li>
+                                <li>Input file device improvements: bufferization for optimization, special characters disabling, error location / error prefixing modification</li>
+                                <li>Consistency improvements regarding devices: OutputDevice::GetActualDevice() method addition</li>
+                                <li>Java samples projects addition</li></ul></div>
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! cppclic.xsl correction for SAXON compatibility</li>
+                                <li>Bug(minor)! Errors due to oversized words in CommandLine are not notified to the user</li>
+                                <li>Bug(minor)! xsltproc crash when the tag[@ref] is directly located in the tag[@id]</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.2</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Bug corrections  &amp; improvements</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Sep, 21st 2008</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.2.tgz" target="_blank">Download cli 2.2</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! IOMux device closure error.</li>
+                                <li>Bug(major)! cli::tk::Queue::Iterator [tk_stl.h] definition revision. Incompatible with some compilers.</li>
+                                <li>Bug(major)! Java object consistency problems.</li>
+                                <li>Bug(major)! XSL generation errors for menus directly generated for an endl node.</li>
+                                <li>Bug(major)! Bad cppclic.xsl generation for 2 level menu structures.</li>
+                                <li>Bug(major)! Memory leak in Queue::~Queue() [tk_inner.h] -> m_arptQueue was not destroyed.</li>
+                                <li>Bug(major)! Consistency errors because of static constant objects in C++ files when compiled with Visual .NET. Singleton used instead.</li>
+                                <li>Bug(major)! Bad javaclic.xsl generation for 2 level menu structures. Test addition.</li>
+                                <li>Bug(major)! History cannot store more than 100 command lines</li>
+                                <li>Bug(minor)! InputFileDevice::GetKey(): unknown characters do not end the file anymore.</li>
+                                <li>Bug(minor)! Spelling error: "Uncomplete" changed to "Incomplete" in CommandLine::Parse().</li>
+                                <li>Bug(minor)! System includes (#include &lt;&gt;) changed into project includes (#include "").</li>
+                                <li>Bug(minor)! When an input file does not exist (cli::InputFileDevice), no error message is printed out.
+                                                => Addition of a m_cliLastError member in cli::OutputDevice, that can be set by all subclasses.</li>
+                                <li>Bug(minor)! TAB when the line is empty does nothing.</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>Makefile improvements.</li>
+                                <li>Special character addition.</li>
+                                <li>Addition of error prefixing.</li>
+                                <li>Cli configuration menu disabling</li>
+                                <li>Java implementation evolutions:
+                                    cli.Element.getCli/getShell(), cli.Traces.set/unsetStream(), cli.IOMux, cli.SingleCommand</li>
+                                <li>Java documentation.</li>
+                                <li>Doxygen documentation generated in web directory.</li>
+                                <li>XSL stylesheet revision:
+                                    special sections, CLI_EXECUTION, cpp corrections, coherence between cpp and java...</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.1</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Java support and various improvements.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Oct, 31st 2007</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cli-2.1.tgz" target="_blank">Download cli 2.1</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>Java support: lots of improvements still remaining, but it works so far</li>
+                                <li>French language support</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>C++:
+                                    <ul><li>Makefile architecture improvements: help.mak, mkres.mak, check.mak... makefiles creation</li>
+                                        <li>Addition of cli::Object generic object</li>
+                                        <li>No namespace directive enabled</li>
+                                        <li>No-stdlib implementation available</li>
+                                        <li>Pre-compiled headers enabling</li>
+                                        <li>Assertions improvements</li>
+                                        <li>ncurses and Windows consoles modifications</li>
+                                        <li>Traces consistency improvement. Addition of Traces::UnsetStream()</li>
+                                        <li>XSL revisions (inherited from java experience):
+                                                CLI tree created in the scope of the CLI class;
+                                                Both static and dynamic CLI instantiation;
+                                                Generation of CLI_EXECUTION traces</li></ul></li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 2.0</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>License modification.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Sept, 27th 2007</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cppcli-2.0.tgz" target="_blank">Download cli 2.0</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>License modification:
+                                    The former LGPL license has been abandoned for a BSD-like license.
+                                    This is the decision of the author (myself) in order to have fewer constraints
+                                    on using and modifying the toolkit in any kind of softwares (even commercial ones),
+                                    which is what I wanted initially.</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>Useless constructor removal in cli/include/param.h</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 1.0</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Not a beta anymore! Improved again, and fully C++ coding now.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Apr, 30th 2007</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cppcli-1.0.tgz" target="_blank">Download cli 1.0</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>cli namespace.</li>
+                                <li>Input / output devices:
+                                    <ul>
+                                    <li>instance and opening locking / auto-deletion</li>
+                                    <li>new devices: cli::FileDevice, cli::SingleCommand, cli::IOMux</li>
+                                    </ul>
+                                </li>
+                                <li>Revision of cpp section naming in XSL.</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>include/cli directory creation and file names modification.</li>
+                                <li>Makefiles improvements:
+                                    <ul>
+                                    <li>build/make directory creation</li>
+                                    <li>target specific generation</li>
+                                    <li>debug generation management</li>
+                                    <li>BIN_SUFFIX addition</li>
+                                    </ul>
+                                </li>
+                                <li>Unit tests: empty, io_device.</li>
+                                <li>Traces system addition.</li></ul></div>
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(major)! No help display on completion so far.</li>
+                                <li>Bug(major)! Bad management of '%' and '|' characters.</li>
+                                <li>Bug(major)! Incorrect behavior on a string parameters filled with "" (completion and execution, as if not set).</li>
+                                <li>Bug(major)! Not possible to have two tags on the same syntax node.</li>
+                                <li>Bug(critical)! Crash on CcliOutputDevice::operator&lt;&lt;(const char* const) with NULL for parameter.</li>
+                                <li>Bug(major)! Scenario: prompt stream disabled, Echo enabled, TAB for help display => current line not printed again.</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 1.0.beta1</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>This version has been improved a lot, and tested on both Linux and Windows.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>Sept, 27th 2006</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cppcli-1.0.beta1.tgz" target="_blank">Download cli 1.0.beta1</a>
+                                                                        </p></td></tr></table>
+                <div class="version-details">
+                    <h5><a href="#">Major modifications</a></h5>
+                    <div>   <ul><li>Source documentation.</li>
+                                <li>Windows / cygwin support (Linux is still available of course).</li>
+                                <li>Command line history.</li>
+                                <li>Completion "so far".</li>
+                                <li>Escape characters and double quotes management.</li>
+                                <li>Hollow-tags.</li>
+                                <li>Beep support for IO devices.</li>
+                                <li>Stream branching modification.</li>
+                                <li>Welcome and prompt messages modification.</li>
+                                <li>Echo and beep on/off live configuration.</li></ul></div>
+                    <h5><a href="#">Miscellaneous</a></h5>
+                    <div>   <ul><li>User-defined includes generated in the very first place (useful for pre-compiled headers).</li>
+                                <li>'?' / TAB, help / completion behaviors improvement.</li>
+                                <li>Launch method modification.</li>
+                                <li>CLI retrieval based on regular expressions.</li>
+                                <li>Automatic test tools.</li>
+                                <li>C++ constness improvement.</li>
+                                <li>Cross-platform Makefiles improvement.</li></ul></div>
+                    <h5><a href="#">Bug corrections</a></h5>
+                    <div>   <ul><li>Bug(minor)! A new line is not printed anymore on unsuccessful tab request.</li>
+                                <li>Bug(minor)! The line is not printed anymore when a syntax error occurred.</li>
+                                <li>Bug(minor)! Xml-namespace fixed.</li>
+                                <li>Bug(minor)! Elements sorted for help display.</li>
+                                <li>Bug(minor)! "Syntax error next to..." not correctly displayed on completion.</li>
+                                <li>Bug(minor)! Double definition of CcliElement::FindElements() fixed.</li></ul></div>
+                </div>
+            </div>
+            <h4><a href="#">cli 1.0.beta1-1</a></h4>
+            <div>
+                <table> <tr><td class="keyword">Description:</td>   <td>Very first release.
+                                                                        I still propose it for download for history purpose only.
+                                                                        Quite stable, but needs little adaptation to work under Windows for instance.
+                                                                        Let's say it was ready for demonstration.</td></tr>
+                        <tr><td class="keyword">Date:</td>          <td>May, 17th 2006</td></tr>
+                        <tr><td class="keyword">Download:</td>      <td><p class="download ui-state-default">
+                                                                        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+                                                                        <a href="/download.php?url=/CLI/cppcli-1.0.beta1-1.tgz" target="_blank">Download cli 1.0.beta1-1</a>
+                                                                        </p></td></tr></table>
+            </div>
+        </div>
+
+        <p>
+        The following charts gives the evolution of the number of code lines throughout the time:<br/>
+        <img src="count-lines.png"/>
+        </p>
+    </div>
+
+
+    <div id="evolutions"><a name="evolutions"/>
+        <h3>Next evolutions</h3>
+
+        <p>
+        To my point of view, the major aims of the CLI toolkit have been reached so far, and I'm quite proud of that.
+        That's the reason why there are not many modifications expected in the next times.
+        But once again, if you feel the need for any other evolution, please <script type="text/javascript"><!--
+            mailTo("let me know");
+        //--></script><noscript>
+            <a href="http://w2.syronex.com/jmr/safemailto/#noscript" target="_blank">let me know</a>
+            <span class="note">(guarded by anti-spam solution)</span>
+        </noscript>.
+        </p>
+
+        <p>
+        Coming next:
+        <ul>
+        <li><span class="keyword">Other target languages:</span>
+            Supported languages are C++ and Java at present.
+            Next ones could be Perl or python...</li>
+        <li><span class="keyword">Shell timeout management:</span>
+            Add inner support for timeout management within a shell.</li>
+        <li><span class="keyword">Memory pools:</span>
+            Implement memory pools in order to provide better memory management with embedded integration contexts.</li>
+        <li>...</li>
+        </ul>
+        </p>
+    </div>
+
+
+<div id="download"><a name="download"/>
+    <h2>Download</h2>
+
+    <p>
+    Latest version of the CLI toolkit is 2.7.
+    Please refer to <a href="#history">history section</a> for previous downloads.
+    </p>
+
+    <p class="download ui-state-default">
+        <span class="ui-icon ui-icon-arrowthickstop-1-s" style="float: left;"></span>
+        <a href="/download.php?url=/CLI/cli-2.7.tgz" target="_blank">Download cli 2.7 now!</a>
+    </p>
+
+    <p>
+    The CLI toolkit is also available for download on <a href="https://sourceforge.net/projects/aroyer-cli/" target="_blank">Sourceforge</a>.
+    </p>
+</div>
+
+
+<div id="contact"><a name="contact"/>
+    <h2>Contact</h2>
+
+    <p>
+    Any question?
+    Found a bug?
+    Feel free to <script type="text/javascript"><!--
+        mailTo("email me");
+    //--></script><noscript>
+        <a href="http://w2.syronex.com/jmr/safemailto/#noscript" target="_blank">email me</a>
+        <span class="note">(guarded by anti-spam solution)</span>
+    </noscript>.
+    </p>
+</div>
+
+</body>
+</html>
+

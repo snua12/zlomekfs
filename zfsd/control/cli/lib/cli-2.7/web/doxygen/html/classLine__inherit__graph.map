@@ -1,0 +1,8 @@
+base referer
+rect $classChoice.html 8,306 72,333
+rect $classFloat.html 96,306 146,333
+rect $classInt.html 170,306 208,333
+rect $classUI.html 102,157 140,184
+rect $classNonBlockingKeyReceiver.html 36,82 206,109
+rect $classObject.html 90,8 152,34
+rect $classYesNo.html 8,381 72,408

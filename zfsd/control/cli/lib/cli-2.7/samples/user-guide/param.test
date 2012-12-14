@@ -1,0 +1,9 @@
+enter string hello
+enter string "hello"
+enter string hello?
+enter string "hello?"?\
+enter int 0
+enter float .5
+enter host localhost
+exit
+

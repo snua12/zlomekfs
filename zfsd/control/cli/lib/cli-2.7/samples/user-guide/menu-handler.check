@@ -1,0 +1,15 @@
+menu-handler>bad command
+Error detected: location = ../../../samples/user-guide/menu-handler.test:1, message = Syntax error next to 'bad'
+../../../samples/user-guide/menu-handler.test:1: Syntax error next to 'bad'
+menu-handler>menu 1
+menu#1>bad command
+Error detected: location = ../../../samples/user-guide/menu-handler.test:3, message = Syntax error next to 'bad'
+menu#1>exit
+Leaving 'menu#1' menu
+menu-handler>menu 2
+menu#2>bad command
+Error detected: location = ../../../samples/user-guide/menu-handler.test:6, message = Syntax error next to 'bad'
+menu#2>exit
+Leaving 'menu#2' menu
+menu-handler>quit
+Leaving 'menu-handler' menu

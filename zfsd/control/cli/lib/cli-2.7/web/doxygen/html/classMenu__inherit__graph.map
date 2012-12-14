@@ -1,0 +1,7 @@
+base referer
+rect $classCli.html 8,306 45,333
+rect $classConfigMenu.html 69,306 162,333
+rect $classTracesMenu.html 186,306 282,333
+rect $classSyntaxNode.html 69,157 162,183
+rect $classElement.html 81,82 150,109
+rect $classObject.html 85,7 146,34

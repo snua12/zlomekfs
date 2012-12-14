@@ -1,0 +1,32 @@
+(a|b)*>
+  <cr>            
+  a               
+  b               
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu '(a|b)*'
+  help            Get help
+  pwm             Print Working Menu
+  quit            Quit
+(a|b)*>a 
+  <cr>            
+  a               
+  b               
+(a|b)*>a a 
+  <cr>            
+  a               
+  b               
+(a|b)*>a a b 
+  <cr>            
+  a               
+  b               
+(a|b)*>a a b a 
+  <cr>            
+  a               
+  b               
+(a|b)*>a a b a b 
+  <cr>            
+  a               
+  b               
+(a|b)*>a a b a b b
+(a|b)*>exit

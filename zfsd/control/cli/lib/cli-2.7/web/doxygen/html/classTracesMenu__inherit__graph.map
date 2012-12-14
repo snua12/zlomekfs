@@ -1,0 +1,5 @@
+base referer
+rect $classMenu.html 28,231 84,258
+rect $classSyntaxNode.html 9,157 102,183
+rect $classElement.html 21,82 90,109
+rect $classObject.html 25,7 86,34

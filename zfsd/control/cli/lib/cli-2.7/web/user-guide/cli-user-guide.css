@@ -1,0 +1,99 @@
+/*
+	Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+		* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+		* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+		* Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+	"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+	LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+	A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+	CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+	EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+	PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+	PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+	LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+	NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+/*
+ * Docbook stylesheet.
+ */
+
+/* General styles */
+body {
+	font-family: Arial;
+}
+
+/* Examples */
+div.example {
+	margin-left: 50px;
+	padding-left: 15px;
+	border-style: solid;
+	border-width: 0px;
+	border-left-width: 2px;
+	border-color: black;
+}
+pre.programlisting {
+	background: #E8E8E8;
+}
+
+/* Notes */
+div.note {
+	margin-left: 100px;
+	/*color: #ffffff;*/
+	font-size: smaller;
+	height: 30px;
+	overflow: hidden;
+}
+div.note h3 {
+	display: none;
+}
+
+/* Tips */
+div.tip {
+	margin-left: 100px;
+	color: #ffffff;
+	/*background: #FFFFE0;*/
+	font-size: small;
+	height: 30px;
+	overflow: hidden;
+}
+
+/* Figures */
+div.informalfigure { text-align: center; }
+div.informalfigure div.caption { font-size: 80%; font-style: italic; }
+
+/* Blockquotes - reader expressions */
+blockquote:before { font-style: italic; content: "\""; }
+blockquote { font-style: italic; }
+blockquote:after { font-style: italic; content: "\""; }
+
+/* Code styles: XML nodes */
+code.sgmltag-element:before { content: "<"; }
+code.sgmltag-element:after { content: "/>"; }
+/* Code styles: XML attributes */
+code.sgmltag-attribute:before { content: "@"; }
+/* Code styles: XML values */
+code.sgmltag-value:before { content: "\""; }
+code.sgmltag-value:after { content: "\""; }
+/* Code styles: Native code functions */
+code.function:after { content: "()"; }
+/* Code styles: Native code packages */
+span.package { font-family: monospace; }
+/* Code styles: Command names */
+strong.command { font-weight: normal; font-family: monospace; }
+
+/* Do not display history (displayed through dynamic menu instead) */
+div.revhistory { display: none; }
+
+
+/* jQuery UI Dialog overriding. */
+/*.ui-dialog { font-family: Arial; font-size: medium; }*/

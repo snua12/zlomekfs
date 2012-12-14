@@ -1,0 +1,1133 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+
+<section id="xmlres"><title id="xmlres.title">XML resource file</title>
+
+    <blockquote>THAT's interesting!</blockquote>
+
+    <section id="xmlres.cli">
+    <title id="xmlres.cli.title">
+        <sgmltag class="element">cli</sgmltag>
+        - The root element</title>
+
+        <para>
+        The root element, named <sgmltag class="element">cli</sgmltag>, directly defines the CLI.
+        It has only one resource related attribute: <sgmltag class="attribute">name</sgmltag>.
+        It obviously gives the name of the CLI.
+            <note>The name of the CLI is used in the prompt.</note>
+        </para>
+
+        <blockquote>
+        OK! Nothing more for the moment.
+        I would like to define my own commands now.
+        </blockquote>
+
+    </section>
+
+    <section id="xmlres.keyword.endl">
+    <title id="xmlres.keyword.endl.title">
+        <sgmltag class="element">keyword</sgmltag>
+        &amp; <sgmltag class="element">endl</sgmltag>
+        - Define a syntax tree</title>
+
+        <para>
+        Keywords and carriage returns are the basics of a CLI.
+        </para>
+
+        <example id="eg.hello"><title id="eg.hello.title">Hello world!</title>
+            Consider the following command <command>say hello</command>.
+            It is actually a sequence of two keywords
+            <command>say</command> and <command>hello</command>,
+            terminated by a carriage return.
+            Here is an XML resource file <filename>hello.xml</filename>
+            implementing the command line:
+                &sample-hello;
+            If you want to add another command line <command>shout hello</command>,
+            here is how your <filename>hello.xml</filename> file should look like:
+                &sample-hello-shout;
+            Now if you want to add other command lines <command>say bye</command>
+            and <command>shout bye</command>,
+            have a look at the corresponding XML resource file:
+                &sample-hello-bye-shout;
+        </example>
+
+        <para>
+        Considering certain command lines have keywords in common,
+        like <command>say hello</command> and <command>say bye</command>
+        in the previous example,
+        eventually what you define is a syntax tree.
+        A first node corresponds to the keyword <command>say</command>,
+        which has two children <command>hello</command> and <command>bye</command>.
+        For an illustration of that syntax tree,
+        load the XML file of the last example into your favorite web browser
+        and play with toggles.
+        </para>
+
+        <blockquote>
+        Cool!
+        I've tried it out.
+        I can define my own keywords and so.
+        It's pretty cool, but that's a pity there's no help for my commands.
+        </blockquote>
+
+        <para>
+        Hold on!
+        <link linkend="xmlres.help">Next section</link> tells how to do that.
+        </para>
+
+    </section>
+
+    <section id="xmlres.help">
+    <title id="xmlres.help.title">
+        <sgmltag class="element">help</sgmltag>
+        - Put help everywhere</title>
+
+        <para>
+        CLI is basically a user interface,
+        so that's a good idea to give help as much as you can.
+        It's easy to do such a thing in XML resource files.
+        <sgmltag class="element">help</sgmltag> elements can be added to CLI elements
+        to document them.
+        The <sgmltag class="attribute">lang</sgmltag> attribute identifies
+        the corresponding language.
+        </para>
+
+        <example id="eg.help"><title id="eg.help.title">Put help everywhere</title>
+            Here is how you could document a <filename>hello.xml</filename> file:
+                &sample-help;
+        </example>
+
+        <note>
+            Only the <sgmltag class="attvalue">en</sgmltag> and <sgmltag class="attvalue">fr</sgmltag> language identifiers
+            are available for the moment.
+        </note>
+
+        <blockquote>
+        That's what I needed, but wait a minute!
+        I will have to write down a user manual for this interface
+        and I'm afraid about describing the thing twice,
+        between my user manual on one hand,
+        and the help provided with the commands on the other hand.
+        Any suggestion?
+        </blockquote>
+
+        <para>
+        For sure, automatic documentation generation will help you.
+        This feature is described in a <link linkend="xmlres.cli2help">later section</link>.
+        </para>
+
+        <blockquote>
+        Good! Now, how do I execute stuff from the command lines?
+        </blockquote>
+    </section>
+
+    <section id="xmlres.native">
+    <title id="xmlres.native.title"><sgmltag class="element">cpp</sgmltag>, <sgmltag class="element">java</sgmltag>
+                - Insert target language directly in the resource file</title>
+
+        <para>
+        Target language instructions are inserted straight forward
+        in the XML resource file
+        through target language tags:
+            <itemizedlist>
+            <listitem><sgmltag class="element">cpp</sgmltag> for C++</listitem>
+            <listitem><sgmltag class="element">java</sgmltag> for Java</listitem>
+            <listitem>...</listitem>
+            </itemizedlist>
+        </para>
+
+        <para>
+        Basically, these tags are located in <sgmltag class="element">endl</sgmltag> elements.
+        It allows you to define what is executed
+        when a command line has been successfully parsed.
+        </para>
+
+        <example id="eg.code"><title id="eg.code.title">Insert target language instructions</title>
+            Let's say you have a C++ function <function>sayHello</function>,
+            or a Java class <classname>HelloApi</classname>,
+            and you would like those to be called when the user types <command>say hello</command>.
+            This is how you would do it:
+                &sample-cpp;
+            If you try to transform and compile the sample as is in C++, it should not work straight forward.
+            Since <function>helloWorld</function> is not declared, the output does not compile.
+            The trick is to use special sections as below:
+                &sample-cpp-full;
+            Have a C++ <function>sayHello</function> function declaration
+            in a <filename class="headerfile">hello_api.h</filename> file, and it should work.
+            Declare a <function>sayHello</function> in a <classname>HelloApi</classname> class, and it should work as well.
+        </example>
+
+        <para>
+        Note that you give straight away user code to be executed in the XML resource file.
+        This may seem weird firstly, but it is however, to my point of view, a nice way to do.
+        You've got everything in a single readable file.
+        Though, it's easy to maintain.
+        On the other hand, it's easy to understand what is executed on each command.
+        And if you indent your XML resource file elegantly,
+        it could look like a piece of code somehow.
+        </para>
+
+        <para>
+        Here is how sections are organized for C++ generation:
+        <orderedlist>
+        <listitem><sgmltag class="attvalue">head</sgmltag> section:
+                    you may use this section for very first includes
+                    or for pre-processing for instance</listitem>
+
+        <listitem>(auto-generated) CLI includes.</listitem>
+        <listitem><sgmltag class="attvalue">include</sgmltag> section:
+                    this section basically receives user includes.</listitem>
+
+        <listitem>(auto-generated) CLI definition:
+                    the static CLI structure, and the related command executions are defined here.
+                    Within that section, the following subsections are available for each menu:
+                    <orderedlist>
+                    <listitem><sgmltag class="attvalue">members</sgmltag> section:
+                                this section receives member variables or methods for the current menu.</listitem>
+                    <listitem><sgmltag class="attvalue">constructor</sgmltag> section:
+                                this section receives code to be placed in the constructor of the current menu.</listitem>
+                    </orderedlist>
+        </listitem>
+
+        <listitem><sgmltag class="attvalue">tail</sgmltag> section:
+                    very last section.</listitem>
+        </orderedlist>
+
+        Java sections look the same except for <sgmltag class="attvalue">include</sgmltag> section,
+        which is named <sgmltag class="attvalue">import</sgmltag> section in Java.
+        </para>
+
+        <note>
+        <para>
+        C++ sections have changed a lot in version 2.1,
+        being greatly improved thanks to Java experience.
+        </para>
+        </note>
+
+        <para>
+        Now you may need to print out results.
+        Use the <sgmltag class="element">out</sgmltag>
+        and <sgmltag class="element">err</sgmltag> elements for that.
+        Use them like <varname>std::cout</varname> and <varname>std::cerr</varname> in C++,
+        and use the <varname>cli::endl</varname> constant for carriage returns.
+        Use <function>put</function> and <function>endl</function> methods in Java.
+        </para>
+
+        <example id="eg.output"><title id="eg.output.title">Output</title>
+            Here is an example of output for C++:
+                &sample-output;
+        </example>
+
+        <tip>
+        You'd rather use <sgmltag class="element">out</sgmltag>
+        and <sgmltag class="element">err</sgmltag>
+        than <varname>std::cout</varname> and <varname>std::cerr</varname>
+        in XML resource files.
+        Indeed, CLI redirects these outputs for you.
+        Basically,
+        if it is launched from the console, output is sent in the console,
+        if it is launched from a TCP connection, output is sent on this TCP connection...
+        without changing anything in your XML resource file.
+        </tip>
+
+        <blockquote>
+        I got it.
+        Now, tell me, how do I have users entering values?
+        </blockquote>
+
+    </section>
+
+    <section id="xmlres.param">
+    <title id="xmlres.param.title"><sgmltag class="element">param</sgmltag>
+                - Let the user enter data</title>
+
+        <para>
+        <sgmltag class="element">param</sgmltag> elements can be used
+        instead of <sgmltag class="element">keyword</sgmltag> elements.
+        Obviously, this kind of element controls parameters elements.
+        The CLI library manages different types of parameters:
+            <itemizedlist>
+            <listitem>strings</listitem>
+            <listitem>integers</listitem>
+            <listitem>floats</listitem>
+            <listitem>host names</listitem>
+            </itemizedlist>
+        </para>
+
+        <example id="eg.param"><title id="eg.param.title">Parameters</title>
+            The following example illustrates how to use
+            <sgmltag class="element">param</sgmltag> elements:
+                &sample-param;
+        </example>
+
+        <para>
+        Have a look at the way you get access to the entered values:
+        through <sgmltag class="attribute">param</sgmltag> attributes
+        of <sgmltag class="element">value-of</sgmltag> elements.
+        </para>
+
+        <note>
+        A full support of host names is not provided yet.
+        </note>
+
+        <!--<note>
+        In C++, <sgmltag class="element">value-of</sgmltag> elements
+        generate implicit casts to the types corresponding to the parameters.
+        </note>-->
+
+        <blockquote>
+        How do I make the user enter data out of command lines?
+        </blockquote>
+
+        <para>
+        This is discussed apart from the <link linkend="xmlres" endterm="xmlres.title"/> section
+        in the <link linkend="ui" endterm="ui.title"/> section.
+        </para>
+
+        <blockquote>
+        Well, I can do lots of things now, but a simple syntax tree is limitative, don't you think?
+        </blockquote>
+
+        <para>
+        I know, that's the reason why I've created
+        <sgmltag class="element">tag</sgmltag> elements.
+        </para>
+
+    </section>
+
+    <section id="xmlres.tag">
+    <title id="xmlres.tag.title"><sgmltag class="element">tag</sgmltag>
+                - How to make jumps in the syntax tree</title>
+
+        <para>
+        Tags act like labels and gotos do in C/C++.
+        The equivalent of the label definition
+        is a <sgmltag class="element">tag</sgmltag> element
+        with an <sgmltag class="attribute">id</sgmltag> attribute.
+        And the equivalent of a goto statement
+        is a <sgmltag class="element">tag</sgmltag> element
+        with a <sgmltag class="attribute">ref</sgmltag> attribute.
+        </para>
+
+        <para>
+        Thanks to tags, you can define such kind of patterns:
+            <itemizedlist>
+            <listitem><command>a*</command></listitem>
+            <listitem><command>a+</command></listitem>
+            <listitem><command>(ab)*</command></listitem>
+            <listitem><command>(ab)+</command></listitem>
+            <listitem><command>a(b1|b2)c</command></listitem>
+            <listitem><command>a(b1|b2|)c</command></listitem>
+            <listitem><command>(a|b)*</command></listitem>
+            <listitem><command>(a|b)+</command></listitem>
+            </itemizedlist>
+        The following examples show you how to do such syntax patterns.
+        </para>
+
+        <example id="eg.tag.a-star"><title id="eg.tag.a-star.title">Syntax tags - <command>a*</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+,-&gt;
+|
+|
+`--
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-a-star;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <example id="eg.tag.a-plus"><title id="eg.tag.a-plus.title">Syntax tags - <command>a+</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+,-&gt;
+|
+|
+`--
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-a-plus;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <example id="eg.tag.ab-star"><title id="eg.tag.ab-star.title">Syntax tags - <command>(ab)*</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+,-&gt;
+|
+|
+|
+`--
+
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-ab-star;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <example id="eg.tag.ab-plus"><title id="eg.tag.ab-plus.title">Syntax tags - <command>(ab)+</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+,-&gt;
+|
+|
+|
+`--
+
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-ab-plus;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <para>
+        Let me show you how to make a
+        <command>a(b1|b2|)c</command> syntax pattern
+        before <command>a(b1|b2)c</command>.
+        </para>
+
+        <example id="eg.tag.a-b1-b2-nil-c"><title id="eg.tag.a-b1-b2-nil-c.title">Syntax tags - <command>a(b1|b2|)c</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+
+
+,--
+|
+|
++--
+|
+`-&gt;
+
+
+
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-a-b1-b2-nil-c;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <para>
+        Now, in order to forbid the CLI to go directly from keyword <command>a</command>
+        to tag <sgmltag class="value">my-tag</sgmltag>,
+        just add a <sgmltag class="attribute">hollow</sgmltag> attribute
+        with a <sgmltag class="value">yes</sgmltag> value.
+        </para>
+
+        <example id="eg.tag.a-b1-b2-c"><title id="eg.tag.a-b1-b2-c.title">Syntax tags - <command>a(b1|b2)c</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+
+
+,--
+|
+|
++--
+|
+`-&gt;
+
+
+
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-a-b1-b2-c;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <para>
+        Now let us combine <command>|</command> and <command>*</command> patterns.
+        </para>
+
+        <example id="eg.tag.a-b-star"><title id="eg.tag.a-b-star.title">Syntax tags - <command>(a|b)*</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+,---&gt;
+|
+|
+| ,--
+| |
+| |
+| +--
+| |
+| `-&gt;
+`----
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-a-b-star;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <example id="eg.tag.a-b-plus"><title id="eg.tag.a-b-plus.title">Syntax tags - <command>(a|b)+</command> patterns</title>
+            <informaltable frame="none">
+            <tgroup cols="2">
+            <tbody>
+            <row>
+            <entry valign="top">
+<programlisting>
+
+
+,---&gt;
+|
+| ,--
+| |
+| |
+| +--
+| |
+| `-&gt;
+|
+`----
+
+
+
+</programlisting>
+            </entry>
+            <entry><!-- Spacing --></entry>
+            <entry valign="top">
+                &sample-tag-a-b-plus;
+            </entry>
+            </row>
+            </tbody>
+            </tgroup>
+            </informaltable>
+        </example>
+
+        <note>
+        This user guide has formerly proposed other directions for <command>(a|b)+</command> and <command>(a|b)*</command> patterns.
+        Since version 2.5, you are now advised to proceed as described above,
+        so that automatic documentation generation works better (see <link linkend="xmlres.cli2help" endterm="xmlres.cli2help.title"/>).
+        </note>
+
+        <para>
+        In lesser theoretical words, <sgmltag class="element">tag</sgmltag> elements allow you to define command lines with options.
+        </para>
+
+        <example id="eg.tag.circle1"><title id="eg.tag.circle1.title">Syntax tags - An optional command line</title>
+            <para>
+            Consider the following object class:
+                <programlisting>&sample-circle-cpp;</programlisting>
+            or:
+                <programlisting>&sample-circle-java;</programlisting>
+            </para>
+
+            <para>
+            Thanks to a tag, you can define an optional command line filling an object of this class:
+                <informaltable frame="none">
+                <tgroup cols="2">
+                <tbody>
+                <row>
+                <entry valign="top">
+<programlisting>
+
+
+
+
+
+
+
+,-&gt;
+|
+|
+|
+|
+|
+|
+|
+|
++--
+|
+|
+|
+|
+|
+|
++--
+|
+|
+|
+|
+|
+|
+`--
+
+
+
+
+
+
+</programlisting>
+                </entry>
+                <entry><!-- Spacing --></entry>
+                <entry valign="top">
+                        &sample-circle-pos-cli;
+                </entry>
+                <entry><!-- Spacing --></entry>
+                <entry valign="top">
+<programlisting>
+
+
+
+
+
+(1)
+
+
+
+(2)
+
+
+
+
+(3)
+
+
+
+
+
+
+(3)
+
+
+
+
+
+
+(3)
+
+
+
+
+
+
+
+
+</programlisting>
+                </entry>
+                </row>
+                </tbody>
+                </tgroup>
+                </informaltable>
+            <orderedlist>
+            <listitem>Declare an object with optional values.</listitem>
+            <listitem>Valid the object with its current values.</listitem>
+            <listitem>Set optional values.</listitem>
+            </orderedlist>
+            </para>
+
+            <para>
+            This example accepts the following command lines:
+<programlisting>
+add circle
+add circle x_position 1
+add circle y_position 2
+add circle radius 2
+add circle x_position -1 y_position -1 radius 3
+...
+</programlisting>
+            </para>
+        </example>
+
+
+        <example id="eg.tag.circle2"><title id="eg.tag.circle2.title">Syntax tags - Another optional command line</title>
+            <para>
+            If you want parameters to be ordered, you could use the following pattern.
+                <informaltable frame="none">
+                <tgroup cols="2">
+                <tbody>
+                <row>
+                <entry valign="top">
+<programlisting>
+
+
+
+
+
+
+
+
+
+
+,--
+|
+|
+|
+|
++--
+|
+|
+|
+|
++--
+|
+|
+|
+|
++--
+|
+`-&gt;
+
+
+
+
+
+
+
+
+</programlisting>
+                </entry>
+                <entry><!-- Spacing --></entry>
+                <entry valign="top">
+                        &sample-circle-color-cli;
+                </entry>
+                <entry><!-- Spacing --></entry>
+                <entry valign="top">
+<programlisting>
+
+
+
+
+
+(1)
+
+
+(2)
+
+
+
+
+(2)
+
+
+
+
+(2)
+
+
+
+
+(2)
+
+
+
+
+
+(3)
+
+
+
+
+
+
+</programlisting>
+                </entry>
+                </row>
+                </tbody>
+                </tgroup>
+                </informaltable>
+            <orderedlist>
+            <listitem>Declare an object with optional values.</listitem>
+            <listitem>Set the color: either black, blue, red or green.</listitem>
+            <listitem>Draw the circle with its color.</listitem>
+            </orderedlist>
+            </para>
+
+            <para>
+            This example accepts the following command lines:
+<programlisting>
+add circle black
+add circle blue
+add circle red
+add circle green
+</programlisting>
+            </para>
+        </example>
+
+        <note>
+        The <sgmltag class="attribute">max</sgmltag> attribute of <sgmltag class="element">tag</sgmltag> elements have been introduced in version 2.5.
+        The CLI library does not implement it at present.
+        It is only managed by the automatic documentation generation (see <link linkend="xmlres.cli2help" endterm="xmlres.cli2help.title"/>),
+        and should be implemented for real in latter versions of the library.
+        This attribute may receive the <sgmltag class="attvalue">1</sgmltag> or the <sgmltag class="attvalue">unbounded</sgmltag> value.
+        It indicates the maximum number of times this <sgmltag class="element">tag</sgmltag> link can be followed syntaxically speaking.
+        All theoretical examples presented the <sgmltag class="attvalue">unbounded</sgmltag> value,
+        the example below presents a regular use of the <sgmltag class="attvalue">1</sgmltag> value.
+        </note>
+
+        <note>
+        The CLI transformation is quite permissive regarding tags.
+        There is no special restriction on
+        whether you can reference a tag from anywhere in the syntax tree or not.
+        However, the target language compiler or interpreter shall detecte non-sense situations afterwards.
+        </note>
+
+        <blockquote>
+        Good!
+        Now tell me.
+        I have plenty of commands and I don't know how to organize my work.
+        I could describe them with few keywords for each of them,
+        but I'm afraid of having a wide choice at the root.
+        So I've though about gathering sets of commands behind first keywords.
+        What do you think about that?
+        </blockquote>
+
+        <para>
+        You're right!
+        That's a possibility.
+        But hold on!
+        What you are looking for is probably menus.
+        </para>
+
+    </section>
+
+    <section id="xmlres.menu">
+    <title id="xmlres.menu.title"><sgmltag class="element">menu</sgmltag>
+                - Classify user-defined command lines in menus</title>
+
+        <para>
+        The <sgmltag class="element">cli</sgmltag> element basically implements the main menu of a CLI interface.
+        You may also define sub-menus, gathering sets of commands under a common topic by the way.
+        Menus are then accessed through command lines.
+        </para>
+
+        <para>
+        A <sgmltag class="element">menu</sgmltag> element with a <sgmltag class="attribute">name</sgmltag> attribute defines a new menu.
+        Inside, you can declare new command lines, as you would proceed in the <sgmltag class="element">cli</sgmltag> element.
+        This <sgmltag class="element">menu</sgmltag> element can be placed:
+        <itemizedlist>
+        <listitem>in a <sgmltag class="element">endl</sgmltag> element.
+            The menu is directly available from the command it is attached to.</listitem>
+        <listitem>in the <sgmltag class="element">cli</sgmltag> element.
+            The menu is then referenced thanks to <sgmltag class="element">menu</sgmltag> elements
+            with a <sgmltag class="attribute">ref</sgmltag> attribute
+            in <sgmltag class="element">endl</sgmltag> elements.</listitem>
+        </itemizedlist>
+        </para>
+
+        <para>
+        It is now time to introduce the <command>pwm</command> command.
+        If you have tried any example of this user guide, you may have noticed a basic command <command>pwm</command> meaning <acronym>Print Working Menu</acronym>.
+        The same way <command>pwd</command> gives you the working directory in a UNIX shells,
+        this command gives you the current working menu, and the current stack of menus.
+        </para>
+
+        <example id="eg.menu"><title id="eg.menu.title">Classify user-defined command lines in menus</title>
+            Consider a CLI controlling a configuration.
+            A common organization is to offer consultation commands in the main menu,
+            and to reserve modification commands in an edition mode:
+            <orderedlist>
+            <listitem>The <command>edit config</command> command leads to a <sgmltag class="attvalue">edit</sgmltag> sub-menu,
+                thanks to the <sgmltag class="element">menu</sgmltag> element directly contained in the <sgmltag class="element">endl</sgmltag> element.</listitem>
+            <listitem>The commands defined from the <sgmltag class="attvalue">edit</sgmltag> sub-menu are available
+                only once the <command>edit config</command> has been entered.</listitem>
+            <listitem>No need to define basic commands for menus.
+                The <command>pwm</command> behaves as usual.
+                The <command>exit</command> command allows the user to quit the current menu and come back to the parent one.
+                The <command>quit</command> command directly quits the CLI.</listitem>
+            </orderedlist>
+                <informaltable frame="none">
+                <tgroup cols="2">
+                <tbody>
+                <row>
+                <entry valign="top">
+
+                    &sample-menu-config;
+
+                </entry>
+                <entry><!-- Spacing --></entry>
+                <entry valign="top">
+<programlisting>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(1)
+(1) (3)
+
+
+
+
+(2)
+
+
+
+
+
+
+(2)
+
+
+
+
+
+
+
+</programlisting>
+                </entry>
+                </row>
+                </tbody>
+                </tgroup>
+                </informaltable>
+        </example>
+
+        <note>
+        Advanced menu features are discussed in the advanced section.
+        Please refer to the <link linkend="adv.menus" endterm="adv.menus.title"/> section for more information.
+        </note>
+
+        <blockquote>
+        Thank you for this detailed documentation.
+        Do you provide a schema in order to check automatically this XML resource syntax?
+        </blockquote>
+    </section>
+
+    <section id="xmlres.schema">
+    <title id="xmlres.schema.title">Schema checking</title>
+
+        <para>
+        This toolkit is provided with two schema files: <filename>cli.xsd</filename> and <filename>cli.rng</filename>.
+        </para>
+
+        <para>
+        <filename>cli.xsd</filename> is a regular W3C Xml Schema 1.0 file.
+        Because of W3C limitations, some constraints are not checked with this Xml Schema:
+        <itemizedlist>
+        <listitem><sgmltag class="element">menu[@name]</sgmltag> / <sgmltag class="element">menu[@ref]</sgmltag>
+            and <sgmltag class="element">tag[@id]</sgmltag> / <sgmltag class="element">tag[@ref]</sgmltag> elements distinction,</listitem>
+        <listitem><sgmltag class="element">menu</sgmltag> and <sgmltag class="element">tag</sgmltag> foreign key constraints.</listitem>
+        </itemizedlist>
+        However <filename>cli.xsd</filename> can be used in order to have a first level of syntax checking.
+        </para>
+
+        <example id="eg.xsd"><title id="eg.xsd.title">Xml Schema validation</title>
+<programlisting>$ xmllint --schema $CLI_DIR/schema/cli.xsd --noout my-cli.xml
+my-cli.xml validates</programlisting>
+        </example>
+
+        <para>
+        <filename>cli.rng</filename> is a Relax NG schema.
+        Relax NG permits the description of elements having the same name but different attributes,
+        however it still does not cover all the constraints that should be checked:
+        <itemizedlist>
+        <listitem><sgmltag class="element">menu</sgmltag> names and <sgmltag class="element">tag</sgmltag> identifiers unicity,</listitem>
+        <listitem><sgmltag class="element">menu</sgmltag> and <sgmltag class="element">tag</sgmltag> foreign key constraints.</listitem>
+        </itemizedlist>
+        But once again, <filename>cli.rng</filename> can be used in order to have a first level of syntax checking.
+        </para>
+
+        <example id="eg.rng"><title id="eg.rng.title">Relax NG validation</title>
+<programlisting>$ xmllint --relaxng $CLI_DIR/cli.rng --noout --noout my-cli.xml
+my-cli.xml validates</programlisting>
+        </example>
+
+        <blockquote>
+        Great!
+        Now I just have to document the CLI for my users.
+        </blockquote>
+
+        <para>
+        Automatic documentation generation may do part of the job for you then.
+        </para>
+    </section>
+
+    <section id="xmlres.cli2help">
+    <title id="xmlres.cli2help.title">
+        <filename>cli2help.xsl</filename>
+        - Automatic documentation generation</title>
+
+        <para>
+        Since version 2.5, the CLI toolkit is provided with a <filename>cli2help.xsl</filename> XSL stylesheet.
+        This stylesheet generates CLI documentation automatically.
+        </para>
+
+        <example id="eg.cli2help"><title id="cli2help.title"><filename>cli2help.xsl</filename> automatic documentation generation</title>
+            Based on the following sample <ulink url="misc/clisample.xml">clisample.xml</ulink> CLI XML resource file,
+            the XSL transformation below automatically generates the given documentation <ulink url="misc/clisample.html">clisample.html</ulink>.
+            <programlisting>$ xsltproc cli2helpxsl clisample.xml &gt; clisample.html</programlisting>
+        </example>
+
+        <para>
+        This XSL stylesheet is not as clever as a human being,
+        therefore here is a couple of directions in order to generate a smart documentation:
+        <itemizedlist>
+        <listitem>The <filename>cli2help.xsl</filename> XSL stylesheet consider backward and forward tags.
+            Backward tags basically implement non mandatory options, and are presented <command>[this way]</command>.
+            Forward tags implement mandatory options following <command>a(b1|b2)c</command> patterns.
+            <itemizedlist>
+            <listitem>Avoid exotic tag nesting, in order to let the XSL transformation have a simple understanding of the organization of the options.
+                Please refer to the <link linkend="xmlres.tag"><sgmltag class="element">tag</sgmltag> section</link>
+                for the implementation of such regular patterns.
+            </listitem>
+            </itemizedlist>
+        </listitem>
+        <listitem>Commands are found back, being processed backwardly, from their <sgmltag class="element">endl</sgmltag> final elements.
+            <itemizedlist>
+            <listitem>Check the number of <sgmltag class="element">endl</sgmltag> elements you declare for a single human-understandable command.
+                Let's consider two command lines <command>say hello</command> and <command>say bye</command>,
+                they may be considered like two different command lines,
+                or rather like a single one with a mandatory parameter <command>say (hello|bye)</command>.
+                It's up to you to choose which presentation is better, and use <sgmltag class="element">tag</sgmltag> elements when needed.
+            </listitem>
+            <listitem>Some commands are documented with <sgmltag class="element">help</sgmltag> elements for each syntax node,
+                but the final syntax node help may be not enough representative for a user documentation.
+                In such a situation, use a dummy tag at the end of the command line, in order to force the help for a given command.
+                Dummy tags are <sgmltag class="element">tag</sgmltag> elements with a <sgmltag class="attribute">id</sgmltag> attribute,
+                but no reference from the rest of the CLI XML resource file.
+                Dummy tags can be documented with <sgmltag class="element">help</sgmltag> elements as well,
+                but this help has no effect during the CLI execution.
+            </listitem>
+            </itemizedlist>
+        </listitem>
+        </itemizedlist>
+        </para>
+
+    </section>
+
+    <blockquote>
+    Very good.
+    Now I'm getting back to making the user enter out of command lines.
+    You told me we would deal with it?
+    </blockquote>
+
+    <para>
+    Here we go!
+    </para>
+
+</section>
+

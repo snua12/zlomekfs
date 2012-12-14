@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<cli name="io-device" xmlns="http://alexis.royer.free.fr/CLI">
+
+    <cpp option="include">#include "cli/single_command.h"</cpp>
+    <cpp option="include">#include "cli/file_device.h"</cpp>
+    <cpp option="include">#include "io_device_impl.h"</cpp>
+
+    <cpp>CLI_NS_USE(cli)</cpp>
+
+    <cpp>OutputDevice* pcli_Device = NULL;</cpp>
+    <cpp>STREAM_TYPE e_Use = OUTPUT_STREAM;</cpp>
+
+    <keyword string="set"><help lang="en">Set device command</help>
+
+        <tag ref="instance"/>
+
+        <!-- Select or create an instance. -->
+        <tag id="instance" hidden="yes">
+            <keyword string="device"><help lang="en">Device identification</help>
+                <keyword string="null"><help lang="en">Null device</help>
+                    <cpp>pcli_Device = &amp; OutputDevice::GetNullDevice();</cpp>
+                    <tag ref="post-instance"/>
+                </keyword>
+                <keyword string="stdout"><help lang="en">Standard output device</help>
+                    <cpp>pcli_Device = &amp; OutputDevice::GetStdOut();</cpp>
+                    <tag ref="post-instance"/>
+                </keyword>
+                <keyword string="stderr"><help lang="en">Standard error device</help>
+                    <cpp>pcli_Device = &amp; OutputDevice::GetStdErr();</cpp>
+                    <tag ref="post-instance"/>
+                </keyword>
+                <keyword string="io_mux"><help lang="en">This program input / output multiplexer device</help>
+                    <cpp>pcli_Device = &amp; GetIOMux();</cpp>
+                    <tag ref="post-instance"/>
+                </keyword>
+                <keyword string="new"><help lang="en">New devices creation</help>
+                    <keyword string="single-command"><help lang="en">Single command line device</help>
+                        <param id="cmd-line" type="string"><help lang="en">Command line</help>
+                            <cpp>pcli_Device = new SingleCommand(<value-of param="cmd-line"/>, GetIOMux(), true);</cpp>
+                            <tag ref="post-instance"/>
+                        </param>
+                    </keyword>
+                    <keyword string="output-file"><help lang="en">Output file device</help>
+                        <param id="output-file-name" type="string"><help lang="en">File name</help>
+                            <cpp>pcli_Device = new OutputFileDevice(<value-of param="output-file-name"/>, true);</cpp>
+                            <tag ref="post-instance"/>
+                        </param>
+                    </keyword>
+                    <keyword string="input-file"><help lang="en">File name</help>
+                        <param id="input-file-name" type="string"><help lang="en">File name</help>
+                            <cpp>pcli_Device = new InputFileDevice(<value-of param="input-file-name"/>, GetIOMux(), true);</cpp>
+                            <tag ref="post-instance"/>
+                        </param>
+                    </keyword>
+                </keyword>
+            </keyword>
+        </tag>
+        <tag id="post-instance" hidden="yes"><tag ref="use"/></tag>
+
+        <!-- Define the role o this instance. -->
+        <tag id="use" hidden="yes">
+            <keyword string="for"><help lang="en">Indicate device use</help>
+                <keyword string="welcome"><help lang="en">Welcome stream modification</help>
+                    <cpp>e_Use = WELCOME_STREAM;</cpp>
+                    <tag ref="post-use"/>
+                </keyword>
+                <keyword string="prompt"><help lang="en">Prompt stream modification</help>
+                    <cpp>e_Use = PROMPT_STREAM;</cpp>
+                    <tag ref="post-use"/>
+                </keyword>
+                <keyword string="echo"><help lang="en">Echo stream modification</help>
+                    <cpp>e_Use = ECHO_STREAM;</cpp>
+                    <tag ref="post-use"/>
+                </keyword>
+                <keyword string="output"><help lang="en">Output stream modification</help>
+                    <cpp>e_Use = OUTPUT_STREAM;</cpp>
+                    <tag ref="post-use"/>
+                </keyword>
+                <keyword string="error"><help lang="en">Error stream modification</help>
+                    <cpp>e_Use = ERROR_STREAM;</cpp>
+                    <tag ref="post-use"/>
+                </keyword>
+                <keyword string="input"><help lang="en">Input stream modification</help>
+                    <cpp>e_Use = STREAM_TYPES_COUNT;</cpp>
+                    <tag ref="post-use"/>
+                </keyword>
+            </keyword>
+        </tag>
+        <tag id="post-use" hidden="yes"><tag ref="execute"/></tag>
+
+        <!-- Execution. -->
+        <tag id="execute" hidden="yes">
+            <endl><cpp>SetDevice(e_Use, pcli_Device);</cpp></endl>
+        </tag>
+    </keyword>
+
+</cli>
+

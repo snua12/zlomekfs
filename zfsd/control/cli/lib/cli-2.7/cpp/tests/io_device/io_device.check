@@ -1,0 +1,43 @@
+<CLI_IO_DEVICE_INSTANCES> One more user for instance stdout, user count: 1 -> 2, from InputFileDevice
+<CLI_IO_DEVICE_INSTANCES> One more user for instance input-file[../../../cpp/tests/io_device/io_device.test], user count: 0 -> 1, from AddDevice
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 1 -> 2, from OpenDevices
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 2 -> 3, from OpenDevices
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 3 -> 4, from OpenDevices
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 4 -> 5, from OpenDevices
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 5 -> 6, from OpenDevices
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 6 -> 7, from OpenDevices
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 0 -> 1, from OpenDevices
+<CLI_IO_DEVICE_OPENING> Opening the device mux
+<CLI_IO_DEVICE_OPENING> One more user for instance input-file[../../../cpp/tests/io_device/io_device.test], user count: 0 -> 1, from OpenDevice
+<CLI_IO_DEVICE_OPENING> Opening the device input-file[../../../cpp/tests/io_device/io_device.test]
+<CLI_IO_DEVICE_OPENING> One more user for instance stdout, user count: 0 -> 1, from OpenDevice
+<CLI_IO_DEVICE_OPENING> Opening the device stdout
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 1 -> 2, from OpenDevices
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 2 -> 3, from OpenDevices
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 3 -> 4, from OpenDevices
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 4 -> 5, from OpenDevices
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 5 -> 6, from OpenDevices
+<CLI_IO_DEVICE_INSTANCES> One more user for instance mux, user count: 7 -> 8, from SetStream
+<CLI_IO_DEVICE_OPENING> One more user for instance mux, user count: 6 -> 7, from SetStream
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 7 -> 6, from UnsetStream
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 8 -> 7, from UnsetStream
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 6 -> 5, from CloseDevices
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 5 -> 4, from CloseDevices
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 4 -> 3, from CloseDevices
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 3 -> 2, from CloseDevices
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 2 -> 1, from CloseDevices
+<CLI_IO_DEVICE_OPENING> One less user for instance mux, user count: 1 -> 0, from CloseDevices
+<CLI_IO_DEVICE_OPENING> Closing the device mux
+<CLI_IO_DEVICE_OPENING> One less user for instance input-file[../../../cpp/tests/io_device/io_device.test], user count: 1 -> 0, from ReleaseFirstDevice
+<CLI_IO_DEVICE_OPENING> Closing the device input-file[../../../cpp/tests/io_device/io_device.test]
+<CLI_IO_DEVICE_OPENING> One less user for instance stdout, user count: 1 -> 0, from CloseDevice
+<CLI_IO_DEVICE_OPENING> Closing the device stdout
+<CLI_IO_DEVICE_INSTANCES> One less user for instance input-file[../../../cpp/tests/io_device/io_device.test], user count: 1 -> 0, from ReleaseFirstDevice
+<CLI_IO_DEVICE_INSTANCES> Deleting the device input-file[../../../cpp/tests/io_device/io_device.test]
+<CLI_IO_DEVICE_INSTANCES> One less user for instance stdout, user count: 2 -> 1, from ~InputFileDevice
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 7 -> 6, from CloseDevices
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 6 -> 5, from CloseDevices
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 5 -> 4, from CloseDevices
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 4 -> 3, from CloseDevices
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 3 -> 2, from CloseDevices
+<CLI_IO_DEVICE_INSTANCES> One less user for instance mux, user count: 2 -> 1, from CloseDevices

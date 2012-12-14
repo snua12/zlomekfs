@@ -1,0 +1,10 @@
+print author
+print float 3.14
+print int 123
+print word Hello
+print words What *!\?? "  " I couldn\'t hear you.
+enter sample-menu
+ he		l	
+ exit
+enter sample-menu
+ quit

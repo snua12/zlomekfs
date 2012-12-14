@@ -1,0 +1,17 @@
+Circle>add circle
+Circle>add circle r 1
+Circle>add circle x 1
+Circle>add circle y 1
+Circle>add circle x 1 r 1
+Circle>add circle y 1 r 1
+Circle>add circle r 1 x 1
+Circle>add circle r 1 y 1
+Circle>add circle x 1 y 1
+Circle>add circle y 1 x 1
+Circle>add circle r 1 x 1 y 1
+Circle>add circle r 1 y 1 x 1
+Circle>add circle x 1 r 1 y 1
+Circle>add circle x 1 y 1 r 1
+Circle>add circle y 1 r 1 x 1
+Circle>add circle y 1 x 1 r 1
+Circle>exit

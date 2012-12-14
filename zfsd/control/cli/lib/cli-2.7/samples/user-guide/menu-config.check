@@ -1,0 +1,9 @@
+my-config>show ip config
+my-config>show ip stats
+my-config>edit config
+edit> reset stats
+edit> set ip address localhost
+edit> exit
+my-config>show ip config
+my-config>show ip stats
+my-config>exit

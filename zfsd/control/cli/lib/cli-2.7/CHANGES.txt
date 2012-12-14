@@ -1,0 +1,192 @@
+-------------------------------------------------------------------------------
+    Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the CLI library project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-------------------------------------------------------------------------------
+
+Version 2.7
+(Dec, 9th 2011)
+    Major modifications:
+        * Contributions:
+            - Oleg Smolsky: memory leaks + compilation warnings
+            - Lakshman Naganoor and Venkatrangan G.: ui::More and ui::Less addition
+            - Peter Geremia: 64 bit architecture port
+            - Wilson Yu: Xalan and Saxon stylesheet transformation bug
+            - Anoop R.: Output interleavings (see http://alexis.royer.free.fr/CLI/user-guide/cli-user-guide.html#faq.Q600)
+        * Text edition facilities:
+            - Passwords
+            - Text fields
+            - Integer fields
+            - Yes/no questions
+            - Choice questions
+        * 'mono-thread' feature renamed into 'non-blocking'
+        * Telnet improvements:
+            - Use of select() in TelnetServer + TelnetConnection derived from NonBlockingIODevice
+            - Full multi-client management
+            - StopServer() addition
+        * Java Input/output devices refactoring: both Java and native devices implementations, outputDevice constants addition (NULL_KEY, ...), safeness checkings
+        * IOMux changed into a sequence of devices (multiple outputs removal)
+        * 'cls' command addition
+    Miscellaneous:
+        * Input/output devices infinite loops protection improvements with deprecation of GetActualDevice() and addition of WouldOutput()/WouldInput() methods.
+        * Traces device management consistency improvements
+        * Java implementation completion: StringDevice, TelnetServer and TelnetConnection implementation
+        * Shell API modifications (advanced user, see user-guide), fixes for NonBlockingIODevice input devices
+        * WinConsole improvements: clean screen and cursor visibility
+        * tk::String::ToUpper(), ToLower() methods addition
+        * OutputDevice::operator<<(double) smart display
+        * Java native sources improvements:
+            - NativeExec addition for better thread-safe behaviours
+            - NativeObject::GetJavaClassName() completion
+            - better ports on 64 bit architectures (to be tested)
+        * XSL: Version of CLI library addition in XSL outputs
+        * Web page / User guide improvements: FAQ addition, title numbers, dynamic menus, dynamic dialogs
+
+Version 2.6
+(Dec, 15th 2010)
+    Major modifications:
+        * Deprecation of SetErrorFormatting(). Use of error handlers instead.
+        * C++/Java: Shell::GetCurrentMenu(index) method addition.
+    Miscellaneous:
+        * CPP_DIR, JAVA_DIR, SAMPLES_DIR and WEB_DIR makefile variables removal.
+        * Documentation makefiles moved in web/build/make.
+        * Full telnet test implementation.
+
+Version 2.5
+(Sep, 30th 2010)
+    Major modifications:
+        * Schema addition: XSD and RelaxNG
+        * Automatic documentation of a user CLI
+        * 'members' and 'constructor' sections addition
+        * 'prompt' handler addition
+    Miscellaneous:
+        * Java: _build.mak makefile addition
+        * Java: implementation completion (native cli.OutputDevice and cli.IODevice)
+        * User-code menu management: Cli::GetMenu() addition and Shell::EnterMenu() declared as public
+        * 'error' handler improvement (return value controlling the regular error display)
+        * str_LocationSuffix configuration parameter addition
+
+Version 2.4
+(Oct, 1st 2009)
+    Miscellaneous:
+        * Licensing: URL link addition in the license.
+        * Makefile improvements: .DEFAULT_GOAL improvement, include Makefiles prefixed by '_', help and vars dependencies revision
+        * C++/Java: 'show version', 'show author' and 'show license' commands addition in the 'cli-config' menu.
+        * C++/Java: ALL_STREAMS management in Shell and IOMux.
+        * C++/Java: OnError() handler addition.
+        * C++: various improvements.
+        * C++: stdout and stderr flushing addition for a better rendering.
+        * Java: implementation completion (ResourceString and Help revision, IODevice.getLocation(), Shell...)
+        * Java: OutputDevice.printStackStrace() method addition for a better output management
+        * Java: finalization & native creation improvements
+        * Java: cli.jar archive improvement
+        * Java: XSL minor comment improvements
+        * XSL improvements for other XSLT processor out of xsltproc
+
+Version 2.3
+(May, 18th 2009)
+    Major modifications:
+        * Left and right arrows management
+        * Clean screen function (CTRL+L)
+        * Integration improvements: thread safe termination management, mono-thread execution
+        * XSL generation improved for a better readability of the code generated: user-code highlighted, and comments addition indicating the current chain of keywords in analysis
+    Miscellaneous:
+        * Command line history object addition
+        * Input/output character management improvements, "endl" support modification for Input/Output devices. '\n' are automatically interpreted by devices now
+        * Input file device improvements: bufferization for optimization, special characters disabling, error location / error prefixing modification
+        * Consistency improvements regarding devices: OutputDevice::GetActualDevice() method addition
+        * Java samples projects addition
+
+Version 2.2
+(Sep, 21st 2008)
+    Miscellaneous:
+        * Makefile improvements.
+        * Special character addition.
+        * Addition of error prefixing.
+        * Cli configuration menu disabling
+        * Java implementation evolutions: cli.Element.getCli/getShell(), cli.Traces.set/unsetStream(), cli.IOMux, cli.SingleCommand
+        * Java documentation.
+        * Doxygen documentation generated in web directory.
+        * XSL stylesheet revision: special sections, CLI_EXECUTION, cpp corrections, coherence between cpp and java...
+
+Verison 2.1
+(Oct, 31st 2007)
+    Major modifications:
+        * Java support: lots of improvements still remaining, but it works so far
+        * French language support
+    Miscellaneous:
+        * C++:
+              o Makefile architecture improvements: help.mak, mkres.mak, check.mak... makefiles creation
+              o Addition of cli::Object generic object
+              o C++ No namespace directive enabled
+              o C++ No-stdlib implementation available
+              o C++ Pre-compiled headers enabling
+              o Assertions improvements
+              o ncurses and Windows consoles modifications
+              o Traces consistency improvement. Addition of Traces::UnsetStream()
+              o C++ XSL revisions (inherited from java experience):
+                CLI tree created in the scope of the CLI class; Both static and dynamic CLI instantiation; Generation of CLI_EXECUTION traces 
+
+Version 2.0
+(Sept, 27th 2007)
+    Major modifications:
+        * License modification: The former LGPL license has been abandoned for a BSD-like license. This is the decision of the author (myself) in order to have fewer constraints on using and modifying the library in any kind of softwares (even commercial ones), which is what I wanted initially.
+    Miscellaneous:
+        * Useless constructor removal in cli/include/param.h
+
+Version 1.0
+(Apr, 30th 2007)
+    Major modifications:
+        * cli namespace.
+        * Input / output devices:
+              o instance and opening locking / auto-deletion
+              o new devices: cli::FileDevice, cli::SingleCommand, cli::IOMux
+        * Revision of cpp section naming in XSL.
+    Miscellaneous:
+        * include/cli directory creation and file names modification.
+        * Makefiles improvements:
+              o build/make directory creation
+              o target specific generation
+              o debug generation management
+              o BIN_SUFFIX addition
+        * Unit tests: empty, io_device.
+        * Traces system addition.
+
+Version 1.0.beta1
+(Sept, 27th 2006)
+    Major modifications:
+        * Source documentation.
+        * Windows / cygwin support (Linux is still available of course).
+        * Command line history.
+        * Completion "so far".
+        * Escape characters and double quotes management.
+        * Hollow-tags.
+        * Beep support for IO devices.
+        * Stream branching modification.
+        * Welcome and prompt messages modification.
+        * Echo and beep on/off live configuration.
+    Miscellaneous:
+        * Launch method modification.
+        * CLI retrieval based on regular expressions.
+        * Automatic test tools.
+        * C++ constness improvement.
+        * Cross-platform Makefiles improvement.
+

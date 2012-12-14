@@ -1,0 +1,19 @@
+dummy-tag>trace on
+dummy-tag>a b c d
+<CLI_EXECUTION> context = "dummy-tag>", word = a
+<CLI_EXECUTION> context = "dummy-tag> a", word = b
+<CLI_EXECUTION> context = "dummy-tag> a [loop:]", word = b
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:]", word = b
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:] $any", word = c
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:] $any [-> loop]", word = c
+<CLI_EXECUTION> context = "dummy-tag> a [loop:]", word = c
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:]", word = c
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:] $any", word = d
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:] $any [-> loop]", word = d
+<CLI_EXECUTION> context = "dummy-tag> a [loop:]", word = d
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:]", word = d
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:] $any", word = <CR>
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] [dummy:] $any [-> loop]", word = <CR>
+<CLI_EXECUTION> context = "dummy-tag> a [loop:]", word = <CR>
+<CLI_EXECUTION> context = "dummy-tag> a [loop:] <CR>", word = <CR>
+dummy-tag>

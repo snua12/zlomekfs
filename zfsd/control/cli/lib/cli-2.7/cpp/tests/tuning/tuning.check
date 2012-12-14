@@ -1,0 +1,143 @@
+tuning>prompt en "Please enter a command line: " fr "Veuillez saisir une ligne de commande : "
+Please enter a command line: 
+Please enter a command line: lang en
+Please enter a command line: welcome en "You are very welcome!" fr "Soyez le bienvenu !"
+You are very welcome!
+Please enter a command line: welcome
+---------------------------------------------------
+ Welcome to tuning!
+
+ tuning is a command line interface
+ using the CLI library
+   (c) Alexis Royer http://alexis.royer.free.fr/CLI/
+ Type 'help' at any time
+ or press '?' or TAB to get completion or help.
+---------------------------------------------------
+Please enter a command line: lang fr
+Veuillez saisir une ligne de commande : welcome en "You are very welcome!" fr "Soyez le bienvenu !"
+Soyez le bienvenu !
+Veuillez saisir une ligne de commande : welcome
+---------------------------------------------------
+ Welcome to tuning!
+
+ tuning is a command line interface
+ using the CLI library
+   (c) Alexis Royer http://alexis.royer.free.fr/CLI/
+ Type 'help' at any time
+ or press '?' or TAB to get completion or help.
+---------------------------------------------------
+Veuillez saisir une ligne de commande : 
+Veuillez saisir une ligne de commande : lang en
+Please enter a command line: bye en "See you soon!" fr "A bientôt !"
+See you soon!
+Please enter a command line: bye
+Bye!
+Please enter a command line: lang fr
+Veuillez saisir une ligne de commande : bye en "See you soon!" fr "A bientôt !"
+A bientôt !
+Veuillez saisir une ligne de commande : bye
+Bye!
+Veuillez saisir une ligne de commande : 
+Veuillez saisir une ligne de commande : lang en
+Please enter a command line: beep on
+Echo is on
+Please enter a command line: beep off
+Echo is off
+Please enter a command line: 
+Please enter a command line: lang en
+Please enter a command line: help
+  beep            Beep enabling
+  bye             Bye message modification
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'tuning'
+  help            Get help
+  language        Select language
+  prompt          Prompt modification
+  pwm             Print Working Menu
+  quit            Quit
+  restore-cli-config Configuration menu restoration
+  welcome         Welcome message modification
+Please enter a command line: cli-config
+Please enter a command line:  help
+  beep            Modify beep behavior
+  cls             Clean screen
+  echo            Modify echo behavior
+  exit            Exit menu 'cli-config'
+  help            Get help
+  lang            Language setting
+  pwm             Print Working Menu
+  quit            Quit
+  show            Show CLI information
+Please enter a command line:  exit
+Please enter a command line: cli-config on
+Please enter a command line: help
+  beep            Beep enabling
+  bye             Bye message modification
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'tuning'
+  help            Get help
+  language        Select language
+  prompt          Prompt modification
+  pwm             Print Working Menu
+  quit            Quit
+  restore-cli-config Configuration menu restoration
+  welcome         Welcome message modification
+Please enter a command line: cli-config
+Please enter a command line:  help
+  beep            Modify beep behavior
+  cls             Clean screen
+  echo            Modify echo behavior
+  exit            Exit menu 'cli-config'
+  help            Get help
+  lang            Language setting
+  pwm             Print Working Menu
+  quit            Quit
+  show            Show CLI information
+Please enter a command line:  exit
+Please enter a command line: cli-config off
+Please enter a command line: help
+  beep            Beep enabling
+  bye             Bye message modification
+  cls             Clean screen
+  exit            Exit menu 'tuning'
+  help            Get help
+  language        Select language
+  prompt          Prompt modification
+  pwm             Print Working Menu
+  quit            Quit
+  restore-cli-config Configuration menu restoration
+  welcome         Welcome message modification
+Please enter a command line: cli-config
+../../../cpp/tests/tuning/tuning.test:33: Syntax error next to 'cli-config'
+Please enter a command line: cli-config on
+../../../cpp/tests/tuning/tuning.test:34: Syntax error next to 'cli-config'
+Please enter a command line: restore-cli-config
+Please enter a command line: help
+  beep            Beep enabling
+  bye             Bye message modification
+  cli-config      CLI configuration menu
+  cls             Clean screen
+  exit            Exit menu 'tuning'
+  help            Get help
+  language        Select language
+  prompt          Prompt modification
+  pwm             Print Working Menu
+  quit            Quit
+  restore-cli-config Configuration menu restoration
+  welcome         Welcome message modification
+Please enter a command line: cli-config
+Please enter a command line:  help
+  beep            Modify beep behavior
+  cls             Clean screen
+  echo            Modify echo behavior
+  exit            Exit menu 'cli-config'
+  help            Get help
+  lang            Language setting
+  pwm             Print Working Menu
+  quit            Quit
+  show            Show CLI information
+Please enter a command line:  exit
+Please enter a command line: 
+Please enter a command line: exit
