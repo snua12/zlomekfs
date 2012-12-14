@@ -60,7 +60,11 @@ int config_setting_lookup_uint64_t(const config_setting_t *setting,
 	const char *name, uint64_t *value)
 {
 
+#if (LIBCONFIG_VER_MAJOR >= 1) && (LIBCONFIG_VER_MINOR >= 4)
+	int long_value;
+#else
 	long long_value;
+#endif
 	int rv = config_setting_lookup_int(setting, name, &long_value);
 	if (rv != CONFIG_TRUE)
 	{
