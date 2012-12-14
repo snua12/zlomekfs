@@ -56,13 +56,15 @@ bool mounted = false;
 /*! \brief thread id of Dokan interface thread */
 static pthread_t dokan_thread;
 
+static wchar_t dokan_mount_point[MAX_PATH + 1] = L"z:";
+
 /*! \brief dokan option structure with zlomekFS default setting */
 DOKAN_OPTIONS zfs_dokan_options =
 {
 	.Version = DOKAN_VERSION,
 	.ThreadCount = 0, // use default 0
 	.Options = DOKAN_OPTION_KEEP_ALIVE, 
-	.MountPoint = L"z:"
+	.MountPoint = dokan_mount_point,
 };
 
 /*! \brief sets thread specific values required by other parts of zlomekFS code
@@ -152,6 +154,28 @@ static int zfs_get_end_of_file(zfs_fh * fh, uint64_t * size)
 	*size = fa.size;
 
 	return ZFS_OK;
+}
+
+static int zfs_get_file_type(const char * path)
+{
+	int rv;
+	dir_op_res lres;
+	char * path_dup = xstrdup(path);
+	rv = dokan_zfs_extended_lookup(&lres, path_dup);
+	xfree(path_dup);
+	if (rv != ZFS_OK)
+	{
+		return FT_BAD;
+	}
+
+	fattr fa;
+	rv = zfs_getattr(&fa, &lres.file);
+	if (rv != ZFS_OK)
+	{
+		return FT_BAD;
+	}
+
+	return fa.type;
 }
 
 /*! \brief set the file size
@@ -896,6 +920,10 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_time (
 	return rv;
 }
 
+static int DOKAN_CALLBACK inner_dokan_delete_directory ( 
+	ATTRIBUTE_UNUSED LPCWSTR file_name,
+	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info);
+
 /*! \brief inner implementation of \ref zfs_dokan_delete_file */
 static int DOKAN_CALLBACK inner_dokan_delete_file (
 	LPCWSTR file_name,
@@ -908,6 +936,8 @@ static int DOKAN_CALLBACK inner_dokan_delete_file (
 	{
 		return -ERROR_PATH_NOT_FOUND;
 	}
+
+	int f_type = zfs_get_file_type(unix_path);
 
 	char * name = basename(unix_path);
 	char * path = dirname(unix_path);
@@ -922,7 +952,17 @@ static int DOKAN_CALLBACK inner_dokan_delete_file (
 	dir_op_args args;
 	args.dir = lres.file;
 	xmkstring(&args.name, name);
-	rv = zfs_unlink(&args.dir, &args.name);
+	/*workaround dokan bug*/
+	if (f_type == FT_DIR)
+	{
+		fprintf(stderr, ">>dir delete\n");
+		rv = zfs_rmdir(&args.dir, &args.name);
+	}
+	else
+	{
+		fprintf(stderr, ">>file delete\n");
+		rv = zfs_unlink(&args.dir, &args.name);
+	}
 	xfreestring(&args.name);
 
 	return zfs_err_to_dokan_err(rv);
@@ -1412,9 +1452,7 @@ static void * dokan_main(ATTRIBUTE_UNUSED void * data)
 	set_lock_info(li);
 
 	// pass zlomek options to DOKAN OPTIONS
-	wchar_t wMountPoint[MAX_PATH + 1];
-	mbstowcs(wMountPoint, zfs_config.mountpoint, MAX_PATH);
-	zfs_dokan_options.MountPoint = wMountPoint;
+	mbstowcs(dokan_mount_point, zfs_config.mountpoint, MAX_PATH);
 	size_t thread_count = zfs_config.threads.kernel_thread_limit.max_total;
 #ifdef DOKAN_SINGLE_THREAD
 	// for debuging purpose
@@ -1485,6 +1523,7 @@ void fs_unmount(void)
 	if (mounted)
 	{
 		DokanUnmount(zfs_dokan_options.MountPoint[0]);
+		mounted = false;
 	}
 }
 
