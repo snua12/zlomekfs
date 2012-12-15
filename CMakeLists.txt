@@ -37,6 +37,7 @@ option(ENABLE_HTTP_INTERFACE "Enable http fs interface (like GoFlex Satellite)" 
 option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
 option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
+option (ENABLE_CLI "Enable zlomekFS command line interface" OFF)
 option (ENABLE_PROFILE "Enable The GNU Profiler" OFF)
 if (ENABLE_PROFILE)
 message (STATUS "Enabling profiling with gprof")

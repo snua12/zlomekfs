@@ -34,6 +34,11 @@
 
 #include "syplog.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 extern struct logger_def syplogger;
 
 void update_node_name(void);
@@ -103,5 +108,9 @@ extern void internal_error(const char *format, ...) ATTRIBUTE_NORETURN;
 
 /*! Report an "Aborted" internal error.  */
  extern void verbose_abort(const char *file, int line) ATTRIBUTE_NORETURN;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

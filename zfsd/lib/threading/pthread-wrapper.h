@@ -27,6 +27,11 @@
 #include <pthread.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! Static mutex initializer.  */
 extern pthread_mutex_t zfsd_mutex_initializer;
 
@@ -244,5 +249,8 @@ extern pthread_mutex_t zfsd_mutex_initializer;
 
 int zfs_pthread_yield(void);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

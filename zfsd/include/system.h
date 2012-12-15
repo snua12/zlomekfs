@@ -41,7 +41,12 @@
 #include "config.h"
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
+#ifndef __cplusplus
 /*! bool type and constants.  */
 #ifndef bool
 #define bool char
@@ -51,6 +56,7 @@
 #endif
 #ifndef false
 #define false 0
+#endif
 #endif
 
 /*! We want print format specifiers from <inttypes.h> */
@@ -164,5 +170,9 @@
 /* direcotry separator */
 #define DIRECTORY_SEPARATOR "/"
 #define DIRECTORY_SEPARATOR_LEN 1
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

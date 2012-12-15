@@ -23,10 +23,19 @@
 */
 
 
-#ifndef _CLI_GO_HELLO_H_
-#define _CLI_GO_HELLO_H_
+#ifndef ZFSD_CLI_IMPL_H
+#define ZFSD_CLI_IMPL_H
+
+#include <sys/types.h>
+#include <signal.h>
+#include "log.h"
+#include "syplog.h"
+
 
 static void sayHello(const cli::OutputDevice& CLI_Out) { CLI_Out << "Hello!" << cli::endl; }
 static void sayBye(const cli::OutputDevice& CLI_Out) { CLI_Out << "Bye." << cli::endl; }
+static void zlomekfs_terminate() { pid_t pid = getpid();kill(pid, SIGTERM); }
+static void zlomekfs_get_log_level(const cli::OutputDevice& CLI_Out) { CLI_Out << get_log_level(&syplogger) << cli::endl; }
+static void zlomekfs_set_log_level(const cli::OutputDevice& CLI_Out, uint32_t log_level) { set_log_level(&syplogger, log_level); CLI_Out << "OK" << cli::endl; }
 
-#endif // _CLI_GO_HELLO_H_
+#endif // ZFSD_CLI_IMPL_H

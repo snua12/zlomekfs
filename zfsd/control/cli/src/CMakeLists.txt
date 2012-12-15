@@ -1,0 +1,26 @@
+set(CLI_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../lib/cli-2.7")
+set(CLI_CPPCLIC_XSL "${CLI_SOURCE_DIR}/cpp/xsl/cppclic.xsl")
+
+set(ZFSD_CLI_XML "${CMAKE_CURRENT_SOURCE_DIR}/zfsd_cli.xml")
+set(ZFSD_CLI_INCLUDE "${CMAKE_BINARY_DIR}/include")
+set(ZFSD_CLI_H "${ZFSD_CLI_INCLUDE}/zfsd_cli.h")
+
+ADD_CUSTOM_COMMAND(
+	OUTPUT  ${ZFSD_CLI_H}
+	DEPENDS ${ZFSD_CLI_XML}
+	COMMAND xsltproc --stringparam STR_CliClassName 'ZfsdCli' "${CLI_CPPCLIC_XSL}" "${ZFSD_CLI_XML}"> "${ZFSD_CLI_H}" || ( rm "${ZFSD_CLI_H}" && false )
+)
+
+set(CLI_CFLAGS_OTHER_STR "-I${CMAKE_CURRENT_SOURCE_DIR} -I${ZFSD_CLI_INCLUDE} -I${CLI_SOURCE_DIR}/cpp/include -I${CLI_SOURCE_DIR}/cpp/include/cli")
+set(CLI_CFLAGS_OTHER_STR "-I${CMAKE_CURRENT_SOURCE_DIR}/../inc/ ${CLI_CFLAGS_OTHER_STR}")
+set(CMAKE_CXX_FLAGS "${CLI_CFLAGS_OTHER_STR} ${CMAKE_CXX_FLAGS}")
+
+add_library(zfsd_cli ${BUILDTYPE} control_zfsd_cli.cpp "${ZFSD_CLI_H}")
+target_link_libraries(zfsd_cli log)
+
+install(
+TARGETS zfsd_cli
+DESTINATION ${ZFS_INSTALL_DIR}/lib
+PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+

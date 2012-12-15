@@ -54,13 +54,17 @@ type
 <keyword string="zfsd"><help lang="en">Get or set zlomekFS daemon setings.</help>
 	<keyword string="logLevel"><help lang="en">Get or set zlomekFS log level.</help>
 		<keyword string="get"><help lang="en">Get zlomekFS log loglevel.</help>
-			<endl><cpp><out/> &lt;&lt; 10 &lt;&lt;cli::endl;</cpp></endl>
+			<endl><cpp>zlomekfs_get_log_level(<out/>);</cpp></endl>
 		</keyword>
 		<keyword string="set"><help lang="en">Set zlomekFS log level.</help>
 			<param type="int" id="level">
-			<endl><cpp><out/> &lt;&lt; <value-of param="level"/> &lt;&lt; cli::endl;</cpp></endl>
+			<endl><cpp>zlomekfs_set_log_level(<out/>, <value-of param="level"/>);</cpp></endl>
 			</param>
 		</keyword>
+	</keyword>
+
+	<keyword string="terminate"><help lang="en">Stop zlomekFS daemon.</help>
+		<endl><cpp> zlomekfs_terminate(); </cpp></endl>
 	</keyword>
 
 </keyword>

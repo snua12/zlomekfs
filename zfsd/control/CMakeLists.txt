@@ -5,7 +5,7 @@
 if (ENABLE_DBUS)
 # dbus
 PKG_CHECK_MODULES(DBUS dbus-1>=1.0)
-  if (NOT FUSE_FOUND EQUAL 1)
+  if (NOT DBUS_FOUND EQUAL 1)
     message(FATAL_ERROR "dbus not found")
   endif()
 
@@ -13,11 +13,17 @@ PKG_CHECK_MODULES(DBUS dbus-1>=1.0)
   set(CONTROL_DBUS_LIBS controlDbus)
 endif (ENABLE_DBUS)
 
+if (ENABLE_CLI)
+	add_subdirectory(cli)
+	set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/cli/inc ${CMAKE_C_FLAGS}")
+	set(CONTROL_LIBS zfsd_cli cli)
+endif (ENABLE_CLI)
+
 add_library(syplog_control_wrapper ${BUILDTYPE} syplog_wrapper.c)
 target_link_libraries(syplog_control_wrapper log)
 
 add_library(control ${BUILDTYPE} control.c)
-target_link_libraries(control ${CONTROL_DBUS_LIBS} log syplog_control_wrapper)
+target_link_libraries(control ${CONTROL_DBUS_LIBS} log syplog_control_wrapper ${CONTROL_LIBS})
 
 add_executable(control_test control_test.c)
 target_link_libraries(control_test control)

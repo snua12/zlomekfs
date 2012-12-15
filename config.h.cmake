@@ -2,6 +2,7 @@
 #cmakedefine ENABLE_CHECKING
 #cmakedefine ENABLE_MUTEX_LOCKED
 #cmakedefine ENABLE_DBUS
+#cmakedefine ENABLE_CLI
 #cmakedefine HAVE_FOPENCOOKIE
 #cmakedefine HAVE_MKSTEMP
 #cmakedefine HAVE_EXECINFO_H

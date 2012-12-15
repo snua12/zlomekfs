@@ -113,7 +113,7 @@ const bool Console::OpenDevice(void)
         // Additional configuration.
         scrollok(p_Window, TRUE); // Enable scrolling.
         keypad(p_Window, TRUE); // Enable arrow keys.
-        ESCDELAY = 0; // Change the escape delay to none instead of 1000 ms by default.
+        //ESCDELAY = 0; // Change the escape delay to none instead of 1000 ms by default.
 
         m_pData = new NCursesConsole(p_Window);
 
@@ -141,7 +141,7 @@ const bool Console::CloseDevice(void)
         if (NCursesConsole::m_iDeviceCount <= 0)
         {
             // Restore original escape delay.
-            ESCDELAY = ORIGINAL_DELAY;
+            //ESCDELAY = ORIGINAL_DELAY;
         }
 
         endwin();

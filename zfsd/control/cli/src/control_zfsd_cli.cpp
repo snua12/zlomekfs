@@ -22,11 +22,41 @@
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <pthread.h>
+#include "cli/pch.h"
+#include "cli/common.h"
+#include "cli/console.h"
 
-#ifndef _CLI_GO_HELLO_H_
-#define _CLI_GO_HELLO_H_
+#include "cli/common.h"
+#include "zfsd_cli.h"
+#include "control_zfsd_cli.h"
 
-static void sayHello(const cli::OutputDevice& CLI_Out) { CLI_Out << "Hello!" << cli::endl; }
-static void sayBye(const cli::OutputDevice& CLI_Out) { CLI_Out << "Bye." << cli::endl; }
+#include "system.h"
 
-#endif // _CLI_GO_HELLO_H_
+static pthread_t cli_thread;
+static bool cli_thread_is_running = false;
+
+static void * zfsd_cli_main(ATTRIBUTE_UNUSED void * data) 
+{
+	ZfsdCli cli_ZfsdCli;
+	cli::Shell cli_Shell(cli_ZfsdCli);
+	cli::Console cli_Console(false);
+	cli_Shell.Run(cli_Console);
+}
+
+void start_cli_control(void)
+{
+	if (cli_thread_is_running == true) return;
+
+	int rv = pthread_create(&cli_thread, NULL, zfsd_cli_main, NULL);
+
+	if (rv == 0) cli_thread_is_running = true;
+}
+
+void stop_cli_control(void)
+{
+	if (cli_thread_is_running == false) return;
+	pthread_cancel(cli_thread);
+	cli_thread_is_running = false;
+}
+
