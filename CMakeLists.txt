@@ -2,7 +2,7 @@
 #
 # This file is part of ZFS build system.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.4)
 
 project(ZlomekFS)
 if (CYGWIN)
