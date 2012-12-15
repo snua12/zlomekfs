@@ -1,12 +1,18 @@
 # find ncurses libs
-PKG_CHECK_MODULES(NCURSES ncurses>=4.0)
+PKG_CHECK_MODULES(NCURSES ncurses)
 if (PKG_FOUND EQUAL 1)
 	message(STATUS "ncurses found")
 
 	link_directories(${NCURSES_LIBRARY_DIRS})
 	include_directories(${NCURSES_INCLUDE_DIRS})
 else()
-	message(STATUS "ncurses not found")
+	set(CURSES_NEED_NCURSES FALSE)
+	find_package(Curses)
+	if (CURSES_FOUND)
+		link_directories(${CURSES_LIBRARY})
+	else()
+		message(FATAL_ERROR "ncurses not found")
+	endif()
 endif()
 
 
