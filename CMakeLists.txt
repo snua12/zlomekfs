@@ -161,9 +161,13 @@ if (ENABLE_FS_INTERFACE)
 		set(HAVE_FUSE 1)
 		message(STATUS "fuse found")
 		set(ENABLE_FS_INTERFACE 1)
+
 		# Mac OS X build fix, convert list to string
 		string(REPLACE ";" " " FUSE_CFLAGS_OTHER_STR "${FUSE_CFLAGS_OTHER}")
 		set(CMAKE_C_FLAGS "${FUSE_CFLAGS_OTHER_STR} ${CMAKE_C_FLAGS}")
+
+		link_directories(${FUSE_LIBRARY_DIRS})
+		include_directories(${FUSE_INCLUDE_DIRS})
 	else()
 		message(STATUS "fuse not found")
 #dokan
@@ -172,6 +176,9 @@ if (ENABLE_FS_INTERFACE)
 			set(HAVE_DOKAN 1)
 			message(STATUS "dokan found")
 			set(ENABLE_FS_INTERFACE 1)
+
+			link_directories(${DOKAN_LIBRARY_DIRS})
+			include_directories(${DOKAN_INCLUDE_DIRS})
 		else()
 			message(STATUS "dokan not found")
 			message(FATAL_ERROR "no fuse interface was found, install fuse or dokan")
@@ -186,6 +193,9 @@ if (ENABLE_HTTP_INTERFACE)
 	PKG_CHECK_MODULES(MHD libmicrohttpd>=0.4.6)
 	if (MHD_FOUND EQUAL 1)
 		message(STATUS "libmicrohttpd found")
+
+		link_directories(${MHD_LIBRARY_DIRS})
+		include_directories(${MHD_INCLUDE_DIRS})
 	else()
 		message(FATAL_ERROR "libmicrohttpd not found")
 	endif()
@@ -194,13 +204,19 @@ endif()
 
 #libconfig
 PKG_CHECK_MODULES(LCONFIG libconfig>=1.3)
-if (NOT LCONFIG_FOUND EQUAL 1)
+if (LCONFIG_FOUND EQUAL 1)
+	link_directories(${LCONFIG_LIBRARY_DIRS})
+	include_directories(${LCONFIG_INCLUDE_DIRS})
+else()
 	message(FATAL_ERROR "libconfig not found")
 endif()
 
 # openssl
-include(FindOpenSSL)
-if(NOT OPENSSL_FOUND)
+PKG_CHECK_MODULES(OPENSSL openssl)
+if(OPENSSL_FOUND EQUAL 1)
+	link_directories(${OPENSSL_LIBRARY_DIRS})
+	include_directories(${OPENSSL_INCLUDE_DIRS})
+else()
 	message(FATAL_ERROR "Openssl not found")
 endif()
 

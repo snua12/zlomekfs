@@ -1,3 +1,15 @@
+# find ncurses libs
+PKG_CHECK_MODULES(NCURSES ncurses>=4.0)
+if (PKG_FOUND EQUAL 1)
+	message(STATUS "ncurses found")
+
+	link_directories(${NCURSES_LIBRARY_DIRS})
+	include_directories(${NCURSES_INCLUDE_DIRS})
+else()
+	message(STATUS "ncurses not found")
+endif()
+
+
 SET(cli_LIB_SRCS
 cli.cpp element.cpp
 menu.cpp param_int.cpp
@@ -26,11 +38,10 @@ keyword.cpp param_host.cpp
 syntax_node.cpp
 ui_choice.cpp ui_text.cpp)
 
-set(CLI_CFLAGS_OTHER_STR "-I. -I${CMAKE_CURRENT_SOURCE_DIR}/../include -I/usr/include/ncurses ${CLI_CFLAGS_OTHER_STR}")
-set(CMAKE_CXX_FLAGS "${CLI_CFLAGS_OTHER_STR} ${CMAKE_CXX_FLAGS}")
+include_directories( "." "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
 add_library(cli ${BUILDTYPE} ${cli_LIB_SRCS})
-target_link_libraries(cli ncurses)
+target_link_libraries(cli ${NCURSES_LIBRARIES})
 
 install(
 TARGETS cli
