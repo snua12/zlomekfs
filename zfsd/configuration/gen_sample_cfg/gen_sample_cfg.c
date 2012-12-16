@@ -146,17 +146,18 @@ static int local_config_set_volumes_list(config_setting_t * cfg_root, const char
 
 	snprintf(volume_path, sizeof(volume_path), "%s%s", prefix, "/var/zfs/config");
 	rv = local_config_set_volume(volumes, 1, volume_path, 0);
+	if (rv == CONFIG_FALSE) return CONFIG_FALSE;
 
 	snprintf(volume_path, sizeof(volume_path), "%s%s", prefix, "/var/zfs/data");
 	rv = local_config_set_volume(volumes, 2, volume_path, 0);
-	return CONFIG_TRUE;
+	return rv;
 }
 
 static int local_config_set_system(config_setting_t * cfg_root, int zfs_mlock, int zfs_metadata_depth)
 {
 	int rv;
 	config_setting_t * cfg_system = config_setting_add(cfg_root, "system", CONFIG_TYPE_GROUP);
-	if (system == NULL)
+	if (cfg_system == NULL)
 	{
 		return CONFIG_FALSE;
 	}
@@ -320,6 +321,13 @@ static int create_local_settings(const char * file_name)
 	const char * zfs_port_str = getenv("ZFS_PORT");
 	if (zfs_port_str != NULL) zfs_port = atoi(zfs_port_str);
 
+	int zfs_default_uid=65534;
+	const char * zfs_default_uid_str = getenv("ZFS_DEFAULT_UID");
+	if (zfs_default_uid_str != NULL) zfs_default_uid = atoi(zfs_default_uid_str);
+
+	int zfs_default_gid=65534;
+	const char * zfs_default_gid_str = getenv("ZFS_DEFAULT_GID");
+	if (zfs_default_gid_str != NULL) zfs_default_gid = atoi(zfs_default_gid_str);
 
 
 	config_setting_t * cfg_version = config_setting_add(cfg_root, "version", CONFIG_TYPE_STRING);
@@ -330,8 +338,8 @@ static int create_local_settings(const char * file_name)
 	rv = local_config_set_system(cfg_root, 0, 1);
 	rv = local_config_set_versioning(cfg_root, 0);
 	rv = local_config_set_threads(cfg_root);
-	rv = local_config_set_users(cfg_root, 65534);
-	rv = local_config_set_groups(cfg_root, 65534);
+	rv = local_config_set_users(cfg_root, zfs_default_uid);
+	rv = local_config_set_groups(cfg_root, zfs_default_gid);
 #ifdef __CYGWIN__
 	rv = local_config_set_dokan(cfg_root);
 #endif
@@ -358,6 +366,8 @@ int main(int argc, char * argv[])
 				"\t\tZFS_NODE_NAME\n"
 				"\t\tZFS_NODE_ID\n"
 				"\t\tZFS_PORT\n"
+				"\t\tZFS_DEFAULT_UID\n"
+				"\t\tZFS_DEFAULT_GID\n"
 				);
 
 		return EXIT_FAILURE;

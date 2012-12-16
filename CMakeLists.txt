@@ -336,14 +336,36 @@ add_custom_target(sample_config
 	COMMAND "${CMAKE_SOURCE_DIR}/scripts/gen_single_ncfg.sh" "${CMAKE_BINARY_DIR}/zfsd/configuration/gen_sample_cfg/zfs_gen_sample_cfg" "${CMAKE_SOURCE_DIR}/conf/single/" "${CMAKE_BINARY_DIR}/sample_config/single"
 )
 
-if(CYGWIN)
+if (CYGWIN)
 	set(ZFS_MOUNT_POINT "z:")
+else()
+	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single/mnt")
+endif()
+
+if(CYGWIN)
 	add_custom_target(run_single
 	COMMAND "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" & ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}") 
 else()
-	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single/mnt")
 	add_custom_target(run_single
 	COMMAND mkdir -p "${ZFS_MOUNT_POINT}" && "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" && echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}")
 endif()
 
+if(CYGWIN)
+	find_program(DOKANCTL dokanctl)
+	if (DOKANCTL)
+		add_custom_target(terminate_single
+		COMMAND "${DOKANCTL}"  /u "${ZFS_MOUNT_POINT}")
+	else()
+		message("dokanctl is not avaiable, can not unmount zlomekFS")
+	endif()
+else()
+	find_program(FUSERMOUNT fusermount)
+	if (FUSERMOUNT)
+		add_custom_target(terminate_single
+		COMMAND "${FUSERMOUNT}" -u "${ZFS_MOUNT_POINT}")
+	else() # fuse4x don't have fusermount
+		add_custom_target(terminate_single
+		COMMAND umount "${ZFS_MOUNT_POINT}")
+	endif()
+endif()
 
