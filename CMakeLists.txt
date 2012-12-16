@@ -354,7 +354,7 @@ if(CYGWIN)
 	find_program(DOKANCTL dokanctl)
 	if (DOKANCTL)
 		add_custom_target(terminate_single
-		COMMAND "${DOKANCTL}"  /u "${ZFS_MOUNT_POINT}")
+		COMMAND "${DOKANCTL}"  /u "${ZFS_MOUNT_POINT}" || true)
 	else()
 		message("dokanctl is not avaiable, can not unmount zlomekFS")
 	endif()
