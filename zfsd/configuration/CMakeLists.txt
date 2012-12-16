@@ -4,6 +4,7 @@
 
 add_subdirectory(config_reader)
 add_subdirectory(zfs_config)
+add_subdirectory(gen_sample_cfg)
 
 SET(configuration_SRC
   configuration.c

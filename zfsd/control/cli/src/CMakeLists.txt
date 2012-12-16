@@ -1,3 +1,7 @@
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 set(CLI_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../lib/cli-2.7")
 set(CLI_CPPCLIC_XSL "${CLI_SOURCE_DIR}/cpp/xsl/cppclic.xsl")
 set(CLI_DIR "${CLI_SOURCE_DIR}/schema")

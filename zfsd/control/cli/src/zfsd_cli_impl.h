@@ -1,3 +1,10 @@
+/**
+ *  \file zfsd_cli_impl.h
+ * 
+ *  \author Ales Snuparek (based on Alexis Royer tutorial)
+ *
+ */
+
 /*
     Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
 

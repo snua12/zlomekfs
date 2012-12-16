@@ -1,3 +1,10 @@
+/**
+ *  \file control_zfsd_cli.cpp
+ * 
+ *  \author Ales Snuparek (based on Alexis Royer tutorial)
+ *
+ */
+
 /*
     Copyright (c) 2006-2011, Alexis Royer, http://alexis.royer.free.fr/CLI
 
@@ -22,26 +29,72 @@
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "system.h"
 #include <pthread.h>
 #include "cli/pch.h"
 #include "cli/common.h"
+
+
+#ifdef ENABLE_CLI_TELNET
+#include "cli/telnet.h"
+#endif
+#ifdef ENABLE_CLI_CONSOLE
 #include "cli/console.h"
+#endif
 
 #include "cli/common.h"
 #include "zfsd_cli.h"
 #include "control_zfsd_cli.h"
 
-#include "system.h"
+#ifdef ENABLE_CLI_TELNET
+class TestServer : public cli::TelnetServer
+{
+public:
+    TestServer(const unsigned long UL_Port) : TelnetServer(2, UL_Port, cli::ResourceString::LANG_EN) {}
+protected:
+    virtual cli::Shell* const OnNewConnection(const cli::TelnetConnection& CLI_NewConnection)
+    {
+        if (const cli::Cli* const pcli_Cli = new ZfsdCli())
+        {
+            if (cli::Shell* const pcli_Shell = new cli::Shell(*pcli_Cli))
+            {
+                pcli_Shell->SetStream(cli::WELCOME_STREAM, cli::OutputDevice::GetNullDevice());
+                return pcli_Shell;
+            }
+        }
+        return NULL;
+    }
+    virtual void OnCloseConnection(cli::Shell* const PCLI_Shell, const cli::TelnetConnection& CLI_ConnectionClosed)
+    {
+        if (PCLI_Shell != NULL)
+        {
+            const cli::Cli* const pcli_Cli = & PCLI_Shell->GetCli();
+            delete PCLI_Shell;
+            if (pcli_Cli != NULL)
+            {
+                delete pcli_Cli;
+            }
+        }
+    }
+};
+#endif
 
 static pthread_t cli_thread;
 static bool cli_thread_is_running = false;
 
 static void * zfsd_cli_main(ATTRIBUTE_UNUSED void * data) 
 {
+#ifdef ENABLE_CLI_TELNET
+	TestServer cli_Server(12121);
+	cli_Server.StartServer();
+#endif
+#ifdef ENABLE_CLI_CONSOLE
 	ZfsdCli cli_ZfsdCli;
 	cli::Shell cli_Shell(cli_ZfsdCli);
 	cli::Console cli_Console(false);
 	cli_Shell.Run(cli_Console);
+#endif
+	return NULL;
 }
 
 void start_cli_control(void)

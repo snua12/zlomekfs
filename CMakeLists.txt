@@ -37,14 +37,21 @@ option(ENABLE_HTTP_INTERFACE "Enable http fs interface (like GoFlex Satellite)" 
 option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
 option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
-option (ENABLE_CLI "Enable zlomekFS command line interface" OFF)
+option (ENABLE_CLI_CONSOLE "Enable zlomekFS command line console interface" OFF)
+option (ENABLE_CLI_TELNET "Enable zlomekFS command line telnet interface" OFF)
+if (ENABLE_CLI_CMDLINE OR ENABLE_CLI_TELNET)
+	set(ENABLE_CLI ON)
+else()
+	set(ENABLE_PROFILE OFF)
+endif()
+
 option (ENABLE_PROFILE "Enable The GNU Profiler" OFF)
 if (ENABLE_PROFILE)
-message (STATUS "Enabling profiling with gprof")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
-set(CMAKE_SHAREDBoost_USE_MULTITHREADED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
-set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
+	message (STATUS "Enabling profiling with gprof")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+	set(CMAKE_SHAREDBoost_USE_MULTITHREADED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+	set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
 endif (ENABLE_PROFILE)
 
 option(ENABLE_UNIT_TESTS "Enable unit tests build")
@@ -322,4 +329,21 @@ ${OPENSSL_LIBRARY_DIR}
 set(ZFSD_SOURCE_DIR ${CMAKE_SOURCE_DIR}/zfsd)
 add_subdirectory(zfsd)
 add_subdirectory(syplog/src)
+
+
+add_custom_target(sample_config
+	DEPENDS zfs_gen_sample_cfg
+	COMMAND "${CMAKE_SOURCE_DIR}/scripts/gen_single_ncfg.sh" "${CMAKE_BINARY_DIR}/zfsd/configuration/gen_sample_cfg/zfs_gen_sample_cfg.exe" "${CMAKE_SOURCE_DIR}/conf/single/" "${CMAKE_BINARY_DIR}/sample_config/single"
+)
+
+if(CYGWIN)
+	set(ZFS_MOUNT_POINT "z:")
+	add_custom_target(run_single
+	COMMAND "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" & ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}") 
+else()
+	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single")
+	add_custom_target(run_single
+	COMMAND "mkdir -p "${ZFS_MOUNT_POINT}"; ${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}")
+endif()
+
 

@@ -39,6 +39,26 @@ static void process_o_args(char * o_args)
 	}
 }
 
+#if defined(ENABLE_CLI_CONSOLE) && ! defined(__CYGWIN__)
+// this function is from http://stackoverflow.com/questions/10543280/linux-daemon-tutorial
+static bool daemon_seed() 
+{
+        int childpid = fork ();
+        if (childpid  == -1) return false;
+
+	if (childpid > 0) exit(0); //if we have a child then parent can exit
+
+        //Set our sid and continue normal runtime as a forked process
+        setsid ();
+
+	freopen("/dev/null", "r", stdin);
+	freopen("/dev/null", "w", stdout);
+	freopen("/dev/null", "w", stderr);
+
+        return true;
+}
+#endif
+
 void process_arguments(int argc, char **argv)
 {
 	int option_index = 0;
@@ -57,6 +77,10 @@ void process_arguments(int argc, char **argv)
 					set_mountpoint(argv[optind]);
 				}
 				optind = 1;
+
+				#if defined(ENABLE_CLI_CONSOLE) && ! defined(__CYGWIN__) //cli use console, don't daemonize
+				daemon_seed();
+				#endif
 				return;
 			case 'o':
 				process_o_args(optarg);
@@ -79,6 +103,7 @@ void process_arguments(int argc, char **argv)
 				exit(EXIT_FAILURE);
 		}
 	};
+
 }
 
 void free_arguments(void)

@@ -527,6 +527,12 @@ static void zfsd_main_loop(void)
 	 * Workaround valgrind bug (PR/77369), i.e. prevent from waiting
 	 * for joinee threads while signal is received.  
 	 */
+#if 0
+	printf("Keep running?\n");
+	getc(stdin);
+	pid_t pid = getpid();
+	kill(pid, SIGTERM);
+#else
 	while (keep_running())
 	{
 		/* 
@@ -534,6 +540,7 @@ static void zfsd_main_loop(void)
 		 */
 		pause();
 	}
+#endif
 }
 
 static int zfsd_main(void)

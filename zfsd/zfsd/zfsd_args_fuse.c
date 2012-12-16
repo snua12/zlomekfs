@@ -94,12 +94,15 @@ void process_arguments(int argc, char **argv)
 	set_mountpoint(mountpoint);
 	free(mountpoint);
 
+#ifndef ENABLE_CLI_CONSOLE //cli use console, don't daemonize
 	rv = fuse_daemonize(foreground);
 	if (rv == -1)
 	{
 		message(LOG_INFO, FACILITY_ZFSD, "Failed to daemonize zfsd.\n");
 		exit(EXIT_FAILURE);
 	}
+#endif
+
 }
 
 void free_arguments(void)

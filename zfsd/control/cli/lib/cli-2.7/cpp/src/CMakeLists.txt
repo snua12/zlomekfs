@@ -1,3 +1,7 @@
+# Copyright (C) 2008, 2012 Ales Snuparek
+#
+# This file is part of ZFS build system.
+
 # find ncurses libs
 PKG_CHECK_MODULES(NCURSES ncurses>=4.0)
 if (NCURSES_FOUND EQUAL 1)
@@ -6,6 +10,7 @@ if (NCURSES_FOUND EQUAL 1)
 	link_directories(${NCURSES_LIBRARY_DIRS})
 	include_directories(${NCURSES_INCLUDE_DIRS})
 else()
+	#Mac OS X workaround
 	set(CURSES_NEED_NCURSES FALSE)
 	find_package(Curses)
 	if (CURSES_FOUND)
