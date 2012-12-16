@@ -333,7 +333,7 @@ add_subdirectory(syplog/src)
 
 add_custom_target(sample_config
 	DEPENDS zfs_gen_sample_cfg
-	COMMAND "${CMAKE_SOURCE_DIR}/scripts/gen_single_ncfg.sh" "${CMAKE_BINARY_DIR}/zfsd/configuration/gen_sample_cfg/zfs_gen_sample_cfg.exe" "${CMAKE_SOURCE_DIR}/conf/single/" "${CMAKE_BINARY_DIR}/sample_config/single"
+	COMMAND "${CMAKE_SOURCE_DIR}/scripts/gen_single_ncfg.sh" "${CMAKE_BINARY_DIR}/zfsd/configuration/gen_sample_cfg/zfs_gen_sample_cfg" "${CMAKE_SOURCE_DIR}/conf/single/" "${CMAKE_BINARY_DIR}/sample_config/single"
 )
 
 if(CYGWIN)
@@ -341,9 +341,9 @@ if(CYGWIN)
 	add_custom_target(run_single
 	COMMAND "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" & ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}") 
 else()
-	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single")
+	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single/mnt")
 	add_custom_target(run_single
-	COMMAND "mkdir -p "${ZFS_MOUNT_POINT}"; ${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}")
+	COMMAND mkdir -p "${ZFS_MOUNT_POINT}" && "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" && echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}")
 endif()
 
 
