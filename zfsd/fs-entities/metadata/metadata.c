@@ -47,9 +47,6 @@
 #include "zfs-prot.h"
 #include "user-group.h"
 
-/*! Depth of directory tree for saving metadata about files.  */
-unsigned int metadata_tree_depth = 1;
-
 /*! \brief Data for file descriptor.  */
 typedef struct metadata_fd_data_def
 {
@@ -376,12 +373,12 @@ build_shadow_metadata_path(string * path, volume vol, zfs_fh * fh,
 		zfsd_abort();
 #endif
 
-	for (i = 0; i < metadata_tree_depth; i++)
+	for (i = 0; i < get_metadata_tree_depth(); i++)
 	{
 		tree[2 * i] = fh_str[15 - i];
 		tree[2 * i + 1] = '/';
 	}
-	tree[2 * metadata_tree_depth] = 0;
+	tree[2 * get_metadata_tree_depth()] = 0;
 
 	varray_create(&v, sizeof(string), 4);
 	VARRAY_USED(v) = 4;
@@ -389,7 +386,7 @@ build_shadow_metadata_path(string * path, volume vol, zfs_fh * fh,
 	VARRAY_ACCESS(v, 1, string).str = "/.shadow/";
 	VARRAY_ACCESS(v, 1, string).len = 9;
 	VARRAY_ACCESS(v, 2, string).str = tree;
-	VARRAY_ACCESS(v, 2, string).len = 2 * metadata_tree_depth;
+	VARRAY_ACCESS(v, 2, string).len = 2 * get_metadata_tree_depth();
 	VARRAY_ACCESS(v, 3, string).str = name;
 	VARRAY_ACCESS(v, 3, string).len = len;
 
@@ -774,7 +771,7 @@ open_fh_metadata(string * path, volume vol, zfs_fh * fh, metadata_type type,
 			}
 
 			for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
-				if (i != metadata_tree_depth)
+				if (i != get_metadata_tree_depth())
 				{
 					string old_path;
 
@@ -792,7 +789,7 @@ open_fh_metadata(string * path, volume vol, zfs_fh * fh, metadata_type type,
 			bool created = false;
 
 			for (i = 0; i <= MAX_METADATA_TREE_DEPTH; i++)
-				if (i != metadata_tree_depth)
+				if (i != get_metadata_tree_depth())
 				{
 					string old_path;
 
@@ -880,7 +877,7 @@ static int open_interval_file(volume vol, internal_fh fh, metadata_type type)
 	CHECK_MUTEX_LOCKED(&fh->mutex);
 
 	build_fh_metadata_path(&path, vol, &fh->local_fh, type,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 	fd = open_fh_metadata(&path, vol, &fh->local_fh, type,
 						  O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 	free(path.str);
@@ -933,7 +930,7 @@ static int open_journal_file(volume vol, journal_t journal, zfs_fh * fh)
 	CHECK_MUTEX_LOCKED(journal->mutex);
 
 	build_fh_metadata_path(&path, vol, fh, METADATA_TYPE_JOURNAL,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 	fd = open_fh_metadata(&path, vol, fh, METADATA_TYPE_JOURNAL,
 						  O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 	free(path.str);
@@ -977,7 +974,7 @@ delete_useless_interval_file(volume vol, internal_fh fh, metadata_type type,
 									fh->meta.flags & ~METADATA_UPDATED_TREE))
 				MARK_VOLUME_DELETE(vol);
 
-			if (!remove_file_and_path(path, metadata_tree_depth))
+			if (!remove_file_and_path(path, get_metadata_tree_depth()))
 				MARK_VOLUME_DELETE(vol);
 
 			RETURN_BOOL(true);
@@ -997,7 +994,7 @@ delete_useless_interval_file(volume vol, internal_fh fh, metadata_type type,
 									fh->meta.flags & ~METADATA_MODIFIED_TREE))
 				MARK_VOLUME_DELETE(vol);
 
-			if (!remove_file_and_path(path, metadata_tree_depth))
+			if (!remove_file_and_path(path, get_metadata_tree_depth()))
 				MARK_VOLUME_DELETE(vol);
 
 			RETURN_BOOL(true);
@@ -1071,7 +1068,7 @@ flush_interval_tree_1(volume vol, internal_fh fh, metadata_type type,
 	if (!interval_tree_write(tree, fd))
 	{
 		close(fd);
-		remove_file_and_path(&new_path, metadata_tree_depth);
+		remove_file_and_path(&new_path, get_metadata_tree_depth());
 		free(new_path.str);
 		free(path->str);
 		RETURN_BOOL(false);
@@ -1418,7 +1415,7 @@ static bool init_interval_tree(volume vol, internal_fh fh, metadata_type type)
 	}
 
 	build_fh_metadata_path(&path, vol, &fh->local_fh, type,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 	fd = open_fh_metadata(&path, vol, &fh->local_fh, type, O_RDONLY, 0);
 	if (fd < 0)
 	{
@@ -1496,7 +1493,7 @@ bool flush_interval_tree(volume vol, internal_fh fh, metadata_type type)
 	TRACE("");
 
 	build_fh_metadata_path(&path, vol, &fh->local_fh, type,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 
 	RETURN_BOOL(flush_interval_tree_1(vol, fh, type, &path));
 }
@@ -1533,7 +1530,7 @@ static bool free_interval_tree(volume vol, internal_fh fh, metadata_type type)
 	CHECK_MUTEX_LOCKED(tree->mutex);
 
 	build_fh_metadata_path(&path, vol, &fh->local_fh, type,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 
 	r = flush_interval_tree_1(vol, fh, type, &path);
 	close_interval_file(tree);
@@ -1600,7 +1597,7 @@ append_interval(volume vol, internal_fh fh, metadata_type type,
 	zfsd_mutex_unlock(&metadata_fd_data[tree->fd].mutex);
 
 	build_fh_metadata_path(&path, vol, &fh->local_fh, type,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 	delete_useless_interval_file(vol, fh, type, tree, &path);
 	free(path.str);
 
@@ -2115,7 +2112,7 @@ delete_metadata(volume vol, metadata * meta, uint32_t dev, uint32_t ino,
 		int fd;
 
 		build_fh_metadata_path(&path, vol, &fh, METADATA_TYPE_HARDLINKS,
-							   metadata_tree_depth);
+							   get_metadata_tree_depth());
 		fd = open_fh_metadata(&path, vol, &fh, METADATA_TYPE_HARDLINKS,
 							  O_RDONLY, S_IRUSR | S_IWUSR);
 		free(path.str);
@@ -2354,7 +2351,7 @@ static void delete_hardlinks_file(volume vol, zfs_fh * fh)
 		string file;
 
 		build_fh_metadata_path(&file, vol, fh, METADATA_TYPE_HARDLINKS, i);
-		if (!remove_file_and_path(&file, metadata_tree_depth))
+		if (!remove_file_and_path(&file, get_metadata_tree_depth()))
 			MARK_VOLUME_DELETE(vol);
 		free(file.str);
 	}
@@ -2418,7 +2415,7 @@ static bool write_hardlinks_file(volume vol, zfs_fh * fh, hardlink_list hl)
 	TRACE("");
 
 	build_fh_metadata_path(&path, vol, fh, METADATA_TYPE_HARDLINKS,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 	append_string(&new_path, &path, ".new", 4);
 	fd = open_fh_metadata(&new_path, vol, fh, METADATA_TYPE_HARDLINKS,
 						  O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
@@ -2509,7 +2506,7 @@ bool read_hardlinks(volume vol, zfs_fh * fh, metadata * meta, hardlink_list hl)
 #endif
 
 		build_fh_metadata_path(&path, vol, fh, METADATA_TYPE_HARDLINKS,
-							   metadata_tree_depth);
+							   get_metadata_tree_depth());
 		fd = open_fh_metadata(&path, vol, fh, METADATA_TYPE_HARDLINKS,
 							  O_RDONLY, S_IRUSR | S_IWUSR);
 		free(path.str);
@@ -2904,7 +2901,7 @@ flush_journal(volume vol, zfs_fh * fh, journal_t journal, string * path)
 	{
 		bool r;
 
-		r = remove_file_and_path(path, metadata_tree_depth);
+		r = remove_file_and_path(path, get_metadata_tree_depth());
 		free(path->str);
 		RETURN_BOOL(r);
 	}
@@ -2992,7 +2989,7 @@ bool read_journal(volume vol, zfs_fh * fh, journal_t journal)
 	CHECK_MUTEX_LOCKED(journal->mutex);
 
 	build_fh_metadata_path(&path, vol, fh, METADATA_TYPE_JOURNAL,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 	fd = open_fh_metadata(&path, vol, fh, METADATA_TYPE_JOURNAL, O_RDONLY, 0);
 	if (fd < 0)
 	{
@@ -3072,7 +3069,7 @@ bool write_journal(volume vol, zfs_fh * fh, journal_t journal)
 	string path;
 
 	build_fh_metadata_path(&path, vol, fh, METADATA_TYPE_JOURNAL,
-						   metadata_tree_depth);
+						   get_metadata_tree_depth());
 
 	RETURN_BOOL(flush_journal(vol, fh, journal, &path));
 }

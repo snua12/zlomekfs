@@ -85,7 +85,7 @@ typedef struct zfs_config_node_def
 typedef struct zfs_config_metadata_def
 {
 	/*! Depth of directory tree for saving metadata about files.  */
-	unsigned int metadata_tree_depth;
+	uint32_t metadata_tree_depth;
 } zfs_config_metadata;
 
 typedef struct zfs_config_threads_def
@@ -177,6 +177,12 @@ uint32_t get_default_node_uid(void);
 
 /*! \brief returns default guid for local node */
 uint32_t get_default_node_gid(void);
+
+/*! \brief returns metadata tree depth */
+uint32_t get_metadata_tree_depth(void);
+
+/*! \brief set metadata tree depth */
+bool set_metadata_tree_depth(uint32_t tree_depth);
 
 #ifdef HAVE_DOKAN
 /*! \brief return default file mode */

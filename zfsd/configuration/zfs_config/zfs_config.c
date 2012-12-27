@@ -30,6 +30,7 @@
 #include "user-group.h"
 #include "semaphore.h"
 #include "zfs-prot.h"
+#include "metadata.h"
 
 
 /*! \brief structure with global zlomekFS configuration */
@@ -160,6 +161,23 @@ uint32_t get_default_node_gid(void)
 {
 	return zfs_config.default_node_gid;
 }
+
+/*! \brief returns metadata tree depth */
+uint32_t get_metadata_tree_depth(void)
+{
+	return zfs_config.metadata.metadata_tree_depth;
+}
+
+/*! \brief set metadata tree depth */
+bool set_metadata_tree_depth(uint32_t tree_depth)
+{
+	if (!is_valid_metadata_tree_depth(tree_depth)) return false;
+
+	zfs_config.metadata.metadata_tree_depth = tree_depth;
+	
+	return true;
+}
+
 
 #ifdef HAVE_DOKAN
 /*! \brief return default file mode */

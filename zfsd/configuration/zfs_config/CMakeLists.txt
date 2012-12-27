@@ -3,6 +3,7 @@
 # This file is part of ZFS build system.
 
 add_library(zfs_config ${BUILD_TYPE} zfs_config.c)
+target_link_libraries(zfs_config metadata)
 
 test_enabled(gtest result)
 if(NOT reqult EQUAL -1)
