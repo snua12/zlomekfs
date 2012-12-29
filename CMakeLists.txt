@@ -54,6 +54,10 @@ if (ENABLE_PROFILE)
 	set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
 endif (ENABLE_PROFILE)
 
+# supress warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-but-set-variable")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wunused-but-set-variable")
+
 option(ENABLE_UNIT_TESTS "Enable unit tests build")
 
 ##############################################################
@@ -195,6 +199,14 @@ else()
 	set(HAVE_FUSE 0)
 	set(HAVE_DOKAN 0)
 endif()
+
+# fuse libraries
+if (HAVE_FUSE)
+SET(FS_IFACE_LIBS fuse_iface)
+elseif(HAVE_DOKAN)
+SET(FS_IFACE_LIBS dokan_iface)
+endif()
+
 
 if (ENABLE_HTTP_INTERFACE)
 	PKG_CHECK_MODULES(MHD libmicrohttpd>=0.4.6)
@@ -368,4 +380,13 @@ else()
 		COMMAND umount "${ZFS_MOUNT_POINT}")
 	endif()
 endif()
+
+#fstest support
+set(FSTEST_DIR ${CMAKE_SOURCE_DIR}/tests/posix-test-suite/pjd-fstest-20080816)
+add_subdirectory(${FSTEST_DIR})
+
+set(ZFS_TEST_DIR "${ZFS_MOUNT_POINT}/data/testdir")
+find_program(PROVE prove)
+add_custom_target(run_fstest
+	COMMAND mkdir -p "${ZFS_TEST_DIR}" && cd "${ZFS_MOUNT_POINT}" && export FSTEST="${CMAKE_BINARY_DIR}/tests/posix-test-suite/pjd-fstest-20080816/fstest" && "${PROVE}" -r "${FSTEST_DIR}")
 

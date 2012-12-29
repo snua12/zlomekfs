@@ -15,7 +15,13 @@ if [ $? -eq 0 ]; then
 else
 	maindir="`pwd`/${dir}/../.."
 fi
-fstest="${maindir}/fstest"
+
+if [ "${FSTEST}" ]; then
+	fstest="${FSTEST}"
+else
+	fstest="${maindir}/fstest"
+fi
+
 . ${maindir}/tests/conf
 
 run_getconf()

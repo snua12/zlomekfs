@@ -38,7 +38,7 @@ set(CLI_CFLAGS_OTHER_STR "-I${CMAKE_CURRENT_SOURCE_DIR}/../inc/ ${CLI_CFLAGS_OTH
 set(CMAKE_CXX_FLAGS "${CLI_CFLAGS_OTHER_STR} ${CMAKE_CXX_FLAGS}")
 
 add_library(zfsd_cli ${BUILDTYPE} control_zfsd_cli.cpp "${ZFSD_CLI_H}")
-target_link_libraries(zfsd_cli log pthread)
+target_link_libraries(zfsd_cli log pthread zfs_config node)
 
 install(
 TARGETS zfsd_cli

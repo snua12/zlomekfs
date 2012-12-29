@@ -4,7 +4,7 @@
 
 add_library(cap ${BUILDTYPE} cap.c)
 
-target_link_libraries(cap md5 random file)
+target_link_libraries(cap md5 random file fh)
 
 install(
 TARGETS cap

@@ -4,7 +4,7 @@
 
 add_library(volume ${BUILDTYPE} volume.c)
 
-target_link_libraries(volume metadata fh dir)
+target_link_libraries(volume metadata fh dir ${FS_IFACE_LIBS})
 
 install(
 TARGETS volume

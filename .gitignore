@@ -19,3 +19,6 @@ tags
 *.exe
 *.out
 *.app
+
+# ignore qtcreator CMakeLists.txt.usr
+CMakeLists.txt.user
