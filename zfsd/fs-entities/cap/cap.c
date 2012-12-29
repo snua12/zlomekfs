@@ -1,6 +1,7 @@
 /*! \file \brief Capability functions.  */
 
 /* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+   Ales Snuparek (fix internal_cap_lock and internal_dentry_unlock functions)
 
    This file is part of ZFS.
 
@@ -125,19 +126,26 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 
 	*tmp_cap = (*icapp)->local_cap;
 	id = (*dentryp)->fh->id2assign++;
-	wait_for_locked = ((*dentryp)->fh->level + level > LEVEL_EXCLUSIVE);
+	wait_for_locked = internal_fh_should_wait_for_locked((*dentryp)->fh, level);
 	if (wait_for_locked)
 	{
 		zfsd_mutex_unlock(&(*volp)->mutex);
 		if (vdp && *vdp)
 			zfsd_mutex_unlock(&(*vdp)->mutex);
 
-		while (!(*dentryp)->deleted
-			   && ((*dentryp)->fh->id2run != id
-				   || (*dentryp)->fh->level + level > LEVEL_EXCLUSIVE))
+		do
+		{
 			zfsd_cond_wait(&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
+
+			if ((*dentryp)->deleted) break;
+
+			if ((*dentryp)->fh->id2run == id) break;
+		}
+		while(internal_fh_should_wait_for_locked((*dentryp)->fh, level));
+
 		zfsd_mutex_unlock(&(*dentryp)->fh->mutex);
 
+		// update capability content
 		r = find_capability_nolock(tmp_cap, icapp, volp, dentryp, vdp, true);
 		if (r != ZFS_OK)
 			RETURN_INT(r);
@@ -565,7 +573,10 @@ find_capability_nolock(zfs_cap * cap, internal_cap * icapp,
 	{
 		int32_t r2;
 
+		 //TODO: from Zaloha branch? is this unlock required
+		//zfsd_mutex_unlock (&(*vd)->mutex);
 		r2 = get_volume_root_dentry(*vol, dentry, false);
+		//zfsd_mutex_lock (&(*vd)->mutex);
 		if (r2 != ZFS_OK)
 		{
 			zfsd_mutex_unlock(&(*vd)->mutex);

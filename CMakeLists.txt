@@ -27,7 +27,7 @@ function(print_help)
 	message("")
 endfunction()
 
-option (ENABLE_VERSIONS "Enable ZFS version support" ON) 
+option (ENABLE_VERSIONS "Enable ZFS version support" OFF) 
 if (ENABLE_VERSIONS)
   set(VERSIONS_LIBRARIES version)
 endif (ENABLE_VERSIONS)

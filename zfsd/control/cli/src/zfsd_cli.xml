@@ -63,6 +63,42 @@ type
 		</keyword>
 	</keyword>
 
+	<keyword string="connection"><help lang="en">Modify zlomekFS connection speed.</help>
+		<keyword string="get"><help lang="en">Get zlomekFS forced connection speed.</help>
+			<endl><cpp>zlomekfs_get_connection_speed(<out/>);</cpp></endl>
+		</keyword>
+
+		<keyword string="set"><help lang="en">Set zlomekFS connection speed.</help>
+			<keyword string="none">
+				<endl><cpp>zlomekfs_set_connection_speed(<out/>, CONNECTION_SPEED_NONE);</cpp></endl>
+			</keyword>
+			<keyword string="slow">
+				<endl><cpp>zlomekfs_set_connection_speed(<out/>, CONNECTION_SPEED_SLOW);</cpp></endl>
+			</keyword>
+			<keyword string="fast">
+				<endl><cpp>zlomekfs_set_connection_speed(<out/>, CONNECTION_SPEED_FAST);</cpp></endl>
+			</keyword>
+			<keyword string="default">
+				<endl><cpp>zlomekfs_force_connection_speed(<out/>, false);</cpp></endl>
+			</keyword>
+		</keyword>
+	</keyword>
+
+	<keyword string="configuration"><help lang="en">Print zlomekFS configuration.</help>
+		<keyword string="volumes"><help lang="en">Get volumes information.</help>
+			<endl><cpp>zlomekfs_print_volumes(<out/>);</cpp></endl>
+		</keyword>
+		<keyword string="nodes"><help lang="en">Get nodes information.</help>
+			<endl><cpp>zlomekfs_print_nodes(<out/>);</cpp></endl>
+		</keyword>
+		<keyword string="zfs_config"><help lang="en">Print zfs_config.</help>
+			<endl><cpp>zlomekfs_print_zfs_config(<out/>);</cpp></endl>
+		</keyword>
+		<keyword string="internal_fd"><help lang="en">Print internal_fd.</help>
+			<endl><cpp>zlomekfs_print_internal_fds(<out/>);</cpp></endl>
+		</keyword>
+	</keyword>
+
 	<keyword string="terminate"><help lang="en">Stop zlomekFS daemon.</help>
 		<endl><cpp> zlomekfs_terminate(); </cpp></endl>
 	</keyword>

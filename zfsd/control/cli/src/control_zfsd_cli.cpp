@@ -30,6 +30,7 @@
 */
 
 #include "system.h"
+#include "zfs_config.h"
 #include <pthread.h>
 #include "cli/pch.h"
 #include "cli/common.h"
@@ -47,6 +48,10 @@
 #include "control_zfsd_cli.h"
 
 #ifdef ENABLE_CLI_TELNET
+
+static pthread_t cli_telnet_thread;
+static bool cli_telnet_thread_is_running = false;
+
 class TestServer : public cli::TelnetServer
 {
 public:
@@ -77,39 +82,62 @@ protected:
         }
     }
 };
+
+static void * zfsd_cli_telnet_main(ATTRIBUTE_UNUSED void * data)
+{
+	TestServer cli_Server(zfs_config.cli.telnet_port);
+	cli_Server.StartServer();
+}
 #endif
 
-static pthread_t cli_thread;
-static bool cli_thread_is_running = false;
+#ifdef ENABLE_CLI_CONSOLE
+static pthread_t cli_console_thread;
+static bool cli_console_thread_is_running = false;
 
 static void * zfsd_cli_main(ATTRIBUTE_UNUSED void * data) 
 {
-#ifdef ENABLE_CLI_TELNET
-	TestServer cli_Server(12121);
-	cli_Server.StartServer();
-#endif
-#ifdef ENABLE_CLI_CONSOLE
 	ZfsdCli cli_ZfsdCli;
 	cli::Shell cli_Shell(cli_ZfsdCli);
 	cli::Console cli_Console(false);
 	cli_Shell.Run(cli_Console);
-#endif
 	return NULL;
 }
+#endif
 
 void start_cli_control(void)
 {
-	if (cli_thread_is_running == true) return;
 
-	int rv = pthread_create(&cli_thread, NULL, zfsd_cli_main, NULL);
-
-	if (rv == 0) cli_thread_is_running = true;
+#ifdef ENABLE_CLI_TELNET
+	if (cli_telnet_thread_is_running == false)
+	{
+		int rv = pthread_create(&cli_telnet_thread, NULL, zfsd_cli_telnet_main, NULL);
+		if (rv == 0) cli_telnet_thread_is_running = true;
+	}
+#endif
+#ifdef ENABLE_CLI_CONSOLE
+	if (cli_console_thread_is_running == false)
+	{
+		int rv = pthread_create(&cli_console_thread, NULL, zfsd_cli_main, NULL);
+		if (rv == 0) cli_console_thread_is_running = true;
+	}
+#endif
 }
 
 void stop_cli_control(void)
 {
-	if (cli_thread_is_running == false) return;
-	pthread_cancel(cli_thread);
-	cli_thread_is_running = false;
+#ifdef ENABLE_CLI_TELNET
+	if (cli_telnet_thread_is_running == true)
+	{
+		int rv = pthread_cancel(cli_telnet_thread);
+		cli_telnet_thread_is_running = false;
+	}
+#endif
+#ifdef ENABLE_CLI_CONSOLE
+	if (cli_console_thread_is_running == true)
+	{
+		int rv = pthread_cancel(cli_console_thread);
+		cli_console_thread_is_running = false;
+	}
+#endif
 }
 

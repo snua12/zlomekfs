@@ -51,6 +51,7 @@
 #include "alloc-pool.h"
 #include "fh.h"
 #include "zfs_config.h"
+#include "control.h"
 
 /*! Pool of network threads.  */
 thread_pool network_pool;
@@ -349,6 +350,9 @@ bool node_connected(uint32_t sid, unsigned int *generation)
 
 connection_speed volume_master_connected(volume vol)
 {
+	// force connection speed from control interface
+	if (zfs_control_get_connection_forced()) return zfs_control_get_connection_speed();
+
 	connection_speed speed = CONNECTION_SPEED_NONE;
 
 	CHECK_MUTEX_LOCKED(&vol->mutex);

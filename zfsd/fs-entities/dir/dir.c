@@ -1216,7 +1216,7 @@ int32_t get_volume_root_remote(volume vol, zfs_fh * remote_fh, fattr * attr)
 
 int32_t
 get_volume_root_dentry(volume vol, internal_dentry * dentryp,
-					   bool unlock_fh_mutex)
+                       bool unlock_fh_mutex)
 {
 	internal_dentry dentry;
 	zfs_fh local_fh, master_fh;
@@ -1232,12 +1232,12 @@ get_volume_root_dentry(volume vol, internal_dentry * dentryp,
 	vid = vol->id;
 
 	if (vol->delete_p)
-	{
+    {
 		zfsd_mutex_unlock(&vol->mutex);
 		vol = volume_lookup(vid);
 		if (vol)
-			volume_delete(vol);
-		zfsd_mutex_unlock(&fh_mutex);
+            volume_delete(vol);
+        zfsd_mutex_unlock(&fh_mutex);
 		RETURN_INT(ENOENT);
 	}
 

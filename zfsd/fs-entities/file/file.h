@@ -37,6 +37,11 @@
 #include "fibheap.h"
 #include "metadata.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! \brief Data for file descriptor.  */
 typedef struct internal_fd_data_def
 {
@@ -60,6 +65,9 @@ typedef struct filldir_htab_entries_def
 	htab_t htab;
 	int32_t last_cookie;
 } filldir_htab_entries;
+
+
+void for_each_internal_fd(void(*visit)(const internal_fd_data_t *, void *), void * data);
 
 /*! Function called to add one directory entry to list.  */
 typedef bool(*filldir_f) (uint32_t ino, int32_t cookie, const char *name,
@@ -134,5 +142,9 @@ extern int32_t remote_md5sum(md5sum_res * res, md5sum_args * args);
 extern void remote_reread_config(string * path, node nod);
 extern void initialize_file_c(void);
 extern void cleanup_file_c(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
