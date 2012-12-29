@@ -27,6 +27,11 @@
 #include "pthread-wrapper.h"
 #include "hashtab.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! \brief Node description.  */
 typedef struct node_def
 {
@@ -76,7 +81,12 @@ extern node try_create_node(uint32_t id, string * name, string * host_name, uint
 extern void mark_all_nodes(void);
 extern void destroy_marked_nodes(void);
 extern void initialize_node_c(void);
+void for_each_nodes(void(*visit)(const node, void *), void * data);
 extern void cleanup_node_c(void);
 extern void init_this_node(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

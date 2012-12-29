@@ -383,6 +383,8 @@ extern void set_owned(internal_dentry dentry, unsigned int level);
 extern int32_t zfs_fh_lookup(zfs_fh * fh, volume * volp,
 							 internal_dentry * dentryp, virtual_dir * vdp,
 							 bool delete_volume_p);
+
+extern int32_t zfs_fh_lookup_virtual_dir(zfs_fh * fh, virtual_dir * vdp);
 extern int32_t zfs_fh_lookup_nolock(zfs_fh * fh, volume * volp,
 									internal_dentry * dentryp,
 									virtual_dir * vdp, bool delete_volume_p);

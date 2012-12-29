@@ -1,6 +1,6 @@
 /*! \file \brief File handle functions.  */
 
-/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak, Ales Snuparek
 
    This file is part of ZFS.
 
@@ -585,6 +585,26 @@ zfs_fh_lookup(zfs_fh * fh, volume * volp, internal_dentry * dentryp,
 	RETURN_INT(r);
 }
 
+int32_t zfs_fh_lookup_virtual_dir(zfs_fh * fh, virtual_dir * vdp)
+{
+	hash_t hash = ZFS_FH_HASH(fh);
+	virtual_dir vd = (virtual_dir) htab_find_with_hash(vd_htab, fh, hash);
+	if (vd == NULL)
+	{
+		*vdp = NULL;
+		RETURN_INT(ENOENT);
+	}
+
+	zfsd_mutex_lock(&vd->mutex);
+#ifdef ENABLE_CHECKING
+	if (vd->deleted > 0 && !vd->busy)
+		zfsd_abort();
+#endif
+	*vdp = vd;
+	RETURN_INT(ZFS_OK);
+}
+
+
 /*! Find the internal file handle or virtual directory for zfs_fh FH and set
    *VOLP, *DENTRYP and VDP according to it. This function is similar to
    FH_LOOKUP but the big locks must be locked. If DELETE_VOLUME_P is true and
@@ -606,92 +626,79 @@ zfs_fh_lookup_nolock(zfs_fh * fh, volume * volp, internal_dentry * dentryp,
 	zfsd_mutex_lock(&fh_mutex);
 	if (VIRTUAL_FH_P(*fh))
 	{
-		virtual_dir vd;
-
-		vd = (virtual_dir) htab_find_with_hash(vd_htab, fh, hash);
-		if (!vd)
-		{
-			zfsd_mutex_unlock(&fh_mutex);
-			RETURN_INT(ENOENT);
-		}
-
-		zfsd_mutex_lock(&vd->mutex);
-#ifdef ENABLE_CHECKING
-		if (vd->deleted > 0 && !vd->busy)
-			zfsd_abort();
-#endif
+		int rv = zfs_fh_lookup_virtual_dir(fh, vdp);
+		if (rv != ZFS_OK) RETURN_INT(rv);
 
 		if (volp)
 		{
 			zfsd_mutex_lock(&volume_mutex);
-			if (vd->vol)
-				zfsd_mutex_lock(&vd->vol->mutex);
+			if ((*vdp)->vol)
+				zfsd_mutex_lock(&(*vdp)->vol->mutex);
 			zfsd_mutex_unlock(&volume_mutex);
-			*volp = vd->vol;
+			*volp = (*vdp)->vol;
 		}
 		if (dentryp)
 			*dentryp = NULL;
-		*vdp = vd;
-	}
-	else
-	{
-		volume vol = NULL;
-		internal_dentry dentry;
 
-		if (volp)
+		RETURN_INT(ZFS_OK);
+	}
+
+	volume vol = NULL;
+	internal_dentry dentry;
+
+	if (volp)
+	{
+		vol = volume_lookup(fh->vid);
+		if (!vol)
 		{
-			vol = volume_lookup(fh->vid);
-			if (!vol)
-			{
-				zfsd_mutex_unlock(&fh_mutex);
-				RETURN_INT(ENOENT);
-			}
-			if (delete_volume_p && vol->delete_p)
-			{
-				if (vol->n_locked_fhs == 0)
-					volume_delete(vol);
-				else
-					zfsd_mutex_unlock(&vol->mutex);
-				zfsd_mutex_unlock(&fh_mutex);
-				RETURN_INT(ENOENT);
-			}
+			zfsd_mutex_unlock(&fh_mutex);
+			RETURN_INT(ENOENT);
+		}
+		if (delete_volume_p && vol->delete_p)
+		{
+			if (vol->n_locked_fhs == 0)
+				volume_delete(vol);
+			else
+				zfsd_mutex_unlock(&vol->mutex);
+			zfsd_mutex_unlock(&fh_mutex);
+			RETURN_INT(ENOENT);
+		}
 #ifdef ENABLE_CHECKING
-			if (!delete_volume_p && vol->n_locked_fhs == 0)
-				zfsd_abort();
+		if (!delete_volume_p && vol->n_locked_fhs == 0)
+			zfsd_abort();
 #endif
 
-			if (!vol->local_path.str && !volume_master_connected(vol))
-			{
-				zfsd_mutex_unlock(&vol->mutex);
-				zfsd_mutex_unlock(&fh_mutex);
-				RETURN_INT(ESTALE);
-			}
-		}
-
-		dentry = (internal_dentry) htab_find_with_hash(dentry_htab, fh, hash);
-		if (!dentry)
+		if (!vol->local_path.str && !volume_master_connected(vol))
 		{
 			zfsd_mutex_unlock(&vol->mutex);
 			zfsd_mutex_unlock(&fh_mutex);
-			RETURN_INT(ZFS_STALE);
+			RETURN_INT(ESTALE);
 		}
-
-		acquire_dentry(dentry);
-
-		if (volp)
-		{
-			if (CONFLICT_DIR_P(*fh) && !volume_master_connected(vol))
-			{
-				cancel_conflict(vol, dentry);
-				RETURN_INT(ESTALE);
-			}
-
-			*volp = vol;
-		}
-		*dentryp = dentry;
-		if (vdp)
-			*vdp = NULL;
 	}
+
+	dentry = (internal_dentry) htab_find_with_hash(dentry_htab, fh, hash);
+	if (!dentry)
+	{
+		zfsd_mutex_unlock(&vol->mutex);
+		zfsd_mutex_unlock(&fh_mutex);
+		RETURN_INT(ZFS_STALE);
+	}
+
+	acquire_dentry(dentry);
+
+	if (volp)
+	{
+		if (CONFLICT_DIR_P(*fh) && !volume_master_connected(vol))
+		{
+			cancel_conflict(vol, dentry);
+			RETURN_INT(ESTALE);
+		}
+
+		*volp = vol;
+	}
+	*dentryp = dentry;
+	if (vdp)
+		*vdp = NULL;
 
 	RETURN_INT(ZFS_OK);
 }

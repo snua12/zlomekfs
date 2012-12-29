@@ -333,6 +333,22 @@ void init_this_node(void)
 	zfsd_mutex_unlock(&node_mutex);
 }
 
+void for_each_nodes(void(*visit)(const node, void *), void * data)
+{
+	void **slot;
+
+	zfsd_mutex_lock(&node_mutex);
+	HTAB_FOR_EACH_SLOT(node_htab_sid, slot)
+	{
+		node nod = (node) * slot;
+
+		zfsd_mutex_lock(&nod->mutex);
+		visit(nod, data);
+		zfsd_mutex_unlock(&nod->mutex);
+	}
+	zfsd_mutex_unlock(&node_mutex);
+}
+
 /*! Initialize data structures in NODE.C.  */
 
 void initialize_node_c(void)
