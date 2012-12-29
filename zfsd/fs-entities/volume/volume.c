@@ -425,6 +425,15 @@ volume_set_local_info_wrapper(volume * volp, char *local_path,
 	return volume_set_local_info(volp, &local_path_str, size_limit);
 }
 
+void for_each_volumes(void(*visit)(const volume, void *), void * data)
+{
+	void **slot;
+	HTAB_FOR_EACH_SLOT(volume_htab, slot)
+	{
+		visit((volume) * slot, data);
+	}
+}
+
 // TODO: remve this unused function
 #if 0
 /*! Print the information about volume VOL to file F.  */

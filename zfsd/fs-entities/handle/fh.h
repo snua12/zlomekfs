@@ -383,6 +383,8 @@ extern void set_owned(internal_dentry dentry, unsigned int level);
 extern int32_t zfs_fh_lookup(zfs_fh * fh, volume * volp,
 							 internal_dentry * dentryp, virtual_dir * vdp,
 							 bool delete_volume_p);
+
+extern int32_t zfs_fh_lookup_virtual_dir(zfs_fh * fh, virtual_dir * vdp);
 extern int32_t zfs_fh_lookup_nolock(zfs_fh * fh, volume * volp,
 									internal_dentry * dentryp,
 									virtual_dir * vdp, bool delete_volume_p);
@@ -414,6 +416,7 @@ extern int32_t internal_dentry_lock2(unsigned int level1, unsigned int level2,
 									 internal_dentry * dentry2p,
 									 zfs_fh * tmp_fh1, zfs_fh * tmp_fh2);
 extern bool set_master_fh(volume vol, internal_fh fh, zfs_fh * master_fh);
+bool internal_fh_should_wait_for_locked(const internal_fh fh, int new_level);
 extern void print_fh_htab(FILE * f);
 extern void debug_fh_htab(void);
 extern void print_subdentries(FILE * f, internal_dentry dentry);

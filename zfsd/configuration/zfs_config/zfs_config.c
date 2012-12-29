@@ -74,6 +74,11 @@ zfs_configuration zfs_config =
 			.max_spare = 2
 		},
 	},
+#ifdef ENABLE_CLI
+	.cli = {
+		.telnet_port = 12121,
+	},
+#endif
 #ifdef ENABLE_VERSIONS
 	.versions = {
 		.versioning = false,
@@ -177,7 +182,6 @@ bool set_metadata_tree_depth(uint32_t tree_depth)
 	
 	return true;
 }
-
 
 #ifdef HAVE_DOKAN
 /*! \brief return default file mode */

@@ -26,6 +26,7 @@
 
 #include "system.h"
 #include <string.h>
+#include "zfs-prot.h"
 #include "dbus-init.h"
 #include "log.h"
 #include "control.h"
@@ -33,6 +34,59 @@
 #ifdef ENABLE_CLI
 #include "control_zfsd_cli.h"
 #endif
+
+typedef struct control_connection_def
+{
+	bool forced;
+	connection_speed speed;
+} control_connection;
+
+#define CONTROL_CONNECTION_INITIALIZER { .forced = false, \
+	.speed = CONNECTION_SPEED_NONE }
+
+typedef struct control_def
+{
+	control_connection connection;
+} control;
+
+static control zfs_control = {.connection = CONTROL_CONNECTION_INITIALIZER};
+
+/*! conversion table from enum connection_speed to string */
+const char *  connection_speed_str[] = {
+	"none",
+	"slow",
+	"fast",
+	NULL
+};
+
+const char * connection_speed_to_str(connection_speed speed)
+{
+	if (speed < 0 || speed >= CONNECTION_SPEED_LAST_AND_UNUSED)
+		return NULL;
+	
+	return connection_speed_str[speed];
+}
+
+
+connection_speed zfs_control_get_connection_speed(void)
+{
+	return zfs_control.connection.speed;
+}
+
+void zfs_control_set_connection_speed(connection_speed speed)
+{
+	zfs_control.connection.speed = speed;
+}
+
+bool zfs_control_get_connection_forced(void)
+{
+	return zfs_control.connection.forced;
+}
+
+void zfs_control_set_connection_forced(bool forced)
+{
+	zfs_control.connection.forced = forced;
+}
 
 bool initialize_control_c(void)
 {

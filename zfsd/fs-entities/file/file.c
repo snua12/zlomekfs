@@ -70,6 +70,17 @@ static pthread_mutex_t dir_entry_mutex;
 
 /*! Initialize data for file descriptor of file handle FH.  */
 
+void for_each_internal_fd(void(*visit)(const internal_fd_data_t *, void *), void * data)
+{
+	if (internal_fd_data == NULL) return;
+
+	int i;
+	for (i = 0; i < max_nfd; ++i)
+	{
+		visit(internal_fd_data + i, data);
+	}
+}
+
 static void init_fh_fd_data(internal_fh fh)
 {
 	TRACE("");
@@ -180,10 +191,9 @@ static bool capability_opened_p(internal_fh fh)
 	RETURN_BOOL(true);
 }
 
-/*! Open local file for dentry DENTRY with additional FLAGS on volume VOL.  */
+/*! Same as capability_open, but don't unlock fh_mutex */
 
-static int32_t
-capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
+static int capability_open_nolock(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 {
 	string path;
 	int err;
@@ -201,7 +211,6 @@ capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 	{
 		release_dentry(dentry);
 		zfsd_mutex_unlock(&vol->mutex);
-		zfsd_mutex_unlock(&fh_mutex);
 		RETURN_INT(ESTALE);
 	}
 
@@ -214,7 +223,6 @@ capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 		*fd = dentry->fh->fd;
 		release_dentry(dentry);
 		zfsd_mutex_unlock(&vol->mutex);
-		zfsd_mutex_unlock(&fh_mutex);
 		RETURN_INT(ZFS_OK);
 	}
 
@@ -224,7 +232,6 @@ capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 	{
 		release_dentry(dentry);
 		zfsd_mutex_unlock(&vol->mutex);
-		zfsd_mutex_unlock(&fh_mutex);
 		RETURN_INT(EACCES);
 	}
 	dentry->new_file = false;
@@ -268,19 +275,29 @@ capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
 		}
 #endif
 		zfsd_mutex_unlock(&vol->mutex);
-		zfsd_mutex_unlock(&fh_mutex);
 		free(path.str);
 		release_dentry(dentry);
 		RETURN_INT(ZFS_OK);
 	}
 	zfsd_mutex_unlock(&vol->mutex);
-	zfsd_mutex_unlock(&fh_mutex);
 	free(path.str);
 	release_dentry(dentry);
 
 	if (err == ENOENT || err == ENOTDIR)
 		RETURN_INT(ESTALE);
 
+	RETURN_INT(err);
+}
+
+/*! Open local file for dentry DENTRY with additional FLAGS on volume VOL.  */
+
+static int32_t
+capability_open(int *fd, uint32_t flags, internal_dentry dentry, volume vol)
+{
+
+	TRACE("");
+	int32_t err = capability_open_nolock(fd, flags, dentry, vol);
+	zfsd_mutex_unlock(&fh_mutex);
 	RETURN_INT(err);
 }
 
@@ -924,8 +941,7 @@ int32_t zfs_open(zfs_cap * cap, zfs_fh * fh, uint32_t flags)
 	   no effect on where the data will be written.  */
 	flags &= ~O_APPEND;
 
-	r = validate_operation_on_zfs_fh(fh, ((flags & O_ACCMODE) == O_RDONLY
-										  ? ZFS_OK : EISDIR), EINVAL);
+	r = validate_operation_on_zfs_fh(fh, ((flags & O_ACCMODE) == O_RDONLY ? ZFS_OK : EISDIR), EINVAL);
 	if (r != ZFS_OK)
 		RETURN_INT(r);
 
@@ -1657,9 +1673,12 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 
 		local_volume_root = LOCAL_VOLUME_ROOT_P(dentry);
 
-		r = capability_open(&fd, 0, dentry, vol);
+		r = capability_open_nolock(&fd, 0, dentry, vol);
 		if (r != ZFS_OK)
+		{
+			zfsd_mutex_unlock(&fh_mutex);
 			RETURN_INT(r);
+		}
 
 		list->eof = 0;
 		if (cookie < 0)
@@ -1699,6 +1718,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 		if (dup_fd == -1)
 		{
 			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+			zfsd_mutex_unlock(&fh_mutex);
 			RETURN_INT (errno);
 		}	
 
@@ -1707,6 +1727,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 		{    
 			zfs_closedir(dirp);
 			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+			zfsd_mutex_unlock(&fh_mutex);
 			RETURN_INT (errno);
 		}    
 
@@ -1816,8 +1837,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 						|| (de->d_name[1] == '.' && de->d_name[2] == 0)))
 					continue;
 
-				if (zfs_fh_lookup_nolock(fh, NULL, NULL, &vd, false)
-					== ZFS_OK)
+				if (zfs_fh_lookup_virtual_dir(fh, &vd) == ZFS_OK)
 				{
 					/* Hide files which have the same name like some
 					   virtual directory.  */
@@ -1825,7 +1845,6 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 					name.len = strlen(de->d_name);
 					svd = vd_lookup_name(vd, &name);
 					zfsd_mutex_unlock(&vd->mutex);
-					zfsd_mutex_unlock(&fh_mutex);
 					if (svd)
 					{
 						zfsd_mutex_unlock(&svd->mutex);
@@ -1861,6 +1880,7 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 
 		zfs_closedir(dirp);
 		zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
+		zfsd_mutex_unlock(&fh_mutex);
 	}
 
 	RETURN_INT(r);

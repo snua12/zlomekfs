@@ -103,6 +103,8 @@ extern void destroy_marked_volume(uint32_t vid);
 extern void destroy_marked_volumes(void);
 extern void destroy_all_volumes(void);
 
+void for_each_volumes(void(*visit)(const volume, void *), void * data);
+
 /*! Initialize config volume so that we could read configuration.  */
 extern bool init_config_volume(void);
 

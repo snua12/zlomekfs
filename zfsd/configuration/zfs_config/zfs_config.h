@@ -82,6 +82,12 @@ typedef struct zfs_config_node_def
 	uint16_t host_port;
 } zfs_config_node;
 
+typedef struct zfs_config_cli_def
+{
+	/*! The port of the cli console */
+	uint16_t telnet_port;
+} zfs_config_cli;
+
 typedef struct zfs_config_metadata_def
 {
 	/*! Depth of directory tree for saving metadata about files.  */
@@ -134,6 +140,11 @@ typedef struct zfs_configuration_def
 
 	/*! threads config */
 	zfs_config_threads threads;
+
+#ifdef ENABLE_CLI
+	/*! cli specific config */
+	zfs_config_cli cli;
+#endif
 
 #ifdef ENABLE_VERSIONS
 	/*! versioning config */

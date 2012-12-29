@@ -26,8 +26,28 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
+#include "zfs-prot.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+
+const char * connection_speed_to_str(connection_speed speed);
+
+bool zfs_control_get_connection_forced(void);
+void zfs_control_set_connection_forced(bool forced);
+
+connection_speed zfs_control_get_connection_speed(void);
+void zfs_control_set_connection_speed(connection_speed speed);
+
 bool initialize_control_c(void);
 
 void cleanup_control_c(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
