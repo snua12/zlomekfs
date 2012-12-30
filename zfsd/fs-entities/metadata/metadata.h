@@ -133,6 +133,7 @@ extern void metadata_encode(void *x);
 #define metadata_encode NULL
 #endif
 
+extern uint32_t zfs_ftype_to_mode(ftype type);
 extern ftype zfs_mode_to_ftype(uint32_t mode);
 extern bool init_volume_metadata(volume vol);
 extern void close_volume_metadata(volume vol);

@@ -6,6 +6,13 @@ desc="link returns EPERM if the source file is a directory"
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 n0=`namegen`
 n1=`namegen`
 n2=`namegen`

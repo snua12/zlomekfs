@@ -8,6 +8,15 @@ dir=`dirname $0`
 
 echo "1..3"
 
-expect 0 mkfifo ${name255} 0644
-expect 0 unlink ${name255}
-expect ENAMETOOLONG mkfifo ${name256} 0644
+case "${fs}" in
+zlomekFS)
+	expect 0 mkfifo ${name143} 0644
+	expect 0 unlink ${name143}
+	expect ENAMETOOLONG mkfifo ${name144} 0644
+;;
+*)
+	expect 0 mkfifo ${name255} 0644
+	expect 0 unlink ${name255}
+	expect ENAMETOOLONG mkfifo ${name256} 0644
+;;
+esac

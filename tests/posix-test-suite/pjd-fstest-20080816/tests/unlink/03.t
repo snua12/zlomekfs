@@ -8,17 +8,37 @@ dir=`dirname $0`
 
 echo "1..12"
 
-expect 0 mkdir ${name255} 0755
-expect 0 mkdir ${name255}/${name255} 0755
-expect 0 mkdir ${name255}/${name255}/${name255} 0755
-expect 0 mkdir ${path1021} 0755
-expect 0 create ${path1023} 0644
-expect 0 unlink ${path1023}
-expect ENOENT unlink ${path1023}
-create_too_long
-expect ENAMETOOLONG unlink ${too_long}
-unlink_too_long
-expect 0 rmdir ${path1021}
-expect 0 rmdir ${name255}/${name255}/${name255}
-expect 0 rmdir ${name255}/${name255}
-expect 0 rmdir ${name255}
+case "${fs}" in
+zlomekFS)
+	expect 0 mkdir ${name143} 0755
+	expect 0 mkdir ${name143}/${name143} 0755
+	expect 0 mkdir ${name143}/${name143}/${name143} 0755
+	expect 0 mkdir ${path579} 0755
+	expect 0 create ${path581} 0644
+	expect 0 unlink ${path581}
+	expect ENOENT unlink ${path581}
+	create_too_long
+	expect ENAMETOOLONG unlink ${too_long}
+	unlink_too_long
+	expect 0 rmdir ${path579}
+	expect 0 rmdir ${name143}/${name143}/${name143}
+	expect 0 rmdir ${name143}/${name143}
+	expect 0 rmdir ${name143}
+	;;
+*)
+	expect 0 mkdir ${name255} 0755
+	expect 0 mkdir ${name255}/${name255} 0755
+	expect 0 mkdir ${name255}/${name255}/${name255} 0755
+	expect 0 mkdir ${path1021} 0755
+	expect 0 create ${path1023} 0644
+	expect 0 unlink ${path1023}
+	expect ENOENT unlink ${path1023}
+	create_too_long
+	expect ENAMETOOLONG unlink ${too_long}
+	unlink_too_long
+	expect 0 rmdir ${path1021}
+	expect 0 rmdir ${name255}/${name255}/${name255}
+	expect 0 rmdir ${name255}/${name255}
+	expect 0 rmdir ${name255}
+	;;
+esac

@@ -6,6 +6,13 @@ desc="symlink returns EACCES if the parent directory of the file to be created d
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..12"
 
 n0=`namegen`

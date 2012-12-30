@@ -6,6 +6,13 @@ desc="chown returns ENOENT if the named file does not exist"
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..4"
 
 n0=`namegen`

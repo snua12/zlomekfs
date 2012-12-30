@@ -6,6 +6,13 @@ desc="rmdir returns EACCES when write permission is denied on the directory cont
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..10"
 
 n0=`namegen`

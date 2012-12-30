@@ -1714,18 +1714,9 @@ local_readdir(dir_list * list, internal_dentry dentry, virtual_dir vd,
 		}
 #endif
 
-		int dup_fd = dup(fd);
-		if (dup_fd == -1)
-		{
-			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
-			zfsd_mutex_unlock(&fh_mutex);
-			RETURN_INT (errno);
-		}	
-
-		DIR * dirp = zfs_fdopendir(dup_fd);
+		DIR * dirp = zfs_fdopendir(fd);
 		if (dirp == NULL)
 		{    
-			zfs_closedir(dirp);
 			zfsd_mutex_unlock (&internal_fd_data[fd].mutex);
 			zfsd_mutex_unlock(&fh_mutex);
 			RETURN_INT (errno);

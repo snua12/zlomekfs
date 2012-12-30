@@ -144,6 +144,24 @@ typedef struct fattr_def
 	zfs_time ctime;
 } fattr;
 
+#define FATTR_INITIALIZER \
+{\
+	.dev = 0,\
+	.ino = 0,\
+	.version = 0,\
+	.type = 0,\
+	.mode = 0,\
+	.nlink = 0,\
+	.uid = 0,\
+	.gid = 0,\
+	.rdev = 0,\
+	.size = 0,\
+	.blocks = 0,\
+	.atime = 0,\
+	.mtime = 0,\
+	.ctime = 0,\
+}
+
 typedef struct sattr_def
 {
 	uint32_t mode;

@@ -6,6 +6,13 @@ desc="chown returns ENAMETOOLONG if an entire path name exceeded 1023 characters
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..12"
 
 expect 0 mkdir ${name255} 0755

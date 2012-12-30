@@ -21,8 +21,18 @@
 #ifndef FH_H
 #define FH_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! Forward declaration.  */
 typedef struct volume_def *volume;
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #include "config.h"
 #include "system.h"
@@ -129,10 +139,19 @@ typedef struct volume_def *volume;
 #define CONFLICT_REMOTE_EXISTS	2
 #define CONFLICT_BOTH_EXIST	(CONFLICT_LOCAL_EXISTS | CONFLICT_REMOTE_EXISTS)
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
+
+#ifdef __cplusplus
+}
+#endif
 
 #include "fibheap.h"
 #include "interval.h"
@@ -141,6 +160,11 @@ typedef struct virtual_dir_def *virtual_dir;
 #include "cap.h"
 #include "metadata.h"
 #include "version.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /*! \brief Internal information about file handle.  */
 struct internal_fh_def
@@ -417,6 +441,7 @@ extern int32_t internal_dentry_lock2(unsigned int level1, unsigned int level2,
 									 zfs_fh * tmp_fh1, zfs_fh * tmp_fh2);
 extern bool set_master_fh(volume vol, internal_fh fh, zfs_fh * master_fh);
 bool internal_fh_should_wait_for_locked(const internal_fh fh, int new_level);
+void for_each_internal_fh(void(*visit)(const internal_fh, void *), void * data);
 extern void print_fh_htab(FILE * f);
 extern void debug_fh_htab(void);
 extern void print_subdentries(FILE * f, internal_dentry dentry);
@@ -465,5 +490,9 @@ extern void debug_virtual_tree(void);
 
 extern void initialize_fh_c(void);
 extern void cleanup_fh_c(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

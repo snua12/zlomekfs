@@ -282,7 +282,7 @@ static void stat_from_fattr(struct stat *st, const fattr * fa, fuse_ino_t ino)
 {
 	memset(st, 0, sizeof(*st));
 	st->st_ino = ino;
-	st->st_mode = ftype2mode[fa->type] | fa->mode;
+	st->st_mode = zfs_ftype_to_mode(fa->type) | fa->mode;
 	st->st_nlink = fa->nlink;
 	st->st_uid = map_uid_zfs2node(fa->uid);
 	st->st_gid = map_gid_zfs2node(fa->gid);
@@ -343,7 +343,7 @@ static void zfs_fuse_getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_in
 	struct stat st;
 	const zfs_fh *fh;
 	zfs_fh args;
-	fattr fa;
+	fattr fa = FATTR_INITIALIZER;
 	int err;
 
 	TRACE("");
