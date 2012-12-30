@@ -1093,6 +1093,33 @@ flush_interval_tree_1(volume vol, internal_fh fh, metadata_type type,
 	RETURN_BOOL(true);
 }
 
+/*! return stat's mode from file type */
+uint32_t zfs_ftype_to_mode(ftype type)
+{
+	switch (type)
+	{
+	case FT_BAD:
+		return 0;
+	case FT_REG:
+		return S_IFREG;
+	case FT_DIR:
+		return S_IFDIR;
+	case FT_LNK:
+		return S_IFLNK;
+	case FT_BLK:
+		return S_IFBLK;
+	case FT_CHR:
+		return S_IFCHR;
+	case FT_SOCK:
+		return S_IFSOCK;
+	case FT_FIFO:
+		return S_IFIFO;
+	case FT_LAST_AND_UNUSED:
+	default:
+		return 0;
+	}
+}
+
 /*! Return file type from struct stat's MODE.  */
 
 ftype zfs_mode_to_ftype(uint32_t mode)

@@ -39,10 +39,6 @@
 # include "log.h"
 # include "user-group.h"
 
-/*! Mapping file type -> file mode.  */
-unsigned int ftype2mode[FT_LAST_AND_UNUSED]
-	= { 0, S_IFREG, S_IFDIR, S_IFLNK, S_IFBLK, S_IFCHR, S_IFSOCK, S_IFIFO };
-
 /*! Convert ZFS error to system error */
 int zfs_error(int error)
 {

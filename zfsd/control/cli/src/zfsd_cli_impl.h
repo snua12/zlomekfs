@@ -41,6 +41,7 @@
 #include "control.h"
 #include "volume.h"
 #include "file.h"
+#include "fh.h"
 
 
 static void sayHello(const cli::OutputDevice& CLI_Out) { CLI_Out << "Hello!" << cli::endl; }
@@ -138,6 +139,72 @@ static const cli::OutputDevice& operator<<(const cli::OutputDevice& out, const i
 	out << cli::endl;
 }
 
+static const cli::OutputDevice& operator<<(const cli::OutputDevice& out, const internal_fh fh)
+{
+#if 0
+	//pthread_mutex_t mutex;
+	out << "fd: " << fd->fd;
+	out << ", generation: " << fd->generation;
+	//fibnode heap_node;
+#endif
+	//pthread_mutex_t mutex;
+	//pthread_cond_t cond;
+
+	//zfs_fh local_fh;
+	out << ", ndentries: " << fh->ndentries;
+	//fattr attr;
+	//metadata meta;
+	//varray subdentries;
+	//internal_cap cap;
+	//interval_tree updated;
+	//interval_tree modified;
+	//journal_t journal;
+
+	out << ", interval_tree_users: " << fh->interval_tree_users;
+	out << ", level: " << fh->level;
+	out << ", users: " << fh->users;
+	out << ", id2assign: " << fh->id2assign;
+	out << ", id2run: " << fh->id2run;
+	out << ", fd: " << fh->fd;
+	out << ", generation: " << fh->generation;
+
+	/*! Flags, see IFH_* below.  */
+	//unsigned int flags;
+
+	out << ", reintegrating_sid: " << fh->reintegrating_sid;
+	out << ", reintegrating_generation: " << fh->reintegrating_generation;
+
+#ifdef ENABLE_VERSIONS
+	/*! Version file description. Set to -1 if version file is not open.  */
+	int version_fd;
+
+	/*! Complete path of version file. Valid only when version file is open. */
+	char *version_path;
+
+	/*! File attributes before modification occurred.  */
+	fattr version_orig_attr;
+
+	/*! File was truncated before opening.  */
+	bool file_truncated;
+
+	/* File size when the file was opened.  */
+	uint64_t marked_size;
+
+	/*! Version file content intervals.  */
+	interval_tree versioned;
+
+	/*! Number of users of version interval tree.  */
+	unsigned int version_interval_tree_users;
+
+	/* List of intervals for open version file.  */
+	version_item *version_list;
+	unsigned int version_list_length;
+#endif
+
+
+	out << cli::endl;
+}
+
 static void zlomekfs_terminate()
 {
 	pid_t pid = getpid();
@@ -221,6 +288,19 @@ static void zlomekfs_print_internal_fds(const cli::OutputDevice& CLI_Out)
 {
 	CLI_Out << "internal_fds:" << cli::endl;
 	for_each_internal_fd(zlomekfs_print_internal_fd, (void *) &CLI_Out);
+}
+
+static void zlomekfs_print_internal_fh(const internal_fh fh, void * data)
+{
+	const cli::OutputDevice * CLI_Out = (cli::OutputDevice *) data;
+	*CLI_Out << fh;
+	*CLI_Out << cli::endl;
+}
+
+static void zlomekfs_print_internal_fhs(const cli::OutputDevice& CLI_Out)
+{
+	CLI_Out << "internal_fh:" << cli::endl;
+	for_each_internal_fh(zlomekfs_print_internal_fh, (void *) &CLI_Out);
 }
 
 #endif // ZFSD_CLI_IMPL_H

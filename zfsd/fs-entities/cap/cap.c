@@ -139,7 +139,7 @@ internal_cap_lock(unsigned int level, internal_cap * icapp, volume * volp,
 
 			if ((*dentryp)->deleted) break;
 
-			if ((*dentryp)->fh->id2run == id) break;
+			//if ((*dentryp)->fh->id2run == id) break;
 		}
 		while(internal_fh_should_wait_for_locked((*dentryp)->fh, level));
 

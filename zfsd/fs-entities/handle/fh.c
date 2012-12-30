@@ -1027,7 +1027,7 @@ internal_dentry_lock(unsigned int level, volume * volp,
 			zfsd_cond_wait(&(*dentryp)->fh->cond, &(*dentryp)->fh->mutex);
 
 			if ((*dentryp)->deleted) break;
-			if ((*dentryp)->fh->id2run == id) break;
+			//if ((*dentryp)->fh->id2run == id) break;
 		}
 		while(internal_fh_should_wait_for_locked((*dentryp)->fh, level));
 
@@ -1474,6 +1474,17 @@ bool internal_fh_should_wait_for_locked(const internal_fh fh, int new_level)
 
 	zfsd_abort();
 	return true;
+}
+
+void for_each_internal_fh(void(*visit)(const internal_fh, void *), void * data)
+{
+	void ** slot;
+	zfsd_mutex_lock(&fh_mutex);
+	HTAB_FOR_EACH_SLOT(fh_htab, slot)
+	{
+		visit((internal_fh) * slot, data);
+	}
+	zfsd_mutex_unlock(&fh_mutex);
 }
 
 /*! Print the contents of hash table HTAB to file F.  */
@@ -2203,43 +2214,41 @@ internal_dentry_destroy(internal_dentry dentry, bool clear_volume_root,
 			dentry->fh->level = LEVEL_UNLOCKED;
 	}
 
-	if (dentry->users > 0)
+	while (dentry->users > 0)
 	{
 #ifdef ENABLE_CHECKING
 		internal_dentry tmp1, tmp2;
 #endif
 		internal_fh fh = dentry->fh;
 
-		do
-		{
-			zfsd_mutex_unlock(&fh_mutex);
+		zfsd_mutex_unlock(&fh_mutex);
 
-			/* FH can't be deleted while it is locked.  */
-			/* Using two different mutexes with the same condition
-			at the same time could lead to unpredictable serialization issues in your application. */
-			zfsd_cond_wait(&fh->cond, &fh->mutex);
+		/* FH can't be deleted while it is locked.  */
+		/* Using two different mutexes with the same condition
+		at the same time could lead to unpredictable serialization issues in your application. */
+		zfsd_cond_wait(&fh->cond, &fh->mutex);
+		zfsd_mutex_unlock(&fh->mutex);
+		zfsd_mutex_lock(&fh_mutex);
 
 #ifdef ENABLE_CHECKING
-			tmp1 = dentry_lookup(&tmp_fh);
-			tmp2 = tmp1;
-			if (tmp1 == NULL)
-				zfsd_abort();
-			do
-			{
-				if (tmp2 == dentry)
-					break;
-				tmp2 = tmp2->next;
-			}
-			while (tmp2 != tmp1);
-
-			if (tmp2 != dentry)
-				zfsd_abort();
-#else
-			/* Because FH could not be deleted we can lock it again.  */
-#endif
-			zfsd_mutex_lock(&fh_mutex);
+		tmp1 = dentry_lookup(&tmp_fh);
+		tmp2 = tmp1;
+		if (tmp1 == NULL)
+			zfsd_abort();
+		do
+		{
+			if (tmp2 == dentry)
+				break;
+			tmp2 = tmp2->next;
 		}
-		while (dentry->users > 0);
+		while (tmp2 != tmp1);
+
+		if (tmp2 != dentry)
+			zfsd_abort();
+#else
+		/* Because FH could not be deleted we can lock it again.  */
+		zfsd_mutex_lock(&fh->mutex);
+#endif
 	}
 
 	if (dentry->deleted)
