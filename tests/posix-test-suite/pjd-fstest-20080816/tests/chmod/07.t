@@ -6,6 +6,13 @@ desc="chmod returns EPERM if the operation would change the ownership, but the e
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..14"
 
 n0=`namegen`

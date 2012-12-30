@@ -21,8 +21,18 @@
 #ifndef FH_H
 #define FH_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! Forward declaration.  */
 typedef struct volume_def *volume;
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #include "config.h"
 #include "system.h"
@@ -129,10 +139,19 @@ typedef struct volume_def *volume;
 #define CONFLICT_REMOTE_EXISTS	2
 #define CONFLICT_BOTH_EXIST	(CONFLICT_LOCAL_EXISTS | CONFLICT_REMOTE_EXISTS)
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*! Forward definitions.  */
 typedef struct internal_fh_def *internal_fh;
 typedef struct internal_dentry_def *internal_dentry;
 typedef struct virtual_dir_def *virtual_dir;
+
+#ifdef __cplusplus
+}
+#endif
 
 #include "fibheap.h"
 #include "interval.h"
@@ -141,6 +160,11 @@ typedef struct virtual_dir_def *virtual_dir;
 #include "cap.h"
 #include "metadata.h"
 #include "version.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /*! \brief Internal information about file handle.  */
 struct internal_fh_def
@@ -464,5 +488,9 @@ extern void debug_virtual_tree(void);
 
 extern void initialize_fh_c(void);
 extern void cleanup_fh_c(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

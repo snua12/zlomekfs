@@ -6,6 +6,13 @@ desc="chown returns EFAULT if the path argument points outside the process's all
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..2"
 
 expect EFAULT chown NULL 65534 65534

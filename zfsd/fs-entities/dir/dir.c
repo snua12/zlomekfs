@@ -5421,7 +5421,7 @@ local_mknod(dir_op_res * res, internal_dentry dir, string * name, sattr * attr,
 	zfsd_mutex_unlock(&fh_mutex);
 
 	attr->mode = GET_MODE(attr->mode);
-	r = mknod(path.str, attr->mode | ftype2mode[type], rdev);
+	r = mknod(path.str, attr->mode | zfs_ftype_to_mode(type), rdev);
 	if (r != 0)
 	{
 		free(path.str);

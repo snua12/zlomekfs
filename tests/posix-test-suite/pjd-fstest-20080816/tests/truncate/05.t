@@ -6,6 +6,13 @@ desc="truncate returns EACCES when search permission is denied for a component o
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..15"
 
 n0=`namegen`

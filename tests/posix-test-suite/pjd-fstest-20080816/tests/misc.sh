@@ -2,7 +2,14 @@
 
 ntest=1
 
+name143="_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_12"
+name144="${name143}3"
+path579="${name143}/${name143}/${name143}/${name143}"
+path581="${path579}/x"
+path582="${path581}/x"
+
 name253="_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_123456789_12"
+name254="${name253}3"
 name255="${name253}34"
 name256="${name255}5"
 path1021="${name255}/${name255}/${name255}/${name253}"
@@ -39,8 +46,20 @@ run_getconf()
 	echo $val
 }
 
-name_max_val=$(run_getconf NAME_MAX)
-path_max_val=$(run_getconf PATH_MAX)
+case "${fs}" in
+zlomekFS)
+	name_max_val=143
+# strlen(data/testdir) == 12
+	#path_max_val=4010
+	path_max_val=3998
+	#4004 4005 to long
+#4032 is too long
+	;;
+*)
+	name_max_val=$(run_getconf NAME_MAX)
+	path_max_val=$(run_getconf PATH_MAX)
+	;;
+esac
 
 name_max="_"
 i=1
@@ -69,6 +88,12 @@ create_too_long()
 unlink_too_long()
 {
 	rm -rf ${name_max}
+}
+
+empty_test()
+{
+	echo "ok ${ntest}"
+	ntest=`expr $ntest + 1`
 }
 
 expect()

@@ -6,6 +6,13 @@ desc="open returns EACCES when O_CREAT is specified, the file does not exist, an
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..3"
 
 n0=`namegen`

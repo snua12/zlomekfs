@@ -1442,6 +1442,17 @@ static void internal_fh_destroy_stage2(internal_fh fh)
 	RETURN_VOID;
 }
 
+void for_each_internal_fh(void(*visit)(const internal_fh, void *), void * data)
+{
+	void ** slot;
+	zfsd_mutex_lock(&fh_mutex);
+	HTAB_FOR_EACH_SLOT(fh_htab, slot)
+	{
+		visit((internal_fh) * slot, data);
+	}
+	zfsd_mutex_unlock(&fh_mutex);
+}
+
 /*! Print the contents of hash table HTAB to file F.  */
 
 void print_fh_htab(FILE * f)
@@ -2169,7 +2180,7 @@ internal_dentry_destroy(internal_dentry dentry, bool clear_volume_root,
 			dentry->fh->level = LEVEL_UNLOCKED;
 	}
 
-	if (dentry->users > 0)
+	while (dentry->users > 0)
 	{
 #ifdef ENABLE_CHECKING
 		internal_dentry tmp1, tmp2;
@@ -2184,20 +2195,20 @@ internal_dentry_destroy(internal_dentry dentry, bool clear_volume_root,
 			zfsd_cond_wait(&fh->cond, &fh_mutex);
 
 #ifdef ENABLE_CHECKING
-			tmp1 = dentry_lookup(&tmp_fh);
-			tmp2 = tmp1;
-			if (tmp1 == NULL)
-				zfsd_abort();
-			do
-			{
-				if (tmp2 == dentry)
-					break;
-				tmp2 = tmp2->next;
-			}
-			while (tmp2 != tmp1);
+		tmp1 = dentry_lookup(&tmp_fh);
+		tmp2 = tmp1;
+		if (tmp1 == NULL)
+			zfsd_abort();
+		do
+		{
+			if (tmp2 == dentry)
+				break;
+			tmp2 = tmp2->next;
+		}
+		while (tmp2 != tmp1);
 
-			if (tmp2 != dentry)
-				zfsd_abort();
+		if (tmp2 != dentry)
+			zfsd_abort();
 #else
 			/* Because FH could not be deleted we can lock it again.  */
 			zfsd_mutex_lock(&fh->mutex);

@@ -1,3 +1,10 @@
+/*! 
+ *  \file zfs_dirent.c
+ *  \brief  Wrapper for POSIX directory operation API
+ *  \author Ales Snuparek based on Mike Shal <marfey@gmail.com>
+ *
+ */
+
 /* vim: set ts=8 sw=8 sts=8 noet tw=78:
  *
  * tup - A file-based build system
@@ -30,7 +37,7 @@
 #include "zfs_dirent.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
-DIR *zfs_fdopendir(int fd)
+static DIR *zfs_fdopendir_nofd_dup(int fd)
 {
 	char fullpath[MAXPATHLEN];
 	DIR *d;
@@ -69,7 +76,7 @@ int zfs_readdir_r(DIR * dirp, struct dirent * entry, struct dirent ** result)
 	return readdir_r(dirp, entry, result);
 }
 #else
-DIR *zfs_fdopendir(int fd)
+static DIR *zfs_fdopendir_nofd_dup(int fd)
 {
 	return fdopendir(fd);
 }
@@ -93,6 +100,16 @@ long zfs_telldir(DIR *dirp)
 DIR * zfs_opendir(const char *dirname)
 {
 	return opendir(dirname);
+}
+
+/*! \brief same as fdopendir bud duplicate fd */
+DIR * zfs_fdopendir(int fd)
+{
+	//duplicate fd
+	int dup_fd = dup(fd);
+	if (dup_fd == -1) return NULL;
+
+	return zfs_fdopendir_nofd_dup(dup_fd);
 }
 
 int zfs_closedir(DIR *dirp)

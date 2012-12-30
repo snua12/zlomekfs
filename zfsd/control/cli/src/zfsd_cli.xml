@@ -97,6 +97,9 @@ type
 		<keyword string="internal_fd"><help lang="en">Print internal_fd.</help>
 			<endl><cpp>zlomekfs_print_internal_fds(<out/>);</cpp></endl>
 		</keyword>
+		<keyword string="internal_fh"><help lang="en">Print internal_fh.</help>
+			<endl><cpp>zlomekfs_print_internal_fhs(<out/>);</cpp></endl>
+		</keyword>
 	</keyword>
 
 	<keyword string="terminate"><help lang="en">Stop zlomekFS daemon.</help>

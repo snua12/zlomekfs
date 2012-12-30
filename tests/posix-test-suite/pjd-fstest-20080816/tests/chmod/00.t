@@ -6,6 +6,13 @@ desc="chmod changes permission"
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 if supported lchmod; then
 	echo "1..77"
 else
