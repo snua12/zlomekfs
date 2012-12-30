@@ -6,6 +6,13 @@ desc="truncate returns EACCES if the named file is not writable by the user"
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..8"
 
 n0=`namegen`

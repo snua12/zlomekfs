@@ -6,6 +6,15 @@ desc="symlink returns EACCES when a component of the name2 path prefix denies se
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
+
+
 echo "1..12"
 
 n0=`namegen`

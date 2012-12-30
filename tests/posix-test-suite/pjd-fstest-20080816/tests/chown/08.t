@@ -6,6 +6,13 @@ desc="chown returns EPERM if the named file has its immutable or append-only fla
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 require chflags
 
 echo "1..34"

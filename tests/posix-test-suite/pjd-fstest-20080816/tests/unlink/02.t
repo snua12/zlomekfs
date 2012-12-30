@@ -8,7 +8,17 @@ dir=`dirname $0`
 
 echo "1..4"
 
-expect 0 create ${name255} 0644
-expect 0 unlink ${name255}
-expect ENOENT unlink ${name255}
-expect ENAMETOOLONG unlink ${name256}
+case "${fs}" in
+zlomekFS)
+	expect 0 create ${name143} 0644
+	expect 0 unlink ${name143}
+	expect ENOENT unlink ${name143}
+	expect ENAMETOOLONG unlink ${name144}
+;;
+*)
+	expect 0 create ${name255} 0644
+	expect 0 unlink ${name255}
+	expect ENOENT unlink ${name255}
+	expect ENAMETOOLONG unlink ${name256}
+;;
+esac

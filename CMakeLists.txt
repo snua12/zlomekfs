@@ -382,11 +382,11 @@ else()
 endif()
 
 #fstest support
-set(FSTEST_DIR ${CMAKE_SOURCE_DIR}/tests/posix-test-suite/pjd-fstest-20080816)
+set(FSTEST_DIR ${CMAKE_SOURCE_DIR}/tests/posix-test-suite/pjd-fstest-20080816/)
 add_subdirectory(${FSTEST_DIR})
 
 set(ZFS_TEST_DIR "${ZFS_MOUNT_POINT}/data/testdir")
 find_program(PROVE prove)
 add_custom_target(run_fstest
-	COMMAND mkdir -p "${ZFS_TEST_DIR}" && cd "${ZFS_MOUNT_POINT}" && export FSTEST="${CMAKE_BINARY_DIR}/tests/posix-test-suite/pjd-fstest-20080816/fstest" && "${PROVE}" -r "${FSTEST_DIR}")
+	COMMAND mkdir -p "${ZFS_TEST_DIR}" && cd "${ZFS_TEST_DIR}" && export FSTEST="${CMAKE_BINARY_DIR}/tests/posix-test-suite/pjd-fstest-20080816/fstest" && "${PROVE}" -r "${FSTEST_DIR}/tests/")
 

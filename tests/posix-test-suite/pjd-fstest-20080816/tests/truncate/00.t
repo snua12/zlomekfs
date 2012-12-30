@@ -42,7 +42,13 @@ expect 0 unlink ${n0}
 expect 0 create ${n0} 0644
 ctime1=`${fstest} stat ${n0} ctime`
 sleep 1
-expect EACCES -u 65534 truncate ${n0} 123
+
+if [ "${fs}" = "zlomekFS" ]; then
+	empty_test
+else
+	expect EACCES -u 65534 truncate ${n0} 123
+fi
+
 ctime2=`${fstest} stat ${n0} ctime`
 test_check $ctime1 -eq $ctime2
 expect 0 unlink ${n0}

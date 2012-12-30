@@ -6,6 +6,13 @@ desc="chown returns EROFS if the named file resides on a read-only file system"
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${fs}" = "zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 case "${os}:{fs}" in
 FreeBSD:UFS)
 	echo "1..10"
