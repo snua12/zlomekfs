@@ -54,10 +54,6 @@ if (ENABLE_PROFILE)
 	set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
 endif (ENABLE_PROFILE)
 
-# supress warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-but-set-variable")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wunused-but-set-variable")
-
 option(ENABLE_UNIT_TESTS "Enable unit tests build")
 
 ##############################################################

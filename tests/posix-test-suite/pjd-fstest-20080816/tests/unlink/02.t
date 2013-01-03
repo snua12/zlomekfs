@@ -10,10 +10,14 @@ echo "1..4"
 
 case "${fs}" in
 zlomekFS)
-	expect 0 create ${name143} 0644
-	expect 0 unlink ${name143}
-	expect ENOENT unlink ${name143}
-	expect ENAMETOOLONG unlink ${name144}
+	expect 0 create ${name255} 0644
+	expect 0 unlink ${name255}
+	expect ENOENT unlink ${name255}
+	if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+		expect ENOENT unlink ${name256}
+	else
+		expect ENAMETOOLONG unlink ${name256}
+	fi
 ;;
 *)
 	expect 0 create ${name255} 0644

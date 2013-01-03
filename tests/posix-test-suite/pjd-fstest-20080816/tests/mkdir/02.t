@@ -9,9 +9,13 @@ dir=`dirname $0`
 echo "1..3"
 case "${fs}" in
 zlomekFS)
-	expect 0 mkdir ${name143} 0755
-	expect 0 rmdir ${name143}
-	expect ENAMETOOLONG mkdir ${name144} 0755
+	expect 0 mkdir ${name255} 0755
+	expect 0 rmdir ${name255}
+	if [ "${os}" = "cygwin" ]; then
+		expect ENOENT mkdir ${name256} 0755
+	else
+		expect ENAMETOOLONG mkdir ${name256} 0755
+	fi
 	;;
 *)
 	expect 0 mkdir ${name255} 0755

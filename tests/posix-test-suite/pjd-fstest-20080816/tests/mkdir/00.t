@@ -22,16 +22,44 @@ expect 0 mkdir ${n0} 0755
 expect dir,0755 lstat ${n0} type,mode
 expect 0 rmdir ${n0}
 expect 0 mkdir ${n0} 0151
-expect dir,0151 lstat ${n0} type,mode
+
+if [ "${fs}" == "zlomekFS" ]; then #CYGWIN
+#zlomekFS on windows does not store unix attributes
+	empty_test
+else
+	expect dir,0151 lstat ${n0} type,mode
+fi
+
 expect 0 rmdir ${n0}
 expect 0 -U 077 mkdir ${n0} 0151
-expect dir,0100 lstat ${n0} type,mode
+
+if [ "${fs}" == "zlomekFS" ]; then #CYGWIN
+#zlomekFS on windows does not store unix attributes
+	empty_test
+else
+	expect dir,0100 lstat ${n0} type,mode
+fi
+
 expect 0 rmdir ${n0}
 expect 0 -U 070 mkdir ${n0} 0345
-expect dir,0305 lstat ${n0} type,mode
+
+if [ "${fs}" == "zlomekFS" ]; then #CYGWIN
+#zlomekFS on windows does not store unix attributes
+	empty_test
+else
+	expect dir,0305 lstat ${n0} type,mode
+fi
+
 expect 0 rmdir ${n0}
 expect 0 -U 0501 mkdir ${n0} 0345
-expect dir,0244 lstat ${n0} type,mode
+
+if [ "${fs}" == "zlomekFS" ]; then #CYGWIN
+#zlomekFS on windows does not store unix attributes
+	empty_test
+else
+	expect dir,0244 lstat ${n0} type,mode
+fi
+
 expect 0 rmdir ${n0}
 
 # POSIX: The directory's user ID shall be set to the process' effective user ID.

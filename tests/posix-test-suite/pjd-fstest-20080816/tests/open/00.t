@@ -21,20 +21,51 @@ cd ${n1}
 # on the file-mode bits and the corresponding bits in the complement of the
 # process' file mode creation mask. Thus, all bits in the file mode whose
 # corresponding bit in the file mode creation mask is set are cleared.
-expect 0 open ${n0} O_CREAT,O_WRONLY 0755
-expect regular,0755 lstat ${n0} type,mode
+
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then # zlomekFS via dokan iface  does not support rights
+	expect 0 open ${n0} O_CREAT,O_WRONLY 0644
+	expect regular,0644 lstat ${n0} type,mode
+else
+	expect 0 open ${n0} O_CREAT,O_WRONLY 0755
+	expect regular,0755 lstat ${n0} type,mode
+fi
+
 expect 0 unlink ${n0}
 expect 0 open ${n0} O_CREAT,O_WRONLY 0151
-expect regular,0151 lstat ${n0} type,mode
+#
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then # zlomekFS via dokan iface  does not support rights
+	empty_test
+else
+	expect regular,0151 lstat ${n0} type,mode
+fi
+
 expect 0 unlink ${n0}
 expect 0 -U 077 open ${n0} O_CREAT,O_WRONLY 0151
-expect regular,0100 lstat ${n0} type,mode
+
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then # zlomekFS via dokan iface  does not support rights
+	empty_test
+else
+	expect regular,0100 lstat ${n0} type,mode
+fi
+
 expect 0 unlink ${n0}
 expect 0 -U 070 open ${n0} O_CREAT,O_WRONLY 0345
-expect regular,0305 lstat ${n0} type,mode
+
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then # zlomekFS via dokan iface  does not support rights
+	empty_test
+else
+	expect regular,0305 lstat ${n0} type,mode
+fi
+
 expect 0 unlink ${n0}
 expect 0 -U 0501 open ${n0} O_CREAT,O_WRONLY 0345
-expect regular,0244 lstat ${n0} type,mode
+
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then # zlomekFS via dokan iface  does not support rights
+	empty_test
+else
+	expect regular,0244 lstat ${n0} type,mode
+fi
+
 expect 0 unlink ${n0}
 
 # POSIX: (If O_CREAT is specified and the file doesn't exist) [...] the user ID

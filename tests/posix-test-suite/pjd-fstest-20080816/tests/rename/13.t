@@ -19,16 +19,31 @@ expect dir lstat ${n0} type
 expect regular lstat ${n1} type
 expect 0 unlink ${n1}
 
-expect 0 mkfifo ${n1} 0644
-expect ENOTDIR rename ${n0} ${n1}
-expect dir lstat ${n0} type
-expect fifo lstat ${n1} type
-expect 0 unlink ${n1}
+# special files created by cygwin as ordinary files
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+else
+	expect 0 mkfifo ${n1} 0644
+	expect ENOTDIR rename ${n0} ${n1}
+	expect dir lstat ${n0} type
+	expect fifo lstat ${n1} type
+	expect 0 unlink ${n1}
 
-expect 0 symlink test ${n1}
-expect ENOTDIR rename ${n0} ${n1}
-expect dir lstat ${n0} type
-expect symlink lstat ${n1} type
-expect 0 unlink ${n1}
+	expect 0 symlink test ${n1}
+	expect ENOTDIR rename ${n0} ${n1}
+	expect dir lstat ${n0} type
+	expect symlink lstat ${n1} type
+	expect 0 unlink ${n1}
 
-expect 0 rmdir ${n0}
+	expect 0 rmdir ${n0}
+fi

@@ -21,8 +21,20 @@ zlomekFS)
 	expect 0 symlink ${n0} ${path581}
 	expect 0 unlink ${path581}
 	create_too_long
-	expect ENAMETOOLONG symlink ${n0} ${too_long}
-	expect ENAMETOOLONG symlink ${too_long} ${n0}
+
+	if [ "${os}" = "cygwin" ]; then
+		expect ENOENT symlink ${n0} ${too_long}
+		#dokan iface has no support for symlinks
+		if [ "${fs}" = "zlomekFS" ]; then
+			empty_test
+		else
+			expect ENOENT symlink ${too_long} ${n0}
+		fi
+	else
+		expect ENAMETOOLONG symlink ${n0} ${too_long}
+		expect ENAMETOOLONG symlink ${too_long} ${n0}
+	fi
+
 	unlink_too_long
 	expect 0 rmdir ${path579}
 	expect 0 rmdir ${name143}/${name143}/${name143}

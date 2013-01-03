@@ -19,16 +19,32 @@ expect dir lstat ${n0} type
 expect regular lstat ${n1} type
 expect 0 unlink ${n1}
 
-expect 0 mkfifo ${n1} 0644
-expect EISDIR rename ${n1} ${n0}
-expect dir lstat ${n0} type
-expect fifo lstat ${n1} type
-expect 0 unlink ${n1}
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+else
+	expect 0 mkfifo ${n1} 0644
+	expect EISDIR rename ${n1} ${n0}
+	expect dir lstat ${n0} type
+	expect fifo lstat ${n1} type
+	expect 0 unlink ${n1}
+fi
 
-expect 0 symlink test ${n1}
-expect EISDIR rename ${n1} ${n0}
-expect dir lstat ${n0} type
-expect symlink lstat ${n1} type
-expect 0 unlink ${n1}
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+else
+	expect 0 symlink test ${n1}
+	expect EISDIR rename ${n1} ${n0}
+	expect dir lstat ${n0} type
+	expect symlink lstat ${n1} type
+	expect 0 unlink ${n1}
+fi
 
 expect 0 rmdir ${n0}

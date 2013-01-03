@@ -21,6 +21,9 @@ FreeBSD)
 Linux)
 	expect 'ENOTEMPTY|EEXIST' rmdir ${n0}/${n1}/..
 	;;
+cygwin)
+	expect 'ENOTEMPTY|EEXIST' rmdir ${n0}/${n1}/..
+	;;
 *)
 	expect EEXIST rmdir ${n0}/${n1}/..
 	;;
