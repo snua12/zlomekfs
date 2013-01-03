@@ -1179,17 +1179,12 @@ static int DOKAN_CALLBACK zfs_dokan_move_file (
 	PDOKAN_FILE_INFO info)
 {
 	DOKAN_SET_THREAD_SPECIFIC
-	fwprintf(stderr, L"zfs_dokan_move_file(): %ls -> %ls\n",
-		existing_file_name, new_file_name);
 	int rv = inner_dokan_move_file(
 			existing_file_name,
 			new_file_name,
 			replace_existing,
 			info);
 
-	fwprintf(stderr, L"zfs_dokan_move_file(rv=%d): %ls -> %ls\n",
-		rv,
-		existing_file_name, new_file_name);
 	DOKAN_CLEAN_THREAD_SPECIFIC
 	return rv;
 }
