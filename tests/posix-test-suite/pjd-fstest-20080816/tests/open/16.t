@@ -19,6 +19,20 @@ FreeBSD)
 	expect EMLINK open ${n1} O_WRONLY,O_NOFOLLOW
 	expect EMLINK open ${n1} O_RDWR,O_NOFOLLOW
         ;;
+cygwin)
+	if [ "${fs}" = "zlomekFS" ]; then
+		# symlinks are implemented by cygwin as ordinary file 
+		expect 0 open ${n1} O_RDONLY,O_CREAT,O_NOFOLLOW 0644
+		expect 0 open ${n1} O_RDONLY,O_NOFOLLOW
+		expect 0 open ${n1} O_WRONLY,O_NOFOLLOW
+		expect 0 open ${n1} O_RDWR,O_NOFOLLOW
+	else
+		expect ELOOP open ${n1} O_RDONLY,O_CREAT,O_NOFOLLOW 0644
+		expect ELOOP open ${n1} O_RDONLY,O_NOFOLLOW
+		expect ELOOP open ${n1} O_WRONLY,O_NOFOLLOW
+		expect ELOOP open ${n1} O_RDWR,O_NOFOLLOW
+	fi
+	;;
 *)
 	expect ELOOP open ${n1} O_RDONLY,O_CREAT,O_NOFOLLOW 0644
 	expect ELOOP open ${n1} O_RDONLY,O_NOFOLLOW

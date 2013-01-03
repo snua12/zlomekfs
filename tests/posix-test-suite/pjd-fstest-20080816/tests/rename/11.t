@@ -6,6 +6,13 @@ desc="rename returns ELOOP if too many symbolic links were encountered in transl
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled cygwin stores symlinks as ordinary files
+	empty_test
+	exit 0
+fi
+
 echo "1..10"
 
 n0=`namegen`

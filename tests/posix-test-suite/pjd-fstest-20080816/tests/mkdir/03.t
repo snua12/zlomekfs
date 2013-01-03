@@ -36,6 +36,10 @@ zlomekFS)
 esac
 
 create_too_long
-expect ENAMETOOLONG mkdir ${too_long} 0755
+if [ "${os}" = "cygwin" ]; then
+	expect ENOENT mkdir ${too_long} 0755
+else
+	expect ENAMETOOLONG mkdir ${too_long} 0755
+fi
 unlink_too_long
 

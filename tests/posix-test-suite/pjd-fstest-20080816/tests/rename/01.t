@@ -18,9 +18,20 @@ zlomekFS)
 	expect 0 unlink ${name143}
 
 	expect 0 create ${n0} 0644
-	expect ENAMETOOLONG rename ${n0} ${name144}
+
+	if [ "${os}" = "cygwin" ]; then
+		expect ENOENT rename ${n0} ${name256}
+	else
+		expect ENAMETOOLONG rename ${n0} ${name256}
+	fi
+
 	expect 0 unlink ${n0}
-	expect ENAMETOOLONG rename ${name144} ${n0}
+
+	if [ "${os}" = "cygwin" ]; then
+		expect ENOENT rename ${name256} ${n0}
+	else
+		expect ENAMETOOLONG rename ${name256} ${n0}
+	fi
 	;;
 *)
 	expect 0 create ${name255} 0644

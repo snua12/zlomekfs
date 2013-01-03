@@ -17,7 +17,12 @@ zlomekFS)
 	expect 0 symlink ${n0} ${name143}
 	expect 0 unlink ${name143}
 
-	expect ENAMETOOLONG symlink ${n0} ${name256}
+	if [ "${os}" = "cygwin" ]; then
+		expect ENOENT symlink ${n0} ${name256}
+	else
+		expect ENAMETOOLONG symlink ${n0} ${name256}
+	fi
+
 	expect 0 symlink ${name144} ${n0}
 	expect 0 unlink ${n0}
 	;;

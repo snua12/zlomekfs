@@ -6,6 +6,13 @@ desc="mkfifo returns ENAMETOOLONG if a component of a pathname exceeded 255 char
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..3"
 
 case "${fs}" in

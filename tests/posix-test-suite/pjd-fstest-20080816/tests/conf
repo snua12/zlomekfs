@@ -3,6 +3,9 @@
 
 # Known operating systems: FreeBSD, SunOS, Linux
 os=`uname`
+if echo "${os}" | grep -i "cygwin" > /dev/null 2>&1; then
+	os="cygwin"
+fi
 
 # Known file systems: UFS, ZFS, ext3, ntfs-3g, xfs, zlomekFS
 fs="zlomekFS"
