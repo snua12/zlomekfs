@@ -50,6 +50,10 @@ case "${fs}" in
 zlomekFS)
 	name_max_val=255 	#ZFS_MAXNAMELEN
 	path_max_val=1023 	#ZFS_MAXPATHLEN
+#this is workarouhd fuse file len
+	if ! [ "${os}" = "cygwin" ]; then
+		path_max_val=$(run_getconf PATH_MAX)
+	fi
 	;;
 *)
 	name_max_val=$(run_getconf NAME_MAX)
