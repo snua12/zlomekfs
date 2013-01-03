@@ -18,7 +18,13 @@ zlomekFS)
 	expect 0 truncate ${path581} 123
 	expect 0 unlink ${path581}
 	create_too_long
-	expect ENAMETOOLONG truncate ${too_long} 123
+
+	if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+		expect ENOENT truncate ${too_long} 123
+	else
+		expect ENAMETOOLONG truncate ${too_long} 123
+	fi
+
 	unlink_too_long
 	expect 0 rmdir ${path579}
 	expect 0 rmdir ${name143}/${name143}/${name143}

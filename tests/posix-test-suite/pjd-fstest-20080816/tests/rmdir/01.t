@@ -25,6 +25,12 @@ expect 0 symlink ${n1} ${n0}
 expect ENOTDIR rmdir ${n0}
 expect 0 unlink ${n0}
 
-expect 0 mkfifo ${n0} 0644
-expect ENOTDIR rmdir ${n0}
-expect 0 unlink ${n0}
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	empty_test
+	empty_test
+	empty_test
+else
+	expect 0 mkfifo ${n0} 0644
+	expect ENOTDIR rmdir ${n0}
+	expect 0 unlink ${n0}
+fi

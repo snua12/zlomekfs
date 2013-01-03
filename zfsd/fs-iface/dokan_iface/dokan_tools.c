@@ -110,6 +110,7 @@ static int windows_to_unix_path_no_const(LPWSTR win_path, char * unix_path, size
 			return ENAMETOOLONG;
 		}
 
+		if (rv > ZFS_MAXNAMELEN) return ENAMETOOLONG;
 		unix_path_ptr += rv;
 		*unix_path_ptr = '\0';
 	}
@@ -122,14 +123,6 @@ static int windows_to_unix_path_no_const(LPWSTR win_path, char * unix_path, size
  */
 int windows_to_unix_path(LPCWSTR win_path, char * unix_path, size_t unix_path_len)
 {
-	#if 0
-	size_t win_path_len = wcslen(win_path);
-	if (win_path_len >= unix_path_len)
-	{
-		return ENAMETOOLONG;
-	}
-#endif
-
 	LPWSTR win_path_dup = xwcsdup(win_path);
 	int rv = windows_to_unix_path_no_const(win_path_dup, unix_path, unix_path_len);
 	xfree(win_path_dup);
@@ -140,6 +133,7 @@ int windows_to_unix_path(LPCWSTR win_path, char * unix_path, size_t unix_path_le
  *
  *  \param err zlomekFS error
  *  \return -1 * ERROR_* (win32api)
+ *  error translation can be found at cygwin sources winsup/cygwin/errno.cc
 */
 int zfs_err_to_dokan_err(int32_t err)
 {
@@ -149,11 +143,21 @@ int zfs_err_to_dokan_err(int32_t err)
 			return -ERROR_SUCCESS;
 		case ENOENT:
 			return -ERROR_FILE_NOT_FOUND;
-			return -ERROR_PATH_NOT_FOUND;
+		case ENAMETOOLONG:
+			return -ERROR_PATH_NOT_FOUND; /* The file name is too long. */
 		case EROFS:
 			return -ERROR_WRITE_PROTECT;
+		case EEXIST:
+			return -ERROR_ALREADY_EXISTS;
+		case ENOTEMPTY:
+			return -ERROR_DIR_NOT_EMPTY;
+		case ENOTDIR:
+			return -ERROR_DIRECTORY;
+		case EINVAL:
+			return -ERROR_INVALID_PARAMETER;
 		default:
-			return -err;
+			message(LOG_WARNING, FACILITY_ZFSD, "%s:errno %d not translated\n", __func__, err);
+			return -ERROR_INVALID_FUNCTION;
 	}
 }
 
@@ -335,6 +339,15 @@ static DWORD ftype_to_file_attrs(ftype type)
 	}
 }
 
+static void mode_to_file_attrs(DWORD * attrs, uint32_t mode)
+{
+	if ((mode & S_IWUSR) || (mode & S_IWGRP) || (mode & S_IWOTH))
+		return;
+	/* A file that does not have other attributes set. This attribute is valid only when used alone. */
+	*attrs = *attrs & ~FILE_ATTRIBUTE_NORMAL;
+	*attrs |= FILE_ATTRIBUTE_READONLY;
+}
+
 /*! \brief converts zlomekFS fattr to win32api FILE INFORMATION
  *
  *  \param buffer pointer to place where is file information stored
@@ -348,10 +361,7 @@ void fattr_to_file_information(LPBY_HANDLE_FILE_INFORMATION buffer, fattr * fa)
 	buffer->nFileSizeHigh = (fa->size) >> 32;
 	buffer->dwFileAttributes = ftype_to_file_attrs(fa->type);
 
-	if (((fa->mode & S_IWUSR) == 0) || ((fa->mode & S_IWGRP) == 0) || ((fa->mode & S_IWOTH) == 0))
-	{
-		buffer->dwFileAttributes |= FILE_ATTRIBUTE_READONLY;
-	}
+	mode_to_file_attrs(&(buffer->dwFileAttributes), fa->mode);
 
 	// use mtime instead of ctime (ctime cannot be altered by POSIX API)
 	zfstime_to_filetime(&buffer->ftCreationTime, fa->mtime);
@@ -374,16 +384,8 @@ void fattr_to_find_dataw(PWIN32_FIND_DATAW data, fattr * fa)
 	data->nFileSizeLow =  (DWORD) fa->size;
 	data->nFileSizeHigh = (fa->size) >> 32;
 
-	if ((fa->mode & S_IWUSR) || (fa->mode & S_IWGRP) || (fa->mode & S_IWOTH))
-	{
-		data->dwFileAttributes = 0;
-	}
-	else
-	{
-		data->dwFileAttributes = FILE_ATTRIBUTE_READONLY;
-	}
-
 	data->dwFileAttributes |= ftype_to_file_attrs(fa->type);
+	mode_to_file_attrs(&(data->dwFileAttributes), fa->mode);
 
 	zfstime_to_filetime(&data->ftCreationTime, fa->ctime);
 	zfstime_to_filetime(&data->ftLastAccessTime, fa->atime);
@@ -443,7 +445,7 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	size_t ino_str_len = strlen(ino_str);
 
 	// get tile extension if there is any
-	char file_ext[ZFS_MAXNAMELEN] = "";
+	char file_ext[ZFS_MAXNAMELEN + 1] = "";
 	char * file_ext_p = strchr(entry->name.str, '.');
 	if  (file_ext_p != NULL)
 	{
@@ -455,7 +457,7 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	size_t file_ext_len = strlen(file_ext);
 
 	// get filename
-	char file_name[ZFS_MAXNAMELEN] = "";
+	char file_name[ZFS_MAXNAMELEN + 1] = "";
 	size_t file_name_len = file_ext_len + ino_str_len;
 	if (file_name_len < 12)
 	{
@@ -465,7 +467,7 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	}
 
 	// merge together (file_name hex_inode file_extension)
-	char file_name_final[ZFS_MAXNAMELEN] = "";
+	char file_name_final[ZFS_MAXNAMELEN + 1] = "";
 	snprintf(file_name_final, sizeof(file_name_final), "%s%s%s",
 		file_name, ino_str, file_ext);
 

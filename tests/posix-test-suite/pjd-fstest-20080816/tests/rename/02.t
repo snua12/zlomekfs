@@ -17,14 +17,21 @@ zlomekFS)
 	expect 0 mkdir ${name143}/${name143}/${name143} 0755
 	expect 0 mkdir ${path579} 0755
 	expect 0 create ${n0} 0644
+
 	expect 0 rename ${n0} ${path581}
 	expect 0 rename ${path581} ${n0}
-	#TODO: fix this error
+
+	#TODO: fix this error in zlomekFS
 	#expect ENAMETOOLONG rename ${n0} ${too_long}
 	empty_test
 	expect 0 unlink ${n0}
 	create_too_long
+
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	expect ENOENT rename ${too_long} ${n0}
+else
 	expect ENAMETOOLONG rename ${too_long} ${n0}
+fi
 	unlink_too_long
 	expect 0 rmdir ${path579}
 	expect 0 rmdir ${name143}/${name143}/${name143}

@@ -11,14 +11,25 @@ echo "1..14"
 n0=`namegen`
 n1=`namegen`
 
-expect 0 create ${n0} 0644
-expect regular,0644 lstat ${n0} type,mode
-expect 0 symlink ${n0} ${n1}
-expect symlink lstat ${n1} type
-expect regular,0644 stat ${n1} type,mode
-expect 0 unlink ${n0}
-expect ENOENT stat ${n1} type,mode
-expect 0 unlink ${n1}
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+	empty_test
+else
+	expect 0 create ${n0} 0644
+	expect regular,0644 lstat ${n0} type,mode
+	expect 0 symlink ${n0} ${n1}
+	expect symlink lstat ${n1} type
+	expect regular,0644 stat ${n1} type,mode
+	expect 0 unlink ${n0}
+	expect ENOENT stat ${n1} type,mode
+	expect 0 unlink ${n1}
+fi
 
 expect 0 mkdir ${n0} 0755
 time=`${fstest} stat ${n0} ctime`

@@ -39,7 +39,7 @@ static void process_o_args(char * o_args)
 	}
 }
 
-#if ! defined(ENABLE_CLI_CONSOLE) || ! defined(__CYGWIN__)
+#if ! defined(ENABLE_CLI_CONSOLE) && ! defined(__CYGWIN__)
 // this function is from http://stackoverflow.com/questions/10543280/linux-daemon-tutorial
 static bool daemon_seed() 
 {
@@ -56,6 +56,11 @@ static bool daemon_seed()
 	freopen("/dev/null", "w", stderr);
 
         return true;
+}
+#else
+static bool daemon_seed()
+{
+	return true;
 }
 #endif
 
@@ -78,9 +83,7 @@ void process_arguments(int argc, char **argv)
 				}
 				optind = 1;
 
-				#if ! defined(ENABLE_CLI_CONSOLE) || ! defined(__CYGWIN__) //cli use console, don't daemonize
 				daemon_seed();
-				#endif
 				return;
 			case 'o':
 				process_o_args(optarg);

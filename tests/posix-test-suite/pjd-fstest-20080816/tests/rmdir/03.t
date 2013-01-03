@@ -18,7 +18,11 @@ zlomekFS)
 	expect 0 rmdir ${path581}
 	expect ENOENT rmdir ${path581}
 	create_too_long
-	expect ENAMETOOLONG rmdir ${too_long}
+	if [ "${os}" = "cygwin" ]; then
+		expect ENOENT rmdir ${too_long}
+	else
+		expect ENAMETOOLONG rmdir ${too_long}
+	fi
 	unlink_too_long
 	expect 0 rmdir ${path579}
 	expect 0 rmdir ${name143}/${name143}/${name143}

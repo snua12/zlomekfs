@@ -48,12 +48,8 @@ run_getconf()
 
 case "${fs}" in
 zlomekFS)
-	name_max_val=143
-# strlen(data/testdir) == 12
-	#path_max_val=4010
-	path_max_val=3998
-	#4004 4005 to long
-#4032 is too long
+	name_max_val=255 	#ZFS_MAXNAMELEN
+	path_max_val=1023 	#ZFS_MAXPATHLEN
 	;;
 *)
 	name_max_val=$(run_getconf NAME_MAX)
@@ -128,7 +124,7 @@ jexpect()
 
 test_check()
 {
-	if [ $* ]; then
+	if [ "$*" ]; then
 		echo "ok ${ntest}"
 	else
 		echo "not ok ${ntest}"

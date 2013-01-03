@@ -16,6 +16,10 @@ Linux)
 	expect 0 open ${n0} O_WRONLY,O_RDWR
 	expect 0 open ${n0} O_RDONLY,O_WRONLY,O_RDWR
         ;;
+cygwin)
+	expect 0 open ${n0} O_WRONLY,O_RDWR
+	expect 0 open ${n0} O_RDONLY,O_WRONLY,O_RDWR
+	;;
 *)
 	expect EINVAL open ${n0} O_WRONLY,O_RDWR
 	expect EINVAL open ${n0} O_RDONLY,O_WRONLY,O_RDWR

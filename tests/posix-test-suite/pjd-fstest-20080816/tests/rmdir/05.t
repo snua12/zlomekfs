@@ -13,7 +13,12 @@ n1=`namegen`
 
 expect 0 symlink ${n0} ${n1}
 expect 0 symlink ${n1} ${n0}
-expect ELOOP rmdir ${n0}/test
-expect ELOOP rmdir ${n1}/test
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	expect ENOTDIR rmdir ${n0}/test
+	expect ENOTDIR rmdir ${n1}/test
+else
+	expect ELOOP rmdir ${n0}/test
+	expect ELOOP rmdir ${n1}/test
+fi
 expect 0 unlink ${n0}
 expect 0 unlink ${n1}

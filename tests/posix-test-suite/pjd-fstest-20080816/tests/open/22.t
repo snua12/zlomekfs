@@ -18,9 +18,15 @@ expect 0 mkdir ${n0} 0755
 expect EEXIST open ${n0} O_CREAT,O_EXCL 0644
 expect 0 rmdir ${n0}
 
-expect 0 mkfifo ${n0} 0644
-expect EEXIST open ${n0} O_CREAT,O_EXCL 0644
-expect 0 unlink ${n0}
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	empty_test
+	empty_test
+	empty_test
+else
+	expect 0 mkfifo ${n0} 0644
+	expect EEXIST open ${n0} O_CREAT,O_EXCL 0644
+	expect 0 unlink ${n0}
+fi
 
 expect 0 symlink test ${n0}
 expect EEXIST open ${n0} O_CREAT,O_EXCL 0644

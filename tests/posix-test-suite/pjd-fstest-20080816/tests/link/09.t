@@ -6,6 +6,13 @@ desc="link returns ENOENT if the source file does not exist"
 dir=`dirname $0`
 . ${dir}/../misc.sh
 
+if [ "${os}:${fs}" = "cygwin:zlomekFS" ]; then
+	echo "1..1"
+	# for zlomekFS test was disabled
+	empty_test
+	exit 0
+fi
+
 echo "1..5"
 
 n0=`namegen`
