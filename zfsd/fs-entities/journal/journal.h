@@ -35,7 +35,7 @@
   (crc32_update (crc32_buffer ((J)->name.str, (J)->name.len),		\
                  &(J)->oper, sizeof ((J)->oper)))
 
-/*! Operation stored to journal.  */
+/*! \brief Operation stored to journal.  */
 typedef enum journal_operation_def
 {
 	JOURNAL_OPERATION_ADD,		/*!< add directory entry */
