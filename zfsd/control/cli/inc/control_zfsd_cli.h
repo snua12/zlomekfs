@@ -39,4 +39,11 @@ void stop_cli_control(void);
 }
 #endif
 
+/*! \page zfs-cli ZlomekFS CLI interface
+   ZlomekFS CLI is based on http://alexis.royer.free.fr/CLI.
+
+   Generated user documentation is below:
+    \htmlinclude zfs_cli.html
+*/
+
 #endif
