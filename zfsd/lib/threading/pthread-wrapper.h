@@ -1,6 +1,8 @@
 /*! \file \brief Wrappers for pthread_* functions and related data.  */
 
-/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak
+/* Copyright (C) 2003, 2004, 2010 Josef Zlomek, Rastislav Wartiak,
+   Ales Snuparek (for static mutex initializer, Cygwin specific mods,
+   zfs_pthread_yield)
 
    This file is part of ZFS.
 

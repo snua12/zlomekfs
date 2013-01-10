@@ -1,3 +1,10 @@
+/**
+ *  \file barrier.c
+ *  \brief Pthread barrier implementation.
+ *  \author Ales Snuparek (based on http://www.howforge.com/implementing-barrier-in-pthreads)
+ *
+ */
+
 #include <pthread.h>
 #include "barrier.h"
 
