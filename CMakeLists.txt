@@ -157,6 +157,9 @@ if(DOXYGEN_FOUND)
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMENT "Generating API documentation with Doxygen" VERBATIM
 )
+	if (ENABLE_CLI)
+		add_dependencies(doc generate_zfsd_cli_doc)
+	endif()
 endif(DOXYGEN_FOUND)
 
 ##############################################################
@@ -351,21 +354,19 @@ add_custom_target(sample_config
 	COMMAND "${CMAKE_SOURCE_DIR}/scripts/gen_single_ncfg.sh" "${CMAKE_BINARY_DIR}/zfsd/configuration/gen_sample_cfg/zfs_gen_sample_cfg" "${CMAKE_SOURCE_DIR}/conf/single/" "${CMAKE_BINARY_DIR}/sample_config/single"
 )
 
-if (CYGWIN)
+
+if(CYGWIN)
 	set(ZFS_MOUNT_POINT "z:")
-else()
-	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single/mnt")
-endif()
 
-if(CYGWIN)
-	add_custom_target(run_single
-	COMMAND "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" & ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}") 
-else()
-	add_custom_target(run_single
-	COMMAND mkdir -p "${ZFS_MOUNT_POINT}" && "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" && echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}")
-endif()
+	if (ENABLE_CLI_CONSOLE)
+			set(FORCE_BACKGROUND "")
+	else()
+			set(FORCE_BACKGROUND "&")
+	endif()
 
-if(CYGWIN)
+	add_custom_target(run_single
+	COMMAND "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" "${FORCE_BACKGROUND}" ; echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}") 
+
 	find_program(DOKANCTL dokanctl)
 	if (DOKANCTL)
 		add_custom_target(terminate_single
@@ -374,6 +375,11 @@ if(CYGWIN)
 		message("dokanctl is not avaiable, can not unmount zlomekFS")
 	endif()
 else()
+	set(ZFS_MOUNT_POINT "${CMAKE_BINARY_DIR}/sample_config/single/mnt")
+
+	add_custom_target(run_single
+	COMMAND mkdir -p "${ZFS_MOUNT_POINT}" && "${CMAKE_BINARY_DIR}/zfsd/zfsd/zfsd" -o "config=${CMAKE_BINARY_DIR}/sample_config/single/etc/zfsd/zfsd.conf" "${ZFS_MOUNT_POINT}" && echo "ZlomekFS is mounted ${ZFS_MOUNT_POINT}")
+
 	find_program(FUSERMOUNT fusermount)
 	if (FUSERMOUNT)
 		add_custom_target(terminate_single

@@ -1,4 +1,4 @@
-/*! \file \brief An expandable hash table in a file.  */
+/*! \file hashfile.c \brief An expandable hash table in a file.  */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek Based on hashfile.c
 

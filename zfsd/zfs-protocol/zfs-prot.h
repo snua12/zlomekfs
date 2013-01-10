@@ -107,6 +107,7 @@ typedef enum connection_speed_def
 	CONNECTION_SPEED_LAST_AND_UNUSED
 } connection_speed;
 
+/*! \brief ZlomekFS file handle */
 typedef struct zfs_fh_def
 {
 	uint32_t sid;				/*!< Server ID.  */
@@ -118,7 +119,7 @@ typedef struct zfs_fh_def
 
 typedef struct zfs_cap_def
 {
-	zfs_fh fh;
+	zfs_fh fh;				/*!< ZlomekFS File Handle */
 	uint32_t flags;
 	char verify[ZFS_VERIFY_LEN];
 } zfs_cap;
