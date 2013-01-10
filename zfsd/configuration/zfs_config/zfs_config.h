@@ -38,9 +38,10 @@ extern "C"
 #endif
 
 #ifdef ENABLE_VERSIONS
-/* Versioning enabled.  */
+/*! \brief Versioning specific configuration */
 typedef struct zfs_config_versions_def
 {
+	/*! Versioning enabled.  */
 	bool versioning;
 
 	/*! Versions displayed in readdir.  */
@@ -57,16 +58,21 @@ typedef struct zfs_config_versions_def
 #endif
 
 #ifdef HAVE_DOKAN
-/* Dokan specific configuration */
+/*! \brief Dokan specific configuration */
 typedef struct zfs_config_dokan_def
 {
+	/*! Volume name */
 	string volume_name;
+	/*! File system name */
 	string file_system_name;
+	/*! File mode */
 	uint32_t file_mode;
+	/*! Directory mode */
 	uint32_t directory_mode;
 } zfs_config_dokan;
 #endif
 
+/*! \brief Local node configuration */
 typedef struct zfs_config_node_def
 {
 	/*! ID of this node.  */
@@ -82,18 +88,21 @@ typedef struct zfs_config_node_def
 	uint16_t host_port;
 } zfs_config_node;
 
+/*! \brief Command line interface specific configuration */
 typedef struct zfs_config_cli_def
 {
 	/*! The port of the cli console */
 	uint16_t telnet_port;
 } zfs_config_cli;
 
+/*! \brief Metadata specific configuration */
 typedef struct zfs_config_metadata_def
 {
 	/*! Depth of directory tree for saving metadata about files.  */
 	uint32_t metadata_tree_depth;
 } zfs_config_metadata;
 
+/*! \brief Thread specific configuration */
 typedef struct zfs_config_threads_def
 {
 	/*! Limits for number of network threads.  */
@@ -106,6 +115,7 @@ typedef struct zfs_config_threads_def
 	thread_limit update_thread_limit;
 } zfs_config_threads;
 
+/*! \brief ZlomekFS specific global configuration */
 typedef struct zfs_configuration_def
 {
 	/*! Data for config reader thread.  */
