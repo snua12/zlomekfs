@@ -304,7 +304,7 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 		if (rv != ZFS_OK)
 		{
 			xfree(unix_path);
-			return -ERROR_FILE_NOT_FOUND;
+			return zfs_err_to_dokan_err(rv);
 		}
 
 		info->IsDirectory = (lres.attr.type == FT_DIR);
@@ -862,13 +862,52 @@ static int DOKAN_CALLBACK zfs_dokan_find_files (
 	return rv;
 }
 
+/*! \brief converts windows file attributes and set them to a file on zlomekFS volume */
+static int zfs_set_file_attributes(zfs_fh * fh, DWORD file_attributes)
+{
+	fattr fa;
+	int rv = zfs_getattr(&fa, fh);
+	if (rv != ZFS_OK)
+	{
+		return rv;
+	}
+
+	setattr_args args;
+	if (FILE_ATTRIBUTE_READONLY & file_attributes)
+	{
+		// get_default_file_ro_mode()
+		args.attr.mode = fa.mode & (~(S_IWUSR | S_IWGRP | S_IWOTH));
+	}
+	else
+	{
+		args.attr.mode = get_default_file_mode();
+	}
+
+	args.attr.size = -1;
+	args.attr.uid = -1;
+	args.attr.gid = -1;
+	args.attr.atime = -1;
+	args.attr.mtime = -1;
+
+	return zfs_setattr(&fa, fh, &args.attr, true);
+
+}
+
 /*! \brief inner implementation of \ref zfs_dokan_set_file_attributes */
 static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
-	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
+	LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED DWORD file_attributes,   // FileAttributes
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
+	PDOKAN_FILE_INFO info)
 {
-	return -ERROR_SUCCESS;
+
+	/* read only can be set only on files */
+	if (info->IsDirectory) return -ERROR_BAD_ARGUMENTS;
+
+	zfs_cap * cap = dokan_file_info_to_cap(info);
+	if (cap == NULL) return -ERROR_BAD_ARGUMENTS;
+
+	int32_t rv = zfs_set_file_attributes(&cap->fh, file_attributes);
+	return zfs_err_to_dokan_err(rv);
 }
 
 /*! \brief implements function SetFileAttributes from win32api */

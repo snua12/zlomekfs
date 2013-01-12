@@ -212,8 +212,20 @@ void convert_dokan_access_to_flags(uint32_t * flags,  DWORD desired_access)
 	// UNIX has not special execute flag
 	if (desired_access & GENERIC_EXECUTE)
 	{
-		*flags = O_WRONLY;
+		*flags = O_RDWR;
+		return;
 	}
+
+	// this acces is used when is called function SetFileAttributes
+	if (desired_access == 0x100100)
+	{
+		*flags = O_RDONLY;
+		return;
+	}
+
+	message(LOG_ERROR, FACILITY_ZFSD, "%s:cannot convert desired access 0x%lx\n", __func__, desired_access);
+
+	*flags = O_RDONLY;
 }
 
 /*! \brief fill create_args with win32api access rights
