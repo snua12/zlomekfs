@@ -65,7 +65,7 @@ DOKAN_OPTIONS zfs_dokan_options =
 {
 	.Version = DOKAN_VERSION,
 	.ThreadCount = 0, // use default 0
-	.Options = DOKAN_OPTION_KEEP_ALIVE, 
+	.Options = DOKAN_OPTION_KEEP_ALIVE | DOKAN_OPTION_REMOVABLE, 
 	.MountPoint = dokan_mount_point,
 };
 
@@ -745,14 +745,14 @@ static int DOKAN_CALLBACK inner_dokan_get_file_information (
 	xfree(path);
 	if (rv != ZFS_OK)
 	{
-		return -ERROR_INVALID_FUNCTION;
+		return zfs_err_to_dokan_err(rv);
 	}
 
 	fattr fa;
 	rv = zfs_getattr(&fa, &lres.file);
 	if (rv != ZFS_OK)
 	{
-		return -ERROR_INVALID_FUNCTION;
+		return zfs_err_to_dokan_err(rv);
 	}
 
 	fattr_to_file_information(buffer, &fa);
@@ -863,7 +863,7 @@ static int DOKAN_CALLBACK zfs_dokan_find_files (
 }
 
 /*! \brief converts windows file attributes and set them to a file on zlomekFS volume */
-static int zfs_set_file_attributes(zfs_fh * fh, DWORD file_attributes)
+static int zfs_set_file_attributes(zfs_fh * fh, DWORD file_attributes, bool isDirectory)
 {
 	fattr fa;
 	int rv = zfs_getattr(&fa, fh);
@@ -875,6 +875,7 @@ static int zfs_set_file_attributes(zfs_fh * fh, DWORD file_attributes)
 	setattr_args args;
 	if (FILE_ATTRIBUTE_READONLY & file_attributes)
 	{
+		if (isDirectory) return EINVAL;
 		// get_default_file_ro_mode()
 		args.attr.mode = fa.mode & (~(S_IWUSR | S_IWGRP | S_IWOTH));
 	}
@@ -895,18 +896,17 @@ static int zfs_set_file_attributes(zfs_fh * fh, DWORD file_attributes)
 
 /*! \brief inner implementation of \ref zfs_dokan_set_file_attributes */
 static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
-	LPCWSTR file_name, // FileName
+	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED DWORD file_attributes,   // FileAttributes
 	PDOKAN_FILE_INFO info)
 {
 
 	/* read only can be set only on files */
-	if (info->IsDirectory) return -ERROR_BAD_ARGUMENTS;
 
 	zfs_cap * cap = dokan_file_info_to_cap(info);
 	if (cap == NULL) return -ERROR_BAD_ARGUMENTS;
 
-	int32_t rv = zfs_set_file_attributes(&cap->fh, file_attributes);
+	int32_t rv = zfs_set_file_attributes(&cap->fh, file_attributes, info->IsDirectory);
 	return zfs_err_to_dokan_err(rv);
 }
 
@@ -1308,61 +1308,6 @@ static int DOKAN_CALLBACK zfs_dokan_set_allocation_size (
 	return rv;
 }
 
-/*! \brief inner implementation of \ref zfs_dokan_lock_file */
-static int DOKAN_CALLBACK inner_dokan_lock_file(
-	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
-	ATTRIBUTE_UNUSED LONGLONG byte_offset, // ByteOffset
-	ATTRIBUTE_UNUSED LONGLONG length, // Length
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
-{
-	return -ERROR_INVALID_FUNCTION;
-}
-
-/*! \brief implements function LockFile from win32api */
-static int DOKAN_CALLBACK zfs_dokan_lock_file (
-	LPCWSTR file_name, // FileName
-	LONGLONG byte_offset, // ByteOffset
-	LONGLONG length, // Length
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_lock_file(
-			file_name,
-			byte_offset,
-			length,
-			info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
-}
-
-/*! \brief inner implementation of \ref zfs_dokan_unlock_file */
-static int DOKAN_CALLBACK inner_dokan_unlock_file(
-	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
-	ATTRIBUTE_UNUSED LONGLONG byte_offset,// ByteOffset
-	ATTRIBUTE_UNUSED LONGLONG length,// Length
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
-{
-
-	return -ERROR_INVALID_FUNCTION;
-}
-
-/*! \brief implements function DokanUnlockFile from win32api */
-static int DOKAN_CALLBACK zfs_dokan_unlock_file(
-	LPCWSTR file_name, // FileName
-	LONGLONG byte_offset,// ByteOffset
-	LONGLONG length,// Length
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_unlock_file(
-			file_name,
-			byte_offset,
-			length,
-			info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
-}
-
 /*! \brief inner implementation of \ref zfs_dokan_get_volume_information */
 static int DOKAN_CALLBACK inner_dokan_get_volume_information (
 	LPWSTR volume_name_buffer, // VolumeNameBuffer
@@ -1436,71 +1381,6 @@ static int DOKAN_CALLBACK zfs_dokan_unmount (
 	return -ERROR_SUCCESS;
 }
 
-/*! \brief inner implementation of \ref zfs_dokan_get_file_security */
-static int DOKAN_CALLBACK inner_dokan_get_file_security (
-	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
-	ATTRIBUTE_UNUSED PSECURITY_INFORMATION security_information, // A pointer to SECURITY_INFORMATION value being requested
-	ATTRIBUTE_UNUSED PSECURITY_DESCRIPTOR security_descriptor, // A pointer to SECURITY_DESCRIPTOR buffer to be filled
-	ATTRIBUTE_UNUSED ULONG security_descriptor_length, // length of Security descriptor buffer
-	ATTRIBUTE_UNUSED PULONG length_needed, // LengthNeeded
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
-{
-
-	return -ERROR_INVALID_FUNCTION;
-}
-
-// Suported since 0.6.0. You must specify the version at DOKAN_OPTIONS.Version.
-static int DOKAN_CALLBACK zfs_dokan_get_file_security (
-	LPCWSTR file_name, // FileName
-	PSECURITY_INFORMATION security_information, // A pointer to SECURITY_INFORMATION value being requested
-	PSECURITY_DESCRIPTOR security_descriptor, // A pointer to SECURITY_DESCRIPTOR buffer to be filled
-	ULONG security_descriptor_length, // length of Security descriptor buffer
-	PULONG length_needed, // LengthNeeded
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_get_file_security(
-			file_name,
-			security_information,
-			security_descriptor,
-			security_descriptor_length,
-			length_needed,
-			info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
-}
-
-/*! \brief inner implementation of \ref zfs_dokan_set_file_security */
-static int DOKAN_CALLBACK inner_dokan_set_file_security (
-	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
-	ATTRIBUTE_UNUSED PSECURITY_INFORMATION secrity_information,
-	ATTRIBUTE_UNUSED PSECURITY_DESCRIPTOR security_descriptor, // SecurityDescriptor
-	ATTRIBUTE_UNUSED ULONG security_descriptor_length, // SecurityDescriptor length
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
-{
-
-	return -ERROR_INVALID_FUNCTION;
-}
-
-/*! \brief implements function SetFileSecurity from win32api */
-static int DOKAN_CALLBACK zfs_dokan_set_file_security (
-	LPCWSTR file_name, // FileName
-	PSECURITY_INFORMATION security_information,
-	PSECURITY_DESCRIPTOR security_descriptor, // SecurityDescriptor
-	ULONG security_descriptor_length, // SecurityDescriptor length
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_set_file_security(
-			file_name,
-			security_information,
-			security_descriptor,
-			security_descriptor_length,
-			info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
-}
-
 /*! \brief dokan operations structure with zlomekFS implementation */
 DOKAN_OPERATIONS zfs_dokan_operations =
 {
@@ -1522,10 +1402,10 @@ DOKAN_OPERATIONS zfs_dokan_operations =
 	.MoveFile = zfs_dokan_move_file,
 	.SetEndOfFile = zfs_dokan_set_end_of_file,
 	.SetAllocationSize = zfs_dokan_set_allocation_size,
-	.LockFile = zfs_dokan_lock_file,
-	.UnlockFile = zfs_dokan_unlock_file,
-	.GetFileSecurity = zfs_dokan_get_file_security,
-	.SetFileSecurity = zfs_dokan_set_file_security,
+	.LockFile = NULL,
+	.UnlockFile = NULL,
+	.GetFileSecurity = NULL,
+	.SetFileSecurity = NULL,
 	.GetDiskFreeSpace = NULL,
 	.GetVolumeInformation = zfs_dokan_get_volume_information,
 	.Unmount = zfs_dokan_unmount
