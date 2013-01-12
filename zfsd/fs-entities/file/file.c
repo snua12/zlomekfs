@@ -240,8 +240,15 @@ static int capability_open_nolock(int *fd, uint32_t flags, internal_dentry dentr
 	if (dentry->fh->attr.type == FT_DIR)
 		flags |= O_RDONLY;
 	else
+	{
+		uint32_t mode = dentry->fh->attr.mode;
 		/* FIXME: this breaks if the file is unreadable by the owner */
-		flags |= O_RDWR;
+		/* open file R when we have permissons for that */
+		if ((mode & S_IWUSR) || (mode & S_IWGRP) || (mode & S_IWOTH))
+		{
+			flags |= O_RDWR;
+		}
+	}
 
 	build_local_path(&path, vol, dentry);
 	dentry->fh->fd = safe_open(path.str, flags, 0);
