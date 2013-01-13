@@ -88,7 +88,7 @@ expect 0 create ${n0} 0644
 ctime1=`${fstest} stat ${n0} ctime`
 sleep 1
 
-if [ ${fs} == "zlomekFS" ]; then
+if [ ${fs} = "zlomekFS" ]; then
 	empty_test
 else
 	expect EACCES -u 65534 unlink ${n0}
@@ -101,7 +101,7 @@ expect 0 unlink ${n0}
 ctime1=`${fstest} stat ${n0} ctime`
 sleep 1
 
-if [ ${fs} == "zlomekFS" ]; then
+if [ ${fs} = "zlomekFS" ]; then
 	empty_test
 	empty_test
 	empty_test
