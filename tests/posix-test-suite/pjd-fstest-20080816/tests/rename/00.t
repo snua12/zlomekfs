@@ -145,7 +145,7 @@ sleep 1
 expect 0 rename ${n0} ${n1}
 ctime2=`${fstest} stat ${n1} ctime`
 
-if [ ${fs} == "zlomekFS" ]; then
+if [ "${fs}" = "zlomekFS" ]; then
 	empty_test
 else
 	test_check $ctime1 -lt $ctime2
@@ -176,7 +176,7 @@ else
 	expect 0 rename ${n0} ${n1}
 	ctime2=`${fstest} lstat ${n1} ctime`
 
-	if [ ${fs} == "zlomekFS" ]; then
+	if [ "${fs}" = "zlomekFS" ]; then
 		empty_test
 	else
 		test_check $ctime1 -lt $ctime2
@@ -190,7 +190,7 @@ expect 0 create ${n0} 0644
 ctime1=`${fstest} stat ${n0} ctime`
 sleep 1
 
-if [ ${fs} == "zlomekFS" ]; then
+if [ "${fs}" = "zlomekFS" ]; then
 	empty_test
 else
 	expect EACCES -u 65534 rename ${n0} ${n1}
@@ -204,7 +204,7 @@ expect 0 mkdir ${n0} 0755
 ctime1=`${fstest} stat ${n0} ctime`
 sleep 1
 
-if [ ${fs} == "zlomekFS" ]; then
+if [ "${fs}" = "zlomekFS" ]; then
 	empty_test
 else
 	expect EACCES -u 65534 rename ${n0} ${n1}
@@ -229,7 +229,7 @@ else
 	ctime1=`${fstest} stat ${n0} ctime`
 	sleep 1
 
-	if [ ${fs} == "zlomekFS" ]; then
+	if [ ${fs} = "zlomekFS" ]; then
 		empty_test
 	else
 		expect EACCES -u 65534 rename ${n0} ${n1}
@@ -243,7 +243,7 @@ else
 	ctime1=`${fstest} lstat ${n0} ctime`
 	sleep 1
 
-	if [ ${fs} == "zlomekFS" ]; then
+	if [ "${fs}" = "zlomekFS" ]; then
 		empty_test
 	else
 		expect EACCES -u 65534 rename ${n0} ${n1}
@@ -254,5 +254,5 @@ else
 	expect 0 unlink ${n0}
 fi
 
-cd ${cdir}
+cd "${cdir}"
 expect 0 rmdir ${n3}
