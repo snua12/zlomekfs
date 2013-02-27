@@ -4,7 +4,7 @@
 
 add_library(memory ${BUILDTYPE} memory.c)
 
-target_link_libraries(memory varray log)
+target_link_libraries(memory varray zfs_log)
 
 ### google Test
 test_enabled(gtest result)

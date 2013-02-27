@@ -13,7 +13,7 @@
         #set_source_files_properties(${log_test_SRCS} COMPILE_FLAGS)
 
   #      add_executable(log_test ${log_test_SRCS})
-  #      target_link_libraries(log_test ${ZFS_GTEST_LIBRARIES} log)
+  #      target_link_libraries(log_test ${ZFS_GTEST_LIBRARIES} zfs_log)
   #      add_test(log_test log_test)
 
 #endif()

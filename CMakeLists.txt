@@ -66,10 +66,6 @@ option(ENABLE_UNIT_TESTS "Enable unit tests build")
 set(CMAKE_CONFIGURATION_TYPES "Debug Release" CACHE string "Configuration types" FORCE)
 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${CFLAGS}" CACHE string "Debug cflags" FORCE)
-if (HAVE_EXECINFO_H)
-	set(CMAKE_C_FLAGS_DEBUG "-rdynamic ${CMAKE_C_FLAGS_DEBUG}")
-endif(HAVE_EXECINFO_H)
-
 set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
 
 if(NOT CONFIGURATION)
@@ -84,6 +80,11 @@ elseif(CONFIGURATION STREQUAL Release)
         set(CMAKE_BUILD_TYPE ${CONFIGURATION})
         set(BUILDTYPE STATIC)
 endif()  
+
+# supress some error reporting for android
+if (ANDROID)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-cast-align -Wno-unused-variable")
+endif()
 
 # make this persistent
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE string "Build configuration" FORCE)
@@ -174,7 +175,18 @@ INCLUDE(${CMAKE_ROOT}/Modules/FindPkgConfig.cmake)
 
 if (ENABLE_FS_INTERFACE)
 #libfuse
-	PKG_CHECK_MODULES(FUSE fuse>=2.6)
+	set(FUSE_LIBRARY_DIRS "" CACHE PATH "Path to libfuse library dirs.")
+	set(FUSE_INCLUDE_DIRS "" CACHE PATH "Path to libfuse include dirs.")
+	if (FUSE_LIBRARY_DIRS AND  FUSE_INCLUDE_DIRS)
+		set(FUSE_LIBRARIES fuse)
+		add_definitions(-D_FILE_OFFSET_BITS=64)
+		set(FUSE_FOUND 1)
+	endif()
+
+	if (NOT FUSE_FOUND)
+		PKG_CHECK_MODULES(FUSE fuse>=2.6)
+	endif()
+
 	if (FUSE_FOUND EQUAL 1)
 		set(HAVE_FUSE 1)
 		message(STATUS "fuse found")
@@ -229,7 +241,18 @@ endif()
 
 
 #libconfig
-PKG_CHECK_MODULES(LCONFIG libconfig>=1.3)
+
+set(LCONFIG_LIBRARY_DIRS "" CACHE PATH "Path to libconfig library dirs.")
+set(LCONFIG_INCLUDE_DIRS "" CACHE PATH "Path to libconfig include dirs.")
+if (LCONFIG_LIBRARY_DIRS AND LCONFIG_INCLUDE_DIRS)
+	set(LCONFIG_LIBRARIES libconfig.a)
+	set(LCONFIG_FOUND 1)
+endif()
+
+if (NOT LCONFIG_FOUND)
+	PKG_CHECK_MODULES(LCONFIG libconfig>=1.3)
+endif()
+
 if (LCONFIG_FOUND EQUAL 1)
 	link_directories(${LCONFIG_LIBRARY_DIRS})
 	include_directories(${LCONFIG_INCLUDE_DIRS})
@@ -243,7 +266,7 @@ if(OPENSSL_FOUND EQUAL 1)
 	link_directories(${OPENSSL_LIBRARY_DIRS})
 	include_directories(${OPENSSL_INCLUDE_DIRS})
 else()
-	message(FATAL_ERROR "Openssl not found")
+#	message(FATAL_ERROR "Openssl not found")
 endif()
 
 #Protobuf
@@ -298,6 +321,10 @@ check_include_files ("stddef.h" HAVE_STDDEF_H)
 check_include_files ("stdio.h" HAVE_STDIO_H)
 check_include_files ("sys/types.h" HAV_SYS_TYPES_H)
 check_include_files ("execinfo.h" HAVE_EXECINFO_H)
+if (HAVE_EXECINFO_H)
+	set(CMAKE_C_FLAGS_DEBUG "-rdynamic ${CMAKE_C_FLAGS_DEBUG}")
+endif(HAVE_EXECINFO_H)
+
 check_include_files ("ucontext.h" HAVE_UCONTEXT_H)
 check_include_files ("unistd.h" HAVE_UNISTD_H)
 check_include_files ("utime.h" HAVE_UTIME_H)
@@ -320,7 +347,7 @@ check_function_exists(mlockall HAVE_MLOCKALL)
 check_function_exists(fdopendir HAVE_FDOPENDIR)
 
 # configure headers
-configure_file(config.h.cmake ${CMAKE_BINARY_DIR}/include/config.h)
+configure_file(zfsd-bconfig.h.cmake ${CMAKE_BINARY_DIR}/include/zfsd-bconfig.h)
 #configure_file(confdefs.h.cmake ${CMAKE_BINARY_DIR}/include/confdefs.h)
 
 # global include directories

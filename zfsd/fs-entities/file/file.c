@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-#include "config.h"
+#include "zfsd-bconfig.h"
 #include <dirent.h>
 
 #include <sys/types.h>

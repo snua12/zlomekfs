@@ -39,7 +39,11 @@ zfs_configuration zfs_config =
 	.config_reader_data = {.mutex = ZFS_MUTEX_INITIALIZER},
 	.config_sem = ZFS_SEMAPHORE_INITIALIZER(0),
 	.mlock_zfsd = true,
+#ifdef __ANDROID__
+	.local_config_path = "/data/misc/zfsd/etc/zfsd/zfsd.conf",
+#else
 	.local_config_path = "/etc/zfsd/zfsd.conf",
+#endif
 	.mountpoint = "",
 	.default_node_uid = (uint32_t) - 1,
 	.default_node_gid = (uint32_t) - 1,

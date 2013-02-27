@@ -4,7 +4,7 @@
 
 add_library(util ${BUILDTYPE} util.c)
 
-target_link_libraries(util log)
+target_link_libraries(util zfs_log)
 
 install(
 TARGETS util

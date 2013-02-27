@@ -34,7 +34,7 @@ typedef struct volume_def *volume;
 #endif
 
 
-#include "config.h"
+#include "zfsd-bconfig.h"
 #include "system.h"
 #include <inttypes.h>
 #include <stdio.h>

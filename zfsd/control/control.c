@@ -61,7 +61,7 @@ const char *  connection_speed_str[] = {
 
 const char * connection_speed_to_str(connection_speed speed)
 {
-	if (speed < 0 || speed >= CONNECTION_SPEED_LAST_AND_UNUSED)
+	if (speed >= CONNECTION_SPEED_LAST_AND_UNUSED)
 		return NULL;
 	
 	return connection_speed_str[speed];

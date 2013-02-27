@@ -283,9 +283,17 @@ static void stat_from_fattr(struct stat *st, const fattr * fa, fuse_ino_t ino)
 	memset(st, 0, sizeof(*st));
 	st->st_ino = ino;
 	st->st_mode = zfs_ftype_to_mode(fa->type) | fa->mode;
+#ifdef __ANDROID__
+	// workaround android rights
+	st->st_mode =  S_IRWXU | S_IRWXG | S_IRWXO;
+#endif
 	st->st_nlink = fa->nlink;
 	st->st_uid = map_uid_zfs2node(fa->uid);
+#ifdef __ANDROID__
+	st->st_gid = 1015; 
+#else
 	st->st_gid = map_gid_zfs2node(fa->gid);
+#endif
 	st->st_rdev = fa->rdev;
 	st->st_size = fa->size;
 	st->st_blksize = fa->blksize;
@@ -387,8 +395,12 @@ static void zfs_fuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 	}
 	args.file = *fh;
 	if ((to_set & FUSE_SET_ATTR_MODE) != 0)
-		args.attr.mode = attr->st_mode & (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU
-										  | S_IRWXG | S_IRWXO);
+	{
+		args.attr.mode = attr->st_mode & (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO);
+#ifdef __ANDROID__
+		args.attr.mode |=  S_IRWXU | S_IRWXG | S_IRWXO;
+#endif
+	}
 	else
 		args.attr.mode = -1;
 	if ((to_set & FUSE_SET_ATTR_UID) != 0)
@@ -940,12 +952,16 @@ static void zfs_fuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t 
 			continue;
 		st.st_ino = fh_to_inode(&lookup_res.file);
 		st.st_mode = ftype2dtype[lookup_res.attr.type];
+#ifdef __ANDROID__
+		st.st_mode |= S_IRWXU | S_IRWXG | S_IRWXO;
+#endif
 		sz = fuse_add_direntry(req, buf + buf_offset, size - buf_offset,
 							   entry->name.str, &st, entry->cookie);
 		if (buf_offset + sz > size)
 			break;
 		buf_offset += sz;
 	}
+
 	fuse_reply_buf(req, buf, buf_offset);
 	free(buf);
 	free_dir_list_array(&list);

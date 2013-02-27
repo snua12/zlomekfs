@@ -4,7 +4,7 @@
 
 add_library(fibheap ${BUILDTYPE} fibheap.c)
 
-target_link_libraries(fibheap varray log)
+target_link_libraries(fibheap varray zfs_log)
 
 install(
 TARGETS fibheap

@@ -20,10 +20,10 @@ if (ENABLE_CLI)
 endif (ENABLE_CLI)
 
 add_library(syplog_control_wrapper ${BUILDTYPE} syplog_wrapper.c)
-target_link_libraries(syplog_control_wrapper log)
+target_link_libraries(syplog_control_wrapper zfs_log)
 
 add_library(control ${BUILDTYPE} control.c)
-target_link_libraries(control ${CONTROL_DBUS_LIBS} log syplog_control_wrapper ${CONTROL_LIBS})
+target_link_libraries(control ${CONTROL_DBUS_LIBS} zfs_log syplog_control_wrapper ${CONTROL_LIBS})
 
 add_executable(control_test control_test.c)
 target_link_libraries(control_test control)

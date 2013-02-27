@@ -21,7 +21,7 @@
 #ifndef ZFSD_H
 #define ZFSD_H
 
-#include <config.h>
+#include "zfsd-bconfig.h"
 
 #include "dbus-service-descriptors.h"
 

@@ -33,7 +33,12 @@
 #include "log.h"
 
 /*! \brief where is temporary file placed */
+#ifdef __ANDROID__
+// android does not have temp
+#define ZFS_TMP_SHARED_CONFIG_TEMPLATE "/data/misc/zfsd/tmp/.zfs_shared_configXXXXXXX"
+#else
 #define ZFS_TMP_SHARED_CONFIG_TEMPLATE "/tmp/.zfs_shared_configXXXXXXX"
+#endif
 
 /*! \brief structure for keeping informations about temporary file */
 struct zfs_file_def

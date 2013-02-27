@@ -26,10 +26,25 @@
 #ifndef ZFS_DIRENT_H
 #define ZFS_DIRENT_H
 #include <dirent.h>
-DIR *zfs_fdopendir(int fd);
-void zfs_seekdir(DIR *dirp, long loc);
-int zfs_readdir_r(DIR * dirp, struct dirent * entry, struct dirent ** result);
-long zfs_telldir(DIR *dirp);
-DIR * zfs_opendir(const char *dirname);
-int zfs_closedir(DIR *dirp);
+
+#ifdef __ANDROID__
+#include "linux/linux_dirent.h"
+typedef LINUX_DIR ZFS_DIR;
+#else
+typedef DIR ZFS_DIR;
+#endif
+typedef struct dirent zfs_dirent;
+
+ZFS_DIR *zfs_fdopendir(int fd);
+
+void zfs_seekdir(ZFS_DIR *dirp, long loc);
+
+int zfs_readdir_r(ZFS_DIR * dirp, struct dirent * entry, struct dirent ** result);
+
+long zfs_telldir(ZFS_DIR *dirp);
+
+ZFS_DIR * zfs_opendir(const char *dirname);
+
+int zfs_closedir(ZFS_DIR *dirp);
+
 #endif

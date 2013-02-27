@@ -3,7 +3,7 @@
 # This file is part of ZFS build system.
 
 add_library(dokan_tools ${BUILDTYPE} dokan_tools.c) 
-target_link_libraries(dokan_tools log)
+target_link_libraries(dokan_tools zfs_log)
 
 add_library(dokan_iface ${BUILDTYPE} dokan_iface.c) 
 target_link_libraries(dokan_iface dokan_tools protocol ${DOKAN_LIBRARIES} pthread)

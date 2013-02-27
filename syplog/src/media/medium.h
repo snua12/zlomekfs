@@ -48,8 +48,13 @@ extern "C"
 		/// don't use any medium - mainly used as "default" and
 		// "uninitialized"
 		NO_MEDIUM = 0,
+#ifdef __ANDROID__
+		/// write logs to android catlog
+		LOGCAT_MEDIUM,
+#else
 		/// write logs to shared memory
 		SHM_MEDIUM,
+#endif
 		/// write logs to file or read from
 		FILE_MEDIUM,
 		/// write logs to stdout

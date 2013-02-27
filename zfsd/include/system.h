@@ -38,8 +38,12 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
-#include "config.h"
+#include "zfsd-bconfig.h"
 #include <inttypes.h>
+
+#ifdef __ANDROID__
+#include <endian.h>
+#endif
 
 #ifdef __cplusplus
 extern "C"

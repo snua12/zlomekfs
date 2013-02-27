@@ -9,7 +9,7 @@ SET(config_reader_SRC
 )
 
 add_library(config_reader ${BUILD_TYPE} ${config_reader_SRC})
-target_link_libraries(config_reader zfs_config log zfsio ${LCONFIG_LIBRARIES})
+target_link_libraries(config_reader zfs_config zfs_log zfsio ${LCONFIG_LIBRARIES})
 
 ## google test
 test_enabled(gtest result)

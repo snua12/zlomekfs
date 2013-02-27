@@ -571,14 +571,14 @@ static int32_t version_browse_dir(char *path, char *name, time_t * stamp,
 
 	nl = strlen(name);
 
-	DIR * dirp = zfs_opendir(path);
+	ZFS_DIR * dirp = zfs_opendir(path);
 	if (dirp == NULL)
 		RETURN_INT(errno);
 
 	while (1)
 	{
 
-		struct dirent entry, *de; 
+		zfs_dirent entry, *de;
 		r = zfs_readdir_r(dirp, &entry, &de);
 		if (r > 0) // zfs_readdir_r has failed
 		{
@@ -1290,7 +1290,7 @@ int32_t version_rmdir_versions(char *path)
 	int32_t r;
 	int working = 1;
 
-	DIR * dirp = zfs_opendir(path);
+	ZFS_DIR * dirp = zfs_opendir(path);
 	if (dirp == NULL)
 		RETURN_INT(errno);
 	
@@ -1307,7 +1307,7 @@ int32_t version_rmdir_versions(char *path)
 		/* Comments to the work with getdents can be found in other functions. 
 		 */
 
-		struct dirent entry, *de; 
+		zfs_dirent entry, *de;
 		r = zfs_readdir_r(dirp, &entry, &de);
 		if (r > 0)
 		{
@@ -1350,7 +1350,7 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 	build_local_path(&dpath, vol, dentry->parent);
 	release_dentry(dentry->parent);
 
-	DIR * dirp = zfs_opendir(dpath.str);
+	ZFS_DIR * dirp = zfs_opendir(dpath.str);
 	free(dpath.str);
 	if (dirp == NULL)
 	{
@@ -1360,7 +1360,7 @@ int32_t version_apply_retention(internal_dentry dentry, volume vol)
 	/* Create a list of all versions for specified file.  */
 	while (0)
 	{
-		struct dirent entry, *de; 
+		zfs_dirent entry, *de;
 		r = zfs_readdir_r(dirp, &entry, &de);
 		if (r > 0) // zfs_readdir_r has failed
 		{

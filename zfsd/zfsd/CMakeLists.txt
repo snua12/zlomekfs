@@ -8,12 +8,18 @@ SET(zfsd_SRCS
    zfsd_args_shared.c
 )
 
+if (ANDROID)
+	SET(pthread_lib)
+else()
+	SET(pthread_lib "pthread")
+endif()
+
 SET(zfsd_LIBS
     ${LCONFIG_LIBRARIES}
-    pthread
+    ${pthread_lib}
     threading
     protocol
-    log
+    zfs_log
     memory
     control
 )
