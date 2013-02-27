@@ -8,7 +8,7 @@ target_link_libraries(zfs_config metadata)
 test_enabled(gtest result)
 if(NOT reqult EQUAL -1)
 #	add_executable(local_config_test local_config.c local_config_test.cpp config_defaults.c zfs_config.c)
-#	target_link_libraries(local_config_test ${ZFS_GTEST_LIBRARIES} ${LCONFIG_LIBRARIES} log memory)
+#	target_link_libraries(local_config_test ${ZFS_GTEST_LIBRARIES} ${LCONFIG_LIBRARIES} zfs_log memory)
 #	add_test(local_cofnig_test local_config_test)
 endif()
 

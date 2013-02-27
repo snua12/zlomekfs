@@ -28,7 +28,7 @@
 #ifndef FS_IFACE_H
 #define FS_IFACE_H
 
-#include <config.h>
+#include "zfsd-bconfig.h"
 #include <fh.h>
 
 #ifdef ENABLE_FS_INTERFACE

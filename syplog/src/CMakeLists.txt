@@ -9,13 +9,19 @@ SET(syplog_SRCS
 	media/medium.c
 	media/file-medium.c
 	media/print-medium.c
-	media/shm-medium.c
 	syp-error.c
 )
 
+if (ANDROID)
+	SET(syplog_SRCS ${syplog_SRCS} media/logcat-medium.c)
+	SET(syplog_LIBS log)
+else()
+	SET(syplog_SRCS ${syplog_SRCS} media/shm-medium.c)
+endif()
+
 
 add_library(syplog ${BUILDTYPE} ${syplog_SRCS})
-target_link_libraries(syplog formatters)
+target_link_libraries(syplog formatters ${syplog_LIBS})
 
 ### google Test
 #test_enabled(gtest result)

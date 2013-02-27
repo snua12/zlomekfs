@@ -1,0 +1,20 @@
+Download and install android NDK form http://developer.android.com/tools/sdk/ndk/index.html.
+
+Use makeall_android.sh for build zlomekFS for android.
+
+Launch: ANDROID_NDK=/absolute/path/to/the/android-ndk ./makeall_android.sh 
+
+ZlomekFS for android is in bin directory after build.
+
+During build are downloaded and build libconfig and libfuse for android.
+All of theses libraries are static linked to zfsd binary.
+
+ZlomekFS must be installed in /data/misc/zfsd/bin on target device:
+in /data/misc/zfsd should be theses directories:
+	bin
+	etc
+	tmp
+	var
+
+In bin is zfsd binary. In etc is zfsd.conf. In tmp are stored zlomekFS's temporary files. In var is stored zlomekFS local cache.
+

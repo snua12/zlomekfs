@@ -31,7 +31,12 @@
 #include "medium.h"
 #include "medium-api.h"
 #include "file-medium.h"
+#ifdef __ANDROID__
+#include "logcat-medium.h"
+#else
+// android bionic does not have support for shm
 #include "shm-medium.h"
+#endif
 #include "print-medium.h"
 #include "formatters/formatter-api.h"
 
@@ -102,8 +107,13 @@ struct
 	   {NO_MEDIUM_NAME, NO_MEDIUM}, {SOCKET_MEDIUM_NAME, SOCKET_MEDIUM}, */
 	{
 	FILE_MEDIUM_NAME, FILE_MEDIUM},
+#ifdef __ANDROID__
+	{
+	LOGCAT_MEDIUM_NAME, LOGCAT_MEDIUM},
+#else
 	{
 	SHM_MEDIUM_NAME, SHM_MEDIUM},
+#endif
 	{
 	PRINT_MEDIUM_NAME, PRINT_MEDIUM},
 		/* 
@@ -179,7 +189,9 @@ void print_media_help(int fd, int tabs)
 	tabize_print(tabs, fd, "medium specific options:\n");
 
 	print_file_medium_help(fd, tabs);
+#ifndef __ANDROID__
 	print_shm_medium_help(fd, tabs);
+#endif
 
 }
 
@@ -201,8 +213,10 @@ bool_t is_medium_arg(const char *arg)
 	if (is_file_medium_arg(arg))
 		return TRUE;
 
+#ifndef __ANDROID__
 	if (is_shm_medium_arg(arg))
 		return TRUE;
+#endif
 
 	return FALSE;
 }
@@ -304,6 +318,11 @@ syp_error open_medium(struct medium_def * target, int argc, const char **argv)
 	target->kind = WRITE_LOG;
 	target->used_formatter = DEFAULT_FORMATTER;
 
+#ifdef __ANDROID__
+	/*force android logcat*/
+	target->type = LOGCAT_MEDIUM;
+#endif
+
 	ret_code = medium_parse_params(argc, argv, target);
 	if (ret_code != NOERR)
 	{
@@ -326,6 +345,15 @@ syp_error open_medium(struct medium_def * target, int argc, const char **argv)
 			goto FINISHING;
 		}
 		break;
+#ifdef __ANDROID__
+	case LOGCAT_MEDIUM:
+		ret_code = open_logcat_medium(target, argc, argv);
+		if (ret_code != NOERR)
+		{
+			goto FINISHING;
+		}
+		break;
+#else
 	case SHM_MEDIUM:
 		ret_code = open_shm_medium(target, argc, argv);
 		if (ret_code != NOERR)
@@ -333,6 +361,7 @@ syp_error open_medium(struct medium_def * target, int argc, const char **argv)
 			goto FINISHING;
 		}
 		break;
+#endif
 	case PRINT_MEDIUM:
 		ret_code = open_print_medium(target, 0, NULL);
 		if (ret_code != NOERR)

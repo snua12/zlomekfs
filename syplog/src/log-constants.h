@@ -184,6 +184,7 @@ extern "C"
  * @param fmt format as in case of printf
  * @param ... auxiliary parameters to fmt
 */
+#ifndef __ANDROID__
 	static inline void tabize_print(int tabs, int fd, const char *fmt, ...)
 	{
 		va_list ap;
@@ -196,6 +197,15 @@ extern "C"
 
 		va_end(ap);
 	}
+#else
+	static inline void tabize_print(int tabs, int fd, const char *fmt, ...)
+	{
+		va_list ap;
+		va_start(ap, fmt);
+		va_end(ap);
+	}
+
+#endif
 
 /** Checks, if arg is present in table.
  * @param option_table option table as given to getopt_long

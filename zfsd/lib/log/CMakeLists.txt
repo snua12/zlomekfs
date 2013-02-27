@@ -2,8 +2,10 @@
 #
 # This file is part of ZFS build system.
 
-add_library(log ${BUILDTYPE} log.c)
-target_link_libraries(log syplog zfs_config)
+set(LOG_LIBRARY syplog)
+
+add_library(zfs_log ${BUILDTYPE} log.c)
+target_link_libraries(zfs_log ${LOG_LIBRARY} zfs_config)
 
 ### google Test
 #test_enabled(gtest result)
@@ -16,13 +18,13 @@ target_link_libraries(log syplog zfs_config)
         #set_source_files_properties(${log_test_SRCS} COMPILE_FLAGS)
 
   #      add_executable(log_test ${log_test_SRCS})
-  #      target_link_libraries(log_test ${ZFS_GTEST_LIBRARIES} log)
+  #      target_link_libraries(log_test ${ZFS_GTEST_LIBRARIES} zfs_log)
   #      add_test(log_test log_test)
 
 #endif()
 
 install(
-TARGETS log
+TARGETS zfs_log
 DESTINATION ${ZFS_INSTALL_DIR}/lib
 PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
