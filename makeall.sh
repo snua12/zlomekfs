@@ -1,7 +1,7 @@
 #!/bin/sh
 
 build_dir="build"
-cmake_opts="-DCONFIGURATION=Debug -DCMAKE_INSTALL_PREFIX=/usr"
+cmake_opts="-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr"
 
 die()
 {

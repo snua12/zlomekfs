@@ -63,8 +63,6 @@ option(ENABLE_UNIT_TESTS "Enable unit tests build")
 
 ### Input variables CFLAGS, CONFIGURATION
 
-set(CMAKE_CONFIGURATION_TYPES "Debug Release" CACHE string "Configuration types" FORCE)
-
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -ggdb -Wall -Wextra -Wformat-security -Winit-self -Wfloat-equal -Wshadow -Wbad-function-cast -Wcast-align -Wmissing-declarations -DDEBUG ${CFLAGS}" CACHE string "Debug cflags" FORCE)
 if (HAVE_EXECINFO_H)
 	set(CMAKE_C_FLAGS_DEBUG "-rdynamic ${CMAKE_C_FLAGS_DEBUG}")
@@ -72,18 +70,11 @@ endif(HAVE_EXECINFO_H)
 
 set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${CFLAGS}" CACHE string "Release CFLAGS" FORCE)
 
-if(NOT CONFIGURATION)
-        if(NOT CMAKE_BUILD_TYPE)
-                set(CMAKE_BUILD_TYPE Debug)
-                set(BUILDTYPE STATIC)
-        endif()     
-elseif(CONFIGURATION STREQUAL Debug)
-        set(CMAKE_BUILD_TYPE ${CONFIGURATION})
-        set(BUILDTYPE STATIC)
-elseif(CONFIGURATION STREQUAL Release)
-        set(CMAKE_BUILD_TYPE ${CONFIGURATION})
-        set(BUILDTYPE STATIC)
-endif()  
+set(BUILDTYPE STATIC)
+
+if (NOT CMAKE_BUILD_TYPE)
+                set(CMAKE_BUILD_TYPE  Release)
+endif()
 
 # make this persistent
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE string "Build configuration" FORCE)
