@@ -125,7 +125,7 @@ static int32_t dokan_zfs_extended_lookup(dir_op_res * res, char *path)
  */
 static int32_t zfs_file_exists(LPCWSTR file_name)
 {
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	if (path_len > ZFS_MAXPATHLEN) return ENAMETOOLONG;
 	char * path = xmalloc((path_len + 1) * sizeof(char));
 	int32_t rv = windows_to_unix_path(file_name, path, path_len + 1);
@@ -254,7 +254,7 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 		return -ERROR_FILE_NOT_FOUND;
 	}
 
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	char * unix_path = xmalloc(sizeof(char) * (path_len + 1));
 	rv = windows_to_unix_path(file_name, unix_path, path_len + 1);
 	if (rv != ZFS_OK)
@@ -400,7 +400,7 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 {
 
 	int32_t rv;
-	size_t path_len = wcslen(dir_name);
+	size_t path_len = wcslen_in_utf8(dir_name);
 	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 
 	char * path = xmalloc((path_len + 1) * sizeof(char));
@@ -454,7 +454,7 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 	int rv;
 	char * unix_path = xmalloc((path_len + 1) * sizeof(char));
@@ -651,10 +651,10 @@ static int DOKAN_CALLBACK inner_dokan_write_file (
 {
 
 	*number_of_bytes_written = 0;
+	write_args args;
+	args.cap = * dokan_file_info_to_cap(info);
 	while (number_of_bytes_to_write > 0)
 	{
-		write_args args;
-		args.cap = * dokan_file_info_to_cap(info);
 		args.offset = offset + *number_of_bytes_written;
 		args.data.buf = (char *) buffer + *number_of_bytes_written;
 		args.data.len = number_of_bytes_to_write;
@@ -728,7 +728,7 @@ static int DOKAN_CALLBACK inner_dokan_get_file_information (
 {
 	TRACE("");
 
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 
 	int32_t rv;
@@ -950,7 +950,7 @@ static int DOKAN_CALLBACK inner_dokan_set_file_time (
 	filetime_to_zfstime(&args.attr.mtime, creation_time);
 
 	int rv;
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 	char * path = xmalloc((path_len + 1) * sizeof(char));
 
@@ -1013,7 +1013,7 @@ static int DOKAN_CALLBACK inner_dokan_delete_file (
 	LPCWSTR file_name,
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 	int32_t rv;
 	char * unix_path = xmalloc(sizeof(char) * (path_len + 1));
@@ -1084,7 +1084,7 @@ static int DOKAN_CALLBACK inner_dokan_delete_directory (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	size_t path_len = wcslen(file_name);
+	size_t path_len = wcslen_in_utf8(file_name);
 	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 
 	int rv;
@@ -1137,9 +1137,9 @@ static int DOKAN_CALLBACK inner_dokan_move_file (
 	BOOL replace_existing,	// ReplaceExisiting
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	size_t existing_path_len = wcslen(existing_file_name);
+	size_t existing_path_len = wcslen_in_utf8(existing_file_name);
 	if (existing_path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-	size_t new_path_len = wcslen(new_file_name);
+	size_t new_path_len = wcslen_in_utf8(new_file_name);
 	if (new_path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 
 	int rv;

@@ -54,6 +54,25 @@ static wchar_t *xwcsdup(const wchar_t *s)
 	return r;
 }
 
+/*! same as wcslen, but returns length after utf8 conversion */
+size_t  wcslen_in_utf8(const wchar_t * wstr)
+{
+	size_t wstr_len = wcslen(wstr);
+	int rv = WideCharToMultiByte(
+			CP_UTF8,
+			0,
+			wstr,
+			wstr_len,
+			NULL,
+			0,
+			NULL,
+			NULL);
+
+	return (size_t) rv;
+
+}
+
+
 static int windows_to_unix_path_no_const(LPWSTR win_path, char * unix_path, size_t unix_path_len)
 {
 	if (unix_path_len <= 1)

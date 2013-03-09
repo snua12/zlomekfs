@@ -66,6 +66,8 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename);
 
 int windows_to_unix_path(LPCWSTR win_path, char * unix_path, size_t unix_path_len);
 
+size_t  wcslen_in_utf8(const wchar_t * wstr);
+
 #ifdef __cplusplus
 }
 #endif 

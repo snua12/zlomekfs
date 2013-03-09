@@ -69,7 +69,9 @@ static bool internal_cap_compute_verify(internal_cap cap)
 	MD5Final((unsigned char *)cap->local_cap.verify, &ctx);
 
 	message(LOG_DEBUG, FACILITY_DATA, "Created verify\n");
+#ifdef ENABLE_DEBUG_PRINT
 	print_hex_buffer(LOG_DATA, NULL, cap->local_cap.verify, ZFS_VERIFY_LEN);
+#endif
 
 	RETURN_BOOL(true);
 }
@@ -83,10 +85,12 @@ static int32_t verify_capability(zfs_cap * cap, internal_cap icap)
 	if (memcmp(cap->verify, icap->local_cap.verify, ZFS_VERIFY_LEN) == 0)
 		RETURN_INT(ZFS_OK);
 
+#ifdef ENABLE_DEBUG_PRINT
 	message(LOG_DEBUG, FACILITY_DATA, "Using verify\n");
 	print_hex_buffer(LOG_DATA, NULL, cap->verify, ZFS_VERIFY_LEN);
 	message(LOG_DEBUG, FACILITY_DATA, "It should be\n");
 	print_hex_buffer(LOG_DATA, NULL, icap->local_cap.verify, ZFS_VERIFY_LEN);
+#endif
 
 	RETURN_INT(EBADF);
 }

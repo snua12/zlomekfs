@@ -76,9 +76,11 @@ again:
 		}
 	}
 
+#ifdef ENABLE_DEBUG_PRINT
 	message(LOG_DEBUG, FACILITY_DATA,
 			"Reading data of length %u from %d to %p:\n", len, fd, buf);
 	print_hex_buffer(LOG_DATA, NULL, (char *)buf, len);
+#endif
 
 	return true;
 }
@@ -90,9 +92,11 @@ bool full_write(int fd, void *buf, size_t len)
 	ssize_t w;
 	unsigned int total_written;
 
+#ifdef ENABLE_DEBUG_PRINT
 	message(LOG_DEBUG, FACILITY_DATA,
 			"Writing data of length %u to %d from %p:\n", len, fd, buf);
 	print_hex_buffer(LOG_DATA, NULL, (char *)buf, len);
+#endif
 
 	for (total_written = 0; total_written < len; total_written += w)
 	{
