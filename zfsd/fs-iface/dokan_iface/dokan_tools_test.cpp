@@ -87,6 +87,8 @@ TEST(dokan_tool_test, windows_to_unix_path)
 	char red_zone[] = "r3dz0n3";
 	const WCHAR win_path[] = L"\\a\\b\\c\\d\\e";
 	const size_t win_path_len =  sizeof(win_path) / sizeof(win_path[0]);
+	const WCHAR win_path_cz[] = L"\\ěščřžýáíé";
+	const size_t win_path_cz_len = sizeof(win_path_cz) /  sizeof(win_path_cz[0]);
 
 	// append redzone
 	strcpy(unix_path + win_path_len, red_zone);
@@ -117,6 +119,10 @@ TEST(dokan_tool_test, windows_to_unix_path)
 	// redzone check
 	ASSERT_STREQ(red_zone, unix_path + win_path_len - 1);
 	ASSERT_EQ(ENAMETOOLONG, rv);
+
+	// cz path check
+	rv = windows_to_unix_path(win_path_cz, unix_path, sizeof(unix_path));
+	ASSERT_EQ(0, rv);
 }
 
 /*! \brief test for basename and dirname  */

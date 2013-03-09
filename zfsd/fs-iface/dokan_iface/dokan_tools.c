@@ -36,98 +36,109 @@
 
 
 /*! \brief constant for windows directory delimiter */
-static const wchar_t windows_dir_delimiter[] = L"\\";
+static const char windows_dir_delimiter[] = "\\";
 
 /*! \brief constant for unix directory delimiter */
 static const char unix_dir_delimiter[] = "/";
 static const size_t unix_dir_delimiter_len = (sizeof(unix_dir_delimiter) / sizeof(unix_dir_delimiter[0])) - 1;
-
-/*! Similar to wcsdup but always returns valid pointer.  */
-static wchar_t *xwcsdup(const wchar_t *s) 
-{
-	wchar_t *r = wcsdup(s);
-	if (!r)
-	{   
-		message(LOG_ALERT, FACILITY_MEMORY, "Not enough memory.\n");
-		zfsd_abort();
-	}   
-	return r;
-}
-
-static int windows_to_unix_path_no_const(LPWSTR win_path, char * unix_path, size_t unix_path_len)
-{
-	if (unix_path_len <= 1)
-	{
-		return ENAMETOOLONG;
-	}
-	
-	// space for terminating \0
-	unix_path_len -= 1;
-
-	char * unix_path_ptr = unix_path;
-	*unix_path_ptr = 0;
-	(void) strcat(unix_path_ptr, unix_dir_delimiter);
-
-	wchar_t * ctx;
-	wchar_t * tok;
-
-	for (tok = wcstok(win_path, windows_dir_delimiter, &ctx);
-		tok != NULL;
-		tok = wcstok(NULL, windows_dir_delimiter, &ctx))
-	{
-		size_t tok_len = wcslen(tok);
-		if (tok_len == 0)
-		{
-			continue;
-		}
-
-		// how many char will be used in output unix_path string
-		size_t unix_path_used = ((size_t) (unix_path_ptr - unix_path)) + tok_len + unix_dir_delimiter_len;
-
-		if ((unix_path_len) < unix_path_used)
-		{
-			return ENAMETOOLONG;
-		}
-		
-		// add unix directory delimiter
-		(void) strcat(unix_path_ptr, unix_dir_delimiter);
-		unix_path_ptr += unix_dir_delimiter_len;	
-
-		int rv = WideCharToMultiByte(
-				CP_UTF8,
-				0,
-				tok,
-				tok_len,
-				unix_path_ptr,
-				(unix_path_len) - (unix_path_ptr - unix_path),	// free char in output unix_path_string
-				NULL,
-				NULL);
-
-		// something goes wrong during conversion from UNICODE to UTF8
-		if (rv == 0)
-		{
-			*unix_path_ptr = 0;
-			return ENAMETOOLONG;
-		}
-
-		if (rv > ZFS_MAXNAMELEN) return ENAMETOOLONG;
-		unix_path_ptr += rv;
-		*unix_path_ptr = '\0';
-	}
-
-	return ZFS_OK;
-}
 
 /*! \brief converts windows path to unix path
  *
  */
 int windows_to_unix_path(LPCWSTR win_path, char * unix_path, size_t unix_path_len)
 {
-	LPWSTR win_path_dup = xwcsdup(win_path);
-	int rv = windows_to_unix_path_no_const(win_path_dup, unix_path, unix_path_len);
-	xfree(win_path_dup);
+	/* shortest pash is /\0, eg 2 bytes */
+	if (unix_path_len <= unix_dir_delimiter_len)
+	{
+		return ENAMETOOLONG;
+	}
+
+	size_t win_path_len = wcslen(win_path);
+	/*gets path length in bytes encoded in UTF8*/
+	int need_bytes = WideCharToMultiByte(
+				CP_UTF8,
+				0,
+				win_path,
+				win_path_len,
+				NULL,
+				0,
+				NULL,
+				NULL);
+
+	if (need_bytes <= 0)
+	{
+		return EINVAL;
+	}
+
+	if (unix_path_len <= (size_t) need_bytes)
+	{
+		return ENAMETOOLONG;
+	}
+
+	char * win_path_utf8 = xmalloc(need_bytes + 1); // for bytes and for terminating \0
+	/*converts path from utf16 to utf8*/
+	(void) WideCharToMultiByte(
+			CP_UTF8,
+			0,
+			win_path,
+			win_path_len,
+			win_path_utf8,
+			need_bytes,
+			NULL,
+			NULL);
+	// WideCharToMultiByte does not termitane string, terminate it there
+	win_path_utf8[need_bytes] = 0;
+
+	char * unix_path_ptr = unix_path;
+	size_t unix_path_free_bytes = unix_path_len;
+
+	// initialize output string with directory delimiter
+	*unix_path_ptr = 0;
+
+	char * ctx;
+	char * tok;
+
+	int rv = ZFS_OK;
+	/*converts windows directory delimiters to unix delimiters*/
+	for (tok = strtok_r(win_path_utf8, windows_dir_delimiter, &ctx);
+		tok != NULL;
+		tok = strtok_r(NULL, windows_dir_delimiter, &ctx))
+	{
+		size_t tok_len = strlen(tok);
+		if (tok_len == 0) continue;
+		if (tok_len >= ZFS_MAXNAMELEN)
+		{
+			rv = ENAMETOOLONG;
+			break;
+		}
+
+		if (tok_len + unix_dir_delimiter_len >= unix_path_free_bytes)
+		{
+			rv = ENAMETOOLONG;
+			break;
+		}
+
+		// append path delimiter
+		(void) strcat(unix_path_ptr, unix_dir_delimiter);
+		unix_path_ptr += unix_dir_delimiter_len;	
+		unix_path_free_bytes -= unix_dir_delimiter_len;	
+
+		// append directory name
+		(void) strcat(unix_path_ptr, tok);
+		unix_path_ptr += tok_len;
+		unix_path_free_bytes -= tok_len;
+	}
+
+	xfree(win_path_utf8);
+
+	if (unix_path[0] == 0)
+	{
+		(void) strcat(unix_path, unix_dir_delimiter);
+	}
+
 	return rv;
 }
+
 
 /*! \brief converts errors from zlomekFS to win32api errors 
  *
@@ -347,7 +358,7 @@ static DWORD ftype_to_file_attrs(ftype type)
 		case FT_SOCK:
 		case FT_FIFO:
 		default:
-			return FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_READONLY;
+			return FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_HIDDEN;
 	}
 }
 
@@ -457,7 +468,7 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	size_t ino_str_len = strlen(ino_str);
 
 	// get tile extension if there is any
-	char file_ext[ZFS_MAXNAMELEN + 1] = "";
+	char file_ext[ZFS_MAXNAMELEN] = "";
 	char * file_ext_p = strchr(entry->name.str, '.');
 	if  (file_ext_p != NULL)
 	{
@@ -469,7 +480,7 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	size_t file_ext_len = strlen(file_ext);
 
 	// get filename
-	char file_name[ZFS_MAXNAMELEN + 1] = "";
+	char file_name[ZFS_MAXNAMELEN] = "";
 	size_t file_name_len = file_ext_len + ino_str_len;
 	if (file_name_len < 12)
 	{
@@ -479,7 +490,7 @@ void unix_to_alternative_filename(dir_entry * entry, LPWSTR windows_filename)
 	}
 
 	// merge together (file_name hex_inode file_extension)
-	char file_name_final[ZFS_MAXNAMELEN + 1] = "";
+	char file_name_final[ZFS_MAXNAMELEN] = "";
 	snprintf(file_name_final, sizeof(file_name_final), "%s%s%s",
 		file_name, ino_str, file_ext);
 

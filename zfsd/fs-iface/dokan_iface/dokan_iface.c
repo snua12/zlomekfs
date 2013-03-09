@@ -84,7 +84,7 @@ DOKAN_OPTIONS zfs_dokan_options =
 	pthread_setspecific(thread_name_key, "Dokan worker thread"); \
 	\
 	lock_info * li = xmalloc(sizeof(lock_info) * MAX_LOCKED_FILE_HANDLES); \
-	set_lock_info(li); \
+	set_lock_info(li); 
 
 /*! \brief cleanup thread specific values required by other parts of zlomekFS code
  *
@@ -92,7 +92,21 @@ DOKAN_OPTIONS zfs_dokan_options =
  */
 #define DOKAN_CLEAN_THREAD_SPECIFIC \
 	dc_destroy(ctx.dc_call); \
-	xfree(li); \
+	xfree(li);
+
+#define DOKAN_CHECK_PATH_LIMIT(a) ((a) < ZFS_MAXPATHLEN)
+
+#define DOKAN_CONVERT_PATH_TO_UNIX_BEGIN \
+	size_t path_len = wcslen(file_name); \
+	if (!DOKAN_CHECK_PATH_LIMIT(path_len)) return zfs_err_to_dokan_err(ENAMETOOLONG);\
+	char * unix_path = xmalloc(sizeof(char) * (ZFS_MAXPATHLEN + 1));\
+	rv = windows_to_unix_path(file_name, unix_path, ZFS_MAXPATHLEN + 1); \
+	if (rv != ZFS_OK) rv = zfs_err_to_dokan_err(rv);
+
+
+
+#define DOKAN_CONVERT_PATH_TO_UNIX_END \
+	if (unix_path != NULL) xfree(unix_path);
 
 /*! \brief find for given \p path filehandle
  *
@@ -123,22 +137,11 @@ static int32_t dokan_zfs_extended_lookup(dir_op_res * res, char *path)
  *  \return true file exitst
  *  \return ZFS_OK or ..
  */
-static int32_t zfs_file_exists(LPCWSTR file_name)
-{
-	size_t path_len = wcslen(file_name);
-	if (path_len > ZFS_MAXPATHLEN) return ENAMETOOLONG;
-	char * path = xmalloc((path_len + 1) * sizeof(char));
-	int32_t rv = windows_to_unix_path(file_name, path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(path);
-		return rv;
-	}
 
+static int32_t zfs_file_exists(char * file_name)
+{
 	dir_op_res lres;
-	rv = dokan_zfs_extended_lookup(&lres, path);
-	xfree(path);
-	return rv;
+	return dokan_zfs_extended_lookup(&lres, file_name);
 }
 
 /*! \brief get the file size
@@ -215,15 +218,15 @@ static int zfs_truncate_file(zfs_fh * fh)
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_create_file */
-static int  DOKAN_CALLBACK inner_dokan_create_file (
-	LPCWSTR file_name,      	// FileName
+static int  inner_dokan_create_file (
+	char * unix_path,      	// FileName
 	DWORD desired_access,        	// DesiredAccess
 	DWORD shared_mode,        	// ShareMode
 	DWORD creation_disposition,    // CreationDisposition
 	DWORD flags_and_attributes,    // FlagsAndAttributes
 	PDOKAN_FILE_INFO info)
 {
-	int rv = zfs_file_exists(file_name);
+	int rv = zfs_file_exists(unix_path);
 	if (rv == ENAMETOOLONG) return zfs_err_to_dokan_err(rv);
 	bool_t file_exists = (rv == ZFS_OK);
 
@@ -254,15 +257,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 		return -ERROR_FILE_NOT_FOUND;
 	}
 
-	size_t path_len = wcslen(file_name);
-	char * unix_path = xmalloc(sizeof(char) * (path_len + 1));
-	rv = windows_to_unix_path(file_name, unix_path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
 	char * path = "";
 	char * name = "";
 
@@ -282,7 +276,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	rv = dokan_zfs_extended_lookup(&lres, path);
 	if (rv != ZFS_OK)
 	{
-		xfree(unix_path);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -303,7 +296,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 		rv = zfs_open(&local_cap, &lres.file, flags); 
 		if (rv != ZFS_OK)
 		{
-			xfree(unix_path);
 			return zfs_err_to_dokan_err(rv);
 		}
 
@@ -314,11 +306,9 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 
 		if (creation_disposition == OPEN_ALWAYS || creation_disposition == CREATE_ALWAYS)
 		{
-			xfree(unix_path);
 			// form dokan.h   you should return ERROR_ALREADY_EXISTS(183) (not negative value)
 			return ERROR_ALREADY_EXISTS;
 		}
-		xfree(unix_path);
 		return -ERROR_SUCCESS;
 	}
 
@@ -341,7 +331,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	xfreestring(&args.where.name);
 	if (rv != ZFS_OK)
 	{
-		xfree(unix_path);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -351,7 +340,6 @@ static int  DOKAN_CALLBACK inner_dokan_create_file (
 	zfs_cap *cap = xmemdup(&cres.cap, sizeof(*cap));
 	cap_to_dokan_file_info(info, cap);
 
-	xfree(unix_path);
 	return -ERROR_SUCCESS;
 }
 
@@ -380,40 +368,40 @@ static int  DOKAN_CALLBACK zfs_dokan_create_file (
 	DWORD flags_and_attributes,    // FlagsAndAttributes
 	PDOKAN_FILE_INFO info)
 {
+	int rv = -ERROR_SUCCESS;
 
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_create_file(
-			file_name,
-			desired_access,
-			shared_mode,
-			creation_disposition,
-			flags_and_attributes,
-			info);
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_create_file(
+				unix_path,
+				desired_access,
+				shared_mode,
+				creation_disposition,
+				flags_and_attributes,
+				info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
+
 	return rv;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_open_directory */
-static int DOKAN_CALLBACK inner_dokan_open_directory (
-	LPCWSTR dir_name,			// FileName
+static int inner_dokan_open_directory (
+	char * unix_path,	// FileName
 	PDOKAN_FILE_INFO info)
 {
 
 	int32_t rv;
-	size_t path_len = wcslen(dir_name);
-	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-
-	char * path = xmalloc((path_len + 1) * sizeof(char));
-	rv = windows_to_unix_path(dir_name, path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(path);
-		return zfs_err_to_dokan_err(rv);
-	}
 
 	dir_op_res lres;
-	rv = dokan_zfs_extended_lookup(&lres, path);
-	xfree(path);
+	rv = dokan_zfs_extended_lookup(&lres, unix_path);
 	if (rv != ZFS_OK)
 	{
 		return zfs_err_to_dokan_err(rv);
@@ -428,6 +416,7 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 
 	// set directory flag if file is directory
 	info->IsDirectory = TRUE;
+
 	// allocate memory for new capability
 	zfs_cap *cap = xmemdup(&local_cap, sizeof(*cap));
 	cap_to_dokan_file_info(info, cap);
@@ -437,34 +426,36 @@ static int DOKAN_CALLBACK inner_dokan_open_directory (
 
 /*! \brief implements function OpenDirectory from win32api */
 static int DOKAN_CALLBACK zfs_dokan_open_directory (
-	LPCWSTR dir_name,			// FileName
+	LPCWSTR file_name,			// FileName
 	PDOKAN_FILE_INFO info)
 {
+	int rv = -ERROR_SUCCESS;
+
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_open_directory(
-		dir_name,
-		info);
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_open_directory(
+			unix_path,
+			info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
+
 	return rv;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_create_directory */
-static int DOKAN_CALLBACK inner_dokan_create_directory (
-	ATTRIBUTE_UNUSED LPCWSTR file_name,			// FileName
+static int inner_dokan_create_directory (
+	char * unix_path,			// FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 
-	size_t path_len = wcslen(file_name);
-	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 	int rv;
-	char * unix_path = xmalloc((path_len + 1) * sizeof(char));
-	rv = windows_to_unix_path(file_name, unix_path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
 	char * name = basename(unix_path);
 	char * path = dirname(unix_path);
 
@@ -472,12 +463,10 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 	rv = dokan_zfs_extended_lookup(&lres, path);
 	if (rv != ZFS_OK)
 	{
-		xfree(unix_path);
 		return zfs_err_to_dokan_err(rv);
 	}
 
 	mkdir_args args;
-	xmkstring(&args.where.name, name);
 
 	args.where.dir = lres.file;
 	args.attr.mode = get_default_directory_mode();
@@ -485,9 +474,9 @@ static int DOKAN_CALLBACK inner_dokan_create_directory (
 	args.attr.gid = get_default_node_gid();
 
 	dir_op_res res;
+	xmkstring(&args.where.name, name);
 	rv = zfs_mkdir(&res, &args.where.dir, &args.where.name, &args.attr);
 	xfreestring(&args.where.name);
-	xfree(unix_path);
 	if (rv != ZFS_OK)
 	{
 		return zfs_err_to_dokan_err(rv);
@@ -502,22 +491,24 @@ static int DOKAN_CALLBACK zfs_dokan_create_directory (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,			// FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
+	int rv = -ERROR_SUCCESS;
+
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_create_directory(
-			file_name,
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_create_directory(
+			unix_path,
 			info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
+
 	return rv;
-}
-
-/*! \brief inner implementation of \ref zfs_dokan_cleanup */
-static int DOKAN_CALLBACK inner_dokan_cleanup (
-	ATTRIBUTE_UNUSED LPCWSTR file_name,      // FileName
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
-{
-	TRACE("");
-
-	return -ERROR_SUCCESS;
 }
 
 /*! \brief implements Cleanup from dokan interface 
@@ -525,19 +516,14 @@ static int DOKAN_CALLBACK inner_dokan_cleanup (
  * When FileInfo->DeleteOnClose is true, you must delete the file in Cleanup.
 */
 static int DOKAN_CALLBACK zfs_dokan_cleanup (
-	LPCWSTR file_name,      // FileName
-	PDOKAN_FILE_INFO info)
+	ATTRIBUTE_UNUSED LPCWSTR file_name,      // FileName
+	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_cleanup(
-			file_name,
-			info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
+	return -ERROR_SUCCESS;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_close_file */
-static int DOKAN_CALLBACK inner_dokan_close_file (
+static int inner_dokan_close_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,      // FileName
 	PDOKAN_FILE_INFO info)
 {
@@ -568,7 +554,7 @@ static int DOKAN_CALLBACK zfs_dokan_close_file (
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_read_file */
-static int DOKAN_CALLBACK inner_dokan_read_file (
+static int inner_dokan_read_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	LPVOID buffer,   // Buffer
 	DWORD number_of_bytes_to_read,    // NumberOfBytesToRead
@@ -641,7 +627,7 @@ static int DOKAN_CALLBACK zfs_dokan_read_file (
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_write_file */
-static int DOKAN_CALLBACK inner_dokan_write_file (
+static int inner_dokan_write_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	LPCVOID buffer,  // Buffer
 	DWORD number_of_bytes_to_write,    // NumberOfBytesToWrite
@@ -699,50 +685,24 @@ static int DOKAN_CALLBACK zfs_dokan_write_file (
 	return rv;
 }
 
-/*! \brief inner implementation of \ref zfs_dokan_flush_file_buffers */
-static int DOKAN_CALLBACK inner_dokan_flush_file_buffers (
+/*! \brief implements function FlushFileBuffers from win32api */
+static int DOKAN_CALLBACK zfs_dokan_flush_file_buffers (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 	return -ERROR_SUCCESS;
 }
 
-/*! \brief implements function FlushFileBuffers from win32api */
-static int DOKAN_CALLBACK zfs_dokan_flush_file_buffers (
-	LPCWSTR file_name, // FileName
-	PDOKAN_FILE_INFO info)
-{
-	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_flush_file_buffers(
-			file_name,
-			info);
-	DOKAN_CLEAN_THREAD_SPECIFIC
-	return rv;
-}
-
 /*! \brief inner implementation of \ref zfs_dokan_get_file_information */
-static int DOKAN_CALLBACK inner_dokan_get_file_information (
-	LPCWSTR file_name,          // FileName
+static int inner_dokan_get_file_information (
+	char * unix_path,          // FileName
 	LPBY_HANDLE_FILE_INFORMATION buffer, // Buffer
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
 	TRACE("");
 
-	size_t path_len = wcslen(file_name);
-	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-
-	int32_t rv;
-	char * path = xmalloc((path_len + 1) * sizeof(char));
-	rv = windows_to_unix_path(file_name, path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
 	dir_op_res lres;
-	rv = dokan_zfs_extended_lookup(&lres, path);
-	xfree(path);
+	int rv = dokan_zfs_extended_lookup(&lres, unix_path);
 	if (rv != ZFS_OK)
 	{
 		return zfs_err_to_dokan_err(rv);
@@ -770,19 +730,30 @@ static int DOKAN_CALLBACK zfs_dokan_get_file_information (
 	LPBY_HANDLE_FILE_INFORMATION buffer, // Buffer
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
+	int rv = -ERROR_SUCCESS;
 
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_get_file_information(
-			file_name,
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_get_file_information(
+			unix_path,
 			buffer,
 			info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
+
 	return rv;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_find_files */
-static int DOKAN_CALLBACK inner_dokan_find_files (
-	LPCWSTR path_name ATTRIBUTE_UNUSED,	// PathName
+static int inner_dokan_find_files (
+	ATTRIBUTE_UNUSED LPCWSTR path_name,	// PathName
 	PFillFindData fill_data,		// call this function with PWIN32_FIND_DATAW
 	PDOKAN_FILE_INFO info)  		//  (see PFillFindData definition)
 {
@@ -895,7 +866,7 @@ static int zfs_set_file_attributes(zfs_fh * fh, DWORD file_attributes, bool isDi
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_set_file_attributes */
-static int DOKAN_CALLBACK inner_dokan_set_file_attributes (
+static int inner_dokan_set_file_attributes (
 	ATTRIBUTE_UNUSED LPCWSTR file_name, // FileName
 	ATTRIBUTE_UNUSED DWORD file_attributes,   // FileAttributes
 	PDOKAN_FILE_INFO info)
@@ -926,8 +897,8 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_attributes (
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_set_file_time */
-static int DOKAN_CALLBACK inner_dokan_set_file_time (
-        LPCWSTR file_name,                // FileName
+static int inner_dokan_set_file_time (
+        char * unix_path,                // FileName
         CONST FILETIME* creation_time, // CreationTime
         CONST FILETIME* last_access_time, // LastAccessTime
         CONST FILETIME* last_write_time, // LastWriteTime
@@ -949,21 +920,8 @@ static int DOKAN_CALLBACK inner_dokan_set_file_time (
 	//FIXME: ctime cannot be set by zfs_setattr
 	filetime_to_zfstime(&args.attr.mtime, creation_time);
 
-	int rv;
-	size_t path_len = wcslen(file_name);
-	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-	char * path = xmalloc((path_len + 1) * sizeof(char));
-
-	rv = windows_to_unix_path(file_name, path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
 	dir_op_res lres;
-	rv = dokan_zfs_extended_lookup(&lres, path);
-	xfree(path);
+	int rv = dokan_zfs_extended_lookup(&lres, unix_path);
 	if (rv != ZFS_OK)
 	{
 		return zfs_err_to_dokan_err(rv);
@@ -993,37 +951,34 @@ static int DOKAN_CALLBACK zfs_dokan_set_file_time (
         CONST FILETIME* last_write_time, // LastWriteTime
         PDOKAN_FILE_INFO info)
 {
+	int rv = -ERROR_SUCCESS;
+
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_set_file_time(
-			file_name,
-			creation_time,
-			last_access_time,
-			last_write_time,
-			info);
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_set_file_time(
+				unix_path,
+				creation_time,
+				last_access_time,
+				last_write_time,
+				info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
 	return rv;
 }
 
-static int DOKAN_CALLBACK inner_dokan_delete_directory ( 
-	ATTRIBUTE_UNUSED LPCWSTR file_name,
-	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info);
-
 /*! \brief inner implementation of \ref zfs_dokan_delete_file */
-static int DOKAN_CALLBACK inner_dokan_delete_file (
-	LPCWSTR file_name,
+static int inner_dokan_delete_file (
+	char * unix_path,
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	size_t path_len = wcslen(file_name);
-	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
 	int32_t rv;
-	char * unix_path = xmalloc(sizeof(char) * (path_len + 1));
-	rv = windows_to_unix_path(file_name, unix_path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
 	int f_type = zfs_get_file_type(unix_path);
 
 	char * name = basename(unix_path);
@@ -1033,7 +988,6 @@ static int DOKAN_CALLBACK inner_dokan_delete_file (
 	rv = dokan_zfs_extended_lookup(&lres, path);
 	if (rv != ZFS_OK)
 	{
-		xfree(unix_path);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -1050,8 +1004,6 @@ static int DOKAN_CALLBACK inner_dokan_delete_file (
 		rv = zfs_unlink(&args.dir, &args.name);
 	}
 	xfreestring(&args.name);
-	xfree(unix_path);
-
 	return zfs_err_to_dokan_err(rv);
 }
 
@@ -1071,39 +1023,39 @@ static int DOKAN_CALLBACK zfs_dokan_delete_file (
 	LPCWSTR file_name,
 	PDOKAN_FILE_INFO info)
 {
+	int rv;
+
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_delete_file(
-			file_name,
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+	
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_delete_file(
+			unix_path,
 			info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
+
 	return rv;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_delete_directory */
-static int DOKAN_CALLBACK inner_dokan_delete_directory ( 
-	ATTRIBUTE_UNUSED LPCWSTR file_name,
+static int inner_dokan_delete_directory ( 
+	char * unix_path,
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	size_t path_len = wcslen(file_name);
-	if (path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-
-	int rv;
-	char * unix_path = xmalloc(sizeof(char) * (path_len + 1));
-	rv = windows_to_unix_path(file_name, unix_path, path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
+	
 	char * name = basename(unix_path);
 	char * path = dirname(unix_path);
 
 	dir_op_res lres;
-	rv = dokan_zfs_extended_lookup(&lres, path);
+	int rv = dokan_zfs_extended_lookup(&lres, path);
 	if (rv != ZFS_OK)
 	{
-		xfree(unix_path);
 		return zfs_err_to_dokan_err(rv);
 	}
 
@@ -1112,7 +1064,6 @@ static int DOKAN_CALLBACK inner_dokan_delete_directory (
 	xmkstring(&args.name, name);
 	rv = zfs_rmdir(&args.dir, &args.name);
 	xfreestring(&args.name);
-	xfree(unix_path);
 
 	return zfs_err_to_dokan_err(rv);
 }
@@ -1122,33 +1073,47 @@ static int DOKAN_CALLBACK zfs_dokan_delete_directory (
 	LPCWSTR file_name, // FileName
 	PDOKAN_FILE_INFO info)
 {
+	int rv = -ERROR_SUCCESS;
+
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_delete_directory(
-			file_name,
+
+	DOKAN_CONVERT_PATH_TO_UNIX_BEGIN
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_delete_directory(
+			unix_path,
 			info);
+	}
+
+	DOKAN_CONVERT_PATH_TO_UNIX_END
+
 	DOKAN_CLEAN_THREAD_SPECIFIC
 	return rv;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_move_file */
-static int DOKAN_CALLBACK inner_dokan_move_file (
-	LPCWSTR existing_file_name, // ExistingFileName
-	LPCWSTR new_file_name, // NewFileName
+static int inner_dokan_move_file (
+	char * existing_unix_path, // ExistingFileName
+	char * new_unix_path, // NewFileName
 	BOOL replace_existing,	// ReplaceExisiting
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
 {
-	size_t existing_path_len = wcslen(existing_file_name);
-	if (existing_path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-	size_t new_path_len = wcslen(new_file_name);
-	if (new_path_len > ZFS_MAXPATHLEN) return zfs_err_to_dokan_err(ENAMETOOLONG);
-
 	int rv;
-	char * existing_unix_path = xmalloc(sizeof(char) * (existing_path_len + 1));
-	rv = windows_to_unix_path(existing_file_name, existing_unix_path, existing_path_len + 1);
-	if (rv != ZFS_OK)
+
+	// chack if new file already exists
+	if (replace_existing == FALSE)
 	{
-		xfree(existing_unix_path);
-		return zfs_err_to_dokan_err(rv);
+		rv = zfs_file_exists(new_unix_path);
+		switch (rv)
+		{
+			case ZFS_OK:
+				break;
+			case ENAMETOOLONG:
+				return zfs_err_to_dokan_err(rv);
+			default:
+				return -ERROR_ALREADY_EXISTS;
+		}
 	}
 
 	char * existing_name = basename(existing_unix_path);
@@ -1156,51 +1121,19 @@ static int DOKAN_CALLBACK inner_dokan_move_file (
 
 	dir_op_res existing_lres;
  	rv = dokan_zfs_extended_lookup(&existing_lres, existing_path);
-	if (rv != ZFS_OK)
-	{
-		xfree(existing_unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
-
-	char * new_unix_path = xmalloc((sizeof(char) * (new_path_len + 1)));
-	rv = windows_to_unix_path(new_file_name, new_unix_path, new_path_len + 1);
-	if (rv != ZFS_OK)
-	{
-		xfree(existing_unix_path);
-		xfree(new_unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
+	if (rv != ZFS_OK) return zfs_err_to_dokan_err(rv);
 
 	char * new_name = basename(new_unix_path);
 	char * new_path = dirname(new_unix_path);
-	if (replace_existing == FALSE)
-	{
-		rv = zfs_file_exists(new_file_name);
-		if (rv != ZFS_OK)
-		{
-			xfree(existing_unix_path);
-			xfree(new_unix_path);
-			if (rv == ENAMETOOLONG) return zfs_err_to_dokan_err(rv);
-			return -ERROR_ALREADY_EXISTS;
-		}
-	}
 
 	dir_op_res new_lres;
  	rv = dokan_zfs_extended_lookup(&new_lres, new_path);
-	if (rv != ZFS_OK)
-	{
-		xfree(existing_unix_path);
-		xfree(new_unix_path);
-		return zfs_err_to_dokan_err(rv);
-	}
+	if (rv != ZFS_OK) return zfs_err_to_dokan_err(rv);
 
 	string s_existing_name;
 	xmkstring(&s_existing_name, existing_name);
 	string s_new_name;
 	xmkstring(&s_new_name, new_name);
-
-	xfree(existing_unix_path);
-	xfree(new_unix_path);
 
 	rv = zfs_rename(&existing_lres.file, &s_existing_name, &new_lres.file, &s_new_name);
 
@@ -1218,18 +1151,49 @@ static int DOKAN_CALLBACK zfs_dokan_move_file (
 	PDOKAN_FILE_INFO info)
 {
 	DOKAN_SET_THREAD_SPECIFIC
-	int rv = inner_dokan_move_file(
-			existing_file_name,
-			new_file_name,
+
+	int rv = -ERROR_SUCCESS;
+	char * existing_unix_path = NULL;
+	char * new_unix_path = NULL;
+	//char new_unix_path[ZFS_MAXPATHLEN];
+
+	/*checks filesystem limits*/
+	size_t existing_path_len = wcslen(existing_file_name);
+	if (!DOKAN_CHECK_PATH_LIMIT(existing_path_len)) return zfs_err_to_dokan_err(ENAMETOOLONG);
+
+	size_t new_path_len = wcslen(new_file_name);
+	if (!DOKAN_CHECK_PATH_LIMIT(new_path_len)) return zfs_err_to_dokan_err(ENAMETOOLONG);
+
+	existing_unix_path = xmalloc(sizeof(char) * (ZFS_MAXPATHLEN + 1));
+	rv = windows_to_unix_path(existing_file_name, existing_unix_path, ZFS_MAXPATHLEN + 1);
+	if (rv != ZFS_OK) rv = zfs_err_to_dokan_err(rv);
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		new_unix_path = xmalloc((sizeof(char) * (ZFS_MAXNAMELEN + 1)));
+		rv = windows_to_unix_path(new_file_name, new_unix_path, ZFS_MAXPATHLEN + 1);
+		if (rv != ZFS_OK) rv = zfs_err_to_dokan_err(rv);
+	}
+
+	if (rv == -ERROR_SUCCESS)
+	{
+		rv = inner_dokan_move_file(
+			existing_unix_path,
+			new_unix_path,
 			replace_existing,
 			info);
+	}
+
+
+	if (existing_unix_path != NULL) xfree(existing_unix_path);
+	if (new_unix_path != NULL) xfree(new_unix_path);
 
 	DOKAN_CLEAN_THREAD_SPECIFIC
 	return rv;
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_set_end_of_file */
-static int DOKAN_CALLBACK inner_dokan_set_end_of_file (
+static int inner_dokan_set_end_of_file (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	ATTRIBUTE_UNUSED LONGLONG length, // Length
 	ATTRIBUTE_UNUSED PDOKAN_FILE_INFO info)
@@ -1263,7 +1227,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_end_of_file (
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_set_allocation_size */
-static int DOKAN_CALLBACK inner_dokan_set_allocation_size (
+static int inner_dokan_set_allocation_size (
 	ATTRIBUTE_UNUSED LPCWSTR file_name,  // FileName
 	LONGLONG length, // Length
 	PDOKAN_FILE_INFO info)
@@ -1309,7 +1273,7 @@ static int DOKAN_CALLBACK zfs_dokan_set_allocation_size (
 }
 
 /*! \brief inner implementation of \ref zfs_dokan_get_volume_information */
-static int DOKAN_CALLBACK inner_dokan_get_volume_information (
+static int inner_dokan_get_volume_information (
 	LPWSTR volume_name_buffer, // VolumeNameBuffer
 	DWORD volume_name_size,	// VolumeNameSize in num of chars
 	LPDWORD volume_serial_number,// VolumeSerialNumber
