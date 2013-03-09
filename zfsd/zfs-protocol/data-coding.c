@@ -99,7 +99,7 @@ DC *dc_create(void)
 /*! Free the data coding buffer DC.  */
 void dc_destroy(DC * dc)
 {
-	free(dc);
+	xfree(dc);
 }
 
 /*! Print DC to file F. @see message */

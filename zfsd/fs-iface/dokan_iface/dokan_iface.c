@@ -651,10 +651,10 @@ static int DOKAN_CALLBACK inner_dokan_write_file (
 {
 
 	*number_of_bytes_written = 0;
+	write_args args;
+	args.cap = * dokan_file_info_to_cap(info);
 	while (number_of_bytes_to_write > 0)
 	{
-		write_args args;
-		args.cap = * dokan_file_info_to_cap(info);
 		args.offset = offset + *number_of_bytes_written;
 		args.data.buf = (char *) buffer + *number_of_bytes_written;
 		args.data.len = number_of_bytes_to_write;
