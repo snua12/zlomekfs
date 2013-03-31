@@ -1,4 +1,9 @@
-/*! \file \brief Memory management functions.  */
+/*! \file memory.c
+ *  \brief Memory management functions.
+ *
+ *  \author Josef Zlomek (initial experimental implementation)
+ *  \author Ales Snuparek (refactoring and partial rewrite)
+ */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 

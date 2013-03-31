@@ -9,6 +9,9 @@ if (CYGWIN)
 	set(CMAKE_LEGACY_CYGWIN_WIN32 1)
 endif()
 
+# enable pkg config support
+INCLUDE(${CMAKE_ROOT}/Modules/FindPkgConfig.cmake)
+
 #add our modules dir
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
@@ -38,6 +41,16 @@ option (ENABLE_CHECKING "Enable checking in ZFS daemon" OFF)
 option (ENABLE_DEBUG_PRINT "Enable printing data to log" OFF)
 option (ENABLE_MUTEX_LOCKED "Enable checking in mutex operations" OFF)
 option (ENABLE_DBUS "Enable dbus control in ZFS daemon" OFF)
+if (ENABLE_DBUS)
+	PKG_CHECK_MODULES(DBUS dbus-1)
+	if (DBUS_FOUND)
+		link_directories(${DBUS_LIBRARY_DIRS})
+		include_directories(${DBUS__INCLUDE_DIRS})
+	else()
+		message(FATAL_ERROR "Dbus not found")
+	endif()
+endif()
+
 option (ENABLE_CLI_CONSOLE "Enable zlomekFS command line console interface" OFF)
 option (ENABLE_CLI_TELNET "Enable zlomekFS command line telnet interface" OFF)
 if (ENABLE_CLI_CONSOLE OR ENABLE_CLI_TELNET)
@@ -162,8 +175,6 @@ endif(DOXYGEN_FOUND)
 
 # find libraries
 
-# enable pkg config support
-INCLUDE(${CMAKE_ROOT}/Modules/FindPkgConfig.cmake)
 
 if (ENABLE_FS_INTERFACE)
 #libfuse

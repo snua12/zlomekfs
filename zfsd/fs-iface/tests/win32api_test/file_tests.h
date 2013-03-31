@@ -1,5 +1,5 @@
 /*! \file win32api_test/file_tests.h
- *  \brief File tests
+ *  \brief File tests for Windows API
  *  \author Ales Snuparek
  */
 

@@ -40,7 +40,6 @@
  * - ENABLE_VERSIONS OFF|ON # enable or disable zlomekFS versioning support
  *
  * \section zlomekfs_macro_for_cond_build ZlomekFS macros for conditional build
- * - ENABLE_DBUS
  * - ENABLE_VERSIONS
  *  -ENABLE_CHECKING
  * - ENABLE_DBUS

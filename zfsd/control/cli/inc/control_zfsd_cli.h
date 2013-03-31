@@ -2,6 +2,7 @@
  *  \file control_zfsd_cli.h 
  * 
  *  \author Ales Snuparek
+ *  \brief CLI control interface inplementation
  *
  */
 
@@ -31,8 +32,10 @@ extern "C"
 {
 #endif
 
+//! starts CLI control interface
 void start_cli_control(void);
 
+//! stops CLI control interface
 void stop_cli_control(void);
 
 #ifdef __cplusplus

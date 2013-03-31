@@ -3,12 +3,6 @@
 # This file is part of ZFS build system.
 
 if (ENABLE_DBUS)
-# dbus
-PKG_CHECK_MODULES(DBUS dbus-1>=1.0)
-  if (NOT DBUS_FOUND EQUAL 1)
-    message(FATAL_ERROR "dbus not found")
-  endif()
-
   add_subdirectory(dbus)
   set(CONTROL_DBUS_LIBS controlDbus)
 endif (ENABLE_DBUS)
@@ -25,8 +19,11 @@ target_link_libraries(syplog_control_wrapper zfs_log)
 add_library(control ${BUILDTYPE} control.c)
 target_link_libraries(control ${CONTROL_DBUS_LIBS} zfs_log syplog_control_wrapper ${CONTROL_LIBS})
 
-add_executable(control_test control_test.c)
-target_link_libraries(control_test control)
+test_enabled(gtest result)
+if(NOT reqult EQUAL -1)
+	add_executable(control_test control_test.c)
+	target_link_libraries(control_test control)
+endif()
 
 install(
 TARGETS control syplog_control_wrapper

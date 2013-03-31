@@ -1,3 +1,10 @@
+/**
+ *  \file zfsd_args_shared.h
+ * 
+ *  \brief Implements shared functions for zfs_args_*.[ch] functions
+ *  \author Ales Snuparek
+ */
+
 #ifndef ZFSD_ARGS_SHARED_H
 #define ZFSD_ARGS_SHARED_H
 

@@ -1,3 +1,10 @@
+/*! 
+ *  \file linux_dirent.h
+ *  \brief  Wrapper for POSIX directory operation API for Android platform
+ *  \author Ales Snuparek based on Mike Shal <marfey@gmail.com>
+ *
+ */
+
 #include <dirent.h>
 
 #ifndef LINUX_DIRENT_H

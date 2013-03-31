@@ -21,12 +21,12 @@
 *
 * \section Documentation
 * \subsection for_users For users
-* \li ZlomekFS configuration: \ref configuration
-* \li ZlomekFS CLI: \ref zfs-cli
+* \li Configuration: \ref configuration
+* \li CLI: \ref zfs-cli
 *
 * \subsection for_developers For developers
 * \li Design overview: \ref zfs-design
 * \li Implementation overview: \ref zfs-implementation
 * \li Build options and targets overview: \ref zfs-build
-* \li ZlomekFS coding conventions: \ref coding-style
+* \li Coding conventions: \ref coding-style
 */

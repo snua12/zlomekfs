@@ -1,3 +1,10 @@
+/**
+ *  \file zfsd_args_nofuse.c
+ * 
+ *  \brief Implements command line parsing functions implementad without fuse_parse_cmdline
+ *  \author Ales Snuparek
+ */
+
 /*
  *! \file \brief daemon fuselike option parser
  */

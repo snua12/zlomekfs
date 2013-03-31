@@ -1,3 +1,10 @@
+/*! 
+ *  \file dir_test.c
+ *  \brief  Test for getdents implementation.
+ *  \author Ales Snuparek
+ *
+ */
+
 #include <stdio.h>
 #include "linux_dirent.h"
 

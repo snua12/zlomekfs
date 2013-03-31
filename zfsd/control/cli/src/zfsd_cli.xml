@@ -118,37 +118,4 @@ type
 	</keyword>
 </keyword>
 
-<!-- types -->
-
-<keyword string="enter">
-	<keyword string="string">
-		<param type="string" id="a-string">
-		<endl>
-			<cpp><out/> &lt;&lt; <value-of param="a-string"/> &lt;&lt; cli::endl;</cpp>
-		</endl>
-		</param>
-	</keyword>
-	<keyword string="int">
-		<param type="int" id="an-int">
-		<endl>
-			<cpp><out/> &lt;&lt; <value-of param="an-int"/> &lt;&lt; cli::endl;</cpp>
-		</endl>
-		</param>
-	</keyword>
-	<keyword string="float">
-		<param type="float" id="a-float">
-		<endl>
-			<cpp><out/> &lt;&lt; <value-of param="a-float"/> &lt;&lt; cli::endl;</cpp>
-		</endl>
-		</param>
-	</keyword>
-	<keyword string="host">
-		<param type="host" id="a-host">
-		<endl>
-			<cpp><out/> &lt;&lt; <value-of param="a-host"/> &lt;&lt; cli::endl;</cpp>
-		</endl>
-		</param>
-	</keyword>
-</keyword>
-
 </cli>

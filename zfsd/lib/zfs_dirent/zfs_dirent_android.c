@@ -1,6 +1,6 @@
 /*! 
- *  \file zfs_dirent.c
- *  \brief  Wrapper for POSIX directory operation API
+ *  \file zfs_dirent_android.c
+ *  \brief  Wrapper for POSIX directory operation API for Android platform
  *  \author Ales Snuparek based on Mike Shal <marfey@gmail.com>
  *
  */
@@ -51,10 +51,6 @@ static ZFS_DIR *zfs_fdopendir_nofd_dup(int fd)
 
 ZFS_DIR * zfs_fdopendir(int fd)
 {
-	//duplicate fd
-	//int dup_fd = dup(fd);
-	//if (dup_fd == -1) return NULL;
-
 	return zfs_fdopendir_nofd_dup(fd);
 }
 

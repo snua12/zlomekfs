@@ -29,22 +29,32 @@
 
 #ifdef __ANDROID__
 #include "linux/linux_dirent.h"
+/*! abstraction for DIR*/
 typedef LINUX_DIR ZFS_DIR;
 #else
+/*! abstraction for DIR*/
 typedef DIR ZFS_DIR;
 #endif
+
+/*! abstraction for dirent */
 typedef struct dirent zfs_dirent;
 
+/*! abstraction for fdopendir */
 ZFS_DIR *zfs_fdopendir(int fd);
 
+/*! abstraction for seekdir */
 void zfs_seekdir(ZFS_DIR *dirp, long loc);
 
+/*! abstraction for readdir_r */
 int zfs_readdir_r(ZFS_DIR * dirp, struct dirent * entry, struct dirent ** result);
 
+/*! abstraction for telldir */
 long zfs_telldir(ZFS_DIR *dirp);
 
+/*! abstraction for opendir */
 ZFS_DIR * zfs_opendir(const char *dirname);
 
+/*! abstraction for closedir */
 int zfs_closedir(ZFS_DIR *dirp);
 
 #endif

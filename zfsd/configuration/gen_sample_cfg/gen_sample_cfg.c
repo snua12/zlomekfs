@@ -1,7 +1,7 @@
 /**
  *  \file gen_sample_cfg.c
  * 
- *  \brief geterates sample local config form zlomekFS
+ *  \brief geterates sample local config for zlomekFS
  *  \author Ales Snuparek
  */
 

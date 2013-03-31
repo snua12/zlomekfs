@@ -1,5 +1,5 @@
 /*! 
- *  \file fs-iface.h
+ *  \file dummy_iface.h
  *  \brief Dummy interface between filesystem and OS.
  *  \author Ales Snuparek
  *

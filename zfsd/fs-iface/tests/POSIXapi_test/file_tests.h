@@ -1,5 +1,5 @@
 /*! \file POSIXapi_test/file_tests.h
- *  \brief File tests
+ *  \brief File tests for POSIX API
  *  \author Ales Snuparek
  */
 

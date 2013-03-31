@@ -2,6 +2,7 @@
  *  \file zfsd_cli_impl.h
  * 
  *  \author Ales Snuparek (based on Alexis Royer tutorial)
+ *  \brief Implementation of zlomekFS CLI interface
  *
  */
 

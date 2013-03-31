@@ -2,6 +2,7 @@
  *  \file control_test.c
  * 
  *  \author Ales Snuparek
+ *  \brief Test binary for control iface
  *
  */
 

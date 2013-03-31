@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include "control.h"
+#include "dbus-control.h"
 #include "errno.h"
 
 /** resolve address to struct in_addr

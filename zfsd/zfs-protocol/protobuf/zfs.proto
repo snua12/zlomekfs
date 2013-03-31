@@ -1,3 +1,7 @@
+//Proof of concept zlomekFS protocol implementation by Protocol Buffers
+//author: Ales Snuparek
+//binary format of this protocol is not compatible with zlomekFS original protocol
+
 package zlomekfs;
 
 enum ftype

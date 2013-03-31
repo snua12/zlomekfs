@@ -2,6 +2,7 @@
  *  \file control.c
  * 
  *  \author Ales Snuparek
+ *  \brief Support for zlomekFS control interface.
  *
  */
 

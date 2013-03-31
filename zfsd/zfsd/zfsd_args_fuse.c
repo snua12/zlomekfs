@@ -1,3 +1,11 @@
+/**
+ *  \file zfsd_args_fuse.c
+ * 
+ *  \brief Implements command line parsing functions implementad by fuse_parse_cmdline
+ *  \author Ales Snuparek
+ *  \author Miroslav Trmac
+ */
+
 /*
  *! \file \brief daemon option parser
  */
