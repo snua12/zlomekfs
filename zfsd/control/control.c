@@ -36,20 +36,26 @@
 #include "control_zfsd_cli.h"
 #endif
 
+/*! \brief Keeps configuration of forced connection speed. */
 typedef struct control_connection_def
 {
+	/*! is connection speed forced */
 	bool forced;
+	/*! forced connection speed */
 	connection_speed speed;
 } control_connection;
 
 #define CONTROL_CONNECTION_INITIALIZER { .forced = false, \
 	.speed = CONNECTION_SPEED_NONE }
 
+/*! \brief Structure for keeping control global configuration */
 typedef struct control_def
 {
+	/*! forced connection speed */
 	control_connection connection;
 } control;
 
+/*! \brief  Keeps control global configuration */
 static control zfs_control = {.connection = CONTROL_CONNECTION_INITIALIZER};
 
 /*! conversion table from enum connection_speed to string */

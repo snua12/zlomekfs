@@ -47,11 +47,11 @@ typedef struct zfs_config_versions_def
 	/*! Versions displayed in readdir.  */
 	bool verdisplay;
 
-	/* Age retention interval.  */
+	/*! Age retention interval.  */
 	int retention_age_min;
 	int retention_age_max;
 
-	/* Number of versions retention interval.  */
+	/*! Number of versions retention interval.  */
 	int retention_num_min;
 	int retention_num_max;
 } zfs_config_versions;

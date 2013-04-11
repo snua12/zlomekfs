@@ -1,3 +1,10 @@
+/**
+*  \file dirstream.h
+*
+*  \brief Reused from uClibc
+*  \author uClibc
+*/
+
 /* Copyright (C) 1991, 1992 Free Software Foundation, Inc.
 This file is part of the GNU C Library.
 

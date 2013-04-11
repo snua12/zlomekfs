@@ -1,3 +1,10 @@
+/**
+*  \file sysdep.h
+*
+*  \brief Reused from uClibc
+*  \author uClibc
+*/
+
 /* Generic asm macros used on many machines.
    Copyright (C) 1991,92,93,96,98,2002,2003 Free Software Foundation, Inc.
    This file is part of the GNU C Library.

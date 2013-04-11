@@ -5,7 +5,11 @@
 /** 
 *  @mainpage zlomekFS Documentation
 *
-* @authors Josef Zlomek
+* @authors Josef Zlomek (initial implementation in 2005)
+* @authors Miroslav Trmac (FUSE integration in 2007)
+* @authors Jiri Zouhar (logging, d-bus, regression testing in 2008)
+* @authors Rastislav Wartiak (versioning support in 2010)
+* @authors Ales Snuparek (configuration rewrite, build system rewrite,portability to Android and Windows in 2013)
 * @section intro Introduction
 *
 * Project Home Page: http://nenya.ms.mff.cuni.cz/~ceres/prj/zlomekFS
@@ -29,4 +33,6 @@
 * \li Implementation overview: \ref zfs-implementation
 * \li Build options and targets overview: \ref zfs-build
 * \li Coding conventions: \ref coding-style
+* \li Configuration: \ref zfs-configuration
+* \li Filesystem Interface: \ref fs-iface
 */

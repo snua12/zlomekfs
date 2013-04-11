@@ -1,3 +1,10 @@
+/**
+*  \file closedir.c
+*
+*  \brief Reused from uClibc
+*  \author uClibc
+*/
+
 /*
  * Copyright (C) 2000-2006 Erik Andersen <andersen@uclibc.org>
  *

@@ -18,15 +18,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 function(print_help)
 	message("")
 	message("Usage: cmake <path_to_source> <options>")
-	message("Available options:")
-	message("    -DCONFIGURATION=   - configuration type [Debug,Release], default: Debug")
-	message("        .. specifies default LIBS")
-	message("        .. also sets default CFLAGS")
-  message("    -DVERSION= - enable or disable zfs version, choices [0,1], default 1")
-  message("    -DDBUS= - enable or disable dbus interface, choices [0,1], default 1")
 	message("    -DCFLAGS=   - specify additional CFLAGS for build")
-	message("    -DPREFIX=   - installation prefix, default: $build/installed")
-	message("    -DTESTS=   - specify list of test groups to enable [all,gtest,unit], default: none")
 	message("")
 endfunction()
 
@@ -69,7 +61,7 @@ if (ENABLE_PROFILE)
 	set(CMAKE_EXE_FLAGS "${CMAKE_EXE_FLAGS} -pg")
 endif (ENABLE_PROFILE)
 
-option(ENABLE_UNIT_TESTS "Enable unit tests build")
+option(ENABLE_UNIT_TESTS "Enable unit tests build" OFF)
 
 ##############################################################
 ############## Build configurations
@@ -82,6 +74,7 @@ set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 ${CFLAGS}" CACHE string "Release CFLAGS" FORC
 
 set(BUILDTYPE STATIC)
 
+# Release build is default
 if (NOT CMAKE_BUILD_TYPE)
                 set(CMAKE_BUILD_TYPE  Release)
 endif()
@@ -122,27 +115,12 @@ string(REPLACE "," ";" TESTS "${TESTS}") #convert to semicolon delimiting
 set(TESTS_ENABLED "")
 
 if (ENABLE_UNIT_TESTS)
+	enable_test(unit)
 	enable_test(gtest)
 endif(ENABLE_UNIT_TESTS)
 
 # first check for "all" keyword
 list(FIND TESTS all ALLTESTS)
-
-if(NOT ALLTESTS EQUAL -1)
-	enable_test(unit)
-	enable_test(gtest)
-else()
-	foreach(i ${TESTS})
-		if(i STREQUAL utils OR i STREQUAL utils)  # group utils
-			enable_test(${i})
-		else()
-			message("Unknown test group: ${i}")
-			print_help()
-			message(FATAL_ERROR "Cannot proceed!")
-		endif()
-	endforeach()
-endif()
-
 
 ##############################################################
 ############## Doc part

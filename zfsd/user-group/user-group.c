@@ -35,6 +35,7 @@
 #include "node.h"
 #include "config_iface.h"
 
+/*! \brief Users and groups specific configuration */
 typedef struct zfs_config_users_groups_def
 {
 	/*! Tables of users and groups, searched by ID and by NAME.  */

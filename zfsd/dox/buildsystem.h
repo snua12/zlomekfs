@@ -23,8 +23,8 @@
  * - make sample_config # generate zlomekFS single node config in directory ${BUILD_DIR}/sample_config/single/
  * - make run_single # start zlomekFS with sample config
  * - make terminate_single # stop zlomekFS
- * - make fstest # run tests on zlomekFS http://www.tuxera.com/community/posix-test-suite/
- * - make test # run unit tests on zlomekFS
+ * - make run_fstest # run tests on zlomekFS http://www.tuxera.com/community/posix-test-suite/
+ * - make test # run unit tests on zlomekFS (unit tests can be enabled by cmake . -DENABLE_UNIT_TESTS=ON)
  *
  * \section zlomekfs_cmake_options ZlomekFS CMake options
  * - CMAKE_BUILD_TYPE Debug|Release
@@ -41,12 +41,18 @@
  *
  * \section zlomekfs_macro_for_cond_build ZlomekFS macros for conditional build
  * - ENABLE_VERSIONS
- *  -ENABLE_CHECKING
+ * - ENABLE_CHECKING
  * - ENABLE_DBUS
  * - ENABLE_CLI
  * - ENABLE_CLI_CONSOLE
  * - ENABLE_CLI_TELNET
  * - ENABLE_FS_INTERFACE
  * - ENABLE_HTTP_INTERFACE
+ *
+ * \section zlomekfs_platfrom_macro ZlomekFS macros for conditional build based on platfroms
+ * - __ANDROID__
+ * - __CYGWIN__
+ * - __APPLE__
+ * - __MACH__ 
  */
 

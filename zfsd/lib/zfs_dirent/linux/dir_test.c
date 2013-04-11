@@ -1,6 +1,6 @@
 /*! 
  *  \file dir_test.c
- *  \brief  Test for getdents implementation.
+ *  \brief  Test for getdents uClibc implementation.
  *  \author Ales Snuparek
  *
  */

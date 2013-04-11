@@ -1,4 +1,4 @@
-/*! \file \brief ZFS daemon.  */
+/*! \file zfsd.h \brief ZFS daemon main. */
 
 /* Copyright (C) 2003, 2004 Josef Zlomek
 

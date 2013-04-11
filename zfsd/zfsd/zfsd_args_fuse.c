@@ -24,9 +24,12 @@ enum
 	OPTION_VERSION,
 };
 
+/*! \brief Keeps zlomekFS command line configuration */
 struct zfs_opts
 {
+	 /*! Path to local configuration file.  */
 	char *config;
+	/* Command line forced loglevel */
 	int loglevel;
 };
 

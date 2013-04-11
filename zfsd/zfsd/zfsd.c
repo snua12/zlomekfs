@@ -1,5 +1,7 @@
-/* 
- *! \file \brief ZFS daemon.  
+/*! 
+ * \file zfsd.c \brief ZFS daemon main implementation.  
+ * \author Ales Snuparek
+ * \author Josef Zlomek
  */
 
 /* 
@@ -426,12 +428,17 @@ static void wait_for_pool_to_die(thread_pool * pool)
 	wait_for_thread_to_die(&pool->regulator_thread, NULL);
 }
 
+/*! \brief Keeps state of zlomekFS services */
 typedef struct zfs_started_services_def
 {
+	/*! fuse thread is running */
 	bool kernel_started;
+	/*! server thread is running */
 	bool network_started;
+	/*! update thread is running */
 	bool update_started;
 #if defined ENABLE_HTTP_INTERFACE
+	/*! http server is running */
 	bool http_started;
 #endif
 }
